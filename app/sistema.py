@@ -1863,7 +1863,7 @@ class SistemaCambioPremium:
                 try:
                     response = self.supabase.client.table('contas')\
                         .update({'saldo': saldo_novo})\
-                        .eq('numero', conta_cliente)\
+                        .eq('id', conta_cliente)\
                         .execute()
                     
                     if response.data:
