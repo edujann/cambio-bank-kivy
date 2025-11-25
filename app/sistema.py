@@ -1780,10 +1780,29 @@ class SistemaCambioPremium:
             self.contas_contabeis['receitas'][categoria][nome_conta][moeda] = 0.0
             print(f"✅ Conta receita criada: {categoria} -> {nome_conta} -> {moeda} = 0.00")
             
-            # Salvar no Supabase (se implementado)
+            # 🔥 CORREÇÃO: IMPLEMENTAR SALVAR NO SUPABASE
             if hasattr(self, 'supabase') and self.supabase.conectado:
-                # Implementar inserção no Supabase aqui
-                pass
+                try:
+                    dados_conta = {
+                        'nome': nome_conta,
+                        'categoria': categoria,
+                        'tipo': 'receita',
+                        'moeda': moeda,
+                        'saldo': 0.0
+                    }
+                    
+                    response = self.supabase.client.table('contas_contabeis').insert(dados_conta).execute()
+                    
+                    if response.data:
+                        print(f"💾 Conta receita salva no Supabase: {response.data[0]['id']}")
+                        return True
+                    else:
+                        print("❌ Erro ao salvar conta receita no Supabase")
+                        return False
+                        
+                except Exception as e:
+                    print(f"❌ Erro Supabase ao criar conta receita: {e}")
+                    return False
             
             return True
             
