@@ -197,7 +197,7 @@
     },
     "887160827": {
         "moeda": "BRL",
-        "saldo": 80000.0,
+        "saldo": 74592.9,
         "cliente": "apple",
         "cliente_nome": "APPLE LLC",
         "data_criacao": "2025-11-02"
@@ -253,21 +253,21 @@
     },
     "997642659": {
         "moeda": "USD",
-        "saldo": 50000.0,
+        "saldo": 51000.0,
         "cliente": "apple",
         "cliente_nome": "APPLE LLC",
         "data_criacao": "2025-11-02"
     },
-    "607906288": {
-        "moeda": "USD",
-        "saldo": 45000.0,
+    "802194129": {
+        "moeda": "BRL",
+        "saldo": 30234.04,
         "cliente": "pantanal",
         "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
         "data_criacao": "2025-11-18"
     },
-    "802194129": {
-        "moeda": "BRL",
-        "saldo": 35646.22,
+    "607906288": {
+        "moeda": "USD",
+        "saldo": 46000.0,
         "cliente": "pantanal",
         "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
         "data_criacao": "2025-11-18"

@@ -1198,8 +1198,8 @@ class TelaCotacoesAdmin(Screen):
             self.mostrar_erro("Valor de limite inválido! Use apenas números.")
 
     def salvar_todas_alteracoes(self, instance=None):
-        """Salva todas as alterações pendentes - COM DEBUG DE LIMITE"""
-        print("💾 SALVANDO TODAS AS ALTERAÇÕES...")
+        """Salva todas as alterações pendentes - AGORA COM SUPABASE"""
+        print("💾 SALVANDO TODAS AS ALTERAÇÕES NO SUPABASE...")
         
         if not self.cliente_selecionado:
             self.mostrar_erro("Nenhum cliente selecionado")
@@ -1211,74 +1211,56 @@ class TelaCotacoesAdmin(Screen):
             # 🔍 DEBUG ANTES DE SALVAR
             self.debug_limite(username, "ANTES de salvar")
             
-            # 1. 🔥 SALVAR HORÁRIO
-            self.salvar_horario_cliente()
+            # 1. 🔥 SALVAR HORÁRIO NO SUPABASE
+            self.salvar_horario_cliente_supabase()
             
-            # 2. 🔥 CORREÇÃO CRÍTICA: Salvar limite COM VALIDAÇÃO MELHOR
+            # 2. 🔥 SALVAR LIMITE NO SUPABASE
             try:
-                # 🔥 CORREÇÃO: Limpar o texto corretamente
                 limite_texto = self.input_limite.text.strip()
-                
-                # 🔥 CORREÇÃO: Remover caracteres não numéricos, mas manter ponto decimal
-                # Substituir vírgula por ponto para aceitar formato brasileiro
                 limite_texto = limite_texto.replace('R$', '').replace(' ', '').replace(',', '.')
                 
-                # 🔥 CORREÇÃO: Remover múltiplos pontos decimais
                 partes = limite_texto.split('.')
                 if len(partes) > 1:
-                    # Manter apenas um ponto decimal
                     limite_texto = partes[0] + '.' + ''.join(partes[1:])
                 
-                # 🔥 CORREÇÃO: Validar se é um número válido
                 if not limite_texto or not limite_texto.replace('.', '').isdigit():
-                    print("❌ Texto do limite não é um número válido")
-                    # Usar valor atual do sistema
                     limite = self.sistema.limites_operacionais.get(username, 10000.00)
                 else:
                     limite = float(limite_texto)
                 
-                # 🔥 VALIDAÇÃO FINAL DE VALOR
-                if limite < 0:
-                    self.mostrar_erro("Limite não pode ser negativo!")
-                    return
-                    
                 if limite > 100000:
-                    self.mostrar_erro("Limite muito alto! Máximo: US$ 100.000,00")
-                    # Usar valor padrão
                     limite = 10000.00
                 
-                # 🔥 CORREÇÃO: Só atualizar se for diferente do atual
-                limite_atual = self.sistema.limites_operacionais.get(username, 10000.00)
-                if abs(limite - limite_atual) > 0.01:  # Tolerância para float
-                    self.cliente_selecionado['limite_operacional'] = limite
+                # 🔥 SALVAR NO SUPABASE
+                sucesso = self.salvar_limite_supabase(username, limite)
+                if sucesso:
                     self.sistema.limites_operacionais[username] = limite
-                    print(f"✅ Limite salvo para {username}: R$ {limite:.2f}")
-                else:
-                    print(f"ℹ️  Limite não alterado para {username}: R$ {limite_atual:.2f}")
-                    
+                    print(f"✅ Limite salvo no Supabase: R$ {limite:.2f}")
+                
             except ValueError as e:
                 print(f"❌ Erro ao converter limite: {e}")
-                # Manter o valor atual em caso de erro
-                limite_atual = self.sistema.limites_operacionais.get(username, 10000.00)
-                self.input_limite.text = f"{limite_atual:.2f}"
-                print(f"🔄 Mantendo limite atual: R$ {limite_atual:.2f}")
                 
-            # 3. Salvar permissão
-            permissao_atual = self.sistema.permissoes_cambio.get(username, True)
-            if self.switch_liberado.active != permissao_atual:
-                self.cliente_selecionado['cambio_liberado'] = self.switch_liberado.active
-                self.sistema.permissoes_cambio[username] = self.switch_liberado.active
-                print(f"✅ Permissão salva para {username}: {self.switch_liberado.active}")
-            else:
-                print(f"ℹ️  Permissão não alterada para {username}")
+            # 3. 🔥 SALVAR PERMISSÃO NO SUPABASE
+            permissao = self.switch_liberado.active
+            sucesso = self.salvar_permissao_supabase(username, permissao)
+            if sucesso:
+                self.sistema.permissoes_cambio[username] = permissao
+                print(f"✅ Permissão salva no Supabase: {permissao}")
             
-            # 4. 🔥 CORREÇÃO: Spreads já são salvos individualmente
+            # 4. 🔥 SALVAR SPREADS NO SUPABASE
             spreads_configurados = len(self.cliente_selecionado['spreads'])
-            print(f"📊 {spreads_configurados} spreads configurados para {username}")
+            if spreads_configurados > 0:
+                sucesso = self.salvar_spreads_supabase(username, self.cliente_selecionado['spreads'])
+                if sucesso:
+                    print(f"✅ {spreads_configurados} spreads salvos no Supabase")
             
-            # 5. 🔥 SALVAR NO ARQUIVO
-            self.sistema.salvar_dados_cotacoes()
-            print("💾 Todas as alterações salvas com sucesso!")
+            # 5. 🔥🔥🔥 CORREÇÃO CRÍTICA: SALVAR TUDO NO SUPABASE
+            sucesso_geral = self.sistema.salvar_cotacoes_supabase()
+            
+            if sucesso_geral:
+                print("💾 TODAS AS ALTERAÇÕES SALVAS NO SUPABASE!")
+            else:
+                print("⚠️ Algumas alterações não foram salvas no Supabase")
             
             # 6. Resetar cores de alteração
             self.resetar_cores_alteracao()
@@ -1287,10 +1269,10 @@ class TelaCotacoesAdmin(Screen):
             self.debug_limite(username, "APÓS salvar")
             
             # 7. Mostrar confirmação
-            self.mostrar_sucesso("Todas as alterações foram salvas!")
+            self.mostrar_sucesso("Todas as alterações foram salvas no Supabase!")
             
         except Exception as e:
-            print(f"❌ Erro ao salvar alterações: {e}")
+            print(f"❌ Erro ao salvar alterações no Supabase: {e}")
             self.mostrar_erro(f"Erro ao salvar: {str(e)}")
 
     def salvar_horario_cliente(self):
@@ -1840,22 +1822,21 @@ class TelaCotacoesAdmin(Screen):
             print("   " + "="*50)
 
     def salvar_todas_alteracoes_silencioso(self):
-        """Salva todas as alterações sem mostrar popup - VERSÃO CORRIGIDA"""
-        print("🔍 SALVAMENTO SILENCIOSO: Iniciando...")
+        """Salva todas as alterações sem mostrar popup - VERSÃO SUPABASE"""
+        print("🔍 SALVAMENTO SILENCIOSO NO SUPABASE: Iniciando...")
         
         try:
             sistema = App.get_running_app().sistema
             
             # 1. SALVAR HORÁRIOS
             if self.cliente_selecionado and hasattr(self, 'switch_horario_personalizado'):
-                self.salvar_horario_cliente()
+                self.salvar_horario_cliente_supabase()
                 print("⏰ Horários salvos")
             
             # 2. 🔥 CORREÇÃO: Salvar limite COM VALIDAÇÃO
             if self.cliente_selecionado and hasattr(self, 'input_limite'):
                 username = self.cliente_selecionado['username']
                 try:
-                    # 🔥 MESMA LÓGICA DE LIMPEZA DO salvar_todas_alteracoes
                     limite_texto = self.input_limite.text.strip()
                     limite_texto = limite_texto.replace('R$', '').replace(' ', '').replace(',', '.')
                     
@@ -1864,15 +1845,13 @@ class TelaCotacoesAdmin(Screen):
                         limite_texto = partes[0] + '.' + ''.join(partes[1:])
                     
                     if not limite_texto or not limite_texto.replace('.', '').isdigit():
-                        print("❌ Texto do limite inválido no salvamento silencioso")
-                        # Usar valor atual
                         novo_limite = sistema.limites_operacionais.get(username, 10000.00)
                     else:
                         novo_limite = float(limite_texto)
                     
                     # Validar valor
                     if novo_limite > 100000:
-                        novo_limite = 10000.00  # Usar padrão se muito alto
+                        novo_limite = 10000.00
                     
                     # Só atualizar se for diferente
                     limite_atual = sistema.limites_operacionais.get(username, 10000.00)
@@ -1880,7 +1859,7 @@ class TelaCotacoesAdmin(Screen):
                         sistema.limites_operacionais[username] = novo_limite
                         print(f"✅ Limite salvo silenciosamente: R$ {novo_limite:.2f}")
                     else:
-                        print(f"ℹ️  Limite não alterado no salvamento silencioso")
+                        print(f"ℹ️ Limite não alterado no salvamento silencioso")
                         
                 except ValueError as e:
                     print(f"❌ Erro ao salvar limite silenciosamente: {e}")
@@ -1909,13 +1888,13 @@ class TelaCotacoesAdmin(Screen):
             
             print(f"📊 {spreads_salvos} spreads salvos silenciosamente")
             
-            # 5. SALVAR TUDO NO ARQUIVO
-            sucesso = sistema.salvar_dados_cotacoes()
+            # 5. 🔥🔥🔥 SALVAR TUDO NO SUPABASE
+            sucesso = sistema.salvar_cotacoes_supabase()
             if sucesso:
-                print("💾 Todos os dados salvos no arquivo (silencioso)")
+                print("💾 Todas as cotações salvas no Supabase (silencioso)")
                 self.resetar_cores_inputs()
             else:
-                print("⚠️ Falha ao salvar no arquivo (silencioso)")
+                print("⚠️ Falha ao salvar no Supabase (silencioso)")
                 
         except Exception as e:
             print(f"❌ Erro no salvamento silencioso: {e}")
@@ -2448,6 +2427,77 @@ class TelaCotacoesAdmin(Screen):
                 if parte in dias_nomes:
                     dias_selecionados.append(dias_nomes[parte])
             return dias_selecionados if dias_selecionados else [0, 1, 2, 3, 4]
+
+    def salvar_horario_cliente_supabase(self):
+        """Salva horário personalizado no Supabase"""
+        if not self.cliente_selecionado:
+            return
+            
+        username = self.cliente_selecionado['username']
+        
+        try:
+            sistema = App.get_running_app().sistema
+            
+            if self.switch_horario_personalizado.active:
+                # Salvar horário personalizado
+                dias_texto = self.input_dias.text.strip()
+                inicio = self.input_inicio.text.strip()
+                fim = self.input_fim.text.strip()
+                dias_semana = self.texto_para_dias_semana(dias_texto)
+                
+                if dias_semana and inicio and fim:
+                    horario_data = {
+                        'dias_semana': dias_semana,
+                        'inicio': inicio,
+                        'fim': fim
+                    }
+                    
+                    # 🔥 SALVAR NO SUPABASE
+                    sucesso = sistema.supabase.salvar_horario_cliente(username, horario_data)
+                    if sucesso:
+                        sistema.horarios_clientes[username] = horario_data
+                        print(f"✅ Horário salvo no Supabase: {dias_semana} das {inicio} às {fim}")
+                    
+            else:
+                # Remover horário personalizado
+                sucesso = sistema.supabase.salvar_horario_cliente(username, None)  # None para remover
+                if sucesso and username in sistema.horarios_clientes:
+                    del sistema.horarios_clientes[username]
+                    print(f"✅ Horário removido do Supabase")
+                    
+        except Exception as e:
+            print(f"❌ Erro ao salvar horário no Supabase: {e}")
+
+    def salvar_limite_supabase(self, username, limite):
+        """Salva limite operacional no Supabase"""
+        try:
+            sistema = App.get_running_app().sistema
+            return sistema.supabase.salvar_limite_operacional(username, limite)
+        except Exception as e:
+            print(f"❌ Erro ao salvar limite no Supabase: {e}")
+            return False
+
+    def salvar_permissao_supabase(self, username, permissao):
+        """Salva permissão de câmbio no Supabase"""
+        try:
+            sistema = App.get_running_app().sistema
+            return sistema.supabase.salvar_permissao_cambio(username, permissao)
+        except Exception as e:
+            print(f"❌ Erro ao salvar permissão no Supabase: {e}")
+            return False
+
+    def salvar_spreads_supabase(self, username, spreads):
+        """Salva spreads do cliente no Supabase"""
+        try:
+            sistema = App.get_running_app().sistema
+            return sistema.supabase.salvar_spreads_cliente(username, spreads)
+        except Exception as e:
+            print(f"❌ Erro ao salvar spreads no Supabase: {e}")
+            return False
+
+
+
+
 
     def debug_horarios(self, instance):
         """Método para debug dos horários"""

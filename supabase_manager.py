@@ -99,6 +99,227 @@ class SupabaseManager:
         except Exception as e:
             return False, f"Erro: {str(e)}"
 
+
+    # 👇 ADICIONAR ESTES MÉTODOS NO FINAL DA CLASSE SupabaseManager (dentro da classe)
+
+    def obter_config_cotacoes(self, tipo_config=None, cliente_username=None):
+        """Obtém configurações de cotações do Supabase"""
+        try:
+            query = self.client.table('config_cotacoes').select('*')
+            
+            # Filtrar por tipo de configuração se especificado
+            if tipo_config:
+                query = query.eq('tipo_config', tipo_config)
+            
+            # Filtrar por cliente se especificado
+            if cliente_username:
+                query = query.eq('cliente_username', cliente_username)
+            
+            response = query.execute()
+            
+            print(f"✅ {len(response.data)} configurações de cotações carregadas do Supabase")
+            return response.data
+            
+        except Exception as e:
+            print(f"❌ Erro ao obter configurações de cotações: {e}")
+            return []
+
+    def salvar_config_cotacoes(self, tipo_config, cliente_username, valor_config, par_moeda=None):
+        """Salva uma configuração de cotações no Supabase"""
+        try:
+            dados = {
+                'tipo_config': tipo_config,
+                'cliente_username': cliente_username,
+                'valor_config': valor_config,
+                'data_atualizacao': 'now()'
+            }
+            
+            if par_moeda:
+                dados['par_moeda'] = par_moeda
+            
+            # Verificar se já existe configuração para este tipo e cliente
+            existing = self.client.table('config_cotacoes')\
+                .select('id')\
+                .eq('tipo_config', tipo_config)\
+                .eq('cliente_username', cliente_username)\
+                .execute()
+            
+            if existing.data:
+                # Atualizar existente
+                response = self.client.table('config_cotacoes')\
+                    .update(dados)\
+                    .eq('id', existing.data[0]['id'])\
+                    .execute()
+                print(f"✅ Configuração {tipo_config} atualizada para {cliente_username}")
+            else:
+                # Criar nova
+                response = self.client.table('config_cotacoes')\
+                    .insert(dados)\
+                    .execute()
+                print(f"✅ Nova configuração {tipo_config} criada para {cliente_username}")
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Erro ao salvar configuração de cotações: {e}")
+            return False
+
+    def obter_spreads_clientes(self):
+        """Obtém todos os spreads dos clientes"""
+        try:
+            spreads_config = self.obter_config_cotacoes(tipo_config='spreads')
+            spreads_clientes = {}
+            
+            for config in spreads_config:
+                username = config['cliente_username']
+                spreads_clientes[username] = config['valor_config']
+            
+            print(f"✅ {len(spreads_clientes)} clientes com spreads carregados")
+            return spreads_clientes
+            
+        except Exception as e:
+            print(f"❌ Erro ao obter spreads: {e}")
+            return {}
+
+    def salvar_spreads_cliente(self, cliente_username, spreads):
+        """Salva spreads de um cliente específico"""
+        try:
+            return self.salvar_config_cotacoes(
+                tipo_config='spreads',
+                cliente_username=cliente_username,
+                valor_config=spreads
+            )
+        except Exception as e:
+            print(f"❌ Erro ao salvar spreads: {e}")
+            return False
+        
+    def obter_permissoes_cambio(self):
+        """Obtém todas as permissões de câmbio"""
+        try:
+            permissoes_config = self.obter_config_cotacoes(tipo_config='permissoes')
+            permissoes_cambio = {}
+            
+            for config in permissoes_config:
+                username = config['cliente_username']
+                permissoes_cambio[username] = config['valor_config']
+            
+            print(f"✅ {len(permissoes_cambio)} permissões de câmbio carregadas")
+            return permissoes_cambio
+            
+        except Exception as e:
+            print(f"❌ Erro ao obter permissões: {e}")
+            return {}
+
+    def salvar_permissao_cambio(self, cliente_username, permitido):
+        """Salva permissão de câmbio de um cliente"""
+        try:
+            return self.salvar_config_cotacoes(
+                tipo_config='permissoes',
+                cliente_username=cliente_username,
+                valor_config=permitido
+            )
+        except Exception as e:
+            print(f"❌ Erro ao salvar permissão: {e}")
+            return False
+
+    def obter_limites_operacionais(self):
+        """Obtém todos os limites operacionais"""
+        try:
+            limites_config = self.obter_config_cotacoes(tipo_config='limites')
+            limites_operacionais = {}
+            
+            for config in limites_config:
+                username = config['cliente_username']
+                limites_operacionais[username] = config['valor_config']
+            
+            print(f"✅ {len(limites_operacionais)} limites operacionais carregados")
+            return limites_operacionais
+            
+        except Exception as e:
+            print(f"❌ Erro ao obter limites: {e}")
+            return {}
+
+    def salvar_limite_operacional(self, cliente_username, limite):
+        """Salva limite operacional de um cliente"""
+        try:
+            return self.salvar_config_cotacoes(
+                tipo_config='limites',
+                cliente_username=cliente_username,
+                valor_config=limite
+            )
+        except Exception as e:
+            print(f"❌ Erro ao salvar limite: {e}")
+            return False
+
+    def obter_horarios_clientes(self):
+        """Obtém todos os horários personalizados dos clientes"""
+        try:
+            horarios_config = self.obter_config_cotacoes(tipo_config='horarios')
+            horarios_clientes = {}
+            
+            for config in horarios_config:
+                username = config['cliente_username']
+                horarios_clientes[username] = config['valor_config']
+            
+            print(f"✅ {len(horarios_clientes)} horários de clientes carregados")
+            return horarios_clientes
+            
+        except Exception as e:
+            print(f"❌ Erro ao obter horários: {e}")
+            return {}
+
+    def salvar_horario_cliente(self, cliente_username, horario_data):
+        """Salva horário personalizado de um cliente - aceita None para remover"""
+        try:
+            if horario_data is None:
+                # Remover horário - deletar registro
+                response = self.client.table('config_cotacoes')\
+                    .delete()\
+                    .eq('tipo_config', 'horarios')\
+                    .eq('cliente_username', cliente_username)\
+                    .execute()
+                print(f"✅ Horário removido do Supabase para {cliente_username}")
+                return True
+            else:
+                # Salvar horário
+                return self.salvar_config_cotacoes(
+                    tipo_config='horarios',
+                    cliente_username=cliente_username,
+                    valor_config=horario_data
+                )
+        except Exception as e:
+            print(f"❌ Erro ao salvar horário: {e}")
+            return False
+
+    def obter_horario_comercial_padrao(self):
+        """Obtém o horário comercial padrão"""
+        try:
+            horario_config = self.obter_config_cotacoes(tipo_config='horario_padrao')
+            
+            if horario_config:
+                return horario_config[0]['valor_config']
+            else:
+                print("ℹ️ Nenhum horário padrão encontrado, usando padrão do sistema")
+                return None
+                
+        except Exception as e:
+            print(f"❌ Erro ao obter horário padrão: {e}")
+            return None
+
+    def salvar_horario_comercial_padrao(self, horario_data):
+        """Salva o horário comercial padrão"""
+        try:
+            return self.salvar_config_cotacoes(
+                tipo_config='horario_padrao',
+                cliente_username='sistema',  # Usar 'sistema' para configurações globais
+                valor_config=horario_data
+            )
+        except Exception as e:
+            print(f"❌ Erro ao salvar horário padrão: {e}")
+            return False
+
+
+
 # Teste rápido
 if __name__ == "__main__":
     sb = SupabaseManager()

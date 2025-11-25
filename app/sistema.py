@@ -46,7 +46,7 @@ class SistemaCambioPremium:
         }
         
         # 🔥 DEPOIS: Inicializar configuracoes (que usa taxas_cambio)
-        self.configuracoes = self.configuracoes_padrao()  # 🔥 AGORA FUNCIONA
+        self.configuracoes = self.configuracoes_padrao()
         
         # 🔥 🔥 🔥 ESTRUTURA CONTÁBIL MULTI-MOEDA (SERÁ CARREGADA DO SUPABASE)
         self.contas_contabeis = {
@@ -66,26 +66,27 @@ class SistemaCambioPremium:
         }
 
         # 🔥 🔥 🔥 NOVO: INICIALIZAR CONTAS BANCÁRIAS COM SALDO ZERO
-        self.inicializar_contas_bancarias_empresa()  # 🔥 CHAMAR O NOVO MÉTODO
+        self.inicializar_contas_bancarias_empresa()
 
         # 🔥🔥🔥 MUDANÇA CRÍTICA: Carregar apenas dados ESSENCIAIS primeiro
-        self.carregar_dados_essenciais()  # 🔥 NOVO MÉTODO RÁPIDO
+        self.carregar_dados_essenciais()
         
         self.usuario_logado = None   
         
         # 🔥 NOVAS ESTRUTURAS PARA CÂMBIO - AGORA INICIALIZADAS APÓS carregar_dados()
-        self.spreads_clientes = {
-            'joao.silva': {
-                'USD_BRL': {'compra': 0.5, 'venda': 0.75},
-                'EUR_BRL': {'compra': 0.6, 'venda': 0.8},
-                'GBP_BRL': {'compra': 0.5, 'venda': 0.7},
-                'EUR_USD': {'compra': 0.4, 'venda': 0.6},
-                'GBP_USD': {'compra': 0.4, 'venda': 0.6}
-            }
+        self.spreads_clientes = {}  # ✅ INICIALIZA VAZIO - Supabase vai preencher
+        self.permissoes_cambio = {} # ✅ INICIALIZA VAZIO - Supabase vai preencher
+        self.limites_operacionais = {} # ✅ INICIALIZA VAZIO - Supabase vai preencher
+        self.horarios_clientes = {}  # 🔥 ADICIONAR ESTA LINHA
+        self.horario_comercial_padrao = {  # 🔥 ADICIONAR ESTA LINHA
+            'dias_semana': [0, 1, 2, 3, 4],
+            'inicio': '10:00',
+            'fim': '15:00',
+            'fuso_horario': 'America/Sao_Paulo'
         }
-    
+        
         # 🔥 ADICIONAR: Lock para sincronizar consultas
-        self.cotacao_lock = threading.Lock()  # ✅ AGORA funciona
+        self.cotacao_lock = threading.Lock()
         
         # Taxas padrão para novos clientes
         self.spread_padrao = 0.5
@@ -94,29 +95,15 @@ class SistemaCambioPremium:
         self.cotacoes_cache = {}
         self.ultima_atualizacao = None 
 
-        # 🔥 NOVAS ESTRUTURAS PARA CONTROLE DE COTAÇÕES
-        self.spreads_clientes = {
-            'joao.silva': {
-                'USD_BRL': {'compra': 0.5, 'venda': 0.75},
-                'EUR_BRL': {'compra': 0.6, 'venda': 0.8},
-                'GBP_BRL': {'compra': 0.5, 'venda': 0.7},
-                'EUR_USD': {'compra': 0.4, 'venda': 0.6},
-                'GBP_USD': {'compra': 0.4, 'venda': 0.6}
-            }
-        }
-        
-        self.permissoes_cambio = {
-            'joao.silva': True,
-            # Novos clientes serão True por padrão
-        }
-        
-        self.limites_operacionais = {
-            'joao.silva': 10000.00
-        }
-        
-        # Taxas padrão para novos clientes
-        self.spread_padrao = 0.5
+        # 🔥 VERIFICAR SE ESTÁ CHAMANDO O MÉTODO
+        print("🎯 INICIANDO CARREGAMENTO DE BENEFICIÁRIOS...")
+        self.carregar_beneficiarios()
+        print(f"🎯 BENEFICIÁRIOS CARREGADOS: {len(self.beneficiarios)} usuários")  
 
+        # 🔥 FORÇAR CARREGAMENTO DAS CONTAS CONTÁBEIS
+        print("🎯 INICIANDO CARREGAMENTO DAS CONTAS CONTÁBEIS...")
+        self.carregar_contas_contabeis_forcado()
+        
         # 🔥 MUDANÇA CRÍTICA: NÃO chamar carregar_dados() novamente aqui
         # self.carregar_dados()  # ← REMOVER ESTA LINHA
         
@@ -131,15 +118,6 @@ class SistemaCambioPremium:
         self.usuarios_nao_verificados = {}  # Usuários pendentes de verificação
         self.codigos_verificacao = {}       # Códigos temporários
         self.carregar_dados_hibrido()  # 🔥 NOVO MÉTODO
-
-        # 🔥 VERIFICAR SE ESTÁ CHAMANDO O MÉTODO
-        print("🎯 INICIANDO CARREGAMENTO DE BENEFICIÁRIOS...")
-        self.carregar_beneficiarios()  # Agora carrega do Supabase
-        print(f"🎯 BENEFICIÁRIOS CARREGADOS: {len(self.beneficiarios)} usuários")  
-
-        # 🔥 FORÇAR CARREGAMENTO DAS CONTAS CONTÁBEIS
-        print("🎯 INICIANDO CARREGAMENTO DAS CONTAS CONTÁBEIS...")
-        self.carregar_contas_contabeis_forcado() 
     
     def carregar_dados_essenciais(self):
         """Carrega apenas dados essenciais para login rápido"""
@@ -836,10 +814,16 @@ class SistemaCambioPremium:
             print(f"✅ {len(self.contas)} contas carregadas do arquivo JSON")
 
     def carregar_dados_cotacoes(self):
-        """Carrega dados de cotações do arquivo - COM DEBUG DETALHADO"""
+        """Carrega dados de cotações - PRIMEIRO Supabase, depois JSON fallback"""
         print("CARREGAR_DADOS_COTACOES CHAMADO!")
         
         try:
+            # 🔥 NOVO: Tentar carregar do Supabase primeiro
+            if hasattr(self, 'supabase') and self.supabase.conectado:
+                self.carregar_cotacoes_supabase()
+                return
+            
+            # 🔥 FALLBACK: Código original do JSON
             cotacoes_path = 'data/cotacoes_config.json'
             print(f"   Verificando arquivo: {cotacoes_path}")
             print(f"   Arquivo existe: {os.path.exists(cotacoes_path)}")
@@ -862,18 +846,13 @@ class SistemaCambioPremium:
             with open(cotacoes_path, 'r', encoding='utf-8') as f:
                 dados_cotacoes = json.load(f)
             
+            # ... (resto do código original permanece igual)
             # DEBUG DETALHADO DOS DADOS LIDOS
             print(f"   Dados lidos do arquivo:")
             print(f"      Spreads: {len(dados_cotacoes.get('spreads_clientes', {}))} clientes")
             print(f"      Permissões: {len(dados_cotacoes.get('permissoes_cambio', {}))} clientes")
             print(f"      Limites: {len(dados_cotacoes.get('limites_operacionais', {}))} clientes")
             print(f"      Horários: {len(dados_cotacoes.get('horarios_clientes', {}))} clientes")
-            print(f"      Clientes com horário: {list(dados_cotacoes.get('horarios_clientes', {}).keys())}")
-            
-            # 🔥 DEBUG ESPECÍFICO PARA HORÁRIOS
-            if 'horarios_clientes' in dados_cotacoes:
-                for cliente, horario in dados_cotacoes['horarios_clientes'].items():
-                    print(f"      👤 {cliente}: {horario.get('dias_semana', [])} {horario.get('inicio', '')}-{horario.get('fim', '')}")
             
             # ATRIBUIR DIRETAMENTE
             self.spreads_clientes = dados_cotacoes['spreads_clientes']
@@ -890,16 +869,7 @@ class SistemaCambioPremium:
             
             self.horarios_clientes = dados_cotacoes.get('horarios_clientes', {})
             
-            print(f"   Dados atribuídos à memória:")
-            print(f"      Horário padrão: {self.horario_comercial_padrao['inicio']} às {self.horario_comercial_padrao['fim']}")
-            print(f"      {len(self.horarios_clientes)} clientes com horário personalizado")
-            print(f"      Clientes com horário na memória: {list(self.horarios_clientes.keys())}")
-            
-            # Mostrar detalhes dos spreads
-            for username, spreads in self.spreads_clientes.items():
-                print(f"      {username}: {len(spreads)} spreads")
-            
-            print("COTAÇÕES CARREGADAS COM SUCESSO!")
+            print("COTAÇÕES CARREGADAS DO JSON COM SUCESSO!")
             
         except Exception as e:
             print(f"ERRO CRÍTICO em carregar_dados_cotacoes: {e}")
@@ -3528,6 +3498,150 @@ class SistemaCambioPremium:
             import traceback
             traceback.print_exc()
             return False
+        
+
+
+
+    def carregar_cotacoes_supabase(self):
+        """Carrega dados de cotações do Supabase - mantém fallback para JSON"""
+        try:
+            if not hasattr(self, 'supabase') or not self.supabase.conectado:
+                print("ℹ️ Supabase não disponível, usando JSON local")
+                self.carregar_dados_cotacoes()  # Fallback para JSON
+                return
+            
+            print("🔄 Carregando cotações do Supabase...")
+            
+            # 🔥 GARANTIR QUE AS ESTRUTURAS EXISTEM
+            if not hasattr(self, 'spreads_clientes'):
+                self.spreads_clientes = {}
+            if not hasattr(self, 'permissoes_cambio'):
+                self.permissoes_cambio = {}
+            if not hasattr(self, 'limites_operacionais'):
+                self.limites_operacionais = {}
+            if not hasattr(self, 'horarios_clientes'):
+                self.horarios_clientes = {}
+            if not hasattr(self, 'horario_comercial_padrao'):
+                self.horario_comercial_padrao = {
+                    'dias_semana': [0, 1, 2, 3, 4],
+                    'inicio': '10:00',
+                    'fim': '15:00',
+                    'fuso_horario': 'America/Sao_Paulo'
+                }
+            
+            # 1. Carregar spreads
+            spreads = self.supabase.obter_spreads_clientes()
+            if spreads:
+                self.spreads_clientes = spreads
+                print(f"✅ {len(spreads)} clientes com spreads carregados do Supabase")
+            else:
+                print("ℹ️ Nenhum spread encontrado no Supabase")
+            
+            # 2. Carregar permissões (pode estar vazio inicialmente)
+            permissoes = self.supabase.obter_permissoes_cambio()
+            if permissoes:
+                self.permissoes_cambio = permissoes
+                print(f"✅ {len(permissoes)} permissões carregadas do Supabase")
+            # Se não tiver permissões no Supabase, mantém as atuais (não limpa)
+            
+            # 3. Carregar limites (pode estar vazio inicialmente)
+            limites = self.supabase.obter_limites_operacionais()
+            if limites:
+                self.limites_operacionais = limites
+                print(f"✅ {len(limites)} limites carregados do Supabase")
+            # Se não tiver limites no Supabase, mantém os atuais
+            
+            # 4. Carregar horários clientes (pode estar vazio inicialmente)
+            horarios = self.supabase.obter_horarios_clientes()
+            if horarios:
+                self.horarios_clientes = horarios
+                print(f"✅ {len(horarios)} horários de clientes carregados do Supabase")
+            # Se não tiver horários no Supabase, mantém os atuais
+            
+            # 5. Carregar horário padrão
+            horario_padrao = self.supabase.obter_horario_comercial_padrao()
+            if horario_padrao:
+                self.horario_comercial_padrao = horario_padrao
+                print("✅ Horário padrão carregado do Supabase")
+            # Se não tiver horário padrão, mantém o atual
+            
+            print("🎯 Cotações carregadas do Supabase com sucesso!")
+            
+        except Exception as e:
+            print(f"❌ Erro ao carregar cotações do Supabase: {e}")
+            print("🔄 Fallback para JSON local...")
+            self.carregar_dados_cotacoes()  # Fallback
+
+    def salvar_cotacoes_supabase(self):
+        """Salva dados de cotações no Supabase - apenas se conectado"""
+        try:
+            if not hasattr(self, 'supabase') or not self.supabase.conectado:
+                print("ℹ️ Supabase não disponível, salvando apenas localmente")
+                return self.salvar_dados_cotacoes()  # Fallback para JSON
+            
+            print("💾 Salvando cotações no Supabase...")
+            sucesso_total = True
+            
+            # 1. Salvar spreads
+            for username, spreads in self.spreads_clientes.items():
+                sucesso = self.supabase.salvar_spreads_cliente(username, spreads)
+                if not sucesso:
+                    sucesso_total = False
+                    print(f"⚠️ Erro ao salvar spreads para {username}")
+                else:
+                    print(f"✅ Spreads salvos para {username}")
+            
+            # 2. Salvar permissões
+            for username, permitido in self.permissoes_cambio.items():
+                sucesso = self.supabase.salvar_permissao_cambio(username, permitido)
+                if not sucesso:
+                    sucesso_total = False
+                    print(f"⚠️ Erro ao salvar permissão para {username}")
+                else:
+                    print(f"✅ Permissão salva para {username}")
+            
+            # 3. Salvar limites
+            for username, limite in self.limites_operacionais.items():
+                sucesso = self.supabase.salvar_limite_operacional(username, limite)
+                if not sucesso:
+                    sucesso_total = False
+                    print(f"⚠️ Erro ao salvar limite para {username}")
+                else:
+                    print(f"✅ Limite salvo para {username}")
+            
+            # 4. Salvar horários clientes
+            for username, horario in self.horarios_clientes.items():
+                sucesso = self.supabase.salvar_horario_cliente(username, horario)
+                if not sucesso:
+                    sucesso_total = False
+                    print(f"⚠️ Erro ao salvar horário para {username}")
+                else:
+                    print(f"✅ Horário salvo para {username}")
+            
+            # 5. Salvar horário padrão (se existir)
+            if hasattr(self, 'horario_comercial_padrao'):
+                sucesso = self.supabase.salvar_horario_comercial_padrao(self.horario_comercial_padrao)
+                if sucesso:
+                    print("✅ Horário padrão salvo")
+            
+            if sucesso_total:
+                print("🎯 Todas as cotações salvas no Supabase!")
+            else:
+                print("⚠️ Algumas cotações não foram salvas no Supabase")
+            
+            # SEMPRE salva localmente também (backup)
+            self.salvar_dados_cotacoes()
+            return sucesso_total
+            
+        except Exception as e:
+            print(f"❌ Erro ao salvar cotações no Supabase: {e}")
+            print("🔄 Salvando apenas localmente...")
+            return self.salvar_dados_cotacoes()  # Fallback
+
+
+
+
+
 
     def debug_atributos_sistema(self):
         """Debug para verificar os atributos disponíveis no sistema"""
