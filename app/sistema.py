@@ -48,44 +48,10 @@ class SistemaCambioPremium:
         # 🔥 DEPOIS: Inicializar configuracoes (que usa taxas_cambio)
         self.configuracoes = self.configuracoes_padrao()  # 🔥 AGORA FUNCIONA
         
-        # 🔥 🔥 🔥 ADICIONAR ESTRUTURA CONTÁBIL AQUI
+        # 🔥 🔥 🔥 ESTRUTURA CONTÁBIL MULTI-MOEDA (SERÁ CARREGADA DO SUPABASE)
         self.contas_contabeis = {
-            'receitas': {
-                'RECEITAS DE SERVIÇOS': {
-                    'Wire Fee': {'saldo': 0.0, 'moeda': 'USD'},
-                    'Taxas Administrativas': {'saldo': 0.0, 'moeda': 'USD'},
-                    'Comissões de Câmbio': {'saldo': 0.0, 'moeda': 'USD'},
-                    'Tarifas Bancárias': {'saldo': 0.0, 'moeda': 'USD'}
-                },
-                'RECEITAS FINANCEIRAS': {
-                    'Rendimentos': {'saldo': 0.0, 'moeda': 'USD'},
-                    'Ganhos Cambiais': {'saldo': 0.0, 'moeda': 'USD'}
-                }
-            },
-            'despesas': {
-                'DESPESAS ADMINISTRATIVAS': {
-                    'Salários': {'saldo': 0.0, 'moeda': 'USD'},
-                    'Aluguel': {'saldo': 0.0, 'moeda': 'USD'},
-                    'Material de Escritório': {'saldo': 0.0, 'moeda': 'USD'},
-                    'Serviços Profissionais': {'saldo': 0.0, 'moeda': 'USD'}
-                },
-                'DESPESAS FINANCEIRAS': {
-                    'Juros Bancários': {'saldo': 0.0, 'moeda': 'USD'},
-                    'Tarifas Bancárias': {'saldo': 0.0, 'moeda': 'USD'},
-                    'Multas e Juros': {'saldo': 0.0, 'moeda': 'USD'}
-                },
-                'DESPESAS OPERACIONAIS': {
-                    'Internet e Telefonia': {'saldo': 0.0, 'moeda': 'USD'},
-                    'Energia e Água': {'saldo': 0.0, 'moeda': 'USD'},
-                    'Manutenção': {'saldo': 0.0, 'moeda': 'USD'}
-                },
-                'DESPESAS COMERCIAIS': {
-                    'Comissões de Vendas': {'saldo': 0.0, 'moeda': 'USD'},
-                    'Propaganda e Marketing': {'saldo': 0.0, 'moeda': 'USD'},
-                    'Viagens e Representação': {'saldo': 0.0, 'moeda': 'USD'},
-                    'Material de Propaganda': {'saldo': 0.0, 'moeda': 'USD'}
-                }
-            }
+            'receitas': {},
+            'despesas': {}
         }
         
         # CONTA DE AJUSTE DE SALDO
@@ -169,7 +135,11 @@ class SistemaCambioPremium:
         # 🔥 VERIFICAR SE ESTÁ CHAMANDO O MÉTODO
         print("🎯 INICIANDO CARREGAMENTO DE BENEFICIÁRIOS...")
         self.carregar_beneficiarios()  # Agora carrega do Supabase
-        print(f"🎯 BENEFICIÁRIOS CARREGADOS: {len(self.beneficiarios)} usuários")   
+        print(f"🎯 BENEFICIÁRIOS CARREGADOS: {len(self.beneficiarios)} usuários")  
+
+        # 🔥 FORÇAR CARREGAMENTO DAS CONTAS CONTÁBEIS
+        print("🎯 INICIANDO CARREGAMENTO DAS CONTAS CONTÁBEIS...")
+        self.carregar_contas_contabeis_forcado() 
     
     def carregar_dados_essenciais(self):
         """Carrega apenas dados essenciais para login rápido"""
@@ -256,7 +226,11 @@ class SistemaCambioPremium:
             # 4. Carregar configurações
             self.carregar_configuracoes_background()
             
+            # 🔥 ADICIONAR ESTA LINHA:
+            self.carregar_contas_contabeis()  # 🔥 CARREGAR CONTAS CONTÁBEIS
+            
             print("✅ Todos os dados carregados em background")
+
             
         except Exception as e:
             print(f"⚠️ Erro em background: {e}")
@@ -1787,76 +1761,121 @@ class SistemaCambioPremium:
         
         print("=== 🎯 FIM DEBUG ===")
 
-    def criar_conta_receita(self, categoria_pai, nome_conta, moeda='USD'):
-        """Cria nova conta de receita"""
-        if categoria_pai not in self.contas_contabeis['receitas']:
-            self.contas_contabeis['receitas'][categoria_pai] = {}
-        
-        self.contas_contabeis['receitas'][categoria_pai][nome_conta] = {
-            'saldo': 0.0, 
-            'moeda': moeda
-        }
-        self.salvar_contas_contabeis()
-
-    def criar_conta_despesa(self, categoria_pai, nome_conta, moeda='USD'):
-        """Cria nova conta de despesa"""
-        if categoria_pai not in self.contas_contabeis['despesas']:
-            self.contas_contabeis['despesas'][categoria_pai] = {}
-        
-        self.contas_contabeis['despesas'][categoria_pai][nome_conta] = {
-            'saldo': 0.0, 
-            'moeda': moeda
-        }
-        self.salvar_contas_contabeis()
-
-    def lancar_receita(self, conta_cliente, valor, conta_receita, categoria_receita, descricao):
-        """Registra um lançamento de receita - VERSÃO SUPABASE"""
+    def criar_conta_receita(self, categoria, nome_conta, moeda):
+        """Cria uma nova conta de receita na categoria especificada"""
         try:
-            print(f"🔍 SISTEMA - LANÇAR RECEITA (SUPABASE):")
+            # Verificar se a categoria existe
+            if categoria not in self.contas_contabeis['receitas']:
+                self.contas_contabeis['receitas'][categoria] = {}
+            
+            # Verificar se a conta já existe na moeda
+            if nome_conta in self.contas_contabeis['receitas'][categoria]:
+                if moeda in self.contas_contabeis['receitas'][categoria][nome_conta]:
+                    print(f"⚠️ Conta '{nome_conta}' já existe na moeda {moeda}")
+                    return False
+            else:
+                self.contas_contabeis['receitas'][categoria][nome_conta] = {}
+            
+            # Criar conta com saldo zero na moeda especificada
+            self.contas_contabeis['receitas'][categoria][nome_conta][moeda] = 0.0
+            print(f"✅ Conta receita criada: {categoria} -> {nome_conta} -> {moeda} = 0.00")
+            
+            # Salvar no Supabase (se implementado)
+            if hasattr(self, 'supabase') and self.supabase.conectado:
+                # Implementar inserção no Supabase aqui
+                pass
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Erro ao criar conta receita: {e}")
+            return False
+
+    def criar_conta_despesa(self, categoria, nome_conta, moeda):
+        """Cria uma nova conta de despesa na categoria especificada"""
+        try:
+            # Verificar se a categoria existe
+            if categoria not in self.contas_contabeis['despesas']:
+                self.contas_contabeis['despesas'][categoria] = {}
+            
+            # Verificar se a conta já existe na moeda
+            if nome_conta in self.contas_contabeis['despesas'][categoria]:
+                if moeda in self.contas_contabeis['despesas'][categoria][nome_conta]:
+                    print(f"⚠️ Conta '{nome_conta}' já existe na moeda {moeda}")
+                    return False
+            else:
+                self.contas_contabeis['despesas'][categoria][nome_conta] = {}
+            
+            # Criar conta com saldo zero na moeda especificada
+            self.contas_contabeis['despesas'][categoria][nome_conta][moeda] = 0.0
+            print(f"✅ Conta despesa criada: {categoria} -> {nome_conta} -> {moeda} = 0.00")
+            
+            # Salvar no Supabase (se implementado)
+            if hasattr(self, 'supabase') and self.supabase.conectado:
+                # Implementar inserção no Supabase aqui
+                pass
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Erro ao criar conta despesa: {e}")
+            return False
+
+    def lancar_receita(self, conta_cliente, valor, conta_receita, categoria_receita, descricao, moeda_receita=None):
+        """Registra um lançamento de receita - VERSÃO MULTI-MOEDA COMPATÍVEL"""
+        try:
+            print(f"🔍 SISTEMA - LANÇAR RECEITA (MULTI-MOEDA):")
             print(f"  Conta Cliente: {conta_cliente}")
             print(f"  Valor: {valor}")
             print(f"  Conta Receita: {conta_receita}")
             print(f"  Categoria: {categoria_receita}")
+            print(f"  Moeda Receita: {moeda_receita}")
             print(f"  Descrição: {descricao}")
             
             # Verificar se a conta do cliente existe
             if conta_cliente not in self.contas:
                 return False, "Conta do cliente não encontrada!"
             
-            # Verificar saldo suficiente (se for débito)
-            if self.contas[conta_cliente]['saldo'] < valor:
-                return False, f"Saldo insuficiente! Saldo atual: {self.contas[conta_cliente]['saldo']:,.2f}"
+            # 🔥 CORREÇÃO: Obter moeda da conta do cliente
+            moeda_cliente = self.contas[conta_cliente]['moeda']
             
-            # 🔥🔥🔥 CORREÇÃO CRÍTICA: Creditar na conta contábil de receita
+            # 🔥 CORREÇÃO: Se moeda_receita não foi passada, usar a moeda do cliente
+            if moeda_receita is None:
+                moeda_receita = moeda_cliente
+                print(f"⚠️  Moeda não especificada, usando moeda do cliente: {moeda_cliente}")
+            
+            # 🔥 CORREÇÃO: Validar consistência de moedas
+            if moeda_cliente != moeda_receita:
+                return False, f"Moeda inconsistente! Conta cliente: {moeda_cliente}, Receita: {moeda_receita}"
+            
+            # Verificar saldo suficiente
+            if self.contas[conta_cliente]['saldo'] < valor:
+                return False, f"Saldo insuficiente! Saldo atual: {self.contas[conta_cliente]['saldo']:,.2f} {moeda_cliente}"
+            
+            # 🔥🔥🔥 CORREÇÃO CRÍTICA: Creditar na conta contábil de receita NA MOEDA CORRETA
             if categoria_receita in self.contas_contabeis['receitas']:
                 if conta_receita in self.contas_contabeis['receitas'][categoria_receita]:
-                    # CREDITAR na conta contábil de receita
-                    saldo_anterior_receita = self.contas_contabeis['receitas'][categoria_receita][conta_receita]['saldo']
-                    self.contas_contabeis['receitas'][categoria_receita][conta_receita]['saldo'] += valor
-                    saldo_novo_receita = self.contas_contabeis['receitas'][categoria_receita][conta_receita]['saldo']
-                    
-                    print(f"💰 CONTA RECEITA (CRÉDITO): {saldo_anterior_receita:,.2f} → {saldo_novo_receita:,.2f} (+{valor:,.2f})")
-                    
-                    # 🔥 ATUALIZAR RECEITA NO SUPABASE (se tiver tabela para contas contábeis)
-                    if hasattr(self, 'supabase') and self.supabase.conectado:
-                        try:
-                            # Aqui você precisaria ter uma tabela para contas contábeis no Supabase
-                            # Por enquanto, vamos apenas registrar a transação
-                            pass
-                        except Exception as e:
-                            print(f"⚠️ Erro ao atualizar receita no Supabase: {e}")
-                            
+                    # Verificar se a conta contábil tem a moeda especificada
+                    if moeda_receita in self.contas_contabeis['receitas'][categoria_receita][conta_receita]:
+                        # CREDITAR na conta contábil de receita NA MOEDA CORRETA
+                        saldo_anterior_receita = self.contas_contabeis['receitas'][categoria_receita][conta_receita][moeda_receita]
+                        self.contas_contabeis['receitas'][categoria_receita][conta_receita][moeda_receita] += valor
+                        saldo_novo_receita = self.contas_contabeis['receitas'][categoria_receita][conta_receita][moeda_receita]
+                        
+                        print(f"💰 CONTA RECEITA (CRÉDITO): {saldo_anterior_receita:,.2f} → {saldo_novo_receita:,.2f} (+{valor:,.2f}) {moeda_receita}")
+                    else:
+                        return False, f"Conta de receita '{conta_receita}' não suporta a moeda {moeda_receita}"
                 else:
-                    return False, "Conta de receita não encontrada"
+                    return False, f"Conta de receita '{conta_receita}' não encontrada na categoria '{categoria_receita}'"
             else:
-                return False, "Categoria de receita não encontrada"
+                return False, f"Categoria de receita '{categoria_receita}' não encontrada"
             
-            # 🔥🔥🔥 CORREÇÃO: DEBITAR da conta do cliente (não creditar)
+            # DEBITAR da conta do cliente
             saldo_anterior = self.contas[conta_cliente]['saldo']
             self.contas[conta_cliente]['saldo'] -= valor
             saldo_novo = self.contas[conta_cliente]['saldo']
             
-            print(f"💰 SALDO CLIENTE ATUALIZADO: {saldo_anterior:,.2f} -> {saldo_novo:,.2f}")
+            print(f"💰 SALDO CLIENTE ATUALIZADO: {saldo_anterior:,.2f} -> {saldo_novo:,.2f} {moeda_cliente}")
             
             # 🔥 ATUALIZAR SALDO DO CLIENTE NO SUPABASE
             if hasattr(self, 'supabase') and self.supabase.conectado:
@@ -1867,7 +1886,7 @@ class SistemaCambioPremium:
                         .execute()
                     
                     if response.data:
-                        print(f"✅ Saldo do cliente atualizado no Supabase: {conta_cliente} = {saldo_novo:,.2f}")
+                        print(f"✅ Saldo do cliente atualizado no Supabase: {conta_cliente} = {saldo_novo:,.2f} {moeda_cliente}")
                     else:
                         print(f"⚠️ Erro ao atualizar saldo do cliente no Supabase")
                         
@@ -1879,7 +1898,7 @@ class SistemaCambioPremium:
             while transacao_id in self.transferencias:
                 transacao_id = str(random.randint(100000, 999999))
             
-            # 🔥 CORREÇÃO: Obter usuário de forma segura
+            # Obter usuário
             usuario = 'sistema'
             if hasattr(self, 'usuario_logado'):
                 if isinstance(self.usuario_logado, dict):
@@ -1889,25 +1908,26 @@ class SistemaCambioPremium:
                 else:
                     usuario = 'sistema'
             
-            # 🔥🔥🔥 CORREÇÃO CRÍTICA: Estrutura correta
+            # 🔥🔥🔥 CORREÇÃO: REMOVER COLUNAS NOVAS TEMPORARIAMENTE
             transacao_data = {
                 'id': transacao_id,
-                'conta_remetente': conta_cliente,        # 🔥 Cliente PAGA a receita
-                'conta_destinatario': conta_receita,     # 🔥 Conta de receita RECEBE
+                'conta_remetente': conta_cliente,
+                'conta_destinatario': conta_receita,
                 'valor': valor,
-                'moeda': self.contas[conta_cliente]['moeda'],
+                'moeda': moeda_cliente,  # 🔥 Usar coluna existente
                 'tipo': 'receita',
                 'categoria_receita': categoria_receita,
-                'descricao_receita': descricao,          # 🔥 Nome mais específico
+                'descricao_receita': descricao,
+                # 🔥 REMOVIDO TEMPORARIAMENTE: 'moeda_receita': moeda_receita,
                 'status': 'completed',
                 'data': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'usuario': usuario  # 🔥 CORREÇÃO AQUI
+                'usuario': usuario
             }
             
-            print(f"🔍 TRANSAÇÃO QUE SERÁ REGISTRADA NO SUPABASE:")
-            print(f"  conta_remetente: {conta_cliente} (QUEM PAGA)")
-            print(f"  conta_destinatario: {conta_receita} (QUEM RECEBE)")
-            print(f"  valor: {valor} (DÉBITO DO CLIENTE)")
+            print(f"🔍 TRANSAÇÃO MULTI-MOEDA:")
+            print(f"  Cliente: {conta_cliente} ({moeda_cliente})")
+            print(f"  Receita: {conta_receita} ({moeda_receita})")
+            print(f"  Valor: {valor:,.2f}")
             
             # 🔥 SALVAR TRANSAÇÃO NO SUPABASE
             if hasattr(self, 'supabase') and self.supabase.conectado:
@@ -1924,15 +1944,15 @@ class SistemaCambioPremium:
                 except Exception as e:
                     print(f"⚠️ Erro ao salvar transação de receita no Supabase: {e}")
             
-            # Registrar a transação localmente também
+            # Registrar localmente
             self.transferencias[transacao_id] = transacao_data
             
-            # 🔥 CORREÇÃO: Salvar também as contas contábeis
+            # 🔥 CORREÇÃO: Salvar contas contábeis (agora multi-moeda)
             self.salvar_contas_contabeis()
             self.salvar_contas()
             self.salvar_transferencias()
             
-            return True, f"Receita de {valor:,.2f} debitada da conta do cliente e creditada na conta de receita com sucesso!"
+            return True, f"Receita de {valor:,.2f} {moeda_receita} debitada da conta do cliente e creditada na conta de receita com sucesso!"
             
         except Exception as e:
             print(f"❌ ERRO no sistema lancar_receita: {e}")
@@ -1940,29 +1960,43 @@ class SistemaCambioPremium:
             traceback.print_exc()
             return False, f"Erro ao lançar receita: {str(e)}"
 
-    def lancar_despesa(self, conta_bancaria, valor, conta_despesa, categoria_despesa, descricao):
-        """Lança despesa - Crédito na conta bancária (diminui saldo), Débito na despesa - VERSÃO SUPABASE"""
+    def lancar_despesa(self, conta_bancaria, valor, conta_despesa, categoria_despesa, descricao, moeda_despesa=None):
+        """Lança despesa - VERSÃO MULTI-MOEDA COMPATÍVEL"""
         try:
-            print(f"🔍 SISTEMA - LANÇAR DESPESA:")
+            print(f"🔍 SISTEMA - LANÇAR DESPESA (MULTI-MOEDA):")
             print(f"  Conta Bancária: {conta_bancaria}")
             print(f"  Valor: {valor}")
             print(f"  Conta Despesa: {conta_despesa}")
             print(f"  Categoria: {categoria_despesa}")
+            print(f"  Moeda Despesa: {moeda_despesa}")
             print(f"  Descrição: {descricao}")
             
-            # Verificar se conta bancária existe e tem saldo suficiente
+            # Verificar se conta bancária existe
             if conta_bancaria not in self.contas_bancarias_empresa:
                 return False, "Conta bancária não encontrada"
             
-            if self.contas_bancarias_empresa[conta_bancaria]['saldo'] < valor:
-                return False, f"Saldo insuficiente! Saldo atual: {self.contas_bancarias_empresa[conta_bancaria]['saldo']:,.2f}"
+            # 🔥 CORREÇÃO: Obter moeda da conta bancária
+            moeda_banco = self.contas_bancarias_empresa[conta_bancaria]['moeda']
             
-            # 1. CRÉDITO na conta bancária própria (DIMINUI saldo REAL)
+            # 🔥 CORREÇÃO: Se moeda_despesa não foi passada, usar a moeda do banco
+            if moeda_despesa is None:
+                moeda_despesa = moeda_banco
+                print(f"⚠️  Moeda não especificada, usando moeda do banco: {moeda_banco}")
+            
+            # 🔥 CORREÇÃO: Validar consistência de moedas
+            if moeda_banco != moeda_despesa:
+                return False, f"Moeda inconsistente! Conta banco: {moeda_banco}, Despesa: {moeda_despesa}"
+            
+            # Verificar saldo suficiente
+            if self.contas_bancarias_empresa[conta_bancaria]['saldo'] < valor:
+                return False, f"Saldo insuficiente! Saldo atual: {self.contas_bancarias_empresa[conta_bancaria]['saldo']:,.2f} {moeda_banco}"
+            
+            # 1. DEBITAR da conta bancária
             saldo_anterior_banco = self.contas_bancarias_empresa[conta_bancaria]['saldo']
             self.contas_bancarias_empresa[conta_bancaria]['saldo'] -= valor
             saldo_novo_banco = self.contas_bancarias_empresa[conta_bancaria]['saldo']
             
-            print(f"🏦 BANCO (CRÉDITO): {saldo_anterior_banco:,.2f} → {saldo_novo_banco:,.2f} (-{valor:,.2f})")
+            print(f"🏦 BANCO (DÉBITO): {saldo_anterior_banco:,.2f} → {saldo_novo_banco:,.2f} (-{valor:,.2f}) {moeda_banco}")
             
             # 🔥 ATUALIZAR SALDO NO SUPABASE
             if hasattr(self, 'supabase') and self.supabase.conectado:
@@ -1973,42 +2007,37 @@ class SistemaCambioPremium:
                         .execute()
                     
                     if response.data:
-                        print(f"✅ Saldo bancário atualizado no Supabase: {conta_bancaria} = {saldo_novo_banco:,.2f}")
+                        print(f"✅ Saldo bancário atualizado no Supabase: {conta_bancaria} = {saldo_novo_banco:,.2f} {moeda_banco}")
                     else:
                         print(f"⚠️ Erro ao atualizar saldo bancário no Supabase")
                         
                 except Exception as e:
                     print(f"⚠️ Erro ao atualizar saldo bancário no Supabase: {e}")
             
-            # 2. DÉBITO na conta contábil de despesa (aumenta despesa)
+            # 2. 🔥🔥🔥 CORREÇÃO CRÍTICA: Creditar na conta contábil de despesa NA MOEDA CORRETA
             if categoria_despesa in self.contas_contabeis['despesas']:
                 if conta_despesa in self.contas_contabeis['despesas'][categoria_despesa]:
-                    saldo_anterior_despesa = self.contas_contabeis['despesas'][categoria_despesa][conta_despesa]['saldo']
-                    self.contas_contabeis['despesas'][categoria_despesa][conta_despesa]['saldo'] += valor
-                    saldo_novo_despesa = self.contas_contabeis['despesas'][categoria_despesa][conta_despesa]['saldo']
-                    
-                    print(f"📊 DESPESA (DÉBITO): {saldo_anterior_despesa:,.2f} → {saldo_novo_despesa:,.2f} (+{valor:,.2f})")
-                    
-                    # 🔥 ATUALIZAR DESPESA NO SUPABASE (se tiver tabela para contas contábeis)
-                    if hasattr(self, 'supabase') and self.supabase.conectado:
-                        try:
-                            # Aqui você precisaria ter uma tabela para contas contábeis no Supabase
-                            # Por enquanto, vamos apenas registrar a transação
-                            pass
-                        except Exception as e:
-                            print(f"⚠️ Erro ao atualizar despesa no Supabase: {e}")
-                            
+                    # Verificar se a conta contábil tem a moeda especificada
+                    if moeda_despesa in self.contas_contabeis['despesas'][categoria_despesa][conta_despesa]:
+                        # CREDITAR na conta contábil de despesa NA MOEDA CORRETA
+                        saldo_anterior_despesa = self.contas_contabeis['despesas'][categoria_despesa][conta_despesa][moeda_despesa]
+                        self.contas_contabeis['despesas'][categoria_despesa][conta_despesa][moeda_despesa] += valor
+                        saldo_novo_despesa = self.contas_contabeis['despesas'][categoria_despesa][conta_despesa][moeda_despesa]
+                        
+                        print(f"📊 DESPESA (CRÉDITO): {saldo_anterior_despesa:,.2f} → {saldo_novo_despesa:,.2f} (+{valor:,.2f}) {moeda_despesa}")
+                    else:
+                        return False, f"Conta de despesa '{conta_despesa}' não suporta a moeda {moeda_despesa}"
                 else:
-                    return False, "Conta de despesa não encontrada"
+                    return False, f"Conta de despesa '{conta_despesa}' não encontrada na categoria '{categoria_despesa}'"
             else:
-                return False, "Categoria de despesa não encontrada"
+                return False, f"Categoria de despesa '{categoria_despesa}' não encontrada"
             
             # 3. Registrar transação
             transacao_id = str(random.randint(100000, 999999))
             while transacao_id in self.transferencias:
                 transacao_id = str(random.randint(100000, 999999))
             
-            # 🔥 CORREÇÃO: Obter usuário de forma segura
+            # Obter usuário
             usuario = 'sistema'
             if hasattr(self, 'usuario_logado'):
                 if isinstance(self.usuario_logado, dict):
@@ -2018,18 +2047,21 @@ class SistemaCambioPremium:
                 else:
                     usuario = 'sistema'
             
+            # 🔥🔥🔥 CORREÇÃO: REMOVER COLUNAS NOVAS TEMPORARIAMENTE
             transacao_data = {
                 'id': transacao_id,
                 'conta_remetente': conta_bancaria,
                 'conta_destinatario': f"DESPESA_{categoria_despesa}_{conta_despesa}",
                 'valor': valor,
-                'moeda': self.contas_bancarias_empresa[conta_bancaria]['moeda'],
+                'moeda': moeda_banco,  # 🔥 Usar coluna existente
                 'tipo': 'despesa',
                 'categoria_despesa': categoria_despesa,
                 'descricao_despesa': descricao,
+                # 🔥 REMOVIDO TEMPORARIAMENTE: 'moeda_despesa': moeda_despesa,
+                # 🔥 REMOVIDO TEMPORARIAMENTE: 'moeda_operacao': moeda_despesa,
                 'status': 'completed',
                 'data': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'usuario': usuario  # 🔥 CORREÇÃO AQUI
+                'usuario': usuario
             }
             
             # 🔥 SALVAR TRANSAÇÃO NO SUPABASE
@@ -2050,10 +2082,10 @@ class SistemaCambioPremium:
             # Salvar dados localmente
             self.transferencias[transacao_id] = transacao_data
             self.salvar_contas_bancarias()
-            self.salvar_contas_contabeis()
+            self.salvar_contas_contabeis()  # 🔥 AGORA salva estrutura multi-moeda
             self.salvar_transferencias()
             
-            return True, f"Despesa de {valor:,.2f} paga com sucesso!"
+            return True, f"Despesa de {valor:,.2f} {moeda_despesa} paga com sucesso!"
             
         except Exception as e:
             print(f"❌ ERRO no sistema lancar_despesa: {e}")
@@ -2142,13 +2174,44 @@ class SistemaCambioPremium:
             return False
 
     def carregar_contas_contabeis(self):
-        """Carrega as contas contábeis do arquivo"""
+        """Carrega as contas contábeis do Supabase - NOVA VERSÃO MULTI-MOEDA"""
         try:
+            print("🔄 Carregando contas contábeis do Supabase...")
+            
+            # PRIMEIRO: Tentar carregar do Supabase
+            if hasattr(self, 'supabase') and self.supabase.conectado:
+                print("🔍 Conectado ao Supabase, buscando contas contábeis...")
+                response = self.supabase.client.table('contas_contabeis').select('*').execute()
+                
+                print(f"🔍 Resposta do Supabase: {len(response.data)} registros")
+                
+                if response.data:
+                    # 🔥 DEBUG: Mostrar primeiros registros
+                    for i, conta in enumerate(response.data[:3]):  # Mostrar apenas 3 para debug
+                        print(f"   📋 Registro {i}: {conta}")
+                    
+                    self.contas_contabeis = self._organizar_contas_contabeis(response.data)
+                    print(f"✅ {len(response.data)} contas contábeis carregadas do Supabase")
+                    return
+                else:
+                    print("⚠️ Nenhum dado retornado do Supabase")
+            
+            # SEGUNDO: Fallback para JSON local
             if os.path.exists('data/contas_contabeis.json'):
                 with open('data/contas_contabeis.json', 'r', encoding='utf-8') as f:
                     self.contas_contabeis = json.load(f)
+                print("✅ Contas contábeis carregadas do JSON (fallback)")
+            else:
+                print("ℹ️ Nenhuma conta contábil encontrada")
+                
         except Exception as e:
-            print(f"Erro ao carregar contas contábeis: {e}")
+            print(f"❌ Erro ao carregar contas contábeis: {e}")
+            import traceback
+            traceback.print_exc()
+            self.contas_contabeis = {'receitas': {}, 'despesas': {}}
+        
+        # 🔥 ADICIONAR ESTA LINHA NO FINAL DO MÉTODO:
+        self.debug_contas_contabeis()
 
     # ========== MÉTODOS PARA CONTAS BANCÁRIAS DA EMPRESA ==========
 
@@ -3353,6 +3416,100 @@ class SistemaCambioPremium:
         except Exception as e:
             print(f"❌ Erro ao ler arquivo: {e}")
 
+    def _organizar_contas_contabeis(self, dados_supabase):
+        """Organiza dados do Supabase na estrutura do sistema multi-moeda - VERSÃO CORRIGIDA"""
+        contas_organizadas = {
+            'receitas': {},
+            'despesas': {}
+        }
+        
+        print(f"🔍 Organizando {len(dados_supabase)} contas contábeis...")
+        
+        for conta in dados_supabase:
+            try:
+                # 🔥 CORREÇÃO: Usar .get() com valores padrão para evitar KeyError
+                tipo = conta.get('tipo', '').strip().lower()
+                categoria = conta.get('categoria', '').strip()
+                nome = conta.get('nome', '').strip()
+                moeda = conta.get('moeda', 'USD').strip().upper()
+                
+                # 🔥 CORREÇÃO: Tratar saldo como string primeiro e depois converter
+                saldo_str = str(conta.get('saldo', '0')).strip()
+                saldo = float(saldo_str) if saldo_str else 0.0
+                
+                # Validar dados obrigatórios
+                if not tipo or not categoria or not nome:
+                    print(f"⚠️ Conta inválida ignorada - Tipo: '{tipo}', Categoria: '{categoria}', Nome: '{nome}'")
+                    continue
+                
+                # 🔥 CORREÇÃO: Mapear tipos para as chaves corretas
+                if tipo == 'receita':
+                    tipo_organizado = 'receitas'
+                elif tipo == 'despesa':
+                    tipo_organizado = 'despesas'
+                else:
+                    print(f"⚠️ Tipo desconhecido '{tipo}' ignorado")
+                    continue
+                
+                # Criar estrutura se não existir
+                if categoria not in contas_organizadas[tipo_organizado]:
+                    contas_organizadas[tipo_organizado][categoria] = {}
+                
+                if nome not in contas_organizadas[tipo_organizado][categoria]:
+                    contas_organizadas[tipo_organizado][categoria][nome] = {}
+                
+                # 🔥 CORREÇÃO: Adicionar moeda ao saldo
+                contas_organizadas[tipo_organizado][categoria][nome][moeda] = saldo
+                
+                print(f"✅ {tipo_organizado.upper()} -> {categoria} -> {nome} -> {moeda} = {saldo:,.2f}")
+                
+            except Exception as e:
+                print(f"❌ Erro ao organizar conta {conta}: {e}")
+                import traceback
+                traceback.print_exc()
+                continue
+        
+        # 🔥 DEBUG FINAL
+        total_receitas = sum(len(contas) for contas in contas_organizadas['receitas'].values())
+        total_despesas = sum(len(contas) for contas in contas_organizadas['despesas'].values())
+        print(f"🎯 ORGANIZAÇÃO CONCLUÍDA: {total_receitas} contas de receita, {total_despesas} contas de despesa")
+        
+        return contas_organizadas
+
+    def carregar_contas_contabeis_forcado(self):
+        """Força o carregamento das contas contábeis - MÉTODO ALTERNATIVO"""
+        try:
+            print("🔄 CARREGAMENTO FORÇADO de contas contábeis...")
+            
+            if hasattr(self, 'supabase') and self.supabase.conectado:
+                # Buscar TODOS os registros
+                response = self.supabase.client.table('contas_contabeis').select('*').execute()
+                
+                print(f"📊 Total de registros encontrados: {len(response.data)}")
+                
+                if response.data:
+                    # Mostrar amostra dos dados
+                    print("🔍 AMOSTRA DOS DADOS (primeiros 5 registros):")
+                    for i, conta in enumerate(response.data[:5]):
+                        print(f"   {i+1}. Tipo: {conta.get('tipo')}, Categoria: {conta.get('categoria')}, "
+                              f"Nome: {conta.get('nome')}, Moeda: {conta.get('moeda')}, Saldo: {conta.get('saldo')}")
+                    
+                    # Organizar dados
+                    self.contas_contabeis = self._organizar_contas_contabeis(response.data)
+                    return True
+                else:
+                    print("❌ Nenhum dado encontrado na tabela contas_contabeis")
+                    return False
+            else:
+                print("❌ Supabase não conectado")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Erro no carregamento forçado: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
     def debug_atributos_sistema(self):
         """Debug para verificar os atributos disponíveis no sistema"""
         print("=== 🔍 DEBUG ATRIBUTOS SISTEMA ===")
@@ -3367,18 +3524,25 @@ class SistemaCambioPremium:
             print(f"Permissões disponíveis: {list(self.sistema.permissoes_cambio.keys())}")
         print("=== 🎯 FIM DEBUG ===")
 
-    def debug_contas_londrina(self):
-        """Debug para ver todas as contas do londrina"""
-        usuario_data = self.usuarios.get('londrina', {})
-        print(f"👤 Usuário londrina: {usuario_data}")
-        print(f"📋 Contas no usuário: {usuario_data.get('contas', [])}")
+    def debug_contas_contabeis(self):
+        """Debug para verificar o estado das contas contábeis"""
+        print("=== 🔍 DEBUG CONTAS CONTÁBEIS ===")
+        print(f"Receitas carregadas: {len(self.contas_contabeis['receitas'])} categorias")
+        print(f"Despesas carregadas: {len(self.contas_contabeis['despesas'])} categorias")
         
-        # Verificar cada conta individualmente
-        for conta_num in usuario_data.get('contas', []):
-            if conta_num in self.contas:
-                print(f"✅ Conta {conta_num}: {self.contas[conta_num]}")
-            else:
-                print(f"❌ Conta {conta_num} NÃO ENCONTRADA no sistema")
+        # Listar categorias de receita
+        if self.contas_contabeis['receitas']:
+            print("📊 Categorias de RECEITA:")
+            for categoria in self.contas_contabeis['receitas']:
+                print(f"  📁 {categoria}: {len(self.contas_contabeis['receitas'][categoria])} contas")
+        
+        # Listar categorias de despesa
+        if self.contas_contabeis['despesas']:
+            print("📊 Categorias de DESPESA:")
+            for categoria in self.contas_contabeis['despesas']:
+                print(f"  📁 {categoria}: {len(self.contas_contabeis['despesas'][categoria])} contas")
+        
+        print("=== 🎯 FIM DEBUG ===")
 
     def testar_conexao_beneficiarios(self):
         """Testa a conexão com a tabela beneficiários"""

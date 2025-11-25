@@ -1,97 +1,213 @@
 {
     "receitas": {
-        "RECEITAS DE SERVIÇOS": {
-            "Wire Fee": {
-                "saldo": 0.0,
-                "moeda": "USD"
-            },
-            "Taxas Administrativas": {
-                "saldo": 0.0,
-                "moeda": "USD"
-            },
+        "RECEITAS OPERACIONAIS": {
             "Comissões de Câmbio": {
-                "saldo": 150.0,
-                "moeda": "USD"
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
             },
-            "Tarifas Bancárias": {
-                "saldo": 0.0,
-                "moeda": "USD"
+            "Wire Fee": {
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
+            },
+            "Account Fee": {
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
+            },
+            "Cash Processing": {
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
             }
         },
         "RECEITAS FINANCEIRAS": {
-            "Rendimentos": {
-                "saldo": 0.0,
-                "moeda": "USD"
+            "Rendimentos Financeiros": {
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
             },
             "Ganhos Cambiais": {
-                "saldo": 0.0,
-                "moeda": "USD"
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
+            }
+        },
+        "OUTRAS RECEITAS": {
+            "Receitas de Serviços Prestados": {
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
+            },
+            "Outras Receitas": {
+                "USD": 100.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
             }
         }
     },
     "despesas": {
-        "DESPESAS ADMINISTRATIVAS": {
-            "Salários": {
-                "saldo": 0.0,
-                "moeda": "USD"
+        "DESPESAS OPERACIONAIS": {
+            "Salários e Ordenados": {
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
+            },
+            "Encargos Sociais (INSS, FGTS)": {
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
+            },
+            "13º Salário e Férias": {
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
             },
             "Aluguel": {
-                "saldo": 0.0,
-                "moeda": "USD"
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
             },
             "Material de Escritório": {
-                "saldo": 0.0,
-                "moeda": "USD"
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
             },
-            "Serviços Profissionais": {
-                "saldo": 0.0,
-                "moeda": "USD"
+            "Manutenção de Equipamentos": {
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
+            },
+            "Limpeza e Materiais de Limpeza": {
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
             }
         },
         "DESPESAS FINANCEIRAS": {
             "Juros Bancários": {
-                "saldo": 0.0,
-                "moeda": "USD"
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
             },
             "Tarifas Bancárias": {
-                "saldo": 0.0,
-                "moeda": "USD"
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
             },
             "Multas e Juros": {
-                "saldo": 0.0,
-                "moeda": "USD"
-            }
-        },
-        "DESPESAS OPERACIONAIS": {
-            "Internet e Telefonia": {
-                "saldo": 0.0,
-                "moeda": "USD"
-            },
-            "Energia e Água": {
-                "saldo": 0.0,
-                "moeda": "USD"
-            },
-            "Manutenção": {
-                "saldo": 0.0,
-                "moeda": "USD"
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
             }
         },
         "DESPESAS COMERCIAIS": {
             "Comissões de Vendas": {
-                "saldo": 0.0,
-                "moeda": "USD"
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
             },
             "Propaganda e Marketing": {
-                "saldo": 0.0,
-                "moeda": "USD"
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
             },
             "Viagens e Representação": {
-                "saldo": 0.0,
-                "moeda": "USD"
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
             },
-            "Material de Propaganda": {
-                "saldo": 0.0,
-                "moeda": "USD"
+            "Brindes e Promoções": {
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
+            },
+            "Publicidade Digital": {
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
+            }
+        },
+        "DESPESAS ADMINISTRATIVAS": {
+            "Serviços Profissionais (Contador, Advogado)": {
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
+            },
+            "Internet e Telefonia": {
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
+            },
+            "Energia e Água": {
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
+            },
+            "Correios e Telegramas": {
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
+            },
+            "Software e Licenças": {
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
+            },
+            "Treinamento e Capacitação": {
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
+            }
+        },
+        "DESPESAS TRIBUTÁRIAS": {
+            "Impostos e Taxas": {
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
+            },
+            "Contribuições Sociais": {
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
+            },
+            "Taxas Governamentais": {
+                "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
             }
         }
     }
