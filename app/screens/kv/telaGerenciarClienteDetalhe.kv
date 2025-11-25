@@ -1,0 +1,181 @@
+<TelaGerenciarClienteDetalhe>:
+    name: 'gerenciar_cliente_detalhe'
+    
+    BoxLayout:
+        orientation: 'vertical'
+        padding: [20, 20, 20, 20]
+        spacing: 0  # 🔥 ZERADO o spacing
+        canvas:
+            Color:
+                rgba: 0.06, 0.09, 0.16, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        
+        # Header - ALTURA FIXA
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: dp(50)  # 🔥 ALTURA FIXA
+            spacing: 10
+            
+            Button:
+                text: '< Voltar'
+                size_hint_x: 0.15
+                background_color: 0.55, 0.36, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.voltar()
+            
+            Label:
+                id: lbl_titulo
+                text: 'GERENCIAMENTO DE CLIENTE'
+                font_size: '18sp'
+                bold: True
+                color: 1, 1, 1, 1
+                size_hint_x: 0.7
+                text_size: self.width, None
+                halign: 'center'
+            
+            Widget:
+                size_hint_x: 0.15
+        
+        # Conteúdo principal - OCUPA TODO O ESPAÇO RESTANTE
+        TabbedPanel:
+            do_default_tab: False
+            tab_width: 200
+            background_color: 0.12, 0.16, 0.23, 1
+            size_hint_y: 1  # 🔥 OCUPA TODO O ESPAÇO
+            
+            TabbedPanelItem:
+                text: 'Dados do Cliente'
+                background_color: 0.20, 0.25, 0.33, 1
+                
+                ScrollView:
+                    do_scroll_x: False
+                    bar_width: dp(10)
+                    scroll_type: ['bars', 'content']
+                    size_hint_y: 1
+                    
+                    BoxLayout:
+                        orientation: 'vertical'
+                        size_hint_y: None
+                        height: self.minimum_height
+                        spacing: 15  # 🔥 AUMENTADO para separar melhor
+                        padding: [20, 15, 20, 15]  # 🔥 PADDING MAIOR
+                        
+                        # Dados Pessoais
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: dp(240)
+                            padding: [15, 10]
+                            canvas:
+                                Color:
+                                    rgba: 0.15, 0.20, 0.27, 1
+                                RoundedRectangle:
+                                    pos: self.pos
+                                    size: self.size
+                                    radius: [8,]
+                            
+                            Label:
+                                text: 'DADOS PESSOAIS'
+                                font_size: '14sp'
+                                bold: True
+                                color: 0.23, 0.51, 0.96, 1
+                                size_hint_y: None
+                                height: dp(25)
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            GridLayout:
+                                id: dados_pessoais_container
+                                cols: 4
+                                size_hint_y: 1
+                                spacing: dp(6)
+                                padding: [5, 5]
+                        
+                        # Contas do Cliente - ALTURA DINÂMICA CORRIGIDA
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: self.minimum_height  # 🔥 VOLTOU AO DINÂMICO
+                            padding: [15, 10]
+                            canvas:
+                                Color:
+                                    rgba: 0.15, 0.20, 0.27, 1
+                                RoundedRectangle:
+                                    pos: self.pos
+                                    size: self.size
+                                    radius: [8,]
+                            
+                            Label:
+                                text: 'CONTAS DO CLIENTE'
+                                font_size: '14sp'
+                                bold: True
+                                color: 0.23, 0.51, 0.96, 1
+                                size_hint_y: None
+                                height: dp(25)
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            GridLayout:
+                                id: contas_container
+                                cols: 1
+                                size_hint_y: None
+                                height: self.minimum_height
+                                spacing: dp(8)
+                                padding: [0, 5, 0, 5]
+            
+            TabbedPanelItem:
+                text: 'Ações'
+                background_color: 0.20, 0.25, 0.33, 1
+                
+                BoxLayout:
+                    orientation: 'vertical'
+                    spacing: dp(20)
+                    padding: [dp(30), dp(30), dp(30), dp(30)]
+                    
+                    Label:
+                        text: 'AÇÕES DE GERENCIAMENTO'
+                        font_size: '16sp'
+                        bold: True
+                        color: 0.23, 0.51, 0.96, 1
+                        size_hint_y: None
+                        height: dp(40)
+                        text_size: self.width, None
+                        halign: 'left'
+                    
+                    Button:
+                        text: 'Adicionar Nova Conta'
+                        font_size: '14sp'
+                        bold: True
+                        background_color: 0.23, 0.51, 0.96, 1
+                        color: 1, 1, 1, 1
+                        size_hint_y: None
+                        height: dp(50)
+                        on_press: root.adicionar_conta()
+                    
+                    Button:
+                        text: 'Resetar Senha do Cliente'
+                        font_size: '14sp'
+                        background_color: 0.96, 0.65, 0.14, 1
+                        color: 1, 1, 1, 1
+                        size_hint_y: None
+                        height: dp(50)
+                        on_press: root.resetar_senha()
+                    
+                    Widget:
+                        size_hint_y: 0.3
+                    
+                    Button:
+                        text: 'EXCLUIR CLIENTE COMPLETAMENTE'
+                        font_size: '14sp'
+                        bold: True
+                        background_color: 0.96, 0.36, 0.36, 1
+                        color: 1, 1, 1, 1
+                        size_hint_y: None
+                        height: dp(50)
+                        on_press: root.excluir_cliente()
+
+<CardContaCliente>:
+    # Definido no código Python

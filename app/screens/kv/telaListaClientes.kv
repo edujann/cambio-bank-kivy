@@ -1,0 +1,62 @@
+<TelaListaClientes>:
+    name: 'lista_clientes'
+    
+    BoxLayout:
+        orientation: 'vertical'
+        padding: 10
+        spacing: 10
+        canvas:
+            Color:
+                rgba: 0.06, 0.09, 0.16, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        
+        # Header
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.08
+            spacing: 10
+            
+            Button:
+                text: '← Voltar'
+                size_hint_x: 0.2
+                background_color: 0.55, 0.36, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.voltar_dashboard()
+            
+            Label:
+                text: '👥 LISTA DE CLIENTES'
+                font_size: '16sp'
+                bold: True
+                color: 1, 1, 1, 1
+                size_hint_x: 0.6
+                text_size: self.width, None
+                halign: 'center'
+            
+            Widget:
+                size_hint_x: 0.2
+        
+        # Container da lista
+        ScrollView:
+            size_hint_y: 0.82
+            do_scroll_x: False
+            
+            BoxLayout:
+                id: clientes_container
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: 5
+                padding: 10
+        
+        # Botão voltar
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.1
+            
+            Button:
+                text: '← VOLTAR AO DASHBOARD'
+                background_color: 0.55, 0.36, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.voltar_dashboard()

@@ -1,0 +1,62 @@
+{
+    "sistema": {
+        "moedas_suportadas": [
+            "USD",
+            "EUR",
+            "GBP",
+            "BRL"
+        ],
+        "horario_abertura": "09:00",
+        "horario_fechamento": "18:00",
+        "dias_operacao": [
+            "segunda",
+            "terca",
+            "quarta",
+            "quinta",
+            "sexta"
+        ],
+        "timezone": "America/Sao_Paulo"
+    },
+    "financeiras": {
+        "limite_transferencia_diario": 10000.0,
+        "limite_transferencia_mensal": 50000.0,
+        "taxa_transferencia_internacional": 0.02,
+        "comissao_minima": 10.0,
+        "taxas_cambio": {
+            "USD_BRL": 5.2,
+            "BRL_USD": 0.19,
+            "EUR_BRL": 5.6,
+            "BRL_EUR": 0.18,
+            "USD_EUR": 0.92,
+            "EUR_USD": 1.09,
+            "GBP_BRL": 6.5,
+            "BRL_GBP": 0.15,
+            "USD_GBP": 0.79,
+            "GBP_USD": 1.27,
+            "EUR_GBP": 0.86,
+            "GBP_EUR": 1.16
+        }
+    },
+    "seguranca": {
+        "tamanho_minimo_senha": 8,
+        "expiracao_senha_dias": 90,
+        "tentativas_login": 3,
+        "bloqueio_temporario_minutos": 30,
+        "requer_2fa": false,
+        "notificacao_email": true
+    },
+    "interface": {
+        "tema": "escuro",
+        "temas_disponiveis": [
+            "escuro",
+            "claro",
+            "azul",
+            "verde",
+            "roxo"
+        ],
+        "idioma": "pt-BR",
+        "moeda_padrao": "USD",
+        "casas_decimais": 2,
+        "formato_data": "DD/MM/AAAA"
+    }
+}

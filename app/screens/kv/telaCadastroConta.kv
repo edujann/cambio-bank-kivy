@@ -1,0 +1,310 @@
+<TelaCadastroConta>:
+    name: 'cadastro_conta'
+    
+    BoxLayout:
+        orientation: 'vertical'
+        padding: 10
+        spacing: 10
+        canvas:
+            Color:
+                rgba: 0.06, 0.09, 0.16, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        
+        # Header
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.08
+            spacing: 10
+            
+            Button:
+                text: 'Voltar'
+                size_hint_x: 0.2
+                background_color: 0.55, 0.36, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.cancelar_cadastro()
+            
+            Label:
+                text: 'CRIAR NOVA CONTA'
+                font_size: '16sp'
+                bold: True
+                color: 1, 1, 1, 1
+                size_hint_x: 0.6
+                text_size: self.width, None
+                halign: 'center'
+            
+            Widget:
+                size_hint_x: 0.2
+        
+        # Container principal com scroll
+        ScrollView:
+            size_hint_y: 0.82
+            do_scroll_x: False
+            
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: 15
+                padding: 10
+                
+                # ========== DADOS DE ACESSO ==========
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: 200
+                    padding: 10
+                    canvas:
+                        Color:
+                            rgba: 0.12, 0.16, 0.23, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [8,]
+                    
+                    Label:
+                        text: 'DADOS DE ACESSO'
+                        font_size: '14sp'
+                        bold: True
+                        color: 0.23, 0.51, 0.96, 1
+                        size_hint_y: 0.2
+                        text_size: self.width, None
+                        halign: 'left'
+                    
+                    GridLayout:
+                        cols: 1
+                        size_hint_y: 0.8
+                        spacing: 8
+                        
+                        CampoTexto:
+                            id: username
+                            hint_text: 'Nome de Usuário *'
+                        
+                        CampoTextoSenha:
+                            id: senha
+                            hint_text: 'Senha *'
+                        
+                        CampoTextoSenha:
+                            id: confirmar_senha
+                            hint_text: 'Confirmar Senha *'
+                
+                # ========== DADOS PESSOAIS ==========
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: 500
+                    padding: 10
+                    canvas:
+                        Color:
+                            rgba: 0.12, 0.16, 0.23, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [8,]
+                    
+                    Label:
+                        text: 'DADOS PESSOAIS'
+                        font_size: '14sp'
+                        bold: True
+                        color: 0.23, 0.51, 0.96, 1
+                        size_hint_y: 0.1
+                        text_size: self.width, None
+                        halign: 'left'
+                    
+                    GridLayout:
+                        cols: 1
+                        size_hint_y: 0.9
+                        spacing: 8
+                        
+                        CampoTexto:
+                            id: nome
+                            hint_text: 'Nome Completo/Razão Social *'
+                        
+                        CampoTexto:
+                            id: email
+                            hint_text: 'E-mail *'
+                        
+                        CampoTexto:
+                            id: documento
+                            hint_text: 'CPF/CNPJ * (apenas números)'
+                        
+                        CampoTexto:
+                            id: telefone
+                            hint_text: 'Telefone (opcional - apenas números)'
+                        
+                        CampoTexto:
+                            id: endereco
+                            hint_text: 'Endereço Completo *'
+                        
+                        CampoTexto:
+                            id: cidade
+                            hint_text: 'Cidade *'
+                        
+                        CampoTexto:
+                            id: cep
+                            hint_text: 'CEP * (apenas números)'
+                        
+                        CampoTexto:
+                            id: estado
+                            hint_text: 'Estado *'
+                        
+                        CampoTexto:
+                            id: pais
+                            hint_text: 'País *'
+                
+                # ========== MOEDAS DISPONÍVEIS ==========
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: 280
+                    padding: 10
+                    canvas:
+                        Color:
+                            rgba: 0.12, 0.16, 0.23, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [8,]
+
+                    Label:
+                        text: 'MOEDAS DA CONTA'
+                        font_size: '14sp'
+                        bold: True
+                        color: 0.23, 0.51, 0.96, 1
+                        size_hint_y: 0.15
+                        text_size: self.width, None
+                        halign: 'left'
+
+                    GridLayout:
+                        cols: 2
+                        size_hint_y: 0.55
+                        spacing: 5
+                        
+                        # Primeira linha - USD e EUR
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            spacing: 5
+                            CheckBox:
+                                id: moeda_usd
+                                size_hint_x: 0.2
+                                active: True
+                            Label:
+                                text: 'USD - Dólar Americano'
+                                font_size: '11sp'
+                                color: 1, 1, 1, 1
+                                text_size: self.width, None
+                                halign: 'left'
+
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            spacing: 5
+                            CheckBox:
+                                id: moeda_eur
+                                size_hint_x: 0.2
+                                active: True
+                            Label:
+                                text: 'EUR - Euro'
+                                font_size: '11sp'
+                                color: 1, 1, 1, 1
+                                text_size: self.width, None
+                                halign: 'left'
+
+                        # Segunda linha - GBP e BRL
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            spacing: 5
+                            CheckBox:
+                                id: moeda_gbp
+                                size_hint_x: 0.2
+                                active: True
+                            Label:
+                                text: 'GBP - Libra Esterlina'
+                                font_size: '11sp'
+                                color: 1, 1, 1, 1
+                                text_size: self.width, None
+                                halign: 'left'
+
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            spacing: 5
+                            CheckBox:
+                                id: moeda_brl
+                                size_hint_x: 0.2
+                                active: True
+                            Label:
+                                text: 'BRL - Real Brasileiro'
+                                font_size: '11sp'
+                                color: 1, 1, 1, 1
+                                text_size: self.width, None
+                                halign: 'left'
+
+                    # Campo para outras moedas
+                    BoxLayout:
+                        orientation: 'vertical'
+                        size_hint_y: 0.3
+                        spacing: 8
+                        padding: [0, 8, 0, 0]
+
+                        Label:
+                            text: 'Outras moedas (separadas por vírgula):'
+                            font_size: '11sp'
+                            color: 0.80, 0.84, 0.88, 1
+                            size_hint_y: 0.4
+                            text_size: self.width, None
+                            halign: 'left'
+
+                        CampoTexto:
+                            id: outras_moedas
+                            hint_text: 'Ex: AUD, CNY, JPY, CHF...'
+                            size_hint_y: 0.6
+                            font_size: '11sp'
+                            height: 45
+                
+                # ========== INFORMAÇÕES ==========
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: 80
+                    padding: 10
+                    canvas:
+                        Color:
+                            rgba: 0.15, 0.20, 0.27, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [8,]
+                    
+                    Label:
+                        text: 'Serão criadas contas nas moedas selecionadas com saldo zero'
+                        font_size: '10sp'
+                        color: 0.80, 0.84, 0.88, 1
+                        size_hint_y: 0.5
+                        text_size: self.width, None
+                        halign: 'center'
+                    
+                    Label:
+                        text: 'O cliente poderá usar as contas para transferências'
+                        font_size: '10sp'
+                        color: 0.80, 0.84, 0.88, 1
+                        size_hint_y: 0.5
+                        text_size: self.width, None
+                        halign: 'center'
+        
+        # ========== BOTÕES ==========
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.1
+            spacing: 10
+            
+            Button:
+                text: 'CANCELAR'
+                background_color: 0.55, 0.36, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.cancelar_cadastro()
+            
+            Button:
+                text: 'CRIAR CONTA'
+                background_color: 0.23, 0.51, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.criar_conta()

@@ -1,0 +1,366 @@
+{
+    "376901423": {
+        "moeda": "EUR",
+        "saldo": 50000.0,
+        "cliente": "apple",
+        "cliente_nome": "APPLE LLC",
+        "data_criacao": "2025-11-02"
+    },
+    "394549984": {
+        "moeda": "USD",
+        "saldo": 0.0,
+        "cliente": "lins",
+        "cliente_nome": "LINS CHAIR LIMITADA",
+        "data_criacao": "2025-11-18"
+    },
+    "403356950": {
+        "moeda": "USD",
+        "saldo": 0.0,
+        "cliente": "bmw",
+        "cliente_nome": "BMW ENTERPRISE",
+        "data_criacao": "2025-10-30"
+    },
+    "438146195": {
+        "moeda": "USD",
+        "saldo": 50000.0,
+        "cliente": "londrina",
+        "cliente_nome": "LONDRES LIMITED",
+        "data_criacao": "2025-11-04"
+    },
+    "452833983": {
+        "moeda": "GBP",
+        "saldo": 10000.0,
+        "cliente": "prada",
+        "cliente_nome": "PRADA LIMITED",
+        "data_criacao": "2025-11-02"
+    },
+    "501703684": {
+        "moeda": "GBP",
+        "saldo": 10000.0,
+        "cliente": "texaco",
+        "cliente_nome": "TEXACO LLC",
+        "data_criacao": "2025-11-01"
+    },
+    "509180416": {
+        "moeda": "BRL",
+        "saldo": 0.0,
+        "cliente": "lacoste",
+        "cliente_nome": "LACOSTE LLC",
+        "data_criacao": "2025-10-29"
+    },
+    "558434406": {
+        "moeda": "EUR",
+        "saldo": 0.0,
+        "cliente": "lacoste",
+        "cliente_nome": "LACOSTE LLC",
+        "data_criacao": "2025-10-29"
+    },
+    "568397247": {
+        "moeda": "CNY",
+        "saldo": 500000.0,
+        "cliente": "prada",
+        "cliente_nome": "PRADA LIMITED",
+        "data_criacao": "2025-11-02"
+    },
+    "576233453": {
+        "moeda": "CHF",
+        "saldo": 70000.0,
+        "cliente": "prada",
+        "cliente_nome": "PRADA LIMITED",
+        "data_criacao": "2025-11-02"
+    },
+    "581914585": {
+        "moeda": "USD",
+        "saldo": 13600.0,
+        "cliente": "nike",
+        "cliente_nome": "NIKE LLC",
+        "data_criacao": "2025-10-29"
+    },
+    "654000645": {
+        "moeda": "EUR",
+        "saldo": 0.0,
+        "cliente": "londrina",
+        "cliente_nome": "LONDRES LIMITED",
+        "data_criacao": "2025-11-04"
+    },
+    "669417037": {
+        "moeda": "EUR",
+        "saldo": 0.0,
+        "cliente": "bmw",
+        "cliente_nome": "BMW ENTERPRISE",
+        "data_criacao": "2025-10-30"
+    },
+    "674587563": {
+        "moeda": "GBP",
+        "saldo": 0.0,
+        "cliente": "interpress",
+        "cliente_nome": "INTERPRESS LIMITADA",
+        "data_criacao": "2025-11-20"
+    },
+    "691581249": {
+        "moeda": "BRL",
+        "saldo": 0.0,
+        "cliente": "interpress",
+        "cliente_nome": "INTERPRESS LIMITADA",
+        "data_criacao": "2025-11-20"
+    },
+    "713651820": {
+        "moeda": "USD",
+        "saldo": 23200.0,
+        "cliente": "texaco",
+        "cliente_nome": "TEXACO LLC",
+        "data_criacao": "2025-11-01"
+    },
+    "732926229": {
+        "moeda": "EUR",
+        "saldo": 0.0,
+        "cliente": "lins",
+        "cliente_nome": "LINS CHAIR LIMITADA",
+        "data_criacao": "2025-11-18"
+    },
+    "735520593": {
+        "moeda": "EUR",
+        "saldo": 0.0,
+        "cliente": "interpress",
+        "cliente_nome": "INTERPRESS LIMITADA",
+        "data_criacao": "2025-11-20"
+    },
+    "783643563": {
+        "moeda": "GBP",
+        "saldo": 0.0,
+        "cliente": "londrina",
+        "cliente_nome": "LONDRES LIMITED",
+        "data_criacao": "2025-11-04"
+    },
+    "786389477": {
+        "moeda": "GBP",
+        "saldo": 10000.0,
+        "cliente": "apple",
+        "cliente_nome": "APPLE LLC",
+        "data_criacao": "2025-11-02"
+    },
+    "815752229": {
+        "moeda": "USD",
+        "saldo": 5200.0,
+        "cliente": "ibiza",
+        "cliente_nome": "IBIZA GROUP LIMITED",
+        "data_criacao": "2025-11-01"
+    },
+    "830745478": {
+        "moeda": "EUR",
+        "saldo": 0.0,
+        "cliente": "titan",
+        "cliente_nome": "TITAN LIMITED",
+        "data_criacao": "2025-11-03"
+    },
+    "845871240": {
+        "moeda": "GBP",
+        "saldo": 0.0,
+        "cliente": "titan",
+        "cliente_nome": "TITAN LIMITED",
+        "data_criacao": "2025-11-03"
+    },
+    "846405315": {
+        "moeda": "GBP",
+        "saldo": 0.0,
+        "cliente": "nike",
+        "cliente_nome": "NIKE LLC",
+        "data_criacao": "2025-11-10"
+    },
+    "860559342": {
+        "moeda": "EUR",
+        "saldo": -1102.5,
+        "cliente": "texaco",
+        "cliente_nome": "TEXACO LLC",
+        "data_criacao": "2025-11-01"
+    },
+    "862524228": {
+        "moeda": "BRL",
+        "saldo": 10000.0,
+        "cliente": "ibiza",
+        "cliente_nome": "IBIZA GROUP LIMITED",
+        "data_criacao": "2025-11-01"
+    },
+    "873134916": {
+        "moeda": "BRL",
+        "saldo": 0.0,
+        "cliente": "lins",
+        "cliente_nome": "LINS CHAIR LIMITADA",
+        "data_criacao": "2025-11-18"
+    },
+    "878657222": {
+        "moeda": "BRL",
+        "saldo": 0.0,
+        "cliente": "londrina",
+        "cliente_nome": "LONDRES LIMITED",
+        "data_criacao": "2025-11-04"
+    },
+    "887160827": {
+        "moeda": "BRL",
+        "saldo": 80000.0,
+        "cliente": "apple",
+        "cliente_nome": "APPLE LLC",
+        "data_criacao": "2025-11-02"
+    },
+    "891355178": {
+        "moeda": "USD",
+        "saldo": 0.0,
+        "cliente": "adidas",
+        "cliente_nome": "ADIDAS LIMITED",
+        "data_criacao": "2025-10-29"
+    },
+    "927934635": {
+        "moeda": "EUR",
+        "saldo": 10000.0,
+        "cliente": "prada",
+        "cliente_nome": "PRADA LIMITED",
+        "data_criacao": "2025-11-02"
+    },
+    "930349314": {
+        "moeda": "EUR",
+        "saldo": 0.0,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18"
+    },
+    "949381419": {
+        "moeda": "USD",
+        "saldo": 0.0,
+        "cliente": "interpress",
+        "cliente_nome": "INTERPRESS LIMITADA",
+        "data_criacao": "2025-11-20"
+    },
+    "960532724": {
+        "moeda": "USD",
+        "saldo": 7500.0,
+        "cliente": "titan",
+        "cliente_nome": "TITAN LIMITED",
+        "data_criacao": "2025-11-03"
+    },
+    "960934914": {
+        "moeda": "BRL",
+        "saldo": 50000.0,
+        "cliente": "prada",
+        "cliente_nome": "PRADA LIMITED",
+        "data_criacao": "2025-11-02"
+    },
+    "983847231": {
+        "moeda": "EUR",
+        "saldo": 0.0,
+        "cliente": "nike",
+        "cliente_nome": "NIKE LLC",
+        "data_criacao": "2025-11-10"
+    },
+    "997642659": {
+        "moeda": "USD",
+        "saldo": 50000.0,
+        "cliente": "apple",
+        "cliente_nome": "APPLE LLC",
+        "data_criacao": "2025-11-02"
+    },
+    "607906288": {
+        "moeda": "USD",
+        "saldo": 45350.0,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18"
+    },
+    "802194129": {
+        "moeda": "BRL",
+        "saldo": 35646.22,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18"
+    },
+    "464754825": {
+        "moeda": "GBP",
+        "saldo": 0.0,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18"
+    },
+    "100561780": {
+        "moeda": "GBP",
+        "saldo": 0.0,
+        "cliente": "bmw",
+        "cliente_nome": "BMW ENTERPRISE",
+        "data_criacao": "2025-10-30"
+    },
+    "116638426": {
+        "moeda": "USD",
+        "saldo": 9725.0,
+        "cliente": "prada",
+        "cliente_nome": "PRADA LIMITED",
+        "data_criacao": "2025-11-02"
+    },
+    "179993933": {
+        "moeda": "BRL",
+        "saldo": 0.0,
+        "cliente": "bmw",
+        "cliente_nome": "BMW ENTERPRISE",
+        "data_criacao": "2025-10-30"
+    },
+    "202973672": {
+        "moeda": "BRL",
+        "saldo": 74734.2,
+        "cliente": "texaco",
+        "cliente_nome": "TEXACO LLC",
+        "data_criacao": "2025-11-01"
+    },
+    "221073098": {
+        "moeda": "GBP",
+        "saldo": 10000.0,
+        "cliente": "ibiza",
+        "cliente_nome": "IBIZA GROUP LIMITED",
+        "data_criacao": "2025-11-01"
+    },
+    "239768436": {
+        "moeda": "USD",
+        "saldo": 300.0,
+        "cliente": "lacoste",
+        "cliente_nome": "LACOSTE LLC",
+        "data_criacao": "2025-10-29"
+    },
+    "266286833": {
+        "moeda": "EUR",
+        "saldo": 10000.0,
+        "cliente": "ibiza",
+        "cliente_nome": "IBIZA GROUP LIMITED",
+        "data_criacao": "2025-11-01"
+    },
+    "269404516": {
+        "moeda": "BRL",
+        "saldo": 0.0,
+        "cliente": "titan",
+        "cliente_nome": "TITAN LIMITED",
+        "data_criacao": "2025-11-03"
+    },
+    "280682543": {
+        "moeda": "GBP",
+        "saldo": 0.0,
+        "cliente": "lacoste",
+        "cliente_nome": "LACOSTE LLC",
+        "data_criacao": "2025-10-29"
+    },
+    "313590705": {
+        "moeda": "BRL",
+        "saldo": 0.0,
+        "cliente": "adidas",
+        "cliente_nome": "ADIDAS LIMITED",
+        "data_criacao": "2025-10-29"
+    },
+    "345058852": {
+        "moeda": "BRL",
+        "saldo": -265000.0,
+        "cliente": "nike",
+        "cliente_nome": "NIKE LLC",
+        "data_criacao": "2025-10-29"
+    },
+    "366470532": {
+        "moeda": "GBP",
+        "saldo": 0.0,
+        "cliente": "lins",
+        "cliente_nome": "LINS CHAIR LIMITADA",
+        "data_criacao": "2025-11-18"
+    }
+}

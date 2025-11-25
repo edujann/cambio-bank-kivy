@@ -1,0 +1,436 @@
+<CampoValor@TextInput>:
+    font_size: '16sp'
+    bold: True
+    multiline: False
+    size_hint_x: None
+    width: 200
+    background_color: 0.20, 0.25, 0.33, 1
+    foreground_color: 1, 1, 1, 1
+    cursor_color: 1, 1, 1, 1
+    padding: [10, 10, 5, 10]
+    halign: 'right'
+
+<TelaTransferencia>:
+    name: 'transferencia'
+    
+    BoxLayout:
+        orientation: 'vertical'
+        padding: 8
+        spacing: 8
+        canvas:
+            Color:
+                rgba: 0.06, 0.09, 0.16, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        
+        # Header
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.08
+            spacing: 8
+            
+            Button:
+                id: botao_voltar
+                text: '< Voltar'  # 🔥 SETA ASCII SIMPLES
+                size_hint_x: 0.25
+                background_color: 0.55, 0.36, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.cancelar_transferencia()
+
+            Label:
+                text: 'TRANSFERÊNCIA INTERNACIONAL'
+                font_size: '14sp'
+                bold: True
+                color: 1, 1, 1, 1
+                size_hint_x: 0.6
+                text_size: self.width, None
+                halign: 'center'
+            
+            Widget:
+                size_hint_x: 0.2
+        
+        # Container principal com scroll
+        ScrollView:
+            id: scroll_view_transferencia  # 🔥 ADICIONE ESTE ID
+            size_hint_y: 0.82
+            do_scroll_x: False
+            
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: 15
+                padding: 10
+                
+                # CONTA DE ORIGEM
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: 120
+                    padding: 10
+                    canvas:
+                        Color:
+                            rgba: 0.12, 0.16, 0.23, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [8,]
+                    
+                    Label:
+                        text: 'Conta de Origem *'
+                        font_size: '14sp'
+                        bold: True
+                        color: 1, 1, 1, 1
+                        size_hint_y: 0.3
+                        text_size: self.width, None
+                        halign: 'left'
+                    
+                    Spinner:
+                        id: conta_origem
+                        text: 'Selecione uma conta'
+                        font_size: '12sp'
+                        size_hint_y: 0.4
+                        background_color: 0.20, 0.25, 0.33, 1
+                        color: 1, 1, 1, 1
+                        on_text: root.atualizar_info_conta()
+                    
+                    Label:
+                        id: info_conta_label
+                        text: 'Selecione uma conta para verificar o saldo'
+                        font_size: '10sp'
+                        color: 0.80, 0.84, 0.88, 1
+                        size_hint_y: 0.3
+                        text_size: self.width, None
+                        halign: 'left'
+                
+                # BENEFICIÁRIO SALVO
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: 80
+                    padding: 10
+                    canvas:
+                        Color:
+                            rgba: 0.12, 0.16, 0.23, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [8,]
+                    
+                    Label:
+                        text: 'SELECIONAR BENEFICIÁRIO SALVO'
+                        font_size: '12sp'
+                        bold: True
+                        color: 0.23, 0.51, 0.96, 1
+                        size_hint_y: 0.4
+                        text_size: self.width, None
+                        halign: 'left'
+                    
+                    Spinner:
+                        id: combo_beneficiarios
+                        text: ''
+                        font_size: '11sp'
+                        size_hint_y: 0.6
+                        background_color: 0.20, 0.25, 0.33, 1
+                        color: 1, 1, 1, 1
+                        values: ['']
+                
+                # DADOS DO BENEFICIÁRIO
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: 300
+                    padding: 10
+                    canvas:
+                        Color:
+                            rgba: 0.12, 0.16, 0.23, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [8,]
+                    
+                    Label:
+                        text: 'DADOS DO BENEFICIÁRIO'
+                        font_size: '14sp'
+                        bold: True
+                        color: 0.23, 0.51, 0.96, 1
+                        size_hint_y: 0.1
+                        text_size: self.width, None
+                        halign: 'left'
+                    
+                    GridLayout:
+                        cols: 1
+                        size_hint_y: 0.9
+                        spacing: 8
+                        
+                        CampoTexto:
+                            id: entry_beneficiario
+                            hint_text: 'Nome Completo do Beneficiário *'
+                        
+                        CampoTexto:
+                            id: entry_endereco
+                            hint_text: 'Endereço Completo *'
+                        
+                        CampoTexto:
+                            id: entry_cidade
+                            hint_text: 'Cidade *'
+                        
+                        CampoTexto:
+                            id: entry_pais
+                            hint_text: 'País *'
+                
+                # DADOS DO BANCO
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: 350
+                    padding: 10
+                    canvas:
+                        Color:
+                            rgba: 0.12, 0.16, 0.23, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [8,]
+                    
+                    Label:
+                        text: 'DADOS DO BANCO DESTINATÁRIO'
+                        font_size: '14sp'
+                        bold: True
+                        color: 0.23, 0.51, 0.96, 1
+                        size_hint_y: 0.1
+                        text_size: self.width, None
+                        halign: 'left'
+                    
+                    GridLayout:
+                        cols: 1
+                        size_hint_y: 0.9
+                        spacing: 8
+                        
+                        CampoTexto:
+                            id: entry_banco
+                            hint_text: 'Nome do Banco Destinatário *'
+                        
+                        CampoTexto:
+                            id: endereco_banco
+                            hint_text: 'Endereço do Banco'
+                        
+                        CampoTexto:
+                            id: entry_swift
+                            hint_text: 'Código SWIFT/BIC *'
+                        
+                        CampoTexto:
+                            id: entry_iban
+                            hint_text: 'Código IBAN / Account # *'
+                        
+                        CampoTexto:
+                            id: entry_aba
+                            hint_text: 'Código ABA/Routing (se aplicável)'
+                
+                # SALVAR BENEFICIÁRIO
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: None
+                    height: 50
+                    padding: 10
+                    spacing: 10
+                    
+                    CheckBox:
+                        id: check_salvar_beneficiario
+                        size_hint_x: 0.2
+                        active: False
+                    
+                    Label:
+                        text: 'Salvar este beneficiário para transferências futuras'
+                        font_size: '18sp'
+                        bold: True
+                        color: 0.23, 0.51, 0.96, 1
+                        text_size: self.width, None
+                        halign: 'left'
+                        valign: 'middle'
+                
+                # VALOR E INFORMAÇÕES
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: 200
+                    padding: 10
+                    canvas:
+                        Color:
+                            rgba: 0.12, 0.16, 0.23, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [8,]
+                    
+                    Label:
+                        text: 'VALOR E INFORMAÇÕES'
+                        font_size: '14sp'
+                        bold: True
+                        color: 0.23, 0.51, 0.96, 1
+                        size_hint_y: 0.2
+                        text_size: self.width, None
+                        halign: 'left'
+                    
+                    BoxLayout:
+                        orientation: 'horizontal'
+                        size_hint_y: 0.3
+                        spacing: 10
+                        
+                        Label:
+                            id: moeda_label
+                            text: 'USD'
+                            font_size: '16sp'
+                            bold: True
+                            color: 0.23, 0.51, 0.96, 1
+                            size_hint_x: 0.2
+                            text_size: self.width, None
+                            halign: 'center'
+                            valign: 'middle'
+                        
+                        CampoValor:
+                            id: entry_valor_transferencia
+                            hint_text: '0.00'
+                            font_size: '16sp'  # 🔥 Aumentei a fonte
+                            multiline: False
+                            size_hint_y: None  # 🔥 Mudei para None
+                            height: '50dp'     # 🔥 Defini altura fixa
+                            background_color: 0.20, 0.25, 0.33, 1
+                            foreground_color: 1, 1, 1, 1
+                            cursor_color: 1, 1, 1, 1
+                            padding: [15, 12]  # 🔥 Aumentei o padding
+                    
+                    Label:
+                        text: 'Digite apenas números. Ex: 123456 = 1,234.56'
+                        font_size: '9sp'
+                        color: 0.80, 0.84, 0.88, 1
+                        size_hint_y: 0.1
+                        text_size: self.width, None
+                        halign: 'left'
+                    
+                    BoxLayout:
+                        orientation: 'vertical'
+                        size_hint_y: 0.4
+                        spacing: 5
+                        
+                        Label:
+                            text: 'Finalidade da Transferência *'
+                            font_size: '11sp'
+                            bold: True
+                            color: 1, 1, 1, 1
+                            size_hint_y: 0.3
+                            text_size: self.width, None
+                            halign: 'left'
+                        
+                        Spinner:
+                            id: combo_finalidade
+                            text: 'Pagamento de Serviços'
+                            font_size: '11sp'
+                            size_hint_y: 0.7
+                            background_color: 0.20, 0.25, 0.33, 1
+                            color: 1, 1, 1, 1
+                            values: ['Pagamento de Serviços', 'Investimentos', 'Manutenção de Conta', 'Doação', 'Presente', 'Outros']
+                
+                # DESCRIÇÃO
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: 120
+                    padding: 10
+                    canvas:
+                        Color:
+                            rgba: 0.12, 0.16, 0.23, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [8,]
+                    
+                    Label:
+                        text: 'Descrição Adicional (opcional):'
+                        font_size: '11sp'
+                        bold: True
+                        color: 1, 1, 1, 1
+                        size_hint_y: 0.3
+                        text_size: self.width, None
+                        halign: 'left'
+                    
+                    TextInput:
+                        id: text_descricao
+                        hint_text: 'Digite uma descrição adicional...'
+                        font_size: '11sp'
+                        size_hint_y: 0.7
+                        background_color: 0.20, 0.25, 0.33, 1
+                        foreground_color: 1, 1, 1, 1
+                        cursor_color: 1, 1, 1, 1
+                        padding: [10, 10]
+        
+                # 🔥 SEÇÃO DE INVOICE - ADICIONAR APÓS A SEÇÃO "DESCRIÇÃO"
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: 120
+                    padding: 10
+                    canvas:
+                        Color:
+                            rgba: 0.12, 0.16, 0.23, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [8,]
+
+                    Label:
+                        text: 'ANEXAR INVOICE (OPCIONAL)'
+                        font_size: '11sp'
+                        bold: True
+                        color: 0.23, 0.51, 0.96, 1
+                        size_hint_y: 0.3
+                        text_size: self.width, None
+                        halign: 'left'
+
+                    Button:
+                        id: btn_upload_invoice
+                        text: 'SELECIONAR INVOICE'
+                        font_size: '11sp'
+                        size_hint_y: 0.4
+                        background_color: 0.20, 0.25, 0.33, 1
+                        color: 1, 1, 1, 1
+                        on_press: root.selecionar_invoice()
+
+                    Label:
+                        id: label_arquivo_invoice
+                        text: 'Nenhum arquivo selecionado'
+                        font_size: '9sp'
+                        color: 0.80, 0.84, 0.88, 1
+                        size_hint_y: 0.3
+                        text_size: self.width, None
+                        halign: 'center'
+
+
+        # BOTÕES
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.1
+            spacing: 10
+            
+            Button:
+                text: 'CANCELAR'
+                background_color: 0.55, 0.36, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.cancelar_transferencia()
+            
+            Button:
+                text: 'SOLICITAR TRANSFERÊNCIA'
+                background_color: 0.23, 0.51, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.solicitar_transferencia()
+
+<CampoTexto@TextInput>:
+    font_size: '11sp'
+    multiline: False
+    size_hint_y: None
+    height: 40
+    background_color: 0.20, 0.25, 0.33, 1
+    foreground_color: 1, 1, 1, 1
+    cursor_color: 1, 1, 1, 1
+    padding: [10, 10]

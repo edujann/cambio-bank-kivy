@@ -1,0 +1,98 @@
+{
+    "receitas": {
+        "RECEITAS DE SERVIÇOS": {
+            "Wire Fee": {
+                "saldo": 0.0,
+                "moeda": "USD"
+            },
+            "Taxas Administrativas": {
+                "saldo": 0.0,
+                "moeda": "USD"
+            },
+            "Comissões de Câmbio": {
+                "saldo": 150.0,
+                "moeda": "USD"
+            },
+            "Tarifas Bancárias": {
+                "saldo": 0.0,
+                "moeda": "USD"
+            }
+        },
+        "RECEITAS FINANCEIRAS": {
+            "Rendimentos": {
+                "saldo": 0.0,
+                "moeda": "USD"
+            },
+            "Ganhos Cambiais": {
+                "saldo": 0.0,
+                "moeda": "USD"
+            }
+        }
+    },
+    "despesas": {
+        "DESPESAS ADMINISTRATIVAS": {
+            "Salários": {
+                "saldo": 0.0,
+                "moeda": "USD"
+            },
+            "Aluguel": {
+                "saldo": 0.0,
+                "moeda": "USD"
+            },
+            "Material de Escritório": {
+                "saldo": 0.0,
+                "moeda": "USD"
+            },
+            "Serviços Profissionais": {
+                "saldo": 0.0,
+                "moeda": "USD"
+            }
+        },
+        "DESPESAS FINANCEIRAS": {
+            "Juros Bancários": {
+                "saldo": 0.0,
+                "moeda": "USD"
+            },
+            "Tarifas Bancárias": {
+                "saldo": 0.0,
+                "moeda": "USD"
+            },
+            "Multas e Juros": {
+                "saldo": 0.0,
+                "moeda": "USD"
+            }
+        },
+        "DESPESAS OPERACIONAIS": {
+            "Internet e Telefonia": {
+                "saldo": 0.0,
+                "moeda": "USD"
+            },
+            "Energia e Água": {
+                "saldo": 0.0,
+                "moeda": "USD"
+            },
+            "Manutenção": {
+                "saldo": 0.0,
+                "moeda": "USD"
+            }
+        },
+        "DESPESAS COMERCIAIS": {
+            "Comissões de Vendas": {
+                "saldo": 0.0,
+                "moeda": "USD"
+            },
+            "Propaganda e Marketing": {
+                "saldo": 0.0,
+                "moeda": "USD"
+            },
+            "Viagens e Representação": {
+                "saldo": 0.0,
+                "moeda": "USD"
+            },
+            "Material de Propaganda": {
+                "saldo": 0.0,
+                "moeda": "USD"
+            }
+        }
+    }
+}

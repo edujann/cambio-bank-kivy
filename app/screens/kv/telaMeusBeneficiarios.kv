@@ -1,0 +1,102 @@
+<TelaMeusBeneficiarios>:
+    name: 'meus_beneficiarios'
+    
+    BoxLayout:
+        orientation: 'vertical'
+        padding: [25, 25, 25, 25]  # 🔥 VOLTEI para 25
+        spacing: 15  # 🔥 VOLTEI para 15
+        canvas:
+            Color:
+                rgba: 0.06, 0.09, 0.16, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        
+        # Header
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.12  # 🔥 VOLTEI para 0.12
+            spacing: 5  # 🔥 VOLTEI para 5
+            
+            Button:
+                text: '< Voltar'
+                size_hint_x: 0.2  # 🔥 VOLTEI para 0.2
+                background_color: 0.55, 0.36, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.voltar_dashboard()
+                pos_hint: {'x': 0}
+                font_size: '14sp'  # 🔥 MEIO TERMO: 14sp (era 12sp → 16sp)
+            
+            Label:
+                text: 'MEUS BENEFICIÁRIOS'
+                font_size: '20sp'  # 🔥 MEIO TERMO: 20sp (era 18sp → 22sp)
+                bold: True
+                color: 1, 1, 1, 1
+                text_size: self.width, None
+                halign: 'center'
+            
+            Label:
+                text: 'Gerencie seus beneficiários cadastrados'
+                font_size: '14sp'  # 🔥 MEIO TERMO: 14sp (era 12sp → 16sp)
+                color: 0.80, 0.84, 0.88, 1
+                text_size: self.width, None
+                halign: 'center'
+        
+        # Controles - Botão Novo
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.08  # 🔥 VOLTEI para 0.08
+            padding: [0, 5, 0, 5]  # 🔥 VOLTEI para 5
+            
+            Button:
+                text: '+ Cadastrar Novo Beneficiário'
+                font_size: '15sp'  # 🔥 MEIO TERMO: 15sp (era 13sp → 17sp)
+                bold: True
+                background_color: 0.23, 0.51, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.cadastrar_novo_beneficiario()
+        
+        # Lista de Beneficiários
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.70  # 🔥 VOLTEI para 0.70
+            padding: [10, 10, 10, 10]  # 🔥 VOLTEI para 10
+            canvas:
+                Color:
+                    rgba: 0.12, 0.16, 0.23, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [8,]  # 🔥 VOLTEI para 8
+            
+            ScrollView:
+                do_scroll_x: False
+                bar_width: 10  # 🔥 MEIO TERMO: 10 (era 8 → 12)
+                
+                GridLayout:
+                    id: lista_beneficiarios
+                    cols: 1
+                    spacing: 12  # 🔥 MEIO TERMO: 12 (era 10 → 14)
+                    size_hint_y: None
+                    height: self.minimum_height
+                    padding: [8, 8, 8, 8]  # 🔥 VOLTEI para 8
+        
+        # Botões de Ação
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.10
+            spacing: 10  # 🔥 VOLTEI para 10
+            
+            Button:
+                text: 'Atualizar Lista'
+                font_size: '14sp'  # 🔥 MEIO TERMO: 14sp (era 13sp → 15sp)
+                background_color: 0.23, 0.51, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.carregar_beneficiarios()
+            
+            Button:
+                text: 'Fechar'
+                font_size: '14sp'  # 🔥 MEIO TERMO: 14sp (era 13sp → 15sp)
+                background_color: 0.55, 0.36, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.voltar_dashboard()

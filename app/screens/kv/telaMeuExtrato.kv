@@ -1,0 +1,533 @@
+<TelaMeuExtrato>:
+    name: 'meu_extrato'
+    
+    BoxLayout:
+        orientation: 'vertical'
+        padding: [25, 20, 25, 20]
+        spacing: 20
+        canvas:
+            Color:
+                rgba: (0.05, 0.08, 0.13, 1)  # 🔥 VALOR FIXO
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        
+        # 🔥 HEADER MODERNO
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.08
+            spacing: 15
+            padding: [0, 0, 0, 10]
+            
+            Button:
+                text: '‹ Voltar'
+                size_hint_x: 0.12
+                background_color: (0.4, 0.4, 0.45, 1)  # 🔥 VALOR FIXO
+                background_normal: ''
+                color: 1, 1, 1, 1
+                font_size: '14sp'
+                bold: True
+                on_press: root.voltar_dashboard()
+            
+            Label:
+                text: 'MEU EXTRATO'
+                font_size: '20sp'
+                bold: True
+                color: (0.93, 0.94, 0.95, 1)  # 🔥 VALOR FIXO
+                size_hint_x: 0.76
+                text_size: self.width, None
+                halign: 'center'
+            
+            Button:
+                text: 'Atualizar'
+                size_hint_x: 0.12
+                background_color: (0.25, 0.35, 0.55, 0.3)
+                background_normal: ''
+                color: 1, 1, 1, 1
+                font_size: '16sp'
+                on_press: root.carregar_extrato()
+        
+        # 🔥 CARD DE FILTROS MODERNO
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.20
+            padding: [20, 15, 20, 15]
+            spacing: 12
+            canvas:
+                Color:
+                    rgba: (0.12, 0.16, 0.23, 1)  # 🔥 VALOR FIXO
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [12,]
+            
+            # Linha 1: Título e Conta
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: 0.4
+                spacing: 15
+                
+                Label:
+                    text: 'FILTROS AVANÇADOS'
+                    font_size: '15sp'
+                    bold: True
+                    color: (0.20, 0.36, 0.80, 1)  # 🔥 VALOR FIXO
+                    size_hint_x: 0.4
+                    text_size: self.width, None
+                    halign: 'left'
+                    valign: 'middle'
+                
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_x: 0.6
+                    spacing: 10
+                    
+                    Label:
+                        text: 'Selecione uma Conta -->'
+                        font_size: '15sp'
+                        bold: True
+                        color: (0.93, 0.94, 0.95, 1)  # 🔥 VALOR FIXO
+                        size_hint_x: 0.3
+                        text_size: self.width, None
+                        halign: 'right'
+                        valign: 'middle'
+                    
+                    Spinner:
+                        id: combo_contas
+                        text: 'Selecione uma conta'
+                        font_size: '12sp'
+                        size_hint_x: 0.7
+                        background_color: (0.20, 0.25, 0.33, 1)
+                        background_normal: ''
+                        color: 1, 1, 1, 1
+                        canvas.after:
+                            Color:
+                                rgba: (0.20, 0.36, 0.80, 1)  # 🔥 VALOR FIXO
+                            Line:
+                                points: self.x, self.y, self.right, self.y
+                                width: 1.5
+            
+            # Linha 2: Períodos Rápidos - CORREÇÃO CRÍTICA
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: 0.3
+                spacing: 8
+                
+                Label:
+                    text: 'Período:'
+                    font_size: '12sp'
+                    bold: True
+                    color: (0.93, 0.94, 0.95, 1)  # 🔥 VALOR FIXO
+                    size_hint_x: 0.15
+                    text_size: self.width, None
+                    halign: 'left'
+                    valign: 'middle'
+                
+                GridLayout:
+                    cols: 6
+                    size_hint_x: 0.85
+                    spacing: 5
+                    
+                    ToggleButton:
+                        text: '7 dias'
+                        group: 'periodo'
+                        background_color: (0.20, 0.36, 0.80, 1) if self.state == 'down' else (0.20, 0.25, 0.33, 1)  # 🔥 CORREÇÃO
+                        background_normal: ''
+                        color: (1, 1, 1, 1)
+                        font_size: '11sp'
+                        on_press: root.definir_periodo('7')
+                    
+                    ToggleButton:
+                        text: '15 dias'
+                        group: 'periodo'
+                        background_color: (0.20, 0.36, 0.80, 1) if self.state == 'down' else (0.20, 0.25, 0.33, 1)  # 🔥 CORREÇÃO
+                        background_normal: ''
+                        color: (1, 1, 1, 1)
+                        font_size: '11sp'
+                        on_press: root.definir_periodo('15')
+                    
+                    ToggleButton:
+                        text: '30 dias'
+                        group: 'periodo'
+                        background_color: (0.20, 0.36, 0.80, 1) if self.state == 'down' else (0.20, 0.25, 0.33, 1)  # 🔥 CORREÇÃO
+                        background_normal: ''
+                        color: (1, 1, 1, 1)
+                        font_size: '11sp'
+                        state: 'down'
+                        on_press: root.definir_periodo('30')
+                    
+                    ToggleButton:
+                        text: '90 dias'
+                        group: 'periodo'
+                        background_color: (0.20, 0.36, 0.80, 1) if self.state == 'down' else (0.20, 0.25, 0.33, 1)  # 🔥 CORREÇÃO
+                        background_normal: ''
+                        color: (1, 1, 1, 1)
+                        font_size: '11sp'
+                        on_press: root.definir_periodo('90')
+                    
+                    ToggleButton:
+                        text: '1 ano'
+                        group: 'periodo'
+                        background_color: (0.20, 0.36, 0.80, 1) if self.state == 'down' else (0.20, 0.25, 0.33, 1)  # 🔥 CORREÇÃO
+                        background_normal: ''
+                        color: (1, 1, 1, 1)
+                        font_size: '11sp'
+                        on_press: root.definir_periodo('365')
+                    
+                    ToggleButton:
+                        text: 'Todo'
+                        group: 'periodo'
+                        background_color: (0.20, 0.36, 0.80, 1) if self.state == 'down' else (0.20, 0.25, 0.33, 1)  # 🔥 CORREÇÃO
+                        background_normal: ''
+                        color: (1, 1, 1, 1)
+                        font_size: '11sp'
+                        on_press: root.definir_periodo('0')
+            
+            # Linha 3: Período Personalizado
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: 0.3
+                spacing: 10
+                
+                Label:
+                    text: 'Personalizado:'
+                    font_size: '12sp'
+                    bold: True
+                    color: (0.93, 0.94, 0.95, 1)  # 🔥 VALOR FIXO
+                    size_hint_x: 0.15
+                    text_size: self.width, None
+                    halign: 'left'
+                    valign: 'middle'
+                
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_x: 0.85
+                    spacing: 8
+                    
+                    Label:
+                        text: 'De:'
+                        font_size: '12sp'
+                        color: (0.70, 0.73, 0.78, 1)  # 🔥 VALOR FIXO
+                        size_hint_x: 0.05
+                        text_size: self.width, None
+                        halign: 'left'
+                        valign: 'middle'
+                    
+                    TextInput:
+                        id: entry_data_inicio
+                        text: '01/01/2024'
+                        font_size: '12sp'
+                        size_hint_x: 0.12
+                        background_color: (0.20, 0.25, 0.33, 1)
+                        foreground_color: 1, 1, 1, 1
+                        cursor_color: 1, 1, 1, 1
+                        padding: [8, 8]
+                        multiline: False
+                        halign: 'center'
+                        on_focus: root.on_focus_data_inicio(self, self.focus)
+                    
+                    Label:
+                        text: 'Até:'
+                        font_size: '12sp'
+                        color: (0.70, 0.73, 0.78, 1)  # 🔥 VALOR FIXO
+                        size_hint_x: 0.05
+                        text_size: self.width, None
+                        halign: 'left'
+                        valign: 'middle'
+                    
+                    TextInput:
+                        id: entry_data_fim
+                        text: '05/11/2025'
+                        font_size: '12sp'
+                        size_hint_x: 0.12
+                        background_color: (0.20, 0.25, 0.33, 1)
+                        foreground_color: 1, 1, 1, 1
+                        cursor_color: 1, 1, 1, 1
+                        padding: [8, 8]
+                        multiline: False
+                        halign: 'center'
+                        on_focus: root.on_focus_data_fim(self, self.focus)
+                    
+                    Button:
+                        text: 'Aplicar'
+                        font_size: '12sp'
+                        background_color: (0.18, 0.80, 0.44, 1)  # 🔥 VALOR FIXO
+                        background_normal: ''
+                        color: 1, 1, 1, 1
+                        size_hint_x: 0.15
+                        on_press: root.usar_periodo_personalizado(True)
+                    
+                    Button:
+                        text: 'Exportar PDF'
+                        font_size: '12sp'
+                        bold: True
+                        background_color: (0.95, 0.61, 0.07, 1)  # 🔥 VALOR FIXO
+                        background_normal: ''
+                        color: 1, 1, 1, 1
+                        size_hint_x: 0.2
+                        on_press: root.exportar_extrato_pdf()
+                    
+                    Button:
+                        text: 'Carregar Extrato'
+                        font_size: '12sp'
+                        bold: True
+                        background_color: (0.20, 0.36, 0.80, 1)  # 🔥 VALOR FIXO
+                        background_normal: ''
+                        color: 1, 1, 1, 1
+                        size_hint_x: 0.25
+                        on_press: root.carregar_extrato()
+        
+        # 🔥 CARDS DE RESUMO MODERNOS
+        GridLayout:
+            cols: 5
+            size_hint_y: 0.08
+            spacing: 15
+            padding: [0, 0, 0, 10]
+            
+            # Card Saldo Total
+            BoxLayout:
+                orientation: 'vertical'
+                padding: [15, 10]
+                canvas:
+                    Color:
+                        rgba: (0.12, 0.16, 0.23, 1)  # 🔥 VALOR FIXO
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [10,]
+                
+                Label:
+                    text: 'Saldo Total'
+                    font_size: '11sp'
+                    color: (0.70, 0.73, 0.78, 1)  # 🔥 VALOR FIXO
+                    text_size: self.width, None
+                    halign: 'center'
+                
+                Label:
+                    id: lbl_saldo_total
+                    text: '0.00'
+                    font_size: '14sp'
+                    bold: True
+                    color: (0.20, 0.36, 0.80, 1)  # 🔥 VALOR FIXO
+                    text_size: self.width, None
+                    halign: 'center'
+            
+            # Card Entradas
+            BoxLayout:
+                orientation: 'vertical'
+                padding: [15, 10]
+                canvas:
+                    Color:
+                        rgba: (0.12, 0.16, 0.23, 1)  # 🔥 VALOR FIXO
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [10,]
+                
+                Label:
+                    text: 'Entradas'
+                    font_size: '11sp'
+                    color: (0.70, 0.73, 0.78, 1)  # 🔥 VALOR FIXO
+                    text_size: self.width, None
+                    halign: 'center'
+                
+                Label:
+                    id: lbl_total_entradas
+                    text: '0.00'
+                    font_size: '14sp'
+                    bold: True
+                    color: (0.18, 0.80, 0.44, 1)  # 🔥 VALOR FIXO
+                    text_size: self.width, None
+                    halign: 'center'
+            
+            # Card Saídas
+            BoxLayout:
+                orientation: 'vertical'
+                padding: [15, 10]
+                canvas:
+                    Color:
+                        rgba: (0.12, 0.16, 0.23, 1)  # 🔥 VALOR FIXO
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [10,]
+                
+                Label:
+                    text: 'Saídas'
+                    font_size: '11sp'
+                    color: (0.70, 0.73, 0.78, 1)  # 🔥 VALOR FIXO
+                    text_size: self.width, None
+                    halign: 'center'
+                
+                Label:
+                    id: lbl_total_saidas
+                    text: '0.00'
+                    font_size: '14sp'
+                    bold: True
+                    color: (0.91, 0.30, 0.24, 1)  # 🔥 VALOR FIXO
+                    text_size: self.width, None
+                    halign: 'center'
+            
+            # Card Transações
+            BoxLayout:
+                orientation: 'vertical'
+                padding: [15, 10]
+                canvas:
+                    Color:
+                        rgba: (0.12, 0.16, 0.23, 1)  # 🔥 VALOR FIXO
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [10,]
+                
+                Label:
+                    text: 'Transações'
+                    font_size: '11sp'
+                    color: (0.70, 0.73, 0.78, 1)  # 🔥 VALOR FIXO
+                    text_size: self.width, None
+                    halign: 'center'
+                
+                Label:
+                    id: lbl_total_transacoes
+                    text: '0'
+                    font_size: '14sp'
+                    bold: True
+                    color: (0.93, 0.94, 0.95, 1)  # 🔥 VALOR FIXO
+                    text_size: self.width, None
+                    halign: 'center'
+            
+            # Card Período
+            BoxLayout:
+                orientation: 'vertical'
+                padding: [15, 10]
+                canvas:
+                    Color:
+                        rgba: (0.12, 0.16, 0.23, 1)  # 🔥 VALOR FIXO
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [10,]
+                
+                Label:
+                    text: 'Período'
+                    font_size: '11sp'
+                    color: (0.70, 0.73, 0.78, 1)  # 🔥 VALOR FIXO
+                    text_size: self.width, None
+                    halign: 'center'
+                
+                Label:
+                    id: lbl_periodo
+                    text: '30 dias'
+                    font_size: '12sp'
+                    color: (0.93, 0.94, 0.95, 1)  # 🔥 VALOR FIXO
+                    text_size: self.width, None
+                    halign: 'center'
+        
+        # 🔥 LISTA DE TRANSAÇÕES MODERNA
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.64
+            padding: [0, 10, 0, 0]
+            
+            Label:
+                text: 'HISTÓRICO DE TRANSAÇÕES'
+                font_size: '14sp'
+                bold: True
+                color: (0.20, 0.36, 0.80, 1)
+                size_hint_y: 0.05
+                text_size: self.width, None
+                halign: 'left'
+                padding: [10, 0]
+            
+                
+            # 🔥 HEADER DAS COLUNAS ATUALIZADO (CORRESPONDE AO CARD MODERNO)
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: None
+                height: dp(40)  # 🔥 Altura moderna
+                padding: [15, 8, 15, 8]  # 🔥 Mesmo padding dos cards
+                spacing: dp(10)  # 🔥 Mesmo espaçamento dos cards
+                canvas:
+                    Color:
+                        rgba: (0.15, 0.20, 0.27, 1)
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [8,]  # 🔥 Mesmo radius dos cards
+                
+                # 🔥 MESMAS LARGURAS DO CARD MODERNO
+                Label:
+                    text: 'Data'
+                    font_size: '11sp'
+                    bold: True
+                    color: (0.23, 0.51, 0.96, 1)
+                    size_hint_x: 0.12
+                    text_size: (None, None)
+                    halign: 'center'
+                    valign: 'middle'
+                
+                Label:
+                    text: 'Descrição'
+                    font_size: '11sp'
+                    bold: True
+                    color: (0.23, 0.51, 0.96, 1)
+                    size_hint_x: 0.48  # 🔥 AUMENTADA
+                    text_size: (None, None)
+                    halign: 'left'
+                    valign: 'middle'
+                
+                Label:
+                    text: 'Crédito'
+                    font_size: '11sp'
+                    bold: True
+                    color: (0.23, 0.51, 0.96, 1)
+                    size_hint_x: 0.10  # 🔥 REDUZIDA
+                    text_size: (None, None)
+                    halign: 'right'
+                    valign: 'middle'
+                
+                Label:
+                    text: 'Débito'
+                    font_size: '11sp'
+                    bold: True
+                    color: (0.23, 0.51, 0.96, 1)
+                    size_hint_x: 0.10  # 🔥 REDUZIDA
+                    text_size: (None, None)
+                    halign: 'right'
+                    valign: 'middle'
+                
+                Label:
+                    text: 'Saldo'
+                    font_size: '11sp'
+                    bold: True
+                    color: (0.23, 0.51, 0.96, 1)
+                    size_hint_x: 0.12  # 🔥 REDUZIDA
+                    text_size: (None, None)
+                    halign: 'right'
+                    valign: 'middle'
+                
+                Label:
+                    text: 'Ações'
+                    font_size: '11sp'
+                    bold: True
+                    color: (0.23, 0.51, 0.96, 1)
+                    size_hint_x: 0.08  # 🔥 REDUZIDA
+                    text_size: (None, None)
+                    halign: 'center'
+                    valign: 'middle'
+            
+            ScrollView:
+                id: scroll_extrato
+                size_hint_y: 0.95
+                do_scroll_x: False
+                bar_width: dp(8)
+                bar_color: (0.25, 0.35, 0.55, 0.8)
+                bar_inactive_color: (0.25, 0.35, 0.55, 0.4)
+                
+                GridLayout:
+                    id: lista_transacoes
+                    cols: 1
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: 2  # 🔥 Menor espaçamento entre cards
+                    padding: [5, 5, 5, 5]

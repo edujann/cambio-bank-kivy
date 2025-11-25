@@ -1,0 +1,103 @@
+{
+    "spreads_clientes": {
+        "pantanal": {
+            "USD_BRL": {
+                "compra": 0.6,
+                "venda": 0.6
+            },
+            "EUR_BRL": {
+                "compra": 0.6,
+                "venda": 0.6
+            },
+            "GBP_BRL": {
+                "compra": 0.6,
+                "venda": 0.6
+            },
+            "EUR_USD": {
+                "compra": 0.6,
+                "venda": 0.6
+            },
+            "GBP_USD": {
+                "compra": 0.6,
+                "venda": 0.6
+            },
+            "USD_EUR": {
+                "compra": 0.6,
+                "venda": 0.6
+            },
+            "BRL_USD": {
+                "compra": 0.6,
+                "venda": 0.6
+            },
+            "BRL_EUR": {
+                "compra": 0.6,
+                "venda": 0.6
+            },
+            "BRL_GBP": {
+                "compra": 0.6,
+                "venda": 0.6
+            },
+            "USD_GBP": {
+                "compra": 0.6,
+                "venda": 0.6
+            },
+            "EUR_GBP": {
+                "compra": 0.6,
+                "venda": 0.6
+            },
+            "GBP_EUR": {
+                "compra": 0.6,
+                "venda": 0.6
+            }
+        },
+        "admin": {
+            "USD_BRL": {
+                "compra": 0.5,
+                "venda": 0.5
+            },
+            "EUR_BRL": {
+                "compra": 0.5,
+                "venda": 0.5
+            },
+            "GBP_BRL": {
+                "compra": 0.5,
+                "venda": 0.5
+            },
+            "BRL_USD": {
+                "compra": 0.5,
+                "venda": 0.5
+            }
+        }
+    },
+    "permissoes_cambio": {
+        "pantanal": true
+    },
+    "limites_operacionais": {},
+    "horario_comercial_padrao": {
+        "dias_semana": [
+            0,
+            1,
+            2,
+            3,
+            4
+        ],
+        "inicio": "10:00",
+        "fim": "15:00",
+        "fuso_horario": "America/Sao_Paulo"
+    },
+    "horarios_clientes": {
+        "pantanal": {
+            "dias_semana": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+            ],
+            "inicio": "06:00",
+            "fim": "15:00"
+        }
+    }
+}

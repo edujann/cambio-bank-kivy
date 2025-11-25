@@ -1,0 +1,264 @@
+#:kivy 2.0.0
+#:import dp kivy.metrics.dp
+
+<TelaListarClientes>:
+    name: 'listar_clientes'
+    
+    BoxLayout:
+        orientation: 'vertical'
+        padding: [20, 20, 20, 20]
+        spacing: 15
+        canvas:
+            Color:
+                rgba: 0.06, 0.09, 0.16, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        
+        # Header
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.08
+            spacing: 10
+            
+            Button:
+                text: '< Voltar'
+                size_hint_x: 0.15
+                background_color: 0.55, 0.36, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.voltar_dashboard()
+            
+            Label:
+                text: 'LISTAR CLIENTES'
+                font_size: '18sp'
+                bold: True
+                color: 1, 1, 1, 1
+                size_hint_x: 0.7
+                text_size: self.width, None
+                halign: 'center'
+            
+            Widget:
+                size_hint_x: 0.15
+        
+        # Painel de Estatísticas
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.12
+            spacing: 10
+            padding: [10, 5, 10, 5]
+            canvas.before:
+                Color:
+                    rgba: 0.12, 0.16, 0.23, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [8,]
+            
+            # Total de Clientes
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_x: 0.25
+                padding: [10, 5]
+                
+                Label:
+                    text: 'TOTAL CLIENTES'
+                    font_size: '11sp'
+                    bold: True
+                    color: 0.80, 0.84, 0.88, 1
+                    size_hint_y: 0.4
+                    text_size: self.width, None
+                    halign: 'center'
+                
+                Label:
+                    id: lbl_total_clientes
+                    text: '0'
+                    font_size: '16sp'
+                    bold: True
+                    color: 0.23, 0.51, 0.96, 1
+                    size_hint_y: 0.6
+                    text_size: self.width, None
+                    halign: 'center'
+            
+            # Total de Contas
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_x: 0.25
+                padding: [10, 5]
+                
+                Label:
+                    text: 'TOTAL CONTAS'
+                    font_size: '11sp'
+                    bold: True
+                    color: 0.80, 0.84, 0.88, 1
+                    size_hint_y: 0.4
+                    text_size: self.width, None
+                    halign: 'center'
+                
+                Label:
+                    id: lbl_total_contas
+                    text: '0'
+                    font_size: '16sp'
+                    bold: True
+                    color: 0.2, 0.8, 0.2, 1
+                    size_hint_y: 0.6
+                    text_size: self.width, None
+                    halign: 'center'
+            
+            # Clientes Recentes
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_x: 0.25
+                padding: [10, 5]
+                
+                Label:
+                    text: 'CLIENTES RECENTES'
+                    font_size: '11sp'
+                    bold: True
+                    color: 0.80, 0.84, 0.88, 1
+                    size_hint_y: 0.4
+                    text_size: self.width, None
+                    halign: 'center'
+                
+                Label:
+                    id: lbl_clientes_recentes
+                    text: '0'
+                    font_size: '16sp'
+                    bold: True
+                    color: 0.8, 0.6, 0.2, 1
+                    size_hint_y: 0.6
+                    text_size: self.width, None
+                    halign: 'center'
+            
+            # Taxa de Crescimento
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_x: 0.25
+                padding: [10, 5]
+                
+                Label:
+                    text: 'STATUS'
+                    font_size: '11sp'
+                    bold: True
+                    color: 0.80, 0.84, 0.88, 1
+                    size_hint_y: 0.4
+                    text_size: self.width, None
+                    halign: 'center'
+                
+                Label:
+                    text: '🟢 TODOS ATIVOS'
+                    font_size: '12sp'
+                    color: 0.2, 0.8, 0.2, 1
+                    size_hint_y: 0.6
+                    text_size: self.width, None
+                    halign: 'center'
+        
+        # Barra de Busca e Ações
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.08
+            spacing: 10
+            padding: [10, 5, 10, 5]
+            canvas.before:
+                Color:
+                    rgba: 0.12, 0.16, 0.23, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [8,]
+            
+            # Busca
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_x: 0.6
+                spacing: 10
+                
+                Label:
+                    text: 'Buscar:'
+                    font_size: '12sp'
+                    color: 1, 1, 1, 1
+                    size_hint_x: 0.15
+                    text_size: self.width, None
+                    halign: 'left'
+                
+                TextInput:
+                    id: input_busca
+                    hint_text: 'Buscar por nome ou email...'
+                    font_size: '12sp'
+                    multiline: False
+                    size_hint_x: 0.6
+                    background_color: 0.20, 0.25, 0.33, 1
+                    foreground_color: 1, 1, 1, 1
+                    cursor_color: 1, 1, 1, 1
+                    padding: [10, 10]
+                    on_text_validate: root.aplicar_busca()
+                
+                Button:
+                    text: 'Buscar'
+                    font_size: '12sp'
+                    size_hint_x: 0.15
+                    background_color: 0.23, 0.51, 0.96, 1
+                    color: 1, 1, 1, 1
+                    on_press: root.aplicar_busca()
+            
+            # Ações
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_x: 0.4
+                spacing: 10
+                
+                Button:
+                    text: 'Limpar Busca'
+                    font_size: '12sp'
+                    size_hint_x: 0.4
+                    background_color: 0.55, 0.36, 0.96, 1
+                    color: 1, 1, 1, 1
+                    on_press: root.limpar_busca()
+                
+                Button:
+                    text: 'Exportar PDF'
+                    font_size: '12sp'
+                    size_hint_x: 0.6
+                    background_color: 0.8, 0.2, 0.2, 1
+                    color: 1, 1, 1, 1
+                    on_press: root.exportar_relatorio()
+        
+        # Contador
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.04
+            padding: [10, 0, 10, 0]
+            
+            Label:
+                id: lbl_contador
+                text: 'Carregando clientes...'
+                font_size: '11sp'
+                color: 0.80, 0.84, 0.88, 1
+                text_size: self.width, None
+                halign: 'left'
+        
+        # Lista de Clientes
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.68
+            padding: [10, 10, 10, 10]
+            canvas.before:
+                Color:
+                    rgba: 0.12, 0.16, 0.23, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [8,]
+            
+            ScrollView:
+                do_scroll_x: False
+                
+                GridLayout:
+                    id: lista_clientes
+                    cols: 1
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: 8
+                    padding: [5, 5, 5, 5]
+
+<CardCliente>:
+    # Definido no código Python

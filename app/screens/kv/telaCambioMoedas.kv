@@ -1,0 +1,264 @@
+<TelaCambioMoedas>:
+    name: 'cambio_moedas'
+    
+    BoxLayout:
+        orientation: 'vertical'
+        padding: [25, 25, 25, 25]
+        spacing: 15
+        canvas:
+            Color:
+                rgba: 0.06, 0.09, 0.16, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        
+        # Header
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.08
+            spacing: 10
+            
+            Button:
+                text: '< Voltar'
+                size_hint_x: 0.2
+                background_color: 0.55, 0.36, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.voltar_dashboard()
+            
+            Label:
+                text: 'COMPRA E VENDA DE MOEDAS'
+                font_size: '18sp'
+                bold: True
+                color: 1, 1, 1, 1
+                size_hint_x: 0.6
+                text_size: self.width, None
+                halign: 'center'
+            
+            Button:
+                text: 'Atualizar'
+                size_hint_x: 0.2
+                background_color: 0.23, 0.51, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.atualizar_cotacoes()
+        
+        # Seção de Saldos
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.2
+            padding: [10, 5, 10, 5]
+            
+            Label:
+                text: 'SEUS SALDOS'
+                font_size: '14sp'
+                bold: True
+                color: 0.23, 0.51, 0.96, 1
+                size_hint_y: 0.3
+                text_size: self.width, None
+                halign: 'left'
+            
+            ScrollView:
+                size_hint_y: 0.7
+                do_scroll_x: True
+                do_scroll_y: False
+                
+                GridLayout:
+                    cols: 4
+                    size_hint_x: None
+                    width: self.minimum_width
+                    spacing: 10
+                    height: dp(60)
+        
+        # Seção de Operação
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.3
+            padding: [10, 10, 10, 10]
+            canvas.before:
+                Color:
+                    rgba: 0.12, 0.16, 0.23, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [10,]
+            
+            Label:
+                text: 'SELECIONE SUA OPERAÇÃO'
+                font_size: '14sp'
+                bold: True
+                color: 0.23, 0.51, 0.96, 1
+                size_hint_y: 0.2
+                text_size: self.width, None
+                halign: 'center'
+            
+            # Toggle Buttons Compra/Venda
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: 0.3
+                spacing: 20
+                padding: [20, 0, 20, 0]
+                
+                ToggleButton:
+                    id: btn_compra
+                    text: 'COMPRAR MOEDA'
+                    group: 'operacao'
+                    state: 'down'
+                    background_color: 0.2, 0.8, 0.2, 1
+                    background_normal: ''
+                    background_down: ''
+                    color: 1, 1, 1, 1
+                    font_size: '13sp'
+                    bold: True
+                    on_press: root.definir_operacao('compra')
+                
+                ToggleButton:
+                    id: btn_venda
+                    text: 'VENDER MOEDA'
+                    group: 'operacao'
+                    background_color: 0.96, 0.36, 0.36, 0.5
+                    background_normal: ''
+                    background_down: ''
+                    color: 1, 1, 1, 1
+                    font_size: '13sp'
+                    bold: True
+                    on_press: root.definir_operacao('venda')
+            
+            # Seleção de Moedas
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: 0.5
+                spacing: 5
+                padding: [10, 5, 10, 5]
+                
+                Label:
+                    text: 'Selecione as moedas:'
+                    font_size: '12sp'
+                    color: 0.80, 0.84, 0.88, 1
+                    size_hint_y: 0.3
+                    text_size: self.width, None
+                    halign: 'left'
+                
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: 0.7
+                    spacing: 10
+                    
+                    Spinner:
+                        id: spinner_de
+                        text: 'De...'
+                        values: []
+                        size_hint_x: 0.4
+                        background_color: 0.20, 0.25, 0.33, 1
+                        color: 1, 1, 1, 1
+                        font_size: '13sp'
+                        on_text: root.on_spinner_de_change
+                    
+                    Label:
+                        text: '→'
+                        font_size: '20sp'
+                        color: 0.23, 0.51, 0.96, 1
+                        size_hint_x: 0.2
+                        text_size: self.width, None
+                        halign: 'center'
+                    
+                    Spinner:
+                        id: spinner_para
+                        text: 'Para...'
+                        values: []
+                        size_hint_x: 0.4
+                        background_color: 0.20, 0.25, 0.33, 1
+                        color: 1, 1, 1, 1
+                        font_size: '13sp'
+                        on_text: root.on_spinner_para_change
+        
+        # Seção de Confirmação
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.4
+            padding: [15, 15, 15, 15]
+            spacing: 10
+            canvas.before:
+                Color:
+                    rgba: 0.12, 0.16, 0.23, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [10,]
+            
+            # Informações de Cotação
+            Label:
+                id: lbl_cotacao
+                text: 'Selecione um par de moedas para ver a cotação'
+                font_size: '13sp'
+                color: 0.80, 0.84, 0.88, 1
+                size_hint_y: 0.25
+                text_size: self.width, None
+                halign: 'center'
+                valign: 'middle'
+            
+            # Input de Valor
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: 0.3
+                spacing: 5
+                
+                Label:
+                    text: 'Valor:'
+                    font_size: '14sp'
+                    bold: True
+                    color: 1, 1, 1, 1
+                    size_hint_y: 0.4
+                    text_size: self.width, None
+                    halign: 'left'
+                
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: 0.6
+                    spacing: 10
+                    
+                    TextInput:
+                        id: entry_valor
+                        hint_text: '0.00'
+                        multiline: False
+                        font_size: '16sp'
+                        size_hint_x: 0.7
+                        background_color: 0.20, 0.25, 0.33, 1
+                        foreground_color: 1, 1, 1, 1
+                        cursor_color: 1, 1, 1, 1
+                        padding: [10, 10]
+                        input_filter: 'float'
+                        on_text: root.on_valor_change
+                    
+                    Label:
+                        id: lbl_moeda_valor
+                        text: 'USD'
+                        font_size: '16sp'
+                        bold: True
+                        color: 0.23, 0.51, 0.96, 1
+                        size_hint_x: 0.3
+                        text_size: self.width, None
+                        halign: 'center'
+                        valign: 'middle'
+            
+            # Resultado da Conversão
+            Label:
+                id: lbl_resultado
+                text: 'Você receberá: ---'
+                font_size: '14sp'
+                bold: True
+                color: 0.23, 0.51, 0.96, 1
+                size_hint_y: 0.2
+                text_size: self.width, None
+                halign: 'center'
+                valign: 'middle'
+            
+            # Botão de Confirmação
+            Button:
+                id: btn_confirmar
+                text: 'CONFIRMAR OPERAÇÃO'
+                font_size: '16sp'
+                bold: True
+                background_color: 0.23, 0.51, 0.96, 1
+                color: 1, 1, 1, 1
+                size_hint_y: 0.25
+                disabled: True
+                on_press: root.on_confirmar_operacao

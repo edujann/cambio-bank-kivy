@@ -1,0 +1,292 @@
+#:import dp kivy.metrics.dp
+
+<TelaSuporte>:
+    name: 'suporte'
+    
+    BoxLayout:
+        orientation: 'vertical'
+        padding: [25, 25, 25, 25]
+        spacing: 15
+        canvas:
+            Color:
+                rgba: 0.06, 0.09, 0.16, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        
+        # Header
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.08
+            spacing: 10
+            
+            Button:
+                text: '< Voltar'
+                size_hint_x: 0.15
+                background_color: 0.55, 0.36, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.voltar_dashboard()
+            
+            Label:
+                text: '📞 SUPORTE AO CLIENTE'
+                font_size: '18sp'
+                bold: True
+                color: 1, 1, 1, 1
+                size_hint_x: 0.7
+                text_size: self.width, None
+                halign: 'center'
+            
+            Widget:
+                size_hint_x: 0.15
+        
+        # Card principal
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.92
+            padding: [25, 25, 25, 25]
+            canvas.before:
+                Color:
+                    rgba: 0.12, 0.16, 0.23, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [12,]
+                Color:
+                    rgba: 0.23, 0.51, 0.96, 0.6
+                Line:
+                    width: 1.5
+                    rounded_rectangle: [self.x, self.y, self.width, self.height, 12, 12, 12, 12]
+            
+            ScrollView:
+                do_scroll_x: False
+                
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: 20
+                    padding: [0, 10, 0, 10]
+                    
+                    # Título e subtítulo
+                    BoxLayout:
+                        orientation: 'vertical'
+                        size_hint_y: None
+                        height: dp(80)
+                        
+                        Label:
+                            text: '📞 SUPORTE AO CLIENTE'
+                            font_size: '18sp'
+                            bold: True
+                            color: 1, 1, 1, 1
+                            size_hint_y: 0.6
+                            text_size: self.width, None
+                            halign: 'center'
+                        
+                        Label:
+                            text: 'Estamos aqui para ajudar você'
+                            font_size: '14sp'
+                            color: 0.80, 0.84, 0.88, 1
+                            size_hint_y: 0.4
+                            text_size: self.width, None
+                            halign: 'center'
+                    
+                    # Informações de contato
+                    BoxLayout:
+                        orientation: 'vertical'
+                        size_hint_y: None
+                        height: dp(180)
+                        padding: [15, 15, 15, 15]
+                        canvas.before:
+                            Color:
+                                rgba: 0.15, 0.20, 0.27, 1
+                            RoundedRectangle:
+                                pos: self.pos
+                                size: self.size
+                                radius: [8,]
+                        
+                        Label:
+                            text: '📞 CONTATOS'
+                            font_size: '16sp'
+                            bold: True
+                            color: 0.23, 0.51, 0.96, 1
+                            size_hint_y: 0.2
+                            text_size: self.width, None
+                            halign: 'left'
+                        
+                        # Lista de contatos
+                        GridLayout:
+                            cols: 2
+                            size_hint_y: 0.8
+                            spacing: [10, 5]
+                            padding: [0, 10, 0, 0]
+                            
+                            Label:
+                                text: '📧 Email:'
+                                font_size: '12sp'
+                                bold: True
+                                color: 1, 1, 1, 1
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Label:
+                                text: 'suporte@cambiobank.com'
+                                font_size: '12sp'
+                                color: 0.80, 0.84, 0.88, 1
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Label:
+                                text: '📞 Telefone:'
+                                font_size: '12sp'
+                                bold: True
+                                color: 1, 1, 1, 1
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Label:
+                                text: '+55 (11) 4004-5000'
+                                font_size: '12sp'
+                                color: 0.80, 0.84, 0.88, 1
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Label:
+                                text: '🕒 Horário:'
+                                font_size: '12sp'
+                                bold: True
+                                color: 1, 1, 1, 1
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Label:
+                                text: 'Segunda a Sexta, 9h às 18h'
+                                font_size: '12sp'
+                                color: 0.80, 0.84, 0.88, 1
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Label:
+                                text: '🌐 Site:'
+                                font_size: '12sp'
+                                bold: True
+                                color: 1, 1, 1, 1
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Label:
+                                text: 'www.cambiobank.com'
+                                font_size: '12sp'
+                                color: 0.80, 0.84, 0.88, 1
+                                text_size: self.width, None
+                                halign: 'left'
+                    
+                    # Formulário de solicitação
+                    BoxLayout:
+                        orientation: 'vertical'
+                        size_hint_y: None
+                        height: dp(400)
+                        spacing: 15
+                        
+                        Label:
+                            text: '📝 SOLICITAÇÃO DE SUPORTE'
+                            font_size: '16sp'
+                            bold: True
+                            color: 0.23, 0.51, 0.96, 1
+                            size_hint_y: 0.1
+                            text_size: self.width, None
+                            halign: 'left'
+                        
+                        # Assunto
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: 0.15
+                            
+                            Label:
+                                text: 'Assunto *'
+                                font_size: '12sp'
+                                bold: True
+                                color: 1, 1, 1, 1
+                                size_hint_y: 0.4
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Spinner:
+                                id: combo_assunto
+                                text: 'Selecione um assunto'
+                                font_size: '12sp'
+                                size_hint_y: 0.6
+                                background_color: 0.20, 0.25, 0.33, 1
+                                color: 1, 1, 1, 1
+                                values: ['Problemas com transferência', 'Dúvidas sobre taxas', 'Problemas de acesso', 'Solicitação de informações', 'Outros']
+                        
+                        # Descrição
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: 0.5
+                            
+                            Label:
+                                text: 'Descrição detalhada *'
+                                font_size: '12sp'
+                                bold: True
+                                color: 1, 1, 1, 1
+                                size_hint_y: 0.15
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            ScrollView:
+                                size_hint_y: 0.85
+                                
+                                TextInput:
+                                    id: text_descricao
+                                    hint_text: 'Descreva detalhadamente o seu problema ou dúvida...'
+                                    font_size: '12sp'
+                                    multiline: True
+                                    background_color: 0.20, 0.25, 0.33, 1
+                                    foreground_color: 1, 1, 1, 1
+                                    cursor_color: 1, 1, 1, 1
+                                    padding: [10, 10]
+                        
+                        # Informações do usuário
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: 0.15
+                            padding: [10, 5, 10, 5]
+                            canvas.before:
+                                Color:
+                                    rgba: 0.15, 0.20, 0.27, 1
+                                RoundedRectangle:
+                                    pos: self.pos
+                                    size: self.size
+                                    radius: [5,]
+                            
+                            Label:
+                                id: lbl_info_usuario
+                                text: 'Carregando informações do usuário...'
+                                font_size: '10sp'
+                                color: 0.80, 0.84, 0.88, 1
+                                text_size: self.width, None
+                                halign: 'left'
+                    
+                    # Botões
+                    BoxLayout:
+                        orientation: 'vertical'
+                        size_hint_y: None
+                        height: dp(120)
+                        spacing: 10
+                        
+                        Button:
+                            text: '📤 ENVIAR SOLICITAÇÃO'
+                            font_size: '14sp'
+                            bold: True
+                            background_color: 0.2, 0.8, 0.2, 1
+                            color: 1, 1, 1, 1
+                            size_hint_y: 0.6
+                            on_press: root.enviar_solicitacao()
+                        
+                        Button:
+                            text: 'Fechar'
+                            font_size: '12sp'
+                            background_color: 0.55, 0.36, 0.96, 1
+                            color: 1, 1, 1, 1
+                            size_hint_y: 0.4
+                            on_press: root.voltar_dashboard()

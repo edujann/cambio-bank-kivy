@@ -1,0 +1,195 @@
+{
+    "texaco": [
+        {
+            "nome": "SHELL",
+            "banco": "BANK OF AMERICA",
+            "swift": "BOFANWMM",
+            "iban": "654654",
+            "endereco": "STONE STREET",
+            "cidade": "NEW YORK",
+            "pais": "USA",
+            "endereco_banco": "WALL STREET",
+            "aba": ""
+        },
+        {
+            "nome": "TIM S.A.",
+            "banco": "CAIXA DE DEPOSITOS ITALIAN BANK",
+            "swift": "CAIXDDDS",
+            "iban": "654654",
+            "endereco": "STRADA CORPESCO",
+            "cidade": "NAPOLI",
+            "pais": "ITALY",
+            "endereco_banco": "STRADA TRESTADA",
+            "aba": ""
+        },
+        {
+            "nome": "JINAN BCAMCN MACHINERY CO., LTD.",
+            "banco": "JPMORGAN CHASE BANK",
+            "swift": "CHASHKHH",
+            "iban": "63001209515",
+            "endereco": "ROOM 1502-2, AOSHENG BUILDING, NO.166 XINLUO AVENUE",
+            "cidade": "SHANDONG",
+            "pais": "CHINA",
+            "endereco_banco": "CHARTER HOUSE, 8 CONNAUGHT ROAD",
+            "aba": ""
+        }
+    ],
+    "ibiza": [
+        {
+            "nome": "afasfaf",
+            "banco": "afafdadfafda",
+            "swift": "afafdasdf",
+            "iban": "adfasdfa",
+            "endereco": "adfafda",
+            "cidade": "adfadfa",
+            "pais": "afdafds",
+            "endereco_banco": "adfadfaafd",
+            "aba": "afdafdafda"
+        }
+    ],
+    "prada": [
+        {
+            "nome": "GUCCI LIMITED",
+            "banco": "HSBC ITALY",
+            "swift": "HSBCITML",
+            "iban": "654654654",
+            "endereco": "STRADA CAPRESE",
+            "cidade": "MILAN",
+            "pais": "ITALY",
+            "endereco_banco": "TURN STREET",
+            "aba": ""
+        },
+        {
+            "nome": "HUGO BOSS",
+            "banco": "BANK OF AMERICA",
+            "swift": "BOFAMNMM",
+            "iban": "654654654",
+            "endereco": "COLLINS AVENUE",
+            "cidade": "MIAMI",
+            "pais": "USA",
+            "endereco_banco": "OCEAN DRIVA",
+            "aba": ""
+        }
+    ],
+    "titan": [
+        {
+            "nome": "TITUS LLC",
+            "banco": "BANK OF AMERICA",
+            "swift": "BOFANYJHT",
+            "iban": "654654564",
+            "endereco": "1ST AVENUE",
+            "cidade": "NEW YORK",
+            "pais": "USA",
+            "endereco_banco": "3RD AVENUE",
+            "aba": ""
+        },
+        {
+            "nome": "PACMAN LIMITED",
+            "banco": "JP MORGAN",
+            "swift": "CHASEKKLK",
+            "iban": "654654",
+            "endereco": "JZ STREET",
+            "cidade": "MIAMI",
+            "pais": "USA",
+            "endereco_banco": "TREE STREET",
+            "aba": ""
+        }
+    ],
+    "londrina": [
+        {
+            "nome": "JINAN BCAMCNC MACHINERY CO., LTD.",
+            "banco": "JINAN BCAMCNC MACHINERY CO., LTD.",
+            "swift": "CITISGSG",
+            "iban": "95600042854",
+            "endereco": "ROOM 1502-2, AOSHENG BUILDING, NO 166 XINLUO AVENUE",
+            "cidade": "SHANDONG",
+            "pais": "CHINA",
+            "endereco_banco": "3 CHANGI BUSINESS, PARK CRESCENT - SINGAPORE",
+            "aba": ""
+        },
+        {
+            "nome": "SYMAS TURBO LLC",
+            "banco": "BANK OF AMERICA",
+            "swift": "BOFANYSDS",
+            "iban": "546542175",
+            "endereco": "WALL STREET",
+            "cidade": "NEW YORK",
+            "pais": "USA",
+            "endereco_banco": "FITH AVENUE",
+            "aba": ""
+        }
+    ],
+    "nike": [
+        {
+            "nome": "PUMA LLC",
+            "banco": "BANK OF AMERIA",
+            "swift": "BOFANYKK",
+            "iban": "2135415185",
+            "endereco": "FIRT AVENUE",
+            "cidade": "MIAMI",
+            "pais": "USA",
+            "endereco_banco": "FITH AVENUE",
+            "aba": ""
+        },
+        {
+            "nome": "JBL LIMITED",
+            "banco": "JP MORGAN",
+            "swift": "CHASEMMNY",
+            "iban": "6354654",
+            "endereco": "JHON STREET",
+            "cidade": "NEW YORK",
+            "pais": "USA",
+            "endereco_banco": "TIMES SQUAER",
+            "aba": ""
+        }
+    ],
+    "pantanal": [
+        {
+            "nome": "HUIZHOU MAITONG OPTOELECTRONIC TECHNOLOGY CO., LTD",
+            "banco": "THE AGRICULTURAL BANK OF CHINA",
+            "swift": "ABOCCNBJ190",
+            "iban": "4424391404000086",
+            "endereco": "FLOORS 4 AND 5, BUIDING C, ANTON INDUSTRIAL PARK, LONXI STREET",
+            "cidade": "HUIZHOU CITY",
+            "pais": "CHINA",
+            "endereco_banco": "96 LUOYANG 1 ROAD",
+            "aba": ""
+        },
+        {
+            "nome": "SUZHOU TERUITONG COMMUNICATION.CO.,LTD",
+            "banco": "DBS BANK (HONG KONG) LIMITED",
+            "swift": "DHBKHKHH",
+            "iban": "79969000539181",
+            "endereco": "2,3F No. 198 ZHONG'AN ROAD, PUZHUANG",
+            "cidade": "SUZHOU",
+            "pais": "CHINA",
+            "endereco_banco": "11TH FLOOR, THE CENTER, 99 QUEEN'S ROAD CENTRAL, HONG KONG",
+            "aba": ""
+        },
+        {
+            "nome": "JMC SYSTEM LLC",
+            "endereco": "FITH AVENUE",
+            "cidade": "NEW YORK",
+            "pais": "USA",
+            "banco": "CITI BANK SA",
+            "endereco_banco": "WALL STREET",
+            "swift": "CITINYMMN",
+            "iban": "856347425",
+            "aba": "",
+            "data_cadastro": "2025-11-21 11:37:26"
+        }
+    ],
+    "lins": [
+        {
+            "nome": "Hangzhou Rising Industry Co., Ltd",
+            "banco": "CITIBANK N. A. HONG KONG BRANCH",
+            "swift": "CITIHKHX",
+            "iban": "3974000002630",
+            "endereco": "20/F, TOWER ONE, TIMES SQUARE, 1 MATHESON STREET, CAUSEWAY BAY",
+            "cidade": "HONG KONG",
+            "pais": "HONG KONG",
+            "endereco_banco": "Champion Tower THREE Garden ROAD CENTRAL, HONG KONG",
+            "aba": ""
+        }
+    ]
+}

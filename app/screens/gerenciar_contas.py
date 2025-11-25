@@ -1,0 +1,6093 @@
+from kivy.uix.screenmanager import Screen
+from kivy.app import App
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.label import Label
+from kivy.uix.button import Button
+from kivy.uix.popup import Popup
+from kivy.uix.textinput import TextInput
+from kivy.uix.spinner import Spinner
+from kivy.uix.togglebutton import ToggleButton
+from kivy.graphics import Color, RoundedRectangle
+from kivy.metrics import dp
+from kivy.uix.textinput import TextInput
+from kivy.clock import Clock 
+from kivy.uix.tabbedpanel import TabbedPanelHeader  # 🔥 IMPORT ADICIONADO
+from screens.gerenciar_cliente_detalhe import TelaGerenciarClienteDetalhe
+from kivy.factory import Factory
+from .campos import CampoValor
+from kivy.uix.widget import Widget
+import datetime
+import random
+
+# 🔥 Registrar as classes personalizadas para as abas
+Factory.register('TabbedPanelHeader', cls=TabbedPanelHeader)
+
+class TextInputTaxaCambio(TextInput):
+    """TextInput customizado para taxa de câmbio com MUITAS casas decimais"""
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.input_filter = 'float'
+        self._updating_text = False  # Flag para evitar loop
+        self.bind(focus=self.on_focus)
+        self.bind(text=self.on_text)
+    
+    def on_focus(self, instance, value):
+        """Quando o campo ganha foco, seleciona todo o texto"""
+        if value:  # Se ganhou foco
+            Clock.schedule_once(lambda dt: self.select_all())
+    
+    def on_text(self, instance, value):
+        """Substitui vírgula por ponto quando o texto muda"""
+        if self._updating_text:
+            return
+            
+        if value and ',' in value:
+            self._updating_text = True
+            new_value = value.replace(',', '.')
+            self.text = new_value
+            self.cursor = (len(new_value), 0)
+            self._updating_text = False
+    
+    def insert_text(self, substring, from_undo=False):
+        """Substitui vírgula por ponto durante a digitação"""
+        if ',' in substring:
+            substring = substring.replace(',', '.')
+        return super().insert_text(substring, from_undo=from_undo)
+
+    # 🔥 NOVO MÉTODO: Permitir MUITAS casas decimais
+    def on_text_validate(self):
+        """Garante que temos precisão máxima quando o campo perde foco"""
+        if self.text:
+            try:
+                # Converter para float e formatar com 20 casas decimais
+                valor = float(self.text)
+                # Manter o valor original se já tiver alta precisão
+                if len(self.text.split('.')[-1]) < 15:
+                    self.text = f"{valor:.20f}".rstrip('0').rstrip('.')
+            except ValueError:
+                pass
+
+# 🔥 AQUI - DEPOIS da classe TextInputTaxaCambio e ANTES da próxima classe
+Factory.register('TextInputTaxaCambio', cls=TextInputTaxaCambio)
+
+
+class CardCliente(BoxLayout):
+    """Card para exibir informações de um cliente - VERSÃO UMA LINHA"""
+    
+    def __init__(self, username, dados_cliente, contas, tela_pai, **kwargs):
+        super().__init__(**kwargs)
+        self.orientation = 'horizontal'
+        self.size_hint_y = None
+        self.height = dp(60)  # 🔥 Altura reduzida para uma linha
+        self.padding = [dp(15), dp(8), dp(15), dp(8)]
+        self.spacing = dp(15)
+        
+        self.username = username
+        self.dados_cliente = dados_cliente
+        self.contas = contas
+        self.tela_pai = tela_pai
+        
+        # Background do card
+        with self.canvas.before:
+            Color(0.20, 0.25, 0.33, 1)
+            self.rect = RoundedRectangle(
+                pos=self.pos,
+                size=self.size,
+                radius=[dp(6),]
+            )
+        self.bind(pos=self._atualizar_rect, size=self._atualizar_rect)
+        
+        self.criar_conteudo_uma_linha()
+    
+    def _atualizar_rect(self, instance, value):
+        self.rect.pos = instance.pos
+        self.rect.size = instance.size
+    
+    def criar_conteudo_uma_linha(self):
+        """Cria o conteúdo em uma única linha"""
+        
+        # 🔥 COLUNA 1: Nome do Cliente (40%)
+        coluna_nome = BoxLayout(orientation='vertical', size_hint_x=0.4)
+        
+        lbl_nome = Label(
+            text=self.dados_cliente['nome'],
+            font_size='14sp',
+            bold=True,
+            color=(1, 1, 1, 1),
+            halign='left',
+            text_size=(None, None),
+            valign='middle'
+        )
+        
+        lbl_username = Label(
+            text=f"({self.username})",
+            font_size='11sp',
+            color=(0.85, 0.88, 0.92, 0.8),
+            halign='left',
+            text_size=(None, None),
+            valign='middle'
+        )
+        
+        coluna_nome.add_widget(lbl_nome)
+        coluna_nome.add_widget(lbl_username)
+        
+        # 🔥 COLUNA 2: Moedas Disponíveis (40%)
+        coluna_moedas = BoxLayout(orientation='vertical', size_hint_x=0.4)
+        
+        moedas_texto = self.obter_moedas_formatadas()
+        lbl_moedas = Label(
+            text=moedas_texto,
+            font_size='12sp',
+            color=(0.85, 0.88, 0.92, 1),
+            halign='center',
+            text_size=(None, None),
+            valign='middle'
+        )
+        
+        saldo_total = self.calcular_saldo_total()
+        lbl_saldo = Label(
+            text=f"Saldo Total: {saldo_total:,.2f}",
+            font_size='11sp',
+            color=(0.23, 0.51, 0.96, 1),
+            halign='center',
+            text_size=(None, None),
+            valign='middle'
+        )
+        
+        coluna_moedas.add_widget(lbl_moedas)
+        coluna_moedas.add_widget(lbl_saldo)
+        
+        # 🔥 COLUNA 3: Botão Gerenciar (20%)
+        coluna_botao = BoxLayout(orientation='vertical', size_hint_x=0.2)
+        
+        btn_gerenciar = Button(
+            text='GERENCIAR',
+            font_size='11sp',
+            bold=True,
+            size_hint=(0.8, 0.6),
+            pos_hint={'center_x': 0.5, 'center_y': 0.5},
+            background_color=(0, 0, 0, 0),  # Fundo transparente
+            background_normal='',
+            color=(1, 1, 1, 1)
+        )
+        btn_gerenciar.bind(on_press=self.abrir_gerenciamento_cliente)
+
+        # Efeito visual do botão
+        with btn_gerenciar.canvas.before:
+            # Sombra sutil
+            Color(0.04, 0.08, 0.16, 0.6)
+            RoundedRectangle(
+                pos=(btn_gerenciar.x, btn_gerenciar.y - dp(1)),
+                size=(btn_gerenciar.width, btn_gerenciar.height),
+                radius=[dp(4),]
+            )
+            
+            # Botão principal
+            Color(0.08, 0.16, 0.32, 1)
+            RoundedRectangle(
+                pos=btn_gerenciar.pos,
+                size=btn_gerenciar.size,
+                radius=[dp(4),]
+            )
+
+        # Atualizar posição da sombra quando o botão se move
+        def atualizar_sombra(instance, value):
+            instance.canvas.before.clear()
+            with instance.canvas.before:
+                # Sombra
+                Color(0.04, 0.08, 0.16, 0.6)
+                RoundedRectangle(
+                    pos=(instance.x, instance.y - dp(1)),
+                    size=(instance.width, instance.height),
+                    radius=[dp(4),]
+                )
+                # Botão
+                Color(0.08, 0.16, 0.32, 1)
+                RoundedRectangle(
+                    pos=instance.pos,
+                    size=instance.size,
+                    radius=[dp(4),]
+                )
+
+        btn_gerenciar.bind(pos=atualizar_sombra, size=atualizar_sombra)
+        
+        # Container para centralizar o botão
+        botao_container = BoxLayout(
+            orientation='vertical',
+            size_hint=(1, 1),
+            pos_hint={'center_x': 0.5, 'center_y': 0.5}
+        )
+        botao_container.add_widget(Widget(size_hint_y=0.2))  # Espaço acima
+        botao_container.add_widget(btn_gerenciar)
+        botao_container.add_widget(Widget(size_hint_y=0.2))  # Espaço abaixo
+        
+        coluna_botao.add_widget(botao_container)
+        
+        # 🔥 ADICIONAR AS 3 COLUNAS
+        self.add_widget(coluna_nome)
+        self.add_widget(coluna_moedas)
+        self.add_widget(coluna_botao)
+
+    def obter_moedas_formatadas(self):
+        """Retorna as moedas formatadas de forma compacta"""
+        if not self.contas:
+            return "Sem contas"
+        
+        moedas = {}
+        for conta in self.contas:
+            moeda = conta['moeda']
+            if moeda not in moedas:
+                moedas[moeda] = 0
+            moedas[moeda] += 1
+        
+        # Formatar como: "USD, EUR, BRL" ou "USD (2), EUR (1)"
+        texto_moedas = []
+        for moeda, quantidade in moedas.items():
+            if quantidade > 1:
+                texto_moedas.append(f"{moeda} ({quantidade})")
+            else:
+                texto_moedas.append(moeda)
+        
+        return ", ".join(texto_moedas)
+
+    def calcular_saldo_total(self):
+        """Calcula saldo total"""
+        if not self.contas:
+            return 0.0
+        return sum(conta['saldo'] for conta in self.contas)
+
+    def abrir_gerenciamento_cliente(self, instance):
+        """Abre a tela de gerenciamento detalhado do cliente"""
+        try:
+            if 'gerenciar_cliente_detalhe' not in self.tela_pai.manager.screen_names:
+                self.tela_pai.mostrar_erro("Tela de gerenciamento não disponível")
+                return
+            
+            tela_detalhe = self.tela_pai.manager.get_screen('gerenciar_cliente_detalhe')
+            sistema = App.get_running_app().sistema
+            dados_cliente = sistema.usuarios[self.username]
+            
+            tela_detalhe.carregar_dados_cliente(self.username, dados_cliente)
+            self.tela_pai.manager.current = 'gerenciar_cliente_detalhe'
+            
+        except Exception as e:
+            self.tela_pai.mostrar_erro(f"Erro ao abrir gerenciamento: {str(e)}")
+
+class CardTransacao(BoxLayout):
+    """Card para exibir uma transação no extrato - VERSÃO COM DATA BR"""
+    
+    def __init__(self, transacao, **kwargs):
+        super().__init__(**kwargs)
+        self.orientation = 'horizontal'
+        self.size_hint_y = None
+        self.height = dp(60)
+        self.padding = [10, 5, 10, 5]
+        self.spacing = dp(5)
+        
+        # Definir cor baseada no tipo - CORES MAIS SUAVES
+        if transacao.get('credito', 0) > 0:
+            cor_fundo = (0.85, 0.95, 0.85, 1)  # 🟢 Verde bem suave
+        elif transacao.get('debito', 0) > 0:
+            cor_fundo = (0.95, 0.85, 0.85, 1)  # 🔴 Vermelho bem suave
+        else:
+            cor_fundo = (0.92, 0.94, 0.96, 1)  # ⚪ Cinza azulado suave (saldo inicial)
+        
+        # Background do card
+        with self.canvas.before:
+            Color(*cor_fundo)
+            self.rect = RoundedRectangle(
+                pos=self.pos,
+                size=self.size,
+                radius=[5,]
+            )
+        self.bind(pos=self._atualizar_rect, size=self._atualizar_rect)
+        
+        self.criar_conteudo(transacao)
+    
+    def _atualizar_rect(self, instance, value):
+        if hasattr(self, 'rect'):
+            self.rect.pos = instance.pos
+            self.rect.size = instance.size
+    
+    def criar_conteudo(self, transacao):
+        """Cria o conteúdo do card com data no formato BR"""
+        
+        # 🔥 FORMATAR DATA PARA DD/MM/AAAA
+        data_original = transacao['data'].split(' ')[0] if ' ' in transacao['data'] else transacao['data']
+        try:
+            # Converter de AAAA-MM-DD para DD/MM/AAAA
+            partes = data_original.split('-')
+            if len(partes) == 3:
+                data_formatada = f"{partes[2]}/{partes[1]}/{partes[0]}"
+            else:
+                data_formatada = data_original
+        except:
+            data_formatada = data_original
+        
+        # Coluna 1: Data (20%)
+        col_data = BoxLayout(orientation='vertical', size_hint_x=0.2)
+        lbl_data = Label(
+            text=data_formatada,  # 🔥 USAR DATA FORMATADA
+            font_size='12sp',
+            color=(0.2, 0.2, 0.2, 1),
+            text_size=(None, None),
+            halign='center',
+            valign='middle'
+        )
+        col_data.add_widget(lbl_data)
+        
+        # Coluna 2: Descrição (40%)
+        col_descricao = BoxLayout(orientation='vertical', size_hint_x=0.4)
+        lbl_descricao = Label(
+            text=transacao['descricao'],
+            font_size='11sp',
+            color=(0.3, 0.3, 0.3, 1),
+            text_size=(None, None),
+            halign='left',
+            valign='middle'
+        )
+        col_descricao.add_widget(lbl_descricao)
+        
+        # Coluna 3: Crédito (15%)
+        col_credito = BoxLayout(orientation='vertical', size_hint_x=0.15)
+        credito = transacao.get('credito', 0)
+        lbl_credito = Label(
+            text=f"{credito:,.2f}" if credito > 0 else "",
+            font_size='12sp',
+            color=(0.1, 0.6, 0.1, 1) if credito > 0 else (0.3, 0.3, 0.3, 1),
+            text_size=(None, None),
+            halign='right',
+            valign='middle'
+        )
+        col_credito.add_widget(lbl_credito)
+        
+        # Coluna 4: Débito (15%)
+        col_debito = BoxLayout(orientation='vertical', size_hint_x=0.15)
+        debito = transacao.get('debito', 0)
+        lbl_debito = Label(
+            text=f"{debito:,.2f}" if debito > 0 else "",
+            font_size='12sp',
+            color=(0.8, 0.2, 0.2, 1) if debito > 0 else (0.3, 0.3, 0.3, 1),
+            text_size=(None, None),
+            halign='right',
+            valign='middle'
+        )
+        col_debito.add_widget(lbl_debito)
+        
+        # Coluna 5: Saldo (10%)
+        col_saldo = BoxLayout(orientation='vertical', size_hint_x=0.1)
+        saldo_apos = transacao.get('saldo_apos', 0)
+        
+        # 🔥 MUDANÇA: Cor vermelha se saldo for negativo
+        cor_saldo = (0.8, 0.2, 0.2, 1) if saldo_apos < 0 else (0.1, 0.3, 0.8, 1)
+        
+        lbl_saldo = Label(
+            text=f"{saldo_apos:,.2f}",
+            font_size='11sp',
+            color=cor_saldo,  # 🔥 AGORA MUDA DINAMICAMENTE
+            text_size=(None, None),
+            halign='right',
+            valign='middle'
+        )
+        col_saldo.add_widget(lbl_saldo)
+        
+        # Adicionar todas as colunas
+        self.add_widget(col_data)
+        self.add_widget(col_descricao)
+        self.add_widget(col_credito)
+        self.add_widget(col_debito)
+        self.add_widget(col_saldo)
+
+
+class TelaGerenciarContas(Screen):
+    """Tela para gerenciar contas de clientes (Admin)"""
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.operacao_atual = 'credito'  # credito ou debito
+        
+        # Agendar a configuração inicial dos botões
+        from kivy.clock import Clock
+        Clock.schedule_once(self._configurar_botoes_iniciais, 0.1)
+    
+    def _configurar_botoes_iniciais(self, dt):
+        """Configura o estado inicial dos botões de operação"""
+        if hasattr(self, 'ids'):
+            # Definir crédito como padrão
+            self.definir_operacao('credito')
+
+    def on_pre_enter(self):
+        """Chamado antes da tela ser mostrada - VERSÃO SIMPLIFICADA PARA TESTE"""
+        from kivy.core.window import Window
+        
+        # Definir tamanho da janela
+        Window.size = (1400, 900)
+        
+        # 🔥 MOVER PARA ESQUERDA - VERSÃO SIMPLES
+        Window.left = 300
+        Window.top = 70
+
+        # 🔥 ATUALIZAR SALDOS NOS SPINNERS
+        self.atualizar_saldos_spinners_extrato()
+
+        # Carregar dados SIMPLES - sem callbacks complexos
+        from kivy.clock import Clock
+        
+        def carregar_simples(dt):
+            # Apenas o essencial - versão mínima
+            try:
+                print("🎯 CARREGAMENTO SIMPLES INICIADO")
+                self.carregar_dados_iniciais()
+                print("✅ Carregamento básico concluído")
+            except Exception as e:
+                print(f"❌ Erro no carregamento simples: {e}")
+        
+        # Apenas uma chamada simples
+        Clock.schedule_once(carregar_simples, 0.1)
+
+    def configurar_binds_taxas(self):
+        """Configura os binds para os campos de taxa"""
+        if hasattr(self, 'ids'):
+            # Bind para atualizar cálculo quando valor mudar
+            if 'entry_valor_cambio' in self.ids:
+                self.ids.entry_valor_cambio.bind(text=lambda instance, value: self.atualizar_calculo_conversao())
+            
+            # Bind para atualizar cálculo quando contas mudarem
+            if 'combo_conta_origem' in self.ids:
+                self.ids.combo_conta_origem.bind(text=lambda instance, value: self.atualizar_calculo_conversao())
+            
+            if 'combo_conta_destino' in self.ids:
+                self.ids.combo_conta_destino.bind(text=lambda instance, value: self.atualizar_calculo_conversao())
+
+    def inicializar_campos_taxa(self):
+        """Inicializa os campos de taxa bidirecional na interface"""
+        if hasattr(self, 'ids'):
+            # Remover o campo de taxa antigo se existir
+            if 'container_taxas_cambio' in self.ids:
+                container = self.ids.container_taxas_cambio
+                container.clear_widgets()
+                
+                # Adicionar os novos campos de taxa
+                campos_taxa = self.criar_campos_taxa_bidirecional()
+                container.add_widget(campos_taxa)
+
+    def forcar_atualizacao_combos(self):
+        """Força a atualização de todos os combos após a interface carregar"""
+        try:
+            if hasattr(self, 'ids'):
+                # Forçar atualização dos combos de contas
+                if 'combo_cliente_ajuste' in self.ids and self.ids.combo_cliente_ajuste.text:
+                    self.atualizar_contas_ajuste()
+                if 'combo_cliente_cambio' in self.ids and self.ids.combo_cliente_cambio.text:
+                    self.atualizar_contas_cambio() 
+                if 'combo_cliente_extrato' in self.ids and self.ids.combo_cliente_extrato.text:
+                    self.atualizar_contas_extrato()
+                if 'combo_cliente_receita' in self.ids and self.ids.combo_cliente_receita.text:
+                    self.atualizar_contas_cliente_receita()
+                    
+        except Exception as e:
+            print(f"⚠️ Erro ao forçar atualização de combos: {e}")
+    
+    def on_enter(self):
+        """Chamado quando a tela é carregada - GARANTIR POSIÇÃO"""
+        from kivy.core.window import Window
+        
+        # 🔥 GARANTIR que está na posição correta
+        Window.left = 300
+        Window.top = 70
+
+        # 🔥 CONFIGURAR BINDINGS (sem debug)
+        self.configurar_bindings_taxas()  # ✅ Cálculo entre taxas
+        self.configurar_binds_taxas()     # ✅ Cálculo de conversão
+
+        print("🏦 Tela Gerenciar Contas carregada (posicionada à esquerda)")
+    
+    def carregar_dados_iniciais(self):
+        """Carrega todos os dados iniciais da tela - VERSÃO COMPLETA"""
+        print("🎯 carregar_dados_iniciais COMPLETO")
+        sistema = App.get_running_app().sistema
+        
+        # Verificar se é admin
+        if sistema.tipo_usuario_logado != 'admin':
+            self.mostrar_erro("Esta função é apenas para administradores!")
+            self.voltar_dashboard()
+            return
+        
+        try:
+            self.carregar_clientes_combos()
+            self.carregar_combos_contabeis()
+            self.carregar_combos_receita()
+            self.carregar_lista_clientes()
+            print("✅ Todos os dados iniciais carregados")
+            
+
+            
+        except Exception as e:
+            print(f"❌ Erro em carregar_dados_iniciais: {e}")
+    
+    def carregar_clientes_combos(self):
+        """Carrega a lista de clientes nos comboboxes - VERSÃO CORRIGIDA"""
+        sistema = App.get_running_app().sistema
+        
+        clientes_opcoes = []
+        for username, dados in sistema.usuarios.items():
+            if dados['tipo'] == 'cliente':
+                clientes_opcoes.append(f"{username} - {dados['nome']}")
+        
+        print(f"🔍 DEBUG carregar_clientes_combos: {len(clientes_opcoes)} clientes encontrados")
+        
+        # Atualizar todos os combos de cliente - COM VERIFICAÇÃO DE EXISTÊNCIA
+        if hasattr(self, 'ids'):
+            # Combo da aba Ajustar Saldos
+            if 'combo_cliente_ajuste' in self.ids:
+                self.ids.combo_cliente_ajuste.values = clientes_opcoes
+                if clientes_opcoes and not self.ids.combo_cliente_ajuste.text:
+                    self.ids.combo_cliente_ajuste.text = clientes_opcoes[0]
+            
+            # Combo da aba Câmbio entre Moedas
+            if 'combo_cliente_cambio' in self.ids:
+                self.ids.combo_cliente_cambio.values = clientes_opcoes
+                if clientes_opcoes and not self.ids.combo_cliente_cambio.text:
+                    self.ids.combo_cliente_cambio.text = clientes_opcoes[0]
+            
+            # Combo da aba Extratos
+            if 'combo_cliente_extrato' in self.ids:
+                self.ids.combo_cliente_extrato.values = clientes_opcoes
+                if clientes_opcoes and not self.ids.combo_cliente_extrato.text:
+                    self.ids.combo_cliente_extrato.text = clientes_opcoes[0]
+            
+            # 🔥 CORREÇÃO CRÍTICA: Combo da aba Receitas
+            if 'combo_cliente_receita' in self.ids:
+                self.ids.combo_cliente_receita.values = clientes_opcoes
+                print(f"✅ Combo receita carregado: {len(clientes_opcoes)} opções")
+                if clientes_opcoes and not self.ids.combo_cliente_receita.text:
+                    self.ids.combo_cliente_receita.text = clientes_opcoes[0]
+                    print(f"✅ Texto definido: {self.ids.combo_cliente_receita.text}")
+            else:
+                print("❌ combo_cliente_receita não encontrado!")
+
+    def forcar_atualizacao_combos_receita(self):
+        """Força a atualização dos combos da aba receitas"""
+        try:
+            if hasattr(self, 'ids'):
+                print("🔄 Forçando atualização combos receita...")
+                
+                # Forçar atualização do combo de cliente
+                if 'combo_cliente_receita' in self.ids:
+                    sistema = App.get_running_app().sistema
+                    clientes_opcoes = []
+                    for username, dados in sistema.usuarios.items():
+                        if dados['tipo'] == 'cliente':
+                            clientes_opcoes.append(f"{username} - {dados['nome']}")
+                    
+                    self.ids.combo_cliente_receita.values = clientes_opcoes
+                    if clientes_opcoes and not self.ids.combo_cliente_receita.text:
+                        self.ids.combo_cliente_receita.text = clientes_opcoes[0]
+                    
+                    print(f"✅ Combo cliente receita atualizado: {len(clientes_opcoes)} opções")
+                
+                # Forçar atualização do combo de categorias de receita
+                if 'combo_categoria_receita' in self.ids:
+                    sistema = App.get_running_app().sistema
+                    categorias = list(sistema.contas_contabeis['receitas'].keys())
+                    self.ids.combo_categoria_receita.values = categorias
+                    if categorias and not self.ids.combo_categoria_receita.text:
+                        self.ids.combo_categoria_receita.text = categorias[0]
+                    
+                    print(f"✅ Combo categoria receita atualizado: {len(categorias)} opções")
+                    
+        except Exception as e:
+            print(f"⚠️ Erro ao forçar atualização combos receita: {e}")
+
+    def carregar_lista_clientes(self, filtro=None):
+        """Carrega a lista de clientes na primeira aba com filtro opcional"""
+        sistema = App.get_running_app().sistema
+        
+        if not hasattr(self, 'ids') or 'lista_clientes' not in self.ids:
+            return
+        
+        container = self.ids.lista_clientes
+        container.clear_widgets()
+        
+        # Coletar todos os clientes
+        clientes_com_contas = []
+        
+        for username, dados_usuario in sistema.usuarios.items():
+            if dados_usuario['tipo'] == 'cliente':
+                # Aplicar filtro se existir
+                if filtro:
+                    filtro_lower = filtro.lower()
+                    # Buscar no nome, username ou número da conta
+                    nome_match = filtro_lower in dados_usuario['nome'].lower()
+                    username_match = filtro_lower in username.lower()
+                    conta_match = False
+                    
+                    # Verificar se o filtro corresponde a alguma conta
+                    for conta_num in dados_usuario.get('contas', []):
+                        if conta_num in sistema.contas:
+                            if filtro_lower in conta_num.lower():
+                                conta_match = True
+                                break
+                    
+                    if not (nome_match or username_match or conta_match):
+                        continue
+                
+                contas_cliente = []
+                
+                # Coletar informações das contas
+                for conta_num in dados_usuario.get('contas', []):
+                    if conta_num in sistema.contas:
+                        dados_conta = sistema.contas[conta_num]
+                        contas_cliente.append({
+                            'numero': conta_num,
+                            'moeda': dados_conta['moeda'],
+                            'saldo': dados_conta['saldo']
+                        })
+                
+                clientes_com_contas.append((username, dados_usuario, contas_cliente))
+        
+        if not clientes_com_contas:
+            # Mensagem quando não há clientes
+            lbl_vazio = Label(
+                text="📭 Nenhum cliente encontrado" + (" para o filtro aplicado" if filtro else ""),
+                font_size='14sp',
+                color=(0.80, 0.84, 0.88, 1),
+                size_hint_y=None,
+                height=dp(100)
+            )
+            container.add_widget(lbl_vazio)
+            return
+        
+        # Criar cards para cada cliente
+        for username, dados_usuario, contas in clientes_com_contas:
+            card = CardCliente(username, dados_usuario, contas, self)
+            container.add_widget(card)
+        
+        print(f"✅ {len(clientes_com_contas)} clientes carregados" + (f" (filtro: {filtro})" if filtro else ""))
+
+    def teste_rapido_spinner(self):
+        """Teste rápido do spinner após carregamento"""
+        from kivy.clock import Clock
+        
+        def testar(dt):
+            if hasattr(self, 'ids') and 'combo_cliente_receita' in self.ids:
+                spinner = self.ids.combo_cliente_receita
+                print(f"🎯 TESTE RÁPIDO SPINNER:")
+                print(f"   Valores: {len(spinner.values)}")
+                print(f"   Texto: '{spinner.text}'")
+                print("   ✅ Tente clicar no spinner agora!")
+        
+        Clock.schedule_once(testar, 0.5)
+
+    def filtrar_clientes_delay(self):
+        """Busca em tempo real com delay para melhor performance"""
+        from kivy.clock import Clock
+        # Cancela qualquer busca anterior agendada
+        if hasattr(self, '_busca_clock'):
+            Clock.unschedule(self._busca_clock)
+        
+        # Agenda nova busca após 300ms (0.3 segundos)
+        self._busca_clock = Clock.schedule_once(lambda dt: self.filtrar_clientes(), 0.3)
+    
+    def filtrar_clientes(self):
+        """Aplica o filtro na lista de clientes"""
+        if hasattr(self, 'ids') and 'input_busca_clientes' in self.ids:
+            filtro = self.ids.input_busca_clientes.text.strip()
+            print(f"🔍 FILTRO: Buscando por '{filtro}'")
+            self.carregar_lista_clientes(filtro if filtro else None)
+    
+    def limpar_filtro_clientes(self):
+        """Limpa o filtro e recarrega a lista completa"""
+        if hasattr(self, 'ids'):
+            self.ids.input_busca_clientes.text = ""
+            self.carregar_lista_clientes()
+    
+    def atualizar_contas_ajuste(self):
+        """Atualiza as contas quando selecionar cliente na aba de ajuste"""
+        sistema = App.get_running_app().sistema
+        
+        if not hasattr(self, 'ids') or not self.ids.combo_cliente_ajuste.text:
+            return
+        
+        username_selecionado = self.ids.combo_cliente_ajuste.text.split(' - ')[0]
+        
+        if username_selecionado in sistema.usuarios:
+            contas_cliente = sistema.usuarios[username_selecionado].get('contas', [])
+            opcoes_contas = []
+            
+            for conta_num in contas_cliente:
+                if conta_num in sistema.contas:
+                    dados_conta = sistema.contas[conta_num]
+                    opcoes_contas.append(f"{conta_num} - {dados_conta['moeda']} - Saldo: {dados_conta['saldo']:,.2f}")
+            
+            self.ids.combo_conta_ajuste.values = opcoes_contas
+            if opcoes_contas:
+                self.ids.combo_conta_ajuste.text = opcoes_contas[0]
+
+    def atualizar_contas_despesa(self):
+        """Atualiza as contas de despesa quando selecionar categoria"""
+        sistema = App.get_running_app().sistema
+        
+        if not hasattr(self, 'ids') or not self.ids.combo_categoria_despesa.text:
+            return
+        
+        categoria_selecionada = self.ids.combo_categoria_despesa.text
+        
+        if categoria_selecionada in sistema.contas_contabeis['despesas']:
+            contas_despesa = list(sistema.contas_contabeis['despesas'][categoria_selecionada].keys())
+            self.ids.combo_conta_despesa.values = contas_despesa
+            if contas_despesa:
+                self.ids.combo_conta_despesa.text = contas_despesa[0]
+
+    def atualizar_contas_cambio(self):
+        """Atualiza as contas quando selecionar cliente na aba de câmbio"""
+        sistema = App.get_running_app().sistema
+        
+        if not hasattr(self, 'ids') or not self.ids.combo_cliente_cambio.text:
+            return
+        
+        username_selecionado = self.ids.combo_cliente_cambio.text.split(' - ')[0]
+        
+        if username_selecionado in sistema.usuarios:
+            contas_cliente = sistema.usuarios[username_selecionado].get('contas', [])
+            opcoes_contas = []
+            
+            for conta_num in contas_cliente:
+                if conta_num in sistema.contas:
+                    dados_conta = sistema.contas[conta_num]
+                    opcoes_contas.append(f"{conta_num} - {dados_conta['moeda']} - Saldo: {dados_conta['saldo']:,.2f}")
+            
+            self.ids.combo_conta_origem.values = opcoes_contas
+            self.ids.combo_conta_destino.values = opcoes_contas
+            
+            if opcoes_contas:
+                self.ids.combo_conta_origem.text = opcoes_contas[0]
+                if len(opcoes_contas) > 1:
+                    self.ids.combo_conta_destino.text = opcoes_contas[1]
+            
+            # 🔥 NOVO: Atualizar cálculo de conversão quando contas mudarem
+            self.atualizar_calculo_conversao()
+    
+    def atualizar_contas_extrato(self):
+        """Atualiza as contas quando selecionar cliente na aba de extrato - COM SALDOS ATUALIZADOS"""
+        sistema = App.get_running_app().sistema
+        
+        if not hasattr(self, 'ids') or not self.ids.combo_cliente_extrato.text:
+            return
+        
+        username_selecionado = self.ids.combo_cliente_extrato.text.split(' - ')[0]
+        
+        if username_selecionado in sistema.usuarios:
+            contas_cliente = sistema.usuarios[username_selecionado].get('contas', [])
+            opcoes_contas = []
+            
+            for conta_num in contas_cliente:
+                if conta_num in sistema.contas:
+                    dados_conta = sistema.contas[conta_num]
+                    # 🔥 SEMPRE USAR SALDO ATUALIZADO
+                    opcoes_contas.append(f"{conta_num} - {dados_conta['moeda']} - Saldo: {dados_conta['saldo']:,.2f}")
+            
+            self.ids.combo_conta_extrato.values = opcoes_contas
+            if opcoes_contas:
+                self.ids.combo_conta_extrato.text = opcoes_contas[0]
+    
+    def definir_operacao(self, tipo):
+        """Define o tipo de operação (crédito/débito) - VERSÃO CORRIGIDA"""
+        self.operacao_atual = tipo
+        
+        if hasattr(self, 'ids'):
+            if tipo == 'credito':
+                # Crédito ativo (verde), Débito inativo (cinza)
+                self.ids.btn_credito.background_color = (0.2, 0.8, 0.2, 1)      # Verde brilhante
+                self.ids.btn_debito.background_color = (0.15, 0.20, 0.27, 1)    # Cinza escuro
+            else:
+                # Débito ativo (vermelho), Crédito inativo (cinza)
+                self.ids.btn_credito.background_color = (0.15, 0.20, 0.27, 1)   # Cinza escuro
+                self.ids.btn_debito.background_color = (0.96, 0.36, 0.36, 1)    # Vermelho brilhante
+            
+            # Forçar atualização da tela
+            self.ids.btn_credito.canvas.ask_update()
+            self.ids.btn_debito.canvas.ask_update()
+    
+    def _processar_ajuste_saldo(self, conta_num, valor, operacao, descricao, username):
+        """Processa o ajuste de saldo após confirmação"""
+        sistema = App.get_running_app().sistema
+        
+        # Executar operação
+        if self.executar_ajuste_saldo_sistema(conta_num, valor, operacao, descricao, username):
+            # Buscar saldo atualizado do Supabase para mostrar corretamente
+            try:
+                from supabase import create_client
+                import os
+                from dotenv import load_dotenv
+                
+                load_dotenv()
+                supabase_url = os.getenv('SUPABASE_URL')
+                supabase_key = os.getenv('SUPABASE_KEY')
+                
+                if supabase_url and supabase_key:
+                    supabase = create_client(supabase_url, supabase_key)
+                    response = supabase.table('contas').select('saldo, moeda').eq('id', conta_num).execute()
+                    
+                    if response.data:
+                        novo_saldo = float(response.data[0]['saldo'])
+                        moeda = response.data[0]['moeda']
+                    else:
+                        # Fallback para cache local
+                        novo_saldo = sistema.contas[conta_num]['saldo']
+                        moeda = sistema.contas[conta_num]['moeda']
+                else:
+                    novo_saldo = sistema.contas[conta_num]['saldo']
+                    moeda = sistema.contas[conta_num]['moeda']
+            except:
+                novo_saldo = sistema.contas[conta_num]['saldo']
+                moeda = sistema.contas[conta_num]['moeda']
+            
+            tipo_operacao = "CRÉDITO" if operacao == "credito" else "DÉBITO"
+            
+            # ✅ MENSAGEM ATUALIZADA - SEMPRE SUPABASE AGORA
+            mensagem_sucesso = (
+                f"{tipo_operacao} realizado com sucesso!\n\n"
+                f"Novo saldo: {novo_saldo:,.2f} {moeda}\n"
+                f"Sincronizado com Supabase"
+            )
+            
+            self.mostrar_sucesso(mensagem_sucesso)
+            
+            # Limpar campos
+            self.ids.entry_valor_ajuste.text = ""
+            self.ids.entry_descricao_ajuste.text = ""
+            self.atualizar_contas_ajuste()
+            self.atualizar_combos_apos_operacao()
+
+        else:
+            self.mostrar_erro("Falha ao executar operação!")
+
+    def executar_ajuste_saldo(self):
+        """Executa o ajuste de saldo - PERMITE SALDO NEGATIVO APENAS PARA DÉBITOS ADMINISTRATIVOS"""
+        sistema = App.get_running_app().sistema
+        
+        print("💰 Executando ajuste de saldo...")
+        
+        # Validar campos
+        if not all([
+            self.ids.combo_cliente_ajuste.text,
+            self.ids.combo_conta_ajuste.text,
+            self.ids.entry_valor_ajuste.text,
+            self.ids.entry_descricao_ajuste.text
+        ]):
+            self.mostrar_erro("Preencha todos os campos!")
+            return
+        
+        try:
+            # Obter dados
+            username = self.ids.combo_cliente_ajuste.text.split(' - ')[0]
+            conta_num = self.ids.combo_conta_ajuste.text.split(' - ')[0]
+            valor_str = self.ids.entry_valor_ajuste.text.strip()
+            descricao = self.ids.entry_descricao_ajuste.text.strip()
+            operacao = self.operacao_atual
+            
+            print(f"🔍 DEBUG executar_ajuste_saldo: valor_str = '{valor_str}'")
+            
+            # 🔥 CORREÇÃO: Converter valor corretamente
+            try:
+                valor = self._parse_valor_br(valor_str)
+                
+                if valor <= 0:
+                    self.mostrar_erro("Valor deve ser positivo!")
+                    return
+                    
+                print(f"✅ DEBUG valor convertido: {valor}")
+                
+            except ValueError as e:
+                print(f"❌ DEBUG erro no parse: {e}")
+                self.mostrar_erro(f"Valor inválido! {str(e)}")
+                return
+            
+            # Verificar se conta existe
+            if conta_num not in sistema.contas:
+                self.mostrar_erro("Conta não encontrada!")
+                return
+            
+            # 🔥🔥🔥 CORREÇÃO CRÍTICA: PERMITIR SALDO NEGATIVO APENAS PARA DÉBITOS ADMINISTRATIVOS
+            if operacao == "debito":
+                saldo_atual = sistema.contas[conta_num]['saldo']
+                
+                # 🔥 DIFERENCIAR ENTRE DÉBITO NORMAL E DÉBITO ADMINISTRATIVO (ESTORNO)
+                descricao_lower = descricao.lower()
+                eh_estorno_ou_ajuste = any(palavra in descricao_lower for palavra in [
+                    'estorno', 'reembolso', 'correção', 'ajuste', 'correcao', 'devolução'
+                ])
+                
+                if saldo_atual < valor and not eh_estorno_ou_ajuste:
+                    # 🔥 BLOQUEAR para débitos normais (sem palavras-chave de estorno)
+                    self.mostrar_erro(f"Saldo insuficiente! Saldo atual: {saldo_atual:,.2f}")
+                    return
+                elif saldo_atual < valor and eh_estorno_ou_ajuste:
+                    # 🔥 PERMITIR para débitos administrativos (estornos/correções)
+                    saldo_futuro = saldo_atual - valor
+                    self.mostrar_confirmacao(
+                        "ATENÇÃO: Saldo Negativo em Débito Administrativo",
+                        f"Cliente: {username}\n"
+                        f"Conta: {conta_num}\n"
+                        f"Operação: {descricao}\n"
+                        f"Débito: {valor:,.2f} {sistema.contas[conta_num]['moeda']}\n"
+                        f"Saldo atual: {saldo_atual:,.2f}\n"
+                        f"Saldo futuro: {saldo_futuro:,.2f}\n\n"
+                        f"Esta operação deixará a conta NEGATIVA.\n"
+                        f"Permitido apenas para estornos/correções administrativas.",
+                        lambda: self._processar_ajuste_saldo(conta_num, valor, operacao, descricao, username)
+                    )
+                    return
+            
+            # Mostrar confirmação normal para outras situações
+            tipo_operacao = "CRÉDITO" if operacao == "credito" else "DÉBITO"
+            self.mostrar_confirmacao(
+                f"Confirmar {tipo_operacao}?",
+                f"Cliente: {username}\n"
+                f"Conta: {conta_num}\n"
+                f"Valor: {valor:,.2f} {sistema.contas[conta_num]['moeda']}\n"
+                f"Descrição: {descricao}",
+                lambda: self._processar_ajuste_saldo(conta_num, valor, operacao, descricao, username)
+            )
+            
+        except Exception as e:
+            self.mostrar_erro(f"Erro ao executar ajuste: {str(e)}")
+
+    def executar_ajuste_saldo_sistema(self, conta_num, valor, operacao, descricao, username):
+        """Executa o ajuste de saldo no sistema - 100% SUPABASE"""
+        sistema = App.get_running_app().sistema
+        
+        try:
+            print(f"💰 AJUSTE SALDO - Conta: {conta_num}, Valor: {valor}, Operação: {operacao}")
+            
+            from supabase import create_client
+            import os
+            from dotenv import load_dotenv
+            
+            load_dotenv()
+            supabase_url = os.getenv('SUPABASE_URL')
+            supabase_key = os.getenv('SUPABASE_KEY')
+            
+            if not supabase_url or not supabase_key:
+                print("❌ Credenciais do Supabase não encontradas")
+                return False
+            
+            supabase = create_client(supabase_url, supabase_key)
+            
+            # 1. BUSCAR SALDO ATUAL DO SUPABASE
+            response = supabase.table('contas').select('saldo, moeda').eq('id', conta_num).execute()
+            
+            if not response.data:
+                print(f"❌ Conta {conta_num} não encontrada no Supabase")
+                return False
+            
+            conta_data = response.data[0]
+            saldo_atual_supabase = float(conta_data['saldo'])
+            moeda_conta = conta_data['moeda']
+            
+            # 2. CALCULAR NOVO SALDO
+            if operacao == "credito":
+                novo_saldo = saldo_atual_supabase + valor
+            else:  # debito
+                novo_saldo = saldo_atual_supabase - valor
+            
+            # 3. ATUALIZAR SALDO NO SUPABASE
+            update_response = supabase.table('contas').update({
+                'saldo': novo_saldo
+            }).eq('id', conta_num).execute()
+            
+            if not update_response.data:
+                print(f"❌ Erro ao atualizar saldo no Supabase: {update_response.error}")
+                return False
+            
+            print(f"✅ Saldo atualizado no Supabase: {saldo_atual_supabase} → {novo_saldo}")
+            
+            # 4. CRIAR REGISTRO DO AJUSTE NO SUPABASE
+            transacao_id = str(random.randint(100000, 999999))
+            
+            # ✅ USAR APENAS COLUNAS QUE EXISTEM NA TABELA
+            dados_ajuste = {
+                'id': transacao_id,
+                'conta_remetente': conta_num,
+                'valor': valor,
+                'moeda': moeda_conta,
+                'tipo': 'ajuste_admin',
+                'tipo_ajuste': 'CREDITO' if operacao == 'credito' else 'DEBITO',
+                'descricao_ajuste': f"Ajuste: {descricao} | Cliente: {username}",
+                'status': 'completed',
+                'data': datetime.datetime.now().isoformat(),
+                'executado_por': sistema.usuario_logado
+                # ❌ REMOVIDO: 'cliente_afetado' (não existe na tabela)
+            }
+            
+            # Salvar o registro do ajuste na tabela transferencias do Supabase
+            ajuste_response = supabase.table('transferencias').insert(dados_ajuste).execute()
+            
+            if not ajuste_response.data:
+                print(f"❌ FALHA AO SALVAR REGISTRO DO AJUSTE NO SUPABASE")
+                return False
+            
+            print(f"✅ REGISTRO DE AJUSTE SALVO NO SUPABASE: ID {transacao_id}")
+            
+            # 5. ATUALIZAR CACHE LOCAL (OPCIONAL - PARA PERFORMANCE)
+            if conta_num in sistema.contas:
+                sistema.contas[conta_num]['saldo'] = novo_saldo
+            
+            # Adicionar ao cache de transferências
+            sistema.transferencias[transacao_id] = dados_ajuste
+            
+            print(f"✅ Ajuste de saldo realizado com sucesso no Supabase")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Erro ao ajustar saldo: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    def executar_operacao_cambio(self):
+        """Executa operação de câmbio entre moedas - VERSÃO FLEXÍVEL"""
+        sistema = App.get_running_app().sistema
+        
+        print("💱 Executando operação de câmbio...")
+        
+        # Validar campos
+        if not all([
+            self.ids.combo_cliente_cambio.text,
+            self.ids.combo_conta_origem.text,
+            self.ids.combo_conta_destino.text,
+            self.ids.entry_valor_cambio.text
+        ]):
+            self.mostrar_erro("Preencha todos os campos!")
+            return
+        
+        # 🔥 FLEXÍVEL: Validar pelo menos uma taxa preenchida
+        if not hasattr(self, 'entry_taxa_principal') or not self.entry_taxa_principal.text:
+            if not hasattr(self, 'entry_taxa_inversa') or not self.entry_taxa_inversa.text:
+                self.mostrar_erro("Preencha pelo menos uma taxa de câmbio!")
+                return
+        
+        try:
+            # Obter dados
+            username = self.ids.combo_cliente_cambio.text.split(' - ')[0]
+            conta_origem = self.ids.combo_conta_origem.text.split(' - ')[0]
+            conta_destino = self.ids.combo_conta_destino.text.split(' - ')[0]
+            valor_str = self.ids.entry_valor_cambio.text.strip()
+            
+            print(f"🔍 DEBUG executar_operacao_cambio: valor_str = '{valor_str}'")
+            
+            # Validar contas diferentes
+            if conta_origem == conta_destino:
+                self.mostrar_erro("Conta origem e destino devem ser diferentes!")
+                return
+            
+            # 🔥 CORREÇÃO: Converter valor corretamente
+            try:
+                # Converter valor
+                valor = self._parse_valor_br(valor_str)
+                
+                if valor <= 0:
+                    self.mostrar_erro("Valor deve ser positivo!")
+                    return
+                    
+                print(f"✅ DEBUG valor convertido: {valor}")
+                
+            except ValueError as e:
+                print(f"❌ DEBUG erro no parse: {e}")
+                self.mostrar_erro(f"Valor inválido! {str(e)}")
+                return
+            
+            # 🔥 FLEXÍVEL: Usar taxa principal como padrão
+            # O usuário pode escolher manualmente qual taxa usar
+            taxa = None
+            tipo_taxa = 'principal'
+            
+            if hasattr(self, 'entry_taxa_principal') and self.entry_taxa_principal.text:
+                taxa = self._parse_valor_br(self.entry_taxa_principal.text)
+                tipo_taxa = 'principal'
+            
+            # Se não tiver taxa principal, tentar taxa inversa
+            elif hasattr(self, 'entry_taxa_inversa') and self.entry_taxa_inversa.text:
+                taxa = self._parse_valor_br(self.entry_taxa_inversa.text)
+                tipo_taxa = 'inversa'
+            
+            if not taxa or taxa <= 0:
+                self.mostrar_erro("Taxa de câmbio inválida!")
+                return
+            
+            # Calcular valor destino
+            valor_destino = valor * taxa
+            
+            # 🔥 MUDANÇA CRÍTICA: NÃO VERIFICAR SALDO para câmbio
+            saldo_origem = sistema.contas[conta_origem]['saldo']
+            moeda_origem = sistema.contas[conta_origem]['moeda']
+            moeda_destino = sistema.contas[conta_destino]['moeda']
+            
+            # Mostrar AVISO se saldo ficará negativo
+            saldo_futuro = saldo_origem - valor
+            tipo_taxa_texto = "PRINCIPAL" if tipo_taxa == 'principal' else "INVERSA"
+            
+            if saldo_futuro < 0:
+                self.mostrar_confirmacao(
+                    "ATENÇÃO: Saldo Negativo",
+                    f"Cliente: {username}\n"
+                    f"Origem: {conta_origem} ({moeda_origem})\n"
+                    f"Destino: {conta_destino} ({moeda_destino})\n"
+                    f"Valor: {valor:,.2f} {moeda_origem}\n"
+                    f"Taxa {tipo_taxa_texto}: {taxa:.6f}\n"
+                    f"Receberá: {valor_destino:,.2f} {moeda_destino}\n\n"
+                    f"Saldo ficará NEGATIVO: {saldo_futuro:,.2f} {moeda_origem}",
+                    lambda: self._processar_cambio(conta_origem, conta_destino, valor, taxa, username, tipo_taxa)
+                )
+            else:
+                # Mostrar confirmação normal
+                self.mostrar_confirmacao(
+                    "Confirmar Câmbio?",
+                    f"Cliente: {username}\n"
+                    f"Origem: {conta_origem} ({moeda_origem})\n"
+                    f"Destino: {conta_destino} ({moeda_destino})\n"
+                    f"Valor: {valor:,.2f} {moeda_origem}\n"
+                    f"Taxa {tipo_taxa_texto}: {taxa:.6f}\n"
+                    f"Receberá: {valor_destino:,.2f} {moeda_destino}",
+                    lambda: self._processar_cambio(conta_origem, conta_destino, valor, taxa, username, tipo_taxa)
+                )
+            
+        except Exception as e:
+            self.mostrar_erro(f"Erro ao executar câmbio: {str(e)}")
+
+    def _parse_valor_br(self, valor_str):
+        """Converte string de valor no formato brasileiro para float"""
+        print(f"🔍 DEBUG _parse_valor_br: valor_str = '{valor_str}'")
+        
+        if not valor_str:
+            raise ValueError("Valor vazio")
+        
+        # Remover espaços
+        valor_str = valor_str.strip()
+        print(f"🔍 DEBUG após strip: '{valor_str}'")
+        
+        # Verificar caracteres
+        print(f"🔍 DEBUG caracteres: {[c for c in valor_str]}")
+        
+        # CORREÇÃO: Lidar com formato brasileiro (26,384.00)
+        try:
+            # Se tem vírgula E ponto, é formato brasileiro com separador de milhar
+            if ',' in valor_str and '.' in valor_str:
+                # Exemplo: "26,384.00" -> virgula é separador de milhar, ponto é decimal
+                # Remover a vírgula (separador de milhar) e manter o ponto (decimal)
+                valor_limpo = valor_str.replace(',', '')
+                print(f"🔍 DEBUG formato BR com milhar: '{valor_limpo}'")
+            elif ',' in valor_str:
+                # Apenas vírgula: "300,00" -> substituir por ponto
+                valor_limpo = valor_str.replace(',', '.')
+                print(f"🔍 DEBUG formato BR decimal: '{valor_limpo}'")
+            else:
+                # Apenas ponto: "300.00" -> manter como está
+                valor_limpo = valor_str
+                print(f"🔍 DEBUG formato internacional: '{valor_limpo}'")
+            
+            valor_float = float(valor_limpo)
+            print(f"✅ DEBUG valor_float convertido: {valor_float}")
+            
+            return valor_float
+            
+        except ValueError as e:
+            print(f"❌ DEBUG erro na conversão: {e}")
+            raise ValueError("Valor inválido! Use números como: 300.00 ou 26,384.00")
+    
+    def _processar_cambio(self, conta_origem, conta_destino, valor, taxa, username, tipo_taxa):
+        """Processa a operação de câmbio após confirmação - COM TIPO DE TAXA"""
+        sistema = App.get_running_app().sistema
+        
+        # Executar câmbio
+        if self.executar_cambio_sistema(conta_origem, conta_destino, valor, taxa, username, tipo_taxa):
+            valor_destino = valor * taxa
+            moeda_origem = sistema.contas[conta_origem]['moeda']
+            moeda_destino = sistema.contas[conta_destino]['moeda']
+            tipo_taxa_texto = "DIRETA" if tipo_taxa == 'direta' else "INVERSA"
+            
+            self.mostrar_sucesso(
+                f"Câmbio realizado com sucesso!\n\n"
+                f"Debitado: {valor:,.2f} {moeda_origem}\n"
+                f"Creditado: {valor_destino:,.2f} {moeda_destino}\n"
+                f"Taxa {tipo_taxa_texto} aplicada: {taxa:.6f}"
+            )
+            
+            # Limpar campos
+            self.ids.entry_valor_cambio.text = ""
+            self.atualizar_contas_cambio()
+            self.atualizar_combos_apos_operacao()
+            
+            # 🔥🔥🔥 ADICIONAR ESTA LINHA: Atualizar saldos na UI
+            self.atualizar_saldos_ui()
+
+        else:
+            self.mostrar_erro("Falha ao executar câmbio!")
+
+    def atualizar_saldos_ui(self):
+        """Atualiza os saldos exibidos na UI após operações"""
+        try:
+            sistema = App.get_running_app().sistema
+            
+            print("🔄 Atualizando saldos na UI...")
+            
+            # 🔥 ATUALIZAR SALDOS NA ABA CÂMBIO
+            if hasattr(self, 'ids') and hasattr(self.ids, 'label_saldo_origem'):
+                # Atualizar saldo da conta origem
+                conta_origem = self.ids.combo_conta_origem.text
+                if conta_origem and conta_origem != 'Selecione...':
+                    try:
+                        numero_conta = conta_origem.split(' - ')[0]
+                        if numero_conta in sistema.contas:
+                            saldo = sistema.contas[numero_conta]['saldo']
+                            moeda = sistema.contas[numero_conta]['moeda']
+                            self.ids.label_saldo_origem.text = f"Saldo: {saldo:,.2f} {moeda}"
+                            print(f"✅ Saldo origem atualizado: {saldo:,.2f} {moeda}")
+                    except Exception as e:
+                        print(f"⚠️ Erro ao atualizar saldo origem: {e}")
+            
+            if hasattr(self, 'ids') and hasattr(self.ids, 'label_saldo_destino'):
+                # Atualizar saldo da conta destino
+                conta_destino = self.ids.combo_conta_destino.text
+                if conta_destino and conta_destino != 'Selecione...':
+                    try:
+                        numero_conta = conta_destino.split(' - ')[0]
+                        if numero_conta in sistema.contas:
+                            saldo = sistema.contas[numero_conta]['saldo']
+                            moeda = sistema.contas[numero_conta]['moeda']
+                            self.ids.label_saldo_destino.text = f"Saldo: {saldo:,.2f} {moeda}"
+                            print(f"✅ Saldo destino atualizado: {saldo:,.2f} {moeda}")
+                    except Exception as e:
+                        print(f"⚠️ Erro ao atualizar saldo destino: {e}")
+            
+            # 🔥 TAMBÉM ATUALIZAR OS SPINNERS (se existirem)
+            self.atualizar_contas_cambio()
+                        
+        except Exception as e:
+            print(f"⚠️ Erro ao atualizar saldos na UI: {e}")
+
+    def executar_cambio_sistema(self, conta_origem, conta_destino, valor, taxa, username, tipo_taxa):
+        """Executa a operação de câmbio no sistema - COM SUPABASE COMPLETO"""
+        sistema = App.get_running_app().sistema
+        
+        try:
+            # 🔥 ARREDONDAR VALOR DE ORIGEM ANTES DE USAR (CÓDIGO ORIGINAL MANTIDO)
+            valor_arredondado = sistema.arredondar_valor(valor)
+            
+            # 🔥 SALVAR SALDOS ANTES PARA DEBUG
+            saldo_origem_antes = sistema.contas[conta_origem]['saldo']
+            saldo_destino_antes = sistema.contas[conta_destino]['saldo']
+            
+            # Aplicar operações (CÓDIGO ORIGINAL MANTIDO)
+            sistema.contas[conta_origem]['saldo'] -= valor_arredondado
+            
+            # 🔥 CÁLCULO COM ARREDONDAMENTO DUPLO (CÓDIGO ORIGINAL MANTIDO)
+            valor_destino = valor_arredondado * taxa
+            valor_destino_arredondado = sistema.arredondar_valor(valor_destino)
+            
+            sistema.contas[conta_destino]['saldo'] += valor_destino_arredondado
+            
+            # 🔥 ARREDONDAR OS SALDOS FINAIS TAMBÉM (CÓDIGO ORIGINAL MANTIDO)
+            sistema.contas[conta_origem]['saldo'] = sistema.arredondar_valor(sistema.contas[conta_origem]['saldo'])
+            sistema.contas[conta_destino]['saldo'] = sistema.arredondar_valor(sistema.contas[conta_destino]['saldo'])
+            
+            # 🔥 SALVOS DEPOIS PARA DEBUG
+            saldo_origem_depois = sistema.contas[conta_origem]['saldo']
+            saldo_destino_depois = sistema.contas[conta_destino]['saldo']
+            
+            print(f"💱 CÂMBIO ADMIN - SALDOS:")
+            print(f"  Origem {conta_origem}: {saldo_origem_antes:,.2f} → {saldo_origem_depois:,.2f} (-{valor_arredondado:,.2f})")
+            print(f"  Destino {conta_destino}: {saldo_destino_antes:,.2f} → {saldo_destino_depois:,.2f} (+{valor_destino_arredondado:,.2f})")
+            
+            # Obter moedas para a descrição (CÓDIGO ORIGINAL MANTIDO)
+            moeda_origem = sistema.contas[conta_origem]['moeda']
+            moeda_destino = sistema.contas[conta_destino]['moeda']
+            
+            # 🔥🔥🔥 CORREÇÃO: SEMPRE USAR TAXA PRINCIPAL NA DESCRIÇÃO (CÓDIGO ORIGINAL MANTIDO)
+            if tipo_taxa == 'inversa':
+                taxa_principal = 1.0 / taxa
+                taxa_exibicao = taxa_principal
+                tipo_taxa_exibicao = "PRINCIPAL"
+            else:
+                taxa_exibicao = taxa
+                tipo_taxa_exibicao = "PRINCIPAL"
+            
+            # 🔥 NOVO: Criar descrições com TAXA PRINCIPAL (CÓDIGO ORIGINAL MANTIDO)
+            descricao_origem = f"OPERAÇÃO DE CÂMBIO - VENDA - {moeda_origem} {valor:,.2f} - Taxa {tipo_taxa_exibicao}: {taxa_exibicao:.6f} - {moeda_destino} {valor_destino_arredondado:,.2f}"
+            descricao_destino = f"OPERAÇÃO DE CÂMBIO - COMPRA - {moeda_origem} {valor:,.2f} - Taxa {tipo_taxa_exibicao}: {taxa_exibicao:.6f} - {moeda_destino} {valor_destino_arredondado:,.2f}"
+            
+            # Registrar a transação (CÓDIGO ORIGINAL MANTIDO)
+            transacao_id = str(random.randint(100000, 999999))
+            while transacao_id in sistema.transferencias:
+                transacao_id = str(random.randint(100000, 999999))
+            
+            sistema.transferencias[transacao_id] = {
+                'id': transacao_id,
+                'conta_remetente': conta_origem,
+                'conta_destinatario': conta_destino,
+                'valor': valor,
+                'valor_destino': valor_destino_arredondado,
+                'moeda': moeda_origem,
+                'moeda_destino': moeda_destino,
+                'tipo': 'cambio',
+                'taxa_cambio': taxa,
+                'tipo_taxa': tipo_taxa,
+                'taxa_principal_exibicao': taxa_exibicao,
+                'descricao_origem': descricao_origem,
+                'descricao_destino': descricao_destino,
+                'status': 'completed',
+                'data': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'executado_por': sistema.usuario_logado,
+                'cliente_afetado': username
+            }
+            
+            # 🔥🔥🔥 NOVO: ATUALIZAR SALDOS NO SUPABASE ANTES DE SALVAR TRANSAÇÃO
+            if hasattr(sistema, 'supabase') and sistema.supabase.conectado:
+                try:
+                    # Atualizar conta origem
+                    response_origem = sistema.supabase.client.table('contas')\
+                        .update({'saldo': saldo_origem_depois})\
+                        .eq('numero', conta_origem)\
+                        .execute()
+                    
+                    # Atualizar conta destino  
+                    response_destino = sistema.supabase.client.table('contas')\
+                        .update({'saldo': saldo_destino_depois})\
+                        .eq('numero', conta_destino)\
+                        .execute()
+                    
+                    if response_origem.data and response_destino.data:
+                        print(f"✅ Saldos atualizados no Supabase:")
+                        print(f"   {conta_origem}: {saldo_origem_depois:,.2f}")
+                        print(f"   {conta_destino}: {saldo_destino_depois:,.2f}")
+                    else:
+                        print(f"⚠️ Erro ao atualizar saldos no Supabase")
+                        
+                except Exception as e:
+                    print(f"⚠️ Erro ao atualizar saldos no Supabase: {e}")
+            
+            # 🔥🔥🔥 NOVO: SALVAR NO SUPABASE APÓS SUCESSO NO SISTEMA ATUAL
+            self.salvar_cambio_supabase(
+                transacao_id, valor, valor_destino_arredondado, moeda_origem, moeda_destino,
+                taxa, conta_origem, conta_destino, username, tipo_taxa, taxa_exibicao
+            )
+            
+            # Salvar dados (CÓDIGO ORIGINAL MANTIDO)
+            sistema.salvar_contas()
+            sistema.salvar_transferencias()
+            
+            print(f"Câmbio registrado: {valor} -> {valor_destino_arredondado}")
+            print(f"Taxa principal exibida: {taxa_exibicao:.6f}")
+            return True
+            
+        except Exception as e:
+            print(f"Erro ao executar câmbio: {e}")
+            return False
+
+    def salvar_cambio_supabase(self, transacao_id, valor_origem, valor_destino, moeda_origem, moeda_destino,
+                             taxa, conta_origem, conta_destino, username, tipo_taxa, taxa_exibicao):
+        """Salva operação de câmbio do Gerenciar Contas no Supabase - VERSÃO SIMPLIFICADA"""
+        try:
+            sistema = App.get_running_app().sistema
+            
+            print(f"🔥 SALVAR_CAMBIO_SUPABASE (Gerenciar Contas) INICIADO")
+            
+            # 🔥 CORREÇÃO: Usar método direto do Supabase (sem asyncio complexo)
+            if hasattr(sistema, 'supabase') and sistema.supabase.conectado:
+                try:
+                    # Preparar dados para Supabase
+                    dados_supabase = {
+                        'id': transacao_id,
+                        'tipo': 'cambio',
+                        'status': 'completed',
+                        'data': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        'moeda': moeda_origem,
+                        'valor': valor_origem,
+                        'conta_remetente': conta_origem,
+                        'conta_destinatario': conta_destino,
+                        'descricao': f'CÂMBIO ADMIN - {moeda_origem} → {moeda_destino}',
+                        'usuario': sistema.usuario_logado if isinstance(sistema.usuario_logado, str) else 'sistema',
+                        'cliente': username,
+                        'operacao': 'cambio_admin',
+                        'par_moedas': f"{moeda_origem}_{moeda_destino}",
+                        'valor_origem': valor_origem,
+                        'valor_destino': valor_destino,
+                        'cotacao': taxa_exibicao,
+                        'moeda_origem': moeda_origem,
+                        'moeda_destino': moeda_destino,
+                        'tipo_taxa_usada': tipo_taxa,
+                        'taxa_principal_registro': taxa_exibicao
+                    }
+                    
+                    # 🔥 SALVAR TRANSAÇÃO NO SUPABASE (método direto)
+                    response = sistema.supabase.client.table('transferencias')\
+                        .insert(dados_supabase)\
+                        .execute()
+                    
+                    if response.data:
+                        print(f"✅ Transação de câmbio salva no Supabase: {transacao_id}")
+                        return True
+                    else:
+                        print(f"⚠️ Erro ao salvar transação de câmbio no Supabase")
+                        return False
+                        
+                except Exception as e:
+                    print(f"⚠️ Erro ao salvar transação no Supabase: {e}")
+                    return False
+            else:
+                print("❌ Supabase não conectado - transação salva apenas localmente")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Erro geral em salvar_cambio_supabase: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+            return False
+
+    def processar_cambio_nova_tela(self, dados, conta_num, transacoes, transacoes_ids_utilizados, parse_data):
+        """Processa operações de câmbio da nova tela - igual ao cliente"""
+        
+        # Verificar se é uma operação de câmbio da nova tela
+        if dados.get('tipo') != 'cambio' or 'conta_origem' not in dados:
+            return False
+        
+        # Verificar se envolve nossa conta
+        if dados.get('conta_origem') != conta_num and dados.get('conta_destino') != conta_num:
+            return False
+        
+        sistema = App.get_running_app().sistema
+        moeda = sistema.contas[conta_num]['moeda']
+        
+        try:
+            # CLIENTE É ORIGEM (SAÍDA/DÉBITO)
+            if dados.get('conta_origem') == conta_num:
+                descricao = f"CÂMBIO ENVIADO - {dados.get('moeda_origem', 'N/A')} → {dados.get('moeda_destino', 'N/A')}"
+                
+                nova_transacao = {
+                    'data': dados.get('data', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                    'descricao': descricao,
+                    'credito': 0.00,
+                    'debito': dados.get('valor_origem', 0),
+                    'tipo': "Câmbio",
+                    'moeda': dados.get('moeda_origem', moeda),
+                    'timestamp': parse_data(dados.get('data', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))),
+                    'id': f"cambio_nova_{dados.get('id', '')}"
+                }
+                
+                transacoes.append(nova_transacao)
+                transacoes_ids_utilizados.add(f"cambio_nova_{dados.get('id', '')}")
+                return True
+            
+            # CLIENTE É DESTINO (ENTRADA/CRÉDITO)
+            elif dados.get('conta_destino') == conta_num:
+                descricao = f"CÂMBIO RECEBIDO - {dados.get('moeda_origem', 'N/A')} → {dados.get('moeda_destino', 'N/A')}"
+                
+                nova_transacao = {
+                    'data': dados.get('data', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                    'descricao': descricao,
+                    'credito': dados.get('valor_destino', 0),
+                    'debito': 0.00,
+                    'tipo': "Câmbio",
+                    'moeda': dados.get('moeda_destino', moeda),
+                    'timestamp': parse_data(dados.get('data', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))),
+                    'id': f"cambio_nova_{dados.get('id', '')}"
+                }
+                
+                transacoes.append(nova_transacao)
+                transacoes_ids_utilizados.add(f"cambio_nova_{dados.get('id', '')}")
+                return True
+                
+        except Exception as e:
+            print(f"⚠️ Erro ao processar câmbio nova tela: {e}")
+        
+        return False
+
+    def _safe_float(self, value, default=0.0):
+        """Converte valor para float de forma segura, tratando None e strings vazias"""
+        if value is None:
+            return default
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return default
+
+    def carregar_extrato_admin(self):
+        """Carrega o extrato do cliente selecionado - VERSÃO CORRIGIDA"""
+        # 🔥 ATUALIZAR SALDOS ANTES DE CARREGAR
+        self.atualizar_saldos_spinners_extrato()
+        
+        sistema = App.get_running_app().sistema
+        print("Carregando extrato admin...")
+
+        # 🔥 NOVO: Rolar para o topo quando iniciar o carregamento
+        self.scroll_para_topo()
+
+        # Validar seleção
+        if not self.ids.combo_cliente_extrato.text or not self.ids.combo_conta_extrato.text:
+            self.mostrar_erro("Selecione um cliente e uma conta!")
+            return
+        
+        # Obter dados
+        username = self.ids.combo_cliente_extrato.text.split(' - ')[0]
+        conta_num = self.ids.combo_conta_extrato.text.split(' - ')[0]
+        
+        if conta_num not in sistema.contas:
+            self.mostrar_erro("Conta não encontrada!")
+            return
+        
+        dados_conta = sistema.contas[conta_num]
+        moeda = dados_conta['moeda']
+        saldo_atual = dados_conta['saldo']
+        
+        print(f"=== DEBUG EXTRATO ADMIN ===")
+        print(f"Cliente: {username}")
+        print(f"Conta: {conta_num}")
+        print(f"Moeda: {moeda}")
+        print(f"Saldo atual: {saldo_atual}")
+
+        # 🔥 DETERMINAR PERÍODO DO FILTRO COM SALDO INICIAL
+        periodo_texto = self.ids.combo_periodo_extrato.text if hasattr(self.ids, 'combo_periodo_extrato') else "30 dias"
+        
+        # Converter texto do período para dias
+        if periodo_texto == "7 dias":
+            periodo = "7"
+        elif periodo_texto == "30 dias":
+            periodo = "30"
+        elif periodo_texto == "90 dias":
+            periodo = "90"
+        else:  # Todo período
+            periodo = "0"
+        
+        data_inicio = None
+        data_fim = None
+        saldo_inicial_periodo = 0.0
+        
+        if periodo != "0":
+            dias = int(periodo)
+            data_fim = datetime.datetime.now()
+            data_inicio = data_fim - datetime.timedelta(days=dias)
+            
+            # 🔥 🔥 🔥 CORREÇÃO: CALCULAR SALDO DO DIA ANTERIOR PARA PERÍODOS RÁPIDOS
+            data_dia_anterior = data_inicio - datetime.timedelta(days=1)
+            print(f"Calculando saldo do dia anterior ao período: {data_dia_anterior.date()}")
+            
+            saldo_inicial_periodo = self.calcular_saldo_ate_data(conta_num, data_dia_anterior)
+            print(f"SALDO INICIAL DO PERÍODO RÁPIDO (dia anterior): {saldo_inicial_periodo:,.2f}")
+        else:
+            # Todo período começa do zero
+            saldo_inicial_periodo = 0.0
+            print("Período: TODO O PERÍODO (começa do zero)")
+        
+        # 🔥 FUNÇÃO AUXILIAR CORRIGIDA - VERSÃO SIMPLES
+        # 🔥 USAR FUNÇÃO UNIFICADA DO SISTEMA
+        def parse_data(data_str):
+            sistema = App.get_running_app().sistema
+            return sistema.parse_data_unificada(data_str)
+        
+        # 🔥 MESMA LÓGICA DO MEU EXTRATO - INICIALIZAR VARIÁVEIS
+        transacoes = []
+        transacoes_ids_utilizados = set()
+
+        # 🔥 PASSO 1: CRIAR TRANSAÇÃO DE SALDO INICIAL COM VALOR CORRETO
+        if periodo == "0":
+            # Para "Todo período", manter comportamento original (saldo zero)
+            saldo_inicial_transacao = {
+                'data': dados_conta.get('data_criacao', '2024-01-01 00:00:00'),
+                'descricao': "SALDO INICIAL",
+                'credito': 0.00,
+                'debito': 0.00,
+                'saldo_apos': 0.00,
+                'tipo': "Saldo Inicial",
+                'moeda': moeda,
+                'timestamp': parse_data(dados_conta.get('data_criacao', '2024-01-01 00:00:00'))
+            }
+        else:
+            # 🔥 CORREÇÃO: PERÍODOS RÁPIDOS USAM SALDO CALCULADO
+            saldo_inicial_transacao = {
+                'data': data_inicio.strftime("%Y-%m-%d") + " 00:00:00",
+                'descricao': f"SALDO INICIAL - {periodo} DIAS",
+                'credito': 0.00,
+                'debito': 0.00,
+                'saldo_apos': saldo_inicial_periodo,
+                'tipo': "Saldo Inicial",
+                'moeda': moeda,
+                'timestamp': data_inicio.replace(hour=0, minute=0, second=0)
+            }
+        
+        transacoes.append(saldo_inicial_transacao)
+        
+        # 🔥 🔥 🔥 NOVO: PROCESSAR OPERAÇÕES DE CÂMBIO DA NOVA TELA (igual ao extrato cliente)
+        print("=== 🔍 PROCESSANDO OPERAÇÕES DA NOVA TELA ===")
+        for transferencia_id, dados in sistema.transferencias.items():
+            if not dados or not isinstance(dados, dict):
+                continue
+                
+            # Verificar se é uma operação da nova tela
+            if '_novatela' in transferencia_id or '975457' in transferencia_id:
+                print(f"🔥 OPERAÇÃO NOVA TELA ENCONTRADA: {transferencia_id}")
+                print(f"   Dados: {dados}")
+                
+                # Se o método processar_cambio_nova_tela existir, usar ele
+                if hasattr(self, 'processar_cambio_nova_tela'):
+                    resultado = self.processar_cambio_nova_tela(dados, conta_num, transacoes, transacoes_ids_utilizados, parse_data)
+                    print(f"   Resultado processamento: {resultado}")
+                else:
+                    print("❌ MÉTODO processar_cambio_nova_tela NÃO EXISTE")
+                    # Processar manualmente aqui se necessário
+
+        # 🔥🔥🔥 DEBUG ESPECÍFICO PARA A OPERAÇÃO 975457
+        print("=== 🔍 DEBUG ESPECÍFICO 975457 ===")
+        if '975457' in sistema.transferencias:
+            dados_975457 = sistema.transferencias['975457']
+            print(f"✅ 975457 ENCONTRADA NO SISTEMA")
+            print(f"   Tipo: {dados_975457.get('tipo')}")
+            print(f"   Conta remetente: {dados_975457.get('conta_remetente')}")
+            print(f"   Conta destinatario: {dados_975457.get('conta_destinatario')}")
+            print(f"   Todos os campos: {list(dados_975457.keys())}")
+        else:
+            print("❌ 975457 NÃO ENCONTRADA NO SISTEMA")
+            # Procurar por variações do ID
+            for tid in sistema.transferencias.keys():
+                if '975457' in tid:
+                    print(f"🔥 VARIAÇÃO ENCONTRADA: {tid}")
+                    break
+
+        # 🔥 CORREÇÃO: BUSCAR TODAS AS TRANSFERÊNCIAS COM VERIFICAÇÃO ROBUSTA
+        for transferencia_id, dados in sistema.transferencias.items():
+            
+            # 🔥 VERIFICAÇÃO ROBUSTA: Pular transferências inválidas
+            if not dados or not isinstance(dados, dict):
+                continue
+            
+            # 🔥🔥🔥 DEBUG ESPECÍFICO PARA CÂMBIOS - ADICIONE AQUI
+            tipo = dados.get('tipo', '')
+            if tipo == 'cambio':
+                conta_remetente = dados.get('conta_remetente', '')
+                conta_destinatario = dados.get('conta_destinatario', '')
+                
+                print(f"🔍 CÂMBIO ENCONTRADO: {transferencia_id}")
+                print(f"   Conta remetente: {conta_remetente}")
+                print(f"   Conta destinatario: {conta_destinatario}") 
+                print(f"   Nossa conta: {conta_num}")
+                print(f"   É remetente? {conta_remetente == conta_num}")
+                print(f"   É destinatario? {conta_destinatario == conta_num}")
+                print(f"   Envolve nossa conta? {conta_remetente == conta_num or conta_destinatario == conta_num}")
+                print(f"   Valor: {dados.get('valor')} | Moeda: {dados.get('moeda')}")
+                print(f"   Data: {dados.get('data')}")
+                print(f"   Status: {dados.get('status')}")
+            
+            # 🔥 VERIFICAR SE A TRANSFERÊNCIA ENVOLVE NOSSA CONTA
+            conta_remetente = dados.get('conta_remetente', '')
+            conta_destinatario = dados.get('conta_destinatario', '')
+            
+            conta_envolvida = (
+                conta_remetente == conta_num or 
+                conta_destinatario == conta_num
+            )
+            
+            # 🔥 DEBUG SE CÂMBIO NÃO ENVOLVE NOSSA CONTA
+            if tipo == 'cambio' and not conta_envolvida:
+                print(f"🚫 CÂMBIO IGNORADO - NÃO ENVOLVE NOSSA CONTA: {transferencia_id}")
+            
+            if not conta_envolvida:
+                continue
+            
+            # 🔥 VERIFICAÇÃO ROBUSTA: Pular transferências inválidas
+            if not dados or not isinstance(dados, dict):
+                continue
+            
+            # 🔥 VERIFICAR SE A TRANSFERÊNCIA ENVOLVE NOSSA CONTA
+            conta_remetente = dados.get('conta_remetente', '')
+            conta_destinatario = dados.get('conta_destinatario', '')
+            
+            conta_envolvida = (
+                conta_remetente == conta_num or 
+                conta_destinatario == conta_num
+            )
+            
+            if not conta_envolvida:
+                continue
+            
+            # Verificar filtro de data (apenas para períodos rápidos)
+            if periodo != "0" and data_inicio:
+                try:
+                    data_transacao_str = dados.get('data', '')
+                    if data_transacao_str:
+                        data_transacao = parse_data(data_transacao_str)
+                        data_transacao_sem_hora = data_transacao.replace(hour=0, minute=0, second=0, microsecond=0)
+                        data_inicio_sem_hora = data_inicio.replace(hour=0, minute=0, second=0, microsecond=0)
+                        data_fim_sem_hora = data_fim.replace(hour=23, minute=59, second=59, microsecond=999999)
+                        
+                        if data_transacao_sem_hora < data_inicio_sem_hora or data_transacao_sem_hora > data_fim_sem_hora:
+                            continue
+                except:
+                    pass
+            
+            # MESMA LÓGICA DE DECISÃO DO MEU EXTRATO
+            status = dados.get('status', 'completed')
+            tipo = dados.get('tipo', 'transferencia_interna')
+            
+            # REGRAS DEFINITIVAS:
+            if tipo in ['ajuste_admin', 'cambio']:
+                deve_incluir = True
+            elif status == 'pending' or status == 'solicitada':  # ✅ ADICIONAR 'solicitada'
+                deve_incluir = True
+            elif status == 'rejected':
+                deve_incluir = True
+            elif status in ['processing', 'completed']:
+                deve_incluir = True
+            else:
+                deve_incluir = False
+            
+            if not deve_incluir:
+                continue
+            
+
+
+            # 🔥 🔥 🔥 CORREÇÃO CRÍTICA: PROCESSAR RECEITAS (FALTANTE NO EXTRATO ADMIN)
+            if tipo == 'receita' or 'receita' in str(tipo).lower():
+                print(f"✅ ENCONTRADA RECEITA NO EXTRATO ADMIN: {transferencia_id}")
+                
+                # 🔥 CORREÇÃO: GARANTIR QUE USA A DATA ORIGINAL DO SUPABASE
+                data_receita = dados.get('data')
+                if not data_receita:
+                    data_receita = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    print(f"⚠️ RECEITA {transferencia_id} SEM DATA - usando data atual")
+                else:
+                    print(f"📅 RECEITA {transferencia_id} COM DATA ORIGINAL: {data_receita}")
+                
+                descricao_receita = dados.get('descricao_receita', dados.get('descricao', 'Lançamento de receita'))
+                if descricao_receita.startswith('RECEITA - '):
+                    descricao_receita = descricao_receita.replace('RECEITA - ', '', 1)
+                
+                valor_receita = dados.get('valor', 0)
+                conta_remetente = dados.get('conta_remetente', '')
+                
+                # Processar como débito
+                if conta_remetente == conta_num:
+                    nova_transacao = {
+                        'data': data_receita,
+                        'descricao': descricao_receita,
+                        'credito': 0.00,
+                        'debito': valor_receita,
+                        'tipo': "Taxa/Despesa",
+                        'moeda': dados.get('moeda', moeda),
+                        'timestamp': parse_data(data_receita),
+                        'id': transferencia_id
+                    }
+                    print(f"💰 RECEITA COMO DÉBITO: {valor_receita} {dados.get('moeda', moeda)}")
+                    transacoes.append(nova_transacao)
+                    transacoes_ids_utilizados.add(transferencia_id)
+                    continue
+            
+            # CLIENTE É REMETENTE (SAÍDAS/DÉBITOS)
+            if dados['conta_remetente'] == conta_num:
+                
+                # 🔥 🔥 🔥 CORREÇÃO: CASO ESPECIAL PARA DEPÓSITOS (cliente como remetente)
+                if tipo == 'deposito':
+                    # Cliente está como remetente no depósito - isso é um CRÉDITO para o cliente
+                    banco_origem = dados.get('banco_origem', 'Banco')
+                    remetente = dados.get('remetente', 'Remetente')
+                    descricao = f"DEPÓSITO CONFIRMADO - {banco_origem} - {remetente}"
+                    
+                    nova_transacao = {
+                        'data': dados['data'],
+                        'descricao': descricao,
+                        'credito': dados['valor'],
+                        'debito': 0.00,
+                        'tipo': "Depósito",
+                        'moeda': dados['moeda'],
+                        'timestamp': parse_data(dados['data']),
+                        'id': transferencia_id
+                    }
+                    
+                    transacoes.append(nova_transacao)
+                    transacoes_ids_utilizados.add(transferencia_id)
+                    continue
+                
+                # AJUSTE ADMINISTRATIVO
+                elif tipo == 'ajuste_admin':
+                    tipo_ajuste = dados.get('tipo_ajuste', 'DÉBITO')
+                    descricao = dados.get('descricao_ajuste', dados.get('finalidade', 'Ajuste administrativo'))
+                    
+                    data_operacao = dados.get('data', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                    
+                    if tipo_ajuste and (tipo_ajuste.upper() == 'CREDITO' or tipo_ajuste == 'credito'):
+                        nova_transacao = {
+                            'data': data_operacao,
+                            'descricao': f"CRÉDITO ADMINISTRATIVO - {descricao}",
+                            'credito': dados['valor'],
+                            'debito': 0.00,
+                            'tipo': "Crédito Admin",
+                            'moeda': dados['moeda'],
+                            'timestamp': parse_data(data_operacao),
+                            'id': transferencia_id
+                        }
+                    else:
+                        nova_transacao = {
+                            'data': data_operacao,
+                            'descricao': f"DÉBITO ADMINISTRATIVO - {descricao}",
+                            'credito': 0.00,
+                            'debito': dados['valor'],
+                            'tipo': "Débito Admin", 
+                            'moeda': dados['moeda'],
+                            'timestamp': parse_data(data_operacao),
+                            'id': transferencia_id
+                        }
+                    
+                    transacoes.append(nova_transacao)
+                    transacoes_ids_utilizados.add(transferencia_id)
+                
+                # TRANSFERÊNCIA INTERNACIONAL
+                elif tipo == 'internacional' or tipo == 'transferencia_internacional':
+                    if status == 'rejected':
+                        # Transação de débito + estorno
+                        data_solicitacao = dados.get('data_solicitacao', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                        data_estorno = dados.get('data_recusa', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                        
+                        transacao_debito = {
+                            'data': data_solicitacao,
+                            'descricao': f"TRANSF. INTERNACIONAL SOLICITADA - {dados.get('beneficiario', 'N/A')}",
+                            'credito': 0.00,
+                            'debito': dados['valor'],
+                            'tipo': "Transferência Internacional",
+                            'moeda': dados['moeda'],
+                            'timestamp': parse_data(data_solicitacao),
+                            'id': f"{transferencia_id}_DEBITO"
+                        }
+                        
+                        transacao_credito = {
+                            'data': data_estorno,
+                            'descricao': f"ESTORNO TRANSF. INTERNACIONAL - {dados.get('beneficiario', 'N/A')}",
+                            'credito': dados['valor'],
+                            'debito': 0.00,
+                            'tipo': "Estorno",
+                            'moeda': dados['moeda'],
+                            'timestamp': parse_data(data_estorno),
+                            'id': f"{transferencia_id}_CREDITO"
+                        }
+                        
+                        transacoes.append(transacao_debito)
+                        transacoes.append(transacao_credito)
+                        transacoes_ids_utilizados.add(f"{transferencia_id}_DEBITO")
+                        transacoes_ids_utilizados.add(f"{transferencia_id}_CREDITO")
+                    
+                    else:
+                        status_text = "SOLICITADA" if status == 'pending' or status == 'solicitada' else "EM PROCESSAMENTO" if status == 'processing' else "CONCLUÍDA"
+                        
+                        # 🔥🔥🔥 CORREÇÃO CRÍTICA: MESMA LÓGICA DO EXTRATO CLIENTE
+                        data_transacao = dados.get('data_conclusao', 
+                                          dados.get('data_processing', 
+                                          dados.get('data_aprovacao', 
+                                          dados.get('data_solicitacao', 
+                                          dados.get('data', datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))))))
+
+                        # 🔥🔥🔥 SE A DATA AINDA FOR None, USAR DATA ATUAL
+                        if data_transacao is None:
+                            data_transacao = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+                            print(f"⚠️  CORRIGINDO DATA None PARA TRANSFERÊNCIA {transferencia_id}: {data_transacao}")
+
+                        # 🔥🔥🔥 CORREÇÃO: GARANTIR FORMATAÇÃO ISO CONSISTENTE
+                        if data_transacao and 'T' not in data_transacao and ' ' in data_transacao:
+                            data_transacao = data_transacao.replace(' ', 'T')
+                            print(f"🔄 CONVERTENDO FORMATO DE DATA PARA ISO: {data_transacao}")
+                        
+                        nova_transacao = {
+                            'data': data_transacao,
+                            'descricao': f"TRANSF. INTERNACIONAL {status_text} - {dados.get('beneficiario', 'N/A')}",
+                            'credito': 0.00,
+                            'debito': dados['valor'],
+                            'tipo': "Transferência Internacional",
+                            'moeda': dados['moeda'],
+                            'timestamp': parse_data(data_transacao),
+                            'id': transferencia_id
+                        }
+
+                        # 🔥🔥🔥 SE A DATA AINDA FOR None, USAR DATA ATUAL
+                        if data_transacao is None:
+                            data_transacao = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            print(f"⚠️  CORRIGINDO DATA None PARA TRANSFERÊNCIA {transferencia_id}: {data_transacao}")
+                        
+                        nova_transacao = {
+                            'data': data_transacao,  # ✅✅✅ CORRETO - usar data processada!
+                            'descricao': f"TRANSF. INTERNACIONAL {status_text} - {dados.get('beneficiario', 'N/A')}",
+                            'credito': 0.00,
+                            'debito': dados['valor'],
+                            'tipo': "Transferência Internacional",
+                            'moeda': dados['moeda'],
+                            'timestamp': parse_data(data_transacao),
+                            'id': transferencia_id
+                        }
+                        
+                        transacoes.append(nova_transacao)
+                        transacoes_ids_utilizados.add(transferencia_id)
+                
+                # CÂMBIO
+                elif tipo == 'cambio':
+                    data_cambio = dados.get('data', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                    
+                    # 🔥 CORREÇÃO: SEMPRE USAR TAXA PRINCIPAL NA DESCRIÇÃO
+                    if dados.get('tipo_taxa') == 'inversa':
+                        taxa_principal = 1.0 / dados.get('taxa_cambio', 1)
+                        taxa_exibicao = taxa_principal
+                    else:
+                        taxa_exibicao = dados.get('taxa_cambio', 1)
+                    
+                    # 🔥 CORREÇÃO: Garantir que NENHUM valor seja None antes de formatar
+                    valor_origem = dados.get('valor', 0) or 0
+                    valor_destino = dados.get('valor_destino', 0) or valor_origem or 0
+                    moeda_destino = dados.get('moeda_destino', 'N/A')
+                    taxa_segura = taxa_exibicao if taxa_exibicao is not None else 0
+
+                    descricao = f"OPERAÇÃO DE CÂMBIO - VENDA - {dados['moeda']} {valor_origem:,.2f} - Taxa PRINCIPAL: {taxa_segura:.6f} - {moeda_destino} {valor_destino:,.2f}"
+                    
+                    nova_transacao = {
+                        'data': dados['data'], 
+                        'descricao': descricao,
+                        'credito': 0.00,
+                        'debito': dados['valor'],
+                        'tipo': "Câmbio",
+                        'moeda': dados['moeda'],
+                        'timestamp': parse_data(data_cambio),
+                        'id': transferencia_id
+                    }
+                    
+                    transacoes.append(nova_transacao)
+                    transacoes_ids_utilizados.add(transferencia_id)
+                
+                # TRANSFERÊNCIA INTERNA
+                else:
+                    if status == 'rejected':
+                        data_solicitacao = dados.get('data_solicitacao', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                        data_estorno = dados.get('data_recusa', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                        
+                        transacao_debito = {
+                            'data': data_solicitacao,
+                            'descricao': f"TRANSFERÊNCIA SOLICITADA - {self.obter_nome_cliente_por_conta(sistema, dados.get('conta_destinatario', 'N/A'))}",
+                            'credito': 0.00,
+                            'debito': dados['valor'],
+                            'tipo': "Transferência",
+                            'moeda': dados['moeda'],
+                            'timestamp': parse_data(data_solicitacao),
+                            'id': f"{transferencia_id}_DEBITO"
+                        }
+                        
+                        transacao_credito = {
+                            'data': data_estorno,
+                            'descricao': f"ESTORNO TRANSFERÊNCIA - {self.obter_nome_cliente_por_conta(sistema, dados.get('conta_destinatario', 'N/A'))}",
+                            'credito': dados['valor'],
+                            'debito': 0.00,
+                            'tipo': "Estorno",
+                            'moeda': dados['moeda'],
+                            'timestamp': parse_data(data_estorno),
+                            'id': f"{transferencia_id}_CREDITO"
+                        }
+                        
+                        transacoes.append(transacao_debito)
+                        transacoes.append(transacao_credito)
+                        transacoes_ids_utilizados.add(f"{transferencia_id}_DEBITO")
+                        transacoes_ids_utilizados.add(f"{transferencia_id}_CREDITO")
+                    
+                    else:
+                        status_text = "SOLICITADA" if status == 'pending' else "EM PROCESSAMENTO" if status == 'processing' else "CONCLUÍDA"
+                        data_transferencia = dados.get('data_processing', dados.get('data_recusa', dados.get('data', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))))
+                        nova_transacao = {
+                            'data': dados['data'],
+                            'descricao': f"TRANSFERÊNCIA {status_text} - {self.obter_nome_cliente_por_conta(sistema, dados.get('conta_destinatario', 'N/A'))}",
+                            'credito': 0.00,
+                            'debito': dados['valor'],
+                            'tipo': "Transferência",
+                            'moeda': dados['moeda'],
+                            'timestamp': parse_data(data_transferencia),
+                            'id': transferencia_id
+                        }
+                        
+                        transacoes.append(nova_transacao)
+                        transacoes_ids_utilizados.add(transferencia_id)
+            
+            # CLIENTE É DESTINATÁRIO (ENTRADAS/CRÉDITOS)
+            elif dados.get('conta_destinatario') == conta_num:
+                
+                # 🔥 🔥 🔥 CORREÇÃO: CASO ESPECÍFICO PARA DEPÓSITOS
+                if tipo == 'deposito':
+                    # Cliente recebe crédito de depósito confirmado
+                    banco_origem = dados.get('banco_origem', 'Banco')
+                    remetente = dados.get('remetente', 'Remetente')
+                    descricao = f"DEPÓSITO CONFIRMADO - {banco_origem} - {remetente}"
+                    
+                    nova_transacao = {
+                        'data': dados['data'],
+                        'descricao': descricao,
+                        'credito': dados['valor'],
+                        'debito': 0.00,
+                        'tipo': "Depósito",
+                        'moeda': dados['moeda'],
+                        'timestamp': parse_data(dados['data']),
+                        'id': transferencia_id
+                    }
+                    
+                    transacoes.append(nova_transacao)
+                    transacoes_ids_utilizados.add(transferencia_id)
+                
+                # AJUSTES ADMIN COMO CRÉDITO
+                elif tipo == 'ajuste_admin' and dados.get('tipo_ajuste') == 'CREDITO':
+                    descricao = dados.get('descricao_ajuste', dados.get('finalidade', 'Ajuste administrativo'))
+                    data_ajuste = dados.get('data', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                    nova_transacao = {
+                        'data': data_ajuste,
+                        'descricao': f"CRÉDITO ADMINISTRATIVO - {descricao}",
+                        'credito': dados['valor'],
+                        'debito': 0.00,
+                        'tipo': "Crédito Admin",
+                        'moeda': dados['moeda'],
+                        'timestamp': parse_data(data_ajuste),
+                        'id': transferencia_id
+                    }
+                    
+                    transacoes.append(nova_transacao)
+                    transacoes_ids_utilizados.add(transferencia_id)
+                
+                # CÂMBIO
+                elif tipo == 'cambio':
+                    # 🔥 CORREÇÃO: SEMPRE USAR TAXA PRINCIPAL NA DESCRIÇÃO
+                    if dados.get('tipo_taxa') == 'inversa':
+                        taxa_principal = 1.0 / dados.get('taxa_cambio', 1)
+                        taxa_exibicao = taxa_principal
+                    else:
+                        taxa_exibicao = dados.get('taxa_cambio', 1)
+                    
+                    # 🔥 CORREÇÃO COMPLETA: Garantir que NENHUM valor seja None antes de formatar
+                    valor_origem = dados.get('valor') or 0
+                    valor_destino = dados.get('valor_destino') or valor_origem or 0
+                    moeda_destino = dados.get('moeda_destino', 'N/A')
+                    taxa_segura = taxa_exibicao if taxa_exibicao is not None else 0
+                    
+                    descricao = f"OPERAÇÃO DE CÂMBIO - COMPRA - {dados['moeda']} {valor_origem:,.2f} - Taxa PRINCIPAL: {taxa_segura:.6f} - {moeda_destino} {valor_destino:,.2f}"
+                    
+                    # 🔥 CORREÇÃO: Garantir que valor_credito não seja None
+                    valor_credito = dados.get('valor_destino') or dados.get('valor') or 0
+                    
+                    nova_transacao = {
+                        'data': dados['data'],
+                        'descricao': descricao,
+                        'credito': valor_credito,
+                        'debito': 0.00,
+                        'tipo': "Câmbio",
+                        'moeda': dados.get('moeda_destino', dados['moeda']),
+                        'timestamp': parse_data(dados['data']),
+                        'id': transferencia_id
+                    }
+                    
+                    transacoes.append(nova_transacao)
+                    transacoes_ids_utilizados.add(transferencia_id)
+                
+                # TRANSFERÊNCIA RECEBIDA
+                elif tipo not in ['ajuste_admin']:
+                    status_text = "SOLICITADA" if status == 'pending' else "EM PROCESSAMENTO" if status == 'processing' else "CONCLUÍDA" if status == 'completed' else "RECUSADA"
+                    nova_transacao = {
+                        'data': dados['data'],
+                        'descricao': f"TRANSFERÊNCIA {status_text} RECEBIDA - {self.obter_nome_cliente_por_conta(sistema, dados['conta_remetente'])}",
+                        'credito': dados['valor'],
+                        'debito': 0.00,
+                        'tipo': "Transferência",
+                        'moeda': dados['moeda'],
+                        'timestamp': parse_data(dados['data']),
+                        'id': transferencia_id
+                    }
+                    
+                    transacoes.append(nova_transacao)
+                    transacoes_ids_utilizados.add(transferencia_id)
+        
+        # 🔥🔥🔥 NOVO DEBUG: VER TODAS AS TRANSFERÊNCIAS DA CONTA - COLOQUE AQUI
+        print(f"=== 🔍 TODAS AS TRANSFERÊNCIAS DA CONTA {conta_num} ===")
+        for transferencia_id, dados in sistema.transferencias.items():
+            if not dados or not isinstance(dados, dict):
+                continue
+            
+            conta_remetente = dados.get('conta_remetente', '')
+            conta_destinatario = dados.get('conta_destinatario', '')
+            
+            if conta_remetente == conta_num or conta_destinatario == conta_num:
+                print(f"📋 ID: {transferencia_id} | Tipo: {dados.get('tipo')} | Status: {dados.get('status')} | Valor: {dados.get('valor')} | Data: {dados.get('data')}")
+
+        # CALCULAR SALDO SEQUENCIAL CORRETAMENTE
+        transacoes_ordenadas_calculo = sorted(transacoes, key=lambda x: x['timestamp'])
+
+        # 🔥 CORREÇÃO: Para TODOS os períodos (exceto "Todo período"), começar do saldo calculado
+        if periodo == "0":
+            saldo_sequencial = 0
+            print("💰 CALCULANDO SALDO SEQUENCIAL A PARTIR DE ZERO (TODO PERÍODO)")
+        else:
+            saldo_sequencial = saldo_inicial_periodo
+            print(f"💰 CALCULANDO SALDO SEQUENCIAL A PARTIR DE: {saldo_sequencial:,.2f}")
+
+        for transacao in transacoes_ordenadas_calculo:
+            # 🔥 PULAR o saldo inicial (já definimos como saldo_inicial_periodo)
+            if transacao['tipo'] == "Saldo Inicial":
+                continue
+                
+            saldo_sequencial += transacao['credito'] - transacao['debito']
+            transacao['saldo_apos'] = saldo_sequencial
+
+        # 🔥 DEBUG: Comparar saldo calculado vs saldo atual
+        print(f"💰 DEBUG SALDO: Atual={saldo_atual:,.2f} | Calculado={saldo_sequencial:,.2f} | Diferença={(saldo_atual - saldo_sequencial):,.2f}")
+        
+        # CALCULAR TOTAIS
+        total_entradas = sum(t['credito'] for t in transacoes_ordenadas_calculo)
+        total_saidas = sum(t['debito'] for t in transacoes_ordenadas_calculo)
+        
+        # 🔥 CORREÇÃO: ORDENAÇÃO POR DATA EFETIVA (MESMA DO EXTRATO BANCÁRIO)
+        # 🔥 CORREÇÃO: ORDENAÇÃO POR DATA EFETIVA (MESMA DO EXTRATO BANCÁRIO)
+        def get_effective_timestamp(transacao):
+            # Primeiro tenta usar data_conclusao (mais precisa para transações concluídas)
+            data_str = transacao.get('data_conclusao') or transacao.get('data') or ''
+            
+            # 🔥 DEBUG: Verificar as 4 transações problemáticas
+            problematic_ids = ['351520', '729806', '852685', '320211']
+            transacao_id = transacao.get('id', 'SEM_ID')
+            if transacao_id in problematic_ids:
+                print(f"🔥 DEBUG get_effective_timestamp: ID {transacao_id} | Data string: '{data_str}'")
+            
+            if data_str:
+                try:
+                    # Converter string para datetime
+                    if 'T' in data_str:
+                        # Formato ISO: 2025-11-22T10:56:30
+                        data_str = data_str.split('+')[0].split('Z')[0]  # Remover timezone
+                        if '.' in data_str:  # Remover microssegundos se existir
+                            data_str = data_str.split('.')[0]
+                        result = datetime.datetime.fromisoformat(data_str)
+                        if transacao_id in problematic_ids:
+                            print(f"✅ DEBUG get_effective_timestamp: '{data_str}' -> ISO -> {result}")
+                        return result
+                    else:
+                        # Formato simples: 2025-11-22 10:56:30
+                        result = datetime.datetime.strptime(data_str, "%Y-%m-%d %H:%M:%S")
+                        if transacao_id in problematic_ids:
+                            print(f"✅ DEBUG get_effective_timestamp: '{data_str}' -> SIMPLES -> {result}")
+                        return result
+                except Exception as e:
+                    if transacao_id in problematic_ids:
+                        print(f"❌ DEBUG get_effective_timestamp ERRO: '{data_str}' -> {e}")
+            
+            # Fallback para timestamp normal (sem microssegundos)
+            timestamp = transacao.get('timestamp')
+            if timestamp:
+                result = timestamp.replace(microsecond=0)
+                if transacao_id in problematic_ids:
+                    print(f"✅ DEBUG get_effective_timestamp FALLBACK: timestamp -> {result}")
+                return result
+            
+            if transacao_id in problematic_ids:
+                print(f"⚠️ DEBUG get_effective_timestamp: SEM DATA - usando datetime.min")
+            return datetime.datetime.min
+
+        # 🔥🔥🔥 ADICIONAR ESTE DEBUG AQUI - VERIFICAR DATAS ANTES DA ORDENAÇÃO
+        print("=== 🔍 DEBUG DATAS ANTES DA ORDENAÇÃO ===")
+        for i, transacao in enumerate(transacoes_ordenadas_calculo[:15]):
+            transacao_id = transacao.get('id', 'SEM_ID')
+            data_original = transacao.get('data', 'N/A')
+            timestamp = transacao.get('timestamp', 'N/A')
+            timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S") if hasattr(timestamp, 'strftime') else str(timestamp)
+            print(f"📋 {i}: ID {transacao_id} | Data: {data_original} | Timestamp: {timestamp_str}")
+
+        # Ordenar por data efetiva de forma DECRESCENTE (mais recente primeiro)
+        transacoes_exibicao = sorted(transacoes_ordenadas_calculo, key=lambda x: get_effective_timestamp(x), reverse=True)
+
+        # 🔥 DEBUG DA ORDEM FINAL
+        print("🎯 ORDEM FINAL EXTRATO ADMIN - PRIMEIRAS 10 TRANSAÇÕES:")
+        for i, transacao in enumerate(transacoes_exibicao[:10]):
+            # Usar a data real da transação, não o timestamp de processamento
+            data_real = transacao.get('data_conclusao') or transacao.get('data') or 'SEM DATA'
+            descricao = transacao.get('descricao', '')[:30]
+            credito = transacao.get('credito', 0)
+            debito = transacao.get('debito', 0)
+            valor = credito if credito > 0 else debito
+            
+            print(f"   {i+1}. {data_real} | {descricao}... | Valor: {valor:,.2f}")
+
+        # 🔥🔥🔥 ADICIONAR ESTE DEBUG AQUI - VERIFICAR DATAS APÓS ORDENAÇÃO
+        print("=== 🔍 DEBUG DATAS APÓS ORDENAÇÃO ===")
+        for i, transacao in enumerate(transacoes_exibicao[:15]):
+            transacao_id = transacao.get('id', 'SEM_ID')
+            data_original = transacao.get('data', 'N/A')
+            timestamp = transacao.get('timestamp', 'N/A')
+            timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S") if hasattr(timestamp, 'strftime') else str(timestamp)
+            effective_timestamp = get_effective_timestamp(transacao)
+            effective_str = effective_timestamp.strftime("%Y-%m-%d %H:%M:%S") if hasattr(effective_timestamp, 'strftime') else str(effective_timestamp)
+            print(f"🎯 {i}: ID {transacao_id} | Data: {data_original} | Timestamp: {timestamp_str} | Effective: {effective_str}")
+
+        # ATUALIZAR A INTERFACE
+        self.atualizar_interface_extrato_admin(transacoes_exibicao, saldo_atual, total_entradas, total_saidas, moeda, periodo, username)
+        
+        print("✅ Extrato admin carregado com sucesso!")
+
+    def calcular_saldo_ate_data(self, conta_num, data_limite):
+        """Calcula o saldo da conta até uma data específica (até o FINAL do dia anterior ao período)"""
+        sistema = App.get_running_app().sistema
+        
+        if conta_num not in sistema.contas:
+            return 0.0
+        
+        # Iniciar saldo como zero
+        saldo_acumulado = 0.0
+        moeda = sistema.contas[conta_num]['moeda']
+        
+        # Coletar TODAS as transações da conta (sem filtro de data)
+        todas_transacoes = []
+        
+        # 🔥 ADICIONAR LÓGICA PARA COLETAR TRANSAÇÕES (SIMILAR À ORIGINAL, MAS SEM FILTRO)
+        # Esta é uma versão simplificada apenas para cálculo do saldo
+        
+        # Adicionar saldo inicial zero
+        todas_transacoes.append({
+            'data': sistema.contas[conta_num].get('data_criacao', '2024-01-01 00:00:00'),
+            'credito': 0.00,
+            'debito': 0.00,
+            'timestamp': self.parse_data_simples(sistema.contas[conta_num].get('data_criacao', '2024-01-01 00:00:00'))
+        })
+        
+        # Coletar transações de transferências
+        for transferencia_id, dados in sistema.transferencias.items():
+            # 🔥 CORREÇÃO: Verificar se a transferência tem a estrutura básica necessária
+            if 'conta_remetente' not in dados:
+                print(f"⚠️ Transferência {transferencia_id} sem conta_remetente, pulando...")
+                continue
+                
+            # Verificar se a transação envolve nossa conta
+            conta_envolvida = (
+                dados['conta_remetente'] == conta_num or 
+                dados.get('conta_destinatario') == conta_num
+            )
+            
+            if not conta_envolvida:
+                continue
+            
+            # Apenas incluir transações completadas ou em processamento
+            if dados['status'] not in ['completed', 'processing']:
+                continue
+            
+            # Determinar data da transação
+            data_transacao = dados.get('data_conclusao', dados.get('data_aprovacao', dados.get('data_solicitacao', dados.get('data', '2024-01-01 00:00:00'))))
+            timestamp = self.parse_data_simples(data_transacao)
+            
+            # ✅ CORREÇÃO: DEFINIR 'tipo' ANTES DE USAR
+            tipo = dados.get('tipo', '')
+            
+
+            # CLIENTE É REMETENTE (SAÍDA)
+            if dados['conta_remetente'] == conta_num:
+                if dados.get('tipo') == 'ajuste_admin':
+                    tipo_ajuste = dados.get('tipo_ajuste', 'DÉBITO')
+                    if tipo_ajuste and (tipo_ajuste.upper() == 'CREDITO' or tipo_ajuste == 'credito'):
+                        todas_transacoes.append({
+                            'data': dados['data'],
+                            'credito': dados['valor'],
+                            'debito': 0.00,
+                            'timestamp': timestamp
+                        })
+                    else:
+                        todas_transacoes.append({
+                            'data': dados['data'],
+                            'credito': 0.00,
+                            'debito': dados['valor'],
+                            'timestamp': timestamp
+                        })
+                else:
+                    # Transferências normais (débito)
+                    todas_transacoes.append({
+                        'data': dados['data'],
+                        'credito': 0.00,
+                        'debito': dados['valor'],
+                        'timestamp': timestamp
+                    })
+            
+            # CLIENTE É DESTINATÁRIO (ENTRADA)
+            elif dados.get('conta_destinatario') == conta_num:
+                if dados.get('tipo') == 'ajuste_admin' and dados.get('tipo_ajuste') and dados.get('tipo_ajuste') == 'CREDITO':
+                    todas_transacoes.append({
+                        'data': dados['data'],
+                        'credito': dados['valor'],
+                        'debito': 0.00,
+                        'timestamp': timestamp
+                    })
+                elif dados.get('tipo') == 'cambio':
+                    # Câmbio como crédito
+                    valor_credito = dados.get('valor_destino', dados['valor'])
+                    todas_transacoes.append({
+                        'data': dados['data'],
+                        'credito': valor_credito,
+                        'debito': 0.00,
+                        'timestamp': timestamp
+                    })
+                else:
+                    # Transferências recebidas (crédito)
+                    todas_transacoes.append({
+                        'data': dados['data'],
+                        'credito': dados['valor'],
+                        'debito': 0.00,
+                        'timestamp': timestamp
+                    })
+        
+        # Ordenar transações por data (mais antigas primeiro)
+        todas_transacoes_ordenadas = sorted(todas_transacoes, key=lambda x: x['timestamp'])
+        
+        # 🔥 🔥 🔥 CORREÇÃO: Calcular saldo acumulado até o FINAL do dia anterior
+        # A data_limite é o início do período (ex: 05/11/2025 00:00:00)
+        # Queremos incluir todas as transações até o FINAL do dia anterior (04/11/2025 23:59:59)
+        data_fim_calculo = data_limite.replace(hour=23, minute=59, second=59, microsecond=999999)
+        
+        print(f"🔧 CALCULANDO SALDO ATÉ: {data_fim_calculo}")  # DEBUG
+        
+        # Calcular saldo acumulado até a data limite (FINAL do dia anterior)
+        for transacao in todas_transacoes_ordenadas:
+            # Só incluir transações até o FINAL do dia anterior
+            if transacao['timestamp'] <= data_fim_calculo:
+                saldo_acumulado += transacao['credito'] - transacao['debito']
+                print(f"  ✅ INCLUÍDA: {transacao['timestamp']} | Crédito: {transacao['credito']:,.2f} | Débito: {transacao['debito']:,.2f} | Saldo: {saldo_acumulado:,.2f}")
+            else:
+                print(f"  🔧 EXCLUÍDA (após limite): {transacao['timestamp']}")
+                break  # Parar quando encontrar transação após a data limite
+        
+        print(f"💰 SALDO FINAL CALCULADO: {saldo_acumulado:,.2f}")
+        
+        return saldo_acumulado
+
+    def parse_data_simples(self, data_str):
+        """Versão simplificada do parse_data para uso no cálculo de saldo"""
+        if not data_str:
+            return datetime.datetime.now()
+            
+        try:
+            # Tentar formato com hora (YYYY-MM-DD HH:MM:SS)
+            if ' ' in data_str and ':' in data_str:
+                return datetime.datetime.strptime(data_str, "%Y-%m-%d %H:%M:%S")
+            # Tentar formato apenas com data (YYYY-MM-DD)
+            elif ' ' in data_str:
+                return datetime.datetime.strptime(data_str.split(' ')[0], "%Y-%m-%d")
+            else:
+                # Apenas data
+                return datetime.datetime.strptime(data_str, "%Y-%m-%d")
+        except:
+            # Fallback para data atual se não conseguir parse
+            return datetime.datetime.now()
+    
+    def exportar_extrato_pdf(self):
+        """Exporta extrato em PDF"""
+        if not self.ids.combo_cliente_extrato.text or not self.ids.combo_conta_extrato.text:
+            self.mostrar_erro("Selecione um cliente e uma conta!")
+            return
+        
+        username = self.ids.combo_cliente_extrato.text.split(' - ')[0]
+        conta_num = self.ids.combo_conta_extrato.text.split(' - ')[0]
+        sistema = App.get_running_app().sistema
+        
+        if conta_num not in sistema.contas:
+            self.mostrar_erro("Conta não encontrada!")
+            return
+        
+        dados_conta = sistema.contas[conta_num]
+        
+        self.mostrar_sucesso(
+            f"PDF gerado com sucesso!\n\n"
+            f"Cliente: {username}\n"
+            f"Conta: {conta_num}\n"
+            f"Moeda: {dados_conta['moeda']}\n"
+            f"Saldo: {dados_conta['saldo']:,.2f}\n\n"
+            f"(Recurso em desenvolvimento - usaríamos a mesma lógica do extrato)"
+        )
+    
+    def adicionar_conta_cliente(self):
+        """Abre a tela para adicionar nova conta"""
+        self.mostrar_sucesso("➕ Funcionalidade 'Adicionar Conta' em desenvolvimento!")
+
+    def atualizar_interface_extrato_admin(self, transacoes, saldo_atual, total_entradas, total_saidas, moeda, periodo, username):
+        """Atualiza a interface do extrato administrativo"""
+        try:
+            print(f"🎯 ATUALIZANDO INTERFACE ADMIN: {len(transacoes)} transações")
+            
+            # 🔥🔥🔥 CORREÇÃO CRÍTICA: FILTRAR TRANSAÇÕES COM DATA None
+            transacoes_validas = []
+            transacoes_invalidas = []
+            
+            for transacao in transacoes:
+                if transacao is None:
+                    transacoes_invalidas.append("Transação None")
+                    continue
+                    
+                data = transacao.get('data')
+                if data is None:
+                    # Tentar obter data de campos alternativos
+                    timestamp = transacao.get('timestamp')
+                    if timestamp:
+                        # Converter timestamp para string de data
+                        if hasattr(timestamp, 'strftime'):
+                            data_formatada = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                            transacao['data'] = data_formatada
+                            transacoes_validas.append(transacao)
+                        else:
+                            transacao['data'] = "Data não disponível"
+                            transacoes_validas.append(transacao)
+                    else:
+                        transacao['data'] = "Data não disponível"
+                        transacoes_validas.append(transacao)
+                else:
+                    transacoes_validas.append(transacao)
+            
+            if transacoes_invalidas:
+                print(f"🚫 {len(transacoes_invalidas)} transações inválidas removidas")
+            
+            # 🔥 SUBSTITUIR A LISTA ORIGINAL PELA LISTA CORRIGIDA
+            transacoes = transacoes_validas
+            print(f"✅ {len(transacoes)} transações válidas para exibição")
+            
+            # CONTINUA COM O DEBUG DAS PRIMEIRAS 5 TRANSAÇÕES...
+            for i, transacao in enumerate(transacoes[:5]):
+                print(f"   📋 Transação {i}:")
+                print(f"      Data: {transacao.get('data')}")
+                print(f"      Descrição: {transacao.get('descricao')}")
+                print(f"      Crédito: {transacao.get('credito')}")
+                print(f"      Débito: {transacao.get('debito')}")
+                print(f"      Tipo: {transacao.get('tipo')}")
+                print(f"      ID: {transacao.get('id')}")
+            
+            # 🔥🔥🔥 NOVO: VERIFICAR TRANSAÇÕES PROBLEMÁTICAS
+            print("=== 🔍 PROCURANDO TRANSAÇÕES COM CAMPOS None ===")
+            for i, transacao in enumerate(transacoes):
+                if transacao is None:
+                    print(f"❌ TRANSAÇÃO {i} É None!")
+                    continue
+                    
+                # Verificar campos críticos que podem ser None
+                data = transacao.get('data')
+                descricao = transacao.get('descricao')
+                credito = transacao.get('credito')
+                debito = transacao.get('debito')
+                tipo = transacao.get('tipo')
+                
+                problemas = []
+                if data is None:
+                    problemas.append("data")
+                if descricao is None:
+                    problemas.append("descricao") 
+                if credito is None:
+                    problemas.append("credito")
+                if debito is None:
+                    problemas.append("debito")
+                if tipo is None:
+                    problemas.append("tipo")
+                
+                if problemas:
+                    print(f"🚨 TRANSAÇÃO {i} (ID: {transacao.get('id')}) TEM CAMPOS None: {problemas}")
+                    print(f"   Dados completos: {transacao}")
+
+            container = self.ids.lista_transacoes
+            container.clear_widgets()
+            
+            # Atualizar resumo COM RÓTULOS E FONTE MAIOR
+            resumo_text = (
+                f"[b]Extrato[/b] | {username} | "
+                f"[color=23a0fa][b]Saldo:[/b] {saldo_atual:,.2f} {moeda}[/color] | "
+                f"[color=20cc66][b]Entradas:[/b] {total_entradas:,.2f}[/color] | "
+                f"[color=ff5c5c][b]Saídas:[/b] {total_saidas:,.2f}[/color]"
+            )
+            
+            self.ids.label_resumo_extrato.text = resumo_text
+            self.ids.label_resumo_extrato.markup = True
+            self.ids.label_resumo_extrato.font_size = '14sp'  # AUMENTADO para 14sp
+            
+            if not transacoes:
+                lbl = Label(
+                    text="Nenhuma transação encontrada",
+                    size_hint_y=None, 
+                    height=dp(50),
+                    color=(0.8, 0.8, 0.8, 1),
+                    font_size='14sp'
+                )
+                container.add_widget(lbl)
+                return
+            
+            # Adicionar transações
+            total_height = 0
+            for transacao in transacoes:
+                card = CardTransacao(transacao)
+                container.add_widget(card)
+                total_height += dp(60)
+            
+            # Forçar altura
+            container.height = total_height
+            print(f"✅ Altura do container: {total_height}")
+            
+            # 🔥 NOVO: Rolar para o topo após carregar as transações
+            self.scroll_para_topo()
+            
+        except Exception as e:
+            print(f"❌ ERRO: {e}")
+
+    def atualizar_saldos_spinners_extrato(self):
+        """Atualiza os saldos nos spinners da aba extrato - VERSÃO ROBUSTA"""
+        sistema = App.get_running_app().sistema
+        
+        try:
+            print("🔄 Atualizando saldos nos spinners do extrato...")
+            
+            # 🔥 ATUALIZAR COMBO DE CLIENTES (com saldos atualizados)
+            if hasattr(self, 'ids') and 'combo_cliente_extrato' in self.ids:
+                clientes_opcoes = []
+                for username, dados in sistema.usuarios.items():
+                    if dados['tipo'] == 'cliente':
+                        # Calcular saldo total do cliente
+                        saldo_total = 0.0
+                        contas_info = []
+                        
+                        for conta_num in dados.get('contas', []):
+                            if conta_num in sistema.contas:
+                                conta_data = sistema.contas[conta_num]
+                                saldo = conta_data['saldo']
+                                moeda = conta_data['moeda']
+                                saldo_total += saldo
+                                contas_info.append(f"{conta_num} ({moeda}: {saldo:,.2f})")
+                        
+                        # Formatar texto do cliente com saldo total
+                        texto_cliente = f"{username} - {dados['nome']} - Saldo Total: {saldo_total:,.2f}"
+                        clientes_opcoes.append(texto_cliente)
+                
+                # Manter a seleção atual se possível
+                cliente_selecionado_anterior = self.ids.combo_cliente_extrato.text
+                
+                self.ids.combo_cliente_extrato.values = clientes_opcoes
+                
+                # Restaurar seleção anterior ou selecionar primeiro
+                if cliente_selecionado_anterior and any(cliente_selecionado_anterior in opcao for opcao in clientes_opcoes):
+                    self.ids.combo_cliente_extrato.text = cliente_selecionado_anterior
+                elif clientes_opcoes:
+                    self.ids.combo_cliente_extrato.text = clientes_opcoes[0]
+            
+            # 🔥 ATUALIZAR COMBO DE CONTAS (quando cliente estiver selecionado)
+            if (hasattr(self, 'ids') and 'combo_cliente_extrato' in self.ids and 
+                self.ids.combo_cliente_extrato.text and 
+                'combo_conta_extrato' in self.ids):
+                
+                username = self.ids.combo_cliente_extrato.text.split(' - ')[0]
+                
+                if username in sistema.usuarios:
+                    contas_cliente = []
+                    for conta_num in sistema.usuarios[username].get('contas', []):
+                        if conta_num in sistema.contas:
+                            dados_conta = sistema.contas[conta_num]
+                            # Formatar com saldo ATUALIZADO
+                            texto_conta = f"{conta_num} - {dados_conta['moeda']} - Saldo: {dados_conta['saldo']:,.2f}"
+                            contas_cliente.append(texto_conta)
+                    
+                    # Manter a seleção atual se possível
+                    conta_selecionada_anterior = self.ids.combo_conta_extrato.text
+                    
+                    self.ids.combo_conta_extrato.values = contas_cliente
+                    
+                    # Restaurar seleção anterior ou selecionar primeira conta
+                    if conta_selecionada_anterior:
+                        # Extrair número da conta da seleção anterior
+                        conta_num_anterior = conta_selecionada_anterior.split(' - ')[0]
+                        conta_encontrada = None
+                        
+                        for opcao in contas_cliente:
+                            if opcao.startswith(conta_num_anterior + ' - '):
+                                conta_encontrada = opcao
+                                break
+                        
+                        if conta_encontrada:
+                            self.ids.combo_conta_extrato.text = conta_encontrada
+                        elif contas_cliente:
+                            self.ids.combo_conta_extrato.text = contas_cliente[0]
+                    elif contas_cliente:
+                        self.ids.combo_conta_extrato.text = contas_cliente[0]
+            
+            print("✅ Saldos nos spinners do extrato atualizados!")
+            
+        except Exception as e:
+            print(f"❌ Erro ao atualizar saldos nos spinners: {e}")
+
+    def atualizar_combos_apos_operacao(self):
+        """Atualiza todos os combos após operações que alteram saldos"""
+        try:
+            sistema = App.get_running_app().sistema
+            
+            # 🔥 ATUALIZAR SALDOS NOS SPINNERS DO EXTRATO
+            self.atualizar_saldos_spinners_extrato()
+            
+            # 🔥 ATUALIZAR OUTROS COMBOS TAMBÉM
+            self.atualizar_contas_ajuste()
+            self.atualizar_contas_cambio()
+            self.atualizar_contas_cliente_receita()
+            
+            print("✅ Combos atualizados após operação")
+            
+        except Exception as e:
+            print(f"❌ Erro ao atualizar combos: {e}")
+
+    def abrir_gerenciamento_cliente(self, instance):
+        """Abre a tela de gerenciamento detalhado do cliente - VERSÃO ULTRA-ROBUSTA"""
+        try:
+            sistema = App.get_running_app().sistema
+            
+            print(f"🔍 INÍCIO: Tentando abrir gerenciamento para: {self.username}")
+            print(f"📱 Telas disponíveis: {self.tela_pai.manager.screen_names}")
+            
+            # SOLUÇÃO DEFINITIVA: Sempre criar a tela dinamicamente
+            tela_detalhe = None
+            
+            # Tentar obter a tela se já existir
+            if 'gerenciar_cliente_detalhe' in self.tela_pai.manager.screen_names:
+                print("🔄 Tela encontrada, obtendo...")
+                tela_detalhe = self.tela_pai.manager.get_screen('gerenciar_cliente_detalhe')
+            else:
+                print("🔄 Tela NÃO encontrada, criando dinamicamente...")
+                try:
+                    # Tentar importar de screens
+                    from screens.gerenciar_cliente_detalhe import TelaGerenciarClienteDetalhe
+                    tela_detalhe = TelaGerenciarClienteDetalhe()
+                    self.tela_pai.manager.add_widget(tela_detalhe)
+                    print("✅ Tela criada e registrada com sucesso!")
+                except ImportError as e:
+                    print(f"❌ Erro de import: {e}")
+                    # Tentar criar diretamente (se estiver no mesmo arquivo)
+                    try:
+                        tela_detalhe = TelaGerenciarClienteDetalhe()
+                        self.tela_pai.manager.add_widget(tela_detalhe)
+                        print("✅ Tela criada via fallback!")
+                    except Exception as fallback_error:
+                        print(f"❌ Erro no fallback: {fallback_error}")
+                        self.tela_pai.mostrar_erro("Falha crítica ao criar tela")
+                        return
+            
+            # Verificar se conseguimos obter a tela
+            if tela_detalhe is None:
+                print("❌ Falha: tela_detalhe é None")
+                self.tela_pai.mostrar_erro("Falha ao criar tela de gerenciamento")
+                return
+            
+            print(f"✅ Tela obtida com sucesso: {tela_detalhe}")
+            
+            # Carregar dados do cliente
+            dados_cliente = sistema.usuarios[self.username]
+            print(f"📊 Carregando dados para: {self.username}")
+            
+            # Verificar se o método existe
+            if hasattr(tela_detalhe, 'carregar_dados_cliente'):
+                tela_detalhe.carregar_dados_cliente(self.username, dados_cliente)
+                print("✅ Dados carregados com sucesso!")
+            else:
+                print("❌ Método carregar_dados_cliente não encontrado!")
+                self.tela_pai.mostrar_erro("Erro: método de carregamento não disponível")
+                return
+            
+            # Navegar para a tela
+            self.tela_pai.manager.current = 'gerenciar_cliente_detalhe'
+            
+            print(f"🎉 NAVEGAÇÃO BEM-SUCEDIDA para: {self.username}")
+            print(f"📱 Telas disponíveis FINAL: {self.tela_pai.manager.screen_names}")
+            
+        except Exception as e:
+            print(f"💥 ERRO CRÍTICO: {e}")
+            import traceback
+            traceback.print_exc()
+            self.tela_pai.mostrar_erro(f"Erro crítico: {str(e)}")
+    
+    # ========== MÉTODOS AUXILIARES ==========
+
+    def scroll_para_topo(self):
+        """Rola automaticamente para o topo da lista de transações"""
+        if hasattr(self, 'ids') and hasattr(self.ids, 'scroll_extrato_admin'):
+            # Agendar o scroll para depois que a interface for atualizada
+            Clock.schedule_once(lambda dt: setattr(self.ids.scroll_extrato_admin, 'scroll_y', 1), 0.1)
+            
+    def mostrar_erro(self, mensagem):
+        """Mostra popup de erro"""
+        from kivy.uix.popup import Popup
+        from kivy.uix.boxlayout import BoxLayout
+        from kivy.uix.label import Label
+        from kivy.uix.button import Button
+        
+        content = BoxLayout(orientation='vertical', padding=10, spacing=10)
+        
+        lbl_erro = Label(
+            text=mensagem,
+            color=(1, 0.3, 0.3, 1),
+            font_size='14sp',
+            text_size=(350, None),
+            halign='center'
+        )
+        
+        btn_ok = Button(
+            text='OK',
+            size_hint_y=None,
+            height=40,
+            background_color=(0.55, 0.36, 0.96, 1),
+            color=(1, 1, 1, 1)
+        )
+        
+        content.add_widget(lbl_erro)
+        content.add_widget(btn_ok)
+        
+        popup = Popup(
+            title='❌ Erro',
+            title_color=(1, 0.3, 0.3, 1),
+            content=content,
+            size_hint=(None, None),
+            size=(400, 200),
+            background_color=(0.12, 0.16, 0.23, 1)
+        )
+        
+        btn_ok.bind(on_press=popup.dismiss)
+        popup.open()
+    
+    def mostrar_sucesso(self, mensagem):
+        """Mostra popup de sucesso - VERSÃO COM ALTURA MAIOR"""
+        from kivy.uix.popup import Popup
+        from kivy.uix.boxlayout import BoxLayout
+        from kivy.uix.label import Label
+        from kivy.uix.button import Button
+        
+        content = BoxLayout(orientation='vertical', padding=15, spacing=10)
+        
+        lbl_sucesso = Label(
+            text=mensagem,
+            color=(0.2, 0.8, 0.2, 1),
+            font_size='15sp',  # 🔥 Aumentado para 15sp
+            text_size=(350, None),
+            halign='center',
+            valign='top',  # 🔥 Adicionado para alinhar ao topo
+            size_hint_y=None,
+            height=250  # 🔥 Altura fixa para a mensagem
+        )
+        
+        btn_ok = Button(
+            text='OK',
+            size_hint_y=None,
+            height=40,
+            background_color=(0.23, 0.51, 0.96, 1),
+            color=(1, 1, 1, 1)
+        )
+        
+        content.add_widget(lbl_sucesso)
+        content.add_widget(btn_ok)
+        
+        # 🔥 AUMENTAR ALTURA DO POPUP
+        popup = Popup(
+            title='Sucesso',
+            title_color=(0.2, 0.8, 0.2, 1),
+            content=content,
+            size_hint=(None, None),
+            size=(400, 350),  # 🔥 Aumentado de 300 para 350
+            background_color=(0.12, 0.16, 0.23, 1)
+        )
+        
+        btn_ok.bind(on_press=popup.dismiss)
+        popup.open()
+    
+    def mostrar_confirmacao(self, titulo, mensagem, callback_confirmar):
+        """Mostra popup de confirmação - VERSÃO COM ALTURA MAIOR"""
+        from kivy.uix.popup import Popup
+        from kivy.uix.boxlayout import BoxLayout
+        from kivy.uix.label import Label
+        from kivy.uix.button import Button
+        
+        content = BoxLayout(orientation='vertical', padding=15, spacing=10)
+        
+        lbl_titulo = Label(
+            text=titulo,
+            font_size='16sp',
+            bold=True,
+            color=(1, 1, 1, 1),
+            text_size=(400, None),
+            halign='center'
+        )
+        
+        lbl_mensagem = Label(
+            text=mensagem,
+            font_size='14sp',  # 🔥 Aumentado para 14sp
+            color=(0.9, 0.9, 0.9, 1),
+            text_size=(400, None),
+            halign='center',
+            valign='top',  # 🔥 Adicionado para alinhar ao topo
+            size_hint_y=None,
+            height=200  # 🔥 Altura fixa para a mensagem
+        )
+        
+        botoes_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50, spacing=10)
+        
+        btn_cancelar = Button(
+            text='Cancelar',
+            background_color=(0.55, 0.36, 0.96, 1),
+            color=(1, 1, 1, 1)
+        )
+        
+        btn_confirmar = Button(
+            text='Confirmar',
+            background_color=(0.23, 0.51, 0.96, 1),
+            color=(1, 1, 1, 1)
+        )
+        
+        botoes_layout.add_widget(btn_cancelar)
+        botoes_layout.add_widget(btn_confirmar)
+        
+        content.add_widget(lbl_titulo)
+        content.add_widget(lbl_mensagem)
+        content.add_widget(botoes_layout)
+        
+        # 🔥 AUMENTAR ALTURA DO POPUP
+        popup = Popup(
+            title='',
+            content=content,
+            size_hint=(None, None),
+            size=(450, 350),  # 🔥 Aumentado de 300 para 350
+            background_color=(0.12, 0.16, 0.23, 1),
+            auto_dismiss=False
+        )
+        
+        def confirmar(instance):
+            popup.dismiss()
+            callback_confirmar()
+        
+        def cancelar(instance):
+            popup.dismiss()
+        
+        btn_confirmar.bind(on_press=confirmar)
+        btn_cancelar.bind(on_press=cancelar)
+        
+        popup.open()
+
+    def obter_nome_cliente_por_conta(self, sistema, conta_numero):
+        """Obtém o nome do cliente por número da conta"""
+        if conta_numero in sistema.contas:
+            return sistema.contas[conta_numero].get('cliente_nome', 'N/A')
+        return 'N/A'
+
+    def voltar_dashboard(self):
+        """Volta para o dashboard"""
+        self.manager.current = 'dashboard'
+
+    # ========== MÉTODOS AUXILIARES ==========
+
+    def atualizar_contas_despesa(self):
+        """Atualiza as contas de despesa quando selecionar categoria"""
+        sistema = App.get_running_app().sistema
+        
+        if not hasattr(self, 'ids') or not self.ids.combo_categoria_despesa.text:
+            return
+        
+        categoria_selecionada = self.ids.combo_categoria_despesa.text
+        
+        if categoria_selecionada in sistema.contas_contabeis['despesas']:
+            contas_despesa = list(sistema.contas_contabeis['despesas'][categoria_selecionada].keys())
+            self.ids.combo_conta_despesa.values = contas_despesa
+            if contas_despesa:
+                self.ids.combo_conta_despesa.text = contas_despesa[0]
+
+    def atualizar_contas_receita(self):
+        """Atualiza as contas de receita quando selecionar categoria - VERSÃO CORRIGIDA"""
+        sistema = App.get_running_app().sistema
+        
+        if not hasattr(self, 'ids') or not self.ids.combo_categoria_receita.text:
+            return
+        
+        categoria_selecionada = self.ids.combo_categoria_receita.text
+        print(f"🔍 Categoria receita selecionada: {categoria_selecionada}")
+        
+        if categoria_selecionada in sistema.contas_contabeis['receitas']:
+            contas_receita = list(sistema.contas_contabeis['receitas'][categoria_selecionada].keys())
+            
+            if 'combo_conta_receita' in self.ids:
+                self.ids.combo_conta_receita.values = contas_receita
+                print(f"✅ Contas receita atualizadas: {len(contas_receita)} opções")
+                
+                if contas_receita and not self.ids.combo_conta_receita.text:
+                    self.ids.combo_conta_receita.text = contas_receita[0]
+                    print(f"✅ Conta receita definida: {contas_receita[0]}")
+
+    def atualizar_contas_cliente_receita(self):
+        """Atualiza as contas do cliente quando selecionar cliente na aba receitas - VERSÃO CORRIGIDA"""
+        sistema = App.get_running_app().sistema
+        
+        if not hasattr(self, 'ids') or not self.ids.combo_cliente_receita.text:
+            return
+        
+        username_selecionado = self.ids.combo_cliente_receita.text.split(' - ')[0]
+        print(f"🔍 Cliente selecionado para receita: {username_selecionado}")
+        
+        if username_selecionado in sistema.usuarios:
+            contas_cliente = sistema.usuarios[username_selecionado].get('contas', [])
+            opcoes_contas = []
+            
+            for conta_num in contas_cliente:
+                if conta_num in sistema.contas:
+                    dados_conta = sistema.contas[conta_num]
+                    opcoes_contas.append(f"{conta_num} - {dados_conta['moeda']} - Saldo: {dados_conta['saldo']:,.2f}")
+            
+            if 'combo_conta_cliente_receita' in self.ids:
+                self.ids.combo_conta_cliente_receita.values = opcoes_contas
+                print(f"✅ Contas cliente receita atualizadas: {len(opcoes_contas)} opções")
+                
+                if opcoes_contas and not self.ids.combo_conta_cliente_receita.text:
+                    self.ids.combo_conta_cliente_receita.text = opcoes_contas[0]
+                    print(f"✅ Conta cliente definida: {opcoes_contas[0]}")
+
+    def criar_nova_conta_despesa(self):
+        """Abre popup para criar nova categoria/conta de despesa"""
+        from kivy.uix.popup import Popup
+        from kivy.uix.boxlayout import BoxLayout
+        from kivy.uix.label import Label
+        from kivy.uix.textinput import TextInput
+        from kivy.uix.button import Button
+        from kivy.uix.spinner import Spinner
+        
+        content = BoxLayout(orientation='vertical', spacing=15, padding=20)
+        
+        # Título
+        content.add_widget(Label(
+            text='NOVA CONTA DE DESPESA',
+            font_size='16sp',
+            bold=True,
+            color=(0.23, 0.51, 0.96, 1),
+            size_hint_y=None,
+            height=40
+        ))
+        
+        # Tipo (Categoria ou Subconta)
+        tipo_layout = BoxLayout(orientation='vertical', size_hint_y=None, height=80)
+        tipo_layout.add_widget(Label(
+            text='Tipo *',
+            font_size='12sp',
+            bold=True,
+            color=(1, 1, 1, 1),
+            size_hint_y=0.4
+        ))
+        
+        spinner_tipo = Spinner(
+            text='Nova Subconta',
+            values=['Nova Categoria', 'Nova Subconta'],
+            size_hint_y=0.6,
+            background_color=(0.20, 0.25, 0.33, 1),
+            color=(1, 1, 1, 1)
+        )
+        tipo_layout.add_widget(spinner_tipo)
+        content.add_widget(tipo_layout)
+        
+        # Categoria Pai (apenas para subconta)
+        categoria_layout = BoxLayout(orientation='vertical', size_hint_y=None, height=80)
+        categoria_layout.add_widget(Label(
+            text='Categoria Pai *',
+            font_size='12sp',
+            bold=True,
+            color=(1, 1, 1, 1),
+            size_hint_y=0.4
+        ))
+        
+        spinner_categoria = Spinner(
+            text='Selecione a categoria',
+            values=list(App.get_running_app().sistema.contas_contabeis['despesas'].keys()),
+            size_hint_y=0.6,
+            background_color=(0.20, 0.25, 0.33, 1),
+            color=(1, 1, 1, 1)
+        )
+        categoria_layout.add_widget(spinner_categoria)
+        content.add_widget(categoria_layout)
+        
+        # Nome da Conta
+        nome_layout = BoxLayout(orientation='vertical', size_hint_y=None, height=80)
+        nome_layout.add_widget(Label(
+            text='Nome da Conta *',
+            font_size='12sp',
+            bold=True,
+            color=(1, 1, 1, 1),
+            size_hint_y=0.4
+        ))
+        
+        input_nome = TextInput(
+            hint_text='Digite o nome da conta...',
+            size_hint_y=0.6,
+            background_color=(0.20, 0.25, 0.33, 1),
+            foreground_color=(1, 1, 1, 1)
+        )
+        nome_layout.add_widget(input_nome)
+        content.add_widget(nome_layout)
+        
+        # Botões
+        botoes_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50, spacing=10)
+        
+        btn_cancelar = Button(
+            text='Cancelar',
+            background_color=(0.55, 0.36, 0.96, 1),
+            color=(1, 1, 1, 1)
+        )
+        
+        btn_criar = Button(
+            text='Criar Conta',
+            background_color=(0.23, 0.51, 0.96, 1),
+            color=(1, 1, 1, 1)
+        )
+        
+        botoes_layout.add_widget(btn_cancelar)
+        botoes_layout.add_widget(btn_criar)
+        content.add_widget(botoes_layout)
+        
+        popup = Popup(
+            title='',
+            content=content,
+            size_hint=(0.8, 0.6),
+            background_color=(0.12, 0.16, 0.23, 1),
+            auto_dismiss=False
+        )
+        
+        def criar_conta(instance):
+            sistema = App.get_running_app().sistema
+            tipo = spinner_tipo.text
+            nome = input_nome.text.strip()
+            categoria_pai = spinner_categoria.text
+            
+            if not nome:
+                self.mostrar_erro("Digite o nome da conta!")
+                return
+            
+            if tipo == 'Nova Categoria':
+                # Criar nova categoria
+                sistema.criar_conta_despesa(nome, nome, 'USD')
+                self.mostrar_sucesso(f"Categoria '{nome}' criada com sucesso!")
+            else:
+                # Criar nova subconta
+                if categoria_pai == 'Selecione a categoria':
+                    self.mostrar_erro("Selecione uma categoria pai!")
+                    return
+                sistema.criar_conta_despesa(categoria_pai, nome, 'USD')
+                self.mostrar_sucesso(f"Subconta '{nome}' criada em '{categoria_pai}'!")
+            
+            popup.dismiss()
+            # Recarregar combos
+            self.carregar_combos_contabeis()
+        
+        def cancelar(instance):
+            popup.dismiss()
+        
+        btn_criar.bind(on_press=criar_conta)
+        btn_cancelar.bind(on_press=cancelar)
+        
+        popup.open()
+
+    def criar_nova_conta_receita(self):
+        """Abre popup para criar nova categoria/conta de receita"""
+        from kivy.uix.popup import Popup
+        from kivy.uix.boxlayout import BoxLayout
+        from kivy.uix.label import Label
+        from kivy.uix.textinput import TextInput
+        from kivy.uix.button import Button
+        from kivy.uix.spinner import Spinner
+        
+        content = BoxLayout(orientation='vertical', spacing=15, padding=20)
+        
+        # Título
+        content.add_widget(Label(
+            text='NOVA CONTA DE RECEITA',
+            font_size='16sp',
+            bold=True,
+            color=(0.23, 0.51, 0.96, 1),
+            size_hint_y=None,
+            height=40
+        ))
+        
+        # Tipo (Categoria ou Subconta)
+        tipo_layout = BoxLayout(orientation='vertical', size_hint_y=None, height=80)
+        tipo_layout.add_widget(Label(
+            text='Tipo *',
+            font_size='12sp',
+            bold=True,
+            color=(1, 1, 1, 1),
+            size_hint_y=0.4
+        ))
+        
+        spinner_tipo = Spinner(
+            text='Nova Subconta',
+            values=['Nova Categoria', 'Nova Subconta'],
+            size_hint_y=0.6,
+            background_color=(0.20, 0.25, 0.33, 1),
+            color=(1, 1, 1, 1)
+        )
+        tipo_layout.add_widget(spinner_tipo)
+        content.add_widget(tipo_layout)
+        
+        # Categoria Pai (apenas para subconta)
+        categoria_layout = BoxLayout(orientation='vertical', size_hint_y=None, height=80)
+        categoria_layout.add_widget(Label(
+            text='Categoria Pai *',
+            font_size='12sp',
+            bold=True,
+            color=(1, 1, 1, 1),
+            size_hint_y=0.4
+        ))
+        
+        spinner_categoria = Spinner(
+            text='Selecione a categoria',
+            values=list(App.get_running_app().sistema.contas_contabeis['receitas'].keys()),
+            size_hint_y=0.6,
+            background_color=(0.20, 0.25, 0.33, 1),
+            color=(1, 1, 1, 1)
+        )
+        categoria_layout.add_widget(spinner_categoria)
+        content.add_widget(categoria_layout)
+        
+        # Nome da Conta
+        nome_layout = BoxLayout(orientation='vertical', size_hint_y=None, height=80)
+        nome_layout.add_widget(Label(
+            text='Nome da Conta *',
+            font_size='12sp',
+            bold=True,
+            color=(1, 1, 1, 1),
+            size_hint_y=0.4
+        ))
+        
+        input_nome = TextInput(
+            hint_text='Digite o nome da conta...',
+            size_hint_y=0.6,
+            background_color=(0.20, 0.25, 0.33, 1),
+            foreground_color=(1, 1, 1, 1)
+        )
+        nome_layout.add_widget(input_nome)
+        content.add_widget(nome_layout)
+        
+        # Botões
+        botoes_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50, spacing=10)
+        
+        btn_cancelar = Button(
+            text='Cancelar',
+            background_color=(0.55, 0.36, 0.96, 1),
+            color=(1, 1, 1, 1)
+        )
+        
+        btn_criar = Button(
+            text='Criar Conta',
+            background_color=(0.23, 0.51, 0.96, 1),
+            color=(1, 1, 1, 1)
+        )
+        
+        botoes_layout.add_widget(btn_cancelar)
+        botoes_layout.add_widget(btn_criar)
+        content.add_widget(botoes_layout)
+        
+        popup = Popup(
+            title='',
+            content=content,
+            size_hint=(0.8, 0.6),
+            background_color=(0.12, 0.16, 0.23, 1),
+            auto_dismiss=False
+        )
+        
+        def criar_conta(instance):
+            sistema = App.get_running_app().sistema
+            tipo = spinner_tipo.text
+            nome = input_nome.text.strip()
+            categoria_pai = spinner_categoria.text
+            
+            if not nome:
+                self.mostrar_erro("Digite o nome da conta!")
+                return
+            
+            if tipo == 'Nova Categoria':
+                # Criar nova categoria
+                sistema.criar_conta_receita(nome, nome, 'USD')
+                self.mostrar_sucesso(f"Categoria '{nome}' criada com sucesso!")
+            else:
+                # Criar nova subconta
+                if categoria_pai == 'Selecione a categoria':
+                    self.mostrar_erro("Selecione uma categoria pai!")
+                    return
+                sistema.criar_conta_receita(categoria_pai, nome, 'USD')
+                self.mostrar_sucesso(f"Subconta '{nome}' criada em '{categoria_pai}'!")
+            
+            popup.dismiss()
+            # Recarregar combos
+            self.carregar_combos_contabeis()
+        
+        def cancelar(instance):
+            popup.dismiss()
+        
+        btn_criar.bind(on_press=criar_conta)
+        btn_cancelar.bind(on_press=cancelar)
+        
+        popup.open()
+
+    def carregar_combos_contabeis(self):
+        """Carrega todos os combos das abas contábeis - VERSÃO CORRIGIDA"""
+        sistema = App.get_running_app().sistema
+        
+        # Verificar se os IDs estão disponíveis
+        if not hasattr(self, 'ids'):
+            print("⚠️ IDs não disponíveis ainda em carregar_combos_contabeis")
+            return
+        
+        # Carregar categorias de despesa
+        categorias_despesa = list(sistema.contas_contabeis['despesas'].keys())
+        if 'combo_categoria_despesa' in self.ids:
+            self.ids.combo_categoria_despesa.values = categorias_despesa
+            if categorias_despesa:
+                self.ids.combo_categoria_despesa.text = categorias_despesa[0]
+        
+        # Carregar categorias de receita
+        categorias_receita = list(sistema.contas_contabeis['receitas'].keys())
+        if 'combo_categoria_receita' in self.ids:
+            self.ids.combo_categoria_receita.values = categorias_receita
+            if categorias_receita:
+                self.ids.combo_categoria_receita.text = categorias_receita[0]
+        
+        # 🔥 NOVO: Carregar contas bancárias para despesas
+        self.carregar_contas_bancarias_despesa()
+
+    def carregar_combos_receita(self):
+        """Carrega especificamente os combos da aba receitas"""
+        sistema = App.get_running_app().sistema
+        
+        print("🔍 Carregando combos receita...")
+        
+        # 🔥 CARREGAR CATEGORIAS DE RECEITA
+        categorias_receita = list(sistema.contas_contabeis['receitas'].keys())
+        if 'combo_categoria_receita' in self.ids:
+            self.ids.combo_categoria_receita.values = categorias_receita
+            if categorias_receita and not self.ids.combo_categoria_receita.text:
+                self.ids.combo_categoria_receita.text = categorias_receita[0]
+            print(f"✅ Categorias receita carregadas: {len(categorias_receita)}")
+        
+        # 🔥 CARREGAR CONTAS DE RECEITA (quando categoria for selecionada)
+        if categorias_receita and 'combo_conta_receita' in self.ids:
+            categoria_selecionada = self.ids.combo_categoria_receita.text
+            if categoria_selecionada in sistema.contas_contabeis['receitas']:
+                contas_receita = list(sistema.contas_contabeis['receitas'][categoria_selecionada].keys())
+                self.ids.combo_conta_receita.values = contas_receita
+                if contas_receita and not self.ids.combo_conta_receita.text:
+                    self.ids.combo_conta_receita.text = contas_receita[0]
+                print(f"✅ Contas receita carregadas: {len(contas_receita)}")
+
+    def lancar_despesa(self):
+        """Executa o lançamento de despesa - VERSÃO SIMPLIFICADA"""
+        sistema = App.get_running_app().sistema
+        
+        print("💰 Executando lançamento de despesa...")
+        
+        try:
+            # Validar campos
+            if not all([
+                self.ids.combo_conta_bancaria_despesa.text,
+                self.ids.combo_categoria_despesa.text,
+                self.ids.combo_conta_despesa.text,
+                self.ids.entry_valor_despesa.text,
+                self.ids.entry_descricao_despesa.text
+            ]):
+                self.mostrar_erro("Preencha todos os campos!")
+                return
+            
+            # Obter dados
+            conta_bancaria = self.ids.combo_conta_bancaria_despesa.text.split(' - ')[0]
+            categoria_despesa = self.ids.combo_categoria_despesa.text
+            conta_despesa = self.ids.combo_conta_despesa.text
+            valor_str = self.ids.entry_valor_despesa.text.strip()
+            descricao = self.ids.entry_descricao_despesa.text.strip()
+            
+            # Converter valor
+            valor = self._parse_valor_br(valor_str)
+            
+            if valor <= 0:
+                self.mostrar_erro("Valor deve ser positivo!")
+                return
+            
+            # 🔥 EXECUTAR LANÇAMENTO NO SISTEMA (JÁ SALVA NO SUPABASE AUTOMATICAMENTE)
+            sucesso, mensagem = sistema.lancar_despesa(
+                conta_bancaria, valor, conta_despesa, categoria_despesa, descricao
+            )
+            
+            if sucesso:
+                self.mostrar_sucesso(mensagem)
+                # Limpar campos
+                self.ids.entry_valor_despesa.text = ""
+                self.ids.entry_descricao_despesa.text = ""
+                # Atualizar combo para mostrar novo saldo
+                self.carregar_contas_bancarias_despesa()
+                self.atualizar_combos_apos_operacao()
+            else:
+                self.mostrar_erro(mensagem)
+            
+        except Exception as e:
+            print(f"❌ ERRO CRÍTICO em lancar_despesa: {e}")
+            import traceback
+            traceback.print_exc()
+            self.mostrar_erro(f"Erro ao lançar despesa: {str(e)}")
+
+    def lancar_receita_ui(self):
+        """Método simplificado para ser chamado do KV - VERSÃO CORRIGIDA"""
+        sistema = App.get_running_app().sistema
+        
+        print("💰💰💰 LANÇAR RECEITA UI CHAMADO!")
+        
+        # Validar campos
+        if not all([
+            self.ids.combo_cliente_receita.text,
+            self.ids.combo_conta_cliente_receita.text,
+            self.ids.combo_categoria_receita.text,
+            self.ids.combo_conta_receita.text,
+            self.ids.entry_valor_receita.text,
+            self.ids.entry_descricao_receita.text
+        ]):
+            self.mostrar_erro("Preencha todos os campos!")
+            return
+        
+        try:
+            # Obter dados
+            username = self.ids.combo_cliente_receita.text.split(' - ')[0]
+            conta_cliente = self.ids.combo_conta_cliente_receita.text.split(' - ')[0]
+            categoria_receita = self.ids.combo_categoria_receita.text
+            conta_receita = self.ids.combo_conta_receita.text
+            valor_str = self.ids.entry_valor_receita.text.strip()
+            descricao = self.ids.entry_descricao_receita.text.strip()
+            
+            # Converter valor
+            valor = self._parse_valor_br(valor_str)
+            
+            if valor <= 0:
+                self.mostrar_erro("Valor deve ser positivo!")
+                return
+            
+            # 🔥 EXECUTAR LANÇAMENTO NO SISTEMA (JÁ SALVA NO SUPABASE AUTOMATICAMENTE)
+            sucesso, mensagem = sistema.lancar_receita(
+                conta_cliente, valor, conta_receita, categoria_receita, descricao
+            )
+            
+            if sucesso:
+                self.mostrar_sucesso(mensagem)
+                # Limpar campos
+                self.ids.entry_valor_receita.text = ""
+                self.ids.entry_descricao_receita.text = ""
+                
+                # Atualizar combo para mostrar novo saldo
+                self.atualizar_contas_cliente_receita()
+                self.atualizar_combos_apos_operacao()
+            else:
+                self.mostrar_erro(mensagem)
+            
+        except Exception as e:
+            print(f"❌ ERRO CRÍTICO em lancar_receita_ui: {e}")
+            import traceback
+            traceback.print_exc()
+            self.mostrar_erro(f"Erro ao lançar receita: {str(e)}")
+
+    def atualizar_campos_transferencia(self):
+        """Atualiza os campos dinâmicos baseado no tipo de transferência selecionado - VERSÃO CORRIGIDA"""
+        if not hasattr(self, 'ids'):
+            return
+            
+        tipo = self.ids.combo_tipo_transferencia.text if 'combo_tipo_transferencia' in self.ids else ''
+        
+        print(f"🎯 Tipo de transferência selecionado: {tipo}")
+        
+        if tipo == 'Transferência Internacional':
+            # Para internacional, usar estrutura antiga ou criar nova
+            self.criar_campos_transferencia_internacional()
+        elif tipo == 'Transferência Interna':
+            self.criar_campos_transferencia_interna()
+            
+
+    def criar_campos_transferencia_internacional(self):
+        """Cria campos para transferência internacional - VERSÃO CORRIGIDA"""
+        # 🔥 CORREÇÃO: Usar os containers das colunas que EXISTEM no KV
+        container_origem = self.ids.container_origem_coluna
+        container_destino = self.ids.container_destino_coluna
+        
+        container_origem.clear_widgets()
+        container_destino.clear_widgets()
+        
+        # Botão para abrir modal de transferência internacional
+        btn_abrir_modal = Button(
+            text='ABRIR TRANSFERÊNCIA INTERNACIONAL',
+            font_size='14sp',
+            bold=True,
+            background_color=(0.23, 0.51, 0.96, 1),
+            color=(1, 1, 1, 1),
+            size_hint_y=None,
+            height=50
+        )
+        btn_abrir_modal.bind(on_press=self.abrir_modal_transferencia_internacional)
+        
+        # Label informativo
+        lbl_info = Label(
+            text='Clique no botão acima para criar uma transferência internacional em nome de um cliente',
+            font_size='12sp',
+            color=(0.8, 0.8, 0.8, 1),
+            text_size=(400, None),
+            halign='center',
+            size_hint_y=None,
+            height=40
+        )
+        
+        # Adicionar à coluna da esquerda
+        container_origem.add_widget(btn_abrir_modal)
+        container_origem.add_widget(lbl_info)
+        
+        # Deixar coluna da direita vazia
+        container_destino.add_widget(Label(text='', size_hint_y=1))
+        
+        # Ajustar altura
+        container_origem.height = 100
+        container_destino.height = 100
+
+    def abrir_modal_transferencia_internacional(self, instance):
+        """Abre o modal para transferência internacional em nome do cliente"""
+        from kivy.uix.popup import Popup
+        from kivy.uix.boxlayout import BoxLayout
+        from kivy.uix.label import Label
+        from kivy.uix.button import Button
+        from kivy.uix.spinner import Spinner
+        
+        # Criar conteúdo do modal
+        content = BoxLayout(orientation='vertical', spacing=15, padding=20)
+        content.size_hint_y = None
+        content.height = 600
+        
+        # Título
+        lbl_titulo = Label(
+            text='TRANSFERÊNCIA INTERNACIONAL - EM NOME DO CLIENTE',
+            font_size='16sp',
+            bold=True,
+            color=(0.23, 0.51, 0.96, 1),
+            size_hint_y=None,
+            height=40,
+            text_size=(400, None),
+            halign='center'
+        )
+        
+        # Seletor de cliente
+        lbl_selecionar_cliente = Label(
+            text='SELECIONAR CLIENTE *',
+            font_size='14sp',
+            bold=True,
+            color=(1, 1, 1, 1),
+            size_hint_y=None,
+            height=30,
+            text_size=(400, None),
+            halign='left'
+        )
+        
+        # Spinner para selecionar cliente
+        self.spinner_cliente_modal = Spinner(
+            text='Selecione um cliente',
+            font_size='12sp',
+            size_hint_y=None,
+            height=40,
+            background_color=(0.20, 0.25, 0.33, 1),
+            color=(1, 1, 1, 1)
+        )
+        
+        # Carregar clientes no spinner
+        self.carregar_clientes_modal()
+        
+        # Botões
+        botoes_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50, spacing=10)
+        
+        btn_cancelar = Button(
+            text='CANCELAR',
+            background_color=(0.55, 0.36, 0.96, 1),
+            color=(1, 1, 1, 1)
+        )
+        
+        btn_continuar = Button(
+            text='CONTINUAR',
+            background_color=(0.23, 0.51, 0.96, 1),
+            color=(1, 1, 1, 1)
+        )
+        
+        botoes_layout.add_widget(btn_cancelar)
+        botoes_layout.add_widget(btn_continuar)
+        
+        # Adicionar tudo ao conteúdo
+        content.add_widget(lbl_titulo)
+        content.add_widget(lbl_selecionar_cliente)
+        content.add_widget(self.spinner_cliente_modal)
+        content.add_widget(botoes_layout)
+        
+        # Criar popup
+        self.popup_transferencia_internacional = Popup(
+            title='Transferência Internacional',
+            title_color=(0.23, 0.51, 0.96, 1),
+            content=content,
+            size_hint=(0.9, 0.8),
+            background_color=(0.12, 0.16, 0.23, 1),
+            auto_dismiss=False
+        )
+        
+        def continuar(instance):
+            """Abre a tela completa de transferência para o cliente selecionado"""
+            if self.spinner_cliente_modal.text == 'Selecione um cliente':
+                self.mostrar_erro("Selecione um cliente!")
+                return
+            
+            # Fechar este modal
+            self.popup_transferencia_internacional.dismiss()
+            
+            # Abrir modal completo de transferência
+            self.abrir_modal_transferencia_completa()
+        
+        def cancelar(instance):
+            self.popup_transferencia_internacional.dismiss()
+        
+        btn_continuar.bind(on_press=continuar)
+        btn_cancelar.bind(on_press=cancelar)
+        
+        self.popup_transferencia_internacional.open()
+
+    def abrir_modal_transferencia_completa(self):
+        """Abre o modal completo de transferência internacional replicando a interface do cliente"""
+        from kivy.uix.popup import Popup
+        from kivy.uix.scrollview import ScrollView
+        from kivy.uix.gridlayout import GridLayout
+        from kivy.uix.checkbox import CheckBox
+        
+        # Obter cliente selecionado
+        cliente_texto = self.spinner_cliente_modal.text
+        username_cliente = cliente_texto.split(' - ')[0]
+        nome_cliente = cliente_texto.split(' - ')[1]
+        
+        sistema = App.get_running_app().sistema
+        
+        # Criar conteúdo principal com ScrollView
+        scroll_content = ScrollView(do_scroll_x=False)
+        main_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=15, padding=20)
+        main_layout.bind(minimum_height=main_layout.setter('height'))
+        
+        # Título com informações do cliente
+        lbl_titulo = Label(
+            text=f'TRANSFERÊNCIA INTERNACIONAL - {nome_cliente.upper()}',
+            font_size='16sp',
+            bold=True,
+            color=(0.23, 0.51, 0.96, 1),
+            size_hint_y=None,
+            height=40,
+            text_size=(None, None),
+            halign='center'
+        )
+        main_layout.add_widget(lbl_titulo)
+        
+        # 🔥 CONTA DE ORIGEM
+        box_conta_origem = BoxLayout(orientation='vertical', size_hint_y=None, height=120)
+        
+        lbl_conta_origem = Label(
+            text='Conta de Origem *',
+            font_size='14sp',
+            bold=True,
+            color=(1, 1, 1, 1),
+            size_hint_y=0.3,
+            text_size=(None, None),
+            halign='left'
+        )
+        box_conta_origem.add_widget(lbl_conta_origem)
+        
+        self.spinner_conta_cliente = Spinner(
+            text='Selecione uma conta',
+            font_size='12sp',
+            size_hint_y=0.4,
+            background_color=(0.20, 0.25, 0.33, 1),
+            color=(1, 1, 1, 1)
+        )
+        self.carregar_contas_cliente_modal(username_cliente)
+        self.spinner_conta_cliente.bind(text=self.atualizar_info_conta_modal)
+        box_conta_origem.add_widget(self.spinner_conta_cliente)
+        
+        self.lbl_info_conta_modal = Label(
+            text='Selecione uma conta para verificar o saldo',
+            font_size='10sp',
+            color=(0.80, 0.84, 0.88, 1),
+            size_hint_y=0.3,
+            text_size=(None, None),
+            halign='left'
+        )
+        box_conta_origem.add_widget(self.lbl_info_conta_modal)
+        
+        main_layout.add_widget(box_conta_origem)
+        
+        # 🔥 BENEFICIÁRIO SALVO
+        box_beneficiario_salvo = BoxLayout(orientation='vertical', size_hint_y=None, height=80)
+        
+        lbl_benef_salvo = Label(
+            text='SELECIONAR BENEFICIÁRIO SALVO',
+            font_size='12sp',
+            bold=True,
+            color=(0.23, 0.51, 0.96, 1),
+            size_hint_y=0.4,
+            text_size=(None, None),
+            halign='left'
+        )
+        box_beneficiario_salvo.add_widget(lbl_benef_salvo)
+        
+        self.spinner_beneficiarios_modal = Spinner(
+            text='',
+            font_size='11sp',
+            size_hint_y=0.6,
+            background_color=(0.20, 0.25, 0.33, 1),
+            color=(1, 1, 1, 1),
+            values=['']
+        )
+        self.carregar_beneficiarios_cliente_modal(username_cliente)
+        self.spinner_beneficiarios_modal.bind(text=self.preencher_dados_beneficiario_modal)
+        box_beneficiario_salvo.add_widget(self.spinner_beneficiarios_modal)
+        
+        main_layout.add_widget(box_beneficiario_salvo)
+        
+        # 🔥 DADOS DO BENEFICIÁRIO
+        box_dados_beneficiario = BoxLayout(orientation='vertical', size_hint_y=None, height=300)
+        
+        lbl_titulo_benef = Label(
+            text='DADOS DO BENEFICIÁRIO',
+            font_size='14sp',
+            bold=True,
+            color=(0.23, 0.51, 0.96, 1),
+            size_hint_y=0.1,
+            text_size=(None, None),
+            halign='left'
+        )
+        box_dados_beneficiario.add_widget(lbl_titulo_benef)
+        
+        grid_beneficiario = GridLayout(cols=1, size_hint_y=0.9, spacing=8)
+        
+        # Campos de texto para dados do beneficiário
+        self.entry_beneficiario_modal = TextInput(
+            hint_text='Nome Completo do Beneficiário *',
+            font_size='11sp',
+            size_hint_y=None,
+            height=40,
+            background_color=(0.20, 0.25, 0.33, 1),
+            foreground_color=(1, 1, 1, 1),
+            cursor_color=(1, 1, 1, 1),
+            padding=[10, 10]
+        )
+        grid_beneficiario.add_widget(self.entry_beneficiario_modal)
+        
+        self.entry_endereco_modal = TextInput(
+            hint_text='Endereço Completo *',
+            font_size='11sp',
+            size_hint_y=None,
+            height=40,
+            background_color=(0.20, 0.25, 0.33, 1),
+            foreground_color=(1, 1, 1, 1),
+            cursor_color=(1, 1, 1, 1),
+            padding=[10, 10]
+        )
+        grid_beneficiario.add_widget(self.entry_endereco_modal)
+        
+        self.entry_cidade_modal = TextInput(
+            hint_text='Cidade *',
+            font_size='11sp',
+            size_hint_y=None,
+            height=40,
+            background_color=(0.20, 0.25, 0.33, 1),
+            foreground_color=(1, 1, 1, 1),
+            cursor_color=(1, 1, 1, 1),
+            padding=[10, 10]
+        )
+        grid_beneficiario.add_widget(self.entry_cidade_modal)
+        
+        self.entry_pais_modal = TextInput(
+            hint_text='País *',
+            font_size='11sp',
+            size_hint_y=None,
+            height=40,
+            background_color=(0.20, 0.25, 0.33, 1),
+            foreground_color=(1, 1, 1, 1),
+            cursor_color=(1, 1, 1, 1),
+            padding=[10, 10]
+        )
+        grid_beneficiario.add_widget(self.entry_pais_modal)
+        
+        box_dados_beneficiario.add_widget(grid_beneficiario)
+        main_layout.add_widget(box_dados_beneficiario)
+        
+        # 🔥 DADOS DO BANCO
+        box_dados_banco = BoxLayout(orientation='vertical', size_hint_y=None, height=350)
+        
+        lbl_titulo_banco = Label(
+            text='DADOS DO BANCO DESTINATÁRIO',
+            font_size='14sp',
+            bold=True,
+            color=(0.23, 0.51, 0.96, 1),
+            size_hint_y=0.1,
+            text_size=(None, None),
+            halign='left'
+        )
+        box_dados_banco.add_widget(lbl_titulo_banco)
+        
+        grid_banco = GridLayout(cols=1, size_hint_y=0.9, spacing=8)
+        
+        self.entry_banco_modal = TextInput(
+            hint_text='Nome do Banco Destinatário *',
+            font_size='11sp',
+            size_hint_y=None,
+            height=40,
+            background_color=(0.20, 0.25, 0.33, 1),
+            foreground_color=(1, 1, 1, 1),
+            cursor_color=(1, 1, 1, 1),
+            padding=[10, 10]
+        )
+        grid_banco.add_widget(self.entry_banco_modal)
+        
+        self.entry_endereco_banco_modal = TextInput(
+            hint_text='Endereço do Banco',
+            font_size='11sp',
+            size_hint_y=None,
+            height=40,
+            background_color=(0.20, 0.25, 0.33, 1),
+            foreground_color=(1, 1, 1, 1),
+            cursor_color=(1, 1, 1, 1),
+            padding=[10, 10]
+        )
+        grid_banco.add_widget(self.entry_endereco_banco_modal)
+        
+        self.entry_swift_modal = TextInput(
+            hint_text='Código SWIFT/BIC *',
+            font_size='11sp',
+            size_hint_y=None,
+            height=40,
+            background_color=(0.20, 0.25, 0.33, 1),
+            foreground_color=(1, 1, 1, 1),
+            cursor_color=(1, 1, 1, 1),
+            padding=[10, 10]
+        )
+        grid_banco.add_widget(self.entry_swift_modal)
+        
+        self.entry_iban_modal = TextInput(
+            hint_text='Código IBAN / Account # *',
+            font_size='11sp',
+            size_hint_y=None,
+            height=40,
+            background_color=(0.20, 0.25, 0.33, 1),
+            foreground_color=(1, 1, 1, 1),
+            cursor_color=(1, 1, 1, 1),
+            padding=[10, 10]
+        )
+        grid_banco.add_widget(self.entry_iban_modal)
+        
+        self.entry_aba_modal = TextInput(
+            hint_text='Código ABA/Routing (se aplicável)',
+            font_size='11sp',
+            size_hint_y=None,
+            height=40,
+            background_color=(0.20, 0.25, 0.33, 1),
+            foreground_color=(1, 1, 1, 1),
+            cursor_color=(1, 1, 1, 1),
+            padding=[10, 10]
+        )
+        grid_banco.add_widget(self.entry_aba_modal)
+        
+        box_dados_banco.add_widget(grid_banco)
+        main_layout.add_widget(box_dados_banco)
+        
+        # 🔥 SALVAR BENEFICIÁRIO
+        box_salvar_benef = BoxLayout(orientation='horizontal', size_hint_y=None, height=50)
+        
+        self.check_salvar_benef_modal = CheckBox(
+            size_hint_x=0.2,
+            active=False
+        )
+        
+        lbl_salvar_benef = Label(
+            text='Salvar este beneficiário para transferências futuras',
+            font_size='11sp',
+            bold=True,
+            color=(0.23, 0.51, 0.96, 1),
+            text_size=(None, None),
+            halign='left',
+            valign='middle'
+        )
+        
+        box_salvar_benef.add_widget(self.check_salvar_benef_modal)
+        box_salvar_benef.add_widget(lbl_salvar_benef)
+        main_layout.add_widget(box_salvar_benef)
+        
+        # 🔥 VALOR E INFORMAÇÕES
+        box_valor_info = BoxLayout(orientation='vertical', size_hint_y=None, height=200)
+        
+        lbl_titulo_valor = Label(
+            text='VALOR E INFORMAÇÕES',
+            font_size='14sp',
+            bold=True,
+            color=(0.23, 0.51, 0.96, 1),
+            size_hint_y=0.2,
+            text_size=(None, None),
+            halign='left'
+        )
+        box_valor_info.add_widget(lbl_titulo_valor)
+        
+        # Layout para valor
+        layout_valor = BoxLayout(orientation='horizontal', size_hint_y=0.3, spacing=10)
+        
+        self.lbl_moeda_modal = Label(
+            text='USD',
+            font_size='16sp',
+            bold=True,
+            color=(0.23, 0.51, 0.96, 1),
+            size_hint_x=0.2,
+            text_size=(None, None),
+            halign='center',
+            valign='middle'
+        )
+        
+        self.entry_valor_modal = TextInput(
+            hint_text='0.00',
+            font_size='16sp',
+            multiline=False,
+            size_hint_y=None,
+            height=50,
+            background_color=(0.20, 0.25, 0.33, 1),
+            foreground_color=(1, 1, 1, 1),
+            cursor_color=(1, 1, 1, 1),
+            padding=[15, 12],
+            halign='right'
+        )
+        
+        layout_valor.add_widget(self.lbl_moeda_modal)
+        layout_valor.add_widget(self.entry_valor_modal)
+        box_valor_info.add_widget(layout_valor)
+        
+        # Finalidade
+        layout_finalidade = BoxLayout(orientation='vertical', size_hint_y=0.4, spacing=5)
+        
+        lbl_finalidade = Label(
+            text='Finalidade da Transferência *',
+            font_size='11sp',
+            bold=True,
+            color=(1, 1, 1, 1),
+            size_hint_y=0.3,
+            text_size=(None, None),
+            halign='left'
+        )
+        
+        self.spinner_finalidade_modal = Spinner(
+            text='Pagamento de Serviços',
+            font_size='11sp',
+            size_hint_y=0.7,
+            background_color=(0.20, 0.25, 0.33, 1),
+            color=(1, 1, 1, 1),
+            values=['Pagamento de Serviços', 'Investimentos', 'Manutenção de Conta', 'Doação', 'Presente', 'Outros']
+        )
+        
+        layout_finalidade.add_widget(lbl_finalidade)
+        layout_finalidade.add_widget(self.spinner_finalidade_modal)
+        box_valor_info.add_widget(layout_finalidade)
+        
+        main_layout.add_widget(box_valor_info)
+        
+        # 🔥 DESCRIÇÃO
+        box_descricao = BoxLayout(orientation='vertical', size_hint_y=None, height=120)
+        
+        lbl_descricao = Label(
+            text='Descrição Adicional (opcional):',
+            font_size='11sp',
+            bold=True,
+            color=(1, 1, 1, 1),
+            size_hint_y=0.3,
+            text_size=(None, None),
+            halign='left'
+        )
+        box_descricao.add_widget(lbl_descricao)
+        
+        self.entry_descricao_modal = TextInput(
+            hint_text='Digite uma descrição adicional...',
+            font_size='11sp',
+            size_hint_y=0.7,
+            background_color=(0.20, 0.25, 0.33, 1),
+            foreground_color=(1, 1, 1, 1),
+            cursor_color=(1, 1, 1, 1),
+            padding=[10, 10],
+            multiline=True
+        )
+        box_descricao.add_widget(self.entry_descricao_modal)
+        main_layout.add_widget(box_descricao)
+        
+        # 🔥 ADICIONAR: SEÇÃO DE INVOICE (EXATAMENTE IGUAL AO CLIENTE)
+        box_invoice = BoxLayout(orientation='vertical', size_hint_y=None, height=120)
+        
+        lbl_invoice = Label(
+            text='ANEXAR INVOICE (OPCIONAL)',
+            font_size='11sp',
+            bold=True,
+            color=(0.23, 0.51, 0.96, 1),
+            size_hint_y=0.3,
+            text_size=(None, None),
+            halign='left'
+        )
+        box_invoice.add_widget(lbl_invoice)
+
+        btn_upload_invoice_modal = Button(
+            text='SELECIONAR INVOICE',
+            font_size='11sp',
+            size_hint_y=0.4,
+            background_color=(0.20, 0.25, 0.33, 1),
+            color=(1, 1, 1, 1),
+            on_press=lambda x: self.selecionar_invoice_admin()
+        )
+        box_invoice.add_widget(btn_upload_invoice_modal)
+
+        self.lbl_arquivo_invoice_modal = Label(
+            text='Nenhum arquivo selecionado',
+            font_size='9sp',
+            color=(0.80, 0.84, 0.88, 1),
+            size_hint_y=0.3,
+            text_size=(None, None),
+            halign='center'
+        )
+        box_invoice.add_widget(self.lbl_arquivo_invoice_modal)
+        
+        main_layout.add_widget(box_invoice)
+        
+        # BOTÕES FINAIS
+        botoes_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50, spacing=10)
+        
+        btn_cancelar = Button(
+            text='CANCELAR',
+            background_color=(0.55, 0.36, 0.96, 1),
+            color=(1, 1, 1, 1)
+        )
+        
+        btn_solicitar = Button(
+            text='SOLICITAR TRANSFERÊNCIA',
+            background_color=(0.23, 0.51, 0.96, 1),
+            color=(1, 1, 1, 1)
+        )
+        
+        botoes_layout.add_widget(btn_cancelar)
+        botoes_layout.add_widget(btn_solicitar)
+        main_layout.add_widget(botoes_layout)
+        
+        # Configurar ScrollView
+        scroll_content.add_widget(main_layout)
+        
+        # 🔥 CORREÇÃO: Largura reduzida pela metade (0.45 em vez de 0.85)
+        self.popup_transferencia_completa = Popup(
+            title=f'Transferência - {nome_cliente}',
+            title_color=(0.23, 0.51, 0.96, 1),
+            content=scroll_content,
+            size_hint=(0.45, 0.95),  # 🔥 ALTERADO: 0.85 → 0.45 (metade da largura)
+            background_color=(0.12, 0.16, 0.23, 1),
+            auto_dismiss=False
+        )
+        
+        def solicitar_transferencia(instance):
+            """Processa a solicitação de transferência em nome do cliente"""
+            self.processar_transferencia_admin(username_cliente)
+        
+        def cancelar(instance):
+            self.popup_transferencia_completa.dismiss()
+        
+        btn_solicitar.bind(on_press=solicitar_transferencia)
+        btn_cancelar.bind(on_press=cancelar)
+        
+        self.popup_transferencia_completa.open()
+
+    def carregar_contas_cliente_modal(self, username_cliente):
+        """Carrega as contas internacionais do cliente selecionado"""
+        sistema = App.get_running_app().sistema
+        
+        if username_cliente in sistema.usuarios:
+            # Filtrar apenas contas internacionais (USD, EUR, GBP)
+            contas_internacionais = []
+            for conta_num in sistema.usuarios[username_cliente].get('contas', []):
+                if conta_num in sistema.contas and sistema.contas[conta_num]['moeda'] in ['USD', 'EUR', 'GBP']:
+                    dados_conta = sistema.contas[conta_num]
+                    texto = f"{conta_num} | {dados_conta['moeda']} | Saldo: {dados_conta['saldo']:,.2f}"
+                    contas_internacionais.append(texto)
+            
+            self.spinner_conta_cliente.values = contas_internacionais
+            if contas_internacionais:
+                self.spinner_conta_cliente.text = contas_internacionais[0]
+                # 🔥 CORREÇÃO: Chamar o método corretamente
+                self.atualizar_info_conta_modal()
+
+
+    def carregar_beneficiarios_cliente_modal(self, username_cliente):
+        """Carrega os beneficiários salvos do cliente selecionado"""
+        sistema = App.get_running_app().sistema
+        
+        if username_cliente in sistema.beneficiarios:
+            beneficiarios = sistema.beneficiarios[username_cliente]
+            valores = ['']  # Opção vazia
+            for benef in beneficiarios:
+                nome_formatado = f"{benef['nome']} | {benef['banco']} | {benef['pais']}"
+                valores.append(nome_formatado)
+            
+            if hasattr(self, 'spinner_beneficiarios_modal'):
+                self.spinner_beneficiarios_modal.values = valores
+        else:
+            if hasattr(self, 'spinner_beneficiarios_modal'):
+                self.spinner_beneficiarios_modal.values = ['']
+
+    def atualizar_info_conta_modal(self, instance=None, value=None):
+        """Atualiza informações da conta selecionada no modal"""
+        sistema = App.get_running_app().sistema
+        
+        if hasattr(self, 'spinner_conta_cliente') and self.spinner_conta_cliente.text:
+            conta_texto = self.spinner_conta_cliente.text
+            if ' | ' in conta_texto:
+                conta_selecionada = conta_texto.split(' | ')[0].strip()
+                
+                if conta_selecionada in sistema.contas:
+                    dados = sistema.contas[conta_selecionada]
+                    if hasattr(self, 'lbl_info_conta_modal'):
+                        self.lbl_info_conta_modal.text = f"Saldo disponível: {dados['saldo']:,.2f} {dados['moeda']} | Moeda: {dados['moeda']}"
+
+    def preencher_dados_beneficiario_modal(self, instance, value):
+        """Preenche automaticamente os campos quando um beneficiário é selecionado"""
+        if not value or value == "":
+            return
+        
+        sistema = App.get_running_app().sistema
+        username_cliente = self.spinner_cliente_modal.text.split(' - ')[0]
+        
+        try:
+            if username_cliente in sistema.beneficiarios:
+                # Extrair o nome do beneficiário do texto formatado
+                nome_beneficiario = value.split(' | ')[0]
+                
+                for benef in sistema.beneficiarios[username_cliente]:
+                    if benef['nome'] == nome_beneficiario:
+                        # Preencher todos os campos
+                        if hasattr(self, 'entry_beneficiario_modal'):
+                            self.entry_beneficiario_modal.text = benef['nome']
+                        if hasattr(self, 'entry_endereco_modal'):
+                            self.entry_endereco_modal.text = benef['endereco']
+                        if hasattr(self, 'entry_cidade_modal'):
+                            self.entry_cidade_modal.text = benef['cidade']
+                        if hasattr(self, 'entry_pais_modal'):
+                            self.entry_pais_modal.text = benef['pais']
+                        if hasattr(self, 'entry_banco_modal'):
+                            self.entry_banco_modal.text = benef['banco']
+                        if hasattr(self, 'entry_endereco_banco_modal'):
+                            self.entry_endereco_banco_modal.text = benef.get('endereco_banco', '')
+                        if hasattr(self, 'entry_swift_modal'):
+                            self.entry_swift_modal.text = benef['swift']
+                        if hasattr(self, 'entry_iban_modal'):
+                            self.entry_iban_modal.text = benef['iban']
+                        if hasattr(self, 'entry_aba_modal'):
+                            self.entry_aba_modal.text = benef.get('aba', '')
+                        
+                        print(f"✅ Dados do beneficiário '{benef['nome']}' preenchidos automaticamente")
+                        break
+                        
+        except Exception as e:
+            print(f"❌ Erro ao preencher dados do beneficiário: {e}")
+
+
+    def processar_transferencia_admin(self, username_cliente):
+        """Processa a transferência internacional em nome do cliente - COM SUPABASE"""
+        sistema = App.get_running_app().sistema
+        
+        print("🌍 Processando transferência internacional (admin)...")
+        
+        # 🔥 VALIDAÇÃO SIMPLIFICADA (CÓDIGO ORIGINAL MANTIDO)
+        try:
+            # Validar conta de origem (CÓDIGO ORIGINAL MANTIDO)
+            if not hasattr(self, 'spinner_conta_cliente') or not self.spinner_conta_cliente.text or 'Selecione' in self.spinner_conta_cliente.text:
+                self.mostrar_erro("Selecione uma conta de origem!")
+                return
+                
+            # Validar campos de texto obrigatórios (CÓDIGO ORIGINAL MANTIDO)
+            campos_texto = [
+                (self.entry_beneficiario_modal, "Nome Completo do Beneficiário"),
+                (self.entry_endereco_modal, "Endereço Completo"),
+                (self.entry_cidade_modal, "Cidade"),
+                (self.entry_pais_modal, "País"),
+                (self.entry_banco_modal, "Nome do Banco Destinatário"),
+                (self.entry_swift_modal, "Código SWIFT/BIC"),
+                (self.entry_iban_modal, "Código IBAN / Account #"),
+                (self.entry_valor_modal, "Valor da transferência")
+            ]
+            
+            for campo, nome in campos_texto:
+                if not campo.text.strip():
+                    self.mostrar_erro(f"Preencha o campo: {nome}")
+                    return
+            
+            # Extrair dados da conta de origem (CÓDIGO ORIGINAL MANTIDO)
+            conta_texto = self.spinner_conta_cliente.text
+            conta_origem = conta_texto.split(' | ')[0].strip()
+            
+            # Validar valor (CÓDIGO ORIGINAL MANTIDO)
+            try:
+                valor = float(self.entry_valor_modal.text.replace(',', '').strip())
+                if valor <= 0:
+                    self.mostrar_erro("Valor deve ser maior que zero!")
+                    return
+            except ValueError:
+                self.mostrar_erro("Valor inválido! Use apenas números.")
+                return
+            
+            # Preparar dados para o sistema (CÓDIGO ORIGINAL MANTIDO)
+            dados_transferencia = {
+                'conta_origem': conta_origem,
+                'valor': valor,
+                'finalidade': self.spinner_finalidade_modal.text if hasattr(self, 'spinner_finalidade_modal') else 'Pagamento de Serviços',
+                'descricao': self.entry_descricao_modal.text if hasattr(self, 'entry_descricao_modal') else '',
+                'beneficiario': self.entry_beneficiario_modal.text.strip(),
+                'endereco': self.entry_endereco_modal.text.strip(),
+                'cidade': self.entry_cidade_modal.text.strip(),
+                'pais': self.entry_pais_modal.text.strip(),
+                'banco': self.entry_banco_modal.text.strip(),
+                'endereco_banco': self.entry_endereco_banco_modal.text.strip() if hasattr(self, 'entry_endereco_banco_modal') else '',
+                'swift': self.entry_swift_modal.text.strip(),
+                'iban': self.entry_iban_modal.text.strip(),
+                'aba': self.entry_aba_modal.text.strip() if hasattr(self, 'entry_aba_modal') else ''
+            }
+            
+            # 🔥 VERIFICAR SE TEM INVOICE (CÓDIGO ORIGINAL MANTIDO)
+            tem_invoice = hasattr(self, 'arquivo_invoice_selecionado_admin') and self.arquivo_invoice_selecionado_admin
+            
+            # 🔥 CHAMAR MÉTODO DO SISTEMA (CÓDIGO ORIGINAL MANTIDO)
+            sucesso, resultado = sistema.solicitar_transferencia_internacional(
+                dados_transferencia, 
+                usuario_solicitante=username_cliente
+            )
+            
+            if sucesso:
+                transferencia_id = resultado
+                
+                # 🔥 ANEXAR INVOICE SE EXISTIR (CÓDIGO ORIGINAL MANTIDO)
+                if tem_invoice:
+                    print("📎 Invoice detectado, anexando...")
+                    if self.anexar_invoice_transferencia_admin(transferencia_id):
+                        print(f"✅ Invoice anexado com sucesso à transferência {transferencia_id}")
+                    else:
+                        print(f"⚠️ Invoice não pôde ser anexado à transferência {transferencia_id}")
+                
+                # 🔥🔥🔥 NOVO: SALVAR NO SUPABASE APÓS SUCESSO NO SISTEMA ATUAL
+                self.salvar_transferencia_internacional_supabase(
+                    transferencia_id, dados_transferencia, username_cliente, tem_invoice
+                )
+                
+                # Salvar beneficiário se solicitado (CÓDIGO ORIGINAL MANTIDO)
+                if hasattr(self, 'check_salvar_benef_modal') and self.check_salvar_benef_modal.active:
+                    dados_beneficiario = {
+                        'nome': dados_transferencia['beneficiario'],
+                        'endereco': dados_transferencia['endereco'],
+                        'cidade': dados_transferencia['cidade'],
+                        'pais': dados_transferencia['pais'],
+                        'banco': dados_transferencia['banco'],
+                        'endereco_banco': dados_transferencia['endereco_banco'],
+                        'swift': dados_transferencia['swift'],
+                        'iban': dados_transferencia['iban'],
+                        'aba': dados_transferencia['aba']
+                    }
+                    
+                    if username_cliente not in sistema.beneficiarios:
+                        sistema.beneficiarios[username_cliente] = []
+                    
+                    beneficiario_existe = False
+                    for benef in sistema.beneficiarios[username_cliente]:
+                        if benef['nome'] == dados_beneficiario['nome'] and benef['iban'] == dados_beneficiario['iban']:
+                            beneficiario_existe = True
+                            break
+                    
+                    if not beneficiario_existe:
+                        sistema.beneficiarios[username_cliente].append(dados_beneficiario)
+                        sistema.salvar_beneficiarios()
+                        print(f"✅ Beneficiário salvo para {username_cliente}")
+                
+                # Fechar modal e mostrar sucesso (CÓDIGO ORIGINAL MANTIDO)
+                self.popup_transferencia_completa.dismiss()
+                
+                # Obter dados atualizados (CÓDIGO ORIGINAL MANTIDO)
+                if conta_origem in sistema.contas:
+                    novo_saldo = sistema.contas[conta_origem]['saldo']
+                    moeda_origem = sistema.contas[conta_origem]['moeda']
+                else:
+                    novo_saldo = 0
+                    moeda_origem = 'USD'
+                
+                # Mensagem com info do invoice (CÓDIGO ORIGINAL MANTIDO)
+                mensagem_invoice = "\n📎 INVOICE: ANEXADO" if tem_invoice else "\n📎 INVOICE: NÃO ANEXADO"
+                
+                self.mostrar_sucesso(
+                    f"Transferência solicitada com sucesso!\n\n"
+                    f"ID: {transferencia_id}\n"
+                    f"Cliente: {username_cliente}\n"
+                    f"Valor: {valor:,.2f} {moeda_origem}\n"
+                    f"Conta: {conta_origem}\n"
+                    f"Novo saldo: {novo_saldo:,.2f} {moeda_origem}"
+                    f"{mensagem_invoice}\n\n"
+                    f"A transferência aparecerá nas solicitações do cliente."
+                )
+                
+            else:
+                self.mostrar_erro(f"Erro na transferência: {resultado}")
+            
+        except Exception as e:
+            print(f"❌ Erro ao processar transferência: {e}")
+            import traceback
+            traceback.print_exc()
+            self.mostrar_erro(f"Erro interno: {str(e)}")
+
+    def salvar_ajuste_supabase(self, transacao_id, conta_num, valor, operacao, descricao, username):
+        """Salva ajuste de saldo no Supabase - MANTÉM COMPATIBILIDADE"""
+        try:
+            from supabase_service import SupabaseService
+            from datetime import datetime
+            
+            sistema = App.get_running_app().sistema
+            
+            # Preparar dados para o Supabase
+            dados_supabase = {
+                'id': transacao_id,
+                'tipo': 'ajuste_admin',
+                'status': 'completed',
+                'data': datetime.now().isoformat(),
+                'moeda': sistema.contas[conta_num]['moeda'],
+                'valor': valor,
+                'conta_remetente': conta_num,
+                'descricao': descricao,
+                'executado_por': sistema.usuario_logado['username'],
+                'cliente_afetado': username,
+                'tipo_ajuste': 'CREDITO' if operacao == 'credito' else 'DEBITO',
+                'descricao_ajuste': descricao,
+                'created_at': datetime.now().isoformat()
+            }
+            
+            # Salvar no Supabase
+            service = SupabaseService()
+            resultado = service.salvar_transacao(dados_supabase)
+            
+            if resultado:
+                print(f"✅ Ajuste salvo no Supabase! ID: {transacao_id}")
+            else:
+                print(f"⚠️ Ajuste NÃO salvo no Supabase (mas foi salvo localmente)")
+                
+        except Exception as e:
+            print(f"⚠️ Erro ao salvar ajuste no Supabase: {e} (mas operação foi salva localmente)")
+
+    def salvar_despesa_supabase(self, conta_bancaria, valor, conta_despesa, categoria_despesa, descricao):
+        """Salva lançamento de despesa no Supabase - MANTÉM COMPATIBILIDADE"""
+        try:
+            from supabase_service import SupabaseService
+            from datetime import datetime
+            
+            sistema = App.get_running_app().sistema
+            
+            # Preparar dados para o Supabase
+            dados_supabase = {
+                'id': str(random.randint(100000, 999999)),
+                'tipo': 'despesa',
+                'status': 'completed',
+                'data': datetime.now().isoformat(),
+                'moeda': 'USD',  # Assumindo USD para despesas
+                'valor': valor,
+                'conta_remetente': conta_bancaria,
+                'descricao': descricao,
+                'executado_por': sistema.usuario_logado['username'],
+                'categoria_despesa': categoria_despesa,
+                'descricao_despesa': descricao,
+                'conta_despesa': conta_despesa,
+                'created_at': datetime.now().isoformat()
+            }
+            
+            # Salvar no Supabase
+            service = SupabaseService()
+            resultado = service.salvar_transacao(dados_supabase)
+            
+            if resultado:
+                print(f"✅ Despesa salva no Supabase! Valor: {valor}")
+            else:
+                print(f"⚠️ Despesa NÃO salva no Supabase (mas foi salva localmente)")
+                
+        except Exception as e:
+            print(f"⚠️ Erro ao salvar despesa no Supabase: {e} (mas operação foi salva localmente)")
+
+    def salvar_receita_supabase(self, conta_cliente, valor, conta_receita, categoria_receita, descricao, username):
+        """Salva lançamento de receita no Supabase - MANTÉM COMPATIBILIDADE"""
+        try:
+            from supabase_service import SupabaseService
+            from datetime import datetime
+            
+            sistema = App.get_running_app().sistema
+            
+            # Preparar dados para o Supabase
+            dados_supabase = {
+                'id': str(random.randint(100000, 999999)),
+                'tipo': 'receita',
+                'status': 'completed',
+                'data': datetime.now().isoformat(),
+                'moeda': sistema.contas[conta_cliente]['moeda'],
+                'valor': valor,
+                'conta_remetente': conta_cliente,
+                'descricao': descricao,
+                'executado_por': sistema.usuario_logado['username'],
+                'cliente_afetado': username,
+                'categoria_receita': categoria_receita,
+                'descricao_receita': descricao,
+                'conta_receita': conta_receita,
+                'created_at': datetime.now().isoformat()
+            }
+            
+            # Salvar no Supabase
+            service = SupabaseService()
+            resultado = service.salvar_transacao(dados_supabase)
+            
+            if resultado:
+                print(f"✅ Receita salva no Supabase! Valor: {valor}")
+            else:
+                print(f"⚠️ Receita NÃO salva no Supabase (mas foi salva localmente)")
+                
+        except Exception as e:
+            print(f"⚠️ Erro ao salvar receita no Supabase: {e} (mas operação foi salva localmente)")
+
+    def salvar_transferencia_interna_supabase(self, transferencia_id, conta_origem, conta_destino, valor, moeda, 
+                                            tipo, descricao, origem_empresa, destino_empresa):
+        """Salva transferência interna no Supabase - MANTÉM COMPATIBILIDADE"""
+        try:
+            from supabase_service import SupabaseService
+            from datetime import datetime
+            
+            sistema = App.get_running_app().sistema
+            
+            # Determinar tipo de transferência
+            if origem_empresa and destino_empresa:
+                tipo_transferencia = 'empresa_para_empresa'
+            elif origem_empresa and not destino_empresa:
+                tipo_transferencia = 'empresa_para_cliente'
+            elif not origem_empresa and destino_empresa:
+                tipo_transferencia = 'cliente_para_empresa'
+            else:
+                tipo_transferencia = 'cliente_para_cliente'
+            
+            # Preparar dados para o Supabase
+            dados_supabase = {
+                'id': transferencia_id,
+                'tipo': 'transferencia_interna',
+                'status': 'completed',
+                'data': datetime.now().isoformat(),
+                'moeda': moeda,
+                'valor': valor,
+                'conta_remetente': conta_origem,
+                'conta_destinatario': conta_destino,
+                'descricao': descricao,
+                'executado_por': sistema.usuario_logado['username'],
+                'tipo_transferencia': tipo_transferencia,
+                'created_at': datetime.now().isoformat()
+            }
+            
+            # Salvar no Supabase
+            service = SupabaseService()
+            resultado = service.salvar_transacao(dados_supabase)
+            
+            if resultado:
+                print(f"✅ Transferência interna salva no Supabase! ID: {transferencia_id}")
+            else:
+                print(f"⚠️ Transferência interna NÃO salva no Supabase (mas foi salva localmente)")
+                
+        except Exception as e:
+            print(f"⚠️ Erro ao salvar transferência interna no Supabase: {e} (mas operação foi salva localmente)")
+
+    def salvar_transferencia_internacional_supabase(self, transferencia_id, dados_transferencia, username_cliente, tem_invoice):
+        """Salva transferência internacional no Supabase - MANTÉM COMPATIBILIDADE"""
+        try:
+            from supabase_service import SupabaseService
+            from datetime import datetime
+            
+            sistema = App.get_running_app().sistema
+            
+            # Preparar dados para o Supabase
+            dados_supabase = {
+                'id': transferencia_id,
+                'tipo': 'transferencia_internacional',
+                'status': 'solicitada',
+                'data': datetime.now().isoformat(),
+                'moeda': sistema.contas[dados_transferencia['conta_origem']]['moeda'],
+                'valor': dados_transferencia['valor'],
+                'conta_remetente': dados_transferencia['conta_origem'],
+                'descricao': dados_transferencia.get('descricao', ''),
+                'executado_por': sistema.usuario_logado['username'],
+                'cliente_afetado': username_cliente,
+                'beneficiario': dados_transferencia['beneficiario'],
+                'endereco_beneficiario': dados_transferencia['endereco'],
+                'cidade': dados_transferencia['cidade'],
+                'pais': dados_transferencia['pais'],
+                'nome_banco': dados_transferencia['banco'],
+                'endereco_banco': dados_transferencia.get('endereco_banco', ''),
+                'codigo_swift': dados_transferencia['swift'],
+                'iban_account': dados_transferencia['iban'],
+                'aba_routing': dados_transferencia.get('aba', ''),
+                'finalidade': dados_transferencia['finalidade'],
+                'tem_invoice': tem_invoice,
+                'created_at': datetime.now().isoformat()
+            }
+            
+            # Salvar no Supabase
+            service = SupabaseService()
+            resultado = service.salvar_transacao(dados_supabase)
+            
+            if resultado:
+                print(f"✅ Transferência internacional salva no Supabase! ID: {transferencia_id}")
+            else:
+                print(f"⚠️ Transferência internacional NÃO salva no Supabase (mas foi salva localmente)")
+                
+        except Exception as e:
+            print(f"⚠️ Erro ao salvar transferência internacional no Supabase: {e} (mas operação foi salva localmente)")
+
+    def anexar_invoice_transferencia_admin(self, transferencia_id):
+        """Anexa o invoice selecionado à transferência do admin"""
+        try:
+            print(f"🔍 DEBUG ANEXAR INVOICE ADMIN: Iniciando anexação para {transferencia_id}")
+            
+            if not hasattr(self, 'arquivo_invoice_selecionado_admin') or not self.arquivo_invoice_selecionado_admin:
+                print("ℹ️ Nenhum invoice selecionado para anexar (admin)")
+                return True  # Não é obrigatório, então retorna sucesso
+            
+            sistema = App.get_running_app().sistema
+            
+            print(f"🔍 DEBUG ANEXAR INVOICE ADMIN: Copiando arquivo...")
+            # Copiar arquivo para pasta do sistema
+            caminho_destino = self.copiar_arquivo_invoice_admin(self.arquivo_invoice_selecionado_admin, transferencia_id)
+            
+            if caminho_destino:
+                print(f"🔍 DEBUG ANEXAR INVOICE ADMIN: Arquivo copiado, adicionando ao sistema...")
+                # Adicionar informações ao sistema
+                sucesso = sistema.adicionar_invoice_info_transferencia(transferencia_id, caminho_destino)
+                
+                if sucesso:
+                    print(f"✅ Invoice anexado à transferência {transferencia_id} (admin)")
+                    return True
+                else:
+                    print(f"❌ Erro ao anexar invoice à transferência (admin)")
+                    return False
+            else:
+                print(f"❌ Erro ao copiar arquivo de invoice (admin)")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Erro ao anexar invoice (admin): {e}")
+            return False
+
+    def copiar_arquivo_invoice_admin(self, caminho_origem, transferencia_id):
+        """Copia o arquivo de invoice para a pasta do sistema - VERSÃO ADMIN"""
+        try:
+            import os
+            import shutil
+            
+            # 🔥 CRIAR PASTA invoices SE NÃO EXISTIR
+            pasta_invoices = 'data/invoices'
+            if not os.path.exists(pasta_invoices):
+                os.makedirs(pasta_invoices)
+                print(f"✅ Pasta '{pasta_invoices}' criada (admin)")
+            
+            # Gerar nome único para o arquivo
+            nome_arquivo = os.path.basename(caminho_origem)
+            nome_base, extensao = os.path.splitext(nome_arquivo)
+            novo_nome = f"{transferencia_id}_{nome_base}{extensao}"
+            caminho_destino = os.path.join(pasta_invoices, novo_nome)
+            
+            # Copiar arquivo
+            shutil.copy2(caminho_origem, caminho_destino)
+            
+            print(f"✅ Invoice copiado para: {caminho_destino} (admin)")
+            return caminho_destino
+            
+        except Exception as e:
+            print(f"❌ Erro ao copiar invoice (admin): {e}")
+            return None
+
+
+    def carregar_clientes_modal(self):
+        """Carrega a lista de clientes no spinner do modal"""
+        sistema = App.get_running_app().sistema
+        
+        clientes_opcoes = ['Selecione um cliente']
+        for username, dados in sistema.usuarios.items():
+            if dados['tipo'] == 'cliente':
+                # Verificar se tem contas internacionais
+                tem_contas_internacionais = any(
+                    sistema.contas[conta]['moeda'] in ['USD', 'EUR', 'GBP'] 
+                    for conta in dados.get('contas', []) 
+                    if conta in sistema.contas
+                )
+                if tem_contas_internacionais:
+                    clientes_opcoes.append(f"{username} - {dados['nome']}")
+        
+        self.spinner_cliente_modal.values = clientes_opcoes
+
+    def criar_campos_transferencia_interna(self):
+        """Cria campos para transferência interna - VERSÃO 2 COLUNAS"""
+        # Usar os novos containers
+        container_origem = self.ids.container_origem_coluna
+        container_destino = self.ids.container_destino_coluna
+        
+        container_origem.clear_widgets()
+        container_destino.clear_widgets()
+        
+        # 🔥 TIPO DE ORIGEM (na coluna esquerda)
+        tipo_origem_layout = BoxLayout(orientation='vertical', size_hint_y=None, height=80)
+        tipo_origem_layout.add_widget(Label(
+            text='Tipo de Origem *',
+            font_size='13sp',
+            bold=True,
+            color=(0.7, 0.8, 1, 1),
+            size_hint_y=0.4,
+            text_size=(None, None),
+            halign='left'
+        ))
+        
+        self.spinner_tipo_origem = Spinner(
+            text='Selecione o tipo de origem',
+            font_size='13sp',
+            size_hint_y=0.6,
+            background_color=(0.20, 0.25, 0.33, 1),
+            color=(1, 1, 1, 1),
+            values=['Selecione o tipo de origem', 'Conta Bancária da Empresa', 'Conta de Cliente']
+        )
+        tipo_origem_layout.add_widget(self.spinner_tipo_origem)
+        container_origem.add_widget(tipo_origem_layout)
+        
+        # 🔥 TIPO DE DESTINO (na coluna direita)
+        tipo_destino_layout = BoxLayout(orientation='vertical', size_hint_y=None, height=80)
+        tipo_destino_layout.add_widget(Label(
+            text='Tipo de Destino *',
+            font_size='13sp',
+            bold=True,
+            color=(0.7, 0.8, 1, 1),
+            size_hint_y=0.4,
+            text_size=(None, None),
+            halign='left'
+        ))
+        
+        self.spinner_tipo_destino = Spinner(
+            text='Selecione o tipo de destino',
+            font_size='13sp',
+            size_hint_y=0.6,
+            background_color=(0.20, 0.25, 0.33, 1),
+            color=(1, 1, 1, 1),
+            values=['Selecione o tipo de destino', 'Conta de Cliente', 'Conta Bancária da Empresa']
+        )
+        tipo_destino_layout.add_widget(self.spinner_tipo_destino)
+        container_destino.add_widget(tipo_destino_layout)
+        
+        # Container dinâmico para origem (dentro da coluna esquerda)
+        self.container_origem_dinamica = BoxLayout(
+            orientation='vertical', 
+            size_hint_y=None, 
+            height=0
+        )
+        container_origem.add_widget(self.container_origem_dinamica)
+        
+        # Container dinâmico para destino (dentro da coluna direita)
+        self.container_destino_dinamica = BoxLayout(
+            orientation='vertical', 
+            size_hint_y=None, 
+            height=0
+        )
+        container_destino.add_widget(self.container_destino_dinamica)
+        
+        # Bind para atualizar campos dinâmicos
+        self.spinner_tipo_origem.bind(text=lambda instance, value: self.atualizar_origem_transferencia_interna())
+        self.spinner_tipo_destino.bind(text=lambda instance, value: self.atualizar_destino_transferencia_interna())
+
+    def atualizar_moeda_valor(self, instance, value):
+        """Atualiza a moeda mostrada no campo de valor baseado na conta origem selecionada"""
+        moeda = self.obter_moeda_origem()
+        if moeda and hasattr(self, 'label_moeda_transferencia'):
+            self.label_moeda_transferencia.text = moeda
+            print(f"💰 Moeda do valor atualizada para: {moeda}")
+
+    def carregar_clientes_transferencia_internacional(self):
+        """Carrega clientes para transferência internacional"""
+        sistema = App.get_running_app().sistema
+        
+        clientes_opcoes = []
+        for username, dados in sistema.usuarios.items():
+            if dados['tipo'] == 'cliente':
+                # Verificar se tem contas internacionais
+                tem_contas_internacionais = any(
+                    sistema.contas[conta]['moeda'] in ['USD', 'EUR', 'GBP'] 
+                    for conta in dados.get('contas', []) 
+                    if conta in sistema.contas
+                )
+                if tem_contas_internacionais:
+                    clientes_opcoes.append(f"{username} - {dados['nome']}")
+        
+        if hasattr(self, 'spinner_cliente_transf_internacional'):
+            self.spinner_cliente_transf_internacional.values = clientes_opcoes
+            if clientes_opcoes:
+                self.spinner_cliente_transf_internacional.text = clientes_opcoes[0]
+
+    def atualizar_contas_transferencia_internacional(self, instance, value):
+        """Atualiza contas quando cliente é selecionado na transferência internacional"""
+        sistema = App.get_running_app().sistema
+        
+        if not value or value == 'Selecione o cliente':
+            return
+        
+        username = value.split(' - ')[0]
+        
+        if username in sistema.usuarios:
+            # Filtrar apenas contas internacionais (USD, EUR, GBP)
+            contas_internacionais = []
+            for conta_num in sistema.usuarios[username].get('contas', []):
+                if conta_num in sistema.contas:
+                    moeda = sistema.contas[conta_num]['moeda']
+                    if moeda in ['USD', 'EUR', 'GBP']:
+                        saldo = sistema.contas[conta_num]['saldo']
+                        contas_internacionais.append(f"{conta_num} - {moeda} - Saldo: {saldo:,.2f}")
+            
+            if hasattr(self, 'spinner_conta_transf_internacional'):
+                self.spinner_conta_transf_internacional.values = contas_internacionais
+                if contas_internacionais:
+                    self.spinner_conta_transf_internacional.text = contas_internacionais[0]
+
+    def atualizar_origem_transferencia_interna(self, instance=None, value=None):
+        """Atualiza campos de origem para transferência interna - VERSÃO 2 COLUNAS"""
+        if not hasattr(self, 'container_origem_dinamica'):
+            return
+        
+        container = self.container_origem_dinamica
+        container.clear_widgets()
+        container.height = 0
+        
+        tipo_origem = self.spinner_tipo_origem.text
+        
+        # 🔥 CORREÇÃO: Só criar campos se não for a opção de seleção
+        if tipo_origem == 'Selecione o tipo de origem':
+            # Não mostrar nada - aguardar seleção do usuário
+            return
+            
+        elif tipo_origem == 'Conta Bancária da Empresa':
+            # Contas bancárias da empresa
+            layout = BoxLayout(orientation='vertical', size_hint_y=None, height=80)
+            layout.add_widget(Label(
+                text='Conta Bancária Origem *',
+                font_size='13sp',
+                bold=True,
+                color=(0.7, 0.8, 1, 1),
+                size_hint_y=0.4,
+                text_size=(None, None),
+                halign='left'
+            ))
+            
+            self.spinner_conta_empresa_origem = Spinner(
+                text='Selecione a conta',
+                font_size='13sp',
+                size_hint_y=0.6,
+                background_color=(0.20, 0.25, 0.33, 1),
+                color=(1, 1, 1, 1)
+            )
+            layout.add_widget(self.spinner_conta_empresa_origem)
+            container.add_widget(layout)
+            container.height += 80
+            
+            # Carregar contas da empresa
+            self.carregar_contas_empresa_origem()
+            
+        else:  # Conta de Cliente
+            # Cliente
+            cliente_layout = BoxLayout(orientation='vertical', size_hint_y=None, height=80)
+            cliente_layout.add_widget(Label(
+                text='Cliente Origem *',
+                font_size='13sp',
+                bold=True,
+                color=(0.7, 0.8, 1, 1),
+                size_hint_y=0.4,
+                text_size=(None, None),
+                halign='left'
+            ))
+            
+            self.spinner_cliente_interna_origem = Spinner(
+                text='Selecione o cliente',
+                font_size='13sp',
+                size_hint_y=0.6,
+                background_color=(0.20, 0.25, 0.33, 1),
+                color=(1, 1, 1, 1)
+            )
+            cliente_layout.add_widget(self.spinner_cliente_interna_origem)
+            container.add_widget(cliente_layout)
+            
+            # Conta do Cliente
+            conta_layout = BoxLayout(orientation='vertical', size_hint_y=None, height=80)
+            conta_layout.add_widget(Label(
+                text='Conta do Cliente *',
+                font_size='13sp',
+                bold=True,
+                color=(0.7, 0.8, 1, 1),
+                size_hint_y=0.4,
+                text_size=(None, None),
+                halign='left'
+            ))
+            
+            self.spinner_conta_interna_origem = Spinner(
+                text='Selecione a conta',
+                font_size='13sp',
+                size_hint_y=0.6,
+                background_color=(0.20, 0.25, 0.33, 1),
+                color=(1, 1, 1, 1)
+            )
+            conta_layout.add_widget(self.spinner_conta_interna_origem)
+            container.add_widget(conta_layout)
+            
+            container.height += 160
+            
+            # Carregar clientes imediatamente
+            self.carregar_clientes_transferencia_interna_origem()
+            
+            # Bind para atualizar contas quando cliente mudar
+            if hasattr(self, 'spinner_cliente_interna_origem'):
+                # Remover bind anterior se existir
+                try:
+                    self.spinner_cliente_interna_origem.unbind(text=self.atualizar_contas_interna_origem)
+                except:
+                    pass
+                # Adicionar novo bind
+                self.spinner_cliente_interna_origem.bind(text=self.atualizar_contas_interna_origem)
+            
+            # 🔥 CORREÇÃO: Usar lambda para passar os argumentos corretos
+            if hasattr(self, 'spinner_conta_interna_origem'):
+                try:
+                    self.spinner_conta_interna_origem.unbind(text=self.atualizar_filtro_destino_por_moeda)
+                except:
+                    pass
+                self.spinner_conta_interna_origem.bind(text=lambda instance, value: self.atualizar_filtro_destino_por_moeda())
+
+    def selecionar_invoice_admin(self):
+        """Abre seletor de invoice para o admin - VERSÃO SIMPLIFICADA"""
+        try:
+            from kivy.uix.popup import Popup
+            from kivy.uix.boxlayout import BoxLayout
+            from kivy.uix.button import Button
+            from kivy.uix.label import Label
+            from kivy.uix.filechooser import FileChooserListView
+            import os
+            
+            # Criar popup minimalista
+            content = BoxLayout(orientation='vertical', spacing=15, padding=25)
+            
+            # Título amigável
+            lbl_titulo = Label(
+                text='[b]ANEXAR INVOICE[/b]',
+                markup=True,
+                color=(0.9, 0.9, 0.9, 1),
+                font_size='18sp',
+                size_hint_y=0.2,
+                text_size=(400, None),
+                halign='center'
+            )
+            
+            # Área de Drag & Drop
+            area_drag_drop = Button(
+                text='[b]SOLTE O ARQUIVO AQUI[/b]\n\nou clique para procurar\n\n📄 PDF, JPG, PNG (até 5MB)',
+                markup=True,
+                background_color=(0.2, 0.3, 0.4, 0.3),
+                background_normal='',
+                color=(0.8, 0.8, 0.8, 1),
+                font_size='14sp',
+                size_hint_y=0.4,
+                halign='center'
+            )
+            
+            # Pastas rápidas
+            pastas_layout = BoxLayout(orientation='horizontal', size_hint_y=0.2, spacing=10)
+            
+            btn_documentos = Button(
+                text='Documentos',
+                background_color=(0.3, 0.5, 0.7, 1),
+                font_size='12sp'
+            )
+            
+            btn_downloads = Button(
+                text='Downloads', 
+                background_color=(0.3, 0.5, 0.7, 1),
+                font_size='12sp'
+            )
+            
+            btn_desktop = Button(
+                text='Desktop',
+                background_color=(0.3, 0.5, 0.7, 1),
+                font_size='12sp'
+            )
+            
+            pastas_layout.add_widget(btn_documentos)
+            pastas_layout.add_widget(btn_downloads)
+            pastas_layout.add_widget(btn_desktop)
+            
+            # Botões de ação
+            botoes_layout = BoxLayout(orientation='horizontal', size_hint_y=0.2, spacing=10)
+            
+            btn_limpar = Button(
+                text='Limpar',
+                background_color=(0.8, 0.3, 0.3, 1),
+                font_size='12sp'
+            )
+            
+            btn_fechar = Button(
+                text='Concluir',
+                background_color=(0.2, 0.7, 0.3, 1),
+                font_size='14sp',
+                bold=True
+            )
+            
+            botoes_layout.add_widget(btn_limpar)
+            botoes_layout.add_widget(btn_fechar)
+            
+            content.add_widget(lbl_titulo)
+            content.add_widget(area_drag_drop)
+            content.add_widget(pastas_layout)
+            content.add_widget(botoes_layout)
+            
+            # Variável para armazenar arquivo selecionado
+            arquivo_selecionado = None
+            lbl_status = None
+            
+            # Criar popup
+            popup = Popup(
+                title='',
+                content=content,
+                size_hint=(0.85, 0.6),
+                background_color=(0.12, 0.16, 0.23, 1),
+                auto_dismiss=False
+            )
+            
+            def atualizar_status(nome_arquivo, sucesso=True):
+                """Atualiza o status visual"""
+                nonlocal lbl_status
+                
+                if lbl_status and lbl_status in content.children:
+                    content.remove_widget(lbl_status)
+                
+                if sucesso:
+                    texto = f'✅ [b]{nome_arquivo}[/b]\nPronto para anexar!'
+                    cor = (0.2, 0.8, 0.2, 1)
+                else:
+                    texto = f'❌ {nome_arquivo}'
+                    cor = (1, 0.3, 0.3, 1)
+                
+                lbl_status = Label(
+                    text=texto,
+                    markup=True,
+                    color=cor,
+                    font_size='12sp',
+                    size_hint_y=0.15,
+                    text_size=(400, None),
+                    halign='center'
+                )
+                content.add_widget(lbl_status)
+                content.do_layout()
+            
+            def processar_arquivo(caminho):
+                """Processa o arquivo selecionado"""
+                nonlocal arquivo_selecionado
+                
+                try:
+                    # Verificar se é arquivo válido
+                    if not os.path.isfile(caminho):
+                        return False
+                    
+                    # Verificar extensão
+                    extensoes_validas = ['.pdf', '.jpg', '.jpeg', '.png']
+                    _, ext = os.path.splitext(caminho)
+                    if ext.lower() not in extensoes_validas:
+                        atualizar_status(f'Tipo não suportado: {ext}', False)
+                        return False
+                    
+                    # Verificar tamanho (5MB)
+                    tamanho = os.path.getsize(caminho) / (1024 * 1024)
+                    if tamanho > 5:
+                        atualizar_status('Arquivo muito grande! Máx: 5MB', False)
+                        return False
+                    
+                    arquivo_selecionado = caminho
+                    nome_arquivo = os.path.basename(caminho)
+                    atualizar_status(nome_arquivo, True)
+                    
+                    # Atualizar área visual
+                    area_drag_drop.text = f'[b]✅ PRONTO![/b]\n\n{nome_arquivo}\n({tamanho:.1f} MB)'
+                    area_drag_drop.background_color = (0.2, 0.5, 0.2, 0.5)
+                    
+                    return True
+                    
+                except Exception as e:
+                    atualizar_status(f'Erro: {str(e)}', False)
+                    return False
+            
+            def abrir_seletor_pasta(pasta):
+                """Abre seletor em pasta específica"""
+                nonlocal popup
+                
+                # Fechar popup atual
+                popup.dismiss()
+                
+                # Criar novo popup com filechooser
+                content_avancado = BoxLayout(orientation='vertical', spacing=10, padding=10)
+                
+                lbl_instrucao = Label(
+                    text=f'Procurando em: {pasta}',
+                    color=(0.9, 0.9, 0.9, 1),
+                    font_size='14sp'
+                )
+                
+                filechooser = FileChooserListView(
+                    path=pasta,
+                    filters=['*.pdf', '*.jpg', '*.jpeg', '*.png'],
+                    size_hint_y=0.7
+                )
+                
+                botoes_avancado = BoxLayout(orientation='horizontal', size_hint_y=0.2, spacing=10)
+                
+                btn_voltar = Button(
+                    text='⬅Voltar',
+                    background_color=(0.5, 0.5, 0.5, 1)
+                )
+                
+                btn_escolher = Button(
+                    text='Usar Este',
+                    background_color=(0.2, 0.7, 0.3, 1)
+                )
+                
+                botoes_avancado.add_widget(btn_voltar)
+                botoes_avancado.add_widget(btn_escolher)
+                
+                content_avancado.add_widget(lbl_instrucao)
+                content_avancado.add_widget(filechooser)
+                content_avancado.add_widget(botoes_avancado)
+                
+                popup_avancado = Popup(
+                    title='Selecione o arquivo',
+                    content=content_avancado,
+                    size_hint=(0.9, 0.8),
+                    background_color=(0.12, 0.16, 0.23, 1),
+                    auto_dismiss=False
+                )
+                
+                def voltar_simples(instance):
+                    popup_avancado.dismiss()
+                    self.selecionar_invoice_admin()  # Reabre o popup simples
+                
+                def escolher_arquivo(instance=None, selection=None, touch=None):
+                    """Função corrigida para aceitar diferentes chamadas"""
+                    if filechooser.selection:
+                        caminho = filechooser.selection[0]
+                        if processar_arquivo(caminho):
+                            popup_avancado.dismiss()
+                    else:
+                        lbl_instrucao.text = 'Selecione um arquivo!'
+                        lbl_instrucao.color = (1, 0.3, 0.3, 1)
+                
+                btn_voltar.bind(on_press=voltar_simples)
+                btn_escolher.bind(on_press=escolher_arquivo)
+                
+                # Usar lambda para evitar problemas de argumentos
+                filechooser.bind(on_submit=lambda instance, value, touch: escolher_arquivo())
+                
+                popup_avancado.open()
+            
+            def abrir_seletor_generico(instance):
+                """Abre seletor de arquivos genérico"""
+                abrir_seletor_pasta(os.path.expanduser('~'))
+            
+            def limpar_selecao(instance):
+                """Limpa a seleção atual"""
+                nonlocal arquivo_selecionado
+                arquivo_selecionado = None
+                area_drag_drop.text = '[b]SOLTE O ARQUIVO AQUI[/b]\n\nou clique para procurar\n\n📄 PDF, JPG, PNG (até 5MB)'
+                area_drag_drop.background_color = (0.2, 0.3, 0.4, 0.3)
+                
+                # Remover status
+                nonlocal lbl_status
+                if lbl_status and lbl_status in content.children:
+                    content.remove_widget(lbl_status)
+                    content.do_layout()
+            
+            def finalizar(instance):
+                """Finaliza o processo"""
+                if arquivo_selecionado:
+                    self.processar_arquivo_selecionado_admin(arquivo_selecionado)
+                    popup.dismiss()
+                    self.mostrar_mensagem_sucesso_admin("Invoice anexado com sucesso!")
+                else:
+                    atualizar_status("Nenhum arquivo selecionado!", False)
+            
+            # Bind dos eventos
+            area_drag_drop.bind(on_press=abrir_seletor_generico)
+            btn_documentos.bind(on_press=lambda x: abrir_seletor_pasta(os.path.expanduser('~/Documents')))
+            btn_downloads.bind(on_press=lambda x: abrir_seletor_pasta(os.path.expanduser('~/Downloads')))
+            btn_desktop.bind(on_press=lambda x: abrir_seletor_pasta(os.path.expanduser('~/Desktop')))
+            btn_limpar.bind(on_press=limpar_selecao)
+            btn_fechar.bind(on_press=finalizar)
+            
+            # Suporte a drag & drop real
+            def on_drop_file(window, file_path, x, y):
+                """Processa arquivo arrastado para a janela"""
+                try:
+                    file_path_str = file_path.decode('utf-8') if isinstance(file_path, bytes) else str(file_path)
+                    if processar_arquivo(file_path_str):
+                        print(f"✅ Arquivo arrastado processado: {file_path_str}")
+                except Exception as e:
+                    print(f"❌ Erro ao processar arquivo arrastado: {e}")
+            
+            # Registrar evento de drop
+            from kivy.core.window import Window
+            Window.bind(on_drop_file=on_drop_file)
+            
+            # Limpar binding quando popup fechar
+            def on_dismiss(instance):
+                Window.unbind(on_drop_file=on_drop_file)
+            
+            popup.bind(on_dismiss=on_dismiss)
+            
+            # Abrir popup
+            popup.open()
+            
+        except Exception as e:
+            print(f"❌ Erro ao abrir seletor de arquivos: {e}")
+            self.mostrar_erro_simples_admin("Erro ao abrir seletor de arquivos")
+
+    def processar_arquivo_selecionado_admin(self, caminho_arquivo):
+        """Processa o arquivo de invoice selecionado para o admin"""
+        try:
+            import os
+            
+            # Verificar tamanho do arquivo (máx 5MB)
+            tamanho_arquivo = os.path.getsize(caminho_arquivo) / (1024 * 1024)  # MB
+            if tamanho_arquivo > 5:
+                self.mostrar_erro_simples_admin("Arquivo muito grande! Escolha um arquivo menor que 5MB.")
+                return
+            
+            # Obter nome do arquivo
+            nome_arquivo = os.path.basename(caminho_arquivo)
+            
+            # Atualizar interface
+            self.lbl_arquivo_invoice_modal.text = f"📎 {nome_arquivo} ({tamanho_arquivo:.1f} MB)"
+            self.lbl_arquivo_invoice_modal.color = (0.2, 0.8, 0.2, 1)  # Verde
+            self.arquivo_invoice_selecionado_admin = caminho_arquivo
+            
+            print(f"✅ Invoice selecionado (admin): {nome_arquivo}")
+            
+        except Exception as e:
+            print(f"❌ Erro ao processar arquivo (admin): {e}")
+            self.mostrar_erro_simples_admin("Erro ao processar arquivo. Tente novamente.")
+
+    def mostrar_mensagem_sucesso_admin(self, mensagem):
+        """Mostra mensagem de sucesso simples para o admin"""
+        from kivy.uix.popup import Popup
+        from kivy.uix.label import Label
+        from kivy.uix.boxlayout import BoxLayout
+        from kivy.uix.button import Button
+        
+        content = BoxLayout(orientation='vertical', padding=20, spacing=15)
+        
+        lbl = Label(
+            text=mensagem, 
+            color=(0.2, 0.8, 0.2, 1), 
+            font_size='16sp',
+            text_size=(350, None),
+            halign='center'
+        )
+        
+        btn_ok = Button(
+            text='OK',
+            size_hint_y=None,
+            height=45,
+            background_color=(0.23, 0.51, 0.96, 1),
+            color=(1, 1, 1, 1),
+            font_size='14sp',
+            bold=True
+        )
+        
+        content.add_widget(lbl)
+        content.add_widget(btn_ok)
+        
+        popup = Popup(
+            title='Sucesso',
+            title_color=(0.2, 0.8, 0.2, 1),
+            content=content,
+            size_hint=(0.7, 0.4),
+            auto_dismiss=False,
+            background_color=(0.12, 0.16, 0.23, 1)
+        )
+        
+        def fechar_popup(instance):
+            popup.dismiss()
+        
+        btn_ok.bind(on_press=fechar_popup)
+        popup.open()
+
+    def mostrar_erro_simples_admin(self, mensagem):
+        """Mostra mensagem de erro simples para o admin"""
+        from kivy.uix.popup import Popup
+        from kivy.uix.label import Label
+        from kivy.uix.boxlayout import BoxLayout
+        
+        content = BoxLayout(orientation='vertical', padding=20)
+        lbl = Label(text=mensagem, color=(1, 0.3, 0.3, 1), font_size='16sp')
+        content.add_widget(lbl)
+        
+        popup = Popup(
+            title='❌ Erro',
+            content=content,
+            size_hint=(0.7, 0.3),
+            auto_dismiss=True,
+            background_color=(0.12, 0.16, 0.23, 1)
+        )
+        popup.open()
+
+    def atualizar_destino_transferencia_interna(self, instance=None, value=None):
+        """Atualiza campos de destino para transferência interna - VERSÃO 2 COLUNAS"""
+        if not hasattr(self, 'container_destino_dinamica'):
+            return
+        
+        container = self.container_destino_dinamica
+        container.clear_widgets()
+        container.height = 0
+        
+        tipo_destino = self.spinner_tipo_destino.text
+        
+        # 🔥 CORREÇÃO: Só criar campos se não for a opção de seleção
+        if tipo_destino == 'Selecione o tipo de destino':
+            # Não mostrar nada - aguardar seleção do usuário
+            return
+            
+        elif tipo_destino == 'Conta Bancária da Empresa':
+            # Contas bancárias da empresa
+            layout = BoxLayout(orientation='vertical', size_hint_y=None, height=80)
+            layout.add_widget(Label(
+                text='Conta Bancária Destino *',
+                font_size='13sp',
+                bold=True,
+                color=(0.7, 0.8, 1, 1),
+                size_hint_y=0.4,
+                text_size=(None, None),
+                halign='left'
+            ))
+            
+            self.spinner_conta_empresa_destino = Spinner(
+                text='Selecione a conta',
+                font_size='13sp',
+                size_hint_y=0.6,
+                background_color=(0.20, 0.25, 0.33, 1),
+                color=(1, 1, 1, 1)
+            )
+            layout.add_widget(self.spinner_conta_empresa_destino)
+            container.add_widget(layout)
+            container.height += 80
+            
+            # Carregar contas da empresa
+            self.carregar_contas_empresa_destino()
+            
+        else:  # Conta de Cliente
+            # Cliente
+            cliente_layout = BoxLayout(orientation='vertical', size_hint_y=None, height=80)
+            cliente_layout.add_widget(Label(
+                text='Cliente Destino *',
+                font_size='13sp',
+                bold=True,
+                color=(0.7, 0.8, 1, 1),
+                size_hint_y=0.4,
+                text_size=(None, None),
+                halign='left'
+            ))
+            
+            self.spinner_cliente_interna_destino = Spinner(
+                text='Selecione o cliente',
+                font_size='13sp',
+                size_hint_y=0.6,
+                background_color=(0.20, 0.25, 0.33, 1),
+                color=(1, 1, 1, 1)
+            )
+            cliente_layout.add_widget(self.spinner_cliente_interna_destino)
+            container.add_widget(cliente_layout)
+            
+            # Conta do Cliente
+            conta_layout = BoxLayout(orientation='vertical', size_hint_y=None, height=80)
+            conta_layout.add_widget(Label(
+                text='Conta do Cliente *',
+                font_size='13sp',
+                bold=True,
+                color=(0.7, 0.8, 1, 1),
+                size_hint_y=0.4,
+                text_size=(None, None),
+                halign='left'
+            ))
+            
+            self.spinner_conta_interna_destino = Spinner(
+                text='Selecione a conta',
+                font_size='13sp',
+                size_hint_y=0.6,
+                background_color=(0.20, 0.25, 0.33, 1),
+                color=(1, 1, 1, 1)
+            )
+            conta_layout.add_widget(self.spinner_conta_interna_destino)
+            container.add_widget(conta_layout)
+            
+            container.height += 160
+            
+            # Carregar clientes imediatamente
+            self.carregar_clientes_transferencia_interna_destino()
+            
+            # Bind para atualizar contas quando cliente mudar
+            if hasattr(self, 'spinner_cliente_interna_destino'):
+                # Remover bind anterior se existir
+                try:
+                    self.spinner_cliente_interna_destino.unbind(text=self.atualizar_contas_interna_destino)
+                except:
+                    pass
+                # Adicionar novo bind
+                self.spinner_cliente_interna_destino.bind(text=self.atualizar_contas_interna_destino)
+            
+            # 🔥 CORREÇÃO: Usar lambda para passar os argumentos corretos
+            if hasattr(self, 'spinner_cliente_interna_destino'):
+                try:
+                    self.spinner_cliente_interna_destino.unbind(text=self.atualizar_filtro_destino_por_moeda)
+                except:
+                    pass
+                self.spinner_cliente_interna_destino.bind(text=lambda instance, value: self.atualizar_filtro_destino_por_moeda())
+
+    def carregar_contas_empresa_origem(self):
+        """Carrega contas da empresa para origem"""
+        sistema = App.get_running_app().sistema
+        
+        opcoes_contas = []
+        for conta_num, dados_conta in sistema.contas_bancarias_empresa.items():
+            opcoes_contas.append(f"{conta_num} - {dados_conta['banco']} - {dados_conta['moeda']} - Saldo: {dados_conta['saldo']:,.2f}")
+        
+        if hasattr(self, 'spinner_conta_empresa_origem'):
+            self.spinner_conta_empresa_origem.values = opcoes_contas
+            if opcoes_contas:
+                self.spinner_conta_empresa_origem.text = opcoes_contas[0]
+
+    def carregar_contas_empresa_destino(self):
+        """Carrega contas da empresa para destino - VERSÃO CORRIGIDA PARA 2 COLUNAS"""
+        sistema = App.get_running_app().sistema
+        
+        opcoes_contas = []
+        for conta_num, dados_conta in sistema.contas_bancarias_empresa.items():
+            opcoes_contas.append(f"{conta_num} - {dados_conta['banco']} - {dados_conta['moeda']} - Saldo: {dados_conta['saldo']:,.2f}")
+        
+        # 🔥 CORREÇÃO: Usar o spinner diretamente
+        if hasattr(self, 'spinner_conta_empresa_destino'):
+            self.spinner_conta_empresa_destino.values = opcoes_contas
+            if opcoes_contas:
+                self.spinner_conta_empresa_destino.text = opcoes_contas[0]
+
+    def carregar_clientes_transferencia_interna_origem(self):
+        """Carrega clientes para origem da transferência interna - VERSÃO CORRIGIDA"""
+        sistema = App.get_running_app().sistema
+        
+        clientes_opcoes = []
+        for username, dados in sistema.usuarios.items():
+            if dados['tipo'] == 'cliente':
+                clientes_opcoes.append(f"{username} - {dados['nome']}")
+        
+        if hasattr(self, 'spinner_cliente_interna_origem'):
+            self.spinner_cliente_interna_origem.values = clientes_opcoes
+            if clientes_opcoes:
+                self.spinner_cliente_interna_origem.text = clientes_opcoes[0]
+                # 🔥 FORÇAR atualização das contas imediatamente
+                self.atualizar_contas_interna_origem(None, clientes_opcoes[0])
+
+    def carregar_clientes_transferencia_interna_destino(self):
+        """Carrega clientes para destino da transferência interna - VERSÃO CORRIGIDA"""
+        sistema = App.get_running_app().sistema
+        
+        clientes_opcoes = []
+        for username, dados in sistema.usuarios.items():
+            if dados['tipo'] == 'cliente':
+                clientes_opcoes.append(f"{username} - {dados['nome']}")
+        
+        if hasattr(self, 'spinner_cliente_interna_destino'):
+            self.spinner_cliente_interna_destino.values = clientes_opcoes
+            if clientes_opcoes:
+                self.spinner_cliente_interna_destino.text = clientes_opcoes[0]
+                # 🔥 FORÇAR atualização das contas imediatamente
+                self.atualizar_contas_interna_destino(None, clientes_opcoes[0])
+
+    def atualizar_contas_interna_origem(self, instance, value):
+        """Atualiza contas quando cliente origem é selecionado na transferência interna - COM FILTRO DE MOEDA"""
+        sistema = App.get_running_app().sistema
+        
+        if not value or value == 'Selecione o cliente':
+            return
+        
+        username = value.split(' - ')[0]
+        
+        if username in sistema.usuarios:
+            contas_cliente = []
+            for conta_num in sistema.usuarios[username].get('contas', []):
+                if conta_num in sistema.contas:
+                    dados_conta = sistema.contas[conta_num]
+                    contas_cliente.append(f"{conta_num} - {dados_conta['moeda']} - Saldo: {dados_conta['saldo']:,.2f}")
+            
+            # Atualizar spinner de contas
+            if hasattr(self, 'spinner_conta_interna_origem'):
+                self.spinner_conta_interna_origem.values = contas_cliente
+                if contas_cliente:
+                    self.spinner_conta_interna_origem.text = contas_cliente[0]
+                    # 🔥 ATUALIZAR FILTRO DE DESTINO BASEADO NA MOEDA SELECIONADA
+                    self.atualizar_filtro_destino_por_moeda()
+                else:
+                    self.spinner_conta_interna_origem.text = 'Nenhuma conta disponível'
+
+    def atualizar_filtro_destino_por_moeda(self, instance=None, value=None):
+        """Filtra as contas destino baseado na moeda da conta origem selecionada - VERSÃO CORRIGIDA"""
+        sistema = App.get_running_app().sistema
+        
+        # 🔥 OBTER MOEDA DA CONTA ORIGEM
+        moeda_origem = None
+        
+        # Verificar se origem é conta bancária da empresa
+        if (hasattr(self, 'spinner_tipo_origem') and 
+            self.spinner_tipo_origem.text == 'Conta Bancária da Empresa' and
+            hasattr(self, 'spinner_conta_empresa_origem') and
+            'Selecione' not in self.spinner_conta_empresa_origem.text):
+            
+            conta_origem_num = self.spinner_conta_empresa_origem.text.split(' - ')[0]
+            if conta_origem_num in sistema.contas_bancarias_empresa:
+                moeda_origem = sistema.contas_bancarias_empresa[conta_origem_num]['moeda']
+        
+        # Verificar se origem é conta de cliente
+        elif (hasattr(self, 'spinner_tipo_origem') and 
+              self.spinner_tipo_origem.text == 'Conta de Cliente' and
+              hasattr(self, 'spinner_conta_interna_origem') and
+              'Selecione' not in self.spinner_conta_interna_origem.text):
+            
+            conta_origem_num = self.spinner_conta_interna_origem.text.split(' - ')[0]
+            if conta_origem_num in sistema.contas:
+                moeda_origem = sistema.contas[conta_origem_num]['moeda']
+        
+        if not moeda_origem:
+            return
+        
+        print(f"🎯 Filtrando destino por moeda: {moeda_origem}")
+        
+        # 🔥 APLICAR FILTRO NO DESTINO
+        # Se destino for conta bancária da empresa
+        if (hasattr(self, 'spinner_tipo_destino') and 
+            self.spinner_tipo_destino.text == 'Conta Bancária da Empresa' and
+            hasattr(self, 'spinner_conta_empresa_destino')):
+            
+            contas_filtradas = []
+            for conta_num, dados_conta in sistema.contas_bancarias_empresa.items():
+                if dados_conta['moeda'] == moeda_origem:
+                    contas_filtradas.append(f"{conta_num} - {dados_conta['banco']} - {dados_conta['moeda']} - Saldo: {dados_conta['saldo']:,.2f}")
+            
+            self.spinner_conta_empresa_destino.values = contas_filtradas
+            if contas_filtradas:
+                self.spinner_conta_empresa_destino.text = contas_filtradas[0]
+            else:
+                self.spinner_conta_empresa_destino.text = f'Nenhuma conta {moeda_origem} disponível'
+        
+        # Se destino for conta de cliente
+        elif (hasattr(self, 'spinner_tipo_destino') and 
+              self.spinner_tipo_destino.text == 'Conta de Cliente' and
+              hasattr(self, 'spinner_cliente_interna_destino') and
+              hasattr(self, 'spinner_conta_interna_destino') and
+              'Selecione' not in self.spinner_cliente_interna_destino.text):
+            
+            username_destino = self.spinner_cliente_interna_destino.text.split(' - ')[0]
+            if username_destino in sistema.usuarios:
+                contas_filtradas = []
+                for conta_num in sistema.usuarios[username_destino].get('contas', []):
+                    if conta_num in sistema.contas and sistema.contas[conta_num]['moeda'] == moeda_origem:
+                        dados_conta = sistema.contas[conta_num]
+                        contas_filtradas.append(f"{conta_num} - {dados_conta['moeda']} - Saldo: {dados_conta['saldo']:,.2f}")
+                
+                self.spinner_conta_interna_destino.values = contas_filtradas
+                if contas_filtradas:
+                    self.spinner_conta_interna_destino.text = contas_filtradas[0]
+                else:
+                    self.spinner_conta_interna_destino.text = f'Nenhuma conta {moeda_origem} disponível'
+
+    def atualizar_contas_interna_destino(self, instance, value):
+        """Atualiza contas quando cliente destino é selecionado na transferência interna - COM FILTRO DE MOEDA"""
+        sistema = App.get_running_app().sistema
+        
+        if not value or value == 'Selecione o cliente':
+            return
+        
+        username = value.split(' - ')[0]
+        
+        if username in sistema.usuarios:
+            # 🔥 OBTER MOEDA DA CONTA ORIGEM PARA FILTRAR
+            moeda_origem = self.obter_moeda_origem()
+            
+            contas_cliente = []
+            for conta_num in sistema.usuarios[username].get('contas', []):
+                if conta_num in sistema.contas:
+                    dados_conta = sistema.contas[conta_num]
+                    # 🔥 FILTRAR POR MOEDA SE ORIGEM JÁ FOI SELECIONADA
+                    if moeda_origem and dados_conta['moeda'] != moeda_origem:
+                        continue
+                    contas_cliente.append(f"{conta_num} - {dados_conta['moeda']} - Saldo: {dados_conta['saldo']:,.2f}")
+            
+            # Atualizar spinner de contas
+            if hasattr(self, 'spinner_conta_interna_destino'):
+                self.spinner_conta_interna_destino.values = contas_cliente
+                if contas_cliente:
+                    self.spinner_conta_interna_destino.text = contas_cliente[0]
+                else:
+                    if moeda_origem:
+                        self.spinner_conta_interna_destino.text = f'Nenhuma conta {moeda_origem} disponível'
+                    else:
+                        self.spinner_conta_interna_destino.text = 'Nenhuma conta disponível'
+
+    def obter_moeda_origem(self):
+        """Obtém a moeda da conta origem selecionada"""
+        sistema = App.get_running_app().sistema
+        
+        # Verificar se origem é conta bancária da empresa
+        if (hasattr(self, 'spinner_tipo_origem') and 
+            self.spinner_tipo_origem.text == 'Conta Bancária da Empresa' and
+            hasattr(self, 'spinner_conta_empresa_origem') and
+            'Selecione' not in self.spinner_conta_empresa_origem.text):
+            
+            conta_origem_num = self.spinner_conta_empresa_origem.text.split(' - ')[0]
+            if conta_origem_num in sistema.contas_bancarias_empresa:
+                return sistema.contas_bancarias_empresa[conta_origem_num]['moeda']
+        
+        # Verificar se origem é conta de cliente
+        elif (hasattr(self, 'spinner_tipo_origem') and 
+              self.spinner_tipo_origem.text == 'Conta de Cliente' and
+              hasattr(self, 'spinner_conta_interna_origem') and
+              'Selecione' not in self.spinner_conta_interna_origem.text):
+            
+            conta_origem_num = self.spinner_conta_interna_origem.text.split(' - ')[0]
+            if conta_origem_num in sistema.contas:
+                return sistema.contas[conta_origem_num]['moeda']
+        
+        return None
+
+
+    def limpar_campos_transferencia(self):
+        """Limpa todos os campos da aba transferências - VERSÃO 2 COLUNAS"""
+        if hasattr(self, 'ids'):
+            # Limpar campos de valor e descrição
+            if 'entry_valor_transferencia_interna' in self.ids:
+                self.ids.entry_valor_transferencia_interna.text = ''
+            
+            if 'entry_descricao_transferencia_interna' in self.ids:
+                self.ids.entry_descricao_transferencia_interna.text = ''
+            
+            # Limpar containers das colunas
+            if hasattr(self, 'container_origem_dinamica'):
+                self.container_origem_dinamica.clear_widgets()
+                self.container_origem_dinamica.height = 0
+            
+            if hasattr(self, 'container_destino_dinamica'):
+                self.container_destino_dinamica.clear_widgets()
+                self.container_destino_dinamica.height = 0
+            
+            # Limpar spinners principais (mas manter o tipo de transferência)
+            if hasattr(self, 'spinner_tipo_origem'):
+                self.spinner_tipo_origem.text = 'Selecione o tipo de origem'
+            
+            if hasattr(self, 'spinner_tipo_destino'):
+                self.spinner_tipo_destino.text = 'Selecione o tipo de destino'
+            
+            print("✅ Campos de transferência limpos com sucesso!")
+
+    def executar_transferencia_interna_admin(self):
+        """Executa transferência interna como admin - COM VALIDAÇÃO COMPLETA"""
+        sistema = App.get_running_app().sistema
+        
+        print("🔄 Executando transferência interna...")
+        
+        try:
+            # 🔥 DEBUG: Verificar se os IDs estão disponíveis
+            print(f"🔍 DEBUG IDs disponíveis: {list(self.ids.keys())}")
+            
+            # Validar campos básicos
+            if not hasattr(self, 'spinner_tipo_origem') or self.spinner_tipo_origem.text == 'Selecione o tipo de origem':
+                self.mostrar_erro("Selecione o tipo de origem!")
+                return
+                
+            if not hasattr(self, 'spinner_tipo_destino') or self.spinner_tipo_destino.text == 'Selecione o tipo de destino':
+                self.mostrar_erro("Selecione o tipo de destino!")
+                return
+            
+            # 🔥 INICIALIZAR VARIÁVEIS
+            conta_origem_num = None
+            moeda_origem = None
+            saldo_origem = 0
+            
+            conta_destino_num = None
+            moeda_destino = None
+            
+            # 🔥 OBTER INFORMAÇÕES DA CONTA ORIGEM
+            if self.spinner_tipo_origem.text == 'Conta Bancária da Empresa':
+                if not hasattr(self, 'spinner_conta_empresa_origem') or 'Selecione' in self.spinner_conta_empresa_origem.text:
+                    self.mostrar_erro("Selecione uma conta de origem!")
+                    return
+                
+                conta_origem_num = self.spinner_conta_empresa_origem.text.split(' - ')[0]
+                if conta_origem_num in sistema.contas_bancarias_empresa:
+                    moeda_origem = sistema.contas_bancarias_empresa[conta_origem_num]['moeda']
+                    saldo_origem = sistema.contas_bancarias_empresa[conta_origem_num]['saldo']
+                else:
+                    self.mostrar_erro("Conta de origem não encontrada!")
+                    return
+                    
+            else:  # Conta de Cliente
+                if not hasattr(self, 'spinner_conta_interna_origem') or 'Selecione' in self.spinner_conta_interna_origem.text:
+                    self.mostrar_erro("Selecione uma conta de origem!")
+                    return
+                
+                conta_origem_num = self.spinner_conta_interna_origem.text.split(' - ')[0]
+                if conta_origem_num in sistema.contas:
+                    moeda_origem = sistema.contas[conta_origem_num]['moeda']
+                    saldo_origem = sistema.contas[conta_origem_num]['saldo']
+                else:
+                    self.mostrar_erro("Conta de origem não encontrada!")
+                    return
+            
+            # 🔥 OBTER INFORMAÇÕES DA CONTA DESTINO
+            if self.spinner_tipo_destino.text == 'Conta Bancária da Empresa':
+                if not hasattr(self, 'spinner_conta_empresa_destino') or 'Selecione' in self.spinner_conta_empresa_destino.text:
+                    self.mostrar_erro("Selecione uma conta de destino!")
+                    return
+                
+                conta_destino_num = self.spinner_conta_empresa_destino.text.split(' - ')[0]
+                if conta_destino_num in sistema.contas_bancarias_empresa:
+                    moeda_destino = sistema.contas_bancarias_empresa[conta_destino_num]['moeda']
+                else:
+                    self.mostrar_erro("Conta de destino não encontrada!")
+                    return
+                    
+            else:  # Conta de Cliente
+                if not hasattr(self, 'spinner_conta_interna_destino') or 'Selecione' in self.spinner_conta_interna_destino.text:
+                    self.mostrar_erro("Selecione uma conta de destino!")
+                    return
+                
+                conta_destino_num = self.spinner_conta_interna_destino.text.split(' - ')[0]
+                if conta_destino_num in sistema.contas:
+                    moeda_destino = sistema.contas[conta_destino_num]['moeda']
+                else:
+                    self.mostrar_erro("Conta de destino não encontrada!")
+                    return
+            
+            # 🔥 VALIDAÇÃO CRÍTICA: MOEDAS DEVEM SER IGUAIS
+            if moeda_origem != moeda_destino:
+                self.mostrar_erro(
+                    f"❌ Moedas diferentes!\n\n"
+                    f"Origem: {moeda_origem}\n"
+                    f"Destino: {moeda_destino}\n\n"
+                    f"Transferências internas só podem ser feitas entre contas da mesma moeda."
+                )
+                return
+            
+            # 🔥 VALIDAR QUE NÃO É A MESMA CONTA
+            if conta_origem_num == conta_destino_num:
+                self.mostrar_erro("Conta origem e destino não podem ser a mesma!")
+                return
+            
+            # 🔥 CORREÇÃO: ACESSAR PELOS IDs
+            if 'entry_valor_transferencia_interna' not in self.ids:
+                self.mostrar_erro("Erro interno: campo de valor não encontrado!")
+                return
+            
+            valor_text = self.ids.entry_valor_transferencia_interna.text
+            print(f"🔍 DEBUG: Valor digitado = '{valor_text}'")
+            
+            # Validar valor
+            if not valor_text or not valor_text.strip():
+                self.mostrar_erro("Digite o valor da transferência!")
+                return
+            
+            # 🔥 CORREÇÃO: ACESSAR DESCRIÇÃO PELOS IDs
+            if 'entry_descricao_transferencia_interna' not in self.ids:
+                self.mostrar_erro("Erro interno: campo de descrição não encontrado!")
+                return
+            
+            descricao_text = self.ids.entry_descricao_transferencia_interna.text.strip()
+            
+            # Validar descrição
+            if not descricao_text:
+                self.mostrar_erro("Digite uma descrição para a transferência!")
+                return
+            
+            # 🔥 OBTER E VALIDAR VALOR
+            try:
+                valor = self._parse_valor_br(valor_text)
+                
+                if valor <= 0:
+                    self.mostrar_erro("Valor deve ser maior que zero!")
+                    return
+                    
+            except ValueError as e:
+                self.mostrar_erro(f"Valor inválido! {str(e)}")
+                return
+            
+            # 🔥 VALIDAÇÃO DE SALDO
+            if valor > saldo_origem:
+                self.mostrar_erro(f"Saldo insuficiente! Disponível: {saldo_origem:,.2f} {moeda_origem}")
+                return
+            
+            # 🔥 MOSTRAR CONFIRMAÇÃO
+            self.mostrar_confirmacao(
+                "Confirmar Transferência Interna?",
+                f"Origem: {conta_origem_num} ({moeda_origem})\n"
+                f"Destino: {conta_destino_num} ({moeda_destino})\n"
+                f"Valor: {valor:,.2f} {moeda_origem}\n"
+                f"Descrição: {descricao_text}\n\n"
+                f"Moedas compatíveis:",
+                lambda: self._processar_transferencia_interna(conta_origem_num, conta_destino_num, valor, moeda_origem, descricao_text)
+            )
+            
+        except Exception as e:
+            print(f"❌ Erro na transferência interna: {e}")
+            import traceback
+            traceback.print_exc()
+            self.mostrar_erro(f"Erro ao processar transferência: {str(e)}")
+
+    def _processar_transferencia_interna(self, conta_origem, conta_destino, valor, moeda, descricao):
+        """Processa a transferência interna após confirmação - COM SUPABASE"""
+        sistema = App.get_running_app().sistema
+        
+        try:
+            print(f"🔄 Processando transferência interna: {conta_origem} -> {conta_destino} | {valor} {moeda}")
+            
+            # 🔥 VERIFICAR TIPOS DE CONTAS (CÓDIGO ORIGINAL MANTIDO)
+            origem_empresa = conta_origem in sistema.contas_bancarias_empresa
+            destino_empresa = conta_destino in sistema.contas_bancarias_empresa
+            
+            origem_cliente = conta_origem in sistema.contas
+            destino_cliente = conta_destino in sistema.contas
+            
+            # 🔥 EXECUTAR TRANSFERÊNCIA (CÓDIGO ORIGINAL MANTIDO)
+            if origem_empresa and destino_empresa:
+                # Entre contas da empresa
+                sistema.contas_bancarias_empresa[conta_origem]['saldo'] -= valor
+                sistema.contas_bancarias_empresa[conta_destino]['saldo'] += valor
+                print(f"✅ Transferência entre contas empresa: -{valor} {moeda} em {conta_origem}, +{valor} {moeda} em {conta_destino}")
+                
+            elif origem_empresa and destino_cliente:
+                # Da empresa para cliente
+                sistema.contas_bancarias_empresa[conta_origem]['saldo'] -= valor
+                sistema.contas[conta_destino]['saldo'] += valor
+                print(f"✅ Transferência empresa->cliente: -{valor} {moeda} em {conta_origem}, +{valor} {moeda} em {conta_destino}")
+                
+            elif origem_cliente and destino_empresa:
+                # Do cliente para empresa
+                sistema.contas[conta_origem]['saldo'] -= valor
+                sistema.contas_bancarias_empresa[conta_destino]['saldo'] += valor
+                print(f"✅ Transferência cliente->empresa: -{valor} {moeda} em {conta_origem}, +{valor} {moeda} em {conta_destino}")
+                
+            elif origem_cliente and destino_cliente:
+                # Entre clientes
+                sistema.contas[conta_origem]['saldo'] -= valor
+                sistema.contas[conta_destino]['saldo'] += valor
+                print(f"✅ Transferência entre clientes: -{valor} {moeda} em {conta_origem}, +{valor} {moeda} em {conta_destino}")
+            else:
+                raise ValueError("Combinação de contas inválida")
+            
+            # 🔥 REGISTRAR A TRANSFERÊNCIA (CÓDIGO ORIGINAL MANTIDO)
+            transferencia_id = str(random.randint(100000, 999999))
+            while transferencia_id in sistema.transferencias:
+                transferencia_id = str(random.randint(100000, 999999))
+            
+            # Determinar tipo baseado nas contas envolvidas (CÓDIGO ORIGINAL MANTIDO)
+            if origem_empresa and destino_empresa:
+                tipo = 'transferencia_interna_empresa'
+            elif origem_empresa and destino_cliente:
+                tipo = 'transferencia_empresa_cliente'
+            elif origem_cliente and destino_empresa:
+                tipo = 'transferencia_cliente_empresa'
+            else:
+                tipo = 'transferencia_interna_cliente'
+            
+            sistema.transferencias[transferencia_id] = {
+                'id': transferencia_id,
+                'conta_remetente': conta_origem,
+                'conta_destinatario': conta_destino,
+                'valor': valor,
+                'moeda': moeda,
+                'tipo': tipo,
+                'descricao': descricao,
+                'status': 'completed',
+                'data': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'executado_por': sistema.usuario_logado['username'],
+                'tipo_operacao': 'transferencia_interna_admin'
+            }
+            
+            # 🔥🔥🔥 NOVO: SALVAR NO SUPABASE APÓS SUCESSO NO SISTEMA ATUAL
+            self.salvar_transferencia_interna_supabase(
+                transferencia_id, conta_origem, conta_destino, valor, moeda, 
+                tipo, descricao, origem_empresa, destino_empresa
+            )
+            
+            # 🔥 SALVAR DADOS (CÓDIGO ORIGINAL MANTIDO)
+            sistema.salvar_contas()
+            sistema.salvar_contas_bancarias()
+            sistema.salvar_transferencias()
+            
+            # 🔥 OBTER NOVOS SALDOS PARA MENSAGEM (CÓDIGO ORIGINAL MANTIDO)
+            if origem_empresa:
+                novo_saldo_origem = sistema.contas_bancarias_empresa[conta_origem]['saldo']
+            else:
+                novo_saldo_origem = sistema.contas[conta_origem]['saldo']
+                
+            if destino_empresa:
+                novo_saldo_destino = sistema.contas_bancarias_empresa[conta_destino]['saldo']
+            else:
+                novo_saldo_destino = sistema.contas[conta_destino]['saldo']
+            
+            # 🔥 LIMPAR CAMPOS APÓS SUCESSO (CÓDIGO ORIGINAL MANTIDO)
+            self.limpar_campos_transferencia()
+            
+            self.mostrar_sucesso(
+                f"Transferência interna realizada!\n\n"
+                f"ID: {transferencia_id}\n"
+                f"Origem: {conta_origem}\n"
+                f"Destino: {conta_destino}\n"
+                f"Valor: {valor:,.2f} {moeda}\n"
+                f"Descrição: {descricao}\n\n"
+                f"Novo saldo origem: {novo_saldo_origem:,.2f} {moeda}\n"
+                f"Novo saldo destino: {novo_saldo_destino:,.2f} {moeda}"
+            )
+            
+        except Exception as e:
+            print(f"❌ Erro ao processar transferência: {e}")
+            import traceback
+            traceback.print_exc()
+            self.mostrar_erro(f"Erro ao processar transferência: {str(e)}")
+
+    def executar_transferencia_internacional_admin(self):
+        """Executa transferência internacional como admin"""
+        # TODO: Implementar lógica completa
+        self.mostrar_sucesso("Transferência Internacional - Em desenvolvimento")
+
+
+    def carregar_contas_bancarias_despesa(self):
+        """Carrega as contas bancárias da empresa no combo da aba despesas"""
+        sistema = App.get_running_app().sistema
+        
+        if not hasattr(self, 'ids') or 'combo_conta_bancaria_despesa' not in self.ids:
+            return
+        
+        opcoes_contas = []
+        for conta_num, dados_conta in sistema.contas_bancarias_empresa.items():
+            opcoes_contas.append(f"{conta_num} - {dados_conta['banco']} - {dados_conta['moeda']} - Saldo: {dados_conta['saldo']:,.2f}")
+        
+        self.ids.combo_conta_bancaria_despesa.values = opcoes_contas
+        if opcoes_contas:
+            self.ids.combo_conta_bancaria_despesa.text = opcoes_contas[0]
+    
+    def carregar_combos_contabeis(self):
+        """Carrega todos os combos das abas contábeis - VERSÃO CORRIGIDA"""
+        sistema = App.get_running_app().sistema
+        
+        # Verificar se os IDs estão disponíveis
+        if not hasattr(self, 'ids'):
+            print("⚠️ IDs não disponíveis ainda em carregar_combos_contabeis")
+            return
+        
+        # Carregar categorias de despesa
+        categorias_despesa = list(sistema.contas_contabeis['despesas'].keys())
+        if 'combo_categoria_despesa' in self.ids:
+            self.ids.combo_categoria_despesa.values = categorias_despesa
+            if categorias_despesa:
+                self.ids.combo_categoria_despesa.text = categorias_despesa[0]
+        
+        # Carregar categorias de receita
+        categorias_receita = list(sistema.contas_contabeis['receitas'].keys())
+        if 'combo_categoria_receita' in self.ids:
+            self.ids.combo_categoria_receita.values = categorias_receita
+            if categorias_receita:
+                self.ids.combo_categoria_receita.text = categorias_receita[0]
+        
+        # 🔥 NOVO: Carregar contas bancárias para despesas
+        self.carregar_contas_bancarias_despesa()
+
+    def configurar_bindings_taxas(self):
+        """Configura os bindings dos campos de taxa - VERSÃO LIMPA"""
+        try:
+            if hasattr(self, 'ids'):
+                if 'entry_taxa_principal' in self.ids:
+                    self.entry_taxa_principal = self.ids.entry_taxa_principal
+                    self.entry_taxa_principal.bind(text=self.calcular_taxa_inversa)
+                
+                if 'entry_taxa_inversa' in self.ids:
+                    self.entry_taxa_inversa = self.ids.entry_taxa_inversa
+                    self.entry_taxa_inversa.bind(text=self.calcular_taxa_principal)
+        except Exception:
+            pass  # Falha silenciosa
+
+    def criar_campos_taxa_bidirecional(self):
+        """Cria os campos de taxa bidirecional com cálculo automático - VERSÃO FLEXÍVEL"""
+        print("🎯 CRIAR_CAMPOS_TAXA_BIDIRECIONAL CHAMADO!")
+        
+        # Layout principal
+        layout_principal = BoxLayout(orientation='vertical', size_hint_y=None, height=120)
+        
+        # Título
+        lbl_titulo = Label(
+            text='TAXAS DE CÂMBIO - SISTEMA FLEXÍVEL',
+            font_size='12sp',
+            bold=True,
+            color=(0.23, 0.51, 0.96, 1),
+            size_hint_y=0.2,
+            text_size=(None, None),
+            halign='center'
+        )
+        layout_principal.add_widget(lbl_titulo)
+        
+        # Container para as taxas
+        layout_taxas = BoxLayout(orientation='horizontal', size_hint_y=0.8, spacing=10, padding=[5, 5, 5, 5])
+        
+        # Taxa Principal
+        box_taxa_principal = BoxLayout(orientation='vertical', size_hint_x=0.4)
+        
+        lbl_taxa_principal = Label(
+            text='Taxa Principal *',
+            font_size='14sp',
+            bold=True,
+            color=(1, 1, 1, 1),
+            size_hint_y=0.3,
+            text_size=(None, None),
+            halign='center'
+        )
+        box_taxa_principal.add_widget(lbl_taxa_principal)
+        
+        lbl_explicacao_principal = Label(
+            text='Digite a taxa que conhece',
+            font_size='11sp',
+            color=(0.80, 0.84, 0.88, 1),
+            size_hint_y=0.2,
+            text_size=(None, None),
+            halign='center'
+        )
+        box_taxa_principal.add_widget(lbl_explicacao_principal)
+        
+        self.entry_taxa_principal = TextInputTaxaCambio(
+            hint_text='ex: 5.10',
+            font_size='13sp',
+            size_hint_y=0.5,
+            background_color=(0.20, 0.25, 0.33, 1),
+            foreground_color=(1, 1, 1, 1),
+            cursor_color=(1, 1, 1, 1),
+            padding=[8, 8]
+        )
+        self.entry_taxa_principal.bind(text=self.calcular_taxa_inversa)
+        box_taxa_principal.add_widget(self.entry_taxa_principal)
+        
+        # Botão de Troca
+        box_troca = BoxLayout(orientation='vertical', size_hint_x=0.2)
+        
+        box_troca.add_widget(Label(text='', size_hint_y=0.3))
+        
+        btn_trocar = Button(
+            text='<=>',
+            font_size='16sp',
+            bold=True,
+            size_hint_y=0.4,
+            background_color=(0.55, 0.36, 0.96, 1),
+            color=(1, 1, 1, 1)
+        )
+        btn_trocar.bind(on_press=self.trocar_taxas)
+        box_troca.add_widget(btn_trocar)
+        
+        box_troca.add_widget(Label(
+            text='Trocar', 
+            font_size='15sp', 
+            color=(0.80, 0.84, 0.88, 1), 
+            size_hint_y=0.3,
+            text_size=(None, None),
+            halign='center'
+        ))
+        
+        # Taxa Inversa
+        box_taxa_inversa = BoxLayout(orientation='vertical', size_hint_x=0.4)
+        
+        lbl_taxa_inversa = Label(
+            text='Taxa Inversa *',
+            font_size='14sp',
+            bold=True,
+            color=(1, 1, 1, 1),
+            size_hint_y=0.3,
+            text_size=(None, None),
+            halign='center'
+        )
+        box_taxa_inversa.add_widget(lbl_taxa_inversa)
+        
+        lbl_explicacao_inversa = Label(
+            text='Calculada automaticamente',
+            font_size='11sp',
+            color=(0.80, 0.84, 0.88, 1),
+            size_hint_y=0.2,
+            text_size=(None, None),
+            halign='center'
+        )
+        box_taxa_inversa.add_widget(lbl_explicacao_inversa)
+        
+        self.entry_taxa_inversa = TextInputTaxaCambio(
+            hint_text='0.196078',
+            font_size='13sp',
+            size_hint_y=0.5,
+            background_color=(0.20, 0.25, 0.33, 1),
+            foreground_color=(1, 1, 1, 1),
+            cursor_color=(1, 1, 1, 1),
+            padding=[8, 8]
+        )
+        self.entry_taxa_inversa.bind(text=self.calcular_taxa_principal)
+        box_taxa_inversa.add_widget(self.entry_taxa_inversa)
+        
+        # Adicionar tudo ao layout
+        layout_taxas.add_widget(box_taxa_principal)
+        layout_taxas.add_widget(box_troca)
+        layout_taxas.add_widget(box_taxa_inversa)
+        
+        layout_principal.add_widget(layout_taxas)
+
+        
+        return layout_principal
+
+    def calcular_taxa_inversa(self, instance, value):
+        """Calcula a taxa inversa automaticamente com ALTA PRECISÃO"""
+        if not value or value == '.' or value == ',':
+            return
+            
+        try:
+            # Converter para float com alta precisão
+            taxa_principal = float(value.replace(',', '.'))
+            
+            if taxa_principal > 0:
+                # 🔥 CÁLCULO COM MÁXIMA PRECISÃO
+                taxa_inversa = 1.0 / taxa_principal
+                
+                # 🔥 FORMATAR COM ATÉ 20 CASAS DECIMAIS
+                taxa_inversa_str = f"{taxa_inversa:.20f}"
+                
+                # Remover zeros desnecessários no final
+                if '.' in taxa_inversa_str:
+                    taxa_inversa_str = taxa_inversa_str.rstrip('0').rstrip('.')
+                
+                # Atualizar o campo da taxa inversa (evitando loop)
+                self.entry_taxa_inversa.unbind(text=self.calcular_taxa_principal)
+                self.entry_taxa_inversa.text = taxa_inversa_str
+                self.entry_taxa_inversa.bind(text=self.calcular_taxa_principal)
+                
+                # Atualizar o cálculo de conversão
+                self.atualizar_calculo_conversao()
+        except Exception as e:
+            print(f"❌ Erro em calcular_taxa_inversa: {e}")
+
+    def trocar_taxas(self, instance=None):
+        """Troca os valores entre taxa direta e inversa - VERSÃO COM IDs"""
+        try:
+            print("🔄 TROCANDO TAXAS...")
+            
+            # Verificar se os campos existem nos IDs
+            if not hasattr(self, 'ids'):
+                print("❌ IDs não disponíveis")
+                return
+                
+            if 'entry_taxa_principal' not in self.ids or 'entry_taxa_inversa' not in self.ids:
+                print("❌ Campos de taxa não encontrados nos IDs")
+                return
+            
+            taxa_principal = self.ids.entry_taxa_principal.text
+            taxa_inversa = self.ids.entry_taxa_inversa.text
+            
+            print(f"🔍 Antes da troca - Principal: '{taxa_principal}', Inversa: '{taxa_inversa}'")
+            
+            # Trocar os valores (evitando loops)
+            self.ids.entry_taxa_principal.unbind(text=self.calcular_taxa_inversa)
+            self.ids.entry_taxa_inversa.unbind(text=self.calcular_taxa_principal)
+            
+            self.ids.entry_taxa_principal.text = taxa_inversa
+            self.ids.entry_taxa_inversa.text = taxa_principal
+            
+            self.ids.entry_taxa_principal.bind(text=self.calcular_taxa_inversa)
+            self.ids.entry_taxa_inversa.bind(text=self.calcular_taxa_principal)
+            
+            print(f"🔍 Após troca - Principal: '{self.ids.entry_taxa_principal.text}', Inversa: '{self.ids.entry_taxa_inversa.text}'")
+            
+            # Atualizar o cálculo
+            self.atualizar_calculo_conversao()
+            
+        except Exception as e:
+            print(f"❌ Erro ao trocar taxas: {e}")
+
+    def calcular_taxa_principal(self, instance, value):
+        """Calcula a taxa principal automaticamente quando a taxa inversa é alterada"""
+        if not value or value == '.' or value == ',':
+            return
+            
+        try:
+            # Converter para float
+            taxa_inversa = self._parse_valor_br(value)
+            
+            if taxa_inversa > 0:
+                taxa_principal = 1.0 / taxa_inversa
+                # Atualizar o campo da taxa principal (evitando loop)
+                self.entry_taxa_principal.unbind(text=self.calcular_taxa_inversa)
+                self.entry_taxa_principal.text = f"{taxa_principal:.6f}".rstrip('0').rstrip('.')
+                self.entry_taxa_principal.bind(text=self.calcular_taxa_inversa)
+                
+                # Atualizar o cálculo de conversão
+                self.atualizar_calculo_conversao()
+        except:
+            pass
+
+    def atualizar_calculo_conversao(self):
+        """Atualiza o cálculo de conversão com ALTA PRECISÃO"""
+        try:
+            # Obter valor a converter
+            if hasattr(self, 'ids') and 'entry_valor_cambio' in self.ids and self.ids.entry_valor_cambio.text:
+                valor_str = self.ids.entry_valor_cambio.text.strip()
+                if valor_str:
+                    valor = self._parse_valor_br(valor_str)
+                    
+                    # Obter moedas das contas selecionadas
+                    moeda_origem, moeda_destino = self.obter_moedas_contas()
+                    
+                    if moeda_origem and moeda_destino:
+                        # 🔥 USAR TAXA COM ALTA PRECISÃO
+                        if hasattr(self, 'entry_taxa_principal') and self.entry_taxa_principal.text:
+                            taxa_str = self.entry_taxa_principal.text.replace(',', '.')
+                            taxa = float(taxa_str)  # 🔥 Conversão direta para máxima precisão
+                            
+                            # 🔥 CÁLCULO COM PRECISÃO MÁXIMA
+                            valor_convertido = valor * taxa
+                            
+                            self.atualizar_label_conversao(valor, moeda_origem, valor_convertido, moeda_destino, taxa, 'principal')
+        
+        except Exception as e:
+            print(f"❌ Erro em atualizar_calculo_conversao: {e}")
+
+    def obter_moedas_contas(self):
+        """Obtém as moedas das contas origem e destino selecionadas"""
+        sistema = App.get_running_app().sistema
+        
+        moeda_origem = None
+        moeda_destino = None
+        
+        try:
+            # Obter conta origem
+            if hasattr(self, 'ids') and 'combo_conta_origem' in self.ids and self.ids.combo_conta_origem.text:
+                conta_origem = self.ids.combo_conta_origem.text.split(' - ')[0]
+                if conta_origem in sistema.contas:
+                    moeda_origem = sistema.contas[conta_origem]['moeda']
+            
+            # Obter conta destino
+            if hasattr(self, 'ids') and 'combo_conta_destino' in self.ids and self.ids.combo_conta_destino.text:
+                conta_destino = self.ids.combo_conta_destino.text.split(' - ')[0]
+                if conta_destino in sistema.contas:
+                    moeda_destino = sistema.contas[conta_destino]['moeda']
+        
+        except:
+            pass
+        
+        return moeda_origem, moeda_destino
+
+    def atualizar_label_conversao(self, valor_origem, moeda_origem, valor_destino, moeda_destino, taxa, tipo_taxa):
+        """Atualiza o label de informações de conversão - VERSÃO FLEXÍVEL"""
+        if hasattr(self, 'ids') and 'label_info_cambio' in self.ids:
+            tipo_texto = "PRINCIPAL" if tipo_taxa == 'principal' else "INVERSA"
+            self.ids.label_info_cambio.text = (
+                f"{valor_origem:,.2f} {moeda_origem} → {valor_destino:,.2f} {moeda_destino}\n"
+                f"Taxa {tipo_texto}: {taxa:.6f}\n"
+                f"Use a taxa que corresponde à sua operação"
+            )
+

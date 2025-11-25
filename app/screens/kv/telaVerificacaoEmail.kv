@@ -1,0 +1,167 @@
+# app/screens/kv/telaVerificacaoEmail.kv
+<TelaVerificacaoEmail>:
+    BoxLayout:
+        orientation: 'vertical'
+        padding: 40
+        spacing: 20
+        canvas:
+            Color:
+                rgba: 0.06, 0.09, 0.16, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        
+        # Cabeçalho
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.2
+            spacing: 10
+            
+            Label:
+                text: '🔐'
+                font_size: 48
+                size_hint_y: 0.5
+                
+            Label:
+                text: 'VERIFICAÇÃO DE EMAIL'
+                font_size: 20
+                bold: True
+                color: 1, 1, 1, 1
+                size_hint_y: 0.3
+                
+            Label:
+                text: 'Confirme seu endereço de email'
+                font_size: 14
+                color: 0.80, 0.84, 0.88, 1
+                size_hint_y: 0.2
+        
+        # Card do formulário
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.6
+            padding: 20
+            canvas:
+                Color:
+                    rgba: 0.12, 0.16, 0.23, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [10,]
+            
+            # Informações do email
+            Label:
+                id: email_label
+                text: 'Carregando...'
+                font_size: 14
+                color: 1, 1, 1, 1
+                size_hint_y: 0.15
+                text_size: self.width, None
+                halign: 'center'
+            
+            # 🔥 MODO SIMULAÇÃO: Mostrar código
+            Label:
+                id: codigo_simulacao
+                text: ''
+                font_size: 16
+                bold: True
+                color: 0.23, 0.51, 0.96, 1
+                size_hint_y: 0.1
+                text_size: self.width, None
+                halign: 'center'
+                opacity: 0
+            
+            # Timer
+            Label:
+                id: timer_label
+                text: 'Tempo restante: 15:00'
+                font_size: 12
+                color: 0.80, 0.84, 0.88, 1
+                size_hint_y: 0.1
+                text_size: self.width, None
+                halign: 'center'
+            
+            # Campo do código
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: 0.2
+                spacing: 5
+                
+                Label:
+                    text: 'Código de 6 dígitos:'
+                    font_size: 12
+                    bold: True
+                    color: 1, 1, 1, 1
+                    size_hint_y: 0.3
+                    halign: 'left'
+                    text_size: self.width, None
+                
+                TextInput:
+                    id: codigo_input
+                    hint_text: 'Digite o código'
+                    font_size: 16
+                    multiline: False
+                    size_hint_y: 0.7
+                    background_color: 0.20, 0.25, 0.33, 1
+                    foreground_color: 1, 1, 1, 1
+                    cursor_color: 1, 1, 1, 1
+                    padding: [10, 10]
+                    input_filter: 'int'
+                    max_text_length: 6
+            
+            # Mensagem
+            Label:
+                id: mensagem_label
+                text: ''
+                font_size: 12
+                color: 1, 1, 1, 1
+                size_hint_y: 0.1
+                text_size: self.width, None
+                halign: 'center'
+            
+            # Botão verificar
+            Button:
+                text: 'VERIFICAR CÓDIGO'
+                font_size: 14
+                bold: True
+                size_hint_y: 0.15
+                background_color: 0.23, 0.51, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.verificar_codigo()
+            
+            # Botões adicionais
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: 0.15
+                spacing: 10
+                
+                Button:
+                    text: 'Reenviar Código'
+                    font_size: '12sp'
+                    background_color: 0.55, 0.36, 0.96, 1
+                    color: 1, 1, 1, 1
+                    on_press: root.reenviar_codigo()
+                
+                Button:
+                    text: 'Voltar'
+                    font_size: '12sp'
+                    background_color: 0.20, 0.25, 0.33, 1
+                    color: 0.80, 0.84, 0.88, 1
+                    on_press: root.voltar_para_cadastro()
+        
+        # Rodapé
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.1
+            spacing: 5
+            
+            Label:
+                text: 'Verifique sua caixa de entrada e spam'
+                font_size: 10
+                color: 0.80, 0.84, 0.88, 1
+                text_size: self.width, None
+                halign: 'center'
+            
+            Label:
+                text: 'O código expira em 15 minutos'
+                font_size: 9
+                color: 0.80, 0.84, 0.88, 1

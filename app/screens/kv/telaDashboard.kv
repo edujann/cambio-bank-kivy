@@ -1,0 +1,208 @@
+<TelaDashboard>:
+    name: 'dashboard'
+    
+    BoxLayout:
+        orientation: 'vertical'
+        padding: [25, 25, 25, 35]
+        spacing: 15
+        canvas:
+            Color:
+                rgba: 0.06, 0.09, 0.16, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        
+        # Header Moderno com Gradiente
+        BoxLayout:
+            orientation: "vertical"
+            size_hint_y: None
+            height: dp(140)
+            padding: [25, 20, 25, 15]
+            
+            canvas.before:
+                # Gradiente de fundo
+                Color:
+                    rgba: 0.15, 0.20, 0.27, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [0, 0, 25, 25]
+                
+                # Linha decorativa inferior
+                Color:
+                    rgba: 0.23, 0.51, 0.96, 0.6
+                Line:
+                    width: 1.5
+                    rounded_rectangle: [self.x, self.y, self.width, self.height, 0, 0, 25, 25]
+            
+            # Linha 1: Saudação e ícone
+            BoxLayout:
+                orientation: "horizontal"
+                size_hint_y: 0.5
+                spacing: dp(10)
+                
+                # Ícone do usuário
+                Label:
+                    text: "👤"
+                    font_size: '24sp'
+                    size_hint_x: 0.15
+                    color: 1, 1, 1, 1
+                
+                # Saudação personalizada
+                BoxLayout:
+                    orientation: "vertical"
+                    spacing: dp(2)
+                    
+                    Label:
+                        id: lbl_saudacao
+                        text: "Olá!"
+                        font_size: '18sp'
+                        bold: True
+                        color: 1, 1, 1, 1
+                        halign: 'left'
+                        text_size: self.width, None
+                    
+                    Label:
+                        id: lbl_mensagem_boas_vindas
+                        text: "Seja bem-vindo de volta!"
+                        font_size: '14sp'
+                        color: 0.80, 0.84, 0.88, 0.9
+                        halign: 'left'
+                        text_size: self.width, None
+            
+            # Linha 2: Título do dashboard
+            BoxLayout:
+                orientation: "horizontal"
+                size_hint_y: 0.5
+                spacing: dp(10)
+                
+                # Ícone do dashboard
+                Label:
+                    text: "📊"
+                    font_size: '20sp'
+                    size_hint_x: 0.15
+                    color: 0.23, 0.51, 0.96, 1
+                
+                # Título baseado no tipo de usuário
+                BoxLayout:
+                    orientation: "vertical"
+                    spacing: dp(2)
+                    
+                    Label:
+                        id: lbl_titulo
+                        text: "PAINEL"
+                        font_size: '16sp'
+                        bold: True
+                        color: 0.23, 0.51, 0.96, 1
+                        halign: 'left'
+                        text_size: self.width, None
+                    
+                    Label:
+                        id: lbl_subtitulo
+                        text: "Carregando..."
+                        font_size: '12sp'
+                        color: 0.80, 0.84, 0.88, 0.8
+                        halign: 'left'
+                        text_size: self.width, None
+        
+        # Seção de Saldos - Design Premium com Borda Dupla
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: dp(200)  # Ajuste conforme necessário
+            padding: [25, 15, 25, 15]
+            
+            # Frame externo (borda mais escura)
+            canvas.before:
+                Color:
+                    rgba: 0.15, 0.20, 0.27, 1  # Borda externa
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [12,]
+            
+            # Frame interno (borda mais clara)
+            BoxLayout:
+                orientation: 'vertical'
+                padding: [2, 2]  # Espaço para a borda interna
+                
+                canvas.before:
+                    Color:
+                        rgba: 0.23, 0.51, 0.96, 0.3  # Borda interna azul sutil
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [10,]
+                
+                # Conteúdo principal
+                BoxLayout:
+                    orientation: 'vertical'
+                    padding: [10, 10]
+                    
+                    canvas.before:
+                        Color:
+                            rgba: 0.12, 0.16, 0.23, 1  # Fundo principal
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [8,]
+                    
+                    ScrollView:
+                        do_scroll_x: False
+                        bar_width: dp(6)
+                        bar_color: 0.23, 0.51, 0.96, 0.6
+                        
+                        BoxLayout:
+                            id: saldos_container
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: self.minimum_height
+                            spacing: dp(8)
+        
+        # Container dos botões - mais espaço
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.48
+            padding: 15
+            canvas:
+                Color:
+                    rgba: 0.12, 0.16, 0.23, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [12,]
+            
+            Label:
+                text: 'MENU PRINCIPAL'
+                font_size: 17
+                bold: True
+                color: 1, 1, 1, 1
+                size_hint_y: 0.12
+            
+            BoxLayout:
+                id: botoes_container
+                orientation: 'vertical'
+                size_hint_y: 0.88
+        
+        # Botões de ação - mais altura
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.10
+            spacing: 15
+            padding: [0, 10, 0, 0]
+            
+            Button:
+                text: 'ATUALIZAR'
+                font_size: 14
+                background_color: 0.23, 0.51, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: 
+                    root.carregar_saldos()
+                    root.criar_botoes_menu()
+            
+            Button:
+                text: 'SAIR'
+                font_size: 14
+                background_color: 0.55, 0.36, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.sair()

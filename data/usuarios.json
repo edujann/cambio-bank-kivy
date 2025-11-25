@@ -1,0 +1,22 @@
+{
+    "admin": {
+        "senha": "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9",
+        "tipo": "admin",
+        "nome": "Empresa de Câmbio",
+        "email": "admin@cambiobank.com",
+        "data_cadastro": "2024-01-01"
+    },
+    "joao.silva": {
+        "senha": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
+        "tipo": "cliente",
+        "nome": "João Silva Comércio Ltda",
+        "email": "joao@empresa.com",
+        "contas": [
+            "183860837",
+            "487736769"
+        ],
+        "telefone": "(11) 9999-8888",
+        "documento": "12.345.678/0001-90",
+        "data_cadastro": "2024-01-15"
+    }
+}

@@ -1,0 +1,452 @@
+#:import dp kivy.metrics.dp
+
+<TelaMinhasTransferencias>:
+    BoxLayout:
+        orientation: 'vertical'
+        padding: dp(20)
+        spacing: dp(15)
+        canvas:
+            Color:
+                rgba: 0.06, 0.09, 0.16, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+
+        # CABEÇALHO - 🔥 CORRIGIR CORES DOS LABELS
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: dp(60)
+            spacing: dp(5)
+
+            Label:
+                text: 'MINHAS TRANSFERÊNCIAS'
+                font_size: '20sp'
+                bold: True
+                size_hint_y: None
+                height: dp(40)
+                color: 1, 1, 1, 1
+                text_size: self.width, None
+                halign: 'center'
+
+            Label:
+                text: 'Acompanhe o status de suas transferências'
+                font_size: '12sp'
+                size_hint_y: None
+                height: dp(20)
+                color: 1, 1, 1, 1
+                text_size: self.width, None
+                halign: 'center'
+
+        # ÁREA DE FILTROS - CORES DINÂMICAS
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: dp(100)
+            padding: dp(10)
+            canvas.before:
+                Color:
+                    rgba: 0.20, 0.25, 0.33, 1
+                RoundedRectangle:  # 🔥 MUDANÇA: RoundedRectangle em vez de Rectangle
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(8)]  # 🔥 BORDAS ARREDONDADAS
+
+            Label:
+                text: 'Filtrar por Status:'
+                font_size: '14sp'
+                bold: True
+                size_hint_y: None
+                height: dp(30)
+                color: 0.7, 0.7, 0.7, 1
+                text_size: self.width, None
+                halign: 'left'
+
+            GridLayout:
+                cols: 5
+                size_hint_y: None
+                height: dp(40)
+                spacing: dp(10)
+
+                Button:
+                    id: btn_todas
+                    text: 'Todas'
+                    background_color: 0.15, 0.35, 0.75, 1
+                    color: 1, 1, 1, 1
+                    on_press: root.atualizar_filtro('all')
+                    background_normal: ''
+
+                Button:
+                    id: btn_pendentes
+                    text: 'Pendentes'
+                    background_color: 0.08, 0.15, 0.30, 1
+                    color: 0.6, 0.6, 0.6, 1
+                    on_press: root.atualizar_filtro('pending')
+                    background_normal: ''
+
+                Button:
+                    id: btn_processamento
+                    text: 'Processando'
+                    background_color: 0.08, 0.15, 0.30, 1
+                    color: 0.6, 0.6, 0.6, 1
+                    on_press: root.atualizar_filtro('processing')
+                    background_normal: ''
+
+                Button:
+                    id: btn_concluidas
+                    text: 'Concluídas'
+                    background_color: 0.08, 0.15, 0.30, 1
+                    color: 0.6, 0.6, 0.6, 1
+                    on_press: root.atualizar_filtro('completed')
+                    background_normal: ''
+
+                Button:
+                    id: btn_recusadas
+                    text: 'Recusadas'
+                    background_color: 0.08, 0.15, 0.30, 1
+                    color: 0.6, 0.6, 0.6, 1
+                    on_press: root.atualizar_filtro('rejected')
+                    background_normal: ''
+
+        # ÁREA DE SCROLL PARA AS TRANSFERÊNCIAS
+        ScrollView:
+            id: scroll_principal
+            do_scroll_x: False
+            do_scroll_y: True
+            scroll_type: ['bars', 'content']
+            bar_width: dp(10)
+            bar_color: 0.55, 0.36, 0.96, 1
+
+            GridLayout:
+                id: scroll_container
+                cols: 1
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(10)
+                padding: [dp(5), dp(5), dp(15), dp(5)]
+
+        # BOTÕES INFERIORES - CORES CONTROLADAS PELO PYTHON
+        BoxLayout:
+            size_hint_y: None
+            height: dp(50)
+            spacing: dp(10)
+
+            Button:
+                id: btn_atualizar
+                text: 'Atualizar'
+                font_size: '14sp'
+                bold: True
+                on_press: root.carregar_transferencias_rapido(root.filtro_status)
+                background_normal: ''
+
+            Button:
+                id: btn_voltar_dashboard
+                text: 'Voltar ao Dashboard'
+                font_size: '14sp'
+                bold: True
+                on_press: root.voltar_dashboard()
+                background_normal: ''
+
+<TransferenciaCard>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: dp(250)  # 🔥 ALTURA ORIGINAL MANTIDA
+    padding: [dp(8), dp(8)]
+    spacing: dp(0)
+    canvas.before:
+        Color:
+            rgba: 0.20, 0.25, 0.33, 1
+        RoundedRectangle:  # 🔥 MUDANÇA: RoundedRectangle em vez de Rectangle
+            pos: self.pos
+            size: self.size
+            radius: [dp(8)]  # 🔥 BORDAS ARREDONDADAS
+        Color:
+            rgba: 0.55, 0.36, 0.96, 0.3
+        Line:
+            rounded_rectangle: [self.x, self.y, self.width, self.height, dp(8)]  # 🔥 RAIO ATUALIZADO
+            width: dp(1)
+
+    # HEADER - Faixa colorida
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: None
+        height: dp(40)
+        padding: [dp(15), dp(5)]
+        canvas.before:
+            Color:
+                rgba: root.cor_status
+            RoundedRectangle:  # 🔥 MUDANÇA: RoundedRectangle com cantos superiores arredondados
+                pos: self.pos
+                size: self.size
+                radius: [dp(8)]  # 🔥 BORDAS ARREDONDADAS APENAS NO TOPO
+        
+        Label:
+            id: lbl_status_transferencia
+            text: 'TRANSFERÊNCIA PENDENTE'
+            bold: True
+            color: 1, 1, 1, 1
+            font_size: dp(14)
+            size_hint_x: 0.6
+            halign: 'left'
+            text_size: self.width, None
+        
+        Label:
+            id: lbl_tipo_transferencia
+            text: 'INTERNACIONAL'
+            color: 1, 1, 1, 1
+            font_size: dp(13)
+            size_hint_x: 0.4
+            halign: 'right'
+            text_size: self.width, None
+
+    # LINHA DA INVOICE (FORA da faixa, SEM cor de fundo)
+    BoxLayout:
+        id: linha_invoice_container
+        orientation: 'horizontal'
+        size_hint_y: None
+        height: 0
+        padding: [dp(15), dp(4)]
+        spacing: dp(10)
+        opacity: 0
+
+    # LINHA DIVISÓRIA 1
+    BoxLayout:
+        size_hint_y: None
+        height: dp(1)
+        canvas.before:
+            Color:
+                rgba: 0.5, 0.5, 0.5, 0.3
+            Rectangle:
+                pos: self.pos
+                size: self.size
+
+    # CONTEÚDO PRINCIPAL - 🔥 CORRIGIR CORES DOS LABELS
+    GridLayout:
+        cols: 2
+        size_hint_y: None
+        height: dp(110)
+        spacing: dp(25)
+        padding: [dp(10), dp(5)]
+        
+        # COLUNA ESQUERDA - Informações bancárias
+        BoxLayout:
+            orientation: 'vertical'
+            spacing: 6
+            
+            # Beneficiário
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: None
+                height: dp(22)
+                
+                Label:
+                    text: 'Beneficiário:'
+                    font_size: '12sp'
+                    color: 0.6, 0.6, 0.6, 1
+                    size_hint_x: 0.4
+                    halign: 'left'
+                    text_size: self.width, None
+                
+                Label:
+                    id: lbl_beneficiario
+                    text: ''
+                    font_size: '12sp'
+                    color: 0.9, 0.9, 0.9, 1
+                    size_hint_x: 0.6
+                    halign: 'left'
+                    text_size: self.width, None
+            
+            # Banco
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: None
+                height: dp(22)
+                
+                Label:
+                    text: 'Banco:'
+                    font_size: '12sp'
+                    color: 0.6, 0.6, 0.6, 1
+                    size_hint_x: 0.4
+                    halign: 'left'
+                    text_size: self.width, None
+                
+                Label:
+                    id: lbl_banco
+                    text: ''
+                    font_size: '12sp'
+                    color: 0.9, 0.9, 0.9, 1
+                    size_hint_x: 0.6
+                    halign: 'left'
+                    text_size: self.width, None
+            
+            # SWIFT
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: None
+                height: dp(22)
+                
+                Label:
+                    text: 'SWIFT:'
+                    font_size: '12sp'
+                    color: 0.6, 0.6, 0.6, 1
+                    size_hint_x: 0.4
+                    halign: 'left'
+                    text_size: self.width, None
+                
+                Label:
+                    id: lbl_swift
+                    text: ''
+                    font_size: '12sp'
+                    color: 0.9, 0.9, 0.9, 1
+                    size_hint_x: 0.6
+                    halign: 'left'
+                    text_size: self.width, None
+            
+            # IBAN/Conta
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: None
+                height: dp(22)
+                
+                Label:
+                    id: lbl_tipo_conta
+                    text: 'IBAN:'
+                    font_size: '12sp'
+                    color: 0.6, 0.6, 0.6, 1
+                    size_hint_x: 0.4
+                    halign: 'left'
+                    text_size: self.width, None
+                
+                Label:
+                    id: lbl_conta
+                    text: ''
+                    font_size: '12sp'
+                    color: 0.9, 0.9, 0.9, 1
+                    size_hint_x: 0.6
+                    halign: 'left'
+                    text_size: self.width, None
+        
+        # COLUNA DIREITA - Informações da transferência
+        BoxLayout:
+            orientation: 'vertical'
+            spacing: 6
+            
+            # Valor (linha mais destacada)
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: dp(35)
+                spacing: 2
+                
+                Label:
+                    text: 'VALOR:'
+                    font_size: '11sp'
+                    color: 0.6, 0.6, 0.6, 1
+                    halign: 'left'
+                    text_size: self.width, None
+                
+                Label:
+                    id: lbl_valor
+                    text: 'US$ 0.00'
+                    bold: True
+                    font_size: '16sp'
+                    color: 0.23, 0.51, 0.96, 1
+                    halign: 'left'
+                    text_size: self.width, None
+            
+            # Data
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: None
+                height: dp(22)
+                spacing: 5
+                
+                Label:
+                    text: 'Solicitado:'
+                    font_size: '11sp'
+                    color: 0.6, 0.6, 0.6, 1
+                    size_hint_x: 0.5
+                    halign: 'left'
+                    text_size: self.width, None
+                
+                Label:
+                    id: lbl_data
+                    text: ''
+                    font_size: '11sp'
+                    color: 0.9, 0.9, 0.9, 1
+                    size_hint_x: 0.5
+                    halign: 'left'
+                    text_size: self.width, None
+            
+            # ID
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: None
+                height: dp(22)
+                spacing: 5
+                
+                Label:
+                    text: 'ID:'
+                    font_size: '11sp'
+                    color: 0.6, 0.6, 0.6, 1
+                    size_hint_x: 0.5
+                    halign: 'left'
+                    text_size: self.width, None
+                
+                Label:
+                    id: lbl_id
+                    text: ''
+                    font_size: '11sp'
+                    color: 0.9, 0.9, 0.9, 1
+                    size_hint_x: 0.5
+                    halign: 'left'
+                    text_size: self.width, None
+
+    # LINHA DIVISÓRIA 2
+    BoxLayout:
+        size_hint_y: None
+        height: dp(1)
+        canvas.before:
+            Color:
+                rgba: 0.5, 0.5, 0.5, 0.3
+            Rectangle:
+                pos: self.pos
+                size: self.size
+
+    # BOTÕES - CORES INICIAIS DEFINIDAS
+    BoxLayout:
+        size_hint_y: None
+        height: dp(40)
+        spacing: dp(8)
+        padding: [dp(15), 0]
+        
+        Button:
+            id: btn_detalhes_card
+            text: 'DETALHES'
+            size_hint_x: 0.33
+            background_color: 0.15, 0.35, 0.75, 1
+            color: 1, 1, 1, 1
+            background_normal: ''
+            font_size: '11sp'
+            on_press: root.ver_detalhes()
+        
+        Button:
+            id: btn_visualizar_invoice_card
+            text: 'VISUALIZAR\nINVOICE'
+            size_hint_x: 0.34
+            background_color: 0.3, 0.3, 0.3, 1
+            color: 1, 1, 1, 1
+            background_normal: ''
+            font_size: '10sp'
+            disabled: True
+            on_press: root.visualizar_invoice()
+        
+        Button:
+            id: btn_pdf_card  
+            text: 'GERAR\nPDF'
+            size_hint_x: 0.33
+            background_color: 0.4, 0.25, 0.75, 1
+            color: 1, 1, 1, 1
+            background_normal: ''
+            font_size: '10sp'
+            on_press: root.gerar_pdf()

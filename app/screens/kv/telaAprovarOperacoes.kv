@@ -1,0 +1,302 @@
+<TelaAprovarOperacoes>:
+    name: 'aprovar_operacoes'
+    
+    BoxLayout:
+        orientation: 'vertical'
+        padding: 25
+        spacing: 15
+        canvas:
+            Color:
+                rgba: 0.06, 0.09, 0.16, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        
+        # Header
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.12
+            spacing: 5
+            
+            Label:
+                text: 'GERENCIAR OPERAÇÕES'
+                font_size: '22sp'
+                bold: True
+                color: 1, 1, 1, 1
+                text_size: self.width, None
+                halign: 'center'
+            
+            Label:
+                text: 'Aprove e gerencie transferências do sistema'
+                font_size: '12sp'
+                color: 0.80, 0.84, 0.88, 1
+                text_size: self.width, None
+                halign: 'center'
+        
+        # ========== PAINEL DE CONTROLE COM BOTÕES GRANDES ==========
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.18
+            padding: 10
+            canvas:
+                Color:
+                    rgba: 0.12, 0.16, 0.23, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [8,]
+            
+            Label:
+                text: 'PAINEL DE CONTROLE'
+                font_size: '16sp'
+                bold: True
+                color: 1, 1, 1, 1
+                size_hint_y: 0.3
+                text_size: self.width, None
+                halign: 'left'
+            
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: 0.7
+                spacing: 20
+                padding: [0, 10, 0, 0]
+                
+                # Botão APROVAR PENDENTES
+                Button:
+                    id: btn_aprovar_pendentes
+                    text: 'APROVAR PENDENTES\n\n0 operações'
+                    font_size: '14sp'
+                    bold: True
+                    background_color: 0.20, 0.25, 0.33, 1
+                    color: 1, 1, 1, 1
+                    background_normal: ''
+                    on_press: root.selecionar_aba_pendentes()
+                
+                # Botão CONCLUIR PROCESSAMENTO
+                Button:
+                    id: btn_concluir_processamento
+                    text: 'CONCLUIR PROCESSAMENTO\n\n0 operações'
+                    font_size: '14sp'
+                    bold: True
+                    background_color: 0.20, 0.25, 0.33, 1
+                    color: 1, 1, 1, 1
+                    background_normal: ''
+                    on_press: root.selecionar_aba_processamento()
+        
+        # ========== ÁREA DE TRABALHO COM ABAS ==========
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.65
+            padding: 10
+            canvas:
+                Color:
+                    rgba: 0.12, 0.16, 0.23, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [8,]
+            
+            # Abas
+            TabbedPanel:
+                id: abas
+                do_default_tab: False
+                tab_width: 200
+                background_color: 0.12, 0.16, 0.23, 1
+                border: [0, 0, 0, 0]
+                
+                TabbedPanelItem:
+                    id: aba_pendentes
+                    text: 'APROVAR PENDENTES'
+                    font_size: '12sp'
+                    bold: True
+                    background_color: 0.15, 0.20, 0.27, 1
+                    
+                    BoxLayout:
+                        orientation: 'vertical'
+                        spacing: 10
+                        padding: 10
+                        
+                        # Estatísticas
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y: 0.08
+                            padding: 10
+                            canvas:
+                                Color:
+                                    rgba: 0.15, 0.20, 0.27, 1
+                                RoundedRectangle:
+                                    pos: self.pos
+                                    size: self.size
+                                    radius: [5,]
+                            
+                            Label:
+                                id: stats_pendentes
+                                text: '0 Operações Pendentes • Valor Total: 0.00'
+                                font_size: '13sp'
+                                bold: True
+                                color: 1, 1, 1, 1
+                                text_size: self.width, None
+                                halign: 'left'
+                        
+                        # Tabela de pendentes
+                        ScrollView:
+                            do_scroll_x: False
+                            
+                            GridLayout:
+                                id: grid_pendentes
+                                cols: 1
+                                spacing: 8
+                                size_hint_y: None
+                                height: self.minimum_height
+                                padding: 5
+                        
+                        # Botões de ação
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y: 0.12
+                            spacing: 10
+                            padding: [0, 10, 0, 0]
+                            
+                            Button:
+                                text: 'APROVAR SELECIONADO'
+                                font_size: '12sp'
+                                bold: True
+                                background_color: 0.23, 0.51, 0.96, 1
+                                color: 1, 1, 1, 1
+                                on_press: root.aprovar_selecionado()
+                            
+                            Button:
+                                text: 'RECUSAR SELECIONADO'
+                                font_size: '12sp'
+                                bold: True
+                                background_color: 0.96, 0.51, 0.23, 1
+                                color: 1, 1, 1, 1
+                                on_press: root.recusar_selecionado()
+                            
+                            Button:
+                                text: 'ANALISAR INVOICE'
+                                font_size: '12sp'
+                                bold: True
+                                background_color: 0.55, 0.36, 0.96, 1
+                                color: 1, 1, 1, 1
+                                on_press: root.analisar_invoice_selecionado()
+
+                            Button:
+                                text: 'VER DETALHES'
+                                font_size: '12sp'
+                                bold: True
+                                background_color: 0.2, 0.7, 0.8, 1 
+                                color: 1, 1, 1, 1
+                                on_press: root.ver_detalhes()
+                            
+                            Button:
+                                text: 'ATUALIZAR'
+                                font_size: '12sp'
+                                bold: True
+                                background_color: 0.5, 0.7, 1.0, 1  # Azul celeste claro
+                                color: 1, 1, 1, 1
+                                on_press: root.carregar_dados()
+                
+                TabbedPanelItem:
+                    id: aba_processamento
+                    text: 'CONCLUIR PROCESSAMENTO'
+                    font_size: '12sp'
+                    bold: True
+                    background_color: 0.15, 0.20, 0.27, 1
+                    
+                    BoxLayout:
+                        orientation: 'vertical'
+                        spacing: 10
+                        padding: 10
+                        
+                        # Estatísticas
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y: 0.08
+                            padding: 10
+                            canvas:
+                                Color:
+                                    rgba: 0.15, 0.20, 0.27, 1
+                                RoundedRectangle:
+                                    pos: self.pos
+                                    size: self.size
+                                    radius: [5,]
+                            
+                            Label:
+                                id: stats_processamento
+                                text: '0 Transferências em Processamento • Valor Total: 0.00'
+                                font_size: '13sp'
+                                bold: True
+                                color: 1, 1, 1, 1
+                                text_size: self.width, None
+                                halign: 'left'
+                        
+                        # Tabela de processamento
+                        ScrollView:
+                            do_scroll_x: False
+                            
+                            GridLayout:
+                                id: grid_processamento
+                                cols: 1
+                                spacing: 8
+                                size_hint_y: None
+                                height: self.minimum_height
+                                padding: 5
+                        
+                        # Botões de ação
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y: 0.12
+                            spacing: 10
+                            padding: [0, 10, 0, 0]
+                            
+                            Button:
+                                text: 'CONCLUIR PROCESSAMENTO'
+                                font_size: '12sp'
+                                bold: True
+                                background_color: 0.23, 0.51, 0.96, 1
+                                color: 1, 1, 1, 1
+                                on_press: root.concluir_selecionado()
+                            
+                            Button:
+                                text: 'ATUALIZAR LISTA'
+                                font_size: '12sp'
+                                bold: True
+                                background_color: 0.36, 0.96, 0.55, 1
+                                color: 1, 1, 1, 1
+                                on_press: root.carregar_dados()
+                            
+                            Button:
+                                text: 'VOLTAR A PENDENTES'
+                                font_size: '12sp'
+                                bold: True
+                                background_color: 0.55, 0.36, 0.96, 1
+                                color: 1, 1, 1, 1
+                                on_press: root.selecionar_aba_pendentes()
+        
+        # ========== BOTÃO VOLTAR ==========
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.05
+            spacing: 10
+            
+            Button:
+                text: 'VOLTAR AO DASHBOARD'
+                font_size: '14sp'
+                bold: True
+                background_color: 0.55, 0.36, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.voltar_dashboard()
+
+# Widget para item da transferência
+<ItemTransferencia@Button>:
+    font_size: '11sp'
+    size_hint_y: None
+    height: 60
+    background_color: 0.20, 0.25, 0.33, 1
+    color: 1, 1, 1, 1
+    background_normal: ''
+    text_size: self.width, None
+    halign: 'left'
+    valign: 'middle'
+    padding: [10, 0]

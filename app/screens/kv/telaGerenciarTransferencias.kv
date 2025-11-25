@@ -1,0 +1,502 @@
+#:import dp kivy.metrics.dp
+
+<TelaGerenciarTransferencias>:
+    name: 'gerenciar_transferencias'
+    
+    BoxLayout:
+        orientation: 'vertical'
+        padding: [20, 20, 20, 20]
+        spacing: 15
+        canvas:
+            Color:
+                rgba: 0.06, 0.09, 0.16, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        
+        # Header
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.08
+            spacing: 10
+            
+            Button:
+                text: '< Voltar'
+                size_hint_x: 0.15
+                background_color: 0.55, 0.36, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.voltar_dashboard()
+            
+            Label:
+                text: 'GERENCIAR TRANSFERENCIAS'
+                font_size: '18sp'
+                bold: True
+                color: 1, 1, 1, 1
+                size_hint_x: 0.7
+                text_size: self.width, None
+                halign: 'center'
+            
+            Widget:
+                size_hint_x: 0.15
+        
+        # Painel de Estatisticas
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.12
+            spacing: 10
+            padding: [10, 5, 10, 5]
+            canvas.before:
+                Color:
+                    rgba: 0.12, 0.16, 0.23, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [8,]
+            
+            # Total de Valor
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_x: 0.25
+                padding: [10, 5]
+                
+                Label:
+                    text: 'VALOR TOTAL'
+                    font_size: '11sp'
+                    bold: True
+                    color: 0.80, 0.84, 0.88, 1
+                    size_hint_y: 0.4
+                    text_size: self.width, None
+                    halign: 'center'
+                
+                Label:
+                    id: lbl_total_valor
+                    text: '0.00'
+                    font_size: '14sp'
+                    bold: True
+                    color: 0.23, 0.51, 0.96, 1
+                    size_hint_y: 0.6
+                    text_size: self.width, None
+                    halign: 'center'
+            
+            # Status
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_x: 0.25
+                padding: [10, 5]
+                
+                Label:
+                    text: 'STATUS'
+                    font_size: '11sp'
+                    bold: True
+                    color: 0.80, 0.84, 0.88, 1
+                    size_hint_y: 0.4
+                    text_size: self.width, None
+                    halign: 'center'
+                
+                Label:
+                    id: lbl_status
+                    text: 'PEND: 0 PROC: 0 CONCL: 0 REJEIT: 0'
+                    font_size: '10sp'
+                    color: 1, 1, 1, 1
+                    size_hint_y: 0.6
+                    text_size: self.width, None
+                    halign: 'center'
+            
+            # Distribuicao Moedas
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_x: 0.25
+                padding: [10, 5]
+                
+                Label:
+                    text: 'DISTRIBUICAO MOEDAS'
+                    font_size: '11sp'
+                    bold: True
+                    color: 0.80, 0.84, 0.88, 1
+                    size_hint_y: 0.4
+                    text_size: self.width, None
+                    halign: 'center'
+                
+                # Grid com 2 colunas para moedas
+                GridLayout:
+                    cols: 2
+                    size_hint_y: 0.6
+                    spacing: [5, 2]
+                    
+                    Label:
+                        id: lbl_moedas_col1
+                        text: 'USD: 0.00\nEUR: 0.00\nBRL: 0.00'
+                        font_size: '9sp'
+                        color: 1, 1, 1, 1
+                        text_size: self.width, None
+                        halign: 'left'
+                        valign: 'top'
+                    
+                    Label:
+                        id: lbl_moedas_col2
+                        text: 'GBP: 0.00\nCNY: 0.00\nCHF: 0.00'
+                        font_size: '9sp'
+                        color: 1, 1, 1, 1
+                        text_size: self.width, None
+                        halign: 'left'
+                        valign: 'top'
+            
+            # Volume Total
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_x: 0.25
+                padding: [10, 5]
+                
+                Label:
+                    text: 'VOLUME TOTAL'
+                    font_size: '11sp'
+                    bold: True
+                    color: 0.80, 0.84, 0.88, 1
+                    size_hint_y: 0.4
+                    text_size: self.width, None
+                    halign: 'center'
+                
+                Label:
+                    id: lbl_volume_total
+                    text: '0.00'
+                    font_size: '14sp'
+                    bold: True
+                    color: 0.2, 0.8, 0.2, 1
+                    size_hint_y: 0.6
+                    text_size: self.width, None
+                    halign: 'center'
+        
+        # Filtros Avancados
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.18
+            padding: [10, 10, 10, 10]
+            canvas.before:
+                Color:
+                    rgba: 0.12, 0.16, 0.23, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [8,]
+            
+            Label:
+                text: 'FILTROS AVANCADOS'
+                font_size: '13sp'
+                bold: True
+                color: 0.23, 0.51, 0.96, 1
+                size_hint_y: 0.15
+                text_size: self.width, None
+                halign: 'left'
+            
+            # Linha 1: Busca
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: 0.25
+                spacing: 10
+                
+                Label:
+                    text: 'Buscar:'
+                    font_size: '11sp'
+                    color: 1, 1, 1, 1
+                    size_hint_x: 0.1
+                    text_size: self.width, None
+                    halign: 'left'
+                
+                TextInput:
+                    id: input_busca
+                    hint_text: 'Buscar por cliente, beneficiario, descricao...'
+                    font_size: '11sp'
+                    multiline: False
+                    size_hint_x: 0.6
+                    background_color: 0.20, 0.25, 0.33, 1
+                    foreground_color: 1, 1, 1, 1
+                    cursor_color: 1, 1, 1, 1
+                    padding: [10, 10]
+                    on_text_validate: root.aplicar_busca()
+                
+                Button:
+                    text: 'Buscar'
+                    font_size: '11sp'
+                    size_hint_x: 0.15
+                    background_color: 0.23, 0.51, 0.96, 1
+                    color: 1, 1, 1, 1
+                    on_press: root.aplicar_busca()
+            
+            # Linha 2: Filtros principais
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: 0.3
+                spacing: 10
+                padding: [0, 5, 0, 0]
+                
+                # Cliente
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_x: 0.2
+                    
+                    Label:
+                        text: 'Cliente:'
+                        font_size: '10sp'
+                        color: 1, 1, 1, 1
+                        size_hint_y: 0.4
+                        text_size: self.width, None
+                        halign: 'left'
+                    
+                    Spinner:
+                        id: combo_cliente_filtro
+                        text: 'Todos os clientes'
+                        font_size: '9sp'
+                        size_hint_y: 0.6
+                        background_color: 0.20, 0.25, 0.33, 1
+                        color: 1, 1, 1, 1
+                
+                # Tipo
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_x: 0.2
+                    
+                    Label:
+                        text: 'Tipo:'
+                        font_size: '10sp'
+                        color: 1, 1, 1, 1
+                        size_hint_y: 0.4
+                        text_size: self.width, None
+                        halign: 'left'
+                    
+                    Spinner:
+                        id: combo_tipo_filtro
+                        text: 'Todos os tipos'
+                        font_size: '9sp'
+                        size_hint_y: 0.6
+                        background_color: 0.20, 0.25, 0.33, 1
+                        color: 1, 1, 1, 1
+                        values: ['Todos os tipos', 'internacional', 'transferencia_interna', 'cambio', 'ajuste_admin']
+                
+                # Status
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_x: 0.2
+                    
+                    Label:
+                        text: 'Status:'
+                        font_size: '10sp'
+                        color: 1, 1, 1, 1
+                        size_hint_y: 0.4
+                        text_size: self.width, None
+                        halign: 'left'
+                    
+                    Spinner:
+                        id: combo_status_filtro
+                        text: 'Todos os status'
+                        font_size: '9sp'
+                        size_hint_y: 0.6
+                        background_color: 0.20, 0.25, 0.33, 1
+                        color: 1, 1, 1, 1
+                        values: ['Todos os status', 'pending', 'processing', 'completed', 'rejected']
+                
+                # Periodo
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_x: 0.2
+                    
+                    Label:
+                        text: 'Periodo:'
+                        font_size: '10sp'
+                        color: 1, 1, 1, 1
+                        size_hint_y: 0.4
+                        text_size: self.width, None
+                        halign: 'left'
+                    
+                    Spinner:
+                        id: combo_periodo_filtro
+                        text: 'Todo periodo'
+                        font_size: '9sp'
+                        size_hint_y: 0.6
+                        background_color: 0.20, 0.25, 0.33, 1
+                        color: 1, 1, 1, 1
+                        values: ['Todo periodo', '7 dias', '30 dias', '90 dias']
+                
+                # Valor
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_x: 0.2
+                    
+                    Label:
+                        text: 'Valor:'
+                        font_size: '10sp'
+                        color: 1, 1, 1, 1
+                        size_hint_y: 0.4
+                        text_size: self.width, None
+                        halign: 'left'
+                    
+                    Spinner:
+                        id: combo_valor_filtro
+                        text: 'Todos os valores'
+                        font_size: '9sp'
+                        size_hint_y: 0.6
+                        background_color: 0.20, 0.25, 0.33, 1
+                        color: 1, 1, 1, 1
+                        values: ['Todos os valores', '0 - 1.000', '1.000 - 10.000', '10.000 - 50.000', '50.000+']
+            
+            # Linha 3: Botoes de acao
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: 0.3
+                spacing: 10
+                padding: [0, 5, 0, 0]
+                
+                Button:
+                    text: 'Aplicar Filtros'
+                    font_size: '11sp'
+                    size_hint_x: 0.2
+                    background_color: 0.23, 0.51, 0.96, 1
+                    color: 1, 1, 1, 1
+                    on_press: root.aplicar_filtros()
+                
+                Button:
+                    text: 'Limpar Filtros'
+                    font_size: '11sp'
+                    size_hint_x: 0.2
+                    background_color: 0.55, 0.36, 0.96, 1
+                    color: 1, 1, 1, 1
+                    on_press: root.limpar_filtros()
+                
+                Widget:
+                    size_hint_x: 0.2
+                
+                Button:
+                    text: 'Exportar CSV'
+                    font_size: '11sp'
+                    size_hint_x: 0.2
+                    background_color: 0.2, 0.8, 0.2, 1
+                    color: 1, 1, 1, 1
+                    on_press: root.exportar_relatorio_completo()
+                
+                Button:
+                    text: 'Exportar PDF'
+                    font_size: '11sp'
+                    size_hint_x: 0.2
+                    background_color: 0.8, 0.2, 0.2, 1
+                    color: 1, 1, 1, 1
+                    on_press: root.exportar_relatorio()
+        
+        # Dashboard Avancado
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.12
+            spacing: 10
+            padding: [10, 5, 10, 5]
+            canvas.before:
+                Color:
+                    rgba: 0.15, 0.20, 0.27, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [8,]
+            
+            # Volume por Moeda - Dashboard
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_x: 0.5
+                padding: [10, 5]
+                
+                Label:
+                    text: 'VOLUME POR MOEDA'
+                    font_size: '11sp'
+                    bold: True
+                    color: 0.80, 0.84, 0.88, 1
+                    size_hint_y: 0.3
+                    text_size: self.width, None
+                    halign: 'center'
+                
+                # Grid com 2 colunas para moedas
+                GridLayout:
+                    cols: 2
+                    size_hint_y: 0.7
+                    spacing: [5, 2]
+                    
+                    Label:
+                        id: lbl_moedas_dashboard_col1
+                        text: 'USD: 0.00\nEUR: 0.00\nBRL: 0.00'
+                        font_size: '9sp'
+                        color: 1, 1, 1, 1
+                        text_size: self.width, None
+                        halign: 'left'
+                        valign: 'top'
+                    
+                    Label:
+                        id: lbl_moedas_dashboard_col2
+                        text: 'GBP: 0.00\nCNY: 0.00\nCHF: 0.00'
+                        font_size: '9sp'
+                        color: 1, 1, 1, 1
+                        text_size: self.width, None
+                        halign: 'left'
+                        valign: 'top'
+            
+            # Top Clientes
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_x: 0.5
+                padding: [10, 5]
+                
+                Label:
+                    text: 'TOP CLIENTES'
+                    font_size: '11sp'
+                    bold: True
+                    color: 0.80, 0.84, 0.88, 1
+                    size_hint_y: 0.3
+                    text_size: self.width, None
+                    halign: 'center'
+                
+                Label:
+                    id: lbl_top_clientes
+                    text: '1. \n2. \n3. '
+                    font_size: '10sp'
+                    color: 1, 1, 1, 1
+                    size_hint_y: 0.7
+                    text_size: self.width, None
+                    halign: 'center'
+        
+        # Contador
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.04
+            padding: [10, 0, 10, 0]
+            
+            Label:
+                id: lbl_contador
+                text: 'Carregando transferencias...'
+                font_size: '11sp'
+                color: 0.80, 0.84, 0.88, 1
+                text_size: self.width, None
+                halign: 'left'
+        
+        # Lista de Transferencias
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.46
+            padding: [10, 10, 10, 10]
+            canvas.before:
+                Color:
+                    rgba: 0.12, 0.16, 0.23, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [8,]
+            
+            ScrollView:
+                do_scroll_x: False
+                
+                GridLayout:
+                    id: lista_transferencias
+                    cols: 1
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: 2
+                    padding: [5, 5, 5, 5]
+
+<CardTransferencia>:
+    # Definido no codigo Python
+
+<ModalDetalhesTransferencia>:
+    # Definido no codigo Python

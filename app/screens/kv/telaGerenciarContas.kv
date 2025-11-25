@@ -1,0 +1,1358 @@
+# 🔥 ESTILOS PERSONALIZADOS PARA ABAS - ADICIONE ISSO NO INÍCIO DO KV
+<TabbedPanelHeader>:
+    background_color: (0.23, 0.51, 0.96, 1) if self.state == 'down' else (0.20, 0.25, 0.33, 1)
+    background_normal: ''
+    background_down: ''
+    color: (1, 1, 1, 1) if self.state == 'down' else (0.8, 0.8, 0.8, 1)
+    font_size: '14sp'
+    bold: True if self.state == 'down' else False
+    canvas.before:
+        Color:
+            rgba: (0.23, 0.51, 0.96, 1) if self.state == 'down' else (0.20, 0.25, 0.33, 1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [8, 8, 0, 0]
+        # Linha inferior para aba selecionada
+        Color:
+            rgba: (1, 1, 1, 1) if self.state == 'down' else (0, 0, 0, 0)
+        Line:
+            width: 2
+            points: self.x, self.y, self.right, self.y
+
+<TelaGerenciarContas>:
+    name: 'gerenciar_contas'
+    
+    BoxLayout:
+        orientation: 'vertical'
+        padding: [20, 20, 20, 20]
+        spacing: 10
+        canvas:
+            Color:
+                rgba: 0.06, 0.09, 0.16, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        
+        # Header CORRIGIDO
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.08
+            spacing: 10
+            
+            Button:
+                text: '< Voltar'
+                size_hint_x: 0.15
+                background_color: 0.55, 0.36, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.voltar_dashboard()
+            
+            Label:
+                text: 'GERENCIAR CONTAS DE CLIENTES'
+                font_size: '18sp'
+                bold: True
+                color: 1, 1, 1, 1
+                size_hint_x: 0.7
+                text_size: self.width, None
+                halign: 'center'  # 🔥 MUDANÇA: de 'right' para 'center'
+            
+            Widget:
+                size_hint_x: 0.15
+        
+            
+        # Abas
+        TabbedPanel:
+            id: abas
+            do_default_tab: False
+            tab_width: 180
+            background_color: 0.12, 0.16, 0.23, 1
+            tab_pos: 'top_mid'  # 🔥 ADICIONE ESTA LINHA
+            
+            # ABA 1 - Clientes e Contas (EXISTENTE)
+            TabbedPanelItem:
+                text: 'Clientes e Contas'
+                # As cores agora são controladas pelo estilo acima
+                
+                ScrollView:
+                    do_scroll_x: False
+                    
+                    BoxLayout:
+                        orientation: 'vertical'
+                        size_hint_y: None
+                        height: self.minimum_height
+                        spacing: 15
+                        padding: [10, 10, 10, 10]
+                        
+                        # Botão Adicionar Conta
+                        Button:
+                            text: '+ Adicionar Conta'
+                            font_size: '14sp'
+                            bold: True
+                            background_color: 0.23, 0.51, 0.96, 1
+                            color: 1, 1, 1, 1
+                            size_hint_y: None
+                            height: 50
+                            on_press: root.adicionar_conta_cliente()
+                        
+                        # ÁREA DE BUSCA
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y: None
+                            height: '50dp'
+                            padding: [10, 5, 10, 5]
+                            spacing: '10dp'
+
+                            TextInput:
+                                id: input_busca_clientes
+                                hint_text: 'Buscar por nome, username ou número da conta...'
+                                size_hint_x: 0.8
+                                multiline: False
+                                background_color: 0.15, 0.20, 0.27, 1
+                                foreground_color: 1, 1, 1, 1
+                                cursor_color: 0.55, 0.36, 0.96, 1
+                                padding: [10, 10]
+                                on_text_validate: root.filtrar_clientes()
+                                on_text: root.filtrar_clientes_delay()
+
+                            Button:
+                                text: 'Limpar'
+                                size_hint_x: 0.2
+                                background_color: 0.55, 0.36, 0.96, 1
+                                color: 1, 1, 1, 1
+                                on_press: root.limpar_filtro_clientes()
+
+                        # Lista de Clientes
+                        GridLayout:
+                            id: lista_clientes
+                            cols: 1
+                            size_hint_y: None
+                            height: self.minimum_height
+                            spacing: '10dp'
+                            padding: [10, 10, 10, 10]
+            
+            # ABA 2 - Ajustar Saldos (COMPLETA)
+            TabbedPanelItem:
+                text: 'Ajustar Saldos'
+                # As cores agora são controladas pelo estilo acima
+                
+                ScrollView:
+                    do_scroll_x: False
+                    
+                    BoxLayout:
+                        orientation: 'vertical'
+                        size_hint_y: None
+                        height: self.minimum_height
+                        spacing: 15
+                        padding: [20, 20, 20, 20]
+                        
+                        Label:
+                            text: 'AJUSTE DE SALDOS'
+                            font_size: '16sp'
+                            bold: True
+                            color: 0.23, 0.51, 0.96, 1
+                            size_hint_y: None
+                            height: 40
+                            text_size: self.width, None
+                            halign: 'left'
+                        
+                        # Cliente
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: 80
+                            
+                            Label:
+                                text: 'Cliente *'
+                                font_size: '13sp'
+                                bold: True
+                                color: 0.7, 0.8, 1, 1
+                                size_hint_y: 0.4
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Spinner:
+                                id: combo_cliente_ajuste
+                                text: 'Selecione um cliente'
+                                font_size: '12sp'
+                                size_hint_y: 0.6
+                                background_color: 0.20, 0.25, 0.33, 1
+                                color: 1, 1, 1, 1
+                                on_text: root.atualizar_contas_ajuste()
+                        
+                        # Conta
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: 80
+                            
+                            Label:
+                                text: 'Conta *'
+                                font_size: '13sp'
+                                bold: True
+                                color: 0.7, 0.8, 1, 1
+                                size_hint_y: 0.4
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Spinner:
+                                id: combo_conta_ajuste
+                                text: 'Selecione uma conta'
+                                font_size: '12sp'
+                                size_hint_y: 0.6
+                                background_color: 0.20, 0.25, 0.33, 1
+                                color: 1, 1, 1, 1
+                        
+                        # Tipo de Operação
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y: None
+                            height: 60
+                            spacing: 10
+                            
+                            ToggleButton:
+                                id: btn_credito
+                                text: 'CRÉDITO'
+                                font_size: '12sp'
+                                bold: True
+                                group: 'operacao'
+                                state: 'down'
+                                background_color: 0.2, 0.8, 0.2, 1  # Verde quando selecionado
+                                background_normal: ''  # Remove o fundo normal
+                                background_down: ''    # Remove o fundo quando pressionado
+                                on_press: root.definir_operacao('credito')
+                            
+                            ToggleButton:
+                                id: btn_debito
+                                text: 'DÉBITO'
+                                font_size: '12sp'
+                                bold: True
+                                group: 'operacao'
+                                background_color: 0.96, 0.36, 0.36, 1  # Vermelho quando selecionado
+                                background_normal: ''  # Remove o fundo normal  
+                                background_down: ''    # Remove o fundo quando pressionado
+                                on_press: root.definir_operacao('debito')
+                        
+                        # Valor
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: 80
+                            
+                            Label:
+                                text: 'Valor *'
+                                font_size: '13sp'
+                                bold: True
+                                color: 0.7, 0.8, 1, 1
+                                size_hint_y: 0.4
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            CampoValor:
+                                id: entry_valor_ajuste
+                                hint_text: '0.00'
+                                font_size: '14sp'
+                                multiline: False
+                                size_hint_y: 0.6
+                                background_color: 0.20, 0.25, 0.33, 1
+                                foreground_color: 1, 1, 1, 1
+                                cursor_color: 1, 1, 1, 1
+                                padding: [10, 10]
+                        
+                        # Descrição
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: 100
+                            
+                            Label:
+                                text: 'Descrição *'
+                                font_size: '13sp'
+                                bold: True
+                                color: 0.7, 0.8, 1, 1
+                                size_hint_y: 0.3
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            TextInput:
+                                id: entry_descricao_ajuste
+                                hint_text: 'Descrição do ajuste...'
+                                font_size: '12sp'
+                                multiline: True
+                                size_hint_y: 0.7
+                                background_color: 0.20, 0.25, 0.33, 1
+                                foreground_color: 1, 1, 1, 1
+                                cursor_color: 1, 1, 1, 1
+                                padding: [10, 10]
+                        
+                        # Botão Executar Ajuste
+                        Button:
+                            text: 'EXECUTAR AJUSTE'
+                            font_size: '14sp'
+                            bold: True
+                            background_color: 0.23, 0.51, 0.96, 1
+                            color: 1, 1, 1, 1
+                            size_hint_y: None
+                            height: 50
+                            on_press: root.executar_ajuste_saldo()
+            
+            # ABA 3 - Câmbio entre Moedas (COMPLETA)
+            TabbedPanelItem:
+                text: 'Câmbio entre Moedas'
+                # As cores agora são controladas pelo estilo acima
+                
+                ScrollView:
+                    do_scroll_x: False
+                    
+                    BoxLayout:
+                        orientation: 'vertical'
+                        size_hint_y: None
+                        height: self.minimum_height
+                        spacing: 15
+                        padding: [20, 20, 20, 20]
+                        
+                        Label:
+                            text: 'CÂMBIO ENTRE MOEDAS'
+                            font_size: '16sp'
+                            bold: True
+                            color: 0.23, 0.51, 0.96, 1
+                            size_hint_y: None
+                            height: 40
+                            text_size: self.width, None
+                            halign: 'left'
+                        
+                        # Cliente
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: 80
+                            
+                            Label:
+                                text: 'Cliente *'
+                                font_size: '13sp'
+                                bold: True
+                                color: 0.7, 0.8, 1, 1
+                                size_hint_y: 0.4
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Spinner:
+                                id: combo_cliente_cambio
+                                text: 'Selecione um cliente'
+                                font_size: '12sp'
+                                size_hint_y: 0.6
+                                background_color: 0.20, 0.25, 0.33, 1
+                                color: 1, 1, 1, 1
+                                on_text: root.atualizar_contas_cambio()
+                        
+                        # Conta Origem
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: 80
+                            
+                            Label:
+                                text: 'Conta Origem *'
+                                font_size: '13sp'
+                                bold: True
+                                color: 0.7, 0.8, 1, 1
+                                size_hint_y: 0.4
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Spinner:
+                                id: combo_conta_origem
+                                text: 'Selecione a conta origem'
+                                font_size: '12sp'
+                                size_hint_y: 0.6
+                                background_color: 0.20, 0.25, 0.33, 1
+                                color: 1, 1, 1, 1
+                        
+                        # Conta Destino
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: 80
+                            
+                            Label:
+                                text: 'Conta Destino *'
+                                font_size: '13sp'
+                                bold: True
+                                color: 0.7, 0.8, 1, 1
+                                size_hint_y: 0.4
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Spinner:
+                                id: combo_conta_destino
+                                text: 'Selecione a conta destino'
+                                font_size: '12sp'
+                                size_hint_y: 0.6
+                                background_color: 0.20, 0.25, 0.33, 1
+                                color: 1, 1, 1, 1
+                        
+                        # Valor
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: 80
+                            
+                            Label:
+                                text: 'Valor a Converter *'
+                                font_size: '13sp'
+                                bold: True
+                                color: 0.7, 0.8, 1, 1
+                                size_hint_y: 0.4
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            CampoValor:
+                                id: entry_valor_cambio
+                                hint_text: '0.00'
+                                font_size: '14sp'
+                                multiline: False
+                                size_hint_y: 0.6
+                                background_color: 0.20, 0.25, 0.33, 1
+                                foreground_color: 1, 1, 1, 1
+                                cursor_color: 1, 1, 1, 1
+                                padding: [10, 10]
+                        
+                        # 🔥 NOVO: Sistema de Taxas Bidirecional Flexível
+                        # 🔥 CONTAINER PARA CAMPOS DE TAXA (será preenchido dinamicamente)
+                        BoxLayout:
+                            id: container_taxas_cambio
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: 120
+                            
+                            Label:
+                                text: 'TAXAS DE CÂMBIO - SISTEMA FLEXÍVEL'
+                                font_size: '12sp'
+                                bold: True
+                                color: 0.23, 0.51, 0.96, 1
+                                size_hint_y: 0.2
+                                text_size: self.width, None
+                                halign: 'center'
+                            
+                            # Container principal para as taxas
+                            BoxLayout:
+                                orientation: 'horizontal'
+                                size_hint_y: 0.8
+                                spacing: 10
+                                padding: [5, 5, 5, 5]
+                                
+                                # Taxa Principal
+                                BoxLayout:
+                                    orientation: 'vertical'
+                                    size_hint_x: 0.4
+                                    
+                                    Label:
+                                        id: label_taxa_principal
+                                        text: 'Taxa Principal *'
+                                        font_size: '14sp'
+                                        bold: True
+                                        color: 1, 1, 1, 1
+                                        size_hint_y: 0.3
+                                        text_size: self.width, None
+                                        halign: 'center'
+                                    
+                                    Label:
+                                        text: 'Digite a taxa que conhece'
+                                        font_size: '10sp'
+                                        color: 0.80, 0.84, 0.88, 1
+                                        size_hint_y: 0.2
+                                        text_size: self.width, None
+                                        halign: 'center'
+                                    
+                                    TextInputTaxaCambio:
+                                        id: entry_taxa_principal
+                                        hint_text: 'ex: 5.10'
+                                        font_size: '11sp'
+                                        multiline: False
+                                        size_hint_y: 0.5
+                                        background_color: 0.20, 0.25, 0.33, 1
+                                        foreground_color: 1, 1, 1, 1
+                                        cursor_color: 1, 1, 1, 1
+                                        padding: [8, 8]
+                                        input_filter: 'float'
+                                
+                                # Botão de Troca
+                                BoxLayout:
+                                    orientation: 'vertical'
+                                    size_hint_x: 0.2
+                                    
+                                    Label:
+                                        text: ''
+                                        size_hint_y: 0.3
+                                    
+                                    Button:
+                                        id: btn_trocar_taxas
+                                        text: '<=>'
+                                        font_size: '16sp'
+                                        bold: True
+                                        size_hint_y: 0.4
+                                        background_color: 0.55, 0.36, 0.96, 1
+                                        color: 1, 1, 1, 1
+                                        on_press: root.trocar_taxas()
+                                    
+                                    Label:
+                                        text: 'Trocar'
+                                        font_size: '13sp'
+                                        color: 0.80, 0.84, 0.88, 1
+                                        size_hint_y: 0.3
+                                        text_size: self.width, None
+                                        halign: 'center'
+                                
+                                # Taxa Inversa
+                                BoxLayout:
+                                    orientation: 'vertical'
+                                    size_hint_x: 0.4
+                                    
+                                    Label:
+                                        id: label_taxa_inversa
+                                        text: 'Taxa Inversa *'
+                                        font_size: '14sp'
+                                        bold: True
+                                        color: 1, 1, 1, 1
+                                        size_hint_y: 0.3
+                                        text_size: self.width, None
+                                        halign: 'center'
+                                    
+                                    Label:
+                                        text: 'Calculada automaticamente'
+                                        font_size: '10sp'
+                                        color: 0.80, 0.84, 0.88, 1
+                                        size_hint_y: 0.2
+                                        text_size: self.width, None
+                                        halign: 'center'
+                                    
+                                    TextInputTaxaCambio:
+                                        id: entry_taxa_inversa
+                                        hint_text: '0.196078'
+                                        font_size: '11sp'
+                                        multiline: False
+                                        size_hint_y: 0.5
+                                        background_color: 0.20, 0.25, 0.33, 1
+                                        foreground_color: 1, 1, 1, 1
+                                        cursor_color: 1, 1, 1, 1
+                                        padding: [8, 8]
+                                        input_filter: 'float'
+                        
+                        # 🔥 ATUALIZADO: Informações de conversão
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: 80
+                            padding: [10, 5, 10, 5]
+                            
+                            Label:
+                                id: label_info_cambio
+                                text: 'Selecione as contas e digite o valor para ver a conversão\n Use a taxa que corresponde à sua operação'
+                                font_size: '15sp'
+                                color: 0.80, 0.84, 0.88, 1
+                                text_size: self.width, None
+                                halign: 'center'
+                        
+                        # Botão Executar Câmbio
+                        Button:
+                            text: 'EXECUTAR CÂMBIO'
+                            font_size: '14sp'
+                            bold: True
+                            background_color: 0.23, 0.51, 0.96, 1
+                            color: 1, 1, 1, 1
+                            size_hint_y: None
+                            height: 50
+                            on_press: root.executar_operacao_cambio()
+            
+            # ABA 4 - Despesas (EXPENSES)
+            TabbedPanelItem:
+                text: 'Despesas'
+                # As cores agora são controladas pelo estilo acima
+                
+                ScrollView:
+                    do_scroll_x: False
+                    
+                    BoxLayout:
+                        orientation: 'vertical'
+                        size_hint_y: None
+                        height: self.minimum_height
+                        spacing: 15
+                        padding: [20, 20, 20, 20]
+                        
+                        Label:
+                            text: 'LANÇAMENTO DE DESPESAS'
+                            font_size: '16sp'
+                            bold: True
+                            color: 0.23, 0.51, 0.96, 1
+                            size_hint_y: None
+                            height: 40
+                            text_size: self.width, None
+                            halign: 'left'
+                        
+                        # Conta Bancária
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: 80
+                            
+                            Label:
+                                text: 'Conta Bancária *'
+                                font_size: '13sp'
+                                bold: True
+                                color: 0.7, 0.8, 1, 1
+                                size_hint_y: 0.4
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Spinner:
+                                id: combo_conta_bancaria_despesa
+                                text: 'Selecione a conta bancária'
+                                font_size: '12sp'
+                                size_hint_y: 0.6
+                                background_color: 0.20, 0.25, 0.33, 1
+                                color: 1, 1, 1, 1
+                                values: ['Conta Principal USD', 'Conta Principal BRL']
+                        
+                        # Categoria de Despesa
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: 80
+                            
+                            Label:
+                                text: 'Categoria de Despesa *'
+                                font_size: '13sp'
+                                bold: True
+                                color: 0.7, 0.8, 1, 1
+                                size_hint_y: 0.4
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Spinner:
+                                id: combo_categoria_despesa
+                                text: 'Selecione a categoria'
+                                font_size: '12sp'
+                                size_hint_y: 0.6
+                                background_color: 0.20, 0.25, 0.33, 1
+                                color: 1, 1, 1, 1
+                                on_text: root.atualizar_contas_despesa()
+                        
+                        # Conta de Despesa
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: 80
+                            
+                            Label:
+                                text: 'Conta de Despesa *'
+                                font_size: '13sp'
+                                bold: True
+                                color: 0.7, 0.8, 1, 1
+                                size_hint_y: 0.4
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Spinner:
+                                id: combo_conta_despesa
+                                text: 'Selecione a conta de despesa'
+                                font_size: '12sp'
+                                size_hint_y: 0.6
+                                background_color: 0.20, 0.25, 0.33, 1
+                                color: 1, 1, 1, 1
+                        
+                        # Valor
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: 80
+                            
+                            Label:
+                                text: 'Valor *'
+                                font_size: '13sp'
+                                bold: True
+                                color: 0.7, 0.8, 1, 1
+                                size_hint_y: 0.4
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            CampoValor:
+                                id: entry_valor_despesa
+                                hint_text: '0.00'
+                                font_size: '14sp'
+                                multiline: False
+                                size_hint_y: 0.6
+                                background_color: 0.20, 0.25, 0.33, 1
+                                foreground_color: 1, 1, 1, 1
+                                cursor_color: 1, 1, 1, 1
+                                padding: [10, 10]
+                        
+                        # Descrição
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: 100
+                            
+                            Label:
+                                text: 'Descrição *'
+                                font_size: '13sp'
+                                bold: True
+                                color: 0.7, 0.8, 1, 1
+                                size_hint_y: 0.3
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            TextInput:
+                                id: entry_descricao_despesa
+                                hint_text: 'Descrição da despesa...'
+                                font_size: '12sp'
+                                multiline: True
+                                size_hint_y: 0.7
+                                background_color: 0.20, 0.25, 0.33, 1
+                                foreground_color: 1, 1, 1, 1
+                                cursor_color: 1, 1, 1, 1
+                                padding: [10, 10]
+                        
+                        # Botão Nova Categoria
+                        Button:
+                            text: '+ Nova Categoria/Conta de Despesa'
+                            font_size: '12sp'
+                            background_color: 0.55, 0.36, 0.96, 1
+                            color: 1, 1, 1, 1
+                            size_hint_y: None
+                            height: 40
+                            on_press: root.criar_nova_conta_despesa()
+                        
+                        # Botão Lançar Despesa
+                        Button:
+                            text: 'LANÇAR DESPESA'
+                            font_size: '14sp'
+                            bold: True
+                            background_color: 0.96, 0.36, 0.36, 1
+                            color: 1, 1, 1, 1
+                            size_hint_y: None
+                            height: 50
+                            on_press: root.lancar_despesa()
+            
+            # ABA 5 - Receitas (INCOME)
+            TabbedPanelItem:
+                text: 'Receitas'
+                # As cores agora são controladas pelo estilo acima
+                
+                ScrollView:
+                    do_scroll_x: False
+                    
+                    BoxLayout:
+                        orientation: 'vertical'
+                        size_hint_y: None
+                        height: self.minimum_height
+                        spacing: 15
+                        padding: [20, 20, 20, 20]
+                        
+                        Label:
+                            text: 'LANÇAMENTO DE RECEITAS'
+                            font_size: '16sp'
+                            bold: True
+                            color: 0.23, 0.51, 0.96, 1
+                            size_hint_y: None
+                            height: 40
+                            text_size: self.width, None
+                            halign: 'left'
+                        
+                        # Cliente
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: 80
+                            
+                            Label:
+                                text: 'Cliente *'
+                                font_size: '13sp'
+                                bold: True
+                                color: 0.7, 0.8, 1, 1
+                                size_hint_y: 0.4
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Spinner:
+                                id: combo_cliente_receita
+                                text: 'Selecione o cliente'
+                                font_size: '12sp'
+                                size_hint_y: 0.6
+                                background_color: 0.20, 0.25, 0.33, 1
+                                color: 1, 1, 1, 1
+                                on_text: root.atualizar_contas_cliente_receita()
+                        
+                        # Conta do Cliente
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: 80
+                            
+                            Label:
+                                text: 'Conta do Cliente *'
+                                font_size: '13sp'
+                                bold: True
+                                color: 0.7, 0.8, 1, 1
+                                size_hint_y: 0.4
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Spinner:
+                                id: combo_conta_cliente_receita
+                                text: 'Selecione a conta do cliente'
+                                font_size: '12sp'
+                                size_hint_y: 0.6
+                                background_color: 0.20, 0.25, 0.33, 1
+                                color: 1, 1, 1, 1
+                        
+                        # Categoria de Receita
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: 80
+                            
+                            Label:
+                                text: 'Categoria de Receita *'
+                                font_size: '13sp'
+                                bold: True
+                                color: 0.7, 0.8, 1, 1
+                                size_hint_y: 0.4
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Spinner:
+                                id: combo_categoria_receita
+                                text: 'Selecione a categoria'
+                                font_size: '12sp'
+                                size_hint_y: 0.6
+                                background_color: 0.20, 0.25, 0.33, 1
+                                color: 1, 1, 1, 1
+                                on_text: root.atualizar_contas_receita()
+                        
+                        # Conta de Receita
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: 80
+                            
+                            Label:
+                                text: 'Conta de Receita *'
+                                font_size: '13sp'
+                                bold: True
+                                color: 0.7, 0.8, 1, 1
+                                size_hint_y: 0.4
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Spinner:
+                                id: combo_conta_receita
+                                text: 'Selecione a conta de receita'
+                                font_size: '12sp'
+                                size_hint_y: 0.6
+                                background_color: 0.20, 0.25, 0.33, 1
+                                color: 1, 1, 1, 1
+                        
+                        # Valor
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: 80
+                            
+                            Label:
+                                text: 'Valor *'
+                                font_size: '13sp'
+                                bold: True
+                                color: 0.7, 0.8, 1, 1
+                                size_hint_y: 0.4
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            CampoValor:
+                                id: entry_valor_receita
+                                hint_text: '0.00'
+                                font_size: '14sp'
+                                multiline: False
+                                size_hint_y: 0.6
+                                background_color: 0.20, 0.25, 0.33, 1
+                                foreground_color: 1, 1, 1, 1
+                                cursor_color: 1, 1, 1, 1
+                                padding: [10, 10]
+                        
+                        # Descrição
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: 100
+                            
+                            Label:
+                                text: 'Descrição *'
+                                font_size: '13sp'
+                                bold: True
+                                color: 0.7, 0.8, 1, 1
+                                size_hint_y: 0.3
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            TextInput:
+                                id: entry_descricao_receita
+                                hint_text: 'Descrição da receita...'
+                                font_size: '12sp'
+                                multiline: True
+                                size_hint_y: 0.7
+                                background_color: 0.20, 0.25, 0.33, 1
+                                foreground_color: 1, 1, 1, 1
+                                cursor_color: 1, 1, 1, 1
+                                padding: [10, 10]
+                        
+                        # Botão Nova Categoria
+                        Button:
+                            text: '+ Nova Categoria/Conta de Receita'
+                            font_size: '12sp'
+                            background_color: 0.55, 0.36, 0.96, 1
+                            color: 1, 1, 1, 1
+                            size_hint_y: None
+                            height: 40
+                            on_press: root.criar_nova_conta_receita()
+                        
+                        # Botão Lançar Receita
+                        Button:
+                            text: 'LANÇAR RECEITA'
+                            font_size: '14sp'
+                            bold: True
+                            background_color: 0.2, 0.8, 0.2, 1
+                            color: 1, 1, 1, 1
+                            size_hint_y: None
+                            height: 50
+                            on_press: root.lancar_receita_ui()
+          
+            
+            # ABA 6 - Transferências (VERSÃO ADMIN COMPLETA)
+            TabbedPanelItem:
+                text: 'Transferências'
+                # As cores agora são controladas pelo estilo acima
+                
+                ScrollView:
+                    do_scroll_x: False
+                    bar_width: 10
+                    scroll_type: ['bars', 'content']
+
+                    BoxLayout:
+                        orientation: 'vertical'
+                        size_hint_y: None
+                        height: self.minimum_height
+                        spacing: 15
+                        padding: [20, 20, 20, 20]
+                        
+                        Label:
+                            text: 'TRANSFERÊNCIAS ADMINISTRATIVAS'
+                            font_size: '16sp'
+                            bold: True
+                            color: 0.23, 0.51, 0.96, 1
+                            size_hint_y: None
+                            height: 40
+                            text_size: self.width, None
+                            halign: 'left'
+                        
+                        # Tipo de Transferência
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: 100
+                            
+                            Label:
+                                text: 'Tipo de Transferência *'
+                                font_size: '14sp'
+                                bold: True
+                                color: 0.7, 0.8, 1, 1
+                                size_hint_y: 0.4
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Spinner:
+                                id: combo_tipo_transferencia
+                                text: 'Selecione o tipo'
+                                font_size: '14sp'
+                                size_hint_y: 0.6
+                                background_color: 0.20, 0.25, 0.33, 1
+                                color: 1, 1, 1, 1
+                                values: ['Transferência Internacional', 'Transferência Interna']
+                                on_text: root.atualizar_campos_transferencia()
+                        
+                        # 🔥 CONTAINER PRINCIPAL COM 2 COLUNAS
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y: None
+                            height: 400  # Altura fixa para as duas colunas
+                            spacing: 20
+                            
+                            # 🔥 COLUNA ESQUERDA - ORIGEM
+                            BoxLayout:
+                                orientation: 'vertical'
+                                size_hint_x: 0.5
+                                spacing: 10
+                                
+                                Label:
+                                    text: 'CONTA ORIGEM'
+                                    font_size: '14sp'
+                                    bold: True
+                                    color: 0.23, 0.51, 0.96, 1
+                                    size_hint_y: None
+                                    height: 30
+                                    text_size: self.width, None
+                                    halign: 'center'
+                                
+                                # Container dinâmico para campos de origem
+                                BoxLayout:
+                                    id: container_origem_coluna
+                                    orientation: 'vertical'
+                                    size_hint_y: 1
+                                    spacing: 10
+                            
+                            # 🔥 COLUNA DIREITA - DESTINO
+                            BoxLayout:
+                                orientation: 'vertical'
+                                size_hint_x: 0.5
+                                spacing: 10
+                                
+                                Label:
+                                    text: 'CONTA DESTINO'
+                                    font_size: '14sp'
+                                    bold: True
+                                    color: 0.23, 0.51, 0.96, 1
+                                    size_hint_y: None
+                                    height: 30
+                                    text_size: self.width, None
+                                    halign: 'center'
+                                
+                                # Container dinâmico para campos de destino
+                                BoxLayout:
+                                    id: container_destino_coluna
+                                    orientation: 'vertical'
+                                    size_hint_y: 1
+                                    spacing: 10
+                        
+                        # 🔥 CAMPOS COMUNS ABAIXO DAS COLUNAS
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: 150
+                            spacing: 10
+                            
+                            # Valor
+                            BoxLayout:
+                                orientation: 'horizontal'
+                                size_hint_y: None
+                                height: 60
+                                spacing: 10
+                                
+                                # 🔥 CONTAINER PRINCIPAL ALINHADO À ESQUERDA
+                                BoxLayout:
+                                    orientation: 'horizontal'
+                                    size_hint_x: 0.8  # 🔥 Reduzido para 80%
+                                    spacing: 5
+                                    
+                                    # Label "Valor"
+                                    Label:
+                                        text: 'Valor *'
+                                        font_size: '15sp'
+                                        bold: True
+                                        color: 1, 1, 1, 1
+                                        size_hint_x: 0.2  # 🔥 Ajustado
+                                        text_size: self.width, None
+                                        halign: 'left'
+                                        valign: 'middle'
+                                    
+                                    # 🔥 CONTAINER DO CAMPO + MOEDA
+                                    BoxLayout:
+                                        orientation: 'horizontal'
+                                        size_hint_x: 0.8  # 🔥 Ajustado
+                                        spacing: 5
+                                        
+                                        # Label da moeda
+                                        Label:
+                                            id: label_moeda_transferencia
+                                            text: 'USD'
+                                            font_size: '18sp'
+                                            bold: True
+                                            color: 0.23, 0.51, 0.96, 1
+                                            size_hint_x: 0.25  # 🔥 Ajustado
+                                            text_size: None, None
+                                            halign: 'center'
+                                            valign: 'middle'
+                                        
+                                        # Campo de valor
+                                        CampoValor:
+                                            id: entry_valor_transferencia_interna
+                                            hint_text: '0.00'
+                                            font_size: '18sp'
+                                            multiline: False
+                                            size_hint_x: 0.75  # 🔥 Ajustado
+                                            background_color: 0.20, 0.25, 0.33, 1
+                                            foreground_color: 1, 1, 1, 1
+                                            cursor_color: 1, 1, 1, 1
+                                            padding: [8, 8]
+                                
+                                # 🔥 COLUNA VAZIA DO LADO DIREITO (20%)
+                                Widget:
+                                    size_hint_x: 0.6  
+                            
+                            # Descrição
+                            BoxLayout:
+                                orientation: 'vertical'
+                                size_hint_y: None
+                                height: 80
+                                
+                                Label:
+                                    text: 'Descrição *'
+                                    font_size: '15sp'
+                                    bold: True
+                                    color: 1, 1, 1, 1
+                                    size_hint_y: 0.4
+                                    text_size: self.width, None
+                                    halign: 'left'
+                                
+                                TextInput:
+                                    id: entry_descricao_transferencia_interna
+                                    hint_text: 'Ex: Transferência entre contas...'
+                                    font_size: '15sp'
+                                    multiline: True
+                                    size_hint_y: 0.6
+                                    background_color: 0.20, 0.25, 0.33, 1
+                                    foreground_color: 1, 1, 1, 1
+                                    cursor_color: 1, 1, 1, 1
+                                    padding: [8, 8]
+                        
+                        # Botões de ação
+                        BoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y: None
+                            height: 50
+                            spacing: 10
+                            
+                            Button:
+                                text: 'LIMPAR'
+                                font_size: '12sp'
+                                background_color: 0.55, 0.36, 0.96, 1
+                                color: 1, 1, 1, 1
+                                on_press: root.limpar_campos_transferencia()
+                            
+                            Button:
+                                text: 'EXECUTAR TRANSFERÊNCIA'
+                                font_size: '12sp'
+                                bold: True
+                                background_color: 0.23, 0.51, 0.96, 1
+                                color: 1, 1, 1, 1
+                                on_press: root.executar_transferencia_interna_admin()
+            
+
+            
+            # ABA 7 - Extratos dos Clientes
+            TabbedPanelItem:
+                text: 'Extratos dos Clientes'
+                # As cores agora são controladas pelo estilo acima
+                
+                BoxLayout:
+                    orientation: 'vertical'
+                    spacing: dp(10)
+                    padding: [dp(20), dp(20), dp(20), dp(20)]
+                    
+                    Label:
+                        text: 'EXTRATOS DOS CLIENTES'
+                        font_size: '16sp'
+                        bold: True
+                        color: 0.23, 0.51, 0.96, 1
+                        size_hint_y: None
+                        height: dp(40)
+                        text_size: self.width, None
+                        halign: 'left'
+                    
+                    # Filtros - AGORA NA MESMA LINHA
+                    BoxLayout:
+                        orientation: 'horizontal'
+                        size_hint_y: None
+                        height: dp(80)  # Reduzida a altura
+                        spacing: dp(15)
+                        
+                        # Cliente
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_x: 0.35
+                            
+                            Label:
+                                text: 'Cliente *'
+                                font_size: '13sp'
+                                bold: True
+                                color: 0.7, 0.8, 1, 1
+                                size_hint_y: 0.4
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Spinner:
+                                id: combo_cliente_extrato
+                                text: 'Selecione um cliente'
+                                font_size: '12sp'
+                                size_hint_y: 0.6
+                                background_color: 0.20, 0.25, 0.33, 1
+                                color: 1, 1, 1, 1
+                                on_text: root.atualizar_contas_extrato()
+                        
+                        # Conta
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_x: 0.35
+                            
+                            Label:
+                                text: 'Conta *'
+                                font_size: '13sp'
+                                bold: True
+                                color: 0.7, 0.8, 1, 1
+                                size_hint_y: 0.4
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Spinner:
+                                id: combo_conta_extrato
+                                text: 'Selecione uma conta'
+                                font_size: '12sp'
+                                size_hint_y: 0.6
+                                background_color: 0.20, 0.25, 0.33, 1
+                                color: 1, 1, 1, 1
+                        
+                        # Período
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_x: 0.3
+                            
+                            Label:
+                                text: 'Período *'
+                                font_size: '13sp'
+                                bold: True
+                                color: 0.7, 0.8, 1, 1
+                                size_hint_y: 0.4
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Spinner:
+                                id: combo_periodo_extrato
+                                text: '30 dias'
+                                font_size: '12sp'
+                                size_hint_y: 0.6
+                                background_color: 0.20, 0.25, 0.33, 1
+                                color: 1, 1, 1, 1
+                                values: ['7 dias', '30 dias', '90 dias', 'Todo período']
+                    
+                    # Botões
+                    BoxLayout:
+                        orientation: 'horizontal'
+                        size_hint_y: None
+                        height: dp(50)
+                        spacing: dp(10)
+                        
+                        Button:
+                            text: 'Carregar Extrato'
+                            font_size: '13sp'
+                            bold: True
+                            background_color: 0.23, 0.51, 0.96, 1
+                            color: 1, 1, 1, 1
+                            on_press: root.carregar_extrato_admin()
+                        
+                        Button:
+                            text: 'Exportar PDF'
+                            font_size: '13sp'
+                            background_color: 0.55, 0.36, 0.96, 1
+                            color: 1, 1, 1, 1
+                            on_press: root.exportar_extrato_pdf()
+                    
+                    # Resumo
+                    BoxLayout:
+                        orientation: 'horizontal'
+                        size_hint_y: None
+                        height: dp(40)
+                        padding: [dp(10), dp(5), dp(10), dp(5)]
+                        
+                        Label:
+                            id: label_resumo_extrato
+                            text: 'Selecione um cliente e uma conta para visualizar o extrato'
+                            font_size: '18 sp'
+                            color: 0.7, 0.8, 1, 1
+                            text_size: self.width, None
+                            halign: 'left'
+                            markup: True 
+                    
+                    # Área do Extrato (SEM SCROLLVIEW INTERNO)
+                    BoxLayout:
+                        orientation: 'vertical'
+                        size_hint_y: 1
+                        
+                        # Header fixo
+                        BoxLayout:
+                            id: header_extrato
+                            orientation: 'horizontal'
+                            size_hint_y: None
+                            height: dp(35)
+                            padding: [dp(10), dp(2), dp(10), dp(2)]
+                            spacing: dp(5)
+                            canvas.before:
+                                Color:
+                                    rgba: 0.15, 0.20, 0.27, 1
+                                Rectangle:
+                                    pos: self.pos
+                                    size: self.size
+                            
+                            Label:
+                                text: 'Data'
+                                font_size: '11sp'
+                                bold: True
+                                color: 0.23, 0.51, 0.96, 1
+                                size_hint_x: 0.2
+                                text_size: self.width, None
+                                halign: 'center'
+                            
+                            Label:
+                                text: 'Descrição'
+                                font_size: '11sp'
+                                bold: True
+                                color: 0.23, 0.51, 0.96, 1
+                                size_hint_x: 0.4
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            Label:
+                                text: 'Crédito'
+                                font_size: '11sp'
+                                bold: True
+                                color: 0.23, 0.51, 0.96, 1
+                                size_hint_x: 0.15
+                                text_size: self.width, None
+                                halign: 'right'
+                            
+                            Label:
+                                text: 'Débito'
+                                font_size: '11sp'
+                                bold: True
+                                color: 0.23, 0.51, 0.96, 1
+                                size_hint_x: 0.15
+                                text_size: self.width, None
+                                halign: 'right'
+                            
+                            Label:
+                                text: 'Saldo'
+                                font_size: '11sp'
+                                bold: True
+                                color: 0.23, 0.51, 0.96, 1
+                                size_hint_x: 0.1
+                                text_size: self.width, None
+                                halign: 'right'
+                        
+                        # Lista de transações (COM SCROLLVIEW)
+                        ScrollView:
+                            id: scroll_extrato_admin  # 🔥 ADICIONE ESTA LINHA
+                            size_hint_y: 1
+                            do_scroll_x: False
+                            
+                            GridLayout:
+                                id: lista_transacoes
+                                cols: 1
+                                spacing: dp(2)
+                                size_hint_y: None
+                                height: self.minimum_height
+                                padding: [dp(5), dp(5)]

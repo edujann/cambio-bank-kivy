@@ -1,0 +1,29 @@
+#:kivy 2.0.0
+
+<TelaLoading>:
+    name: "loading"
+    canvas.before:
+        Color:
+            rgba: 0.06, 0.09, 0.16, 1  # 🔥 MESMA COR DO TEMA ESCURO
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    
+    BoxLayout:
+        orientation: 'vertical'
+        padding: 50
+        
+        Label:
+            text: 'CAMBIO BANK'
+            font_size: '28sp'
+            color: 1, 1, 1, 1
+            bold: True
+            text_size: self.width, None
+            halign: 'center'
+            
+        Label:
+            text: 'Iniciando sistema...'
+            font_size: '16sp'
+            color: 0.8, 0.8, 0.8, 1
+            text_size: self.width, None
+            halign: 'center'

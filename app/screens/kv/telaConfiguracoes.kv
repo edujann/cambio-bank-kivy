@@ -1,0 +1,723 @@
+#:import dp kivy.metrics.dp
+
+<TelaConfiguracoes>:
+    name: 'configuracoes'
+    
+    BoxLayout:
+        orientation: 'vertical'
+        padding: [20, 20, 20, 20]
+        spacing: 10
+        canvas:
+            Color:
+                rgba: 0.06, 0.09, 0.16, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        
+        # Header
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.08
+            spacing: 10
+            
+            Button:
+                text: '← Voltar'
+                size_hint_x: 0.15
+                background_color: 0.55, 0.36, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.voltar_dashboard()
+            
+            Label:
+                text: 'CONFIGURAÇÕES DO SISTEMA'
+                font_size: '18sp'
+                bold: True
+                color: 1, 1, 1, 1
+                size_hint_x: 0.7
+                text_size: self.width, None
+                halign: 'center'
+            
+            Widget:
+                size_hint_x: 0.15
+        
+        # Área principal com abas
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.87
+            padding: 10
+            canvas:
+                Color:
+                    rgba: 0.12, 0.16, 0.23, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [8,]
+            
+            TabbedPanel:
+                id: abas_configuracoes
+                do_default_tab: False
+                tab_width: 180
+                background_color: 0.12, 0.16, 0.23, 1
+                
+                # ABA 1: SISTEMA
+                TabbedPanelItem:
+                    text: 'SISTEMA'
+                    font_size: '12sp'
+                    bold: True
+                    background_color: 0.20, 0.25, 0.33, 1
+                    
+                    ScrollView:
+                        do_scroll_x: False
+                        
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: self.minimum_height
+                            spacing: 15
+                            padding: [20, 20, 20, 20]
+                            
+                            Label:
+                                text: 'CONFIGURAÇÕES DO SISTEMA'
+                                font_size: '16sp'
+                                bold: True
+                                color: 0.23, 0.51, 0.96, 1
+                                size_hint_y: None
+                                height: 40
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            # Horário de Funcionamento
+                            BoxLayout:
+                                orientation: 'vertical'
+                                size_hint_y: None
+                                height: 120
+                                padding: [0, 10, 0, 0]
+                                
+                                Label:
+                                    text: 'Horário de Funcionamento'
+                                    font_size: '14sp'
+                                    bold: True
+                                    color: 1, 1, 1, 1
+                                    size_hint_y: 0.3
+                                    text_size: self.width, None
+                                    halign: 'left'
+                                
+                                BoxLayout:
+                                    orientation: 'horizontal'
+                                    size_hint_y: 0.7
+                                    spacing: 20
+                                    
+                                    BoxLayout:
+                                        orientation: 'vertical'
+                                        
+                                        Label:
+                                            text: 'Abertura'
+                                            font_size: '12sp'
+                                            color: 0.80, 0.84, 0.88, 1
+                                            size_hint_y: 0.3
+                                            text_size: self.width, None
+                                            halign: 'left'
+                                        
+                                        TextInput:
+                                            id: input_horario_abertura
+                                            text: '09:00'
+                                            font_size: '14sp'
+                                            multiline: False
+                                            size_hint_y: 0.7
+                                            background_color: 0.20, 0.25, 0.33, 1
+                                            foreground_color: 1, 1, 1, 1
+                                            cursor_color: 1, 1, 1, 1
+                                            padding: [10, 10]
+                                    
+                                    BoxLayout:
+                                        orientation: 'vertical'
+                                        
+                                        Label:
+                                            text: 'Fechamento'
+                                            font_size: '12sp'
+                                            color: 0.80, 0.84, 0.88, 1
+                                            size_hint_y: 0.3
+                                            text_size: self.width, None
+                                            halign: 'left'
+                                        
+                                        TextInput:
+                                            id: input_horario_fechamento
+                                            text: '18:00'
+                                            font_size: '14sp'
+                                            multiline: False
+                                            size_hint_y: 0.7
+                                            background_color: 0.20, 0.25, 0.33, 1
+                                            foreground_color: 1, 1, 1, 1
+                                            cursor_color: 1, 1, 1, 1
+                                            padding: [10, 10]
+                            
+                            # Moedas Suportadas
+                            BoxLayout:
+                                orientation: 'vertical'
+                                size_hint_y: None
+                                height: 100
+                                
+                                Label:
+                                    text: 'Moedas Suportadas'
+                                    font_size: '14sp'
+                                    bold: True
+                                    color: 1, 1, 1, 1
+                                    size_hint_y: 0.4
+                                    text_size: self.width, None
+                                    halign: 'left'
+                                
+                                Label:
+                                    text: 'USD, EUR, GBP, BRL'
+                                    font_size: '12sp'
+                                    color: 0.80, 0.84, 0.88, 1
+                                    size_hint_y: 0.6
+                                    text_size: self.width, None
+                                    halign: 'left'
+                            
+                            # Dias de Operação
+                            BoxLayout:
+                                orientation: 'vertical'
+                                size_hint_y: None
+                                height: 100
+                                
+                                Label:
+                                    text: 'Dias de Operação'
+                                    font_size: '14sp'
+                                    bold: True
+                                    color: 1, 1, 1, 1
+                                    size_hint_y: 0.4
+                                    text_size: self.width, None
+                                    halign: 'left'
+                                
+                                Label:
+                                    text: 'Segunda a Sexta-feira'
+                                    font_size: '12sp'
+                                    color: 0.80, 0.84, 0.88, 1
+                                    size_hint_y: 0.6
+                                    text_size: self.width, None
+                                    halign: 'left'
+                            
+                            # Fuso Horário
+                            BoxLayout:
+                                orientation: 'vertical'
+                                size_hint_y: None
+                                height: 80
+                                
+                                Label:
+                                    text: 'Fuso Horário'
+                                    font_size: '14sp'
+                                    bold: True
+                                    color: 1, 1, 1, 1
+                                    size_hint_y: 0.5
+                                    text_size: self.width, None
+                                    halign: 'left'
+                                
+                                Label:
+                                    text: 'America/Sao_Paulo'
+                                    font_size: '12sp'
+                                    color: 0.80, 0.84, 0.88, 1
+                                    size_hint_y: 0.5
+                                    text_size: self.width, None
+                                    halign: 'left'
+                
+                # ABA 2: FINANCEIRAS
+                TabbedPanelItem:
+                    text: 'FINANCEIRAS'
+                    font_size: '12sp'
+                    bold: True
+                    background_color: 0.20, 0.25, 0.33, 1
+                    
+                    ScrollView:
+                        do_scroll_x: False
+                        
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: self.minimum_height
+                            spacing: 15
+                            padding: [20, 20, 20, 20]
+                            
+                            Label:
+                                text: 'CONFIGURAÇÕES FINANCEIRAS'
+                                font_size: '16sp'
+                                bold: True
+                                color: 0.23, 0.51, 0.96, 1
+                                size_hint_y: None
+                                height: 40
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            # Limites de Transferência
+                            BoxLayout:
+                                orientation: 'vertical'
+                                size_hint_y: None
+                                height: 150
+                                
+                                Label:
+                                    text: 'Limites de Transferência'
+                                    font_size: '14sp'
+                                    bold: True
+                                    color: 1, 1, 1, 1
+                                    size_hint_y: 0.3
+                                    text_size: self.width, None
+                                    halign: 'left'
+                                
+                                BoxLayout:
+                                    orientation: 'vertical'
+                                    size_hint_y: 0.7
+                                    spacing: 10
+                                    
+                                    BoxLayout:
+                                        orientation: 'horizontal'
+                                        size_hint_y: 0.5
+                                        spacing: 10
+                                        
+                                        Label:
+                                            text: 'Limite Diário:'
+                                            font_size: '12sp'
+                                            color: 0.80, 0.84, 0.88, 1
+                                            size_hint_x: 0.4
+                                            text_size: self.width, None
+                                            halign: 'left'
+                                        
+                                        TextInput:
+                                            id: input_limite_diario
+                                            text: '10000.00'
+                                            font_size: '12sp'
+                                            multiline: False
+                                            size_hint_x: 0.6
+                                            background_color: 0.20, 0.25, 0.33, 1
+                                            foreground_color: 1, 1, 1, 1
+                                            cursor_color: 1, 1, 1, 1
+                                            padding: [10, 10]
+                                    
+                                    BoxLayout:
+                                        orientation: 'horizontal'
+                                        size_hint_y: 0.5
+                                        spacing: 10
+                                        
+                                        Label:
+                                            text: 'Limite Mensal:'
+                                            font_size: '12sp'
+                                            color: 0.80, 0.84, 0.88, 1
+                                            size_hint_x: 0.4
+                                            text_size: self.width, None
+                                            halign: 'left'
+                                        
+                                        TextInput:
+                                            id: input_limite_mensal
+                                            text: '50000.00'
+                                            font_size: '12sp'
+                                            multiline: False
+                                            size_hint_x: 0.6
+                                            background_color: 0.20, 0.25, 0.33, 1
+                                            foreground_color: 1, 1, 1, 1
+                                            cursor_color: 1, 1, 1, 1
+                                            padding: [10, 10]
+                            
+                            # Taxas e Comissões
+                            BoxLayout:
+                                orientation: 'vertical'
+                                size_hint_y: None
+                                height: 150
+                                
+                                Label:
+                                    text: 'Taxas e Comissões'
+                                    font_size: '14sp'
+                                    bold: True
+                                    color: 1, 1, 1, 1
+                                    size_hint_y: 0.3
+                                    text_size: self.width, None
+                                    halign: 'left'
+                                
+                                BoxLayout:
+                                    orientation: 'vertical'
+                                    size_hint_y: 0.7
+                                    spacing: 10
+                                    
+                                    BoxLayout:
+                                        orientation: 'horizontal'
+                                        size_hint_y: 0.5
+                                        spacing: 10
+                                        
+                                        Label:
+                                            text: 'Taxa Internacional (%):'
+                                            font_size: '12sp'
+                                            color: 0.80, 0.84, 0.88, 1
+                                            size_hint_x: 0.5
+                                            text_size: self.width, None
+                                            halign: 'left'
+                                        
+                                        TextInput:
+                                            id: input_taxa_internacional
+                                            text: '2.0'
+                                            font_size: '12sp'
+                                            multiline: False
+                                            size_hint_x: 0.5
+                                            background_color: 0.20, 0.25, 0.33, 1
+                                            foreground_color: 1, 1, 1, 1
+                                            cursor_color: 1, 1, 1, 1
+                                            padding: [10, 10]
+                                    
+                                    BoxLayout:
+                                        orientation: 'horizontal'
+                                        size_hint_y: 0.5
+                                        spacing: 10
+                                        
+                                        Label:
+                                            text: 'Comissão Mínima:'
+                                            font_size: '12sp'
+                                            color: 0.80, 0.84, 0.88, 1
+                                            size_hint_x: 0.5
+                                            text_size: self.width, None
+                                            halign: 'left'
+                                        
+                                        TextInput:
+                                            id: input_comissao_minima
+                                            text: '10.00'
+                                            font_size: '12sp'
+                                            multiline: False
+                                            size_hint_x: 0.5
+                                            background_color: 0.20, 0.25, 0.33, 1
+                                            foreground_color: 1, 1, 1, 1
+                                            cursor_color: 1, 1, 1, 1
+                                            padding: [10, 10]
+                            
+                            # Botão Taxas de Câmbio
+                            Button:
+                                text: 'GERENCIAR TAXAS DE CÂMBIO'
+                                font_size: '12sp'
+                                bold: True
+                                background_color: 0.55, 0.36, 0.96, 1
+                                color: 1, 1, 1, 1
+                                size_hint_y: None
+                                height: 45
+                                on_press: root.gerenciar_taxas_cambio()
+                
+                # ABA 3: SEGURANÇA
+                TabbedPanelItem:
+                    text: 'SEGURANÇA'
+                    font_size: '12sp'
+                    bold: True
+                    background_color: 0.20, 0.25, 0.33, 1
+                    
+                    ScrollView:
+                        do_scroll_x: False
+                        
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: self.minimum_height
+                            spacing: 15
+                            padding: [20, 20, 20, 20]
+                            
+                            Label:
+                                text: 'CONFIGURAÇÕES DE SEGURANÇA'
+                                font_size: '16sp'
+                                bold: True
+                                color: 0.23, 0.51, 0.96, 1
+                                size_hint_y: None
+                                height: 40
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            # Políticas de Senha
+                            BoxLayout:
+                                orientation: 'vertical'
+                                size_hint_y: None
+                                height: 180
+                                
+                                Label:
+                                    text: 'Políticas de Senha'
+                                    font_size: '14sp'
+                                    bold: True
+                                    color: 1, 1, 1, 1
+                                    size_hint_y: 0.2
+                                    text_size: self.width, None
+                                    halign: 'left'
+                                
+                                GridLayout:
+                                    cols: 2
+                                    size_hint_y: 0.8
+                                    spacing: 10
+                                    padding: [0, 10, 0, 0]
+                                    
+                                    Label:
+                                        text: 'Tamanho Mínimo:'
+                                        font_size: '12sp'
+                                        color: 0.80, 0.84, 0.88, 1
+                                        text_size: self.width, None
+                                        halign: 'left'
+                                    
+                                    TextInput:
+                                        id: input_tamanho_senha
+                                        text: '8'
+                                        font_size: '12sp'
+                                        multiline: False
+                                        background_color: 0.20, 0.25, 0.33, 1
+                                        foreground_color: 1, 1, 1, 1
+                                        cursor_color: 1, 1, 1, 1
+                                        padding: [10, 10]
+                                    
+                                    Label:
+                                        text: 'Expiração (dias):'
+                                        font_size: '12sp'
+                                        color: 0.80, 0.84, 0.88, 1
+                                        text_size: self.width, None
+                                        halign: 'left'
+                                    
+                                    TextInput:
+                                        id: input_expiracao_senha
+                                        text: '90'
+                                        font_size: '12sp'
+                                        multiline: False
+                                        background_color: 0.20, 0.25, 0.33, 1
+                                        foreground_color: 1, 1, 1, 1
+                                        cursor_color: 1, 1, 1, 1
+                                        padding: [10, 10]
+                            
+                            # Controle de Acesso
+                            BoxLayout:
+                                orientation: 'vertical'
+                                size_hint_y: None
+                                height: 120
+                                
+                                Label:
+                                    text: 'Controle de Acesso'
+                                    font_size: '14sp'
+                                    bold: True
+                                    color: 1, 1, 1, 1
+                                    size_hint_y: 0.3
+                                    text_size: self.width, None
+                                    halign: 'left'
+                                
+                                BoxLayout:
+                                    orientation: 'horizontal'
+                                    size_hint_y: 0.7
+                                    spacing: 10
+                                    
+                                    Label:
+                                        text: 'Tentativas de Login:'
+                                        font_size: '12sp'
+                                        color: 0.80, 0.84, 0.88, 1
+                                        size_hint_x: 0.6
+                                        text_size: self.width, None
+                                        halign: 'left'
+                                    
+                                    TextInput:
+                                        id: input_tentativas_login
+                                        text: '3'
+                                        font_size: '12sp'
+                                        multiline: False
+                                        size_hint_x: 0.4
+                                        background_color: 0.20, 0.25, 0.33, 1
+                                        foreground_color: 1, 1, 1, 1
+                                        cursor_color: 1, 1, 1, 1
+                                        padding: [10, 10]
+                            
+                            # Configurações Avançadas
+                            BoxLayout:
+                                orientation: 'vertical'
+                                size_hint_y: None
+                                height: 120
+                                
+                                Label:
+                                    text: 'Configurações Avançadas'
+                                    font_size: '14sp'
+                                    bold: True
+                                    color: 1, 1, 1, 1
+                                    size_hint_y: 0.3
+                                    text_size: self.width, None
+                                    halign: 'left'
+                                
+                                BoxLayout:
+                                    orientation: 'vertical'
+                                    size_hint_y: 0.7
+                                    spacing: 10
+                                    
+                                    BoxLayout:
+                                        orientation: 'horizontal'
+                                        size_hint_y: 0.5
+                                        
+                                        Label:
+                                            text: 'Requer Autenticação em 2 Fatores:'
+                                            font_size: '12sp'
+                                            color: 0.80, 0.84, 0.88, 1
+                                            size_hint_x: 0.7
+                                            text_size: self.width, None
+                                            halign: 'left'
+                                        
+                                        CheckBox:
+                                            id: toggle_2fa
+                                            size_hint_x: 0.3
+                                            active: False
+                                    
+                                    BoxLayout:
+                                        orientation: 'horizontal'
+                                        size_hint_y: 0.5
+                                        
+                                        Label:
+                                            text: 'Notificações por Email:'
+                                            font_size: '12sp'
+                                            color: 0.80, 0.84, 0.88, 1
+                                            size_hint_x: 0.7
+                                            text_size: self.width, None
+                                            halign: 'left'
+                                        
+                                        CheckBox:
+                                            id: toggle_notificacao_email
+                                            size_hint_x: 0.3
+                                            active: True
+                
+                # ABA 4: INTERFACE
+                TabbedPanelItem:
+                    text: 'INTERFACE'
+                    font_size: '12sp'
+                    bold: True
+                    background_color: 0.20, 0.25, 0.33, 1
+                    
+                    ScrollView:
+                        do_scroll_x: False
+                        
+                        BoxLayout:
+                            orientation: 'vertical'
+                            size_hint_y: None
+                            height: self.minimum_height
+                            spacing: 15
+                            padding: [20, 20, 20, 20]
+                            
+                            Label:
+                                text: 'CONFIGURAÇÕES DE INTERFACE'
+                                font_size: '16sp'
+                                bold: True
+                                color: 0.23, 0.51, 0.96, 1
+                                size_hint_y: None
+                                height: 40
+                                text_size: self.width, None
+                                halign: 'left'
+                            
+                            # Aparência
+                            BoxLayout:
+                                orientation: 'vertical'
+                                size_hint_y: None
+                                height: 150
+                                
+                                Label:
+                                    text: 'Aparência'
+                                    font_size: '14sp'
+                                    bold: True
+                                    color: 1, 1, 1, 1
+                                    size_hint_y: 0.3
+                                    text_size: self.width, None
+                                    halign: 'left'
+                                
+                                GridLayout:
+                                    cols: 2
+                                    size_hint_y: 0.7
+                                    spacing: 15
+                                    padding: [0, 10, 0, 0]
+                                    
+                                    Label:
+                                        text: 'Tema:'
+                                        font_size: '12sp'
+                                        color: 0.80, 0.84, 0.88, 1
+                                        text_size: self.width, None
+                                        halign: 'left'
+                                   
+
+                                    # 🔥 AQUI É ONDE VOCÊ VAI MODIFICAR:
+                                    BoxLayout:
+                                        orientation: 'horizontal'
+                                        spacing: 5
+                                        
+                                        Spinner:
+                                            id: combo_tema
+                                            text: 'escuro'
+                                            font_size: '12sp'
+                                            size_hint_x: 0.7
+                                            background_color: 0.20, 0.25, 0.33, 1
+                                            color: 1, 1, 1, 1
+                                            values: ['escuro', 'claro', 'azul', 'verde', 'roxo']
+                                        
+                                        Button:
+                                            text: '👁️ Preview'
+                                            size_hint_x: 0.3
+                                            font_size: '10sp'
+                                            background_color: 0.55, 0.36, 0.96, 1
+                                            color: 1, 1, 1, 1
+                                            on_press: root.mostrar_preview_tema()
+
+                                    Label:
+                                        text: 'Idioma:'
+                                        font_size: '12sp'
+                                        color: 0.80, 0.84, 0.88, 1
+                                        text_size: self.width, None
+                                        halign: 'left'
+                                    
+                                    Spinner:
+                                        id: combo_idioma
+                                        text: 'pt-BR'
+                                        font_size: '12sp'
+                                        background_color: 0.20, 0.25, 0.33, 1
+                                        color: 1, 1, 1, 1
+                                        values: ['pt-BR', 'en-US', 'es-ES']
+                            
+                            # Preferências
+                            BoxLayout:
+                                orientation: 'vertical'
+                                size_hint_y: None
+                                height: 120
+                                
+                                Label:
+                                    text: 'Preferências'
+                                    font_size: '14sp'
+                                    bold: True
+                                    color: 1, 1, 1, 1
+                                    size_hint_y: 0.3
+                                    text_size: self.width, None
+                                    halign: 'left'
+                                
+                                BoxLayout:
+                                    orientation: 'horizontal'
+                                    size_hint_y: 0.7
+                                    spacing: 10
+                                    
+                                    Label:
+                                        text: 'Moeda Padrão:'
+                                        font_size: '12sp'
+                                        color: 0.80, 0.84, 0.88, 1
+                                        size_hint_x: 0.4
+                                        text_size: self.width, None
+                                        halign: 'left'
+                                    
+                                    Spinner:
+                                        id: combo_moeda_padrao
+                                        text: 'USD'
+                                        font_size: '12sp'
+                                        size_hint_x: 0.6
+                                        background_color: 0.20, 0.25, 0.33, 1
+                                        color: 1, 1, 1, 1
+                                        values: ['USD', 'EUR', 'GBP', 'BRL']
+        
+        # Botões de Ação
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.05
+            spacing: 10
+            padding: [0, 10, 0, 0]
+            
+            
+
+            Button:
+                text: 'RESTAURAR PADRÕES'
+                font_size: '12sp'
+                background_color: 0.96, 0.51, 0.23, 1
+                color: 1, 1, 1, 1
+                on_press: root.restaurar_padroes()
+            
+            Button:
+                text: 'SALVAR CONFIGURAÇÕES'
+                font_size: '12sp'
+                bold: True
+                background_color: 0.23, 0.51, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.salvar_configuracoes_sistema()

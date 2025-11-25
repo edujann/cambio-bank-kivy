@@ -1,0 +1,163 @@
+#:import colors main.CORES
+
+<TelaLogin>:
+    name: 'login'
+    
+    BoxLayout:
+        orientation: 'vertical'
+        padding: 40
+        spacing: 20
+        
+        # Logo e título
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.3
+            spacing: 10
+            
+            Label:
+                text: '💎'
+                font_size: 48
+                color: colors['primaria']
+                size_hint_y: 0.6
+                
+            Label:
+                text: 'CÂMBIO BANK'
+                font_size: 28
+                font_name: 'Arial'
+                bold: True
+                color: colors['texto']
+                size_hint_y: 0.2
+                
+            Label:
+                text: 'Sistema Premium de Câmbio'
+                font_size: 14
+                color: colors['texto_secundario']
+                size_hint_y: 0.2
+        
+        # Card do formulário
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.6
+            padding: 20
+            canvas.before:
+                Color:
+                    rgba: colors['card']
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [10,]
+            
+            Label:
+                text: 'ACESSO AO SISTEMA'
+                font_size: 18
+                font_name: 'Arial'
+                bold: True
+                color: colors['texto']
+                size_hint_y: 0.15
+            
+            # Campo usuário
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: 0.2
+                spacing: 5
+                
+                Label:
+                    text: 'Usuário:'
+                    font_size: 12
+                    font_name: 'Arial'
+                    bold: True
+                    color: colors['texto']
+                    size_hint_y: 0.3
+                    halign: 'left'
+                    text_size: self.width, None
+                
+                TextInput:
+                    id: usuario
+                    hint_text: 'Digite seu usuário'
+                    font_size: 16
+                    multiline: False
+                    size_hint_y: 0.7
+                    background_color: colors['card_claro']
+                    foreground_color: colors['texto']
+                    cursor_color: colors['texto']
+                    padding: [10, 10]
+            
+            # Campo senha
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: 0.2
+                spacing: 5
+                
+                Label:
+                    text: 'Senha:'
+                    font_size: 12
+                    font_name: 'Arial'
+                    bold: True
+                    color: colors['texto']
+                    size_hint_y: 0.3
+                    halign: 'left'
+                    text_size: self.width, None
+                
+                TextInput:
+                    id: senha
+                    hint_text: 'Digite sua senha'
+                    font_size: 16
+                    multiline: False
+                    password: True
+                    size_hint_y: 0.7
+                    background_color: colors['card_claro']
+                    foreground_color: colors['texto']
+                    cursor_color: colors['texto']
+                    padding: [10, 10]
+            
+            # Botão entrar
+            Button:
+                text: 'ENTRAR NO SISTEMA'
+                font_size: 14
+                font_name: 'Arial'
+                bold: True
+                size_hint_y: 0.15
+                background_color: colors['primaria']
+                color: colors['texto']
+                on_press: root.fazer_login()
+            
+            # Botões adicionais
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: 0.3
+                spacing: 8
+                padding: [0, 10, 0, 0]
+                
+                Button:
+                    text: '📝 Criar Nova Conta'
+                    font_size: 12
+                    size_hint_y: 0.4
+                    background_color: colors['secundaria']
+                    color: colors['texto']
+                    on_press: root.abrir_cadastro()
+                
+                Button:
+                    text: '🔐 Esqueci minha senha'
+                    font_size: 12
+                    size_hint_y: 0.4
+                    background_color: colors['card_claro']
+                    color: colors['texto_secundario']
+                    on_press: root.abrir_recuperacao()
+        
+        # Informações demo
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: 0.1
+            spacing: 5
+            
+            Label:
+                text: 'Demo: admin (admin123) | joao.silva (cliente123)'
+                font_size: 10
+                color: colors['texto_secundario']
+                text_size: self.width, None
+                halign: 'center'
+            
+            Label:
+                text: 'Sistema Premium © 2024'
+                font_size: 9
+                color: colors['texto_secundario']

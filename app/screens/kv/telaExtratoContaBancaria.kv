@@ -1,0 +1,306 @@
+<TelaExtratoContaBancaria>:
+    BoxLayout:
+        orientation: 'vertical'
+        padding: [10, 10, 10, 10]
+        spacing: 10
+
+        # Header
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: '60dp'
+            spacing: 10
+
+            Button:
+                text: 'Voltar'
+                font_size: '14sp'
+                size_hint_x: 0.2
+                background_color: 0.55, 0.36, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.voltar_contas_bancarias()
+
+            Label:
+                id: lbl_titulo_extrato
+                text: 'EXTRATO CONTA BANCÁRIA'
+                font_size: '18sp'
+                bold: True
+                color: 0.23, 0.51, 0.96, 1
+                size_hint_x: 0.6
+                text_size: self.size
+                halign: 'center'
+                valign: 'middle'
+
+            Button:
+                text: 'Exportar PDF'
+                font_size: '14sp'
+                size_hint_x: 0.2
+                background_color: 0.23, 0.51, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.exportar_extrato_pdf()
+
+        # Painel de Resumo
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: '100dp'
+            spacing: 10
+            padding: [10, 5, 10, 5]
+
+            # Saldo Total
+            BoxLayout:
+                orientation: 'vertical'
+                canvas.before:
+                    Color:
+                        rgba: 0.20, 0.25, 0.33, 1
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [8,]
+                padding: [10, 5]
+                spacing: 5
+
+                Label:
+                    text: 'SALDO ATUAL'
+                    font_size: '12sp'
+                    color: 0.80, 0.84, 0.88, 1
+                    text_size: self.size
+                    halign: 'center'
+
+                Label:
+                    id: lbl_saldo_total
+                    text: '0.00'
+                    font_size: '16sp'
+                    bold: True
+                    color: 0.23, 0.51, 0.96, 1
+                    text_size: self.size
+                    halign: 'center'
+
+            # Total Entradas
+            BoxLayout:
+                orientation: 'vertical'
+                canvas.before:
+                    Color:
+                        rgba: 0.20, 0.25, 0.33, 1
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [8,]
+                padding: [10, 5]
+                spacing: 5
+
+                Label:
+                    text: 'TOTAL ENTRADAS'
+                    font_size: '12sp'
+                    color: 0.80, 0.84, 0.88, 1
+                    text_size: self.size
+                    halign: 'center'
+
+                Label:
+                    id: lbl_total_entradas
+                    text: '0.00'
+                    font_size: '16sp'
+                    bold: True
+                    color: 0.1, 0.6, 0.1, 1
+                    text_size: self.size
+                    halign: 'center'
+
+            # Total Saídas
+            BoxLayout:
+                orientation: 'vertical'
+                canvas.before:
+                    Color:
+                        rgba: 0.20, 0.25, 0.33, 1
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [8,]
+                padding: [10, 5]
+                spacing: 5
+
+                Label:
+                    text: 'TOTAL SAÍDAS'
+                    font_size: '12sp'
+                    color: 0.80, 0.84, 0.88, 1
+                    text_size: self.size
+                    halign: 'center'
+
+                Label:
+                    id: lbl_total_saidas
+                    text: '0.00'
+                    font_size: '16sp'
+                    bold: True
+                    color: 0.8, 0.2, 0.2, 1
+                    text_size: self.size
+                    halign: 'center'
+
+            # Total Transações
+            BoxLayout:
+                orientation: 'vertical'
+                canvas.before:
+                    Color:
+                        rgba: 0.20, 0.25, 0.33, 1
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [8,]
+                padding: [10, 5]
+                spacing: 5
+
+                Label:
+                    text: 'TRANSAÇÕES'
+                    font_size: '12sp'
+                    color: 0.80, 0.84, 0.88, 1
+                    text_size: self.size
+                    halign: 'center'
+
+                Label:
+                    id: lbl_total_transacoes
+                    text: '0'
+                    font_size: '16sp'
+                    bold: True
+                    color: 0.23, 0.51, 0.96, 1
+                    text_size: self.size
+                    halign: 'center'
+
+            # Período
+            BoxLayout:
+                orientation: 'vertical'
+                canvas.before:
+                    Color:
+                        rgba: 0.20, 0.25, 0.33, 1
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [8,]
+                padding: [10, 5]
+                spacing: 5
+
+                Label:
+                    text: 'PERÍODO'
+                    font_size: '12sp'
+                    color: 0.80, 0.84, 0.88, 1
+                    text_size: self.size
+                    halign: 'center'
+
+                Label:
+                    id: lbl_periodo
+                    text: 'Últimos 30 dias'
+                    font_size: '12sp'
+                    color: 0.23, 0.51, 0.96, 1
+                    text_size: self.size
+                    halign: 'center'
+
+        # Filtros
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: '50dp'
+            spacing: 10
+
+            Label:
+                text: 'Período:'
+                font_size: '14sp'
+                color: 1, 1, 1, 1
+                size_hint_x: 0.1
+                text_size: self.size
+                halign: 'left'
+                valign: 'middle'
+
+            ToggleButton:
+                text: '7 dias'
+                group: 'periodo'
+                font_size: '12sp'
+                size_hint_x: 0.1
+                on_press: root.definir_periodo('7')
+
+            ToggleButton:
+                text: '30 dias'
+                group: 'periodo'
+                font_size: '12sp'
+                size_hint_x: 0.1
+                on_press: root.definir_periodo('30')
+
+            ToggleButton:
+                text: '90 dias'
+                group: 'periodo'
+                font_size: '12sp'
+                size_hint_x: 0.1
+                on_press: root.definir_periodo('90')
+
+            ToggleButton:
+                text: 'Todo período'
+                group: 'periodo'
+                font_size: '12sp'
+                size_hint_x: 0.15
+                on_press: root.definir_periodo('0')
+
+            ToggleButton:
+                text: 'Personalizado'
+                group: 'periodo'
+                font_size: '12sp'
+                size_hint_x: 0.15
+                on_press: root.definir_periodo('personalizado')
+
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_x: 0.3
+                spacing: 5
+
+                Label:
+                    text: 'De:'
+                    font_size: '12sp'
+                    color: 1, 1, 1, 1
+                    size_hint_x: 0.2
+                    text_size: self.size
+                    halign: 'center'
+                    valign: 'middle'
+
+                TextInput:
+                    id: entry_data_inicio
+                    hint_text: 'DD/MM/AAAA'
+                    font_size: '12sp'
+                    size_hint_x: 0.35
+                    multiline: False
+                    background_color: 0.20, 0.25, 0.33, 1
+                    foreground_color: 1, 1, 1, 1
+                    cursor_color: 1, 1, 1, 1
+
+                Label:
+                    text: 'Até:'
+                    font_size: '12sp'
+                    color: 1, 1, 1, 1
+                    size_hint_x: 0.2
+                    text_size: self.size
+                    halign: 'center'
+                    valign: 'middle'
+
+                TextInput:
+                    id: entry_data_fim
+                    hint_text: 'DD/MM/AAAA'
+                    font_size: '12sp'
+                    size_hint_x: 0.35
+                    multiline: False
+                    background_color: 0.20, 0.25, 0.33, 1
+                    foreground_color: 1, 1, 1, 1
+                    cursor_color: 1, 1, 1, 1
+
+            Button:
+                text: 'Usar'
+                font_size: '12sp'
+                size_hint_x: 0.1
+                background_color: 0.23, 0.51, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.usar_periodo_personalizado(True)
+
+        # Lista de Transações
+        ScrollView:
+            id: scroll_extrato
+            do_scroll_x: False
+            bar_width: '10dp'
+
+            BoxLayout:
+                id: lista_transacoes
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: '5dp'

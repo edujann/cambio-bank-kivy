@@ -1,0 +1,453 @@
+#:kivy 2.0.0
+#:import dp kivy.metrics.dp
+
+<TelaMeusDados>:
+    name: "meus_dados"
+    
+    BoxLayout:
+        orientation: "vertical"
+        padding: 0
+        spacing: 0
+        
+        canvas.before:
+            Color:
+                rgba: 0.06, 0.09, 0.16, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        
+        # 🔥 HEADER FIXO (fora do scroll)
+        BoxLayout:
+            orientation: "horizontal"
+            size_hint_y: None
+            height: dp(60)
+            padding: [dp(20), dp(10)]
+            spacing: dp(10)
+            
+            Button:
+                text: "‹ VOLTAR"
+                font_size: '14sp'
+                bold: True
+                size_hint_x: None
+                width: dp(100)
+                background_color: 0.55, 0.36, 0.96, 1
+                color: 1, 1, 1, 1
+                on_press: root.voltar_dashboard()
+            
+            Label:
+                text: "MEUS DADOS"
+                font_size: '18sp'
+                bold: True
+                color: 1, 1, 1, 1
+                halign: 'center'
+                valign: 'middle'
+                text_size: self.width, None
+            
+            Widget:
+                size_hint_x: None
+                width: dp(100)
+        
+        # 🔥 ÁREA PRINCIPAL COM SCROLL (ocupará o espaço disponível)
+        ScrollView:
+            id: scroll_principal  # 🔥 ID CORRETO PARA A SCROLLVIEW
+            size_hint_y: 1  # 🔥 Ocupa todo o espaço disponível
+            do_scroll_x: False
+            
+            BoxLayout:
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+                padding: [dp(20), dp(10), dp(20), dp(10)]
+                spacing: dp(15)
+                
+                # DADOS PESSOAIS
+                BoxLayout:
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: dp(765)
+                    padding: [dp(15), dp(15)]
+                    spacing: dp(10)
+                    
+                    canvas.before:
+                        Color:
+                            rgba: 0.12, 0.16, 0.23, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [dp(8),]
+                    
+                    Label:
+                        text: "DADOS PESSOAIS"
+                        font_size: '16sp'
+                        bold: True
+                        color: 0.23, 0.51, 0.96, 1
+                        size_hint_y: None
+                        height: dp(30)
+                        halign: 'left'
+                        text_size: self.width, None
+                    
+                    # Nome Completo
+                    Label:
+                        text: "Nome Completo / Razão Social"
+                        font_size: '13sp'
+                        bold: True
+                        color: 0.7, 0.8, 1, 1
+                        size_hint_y: None
+                        height: dp(20)
+                        halign: 'left'
+                        text_size: self.width, None
+                    
+                    TextInput:
+                        id: entry_nome
+                        font_size: '14sp'
+                        background_color: 0.20, 0.25, 0.33, 1
+                        foreground_color: 1, 1, 1, 1
+                        cursor_color: 1, 1, 1, 1
+                        size_hint_y: None
+                        height: dp(40)
+                        multiline: False
+                        padding: [dp(10), dp(10)]
+                        on_text_validate: root.focus_next_field('entry_documento')
+                    
+                    # Documento
+                    Label:
+                        text: "CPF / CNPJ"
+                        font_size: '13sp'
+                        bold: True
+                        color: 0.7, 0.8, 1, 1
+                        size_hint_y: None
+                        height: dp(20)
+                        halign: 'left'
+                        text_size: self.width, None
+                    
+                    TextInput:
+                        id: entry_documento
+                        font_size: '14sp'
+                        background_color: 0.20, 0.25, 0.33, 1
+                        foreground_color: 1, 1, 1, 1
+                        cursor_color: 1, 1, 1, 1
+                        size_hint_y: None
+                        height: dp(40)
+                        multiline: False
+                        padding: [dp(10), dp(10)]
+                        on_text_validate: root.focus_next_field('entry_email')
+                    
+                    # Email
+                    Label:
+                        text: "Email *"
+                        font_size: '13sp'
+                        bold: True
+                        color: 0.7, 0.8, 1, 1
+                        size_hint_y: None
+                        height: dp(20)
+                        halign: 'left'
+                        text_size: self.width, None
+                    
+                    TextInput:
+                        id: entry_email
+                        font_size: '14sp'
+                        background_color: 0.20, 0.25, 0.33, 1
+                        foreground_color: 1, 1, 1, 1
+                        cursor_color: 1, 1, 1, 1
+                        size_hint_y: None
+                        height: dp(40)
+                        multiline: False
+                        padding: [dp(10), dp(10)]
+                        on_text_validate: root.focus_next_field('entry_telefone')
+                    
+                    # Telefone
+                    Label:
+                        text: "Telefone *"
+                        font_size: '13sp'
+                        bold: True
+                        color: 0.7, 0.8, 1, 1
+                        size_hint_y: None
+                        height: dp(20)
+                        halign: 'left'
+                        text_size: self.width, None
+                    
+                    TextInput:
+                        id: entry_telefone
+                        font_size: '14sp'
+                        background_color: 0.20, 0.25, 0.33, 1
+                        foreground_color: 1, 1, 1, 1
+                        cursor_color: 1, 1, 1, 1
+                        size_hint_y: None
+                        height: dp(40)
+                        multiline: False
+                        padding: [dp(10), dp(10)]
+                        on_text_validate: root.focus_next_field('entry_endereco')
+                    
+                    # Endereço
+                    Label:
+                        text: "Endereço"
+                        font_size: '13sp'
+                        bold: True
+                        color: 0.7, 0.8, 1, 1
+                        size_hint_y: None
+                        height: dp(20)
+                        halign: 'left'
+                        text_size: self.width, None
+                    
+                    TextInput:
+                        id: entry_endereco
+                        font_size: '14sp'
+                        background_color: 0.20, 0.25, 0.33, 1
+                        foreground_color: 1, 1, 1, 1
+                        cursor_color: 1, 1, 1, 1
+                        size_hint_y: None
+                        height: dp(40)
+                        multiline: False
+                        padding: [dp(10), dp(10)]
+                        on_text_validate: root.focus_next_field('entry_cidade')
+                    
+                    # Cidade
+                    Label:
+                        text: "Cidade"
+                        font_size: '13sp'
+                        bold: True
+                        color: 0.7, 0.8, 1, 1
+                        size_hint_y: None
+                        height: dp(20)
+                        halign: 'left'
+                        text_size: self.width, None
+                    
+                    TextInput:
+                        id: entry_cidade
+                        font_size: '14sp'
+                        background_color: 0.20, 0.25, 0.33, 1
+                        foreground_color: 1, 1, 1, 1
+                        cursor_color: 1, 1, 1, 1
+                        size_hint_y: None
+                        height: dp(40)
+                        multiline: False
+                        padding: [dp(10), dp(10)]
+                        on_text_validate: root.focus_next_field('entry_cep')
+
+                    # CEP
+                    Label:
+                        text: "CEP"
+                        font_size: '13sp'
+                        bold: True
+                        color: 0.7, 0.8, 1, 1
+                        size_hint_y: None
+                        height: dp(20)
+                        halign: 'left'
+                        text_size: self.width, None
+                    
+                    TextInput:
+                        id: entry_cep
+                        font_size: '14sp'
+                        background_color: 0.20, 0.25, 0.33, 1
+                        foreground_color: 1, 1, 1, 1
+                        cursor_color: 1, 1, 1, 1
+                        size_hint_y: None
+                        height: dp(40)
+                        multiline: False
+                        padding: [dp(10), dp(10)]
+                        on_text_validate: root.focus_next_field('entry_estado')
+                    
+                    # Estado
+                    Label:
+                        text: "Estado"
+                        font_size: '13sp'
+                        bold: True
+                        color: 0.7, 0.8, 1, 1
+                        size_hint_y: None
+                        height: dp(20)
+                        halign: 'left'
+                        text_size: self.width, None
+                    
+                    TextInput:
+                        id: entry_estado
+                        font_size: '14sp'
+                        background_color: 0.20, 0.25, 0.33, 1
+                        foreground_color: 1, 1, 1, 1
+                        cursor_color: 1, 1, 1, 1
+                        size_hint_y: None
+                        height: dp(40)
+                        multiline: False
+                        padding: [dp(10), dp(10)]
+                        on_text_validate: root.focus_next_field('entry_pais')
+                    
+                    # País
+                    Label:
+                        text: "País"
+                        font_size: '13sp'
+                        bold: True
+                        color: 0.7, 0.8, 1, 1
+                        size_hint_y: None
+                        height: dp(20)
+                        halign: 'left'
+                        text_size: self.width, None
+                    
+                    TextInput:
+                        id: entry_pais
+                        font_size: '14sp'
+                        background_color: 0.20, 0.25, 0.33, 1
+                        foreground_color: 1, 1, 1, 1
+                        cursor_color: 1, 1, 1, 1
+                        size_hint_y: None
+                        height: dp(40)
+                        multiline: False
+                        padding: [dp(10), dp(10)]
+                        on_text_validate: root.focus_next_field('entry_senha_atual')
+                
+                # ALTERAÇÃO DE SENHA
+                BoxLayout:
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: dp(280)
+                    padding: [dp(15), dp(15)]
+                    spacing: dp(10)
+                    
+                    canvas.before:
+                        Color:
+                            rgba: 0.12, 0.16, 0.23, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [dp(8),]
+                    
+                    Label:
+                        text: "ALTERAÇÃO DE SENHA"
+                        font_size: '16sp'
+                        bold: True
+                        color: 0.23, 0.51, 0.96, 1
+                        size_hint_y: None
+                        height: dp(30)
+                        halign: 'left'
+                        text_size: self.width, None
+                    
+                    # Senha Atual
+                    Label:
+                        text: "Senha Atual"
+                        font_size: '13sp'
+                        bold: True
+                        color: 0.7, 0.8, 1, 1
+                        size_hint_y: None
+                        height: dp(20)
+                        halign: 'left'
+                        text_size: self.width, None
+                    
+                    TextInput:
+                        id: entry_senha_atual
+                        font_size: '14sp'
+                        background_color: 0.20, 0.25, 0.33, 1
+                        foreground_color: 1, 1, 1, 1
+                        cursor_color: 1, 1, 1, 1
+                        size_hint_y: None
+                        height: dp(40)
+                        password: True
+                        multiline: False
+                        padding: [dp(10), dp(10)]
+                        on_text_validate: root.focus_next_field('entry_nova_senha')
+                    
+                    # Nova Senha
+                    Label:
+                        text: "Nova Senha"
+                        font_size: '13sp'
+                        bold: True
+                        color: 0.7, 0.8, 1, 1
+                        size_hint_y: None
+                        height: dp(20)
+                        halign: 'left'
+                        text_size: self.width, None
+                    
+                    TextInput:
+                        id: entry_nova_senha
+                        font_size: '14sp'
+                        background_color: 0.20, 0.25, 0.33, 1
+                        foreground_color: 1, 1, 1, 1
+                        cursor_color: 1, 1, 1, 1
+                        size_hint_y: None
+                        height: dp(40)
+                        password: True
+                        multiline: False
+                        padding: [dp(10), dp(10)]
+                        on_text_validate: root.focus_next_field('entry_confirmar_senha')
+                    
+                    # Confirmar Senha
+                    Label:
+                        text: "Confirmar Nova Senha"
+                        font_size: '13sp'
+                        bold: True
+                        color: 0.7, 0.8, 1, 1
+                        size_hint_y: None
+                        height: dp(20)
+                        halign: 'left'
+                        text_size: self.width, None
+                    
+                    TextInput:
+                        id: entry_confirmar_senha
+                        font_size: '14sp'
+                        background_color: 0.20, 0.25, 0.33, 1
+                        foreground_color: 1, 1, 1, 1
+                        cursor_color: 1, 1, 1, 1
+                        size_hint_y: None
+                        height: dp(40)
+                        password: True
+                        multiline: False
+                        padding: [dp(10), dp(10)]
+                        on_text_validate: root.salvar_alteracoes()
+                
+                # MINHAS CONTAS
+                BoxLayout:
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: dp(200)
+                    padding: [dp(15), dp(15)]
+                    spacing: dp(10)
+                    
+                    canvas.before:
+                        Color:
+                            rgba: 0.12, 0.16, 0.23, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [dp(8),]
+                    
+                    Label:
+                        text: "MINHAS CONTAS"
+                        font_size: '16sp'
+                        bold: True
+                        color: 0.23, 0.51, 0.96, 1
+                        size_hint_y: None
+                        height: dp(30)
+                        halign: 'left'
+                        text_size: self.width, None
+                    
+                    ScrollView:
+                        size_hint_y: 1
+                        do_scroll_x: False
+                        
+                        BoxLayout:
+                            id: contas_container
+                            orientation: "vertical"
+                            size_hint_y: None
+                            height: self.minimum_height
+                            spacing: dp(8)
+        
+        # 🔥 BOTÕES FIXOS FORA DA SCROLLVIEW
+        BoxLayout:
+            orientation: "horizontal"
+            size_hint_y: None
+            height: dp(80)  # Altura fixa
+            padding: [dp(20), dp(15)]
+            spacing: dp(15)
+            
+            Button:
+                text: "SALVAR ALTERAÇÕES"
+                font_size: '16sp'
+                bold: True
+                background_color: 0.2, 0.8, 0.2, 1
+                color: 1, 1, 1, 1
+                on_press: root.salvar_alteracoes()
+            
+            Button:
+                text: "CANCELAR"
+                font_size: '16sp'
+                bold: True
+                background_color: 0.96, 0.36, 0.36, 1
+                color: 1, 1, 1, 1
+                on_press: root.voltar_dashboard()

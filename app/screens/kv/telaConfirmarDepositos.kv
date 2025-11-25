@@ -1,0 +1,215 @@
+<TelaConfirmarDepositos>:
+    BoxLayout:
+        orientation: 'vertical'
+        padding: [20, 20, 20, 20]
+        spacing: 15
+        
+        canvas:
+            Color:
+                rgba: 0.06, 0.09, 0.16, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        
+        # Header CORRIGIDO
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: dp(60)
+            spacing: dp(15)
+            
+            Button:
+                text: '< Voltar'
+                size_hint_x: 0.2
+                background_color: 0.55, 0.36, 0.96, 1
+                on_press: root.voltar_dashboard()
+            
+            Label:
+                text: 'CONFIRMAR DEPÓSITOS'
+                font_size: '20sp'
+                bold: True
+                color: 1, 1, 1, 1
+                halign: 'center'
+                size_hint_x: 0.6  # 🔥 CORREÇÃO: 0.6 para o título
+                
+            # Espaço vazio da direita para compensar o botão
+            Widget:
+                size_hint_x: 0.2
+                opacity: 0  # Invisível
+        
+        ScrollView:
+            do_scroll_x: False
+            
+            GridLayout:
+                cols: 1
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(15)
+                padding: [10, 10, 10, 10]
+                
+                # Cliente
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: dp(80)
+                    
+                    Label:
+                        text: 'Cliente:'
+                        color: 0.7, 0.8, 1, 1
+                        font_size: '14sp'
+                        size_hint_y: 0.4
+                        halign: 'left'
+                    
+                    Spinner:
+                        id: spinner_cliente
+                        text: 'Selecione o cliente'
+                        background_color: 0.2, 0.25, 0.33, 1
+                        color: 1, 1, 1, 1
+                        size_hint_y: 0.6
+                        on_text: root.on_cliente_selecionado(self.text)
+                        on_is_open: if not self.is_open: root.proximo_campo()  # 🔥 NOVO
+
+                # Conta do Cliente
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: dp(80)
+                    
+                    Label:
+                        text: 'Conta do Cliente:'
+                        color: 0.7, 0.8, 1, 1
+                        font_size: '14sp'
+                        size_hint_y: 0.4
+                        halign: 'left'
+                    
+                    Spinner:
+                        id: spinner_conta_cliente
+                        text: 'Selecione a conta do cliente'
+                        background_color: 0.2, 0.25, 0.33, 1
+                        color: 1, 1, 1, 1
+                        size_hint_y: 0.6
+                        on_text: root.on_conta_cliente_selecionada(self.text)
+                        on_is_open: if not self.is_open: root.proximo_campo()  # 🔥 NOVO
+
+                # Conta da Empresa
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: dp(80)
+                    
+                    Label:
+                        text: 'Conta da Empresa:'
+                        color: 0.7, 0.8, 1, 1
+                        font_size: '14sp'
+                        size_hint_y: 0.4
+                        halign: 'left'
+                    
+                    Spinner:
+                        id: spinner_conta_empresa
+                        text: 'Selecione a conta da empresa'
+                        background_color: 0.2, 0.25, 0.33, 1
+                        color: 1, 1, 1, 1
+                        size_hint_y: 0.6
+                        on_is_open: if not self.is_open: root.proximo_campo()  # 🔥 NOVO
+
+                # Banco de Origem com layout dinâmico
+                BoxLayout:
+                    id: layout_banco
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: dp(80)
+                    spacing: dp(5)
+                    
+                    Label:
+                        text: 'Banco de Origem:'
+                        color: 0.7, 0.8, 1, 1
+                        font_size: '14sp'
+                        size_hint_y: 0.4
+                        halign: 'left'
+                    
+                    Spinner:
+                        id: spinner_banco_origem
+                        text: 'Outro Banco'
+                        background_color: 0.2, 0.25, 0.33, 1
+                        color: 1, 1, 1, 1
+                        size_hint_y: 0.6
+                        on_is_open: if not self.is_open: root.proximo_campo()  # 🔥 NOVO
+                        # O evento on_text é vinculado no Python
+                        
+                # Nome do Remetente
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: dp(80)
+                    
+                    Label:
+                        text: 'Nome do Remetente:'
+                        color: 0.7, 0.8, 1, 1
+                        font_size: '14sp'
+                        size_hint_y: 0.4
+                        halign: 'left'
+                    
+                    TextInput:
+                        id: entry_remetente
+                        multiline: False
+                        background_color: 0.2, 0.25, 0.33, 1
+                        foreground_color: 1, 1, 1, 1
+                        size_hint_y: 0.6
+                        padding: [10, 10]
+                        halign: 'center'  # 🔥 NOVO: Centralizar texto
+                        on_focus: root.proximo_campo() if not self.focus else None
+                
+                # Valor do Depósito - AGORA EM 3 COLUNAS
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: dp(80)
+                    
+                    Label:
+                        text: 'Valor do Depósito:'
+                        color: 0.7, 0.8, 1, 1
+                        font_size: '14sp'
+                        size_hint_y: 0.4
+                        halign: 'left'
+                    
+                    # Container com 3 colunas (4:2:4)
+                    BoxLayout:
+                        orientation: 'horizontal'
+                        size_hint_y: 0.6
+                        spacing: dp(5)
+                        
+                        # Coluna esquerda vazia (4 partes)
+                        BoxLayout:
+                            size_hint_x: 4
+                        
+                        # Campo valor (2 partes)
+                        CampoValor:
+                            id: entry_valor
+                            multiline: False
+                            background_color: 0.2, 0.25, 0.33, 1
+                            foreground_color: 1, 1, 1, 1
+                            size_hint_x: 2
+                            padding: [10, 10]
+                            hint_text: "0.00"
+                            input_filter: 'float'
+                            halign: 'right'
+                            on_focus: root.on_campo_valor_focado(self, self.focus)
+                            on_text: root.formatar_valor_deposito(self, self.text)
+                            on_text_validate: root.confirmar_deposito()
+                            on_focus: root.proximo_campo() if not self.focus else None
+                            on_text_validate: root.proximo_campo()  # 🔥 NOVO: Enter também avança
+
+                        # Coluna direita vazia (4 partes)
+                        BoxLayout:
+                            size_hint_x: 4
+                
+                # Botão Confirmar
+                Button:
+                    text: 'CONFIRMAR DEPÓSITO'
+                    font_size: '16sp'
+                    bold: True
+                    background_color: 0.23, 0.51, 0.96, 1
+                    color: 1, 1, 1, 1
+                    size_hint_y: None
+                    height: dp(50)
+                    on_press: root.confirmar_deposito()

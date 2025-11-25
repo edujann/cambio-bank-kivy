@@ -1,0 +1,72 @@
+{
+    "BANK_EUR_001": {
+        "numero": "BANK_EUR_001",
+        "banco": "Banco Principal",
+        "agencia": null,
+        "moeda": "EUR",
+        "saldo": 2500000.0,
+        "tipo": "empresa",
+        "data_criacao": null,
+        "saldo_inicial": 0.0
+    },
+    "BANK_GBP_001": {
+        "numero": "BANK_GBP_001",
+        "banco": "Banco Principal",
+        "agencia": null,
+        "moeda": "GBP",
+        "saldo": 500000.0,
+        "tipo": "empresa",
+        "data_criacao": null,
+        "saldo_inicial": 0.0
+    },
+    "BANK_BRL_001": {
+        "numero": "BANK_BRL_001",
+        "banco": "Banco Principal",
+        "agencia": null,
+        "moeda": "BRL",
+        "saldo": 3000000.0,
+        "tipo": "empresa",
+        "data_criacao": null,
+        "saldo_inicial": 0.0
+    },
+    "BANK_USDT_001, 148473287": {
+        "numero": "BANK_USDT_001, 148473287",
+        "banco": "BANK OF AMERICA",
+        "agencia": null,
+        "moeda": "UST",
+        "saldo": 700000.0,
+        "tipo": "empresa",
+        "data_criacao": null,
+        "saldo_inicial": 0.0
+    },
+    "BANK_USD_001": {
+        "numero": "BANK_USD_001",
+        "banco": "Banco Principal",
+        "agencia": null,
+        "moeda": "USD",
+        "saldo": 995000.0,
+        "tipo": "empresa",
+        "data_criacao": null,
+        "saldo_inicial": 0.0
+    },
+    "BRL": {
+        "numero": "BRL",
+        "banco": "JACKS BANK",
+        "agencia": null,
+        "moeda": "BRL",
+        "saldo": 0.0,
+        "tipo": "empresa",
+        "data_criacao": null,
+        "saldo_inicial": 0.0
+    },
+    "USD": {
+        "numero": "USD",
+        "banco": "JACKS BANK",
+        "agencia": null,
+        "moeda": "USD",
+        "saldo": 0.0,
+        "tipo": "empresa",
+        "data_criacao": null,
+        "saldo_inicial": 0.0
+    }
+}
