@@ -1,205 +1,5 @@
 {
     "spreads_clientes": {
-        "nike": {
-            "BRL_EUR": {
-                "venda": 0.6,
-                "compra": 0.6
-            },
-            "BRL_GBP": {
-                "venda": 0.6,
-                "compra": 0.6
-            },
-            "BRL_USD": {
-                "venda": 0.6,
-                "compra": 0.6
-            },
-            "EUR_BRL": {
-                "venda": 0.6,
-                "compra": 0.6
-            },
-            "EUR_GBP": {
-                "venda": 0.6,
-                "compra": 0.6
-            },
-            "EUR_USD": {
-                "venda": 0.6,
-                "compra": 0.6
-            },
-            "GBP_BRL": {
-                "venda": 0.6,
-                "compra": 0.6
-            },
-            "GBP_EUR": {
-                "venda": 0.6,
-                "compra": 0.6
-            },
-            "GBP_USD": {
-                "venda": 0.6,
-                "compra": 0.6
-            },
-            "USD_BRL": {
-                "venda": 0.6,
-                "compra": 0.6
-            },
-            "USD_EUR": {
-                "venda": 0.6,
-                "compra": 0.6
-            },
-            "USD_GBP": {
-                "venda": 0.6,
-                "compra": 0.6
-            }
-        },
-        "adidas": {
-            "BRL_EUR": {
-                "venda": 0.3,
-                "compra": 0.3
-            },
-            "BRL_GBP": {
-                "venda": 0.3,
-                "compra": 0.3
-            },
-            "BRL_USD": {
-                "venda": 0.3,
-                "compra": 0.3
-            },
-            "EUR_BRL": {
-                "venda": 0.3,
-                "compra": 0.3
-            },
-            "EUR_GBP": {
-                "venda": 0.3,
-                "compra": 0.3
-            },
-            "EUR_USD": {
-                "venda": 0.3,
-                "compra": 0.3
-            },
-            "GBP_BRL": {
-                "venda": 0.3,
-                "compra": 0.3
-            },
-            "GBP_EUR": {
-                "venda": 0.3,
-                "compra": 0.3
-            },
-            "GBP_USD": {
-                "venda": 0.3,
-                "compra": 0.3
-            },
-            "USD_BRL": {
-                "venda": 0.3,
-                "compra": 0.3
-            },
-            "USD_EUR": {
-                "venda": 0.3,
-                "compra": 0.3
-            },
-            "USD_GBP": {
-                "venda": 0.3,
-                "compra": 0.3
-            }
-        },
-        "texaco": {
-            "BRL_EUR": {
-                "venda": 0.5,
-                "compra": 0.5
-            },
-            "BRL_GBP": {
-                "venda": 0.5,
-                "compra": 0.5
-            },
-            "BRL_USD": {
-                "venda": 0.5,
-                "compra": 0.5
-            },
-            "EUR_BRL": {
-                "venda": 0.5,
-                "compra": 0.5
-            },
-            "EUR_GBP": {
-                "venda": 0.5,
-                "compra": 0.5
-            },
-            "EUR_USD": {
-                "venda": 0.5,
-                "compra": 0.5
-            },
-            "GBP_BRL": {
-                "venda": 0.5,
-                "compra": 0.5
-            },
-            "GBP_EUR": {
-                "venda": 0.5,
-                "compra": 0.5
-            },
-            "GBP_USD": {
-                "venda": 0.5,
-                "compra": 0.5
-            },
-            "USD_BRL": {
-                "venda": 0.5,
-                "compra": 0.5
-            },
-            "USD_EUR": {
-                "venda": 0.5,
-                "compra": 0.5
-            },
-            "USD_GBP": {
-                "venda": 0.5,
-                "compra": 0.5
-            }
-        },
-        "bmw": {
-            "BRL_EUR": {
-                "venda": 0.5,
-                "compra": 0.5
-            },
-            "BRL_GBP": {
-                "venda": 0.5,
-                "compra": 0.5
-            },
-            "BRL_USD": {
-                "venda": 0.5,
-                "compra": 0.5
-            },
-            "EUR_BRL": {
-                "venda": 0.5,
-                "compra": 0.5
-            },
-            "EUR_GBP": {
-                "venda": 0.5,
-                "compra": 0.5
-            },
-            "EUR_USD": {
-                "venda": 0.5,
-                "compra": 0.5
-            },
-            "GBP_BRL": {
-                "venda": 0.5,
-                "compra": 0.5
-            },
-            "GBP_EUR": {
-                "venda": 0.5,
-                "compra": 0.5
-            },
-            "GBP_USD": {
-                "venda": 0.5,
-                "compra": 0.5
-            },
-            "USD_BRL": {
-                "venda": 0.5,
-                "compra": 0.5
-            },
-            "USD_EUR": {
-                "venda": 0.5,
-                "compra": 0.5
-            },
-            "USD_GBP": {
-                "venda": 0.5,
-                "compra": 0.5
-            }
-        },
         "ibiza": {
             "BRL_EUR": {
                 "venda": 0.5,
@@ -384,6 +184,206 @@
                 "compra": 0.5
             }
         },
+        "nike": {
+            "BRL_EUR": {
+                "venda": 0.6,
+                "compra": 0.6
+            },
+            "BRL_GBP": {
+                "venda": 0.6,
+                "compra": 0.6
+            },
+            "BRL_USD": {
+                "venda": 0.6,
+                "compra": 0.6
+            },
+            "EUR_BRL": {
+                "venda": 0.6,
+                "compra": 0.6
+            },
+            "EUR_GBP": {
+                "venda": 0.6,
+                "compra": 0.6
+            },
+            "EUR_USD": {
+                "venda": 0.6,
+                "compra": 0.6
+            },
+            "GBP_BRL": {
+                "venda": 0.6,
+                "compra": 0.6
+            },
+            "GBP_EUR": {
+                "venda": 0.6,
+                "compra": 0.6
+            },
+            "GBP_USD": {
+                "venda": 0.6,
+                "compra": 0.6
+            },
+            "USD_BRL": {
+                "venda": 0.6,
+                "compra": 0.6
+            },
+            "USD_EUR": {
+                "venda": 0.6,
+                "compra": 0.6
+            },
+            "USD_GBP": {
+                "venda": 0.6,
+                "compra": 0.6
+            }
+        },
+        "texaco": {
+            "BRL_EUR": {
+                "venda": 0.5,
+                "compra": 0.5
+            },
+            "BRL_GBP": {
+                "venda": 0.5,
+                "compra": 0.5
+            },
+            "BRL_USD": {
+                "venda": 0.5,
+                "compra": 0.5
+            },
+            "EUR_BRL": {
+                "venda": 0.5,
+                "compra": 0.5
+            },
+            "EUR_GBP": {
+                "venda": 0.5,
+                "compra": 0.5
+            },
+            "EUR_USD": {
+                "venda": 0.5,
+                "compra": 0.5
+            },
+            "GBP_BRL": {
+                "venda": 0.5,
+                "compra": 0.5
+            },
+            "GBP_EUR": {
+                "venda": 0.5,
+                "compra": 0.5
+            },
+            "GBP_USD": {
+                "venda": 0.5,
+                "compra": 0.5
+            },
+            "USD_BRL": {
+                "venda": 0.5,
+                "compra": 0.5
+            },
+            "USD_EUR": {
+                "venda": 0.5,
+                "compra": 0.5
+            },
+            "USD_GBP": {
+                "venda": 0.5,
+                "compra": 0.5
+            }
+        },
+        "bmw": {
+            "BRL_EUR": {
+                "venda": 0.5,
+                "compra": 0.5
+            },
+            "BRL_GBP": {
+                "venda": 0.5,
+                "compra": 0.5
+            },
+            "BRL_USD": {
+                "venda": 0.5,
+                "compra": 0.5
+            },
+            "EUR_BRL": {
+                "venda": 0.5,
+                "compra": 0.5
+            },
+            "EUR_GBP": {
+                "venda": 0.5,
+                "compra": 0.5
+            },
+            "EUR_USD": {
+                "venda": 0.5,
+                "compra": 0.5
+            },
+            "GBP_BRL": {
+                "venda": 0.5,
+                "compra": 0.5
+            },
+            "GBP_EUR": {
+                "venda": 0.5,
+                "compra": 0.5
+            },
+            "GBP_USD": {
+                "venda": 0.5,
+                "compra": 0.5
+            },
+            "USD_BRL": {
+                "venda": 0.5,
+                "compra": 0.5
+            },
+            "USD_EUR": {
+                "venda": 0.5,
+                "compra": 0.5
+            },
+            "USD_GBP": {
+                "venda": 0.5,
+                "compra": 0.5
+            }
+        },
+        "adidas": {
+            "BRL_EUR": {
+                "venda": 0.3,
+                "compra": 0.3
+            },
+            "BRL_GBP": {
+                "venda": 0.3,
+                "compra": 0.3
+            },
+            "BRL_USD": {
+                "venda": 0.3,
+                "compra": 0.3
+            },
+            "EUR_BRL": {
+                "venda": 0.3,
+                "compra": 0.3
+            },
+            "EUR_GBP": {
+                "venda": 0.3,
+                "compra": 0.3
+            },
+            "EUR_USD": {
+                "venda": 0.3,
+                "compra": 0.3
+            },
+            "GBP_BRL": {
+                "venda": 0.3,
+                "compra": 0.3
+            },
+            "GBP_EUR": {
+                "venda": 0.3,
+                "compra": 0.3
+            },
+            "GBP_USD": {
+                "venda": 0.3,
+                "compra": 0.3
+            },
+            "USD_BRL": {
+                "venda": 0.3,
+                "compra": 0.3
+            },
+            "USD_EUR": {
+                "venda": 0.3,
+                "compra": 0.3
+            },
+            "USD_GBP": {
+                "venda": 0.3,
+                "compra": 0.3
+            }
+        },
         "joao.silva": {
             "EUR_BRL": {
                 "venda": 0.8,
@@ -455,6 +455,24 @@
                 "venda": 0.6,
                 "compra": 0.6
             }
+        },
+        "admin": {
+            "USD_BRL": {
+                "compra": 0.5,
+                "venda": 0.5
+            },
+            "EUR_BRL": {
+                "compra": 0.5,
+                "venda": 0.5
+            },
+            "GBP_BRL": {
+                "compra": 0.5,
+                "venda": 0.5
+            },
+            "BRL_USD": {
+                "compra": 0.5,
+                "venda": 0.5
+            }
         }
     },
     "permissoes_cambio": {
@@ -477,15 +495,15 @@
     },
     "horarios_clientes": {
         "apple": {
+            "fim": "23:00",
+            "inicio": "10:00",
             "dias_semana": [
                 0,
                 1,
                 2,
                 3,
                 4
-            ],
-            "inicio": "10:00",
-            "fim": "23:00"
+            ]
         }
     }
 }

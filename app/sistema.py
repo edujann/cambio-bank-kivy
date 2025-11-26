@@ -1432,45 +1432,43 @@ class SistemaCambioPremium:
             print(f"❌ Erro ao cadastrar cliente: {e}")
             return False, str(e)
     
-    def criar_contas_cliente(self, username, nome_cliente, moedas_selecionadas):
-        """Cria contas para um novo cliente baseado nas moedas selecionadas"""
-        try:
-            contas_criadas = []
+    def criar_contas_cliente(self, username, nome_cliente, moedas):
+        """Cria contas para um cliente localmente e no Supabase"""
+        contas_criadas = []
+        
+        for moeda in moedas:
+            # Gerar número de conta único
+            while True:
+                numero_conta = str(random.randint(100000000, 999999999))
+                if numero_conta not in self.contas:
+                    break
             
-            for moeda in moedas_selecionadas:
-                # Validar moeda (apenas 3 letras maiúsculas)
-                if len(moeda) != 3 or not moeda.isalpha():
-                    print(f"⚠️ Moeda inválida ignorada: {moeda}")
-                    continue
-                    
-                moeda = moeda.upper()
-                conta_numero = str(random.randint(100000000, 999999999))
-                
-                # Garantir que o número da conta é único
-                while conta_numero in self.contas:
-                    conta_numero = str(random.randint(100000000, 999999999))
-                
-                self.contas[conta_numero] = {
-                    'moeda': moeda,
-                    'saldo': 0.00,
-                    'cliente': username,
-                    'cliente_nome': nome_cliente,
-                    'data_criacao': datetime.datetime.now().strftime('%Y-%m-%d')
-                }
-                
-                contas_criadas.append(conta_numero)
-                print(f"✅ Conta {conta_numero} criada em {moeda} para {username}")
+            # Criar conta localmente
+            self.contas[numero_conta] = {
+                'numero': numero_conta,
+                'cliente_nome': nome_cliente,
+                'cliente_id': username,
+                'moeda': moeda,
+                'saldo': 0.0,
+                'tipo': 'corrente',
+                'data_criacao': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
             
-            # Associar contas ao usuário
-            if contas_criadas:
-                self.usuarios[username]['contas'] = contas_criadas
-                self.salvar_contas()
-                print(f"💰 {len(contas_criadas)} contas criadas para {username}")
-            else:
-                print(f"⚠️ Nenhuma conta válida criada para {username}")
+            # Adicionar conta ao usuário
+            self.usuarios[username]['contas'].append(numero_conta)
+            contas_criadas.append(numero_conta)
             
-        except Exception as e:
-            print(f"❌ Erro ao criar contas: {e}")
+            print(f"✅ Conta {numero_conta} criada em {moeda} para {username}")
+        
+        # 🔥 NOVO: Criar contas no Supabase também
+        if hasattr(self, 'supabase') and self.supabase.conectado:
+            try:
+                supabase_contas = self.supabase.criar_contas_supabase(username, nome_cliente, moedas)
+                print(f"✅ {len(supabase_contas)} contas criadas no Supabase")
+            except Exception as e:
+                print(f"⚠️ Contas criadas localmente, mas erro no Supabase: {e}")
+        
+        return contas_criadas
     
     def listar_clientes(self):
         """Retorna lista de todos os clientes"""

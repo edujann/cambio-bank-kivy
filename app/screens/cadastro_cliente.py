@@ -155,10 +155,10 @@ class TelaCadastroCliente(Screen):
         return moedas_selecionadas
     
     def cadastrar_cliente(self):
-        """Processa o cadastro do cliente"""
+        """Processa o cadastro do cliente - VERSÃO COM SUPABASE"""
         sistema = App.get_running_app().sistema
         
-        print("👥 Processando cadastro de cliente...")
+        print("👥 Processando cadastro de cliente COM SUPABASE...")
         
         # Validar formulário
         valido, mensagem = self.validar_formulario()
@@ -182,17 +182,38 @@ class TelaCadastroCliente(Screen):
                 'moedas_selecionadas': moedas_selecionadas
             }
             
-            # Cadastrar no sistema
-            sucesso, resultado = sistema.cadastrar_cliente(dados_cliente)
+            # 🔥🔥🔥 PASSO 1: VERIFICAR SE USUÁRIO JÁ EXISTE NO SUPABASE
+            print("🔍 Verificando se usuário existe no Supabase...")
+            usuario_existente = sistema.supabase.obter_usuario(dados_cliente['username'])
             
-            if sucesso:
-                print(f"🎉 CLIENTE CADASTRADO COM SUCESSO!")
-                # 🔥 MOSTRAR POPUP DE SUCESSO em vez de voltar direto
+            if usuario_existente:
+                print(f"❌ Usuário '{dados_cliente['username']}' já existe no Supabase!")
+                self.mostrar_erro_cadastro("Usuário já existe! Escolha outro username.")
+                return
+            
+            # 🔥🔥🔥 PASSO 2: CADASTRAR NO SUPABASE (PRIMEIRO!)
+            print("💾 Salvando usuário no Supabase...")
+            sucesso_supabase = sistema.supabase.salvar_usuario(dados_cliente)
+            
+            if not sucesso_supabase:
+                print("❌ Erro ao cadastrar no Supabase!")
+                self.mostrar_erro_cadastro("Erro ao conectar com o banco de dados. Tente novamente.")
+                return
+            
+            print("✅ Usuário salvo no Supabase com sucesso!")
+            
+            # 🔥🔥🔥 PASSO 3: CADASTRAR NO SISTEMA LOCAL (fallback)
+            print("💾 Salvando usuário localmente...")
+            sucesso_local, resultado = sistema.cadastrar_cliente(dados_cliente)
+            
+            if sucesso_local:
+                print(f"🎉 CLIENTE CADASTRADO NO SUPABASE E LOCALMENTE!")
                 self.mostrar_sucesso_cadastro(dados_cliente, moedas_selecionadas)
             else:
-                print(f"❌ Erro no cadastro: {resultado}")
-                self.mostrar_erro_cadastro(resultado)
-            
+                print(f"⚠️ Cliente salvo no Supabase mas erro local: {resultado}")
+                # Mesmo com erro local, mostra sucesso pois está no Supabase
+                self.mostrar_sucesso_cadastro(dados_cliente, moedas_selecionadas)
+                
         except Exception as e:
             print(f"❌ Erro ao cadastrar cliente: {e}")
             self.mostrar_erro_cadastro(f"Erro interno: {str(e)}")

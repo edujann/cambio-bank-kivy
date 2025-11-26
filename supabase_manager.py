@@ -31,32 +31,76 @@ class SupabaseManager:
             print(f"❌ Erro ao obter usuários: {e}")
             return {}
     
-    def salvar_usuario(self, usuario_data):
-        """Salva usuário no Supabase - VERSÃO CORRIGIDA"""
+    def obter_usuario(self, username):
+        """Obtém um usuário pelo username - VERSÃO CORRIGIDA"""
         try:
-            # 🔥 MAPEAMENTO CORRETO DOS CAMPOS
-            dados_supabase = {
-                'username': usuario_data['username'],
-                'senha_hash': usuario_data.get('senha', usuario_data.get('senha_hash', '')),
-                'nome': usuario_data.get('nome', ''),
-                'email': usuario_data.get('email', ''),
-                'documento_hash': usuario_data.get('documento_hash', ''),
-                'telefone': usuario_data.get('telefone', ''),
-                'tipo': usuario_data.get('tipo', 'cliente'),
-                'data_cadastro': usuario_data.get('data_cadastro', '2024-01-01')
+            response = self.client.table('usuarios')\
+                .select('*')\
+                .eq('username', username)\
+                .execute()
+            
+            if response.data:
+                usuario = response.data[0]
+                # 🔥 CORREÇÃO: Mapear TODAS as colunas corretas
+                if 'senha_hash' in usuario:
+                    usuario['senha'] = usuario['senha_hash']
+                if 'documento_hash' in usuario:
+                    usuario['documento'] = usuario['documento_hash']
+                if 'contas' in usuario:
+                    usuario['moedas_selecionadas'] = usuario['contas']
+                # Mapear outras colunas se necessário
+                return usuario
+            return None
+        except Exception as e:
+            print(f"❌ Erro ao obter usuário: {e}")
+            return None
+
+    def salvar_usuario(self, dados_usuario):
+        """Salva/atualiza usuário no Supabase - VERSÃO COM COLUNAS CORRETAS"""
+        try:
+            import hashlib
+            from datetime import datetime
+            
+            # 🔥 CORREÇÃO: Sempre fazer hash da senha
+            senha_original = dados_usuario['senha']
+            senha_hash = hashlib.sha256(senha_original.encode()).hexdigest()
+            
+            # 🔥 CORREÇÃO: Usar colunas que REALMENTE existem
+            usuario_data = {
+                'username': dados_usuario['username'],
+                'senha_hash': senha_hash,
+                'nome': dados_usuario['nome'],
+                'email': dados_usuario['email'],
+                'documento_hash': dados_usuario['documento'],  # ✅ CORRETO
+                'telefone': dados_usuario.get('telefone', ''),
+                'endereco': '',  # ✅ COLUNAS DE ENDEREÇO (vazias por padrão)
+                'cidade': '',
+                'cep': '', 
+                'estado': '',  # ✅ CORREÇÃO: 'estado' (você tinha escrito 'estatdo' no SQL)
+                'pais': '',
+                'tipo': 'cliente',  # ✅ NOVO: Definir tipo como cliente
+                'contas': dados_usuario.get('moedas_selecionadas', []),  # ✅ CORRETO: contas text[]
+                'data_cadastro': datetime.now().isoformat()
             }
             
-            # 🔥 REMOVER CAMPOS QUE NÃO EXISTEM NA TABELA
-            campos_nao_existem = ['contas', 'documento', 'endereco', 'cidade', 'cep', 'estado', 'pais']
-            for campo in campos_nao_existem:
-                if campo in dados_supabase:
-                    del dados_supabase[campo]
+            # Verificar se usuário já existe
+            usuario_existente = self.obter_usuario(dados_usuario['username'])
             
-            response = self.client.table('usuarios').insert(dados_supabase).execute()
-            print(f"✅ Usuário {usuario_data['username']} salvo no Supabase")
+            if usuario_existente:
+                # Atualizar usuário existente
+                response = self.client.table('usuarios')\
+                    .update(usuario_data)\
+                    .eq('username', dados_usuario['username'])\
+                    .execute()
+            else:
+                # Criar novo usuário
+                response = self.client.table('usuarios')\
+                    .insert(usuario_data)\
+                    .execute()
+            
             return True
         except Exception as e:
-            print(f"❌ Erro ao salvar usuário {usuario_data.get('username', '')}: {e}")
+            print(f"❌ Erro ao salvar usuário: {e}")
             return False
     
     def atualizar_usuario(self, username, dados_atualizados):
@@ -70,6 +114,8 @@ class SupabaseManager:
         except Exception as e:
             print(f"❌ Erro ao atualizar usuário: {e}")
             return False
+
+
 
     # 🔐 MÉTODOS DE AUTENTICAÇÃO (para depois)
     def cadastrar_usuario_auth(self, email, senha, dados_usuario):
@@ -317,6 +363,64 @@ class SupabaseManager:
         except Exception as e:
             print(f"❌ Erro ao salvar horário padrão: {e}")
             return False
+
+
+
+    def criar_contas_supabase(self, username, nome_cliente, moedas):
+        """Cria contas para um cliente no Supabase"""
+        try:
+            import random
+            from datetime import datetime
+            
+            contas_criadas = []
+            
+            for moeda in moedas:
+                # Gerar número de conta único (usar como ID)
+                numero_conta = str(random.randint(100000000, 999999999))
+                
+                conta_data = {
+                    'id': numero_conta,  # ✅ COLUNA CORRETA: 'id'
+                    'moeda': moeda,      # ✅ COLUNA CORRETA: 'moeda'
+                    'saldo': 0.0,        # ✅ COLUNA CORRETA: 'saldo'
+                    'cliente_username': username,    # ✅ COLUNA CORRETA
+                    'cliente_nome': nome_cliente,    # ✅ COLUNA CORRETA
+                    'data_criacao': datetime.now().date().isoformat(),  # ✅ Formato DATE
+                    'ativa': True,       # ✅ COLUNA CORRETA: 'ativa'
+                    'created_at': datetime.now().isoformat()  # ✅ COLUNA CORRETA
+                }
+                
+                # Inserir conta no Supabase
+                response = self.client.table('contas')\
+                    .insert(conta_data)\
+                    .execute()
+                
+                if response.data:
+                    contas_criadas.append(numero_conta)
+                    print(f"✅ Conta {numero_conta} criada no Supabase em {moeda} para {username}")
+                else:
+                    print(f"❌ Erro ao criar conta {numero_conta} no Supabase")
+            
+            return contas_criadas
+            
+        except Exception as e:
+            print(f"❌ Erro ao criar contas no Supabase: {e}")
+            return []
+        
+    def obter_conta(self, numero_conta):
+        """Obtém uma conta pelo número (id)"""
+        try:
+            response = self.client.table('contas')\
+                .select('*')\
+                .eq('id', numero_conta)\
+                .execute()
+            
+            if response.data:
+                return response.data[0]
+            return None
+        except Exception as e:
+            print(f"❌ Erro ao obter conta: {e}")
+            return None
+
 
 
 

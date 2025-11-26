@@ -155,7 +155,7 @@ class TelaMeusDados(Screen):
         print("🚪 Saindo da tela Meus Dados...")
     
     def carregar_dados_usuario(self):
-        """Carrega os dados do usuário nos campos - MÉTODO COMPLETO"""
+        """Carrega os dados do usuário - VERSÃO COM SUPABASE"""
         sistema = App.get_running_app().sistema
         
         if sistema.tipo_usuario_logado != 'cliente':
@@ -163,15 +163,39 @@ class TelaMeusDados(Screen):
             self.voltar_dashboard()
             return
         
-        usuario_atual = sistema.usuarios[sistema.usuario_logado]
-        
         print(f"📊 Carregando dados para: {sistema.usuario_logado}")
-        print(f"📝 Dados disponíveis: {usuario_atual}")
+        
+        # 🔥🔥🔥 NOVO: TENTAR CARREGAR DO SUPABASE PRIMEIRO
+        usuario_atual = None
+        
+        if hasattr(sistema, 'supabase') and sistema.supabase.conectado:
+            try:
+                print("🔍 Buscando dados atualizados no Supabase...")
+                usuario_supabase = sistema.supabase.obter_usuario(sistema.usuario_logado)
+                
+                if usuario_supabase:
+                    print("✅ Dados encontrados no Supabase, atualizando localmente...")
+                    # Atualizar dados locais com informações do Supabase
+                    sistema.usuarios[sistema.usuario_logado].update({
+                        'email': usuario_supabase.get('email', ''),
+                        'telefone': usuario_supabase.get('telefone', ''),
+                        'endereco': usuario_supabase.get('endereco', ''),
+                        'cidade': usuario_supabase.get('cidade', ''),
+                        'cep': usuario_supabase.get('cep', ''),
+                        'estado': usuario_supabase.get('estado', ''),
+                        'pais': usuario_supabase.get('pais', '')
+                    })
+                    sistema.salvar_usuarios()
+            except Exception as e:
+                print(f"⚠️ Erro ao buscar dados no Supabase: {e}")
+        
+        # Usar dados atualizados (locais ou do Supabase)
+        usuario_atual = sistema.usuarios[sistema.usuario_logado]
+        print(f"📝 Dados carregados: {usuario_atual}")
         
         # Preencher campos com dados do usuário
         if hasattr(self, 'ids'):
-            # 🔥 CORREÇÃO: Converter TODOS os possíveis None para string vazia
-            # Dados pessoais
+            # Dados pessoais (não editáveis nesta tela)
             self.ids.entry_nome.text = usuario_atual.get('nome') or ''
             self.ids.entry_documento.text = usuario_atual.get('documento') or ''
             
@@ -179,7 +203,7 @@ class TelaMeusDados(Screen):
             self.ids.entry_email.text = usuario_atual.get('email') or ''
             self.ids.entry_telefone.text = usuario_atual.get('telefone') or ''
             
-            # Campos de endereço (não obrigatórios - mais propensos a None)
+            # Campos de endereço
             self.ids.entry_endereco.text = usuario_atual.get('endereco') or ''
             self.ids.entry_cidade.text = usuario_atual.get('cidade') or ''
             self.ids.entry_cep.text = usuario_atual.get('cep') or ''
@@ -191,12 +215,9 @@ class TelaMeusDados(Screen):
             self.ids.entry_nova_senha.text = ''
             self.ids.entry_confirmar_senha.text = ''
             
-            # Carregar contas
-            #self.carregar_contas_usuario()
-            
-            print("Dados carregados com sucesso!")
+            print("✅ Dados carregados com sucesso!")
         else:
-            print("IDs não disponíveis para carregar dados")
+            print("❌ IDs não disponíveis para carregar dados")
     
     def criar_card_conta(self, conta_num, dados_conta):
         """Cria um card para cada conta"""
@@ -270,7 +291,7 @@ class TelaMeusDados(Screen):
             instance.rect.size = instance.size
     
     def salvar_alteracoes(self):
-        """Salva as alterações nos dados do usuário"""
+        """Salva as alterações nos dados do usuário - VERSÃO COM SUPABASE"""
         sistema = App.get_running_app().sistema
         
         try:
@@ -288,6 +309,9 @@ class TelaMeusDados(Screen):
             senha_atual = self.ids.entry_senha_atual.text
             nova_senha = self.ids.entry_nova_senha.text
             confirmar_senha = self.ids.entry_confirmar_senha.text
+            
+            senha_alterada = False
+            nova_senha_hash = None
             
             if senha_atual or nova_senha or confirmar_senha:
                 # Validar alteração de senha
@@ -310,24 +334,67 @@ class TelaMeusDados(Screen):
                     self.mostrar_erro("A nova senha deve ter pelo menos 6 caracteres!")
                     return
                 
-                # Atualizar senha
-                sistema.usuarios[sistema.usuario_logado]['senha'] = self.hash_senha(nova_senha)
+                # Preparar nova senha hash
+                nova_senha_hash = self.hash_senha(nova_senha)
+                senha_alterada = True
             
-            # Atualizar dados pessoais
+            # Preparar dados atualizados
+            dados_atualizados = {
+                'username': sistema.usuario_logado,
+                'nome': usuario_atual.get('nome', ''),
+                'email': email,
+                'documento': usuario_atual.get('documento', ''),
+                'telefone': telefone,
+                'endereco': self.ids.entry_endereco.text.strip(),
+                'cidade': self.ids.entry_cidade.text.strip(),
+                'cep': self.ids.entry_cep.text.strip(),
+                'estado': self.ids.entry_estado.text.strip(),
+                'pais': self.ids.entry_pais.text.strip(),
+                'moedas_selecionadas': usuario_atual.get('moedas_selecionadas', [])
+            }
+            
+            # 🔥🔥🔥 NOVO: ATUALIZAR NO SUPABASE PRIMEIRO
+            print("💾 Tentando salvar alterações no Supabase...")
+            sucesso_supabase = False
+            
+            if hasattr(sistema, 'supabase') and sistema.supabase.conectado:
+                try:
+                    # Se senha foi alterada, incluir nos dados do Supabase
+                    if senha_alterada:
+                        dados_atualizados['senha'] = nova_senha
+                    
+                    sucesso_supabase = sistema.supabase.salvar_usuario(dados_atualizados)
+                    if sucesso_supabase:
+                        print("✅ Dados atualizados no Supabase!")
+                    else:
+                        print("❌ Falha ao atualizar no Supabase")
+                except Exception as e:
+                    print(f"⚠️ Erro no Supabase: {e}")
+            else:
+                print("⚠️ Supabase não disponível, salvando apenas localmente")
+            
+            # 🔥 CONTINUAR: ATUALIZAR LOCALMENTE (fallback)
             sistema.usuarios[sistema.usuario_logado]['email'] = email
             sistema.usuarios[sistema.usuario_logado]['telefone'] = telefone
+            sistema.usuarios[sistema.usuario_logado]['endereco'] = dados_atualizados['endereco']
+            sistema.usuarios[sistema.usuario_logado]['cidade'] = dados_atualizados['cidade']
+            sistema.usuarios[sistema.usuario_logado]['cep'] = dados_atualizados['cep']
+            sistema.usuarios[sistema.usuario_logado]['estado'] = dados_atualizados['estado']
+            sistema.usuarios[sistema.usuario_logado]['pais'] = dados_atualizados['pais']
             
-            # Atualizar dados de endereço (não obrigatórios)
-            sistema.usuarios[sistema.usuario_logado]['endereco'] = self.ids.entry_endereco.text.strip()
-            sistema.usuarios[sistema.usuario_logado]['cidade'] = self.ids.entry_cidade.text.strip()
-            sistema.usuarios[sistema.usuario_logado]['cep'] = self.ids.entry_cep.text.strip()
-            sistema.usuarios[sistema.usuario_logado]['estado'] = self.ids.entry_estado.text.strip()
-            sistema.usuarios[sistema.usuario_logado]['pais'] = self.ids.entry_pais.text.strip()
+            # Atualizar senha localmente se alterada
+            if senha_alterada:
+                sistema.usuarios[sistema.usuario_logado]['senha'] = nova_senha_hash
 
-            # Salvar alterações
+            # Salvar alterações locais
             sistema.salvar_usuarios()
             
-            self.mostrar_sucesso("✅ Dados atualizados com sucesso!")
+            # Mostrar mensagem apropriada
+            if sucesso_supabase:
+                self.mostrar_sucesso("✅ Dados atualizados com sucesso!\n(Sincronizado na nuvem)")
+            else:
+                self.mostrar_sucesso("✅ Dados atualizados localmente!\n(Modo offline)")
+            
             self.voltar_dashboard()
             
         except Exception as e:

@@ -195,13 +195,6 @@
         "cliente_nome": "LONDRES LIMITED",
         "data_criacao": "2025-11-04"
     },
-    "887160827": {
-        "moeda": "BRL",
-        "saldo": 74592.9,
-        "cliente": "apple",
-        "cliente_nome": "APPLE LLC",
-        "data_criacao": "2025-11-02"
-    },
     "891355178": {
         "moeda": "USD",
         "saldo": 0.0,
@@ -251,13 +244,6 @@
         "cliente_nome": "NIKE LLC",
         "data_criacao": "2025-11-10"
     },
-    "997642659": {
-        "moeda": "USD",
-        "saldo": 51000.0,
-        "cliente": "apple",
-        "cliente_nome": "APPLE LLC",
-        "data_criacao": "2025-11-02"
-    },
     "802194129": {
         "moeda": "BRL",
         "saldo": 30234.04,
@@ -271,6 +257,20 @@
         "cliente": "pantanal",
         "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
         "data_criacao": "2025-11-18"
+    },
+    "887160827": {
+        "moeda": "BRL",
+        "saldo": 74592.9,
+        "cliente": "apple",
+        "cliente_nome": "APPLE LLC",
+        "data_criacao": "2025-11-02"
+    },
+    "997642659": {
+        "moeda": "USD",
+        "saldo": 51000.0,
+        "cliente": "apple",
+        "cliente_nome": "APPLE LLC",
+        "data_criacao": "2025-11-02"
     },
     "464754825": {
         "moeda": "GBP",
@@ -362,5 +362,33 @@
         "cliente": "lins",
         "cliente_nome": "LINS CHAIR LIMITADA",
         "data_criacao": "2025-11-18"
+    },
+    "207507174": {
+        "moeda": "USD",
+        "saldo": 0.0,
+        "cliente": "makita",
+        "cliente_nome": "MAKITA MACHINES LLC",
+        "data_criacao": "2025-11-25"
+    },
+    "451906468": {
+        "moeda": "EUR",
+        "saldo": 0.0,
+        "cliente": "makita",
+        "cliente_nome": "MAKITA MACHINES LLC",
+        "data_criacao": "2025-11-25"
+    },
+    "347751936": {
+        "moeda": "GBP",
+        "saldo": 0.0,
+        "cliente": "makita",
+        "cliente_nome": "MAKITA MACHINES LLC",
+        "data_criacao": "2025-11-25"
+    },
+    "726349670": {
+        "moeda": "BRL",
+        "saldo": 0.0,
+        "cliente": "makita",
+        "cliente_nome": "MAKITA MACHINES LLC",
+        "data_criacao": "2025-11-25"
     }
 }
