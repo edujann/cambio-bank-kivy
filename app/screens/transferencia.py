@@ -546,48 +546,87 @@ class TelaTransferencia(Screen):
             self.mostrar_erro_transferencia(f"Erro interno: {str(e)}")
 
     def salvar_transferencia_supabase(self, dados_transferencia, transferencia_id, valor, moeda_origem):
-        """Salva a transferência no Supabase - MANTÉM COMPATIBILIDADE"""
+        """Salva a transferência no Supabase - VERSÃO CORRIGIDA SEM DUPLICAÇÃO"""
         try:
-            from supabase_service import SupabaseService
             from datetime import datetime
             
             sistema = App.get_running_app().sistema
             
-            # Preparar dados para o Supabase
-            dados_supabase = {
-                'id': transferencia_id,
-                'tipo': 'transferencia_internacional',
-                'status': 'solicitada',
-                'data': datetime.now().isoformat(),
-                'moeda': moeda_origem,
-                'valor': valor,
-                'conta_remetente': dados_transferencia['conta_origem'],
-                'descricao': dados_transferencia.get('descricao', ''),
-                'executado_por': sistema.usuario_logado,
-                'beneficiario': dados_transferencia['beneficiario'],
-                'endereco_beneficiario': dados_transferencia['endereco'],
-                'cidade': dados_transferencia['cidade'],
-                'pais': dados_transferencia['pais'],
-                'nome_banco': dados_transferencia['banco'],
-                'endereco_banco': dados_transferencia.get('endereco_banco', ''),
-                'codigo_swift': dados_transferencia['swift'],
-                'iban_account': dados_transferencia['iban'],
-                'aba_routing': dados_transferencia.get('aba', ''),
-                'finalidade': dados_transferencia['finalidade'],
-                'created_at': datetime.now().isoformat()
-            }
+            print(f"🔥 SALVAR_TRANSFERENCIA_SUPABASE (VERSÃO CORRIGIDA)")
+            print(f"   ID: {transferencia_id}")
+            print(f"   Valor: {valor} {moeda_origem}")
+            print(f"   Usuário: {sistema.usuario_logado}")
             
-            # Salvar no Supabase
-            service = SupabaseService()
-            resultado = service.salvar_transferencia(dados_supabase)
-            
-            if resultado:
-                print(f"✅ Transferência salva no Supabase! ID: {transferencia_id}")
+            # 🔥 CORREÇÃO: Usar SupabaseManager em vez de serviço antigo
+            if hasattr(sistema, 'supabase') and sistema.supabase.conectado:
+                try:
+                    # 🔥 NOVO: VERIFICAR SE JÁ EXISTE ANTES DE SALVAR
+                    print(f"🔍 Verificando se transferência {transferencia_id} já existe no Supabase...")
+                    response_existente = sistema.supabase.client.table('transferencias')\
+                        .select('id')\
+                        .eq('id', transferencia_id)\
+                        .execute()
+                    
+                    if response_existente.data:
+                        print(f"✅ Transferência {transferencia_id} JÁ EXISTE no Supabase (evitando duplicação)")
+                        return True
+                    
+                    print(f"🔍 Transferência {transferencia_id} não existe, prosseguindo com salvamento...")
+                    
+                    # 🔥 PREPARAR DADOS COM MESMO PADRÃO DAS OUTRAS TELAS
+                    dados_supabase = {
+                        'id': transferencia_id,
+                        'tipo': 'transferencia_internacional',
+                        'status': 'solicitada',
+                        'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        'moeda': moeda_origem,
+                        'valor': valor,
+                        'conta_remetente': dados_transferencia['conta_origem'],
+                        'descricao': dados_transferencia.get('descricao', ''),
+                        'usuario': sistema.usuario_logado,
+                        'cliente': sistema.usuario_logado,
+                        'beneficiario': dados_transferencia['beneficiario'],
+                        'endereco_beneficiario': dados_transferencia['endereco'],
+                        'cidade': dados_transferencia['cidade'],
+                        'pais': dados_transferencia['pais'],
+                        'nome_banco': dados_transferencia['banco'],
+                        'endereco_banco': dados_transferencia.get('endereco_banco', ''),
+                        'codigo_swift': dados_transferencia['swift'],
+                        'iban_account': dados_transferencia['iban'],
+                        'aba_routing': dados_transferencia.get('aba', ''),
+                        'finalidade': dados_transferencia['finalidade'],
+                        'created_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    }
+                    
+                    print(f"🔥 Dados preparados para Supabase:")
+                    print(f"   ID: {dados_supabase['id']}")
+                    print(f"   Tipo: {dados_supabase['tipo']}")
+                    print(f"   Beneficiário: {dados_supabase['beneficiario']}")
+                    
+                    # 🔥 CORREÇÃO: Usar método do SupabaseManager
+                    sucesso = sistema.supabase.salvar_transacao(dados_supabase)
+                    
+                    if sucesso:
+                        print(f"✅✅✅ TRANSFERÊNCIA SALVA NO SUPABASE: {transferencia_id}")
+                        return True
+                    else:
+                        print(f"❌❌❌ FALHA: Transferência NÃO salva no Supabase")
+                        return False
+                        
+                except Exception as e:
+                    print(f"❌ Erro ao salvar transferência no Supabase: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    return False
             else:
-                print(f"⚠️ Transferência NÃO salva no Supabase (mas foi salva localmente)")
+                print("❌ Supabase não disponível - transferência salva apenas localmente")
+                return False
                 
         except Exception as e:
-            print(f"⚠️ Erro ao salvar no Supabase: {e} (mas transferência foi salva localmente)")
+            print(f"❌ Erro geral em salvar_transferencia_supabase: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
 
 # === CORREÇÃO NO MÉTODO mostrar_confirmacao_transferencia ===
 
@@ -1270,22 +1309,23 @@ class TelaTransferencia(Screen):
             btn_fechar.bind(on_press=finalizar)
             
             # 🔥 CORREÇÃO: Suporte a drag & drop real - função corrigida
-            def on_drop_file(window, file_path, x, y):
-                """Processa arquivo arrastado para a janela - VERSÃO CORRIGIDA"""
+            def on_dropfile(window, file_path, *args):
+                """Processa arquivo arrastado para a janela - VERSÃO COMPATÍVEL"""
                 try:
                     file_path_str = file_path.decode('utf-8') if isinstance(file_path, bytes) else str(file_path)
                     if processar_arquivo(file_path_str):
                         print(f"✅ Arquivo arrastado processado: {file_path_str}")
                 except Exception as e:
                     print(f"❌ Erro ao processar arquivo arrastado: {e}")
-            
-            # Registrar evento de drop
+
+            # ✅ ADICIONAR: Binding do evento ORIGINAL
             from kivy.core.window import Window
-            Window.bind(on_drop_file=on_drop_file)
-            
+            Window.bind(on_dropfile=on_dropfile)    # ✅ ORIGINAL QUE FUNCIONA
+
             # Limpar binding quando popup fechar
             def on_dismiss(instance):
-                Window.unbind(on_drop_file=on_drop_file)
+                from kivy.core.window import Window
+                Window.unbind(on_dropfile=on_dropfile)  # ✅ ORIGINAL QUE FUNCIONA
             
             popup.bind(on_dismiss=on_dismiss)
             

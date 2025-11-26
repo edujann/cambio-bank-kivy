@@ -467,6 +467,93 @@ class SupabaseManager:
             print(f"❌ Erro ao salvar transação de câmbio: {e}")
             return False
 
+    def salvar_transacao(self, dados_transacao):
+        """Salva qualquer tipo de transação no Supabase (transferência, câmbio, etc)"""
+        try:
+            response = self.client.table('transferencias')\
+                .insert(dados_transacao)\
+                .execute()
+            return bool(response.data)
+        except Exception as e:
+            print(f"❌ Erro ao salvar transação: {e}")
+            return False
+        
+    def salvar_beneficiario(self, username, dados_beneficiario):
+        """Salva beneficiário no Supabase"""
+        try:
+            from datetime import datetime
+            
+            dados_supabase = {
+                'usuario': username,
+                'nome': dados_beneficiario['nome'],
+                'endereco': dados_beneficiario['endereco'],
+                'cidade': dados_beneficiario['cidade'],
+                'pais': dados_beneficiario['pais'],
+                'banco': dados_beneficiario['banco'],
+                'endereco_banco': dados_beneficiario.get('endereco_banco', ''),
+                'swift': dados_beneficiario['swift'],
+                'iban': dados_beneficiario['iban'],
+                'aba': dados_beneficiario.get('aba', ''),
+                'created_at': datetime.now().isoformat()
+            }
+            
+            response = self.client.table('beneficiarios')\
+                .insert(dados_supabase)\
+                .execute()
+            
+            return bool(response.data)
+            
+        except Exception as e:
+            print(f"❌ Erro ao salvar beneficiário: {e}")
+            return False
+
+    def obter_transferencia(self, transferencia_id):
+        """Obtém uma transferência específica do Supabase"""
+        try:
+            response = self.client.table('transferencias')\
+                .select('*')\
+                .eq('id', transferencia_id)\
+                .execute()
+            return response.data[0] if response.data else None
+        except Exception as e:
+            print(f"❌ Erro ao obter transferência: {e}")
+            return None
+
+    def atualizar_status_transferencia(self, transferencia_id, dados_atualizacao):
+        """Atualiza status de uma transferência no Supabase"""
+        try:
+            response = self.client.table('transferencias')\
+                .update(dados_atualizacao)\
+                .eq('id', transferencia_id)\
+                .execute()
+            return bool(response.data)
+        except Exception as e:
+            print(f"❌ Erro ao atualizar status da transferência: {e}")
+            return False
+
+    def atualizar_saldo_conta(self, conta_id, novo_saldo):
+        """Atualiza saldo de uma conta no Supabase"""
+        try:
+            response = self.client.table('contas')\
+                .update({'saldo': novo_saldo})\
+                .eq('id', conta_id)\
+                .execute()
+            return bool(response.data)
+        except Exception as e:
+            print(f"❌ Erro ao atualizar saldo da conta: {e}")
+            return False
+
+    def obter_saldo_conta(self, conta_id):
+        """Obtém saldo de uma conta do Supabase"""
+        try:
+            response = self.client.table('contas')\
+                .select('saldo')\
+                .eq('id', conta_id)\
+                .execute()
+            return float(response.data[0]['saldo']) if response.data else 0.0
+        except Exception as e:
+            print(f"❌ Erro ao obter saldo da conta: {e}")
+            return 0.0
 
 
 # Teste rápido

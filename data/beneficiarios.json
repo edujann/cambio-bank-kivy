@@ -168,15 +168,14 @@
         },
         {
             "nome": "JMC SYSTEM LLC",
+            "banco": "CITI BANK SA",
+            "swift": "CITINYMMN",
+            "iban": "856347425",
             "endereco": "FITH AVENUE",
             "cidade": "NEW YORK",
             "pais": "USA",
-            "banco": "CITI BANK SA",
             "endereco_banco": "WALL STREET",
-            "swift": "CITINYMMN",
-            "iban": "856347425",
-            "aba": "",
-            "data_cadastro": "2025-11-21 11:37:26"
+            "aba": ""
         }
     ],
     "lins": [
@@ -190,6 +189,42 @@
             "pais": "HONG KONG",
             "endereco_banco": "Champion Tower THREE Garden ROAD CENTRAL, HONG KONG",
             "aba": ""
+        }
+    ],
+    "makita": [
+        {
+            "nome": "HILTI MACHINES LTD",
+            "banco": "CITI BANK SA",
+            "swift": "CITIMMKJH",
+            "iban": "5498632785",
+            "endereco": "1143 CASE STREET",
+            "cidade": "MIAMI",
+            "pais": "USA",
+            "endereco_banco": "3543 OCEAN DRIVE",
+            "aba": ""
+        },
+        {
+            "nome": "SAMSUNG TELEVIONS LTD",
+            "banco": "BARCLAYS BANK",
+            "swift": "BARCLDNMJ",
+            "iban": "459234582135",
+            "endereco": "4958 HARLESDEN ROAD",
+            "cidade": "LONDON",
+            "pais": "ENGLAND",
+            "endereco_banco": "1 BARCKLEY SQUARE",
+            "aba": ""
+        },
+        {
+            "nome": "LG TECHNOLOGY LTD",
+            "endereco": "456 OXFORD STREET",
+            "cidade": "WASHINGTON",
+            "pais": "USA",
+            "banco": "BANK OF AMERICA",
+            "endereco_banco": "1984 GERMAN CANION STREET",
+            "swift": "BOFAWSTLK",
+            "iban": "56462214512",
+            "aba": "",
+            "data_cadastro": "2025-11-26 13:51:44"
         }
     ]
 }

@@ -187,6 +187,22 @@ class SistemaCambioPremium:
             print(f"❌ Erro carregar usuários: {e}")
             self.usuarios = {}
 
+    def sincronizar_todos_saldos_com_supabase(self):
+        """Sincroniza TODOS os saldos da memória com o Supabase"""
+        try:
+            print("🔄 Sincronizando TODOS os saldos com Supabase...")
+            for conta_num, conta_info in self.contas.items():
+                saldo_real = self.supabase.obter_saldo_conta(conta_num)
+                if saldo_real is not None:
+                    self.contas[conta_num]['saldo'] = saldo_real
+                    print(f"✅ {conta_num}: {saldo_real}")
+            
+            self.salvar_contas()
+            print("✅ Todos os saldos sincronizados!")
+            
+        except Exception as e:
+            print(f"❌ Erro ao sincronizar saldos: {e}")
+
     def carregar_dados_completos(self):
         """Carrega todos os dados pesados em background"""
         print("🔄 Carregando dados completos em background...")
@@ -316,7 +332,7 @@ class SistemaCambioPremium:
                 print(f"✅ Saldo atualizado no Supabase: {conta_numero} = {novo_saldo:.2f}")
                 return True
             else:
-                print(f"❌ Erro ao atualizar saldo no Supabase: {response.error}")
+                print(f"❌ Erro ao atualizar saldo no Supabase: Dados não retornados")
                 return False
                 
         except Exception as e:
@@ -1309,7 +1325,7 @@ class SistemaCambioPremium:
                 if response.data:
                     print(f"✅ Transferência {transferencia_id} salva no Supabase!")
                 else:
-                    print(f"⚠️ Transferência NÃO salva no Supabase: {response.error}")
+                    print(f"⚠️ Transferência NÃO salva no Supabase: Dados não retornados")
             except Exception as e:
                 print(f"⚠️ Erro ao salvar transferência no Supabase: {e}")
             
@@ -1518,7 +1534,7 @@ class SistemaCambioPremium:
                         .execute()
                     
                     if response.error:
-                        print(f"⚠️ Erro ao salvar invoice no Supabase: {response.error}")
+                        print(f"⚠️ Erro ao salvar invoice no Supabase: Dados não retornados")
                     else:
                         print(f"✅ Invoice salva no Supabase também!")
                 except Exception as e:
@@ -1559,7 +1575,7 @@ class SistemaCambioPremium:
                 
                 return True
             else:
-                print(f"❌ Erro ao aprovar invoice no Supabase: {response.error}")
+                print(f"❌ Erro ao aprovar invoice no Supabase: Dados não retornados")
                 return False
                 
         except Exception as e:
@@ -1608,7 +1624,7 @@ class SistemaCambioPremium:
                 
                 return True
             else:
-                print(f"❌ Erro ao recusar invoice no Supabase: {response.error}")
+                print(f"❌ Erro ao recusar invoice no Supabase: Dados não retornados")
                 return False
             
         except Exception as e:
@@ -3340,7 +3356,7 @@ class SistemaCambioPremium:
                 print(f"✅ Beneficiário salvo no Supabase: {dados_beneficiario['nome']}")
                 return True
             else:
-                print(f"❌ Erro ao salvar no Supabase: {response.error}")
+                print(f"❌ Erro ao salvar no Supabase: Dados não retornados")
                 return False
                 
         except Exception as e:

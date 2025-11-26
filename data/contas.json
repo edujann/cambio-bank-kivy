@@ -244,6 +244,13 @@
         "cliente_nome": "NIKE LLC",
         "data_criacao": "2025-11-10"
     },
+    "224565364": {
+        "moeda": "BRL",
+        "saldo": -54062.97,
+        "cliente": "makita",
+        "cliente_nome": "MAKITA MACHINES LLC",
+        "data_criacao": "2025-11-26"
+    },
     "802194129": {
         "moeda": "BRL",
         "saldo": 30234.04,
@@ -274,7 +281,7 @@
     },
     "382984608": {
         "moeda": "USD",
-        "saldo": 10000.0,
+        "saldo": 1250.0,
         "cliente": "makita",
         "cliente_nome": "MAKITA MACHINES LLC",
         "data_criacao": "2025-11-26"
@@ -289,13 +296,6 @@
     "846873177": {
         "moeda": "GBP",
         "saldo": 0.0,
-        "cliente": "makita",
-        "cliente_nome": "MAKITA MACHINES LLC",
-        "data_criacao": "2025-11-26"
-    },
-    "224565364": {
-        "moeda": "BRL",
-        "saldo": -54062.97,
         "cliente": "makita",
         "cliente_nome": "MAKITA MACHINES LLC",
         "data_criacao": "2025-11-26"

@@ -225,21 +225,16 @@ class TelaAprovarOperacoes(Screen):
                 self.ids.btn_concluir_processamento.color = (1, 1, 1, 1)  # Texto branco
     
     def aprovar_transferencia(self, transferencia_id):
-        """Aprova uma transferência pendente - VERSÃO SUPABASE"""
+        """Aprova uma transferência pendente - VERSÃO CORRIGIDA COM PADRÃO SUPABASEMANAGER"""
         sistema = App.get_running_app().sistema
         
         try:
-            # 🔥 CORREÇÃO: Buscar dados do Supabase
-            response = sistema.supabase.client.table('transferencias')\
-                .select('*')\
-                .eq('id', transferencia_id)\
-                .execute()
+            # 🔥 CORREÇÃO: Usar SupabaseManager em vez de chamada direta
+            transferencia = sistema.supabase.obter_transferencia(transferencia_id)
             
-            if not response.data:
+            if not transferencia:
                 self.mostrar_erro("Transferência não encontrada no Supabase!")
                 return False
-            
-            transferencia = response.data[0]
             
             # 🔥 VALIDAÇÃO DA INVOICE - Só aprovar se invoice estiver aprovada
             info_invoice = sistema.obter_info_invoice(transferencia_id)
@@ -262,32 +257,36 @@ class TelaAprovarOperacoes(Screen):
                 # Para transferências internas, invoice não é obrigatório
                 print("⚠️  Transferência interna sem invoice - permitindo aprovação")
             
-            # 🔥 CORREÇÃO: Atualizar status no Supabase
+            # 🔥 CORREÇÃO: Atualizar status usando SupabaseManager
             data_aprovacao = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             update_data = {
                 'status': 'processing',
                 'executado_por': sistema.usuario_logado,
                 'data_aprovacao': data_aprovacao,
-                'data_processing': data_aprovacao,  # 🔥🔥🔥 NOVA CORREÇÃO: ADICIONAR DATA PROCESSING
-                'data': data_aprovacao  # 🔥🔥🔥 CORREÇÃO CRÍTICA: ATUALIZAR DATA PRINCIPAL
+                'data_processing': data_aprovacao
+                # 🔥🔥🔥 CORREÇÃO CRÍTICA: NÃO ATUALIZAR 'data' PRINCIPAL!
             }
             
-            response = sistema.supabase.client.table('transferencias')\
-                .update(update_data)\
-                .eq('id', transferencia_id)\
-                .execute()
+            # 🔥 CORREÇÃO: Usar método do SupabaseManager
+            sucesso = sistema.supabase.atualizar_status_transferencia(transferencia_id, update_data)
             
-            if response.data:
-                print(f"✅ Transferência {transferencia_id} aprovada no Supabase!")
+            if sucesso:
+                print(f"✅✅✅ Transferência {transferencia_id} aprovada no Supabase!")
                 
                 # 🔥 CORREÇÃO: Atualizar também localmente para sincronização
                 if transferencia_id in sistema.transferencias:
                     sistema.transferencias[transferencia_id].update(update_data)
                 sistema.salvar_transferencias()
                 
+                # 🔥 MOSTRAR MENSAGEM DE SUCESSO
+                self.mostrar_sucesso(f"Transferência {transferencia_id} aprovada com sucesso!\n\nStatus alterado para: PROCESSANDO")
+                
+                # 🔥 ATUALIZAR A LISTA NA TELA
+                self.carregar_dados()
+                
                 return True
             else:
-                print(f"❌ Erro ao aprovar transferência no Supabase: {response.error}")
+                print(f"❌❌❌ Erro ao aprovar transferência no Supabase")
                 self.mostrar_erro("Erro ao aprovar transferência no sistema!")
                 return False
             
@@ -314,70 +313,71 @@ class TelaAprovarOperacoes(Screen):
         return False
 
     def recusar_transferencia(self, transferencia_id, motivo):
-        """Recusa uma transferência pendente - VERSÃO SUPABASE"""
+        """Recusa uma transferência pendente - VERSÃO CORRIGIDA COM PADRÃO"""
         sistema = App.get_running_app().sistema
         
         try:
-            # 🔥 CORREÇÃO: Buscar dados do Supabase
-            response = sistema.supabase.client.table('transferencias')\
-                .select('*')\
-                .eq('id', transferencia_id)\
-                .execute()
+            # 🔥 CORREÇÃO: Usar SupabaseManager
+            transferencia = sistema.supabase.obter_transferencia(transferencia_id)
             
-            if not response.data:
+            if not transferencia:
                 self.mostrar_erro("Transferência não encontrada no Supabase!")
                 return False
             
-            dados = response.data[0]
+            # ✅ PRESERVAR DATA ORIGINAL
+            data_original = transferencia.get('data')
             
-            # 🔥 CORREÇÃO: Estornar valor no Supabase para transferências internacionais
-            if dados.get('tipo') == 'transferencia_internacional':
-                conta_origem = dados['conta_remetente']
-                valor_estorno = dados['valor']
+            # 🔥 CORREÇÃO: Estornar valor usando SupabaseManager
+            conta_origem = None
+            valor_estorno = 0
+            
+            if transferencia.get('tipo') == 'transferencia_internacional':
+                conta_origem = transferencia['conta_remetente']
+                valor_estorno = transferencia['valor']
                 
-                # Buscar saldo atual do Supabase
-                conta_response = sistema.supabase.client.table('contas')\
-                    .select('saldo')\
-                    .eq('id', conta_origem)\
-                    .execute()
+                # 🔥 CORREÇÃO: Usar métodos do SupabaseManager
+                saldo_atual = sistema.supabase.obter_saldo_conta(conta_origem)
+                novo_saldo = saldo_atual + valor_estorno
                 
-                if conta_response.data:
-                    saldo_atual = float(conta_response.data[0]['saldo'])
-                    novo_saldo = saldo_atual + valor_estorno
-                    
-                    # Atualizar saldo no Supabase
-                    sistema.supabase.client.table('contas')\
-                        .update({'saldo': novo_saldo})\
-                        .eq('id', conta_origem)\
-                        .execute()
-                    
+                sucesso_estorno = sistema.supabase.atualizar_saldo_conta(conta_origem, novo_saldo)
+                
+                if sucesso_estorno:
                     print(f"💰 Estornado {valor_estorno} para conta {conta_origem} no Supabase")
             
-            # 🔥 CORREÇÃO: Atualizar status no Supabase
+            # 🔥 CORREÇÃO: Atualizar status usando SupabaseManager
             data_recusa = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             update_data = {
-                'status': 'rejected',  # ✅ STATUS CORRETO PARA RECUSA
+                'status': 'rejected',
                 'executado_por': sistema.usuario_logado,
-                'data_recusa': data_recusa,  # ✅ CAMPO CORRETO
-                'data': data_recusa  # 🔥🔥🔥 CORREÇÃO CRÍTICA: ATUALIZAR DATA PRINCIPAL
+                'data_recusa': data_recusa,
+                'motivo_recusa': motivo
+                # 🔥 NÃO ATUALIZAR 'data' PRINCIPAL - PRESERVAR ORDEM CRONOLÓGICA
             }
             
-            response = sistema.supabase.client.table('transferencias')\
-                .update(update_data)\
-                .eq('id', transferencia_id)\
-                .execute()
+            sucesso = sistema.supabase.atualizar_status_transferencia(transferencia_id, update_data)
             
-            if response.data:
+            if sucesso:
                 print(f"✅ Transferência {transferencia_id} recusada no Supabase!")
                 
-                # 🔥 CORREÇÃO: Sincronizar dados locais
+                # 🔥 SINCRONIZAR LOCALMENTE
                 if transferencia_id in sistema.transferencias:
                     sistema.transferencias[transferencia_id].update(update_data)
                 sistema.salvar_transferencias()
                 
+                # ✅ CORREÇÃO CRÍTICA: ATUALIZAR MEMÓRIA LOCAL
+                if conta_origem and conta_origem in sistema.contas:
+                    sistema.contas[conta_origem]['saldo'] += valor_estorno
+                    print(f"✅ Saldo em memória atualizado: {conta_origem} = {sistema.contas[conta_origem]['saldo']}")
+                    
+                    # ✅ FORÇAR DASHBOARD A RECARREGAR
+                    dashboard = self.manager.get_screen('dashboard')
+                    if hasattr(dashboard, 'carregar_dados'):
+                        dashboard.carregar_dados()
+                        print("✅ Dashboard atualizado após estorno!")
+                
                 return True
             else:
-                print(f"❌ Erro ao recusar transferência no Supabase: {response.error}")
+                print(f"❌ Erro ao recusar transferência no Supabase")
                 self.mostrar_erro("Erro ao recusar transferência no sistema!")
                 return False
             
@@ -644,23 +644,46 @@ class TelaAprovarOperacoes(Screen):
         popup.open()
 
     def _concluir_com_swift(self, transferencia_id, dados_swift):
-        """Conclui transferência internacional com dados SWIFT"""
+        """Conclui transferência internacional com dados SWIFT - VERSÃO CORRIGIDA COM PADRÃO"""
         sistema = App.get_running_app().sistema
         
         try:
-            sistema.transferencias[transferencia_id]['status'] = 'completed'
-            sistema.transferencias[transferencia_id]['data_conclusao'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            sistema.transferencias[transferencia_id]['concluido_por'] = sistema.usuario_logado
-            sistema.transferencias[transferencia_id]['dados_swift_pagamento'] = dados_swift
+            # 🔥 CORREÇÃO: Atualizar usando SupabaseManager
+            data_conclusao = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
-            sistema.salvar_transferencias()
+            update_data = {
+                'status': 'completed',
+                'data_conclusao': data_conclusao,
+                'concluido_por': sistema.usuario_logado,
+                'dados_swift_pagamento': dados_swift
+                # 🔥 NÃO ATUALIZAR 'data' PRINCIPAL!
+            }
             
-            print(f"Transferência {transferencia_id} concluída com dados SWIFT!")
-            print(f"Dados SWIFT: {dados_swift}")
-            return True
+            # 🔥 CORREÇÃO: Usar método do SupabaseManager
+            sucesso = sistema.supabase.atualizar_status_transferencia(transferencia_id, update_data)
+            
+            if sucesso:
+                print(f"✅✅✅ Transferência {transferencia_id} concluída no Supabase com SWIFT!")
+                
+                # 🔥 SINCRONIZAR LOCALMENTE
+                sistema.transferencias[transferencia_id].update(update_data)
+                sistema.salvar_transferencias()
+                
+                # 🔥 MOSTRAR SUCESSO
+                self.mostrar_sucesso(f"Transferência {transferencia_id} concluída com sucesso!\n\nDados SWIFT registrados.")
+                
+                # 🔥 ATUALIZAR A LISTA
+                self.carregar_dados()
+                
+                print(f"Dados SWIFT: {dados_swift}")
+                return True
+            else:
+                print(f"❌❌❌ Erro ao concluir transferência no Supabase")
+                self.mostrar_erro("Erro ao concluir transferência no sistema!")
+                return False
             
         except Exception as e:
-            print(f"Erro ao concluir transferência com SWIFT: {e}")
+            print(f"❌ Erro ao concluir transferência com SWIFT: {e}")
             self.mostrar_erro(f"Erro ao concluir: {str(e)}")
             return False
     
