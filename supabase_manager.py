@@ -56,7 +56,7 @@ class SupabaseManager:
             return None
 
     def salvar_usuario(self, dados_usuario):
-        """Salva/atualiza usuário no Supabase - VERSÃO COM COLUNAS CORRETAS"""
+        """Salva/atualiza usuário no Supabase - VERSÃO CORRIGIDA"""
         try:
             import hashlib
             from datetime import datetime
@@ -65,21 +65,22 @@ class SupabaseManager:
             senha_original = dados_usuario['senha']
             senha_hash = hashlib.sha256(senha_original.encode()).hexdigest()
             
-            # 🔥 CORREÇÃO: Usar colunas que REALMENTE existem
+            # 🔥 CORREÇÃO CRÍTICA: Não salvar moedas na coluna 'contas'
+            # A coluna 'contas' deve armazenar IDs de contas, não moedas!
             usuario_data = {
                 'username': dados_usuario['username'],
                 'senha_hash': senha_hash,
                 'nome': dados_usuario['nome'],
                 'email': dados_usuario['email'],
-                'documento_hash': dados_usuario['documento'],  # ✅ CORRETO
+                'documento_hash': dados_usuario['documento'],
                 'telefone': dados_usuario.get('telefone', ''),
-                'endereco': '',  # ✅ COLUNAS DE ENDEREÇO (vazias por padrão)
+                'endereco': '',
                 'cidade': '',
-                'cep': '', 
-                'estado': '',  # ✅ CORREÇÃO: 'estado' (você tinha escrito 'estatdo' no SQL)
+                'cep': '',
+                'estado': '',
                 'pais': '',
-                'tipo': 'cliente',  # ✅ NOVO: Definir tipo como cliente
-                'contas': dados_usuario.get('moedas_selecionadas', []),  # ✅ CORRETO: contas text[]
+                'tipo': 'cliente',
+                'contas': [],  # 🔥 CORREÇÃO: Array vazio - serão preenchidas depois
                 'data_cadastro': datetime.now().isoformat()
             }
             
@@ -97,6 +98,26 @@ class SupabaseManager:
                 response = self.client.table('usuarios')\
                     .insert(usuario_data)\
                     .execute()
+            
+            # 🔥 CORREÇÃO: Criar contas e atualizar usuário com IDs reais
+            if response.data:
+                sistema = App.get_running_app().sistema
+                moedas_selecionadas = dados_usuario.get('moedas_selecionadas', [])
+                
+                # Criar contas no Supabase
+                ids_contas = sistema.criar_contas_supabase(
+                    dados_usuario['username'], 
+                    moedas_selecionadas
+                )
+                
+                # Atualizar usuário com IDs das contas
+                if ids_contas:
+                    usuario_data['contas'] = ids_contas
+                    response_update = self.client.table('usuarios')\
+                        .update({'contas': ids_contas})\
+                        .eq('username', dados_usuario['username'])\
+                        .execute()
+                    print(f"✅ Usuário atualizado com IDs das contas: {ids_contas}")
             
             return True
         except Exception as e:
@@ -400,6 +421,20 @@ class SupabaseManager:
                 else:
                     print(f"❌ Erro ao criar conta {numero_conta} no Supabase")
             
+            # 🔥🔥🔥 CORREÇÃO CRÍTICA: ATUALIZAR USUÁRIO COM IDs DAS CONTAS
+            if contas_criadas:
+                print(f"🔄 Atualizando usuário {username} com IDs das contas: {contas_criadas}")
+                
+                response_usuario = self.client.table('usuarios')\
+                    .update({'contas': contas_criadas})\
+                    .eq('username', username)\
+                    .execute()
+                
+                if response_usuario.data:
+                    print(f"✅✅✅ USUÁRIO ATUALIZADO: {username} com contas: {contas_criadas}")
+                else:
+                    print(f"❌❌❌ FALHA CRÍTICA: Não foi possível atualizar usuário no Supabase")
+            
             return contas_criadas
             
         except Exception as e:
@@ -421,6 +456,16 @@ class SupabaseManager:
             print(f"❌ Erro ao obter conta: {e}")
             return None
 
+    def salvar_transacao_cambio(self, dados_transacao):
+        """Salva transação de câmbio no Supabase"""
+        try:
+            response = self.client.table('transferencias')\
+                .insert(dados_transacao)\
+                .execute()
+            return bool(response.data)
+        except Exception as e:
+            print(f"❌ Erro ao salvar transação de câmbio: {e}")
+            return False
 
 
 

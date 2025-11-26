@@ -1215,10 +1215,15 @@ class TelaCambioMoedas(Screen):
             )
             
             # 🔥🔥🔥 NOVO: SALVAR NO SUPABASE APÓS SUCESSO NO SISTEMA ATUAL
-            self.salvar_cambio_supabase(
+            sucesso_supabase = self.salvar_cambio_supabase(
                 transacao_id, valor_pagar, valor_receber, moeda_pagar, moeda_receber,
                 cotacao_cliente, conta_origem, conta_destino, usuario
             )
+            
+            if sucesso_supabase:
+                print(f"✅ Transação sincronizada com Supabase")
+            else:
+                print(f"⚠️ Transação salva apenas localmente")
             
             # Salvar alterações
             sistema.salvar_contas()
@@ -1652,12 +1657,17 @@ class TelaCambioMoedas(Screen):
             ).strftime("%Y-%m-%d %H:%M:%S")
             
             # 🔥🔥🔥 NOVO: SALVAR NO SUPABASE APÓS SUCESSO NO SISTEMA ATUAL
-            self.salvar_cambio_supabase(
+            sucesso_supabase = self.salvar_cambio_supabase(
                 transacao_id, valor_pagar, valor_receber, moeda_pagar, moeda_receber,
                 cotacao_cliente, conta_origem, conta_destino, usuario,
                 saldo_negativo=True, valor_depositar=valor_depositar, 
                 multa_potencial=multa_potencial, moeda_negativa=moeda_negativa
             )
+            
+            if sucesso_supabase:
+                print(f"✅ Transação com saldo negativo sincronizada com Supabase")
+            else:
+                print(f"⚠️ Transação com saldo negativo salva apenas localmente")
             
             # Salvar alterações
             sistema.salvar_contas()
@@ -1690,16 +1700,16 @@ class TelaCambioMoedas(Screen):
     def salvar_cambio_supabase(self, transacao_id, valor_pagar, valor_receber, moeda_pagar, moeda_receber, 
                              cotacao_cliente, conta_origem, conta_destino, usuario, 
                              saldo_negativo=False, valor_depositar=0, multa_potencial=0, moeda_negativa=None):
-        """Salva operação de câmbio no Supabase - MESMO PADRÃO DO ADMIN"""
+        """Salva operação de câmbio no Supabase - VERSÃO CORRIGIDA"""
         try:
             sistema = App.get_running_app().sistema
             
-            print(f"🔥 SALVAR_CAMBIO_SUPABASE (Nova Tela) - MESMO PADRÃO DO ADMIN")
+            print(f"🔥 SALVAR_CAMBIO_SUPABASE (VERSÃO CORRIGIDA)")
             print(f"   ID: {transacao_id}")
             print(f"   Usuário: {usuario}")
             print(f"   Operação: {self.tipo_operacao}")
             
-            # 🔥 CORREÇÃO: Usar método direto do Supabase (SEM asyncio - igual ao admin)
+            # 🔥 CORREÇÃO: Usar SupabaseManager em vez de INSERT direto
             if hasattr(sistema, 'supabase') and sistema.supabase.conectado:
                 try:
                     # 🔥 PREPARAR DADOS COM MESMO PADRÃO DO ADMIN
@@ -1730,16 +1740,14 @@ class TelaCambioMoedas(Screen):
                         'created_at': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     }
                     
-                    print(f"🔥 Dados preparados para Supabase (padrão admin):")
+                    print(f"🔥 Dados preparados para Supabase:")
                     print(f"   ID: {dados_supabase['id']}")
                     print(f"   Data: {dados_supabase['data']}")
                     
-                    # 🔥 SALVAR TRANSAÇÃO NO SUPABASE (método direto - igual ao admin)
-                    response = sistema.supabase.client.table('transferencias')\
-                        .insert(dados_supabase)\
-                        .execute()
+                    # 🔥 CORREÇÃO: Usar método do SupabaseManager
+                    sucesso = sistema.supabase.salvar_transacao_cambio(dados_supabase)
                     
-                    if response.data:
+                    if sucesso:
                         print(f"✅ Transação de câmbio salva no Supabase: {transacao_id}")
                         
                         # 🔥 ATUALIZAR TAMBÉM NO SISTEMA LOCAL
@@ -1753,11 +1761,13 @@ class TelaCambioMoedas(Screen):
                             })
                         return True
                     else:
-                        print(f"⚠️ Erro ao salvar transação de câmbio no Supabase")
+                        print(f"❌ Falha ao salvar transação no Supabase")
                         return False
                         
                 except Exception as e:
-                    print(f"⚠️ Erro ao salvar transação no Supabase: {e}")
+                    print(f"❌ Erro ao salvar transação no Supabase: {e}")
+                    import traceback
+                    traceback.print_exc()
                     return False
             else:
                 print("❌ Supabase não conectado - transação salva apenas localmente")
