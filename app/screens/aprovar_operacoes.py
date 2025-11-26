@@ -267,15 +267,29 @@ class TelaAprovarOperacoes(Screen):
                 # 🔥🔥🔥 CORREÇÃO CRÍTICA: NÃO ATUALIZAR 'data' PRINCIPAL!
             }
             
+            # 🔍 DEBUG: VER O QUE ESTÁ SENDO ENVIADO
+            print(f"🔍 DEBUG APROVAÇÃO - Dados sendo enviados: {update_data}")
+            
             # 🔥 CORREÇÃO: Usar método do SupabaseManager
             sucesso = sistema.supabase.atualizar_status_transferencia(transferencia_id, update_data)
             
             if sucesso:
                 print(f"✅✅✅ Transferência {transferencia_id} aprovada no Supabase!")
                 
+                
                 # 🔥 CORREÇÃO: Atualizar também localmente para sincronização
                 if transferencia_id in sistema.transferencias:
+                    # 🔍 DEBUG: VER SINCRONIZAÇÃO LOCAL
+                    print(f"🔍 DEBUG SINCRONIZAÇÃO - ANTES:")
+                    print(f"   Data local ANTES: {sistema.transferencias[transferencia_id].get('data')}")
+                    print(f"   Status local ANTES: {sistema.transferencias[transferencia_id].get('status')}")
+                    
                     sistema.transferencias[transferencia_id].update(update_data)
+                    
+                    print(f"🔍 DEBUG SINCRONIZAÇÃO - DEPOIS:")
+                    print(f"   Data local DEPOIS: {sistema.transferencias[transferencia_id].get('data')}")
+                    print(f"   Status local DEPOIS: {sistema.transferencias[transferencia_id].get('status')}")
+                    
                 sistema.salvar_transferencias()
                 
                 # 🔥 MOSTRAR MENSAGEM DE SUCESSO
@@ -353,6 +367,9 @@ class TelaAprovarOperacoes(Screen):
                 'motivo_recusa': motivo
                 # 🔥 NÃO ATUALIZAR 'data' PRINCIPAL - PRESERVAR ORDEM CRONOLÓGICA
             }
+            
+            # 🔍 DEBUG: VER O QUE ESTÁ SENDO ENVIADO
+            print(f"🔍 DEBUG RECUSA - Dados sendo enviados: {update_data}")
             
             sucesso = sistema.supabase.atualizar_status_transferencia(transferencia_id, update_data)
             
@@ -658,6 +675,9 @@ class TelaAprovarOperacoes(Screen):
                 'dados_swift_pagamento': dados_swift
                 # 🔥 NÃO ATUALIZAR 'data' PRINCIPAL!
             }
+            
+            # 🔍 DEBUG: VER O QUE ESTÁ SENDO ENVIADO
+            print(f"🔍 DEBUG CONCLUSÃO - Dados sendo enviados: {update_data}")
             
             # 🔥 CORREÇÃO: Usar método do SupabaseManager
             sucesso = sistema.supabase.atualizar_status_transferencia(transferencia_id, update_data)

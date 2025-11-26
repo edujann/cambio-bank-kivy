@@ -514,7 +514,16 @@ class SupabaseManager:
                 .select('*')\
                 .eq('id', transferencia_id)\
                 .execute()
-            return response.data[0] if response.data else None
+            
+            # 🔍 DEBUG: VER O QUE ESTÁ VINDO DO SUPABASE
+            if response.data:
+                print(f"🔍 DEBUG SUPABASE - Transferência {transferencia_id}:")
+                print(f"   Data: {response.data[0].get('data')}")
+                print(f"   Status: {response.data[0].get('status')}")
+                return response.data[0]
+            else:
+                return None
+                
         except Exception as e:
             print(f"❌ Erro ao obter transferência: {e}")
             return None

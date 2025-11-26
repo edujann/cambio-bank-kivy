@@ -74,9 +74,27 @@ class CardTransacaoExtrato(BoxLayout):
     
     def formatar_data_apenas_dia_mes_ano(self, data_string):
         """Formata a data para mostrar apenas DD/MM/AAAA, removendo o horário"""
+        # 🔥 CORREÇÃO: Se data é None ou vazia, retornar string vazia
+        if not data_string or data_string == 'None' or data_string is None:
+            return ""  # 🔥 RETORNAR STRING VAZIA EM VEZ DE None
+        
         try:
-            if not data_string:
-                return ""
+            # 🔥🔥🔥 CORREÇÃO CRÍTICA: FORMATO CORROMPIDO "26T15:22:51/11/2025"
+            # Este formato aparece quando transferências vão para "processing"
+            if 'T' in data_string and '/' in data_string:
+                try:
+                    # Formato: "26T15:22:51/11/2025"
+                    dia = data_string.split('T')[0]  # "26"
+                    resto = data_string.split('T')[1]  # "15:22:51/11/2025"
+                    mes_ano = resto.split('/')  # ["15:22:51", "11", "2025"]
+                    if len(mes_ano) >= 3:
+                        mes = mes_ano[1]  # "11"
+                        ano = mes_ano[2]  # "2025"
+                        data_corrigida = f"{dia}/{mes}/{ano}"
+                        print(f"🔧 DATA CORRIGIDA: '{data_string}' -> '{data_corrigida}'")
+                        return data_corrigida
+                except Exception as e:
+                    print(f"⚠️ Erro ao corrigir formato corrompido '{data_string}': {e}")
             
             # Se for formato com 'T' (ISO): 2025-11-15T17:15:24
             if 'T' in data_string:
@@ -1296,8 +1314,31 @@ class TelaMeuExtrato(Screen):
                         print(f"🎯🎯🎯 DEBUG 520676 - PROCESSANDO COMO TRANSFERÊNCIA INTERNACIONAL")
                         print(f"🎯🎯🎯 Status: {status}, Valor: {dados['valor']}")
                     
+                    # 🔥🔥🔥 CORREÇÃO CRÍTICA: GARANTIR DATA VÁLIDA PARA PROCESSING
+                    data_transacao = dados.get('data')
+                    if status == 'processing':
+                        if not data_transacao or data_transacao is None:
+                            # Tentar várias fontes de data
+                            data_transacao = (dados.get('data_solicitacao') or 
+                                             dados.get('data_aprovacao') or 
+                                             dados.get('data_processing') or 
+                                             dados.get('data') or
+                                             datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                            print(f"🔧🔧🔧 CORREÇÃO CRÍTICA: Data None para {transferencia_id} -> {data_transacao}")
+                        
+                        # 🔥 GARANTIR que a data está no formato correto
+                        try:
+                            if data_transacao and 'T' in data_transacao:
+                                # Converter de ISO para formato com espaço
+                                data_obj = datetime.datetime.fromisoformat(data_transacao.replace('Z', '+00:00'))
+                                data_transacao = data_obj.strftime("%Y-%m-%d %H:%M:%S")
+                        except:
+                            # Fallback para data atual
+                            data_transacao = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    
                     # 🔥 CORREÇÃO: PARA REJEITADAS, CRIAR DUAS TRANSAÇÕES
                     if status == 'rejected':
+
                         # 1. Transação de débito (quando foi solicitada)
                         data_solicitacao = dados.get('data_solicitacao', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                         data_estorno = dados.get('data_recusa', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
@@ -1336,7 +1377,25 @@ class TelaMeuExtrato(Screen):
                     else:
                         # Para outros status: criar UMA transação com status apropriado
                         status_text = "SOLICITADA" if status == 'pending' else "EM PROCESSAMENTO" if status == 'processing' else "CONCLUÍDA"
-                        data_transacao = dados.get('data_conclusao', dados.get('data_aprovacao', dados.get('data_solicitacao', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))))
+
+                        # 🔥🔥🔥 CORREÇÃO: GARANTIR DATA VÁLIDA PARA TODOS OS STATUS
+                        # Buscar data de MÚLTIPLAS fontes para evitar None
+                        data_transacao = (dados.get('data_conclusao') or 
+                                         dados.get('data_aprovacao') or 
+                                         dados.get('data_processing') or 
+                                         dados.get('data_solicitacao') or 
+                                         dados.get('data') or  # 🔥 ADICIONAR ESTA LINHA
+                                         datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+                        # 🔥 CONVERTER para formato padrão se necessário
+                        try:
+                            if data_transacao and 'T' in data_transacao:
+                                data_obj = datetime.datetime.fromisoformat(data_transacao.replace('Z', '+00:00'))
+                                data_transacao = data_obj.strftime("%Y-%m-%d %H:%M:%S")
+                        except Exception as e:
+                            print(f"⚠️ Erro ao converter data {data_transacao}: {e}")
+                            data_transacao = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
                         nova_transacao = {
                             'data': data_transacao,
                             'descricao': f"TRANSF. INTERNACIONAL {status_text} - {dados.get('beneficiario', 'N/A')}",
@@ -1641,6 +1700,19 @@ class TelaMeuExtrato(Screen):
                 print(f"   Chaves: {transacoes_todas[0].keys()}")
         print(f"📊 TRANSAÇÕES APÓS FILTRO: {len(transacoes_filtradas)}")
         
+        # 🔥🔥🔥 CORREÇÃO CRÍTICA: VERIFICAR E CORRIGIR DATAS None ANTES DO FILTRO
+        for trans in transacoes_filtradas:
+            if trans.get('data') is None or trans.get('data') == 'None':
+                # Tentar obter data do timestamp
+                timestamp = trans.get('timestamp')
+                if timestamp:
+                    trans['data'] = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                    print(f"🔧 CORREÇÃO PÓS-PROCESSAMENTO: Data None corrigida para {trans.get('id')} -> {trans['data']}")
+                else:
+                    # Data fallback
+                    trans['data'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    print(f"🔧 CORREÇÃO PÓS-PROCESSAMENTO: Data None com fallback para {trans.get('id')}")
+
         # ✅ FILTRO FINAL DEFINITIVO - REMOVER TRANSAÇÕES ZERADAS
         print(f"🔍 FILTRO FINAL DEFINITIVO: {len(transacoes_filtradas)} transações antes do filtro")
 
