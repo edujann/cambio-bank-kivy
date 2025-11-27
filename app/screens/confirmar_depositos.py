@@ -268,26 +268,54 @@ class TelaConfirmarDepositos(Screen):
                 return 0.0
     
     def carregar_dados(self):
-        """Carrega clientes e contas"""
+        """Carrega clientes e contas - VERSÃO PADRONIZADA COM SUPABASE"""
         sistema = App.get_running_app().sistema
         
-        # Carregar lista de clientes
-        self.clientes = sistema.listar_clientes()
+        # 🔥 PADRÃO: Carregar clientes do Supabase primeiro
+        self.clientes = self.carregar_clientes_hibrido(sistema)
         
-        # Carregar contas bancárias da empresa
-        self.contas_empresa = sistema.contas_bancarias_empresa
+        # 🔥 PADRÃO: Carregar contas da empresa do Supabase primeiro  
+        self.contas_empresa = self.carregar_contas_empresa_hibrido(sistema)
         
-        # Atualizar Spinners se existirem
+        # Resto do código permanece igual
         if hasattr(self, 'ids'):
             self.atualizar_spinners()
-            
-        # CONFIGURAR CAMPO VALOR
+        
         if hasattr(self, 'ids') and 'entry_valor' in self.ids:
             self.configurar_campo_valor()
             
-        # GARANTIR que o campo "Outro Banco" seja mostrado inicialmente
         if self.spinner_banco_origem:
             self.on_banco_selecionado(None, "Outro Banco")
+
+    def carregar_clientes_hibrido(self, sistema):
+        """Carrega clientes - SUPABASE FIRST, igual outras telas"""
+        if sistema.supabase.conectado:
+            try:
+                clientes_supabase = sistema.supabase.obter_clientes()
+                if clientes_supabase:
+                    print(f"✅ {len(clientes_supabase)} clientes carregados do Supabase")
+                    return clientes_supabase
+            except Exception as e:
+                print(f"⚠️ Erro ao carregar clientes do Supabase: {e}")
+        
+        # 🔥 FALLBACK: Carregar do JSON (mesmo padrão das outras telas)
+        print("🔄 Carregando clientes do JSON (fallback)")
+        return sistema.listar_clientes()
+
+    def carregar_contas_empresa_hibrido(self, sistema):
+        """Carrega contas da empresa - SUPABASE FIRST, igual outras telas"""
+        if sistema.supabase.conectado:
+            try:
+                contas_supabase = sistema.supabase.obter_contas_bancarias_empresa()
+                if contas_supabase:
+                    print(f"✅ {len(contas_supabase)} contas empresa carregadas do Supabase")
+                    return contas_supabase
+            except Exception as e:
+                print(f"⚠️ Erro ao carregar contas empresa do Supabase: {e}")
+        
+        # 🔥 FALLBACK: Carregar do JSON (mesmo padrão das outras telas)
+        print("🔄 Carregando contas empresa do JSON (fallback)")
+        return sistema.contas_bancarias_empresa
   
     def on_campo_valor_focado(self, instance, focused):
         """Quando o campo valor ganha foco, coloca cursor no final"""
@@ -563,7 +591,7 @@ class TelaConfirmarDepositos(Screen):
         return True
     
     def confirmar_deposito(self):
-        """Confirma o depósito - VERSÃO CORRIGIDA COM SUPABASE"""
+        """Confirma o depósito - VERSÃO SUPABASE-FIRST"""
         if not self.validar_dados():
             return
         
@@ -579,7 +607,6 @@ class TelaConfirmarDepositos(Screen):
             moeda = conta_cliente_selecionada.split(' - ')[1].split(' ')[0]
             
             conta_empresa_selecionada = self.ids.spinner_conta_empresa.text
-            # 🔥 CORREÇÃO: Extrair número da conta empresa corretamente
             if ' - ' in conta_empresa_selecionada:
                 numero_conta_empresa = conta_empresa_selecionada.split(' - ')[0]
             else:
@@ -589,7 +616,7 @@ class TelaConfirmarDepositos(Screen):
             banco_origem = self.obter_banco_origem()
             remetente = self.ids.entry_remetente.text
             
-            # 🔥 CORREÇÃO: Converter valor corretamente
+            # Converter valor
             try:
                 valor_texto = self.ids.entry_valor.text.replace(',', '')
                 valor = float(valor_texto)
@@ -597,7 +624,7 @@ class TelaConfirmarDepositos(Screen):
                 self.mostrar_erro("Valor inválido!")
                 return
             
-            print(f"🔍 PROCESSANDO DEPÓSITO COM SUPABASE:")
+            print(f"🔍 PROCESSANDO DEPÓSITO COM SUPABASE-FIRST:")
             print(f"  Valor: {valor:,.2f}")
             print(f"  Cliente: {username}")
             print(f"  Conta Cliente: {numero_conta_cliente} ({moeda})")
@@ -618,98 +645,140 @@ class TelaConfirmarDepositos(Screen):
             print(f"  Saldo empresa antes: {saldo_empresa_antes:,.2f}")
             print(f"  Saldo cliente antes: {saldo_cliente_antes:,.2f}")
             
-            # 🔥 CORREÇÃO: Obter username do usuário logado corretamente
-            # Verificar se usuario_logado é string ou dict
+            # Obter usuário logado
             if isinstance(sistema.usuario_logado, dict):
                 executado_por = sistema.usuario_logado.get('username', 'sistema')
             else:
-                executado_por = sistema.usuario_logado  # Já é string
+                executado_por = sistema.usuario_logado
             
-            # 🔥 SINCRONIZAÇÃO COM SUPABASE
-            supabase_sucesso = True
+            # 🔥🔥🔥 SUPABASE FIRST - TENTAR SALVAR NO SUPABASE PRIMEIRO
+            supabase_sucesso = False
+            transacao_id = str(int(datetime.datetime.now().timestamp()))
             
             if hasattr(sistema, 'supabase') and sistema.supabase.conectado:
                 try:
-                    # 1. ATUALIZAR SALDO DA CONTA DO CLIENTE NO SUPABASE
-                    novo_saldo_cliente = saldo_cliente_antes + valor
-                    cliente_sucesso = sistema.supabase.atualizar_saldo_conta(
-                        numero_conta_cliente, 
-                        novo_saldo_cliente
-                    )
+                    print("🚀 SALVANDO NO SUPABASE PRIMEIRO...")
                     
-                    # 2. ATUALIZAR SALDO DA CONTA DA EMPRESA NO SUPABASE
-                    novo_saldo_empresa = saldo_empresa_antes + valor
-                    empresa_sucesso = sistema.supabase.atualizar_saldo_conta(
-                        numero_conta_empresa, 
-                        novo_saldo_empresa
-                    )
+                    # 1. CRIAR TRANSAÇÃO NO SUPABASE
+                    descricao = f"Depósito confirmado - Banco: {banco_origem} - Remetente: {remetente}"
                     
-                    if not cliente_sucesso or not empresa_sucesso:
-                        supabase_sucesso = False
-                        print("❌ Falha ao atualizar saldos no Supabase")
-                    else:
-                        print("✅ Saldos atualizados no Supabase com sucesso")
-                        
-                except Exception as e:
-                    supabase_sucesso = False
-                    print(f"❌ Erro ao sincronizar com Supabase: {e}")
-            
-            # 🔥 ATUALIZAR CACHE LOCAL
-            sistema.contas[numero_conta_cliente]['saldo'] += valor
-            saldo_cliente_depois = sistema.contas[numero_conta_cliente]['saldo']
-            print(f"  ✅ CLIENTE (CRÉDITO): {saldo_cliente_antes:,.2f} → {saldo_cliente_depois:,.2f} (+{valor:,.2f})")
-            
-            sistema.contas_bancarias_empresa[numero_conta_empresa]['saldo'] += valor
-            saldo_empresa_depois = sistema.contas_bancarias_empresa[numero_conta_empresa]['saldo']
-            print(f"  ✅ EMPRESA (DÉBITO): {saldo_empresa_antes:,.2f} → {saldo_empresa_depois:,.2f} (+{valor:,.2f})")
-            
-            # 🔥 CRIAR TRANSAÇÃO
-            transacao_id = str(int(datetime.datetime.now().timestamp()))
-            descricao = f"Depósito confirmado - Banco: {banco_origem} - Remetente: {remetente}"
-            
-            # 🔥 CORREÇÃO: USAR NOMES EXATOS DAS COLUNAS DO SUPABASE
-            dados_transacao = {
-                'id': transacao_id,                           # ✅ id (text)
-                'tipo': 'deposito',
-                'conta_remetente': numero_conta_cliente,      # ✅ conta_remetente (text)  
-                'conta_destinatario': numero_conta_empresa,   # ✅ conta_destinatario (text)
-                'valor': valor,
-                'moeda': moeda,
-                'banco_origem': banco_origem,
-                'remetente': remetente,
-                'descricao': descricao,
-                'status': 'completed',
-                'data': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'executado_por': executado_por,               # ✅ executado_por (text)
-                'cliente': username                           # ✅ cliente (text)
-            }
-            
-            # 🔥 SALVAR TRANSAÇÃO NO SUPABASE
-            if hasattr(sistema, 'supabase') and sistema.supabase.conectado and supabase_sucesso:
-                try:
+                    dados_transacao = {
+                        'id': transacao_id,
+                        'tipo': 'deposito',
+                        'conta_remetente': numero_conta_cliente,
+                        'conta_destinatario': numero_conta_empresa,
+                        'valor': valor,
+                        'moeda': moeda,
+                        'banco_origem': banco_origem,
+                        'remetente': remetente,
+                        'descricao': descricao,
+                        'status': 'completed',
+                        'data': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        'executado_por': executado_por,
+                        'cliente': username
+                    }
+                    
+                    # SALVAR TRANSAÇÃO NO SUPABASE
                     transacao_sucesso = sistema.supabase.salvar_transacao(dados_transacao)
+                    
                     if transacao_sucesso:
                         print("✅ Transação salva no Supabase")
-                    else:
-                        print("⚠️ Transação não foi salva no Supabase (usando cache local)")
-                        supabase_sucesso = False
+                        
+                        # 2. ATUALIZAR SALDOS NO SUPABASE
+                        novo_saldo_cliente = saldo_cliente_antes + valor
+                        novo_saldo_empresa = saldo_empresa_antes + valor
+                        
+                        print(f"🔍 DEBUG ATUALIZAÇÃO SALDOS SUPABASE:")
+                        print(f"  Conta cliente: {numero_conta_cliente} → {novo_saldo_cliente:.2f}")
+                        print(f"  Conta empresa: {numero_conta_empresa} → {novo_saldo_empresa:.2f}")
+                        
+                        cliente_sucesso = sistema.supabase.atualizar_saldo_conta(
+                            numero_conta_cliente, 
+                            novo_saldo_cliente
+                        )
+                        
+                        empresa_sucesso = sistema.supabase.atualizar_saldo_conta_empresa(
+                            numero_conta_empresa, 
+                            novo_saldo_empresa
+                        )
+                        
+                        print(f"🔍 RESULTADO ATUALIZAÇÃO:")
+                        print(f"  Cliente: {'✅' if cliente_sucesso else '❌'}")
+                        print(f"  Empresa: {'✅' if empresa_sucesso else '❌'}")
+                        
+                        if cliente_sucesso and empresa_sucesso:
+                            supabase_sucesso = True
+                            print("✅ Saldos atualizados no Supabase")
+                        else:
+                            print("❌ Falha ao atualizar saldos no Supabase - Transação mantida para debug")
+                            supabase_sucesso = False
+                        
                 except Exception as e:
-                    print(f"❌ Erro ao salvar transação no Supabase: {e}")
-                    supabase_sucesso = False
+                    print(f"❌ Erro crítico no Supabase: {e}")
+                    import traceback
+                    traceback.print_exc()
             
-            # 🔥 SALVAR NO CACHE LOCAL
-            sistema.transferencias[transacao_id] = dados_transacao
-            
-            # 🔥 SALVAR ARQUIVOS LOCAIS
-            sistema.salvar_contas_bancarias()
-            sistema.salvar_contas()
-            sistema.salvar_transferencias()
+            # 🔥 ATUALIZAR CACHE LOCAL APENAS SE SUPABASE SUCESSO
+            if supabase_sucesso:
+                # Atualizar saldos locais
+                sistema.contas[numero_conta_cliente]['saldo'] += valor
+                saldo_cliente_depois = sistema.contas[numero_conta_cliente]['saldo']
+                
+                sistema.contas_bancarias_empresa[numero_conta_empresa]['saldo'] += valor
+                saldo_empresa_depois = sistema.contas_bancarias_empresa[numero_conta_empresa]['saldo']
+                
+                # Salvar transação localmente
+                sistema.transferencias[transacao_id] = dados_transacao
+                
+                print(f"  ✅ CLIENTE (CRÉDITO): {saldo_cliente_antes:,.2f} → {saldo_cliente_depois:,.2f} (+{valor:,.2f})")
+                print(f"  ✅ EMPRESA (DÉBITO): {saldo_empresa_antes:,.2f} → {saldo_empresa_depois:,.2f} (+{valor:,.2f})")
+                
+                # 🔥 SALVAR ARQUIVOS LOCAIS (APENAS BACKUP)
+                sistema.salvar_contas_bancarias()
+                sistema.salvar_contas()
+                sistema.salvar_transferencias()
+                
+                status_supabase = "✅ Sincronizado com Supabase"
+            else:
+                # 🔥 FALLBACK: Salvar apenas localmente se Supabase falhar
+                print("⚠️ Usando fallback local (Supabase falhou)")
+                
+                sistema.contas[numero_conta_cliente]['saldo'] += valor
+                saldo_cliente_depois = sistema.contas[numero_conta_cliente]['saldo']
+                
+                sistema.contas_bancarias_empresa[numero_conta_empresa]['saldo'] += valor
+                saldo_empresa_depois = sistema.contas_bancarias_empresa[numero_conta_empresa]['saldo']
+                
+                # Criar transação local
+                descricao = f"Depósito confirmado - Banco: {banco_origem} - Remetente: {remetente}"
+                dados_transacao = {
+                    'id': transacao_id,
+                    'tipo': 'deposito',
+                    'conta_remetente': numero_conta_cliente,
+                    'conta_destinatario': numero_conta_empresa,
+                    'valor': valor,
+                    'moeda': moeda,
+                    'banco_origem': banco_origem,
+                    'remetente': remetente,
+                    'descricao': descricao,
+                    'status': 'completed',
+                    'data': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'executado_por': executado_por,
+                    'cliente': username
+                }
+                
+                sistema.transferencias[transacao_id] = dados_transacao
+                
+                # Salvar arquivos locais
+                sistema.salvar_contas_bancarias()
+                sistema.salvar_contas()
+                sistema.salvar_transferencias()
+                
+                status_supabase = "⚠️ Salvo apenas localmente (erro Supabase)"
             
             print("✅ Depósito confirmado com sucesso!")
             
-            # 🔥 MENSAGEM DE CONFIRMAÇÃO
-            status_supabase = "✅ Sincronizado com Supabase" if supabase_sucesso else "⚠️ Salvo apenas localmente (erro Supabase)"
-            
+            # MENSAGEM DE CONFIRMAÇÃO
             self.mostrar_sucesso(
                 f"Depósito confirmado!\n\n"
                 f"Valor: {valor:,.2f} {moeda}\n"
@@ -768,14 +837,43 @@ class TelaConfirmarDepositos(Screen):
         popup.open()
     
     def mostrar_sucesso(self, mensagem):
-        """Mostra popup de sucesso"""
-        content = BoxLayout(orientation='vertical', padding=10, spacing=10)
-        content.add_widget(Label(text=mensagem, color=(0.2, 0.8, 0.2, 1)))
+        """Mostra popup de sucesso - VERSÃO MAIOR PARA CABER TODAS INFORMAÇÕES"""
+        content = BoxLayout(orientation='vertical', padding=15, spacing=10)
         
-        btn_ok = Button(text='OK', size_hint_y=None, height=40)
-        popup = Popup(title='Sucesso', content=content, size_hint=(None, None), size=(450, 200))
-        btn_ok.bind(on_press=popup.dismiss)
+        # Label com altura maior para caber todo o texto
+        lbl_mensagem = Label(
+            text=mensagem, 
+            color=(0.2, 0.8, 0.2, 1),
+            text_size=(400, None),  # 🔥 LARGURA FIXA PARA QUEBRAR TEXTO
+            halign='center',
+            valign='middle',
+            size_hint_y=None,
+            height=150  # 🔥 ALTURA MAIOR PARA CABER TUDO
+        )
+        lbl_mensagem.bind(size=lbl_mensagem.setter('text_size'))
+        
+        btn_ok = Button(
+            text='OK', 
+            size_hint_y=None, 
+            height=40,
+            background_color=(0.2, 0.7, 0.2, 1),
+            color=(1, 1, 1, 1)
+        )
+        
+        content.add_widget(lbl_mensagem)
         content.add_widget(btn_ok)
+        
+        # 🔥 AUMENTAR TAMANHO DO POPUP
+        popup = Popup(
+            title='Sucesso', 
+            content=content, 
+            size_hint=(None, None), 
+            size=(450, 250),  # 🔥 MAIOR: 450x250 (era 450x200)
+            auto_dismiss=False,
+            title_color=(0.2, 0.8, 0.2, 1)
+        )
+        
+        btn_ok.bind(on_press=popup.dismiss)
         popup.open()
 
     def voltar_dashboard(self):

@@ -244,13 +244,6 @@
         "cliente_nome": "MAKITA MACHINES LLC",
         "data_criacao": "2025-11-26"
     },
-    "873134916": {
-        "moeda": "BRL",
-        "saldo": -30997.44,
-        "cliente": "lins",
-        "cliente_nome": "LINS CHAIR LIMITADA",
-        "data_criacao": "2025-11-18"
-    },
     "802194129": {
         "moeda": "BRL",
         "saldo": 30234.04,
@@ -285,6 +278,20 @@
         "cliente": "lins",
         "cliente_nome": "LINS CHAIR LIMITADA",
         "data_criacao": "2025-11-18"
+    },
+    "873134916": {
+        "moeda": "BRL",
+        "saldo": 0.0,
+        "cliente": "lins",
+        "cliente_nome": "LINS CHAIR LIMITADA",
+        "data_criacao": "2025-11-18"
+    },
+    "202973672": {
+        "moeda": "BRL",
+        "saldo": 124734.2,
+        "cliente": "texaco",
+        "cliente_nome": "TEXACO LLC",
+        "data_criacao": "2025-11-01"
     },
     "277435777": {
         "moeda": "EUR",
@@ -327,13 +334,6 @@
         "cliente": "bmw",
         "cliente_nome": "BMW ENTERPRISE",
         "data_criacao": "2025-10-30"
-    },
-    "202973672": {
-        "moeda": "BRL",
-        "saldo": 74734.2,
-        "cliente": "texaco",
-        "cliente_nome": "TEXACO LLC",
-        "data_criacao": "2025-11-01"
     },
     "221073098": {
         "moeda": "GBP",

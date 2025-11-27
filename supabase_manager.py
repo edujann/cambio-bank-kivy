@@ -540,6 +540,25 @@ class SupabaseManager:
             print(f"❌ Erro ao atualizar status da transferência: {e}")
             return False
 
+    def atualizar_saldo_conta_empresa(self, conta_numero, novo_saldo):
+        """Atualiza saldo de conta bancária da empresa no Supabase - MESMO PADRÃO"""
+        try:
+            response = self.client.table('contas_bancarias_empresa')\
+                .update({'saldo': novo_saldo})\
+                .eq('numero', conta_numero)\
+                .execute()
+            
+            if response.data:
+                print(f"✅ Saldo empresa atualizado no Supabase: {conta_numero} = {novo_saldo:.2f}")
+                return True
+            else:
+                print(f"❌ Erro ao atualizar saldo empresa no Supabase: {conta_numero}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Erro ao atualizar saldo empresa no Supabase: {e}")
+            return False
+
     def atualizar_saldo_conta(self, conta_id, novo_saldo):
         """Atualiza saldo de uma conta no Supabase"""
         try:
@@ -563,6 +582,62 @@ class SupabaseManager:
         except Exception as e:
             print(f"❌ Erro ao obter saldo da conta: {e}")
             return 0.0
+
+    def obter_clientes(self):
+        """Obtém todos os clientes do Supabase - MESMO PADRÃO DAS OUTRAS TELAS"""
+        try:
+            response = self.client.table('usuarios').select('*').eq('tipo', 'cliente').execute()
+            
+            clientes = []
+            for user in response.data:
+                cliente = {
+                    'username': user['username'],
+                    'nome': user['nome'],
+                    'email': user['email'],
+                    'documento': user.get('documento_hash', ''),
+                    'telefone': user.get('telefone', ''),
+                    'tipo': user.get('tipo', 'cliente'),
+                    'data_cadastro': user.get('data_cadastro', ''),
+                    'contas': user.get('contas', [])
+                }
+                clientes.append(cliente)
+            
+            print(f"✅ {len(clientes)} clientes carregados do Supabase")
+            return clientes
+            
+        except Exception as e:
+            print(f"❌ Erro ao obter clientes do Supabase: {e}")
+            return None
+
+    def obter_contas_bancarias_empresa(self):
+        """Obtém contas bancárias da empresa do Supabase - MESMO PADRÃO DAS OUTRAS TELAS"""
+        try:
+            response = self.client.table('contas_bancarias_empresa').select('*').execute()
+            
+            contas = {}
+            for conta in response.data:
+                contas[conta['numero']] = {
+                    'numero': conta['numero'],
+                    'banco': conta['banco'],
+                    'moeda': conta['moeda'],
+                    'saldo': float(conta['saldo']),
+                    'tipo': conta.get('tipo', 'empresa'),
+                    'agencia': conta.get('agencia', ''),
+                    'data_criacao': conta.get('data_criacao', ''),
+                    'saldo_inicial': float(conta.get('saldo_inicial', conta['saldo']))
+                }
+            
+            print(f"✅ {len(contas)} contas empresa carregadas do Supabase")
+            return contas
+            
+        except Exception as e:
+            print(f"❌ Erro ao obter contas empresa do Supabase: {e}")
+            return None
+
+
+
+
+
 
 
 # Teste rápido
