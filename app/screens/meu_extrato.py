@@ -1336,12 +1336,15 @@ class TelaMeuExtrato(Screen):
                             # Fallback para data atual
                             data_transacao = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     
-                    # 🔥 CORREÇÃO: PARA REJEITADAS, CRIAR DUAS TRANSAÇÕES
+                    # TRANSFERENCIA INTERNACIOAL REJEITADAS
                     if status == 'rejected':
-
                         # 1. Transação de débito (quando foi solicitada)
-                        data_solicitacao = dados.get('data_solicitacao', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-                        data_estorno = dados.get('data_recusa', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                        data_solicitacao = dados.get('data_solicitacao') or dados.get('data')
+                        if not data_solicitacao:
+                            data_solicitacao = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        
+                        timestamp_debito = parse_data(data_solicitacao)
+                        
                         transacao_debito = {
                             'data': data_solicitacao,
                             'descricao': f"TRANSF. INTERNACIONAL SOLICITADA - {dados.get('beneficiario', 'N/A')}",
@@ -1349,12 +1352,12 @@ class TelaMeuExtrato(Screen):
                             'debito': dados['valor'],
                             'tipo': "Transferência Internacional",
                             'moeda': dados['moeda'],
-                            'timestamp': parse_data(data_solicitacao),
+                            'timestamp': timestamp_debito,
                             'id': f"{transferencia_id}_DEBITO"
                         }
                         
                         # 2. Transação de crédito (estorno quando foi rejeitada)
-                        data_estorno = dados.get('data_recusa', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                        data_estorno = dados.get('data_recusa', dados.get('data_processing', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
                         transacao_credito = {
                             'data': data_estorno,
                             'descricao': f"ESTORNO TRANSF. INTERNACIONAL - {dados.get('beneficiario', 'N/A')}",
@@ -1437,12 +1440,16 @@ class TelaMeuExtrato(Screen):
                     transacoes_todas.append(nova_transacao)
                     transacoes_ids_utilizados.add(transferencia_id)
                 
-                # TRANSFERÊNCIA INTERNA
-                else:
-                    # 🔥 CORREÇÃO: PARA REJEITADAS, CRIAR DUAS TRANSAÇÕES
+                    
+                    # TRANSFERENICA INTERNA REJEITADA
                     if status == 'rejected':
                         # 1. Transação de débito (quando foi solicitada)
-                        data_solicitacao = dados.get('data_solicitacao', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                        data_solicitacao = dados.get('data_solicitacao') or dados.get('data')
+                        if not data_solicitacao:
+                            data_solicitacao = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        
+                        timestamp_debito = parse_data(data_solicitacao)
+                        
                         transacao_debito = {
                             'data': data_solicitacao,
                             'descricao': f"TRANSFERÊNCIA SOLICITADA - {self.obter_nome_cliente_por_conta(sistema, dados.get('conta_destinatario', 'N/A'))}",
@@ -1450,12 +1457,12 @@ class TelaMeuExtrato(Screen):
                             'debito': dados['valor'],
                             'tipo': "Transferência",
                             'moeda': dados['moeda'],
-                            'timestamp': parse_data(data_solicitacao),
+                            'timestamp': timestamp_debito,
                             'id': f"{transferencia_id}_DEBITO"
                         }
                         
                         # 2. Transação de crédito (estorno quando foi rejeitada)
-                        data_estorno = dados.get('data_recusa', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                        data_estorno = dados.get('data_recusa', dados.get('data_processing', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
                         transacao_credito = {
                             'data': data_estorno,
                             'descricao': f"ESTORNO TRANSFERÊNCIA - {self.obter_nome_cliente_por_conta(sistema, dados.get('conta_destinatario', 'N/A'))}",

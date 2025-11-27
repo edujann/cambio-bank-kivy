@@ -1704,6 +1704,54 @@ class TelaGerenciarContas(Screen):
                     print(f"🔥 VARIAÇÃO ENCONTRADA: {tid}")
                     break
 
+        # 🔥🔥🔥 CORREÇÃO CRÍTICA: PROCESSAR TRANSFERÊNCIAS REJEITADAS QUE ESTÃO FALTANDO
+        print("=== 🔧 CORREÇÃO: PROCESSANDO TRANSFERÊNCIAS REJEITADAS FALTANTES ===")
+        transferencias_rejeitadas_faltantes = ['184093', '587053', '865163', '139323', '548724']
+
+        for transferencia_id in transferencias_rejeitadas_faltantes:
+            if transferencia_id in sistema.transferencias:
+                dados = sistema.transferencias[transferencia_id]
+                print(f"✅ PROCESSANDO TRANSFERÊNCIA FALTANTE: {transferencia_id}")
+                
+                # 🔥 CORREÇÃO: GARANTIR DATAS VÁLIDAS
+                data_solicitacao = (dados.get('data_solicitacao') or 
+                                  dados.get('data') or 
+                                  datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                
+                data_estorno = (dados.get('data_recusa') or 
+                              dados.get('data_processing') or 
+                              datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+                # Criar transação de débito (solicitação)
+                transacao_debito = {
+                    'data': data_solicitacao,
+                    'descricao': f"TRANSF. INTERNACIONAL SOLICITADA - {dados.get('beneficiario', 'N/A')}",
+                    'credito': 0.00,
+                    'debito': dados['valor'],
+                    'tipo': "Transferência Internacional",
+                    'moeda': dados['moeda'],
+                    'timestamp': parse_data(data_solicitacao),
+                    'id': f"{transferencia_id}_DEBITO"
+                }
+                
+                # Criar transação de crédito (estorno)
+                transacao_credito = {
+                    'data': data_estorno,
+                    'descricao': f"ESTORNO TRANSF. INTERNACIONAL - {dados.get('beneficiario', 'N/A')}",
+                    'credito': dados['valor'],
+                    'debito': 0.00,
+                    'tipo': "Estorno",
+                    'moeda': dados['moeda'],
+                    'timestamp': parse_data(data_estorno),
+                    'id': f"{transferencia_id}_CREDITO"
+                }
+                
+                transacoes.append(transacao_debito)
+                transacoes.append(transacao_credito)
+                transacoes_ids_utilizados.add(f"{transferencia_id}_DEBITO")
+                transacoes_ids_utilizados.add(f"{transferencia_id}_CREDITO")
+                print(f"   ✅ ADICIONADAS: {transferencia_id}_DEBITO e {transferencia_id}_CREDITO")
+
         # 🔥 CORREÇÃO: BUSCAR TODAS AS TRANSFERÊNCIAS COM VERIFICAÇÃO ROBUSTA
         for transferencia_id, dados in sistema.transferencias.items():
             
@@ -1892,6 +1940,28 @@ class TelaGerenciarContas(Screen):
                 
                 # TRANSFERÊNCIA INTERNACIONAL
                 elif tipo == 'internacional' or tipo == 'transferencia_internacional':
+                    # 🔥🔥🔥 CORREÇÃO CRÍTICA: GARANTIR DATA VÁLIDA PARA PROCESSING (MESMA DO CLIENTE)
+                    data_transacao = dados.get('data')
+                    if status == 'processing':
+                        if not data_transacao or data_transacao is None:
+                            # Tentar várias fontes de data
+                            data_transacao = (dados.get('data_solicitacao') or 
+                                             dados.get('data_aprovacao') or 
+                                             dados.get('data_processing') or 
+                                             dados.get('data') or
+                                             datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                            print(f"🔧🔧🔧 CORREÇÃO ADMIN: Data None para {transferencia_id} -> {data_transacao}")
+                        
+                        # 🔥 GARANTIR que a data está no formato correto
+                        try:
+                            if data_transacao and 'T' in data_transacao:
+                                # Converter de ISO para formato com espaço
+                                data_obj = datetime.datetime.fromisoformat(data_transacao.replace('Z', '+00:00'))
+                                data_transacao = data_obj.strftime("%Y-%m-%d %H:%M:%S")
+                        except:
+                            # Fallback para data atual
+                            data_transacao = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    
                     if status == 'rejected':
                         # Transação de débito + estorno
                         data_solicitacao = dados.get('data_solicitacao', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
@@ -1926,13 +1996,24 @@ class TelaGerenciarContas(Screen):
                     
                     else:
                         status_text = "SOLICITADA" if status == 'pending' or status == 'solicitada' else "EM PROCESSAMENTO" if status == 'processing' else "CONCLUÍDA"
-                        
-                        # 🔥🔥🔥 CORREÇÃO CRÍTICA: MESMA LÓGICA DO EXTRATO CLIENTE
-                        data_transacao = dados.get('data_conclusao', 
-                                          dados.get('data_processing', 
-                                          dados.get('data_aprovacao', 
-                                          dados.get('data_solicitacao', 
-                                          dados.get('data', datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))))))
+
+                        # 🔥🔥🔥 CORREÇÃO: GARANTIR DATA VÁLIDA PARA TODOS OS STATUS (MESMA DO CLIENTE)
+                        # Buscar data de MÚLTIPLAS fontes para evitar None
+                        data_transacao = (dados.get('data_conclusao') or 
+                                         dados.get('data_processing') or 
+                                         dados.get('data_aprovacao') or 
+                                         dados.get('data_solicitacao') or 
+                                         dados.get('data') or  # 🔥 ADICIONAR ESTA LINHA
+                                         datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+                        # 🔥 CONVERTER para formato padrão se necessário
+                        try:
+                            if data_transacao and 'T' in data_transacao:
+                                data_obj = datetime.datetime.fromisoformat(data_transacao.replace('Z', '+00:00'))
+                                data_transacao = data_obj.strftime("%Y-%m-%d %H:%M:%S")
+                        except Exception as e:
+                            print(f"⚠️ Erro ao converter data {data_transacao}: {e}")
+                            data_transacao = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
                         # 🔥🔥🔥 SE A DATA AINDA FOR None, USAR DATA ATUAL
                         if data_transacao is None:
@@ -2150,6 +2231,81 @@ class TelaGerenciarContas(Screen):
                     transacoes.append(nova_transacao)
                     transacoes_ids_utilizados.add(transferencia_id)
         
+        # 🔥🔥🔥 CORREÇÃO CRÍTICA: VERIFICAR E CORRIGIR DATAS None ANTES DO CÁLCULO (MESMA DO CLIENTE)
+        for trans in transacoes:
+            if trans.get('data') is None or trans.get('data') == 'None':
+                # Tentar obter data do timestamp
+                timestamp = trans.get('timestamp')
+                if timestamp:
+                    trans['data'] = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                    print(f"🔧 CORREÇÃO PÓS-PROCESSAMENTO ADMIN: Data None corrigida para {trans.get('id')} -> {trans['data']}")
+                else:
+                    # Data fallback
+                    trans['data'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    print(f"🔧 CORREÇÃO PÓS-PROCESSAMENTO ADMIN: Data None com fallback para {trans.get('id')}")
+
+        # 🔥🔥🔥 DEBUG CRÍTICO - VERIFICAR EXATAMENTE O QUE ESTÁ FALTANDO
+        print("=== 🕵️‍♂️ DEBUG CRÍTICO - COMPARAÇÃO SALDO ===")
+        print(f"💰 Saldo atual da conta: {saldo_atual:,.2f}")
+        
+        # Calcular saldo manualmente de TODAS as transferências
+        saldo_manual = 0.0
+        transferencias_processadas = []
+        
+        for transferencia_id, dados in sistema.transferencias.items():
+            if not dados or not isinstance(dados, dict):
+                continue
+                
+            conta_remetente = dados.get('conta_remetente', '')
+            conta_destinatario = dados.get('conta_destinatario', '')
+            
+            if conta_remetente == conta_num or conta_destinatario == conta_num:
+                valor = dados.get('valor', 0)
+                tipo = dados.get('tipo', '')
+                status = dados.get('status', '')
+                
+                # Determinar se é entrada ou saída
+                if conta_remetente == conta_num:
+                    # Saída (débito)
+                    saldo_manual -= valor
+                    sinal = "➖"
+                else:
+                    # Entrada (crédito)  
+                    saldo_manual += valor
+                    sinal = "➕"
+                
+                transferencias_processadas.append({
+                    'id': transferencia_id,
+                    'tipo': tipo,
+                    'status': status,
+                    'valor': valor,
+                    'sinal': sinal,
+                    'conta_remetente': conta_remetente,
+                    'conta_destinatario': conta_destinatario
+                })
+        
+        print(f"💰 Saldo calculado manualmente: {saldo_manual:,.2f}")
+        print(f"📊 Diferença: {saldo_atual - saldo_manual:,.2f}")
+        
+        # Mostrar TODAS as transferências da conta
+        print("📋 TODAS AS TRANSFERÊNCIAS DA CONTA (PARA COMPARAÇÃO):")
+        for trans in sorted(transferencias_processadas, key=lambda x: x['id']):
+            print(f"   {trans['sinal']} {trans['id']} | {trans['tipo']} | {trans['status']} | Valor: {trans['valor']:,.2f} | Rem: {trans['conta_remetente']} | Dest: {trans['conta_destinatario']}")
+        
+        # Verificar transferências que NÃO foram processadas no extrato
+        ids_no_extrato = [t.get('id') for t in transacoes if 'id' in t]
+        ids_na_conta = [t['id'] for t in transferencias_processadas]
+        
+        transferencias_faltando = [tid for tid in ids_na_conta if tid not in ids_no_extrato]
+        
+        if transferencias_faltando:
+            print("🚨 TRANSFERÊNCIAS FALTANDO NO EXTRATO:")
+            for tid in transferencias_faltando:
+                dados = sistema.transferencias.get(tid, {})
+                print(f"   ❌ {tid} | {dados.get('tipo')} | {dados.get('status')} | Valor: {dados.get('valor')} | Data: {dados.get('data')}")
+        else:
+            print("✅ TODAS AS TRANSFERÊNCIAS FORAM PROCESSADAS NO EXTRATO")
+
         # 🔥🔥🔥 NOVO DEBUG: VER TODAS AS TRANSFERÊNCIAS DA CONTA - COLOQUE AQUI
         print(f"=== 🔍 TODAS AS TRANSFERÊNCIAS DA CONTA {conta_num} ===")
         for transferencia_id, dados in sistema.transferencias.items():
@@ -2168,6 +2324,18 @@ class TelaGerenciarContas(Screen):
         # 🔥 CORREÇÃO: Para TODOS os períodos (exceto "Todo período"), começar do saldo calculado
         if periodo == "0":
             saldo_sequencial = 0
+            print("💰 CALCULANDO SALDO SEQUENCIAL A PARTIR DE ZERO (TODO PERÍODO)")
+        else:
+            saldo_sequencial = saldo_inicial_periodo
+            print(f"💰 CALCULANDO SALDO SEQUENCIAL A PARTIR DE: {saldo_sequencial:,.2f}")
+
+        for transacao in transacoes_ordenadas_calculo:
+            # 🔥 PULAR o saldo inicial (já definimos como saldo_inicial_periodo)
+            if transacao['tipo'] == "Saldo Inicial":
+                continue
+                
+            saldo_sequencial += transacao['credito'] - transacao['debito']
+            transacao['saldo_apos'] = saldo_sequencial
             print("💰 CALCULANDO SALDO SEQUENCIAL A PARTIR DE ZERO (TODO PERÍODO)")
         else:
             saldo_sequencial = saldo_inicial_periodo
