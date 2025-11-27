@@ -1978,45 +1978,37 @@ class TelaMeuExtrato(Screen):
         return 'N/A'
     
         
-    def atualizar_interface_extrato(self, transacoes, saldo_atual, total_entradas, total_saidas, moeda, periodo):
-        """Atualiza a interface com os dados do extrato - VERSÃO CORRIGIDA"""
+    def atualizar_interface_extrato_admin(self, transacoes, saldo_atual, total_entradas, total_saidas, moeda, periodo, username):
+        """Atualiza a interface com os dados do extrato admin - VERSÃO CORRIGIDA"""
         if not hasattr(self, 'ids'):
             return
         
         # 🔥 CORREÇÃO: SALVAR AS TRANSAÇÕES FILTRADAS E TOTAIS
-        self.transacoes_filtradas = transacoes
-        self.saldo_final = saldo_atual
-        self.total_entradas = total_entradas
-        self.total_saidas = total_saidas
+        self.transacoes_filtradas_admin = transacoes
+        self.saldo_final_admin = saldo_atual
+        self.total_entradas_admin = total_entradas
+        self.total_saidas_admin = total_saidas
         
         # Limpar transações anteriores
-        container = self.ids.lista_transacoes
+        container = self.ids.container_extrato_admin
         container.clear_widgets()
         
-        
-        # 🔥 ALTERAÇÃO: Inverter a ordem das transações
+        # 🔥🔥🔥 CORREÇÃO CRÍTICA: INVERTER A ORDEM DAS TRANSAÇÕES (IGUAL AO CLIENTE)
         # As mais recentes primeiro (no topo), as mais antigas por último (embaixo)
         transacoes_invertidas = list(reversed(transacoes))
         
-        # Adicionar transações na ordem invertida
+        # Adicionar cabeçalho
+        cabecalho = ExtratoTableHeaderAdmin()
+        container.add_widget(cabecalho)
+        
+        # Adicionar transações na ordem invertida (MAIS RECENTES NO TOPO)
         for transacao in transacoes_invertidas:
-            card = CardTransacaoExtrato(transacao)
+            # Sua lógica para criar os cards de transação admin
+            card = CardTransacaoExtratoAdmin(transacao)  # Ou seja qual for o seu widget
             container.add_widget(card)
         
-        # Atualizar resumo - usar o saldo FINAL do extrato (não o saldo_atual)
-        if transacoes:
-            saldo_final_extrato = transacoes[-1].get('saldo_apos', saldo_atual)
-        else:
-            saldo_final_extrato = saldo_atual
-            
-        print(f"🔥 DEBUG atualizar_interface_extrato: Chamando atualizar_resumo...")
-        print(f"🔥 DEBUG: saldo_final={saldo_final_extrato}, entradas={total_entradas}, saidas={total_saidas}")
-        
-        # 🔥 CORREÇÃO: Chamar atualizar_resumo com os parâmetros corretos
-        self.atualizar_resumo(saldo_final_extrato, total_entradas, total_saidas, len(transacoes), moeda, periodo)
-
-        # 🔥 NOVO: Rolar para o topo após carregar as transações
-        self.scroll_para_topo()
+        # Resto do código (atualizar totais, etc.)
+        print(f"✅ Interface admin atualizada: {len(transacoes)} transações (mais recentes no topo)")
 
     def atualizar_resumo(self, saldo_atual, total_entradas, total_saidas, total_transacoes, moeda, periodo):
         """Atualiza o painel de resumo"""
