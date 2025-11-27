@@ -6,13 +6,6 @@
         "cliente_nome": "APPLE LLC",
         "data_criacao": "2025-11-02"
     },
-    "394549984": {
-        "moeda": "USD",
-        "saldo": 5545.16,
-        "cliente": "lins",
-        "cliente_nome": "LINS CHAIR LIMITADA",
-        "data_criacao": "2025-11-18"
-    },
     "403356950": {
         "moeda": "USD",
         "saldo": 0.0,
@@ -181,13 +174,6 @@
         "cliente_nome": "IBIZA GROUP LIMITED",
         "data_criacao": "2025-11-01"
     },
-    "873134916": {
-        "moeda": "BRL",
-        "saldo": -30997.44,
-        "cliente": "lins",
-        "cliente_nome": "LINS CHAIR LIMITADA",
-        "data_criacao": "2025-11-18"
-    },
     "878657222": {
         "moeda": "BRL",
         "saldo": 0.0,
@@ -251,6 +237,20 @@
         "cliente_nome": "MAKITA MACHINES LLC",
         "data_criacao": "2025-11-26"
     },
+    "382984608": {
+        "moeda": "USD",
+        "saldo": 825.0,
+        "cliente": "makita",
+        "cliente_nome": "MAKITA MACHINES LLC",
+        "data_criacao": "2025-11-26"
+    },
+    "873134916": {
+        "moeda": "BRL",
+        "saldo": -30997.44,
+        "cliente": "lins",
+        "cliente_nome": "LINS CHAIR LIMITADA",
+        "data_criacao": "2025-11-18"
+    },
     "802194129": {
         "moeda": "BRL",
         "saldo": 30234.04,
@@ -279,12 +279,12 @@
         "cliente_nome": "APPLE LLC",
         "data_criacao": "2025-11-02"
     },
-    "382984608": {
+    "394549984": {
         "moeda": "USD",
-        "saldo": 825.0,
-        "cliente": "makita",
-        "cliente_nome": "MAKITA MACHINES LLC",
-        "data_criacao": "2025-11-26"
+        "saldo": 5545.16,
+        "cliente": "lins",
+        "cliente_nome": "LINS CHAIR LIMITADA",
+        "data_criacao": "2025-11-18"
     },
     "277435777": {
         "moeda": "EUR",

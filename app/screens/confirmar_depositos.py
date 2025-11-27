@@ -563,7 +563,7 @@ class TelaConfirmarDepositos(Screen):
         return True
     
     def confirmar_deposito(self):
-        """Confirma o depósito - ATUALIZADO PARA CAMPO VALOR EXISTENTE"""
+        """Confirma o depósito - VERSÃO CORRIGIDA COM SUPABASE"""
         if not self.validar_dados():
             return
         
@@ -579,69 +579,100 @@ class TelaConfirmarDepositos(Screen):
             moeda = conta_cliente_selecionada.split(' - ')[1].split(' ')[0]
             
             conta_empresa_selecionada = self.ids.spinner_conta_empresa.text
-            numero_conta_empresa = conta_empresa_selecionada.split(' - ')[0]
+            # 🔥 CORREÇÃO: Extrair número da conta empresa corretamente
+            if ' - ' in conta_empresa_selecionada:
+                numero_conta_empresa = conta_empresa_selecionada.split(' - ')[0]
+            else:
+                self.mostrar_erro("Conta da empresa inválida!")
+                return
             
             banco_origem = self.obter_banco_origem()
             remetente = self.ids.entry_remetente.text
             
-            # 🔥 MUDANÇA: Usar get_valor_numerico que já usa get_float_value
-            valor = self.get_valor_numerico()
+            # 🔥 CORREÇÃO: Converter valor corretamente
+            try:
+                valor_texto = self.ids.entry_valor.text.replace(',', '')
+                valor = float(valor_texto)
+            except ValueError:
+                self.mostrar_erro("Valor inválido!")
+                return
             
-            print(f"🔍 PROCESSANDO DEPÓSITO:")
+            print(f"🔍 PROCESSANDO DEPÓSITO COM SUPABASE:")
             print(f"  Valor: {valor:,.2f}")
             print(f"  Cliente: {username}")
             print(f"  Conta Cliente: {numero_conta_cliente} ({moeda})")
             print(f"  Conta Empresa: {numero_conta_empresa}")
-            print(f"  Banco Origem: {banco_origem}")
-            print(f"  Remetente: {remetente}")
             
-            # 🔥 CORREÇÃO: REMOVIDA A VERIFICAÇÃO DE SALDO
-            # Apenas verificar se a conta existe, mas não o saldo
+            # Verificar se contas existem
             if numero_conta_empresa not in sistema.contas_bancarias_empresa:
                 self.mostrar_erro("Conta da empresa não encontrada!")
                 return
             
-            saldo_empresa_antes = sistema.contas_bancarias_empresa[numero_conta_empresa]['saldo']
-            print(f"  Saldo empresa antes: {saldo_empresa_antes:,.2f}")
-            
-            # VERIFICAR CONTA DO CLIENTE
             if numero_conta_cliente not in sistema.contas:
                 self.mostrar_erro("Conta do cliente não encontrada!")
                 return
             
+            saldo_empresa_antes = sistema.contas_bancarias_empresa[numero_conta_empresa]['saldo']
             saldo_cliente_antes = sistema.contas[numero_conta_cliente]['saldo']
+            
+            print(f"  Saldo empresa antes: {saldo_empresa_antes:,.2f}")
             print(f"  Saldo cliente antes: {saldo_cliente_antes:,.2f}")
             
-            # 1. CRÉDITO na conta do cliente 
+            # 🔥 CORREÇÃO: Obter username do usuário logado corretamente
+            # Verificar se usuario_logado é string ou dict
+            if isinstance(sistema.usuario_logado, dict):
+                executado_por = sistema.usuario_logado.get('username', 'sistema')
+            else:
+                executado_por = sistema.usuario_logado  # Já é string
+            
+            # 🔥 SINCRONIZAÇÃO COM SUPABASE
+            supabase_sucesso = True
+            
+            if hasattr(sistema, 'supabase') and sistema.supabase.conectado:
+                try:
+                    # 1. ATUALIZAR SALDO DA CONTA DO CLIENTE NO SUPABASE
+                    novo_saldo_cliente = saldo_cliente_antes + valor
+                    cliente_sucesso = sistema.supabase.atualizar_saldo_conta(
+                        numero_conta_cliente, 
+                        novo_saldo_cliente
+                    )
+                    
+                    # 2. ATUALIZAR SALDO DA CONTA DA EMPRESA NO SUPABASE
+                    novo_saldo_empresa = saldo_empresa_antes + valor
+                    empresa_sucesso = sistema.supabase.atualizar_saldo_conta(
+                        numero_conta_empresa, 
+                        novo_saldo_empresa
+                    )
+                    
+                    if not cliente_sucesso or not empresa_sucesso:
+                        supabase_sucesso = False
+                        print("❌ Falha ao atualizar saldos no Supabase")
+                    else:
+                        print("✅ Saldos atualizados no Supabase com sucesso")
+                        
+                except Exception as e:
+                    supabase_sucesso = False
+                    print(f"❌ Erro ao sincronizar com Supabase: {e}")
+            
+            # 🔥 ATUALIZAR CACHE LOCAL
             sistema.contas[numero_conta_cliente]['saldo'] += valor
             saldo_cliente_depois = sistema.contas[numero_conta_cliente]['saldo']
             print(f"  ✅ CLIENTE (CRÉDITO): {saldo_cliente_antes:,.2f} → {saldo_cliente_depois:,.2f} (+{valor:,.2f})")
             
-            # 2. DÉBITO na conta da empresa (empresa RECEBE o dinheiro - aumenta saldo)
-            sistema.contas_bancarias_empresa[numero_conta_empresa]['saldo'] += valor  # 🔥 MUDANÇA: + em vez de -
+            sistema.contas_bancarias_empresa[numero_conta_empresa]['saldo'] += valor
             saldo_empresa_depois = sistema.contas_bancarias_empresa[numero_conta_empresa]['saldo']
             print(f"  ✅ EMPRESA (DÉBITO): {saldo_empresa_antes:,.2f} → {saldo_empresa_depois:,.2f} (+{valor:,.2f})")
             
-            print(f"  Saldo empresa depois: {saldo_empresa_depois:,.2f}")
-            print(f"  Saldo cliente depois: {saldo_cliente_depois:,.2f}")
-            
-            # 🔥 DEBUG DETALHADO - ANTES de criar a transação
-            print(f"🔍 DEBUG ANTES DA TRANSAÇÃO:")
-            print(f"  numero_conta_cliente: {numero_conta_cliente}")
-            print(f"  numero_conta_empresa: {numero_conta_empresa}")
-            print(f"  Valor: {valor}")
-            print(f"  Cliente username: {username}")
-
-            # 🔥 CRIAR transacao_id ANTES de usar
+            # 🔥 CRIAR TRANSAÇÃO
             transacao_id = str(int(datetime.datetime.now().timestamp()))
             descricao = f"Depósito confirmado - Banco: {banco_origem} - Remetente: {remetente}"
-
-            # REGISTRAR TRANSAÇÃO
-            sistema.transferencias[transacao_id] = {
-                'id': transacao_id,
+            
+            # 🔥 CORREÇÃO: USAR NOMES EXATOS DAS COLUNAS DO SUPABASE
+            dados_transacao = {
+                'id': transacao_id,                           # ✅ id (text)
                 'tipo': 'deposito',
-                'conta_remetente': numero_conta_cliente,      # Cliente é quem "envia"
-                'conta_destinatario': numero_conta_empresa,   # Empresa é quem RECEBE
+                'conta_remetente': numero_conta_cliente,      # ✅ conta_remetente (text)  
+                'conta_destinatario': numero_conta_empresa,   # ✅ conta_destinatario (text)
                 'valor': valor,
                 'moeda': moeda,
                 'banco_origem': banco_origem,
@@ -649,24 +680,36 @@ class TelaConfirmarDepositos(Screen):
                 'descricao': descricao,
                 'status': 'completed',
                 'data': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'executado_por': sistema.usuario_logado['username'],
-                'cliente': username
+                'executado_por': executado_por,               # ✅ executado_por (text)
+                'cliente': username                           # ✅ cliente (text)
             }
-
-            # 🔥 DEBUG APÓS criar a transação
-            print(f"🔍 DEBUG APÓS CRIAR TRANSAÇÃO:")
-            print(f"  Transação ID: {transacao_id}")
-            print(f"  conta_remetente salva: {sistema.transferencias[transacao_id]['conta_remetente']}")
-            print(f"  conta_destinatario salva: {sistema.transferencias[transacao_id]['conta_destinatario']}")
             
-            # SALVAR ALTERAÇÕES
+            # 🔥 SALVAR TRANSAÇÃO NO SUPABASE
+            if hasattr(sistema, 'supabase') and sistema.supabase.conectado and supabase_sucesso:
+                try:
+                    transacao_sucesso = sistema.supabase.salvar_transacao(dados_transacao)
+                    if transacao_sucesso:
+                        print("✅ Transação salva no Supabase")
+                    else:
+                        print("⚠️ Transação não foi salva no Supabase (usando cache local)")
+                        supabase_sucesso = False
+                except Exception as e:
+                    print(f"❌ Erro ao salvar transação no Supabase: {e}")
+                    supabase_sucesso = False
+            
+            # 🔥 SALVAR NO CACHE LOCAL
+            sistema.transferencias[transacao_id] = dados_transacao
+            
+            # 🔥 SALVAR ARQUIVOS LOCAIS
             sistema.salvar_contas_bancarias()
             sistema.salvar_contas()
             sistema.salvar_transferencias()
             
             print("✅ Depósito confirmado com sucesso!")
             
-            # MOSTRAR CONFIRMAÇÃO
+            # 🔥 MENSAGEM DE CONFIRMAÇÃO
+            status_supabase = "✅ Sincronizado com Supabase" if supabase_sucesso else "⚠️ Salvo apenas localmente (erro Supabase)"
+            
             self.mostrar_sucesso(
                 f"Depósito confirmado!\n\n"
                 f"Valor: {valor:,.2f} {moeda}\n"
@@ -674,7 +717,8 @@ class TelaConfirmarDepositos(Screen):
                 f"Conta: {numero_conta_cliente}\n"
                 f"Banco: {banco_origem}\n\n"
                 f"Saldo anterior: {saldo_cliente_antes:,.2f}\n"
-                f"Novo saldo: {saldo_cliente_depois:,.2f}"
+                f"Novo saldo: {saldo_cliente_depois:,.2f}\n\n"
+                f"{status_supabase}"
             )
             
             # LIMPAR CAMPOS

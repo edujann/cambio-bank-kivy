@@ -1440,8 +1440,9 @@ class TelaMeuExtrato(Screen):
                     transacoes_todas.append(nova_transacao)
                     transacoes_ids_utilizados.add(transferencia_id)
                 
-                    
-                    # TRANSFERENICA INTERNA REJEITADA
+                # TRANSFERÊNCIA INTERNA
+                else:
+                    # 🔥 CORREÇÃO: PARA REJEITADAS, CRIAR DUAS TRANSAÇÕES
                     if status == 'rejected':
                         # 1. Transação de débito (quando foi solicitada)
                         data_solicitacao = dados.get('data_solicitacao') or dados.get('data')
@@ -1462,7 +1463,7 @@ class TelaMeuExtrato(Screen):
                         }
                         
                         # 2. Transação de crédito (estorno quando foi rejeitada)
-                        data_estorno = dados.get('data_recusa', dados.get('data_processing', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                        data_estorno = dados.get('data_recusa', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                         transacao_credito = {
                             'data': data_estorno,
                             'descricao': f"ESTORNO TRANSFERÊNCIA - {self.obter_nome_cliente_por_conta(sistema, dados.get('conta_destinatario', 'N/A'))}",
@@ -1523,7 +1524,7 @@ class TelaMeuExtrato(Screen):
                     
                     transacoes_todas.append(nova_transacao)
                     transacoes_ids_utilizados.add(transferencia_id)
-                    print(f"💰 DEPÓSITO ADICIONADO NO EXTRATO CLIENTE: {descricao}")
+                    print(f"💰 DEPÓSITO ADICIONADO NO EXTRATO ADMIN: {descricao}")
                 
                 # AJUSTES ADMIN COMO CRÉDITO
                 elif tipo == 'ajuste_admin' and dados.get('tipo_ajuste') == 'CREDITO':

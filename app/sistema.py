@@ -2325,7 +2325,7 @@ class SistemaCambioPremium:
         return None
 
     def criar_conta_bancaria_empresa(self, banco, agencia, numero_conta, moeda):
-        """Cria nova conta bancária da empresa - VERSÃO SUPABASE COM ARREDONDAMENTO"""
+        """Cria nova conta bancária da empresa - VERSÃO FINAL CORRIGIDA"""
         try:
             # Verificar se o número da conta já existe
             if numero_conta in self.contas_bancarias_empresa:
@@ -2338,26 +2338,43 @@ class SistemaCambioPremium:
             moeda = moeda.upper()  # Garantir maiúsculas
             
             # 🔥 DADOS DA NOVA CONTA COM ARREDONDAMENTO
-            saldo_arredondado = self.arredondar_valor(0.00)  # 🔥 ARREDONDADO
+            saldo_arredondado = self.arredondar_valor(0.00)
             nova_conta = {
                 'numero': numero_conta,
                 'banco': banco,
                 'agencia': agencia,
                 'moeda': moeda,
-                'saldo': saldo_arredondado,  # 🔥 JÁ ARREDONDADO
+                'saldo': saldo_arredondado,
                 'tipo': 'empresa',
                 'data_criacao': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                'saldo_inicial': saldo_arredondado  # 🔥 JÁ ARREDONDADO
+                'saldo_inicial': saldo_arredondado
             }
             
-            # 🔥 PRIMEIRO: SALVAR NO SUPABASE (COM ARREDONDAMENTO)
+            # 🔥 PRIMEIRO: SALVAR NO SUPABASE (APENAS COLUNAS EXISTENTES)
             if hasattr(self, 'supabase') and self.supabase.conectado:
                 try:
+                    # 🔥 CORREÇÃO: Usar APENAS colunas que existem na tabela
+                    dados_supabase = {
+                        'id': numero_conta,                    # ✅ EXISTE
+                        'numero': numero_conta,                # ✅ EXISTE
+                        'banco': banco,                        # ✅ EXISTE
+                        'moeda': moeda,                        # ✅ EXISTE
+                        'saldo': float(saldo_arredondado),     # ✅ EXISTE (numeric)
+                        'tipo': 'empresa',                     # ✅ EXISTE
+                        'agencia': agencia,                    # ✅ EXISTE
+                        'data_criacao': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),  # ✅ EXISTE (timestamp)
+                        'saldo_inicial': float(saldo_arredondado),  # ✅ EXISTE (numeric)
+                        'created_at': datetime.datetime.now().isoformat()  # ✅ EXISTE (timestamp)
+                    }
+                    
+                    print(f"🔍 Enviando para Supabase: {dados_supabase}")
+                    
                     response = self.supabase.client.table('contas_bancarias_empresa')\
-                        .insert(nova_conta)\
+                        .insert(dados_supabase)\
                         .execute()
                     
                     if not response.data:
+                        print(f"❌ Erro do Supabase: {response.error}")
                         return False, "Erro ao salvar conta no Supabase!"
                     
                     print(f"✅ Conta {numero_conta} salva no Supabase (Saldo: {saldo_arredondado:,.2f})")
@@ -2366,7 +2383,7 @@ class SistemaCambioPremium:
                     print(f"⚠️ Erro ao salvar conta no Supabase: {e}")
                     return False, f"Erro ao salvar conta no sistema: {str(e)}"
             
-            # 🔥 DEPOIS: SALVAR LOCALMENTE (também com arredondamento)
+            # 🔥 DEPOIS: SALVAR LOCALMENTE
             self.contas_bancarias_empresa[numero_conta] = nova_conta
             self.salvar_contas_bancarias()
             

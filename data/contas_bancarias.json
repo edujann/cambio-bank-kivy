@@ -49,24 +49,24 @@
         "data_criacao": null,
         "saldo_inicial": 0.0
     },
-    "BRL": {
-        "numero": "BRL",
+    "JACKS_USD_001": {
+        "numero": "JACKS_USD_001",
         "banco": "JACKS BANK",
-        "agencia": null,
-        "moeda": "BRL",
-        "saldo": 0.0,
-        "tipo": "empresa",
-        "data_criacao": null,
-        "saldo_inicial": 0.0
-    },
-    "USD": {
-        "numero": "USD",
-        "banco": "JACKS BANK",
-        "agencia": null,
+        "agencia": "0001",
         "moeda": "USD",
         "saldo": 0.0,
         "tipo": "empresa",
-        "data_criacao": null,
+        "data_criacao": "2025-11-27T14:11:07",
+        "saldo_inicial": 0.0
+    },
+    "JACKS_BRL_001": {
+        "numero": "JACKS_BRL_001",
+        "banco": "JACKS BANK",
+        "agencia": "0001",
+        "moeda": "BRL",
+        "saldo": 0.0,
+        "tipo": "empresa",
+        "data_criacao": "2025-11-27T14:11:41",
         "saldo_inicial": 0.0
     }
 }
