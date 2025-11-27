@@ -1978,45 +1978,51 @@ class TelaMeuExtrato(Screen):
         return 'N/A'
     
         
-    def atualizar_interface_extrato_admin(self, transacoes, saldo_atual, total_entradas, total_saidas, moeda, periodo, username):
-        """Atualiza a interface com os dados do extrato admin - VERSÃO CORRIGIDA"""
+    def atualizar_interface_extrato(self, transacoes, saldo_atual, total_entradas, total_saidas, moeda, periodo):
+        """Atualiza a interface com os dados do extrato - VERSÃO CORRIGIDA"""
         if not hasattr(self, 'ids'):
             return
         
         # 🔥 CORREÇÃO: SALVAR AS TRANSAÇÕES FILTRADAS E TOTAIS
-        self.transacoes_filtradas_admin = transacoes
-        self.saldo_final_admin = saldo_atual
-        self.total_entradas_admin = total_entradas
-        self.total_saidas_admin = total_saidas
+        self.transacoes_filtradas = transacoes
+        self.saldo_final = saldo_atual
+        self.total_entradas = total_entradas
+        self.total_saidas = total_saidas
         
         # Limpar transações anteriores
-        container = self.ids.container_extrato_admin
+        container = self.ids.lista_transacoes
         container.clear_widgets()
         
-        # 🔥🔥🔥 CORREÇÃO CRÍTICA: INVERTER A ORDEM DAS TRANSAÇÕES (IGUAL AO CLIENTE)
+        # 🔥 ALTERAÇÃO: Inverter a ordem das transações
         # As mais recentes primeiro (no topo), as mais antigas por último (embaixo)
         transacoes_invertidas = list(reversed(transacoes))
         
-        # Adicionar cabeçalho
-        cabecalho = ExtratoTableHeaderAdmin()
-        container.add_widget(cabecalho)
-        
-        # Adicionar transações na ordem invertida (MAIS RECENTES NO TOPO)
+        # Adicionar transações na ordem invertida
         for transacao in transacoes_invertidas:
-            # Sua lógica para criar os cards de transação admin
-            card = CardTransacaoExtratoAdmin(transacao)  # Ou seja qual for o seu widget
+            card = CardTransacaoExtrato(transacao)
             container.add_widget(card)
         
-        # Resto do código (atualizar totais, etc.)
-        print(f"✅ Interface admin atualizada: {len(transacoes)} transações (mais recentes no topo)")
+        # Atualizar resumo - usar o saldo FINAL do extrato (não o saldo_atual)
+        if transacoes:
+            saldo_final_extrato = transacoes[-1].get('saldo_apos', saldo_atual)
+        else:
+            saldo_final_extrato = saldo_atual
+            
+        print(f"🔥 DEBUG atualizar_interface_extrato: Chamando atualizar_resumo...")
+        print(f"🔥 DEBUG: saldo_final={saldo_final_extrato}, entradas={total_entradas}, saidas={total_saidas}")
+        
+        # 🔥 CORREÇÃO: Chamar atualizar_resumo com os parâmetros corretos
+        self.atualizar_resumo(saldo_final_extrato, total_entradas, total_saidas, len(transacoes), moeda, periodo)
+
+        # 🔥 NOVO: Rolar para o topo após carregar as transações
+        self.scroll_para_topo()
 
     def atualizar_resumo(self, saldo_atual, total_entradas, total_saidas, total_transacoes, moeda, periodo):
-        """Atualiza o painel de resumo"""
+        """Atualiza o painel de resumo do extrato"""
         if not hasattr(self, 'ids'):
-            print("❌ DEBUG: Não tem ids!")  # DEBUG
             return
         
-        print(f"🔥 DEBUG RESUMO: Entradas={total_entradas:,.2f}, Saídas={total_saidas:,.2f}, Transações={total_transacoes}")  # DEBUG
+        print(f"🔥 DEBUG RESUMO: Entradas={total_entradas:,.2f}, Saídas={total_saidas:,.2f}, Transações={total_transacoes}")
         
         # Atualizar labels de resumo
         self.ids.lbl_saldo_total.text = f"{saldo_atual:,.2f} {moeda}"
@@ -2027,11 +2033,6 @@ class TelaMeuExtrato(Screen):
         # Atualizar informação do período
         if periodo == "0":
             periodo_texto = "Todo período"
-        elif periodo == "personalizado":
-            # 🔥 FORMATAR DATAS PARA DD/MM/AAAA
-            data_inicio_br = self.formatar_data_br(self.ids.entry_data_inicio.text)
-            data_fim_br = self.formatar_data_br(self.ids.entry_data_fim.text)
-            periodo_texto = f"{data_inicio_br} a {data_fim_br}"
         else:
             periodo_texto = f"Últimos {periodo} dias"
         

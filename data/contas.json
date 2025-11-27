@@ -8,7 +8,7 @@
     },
     "394549984": {
         "moeda": "USD",
-        "saldo": 0.0,
+        "saldo": 5545.16,
         "cliente": "lins",
         "cliente_nome": "LINS CHAIR LIMITADA",
         "data_criacao": "2025-11-18"
@@ -183,7 +183,7 @@
     },
     "873134916": {
         "moeda": "BRL",
-        "saldo": 0.0,
+        "saldo": -30997.44,
         "cliente": "lins",
         "cliente_nome": "LINS CHAIR LIMITADA",
         "data_criacao": "2025-11-18"
@@ -281,7 +281,7 @@
     },
     "382984608": {
         "moeda": "USD",
-        "saldo": 950.0,
+        "saldo": 825.0,
         "cliente": "makita",
         "cliente_nome": "MAKITA MACHINES LLC",
         "data_criacao": "2025-11-26"
