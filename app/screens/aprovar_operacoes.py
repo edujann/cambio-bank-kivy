@@ -40,8 +40,38 @@ class TelaAprovarOperacoes(Screen):
         Window.top = 70
         print("✅ Janela de aprovação reposicionada para esquerda")
         
+    def debug_origem_dados(self):
+        """Descobre onde está o problema nos dados"""
+        sistema = App.get_running_app().sistema
+        
+        print("🐛 DEBUG ORIGEM DOS DADOS:")
+        print(f"1. transferencias_pendentes no objeto: {len(getattr(self, 'transferencias_pendentes', {}))}")
+        print(f"2. transferencias_processing no objeto: {len(getattr(self, 'transferencias_processing', {}))}")
+        
+        # Verificar dados no Supabase
+        if hasattr(sistema, 'supabase') and sistema.supabase.conectado:
+            try:
+                response_pendentes = sistema.supabase.client.table('transferencias')\
+                    .select('id, status')\
+                    .eq('status', 'solicitada')\
+                    .execute()
+                
+                response_processing = sistema.supabase.client.table('transferencias')\
+                    .select('id, status')\
+                    .eq('status', 'processing')\
+                    .execute()
+                
+                print(f"3. Pendentes no Supabase: {len(response_pendentes.data)}")
+                print(f"4. Processando no Supabase: {len(response_processing.data)}")
+                
+                if response_pendentes.data:
+                    print("   IDs pendentes no Supabase:", [t['id'] for t in response_pendentes.data])
+                
+            except Exception as e:
+                print(f"❌ Erro ao consultar Supabase: {e}")
+
     def carregar_dados(self):
-        """Carrega os dados das transferências - 100% SUPABASE"""
+        """Carrega os dados das transferências - VERSÃO PADRONIZADA"""
         sistema = App.get_running_app().sistema
         
         # Verificar se é admin
@@ -50,78 +80,60 @@ class TelaAprovarOperacoes(Screen):
             return
         
         try:
-            self.transferencias_pendentes = {}
-            self.transferencias_processing = {}
-            
+            # 🔥 PADRÃO: Usar SupabaseManager
             if not hasattr(sistema, 'supabase') or not sistema.supabase.conectado:
-                print("❌ Supabase não disponível")
-                self.atualizar_estatisticas()
+                print("❌ Supabase não disponível - usando fallback local")
+                self._carregar_dados_fallback(sistema)
                 return
             
-            print("📡 Buscando transferências pendentes no Supabase...")
+            print("📡 Buscando transferências no Supabase...")
             
-            # 🔥 BUSCAR APENAS NO SUPABASE - status 'solicitada'
-            response = sistema.supabase.client.table('transferencias')\
-                .select('*')\
-                .eq('status', 'solicitada')\
-                .execute()
+            # 🔥 PADRÃO: Carregar pendentes via SupabaseManager
+            self.transferencias_pendentes = sistema.supabase.obter_transferencias_por_status('solicitada')
             
-            print(f"🔍 RESPOSTA SUPABASE: {len(response.data)} transferências")
+            # 🔥 PADRÃO: Carregar em processamento via SupabaseManager  
+            self.transferencias_processing = sistema.supabase.obter_transferencias_por_status('processing')
             
-            if response.data:
-                for transf in response.data:
-                    transf_id = transf['id']
-                    # 🔥 MANTER OS CAMPOS ORIGINAIS DO SUPABASE
-                    self.transferencias_pendentes[transf_id] = transf
-                
-                print(f"✅ {len(self.transferencias_pendentes)} transferências pendentes carregadas do Supabase")
+            print(f"✅ {len(self.transferencias_pendentes)} pendentes + {len(self.transferencias_processing)} processamento do Supabase")
             
-            # 🔥🔥🔥 CORREÇÃO: BUSCAR TRANSFERÊNCIAS EM PROCESSAMENTO
-            print("📡 Buscando transferências em PROCESSAMENTO no Supabase...")
+            # 🔥 SINCRONIZAR CACHE LOCAL
+            self._sincronizar_cache_local(sistema)
             
-            response_processing = sistema.supabase.client.table('transferencias')\
-                .select('*')\
-                .eq('status', 'processing')\
-                .execute()
-            
-            print(f"🔍 RESPOSTA PROCESSING: {len(response_processing.data)} transferências")
-            
-            if response_processing.data:
-                for transf in response_processing.data:
-                    transf_id = transf['id']
-                    self.transferencias_processing[transf_id] = transf
-                
-                print(f"✅ {len(self.transferencias_processing)} transferências em processamento carregadas do Supabase")
-            
-            # 🔥 DEBUG: Mostrar IDs das transferências carregadas
-            if self.transferencias_pendentes:
-                print("🔍 IDs das transferências pendentes carregadas:")
-                for transf_id in self.transferencias_pendentes.keys():
-                    print(f"   📋 {transf_id}")
-            else:
-                print("ℹ️ Nenhuma transferência pendente encontrada no Supabase")
-            
-            if self.transferencias_processing:
-                print("🔍 IDs das transferências em processamento carregadas:")
-                for transf_id in self.transferencias_processing.keys():
-                    print(f"   🔄 {transf_id}")
-            else:
-                print("ℹ️ Nenhuma transferência em processamento encontrada no Supabase")
-            
-            # 🔥 CORREÇÃO CRÍTICA: ATUALIZAR AS DUAS TABELAS
+            # Atualizar interface
             self.atualizar_tabela_pendentes()
-            self.atualizar_tabela_processamento()  # 🔥 ATUALIZAR TABELA DE PROCESSAMENTO TAMBÉM
-            
-            # Atualizar estatísticas nos botões grandes
+            self.atualizar_tabela_processamento()
             self.atualizar_estatisticas()
             
         except Exception as e:
-            print(f"❌ Erro ao carregar dados do Supabase: {e}")
-            import traceback
-            traceback.print_exc()
-            self.transferencias_pendentes = {}
-            self.transferencias_processing = {}
-            self.atualizar_estatisticas()
+            print(f"❌ Erro ao carregar dados: {e}")
+            self._carregar_dados_fallback(sistema)
+
+    def _carregar_dados_fallback(self, sistema):
+        """Fallback para carregar dados localmente"""
+        print("🔄 Usando fallback local para dados de transferências")
+        self.transferencias_pendentes = {}
+        self.transferencias_processing = {}
+        self.atualizar_estatisticas()
+
+    def _sincronizar_cache_local(self, sistema):
+        """Sincroniza dados do Supabase com cache local"""
+        try:
+            # Sincronizar transferências pendentes
+            for transf_id, dados_supabase in self.transferencias_pendentes.items():
+                if transf_id not in sistema.transferencias:
+                    sistema.transferencias[transf_id] = {}
+                sistema.transferencias[transf_id].update(dados_supabase)
+            
+            # Sincronizar transferências em processamento
+            for transf_id, dados_supabase in self.transferencias_processing.items():
+                if transf_id not in sistema.transferencias:
+                    sistema.transferencias[transf_id] = {}
+                sistema.transferencias[transf_id].update(dados_supabase)
+            
+            print("✅ Cache local sincronizado com dados do Supabase")
+            
+        except Exception as e:
+            print(f"⚠️ Erro ao sincronizar cache local: {e}")
     
     def atualizar_estatisticas(self):
         """Atualiza as estatísticas nos botões grandes"""
@@ -225,79 +237,57 @@ class TelaAprovarOperacoes(Screen):
                 self.ids.btn_concluir_processamento.color = (1, 1, 1, 1)  # Texto branco
     
     def aprovar_transferencia(self, transferencia_id):
-        """Aprova uma transferência pendente - VERSÃO CORRIGIDA COM PADRÃO SUPABASEMANAGER"""
+        """Aprova uma transferência pendente - VERSÃO PADRONIZADA"""
         sistema = App.get_running_app().sistema
         
         try:
-            # 🔥 CORREÇÃO: Usar SupabaseManager em vez de chamada direta
+            # 🔥 PADRÃO: Usar SupabaseManager
             transferencia = sistema.supabase.obter_transferencia(transferencia_id)
             
             if not transferencia:
                 self.mostrar_erro("Transferência não encontrada no Supabase!")
                 return False
             
-            # 🔥 VALIDAÇÃO DA INVOICE - Só aprovar se invoice estiver aprovada
+            # 🔥 VALIDAÇÃO DA INVOICE
             info_invoice = sistema.obter_info_invoice(transferencia_id)
             
             if info_invoice:
-                # Tem invoice - verificar status
                 if info_invoice['status'] != 'approved':
                     if info_invoice['status'] == 'pending':
-                        self.mostrar_erro("❌ IMPOSSÍVEL APROVAR TRANSFERÊNCIA\n\nA invoice desta transferência ainda está PENDENTE de aprovação!\n\nPor favor, analise e aprove a invoice primeiro.")
+                        self.mostrar_erro("❌ IMPOSSÍVEL APROVAR TRANSFERÊNCIA\n\nA invoice ainda está PENDENTE!")
                     elif info_invoice['status'] == 'rejected':
-                        self.mostrar_erro("❌ IMPOSSÍVEL APROVAR TRANSFERÊNCIA\n\nA invoice desta transferência foi RECUSADA!\n\nO cliente precisa enviar uma nova invoice aprovada.")
-                    else:
-                        self.mostrar_erro("❌ IMPOSSÍVEL APROVAR TRANSFERÊNCIA\n\nStatus da invoice inválido!")
+                        self.mostrar_erro("❌ IMPOSSÍVEL APROVAR TRANSFERÊNCIA\n\nA invoice foi RECUSADA!")
                     return False
             else:
-                # Não tem invoice - verificar se é obrigatório
                 if transferencia.get('tipo') == 'transferencia_internacional':
-                    self.mostrar_erro("❌ IMPOSSÍVEL APROVAR TRANSFERÊNCIA\n\nTransferências INTERNACIONAIS exigem invoice aprovada!\n\nEsta transferência não possui invoice anexada.")
+                    self.mostrar_erro("❌ IMPOSSÍVEL APROVAR TRANSFERÊNCIA\n\nTransferências INTERNACIONAIS exigem invoice!")
                     return False
-                # Para transferências internas, invoice não é obrigatório
                 print("⚠️  Transferência interna sem invoice - permitindo aprovação")
             
-            # 🔥 CORREÇÃO: Atualizar status usando SupabaseManager
+            # 🔥 PADRÃO: Atualizar usando SupabaseManager
             data_aprovacao = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             update_data = {
                 'status': 'processing',
                 'executado_por': sistema.usuario_logado,
                 'data_aprovacao': data_aprovacao,
                 'data_processing': data_aprovacao
-                # 🔥🔥🔥 CORREÇÃO CRÍTICA: NÃO ATUALIZAR 'data' PRINCIPAL!
             }
             
-            # 🔍 DEBUG: VER O QUE ESTÁ SENDO ENVIADO
             print(f"🔍 DEBUG APROVAÇÃO - Dados sendo enviados: {update_data}")
             
-            # 🔥 CORREÇÃO: Usar método do SupabaseManager
+            # 🔥 PADRÃO: Usar método do SupabaseManager
             sucesso = sistema.supabase.atualizar_status_transferencia(transferencia_id, update_data)
             
             if sucesso:
                 print(f"✅✅✅ Transferência {transferencia_id} aprovada no Supabase!")
                 
-                
-                # 🔥 CORREÇÃO: Atualizar também localmente para sincronização
+                # 🔥 SINCRONIZAR CACHE LOCAL
                 if transferencia_id in sistema.transferencias:
-                    # 🔍 DEBUG: VER SINCRONIZAÇÃO LOCAL
-                    print(f"🔍 DEBUG SINCRONIZAÇÃO - ANTES:")
-                    print(f"   Data local ANTES: {sistema.transferencias[transferencia_id].get('data')}")
-                    print(f"   Status local ANTES: {sistema.transferencias[transferencia_id].get('status')}")
-                    
                     sistema.transferencias[transferencia_id].update(update_data)
-                    
-                    print(f"🔍 DEBUG SINCRONIZAÇÃO - DEPOIS:")
-                    print(f"   Data local DEPOIS: {sistema.transferencias[transferencia_id].get('data')}")
-                    print(f"   Status local DEPOIS: {sistema.transferencias[transferencia_id].get('status')}")
-                    
                 sistema.salvar_transferencias()
                 
-                # 🔥 MOSTRAR MENSAGEM DE SUCESSO
-                self.mostrar_sucesso(f"Transferência {transferencia_id} aprovada com sucesso!\n\nStatus alterado para: PROCESSANDO")
-                
-                # 🔥 ATUALIZAR A LISTA NA TELA
+                self.mostrar_sucesso(f"Transferência {transferencia_id} aprovada com sucesso!")
                 self.carregar_dados()
-                
                 return True
             else:
                 print(f"❌❌❌ Erro ao aprovar transferência no Supabase")
@@ -903,7 +893,7 @@ class TelaAprovarOperacoes(Screen):
             print(f"❌ Erro ao selecionar item: {e}")
 
     def atualizar_tabela_processamento(self):
-        """Atualiza a tabela de transferências em processamento - VERSÃO SUPABASE"""
+        """Atualiza a tabela de transferências em processamento - VERSÃO COM INVOICE"""
         if not hasattr(self, 'ids') or 'grid_processamento' not in self.ids:
             return
         
@@ -927,6 +917,25 @@ class TelaAprovarOperacoes(Screen):
         
         for transferencia_id, dados in self.transferencias_processing.items():
             try:
+                # 🔥 ADICIONAR: Informações da invoice (IGUAL AO MÉTODO DE PENDENTES)
+                info_invoice = sistema.obter_info_invoice(transferencia_id)
+                tem_invoice = info_invoice is not None and isinstance(info_invoice, dict)
+                status_invoice = info_invoice.get('status', 'no_invoice') if tem_invoice else 'no_invoice'
+                
+                # Status da invoice
+                if status_invoice == 'pending':
+                    texto_invoice = "Invoice: Pendente"
+                    cor_invoice = "FFA500"  # Laranja
+                elif status_invoice == 'approved':
+                    texto_invoice = "Invoice: Aprovada" 
+                    cor_invoice = "32CD32"  # Verde
+                elif status_invoice == 'rejected':
+                    texto_invoice = "Invoice: Recusada"
+                    cor_invoice = "FF4500"  # Vermelho
+                else:
+                    texto_invoice = "Sem Invoice"
+                    cor_invoice = "B0B0B0"  # Cinza
+                
                 # 🔥 CAMPOS DO SUPABASE
                 conta_remetente = dados.get('conta_remetente', 'N/A')
                 cliente_nome = self.obter_nome_cliente(conta_remetente)
@@ -954,10 +963,10 @@ class TelaAprovarOperacoes(Screen):
                 moeda = dados.get('moeda', 'USD')
                 valor_formatado = f"{float(valor):,.2f} {moeda}"
                 
-                # Criar botão
+                # 🔥 CRIAR BOTÃO COM INFORMAÇÃO DA INVOICE (ALTURA MAIOR)
                 item = Button(
                     size_hint_y=None,
-                    height=100,
+                    height=100,  # 🔥 AUMENTEI A ALTURA PARA CABER A INVOICE
                     background_color=(0.20, 0.25, 0.33, 1),
                     background_normal='',
                     color=(0.9, 0.9, 0.9, 1),
@@ -967,12 +976,22 @@ class TelaAprovarOperacoes(Screen):
                     padding=[10, 5]
                 )
                 
-                item.text = f"ID: {transferencia_id} | {tipo_display}\nCliente: {cliente_nome}\nBeneficiário: {beneficiario}\nValor: {valor_formatado} | Data: {data_simples}"
+                # 🔥 TEXTO COM MARKUP INCLUINDO INVOICE (IGUAL AO DE PENDENTES)
+                texto_completo = f"ID: {transferencia_id} | {tipo_display}\n"
+                texto_completo += f"[b][color={cor_invoice}]{texto_invoice}[/color][/b]\n"
+                texto_completo += f"Cliente: {cliente_nome}\n"
+                texto_completo += f"Beneficiário: {beneficiario}\n"
+                texto_completo += f"Valor: {valor_formatado} | Data: {data_simples}"
+                
+                item.text = texto_completo
+                item.markup = True
                 item.transferencia_id = transferencia_id
                 item.dados = dados
                 item.bind(on_press=self.selecionar_item_processamento)
                 
                 grid.add_widget(item)
+                
+                print(f"✅ Card processamento criado para {transferencia_id} - Invoice: {status_invoice}")
                 
             except Exception as e:
                 print(f"❌ Erro ao processar transferência {transferencia_id}: {e}")

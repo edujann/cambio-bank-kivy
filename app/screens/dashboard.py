@@ -599,27 +599,32 @@ class TelaDashboard(Screen):
             self.criar_botoes_simples_fallback()
 
     def obter_numero_operacoes_pendentes(self):
-        """Obtém o número de operações pendentes e em processamento - VERSÃO DEBUG"""
+        """Obtém o número de operações pendentes e em processamento - VERSÃO CORRIGIDA"""
         try:
             sistema = App.get_running_app().sistema
             
-            # DEBUG: Verificar todas as transferências
-            #print("🔍 DEBUG: Verificando todas as transferências no sistema:")
-            #for transferencia_id, dados in sistema.transferencias.items():
-            #    print(f"  {transferencia_id}: {dados['status']} - {dados['valor']} {dados['moeda']}")
+            # DEBUG: Verificar status das transferências
+            print("🔍 DEBUG: Status das transferências no sistema:")
+            for transferencia_id, dados in sistema.transferencias.items():
+                print(f"  {transferencia_id}: status='{dados.get('status')}' - {dados.get('valor', 0)} {dados.get('moeda', 'N/A')}")
             
-            # Contar transferências com status 'pending'
+            # 🔥 CORREÇÃO: Usar os status CORRETOS
             transferencias_pendentes = {k: v for k, v in sistema.transferencias.items() 
-                                      if v['status'] == 'pending'}
+                                      if v.get('status') == 'solicitada'}  # ← 'solicitada' CORRETO
             
-            # Contar transferências com status 'processing'
             transferencias_processando = {k: v for k, v in sistema.transferencias.items() 
-                                       if v['status'] == 'processing'}
+                                       if v.get('status') == 'processing'}  # ← 'processing' CORRETO
             
             num_pendentes = len(transferencias_pendentes)
             num_processando = len(transferencias_processando)
             
-            #print(f"📊 Operações encontradas: {num_pendentes} pendentes, {num_processando} em processamento")
+            print(f"📊 Operações encontradas: {num_pendentes} pendentes, {num_processando} em processamento")
+            
+            # 🔥 DEBUG EXTRA: Listar IDs específicos
+            if transferencias_pendentes:
+                print("📋 IDs das transferências pendentes:")
+                for transf_id in transferencias_pendentes.keys():
+                    print(f"   - {transf_id}")
             
             return num_pendentes, num_processando
             

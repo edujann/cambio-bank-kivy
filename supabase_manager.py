@@ -634,7 +634,60 @@ class SupabaseManager:
             print(f"❌ Erro ao obter contas empresa do Supabase: {e}")
             return None
 
+    def obter_transferencias_por_status(self, status):
+        """Obtém transferências por status - PADRÃO ESTABELECIDO"""
+        try:
+            response = self.client.table('transferencias')\
+                .select('*')\
+                .eq('status', status)\
+                .execute()
+            
+            transferencias = {}
+            for transf in response.data:
+                transferencias[transf['id']] = transf
+            
+            print(f"✅ {len(transferencias)} transferências com status '{status}' carregadas do Supabase")
+            return transferencias
+            
+        except Exception as e:
+            print(f"❌ Erro ao obter transferências {status}: {e}")
+            return {}
 
+    def obter_transferencia(self, transferencia_id):
+        """Obtém uma transferência específica - PADRÃO ESTABELECIDO"""
+        try:
+            response = self.client.table('transferencias')\
+                .select('*')\
+                .eq('id', transferencia_id)\
+                .execute()
+            
+            if response.data:
+                return response.data[0]
+            return None
+            
+        except Exception as e:
+            print(f"❌ Erro ao obter transferência {transferencia_id}: {e}")
+            return None
+
+    def atualizar_status_transferencia(self, transferencia_id, update_data):
+        """Atualiza status da transferência - PADRÃO ESTABELECIDO"""
+        try:
+            response = self.client.table('transferencias')\
+                .update(update_data)\
+                .eq('id', transferencia_id)\
+                .execute()
+            
+            success = bool(response.data)
+            if success:
+                print(f"✅ Status da transferência {transferencia_id} atualizado no Supabase")
+            else:
+                print(f"❌ Erro ao atualizar transferência {transferencia_id}")
+            
+            return success
+            
+        except Exception as e:
+            print(f"❌ Erro ao atualizar transferência {transferencia_id}: {e}")
+            return False
 
 
 

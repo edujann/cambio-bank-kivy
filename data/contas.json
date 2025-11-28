@@ -97,13 +97,6 @@
         "cliente_nome": "INTERPRESS LIMITADA",
         "data_criacao": "2025-11-20"
     },
-    "713651820": {
-        "moeda": "USD",
-        "saldo": 23200.0,
-        "cliente": "texaco",
-        "cliente_nome": "TEXACO LLC",
-        "data_criacao": "2025-11-01"
-    },
     "732926229": {
         "moeda": "EUR",
         "saldo": 0.0,
@@ -288,7 +281,14 @@
     },
     "202973672": {
         "moeda": "BRL",
-        "saldo": 124734.2,
+        "saldo": -50000.0,
+        "cliente": "texaco",
+        "cliente_nome": "TEXACO LLC",
+        "data_criacao": "2025-11-01"
+    },
+    "713651820": {
+        "moeda": "USD",
+        "saldo": 71500.0,
         "cliente": "texaco",
         "cliente_nome": "TEXACO LLC",
         "data_criacao": "2025-11-01"
