@@ -2308,6 +2308,15 @@ class TelaExtratoContaBancaria(Screen):
                     for transf in response.data:
                         transf_id = str(transf['id'])
                         
+                        # 🔥 DEBUG: Verificar campos dos câmbios entre contas NO SUPABASE
+                        if transf.get('tipo') == 'cambio_contas_empresa':
+                            print(f"🔍 DEBUG SUPABASE CÂMBIO: {transf_id}")
+                            print(f"   - conta_origem: {transf.get('conta_origem')}")
+                            print(f"   - conta_destino: {transf.get('conta_destino')}")
+                            print(f"   - valor_origem: {transf.get('valor_origem')}")
+                            print(f"   - valor_destino: {transf.get('valor_destino')}")
+                            print(f"   - Dados completos: {transf}")
+                        
                         # 🔥 CORREÇÃO DEFINITIVA: TRATAMENTO COMPLETO DE None
                         sistema.transferencias[transf_id] = {
                             'id': transf_id,
@@ -2322,13 +2331,14 @@ class TelaExtratoContaBancaria(Screen):
                             'cotacao': self._safe_float(transf.get('cotacao')),
                             
                             # 🔥 CORREÇÃO: Campos de conta
-                            'conta_remetente': transf.get('conta_remetente', transf.get('conta_origem', '')),
-                            'conta_destinatario': transf.get('conta_destinatario', transf.get('conta_destino', '')),
+                            'conta_remetente': transf.get('conta_remetente', ''),
+                            'conta_destinatario': transf.get('conta_destinatario', ''),
+                            'conta_origem': transf.get('conta_origem', ''),
+                            'conta_destino': transf.get('conta_destino', ''),
                             'conta_bancaria_credito': transf.get('conta_bancaria_credito', ''),
-                            
                             # 🔥 CORREÇÃO: Campos de moeda
                             'moeda': transf.get('moeda', transf.get('moeda_origem', '')),
-                            'moeda_origem': transf.get('moeda_origem', transf.get('moeda', '')),
+                            'moeda_origem': transf.get('moeda_origem', ''),
                             'moeda_destino': transf.get('moeda_destino', ''),
                             
                             # 🔥 CORREÇÃO: Status e datas
@@ -2554,6 +2564,15 @@ class TelaExtratoContaBancaria(Screen):
         # 🔥 🔥 🔥 PROCESSAR TRANSAÇÕES COM LÓGICA INVERTIDA - INCLUINDO TRANSAÇÕES DE CONCLUSÃO
         for transferencia_id, dados in sistema.transferencias.items():
             
+            # 🔥 DEBUG ESPECÍFICO PARA CÂMBIOS ENTRE CONTAS
+            if dados.get('tipo') == 'cambio_contas_empresa':
+                print(f"🔍 DEBUG CÂMBIO: {transferencia_id}")
+                print(f"   - conta_origem: {dados.get('conta_origem')}")
+                print(f"   - conta_destino: {dados.get('conta_destino')}")
+                print(f"   - nossa_conta: {self.conta_bancaria_numero}")
+                print(f"   - é origem? {dados.get('conta_origem') == self.conta_bancaria_numero}")
+                print(f"   - é destino? {dados.get('conta_destino') == self.conta_bancaria_numero}")
+            
             # 🔥 DEBUG CRÍTICO - VERIFICAR TODAS AS TRANSAÇÕES
             if dados and isinstance(dados, dict) and dados.get('tipo') == 'ajuste_saldo_empresa':
                 print(f"🔍 AJUSTE NO LOOP PRINCIPAL: {transferencia_id}")
@@ -2615,11 +2634,24 @@ class TelaExtratoContaBancaria(Screen):
             # Verificar se a transação envolve nossa conta bancária
             conta_envolvida = (
                 dados.get('conta_remetente') == self.conta_bancaria_numero or 
-                dados.get('conta_destinatario') == self.conta_bancaria_numero
+                dados.get('conta_destinatario') == self.conta_bancaria_numero or
+                dados.get('conta_origem') == self.conta_bancaria_numero or
+                dados.get('conta_destino') == self.conta_bancaria_numero
             )
+
+            # 🔥 DEBUG CRÍTICO: Verificar se a transação de câmbio está passando
+            if transferencia_id in ['637333_cb', '128193_cb']:
+                print(f"🔥🔥🔥 VERIFICAÇÃO CONTA ENVOLVIDA: {transferencia_id}")
+                print(f"   - conta_remetente: {dados.get('conta_remetente')}")
+                print(f"   - conta_destinatario: {dados.get('conta_destinatario')}")
+                print(f"   - conta_origem: {dados.get('conta_origem')}")
+                print(f"   - conta_destino: {dados.get('conta_destino')}")
+                print(f"   - conta_envolvida: {conta_envolvida}")
+                print(f"   - nossa_conta: {self.conta_bancaria_numero}")
             
             if not conta_envolvida:
                 continue
+            
             
             # Aplicar filtro de data
             if periodo != "0" and data_inicio_filtro:
@@ -2704,8 +2736,20 @@ class TelaExtratoContaBancaria(Screen):
             
             # 🔥 🔥 🔥 LÓGICA INVERTIDA: Para conta bancária da empresa
             
+            # 🔥 DEBUG: Verificar se está entrando no processamento por tipo
+            if transferencia_id == '637333_cb':
+                print(f"🎯🎯🎯 INICIANDO PROCESSAMENTO POR TIPO: {transferencia_id}")
+                print(f"   - tipo: {tipo}")
+                print(f"   - conta_remetente: {dados.get('conta_remetente')}")
+                print(f"   - conta_destinatario: {dados.get('conta_destinatario')}")
+                print(f"   - conta_origem: {dados.get('conta_origem')}")
+                print(f"   - conta_destino: {dados.get('conta_destino')}")
+
             # NOSSA CONTA É REMETENTE (SAÍDA DE DINHEIRO) = CRÉDITO (diminui saldo)
             if dados.get('conta_remetente') == self.conta_bancaria_numero:
+                
+                # 🔥 DEBUG: Verificar qual tipo está sendo processado
+                print(f"🎯 PROCESSANDO TRANSAÇÃO {transferencia_id}: tipo='{tipo}' (NOSSA CONTA É REMETENTE)")
                 
                 if tipo == 'despesa':
                     # Despesa: nossa conta bancária paga (CRÉDITO = diminui saldo)
@@ -2734,21 +2778,28 @@ class TelaExtratoContaBancaria(Screen):
                         'timestamp': timestamp,
                         'id': transferencia_id
                     }
-                    
+
                 elif tipo == 'cambio_contas_empresa':
-                    # Câmbio entre contas: nossa conta bancária envia moeda (CRÉDITO = diminui saldo)
-                    descricao = f"CÂMBIO ENTRE CONTAS - ENVIADO - {dados['moeda']} {dados['valor']:,.2f}"
-                    nova_transacao = {
-                        'data': data_transacao,
-                        'descricao': descricao,
-                        'credito': dados['valor'],  # 🔥 CRÉDITO = SAÍDA
-                        'debito': 0.00,
-                        'tipo': "Câmbio entre Contas",
-                        'moeda': dados['moeda'],
-                        'timestamp': timestamp,
-                        'id': transferencia_id
-                    }
-                    print(f"💰 CÂMBIO ORIGEM CORRETO: {descricao}")
+                    print(f"🔍🔍🔍 ENTRANDO NO PROCESSAMENTO DO CÂMBIO (REMETENTE): {transferencia_id}")
+                    # 🔥 CÂMBIO ENTRE CONTAS DA EMPRESA (ORIGEM)
+                    conta_origem = dados.get('conta_origem')
+                    conta_destino = dados.get('conta_destino')
+                    print(f"🔍🔍🔍 conta_origem: {conta_origem}, conta_destino: {conta_destino}, nossa_conta: {self.conta_bancaria_numero}")
+                    
+                    if conta_origem == self.conta_bancaria_numero:
+                        # NOSSA CONTA É ORIGEM - SAÍDA (CRÉDITO)
+                        descricao = f"CÂMBIO ENTRE CONTAS - {dados['moeda_origem']} {dados['valor_origem']:,.2f} -> {dados['moeda_destino']} {dados['valor_destino']:,.2f} (TAXA: {dados.get('taxa_cambio', 0):.6f})"
+                        nova_transacao = {
+                            'data': data_transacao,
+                            'descricao': descricao,
+                            'credito': dados['valor_origem'],  # 🔥 CRÉDITO = SAÍDA
+                            'debito': 0.00,
+                            'tipo': "Câmbio entre Contas",
+                            'moeda': dados['moeda_origem'],
+                            'timestamp': timestamp,
+                            'id': transferencia_id
+                        }
+                        print(f"💰💰💰 CÂMBIO ORIGEM ADICIONADO AO EXTRATO: {dados['valor_origem']:,.2f} {dados['moeda_origem']}")
                 
                 else:
                     # Outras saídas
@@ -2770,6 +2821,8 @@ class TelaExtratoContaBancaria(Screen):
             # NOSSA CONTA É DESTINATÁRIO (ENTRADA DE DINHEIRO) = DÉBITO (aumenta saldo)
             elif dados.get('conta_destinatario') == self.conta_bancaria_numero:
                 
+                # 🔥 DEBUG: Verificar qual tipo está sendo processado
+                print(f"🎯 PROCESSANDO TRANSAÇÃO {transferencia_id}: tipo='{tipo}' (NOSSA CONTA É DESTINATÁRIO)")
                 
                 if tipo == 'deposito' or tipo == 'deposito_confirmado':
                     # Depósito: nossa conta bancária recebe dinheiro (DÉBITO = aumenta saldo)
@@ -2814,81 +2867,28 @@ class TelaExtratoContaBancaria(Screen):
                         'id': transferencia_id
                     }
 
-                # 🔥 🔥 🔥 PROCESSAR CÂMBIO ENTRE CONTAS DA EMPRESA - VERSÃO DEFINITIVA
                 elif tipo == 'cambio_contas_empresa':
-                    # 🔥 VERIFICAÇÃO ANTES DE QUALQUER PROCESSAMENTO
-                    if transferencia_id in transacoes_ids_utilizados:
-                        print(f"🔧 CÂMBIO JÁ PROCESSADO - PULANDO: {transferencia_id}")
-                        continue
+                    print(f"🔍🔍🔍 ENTRANDO NO PROCESSAMENTO DO CÂMBIO (DESTINATÁRIO): {transferencia_id}")
+                    # 🔥 CÂMBIO ENTRE CONTAS DA EMPRESA (DESTINO)
+                    conta_destino = dados.get('conta_destino')
+                    conta_origem = dados.get('conta_origem')
+                    print(f"🔍🔍🔍 conta_origem: {conta_origem}, conta_destino: {conta_destino}, nossa_conta: {self.conta_bancaria_numero}")
                     
-                    # Verificar se envolve nossa conta bancária
-                    conta_origem = dados.get('conta_remetente')
-                    conta_destino = dados.get('conta_destinatario')
-                    nossa_conta = self.conta_bancaria_numero
-                    
-                    if conta_origem != nossa_conta and conta_destino != nossa_conta:
-                        continue
-                    
-                    print(f"🎯 PROCESSANDO CÂMBIO DEFINITIVO: {transferencia_id}")
-                    print(f"   - Nossa conta: {nossa_conta}")
-                    print(f"   - É origem? {conta_origem == nossa_conta}")
-                    print(f"   - É destino? {conta_destino == nossa_conta}")
-                    
-                    data_cambio = dados.get('data', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-                    taxa_principal = dados.get('taxa_principal_registro', dados.get('taxa_cambio', 1))
-
-                    # 🔥 DEBUG DA TAXA
-                    print(f"🎯 TAXA DEFINIDA:")
-                    print(f"   - taxa_principal_registro: {dados.get('taxa_principal_registro')}")
-                    print(f"   - taxa_cambio: {dados.get('taxa_cambio')}")
-                    print(f"   - taxa_principal final: {taxa_principal}")
-
-                    # 🔥 LÓGICA SIMPLIFICADA E DEFINITIVA
-                    if conta_origem == nossa_conta:
-                        # CONTA ORIGEM (BRL) - SAÍDA
-
-                        # 🔥 DEBUG PARA VERIFICAR A TAXA
-                        print(f"🔍 DEBUG TAXA BRL:")
-                        print(f"   - taxa_principal: {taxa_principal}")
-                        print(f"   - Tipo: {type(taxa_principal)}")
-                        print(f"   - Dados completos: {dados}")
-
-                        descricao = f"CÂMBIO ENTRE CONTAS - ENVIADO - {dados['moeda']} {dados['valor']:,.2f} - Taxa: {taxa_principal:.6f}"
+                    if conta_destino == self.conta_bancaria_numero:
+                        print(f"🔍🔍🔍 CONTA DESTINO É NOSSA CONTA! VAI ADICIONAR AO EXTRATO")
+                        # NOSSA CONTA É DESTINO - ENTRADA (DÉBITO)
+                        descricao = f"CÂMBIO ENTRE CONTAS - {dados['moeda_origem']} {dados['valor_origem']:,.2f} -> {dados['moeda_destino']} {dados['valor_destino']:,.2f} (TAXA: {dados.get('taxa_cambio', 0):.6f})"
                         nova_transacao = {
-                            'data': data_cambio,
-                            'descricao': descricao,
-                            'credito': dados['valor'],  # CRÉDITO = SAÍDA
-                            'debito': 0.00,
-                            'tipo': "Câmbio entre Contas",
-                            'moeda': dados['moeda'],
-                            'timestamp': parse_data(data_cambio),
-                            'id': transferencia_id
-                        }
-                        print(f"💰 CÂMBIO ORIGEM REGISTRADO: {descricao}")
-                        
-                    elif conta_destino == nossa_conta:
-                        # CONTA DESTINO (USD) - ENTRADA
-                        valor_destino = dados.get('valor_destino', 0)
-                        moeda_destino = dados.get('moeda_destino', 'USD')
-                        descricao = f"CÂMBIO ENTRE CONTAS - RECEBIDO - {moeda_destino} {valor_destino:,.2f} - Taxa: {taxa_principal:.6f}"
-                        nova_transacao = {
-                            'data': data_cambio,
+                            'data': data_transacao,
                             'descricao': descricao,
                             'credito': 0.00,
-                            'debito': valor_destino,  # DÉBITO = ENTRADA
-                            'tipo': "Câmbio entre Contas", 
-                            'moeda': moeda_destino,
-                            'timestamp': parse_data(data_cambio),
+                            'debito': dados['valor_destino'],  # 🔥 DÉBITO = ENTRADA
+                            'tipo': "Câmbio entre Contas",
+                            'moeda': dados['moeda_destino'],
+                            'timestamp': timestamp,
                             'id': transferencia_id
                         }
-                        print(f"💰 CÂMBIO DESTINO REGISTRADO: {descricao}")
-                    
-                    # 🔥 ADICIONAR E MARCAR COMO PROCESSADO
-                    transacoes_todas.append(nova_transacao)
-                    transacoes_ids_utilizados.add(transferencia_id)
-                    print(f"✅ CÂMBIO ADICIONADO E MARCADO: {transferencia_id}")
-                    continue  # 🔥 PULAR QUALQUER OUTRO PROCESSAMENTO PARA ESTE CÂMBIO
-
+                        print(f"💰💰💰 CÂMBIO DESTINO ADICIONADO AO EXTRATO: {dados['valor_destino']:,.2f} {dados['moeda_destino']}")
 
                 # 🔥 🔥 🔥 NOVO: PROCESSAR AJUSTE DE SALDO DA EMPRESA - LÓGICA CORRIGIDA
                 elif tipo == 'ajuste_saldo_empresa':
@@ -2940,7 +2940,6 @@ class TelaExtratoContaBancaria(Screen):
                     transacoes_ids_utilizados.add(transferencia_id)
                     print(f"✅ AJUSTE ADICIONADO ÀS TRANSAÇÕES: {descricao}")
 
-
                 else:
                     # Outras entradas
                     descricao = f"ENTRADA - {dados.get('descricao', 'Operação')}"
@@ -2957,6 +2956,53 @@ class TelaExtratoContaBancaria(Screen):
                 
                 transacoes_todas.append(nova_transacao)
                 transacoes_ids_utilizados.add(transferencia_id)
+
+            # 🔥🔥🔥 NOVO BLOCO: CÂMBIO ENTRE CONTAS (conta_origem/conta_destino)
+            elif (dados.get('conta_origem') == self.conta_bancaria_numero or 
+                  dados.get('conta_destino') == self.conta_bancaria_numero):
+                
+                # 🔥 DEBUG: Verificar qual tipo está sendo processado
+                print(f"🎯 PROCESSANDO TRANSAÇÃO {transferencia_id}: tipo='{tipo}' (NOSSA CONTA É ORIGEM/DESTINO)")
+                
+                if tipo == 'cambio_contas_empresa':
+                    print(f"🔍🔍🔍 ENTRANDO NO PROCESSAMENTO DO CÂMBIO (ORIGEM/DESTINO): {transferencia_id}")
+                    conta_origem = dados.get('conta_origem')
+                    conta_destino = dados.get('conta_destino')
+                    print(f"🔍🔍🔍 conta_origem: {conta_origem}, conta_destino: {conta_destino}, nossa_conta: {self.conta_bancaria_numero}")
+                    
+                    if conta_origem == self.conta_bancaria_numero:
+                        # NOSSA CONTA É ORIGEM - SAÍDA (CRÉDITO)
+                        descricao = f"CÂMBIO ENTRE CONTAS - {dados['moeda_origem']} {dados['valor_origem']:,.2f} -> {dados['moeda_destino']} {dados['valor_destino']:,.2f} (TAXA: {dados.get('taxa_cambio', 0):.6f})"
+                        nova_transacao = {
+                            'data': data_transacao,
+                            'descricao': descricao,
+                            'credito': dados['valor_origem'],  # 🔥 CRÉDITO = SAÍDA
+                            'debito': 0.00,
+                            'tipo': "Câmbio entre Contas",
+                            'moeda': dados['moeda_origem'],
+                            'timestamp': timestamp,
+                            'id': transferencia_id
+                        }
+                        print(f"💰💰💰 CÂMBIO ORIGEM ADICIONADO AO EXTRATO: {dados['valor_origem']:,.2f} {dados['moeda_origem']}")
+                    
+                    elif conta_destino == self.conta_bancaria_numero:
+                        print(f"🔍🔍🔍 CONTA DESTINO É NOSSA CONTA! VAI ADICIONAR AO EXTRATO")
+                        # NOSSA CONTA É DESTINO - ENTRADA (DÉBITO)
+                        descricao = f"CÂMBIO ENTRE CONTAS - {dados['moeda_origem']} {dados['valor_origem']:,.2f} -> {dados['moeda_destino']} {dados['valor_destino']:,.2f} (TAXA: {dados.get('taxa_cambio', 0):.6f})"
+                        nova_transacao = {
+                            'data': data_transacao,
+                            'descricao': descricao,
+                            'credito': 0.00,
+                            'debito': dados['valor_destino'],  # 🔥 DÉBITO = ENTRADA
+                            'tipo': "Câmbio entre Contas",
+                            'moeda': dados['moeda_destino'],
+                            'timestamp': timestamp,
+                            'id': transferencia_id
+                        }
+                        print(f"💰💰💰 CÂMBIO DESTINO ADICIONADO AO EXTRATO: {dados['valor_destino']:,.2f} {dados['moeda_destino']}")
+                    
+                    transacoes_todas.append(nova_transacao)
+                    transacoes_ids_utilizados.add(transferencia_id)
         
         # Aplicar filtro de data nas transações
         for transacao in transacoes_todas:
@@ -3114,14 +3160,32 @@ class TelaExtratoContaBancaria(Screen):
             if not dados or not isinstance(dados, dict):
                 continue
                 
-            # Verificar se a transação envolve nossa conta bancária
-            conta_envolvida = (
-                dados.get('conta_remetente') == self.conta_bancaria_numero or 
-                dados.get('conta_destinatario') == self.conta_bancaria_numero
-            )
+            # 🔥 🔥 🔥 CORREÇÃO: VERIFICAR CÂMBIOS ENTRE CONTAS COM CAMPOS ESPECÍFICOS
+            if dados.get('tipo') == 'cambio_contas_empresa':
+                # Para câmbios entre contas, usar campos específicos
+                conta_origem = dados.get('conta_origem')
+                conta_destino = dados.get('conta_destino')
+                conta_envolvida = (
+                    conta_origem == self.conta_bancaria_numero or 
+                    conta_destino == self.conta_bancaria_numero
+                )
+                if conta_envolvida:
+                    print(f"🎯 CÂMBIO ENTRE CONTAS ENCONTRADO: {transferencia_id}")
+                    print(f"   - Origem: {conta_origem}")
+                    print(f"   - Destino: {conta_destino}")
+            else:
+                # Para outros tipos, usar campos normais
+                conta_envolvida = (
+                    dados.get('conta_remetente') == self.conta_bancaria_numero or 
+                    dados.get('conta_destinatario') == self.conta_bancaria_numero
+                )
             
             if not conta_envolvida:
                 continue
+            
+            # 🔥 DEBUG: Verificar se a transação está chegando ao processamento
+            if dados.get('tipo') == 'cambio_contas_empresa':
+                print(f"🎯🎯🎯 TRANSAÇÃO CÂMBIO CHEGOU AO PROCESSAMENTO: {transferencia_id}")
             
             if dados['status'] not in ['completed', 'processing']:
                 continue
