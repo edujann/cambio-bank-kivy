@@ -4724,31 +4724,79 @@ class TelaGerenciarContas(Screen):
         self.popup_transferencia_completa.open()
 
     def carregar_contas_cliente_modal(self, username_cliente):
-        """Carrega as contas internacionais do cliente selecionado"""
+        """Carrega as contas internacionais do cliente selecionado - VERSÃO HÍBRIDA CORRIGIDA"""
         sistema = App.get_running_app().sistema
         
-        if username_cliente in sistema.usuarios:
-            # Filtrar apenas contas internacionais (USD, EUR, GBP)
+        try:
+            # 🔥 PADRÃO: Tentar Supabase primeiro
             contas_internacionais = []
-            for conta_num in sistema.usuarios[username_cliente].get('contas', []):
-                if conta_num in sistema.contas and sistema.contas[conta_num]['moeda'] in ['USD', 'EUR', 'GBP']:
-                    dados_conta = sistema.contas[conta_num]
-                    texto = f"{conta_num} | {dados_conta['moeda']} | Saldo: {dados_conta['saldo']:,.2f}"
-                    contas_internacionais.append(texto)
             
-            self.spinner_conta_cliente.values = contas_internacionais
-            if contas_internacionais:
-                self.spinner_conta_cliente.text = contas_internacionais[0]
-                # 🔥 CORREÇÃO: Chamar o método corretamente
-                self.atualizar_info_conta_modal()
+            if hasattr(sistema, 'supabase') and sistema.supabase.conectado:
+                print(f"📡 Buscando contas do cliente {username_cliente} no Supabase...")
+                try:
+                    # 🔥 CORREÇÃO: Buscar direto do Supabase (método não existe no manager)
+                    response = sistema.supabase.client.table('contas')\
+                        .select('*')\
+                        .eq('cliente_username', username_cliente)\
+                        .execute()
+                    
+                    if response.data:
+                        for conta in response.data:
+                            if conta.get('moeda') in ['USD', 'EUR', 'GBP']:
+                                texto = f"{conta['id']} | {conta['moeda']} | Saldo: {conta['saldo']:,.2f}"
+                                contas_internacionais.append(texto)
+                        
+                        print(f"✅ {len(contas_internacionais)} contas internacionais carregadas do Supabase")
+                        
+                except Exception as supabase_error:
+                    print(f"❌ Erro ao buscar contas no Supabase: {supabase_error}")
+            
+            # 🔥 FALLBACK: Se Supabase falhou ou não tem dados, usar local
+            if not contas_internacionais and username_cliente in sistema.usuarios:
+                print("🔄 Usando fallback local para contas...")
+                for conta_num in sistema.usuarios[username_cliente].get('contas', []):
+                    if conta_num in sistema.contas and sistema.contas[conta_num]['moeda'] in ['USD', 'EUR', 'GBP']:
+                        dados_conta = sistema.contas[conta_num]
+                        texto = f"{conta_num} | {dados_conta['moeda']} | Saldo: {dados_conta['saldo']:,.2f}"
+                        contas_internacionais.append(texto)
+            
+            # Atualizar UI
+            if hasattr(self, 'spinner_conta_cliente'):
+                self.spinner_conta_cliente.values = contas_internacionais
+                if contas_internacionais:
+                    self.spinner_conta_cliente.text = contas_internacionais[0]
+                    self.atualizar_info_conta_modal()
+                else:
+                    self.spinner_conta_cliente.text = "Nenhuma conta internacional encontrada"
+                    if hasattr(self, 'lbl_info_conta_modal'):
+                        self.lbl_info_conta_modal.text = "Nenhuma conta disponível"
+                
+        except Exception as e:
+            print(f"❌ Erro ao carregar contas do cliente: {e}")
 
 
     def carregar_beneficiarios_cliente_modal(self, username_cliente):
-        """Carrega os beneficiários salvos do cliente selecionado"""
+        """Carrega os beneficiários salvos do cliente selecionado - VERSÃO HÍBRIDA"""
         sistema = App.get_running_app().sistema
         
-        if username_cliente in sistema.beneficiarios:
-            beneficiarios = sistema.beneficiarios[username_cliente]
+        try:
+            beneficiarios = []
+            
+            # 🔥 PADRÃO: Tentar Supabase primeiro
+            if hasattr(sistema, 'supabase') and sistema.supabase.conectado:
+                print(f"📡 Buscando beneficiários do cliente {username_cliente} no Supabase...")
+                beneficiarios_supabase = sistema.supabase.obter_beneficiarios_cliente(username_cliente)
+                
+                if beneficiarios_supabase:
+                    beneficiarios = beneficiarios_supabase
+                    print(f"✅ {len(beneficiarios)} beneficiários carregados do Supabase")
+            
+            # 🔥 FALLBACK: Se Supabase falhou, usar local
+            if not beneficiarios and username_cliente in sistema.beneficiarios:
+                print("🔄 Usando fallback local para beneficiários...")
+                beneficiarios = sistema.beneficiarios[username_cliente]
+            
+            # Preparar valores para o spinner
             valores = ['']  # Opção vazia
             for benef in beneficiarios:
                 nome_formatado = f"{benef['nome']} | {benef['banco']} | {benef['pais']}"
@@ -4756,9 +4804,9 @@ class TelaGerenciarContas(Screen):
             
             if hasattr(self, 'spinner_beneficiarios_modal'):
                 self.spinner_beneficiarios_modal.values = valores
-        else:
-            if hasattr(self, 'spinner_beneficiarios_modal'):
-                self.spinner_beneficiarios_modal.values = ['']
+                
+        except Exception as e:
+            print(f"❌ Erro ao carregar beneficiários: {e}")
 
     def atualizar_info_conta_modal(self, instance=None, value=None):
         """Atualiza informações da conta selecionada no modal"""
@@ -5076,52 +5124,125 @@ class TelaGerenciarContas(Screen):
         except Exception as e:
             print(f"⚠️ Erro ao salvar receita no Supabase: {e} (mas operação foi salva localmente)")
 
+    def _atualizar_saldos_supabase(self, conta_origem, conta_destino, valor, moeda, origem_empresa, destino_empresa):
+        """Atualiza saldos no Supabase após transferência interna"""
+        try:
+            sistema = App.get_running_app().sistema
+            
+            if not hasattr(sistema, 'supabase') or not sistema.supabase.conectado:
+                print("❌ Supabase não disponível para atualizar saldos")
+                return False
+            
+            print(f"🔄 Atualizando saldos no Supabase: {conta_origem} -> {conta_destino}")
+            
+            # 🔥 ATUALIZAR CONTA DE ORIGEM
+            if origem_empresa:
+                # É conta da empresa
+                novo_saldo_origem = sistema.contas_bancarias_empresa[conta_origem]['saldo']
+                response_origem = sistema.supabase.client.table('contas_bancarias_empresa')\
+                    .update({'saldo': novo_saldo_origem})\
+                    .eq('id', conta_origem)\
+                    .execute()
+            else:
+                # É conta de cliente
+                novo_saldo_origem = sistema.contas[conta_origem]['saldo']
+                response_origem = sistema.supabase.client.table('contas')\
+                    .update({'saldo': novo_saldo_origem})\
+                    .eq('id', conta_origem)\
+                    .execute()
+            
+            # 🔥 ATUALIZAR CONTA DE DESTINO
+            if destino_empresa:
+                # É conta da empresa
+                novo_saldo_destino = sistema.contas_bancarias_empresa[conta_destino]['saldo']
+                response_destino = sistema.supabase.client.table('contas_bancarias_empresa')\
+                    .update({'saldo': novo_saldo_destino})\
+                    .eq('id', conta_destino)\
+                    .execute()
+            else:
+                # É conta de cliente
+                novo_saldo_destino = sistema.contas[conta_destino]['saldo']
+                response_destino = sistema.supabase.client.table('contas')\
+                    .update({'saldo': novo_saldo_destino})\
+                    .eq('id', conta_destino)\
+                    .execute()
+            
+            # Verificar resultados
+            sucesso_origem = bool(response_origem.data)
+            sucesso_destino = bool(response_destino.data)
+            
+            if sucesso_origem and sucesso_destino:
+                print(f"✅✅✅ Saldos atualizados no Supabase: {conta_origem}={novo_saldo_origem}, {conta_destino}={novo_saldo_destino}")
+                return True
+            else:
+                print(f"❌ Erro ao atualizar saldos: origem={sucesso_origem}, destino={sucesso_destino}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Erro ao atualizar saldos no Supabase: {e}")
+            return False
+
     def salvar_transferencia_interna_supabase(self, transferencia_id, conta_origem, conta_destino, valor, moeda, 
                                             tipo, descricao, origem_empresa, destino_empresa):
-        """Salva transferência interna no Supabase - MANTÉM COMPATIBILIDADE"""
+        """Salva transferência interna no Supabase - VERSÃO CORRIGIDA"""
         try:
-            from supabase_service import SupabaseService
             from datetime import datetime
             
             sistema = App.get_running_app().sistema
             
-            # Determinar tipo de transferência
-            if origem_empresa and destino_empresa:
-                tipo_transferencia = 'empresa_para_empresa'
-            elif origem_empresa and not destino_empresa:
-                tipo_transferencia = 'empresa_para_cliente'
-            elif not origem_empresa and destino_empresa:
-                tipo_transferencia = 'cliente_para_empresa'
-            else:
-                tipo_transferencia = 'cliente_para_cliente'
+            print(f"🔍 DEBUG SUPABASE: Salvando transferência {transferencia_id}")
             
-            # Preparar dados para o Supabase
+            if not hasattr(sistema, 'supabase') or not sistema.supabase.conectado:
+                print("❌ Supabase não disponível")
+                return False
+            
+            # Preparar dados
             dados_supabase = {
                 'id': transferencia_id,
-                'tipo': 'transferencia_interna',
-                'status': 'completed',
+                'tipo': tipo,
+                'status': 'completed', 
                 'data': datetime.now().isoformat(),
                 'moeda': moeda,
                 'valor': valor,
                 'conta_remetente': conta_origem,
                 'conta_destinatario': conta_destino,
                 'descricao': descricao,
-                'executado_por': sistema.usuario_logado['username'],
-                'tipo_transferencia': tipo_transferencia,
+                'executado_por': sistema.usuario_logado,
+                'finalidade': 'Transferência Interna',
                 'created_at': datetime.now().isoformat()
             }
             
-            # Salvar no Supabase
-            service = SupabaseService()
-            resultado = service.salvar_transacao(dados_supabase)
+            print(f"📦 Dados para Supabase: {dados_supabase}")
             
-            if resultado:
-                print(f"✅ Transferência interna salva no Supabase! ID: {transferencia_id}")
+            # 🔥 USAR CLIENTE SUPABASE DIRETO
+            response = sistema.supabase.client.table('transferencias')\
+                .insert(dados_supabase)\
+                .execute()
+            
+            if response.data:
+                print(f"✅✅✅ TRANSFERÊNCIA INTERNA {transferencia_id} SALVA NO SUPABASE!")
+                return True
             else:
-                print(f"⚠️ Transferência interna NÃO salva no Supabase (mas foi salva localmente)")
+                print(f"❌❌❌ ERRO AO SALVAR NO SUPABASE: {response.error}")
+                return False
                 
         except Exception as e:
-            print(f"⚠️ Erro ao salvar transferência interna no Supabase: {e} (mas operação foi salva localmente)")
+            print(f"💥 ERRO CRÍTICO NO SUPABASE: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    def _obter_cliente_por_conta(self, conta_numero):
+        """Obtém o username do cliente por número da conta"""
+        sistema = App.get_running_app().sistema
+        
+        # Buscar em contas de clientes
+        for username, dados_usuario in sistema.usuarios.items():
+            if conta_numero in dados_usuario.get('contas', []):
+                return username
+        
+        # Se não encontrou, pode ser conta da empresa
+        return None
 
     def salvar_transferencia_internacional_supabase(self, transferencia_id, dados_transferencia, username_cliente, tem_invoice):
         """Salva transferência internacional no Supabase - MANTÉM COMPATIBILIDADE"""
@@ -6377,20 +6498,20 @@ class TelaGerenciarContas(Screen):
             self.mostrar_erro(f"Erro ao processar transferência: {str(e)}")
 
     def _processar_transferencia_interna(self, conta_origem, conta_destino, valor, moeda, descricao):
-        """Processa a transferência interna após confirmação - COM SUPABASE"""
+        """Processa a transferência interna após confirmação - COM SUPABASE COMPLETO"""
         sistema = App.get_running_app().sistema
         
         try:
             print(f"🔄 Processando transferência interna: {conta_origem} -> {conta_destino} | {valor} {moeda}")
             
-            # 🔥 VERIFICAR TIPOS DE CONTAS (CÓDIGO ORIGINAL MANTIDO)
+            # 🔥 VERIFICAR TIPOS DE CONTAS
             origem_empresa = conta_origem in sistema.contas_bancarias_empresa
             destino_empresa = conta_destino in sistema.contas_bancarias_empresa
             
             origem_cliente = conta_origem in sistema.contas
             destino_cliente = conta_destino in sistema.contas
             
-            # 🔥 EXECUTAR TRANSFERÊNCIA (CÓDIGO ORIGINAL MANTIDO)
+            # 🔥 EXECUTAR TRANSFERÊNCIA LOCAL
             if origem_empresa and destino_empresa:
                 # Entre contas da empresa
                 sistema.contas_bancarias_empresa[conta_origem]['saldo'] -= valor
@@ -6417,12 +6538,13 @@ class TelaGerenciarContas(Screen):
             else:
                 raise ValueError("Combinação de contas inválida")
             
-            # 🔥 REGISTRAR A TRANSFERÊNCIA (CÓDIGO ORIGINAL MANTIDO)
+            # 🔥 REGISTRAR A TRANSFERÊNCIA LOCAL
+            import random
             transferencia_id = str(random.randint(100000, 999999))
             while transferencia_id in sistema.transferencias:
                 transferencia_id = str(random.randint(100000, 999999))
             
-            # Determinar tipo baseado nas contas envolvidas (CÓDIGO ORIGINAL MANTIDO)
+            # Determinar tipo baseado nas contas envolvidas
             if origem_empresa and destino_empresa:
                 tipo = 'transferencia_interna_empresa'
             elif origem_empresa and destino_cliente:
@@ -6442,22 +6564,34 @@ class TelaGerenciarContas(Screen):
                 'descricao': descricao,
                 'status': 'completed',
                 'data': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'executado_por': sistema.usuario_logado['username'],
+                'executado_por': sistema.usuario_logado,
                 'tipo_operacao': 'transferencia_interna_admin'
             }
             
-            # 🔥🔥🔥 NOVO: SALVAR NO SUPABASE APÓS SUCESSO NO SISTEMA ATUAL
-            self.salvar_transferencia_interna_supabase(
+            # 🔥 ATUALIZAR SALDOS NO SUPABASE
+            sucesso_saldos = self._atualizar_saldos_supabase(conta_origem, conta_destino, valor, moeda, origem_empresa, destino_empresa)
+            
+            # 🔥 SALVAR TRANSFERÊNCIA NO SUPABASE
+            sucesso_transferencia = self.salvar_transferencia_interna_supabase(
                 transferencia_id, conta_origem, conta_destino, valor, moeda, 
                 tipo, descricao, origem_empresa, destino_empresa
             )
             
-            # 🔥 SALVAR DADOS (CÓDIGO ORIGINAL MANTIDO)
+            if sucesso_transferencia and sucesso_saldos:
+                print(f"🎉 TRANSFERÊNCIA {transferencia_id} COMPLETAMENTE SINCRONIZADA NO SUPABASE!")
+            elif sucesso_transferencia:
+                print(f"✅ Transferência {transferencia_id} salva no Supabase, mas saldos não atualizados")
+            elif sucesso_saldos:
+                print(f"✅ Saldos atualizados no Supabase, mas transferência não salva")
+            else:
+                print(f"⚠️ Transferência salva apenas localmente")
+            
+            # 🔥 SALVAR DADOS LOCAIS
             sistema.salvar_contas()
             sistema.salvar_contas_bancarias()
             sistema.salvar_transferencias()
             
-            # 🔥 OBTER NOVOS SALDOS PARA MENSAGEM (CÓDIGO ORIGINAL MANTIDO)
+            # 🔥 OBTER NOVOS SALDOS PARA MENSAGEM
             if origem_empresa:
                 novo_saldo_origem = sistema.contas_bancarias_empresa[conta_origem]['saldo']
             else:
@@ -6468,7 +6602,7 @@ class TelaGerenciarContas(Screen):
             else:
                 novo_saldo_destino = sistema.contas[conta_destino]['saldo']
             
-            # 🔥 LIMPAR CAMPOS APÓS SUCESSO (CÓDIGO ORIGINAL MANTIDO)
+            # 🔥 LIMPAR CAMPOS APÓS SUCESSO
             self.limpar_campos_transferencia()
             
             self.mostrar_sucesso(

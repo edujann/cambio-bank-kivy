@@ -211,7 +211,7 @@
     },
     "960934914": {
         "moeda": "BRL",
-        "saldo": 50000.0,
+        "saldo": 5000.0,
         "cliente": "prada",
         "cliente_nome": "PRADA LIMITED",
         "data_criacao": "2025-11-02"
@@ -236,6 +236,13 @@
         "cliente": "makita",
         "cliente_nome": "MAKITA MACHINES LLC",
         "data_criacao": "2025-11-26"
+    },
+    "713651820": {
+        "moeda": "USD",
+        "saldo": 70000.0,
+        "cliente": "texaco",
+        "cliente_nome": "TEXACO LLC",
+        "data_criacao": "2025-11-01"
     },
     "802194129": {
         "moeda": "BRL",
@@ -281,14 +288,7 @@
     },
     "202973672": {
         "moeda": "BRL",
-        "saldo": -50000.0,
-        "cliente": "texaco",
-        "cliente_nome": "TEXACO LLC",
-        "data_criacao": "2025-11-01"
-    },
-    "713651820": {
-        "moeda": "USD",
-        "saldo": 71500.0,
+        "saldo": -5000.0,
         "cliente": "texaco",
         "cliente_nome": "TEXACO LLC",
         "data_criacao": "2025-11-01"

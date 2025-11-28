@@ -689,7 +689,43 @@ class SupabaseManager:
             print(f"❌ Erro ao atualizar transferência {transferencia_id}: {e}")
             return False
 
+    def obter_contas_cliente(self, username_cliente):
+        """Obtém contas de um cliente específico - PADRÃO ESTABELECIDO"""
+        try:
+            response = self.client.table('contas')\
+                .select('*')\
+                .eq('cliente_username', username_cliente)\
+                .execute()
+            
+            contas = {}
+            for conta in response.data:
+                contas[conta['id']] = conta
+            
+            print(f"✅ {len(contas)} contas do cliente {username_cliente} carregadas do Supabase")
+            return contas
+            
+        except Exception as e:
+            print(f"❌ Erro ao obter contas do cliente {username_cliente}: {e}")
+            return {}
 
+    def obter_beneficiarios_cliente(self, username_cliente):
+        """Obtém beneficiários de um cliente específico - PADRÃO ESTABELECIDO"""
+        try:
+            response = self.client.table('beneficiarios')\
+                .select('*')\
+                .eq('cliente_username', username_cliente)\
+                .execute()
+            
+            beneficiarios = []
+            for benef in response.data:
+                beneficiarios.append(benef)
+            
+            print(f"✅ {len(beneficiarios)} beneficiários do cliente {username_cliente} carregados do Supabase")
+            return beneficiarios
+            
+        except Exception as e:
+            print(f"❌ Erro ao obter beneficiários do cliente {username_cliente}: {e}")
+            return []
 
 
 
