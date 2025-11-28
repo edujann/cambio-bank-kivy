@@ -6,13 +6,6 @@
         "cliente_nome": "APPLE LLC",
         "data_criacao": "2025-11-02"
     },
-    "403356950": {
-        "moeda": "USD",
-        "saldo": 0.0,
-        "cliente": "bmw",
-        "cliente_nome": "BMW ENTERPRISE",
-        "data_criacao": "2025-10-30"
-    },
     "438146195": {
         "moeda": "USD",
         "saldo": 50000.0,
@@ -209,13 +202,6 @@
         "cliente_nome": "TITAN LIMITED",
         "data_criacao": "2025-11-03"
     },
-    "960934914": {
-        "moeda": "BRL",
-        "saldo": 5000.0,
-        "cliente": "prada",
-        "cliente_nome": "PRADA LIMITED",
-        "data_criacao": "2025-11-02"
-    },
     "983847231": {
         "moeda": "EUR",
         "saldo": 0.0,
@@ -239,10 +225,38 @@
     },
     "713651820": {
         "moeda": "USD",
-        "saldo": 70000.0,
+        "saldo": 50000.0,
         "cliente": "texaco",
         "cliente_nome": "TEXACO LLC",
         "data_criacao": "2025-11-01"
+    },
+    "960934914": {
+        "moeda": "BRL",
+        "saldo": 5000.0,
+        "cliente": "prada",
+        "cliente_nome": "PRADA LIMITED",
+        "data_criacao": "2025-11-02"
+    },
+    "202973672": {
+        "moeda": "BRL",
+        "saldo": 104000.0,
+        "cliente": "texaco",
+        "cliente_nome": "TEXACO LLC",
+        "data_criacao": "2025-11-01"
+    },
+    "403356950": {
+        "moeda": "USD",
+        "saldo": 54500.0,
+        "cliente": "bmw",
+        "cliente_nome": "BMW ENTERPRISE",
+        "data_criacao": "2025-10-30"
+    },
+    "179993933": {
+        "moeda": "BRL",
+        "saldo": -10000.0,
+        "cliente": "bmw",
+        "cliente_nome": "BMW ENTERPRISE",
+        "data_criacao": "2025-10-30"
     },
     "802194129": {
         "moeda": "BRL",
@@ -286,13 +300,6 @@
         "cliente_nome": "LINS CHAIR LIMITADA",
         "data_criacao": "2025-11-18"
     },
-    "202973672": {
-        "moeda": "BRL",
-        "saldo": -5000.0,
-        "cliente": "texaco",
-        "cliente_nome": "TEXACO LLC",
-        "data_criacao": "2025-11-01"
-    },
     "277435777": {
         "moeda": "EUR",
         "saldo": 0.0,
@@ -327,13 +334,6 @@
         "cliente": "prada",
         "cliente_nome": "PRADA LIMITED",
         "data_criacao": "2025-11-02"
-    },
-    "179993933": {
-        "moeda": "BRL",
-        "saldo": 0.0,
-        "cliente": "bmw",
-        "cliente_nome": "BMW ENTERPRISE",
-        "data_criacao": "2025-10-30"
     },
     "221073098": {
         "moeda": "GBP",

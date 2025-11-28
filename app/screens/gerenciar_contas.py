@@ -1388,7 +1388,7 @@ class TelaGerenciarContas(Screen):
                 'descricao_destino': descricao_destino,
                 'status': 'completed',
                 'data': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'executado_por': sistema.usuario_logado,
+                'executado_por': self._obter_usuario_executor(),
                 'cliente_afetado': username
             }
             
@@ -1437,7 +1437,7 @@ class TelaGerenciarContas(Screen):
 
     def salvar_cambio_supabase(self, transacao_id, valor_origem, valor_destino, moeda_origem, moeda_destino,
                              taxa, conta_origem, conta_destino, username, tipo_taxa, taxa_exibicao):
-        """Salva operação de câmbio do Gerenciar Contas no Supabase - VERSÃO SIMPLIFICADA"""
+        """Salva operação de câmbio do Gerenciar Contas no Supabase - VERSÃO CORRIGIDA"""
         try:
             sistema = App.get_running_app().sistema
             
@@ -1446,6 +1446,13 @@ class TelaGerenciarContas(Screen):
             # 🔥 CORREÇÃO: Usar método direto do Supabase (sem asyncio complexo)
             if hasattr(sistema, 'supabase') and sistema.supabase.conectado:
                 try:
+                    # 🔥 CORREÇÃO CRÍTICA: Tratar sistema.usuario_logado corretamente
+                    usuario_executor = sistema.usuario_logado
+                    if isinstance(usuario_executor, dict):
+                        usuario_executor = usuario_executor.get('username', 'sistema')
+                    elif not isinstance(usuario_executor, str):
+                        usuario_executor = 'sistema'
+                    
                     # Preparar dados para Supabase
                     dados_supabase = {
                         'id': transacao_id,
@@ -1457,7 +1464,7 @@ class TelaGerenciarContas(Screen):
                         'conta_remetente': conta_origem,
                         'conta_destinatario': conta_destino,
                         'descricao': f'CÂMBIO ADMIN - {moeda_origem} → {moeda_destino}',
-                        'usuario': sistema.usuario_logado if isinstance(sistema.usuario_logado, str) else 'sistema',
+                        'usuario': self._obter_usuario_executor(),  # 🔥 CORREÇÃO APLICADA
                         'cliente': username,
                         'operacao': 'cambio_admin',
                         'par_moedas': f"{moeda_origem}_{moeda_destino}",
@@ -1494,7 +1501,8 @@ class TelaGerenciarContas(Screen):
             import traceback
             traceback.print_exc()
             return False
-            return False
+
+
 
     def processar_cambio_nova_tela_admin(self, dados, conta_num, transacoes, transacoes_ids_utilizados, parse_data):
         """Processa operações de câmbio da nova tela - igual ao cliente"""
@@ -6953,6 +6961,19 @@ class TelaGerenciarContas(Screen):
                 f"Taxa {tipo_texto}: {taxa:.6f}\n"
                 f"Use a taxa que corresponde à sua operação"
             )
+
+
+    def _obter_usuario_executor(self):
+        """Obtém o username do executor de forma segura"""
+        sistema = App.get_running_app().sistema
+        usuario = sistema.usuario_logado
+        
+        if isinstance(usuario, dict):
+            return usuario.get('username', 'sistema')
+        elif isinstance(usuario, str):
+            return usuario
+        else:
+            return 'sistema'
 
     def _on_conta_bancaria_change(self, instance, value):
         """Quando conta bancária mudar, filtrar contas despesa"""

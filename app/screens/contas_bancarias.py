@@ -1238,7 +1238,7 @@ class TelaContasBancarias(Screen):
                 'descricao_ajuste': descricao,
                 'status': 'completed',
                 'data': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'executado_por': sistema.usuario_logado['username']
+                'executado_por': self._safe_usuario_logado()
             }
             
             # 🔥🔥🔥 DEBUG: VERIFICAR O QUE FOI REGISTRADO
@@ -1404,56 +1404,214 @@ class TelaContasBancarias(Screen):
             self.mostrar_erro("Falha ao executar câmbio!")
 
     def executar_cambio_sistema_empresa(self, conta_origem, conta_destino, valor, taxa, valor_destino, tipo_taxa):
-        """Executa o câmbio entre contas no sistema - LÓGICA INVERTIDA"""
+        """Executa o câmbio entre contas - SUPABASE FIRST"""
         sistema = App.get_running_app().sistema
         
         try:
-            # 🔥 LÓGICA INVERTIDA PARA CONTAS BANCÁRIAS DA EMPRESA
-            # Origem: CRÉDITO (diminui saldo)
-            # Destino: DÉBITO (aumenta saldo)
+            # 🔥 PASSO 1: SALVAR PRIMEIRO NO SUPABASE
+            usuario_executor = self._obter_usuario_executor()
+            moeda_origem = sistema.contas_bancarias_empresa[conta_origem]['moeda']
+            moeda_destino = sistema.contas_bancarias_empresa[conta_destino]['moeda']
             
-            sistema.contas_bancarias_empresa[conta_origem]['saldo'] -= valor  # CRÉDITO
-            sistema.contas_bancarias_empresa[conta_destino]['saldo'] += valor_destino  # DÉBITO
-            
-            # 🔥 CALCULAR TAXA PRINCIPAL PARA REGISTRO (sempre usar principal na descrição)
+            # 🔥 CORREÇÃO: DEFINIR taxa_principal AQUI
             if tipo_taxa == 'inversa':
                 taxa_principal = 1.0 / taxa
             else:
                 taxa_principal = taxa
             
-            # Registrar a transação
-            transacao_id = str(random.randint(100000, 999999)) + "_cb"  # 🔥 _cb para câmbio
+            # Gerar ID da transação
+            transacao_id = str(random.randint(100000, 999999)) + "_cb"
             
+            print(f"🎯 INICIANDO CÂMBIO SUPABASE FIRST: {transacao_id}")
+            print(f"   Origem: {conta_origem} (-{valor:,.2f} {moeda_origem})")
+            print(f"   Destino: {conta_destino} (+{valor_destino:,.2f} {moeda_destino})")
+            print(f"   Taxa {tipo_taxa}: {taxa:.6f}, Taxa principal: {taxa_principal:.6f}")
+            
+            # 🔥 PASSO 2: SALVAR TRANSAÇÃO NO SUPABASE
+            sucesso_transacao = self.salvar_cambio_supabase(
+                transacao_id, conta_origem, conta_destino, valor, valor_destino,
+                moeda_origem, moeda_destino, taxa, tipo_taxa, usuario_executor
+            )
+            
+            if not sucesso_transacao:
+                self.mostrar_erro("Falha ao salvar transação no Supabase!")
+                return False
+            
+            # 🔥 PASSO 3: ATUALIZAR SALDOS NO SUPABASE
+            sucesso_saldos = self.atualizar_saldos_supabase_cambio(
+                conta_origem, conta_destino, valor, valor_destino
+            )
+            
+            if not sucesso_saldos:
+                self.mostrar_erro("Falha ao atualizar saldos no Supabase!")
+                return False
+            
+            # 🔥 PASSO 4: SOMENTE DEPOIS DO SUPABASE, ATUALIZAR LOCALMENTE
+            saldo_origem_antes = sistema.contas_bancarias_empresa[conta_origem]['saldo']
+            saldo_destino_antes = sistema.contas_bancarias_empresa[conta_destino]['saldo']
+            
+            sistema.contas_bancarias_empresa[conta_origem]['saldo'] -= valor
+            sistema.contas_bancarias_empresa[conta_destino]['saldo'] += valor_destino
+            
+            # Registrar localmente
             sistema.transferencias[transacao_id] = {
                 'id': transacao_id,
                 'conta_remetente': conta_origem,
                 'conta_destinatario': conta_destino,
                 'valor': valor,
                 'valor_destino': valor_destino,
-                'moeda': sistema.contas_bancarias_empresa[conta_origem]['moeda'],
-                'moeda_destino': sistema.contas_bancarias_empresa[conta_destino]['moeda'],
+                'moeda': moeda_origem,
+                'moeda_destino': moeda_destino,
                 'tipo': 'cambio_contas_empresa',
                 'taxa_cambio': taxa,
                 'tipo_taxa_usada': tipo_taxa,
-                'taxa_principal_registro': taxa_principal,  # 🔥 Sempre registrar taxa principal
-                'operacao_origem': 'CRÉDITO',  # 🔥 Diminui saldo
-                'operacao_destino': 'DÉBITO',  # 🔥 Aumenta saldo
+                'taxa_principal_registro': taxa_principal,  # ✅ AGORA ESTÁ DEFINIDA
+                'operacao_origem': 'CRÉDITO',
+                'operacao_destino': 'DÉBITO',
                 'status': 'completed',
                 'data': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'executado_por': sistema.usuario_logado['username']
+                'executado_por': usuario_executor
             }
             
-            # Salvar dados
+            # Salvar dados locais (backup)
             sistema.salvar_contas_bancarias()
             sistema.salvar_transferencias()
             
-            print(f"💱 Câmbio empresa: {valor} {sistema.contas_bancarias_empresa[conta_origem]['moeda']} -> {valor_destino} {sistema.contas_bancarias_empresa[conta_destino]['moeda']}")
-            print(f"💱 Taxa {tipo_taxa} usada: {taxa}, Taxa principal registrada: {taxa_principal}")
+            print(f"✅✅✅ CÂMBIO {transacao_id} CONCLUÍDO COM SUCESSO!")
+            print(f"   {conta_origem}: {saldo_origem_antes:,.2f} → {sistema.contas_bancarias_empresa[conta_origem]['saldo']:,.2f}")
+            print(f"   {conta_destino}: {saldo_destino_antes:,.2f} → {sistema.contas_bancarias_empresa[conta_destino]['saldo']:,.2f}")
+            
             return True
             
         except Exception as e:
             print(f"❌ Erro ao executar câmbio empresa: {e}")
+            import traceback
+            traceback.print_exc()
             return False
+
+    def salvar_cambio_supabase(self, transacao_id, conta_origem, conta_destino, valor_origem, valor_destino, 
+                             moeda_origem, moeda_destino, taxa, tipo_taxa, usuario_executor):
+        """Salva operação de câmbio no Supabase - SUPABASE FIRST"""
+        try:
+            from datetime import datetime
+            
+            sistema = App.get_running_app().sistema
+            
+            if not hasattr(sistema, 'supabase') or not sistema.supabase.conectado:
+                print("❌ Supabase não disponível para salvar câmbio")
+                return False
+            
+            # Calcular taxa principal para registro
+            if tipo_taxa == 'inversa':
+                taxa_principal = 1.0 / taxa
+            else:
+                taxa_principal = taxa
+            
+            dados_supabase = {
+                'id': transacao_id,
+                'tipo': 'cambio_contas_empresa',
+                'status': 'completed',
+                'data': datetime.now().isoformat(),
+                'moeda_origem': moeda_origem,
+                'moeda_destino': moeda_destino,
+                'valor_origem': valor_origem,
+                'valor_destino': valor_destino,
+                'taxa_cambio': taxa,
+                'tipo_taxa_usada': tipo_taxa,
+                'taxa_principal_registro': taxa_principal,
+                'conta_origem': conta_origem,
+                'conta_destino': conta_destino,
+                'usuario': usuario_executor,
+                'created_at': datetime.now().isoformat()
+            }
+            
+            print(f"📦 Salvando câmbio no Supabase: {transacao_id}")
+            response = sistema.supabase.client.table('transferencias')\
+                .insert(dados_supabase)\
+                .execute()
+            
+            if response.data:
+                print(f"✅✅✅ CÂMBIO {transacao_id} SALVO NO SUPABASE!")
+                return True
+            else:
+                print(f"❌ Erro ao salvar câmbio no Supabase: {response.error}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Erro ao salvar câmbio no Supabase: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+        
+    def atualizar_saldos_supabase_cambio(self, conta_origem, conta_destino, valor_origem, valor_destino):
+        """Atualiza saldos das contas no Supabase após câmbio - SUPABASE FIRST"""
+        try:
+            sistema = App.get_running_app().sistema
+            
+            if not hasattr(sistema, 'supabase') or not sistema.supabase.conectado:
+                print("❌ Supabase não disponível para atualizar saldos")
+                return False
+            
+            print(f"🔄 Atualizando saldos no Supabase:")
+            print(f"   {conta_origem}: -{valor_origem:,.2f}")
+            print(f"   {conta_destino}: +{valor_destino:,.2f}")
+            
+            # Buscar saldos atuais do Supabase
+            response_origem = sistema.supabase.client.table('contas_bancarias_empresa')\
+                .select('saldo')\
+                .eq('numero', conta_origem)\
+                .execute()
+            
+            response_destino = sistema.supabase.client.table('contas_bancarias_empresa')\
+                .select('saldo')\
+                .eq('numero', conta_destino)\
+                .execute()
+            
+            if not response_origem.data or not response_destino.data:
+                print("❌ Erro ao buscar saldos atuais do Supabase")
+                return False
+            
+            saldo_origem_atual = float(response_origem.data[0]['saldo'])
+            saldo_destino_atual = float(response_destino.data[0]['saldo'])
+            
+            novo_saldo_origem = saldo_origem_atual - valor_origem
+            novo_saldo_destino = saldo_destino_atual + valor_destino
+            
+            # Atualizar conta origem
+            response_update_origem = sistema.supabase.client.table('contas_bancarias_empresa')\
+                .update({'saldo': novo_saldo_origem})\
+                .eq('numero', conta_origem)\
+                .execute()
+            
+            # Atualizar conta destino
+            response_update_destino = sistema.supabase.client.table('contas_bancarias_empresa')\
+                .update({'saldo': novo_saldo_destino})\
+                .eq('numero', conta_destino)\
+                .execute()
+            
+            sucesso_origem = bool(response_update_origem.data)
+            sucesso_destino = bool(response_update_destino.data)
+            
+            if sucesso_origem and sucesso_destino:
+                print(f"✅✅✅ SALDOS ATUALIZADOS NO SUPABASE!")
+                print(f"   {conta_origem}: {saldo_origem_atual:,.2f} → {novo_saldo_origem:,.2f}")
+                print(f"   {conta_destino}: {saldo_destino_atual:,.2f} → {novo_saldo_destino:,.2f}")
+                
+                # 🔥 ATUALIZAR LOCALMENTE APÓS SUPABASE
+                sistema.contas_bancarias_empresa[conta_origem]['saldo'] = novo_saldo_origem
+                sistema.contas_bancarias_empresa[conta_destino]['saldo'] = novo_saldo_destino
+                
+                return True
+            else:
+                print(f"❌ Erro ao atualizar saldos: origem={sucesso_origem}, destino={sucesso_destino}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Erro ao atualizar saldos no Supabase: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
 
 # 🔥 ADICIONAR ESTES MÉTODOS DE TAXA BIDIRECIONAL
 
@@ -1835,6 +1993,18 @@ class TelaContasBancarias(Screen):
         btn_cancelar.bind(on_press=cancelar)
         
         popup.open()
+
+    def _obter_usuario_executor(self):
+        """Obtém o username do executor de forma segura"""
+        sistema = App.get_running_app().sistema
+        usuario = sistema.usuario_logado
+        
+        if isinstance(usuario, dict):
+            return usuario.get('username', 'sistema')
+        elif isinstance(usuario, str):
+            return usuario
+        else:
+            return 'sistema'
 
     def voltar_dashboard(self):
         """Volta para o dashboard"""
