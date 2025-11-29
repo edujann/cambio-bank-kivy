@@ -617,10 +617,11 @@ class PDFGenerator:
             import os
             from reportlab.lib.pagesizes import letter
             from reportlab.platypus import SimpleDocTemplate
+            from reportlab.lib import colors  # 🔥 CORREÇÃO: IMPORT FALTANDO
             
             # Cria o nome do arquivo
             data_atual = datetime.now().strftime("%Y%m%d_%H%M%S")
-            nome_arquivo = f"bank_statement_{dados_conta['numero']}_{data_atual}.pdf"  # 🔥 NOME MAIS PROFISSIONAL
+            nome_arquivo = f"bank_statement_{dados_conta['numero']}_{data_atual}.pdf"
             
             # Obtém o caminho da pasta Downloads
             caminho_downloads = os.path.join(os.path.expanduser("~"), "Downloads")
@@ -629,18 +630,22 @@ class PDFGenerator:
             print(f"🔍 PDFGenerator: Pasta Downloads = {caminho_downloads}")
             print(f"🔍 PDFGenerator: Caminho completo = {caminho_completo}")
             
-            # Ordenar transações cronologicamente
-            transacoes_ordenadas = sorted(
-                transacoes, 
-                key=lambda x: x.get('data', ''),
-                reverse=False
-            )
+            # 🔥 CORREÇÃO CRÍTICA: NÃO ORDENAR - MANTER A ORDEM ORIGINAL
+            # As transações já vêm na ordem correta (mais antigas primeiro)
+            transacoes_ordenadas = transacoes  # 🔥 MUDANÇA AQUI: Não ordenar novamente
+            
+            # 🔥 DEBUG: Ver ordem no PDFGenerator
+            print("🔍 DEBUG ORDEM NO PDFGenerator:")
+            for i, t in enumerate(transacoes_ordenadas):
+                descricao = t.get('descricao', '')[:50]
+                data = t.get('data', '')
+                print(f"   PDF Transação {i}: {data} | {descricao}...")
             
             # 🔥 CORREÇÃO: MARGEM SUPERIOR MAIOR PARA CABEÇALHO EXPANDIDO
             doc = SimpleDocTemplate(
                 caminho_completo,
                 pagesize=letter,
-                topMargin=50,    # 🔥 AUMENTADO DE 40 PARA 50
+                topMargin=50,
                 bottomMargin=50,
                 leftMargin=30,
                 rightMargin=30
@@ -650,10 +655,8 @@ class PDFGenerator:
             story = []
             
             # Adiciona cabeçalho MELHORADO
-            story.extend(self._adicionar_cabecalho_extrato(dados_conta))
+            story.extend(self._adicionar_cabecalho_extrato(dados_conta, dados_resumo))
             
-            # Adiciona resumo
-            story.extend(self._adicionar_resumo_extrato_elementos(dados_resumo))
             
             # Adiciona transações
             story.extend(self._adicionar_transacoes_extrato(transacoes_ordenadas))
@@ -700,161 +703,170 @@ class PDFGenerator:
             traceback.print_exc()
             return None
         
-    def _adicionar_cabecalho_extrato(self, dados_conta):
-        """Adiciona cabeçalho do extrato - VERSÃO MELHORADA E PROFISSIONAL"""
+    def _adicionar_cabecalho_extrato(self, dados_conta, dados_resumo):
+        """Adiciona cabeçalho do extrato - VERSÃO COM LINHAS COLADAS"""
         try:
             elementos = []
             
-            # 🔥 CABEÇALHO PRINCIPAL COM DESIGN MELHORADO
+            # 🔥 CABEÇALHO PRINCIPAL COMPACTO
             estilo_titulo_principal = ParagraphStyle(
                 'TituloPrincipal',
                 fontName='Helvetica-Bold',
-                fontSize=18,  # 🔥 AUMENTADO
+                fontSize=14,
                 alignment=TA_CENTER,
-                spaceAfter=15,
+                spaceAfter=4,
                 textColor=colors.HexColor("#1E3A8A"),
-                spaceBefore=10
+                spaceBefore=5
             )
-            titulo_principal = Paragraph("CÂMBIO BANK - BANK STATEMENT", estilo_titulo_principal)  # 🔥 NOME + TÍTULO
+            titulo_principal = Paragraph("CÂMBIO BANK - BANK STATEMENT", estilo_titulo_principal)
             elementos.append(titulo_principal)
             
-            # 🔥 LINHA DIVISÓRIA FINA NO TOPO
-            elementos.append(HRFlowable(
-                color=colors.HexColor("#1E3A8A"),
-                thickness=1,
-                spaceAfter=10,
-                spaceBefore=5
-            ))
-            
-            # 🔥 INFORMAÇÕES DA CONTA EM LAYOUT DE DUAS COLUNAS
-            estilo_info_titulo = ParagraphStyle(
-                'InfoTitulo',
-                fontName='Helvetica-Bold',
-                fontSize=9,
-                textColor=colors.HexColor("#1E3A8A"),
-                leftIndent=0,
-                spaceAfter=2
-            )
-            
-            estilo_info_valor = ParagraphStyle(
-                'InfoValor',
-                fontName='Helvetica',
-                fontSize=9,
-                textColor=colors.black,
-                leftIndent=0,
-                spaceAfter=8
-            )
-            
-            # Criar tabela para informações em duas colunas
-            info_data = [
-                [
-                    Paragraph("<b>Account Number:</b>", estilo_info_titulo),
-                    Paragraph(dados_conta['numero'], estilo_info_valor),
-                    Paragraph("<b>Currency:</b>", estilo_info_titulo),
-                    Paragraph(dados_conta['moeda'], estilo_info_valor)
-                ],
-                [
-                    Paragraph("<b>Account Holder:</b>", estilo_info_titulo),
-                    Paragraph(dados_conta['titular'], estilo_info_valor),
-                    Paragraph("<b>Current Balance:</b>", estilo_info_titulo),
-                    Paragraph(f"{dados_conta['saldo']:,.2f}", estilo_info_valor)
-                ],
-                [
-                    Paragraph("<b>Statement Date:</b>", estilo_info_titulo),
-                    Paragraph(datetime.now().strftime('%d/%m/%Y %H:%M:%S'), estilo_info_valor),
-                    Paragraph("<b>Document Type:</b>", estilo_info_titulo),
-                    Paragraph("Bank Statement", estilo_info_valor)
-                ]
-            ]
-            
-            info_table = Table(
-                info_data,
-                colWidths=[80, 120, 80, 120],  # Larguras das colunas
-                style=[
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-                ]
-            )
-            
-            elementos.append(info_table)
-            elementos.append(Spacer(1, 15))
-            
-            # 🔥 INFORMAÇÕES DE CONTATO DO BANCO
+            # 🔥 INFORMAÇÕES DO BANCO LOGO ABAIXO DO TÍTULO
             estilo_contato = ParagraphStyle(
                 'Contato',
                 fontName='Helvetica',
                 fontSize=7,
                 alignment=TA_CENTER,
                 textColor=colors.gray,
-                spaceAfter=5
+                spaceAfter=6,
+                spaceBefore=2
             )
             
-            contato_texto = """
-            <b>Câmbio Bank</b> • www.cambiobank.com • +55 (11) 4004-5000 • Av. Paulista 364, suite 1254, São Paulo - SP
-            """
-            
+            contato_texto = "www.cambiobank.com • +55 (11) 4004-5000 • São Paulo - SP"
             contato = Paragraph(contato_texto, estilo_contato)
             elementos.append(contato)
             
-            # 🔥 LINHA DIVISÓRIA PRINCIPAL
-            elementos.append(Spacer(1, 10))
-            elementos.append(HRFlowable(
-                color=colors.HexColor("#1E3A8A"),
-                thickness=2,
-                spaceAfter=20,
-                spaceBefore=5
-            ))
+            # 🔥 LINHA DIVISÓRIA SUPERIOR - COLADA NO TOPO DA TABELA
+            linha_superior = Table(
+                [['']],
+                colWidths=[490],
+                style=[
+                    ('LINEABOVE', (0, 0), (0, 0), 1.5, colors.HexColor("#1E3A8A")),
+                    ('LEFTPADDING', (0, 0), (0, 0), 0),
+                    ('RIGHTPADDING', (0, 0), (0, 0), 0),
+                    ('BOTTOMPADDING', (0, 0), (0, 0), 0),  # 🔥 ZERO - COLADA
+                ]
+            )
+            elementos.append(linha_superior)
+            
+            # 🔥 ESTILOS PARA AS INFORMAÇÕES
+            estilo_info_titulo = ParagraphStyle(
+                'InfoTitulo',
+                fontName='Helvetica-Bold',
+                fontSize=8,
+                textColor=colors.HexColor("#1E3A8A"),
+                leftIndent=0,
+                spaceAfter=1
+            )
+            
+            estilo_info_valor = ParagraphStyle(
+                'InfoValor',
+                fontName='Helvetica',
+                fontSize=8,
+                textColor=colors.black,
+                leftIndent=0,
+                spaceAfter=4
+            )
+            
+            # 🔥 TABELA COM 4 COLUNAS - MESMA LARGURA DA TABELA DE TRANSAÇÕES (490)
+            info_data = [
+                [
+                    # CABEÇALHO DAS 4 COLUNAS
+                    Paragraph("<b>ACCOUNT INFO</b>", estilo_info_titulo),
+                    Paragraph("<b>BALANCE</b>", estilo_info_titulo),
+                    Paragraph("<b>TRANSACTIONS</b>", estilo_info_titulo),
+                    Paragraph("<b>PERIOD</b>", estilo_info_titulo)
+                ],
+                [
+                    # COLUNA 1: INFORMAÇÕES DA CONTA (122.5 de largura)
+                    Table([
+                        [Paragraph("<b>Number:</b>", estilo_info_titulo), Paragraph(dados_conta['numero'], estilo_info_valor)],
+                        [Paragraph("<b>Holder:</b>", estilo_info_titulo), Paragraph(dados_conta['titular'], estilo_info_valor)],
+                        [Paragraph("<b>Currency:</b>", estilo_info_titulo), Paragraph(dados_conta['moeda'], estilo_info_valor)]
+                    ], colWidths=[50, 70], style=[
+                        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                        ('LEFTPADDING', (0,0), (-1,-1), 0),
+                        ('RIGHTPADDING', (0,0), (-1,-1), 2),
+                        ('BOTTOMPADDING', (0,0), (-1,-1), 1),
+                    ]),
+                    
+                    # COLUNA 2: SALDOS (122.5 de largura)
+                    Table([
+                        [Paragraph("<b>Current:</b>", estilo_info_titulo), Paragraph(f"{dados_conta['saldo']:,.2f}", estilo_info_valor)],
+                        [Paragraph("<b>End Bal:</b>", estilo_info_titulo), Paragraph(f"{dados_resumo.get('saldo_final', 0):,.2f}", estilo_info_valor)],
+                        [Paragraph("<b>Currency:</b>", estilo_info_titulo), Paragraph(dados_conta['moeda'], estilo_info_valor)]
+                    ], colWidths=[50, 70], style=[
+                        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                        ('LEFTPADDING', (0,0), (-1,-1), 0),
+                        ('RIGHTPADDING', (0,0), (-1,-1), 2),
+                        ('BOTTOMPADDING', (0,0), (-1,-1), 1),
+                    ]),
+                    
+                    # COLUNA 3: TRANSAÇÕES (122.5 de largura)
+                    Table([
+                        [Paragraph("<b>Total:</b>", estilo_info_titulo), Paragraph(str(dados_resumo.get('total_transacoes', 0)), estilo_info_valor)],
+                        [Paragraph("<b>Deposits:</b>", estilo_info_titulo), Paragraph(f"{dados_resumo.get('entradas', 0):,.2f}", estilo_info_valor)],
+                        [Paragraph("<b>Withdrawals:</b>", estilo_info_titulo), Paragraph(f"{dados_resumo.get('saidas', 0):,.2f}", estilo_info_valor)]
+                    ], colWidths=[55, 65], style=[
+                        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                        ('LEFTPADDING', (0,0), (-1,-1), 0),
+                        ('RIGHTPADDING', (0,0), (-1,-1), 2),
+                        ('BOTTOMPADDING', (0,0), (-1,-1), 1),
+                    ]),
+                    
+                    # COLUNA 4: PERÍODO (122.5 de largura)
+                    Table([
+                        [Paragraph("<b>Period:</b>", estilo_info_titulo), Paragraph(dados_resumo.get('periodo', 'N/A'), estilo_info_valor)],
+                        [Paragraph("<b>Generated:</b>", estilo_info_titulo), Paragraph(datetime.now().strftime('%d/%m/%Y'), estilo_info_valor)],
+                        [Paragraph("<b>Time:</b>", estilo_info_titulo), Paragraph(datetime.now().strftime('%H:%M'), estilo_info_valor)]
+                    ], colWidths=[55, 65], style=[
+                        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                        ('LEFTPADDING', (0,0), (-1,-1), 0),
+                        ('RIGHTPADDING', (0,0), (-1,-1), 2),
+                        ('BOTTOMPADDING', (0,0), (-1,-1), 1),
+                    ])
+                ]
+            ]
+            
+            # 🔥 LARGURAS EXATAS: 4 colunas de 122.5 = 490
+            larguras_colunas = [122.5, 122.5, 122.5, 122.5]
+            
+            info_table = Table(
+                info_data,
+                colWidths=larguras_colunas,
+                style=[
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 0),  # 🔥 ZERO - SEM ESPAÇO INTERNO
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#F0F4FF")),
+                    ('LINEBELOW', (0, 0), (-1, 0), 1.5, colors.HexColor("#1E3A8A")),
+                ]
+            )
+            
+            elementos.append(info_table)
+            
+            # 🔥 LINHA DIVISÓRIA INFERIOR - COLADA NA BASE DA TABELA
+            linha_inferior = Table(
+                [['']],
+                colWidths=[490],
+                style=[
+                    ('LINEBELOW', (0, 0), (0, 0), 1.5, colors.HexColor("#1E3A8A")),
+                    ('LEFTPADDING', (0, 0), (0, 0), 0),
+                    ('RIGHTPADDING', (0, 0), (0, 0), 0),
+                    ('TOPPADDING', (0, 0), (0, 0), 0),  # 🔥 ZERO - COLADA
+                ]
+            )
+            elementos.append(linha_inferior)
+            
+            # 🔥 ESPAÇO ENTRE CABEÇALHO E TÍTULO "TRANSACTIONS"
+            elementos.append(Spacer(1, 15))  # 🔥 ESPAÇO ADICIONADO AQUI
             
             return elementos
             
         except Exception as e:
             print(f"❌ Erro ao adicionar cabeçalho: {str(e)}")
-            return []
-
-    def _adicionar_resumo_extrato_elementos(self, dados_resumo):
-        """Adiciona resumo do extrato - VERSÃO EM INGLÊS"""
-        try:
-            elementos = []
-            
-            # Título do resumo em inglês
-            estilo_titulo = ParagraphStyle(
-                'ResumoTitulo',
-                fontName='Helvetica-Bold',
-                fontSize=11,
-                spaceAfter=8,
-                textColor=colors.HexColor("#1E3A8A")
-            )
-            titulo = Paragraph("STATEMENT SUMMARY", estilo_titulo)  # 🔥 EM INGLÊS
-            elementos.append(titulo)
-            
-            estilo_dados = ParagraphStyle(
-                'ResumoDados',
-                fontName='Helvetica',
-                fontSize=9,
-                spaceAfter=4,
-                leftIndent=8
-            )
-            
-            # 🔥 TEXTO DO RESUMO COMPLETAMENTE EM INGLÊS
-            resumo_texto = f"""
-            <b>Ending Balance:</b> {dados_resumo.get('saldo_final', 0):,.2f}<br/>
-            <b>Total Deposits:</b> {dados_resumo.get('entradas', 0):,.2f}<br/>
-            <b>Total Withdrawals:</b> {dados_resumo.get('saidas', 0):,.2f}<br/>
-            <b>Total Transactions:</b> {dados_resumo.get('total_transacoes', 0)}<br/>
-            <b>Period:</b> {dados_resumo.get('periodo', 'Not specified')}
-            """
-            
-            resumo = Paragraph(resumo_texto, estilo_dados)
-            elementos.append(resumo)
-            
-            elementos.append(Spacer(1, 15))
-            
-            return elementos
-            
-        except Exception as e:
-            print(f"❌ Erro ao adicionar resumo: {str(e)}")
             return []
 
     def _adicionar_transacoes_extrato(self, transacoes):

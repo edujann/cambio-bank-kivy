@@ -2119,12 +2119,15 @@ class TelaMeuExtrato(Screen):
             
             print(f"🔍 DEBUG: {len(transacoes_para_pdf)} transações coletadas para PDF")
             
+            # 🔥 CORREÇÃO: Obter dados completos do usuário
+            dados_usuario = sistema.obter_dados_cliente(usuario_atual)
+            
             # Prepara os dados para o PDF
             dados_conta = {
                 'numero': conta_num,
                 'moeda': conta_encontrada.get('moeda', 'USD'),
                 'saldo': conta_encontrada.get('saldo', 0),
-                'titular': usuario_atual.get('nome', 'Cliente')
+                'titular': dados_usuario.get('nome', 'Cliente') if dados_usuario else 'Cliente'  # 🔥 CORREÇÃO AQUI
             }
             
             # 🔥 CORREÇÃO: CALCULAR OS TOTAIS CORRETAMENTE
@@ -2178,10 +2181,46 @@ class TelaMeuExtrato(Screen):
             
             # Percorre os widgets do container de transações
             container = self.ids.lista_transacoes
+            
+            # 🔥 DEBUG: Ver a ordem dos widgets no container
+            print("🔍 DEBUG ORDEM DOS WIDGETS NO CONTAINER:")
+            for i, widget in enumerate(container.children):
+                if hasattr(widget, 'transacao'):
+                    descricao = widget.transacao.get('descricao', '')[:50]
+                    data = widget.transacao.get('data', '')
+                    print(f"   Widget {i}: {data} | {descricao}...")
+            
             for widget in container.children:
                 if hasattr(widget, 'transacao'):
-                    # Inverte a ordem para ficar cronológica no PDF
-                    transacoes.insert(0, widget.transacao)
+                    # 🔥 CORREÇÃO SEGURA: Criar cópia e formatar apenas na cópia
+                    transacao_original = widget.transacao
+                    transacao_copia = transacao_original.copy()
+                    
+                    # 🔥 Formatar data APENAS na cópia para PDF
+                    data_original = transacao_copia.get('data', '')
+                    if data_original:
+                        try:
+                            if 'T' in data_original:
+                                from datetime import datetime
+                                data_obj = datetime.strptime(data_original.split('T')[0], '%Y-%m-%d')
+                                transacao_copia['data'] = data_obj.strftime('%d/%m/%y')  # 🔥 27/11/25
+                            else:
+                                from datetime import datetime
+                                data_obj = datetime.strptime(data_original.split(' ')[0], '%Y-%m-%d')
+                                transacao_copia['data'] = data_obj.strftime('%d/%m/%y')  # 🔥 27/11/25
+                        except Exception as e:
+                            print(f"❌ Erro ao formatar data {data_original}: {e}")
+                            # Mantém a data original na cópia
+                    
+                    # 🔥 MANTÉM A ORDEM ORIGINAL (não inverte)
+                    transacoes.append(transacao_copia)
+            
+            # 🔥 DEBUG: Ver ordem final das transações coletadas
+            print("🔍 DEBUG ORDEM DAS TRANSAÇÕES COLETADAS:")
+            for i, transacao in enumerate(transacoes):
+                descricao = transacao.get('descricao', '')[:50]
+                data = transacao.get('data', '')
+                print(f"   Transação {i}: {data} | {descricao}...")
             
             print(f"🔍 Coletadas {len(transacoes)} transações da interface")
             return transacoes

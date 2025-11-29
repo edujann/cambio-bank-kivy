@@ -293,6 +293,27 @@ class SistemaCambioPremium:
             self.beneficiarios = {}
             self.configuracoes = self.configuracoes_padrao()  # 🔥 GARANTIR CONFIGURAÇÕES
 
+    def obter_dados_cliente(self, username):
+        """Obtém dados completos do cliente a partir do username"""
+        try:
+            # 🔥 CORREÇÃO: Usar o cliente Supabase correto
+            response = self.supabase.client.table('usuarios')\
+                .select('*')\
+                .eq('username', username)\
+                .execute()
+            
+            if response.data and len(response.data) > 0:
+                usuario = response.data[0]
+                print(f"✅ Dados do cliente encontrados: {usuario.get('nome')}")
+                return usuario
+            else:
+                print(f"❌ Cliente não encontrado: {username}")
+                return None
+                
+        except Exception as e:
+            print(f"❌ Erro ao buscar dados do cliente {username}: {e}")
+            return None
+
     def carregar_contas_background(self):
         """Carrega contas do Supabase em background"""
         try:
