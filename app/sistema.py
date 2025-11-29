@@ -1550,13 +1550,21 @@ class SistemaCambioPremium:
     def aprovar_invoice(self, transferencia_id):
         """Aprova uma invoice - NÃO altera status da transferência - VERSÃO SUPABASE"""
         try:
-            # 🔥 CORREÇÃO: Atualizar invoice_info no Supabase
+            # 🔥 CORREÇÃO: Atualizar invoice_info no Supabase MANTENDO caminho_arquivo
+            # 1. Buscar dados atuais da invoice
+            invoice_atual = self.obter_info_invoice(transferencia_id)
+            
+            # 2. Manter todos os campos existentes + atualizar status
+            invoice_data = {
+                'status': 'approved',
+                'motivo_recusa': '',
+                'data_upload': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                # 🔥 CORREÇÃO CRÍTICA: MANTER O CAMINHO DO ARQUIVO
+                'caminho_arquivo': invoice_atual.get('caminho_arquivo') if invoice_atual else None
+            }
+            
             update_data = {
-                'invoice_info': {
-                    'status': 'approved',
-                    'motivo_recusa': '',
-                    'data_upload': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                }
+                'invoice_info': invoice_data
             }
             
             response = self.supabase.client.table('transferencias')\

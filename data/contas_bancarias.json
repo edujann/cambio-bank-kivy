@@ -1,4 +1,14 @@
 {
+    "BANK_USD_001": {
+        "numero": "BANK_USD_001",
+        "banco": "Banco Principal",
+        "agencia": null,
+        "moeda": "USD",
+        "saldo": 975625.0,
+        "tipo": "empresa",
+        "data_criacao": null,
+        "saldo_inicial": 0.0
+    },
     "BANK_EUR_001": {
         "numero": "BANK_EUR_001",
         "banco": "Banco Principal",
@@ -45,16 +55,6 @@
         "agencia": null,
         "moeda": "BRL",
         "saldo": 2995500.0,
-        "tipo": "empresa",
-        "data_criacao": null,
-        "saldo_inicial": 0.0
-    },
-    "BANK_USD_001": {
-        "numero": "BANK_USD_001",
-        "banco": "Banco Principal",
-        "agencia": null,
-        "moeda": "USD",
-        "saldo": 985625.0,
         "tipo": "empresa",
         "data_criacao": null,
         "saldo_inicial": 0.0

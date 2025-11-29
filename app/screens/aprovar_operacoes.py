@@ -2393,6 +2393,8 @@ Data Aprovação: {dados.get('data_aprovacao', 'N/A')}
             auto_dismiss=False
         )
         
+        # 🔥🔥🔥 CORREÇÃO: DEFINIR TODAS AS FUNÇÕES PRIMEIRO
+        
         def visualizar_invoice(instance):
             """Abre o arquivo da invoice do Supabase Storage"""
             try:
@@ -2484,7 +2486,7 @@ Data Aprovação: {dados.get('data_aprovacao', 'N/A')}
         def fechar_modal(instance):
             popup.dismiss()
         
-        # Vincular eventos CORRETAMENTE
+        # 🔥🔥🔥 CORREÇÃO: VINCULAR BOTÕES DEPOIS DE DEFINIR TODAS AS FUNÇÕES
         btn_ver_arquivo.bind(on_press=visualizar_invoice)
         btn_aprovar_invoice.bind(on_press=aprovar_invoice)
         btn_recusar_invoice.bind(on_press=ativar_modo_recusa)
