@@ -424,8 +424,14 @@ class TransferenciaCard(BoxLayout):
         popup.open()
 
     def gerar_pdf(self, instance=None):
-        """Gera PDF da transferência"""
+        """Gera PDF da transferência - VERSÃO FINAL CORRIGIDA"""
         try:
+            print(f"🔍 PDF CARD: Iniciando para {self.transferencia_id}")
+            print(f"🔍 PDF CARD: Tipo de dados = {type(self.dados)}")
+            
+            # Os dados JÁ SÃO dict (como mostrado no debug)
+            dados_para_pdf = self.dados
+            
             sistema = App.get_running_app().sistema
             
             # Obter dados do cliente
@@ -437,7 +443,7 @@ class TransferenciaCard(BoxLayout):
             pdf_generator = PDFGenerator()
             caminho_pdf = pdf_generator.gerar_comprovante_transferencia(
                 self.transferencia_id, 
-                self.dados, 
+                dados_para_pdf,
                 dados_cliente
             )
             
@@ -445,7 +451,100 @@ class TransferenciaCard(BoxLayout):
             self.mostrar_popup_sucesso_pdf(caminho_pdf)
             
         except Exception as e:
+            print(f"❌ ERRO PDF CARD: {str(e)}")
+            import traceback
+            traceback.print_exc()
             self.mostrar_popup_erro_pdf(str(e))
+    
+    def mostrar_popup_sucesso_pdf_global(self, caminho_pdf):
+        """Popup de sucesso para PDF global"""
+        from kivy.uix.popup import Popup
+        from kivy.uix.boxlayout import BoxLayout
+        from kivy.uix.label import Label
+        from kivy.uix.button import Button
+        import os
+        
+        content = BoxLayout(orientation='vertical', padding=20, spacing=15)
+        
+        content.add_widget(Label(
+            text="COMPROVANTE GERADO!",
+            font_size='18sp',
+            bold=True,
+            color=(0.2, 0.8, 0.2, 1),
+            text_size=(400, None),
+            halign='center'
+        ))
+        
+        nome_arquivo = os.path.basename(caminho_pdf)
+        content.add_widget(Label(
+            text=f"{nome_arquivo}\n\nPasta: Downloads",
+            font_size='14sp',
+            text_size=(400, None),
+            halign='center'
+        ))
+        
+        btn_ok = Button(
+            text='OK',
+            background_color=(0.55, 0.36, 0.96, 1),
+            color=(1, 1, 1, 1)
+        )
+        
+        content.add_widget(btn_ok)
+        
+        popup = Popup(
+            title='Comprovante Gerado',
+            content=content,
+            size_hint=(None, None),
+            size=(500, 250),
+            background_color=(0.12, 0.16, 0.23, 1)
+        )
+        
+        btn_ok.bind(on_press=popup.dismiss)
+        popup.open()
+    
+    def mostrar_popup_erro_pdf_global(self, mensagem_erro):
+        """Popup de erro para PDF global"""
+        from kivy.uix.popup import Popup
+        from kivy.uix.boxlayout import BoxLayout
+        from kivy.uix.label import Label
+        from kivy.uix.button import Button
+        
+        content = BoxLayout(orientation='vertical', padding=20, spacing=15)
+        
+        content.add_widget(Label(
+            text="ERRO AO GERAR COMPROVANTE",
+            font_size='18sp',
+            bold=True,
+            color=(1, 0.3, 0.3, 1),
+            text_size=(400, None),
+            halign='center'
+        ))
+        
+        content.add_widget(Label(
+            text=f"Detalhes: {mensagem_erro}",
+            font_size='14sp',
+            text_size=(400, None),
+            halign='center'
+        ))
+        
+        btn_ok = Button(
+            text='OK',
+            background_color=(0.55, 0.36, 0.96, 1),
+            color=(1, 1, 1, 1)
+        )
+        
+        content.add_widget(btn_ok)
+        
+        popup = Popup(
+            title='Erro no PDF',
+            content=content,
+            size_hint=(None, None),
+            size=(450, 250),
+            background_color=(0.12, 0.16, 0.23, 1)
+        )
+        
+        btn_ok.bind(on_press=popup.dismiss)
+        popup.open()
 
     def reenviar_invoice(self, instance=None):
         """Abre modal SUPER SIMPLIFICADO para reenviar invoice - MESMA LÓGICA DA TELA TRANSFERENCIA"""
@@ -1075,6 +1174,52 @@ class TransferenciaCard(BoxLayout):
         except Exception as e:
             print(f"Erro rápido no preenchimento: {e}")
 
+    def gerar_pdf(self, instance=None):
+        """Gera PDF da transferência - VERSÃO COM DEBUG COMPLETO"""
+        try:
+            print(f"🔍 PDF CARD: Iniciando para {self.transferencia_id}")
+            
+            # 🔥 DEBUG COMPLETO DOS DADOS
+            print(f"🔍 DADOS COMPLETOS DA TRANSFERÊNCIA {self.transferencia_id}:")
+            for campo, valor in self.dados.items():
+                print(f"   📋 {campo}: {valor}")
+            
+            sistema = App.get_running_app().sistema
+            
+            # 🔥 CORREÇÃO: Obter usuário logado corretamente
+            print(f"🔍 PDF CARD: sistema.usuario_logado = {sistema.usuario_logado} (tipo: {type(sistema.usuario_logado)})")
+            
+            # Se usuario_logado for string, usar diretamente
+            if isinstance(sistema.usuario_logado, str):
+                usuario_atual = sistema.usuario_logado
+                print(f"✅ PDF CARD: Usuário como string: {usuario_atual}")
+            else:
+                # Se for dicionário, extrair username
+                usuario_atual = sistema.usuario_logado['username']
+                print(f"✅ PDF CARD: Usuário como dict: {usuario_atual}")
+            
+            # Obter dados do cliente
+            dados_cliente = sistema.usuarios[usuario_atual]
+            print(f"✅ PDF CARD: Dados cliente obtidos - {len(dados_cliente)} campos")
+            
+            # Gerar PDF
+            from pdf_generator import PDFGenerator
+            pdf_generator = PDFGenerator()
+            caminho_pdf = pdf_generator.gerar_comprovante_transferencia(
+                self.transferencia_id, 
+                self.dados,
+                dados_cliente
+            )
+            
+            # Mostrar popup de sucesso
+            self.mostrar_popup_sucesso_pdf(caminho_pdf)
+            
+        except Exception as e:
+            print(f"❌ ERRO PDF CARD: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            self.mostrar_popup_erro_pdf(str(e))
+
     def adicionar_linha_invoice_se_necesario_sincrono(self):
         """Adiciona linha da invoice sincronamente"""
         try:
@@ -1219,29 +1364,6 @@ class TransferenciaCard(BoxLayout):
         popup = self.criar_popup_detalhes()
         popup.open()
 
-    def gerar_pdf(self, instance=None):
-        """Gera PDF da transferência"""
-        try:
-            sistema = App.get_running_app().sistema
-            
-            # Obter dados do cliente
-            usuario_atual = sistema.usuario_logado['username']
-            dados_cliente = sistema.usuarios[usuario_atual]
-            
-            # Gerar PDF
-            from pdf_generator import PDFGenerator
-            pdf_generator = PDFGenerator()
-            caminho_pdf = pdf_generator.gerar_comprovante_transferencia(
-                self.transferencia_id, 
-                self.dados, 
-                dados_cliente
-            )
-            
-            # Mostrar popup de sucesso
-            self.mostrar_popup_sucesso_pdf(caminho_pdf)
-            
-        except Exception as e:
-            self.mostrar_popup_erro_pdf(str(e))
 
     def reenviar_invoice(self, instance=None):
         """Abre modal SUPER SIMPLIFICADO para reenviar invoice - MESMA LÓGICA DA TELA TRANSFERENCIA"""
@@ -1929,8 +2051,10 @@ Data Aprovação: {self.dados.get('data_aprovacao', 'N/A')}
                 return
             
             caminho_arquivo = info_invoice.get('caminho_arquivo')
+            print(f"🔍 VISUALIZAR INVOICE: caminho_arquivo = {caminho_arquivo}")
+            
             if not caminho_arquivo:
-                self.mostrar_erro("Caminho da invoice não encontrado!")
+                self.mostrar_erro("Invoice aprovada mas arquivo não foi enviado para o sistema!")
                 return
             
             # ✅ VERIFICAR SE É CAMINHO DO SUPABASE
@@ -1944,12 +2068,12 @@ Data Aprovação: {self.dados.get('data_aprovacao', 'N/A')}
                 try:
                     response = sistema.supabase.client.storage.from_("invoices").download(caminho_arquivo)
                     
-                    # 🔥 VERIFICAÇÃO CORRETA:
-                    if isinstance(response, bytes):
+                    # ✅ VERIFICAÇÃO CORRIGIDA:
+                    if response is not None and isinstance(response, bytes):
                         # ✅ Download bem-sucedido - response são os bytes do arquivo
                         file_data = response
                     else:
-                        self.mostrar_erro("Erro ao baixar invoice do Supabase")
+                        self.mostrar_erro("Erro ao baixar invoice do Supabase - Arquivo não encontrado")
                         return
                     
                     # Salvar temporariamente e abrir
@@ -2811,6 +2935,96 @@ class TelaMinhasTransferencias(Screen):
                 
         except Exception:
             pass
+    
+    def mostrar_popup_sucesso_pdf_global(self, caminho_pdf):
+        """Popup de sucesso para PDF global"""
+        from kivy.uix.popup import Popup
+        from kivy.uix.boxlayout import BoxLayout
+        from kivy.uix.label import Label
+        from kivy.uix.button import Button
+        import os
+        
+        content = BoxLayout(orientation='vertical', padding=20, spacing=15)
+        
+        content.add_widget(Label(
+            text="COMPROVANTE GERADO!",
+            font_size='18sp',
+            bold=True,
+            color=(0.2, 0.8, 0.2, 1),
+            text_size=(400, None),
+            halign='center'
+        ))
+        
+        nome_arquivo = os.path.basename(caminho_pdf)
+        content.add_widget(Label(
+            text=f"{nome_arquivo}\n\nPasta: Downloads",
+            font_size='14sp',
+            text_size=(400, None),
+            halign='center'
+        ))
+        
+        btn_ok = Button(
+            text='OK',
+            background_color=(0.55, 0.36, 0.96, 1),
+            color=(1, 1, 1, 1)
+        )
+        
+        content.add_widget(btn_ok)
+        
+        popup = Popup(
+            title='Comprovante Gerado',
+            content=content,
+            size_hint=(None, None),
+            size=(500, 250),
+            background_color=(0.12, 0.16, 0.23, 1)
+        )
+        
+        btn_ok.bind(on_press=popup.dismiss)
+        popup.open()
+    
+    def mostrar_popup_erro_pdf_global(self, mensagem_erro):
+        """Popup de erro para PDF global"""
+        from kivy.uix.popup import Popup
+        from kivy.uix.boxlayout import BoxLayout
+        from kivy.uix.label import Label
+        from kivy.uix.button import Button
+        
+        content = BoxLayout(orientation='vertical', padding=20, spacing=15)
+        
+        content.add_widget(Label(
+            text="ERRO AO GERAR COMPROVANTE",
+            font_size='18sp',
+            bold=True,
+            color=(1, 0.3, 0.3, 1),
+            text_size=(400, None),
+            halign='center'
+        ))
+        
+        content.add_widget(Label(
+            text=f"Detalhes: {mensagem_erro}",
+            font_size='14sp',
+            text_size=(400, None),
+            halign='center'
+        ))
+        
+        btn_ok = Button(
+            text='OK',
+            background_color=(0.55, 0.36, 0.96, 1),
+            color=(1, 1, 1, 1)
+        )
+        
+        content.add_widget(btn_ok)
+        
+        popup = Popup(
+            title='Erro no PDF',
+            content=content,
+            size_hint=(None, None),
+            size=(450, 250),
+            background_color=(0.12, 0.16, 0.23, 1)
+        )
+        
+        btn_ok.bind(on_press=popup.dismiss)
+        popup.open()
 
     def voltar_dashboard(self):
         """Volta para o dashboard"""

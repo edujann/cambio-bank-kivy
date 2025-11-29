@@ -1672,11 +1672,25 @@ class SistemaCambioPremium:
                         
                         print(f"✅ INVOICE ENCONTRADA: status={invoice_data.get('status')}, caminho={invoice_data.get('caminho_arquivo')}")
                         
+                        # 🔥 CORREÇÃO: Retornar APENAS campos relevantes (sem motivo_recusa vazio)
+                        info_limpa = {
+                            'status': invoice_data.get('status'),
+                            'data_upload': invoice_data.get('data_upload')
+                        }
+                        
+                        # 🔥 Só incluir motivo_recusa se não for vazio
+                        if invoice_data.get('motivo_recusa'):
+                            info_limpa['motivo_recusa'] = invoice_data['motivo_recusa']
+                        
+                        # 🔥 Só incluir caminho_arquivo se existir
+                        if invoice_data.get('caminho_arquivo'):
+                            info_limpa['caminho_arquivo'] = invoice_data['caminho_arquivo']
+                        
                         # 🔥 ATUALIZAR OS DADOS LOCAIS PARA SINCRONIZAÇÃO
                         if transferencia_id in self.transferencias:
-                            self.transferencias[transferencia_id]['invoice_info'] = invoice_data
+                            self.transferencias[transferencia_id]['invoice_info'] = info_limpa
                         
-                        return invoice_data
+                        return info_limpa
                     else:
                         print(f"❌ NENHUMA INVOICE NO SUPABASE PARA: {transferencia_id}")
                         return None

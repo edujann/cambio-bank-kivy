@@ -187,12 +187,21 @@ class PDFGenerator:
         # Coluna 1
         pdf.drawString(col1_x, y_pos, "Request Date:")  # 🔥 EM INGLÊS
         pdf.setFont("Helvetica-Bold", 7)
-        pdf.drawString(col1_x, y_pos-10, dados.get('data_solicitacao', dados.get('data', 'N/A')))
+        # 🔥 CORREÇÃO: Usar created_at formatado corretamente
+        data_bruta = dados.get('created_at') or dados.get('data_solicitacao') or dados.get('data') or 'N/A'
+        if data_bruta != 'N/A':
+            # Formatar: "2025-11-28T18:28:59.123456" → "2025-11-28 18:28:59"
+            data_texto = str(data_bruta).replace('T', ' ').split('.')[0]
+        else:
+            data_texto = 'N/A'
+        pdf.drawString(col1_x, y_pos-10, data_texto)
         
         pdf.setFont("Helvetica", 7)
         pdf.drawString(col1_x, y_pos-22, "Type:")  # 🔥 EM INGLÊS
         pdf.setFont("Helvetica-Bold", 7) 
-        tipo_text = 'International' if dados.get('tipo') == 'internacional' else 'Internal'  # 🔥 EM INGLÊS
+        # 🔥 CORREÇÃO MÍNIMA: Incluir 'transferencia_internacional' como International
+        tipo = dados.get('tipo', '')
+        tipo_text = 'International' if tipo in ['internacional', 'transferencia_internacional'] else 'Internal'
         pdf.drawString(col1_x, y_pos-32, tipo_text)
         
         # Coluna 2  
@@ -240,7 +249,8 @@ class PDFGenerator:
         pdf.setFillColorRGB(0.2, 0.2, 0.2)
         col1_x, col2_x = 60, width/2 + 10
         
-        if dados.get('tipo') == 'internacional':
+        # 🔥 CORREÇÃO MÍNIMA: Incluir 'transferencia_internacional' como internacional
+        if dados.get('tipo') in ['internacional', 'transferencia_internacional']:
             # Nome em inglês
             pdf.setFont("Helvetica-Bold", 7)
             pdf.setFillColorRGB(0.5, 0.5, 0.5)
@@ -310,13 +320,14 @@ class PDFGenerator:
             pdf.drawString(col1_x, y_pos - 34, "Destination Account:")  # 🔥 EM INGLÊS
             pdf.setFont("Helvetica", 7)
             pdf.setFillColorRGB(0.1, 0.1, 0.1)
-            pdf.drawString(col1_x, y_pos - 44, conta_destino)
+            pdf.drawString(col1_x, y_pos - 44, str(conta_destino or 'N/A'))
             
             return y_pos - 60
 
     def _adicionar_dados_bancarios(self, pdf, width, height, y_pos, dados):
         """Informações bancárias em inglês"""
-        if dados.get('tipo') == 'internacional':
+        # 🔥 CORREÇÃO MÍNIMA: Incluir 'transferencia_internacional' como internacional
+        if dados.get('tipo') in ['internacional', 'transferencia_internacional']:
             # Título em inglês
             y_pos = self._adicionar_secao_titulo(pdf, width, y_pos, "BANKING INFORMATION")  # 🔥 EM INGLÊS
             

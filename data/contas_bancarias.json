@@ -64,7 +64,7 @@
         "banco": "JACKS BANK",
         "agencia": "0001",
         "moeda": "USD",
-        "saldo": 2525.16,
+        "saldo": 20.0,
         "tipo": "empresa",
         "data_criacao": "2025-11-27T14:11:07",
         "saldo_inicial": 0.0
