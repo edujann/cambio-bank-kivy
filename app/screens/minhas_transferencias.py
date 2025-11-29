@@ -12,6 +12,7 @@ from kivy.properties import ListProperty, StringProperty, ObjectProperty
 from kivy.app import App
 import datetime
 
+
 class TransferenciaCard(BoxLayout):
     """Card individual para cada transferência - CORES DO SISTEMA ESCURAS"""
     
@@ -1803,16 +1804,27 @@ class TransferenciaCard(BoxLayout):
         )
         detalhes_layout.bind(minimum_height=detalhes_layout.setter('height'))
         
+        
         # ========== INFORMAÇÕES BÁSICAS ==========
+        # 🔥 CORREÇÃO: Buscar data em múltiplos campos
+        data_bruta = self.dados.get('data_solicitacao') or self.dados.get('data') or self.dados.get('created_at', 'N/A')
+        if data_bruta != 'N/A' and data_bruta is not None:
+            try:
+                data_obj = datetime.datetime.strptime(str(data_bruta).replace('T', ' ').split('.')[0], '%Y-%m-%d %H:%M:%S')
+                data_formatada = data_obj.strftime('%d/%m/%Y %H:%M')
+            except Exception as e:
+                print(f"❌ Erro ao formatar data básica: {e}")
+                data_formatada = str(data_bruta)
+        else:
+            data_formatada = 'N/A'
+        
         info_basica = f"""
 [b]INFORMAÇÕES BÁSICAS:[/b]
 ID: {self.transferencia_id}
 Status: {self.dados['status'].upper()}
-Tipo: {'INTERNACIONAL' if self.dados.get('tipo') == 'internacional' else 'INTERNA'}
+Tipo: {'INTERNACIONAL' if self.dados.get('tipo') in ['internacional', 'transferencia_internacional'] else 'INTERNA'}
 Valor: {self.dados['valor']:,.2f} {self.dados['moeda']}
-Taxa: {self.dados.get('taxa', 0):,.2f}
-Total: {(self.dados['valor'] + self.dados.get('taxa', 0)):,.2f} {self.dados['moeda']}
-Data: {self.dados.get('data_solicitacao', self.dados.get('data', 'N/A'))}
+Data: {data_formatada}
         """.strip()
         
         lbl_basica = Label(
@@ -1823,33 +1835,12 @@ Data: {self.dados.get('data_solicitacao', self.dados.get('data', 'N/A'))}
             text_size=(480, None),
             halign='left',
             size_hint_y=None,
-            height=dp(160)
+            height=dp(140)
         )
         detalhes_layout.add_widget(lbl_basica)
         
-        # ========== INFORMAÇÕES DO CLIENTE ==========
-        cliente_nome = self.obter_nome_cliente(self.dados['conta_remetente'])
-        info_cliente = f"""
-[b]CLIENTE REMETENTE:[/b]
-Nome: {cliente_nome}
-Conta Origem: {self.dados['conta_remetente']}
-Solicitado por: {self.dados.get('solicitado_por', 'N/A')}
-        """.strip()
-        
-        lbl_cliente = Label(
-            text=info_cliente,
-            markup=True,
-            font_size='14sp',
-            color=COR_TEXTO_POPUP,
-            text_size=(480, None),
-            halign='left',
-            size_hint_y=None,
-            height=dp(100)
-        )
-        detalhes_layout.add_widget(lbl_cliente)
-        
         # ========== INFORMAÇÕES DO BENEFICIÁRIO/DESTINATÁRIO ==========
-        if self.dados.get('tipo') == 'internacional':
+        if self.dados.get('tipo') in ['internacional', 'transferencia_internacional']:  # 🔥 Adicionado transferencia_internacional
             info_beneficiario = f"""
 [b]BENEFICIÁRIO INTERNACIONAL:[/b]
 Nome: {self.dados.get('beneficiario', 'N/A')}
@@ -1902,17 +1893,43 @@ Conta Destino: {conta_destino}
             )
             detalhes_layout.add_widget(lbl_adicional)
         
+        # ========== DEBUG DAS DATAS ==========
+        print(f"🔍 DEBUG DATAS - Transferência {self.transferencia_id}:")
+        print(f"   data_aprovacao: {self.dados.get('data_aprovacao')}")
+        print(f"   data_conclusao: {self.dados.get('data_conclusao')}")
+        print(f"   data_solicitacao: {self.dados.get('data_solicitacao')}")
+        print(f"   data: {self.dados.get('data')}")
+        print(f"   created_at: {self.dados.get('created_at')}")
+
         # ========== INFORMAÇÕES DE PROCESSAMENTO ==========
         if self.dados.get('data_aprovacao'):
+            # 🔥 CORREÇÃO: Formatar data de aprovação
+            data_aprovacao_bruta = self.dados.get('data_aprovacao')
+            try:
+                data_aprovacao_obj = datetime.datetime.strptime(str(data_aprovacao_bruta).replace('T', ' ').split('.')[0], '%Y-%m-%d %H:%M:%S')
+                data_aprovacao_formatada = data_aprovacao_obj.strftime('%d/%m/%Y %H:%M')
+            except Exception as e:
+                print(f"❌ Erro ao formatar data_aprovacao: {e}")
+                data_aprovacao_formatada = str(data_aprovacao_bruta)
+            
             info_processamento = f"""
 [b]PROCESSAMENTO:[/b]
 Aprovado por: {self.dados.get('executado_por', 'N/A')}
-Data Aprovação: {self.dados.get('data_aprovacao', 'N/A')}
+Data Aprovação: {data_aprovacao_formatada}
             """.strip()
             
             if self.dados.get('data_conclusao'):
+                # 🔥 CORREÇÃO: Formatar data de conclusão
+                data_conclusao_bruta = self.dados.get('data_conclusao')
+                try:
+                    data_conclusao_obj = datetime.datetime.strptime(str(data_conclusao_bruta).replace('T', ' ').split('.')[0], '%Y-%m-%d %H:%M:%S')
+                    data_conclusao_formatada = data_conclusao_obj.strftime('%d/%m/%Y %H:%M')
+                except Exception as e:
+                    print(f"❌ Erro ao formatar data_conclusao: {e}")
+                    data_conclusao_formatada = str(data_conclusao_bruta)
+                    
                 info_processamento += f"\nConcluído por: {self.dados.get('concluido_por', 'N/A')}"
-                info_processamento += f"\nData Conclusão: {self.dados.get('data_conclusao', 'N/A')}"
+                info_processamento += f"\nData Conclusão: {data_conclusao_formatada}"
             
             lbl_processamento = Label(
                 text=info_processamento,

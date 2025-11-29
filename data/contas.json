@@ -279,19 +279,19 @@
         "cliente_nome": "APPLE LLC",
         "data_criacao": "2025-11-02"
     },
-    "394549984": {
-        "moeda": "USD",
-        "saldo": 40.0,
-        "cliente": "lins",
-        "cliente_nome": "LINS CHAIR LIMITADA",
-        "data_criacao": "2025-11-18"
-    },
     "713651820": {
         "moeda": "USD",
-        "saldo": 60000.0,
+        "saldo": 59500.0,
         "cliente": "texaco",
         "cliente_nome": "TEXACO LLC",
         "data_criacao": "2025-11-01"
+    },
+    "394549984": {
+        "moeda": "USD",
+        "saldo": 0.0,
+        "cliente": "lins",
+        "cliente_nome": "LINS CHAIR LIMITADA",
+        "data_criacao": "2025-11-18"
     },
     "873134916": {
         "moeda": "BRL",

@@ -440,13 +440,21 @@
             font_size: '10sp'
             disabled: True
             on_press: root.visualizar_invoice()
+            # 🔥 CENTRALIZAR TEXTO COM QUEBRA DE LINHA
+            text_size: self.width, None
+            halign: 'center'
+            valign: 'middle'
         
         Button:
             id: btn_pdf_card  
-            text: 'GERAR\nPDF'
+            text: 'GERAR\nCOMPROVANTE'
             size_hint_x: 0.33
             background_color: 0.4, 0.25, 0.75, 1
             color: 1, 1, 1, 1
             background_normal: ''
             font_size: '10sp'
             on_press: root.gerar_pdf()
+            # 🔥 CENTRALIZAR TEXTO COM QUEBRA DE LINHA
+            text_size: self.width, None
+            halign: 'center'
+            valign: 'middle'

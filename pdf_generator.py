@@ -219,6 +219,22 @@ class PDFGenerator:
         else:
             pdf.drawString(col2_x, y_pos-10, finalidade)
         
+        # 🔥 NOVO: Adicionar Completed Date apenas para status completed
+        if dados['status'].upper() == 'COMPLETED':
+            pdf.setFont("Helvetica", 7)
+            pdf.setFillColorRGB(0.4, 0.4, 0.4)
+            pdf.drawString(col2_x, y_pos-22, "Completed Date:")  # 🔥 EM INGLÊS
+            pdf.setFont("Helvetica-Bold", 7)
+            # Usar data de conclusão se disponível, senão usar data atual
+            data_conclusao = dados.get('data_conclusao') or datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            if data_conclusao != 'N/A':
+                # Formatar: "2025-11-28T18:28:59.123456" → "2025-11-28 18:28:59"
+                data_conclusao_texto = str(data_conclusao).replace('T', ' ').split('.')[0]
+            else:
+                data_conclusao_texto = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            pdf.drawString(col2_x, y_pos-32, data_conclusao_texto)
+            y_pos -= 22  # 🔥 Ajustar posição vertical para acomodar nova linha
+        
         return y_pos - 40
 
     def _adicionar_secao_titulo(self, pdf, width, y_pos, titulo):
@@ -532,12 +548,19 @@ class PDFGenerator:
         
         # Status final em inglês
         pdf.setFillColorRGB(0.97, 0.97, 0.97)
-        pdf.roundRect(30, 65, width-60, 25, 2, fill=1)
+        box_height = 25
+        box_y = 65
+        pdf.roundRect(30, box_y, width-60, box_height, 2, fill=1)
         
+        # 🔥 CENTRALIZAR VERTICALMENTE o texto dentro da caixa
+        text_y = box_y + (box_height - 9) / 2 + 2
+        
+        # 🔥 "STATUS:" na cor original (cinza escuro)
         pdf.setFillColorRGB(0.3, 0.3, 0.3)
         pdf.setFont("Helvetica-Bold", 9)
-        pdf.drawString(50, 78, "STATUS:")  # 🔥 EM INGLÊS
+        pdf.drawString(50, text_y, "STATUS:")
         
+        # 🔥 Status específico na cor correspondente
         status = dados['status'].upper()
         status_color = {
             "COMPLETED": (0.15, 0.55, 0.15),
@@ -548,23 +571,25 @@ class PDFGenerator:
         
         pdf.setFillColorRGB(*status_color)
         status_display = {
-            "COMPLETED": "COMPLETED",  # 🔥 EM INGLÊS
-            "PENDING": "PENDING",      # 🔥 EM INGLÊS
-            "PROCESSING": "PROCESSING", # 🔥 EM INGLÊS
-            "REJECTED": "REJECTED"     # 🔥 EM INGLÊS
+            "COMPLETED": "COMPLETED",
+            "PENDING": "PENDING",
+            "PROCESSING": "PROCESSING",
+            "REJECTED": "REJECTED"
         }.get(status, status)
         
-        pdf.drawString(100, 78, status_display)
+        # 🔥 Calcular posição do status (depois da palavra "STATUS:")
+        status_x = 50 + pdf.stringWidth("STATUS: ", "Helvetica-Bold", 9)
+        pdf.drawString(status_x, text_y, status_display)
         
         # Informações institucionais em inglês
         pdf.setFillColorRGB(0.5, 0.5, 0.5)
         pdf.setFont("Helvetica", 7)
-        pdf.drawString(50, 55, "Câmbio Bank - International Transfers")  # 🔥 NOME CORRETO
-        pdf.drawString(50, 45, "Automatically generated document")  # 🔥 EM INGLÊS
+        pdf.drawString(50, 55, "Câmbio Bank - International Transfers")
+        pdf.drawString(50, 45, "Automatically generated document")
         
         # Data em inglês
-        pdf.drawRightString(width-50, 55, f"Issued: {datetime.now().strftime('%d/%m/%Y %H:%M')}")  # 🔥 EM INGLÊS
-        pdf.drawRightString(width-50, 45, "Page 1 of 1")  # 🔥 EM INGLÊS
+        pdf.drawRightString(width-50, 55, f"Issued: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+        pdf.drawRightString(width-50, 45, "Page 1 of 1")
 
     def _formatar_endereco(self, dados_cliente):
 

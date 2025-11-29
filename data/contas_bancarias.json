@@ -1,10 +1,20 @@
 {
+    "JACKS_USD_001": {
+        "numero": "JACKS_USD_001",
+        "banco": "JACKS BANK",
+        "agencia": "0001",
+        "moeda": "USD",
+        "saldo": 0.0,
+        "tipo": "empresa",
+        "data_criacao": "2025-11-27T14:11:07",
+        "saldo_inicial": 0.0
+    },
     "BANK_USD_001": {
         "numero": "BANK_USD_001",
         "banco": "Banco Principal",
         "agencia": null,
         "moeda": "USD",
-        "saldo": 975625.0,
+        "saldo": 975125.0,
         "tipo": "empresa",
         "data_criacao": null,
         "saldo_inicial": 0.0
@@ -57,16 +67,6 @@
         "saldo": 2995500.0,
         "tipo": "empresa",
         "data_criacao": null,
-        "saldo_inicial": 0.0
-    },
-    "JACKS_USD_001": {
-        "numero": "JACKS_USD_001",
-        "banco": "JACKS BANK",
-        "agencia": "0001",
-        "moeda": "USD",
-        "saldo": 20.0,
-        "tipo": "empresa",
-        "data_criacao": "2025-11-27T14:11:07",
         "saldo_inicial": 0.0
     }
 }

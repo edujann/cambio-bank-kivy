@@ -8,7 +8,7 @@
                 "BRL": 0.0
             },
             "Wire Fee": {
-                "USD": 0.0,
+                "USD": 40.0,
                 "EUR": 0.0,
                 "GBP": 0.0,
                 "BRL": 0.0
@@ -48,7 +48,7 @@
                 "BRL": 0.0
             },
             "Outras Receitas": {
-                "USD": 360.0,
+                "USD": 0.0,
                 "EUR": 0.0,
                 "GBP": 0.0,
                 "BRL": 0.0
@@ -115,6 +115,12 @@
             },
             "Multas e Juros": {
                 "USD": 0.0,
+                "EUR": 0.0,
+                "GBP": 0.0,
+                "BRL": 0.0
+            },
+            "Wire Fee": {
+                "USD": 20.0,
                 "EUR": 0.0,
                 "GBP": 0.0,
                 "BRL": 0.0
