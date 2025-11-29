@@ -1,8 +1,56 @@
 import logging
 import os
+import builtins
 
-# 🔇 SILENCIAR SUPABASE - COLOCAR NO TOPO ABSOLUTO
+# 🔧 CONFIGURAÇÃO GLOBAL DE DEBUG 
+DEBUG_MODE = False  # 🎚️ False=Produção (RÁPIDO), True=Desenvolvimento
+
+# 🔧 SALVAR PRINT ORIGINAL
+_original_print = builtins.print
+
+# 🔥 INTERCEPTADOR INTELIGENTE ATUALIZADO
+def smart_print(*args, **kwargs):
+    """
+    FILTRO: Mostra apenas mensagens ESSENCIAIS quando DEBUG_MODE=False
+    Mostra TUDO quando DEBUG_MODE=True
+    """
+    if DEBUG_MODE:
+        # MODO DESENVOLVIMENTO: Mostra tudo
+        _original_print(*args, **kwargs)
+    else:
+        # MODO PRODUÇÃO: Filtra debugs (mensagens com ícones)
+        mensagem = ' '.join(str(arg) for arg in args)
+        
+        # 🎯 LISTA COMPLETA DE ÍCONES DE DEBUG
+        icones_debug = [
+            '🔍', '✅', '❌', '⚠️', '💾', '📡', '🚀', '🎯', '💰', '📋', '👤', '🏦',
+            '📊', '📱', '🌐', '🔑', '🔧', '📍', '🏠', '👋', '💳', '🔄', '📁',
+            '👥', '🎨', 'ℹ️', '🚫', '🔥', '📈', '📅', '💸', '🛠️', '🔔', '📝',
+            '👀', '🚨', '💡', '🔄', '📤', '📥', '🔒', '🔓', '🎪', '🖥️', '📲',
+            '💬', '🎮', '🛑', '⏱️', '📏', '🎰', '🃏', '🎴', '💎', '⚡', '🌈',
+            '🎉', '🎊', '🚦', '🚧', '🛡️', '⚔️', '🔮', '🌟', '☀️', '🌙', '⭐',
+            '💫', '✨', '🎈', '🎀', '🎁', '🔑', '🗝️', '🔐', '🔏', '🔒', '🔓',
+            '❤️', '💛', '💚', '💙', '💜', '🖤', '💔', '💕', '💖', '💗', '💘',
+            '💙', '💚', '💛', '🧡', '❤️', '💜', '🖤', '💯', '💢', '💥', '💦',
+            '💨', '💫', '🐛', '🦋', '🐢', '🐍', '🐲', '🐳', '🐬', '🐟', '🐠',
+            '🐡', '🐙', '🐚', '🦀', '🦐', '🦑', '🌍', '🌎', '🌏', '🌐', '🪐',
+            '💺', '⭐', '🌟', '🌠', '🌌', '☁️', '⛅', '🌤️', '🌥️', '🌦️', '🌧️',
+            '⛈️', '🌩️', '🌨️', '❄️', '🔥', '💧', '🌊', '🎯', '🔄', '📊', '📈',
+            '📉', '🗂️', '📁', '📂', '🗄️', '📋', '📌', '📍', '📎', '🖇️', '📏',
+            '📐', '✂️', '🔗', '📡', '🔭', '📺', '📷', '📹', '🎥', '📞', '📟',
+            '📠', '💻', '🖥️', '🖨️', '⌨️', '🖱️', '🖲️', '💽', '💾', '💿', '📀'
+        ]
+        
+        if not any(icon in mensagem for icon in icones_debug):
+            _original_print(*args, **kwargs)  # Mostra apenas mensagens sem ícones
+
+# 🔥 SUBSTITUIR PRINT GLOBAL
+builtins.print = smart_print
+
+# 🔇 SILENCIAR SUPABASE
 os.environ['SUPABASE_LOG_LEVEL'] = 'ERROR'
+logging.getLogger('httpx').setLevel(logging.WARNING)
+
 logging.getLogger('httpx').setLevel(logging.WARNING)
 logging.getLogger('httpcore').setLevel(logging.WARNING)
 logging.getLogger('supabase').setLevel(logging.WARNING)

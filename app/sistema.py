@@ -823,6 +823,16 @@ class SistemaCambioPremium:
         except Exception as e:
             print(f"❌ Erro ao carregar dados: {e}")
 
+    def salvar_dados(self):
+        """Método vazio - todos os dados já são salvos em tempo real no Supabase"""
+        print("💾 SistemaCambioPremium: Dados já persistidos em tempo real no Supabase")
+        print("   ✅ Contas - Salvas em tempo real")
+        print("   ✅ Transferências - Salvas em tempo real") 
+        print("   ✅ Clientes - Salvos em tempo real")
+        print("   ✅ Cotações - Salvas em tempo real")
+        print("   ✅ Configurações - Salvas em tempo real")
+        return True
+
     def carregar_contas_json_fallback(self):
         """Fallback para carregar contas do JSON se Supabase falhar"""
         contas_path = 'data/contas.json'
