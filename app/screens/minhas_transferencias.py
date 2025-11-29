@@ -2394,6 +2394,10 @@ class TelaMinhasTransferencias(Screen):
         super().__init__(**kwargs)
         self.filtro_status = "all"
         
+        # 🔥 NOVAS VARIÁVEIS PARA OTIMIZAÇÃO
+        self.transferencias_cache = None  # Cache de dados
+        self.limite_inicial = 12         # Limite de cards iniciais
+        
         # PALETA DE CORES - VERSÕES ESCURAS DEFINITIVAS
         # Cores ativas (mais escuras)
         self.COR_PRIMARIA = (0.15, 0.35, 0.75, 1)
@@ -2442,29 +2446,354 @@ class TelaMinhasTransferencias(Screen):
             # Inicializar filtro
             self.filtro_status = "all"
             self.forcar_cores_botoes()
-            self.atualizar_filtro("all")
 
     def on_enter(self):
-        """Chamado quando a tela é carregada - VERSÃO ULTRA-RÁPIDA"""
+        """Chamado quando a tela é carregada - VERSÃO COM TRANSIÇÃO SUAVE"""
         from kivy.core.window import Window
         Window.size = (1000, 900)
         
         sistema = App.get_running_app().sistema
         if sistema.usuario_logado and sistema.tipo_usuario_logado == 'cliente':
-            print("🎯 Iniciando Minhas Transferências (RÁPIDO)...")
+            print("🎯 Minhas Transferências - AGUARDANDO TRANSIÇÃO...")
             
-            # 🔥 CONFIGURAÇÃO RÁPIDA
+            # 🔥 CONFIGURAÇÃO RÁPIDA (não pesa)
             self.filtro_status = "all"
             self.forcar_cores_botoes()
             
-            # 🔥 CARREGAR VISUAL PRIMEIRO (rápido)
-            self.carregar_transferencias_rapido("all")
+            # 🔥 MOSTRAR LOADING IMEDIATO (leve)
+            self._mostrar_loading_simples()
             
-            # 🔥 CONFIGURAR CORES DEPOIS
+            # 🔥 AGUARDAR TRANSIÇÃO TERMINAR ANTES DE CARREGAR DADOS PESADOS
             from kivy.clock import Clock
-            Clock.schedule_once(lambda dt: self.configurar_cores_botoes_inferiores(), 0.2)
+            Clock.schedule_once(lambda dt: self._iniciar_carregamento_apos_transicao(), 0.5)
 
         self.rolar_para_topo()
+
+    def _iniciar_carregamento_apos_transicao(self):
+        """Inicia o carregamento pesado APÓS a transição terminar"""
+        print("🔄 Transição terminou - iniciando carregamento...")
+        
+        # 🔥 CARREGAMENTO OTIMIZADO - usa cache se disponível
+        if self.transferencias_cache is not None:
+            print("🔍 Usando cache de transferências...")
+            self._aplicar_filtro_no_cache("all")
+        else:
+            print("🔍 Carregando transferências do sistema...")
+            self.carregar_interface_rapida()
+        
+        # 🔥 CONFIGURAR CORES DEPOIS
+        from kivy.clock import Clock
+        Clock.schedule_once(lambda dt: self.configurar_cores_botoes_inferiores(), 0.1)
+
+    def _mostrar_loading_simples(self):
+        """Loading super simples - apenas para transição"""
+        from kivy.uix.boxlayout import BoxLayout
+        from kivy.uix.label import Label
+        
+        container = self.ids.scroll_container
+        container.clear_widgets()
+        
+        loading_layout = BoxLayout(
+            orientation='vertical', 
+            size_hint_y=None, 
+            height=dp(60),
+            padding=10
+        )
+        
+        loading_layout.add_widget(Label(
+            text="🔄 Preparando...",
+            font_size='14sp',
+            color=(0.7, 0.7, 0.7, 1)
+        ))
+        
+        container.add_widget(loading_layout)
+
+    def carregar_interface_rapida(self):
+        """Versão OTIMIZADA do carregamento"""
+        sistema = App.get_running_app().sistema
+        
+        # 🔥 VERIFICAÇÃO RÁPIDA
+        if not sistema.usuario_logado or not hasattr(self, 'ids') or 'scroll_container' not in self.ids:
+            return
+        
+        container = self.ids.scroll_container
+        container.clear_widgets()
+        
+        # 🔥 MOSTRAR LOADING IMEDIATAMENTE
+        self._mostrar_loading_rapido()
+        
+        # 🔥 CARREGAR DADOS EM SEGUNDO PLANO
+        from kivy.clock import Clock
+        Clock.schedule_once(lambda dt: self._carregar_dados_otimizado(self.filtro_status), 0.1)
+
+    def _mostrar_loading_rapido(self):
+        """Loading rápido - menos widgets"""
+        from kivy.uix.boxlayout import BoxLayout
+        from kivy.uix.label import Label
+        
+        container = self.ids.scroll_container
+        
+        loading_layout = BoxLayout(
+            orientation='vertical', 
+            size_hint_y=None, 
+            height=dp(80),  # 🔥 MAIS COMPACTO
+            padding=15
+        )
+        
+        loading_layout.add_widget(Label(
+            text="🔄 Carregando...",
+            font_size='14sp',  # 🔥 MENOR
+            color=(0.7, 0.7, 0.7, 1)
+        ))
+        
+        container.add_widget(loading_layout)
+
+    def _carregar_dados_otimizado(self, filtro_status):
+        """Carrega os dados pesados em segundo plano - VERSÃO OTIMIZADA"""
+        sistema = App.get_running_app().sistema
+        
+        # ✅✅✅ FORÇAR ATUALIZAÇÃO DO SUPABASE (MESMA LÓGICA)
+        try:
+            from supabase import create_client
+            import os
+            import json
+            from dotenv import load_dotenv
+            
+            load_dotenv()
+            supabase_url = os.getenv('SUPABASE_URL')
+            supabase_key = os.getenv('SUPABASE_KEY')
+            
+            if supabase_url and supabase_key:
+                supabase = create_client(supabase_url, supabase_key)
+                
+                # Buscar transferências ATUALIZADAS do Supabase
+                response = supabase.table('transferencias').select('*').execute()
+                
+                if response.data:
+                    # 🔥 CORREÇÃO CRÍTICA: CONVERSÃO ROBUSTA PARA DICIONÁRIOS
+                    sistema.transferencias.clear()
+                    transferencias_convertidas = 0
+                    
+                    for i, transferencia in enumerate(response.data):
+                        # ✅ CONVERSÃO AGESSIVA: Tentar múltiplos métodos
+                        dados_finais = None
+                        
+                        # Método 1: Já é dicionário
+                        if isinstance(transferencia, dict):
+                            dados_finais = transferencia
+                        
+                        # Método 2: É string JSON
+                        elif isinstance(transferencia, str):
+                            try:
+                                dados_finais = json.loads(transferencia)
+                                transferencias_convertidas += 1
+                            except json.JSONDecodeError:
+                                continue
+                        
+                        # Método 3: Outro tipo estranho
+                        else:
+                            continue
+                        
+                        # Verificar se a conversão foi bem-sucedida
+                        if dados_finais and 'id' in dados_finais:
+                            sistema.transferencias[dados_finais['id']] = dados_finais
+                    
+                    print(f"✅ {len(response.data)} transferências processadas, {transferencias_convertidas} convertidas")
+                    
+        except Exception as e:
+            print(f"⚠️ Erro ao atualizar do Supabase: {e}")
+        
+        # 🔥 CORREÇÃO: Obter dados do usuário corretamente
+        usuario_data = sistema.usuarios.get(sistema.usuario_logado, {})
+        contas_usuario = usuario_data.get('contas', [])
+        
+        # ✅ BUSCAR APENAS TRANSFERÊNCIAS INTERNACIONAIS DO CLIENTE
+        transferencias_cliente = {}
+        
+        for transferencia_id, dados in sistema.transferencias.items():
+            # ✅ VERIFICAÇÃO 1: É DO USUÁRIO?
+            conta_remetente = dados.get('conta_remetente')
+            conta_destinatario = dados.get('conta_destinatario')
+            
+            if conta_remetente not in contas_usuario and conta_destinatario not in contas_usuario:
+                continue
+            
+            # ✅ VERIFICAÇÃO 2: É TRANSFERÊNCIA INTERNACIONAL?
+            tipo_transferencia = dados.get('tipo', '')
+            if tipo_transferencia not in ['internacional', 'transferencia_internacional']:
+                continue
+            
+            transferencias_cliente[transferencia_id] = dados
+
+        # 🔥 APLICAR FILTRO DE STATUS (COMPATÍVEL COM ANTIGO E NOVO)
+        if filtro_status != "all":
+            if filtro_status == "pending":
+                transferencias_cliente = {k: v for k, v in transferencias_cliente.items() 
+                                        if v.get('status') in ['pending', 'solicitada']}
+            else:
+                transferencias_cliente = {k: v for k, v in transferencias_cliente.items() 
+                                        if v.get('status') == filtro_status}
+
+        # 🔥 CORREÇÃO CRÍTICA: ORDENAÇÃO SEGURA
+        def get_data_ordenacao(dados):
+            """Função segura para obter data de ordenação"""
+            data = (dados.get('data_solicitacao') or 
+                   dados.get('data') or 
+                   dados.get('created_at') or '1900-01-01')
+            return data
+        
+        try:
+            transferencias_ordenadas = sorted(
+                transferencias_cliente.items(), 
+                key=lambda x: get_data_ordenacao(x[1]), 
+                reverse=True
+            )
+        except Exception as e:
+            print(f"❌ ERRO NA ORDENAÇÃO: {e}")
+            # Fallback: ordenar por ID
+            transferencias_ordenadas = sorted(
+                transferencias_cliente.items(), 
+                key=lambda x: x[0],
+                reverse=True
+            )
+        
+        # 🔥 SALVAR NO CACHE PARA FUTUROS FILTROS
+        self.transferencias_cache = transferencias_ordenadas
+        
+        # 🔥 ATUALIZAR INTERFACE COM PAGINAÇÃO
+        self._atualizar_interface_com_paginacao(transferencias_ordenadas, filtro_status)
+
+    def _atualizar_interface_com_paginacao(self, transferencias_ordenadas, filtro_status):
+        """Atualiza a interface com PAGINAÇÃO - MAIS RÁPIDO"""
+        container = self.ids.scroll_container
+        container.clear_widgets()
+        
+        print(f"🔍 Exibindo {min(self.limite_inicial, len(transferencias_ordenadas))} de {len(transferencias_ordenadas)} transferências")
+        
+        # 🔥 LIMITE INICIAL PARA PERFORMANCE
+        transferencias_exibir = transferencias_ordenadas[:self.limite_inicial]
+        
+        cards = []
+        for transferencia_id, dados in transferencias_exibir:
+            try:
+                # ✅ MESMA CRIAÇÃO DE CARD (mas com menos debug)
+                card = TransferenciaCard(transferencia_id, dados)
+                card.size_hint_y = None
+                card.height = dp(230)
+                cards.append(card)
+            except Exception as e:
+                if DEBUG_MODE:
+                    print(f"❌ Erro ao criar card {transferencia_id}: {e}")
+                continue
+        
+        # 🔥 ADICIONAR CARDS PRINCIPAIS
+        for card in cards:
+            container.add_widget(card)
+        
+        # 🔥 BOTÃO "CARREGAR MAIS" SE NECESSÁRIO
+        if len(transferencias_ordenadas) > self.limite_inicial:
+            from kivy.uix.button import Button
+            
+            btn_carregar_mais = Button(
+                text=f'📥 Carregar mais {len(transferencias_ordenadas) - self.limite_inicial} transferências',
+                size_hint_y=None,
+                height=dp(50),
+                background_color=(0.23, 0.51, 0.96, 1),
+                color=(1, 1, 1, 1),
+                on_press=lambda x: self._carregar_mais_transferencias(transferencias_ordenadas)
+            )
+            
+            container.add_widget(btn_carregar_mais)
+        
+        # 🔥 MENSAGEM VAZIO
+        if not transferencias_ordenadas:
+            self._mostrar_mensagem_vazio_rapida(filtro_status)
+
+    def _carregar_mais_transferencias(self, transferencias_ordenadas):
+        """Carrega mais transferências quando usuário clicar"""
+        container = self.ids.scroll_container
+        
+        # 🔥 REMOVER BOTÃO "CARREGAR MAIS"
+        if container.children and hasattr(container.children[0], 'text') and 'Carregar mais' in container.children[0].text:
+            container.remove_widget(container.children[0])
+        
+        # 🔥 AUMENTAR LIMITE E CARREGAR MAIS
+        inicio = self.limite_inicial
+        self.limite_inicial += 15
+        
+        cards_adicionais = []
+        for transferencia_id, dados in transferencias_ordenadas[inicio:self.limite_inicial]:
+            try:
+                card = TransferenciaCard(transferencia_id, dados)
+                card.size_hint_y = None
+                card.height = dp(230)
+                cards_adicionais.append(card)
+            except Exception:
+                continue
+        
+        # 🔥 ADICIONAR NOVOS CARDS
+        for card in reversed(cards_adicionais):
+            container.add_widget(card, index=0)
+        
+        # 🔥 ADICIONAR NOVO BOTÃO SE AINDA HOUVER MAIS
+        if len(transferencias_ordenadas) > self.limite_inicial:
+            from kivy.uix.button import Button
+            
+            btn_carregar_mais = Button(
+                text=f'📥 Carregar mais {len(transferencias_ordenadas) - self.limite_inicial} transferências',
+                size_hint_y=None,
+                height=dp(50),
+                background_color=(0.23, 0.51, 0.96, 1),
+                color=(1, 1, 1, 1),
+                on_press=lambda x: self._carregar_mais_transferencias(transferencias_ordenadas)
+            )
+            
+            container.add_widget(btn_carregar_mais)
+
+    def _mostrar_mensagem_vazio_rapida(self, filtro_status):
+        """Mensagem vazio rápida"""
+        from kivy.uix.boxlayout import BoxLayout
+        from kivy.uix.label import Label
+        
+        container = self.ids.scroll_container
+        
+        vazio_layout = BoxLayout(
+            orientation='vertical', 
+            size_hint_y=None, 
+            height=dp(120),  # 🔥 MAIS COMPACTO
+            padding=15
+        )
+        
+        status_text = "com este status" if filtro_status != "all" else ""
+        vazio_layout.add_widget(Label(
+            text=f"Nenhuma transferência {status_text}",
+            font_size='14sp',
+            color=(0.7, 0.7, 0.7, 1)
+        ))
+        
+        container.add_widget(vazio_layout)
+
+    def _aplicar_filtro_no_cache(self, filtro):
+        """Aplica filtro nos dados em cache - MUITO MAIS RÁPIDO"""
+        if not self.transferencias_cache:
+            return
+            
+        transferencias_filtradas = self.transferencias_cache
+        
+        if filtro != "all":
+            if filtro == "pending":
+                transferencias_filtradas = [
+                    (tid, dados) for tid, dados in self.transferencias_cache
+                    if dados.get('status') in ['pending', 'solicitada']
+                ]
+            else:
+                transferencias_filtradas = [
+                    (tid, dados) for tid, dados in self.transferencias_cache
+                    if dados.get('status') == filtro
+                ]
+        
+        # 🔥 ATUALIZAR UI COM DADOS FILTRADOS (RÁPIDO)
+        self._atualizar_interface_com_paginacao(transferencias_filtradas, filtro)
 
     def configurar_cores_botoes_inferiores(self):
         """Configura as cores dos botões inferiores - VERSÃO OTIMIZADA"""
@@ -2546,371 +2875,11 @@ class TelaMinhasTransferencias(Screen):
         # FORÇAR CORES DOS BOTÕES DE FILTRO
         self.forcar_cores_botoes()
         
-        # 🔥 USAR CARREGAMENTO OTIMIZADO
-        self.carregar_transferencias_rapido(filtro)
-
-    def carregar_transferencias_rapido(self, filtro_status="all"):
-        """Versão OTIMIZADA do carregamento - carrega visual primeiro, dados depois"""
-        sistema = App.get_running_app().sistema
-        
-        # 🔥 VERIFICAÇÃO RÁPIDA
-        if not sistema.usuario_logado or not hasattr(self, 'ids') or 'scroll_container' not in self.ids:
-            return
-        
-        container = self.ids.scroll_container
-        container.clear_widgets()
-        
-        # 🔥 MOSTRAR LOADING IMEDIATAMENTE
-        from kivy.uix.boxlayout import BoxLayout
-        from kivy.uix.label import Label
-        
-        loading_layout = BoxLayout(
-            orientation='vertical', 
-            size_hint_y=None, 
-            height=dp(100),
-            spacing=10,
-            padding=20
-        )
-        
-        loading_layout.add_widget(Label(
-            text="🔄 Carregando transferências...",
-            font_size='16sp',
-            color=(0.7, 0.7, 0.7, 1),
-            size_hint_y=None,
-            height=dp(40)
-        ))
-        
-        container.add_widget(loading_layout)
-        
-        # 🔥 CARREGAR DADOS EM SEGUNDO PLANO
-        from kivy.clock import Clock
-        Clock.schedule_once(lambda dt: self._carregar_dados_em_segundo_plano(filtro_status), 0.1)
-
-    def _carregar_dados_em_segundo_plano(self, filtro_status):
-        """Carrega os dados pesados em segundo plano - APENAS TRANSFERÊNCIAS INTERNACIONAIS"""
-        sistema = App.get_running_app().sistema
-        
-        # ✅✅✅ FORÇAR ATUALIZAÇÃO DO SUPABASE COM CONVERSÃO ROBUSTA
-        try:
-            from supabase import create_client
-            import os
-            import json
-            from dotenv import load_dotenv
-            
-            load_dotenv()
-            supabase_url = os.getenv('SUPABASE_URL')
-            supabase_key = os.getenv('SUPABASE_KEY')
-            
-            if supabase_url and supabase_key:
-                supabase = create_client(supabase_url, supabase_key)
-                
-                # Buscar transferências ATUALIZADAS do Supabase
-                response = supabase.table('transferencias').select('*').execute()
-                
-                if response.data:
-                    # 🔥 CORREÇÃO CRÍTICA: CONVERSÃO ROBUSTA PARA DICIONÁRIOS
-                    sistema.transferencias.clear()
-                    transferencias_convertidas = 0
-                    
-                    for i, transferencia in enumerate(response.data):
-                        # ✅ CONVERSÃO AGESSIVA: Tentar múltiplos métodos
-                        dados_finais = None
-                        
-                        # Método 1: Já é dicionário
-                        if isinstance(transferencia, dict):
-                            dados_finais = transferencia
-                        
-                        # Método 2: É string JSON
-                        elif isinstance(transferencia, str):
-                            try:
-                                dados_finais = json.loads(transferencia)
-                                transferencias_convertidas += 1
-                            except json.JSONDecodeError:
-                                print(f"❌ Não consegui decodificar JSON: {transferencia[:100]}...")
-                                continue
-                        
-                        # Método 3: Outro tipo estranho
-                        else:
-                            print(f"⚠️ Tipo inesperado: {type(transferencia)} - {str(transferencia)[:100]}...")
-                            continue
-                        
-                        # Verificar se a conversão foi bem-sucedida
-                        if dados_finais and 'id' in dados_finais:
-                            sistema.transferencias[dados_finais['id']] = dados_finais
-                        else:
-                            print(f"❌ Dados inválidos após conversão: {dados_finais}")
-                    
-                    print(f"✅ {len(response.data)} transferências processadas, {transferencias_convertidas} convertidas de string")
-                    
-                    # 🔥 DEBUG DETALHADO DOS TIPOS
-                    print(f"🔍 VERIFICAÇÃO FINAL DOS TIPOS:")
-                    tipos = {}
-                    for transferencia_id, dados in list(sistema.transferencias.items())[:10]:
-                        tipo = type(dados).__name__
-                        tipos[tipo] = tipos.get(tipo, 0) + 1
-                        if isinstance(dados, str):
-                            print(f"   ❌ {transferencia_id}: AINDA É STRING! -> {dados[:100]}...")
-                    
-                    print(f"   📊 Distribuição de tipos: {tipos}")
-                    
-                else:
-                    print("⚠️ Nenhuma transferência encontrada no Supabase")
-            else:
-                print("⚠️ Credenciais do Supabase não encontradas")
-        except Exception as e:
-            print(f"⚠️ Erro ao atualizar do Supabase: {e}")
-            import traceback
-            traceback.print_exc()
-        
-        # 🔥 DEBUG: Verificar tipos dos dados
-        print(f"🔍 TIPOS DOS DADOS CARREGADOS:")
-        for i, (transferencia_id, dados) in enumerate(list(sistema.transferencias.items())[:5]):
-            print(f"   {i+1}. {transferencia_id}: tipo={type(dados)}")
-            if isinstance(dados, str):
-                print(f"      ⚠️ ATENÇÃO: Dados são string, não dicionário!")
-        
-        # 🔥 CORREÇÃO: Obter dados do usuário corretamente
-        usuario_data = sistema.usuarios.get(sistema.usuario_logado, {})
-        contas_usuario = usuario_data.get('contas', [])
-        
-        # ✅ BUSCAR APENAS TRANSFERÊNCIAS INTERNACIONAIS DO CLIENTE
-        transferencias_cliente = {}
-        
-        print(f"🔍 FILTRO: Verificando {len(sistema.transferencias)} transferências totais")
-        print(f"🔍 FILTRO INTERNACIONAL: Aplicando filtro para mostrar apenas transferências internacionais")
-        
-        for transferencia_id, dados in sistema.transferencias.items():
-            # ✅ VERIFICAÇÃO 1: É DO USUÁRIO?
-            conta_remetente = dados.get('conta_remetente')
-            conta_destinatario = dados.get('conta_destinatario')
-            
-            if conta_remetente not in contas_usuario and conta_destinatario not in contas_usuario:
-                continue  # Ignorar transferências que não são do usuário
-            
-            # ✅ VERIFICAÇÃO 2: É TRANSFERÊNCIA INTERNACIONAL?
-            tipo_transferencia = dados.get('tipo', '')
-            
-            # 🔥 FILTRO: APENAS transferências internacionais
-            if tipo_transferencia not in ['internacional', 'transferencia_internacional']:
-                print(f"❌ FILTRO INTERNACIONAL: {transferencia_id} - EXCLUÍDO (tipo: {tipo_transferencia})")
-                continue  # Ignorar transferências que não são internacionais
-            
-            # ✅ SE CHEGOU AQUI, É UMA TRANSFERÊNCIA INTERNACIONAL DO USUÁRIO
-            print(f"✅ FILTRO INTERNACIONAL: {transferencia_id} - INCLUÍDO (tipo: {tipo_transferencia})")
-            transferencias_cliente[transferencia_id] = dados
-        
-        print(f"🔍 FILTRO: {len(transferencias_cliente)} transferências do usuário")
-        print(f"🔍 FILTRO: Contas do usuário = {contas_usuario}")
-
-
-        print(f"🔍 FILTRO: {len(transferencias_cliente)} transferências do usuário")
-        print(f"🔍 FILTRO: Contas do usuário = {contas_usuario}")
-
-        # 🔥 DEBUG DOS STATUS EXISTENTES (MOVido para ANTES do filtro)
-        print(f"🔍 STATUS EXISTENTES nas {len(transferencias_cliente)} transferências:")
-        status_count = {}
-        for transferencia_id, dados in transferencias_cliente.items():
-            status = dados.get('status', 'NO_STATUS')
-            status_count[status] = status_count.get(status, 0) + 1
-        
-        for status, count in status_count.items():
-            print(f"   📊 {status}: {count} transferências")
-
-        # 🔥 APLICAR FILTRO DE STATUS (COMPATÍVEL COM ANTIGO E NOVO)
-        print(f"🔍 FILTRO STATUS: Aplicando filtro '{filtro_status}' em {len(transferencias_cliente)} transferências")
-        
-        if filtro_status != "all":
-            if filtro_status == "pending":
-                # ✅ ACEITAR 'pending' (novo) E 'solicitada' (antigo)
-                transferencias_cliente = {k: v for k, v in transferencias_cliente.items() 
-                                        if v.get('status') in ['pending', 'solicitada']}
-            else:
-                transferencias_cliente = {k: v for k, v in transferencias_cliente.items() 
-                                        if v.get('status') == filtro_status}
-            
-            print(f"🔍 FILTRO STATUS: {len(transferencias_cliente)} transferências após filtro '{filtro_status}'")
-
-        # 🔥 DEBUG DOS STATUS EXISTENTES (ADICIONE AQUI)
-        print(f"🔍 STATUS EXISTENTES nas {len(transferencias_cliente)} transferências:")
-        status_count = {}
-        for transferencia_id, dados in transferencias_cliente.items():
-            status = dados.get('status', 'NO_STATUS')
-            status_count[status] = status_count.get(status, 0) + 1
-        
-        for status, count in status_count.items():
-            print(f"   📊 {status}: {count} transferências")
-
-
-        # 🔥 DEBUG DAS DATAS DAS TRANSFERÊNCIAS
-        #print(f"🔍 DATAS DAS TRANSFERÊNCIAS INCLUÍDAS:")
-        #for transferencia_id, dados in transferencias_cliente.items():
-        #    data_solicitacao = dados.get('data_solicitacao', 'N/A')
-        #    data = dados.get('data', 'N/A')
-        #    created_at = dados.get('created_at', 'N/A')
-        #    print(f"   📅 {transferencia_id}: data_solicitacao={data_solicitacao}, data={data}, created_at={created_at}")
-        
-        # 🔥 APLICAR FILTRO DE STATUS (COMPATÍVEL COM ANTIGO E NOVO)
-        if filtro_status != "all":
-            if filtro_status == "pending":
-                # ✅ ACEITAR 'pending' (novo) E 'solicitada' (antigo)
-                transferencias_cliente = {k: v for k, v in transferencias_cliente.items() 
-                                        if v.get('status') in ['pending', 'solicitada']}
-            else:
-                transferencias_cliente = {k: v for k, v in transferencias_cliente.items() 
-                                        if v.get('status') == filtro_status}
-        
-        # 🔥 DEBUG CRÍTICO: Verificar as transferências ANTES da ordenação (ADICIONE AQUI)
-        print(f"🔍 TRANSFERÊNCIAS ANTES DA ORDENAÇÃO ({len(transferencias_cliente)}):")
-        for transferencia_id, dados in list(transferencias_cliente.items())[:3]:  # Mostrar só 3
-            status = dados.get('status', 'NO_STATUS')
-            tipo = dados.get('tipo', 'NO_TIPO')
-            print(f"   📋 {transferencia_id}: status={status}, tipo={tipo}")
-
-        # 🔥 CORREÇÃO CRÍTICA: ORDENAÇÃO SEGURA
-        def get_data_ordenacao(dados):
-            """Função segura para obter data de ordenação"""
-            # Priorizar data_solicitacao, depois data, depois created_at
-            data = (dados.get('data_solicitacao') or 
-                   dados.get('data') or 
-                   dados.get('created_at') or '1900-01-01')
-            return data
-        
-        try:
-            print(f"🔍 ORDENAÇÃO: Tentando ordenar {len(transferencias_cliente)} transferências")
-            transferencias_ordenadas = sorted(
-                transferencias_cliente.items(), 
-                key=lambda x: get_data_ordenacao(x[1]), 
-                reverse=True
-            )
-            print(f"🔍 ORDENAÇÃO: {len(transferencias_ordenadas)} transferências ordenadas com sucesso")
-        except Exception as e:
-            print(f"❌ ERRO NA ORDENAÇÃO: {e}")
-            # Fallback: ordenar por ID se a ordenação por data falhar
-            transferencias_ordenadas = sorted(
-                transferencias_cliente.items(), 
-                key=lambda x: x[0],  # Ordenar por ID
-                reverse=True
-            )
-            print(f"🔍 ORDENAÇÃO FALLBACK: {len(transferencias_ordenadas)} transferências ordenadas por ID")
-        print(f"🔍 ORDENAÇÃO: {len(transferencias_ordenadas)} transferências após ordenação")
-        
-        print(f"🔍 TRANSFERÊNCIAS ORDENADAS (primeiras 5):")
-        for i, (transferencia_id, dados) in enumerate(transferencias_ordenadas[:5]):
-            data_solicitacao = dados.get('data_solicitacao', 'N/A')
-            print(f"   {i+1}. {transferencia_id} - {data_solicitacao}")
-        
-        # 🔥 ATUALIZAR INTERFACE COM OS DADOS
-        self._atualizar_interface_com_dados(transferencias_ordenadas, filtro_status)
-
-    def _atualizar_interface_com_dados(self, transferencias_ordenadas, filtro_status):
-        """Atualiza a interface com os dados carregados"""
-        container = self.ids.scroll_container
-        container.clear_widgets()
-        
-        print(f"🔍 DEBUG INTERFACE: {len(transferencias_ordenadas)} transferências para exibir")
-        
-        # 🔥 LIMITE INICIAL PARA PERFORMANCE (carrega só 10 primeiros)
-        limite_cards = min(10, len(transferencias_ordenadas))
-        
-        cards = []
-        for i, (transferencia_id, dados) in enumerate(transferencias_ordenadas):
-            if i >= limite_cards:
-                break
-                
-            try:
-                print(f"🔍 DEBUG CRIANDO CARD: {transferencia_id}")
-                
-                # 🔥🔥🔥 DEBUG CRÍTICO: Verificar estrutura dos dados problemáticos
-                if transferencia_id in ['279581', '765195', '256062', '514735', '527343']:
-                    print(f"   🚨 DADOS PROBLEMÁTICOS {transferencia_id}:")
-                    for key, value in list(dados.items())[:5]:  # Mostra primeiros 5 campos
-                        print(f"      {key}: {type(value)} = {str(value)[:50]}...")
-                
-                card = TransferenciaCard(transferencia_id, dados)
-                card.size_hint_y = None
-                card.height = dp(230)
-                cards.append(card)
-                print(f"✅ CARD CRIADO: {transferencia_id}")
-            except Exception as e:
-                print(f"❌ ERRO AO CRIAR CARD {transferencia_id}: {e}")
-                import traceback
-                traceback.print_exc()  # 🔥 MOSTRA A LINHA EXATA DO ERRO
-                continue
-        
-        print(f"🔍 DEBUG: {len(cards)} cards criados com sucesso")
-        
-        # 🔥 ADICIONAR CARDS PRINCIPAIS
-        for card in cards:
-            container.add_widget(card)
-            print(f"✅ CARD ADICIONADO NA INTERFACE: {card.transferencia_id}")
-        
-        print(f"🔍 DEBUG: {len(container.children)} widgets no container")
-        
-        # 🔥 SE HOUVER MAIS CARDS, MOSTRAR BOTÃO "CARREGAR MAIS"
-        if len(transferencias_ordenadas) > limite_cards:
-            from kivy.uix.button import Button
-            
-            btn_carregar_mais = Button(
-                text=f'📥 Carregar mais {len(transferencias_ordenadas) - limite_cards} transferências',
-                size_hint_y=None,
-                height=dp(50),
-                background_color=(0.23, 0.51, 0.96, 1),
-                color=(1, 1, 1, 1),
-                on_press=lambda x: self._carregar_restante(transferencias_ordenadas, limite_cards)
-            )
-            
-            container.add_widget(btn_carregar_mais)
-            print("✅ BOTÃO 'CARREGAR MAIS' ADICIONADO")
-        
-        # 🔥 MENSAGEM VAZIO
-        if not transferencias_ordenadas:
-            from kivy.uix.boxlayout import BoxLayout
-            from kivy.uix.label import Label
-            
-            vazio_layout = BoxLayout(
-                orientation='vertical', 
-                size_hint_y=None, 
-                height=dp(200),
-                spacing=10,
-                padding=20
-            )
-            
-            status_text = "com este status" if filtro_status != "all" else ""
-            vazio_layout.add_widget(Label(
-                text=f"Nenhuma transferência {status_text} encontrada",
-                font_size='16sp',
-                color=(0.7, 0.7, 0.7, 1),
-                size_hint_y=None,
-                height=dp(40)
-            ))
-            
-            container.add_widget(vazio_layout)
-            print("✅ MENSAGEM 'VAZIO' ADICIONADA")
-        
-        print(f"🎯 INTERFACE ATUALIZADA: {len(container.children)} elementos visíveis")
-
-    def _carregar_restante(self, transferencias_ordenadas, inicio):
-        """Carrega o restante das transferências"""
-        container = self.ids.scroll_container
-        
-        # 🔥 REMOVER BOTÃO "CARREGAR MAIS"
-        if container.children and hasattr(container.children[0], 'text') and 'Carregar mais' in container.children[0].text:
-            container.remove_widget(container.children[0])
-        
-        # 🔥 CARREGAR RESTANTE
-        cards = []
-        for i, (transferencia_id, dados) in enumerate(transferencias_ordenadas[inicio:], start=inicio):
-            try:
-                card = TransferenciaCard(transferencia_id, dados)
-                card.size_hint_y = None
-                card.height = dp(230)
-                cards.append(card)
-            except Exception:
-                continue
-        
-        # 🔥 ADICIONAR NO FINAL
-        for card in reversed(cards):  # Reversed para manter ordem correta
-            container.add_widget(card, index=0)
+        # 🔥 USAR CACHE SE DISPONÍVEL (MUITO MAIS RÁPIDO)
+        if self.transferencias_cache is not None:
+            self._aplicar_filtro_no_cache(filtro)
+        else:
+            self.carregar_interface_rapida()
 
     def rolar_para_topo(self):
         """Rola a ScrollView para o topo"""
