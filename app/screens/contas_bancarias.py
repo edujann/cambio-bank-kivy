@@ -2597,13 +2597,34 @@ class TelaExtratoContaBancaria(Screen):
             status = dados.get('status', '')
             tipo = dados.get('tipo', '')
             
+            # 🔥🔥🔥 DEBUG: VERIFICAR POR QUE CORREÇÃO NÃO FUNCIONA
+            if dados.get('tipo') == 'despesa':
+                print(f"🔍 DEBUG DESPESA {transferencia_id}:")
+                print(f"   - Já está em transacoes_ids_utilizados? {transferencia_id in transacoes_ids_utilizados}")
+                print(f"   - transacoes_ids_utilizados: {list(transacoes_ids_utilizados)}")
+            
+            # 🔥🔥🔥 CORREÇÃO DEFINITIVA: VERIFICAR SE DESPESA JÁ FOI PROCESSADA
+            if dados.get('tipo') == 'despesa' and transferencia_id in transacoes_ids_utilizados:
+                print(f"🔧 DESPESA JÁ PROCESSADA: {transferencia_id} - PULANDO")
+                continue
+            
             # 🔥 🔥 🔥 CORREÇÃO CRÍTICA: INCLUIR TRANSAÇÕES "completed" QUE DEBITAM NOSSA CONTA BANCÁRIA
             if status == 'completed' and dados.get('conta_bancaria_credito') == self.conta_bancaria_numero:
+
+                # 🔥🔥🔥 CORREÇÃO SEGURA: PULAR DESPESAS - ELAS NÃO DEVEM SER PROCESSADAS AQUI
+                if dados.get('tipo') == 'despesa':
+                    print(f"🔧 PULANDO DESPESA NO BLOCO ANTERIOR: {transferencia_id}")
+                    continue
 
                 # 🔥🔥🔥 CORREÇÃO: PULAR CÂMBIOS ENTRE CONTAS - ELES JÁ SÃO PROCESSADOS NA LÓGICA ESPECÍFICA
                 if dados.get('tipo') == 'cambio_contas_empresa':
                     print(f"🔧 PULANDO CÂMBIO DUPLICADO: {transferencia_id}")
                     continue
+
+                # 🔥🔥🔥 NOVA CORREÇÃO: PULAR DESPESAS - ELAS SERÃO PROCESSADAS NORMALMENTE MAIS À FRENTE
+                if dados.get('tipo') == 'despesa':
+                    print(f"🔧 PULANDO DESPESA NO BLOCO ANTERIOR: {transferencia_id}")
+                    continue  # ⬅️ ISSO FAZ PULAR DESPESAS AQUI
 
                 # Esta é uma transação onde nossa conta bancária foi debitada (conclusão de transferência)
                 data_conclusao = dados.get('data_conclusao', dados.get('data', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
@@ -2622,7 +2643,7 @@ class TelaExtratoContaBancaria(Screen):
                     'debito': 0.00,
                     'tipo': "Pagamento",
                     'moeda': dados['moeda'],
-                    'timestamp': parse_data(data_conclusao),
+                    'timestamp': self.parse_data_simples(data_conclusao),
                     'id': f"{transferencia_id}_PAGAMENTO"
                 }
                 
@@ -2747,7 +2768,8 @@ class TelaExtratoContaBancaria(Screen):
 
             # NOSSA CONTA É REMETENTE (SAÍDA DE DINHEIRO) = CRÉDITO (diminui saldo)
             if dados.get('conta_remetente') == self.conta_bancaria_numero:
-                
+
+
                 # 🔥 DEBUG: Verificar qual tipo está sendo processado
                 print(f"🎯 PROCESSANDO TRANSAÇÃO {transferencia_id}: tipo='{tipo}' (NOSSA CONTA É REMETENTE)")
                 
@@ -2761,13 +2783,13 @@ class TelaExtratoContaBancaria(Screen):
                         'debito': 0.00,
                         'tipo': "Despesa",
                         'moeda': dados['moeda'],
-                        'timestamp': timestamp,
+                        'timestamp': self.parse_data_simples(dados.get('data', '')),
                         'id': transferencia_id
                     }
                     
                 elif tipo == 'cambio':
                     # Câmbio: nossa conta bancária vende moeda (CRÉDITO = diminui saldo)
-                    descricao = f"CÂMBIO - VENDA - {dados['moeda']} {dados['valor']:,.2f}"
+                    descricao = sistema.gerar_descricao_cambio_inteligente(dados, self.conta_bancaria_numero)
                     nova_transacao = {
                         'data': data_transacao,
                         'descricao': descricao,
@@ -2775,7 +2797,7 @@ class TelaExtratoContaBancaria(Screen):
                         'debito': 0.00,
                         'tipo': "Câmbio",
                         'moeda': dados['moeda'],
-                        'timestamp': timestamp,
+                        'timestamp': self.parse_data_simples(dados.get('data', '')),
                         'id': transferencia_id
                     }
 
@@ -2788,7 +2810,7 @@ class TelaExtratoContaBancaria(Screen):
                     
                     if conta_origem == self.conta_bancaria_numero:
                         # NOSSA CONTA É ORIGEM - SAÍDA (CRÉDITO)
-                        descricao = f"CÂMBIO ENTRE CONTAS - {dados['moeda_origem']} {dados['valor_origem']:,.2f} -> {dados['moeda_destino']} {dados['valor_destino']:,.2f} (TAXA: {dados.get('taxa_cambio', 0):.6f})"
+                        descricao = sistema.gerar_descricao_cambio_inteligente(dados, self.conta_bancaria_numero)
                         nova_transacao = {
                             'data': data_transacao,
                             'descricao': descricao,
@@ -2796,7 +2818,7 @@ class TelaExtratoContaBancaria(Screen):
                             'debito': 0.00,
                             'tipo': "Câmbio entre Contas",
                             'moeda': dados['moeda_origem'],
-                            'timestamp': timestamp,
+                            'timestamp': self.parse_data_simples(dados.get('data', '')),
                             'id': transferencia_id
                         }
                         print(f"💰💰💰 CÂMBIO ORIGEM ADICIONADO AO EXTRATO: {dados['valor_origem']:,.2f} {dados['moeda_origem']}")
@@ -2811,7 +2833,7 @@ class TelaExtratoContaBancaria(Screen):
                         'debito': 0.00,
                         'tipo': "Saída",
                         'moeda': dados['moeda'],
-                        'timestamp': timestamp,
+                        'timestamp': self.parse_data_simples(dados.get('data', '')),
                         'id': transferencia_id
                     }
                 
@@ -2834,7 +2856,7 @@ class TelaExtratoContaBancaria(Screen):
                         'debito': dados['valor'],  # 🔥 DÉBITO = ENTRADA
                         'tipo': "Depósito",
                         'moeda': dados['moeda'],
-                        'timestamp': timestamp,
+                        'timestamp': self.parse_data_simples(dados.get('data', '')),
                         'id': transferencia_id
                     }
                     
@@ -2848,14 +2870,14 @@ class TelaExtratoContaBancaria(Screen):
                         'debito': dados['valor'],  # 🔥 DÉBITO = ENTRADA
                         'tipo': "Receita",
                         'moeda': dados['moeda'],
-                        'timestamp': timestamp,
+                        'timestamp': self.parse_data_simples(dados.get('data', '')),
                         'id': transferencia_id
                     }
                     
                 elif tipo == 'cambio':
                     # Câmbio: nossa conta bancária compra moeda (DÉBITO = aumenta saldo)
                     valor_entrada = dados.get('valor_destino', dados['valor'])
-                    descricao = f"CÂMBIO - COMPRA - {dados.get('moeda_destino', dados['moeda'])} {valor_entrada:,.2f}"
+                    descricao = sistema.gerar_descricao_cambio_inteligente(dados, self.conta_bancaria_numero)
                     nova_transacao = {
                         'data': data_transacao,
                         'descricao': descricao,
@@ -2863,7 +2885,7 @@ class TelaExtratoContaBancaria(Screen):
                         'debito': valor_entrada,  # 🔥 DÉBITO = ENTRADA
                         'tipo': "Câmbio",
                         'moeda': dados.get('moeda_destino', dados['moeda']),
-                        'timestamp': timestamp,
+                        'timestamp': self.parse_data_simples(dados.get('data', '')),
                         'id': transferencia_id
                     }
 
@@ -2877,7 +2899,7 @@ class TelaExtratoContaBancaria(Screen):
                     if conta_destino == self.conta_bancaria_numero:
                         print(f"🔍🔍🔍 CONTA DESTINO É NOSSA CONTA! VAI ADICIONAR AO EXTRATO")
                         # NOSSA CONTA É DESTINO - ENTRADA (DÉBITO)
-                        descricao = f"CÂMBIO ENTRE CONTAS - {dados['moeda_origem']} {dados['valor_origem']:,.2f} -> {dados['moeda_destino']} {dados['valor_destino']:,.2f} (TAXA: {dados.get('taxa_cambio', 0):.6f})"
+                        descricao = sistema.gerar_descricao_cambio_inteligente(dados, self.conta_bancaria_numero)
                         nova_transacao = {
                             'data': data_transacao,
                             'descricao': descricao,
@@ -2885,7 +2907,7 @@ class TelaExtratoContaBancaria(Screen):
                             'debito': dados['valor_destino'],  # 🔥 DÉBITO = ENTRADA
                             'tipo': "Câmbio entre Contas",
                             'moeda': dados['moeda_destino'],
-                            'timestamp': timestamp,
+                            'timestamp': self.parse_data_simples(dados.get('data', '')),
                             'id': transferencia_id
                         }
                         print(f"💰💰💰 CÂMBIO DESTINO ADICIONADO AO EXTRATO: {dados['valor_destino']:,.2f} {dados['moeda_destino']}")
@@ -2950,7 +2972,7 @@ class TelaExtratoContaBancaria(Screen):
                         'debito': dados['valor'],  # 🔥 DÉBITO = ENTRADA
                         'tipo': "Entrada",
                         'moeda': dados['moeda'],
-                        'timestamp': timestamp,
+                        'timestamp': self.parse_data_simples(dados.get('data', '')),
                         'id': transferencia_id
                     }
                 
@@ -2972,7 +2994,7 @@ class TelaExtratoContaBancaria(Screen):
                     
                     if conta_origem == self.conta_bancaria_numero:
                         # NOSSA CONTA É ORIGEM - SAÍDA (CRÉDITO)
-                        descricao = f"CÂMBIO ENTRE CONTAS - {dados['moeda_origem']} {dados['valor_origem']:,.2f} -> {dados['moeda_destino']} {dados['valor_destino']:,.2f} (TAXA: {dados.get('taxa_cambio', 0):.6f})"
+                        descricao = sistema.gerar_descricao_cambio_inteligente(dados, self.conta_bancaria_numero)
                         nova_transacao = {
                             'data': data_transacao,
                             'descricao': descricao,
@@ -2980,7 +3002,7 @@ class TelaExtratoContaBancaria(Screen):
                             'debito': 0.00,
                             'tipo': "Câmbio entre Contas",
                             'moeda': dados['moeda_origem'],
-                            'timestamp': timestamp,
+                            'timestamp': self.parse_data_simples(dados.get('data', '')),
                             'id': transferencia_id
                         }
                         print(f"💰💰💰 CÂMBIO ORIGEM ADICIONADO AO EXTRATO: {dados['valor_origem']:,.2f} {dados['moeda_origem']}")
@@ -2988,7 +3010,7 @@ class TelaExtratoContaBancaria(Screen):
                     elif conta_destino == self.conta_bancaria_numero:
                         print(f"🔍🔍🔍 CONTA DESTINO É NOSSA CONTA! VAI ADICIONAR AO EXTRATO")
                         # NOSSA CONTA É DESTINO - ENTRADA (DÉBITO)
-                        descricao = f"CÂMBIO ENTRE CONTAS - {dados['moeda_origem']} {dados['valor_origem']:,.2f} -> {dados['moeda_destino']} {dados['valor_destino']:,.2f} (TAXA: {dados.get('taxa_cambio', 0):.6f})"
+                        descricao = sistema.gerar_descricao_cambio_inteligente(dados, self.conta_bancaria_numero)
                         nova_transacao = {
                             'data': data_transacao,
                             'descricao': descricao,
@@ -2996,7 +3018,7 @@ class TelaExtratoContaBancaria(Screen):
                             'debito': dados['valor_destino'],  # 🔥 DÉBITO = ENTRADA
                             'tipo': "Câmbio entre Contas",
                             'moeda': dados['moeda_destino'],
-                            'timestamp': timestamp,
+                            'timestamp': self.parse_data_simples(dados.get('data', '')),
                             'id': transferencia_id
                         }
                         print(f"💰💰💰 CÂMBIO DESTINO ADICIONADO AO EXTRATO: {dados['valor_destino']:,.2f} {dados['moeda_destino']}")
@@ -3029,23 +3051,61 @@ class TelaExtratoContaBancaria(Screen):
         
         transacoes = transacoes_filtradas
         
-        # 🔥 🔥 🔥 CÁLCULO DO SALDO COM LÓGICA INVERTIDA
+        # 🔥 🔥 🔥 CÁLCULO DO SALDO COM AGRUPAMENTO POR DIA (SOLUÇÃO DEFINITIVA)
         transacoes_ordenadas_calculo = sorted(transacoes, key=lambda x: x['timestamp'])
-        
+
         if periodo == "0":
-            saldo_sequencial = saldo_inicial_real  # 🔥 SALDO INICIAL REAL DA CONTA
-            print(f"💰 CALCULANDO SALDO SEQUENCIAL A PARTIR DO SALDO INICIAL REAL: {saldo_sequencial:,.2f}")
+            saldo_sequencial = saldo_inicial_real
+            print(f"💰 CALCULANDO SALDO POR DIA: {saldo_sequencial:,.2f}")
         else:
             saldo_sequencial = saldo_inicial_periodo
-            print(f"💰 CALCULANDO SALDO SEQUENCIAL A PARTIR DE: {saldo_sequencial:,.2f}")
+            print(f"💰 CALCULANDO SALDO POR DIA: {saldo_sequencial:,.2f}")
 
-        for transacao in transacoes_ordenadas_calculo:
-            if transacao['tipo'] == "Saldo Inicial":
+        # 🔥 AGRUPAR TRANSAÇÕES POR DIA (mantém a lógica do período)
+        transacoes_por_dia = {}
+        for trans in transacoes_ordenadas_calculo:
+            if trans['tipo'] == "Saldo Inicial":
                 continue
+            data_dia = trans['timestamp'].date()
+            if data_dia not in transacoes_por_dia:
+                transacoes_por_dia[data_dia] = []
+            transacoes_por_dia[data_dia].append(trans)
+
+        # 🔥 ORDENAR TRANSAÇÕES DENTRO DE CADA DIA pela DATA REAL
+        for dia, transacoes_do_dia in transacoes_por_dia.items():
+            transacoes_por_dia[dia] = sorted(transacoes_do_dia, 
+                key=lambda x: self.parse_data_simples(x.get('data', '')).replace(tzinfo=None) 
+                if x.get('data') else x['timestamp'])
+
+        # 🔥 CALCULAR SALDO POR DIA (mantém sua lógica original)
+        saldo_atual = saldo_sequencial
+        transacoes_com_saldo_corrigido = []
+
+        # 🔍🔍🔍 DEBUG DO CÁLCULO POR DIA ↓↓↓
+        print("🔍🔍🔍 DEBUG COMPLETO DO CÁLCULO POR DIA 🔍🔍🔍")
+        print(f"💰 SALDO INICIAL: {saldo_atual:,.2f}")
+        print(f"📊 TOTAL DE DIAS: {len(transacoes_por_dia)}")
+
+        for dia in sorted(transacoes_por_dia.keys()):
+            transacoes_do_dia = transacoes_por_dia[dia]
+            print(f"📅 DIA {dia} - Saldo inicial: {saldo_atual:,.2f}")
+            
+            for i, trans in enumerate(transacoes_do_dia):
+                saldo_anterior = saldo_atual
+                saldo_atual += trans['debito'] - trans['credito']
+                trans['saldo_apos'] = saldo_atual
+                transacoes_com_saldo_corrigido.append(trans)
                 
-            # 🔥 LÓGICA INVERTIDA: Crédito diminui, Débito aumenta
-            saldo_sequencial += transacao['debito'] - transacao['credito']
-            transacao['saldo_apos'] = saldo_sequencial
+                print(f"   {i+1}. {trans['descricao'][:50]}...")
+                print(f"      Débito: {trans['debito']:,.2f} | Crédito: {trans['credito']:,.2f}")
+                print(f"      Cálculo: {saldo_anterior:,.2f} + {trans['debito']:,.2f} - {trans['credito']:,.2f}")
+                print(f"      = {saldo_atual:,.2f}")
+            
+            print(f"   💰 SALDO FINAL DO DIA: {saldo_atual:,.2f}")
+            print("   ---")
+
+        transacoes_ordenadas_calculo = transacoes_com_saldo_corrigido
+        # 🔍🔍🔍 FIM DO DEBUG ↑↑↑
 
         # Calcular totais
         total_entradas = sum(t['debito'] for t in transacoes_ordenadas_calculo)  # 🔥 DÉBITO = ENTRADA
@@ -3194,8 +3254,7 @@ class TelaExtratoContaBancaria(Screen):
             timestamp = self.parse_data_simples(data_transacao)
             
             # 🔥 LÓGICA NORMAL para cálculo histórico de saldo
-            
-            # NOSSA CONTA É REMETENTE (SAÍDA) = DIMINUI SALDO
+                        # NOSSA CONTA É REMETENTE (SAÍDA) = DIMINUI SALDO
             if dados.get('conta_remetente') == self.conta_bancaria_numero:
                 todas_transacoes.append({
                     'data': data_transacao,
@@ -3234,18 +3293,33 @@ class TelaExtratoContaBancaria(Screen):
         return saldo_acumulado
     
     def parse_data_simples(self, data_str):
-        """Versão simplificada do parse_data"""
+        """Versão CORRIGIDA do parse_data - trata formato ISO com T"""
         if not data_str:
             return datetime.datetime.now()
             
         try:
-            if ' ' in data_str and ':' in data_str:
+            # 1. Tentar formato ISO com T (2025-11-28T10:04:24.541064)
+            if 'T' in data_str:
+                # Remover timezone e microssegundos se existirem
+                data_limpa = data_str.split('+')[0].split('Z')[0]
+                if '.' in data_limpa:
+                    data_limpa = data_limpa.split('.')[0]  # Remover microssegundos
+                return datetime.datetime.fromisoformat(data_limpa)
+            
+            # 2. Tentar formato com espaço (2025-11-28 10:04:24)
+            elif ' ' in data_str and ':' in data_str:
                 return datetime.datetime.strptime(data_str, "%Y-%m-%d %H:%M:%S")
+            
+            # 3. Tentar apenas data (2025-11-28)
             elif ' ' in data_str:
                 return datetime.datetime.strptime(data_str.split(' ')[0], "%Y-%m-%d")
+            
+            # 4. Tentar formato básico
             else:
                 return datetime.datetime.strptime(data_str, "%Y-%m-%d")
-        except:
+                
+        except Exception as e:
+            print(f"⚠️ Erro ao converter data '{data_str}': {e}")
             return datetime.datetime.now()
     
     def formatar_data_para_iso(self, data_br):

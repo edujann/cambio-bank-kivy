@@ -711,7 +711,7 @@ class TelaMeuExtrato(Screen):
             container.add_widget(lbl_carregando)
 
     def processar_cambio_nova_tela(self, dados, conta_num, transacoes, transacoes_ids_utilizados, parse_data):
-        """Processa operações de câmbio da nova tela - igual ao cliente"""
+        """Processa operações de câmbio da nova tela - VERSÃO CORRIGIDA COM DESCRIÇÃO INTELIGENTE"""
         
         # Verificar se é uma operação de câmbio da nova tela
         if dados.get('tipo') != 'cambio' or 'conta_origem' not in dados:
@@ -725,42 +725,45 @@ class TelaMeuExtrato(Screen):
         moeda = sistema.contas[conta_num]['moeda']
         
         try:
+            # 🔥 USAR MÉTODO INTELIGENTE PARA GERAR DESCRIÇÃO
+            descricao_inteligente = sistema.gerar_descricao_cambio_inteligente(dados, conta_num)
+            
             # CLIENTE É ORIGEM (SAÍDA/DÉBITO)
             if dados.get('conta_origem') == conta_num:
-                descricao = f"CÂMBIO ENVIADO - {dados.get('moeda_origem', 'N/A')} → {dados.get('moeda_destino', 'N/A')}"
                 
                 nova_transacao = {
                     'data': dados.get('data', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-                    'descricao': descricao,
+                    'descricao': descricao_inteligente,  # 🔥 DESCRIÇÃO INTELIGENTE
                     'credito': 0.00,
                     'debito': dados.get('valor_origem', 0),
                     'tipo': "Câmbio",
                     'moeda': dados.get('moeda_origem', moeda),
                     'timestamp': parse_data(dados.get('data', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))),
-                    'id': dados.get('id', '')  # 🔥 CORREÇÃO AQUI
+                    'id': dados.get('id', '')
                 }
                 
                 transacoes.append(nova_transacao)
-                transacoes_ids_utilizados.add(dados.get('id', ''))  # 🔥 CORREÇÃO AQUI
+                transacoes_ids_utilizados.add(dados.get('id', ''))
+                print(f"✅ CÂMBIO NOVA TELA CLIENTE (ORIGEM): {descricao_inteligente}")
                 return True
             
             # CLIENTE É DESTINO (ENTRADA/CRÉDITO)
             elif dados.get('conta_destino') == conta_num:
-                descricao = f"CÂMBIO RECEBIDO - {dados.get('moeda_origem', 'N/A')} → {dados.get('moeda_destino', 'N/A')}"
                 
                 nova_transacao = {
                     'data': dados.get('data', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-                    'descricao': descricao,
+                    'descricao': descricao_inteligente,  # 🔥 DESCRIÇÃO INTELIGENTE
                     'credito': dados.get('valor_destino', 0),
                     'debito': 0.00,
                     'tipo': "Câmbio",
                     'moeda': dados.get('moeda_destino', moeda),
                     'timestamp': parse_data(dados.get('data', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))),
-                    'id': dados.get('id', '')  # 🔥 CORREÇÃO AQUI
+                    'id': dados.get('id', '')
                 }
                 
                 transacoes.append(nova_transacao)
-                transacoes_ids_utilizados.add(dados.get('id', ''))  # 🔥 CORREÇÃO AQUI
+                transacoes_ids_utilizados.add(dados.get('id', ''))
+                print(f"✅ CÂMBIO NOVA TELA CLIENTE (DESTINO): {descricao_inteligente}")
                 return True
                 
         except Exception as e:
@@ -1424,7 +1427,7 @@ class TelaMeuExtrato(Screen):
                     data_cambio = dados.get('data', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                     # 🔥 MUDANÇA: Usar descrição_origem se disponível, senão criar
                     descricao = dados.get('descricao_origem', 
-                        f"OPERAÇÃO DE CÂMBIO - VENDA - {dados['moeda']} {dados['valor']:,.2f} - {dados.get('taxa_cambio', 1)} - {dados.get('moeda_destino', 'N/A')} {dados.get('valor_destino', dados['valor']):,.2f}")
+                        sistema.gerar_descricao_cambio_inteligente(dados, conta_num))
                     
                     nova_transacao = {
                         'data': data_cambio,
@@ -1548,7 +1551,7 @@ class TelaMeuExtrato(Screen):
                 elif tipo == 'cambio':
                     # 🔥 MUDANÇA: Usar descrição_destino se disponível, senão criar
                     descricao = dados.get('descricao_destino', 
-                        f"OPERAÇÃO DE CÂMBIO - COMPRA - {dados['moeda']} {dados['valor']:,.2f} - {dados.get('taxa_cambio', 1)} - {dados.get('moeda_destino', 'N/A')} {dados.get('valor_destino', dados['valor']):,.2f}")
+                        sistema.gerar_descricao_cambio_inteligente(dados, conta_num))
                     
                     # 🔥 CORREÇÃO: Definir valor_credito ANTES de usar
                     valor_credito = dados.get('valor_destino', dados['valor'])

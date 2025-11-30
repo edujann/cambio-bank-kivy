@@ -1,3 +1,4 @@
+from kivy.app import App
 from supabase_manager import SupabaseManager
 import threading
 import json
@@ -3722,7 +3723,179 @@ class SistemaCambioPremium:
             print("🔄 Salvando apenas localmente...")
             return self.salvar_dados_cotacoes()  # Fallback
 
+    def gerar_descricao_cambio_inteligente(self, dados_cambio, conta_num):
+        """Gera descrição clara para operações de câmbio - VERSÃO CORRIGIDA"""
+        
+        # 1. Identificar tipo de câmbio automaticamente
+        tipo_cambio = self.identificar_tipo_cambio(dados_cambio, conta_num)
+        
+        # 2. Obter informações básicas
+        operacao = dados_cambio.get('operacao', '')
+        moeda_origem = dados_cambio.get('moeda_origem', '')
+        moeda_destino = dados_cambio.get('moeda_destino', '')
+        valor_origem = dados_cambio.get('valor_origem', 0)
+        valor_destino = dados_cambio.get('valor_destino', 0)
+        
+        # 3. Obter taxa correta
+        taxa = self.obter_taxa_correta(dados_cambio, tipo_cambio)
+        
+        # 4. Gerar descrição baseada no tipo
+        if tipo_cambio == 'cliente':
+            return self._descricao_cambio_cliente(dados_cambio, conta_num, taxa)
+        elif tipo_cambio == 'admin_geral':
+            return self._descricao_cambio_admin_geral(dados_cambio, conta_num, taxa)
+        elif tipo_cambio == 'admin_contas_bancarias':
+            return self._descricao_cambio_admin_bancario(dados_cambio, conta_num, taxa)
+        else:
+            return self._descricao_cambio_padrao(dados_cambio, conta_num, taxa)
 
+    def identificar_tipo_cambio(self, dados_cambio, conta_num):
+        """Identifica automaticamente o tipo de operação de câmbio - VERSÃO INTELIGENTE"""
+        
+        id_transacao = dados_cambio.get('id', '')
+        conta_remetente = dados_cambio.get('conta_remetente', '') or ''
+        conta_origem = dados_cambio.get('conta_origem', '') or ''
+        conta_destino = dados_cambio.get('conta_destino', '') or ''
+        executado_por = dados_cambio.get('executado_por', '')
+        usuario = dados_cambio.get('usuario', '')
+        tipo = dados_cambio.get('tipo', '')
+        
+        print(f"🔍 DEBUG IDENTIFICAÇÃO: id={id_transacao}, tipo={tipo}, conta_origem={conta_origem}, conta_destino={conta_destino}")
+        
+        # 1. CÂMBIO ENTRE CONTAS DA EMPRESA (PRIORIDADE MÁXIMA)
+        # Verifica se as contas envolvidas são contas bancárias da empresa
+        sistema = App.get_running_app().sistema
+        
+        def is_conta_empresa(conta):
+            if not conta:
+                return False
+            # Verifica se a conta existe na lista de contas bancárias da empresa
+            return conta in sistema.contas_bancarias_empresa
+        
+        # Verifica se PELO MENOS UMA das contas envolvidas é da empresa
+        contas_envolvidas = [conta_origem, conta_destino, conta_remetente, dados_cambio.get('conta_destinatario', '')]
+        tem_conta_empresa = any(is_conta_empresa(conta) for conta in contas_envolvidas if conta)
+        
+        if tem_conta_empresa:
+            print(f"✅ IDENTIFICADO: admin_contas_bancarias - Conta da empresa detectada")
+            return 'admin_contas_bancarias'
+        
+        # 2. CÂMBIO ENTRE CONTAS DA EMPRESA pelo tipo específico
+        elif tipo == 'cambio_contas_empresa':
+            print(f"✅ IDENTIFICADO: admin_contas_bancarias - Tipo específico detectado")
+            return 'admin_contas_bancarias'
+        
+        # 3. CÂMBIO CLIENTE (Nova tela)
+        elif '_nt' in id_transacao or 'conta_origem' in dados_cambio:
+            print(f"✅ IDENTIFICADO: cliente")
+            return 'cliente'
+        
+        # 4. CÂMBIO ADMIN GERAL (Gerenciar Contas)
+        elif (executado_por == 'admin' or usuario == 'admin' or 
+              'taxa_principal_exibicao' in dados_cambio):
+            print(f"✅ IDENTIFICADO: admin_geral")
+            return 'admin_geral'
+        
+        # 5. PADRÃO (fallback)
+        else:
+            print(f"✅ IDENTIFICADO: cliente (padrão)")
+            return 'cliente'
+
+    def obter_taxa_correta(self, dados_cambio, tipo_cambio):
+        """Obtém a taxa correta para cada tipo de câmbio - VERSÃO ROBUSTA"""
+        
+        print(f"🔍 DEBUG TAXA - Tipo: {tipo_cambio}")
+        
+        if tipo_cambio == 'cliente':
+            # Câmbio cliente: usa 'cotacao' (já com spread)
+            taxa = dados_cambio.get('cotacao', 0)
+            print(f"🔍 DEBUG TAXA CLIENTE: {taxa}")
+            return taxa
+        
+        elif tipo_cambio == 'admin_geral':
+            # Câmbio admin: prioriza taxa_principal_exibicao
+            taxa = dados_cambio.get('taxa_principal_exibicao', 0)
+            if taxa == 0:
+                taxa = dados_cambio.get('cotacao', 0)
+            if taxa == 0:
+                taxa = dados_cambio.get('taxa_cambio', 0)
+            print(f"🔍 DEBUG TAXA ADMIN GERAL: {taxa}")
+            return taxa
+        
+        elif tipo_cambio == 'admin_contas_bancarias':
+            # Câmbio contas bancárias: BUSCA EM MÚLTIPLOS CAMPOS
+            campos_taxa = [
+                'taxa_principal_registro',
+                'taxa_cambio', 
+                'cotacao',
+                'taxa_principal_exibicao'
+            ]
+            
+            for campo in campos_taxa:
+                taxa = dados_cambio.get(campo, 0)
+                if taxa and taxa > 0:
+                    print(f"✅ TAXA ENCONTRADA no campo '{campo}': {taxa}")
+                    return taxa
+            
+            # Fallback: calcular baseado nos valores
+            valor_origem = dados_cambio.get('valor_origem', 0)
+            valor_destino = dados_cambio.get('valor_destino', 0)
+            if valor_origem > 0 and valor_destino > 0:
+                taxa_calculada = valor_destino / valor_origem
+                print(f"🔧 TAXA CALCULADA: {valor_destino} / {valor_origem} = {taxa_calculada}")
+                return taxa_calculada
+            
+            print(f"⚠️ NENHUMA TAXA ENCONTRADA para admin_contas_bancarias")
+            return 0
+        
+        else:
+            taxa = dados_cambio.get('cotacao', 0)
+            print(f"🔍 DEBUG TAXA PADRÃO: {taxa}")
+            return taxa
+
+    def _descricao_cambio_cliente(self, dados_cambio, conta_num, taxa):
+        """Gera descrição para câmbio do cliente"""
+        
+        operacao = dados_cambio.get('operacao', '')
+        moeda_origem = dados_cambio.get('moeda_origem', '')
+        moeda_destino = dados_cambio.get('moeda_destino', '')
+        valor_origem = dados_cambio.get('valor_origem', 0)
+        valor_destino = dados_cambio.get('valor_destino', 0)
+        
+        if operacao == 'compra':
+            return f"COMPRA {moeda_destino} - Pagou {valor_origem:,.2f} {moeda_origem} --> Recebeu {valor_destino:,.2f} {moeda_destino} (Taxa: {taxa:.4f})"
+        else:  # venda
+            return f"VENDA {moeda_origem} - Vendeu {valor_origem:,.2f} {moeda_origem} --> Recebeu {valor_destino:,.2f} {moeda_destino} (Taxa: {taxa:.4f})"
+
+    def _descricao_cambio_admin_geral(self, dados_cambio, conta_num, taxa):
+        """Gera descrição para câmbio admin geral"""
+        
+        moeda_origem = dados_cambio.get('moeda_origem', '')
+        moeda_destino = dados_cambio.get('moeda_destino', '')
+        valor_origem = dados_cambio.get('valor_origem', 0)
+        valor_destino = dados_cambio.get('valor_destino', 0)
+        
+        return f"CONVERSÃO ADMIN - {moeda_origem} {valor_origem:,.2f} --> {moeda_destino} {valor_destino:,.2f} (Taxa: {taxa:.4f})"
+
+    def _descricao_cambio_admin_bancario(self, dados_cambio, conta_num, taxa):
+        """Gera descrição para câmbio entre contas bancárias"""
+        
+        moeda_origem = dados_cambio.get('moeda_origem', '')
+        moeda_destino = dados_cambio.get('moeda_destino', '')
+        valor_origem = dados_cambio.get('valor_origem', 0)
+        valor_destino = dados_cambio.get('valor_destino', 0)
+        
+        return f"CÂMBIO ENTRE CONTAS - {moeda_origem} {valor_origem:,.2f} --> {moeda_destino} {valor_destino:,.2f} (Taxa: {taxa:.6f})"
+
+    def _descricao_cambio_padrao(self, dados_cambio, conta_num, taxa):
+        """Descrição padrão (fallback)"""
+        
+        moeda_origem = dados_cambio.get('moeda_origem', '')
+        moeda_destino = dados_cambio.get('moeda_destino', '')
+        valor_origem = dados_cambio.get('valor_origem', 0)
+        valor_destino = dados_cambio.get('valor_destino', 0)
+        
+        return f"CÂMBIO - {moeda_origem} {valor_origem:,.2f} --> {moeda_destino} {valor_destino:,.2f} (Taxa: {taxa:.4f})"
 
 
 
