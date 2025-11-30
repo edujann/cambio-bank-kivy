@@ -3377,57 +3377,179 @@ class TelaExtratoContaBancaria(Screen):
             if not dados or not isinstance(dados, dict):
                 continue
                 
-            # 🔥 🔥 🔥 CORREÇÃO: VERIFICAR CÂMBIOS ENTRE CONTAS COM CAMPOS ESPECÍFICOS
-            if dados.get('tipo') == 'cambio_contas_empresa':
-                # Para câmbios entre contas, usar campos específicos
+            # 🔥 🔥 🔥 CORREÇÃO COMPLETA: PROCESSAR TODOS OS TIPOS DE TRANSAÇÕES
+            conta_envolvida = False
+            tipo_transacao = dados.get('tipo')
+            
+            # 1. VERIFICAR SE NOSSA CONTA ESTÁ ENVOLVIDA - CORREÇÃO: INCLUIR conta_bancaria_credito
+            if tipo_transacao == 'cambio_contas_empresa':
+                # Câmbios entre contas da empresa
                 conta_origem = dados.get('conta_origem')
                 conta_destino = dados.get('conta_destino')
                 conta_envolvida = (
                     conta_origem == self.conta_bancaria_numero or 
                     conta_destino == self.conta_bancaria_numero
                 )
-                if conta_envolvida:
-                    print(f"🎯 CÂMBIO ENTRE CONTAS ENCONTRADO: {transferencia_id}")
-                    print(f"   - Origem: {conta_origem}")
-                    print(f"   - Destino: {conta_destino}")
-            else:
-                # Para outros tipos, usar campos normais
+                
+            elif tipo_transacao in ['deposito', 'despesa', 'receita', 'ajuste_admin', 
+                                    'internacional', 'transferencia_interancional', 'cambio', 
+                                    'transferencia_interna_cliente', 'saque']:
+                # Outros tipos de transações - CORREÇÃO: INCLUIR conta_bancaria_credito
                 conta_envolvida = (
                     dados.get('conta_remetente') == self.conta_bancaria_numero or 
-                    dados.get('conta_destinatario') == self.conta_bancaria_numero
+                    dados.get('conta_destinatario') == self.conta_bancaria_numero or
+                    dados.get('conta_origem') == self.conta_bancaria_numero or
+                    dados.get('conta_destino') == self.conta_bancaria_numero or
+                    dados.get('conta_bancaria_credito') == self.conta_bancaria_numero  # 🔥 NOVA VERIFICAÇÃO
+                )
+            else:
+                # Tipos não identificados - verificar campos genéricos
+                conta_envolvida = (
+                    dados.get('conta_remetente') == self.conta_bancaria_numero or 
+                    dados.get('conta_destinatario') == self.conta_bancaria_numero or
+                    dados.get('conta_origem') == self.conta_bancaria_numero or
+                    dados.get('conta_destino') == self.conta_bancaria_numero or
+                    dados.get('conta_bancaria_credito') == self.conta_bancaria_numero  # 🔥 NOVA VERIFICAÇÃO
                 )
             
             if not conta_envolvida:
                 continue
-            
-            # 🔥 DEBUG: Verificar se a transação está chegando ao processamento
-            if dados.get('tipo') == 'cambio_contas_empresa':
-                print(f"🎯🎯🎯 TRANSAÇÃO CÂMBIO CHEGOU AO PROCESSAMENTO: {transferencia_id}")
             
             if dados['status'] not in ['completed', 'processing']:
                 continue
             
             data_transacao = dados.get('data', '2024-01-01 00:00:00')
             timestamp = self.parse_data_simples(data_transacao)
+            valor = dados.get('valor', 0)
             
-            # 🔥 LÓGICA NORMAL para cálculo histórico de saldo
-                        # NOSSA CONTA É REMETENTE (SAÍDA) = DIMINUI SALDO
-            if dados.get('conta_remetente') == self.conta_bancaria_numero:
-                todas_transacoes.append({
-                    'data': data_transacao,
-                    'credito': dados['valor'],  # 🔥 CRÉDITO = diminui saldo
-                    'debito': 0.00,
-                    'timestamp': timestamp
-                })
+            # 🔥 DEBUG
+            print(f"🎯 TRANSAÇÃO ENCONTRADA: {transferencia_id} | Tipo: {tipo_transacao}")
             
-            # NOSSA CONTA É DESTINATÁRIO (ENTRADA) = AUMENTA SALDO
-            elif dados.get('conta_destinatario') == self.conta_bancaria_numero:
-                todas_transacoes.append({
-                    'data': data_transacao,
-                    'credito': 0.00,
-                    'debito': dados['valor'],  # 🔥 DÉBITO = aumenta saldo
-                    'timestamp': timestamp
-                })
+            # 2. PROCESSAR CADA TIPO DE TRANSAÇÃO
+            if tipo_transacao == 'cambio_contas_empresa':
+                # 🔥 CÂMBIO ENTRE CONTAS
+                conta_origem = dados.get('conta_origem')
+                conta_destino = dados.get('conta_destino')
+                valor_origem = dados.get('valor_origem', 0)
+                valor_destino = dados.get('valor_destino', 0)
+                
+                if conta_origem == self.conta_bancaria_numero:
+                    # Nossa conta é ORIGEM → SAÍDA
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': valor_origem,  # Diminui saldo
+                        'debito': 0.00,
+                        'timestamp': timestamp
+                    })
+                    print(f"💰 CÂMBIO ORIGEM: -{valor_origem:,.2f}")
+                
+                elif conta_destino == self.conta_bancaria_numero:
+                    # Nossa conta é DESTINO → ENTRADA
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': 0.00,
+                        'debito': valor_destino,  # Aumenta saldo
+                        'timestamp': timestamp
+                    })
+                    print(f"💰 CÂMBIO DESTINO: +{valor_destino:,.2f}")
+            
+            elif tipo_transacao == 'deposito':
+                # 🔥 DEPÓSITO - Nossa conta é DESTINATÁRIO → ENTRADA
+                if dados.get('conta_destinatario') == self.conta_bancaria_numero:
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': 0.00,
+                        'debito': valor,  # Aumenta saldo
+                        'timestamp': timestamp
+                    })
+                    print(f"💰 DEPÓSITO: +{valor:,.2f}")
+            
+            elif tipo_transacao == 'despesa':
+                # 🔥 DESPESA - Nossa conta é REMETENTE → SAÍDA
+                if dados.get('conta_remetente') == self.conta_bancaria_numero:
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': valor,  # Diminui saldo
+                        'debito': 0.00,
+                        'timestamp': timestamp
+                    })
+                    print(f"💰 DESPESA: -{valor:,.2f}")
+            
+            elif tipo_transacao == 'receita':
+                # 🔥 RECEITA - Nossa conta é DESTINATÁRIO → ENTRADA
+                if dados.get('conta_destinatario') == self.conta_bancaria_numero:
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': 0.00,
+                        'debito': valor,  # Aumenta saldo
+                        'timestamp': timestamp
+                    })
+                    print(f"💰 RECEITA: +{valor:,.2f}")
+            
+            elif tipo_transacao == 'ajuste_admin':
+                # 🔥 AJUSTE - Verificar se nossa conta foi creditada/debitada
+                conta_credito = dados.get('conta_bancaria_credito')
+                if conta_credito == self.conta_bancaria_numero:
+                    # AJUSTE POSITIVO → ENTRADA
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': 0.00,
+                        'debito': valor,  # Aumenta saldo
+                        'timestamp': timestamp
+                    })
+                    print(f"💰 AJUSTE POSITIVO: +{valor:,.2f}")
+                elif dados.get('conta_remetente') == self.conta_bancaria_numero:
+                    # AJUSTE NEGATIVO → SAÍDA
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': valor,  # Diminui saldo
+                        'debito': 0.00,
+                        'timestamp': timestamp
+                    })
+                    print(f"💰 AJUSTE NEGATIVO: -{valor:,.2f}")
+            
+            elif tipo_transacao in ['internacional', 'transferencia_interancional', 'cambio', 'transferencia_interna_cliente', 'saque']:
+                # 🔥 TRANSAÇÕES INTERNACIONAIS/CÂMBIO/INTERNAS/SAQUES - Lógica padrão
+                # CORREÇÃO: VERIFICAR TAMBÉM conta_bancaria_credito PARA SAÍDAS
+                if (dados.get('conta_remetente') == self.conta_bancaria_numero or 
+                    dados.get('conta_bancaria_credito') == self.conta_bancaria_numero):
+                    # Nossa conta é REMETENTE ou CONTA_CREDITO → SAÍDA
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': valor,  # Diminui saldo
+                        'debito': 0.00,
+                        'timestamp': timestamp
+                    })
+                    print(f"💰 {tipo_transacao.upper()} SAÍDA: -{valor:,.2f}")
+                
+                elif dados.get('conta_destinatario') == self.conta_bancaria_numero:
+                    # Nossa conta é DESTINATÁRIO → ENTRADA
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': 0.00,
+                        'debito': valor,  # Aumenta saldo
+                        'timestamp': timestamp
+                    })
+                    print(f"💰 {tipo_transacao.upper()} ENTRADA: +{valor:,.2f}")
+            
+            else:
+                # 🔥 TIPO NÃO IDENTIFICADO - Tentar lógica genérica
+                print(f"⚠️ TIPO NÃO MAPEADO: {tipo_transacao}")
+                if (dados.get('conta_remetente') == self.conta_bancaria_numero or 
+                    dados.get('conta_bancaria_credito') == self.conta_bancaria_numero):
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': valor,
+                        'debito': 0.00,
+                        'timestamp': timestamp
+                    })
+                elif dados.get('conta_destinatario') == self.conta_bancaria_numero:
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': 0.00,
+                        'debito': valor,
+                        'timestamp': timestamp
+                    })
         
         # Ordenar transações
         todas_transacoes_ordenadas = sorted(todas_transacoes, key=lambda x: x['timestamp'])

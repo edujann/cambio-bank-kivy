@@ -2571,7 +2571,7 @@ class TelaGerenciarContas(Screen):
         print("✅ Extrato admin carregado com sucesso!")
 
     def calcular_saldo_ate_data_admin(self, conta_num, data_limite):
-        """Calcula o saldo da conta até uma data específica (até o FINAL do dia anterior ao período) - VERSÃO ADMIN"""
+        """Calcula o saldo da conta até uma data específica (até o FINAL do dia anterior ao período) - VERSÃO ADMIN CORRIGIDA"""
         sistema = App.get_running_app().sistema
         
         if conta_num not in sistema.contas:
@@ -2584,118 +2584,209 @@ class TelaGerenciarContas(Screen):
         # Coletar TODAS as transações da conta (sem filtro de data)
         todas_transacoes = []
         
-        # 🔥 ADICIONAR LÓGICA PARA COLETAR TRANSAÇÕES (SIMILAR À ORIGINAL, MAS SEM FILTRO)
-        # Esta é uma versão simplificada apenas para cálculo do saldo
-        
-        # Adicionar saldo inicial zero
+        # 🔥 CORREÇÃO: Adicionar saldo inicial com data FIXA ANTIGA
         todas_transacoes.append({
-                'data': sistema.contas[conta_num].get('data_criacao', '2024-01-01 00:00:00'),
-                'credito': 0.00,
-                'debito': 0.00,
-                'timestamp': self.parse_data_simples(sistema.contas[conta_num].get('data_criacao', '2024-01-01 00:00:00'))
-            })
+            'data': '2024-01-01 00:00:00',  # 🔥 DATA FIXA ANTIGA
+            'credito': 0.00,
+            'debito': 0.00,
+            'timestamp': self.parse_data_simples('2024-01-01 00:00:00')
+        })
+        
+        # 🔥 DEBUG: Contador de transações
+        total_transacoes = 0
+        transacoes_processadas = 0
         
         # Coletar transações de transferências
         for transferencia_id, dados in sistema.transferencias.items():
-                # 🔥 CORREÇÃO: Verificar se a transferência tem a estrutura básica necessária
-                if 'conta_remetente' not in dados:
-                        print(f"⚠️ Transferência {transferencia_id} sem conta_remetente, pulando...")
-                        continue
+            total_transacoes += 1
+            
+            # 🔥 CORREÇÃO: Verificar se a transferência tem a estrutura básica necessária
+            if not dados or not isinstance(dados, dict):
+                print(f"⚠️ Transferência ADMIN {transferencia_id} sem dados válidos, pulando...")
+                continue
+            
+            # 🔥 🔥 🔥 CORREÇÃO COMPLETA: VERIFICAR TODOS OS CAMPOS POSSÍVEIS
+            conta_envolvida = False
+            tipo_transacao = dados.get('tipo', '')
+            
+            # 1. VERIFICAR SE NOSSA CONTA ESTÁ ENVOLVIDA - CORREÇÃO: INCLUIR conta_bancaria_credito
+            conta_envolvida = (
+                dados.get('conta_remetente') == conta_num or 
+                dados.get('conta_destinatario') == conta_num or
+                dados.get('conta_bancaria_credito') == conta_num or  # 🔥 NOVA VERIFICAÇÃO
+                dados.get('conta_origem') == conta_num or
+                dados.get('conta_destino') == conta_num
+            )
+            
+            if not conta_envolvida:
+                continue
+            
+            # Apenas incluir transações completadas ou em processamento
+            if dados.get('status') not in ['completed', 'processing']:
+                continue
+            
+            # 🔥🔥🔥 CORREÇÃO CRÍTICA: USAR DATA REAL DA TRANSAÇÃO
+            # Determinar data da transação - SEMPRE usar 'data' que é o campo correto
+            data_transacao = dados.get('data', '2024-01-01 00:00:00')  # 🔥 CAMPO CORRETO
+            timestamp = self.parse_data_simples(data_transacao)
+            valor = dados.get('valor', 0)
+            
+            transacoes_processadas += 1
+            
+            # 🔥 DEBUG
+            print(f"🎯 TRANSAÇÃO ADMIN ENCONTRADA: {transferencia_id} | Tipo: {tipo_transacao}")
+            
+            # 2. PROCESSAR CADA TIPO DE TRANSAÇÃO COM LÓGICA CORRIGIDA
+            if tipo_transacao == 'cambio':
+                # 🔥 CÂMBIO - Lógica corrigida
+                if dados.get('conta_remetente') == conta_num:
+                    # Conta é REMETENTE → SAÍDA
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': 0.00,
+                        'debito': valor,  # Diminui saldo
+                        'timestamp': timestamp
+                    })
+                    print(f"💰 CÂMBIO ADMIN SAÍDA: -{valor:,.2f}")
                 
-                # Verificar se a transação envolve nossa conta
-                conta_envolvida = (
-                        dados['conta_remetente'] == conta_num or 
-                        dados.get('conta_destinatario') == conta_num
-                    )
-                
-                if not conta_envolvida:
-                        continue
-                
-                # Apenas incluir transações completadas ou em processamento
-                if dados['status'] not in ['completed', 'processing']:
-                        continue
-                
-                # Determinar data da transação
-                data_transacao = dados.get('data_conclusao', dados.get('data_aprovacao', dados.get('data_solicitacao', dados.get('data', '2024-01-01 00:00:00'))))
-                timestamp = self.parse_data_simples(data_transacao)
-                
-                # ✅ CORREÇÃO: DEFINIR 'tipo' ANTES DE USAR
-                tipo = dados.get('tipo', '')
-                
-
-                # CLIENTE É REMETENTE (SAÍDA)
-                if dados['conta_remetente'] == conta_num:
-                        if dados.get('tipo') == 'ajuste_admin':
-                                tipo_ajuste = dados.get('tipo_ajuste', 'DÉBITO')
-                                if tipo_ajuste and (tipo_ajuste.upper() == 'CREDITO' or tipo_ajuste == 'credito'):
-                                        todas_transacoes.append({
-                                                'data': dados['data'],
-                                                'credito': dados['valor'],
-                                                'debito': 0.00,
-                                                'timestamp': timestamp
-                                            })
-                                else:
-                                        todas_transacoes.append({
-                                                'data': dados['data'],
-                                                'credito': 0.00,
-                                                'debito': dados['valor'],
-                                                'timestamp': timestamp
-                                            })
-                        else:
-                                # Transferências normais (débito)
-                                todas_transacoes.append({
-                                        'data': dados['data'],
-                                        'credito': 0.00,
-                                        'debito': dados['valor'],
-                                        'timestamp': timestamp
-                                    })
-                
-                # CLIENTE É DESTINATÁRIO (ENTRADA)
                 elif dados.get('conta_destinatario') == conta_num:
-                        if dados.get('tipo') == 'ajuste_admin' and dados.get('tipo_ajuste') == 'CREDITO':
-                                todas_transacoes.append({
-                                        'data': dados['data'],
-                                        'credito': dados['valor'],
-                                        'debito': 0.00,
-                                        'timestamp': timestamp
-                                    })
-                        elif dados.get('tipo') == 'cambio':
-                                # Câmbio como crédito
-                                valor_credito = dados.get('valor_destino', dados['valor'])
-                                todas_transacoes.append({
-                                        'data': dados['data'],
-                                        'credito': valor_credito,
-                                        'debito': 0.00,
-                                        'timestamp': timestamp
-                                    })
-                        else:
-                                # Transferências recebidas (crédito)
-                                todas_transacoes.append({
-                                        'data': dados['data'],
-                                        'credito': dados['valor'],
-                                        'debito': 0.00,
-                                        'timestamp': timestamp
-                                    })
+                    # Conta é DESTINATÁRIO → ENTRADA
+                    valor_entrada = dados.get('valor_destino', valor)
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': valor_entrada,  # Aumenta saldo
+                        'debito': 0.00,
+                        'timestamp': timestamp
+                    })
+                    print(f"💰 CÂMBIO ADMIN ENTRADA: +{valor_entrada:,.2f}")
+            
+            elif tipo_transacao in ['transferencia_internacional', 'internacional']:
+                # 🔥 TRANSAÇÕES INTERNACIONAIS - CORREÇÃO: VERIFICAR conta_bancaria_credito
+                if (dados.get('conta_remetente') == conta_num or 
+                    dados.get('conta_bancaria_credito') == conta_num):
+                    # Conta é REMETENTE ou CONTA_CREDITO → SAÍDA
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': 0.00,
+                        'debito': valor,  # Diminui saldo
+                        'timestamp': timestamp
+                    })
+                    print(f"💰 INTERNACIONAL ADMIN SAÍDA: -{valor:,.2f}")
+                
+                elif dados.get('conta_destinatario') == conta_num:
+                    # Conta é DESTINATÁRIO → ENTRADA
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': valor,  # Aumenta saldo
+                        'debito': 0.00,
+                        'timestamp': timestamp
+                    })
+                    print(f"💰 INTERNACIONAL ADMIN ENTRADA: +{valor:,.2f}")
+            
+            elif tipo_transacao == 'receita':
+                # 🔥 RECEITA - Conta é DESTINATÁRIO → ENTRADA
+                if dados.get('conta_destinatario') == conta_num:
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': valor,  # Aumenta saldo
+                        'debito': 0.00,
+                        'timestamp': timestamp
+                    })
+                    print(f"💰 RECEITA ADMIN: +{valor:,.2f}")
+            
+            elif tipo_transacao == 'despesa':
+                # 🔥 DESPESA - Conta é REMETENTE → SAÍDA
+                if dados.get('conta_remetente') == conta_num:
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': 0.00,
+                        'debito': valor,  # Diminui saldo
+                        'timestamp': timestamp
+                    })
+                    print(f"💰 DESPESA ADMIN: -{valor:,.2f}")
+            
+            elif tipo_transacao == 'ajuste_admin':
+                # 🔥 AJUSTE ADMINISTRATIVO
+                tipo_ajuste = dados.get('tipo_ajuste', 'DÉBITO')
+                if tipo_ajuste and (tipo_ajuste.upper() == 'CREDITO' or tipo_ajuste == 'credito'):
+                    # AJUSTE POSITIVO → ENTRADA
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': valor,  # Aumenta saldo
+                        'debito': 0.00,
+                        'timestamp': timestamp
+                    })
+                    print(f"💰 AJUSTE POSITIVO ADMIN: +{valor:,.2f}")
+                else:
+                    # AJUSTE NEGATIVO → SAÍDA
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': 0.00,
+                        'debito': valor,  # Diminui saldo
+                        'timestamp': timestamp
+                    })
+                    print(f"💰 AJUSTE NEGATIVO ADMIN: -{valor:,.2f}")
+            
+            elif tipo_transacao == 'deposito':
+                # 🔥 DEPÓSITO - Conta é DESTINATÁRIO → ENTRADA
+                if dados.get('conta_destinatario') == conta_num:
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': valor,  # Aumenta saldo
+                        'debito': 0.00,
+                        'timestamp': timestamp
+                    })
+                    print(f"💰 DEPÓSITO ADMIN: +{valor:,.2f}")
+            
+            else:
+                # 🔥 TIPO NÃO IDENTIFICADO - Tentar lógica genérica
+                print(f"⚠️ TIPO ADMIN NÃO MAPEADO: {tipo_transacao}")
+                if (dados.get('conta_remetente') == conta_num or 
+                    dados.get('conta_bancaria_credito') == conta_num):
+                    # SAÍDA
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': 0.00,
+                        'debito': valor,
+                        'timestamp': timestamp
+                    })
+                elif dados.get('conta_destinatario') == conta_num:
+                    # ENTRADA
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': valor,
+                        'debito': 0.00,
+                        'timestamp': timestamp
+                    })
+        
+        # 🔥 DEBUG: Resumo do processamento
+        print(f"📊 RESUMO PROCESSAMENTO ADMIN:")
+        print(f"   Total de transações no sistema: {total_transacoes}")
+        print(f"   Transações processadas: {transacoes_processadas}")
+        print(f"   Transações na lista final: {len(todas_transacoes)}")
         
         # Ordenar transações por data (mais antigas primeiro)
         todas_transacoes_ordenadas = sorted(todas_transacoes, key=lambda x: x['timestamp'])
         
+        # 🔥 DEBUG: Mostrar todas as transações que serão consideradas
+        print(f"📋 TRANSAÇÕES NA LISTA DE CÁLCULO ADMIN:")
+        for i, transacao in enumerate(todas_transacoes_ordenadas):
+            print(f"   {i}. {transacao['timestamp']} | Crédito: {transacao['credito']:,.2f} | Débito: {transacao['debito']:,.2f}")
+        
         # 🔥 🔥 🔥 CORREÇÃO: Calcular saldo acumulado até o FINAL do dia anterior
-        # A data_limite é o início do período (ex: 05/11/2025 00:00:00)
-        # Queremos incluir todas as transações até o FINAL do dia anterior (04/11/2025 23:59:59)
         data_fim_calculo = data_limite.replace(hour=23, minute=59, second=59, microsecond=999999)
         
-        print(f"🔧 CALCULANDO SALDO ATÉ ADMIN: {data_fim_calculo}")  # DEBUG
+        print(f"🔧 CALCULANDO SALDO ATÉ ADMIN: {data_fim_calculo}")
         
         # Calcular saldo acumulado até a data limite (FINAL do dia anterior)
         for transacao in todas_transacoes_ordenadas:
-                # Só incluir transações até o FINAL do dia anterior
-                if transacao['timestamp'] <= data_fim_calculo:
-                        saldo_acumulado += transacao['credito'] - transacao['debito']
-                        print(f"  ✅ INCLUÍDA ADMIN: {transacao['timestamp']} | Crédito: {transacao['credito']:,.2f} | Débito: {transacao['debito']:,.2f} | Saldo: {saldo_acumulado:,.2f}")
-                else:
-                        print(f"  🔧 EXCLUÍDA ADMIN (após limite): {transacao['timestamp']}")
-                        break  # Parar quando encontrar transação após a data limite
+            # Só incluir transações até o FINAL do dia anterior
+            if transacao['timestamp'] <= data_fim_calculo:
+                saldo_acumulado += transacao['credito'] - transacao['debito']
+                print(f"  ✅ INCLUÍDA ADMIN: {transacao['timestamp']} | Crédito: {transacao['credito']:,.2f} | Débito: {transacao['debito']:,.2f} | Saldo: {saldo_acumulado:,.2f}")
+            else:
+                print(f"  🔧 EXCLUÍDA ADMIN (após limite): {transacao['timestamp']}")
+                break  # Parar quando encontrar transação após a data limite
         
         print(f"💰 SALDO FINAL CALCULADO ADMIN: {saldo_acumulado:,.2f}")
         
@@ -2771,27 +2862,36 @@ class TelaGerenciarContas(Screen):
             return sistema.contas[conta_num].get('cliente_nome', 'N/A')
         return 'N/A'
 
-
-
-
     def parse_data_simples(self, data_str):
-        """Versão simplificada do parse_data para uso no cálculo de saldo"""
+        """Versão simplificada do parse_data para uso no cálculo de saldo - CORREÇÃO CRÍTICA"""
         if not data_str:
-            return datetime.datetime.now()
+            return datetime.datetime(2024, 1, 1)  # 🔥 DATA FIXA ANTIGA
             
         try:
-            # Tentar formato com hora (YYYY-MM-DD HH:MM:SS)
-            if ' ' in data_str and ':' in data_str:
-                return datetime.datetime.strptime(data_str, "%Y-%m-%d %H:%M:%S")
-            # Tentar formato apenas com data (YYYY-MM-DD)
-            elif ' ' in data_str:
-                return datetime.datetime.strptime(data_str.split(' ')[0], "%Y-%m-%d")
-            else:
-                # Apenas data
-                return datetime.datetime.strptime(data_str, "%Y-%m-%d")
-        except:
-            # Fallback para data atual se não conseguir parse
-            return datetime.datetime.now()
+            # 🔥 CORREÇÃO: Tentar múltiplos formatos de data
+            formatos = [
+                '%Y-%m-%d %H:%M:%S',      # 2025-11-27 15:45:56
+                '%Y-%m-%dT%H:%M:%S',      # 2025-11-27T15:45:56 (ISO)
+                '%Y-%m-%dT%H:%M:%S.%f',   # 2025-11-27T15:45:56.123456
+                '%Y-%m-%d',               # 2025-11-27
+                '%d/%m/%Y %H:%M:%S',      # 27/11/2025 15:45:56
+                '%d/%m/%Y'                # 27/11/2025
+            ]
+            
+            for formato in formatos:
+                try:
+                    return datetime.datetime.strptime(data_str, formato)
+                except ValueError:
+                    continue
+            
+            # 🔥 SE NENHUM FORMATO FUNCIONAR, USAR DATA MÍNIMA (NUNCA DATA ATUAL)
+            print(f"⚠️ Não foi possível analisar a data ADMIN: {data_str}")
+            return datetime.datetime(2024, 1, 1)
+            
+        except Exception as e:
+            # 🔥 LOG ESPECÍFICO DO ERRO
+            print(f"❌ Erro crítico ao analisar data ADMIN {data_str}: {e}")
+            return datetime.datetime(2024, 1, 1)  # 🔥 SEMPRE DATA FIXA
     
     def exportar_extrato_pdf(self):
         """Exporta extrato em PDF"""
