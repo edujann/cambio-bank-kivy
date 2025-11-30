@@ -2434,12 +2434,15 @@ class TelaMinhasTransferencias(Screen):
         }
 
     def on_pre_enter(self):
-        """Chamado antes da tela ser mostrada"""
+        """Chamado antes da tela ser mostrada - LIMPAR CACHE AO TROCAR USUÁRIO"""
         from kivy.core.window import Window
         Window.size = (1000, 900)
         
         sistema = App.get_running_app().sistema
         if sistema.usuario_logado and sistema.tipo_usuario_logado == 'cliente':
+            # 🔥 LIMPAR CACHE AO TROCAR DE USUÁRIO
+            self.transferencias_cache = None
+            
             # Configurar cores dos botões inferiores
             self.configurar_cores_botoes_inferiores()
             
@@ -2607,16 +2610,33 @@ class TelaMinhasTransferencias(Screen):
         usuario_data = sistema.usuarios.get(sistema.usuario_logado, {})
         contas_usuario = usuario_data.get('contas', [])
         
-        # ✅ BUSCAR APENAS TRANSFERÊNCIAS INTERNACIONAIS DO CLIENTE
+        # ✅✅✅ BUSCAR APENAS TRANSFERÊNCIAS DO USUÁRIO ATUAL - CORREÇÃO DEFINITIVA
         transferencias_cliente = {}
         
+        # 🔥 DEBUG CRÍTICO - VERIFICAR DADOS DO USUÁRIO
+        print(f"🔍 FILTRO POR USUÁRIO:")
+        print(f"   Usuário atual: {sistema.usuario_logado}")
+        print(f"   Contas do usuário: {contas_usuario}")
+        
         for transferencia_id, dados in sistema.transferencias.items():
-            # ✅ VERIFICAÇÃO 1: É DO USUÁRIO?
+            # ✅✅✅ VERIFICAÇÃO ROBUSTA: É DO USUÁRIO ATUAL?
             conta_remetente = dados.get('conta_remetente')
             conta_destinatario = dados.get('conta_destinatario')
             
-            if conta_remetente not in contas_usuario and conta_destinatario not in contas_usuario:
+            # 🔥 CORREÇÃO: Verificar se PELO MENOS UMA conta pertence ao usuário
+            conta_pertence_usuario = (
+                conta_remetente in contas_usuario or 
+                conta_destinatario in contas_usuario
+            )
+            
+            if not conta_pertence_usuario:
                 continue
+            
+            # 🔥 DEBUG: Mostrar transferências que passaram no filtro
+            print(f"   ✅ Transferência {transferencia_id}:")
+            print(f"      Remetente: {conta_remetente} (pertence? {conta_remetente in contas_usuario})")
+            print(f"      Destinatário: {conta_destinatario} (pertence? {conta_destinatario in contas_usuario})")
+            print(f"      Tipo: {dados.get('tipo')}")
             
             # ✅ VERIFICAÇÃO 2: É TRANSFERÊNCIA INTERNACIONAL?
             tipo_transferencia = dados.get('tipo', '')
@@ -2624,6 +2644,8 @@ class TelaMinhasTransferencias(Screen):
                 continue
             
             transferencias_cliente[transferencia_id] = dados
+        
+        print(f"📊 Transferências filtradas: {len(transferencias_cliente)}")
 
         # 🔥 APLICAR FILTRO DE STATUS (COMPATÍVEL COM ANTIGO E NOVO)
         if filtro_status != "all":

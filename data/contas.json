@@ -244,6 +244,20 @@
         "cliente_nome": "BMW ENTERPRISE",
         "data_criacao": "2025-10-30"
     },
+    "802194129": {
+        "moeda": "BRL",
+        "saldo": 7301.22,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18"
+    },
+    "607906288": {
+        "moeda": "USD",
+        "saldo": 29179.41,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18"
+    },
     "887160827": {
         "moeda": "BRL",
         "saldo": 74592.9,
@@ -286,13 +300,6 @@
         "cliente_nome": "TEXACO LLC",
         "data_criacao": "2025-11-01"
     },
-    "802194129": {
-        "moeda": "BRL",
-        "saldo": -18078.01,
-        "cliente": "pantanal",
-        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
-    },
     "277435777": {
         "moeda": "EUR",
         "saldo": 0.0,
@@ -306,13 +313,6 @@
         "cliente": "makita",
         "cliente_nome": "MAKITA MACHINES LLC",
         "data_criacao": "2025-11-26"
-    },
-    "607906288": {
-        "moeda": "USD",
-        "saldo": 44979.41,
-        "cliente": "pantanal",
-        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
     },
     "464754825": {
         "moeda": "GBP",

@@ -1,22 +1,4 @@
 {
-    "BANK_BRL_001": {
-        "numero": "BANK_BRL_001",
-        "banco": "Banco Principal",
-        "moeda": "BRL",
-        "saldo": 2900000.0,
-        "tipo": "empresa",
-        "agencia": null,
-        "saldo_inicial": 0.0
-    },
-    "BANK_USD_001": {
-        "numero": "BANK_USD_001",
-        "banco": "Banco Principal",
-        "moeda": "USD",
-        "saldo": 993267.86,
-        "tipo": "empresa",
-        "agencia": null,
-        "saldo_inicial": 0.0
-    },
     "BANK_EUR_001": {
         "numero": "BANK_EUR_001",
         "banco": "Banco Principal",
@@ -49,6 +31,24 @@
         "banco": "BANK OF AMERICA",
         "moeda": "UST",
         "saldo": 700000.0,
+        "tipo": "empresa",
+        "agencia": null,
+        "saldo_inicial": 0.0
+    },
+    "BANK_BRL_001": {
+        "numero": "BANK_BRL_001",
+        "banco": "Banco Principal",
+        "moeda": "BRL",
+        "saldo": 2925500.0,
+        "tipo": "empresa",
+        "agencia": null,
+        "saldo_inicial": 0.0
+    },
+    "BANK_USD_001": {
+        "numero": "BANK_USD_001",
+        "banco": "Banco Principal",
+        "moeda": "USD",
+        "saldo": 967467.86,
         "tipo": "empresa",
         "agencia": null,
         "saldo_inicial": 0.0
