@@ -2605,7 +2605,14 @@ class TelaExtratoContaBancaria(Screen):
                 'timestamp': data_inicio_filtro.replace(hour=0, minute=0, second=0)
             }
         
+        # ✅ CORREÇÃO 1.1: DEBUG PARA VERIFICAR SE SALDO INICIAL ESTÁ SENDO CRIADO
+        print(f"🎯🎯🎯 CRIANDO SALDO INICIAL:")
+        print(f"   Descrição: {saldo_inicial_transacao['descricao']}")
+        print(f"   Saldo: {saldo_inicial_transacao['saldo_apos']:,.2f}")
+        print(f"   Data: {saldo_inicial_transacao['data']}")
+        
         transacoes_todas.append(saldo_inicial_transacao)
+
         
         # 🔍 DEBUG ESPECÍFICO PARA AJUSTES DE SALDO
         print(f"🔍 PROCURANDO AJUSTES DE SALDO PARA CONTA: {self.conta_bancaria_numero}")
@@ -3152,7 +3159,21 @@ class TelaExtratoContaBancaria(Screen):
                     transacoes_ids_utilizados.add(transferencia_id)
         
         # Aplicar filtro de data nas transações
+        transacoes_filtradas = []
+
+        # ✅ CORREÇÃO: GARANTIR APENAS 1 SALDO INICIAL E FILTRO ESTRITO
+        saldo_inicial_adicionado = False
+
         for transacao in transacoes_todas:
+            # ✅ PARA SALDO INICIAL: SEMPRE INCLUIR (mas apenas UM)
+            if transacao['tipo'] == "Saldo Inicial":
+                if not saldo_inicial_adicionado:
+                    transacoes_filtradas.append(transacao)
+                    saldo_inicial_adicionado = True
+                    print(f"✅ SALDO INICIAL INCLUÍDO: {transacao['descricao']}")
+                continue
+            
+            # ✅ PARA OUTRAS TRANSAÇÕES: APLICAR FILTRO DE DATA
             data_transacao_str = transacao['data']
             
             if data_inicio_filtro is None or data_fim_filtro is None:
@@ -3160,20 +3181,49 @@ class TelaExtratoContaBancaria(Screen):
                 continue
             
             try:
-                data_transacao = parse_data(data_transacao_str)
-                data_transacao_sem_hora = data_transacao.replace(hour=0, minute=0, second=0, microsecond=0)
-                data_inicio_sem_hora = data_inicio_filtro.replace(hour=0, minute=0, second=0, microsecond=0)
-                data_fim_sem_hora = data_fim_filtro.replace(hour=23, minute=59, second=59, microsecond=999999)
+                # ✅ CORREÇÃO: USAR O TIMESTAMP DIRETO (já é datetime)
+                data_transacao = transacao.get('timestamp')
+                if not data_transacao:
+                    # Se não tem timestamp, tentar parse da string
+                    data_transacao = parse_data(data_transacao_str)
                 
-                if data_transacao_sem_hora >= data_inicio_sem_hora and data_transacao_sem_hora <= data_fim_sem_hora:
+                # ✅ CORREÇÃO: COMPARAÇÃO DIRETA COM TIMEZONE
+                data_inicio_com_hora = data_inicio_filtro.replace(hour=0, minute=0, second=0, microsecond=0)
+                data_fim_com_hora = data_fim_filtro.replace(hour=23, minute=59, second=59, microsecond=999999)
+                
+                # Debug da comparação
+                print(f"🔍 COMPARAÇÃO: {data_transacao.date()} >= {data_inicio_com_hora.date()} && {data_transacao.date()} <= {data_fim_com_hora.date()}")
+                
+                # ✅ FILTRO ESTRITO: APENAS transações dentro do período
+                if data_transacao >= data_inicio_com_hora and data_transacao <= data_fim_com_hora:
                     transacoes_filtradas.append(transacao)
+                    print(f"   ✅ INCLUÍDA: {data_transacao.date()} | {transacao['tipo']}")
+                else:
+                    print(f"   ❌ EXCLUÍDA: {data_transacao.date()} | {transacao['tipo']} - FORA DO PERÍODO")
                     
             except Exception as e:
                 print(f"⚠️ Erro ao processar data da transação: {e}")
-                transacoes_filtradas.append(transacao)
-        
+                # ❌ NÃO adicionar transações com data inválida
+
         print(f"📊 TRANSAÇÕES APÓS FILTRO: {len(transacoes_filtradas)}")
         
+        # ✅ DEBUG CRÍTICO DO FILTRO
+        print(f"🎯🎯🎯 DEBUG FILTRO APLICADO:")
+        print(f"   Período: {data_inicio_filtro.date()} a {data_fim_filtro.date()}")
+        print(f"   Transações após filtro: {len(transacoes_filtradas)}")
+        
+        # Separar por tipo para debug
+        saldos = [t for t in transacoes_filtradas if t['tipo'] == "Saldo Inicial"]
+        outras = [t for t in transacoes_filtradas if t['tipo'] != "Saldo Inicial"]
+        
+        print(f"   - Saldos iniciais: {len(saldos)}")
+        print(f"   - Outras transações: {len(outras)}")
+        
+        # Mostrar datas das outras transações
+        for i, t in enumerate(outras[:5]):  # Mostrar apenas 5 primeiras
+            data_str = t.get('timestamp', 'SEM DATA').strftime('%Y-%m-%d') if hasattr(t.get('timestamp'), 'strftime') else 'SEM DATA'
+            print(f"   {i+1}. {data_str} | {t['tipo']} | {t['descricao'][:30]}...")
+
         transacoes = transacoes_filtradas
         
         # 🔥 🔥 🔥 CÁLCULO DO SALDO COM AGRUPAMENTO POR DIA (SOLUÇÃO DEFINITIVA)
@@ -3186,50 +3236,32 @@ class TelaExtratoContaBancaria(Screen):
             saldo_sequencial = saldo_inicial_periodo
             print(f"💰 CALCULANDO SALDO POR DIA: {saldo_sequencial:,.2f}")
 
-        # 🔥 AGRUPAR TRANSAÇÕES POR DIA (mantém a lógica do período)
-        transacoes_por_dia = {}
-        for trans in transacoes_ordenadas_calculo:
-            if trans['tipo'] == "Saldo Inicial":
-                continue
-            data_dia = trans['timestamp'].date()
-            if data_dia not in transacoes_por_dia:
-                transacoes_por_dia[data_dia] = []
-            transacoes_por_dia[data_dia].append(trans)
-
-        # 🔥 ORDENAR TRANSAÇÕES DENTRO DE CADA DIA pela DATA REAL
-        for dia, transacoes_do_dia in transacoes_por_dia.items():
-            transacoes_por_dia[dia] = sorted(transacoes_do_dia, 
-                key=lambda x: self.parse_data_simples(x.get('data', '')).replace(tzinfo=None) 
-                if x.get('data') else x['timestamp'])
-
-        # 🔥 CALCULAR SALDO POR DIA (mantém sua lógica original)
+        # ✅ DEBUG CRÍTICO: VERIFICAR DUPLICAÇÃO
+        saldos_iniciais = [t for t in transacoes if t['tipo'] == "Saldo Inicial"]
+        print(f"🎯🎯🎯 DEBUG DUPLICAÇÃO: {len(saldos_iniciais)} transações de Saldo Inicial encontradas")
+        for i, saldo in enumerate(saldos_iniciais):
+            print(f"   {i+1}. {saldo['descricao']} | Data: {saldo['data']}")
+        
+        # ✅ CORREÇÃO 1.4: CÁLCULO SIMPLES E CORRETO
+        # Ordenar por timestamp (mais antiga primeiro) para cálculo
+        transacoes_ordenadas_calculo = sorted(transacoes, key=lambda x: x.get('timestamp', datetime.datetime(2000, 1, 1)))
+        
+        # Começar com saldo inicial correto
         saldo_atual = saldo_sequencial
-        transacoes_com_saldo_corrigido = []
-
-        # 🔍🔍🔍 DEBUG DO CÁLCULO POR DIA ↓↓↓
-        print("🔍🔍🔍 DEBUG COMPLETO DO CÁLCULO POR DIA 🔍🔍🔍")
-        print(f"💰 SALDO INICIAL: {saldo_atual:,.2f}")
-        print(f"📊 TOTAL DE DIAS: {len(transacoes_por_dia)}")
-
-        for dia in sorted(transacoes_por_dia.keys()):
-            transacoes_do_dia = transacoes_por_dia[dia]
-            print(f"📅 DIA {dia} - Saldo inicial: {saldo_atual:,.2f}")
-            
-            for i, trans in enumerate(transacoes_do_dia):
+        print(f"💰 SALDO INICIAL DO CÁLCULO: {saldo_atual:,.2f}")
+        
+        # Calcular saldo sequencial simples
+        for transacao in transacoes_ordenadas_calculo:
+            # ✅ CORREÇÃO: PARA SALDO INICIAL, APENAS DEFINIR O SALDO_APOS (NÃO CALCULAR)
+            if transacao['tipo'] == "Saldo Inicial":
+                transacao['saldo_apos'] = saldo_atual
+                print(f"✅ SALDO INICIAL: {transacao['descricao']} | Saldo: {saldo_atual:,.2f}")
+            else:
+                # Para transações normais, calcular
                 saldo_anterior = saldo_atual
-                saldo_atual += trans['debito'] - trans['credito']
-                trans['saldo_apos'] = saldo_atual
-                transacoes_com_saldo_corrigido.append(trans)
-                
-                print(f"   {i+1}. {trans['descricao'][:50]}...")
-                print(f"      Débito: {trans['debito']:,.2f} | Crédito: {trans['credito']:,.2f}")
-                print(f"      Cálculo: {saldo_anterior:,.2f} + {trans['debito']:,.2f} - {trans['credito']:,.2f}")
-                print(f"      = {saldo_atual:,.2f}")
-            
-            print(f"   💰 SALDO FINAL DO DIA: {saldo_atual:,.2f}")
-            print("   ---")
-
-        transacoes_ordenadas_calculo = transacoes_com_saldo_corrigido
+                saldo_atual += transacao.get('debito', 0) - transacao.get('credito', 0)
+                transacao['saldo_apos'] = saldo_atual
+                print(f"📊 {transacao['data']} | {transacao['descricao'][:30]}... | Débito: {transacao['debito']:,.2f} | Crédito: {transacao['credito']:,.2f} | Saldo: {saldo_atual:,.2f}")
         # 🔍🔍🔍 FIM DO DEBUG ↑↑↑
 
         # Calcular totais
