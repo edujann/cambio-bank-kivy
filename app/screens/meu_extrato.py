@@ -11,6 +11,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.graphics import Color, RoundedRectangle
 from kivy.metrics import dp
 from kivy.clock import Clock
+from datetime import timedelta  # 🔥 ADICIONE ESTE IMPORT
 import datetime
 
 # 🔥 MANTENHA TODO O RESTO DO CÓDIGO IGUAL
@@ -892,19 +893,34 @@ class TelaMeuExtrato(Screen):
                 data_inicio_filtro = datetime.datetime.strptime(data_inicio_iso, "%Y-%m-%d")
                 data_fim_filtro = datetime.datetime.strptime(data_fim_iso, "%Y-%m-%d")
                 
+                # 🔥 DEBUG: Verificar se as datas estão corretas
+                print(f"🔧 DEBUG DATAS CALCULADAS:")
+                print(f"   data_inicio_br: {data_inicio_br}")
+                print(f"   data_inicio_iso: {data_inicio_iso}")
+                print(f"   data_inicio_filtro: {data_inicio_filtro}")
+                print(f"   data_fim_br: {data_fim_br}")
+                print(f"   data_fim_iso: {data_fim_iso}")
+                print(f"   data_fim_filtro: {data_fim_filtro}")
+                
                 if data_inicio_filtro > data_fim_filtro:
                     self.mostrar_erro("Data inicial não pode ser maior que data final!")
                     return
                     
                 print(f"🔧 Datas convertidas: {data_inicio_filtro} -> {data_fim_filtro}")
                 
-                # 🔥 CORREÇÃO: CALCULAR SALDO DO DIA ANTERIOR PARA PERÍODO PERSONALIZADO
-                data_dia_anterior = data_inicio_filtro - datetime.timedelta(days=1)
-                print(f"🔧 Calculando saldo do dia anterior: {data_dia_anterior.date()}")
+                # 🔥 CORREÇÃO CRÍTICA: CALCULAR SALDO ATÉ O DIA ANTERIOR AO INÍCIO DO PERÍODO
+                # Se período começa em 29/11, passar 29/11 como data_limite
+                # O método calcular_saldo_ate_data vai calcular saldo até 28/11 23:59:59.999999
+                print(f"🔧 Período personalizado: {data_inicio_filtro.date()} a {data_fim_filtro.date()}")
+                print(f"🔧 Passando data início ({data_inicio_filtro.date()}) para calcular saldo até dia anterior")
                 
-                # Chamar função auxiliar para calcular saldo até o dia anterior
-                saldo_inicial_periodo = self.calcular_saldo_ate_data(conta_num, data_dia_anterior)
-                print(f"💰 SALDO INICIAL DO PERÍODO (dia anterior): {saldo_inicial_periodo:,.2f}")
+                # 🔥 DEBUG EXTRA: Verificar o valor real
+                print(f"🔧 DEBUG: data_inicio_filtro = {data_inicio_filtro}")
+                print(f"🔧 DEBUG: Tipo de data_inicio_filtro = {type(data_inicio_filtro)}")
+                
+                # Passar a data INICIAL, não data_dia_anterior!
+                saldo_inicial_periodo = self.calcular_saldo_ate_data(conta_num, data_inicio_filtro)
+                print(f"💰 SALDO INICIAL DO PERÍODO (calculado até {data_inicio_filtro.date() - datetime.timedelta(days=1)}): {saldo_inicial_periodo:,.2f}")
                     
             except ValueError as e:
                 self.mostrar_erro(f"Data inválida! Use o formato DD/MM/AAAA. Erro: {e}")
@@ -993,12 +1009,12 @@ class TelaMeuExtrato(Screen):
                 dias = int(periodo)
                 data_inicio_filtro = data_fim_filtro - datetime.timedelta(days=dias)
                 
-                # 🔥 CALCULAR SALDO DO DIA ANTERIOR AO INÍCIO DO PERÍODO
-                data_dia_anterior = data_inicio_filtro - datetime.timedelta(days=1)
-                print(f"🔧 Calculando saldo do dia anterior ao período: {data_dia_anterior.date()}")
+                # 🔥 CORREÇÃO CRÍTICA: Passar data_inicio_filtro para calcular saldo até dia anterior
+                print(f"🔧 Período rápido: {data_inicio_filtro.date()} a {data_fim_filtro.date()}")
+                print(f"🔧 Passando data início ({data_inicio_filtro.date()}) para calcular saldo até dia anterior")
                 
-                saldo_inicial_periodo = self.calcular_saldo_ate_data(conta_num, data_dia_anterior)
-                print(f"💰 SALDO INICIAL DO PERÍODO RÁPIDO (dia anterior): {saldo_inicial_periodo:,.2f}")
+                saldo_inicial_periodo = self.calcular_saldo_ate_data(conta_num, data_inicio_filtro)
+                print(f"💰 SALDO INICIAL DO PERÍODO RÁPIDO (calculado até {data_inicio_filtro.date() - datetime.timedelta(days=1)}): {saldo_inicial_periodo:,.2f}")
             
             print(f"🔧 Período rápido: {data_inicio_filtro.date()} -> {data_fim_filtro.date()}")
         
@@ -1019,9 +1035,19 @@ class TelaMeuExtrato(Screen):
             sistema = App.get_running_app().sistema
             return sistema.parse_data_unificada(data_str)
 
+        print(f"🔍🔍🔍 ANTES DE CRIAR TRANSAÇÃO DE SALDO:")
+        print(f"🔍🔍🔍 periodo = {periodo}")
+        print(f"🔍🔍🔍 saldo_inicial_periodo = {saldo_inicial_periodo:,.2f}")
+
         # 🔥 PASSO 1: CRIAR TRANSAÇÃO DE SALDO INICIAL COM VALOR CORRETO PARA TODOS OS PERÍODOS
         if periodo == "personalizado":
             # Para período personalizado, usar o saldo calculado do dia anterior
+            
+            # 🔥 DEBUG CRÍTICO: Verificar o valor que está sendo usado
+            print(f"📝📝📝 DEBUG CRÍTICO: Criando transação de saldo inicial (PERSONALIZADO)")
+            print(f"📝📝📝 saldo_inicial_periodo = {saldo_inicial_periodo:,.2f}")
+            print(f"📝📝📝 data_inicio_filtro = {data_inicio_filtro}")
+            
             saldo_inicial_transacao = {
                 'data': data_inicio_filtro.strftime("%Y-%m-%d") + " 00:00:00",
                 'descricao': "SALDO INICIAL DO PERÍODO",
@@ -1034,6 +1060,11 @@ class TelaMeuExtrato(Screen):
             }
         elif periodo == "0":
             # Para "Todo período", manter comportamento original (saldo zero)
+            
+            # 🔥 DEBUG CRÍTICO: Verificar o valor que está sendo usado
+            print(f"📝📝📝 DEBUG CRÍTICO: Criando transação de saldo inicial (TODO PERÍODO)")
+            print(f"📝📝📝 saldo_inicial_periodo = {saldo_inicial_periodo:,.2f}")
+            
             saldo_inicial_transacao = {
                 'data': dados_conta.get('data_criacao', '2024-01-01 00:00:00'),
                 'descricao': "SALDO INICIAL",
@@ -1046,6 +1077,12 @@ class TelaMeuExtrato(Screen):
             }
         else:
             # 🔥 🔥 🔥 CORREÇÃO: PERÍODOS RÁPIDOS TAMBÉM USAM SALDO CALCULADO
+            
+            # 🔥 DEBUG CRÍTICO: Verificar o valor que está sendo usado
+            print(f"📝📝📝 DEBUG CRÍTICO: Criando transação de saldo inicial (RÁPIDO {periodo} DIAS)")
+            print(f"📝📝📝 saldo_inicial_periodo = {saldo_inicial_periodo:,.2f}")
+            print(f"📝📝📝 data_inicio_filtro = {data_inicio_filtro}")
+            
             saldo_inicial_transacao = {
                 'data': data_inicio_filtro.strftime("%Y-%m-%d") + " 00:00:00",
                 'descricao': f"SALDO INICIAL - {periodo} DIAS",
@@ -1057,10 +1094,21 @@ class TelaMeuExtrato(Screen):
                 'timestamp': data_inicio_filtro.replace(hour=0, minute=0, second=0)
             }
         
+        # Adicionar debug antes de adicionar à lista
+        print(f"📝📝📝 ADICIONANDO TRANSAÇÃO DE SALDO INICIAL:")
+        print(f"📝📝📝 Descrição: {saldo_inicial_transacao['descricao']}")
+        print(f"📝📝📝 Saldo apos: {saldo_inicial_transacao['saldo_apos']:,.2f}")
+        print(f"📝📝📝 Data: {saldo_inicial_transacao['data']}")
+        
         transacoes_todas.append(saldo_inicial_transacao)
 
 
-
+        # 🔥 VERIFICAR se já existe outra transação de saldo
+        for i, t in enumerate(transacoes_todas):
+            if t.get('tipo') == "Saldo Inicial":
+                print(f"⚠️⚠️⚠️ JÁ EXISTE TRANSAÇÃO DE SALDO NA POSIÇÃO {i}:")
+                print(f"⚠️⚠️⚠️ Descrição: {t.get('descricao')}")
+                print(f"⚠️⚠️⚠️ Saldo: {t.get('saldo_apos', 'N/A'):,.2f}")
 
         # 🔥 🔥 🔥 DEBUG ESPECÍFICO PARA A TRANSAÇÃO 408044_nt
         print("=== 🚨 DEBUG ESPECÍFICO 408044_nt ===")
@@ -1762,12 +1810,16 @@ class TelaMeuExtrato(Screen):
         # Ordenar por timestamp (mais antiga primeiro) para cálculo
         transacoes_ordenadas_calculo = sorted(transacoes, key=lambda x: x.get('timestamp', datetime.datetime(2000, 1, 1)))
         
-        # 🔥 VERIFICAR SE ORDENOU CORRETAMENTE
-        print("=== ✅ VERIFICAÇÃO DA ORDENAÇÃO ===")
-        for i, trans in enumerate(transacoes_ordenadas_calculo[:10]):
+        # 🔥 VERIFICAR SE ORDENOU CORRETAMENTE E SE TEM DADOS
+        print("=== ✅ VERIFICAÇÃO DAS TRANSAÇÕES ===")
+        for i, trans in enumerate(transacoes_ordenadas_calculo[:5]):  # Apenas 5 primeiras
             timestamp = trans.get('timestamp')
             data = trans.get('data', '')
-            print(f"{i}. Data: {data} | Timestamp: {timestamp}")
+            tipo = trans.get('tipo', 'N/A')
+            credito = trans.get('credito', 0)
+            debito = transacao.get('debito', 0)
+            descricao = trans.get('descricao', 'N/A')[:40]
+            print(f"{i}. Data: {data} | Tipo: {tipo} | Crédito: {credito:,.2f} | Débito: {debito:,.2f} | Desc: {descricao}")
 
         # 🔥 CORREÇÃO: Para TODOS os períodos (exceto "Todo período"), começar do saldo calculado
         if periodo == "0":
@@ -1777,15 +1829,32 @@ class TelaMeuExtrato(Screen):
             saldo_sequencial = saldo_inicial_periodo
             print(f"💰 CALCULANDO SALDO SEQUENCIAL A PARTIR DE: {saldo_sequencial:,.2f}")
 
+        # 🔥 DEBUG: Mostrar PRIMEIRA transação
+        if transacoes_ordenadas_calculo:
+            primeira = transacoes_ordenadas_calculo[0]
+            print(f"🔍🔍🔍 PRIMEIRA TRANSAÇÃO NA ORDENAÇÃO:")
+            print(f"🔍🔍🔜 Tipo: {primeira.get('tipo')}")
+            print(f"🔍🔍🔜 Descrição: {primeira.get('descricao')}")
+            print(f"🔍🔍🔜 Crédito: {primeira.get('credito', 0):,.2f}")
+            print(f"🔍🔍🔜 Débito: {primeira.get('debito', 0):,.2f}")
+
         for transacao in transacoes_ordenadas_calculo:
             # 🔥 PULAR o saldo inicial (já definimos como saldo_inicial_periodo)
             if transacao['tipo'] == "Saldo Inicial":
                 # Já tem o saldo_apos correto, pular cálculo
+                print(f"💰 PULANDO TRANSAÇÃO DE SALDO INICIAL - Já tem saldo: {transacao.get('saldo_apos', 'N/A'):,.2f}")
                 continue
                 
             # Aplicar a transação ao saldo
-            saldo_sequencial += transacao.get('credito', 0) - transacao.get('debito', 0)
+            credito = transacao.get('credito', 0)
+            debito = transacao.get('debito', 0)
+            saldo_sequencial += credito - debito
             transacao['saldo_apos'] = saldo_sequencial
+            
+            # 🔥 DEBUG de cada transação (apenas algumas)
+            if i < 10:  # Mostrar apenas as primeiras 10
+                print(f"💰 TRANSAÇÃO [{i}]: {transacao.get('descricao', 'N/A')[:40]}")
+                print(f"💰   Crédito: {credito:,.2f} | Débito: {debito:,.2f} | Saldo: {saldo_sequencial:,.2f}")
 
         # 5. 🔥 PASSO 2: VERIFICAR SE PRECISA DE AJUSTE (APÓS calcular o saldo sequencial)
         total_creditos = sum(t.get('credito', 0) for t in transacoes_ordenadas_calculo)
@@ -1840,12 +1909,12 @@ class TelaMeuExtrato(Screen):
         todas_transacoes = []
         
         # Adicionar saldo inicial zero com data FIXA MUITO ANTIGA
-        todas_transacoes.append({
-            'data': '2024-01-01 00:00:00',  # 🔥 DATA FIXA ANTIGA
-            'credito': 0.00,
-            'debito': 0.00,
-            'timestamp': self.parse_data_simples('2024-01-01 00:00:00')
-        })
+        #todas_transacoes.append({
+        #    'data': '2024-01-01 00:00:00',  # 🔥 DATA FIXA ANTIGA
+        #    'credito': 0.00,
+        #    'debito': 0.00,
+        #    'timestamp': self.parse_data_simples('2024-01-01 00:00:00')
+        #})
         
         # 🔥 DEBUG: Contador de transações
         total_transacoes = 0
@@ -1966,15 +2035,19 @@ class TelaMeuExtrato(Screen):
                     print(f"💰 INTERNACIONAL CLIENTE ENTRADA: +{valor:,.2f}")
             
             elif tipo_transacao == 'receita':
-                # 🔥 RECEITA - Cliente é DESTINATÁRIO → ENTRADA
-                if dados.get('conta_destinatario') == conta_num:
+                # 🔥 CORREÇÃO: Se o cliente é o REMETENTE, é DÉBITO
+                if dados.get('conta_remetente') == conta_num:
                     todas_transacoes.append({
                         'data': data_transacao,
-                        'credito': valor,  # Aumenta saldo
-                        'debito': 0.00,
+                        'credito': 0.00,      # NÃO aumenta saldo
+                        'debito': valor,       # DIMINUI saldo
                         'timestamp': timestamp
                     })
-                    print(f"💰 RECEITA CLIENTE: +{valor:,.2f}")
+                    print(f"💰 RECEITA: Cliente PAGA taxa -{valor:,.2f}")
+                else:
+                    # Para o cliente, receitas onde ele NÃO é remetente
+                    # não devem afetar o saldo (são receitas da empresa)
+                    pass
             
             elif tipo_transacao == 'despesa':
                 # 🔥 DESPESA - Cliente é REMETENTE → SAÍDA
@@ -2054,21 +2127,68 @@ class TelaMeuExtrato(Screen):
         for i, transacao in enumerate(todas_transacoes_ordenadas):
             print(f"   {i}. {transacao['timestamp']} | Crédito: {transacao['credito']:,.2f} | Débito: {transacao['debito']:,.2f}")
         
-        # 🔥 🔥 🔥 CORREÇÃO: Calcular saldo acumulado até o FINAL do dia anterior
-        data_fim_calculo = data_limite.replace(hour=23, minute=59, second=59, microsecond=999999)
+        # 🔥 🔥 🔥 CORREÇÃO CRÍTICA: Calcular saldo acumulado até o FINAL do dia ANTERIOR
+        # Se data_limite é 2025-11-29 00:00:00, queremos saldo até 2025-11-28 23:59:59.999999
         
-        print(f"🔧 CALCULANDO SALDO ATÉ: {data_fim_calculo}")
+        # USANDO datetime.timedelta para evitar problemas de import
+        import datetime
+        
+        # 🔥 DEBUG DETALHADO
+        print(f"🔧🔧🔧 DEBUG calcular_saldo_ate_data:")
+        print(f"   Data limite recebida: {data_limite}")
+        print(f"   Tipo data_limite: {type(data_limite)}")
+        
+        # Subtrair UM DIA para obter o dia anterior
+        data_fim_calculo = data_limite - datetime.timedelta(days=1)
+        print(f"   Data após subtrair 1 dia: {data_fim_calculo}")
+        
+        # Ajustar para o FINAL do dia anterior (23:59:59.999999)
+        data_fim_calculo = data_fim_calculo.replace(hour=23, minute=59, second=59, microsecond=999999)
+        print(f"   Data final do cálculo (FINAL do dia anterior): {data_fim_calculo}")
+        print(f"   🔥 RESULTADO: Calculando saldo até o FINAL de {data_fim_calculo.date()}")
+        
+        # DEBUG: Verificar o que deveria ser excluído
+        print(f"🔧 TRANSACOES QUE DEVERIAM SER EXCLUÍDAS (após {data_fim_calculo}):")
         
         # Calcular saldo acumulado até a data limite (FINAL do dia anterior)
-        for transacao in todas_transacoes_ordenadas:
+        saldo_acumulado = 0.0
+        transacoes_incluidas = 0
+        transacoes_excluidas = 0
+        
+        for i, transacao in enumerate(todas_transacoes_ordenadas):
+            # DEBUG para transações críticas
+            if i < 25:  # Mostrar as primeiras 25 transações
+                print(f"   [{i}] {transacao['timestamp']} <= {data_fim_calculo}? {transacao['timestamp'] <= data_fim_calculo}")
+            
             # Só incluir transações até o FINAL do dia anterior
             if transacao['timestamp'] <= data_fim_calculo:
-                saldo_acumulado += transacao['credito'] - transacao['debito']
-                print(f"  ✅ INCLUÍDA: {transacao['timestamp']} | Crédito: {transacao['credito']:,.2f} | Débito: {transacao['debito']:,.2f} | Saldo: {saldo_acumulado:,.2f}")
+                credito = transacao.get('credito', 0)
+                debito = transacao.get('debito', 0)
+                saldo_acumulado += credito - debito
+                transacoes_incluidas += 1
+                
+                # 🔥🔥🔥 DEBUG CRÍTICO - MOSTRAR CADA TRANSAÇÃO 🔥🔥🔥
+                print(f"🎯 TRANSAÇÃO #{i}:")
+                print(f"   Data: {transacao['timestamp']}")
+                print(f"   Crédito: {credito:,.2f}")
+                print(f"   Débito: {debito:,.2f}")
+                print(f"   Operação: {credito:,.2f} - {debito:,.2f} = {credito - debito:,.2f}")
+                print(f"   Saldo acumulado: {saldo_acumulado:,.2f}")
+                print(f"   ---")
+                # 🔥🔥🔥 FIM DO DEBUG 🔥🔥🔥
+                
+                print(f"  ✅ INCLUÍDA #{i}: {transacao['timestamp']} | Crédito: {transacao['credito']:,.2f} | Débito: {transacao['debito']:,.2f} | Saldo: {saldo_acumulado:,.2f}")
             else:
-                print(f"  🔧 EXCLUÍDA (após limite): {transacao['timestamp']}")
-                break  # Parar quando encontrar transação após a data limite
+                transacoes_excluidas += 1
+                if transacoes_excluidas <= 5:  # Mostrar primeiras 5 excluídas
+                    print(f"  🔧 EXCLUÍDA (após limite): {transacao['timestamp']}")
+                if transacoes_excluidas == 1:
+                    print(f"  ⚠️ PRIMEIRA TRANSAÇÃO EXCLUÍDA: {transacao['timestamp']} | Valor: {transacao['credito']:,.2f} / {transacao['debito']:,.2f}")
         
+        print(f"📊 RESUMO FINAL:")
+        print(f"   Transações totais: {len(todas_transacoes_ordenadas)}")
+        print(f"   Transações incluídas: {transacoes_incluidas}")
+        print(f"   Transações excluídas: {transacoes_excluidas}")
         print(f"💰 SALDO FINAL CALCULADO: {saldo_acumulado:,.2f}")
         
         return saldo_acumulado
