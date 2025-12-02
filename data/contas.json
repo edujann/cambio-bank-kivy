@@ -55,13 +55,6 @@
         "cliente_nome": "PRADA LIMITED",
         "data_criacao": "2025-11-02"
     },
-    "581914585": {
-        "moeda": "USD",
-        "saldo": 13600.0,
-        "cliente": "nike",
-        "cliente_nome": "NIKE LLC",
-        "data_criacao": "2025-10-29"
-    },
     "654000645": {
         "moeda": "EUR",
         "saldo": 0.0,
@@ -258,25 +251,25 @@
         "cliente_nome": "APPLE LLC",
         "data_criacao": "2025-11-02"
     },
+    "581914585": {
+        "moeda": "USD",
+        "saldo": 13705.0,
+        "cliente": "nike",
+        "cliente_nome": "NIKE LLC",
+        "data_criacao": "2025-10-29"
+    },
     "802194129": {
         "moeda": "BRL",
-        "saldo": 7301.22,
+        "saldo": 10698.54,
         "cliente": "pantanal",
         "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
         "data_criacao": "2025-11-18"
     },
-    "394549984": {
+    "607906288": {
         "moeda": "USD",
-        "saldo": 0.0,
-        "cliente": "lins",
-        "cliente_nome": "LINS CHAIR LIMITADA",
-        "data_criacao": "2025-11-18"
-    },
-    "873134916": {
-        "moeda": "BRL",
-        "saldo": 0.0,
-        "cliente": "lins",
-        "cliente_nome": "LINS CHAIR LIMITADA",
+        "saldo": 28475.0,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
         "data_criacao": "2025-11-18"
     },
     "202973672": {
@@ -293,19 +286,26 @@
         "cliente_nome": "TEXACO LLC",
         "data_criacao": "2025-11-01"
     },
+    "394549984": {
+        "moeda": "USD",
+        "saldo": 0.0,
+        "cliente": "lins",
+        "cliente_nome": "LINS CHAIR LIMITADA",
+        "data_criacao": "2025-11-18"
+    },
+    "873134916": {
+        "moeda": "BRL",
+        "saldo": 0.0,
+        "cliente": "lins",
+        "cliente_nome": "LINS CHAIR LIMITADA",
+        "data_criacao": "2025-11-18"
+    },
     "277435777": {
         "moeda": "EUR",
         "saldo": 0.0,
         "cliente": "makita",
         "cliente_nome": "MAKITA MACHINES LLC",
         "data_criacao": "2025-11-26"
-    },
-    "607906288": {
-        "moeda": "USD",
-        "saldo": 28000.0,
-        "cliente": "pantanal",
-        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
     },
     "846873177": {
         "moeda": "GBP",

@@ -16,11 +16,13 @@
         BoxLayout:
             orientation: 'vertical'
             size_hint_y: 0.12  # 🔥 VOLTEI para 0.12
-            spacing: 5  # 🔥 VOLTEI para 5
+            spacing: 0  # 🔥 ALTERADO: Reduzido para 0 para controle total
+            padding: [0, 5, 0, 0]  # 🔥 NOVO: Padding para ajuste vertical
             
             Button:
                 text: '< Voltar'
-                size_hint_x: 0.2  # 🔥 VOLTEI para 0.2
+                size_hint: (0.2, None)  # 🔥 ALTERADO: Largura 20%, altura manual
+                height: dp(45)  # 🔥 ALTERADO: Altura fixa
                 background_color: 0.55, 0.36, 0.96, 1
                 color: 1, 1, 1, 1
                 on_press: root.voltar_dashboard()
@@ -29,18 +31,22 @@
             
             Label:
                 text: 'MEUS BENEFICIÁRIOS'
-                font_size: '20sp'  # 🔥 MEIO TERMO: 20sp (era 18sp → 22sp)
+                font_size: '24sp'  # 🔥 MEIO TERMO: 20sp (era 18sp → 22sp)
                 bold: True
                 color: 1, 1, 1, 1
                 text_size: self.width, None
                 halign: 'center'
+                size_hint_y: 0.7  # 🔥 NOVO: Ocupa mais espaço vertical
+                valign: 'top'  # 🔥 NOVO: Alinha o texto na parte inferior
             
             Label:
-                text: 'Gerencie seus beneficiários cadastrados'
+                text: ''
                 font_size: '14sp'  # 🔥 MEIO TERMO: 14sp (era 12sp → 16sp)
                 color: 0.80, 0.84, 0.88, 1
                 text_size: self.width, None
                 halign: 'center'
+                size_hint_y: 0.3  # 🔥 NOVO: Ocupa menos espaço vertical
+                valign: 'bottom'  # 🔥 NOVO: Alinha o texto na parte superior
         
         # Controles - Botão Novo
         BoxLayout:

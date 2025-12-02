@@ -772,6 +772,46 @@ class TelaMeuExtrato(Screen):
         
         return False
 
+    def filtrar_por_data_personalizada(self, transacoes, data_inicio_filtro, data_fim_filtro):
+        """Filtra transações por data para período personalizado"""
+        from kivy.app import App
+        
+        sistema = App.get_running_app().sistema
+        transacoes_filtradas = []
+        
+        def parse_data(data_str):
+            return sistema.parse_data_unificada(data_str)
+        
+        for transacao in transacoes:
+            data_transacao_str = transacao['data']
+            
+            # Se não há filtro de data, incluir todas as transações
+            if data_inicio_filtro is None or data_fim_filtro is None:
+                transacoes_filtradas.append(transacao)
+                continue
+            
+            try:
+                data_transacao = parse_data(data_transacao_str)
+                
+                # Converter para data apenas (sem hora) para comparação
+                data_transacao_sem_hora = data_transacao.replace(hour=0, minute=0, second=0, microsecond=0)
+                data_inicio_sem_hora = data_inicio_filtro.replace(hour=0, minute=0, second=0, microsecond=0)
+                data_fim_sem_hora = data_fim_filtro.replace(hour=23, minute=59, second=59, microsecond=999999)
+                
+                # Verificar se a transação está dentro do período
+                if data_transacao_sem_hora >= data_inicio_sem_hora and data_transacao_sem_hora <= data_fim_sem_hora:
+                    transacoes_filtradas.append(transacao)
+                    print(f"✅ TRANSAÇÃO INCLUÍDA (Filtro Personalizado): {data_transacao_sem_hora.date()} - {transacao['descricao']}")
+                else:
+                    print(f"🔧 TRANSAÇÃO FILTRADA FORA DO PERÍODO: {data_transacao_sem_hora.date()} - {transacao['descricao']}")
+                    
+            except Exception as e:
+                print(f"⚠️ Erro ao processar data da transação: {e}")
+                # Em caso de erro, incluir a transação
+                transacoes_filtradas.append(transacao)
+        
+        return transacoes_filtradas
+
     def carregar_extrato(self):
         """Carrega o extrato - VERSÃO CORRIGIDA COM RECEITAS E SALDO INICIAL"""
         
@@ -1673,44 +1713,60 @@ class TelaMeuExtrato(Screen):
         if not ajuste_na_lista:
             print("❌ AJUSTE NÃO ESTÁ NA LISTA FINAL!")
 
-
         # 🔥 PASSO 3: AGORA APLICAR O FILTRO NAS TRANSAÇÕES JÁ CRIADAS
-        for transacao in transacoes_todas:
+        # ✅ CORREÇÃO: Para período personalizado, usar a nova função de filtro
+        if periodo == "personalizado":
+            print(f"🔍 Aplicando filtro personalizado para {len(transacoes_todas)} transações")
+            transacoes_filtradas = self.filtrar_por_data_personalizada(
+                transacoes_todas, 
+                data_inicio_filtro, 
+                data_fim_filtro
+            )
             
-            # 🔍 DEBUG ESPECÍFICO PARA 520676
-            if transacao.get('id') == "520676":
-                print(f"🎯🎯🎯 DEBUG 520676 NO PROCESSAMENTO FINAL")
-                print(f"🎯🎯🎯 Transação: {transacao}")
-                print(f"🎯🎯🎯 Tem dados: {'dados' in transacao}")
-                if 'dados' in transacao:
-                    print(f"🎯🎯🎯 Dados: {transacao['dados']}")
+            print(f"📊 TRANSAÇÕES APÓS FILTRO PERSONALIZADO: {len(transacoes_filtradas)}")
+            
+            # 🔥 CONTINUAR COM O RESTO DO PROCESSAMENTO
+            transacoes = transacoes_filtradas
+        else:
+            # Para períodos rápidos, manter o filtro original
+            for transacao in transacoes_todas:
+                
+                # 🔍 DEBUG ESPECÍFICO PARA 520676
+                if transacao.get('id') == "520676":
+                    print(f"🎯🎯🎯 DEBUG 520676 NO PROCESSAMENTO FINAL")
+                    print(f"🎯🎯🎯 Transação: {transacao}")
+                    print(f"🎯🎯🎯 Tem dados: {'dados' in transacao}")
+                    if 'dados' in transacao:
+                        print(f"🎯🎯🎯 Dados: {transacao['dados']}")
 
-            data_transacao_str = transacao['data']
-            
-            # Se não há filtro de data, incluir todas as transações
-            if data_inicio_filtro is None or data_fim_filtro is None:
-                transacoes_filtradas.append(transacao)
-                continue
-            
-            try:
-                data_transacao = parse_data(data_transacao_str)
+                data_transacao_str = transacao['data']
                 
-                # Converter para data apenas (sem hora) para comparação
-                data_transacao_sem_hora = data_transacao.replace(hour=0, minute=0, second=0, microsecond=0)
-                data_inicio_sem_hora = data_inicio_filtro.replace(hour=0, minute=0, second=0, microsecond=0)
-                data_fim_sem_hora = data_fim_filtro.replace(hour=23, minute=59, second=59, microsecond=999999)
-                
-                # Verificar se a transação está dentro do período
-                if data_transacao_sem_hora >= data_inicio_sem_hora and data_transacao_sem_hora <= data_fim_sem_hora:
+                # Se não há filtro de data, incluir todas as transações
+                if data_inicio_filtro is None or data_fim_filtro is None:
                     transacoes_filtradas.append(transacao)
-                    print(f"✅ TRANSAÇÃO INCLUÍDA: {data_transacao_sem_hora.date()} - {transacao['descricao']}")
-                else:
-                    print(f"🔧 TRANSAÇÃO FILTRADA FORA DO PERÍODO: {data_transacao_sem_hora.date()} - {transacao['descricao']}")
+                    continue
+                
+                try:
+                    data_transacao = parse_data(data_transacao_str)
                     
-            except Exception as e:
-                print(f"⚠️ Erro ao processar data da transação: {e}")
-                # Em caso de erro, incluir a transação
-                transacoes_filtradas.append(transacao)
+                    # Converter para data apenas (sem hora) para comparação
+                    data_transacao_sem_hora = data_transacao.replace(hour=0, minute=0, second=0, microsecond=0)
+                    data_inicio_sem_hora = data_inicio_filtro.replace(hour=0, minute=0, second=0, microsecond=0)
+                    data_fim_sem_hora = data_fim_filtro.replace(hour=23, minute=59, second=59, microsecond=999999)
+                    
+                    # Verificar se a transação está dentro do período
+                    if data_transacao_sem_hora >= data_inicio_sem_hora and data_transacao_sem_hora <= data_fim_sem_hora:
+                        transacoes_filtradas.append(transacao)
+                        print(f"✅ TRANSAÇÃO INCLUÍDA: {data_transacao_sem_hora.date()} - {transacao['descricao']}")
+                    else:
+                        print(f"🔧 TRANSAÇÃO FILTRADA FORA DO PERÍODO: {data_transacao_sem_hora.date()} - {transacao['descricao']}")
+                        
+                except Exception as e:
+                    print(f"⚠️ Erro ao processar data da transação: {e}")
+                    # Em caso de erro, incluir a transação
+                    transacoes_filtradas.append(transacao)
+            
+            print(f"📊 TRANSAÇÕES APÓS FILTRO: {len(transacoes_filtradas)}")
         
         # ✅ FILTRO FINAL - REMOVER TRANSAÇÕES ZERADAS E SEM DESCRIÇÃO (VERSÃO CORRIGIDA)
         print(f"🔍 FILTRO FINAL: {len(transacoes_todas)} transações antes do filtro")
@@ -2043,11 +2099,7 @@ class TelaMeuExtrato(Screen):
                         'debito': valor,       # DIMINUI saldo
                         'timestamp': timestamp
                     })
-                    print(f"💰 RECEITA: Cliente PAGA taxa -{valor:,.2f}")
-                else:
-                    # Para o cliente, receitas onde ele NÃO é remetente
-                    # não devem afetar o saldo (são receitas da empresa)
-                    pass
+                    print(f"💰 RECEITA CLIENTE: +{valor:,.2f}")
             
             elif tipo_transacao == 'despesa':
                 # 🔥 DESPESA - Cliente é REMETENTE → SAÍDA
