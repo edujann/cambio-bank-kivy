@@ -1142,7 +1142,7 @@ class TelaMeuExtrato(Screen):
                 data_fim_iso = self.formatar_data_para_iso(data_fim_br)
                 
                 data_inicio_filtro = datetime.datetime.strptime(data_inicio_iso, "%Y-%m-%d")
-                data_fim_filtro = datetime.datetime.strptime(data_fim_iso, "%Y-%m-%d")
+                data_fim_filtro = datetime.datetime.strptime(data_fim_iso, "%Y-%m-%d").replace(hour=23, minute=59, second=59, microsecond=999999)
                 
                 # 🔥🔥🔥 CORREÇÃO CRÍTICA: PARA PERÍODO PERSONALIZADO, CRIAR transacoes_todas IGUAL AO RÁPIDO
                 print(f"🔧🔧🔧 CRIANDO transacoes_todas PARA PERÍODO PERSONALIZADO")
@@ -2158,7 +2158,18 @@ class TelaMeuExtrato(Screen):
         
         transacoes_filtradas_final = []
         for trans in transacoes_todas:
-            # ✅ CORREÇÃO: Verificar se a transação tem estrutura válida
+            # 🔥 CORREÇÃO CRÍTICA: Se é uma transação já processada (tem credito/debito), manter mesmo sem 'dados'
+            if isinstance(trans, dict):
+                # Verificar se já é uma transação processada completa
+                tem_credito_debito = 'credito' in trans and 'debito' in trans
+                tem_descricao_valida = trans.get('descricao', '').strip() != ''
+                
+                if tem_credito_debito and tem_descricao_valida:
+                    # É uma transação já processada e válida, manter
+                    transacoes_filtradas_final.append(trans)
+                    continue
+            
+            # Se chegou aqui, não é uma transação processada, aplicar filtro normal
             if not isinstance(trans, dict):
                 print(f"🚫 FILTRO FINAL REMOVIDA: Transação inválida (não é dict): {trans}")
                 continue
@@ -2213,32 +2224,21 @@ class TelaMeuExtrato(Screen):
                     trans['data'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     print(f"🔧 CORREÇÃO PÓS-PROCESSAMENTO: Data None com fallback para {trans.get('id')}")
 
-        # ✅ FILTRO FINAL DEFINITIVO - REMOVER TRANSAÇÕES ZERADAS
+        # ✅ FILTRO FINAL DEFINITIVO - USAR MESMA LÓGICA DO PERÍODO RÁPIDO
         print(f"🔍 FILTRO FINAL DEFINITIVO: {len(transacoes_filtradas)} transações antes do filtro")
 
-        # 🔍 DEBUG ESPECÍFICO PARA 520676
+        # 🔍 DEBUG ESPECÍFICO PARA 705982
         for trans in transacoes_filtradas:
-            if trans.get('id') == "520676":
-                print(f"🔍 DEBUG 520676 NO FILTRO FINAL: {trans}")
-                print(f"🔍 DEBUG 520676 - credito: {trans.get('credito')}, debito: {trans.get('debito')}, descricao: '{trans.get('descricao')}'")
+            trans_id = trans.get('id', 'N/A')
+            if "705982" in str(trans_id):
+                print(f"🔍 DEBUG 705982 NO FILTRO FINAL: credito={trans.get('credito')}, debito={trans.get('debito')}, descricao='{trans.get('descricao')}'")
 
-        transacoes_finais = []
-        for trans in transacoes_filtradas:
-            # ✅ CORREÇÃO: Converter None para 0 (NÃO ALTERA A LÓGICA DOS CÁLCULOS)
-            credito = trans.get('credito') or 0
-            debito = trans.get('debito') or 0
-            descricao = trans.get('descricao', '')
-            
-            # MANTER apenas transações com valor OU com descrição válida
-            if credito != 0 or debito != 0 or (descricao and descricao.strip() != ''):
-                transacoes_finais.append(trans)
-            else:
-                print(f"🚫 FILTRO FINAL REMOVIDA: {trans.get('id', 'N/A')} - '{descricao}'")
+        # ✅ SIMPLIFICAÇÃO RADICAL: USAR MESMA LÓGICA DO PERÍODO RÁPIDO
+        # No período rápido, você simplesmente usa transacoes_filtradas sem filtro adicional
+        # Faça o mesmo aqui
+        transacoes = transacoes_filtradas
         
-        print(f"✅ FILTRO FINAL DEFINITIVO: {len(transacoes_finais)} transações após filtro")
-        
-        # 🔥 DEFINIR transacoes FINALMENTE
-        transacoes = transacoes_finais
+        print(f"✅ FILTRO FINAL DEFINITIVO: {len(transacoes)} transações após filtro (MESMA LÓGICA PERÍODO RÁPIDO)")
         
         # 🔥 DEBUG CRÍTICO DA ORDENAÇÃO
         print("=== 🚨 DEBUG CRÍTICO DA ORDENAÇÃO ===")
@@ -2253,14 +2253,15 @@ class TelaMeuExtrato(Screen):
         
         # 🔥 VERIFICAR SE ORDENOU CORRETAMENTE E SE TEM DADOS
         print("=== ✅ VERIFICAÇÃO DAS TRANSAÇÕES ===")
-        for i, trans in enumerate(transacoes_ordenadas_calculo[:5]):  # Apenas 5 primeiras
+        for i, trans in enumerate(transacoes_ordenadas_calculo[:10]):  # Aumentei para 10
             timestamp = trans.get('timestamp')
             data = trans.get('data', '')
             tipo = trans.get('tipo', 'N/A')
             credito = trans.get('credito', 0)
-            debito = transacao.get('debito', 0)
+            debito = trans.get('debito', 0)
             descricao = trans.get('descricao', 'N/A')[:40]
-            print(f"{i}. Data: {data} | Tipo: {tipo} | Crédito: {credito:,.2f} | Débito: {debito:,.2f} | Desc: {descricao}")
+            trans_id = trans.get('id', 'N/A')
+            print(f"{i}. ID: {trans_id} | Data: {data} | Crédito: {credito:,.2f} | Débito: {debito:,.2f} | Desc: {descricao}")
 
         # 🔥 CORREÇÃO: Para TODOS os períodos (exceto "Todo período"), começar do saldo calculado
         if periodo == "0":
@@ -2274,14 +2275,15 @@ class TelaMeuExtrato(Screen):
         if transacoes_ordenadas_calculo:
             primeira = transacoes_ordenadas_calculo[0]
             print(f"🔍🔍🔍 PRIMEIRA TRANSAÇÃO NA ORDENAÇÃO:")
+            print(f"🔍🔍🔜 ID: {primeira.get('id')}")
             print(f"🔍🔍🔜 Tipo: {primeira.get('tipo')}")
             print(f"🔍🔍🔜 Descrição: {primeira.get('descricao')}")
             print(f"🔍🔍🔜 Crédito: {primeira.get('credito', 0):,.2f}")
             print(f"🔍🔍🔜 Débito: {primeira.get('debito', 0):,.2f}")
 
-        for transacao in transacoes_ordenadas_calculo:
+        for i, transacao in enumerate(transacoes_ordenadas_calculo):
             # 🔥 PULAR o saldo inicial (já definimos como saldo_inicial_periodo)
-            if transacao['tipo'] == "Saldo Inicial":
+            if transacao.get('tipo') == "Saldo Inicial":
                 # Já tem o saldo_apos correto, pular cálculo
                 print(f"💰 PULANDO TRANSAÇÃO DE SALDO INICIAL - Já tem saldo: {transacao.get('saldo_apos', 'N/A'):,.2f}")
                 continue
@@ -2293,8 +2295,9 @@ class TelaMeuExtrato(Screen):
             transacao['saldo_apos'] = saldo_sequencial
             
             # 🔥 DEBUG de cada transação (apenas algumas)
-            if i < 10:  # Mostrar apenas as primeiras 10
-                print(f"💰 TRANSAÇÃO [{i}]: {transacao.get('descricao', 'N/A')[:40]}")
+            if i < 15:  # Mostrar apenas as primeiras 15
+                print(f"💰 TRANSAÇÃO [{i}] ID: {transacao.get('id', 'N/A')}")
+                print(f"💰   Descrição: {transacao.get('descricao', 'N/A')[:50]}")
                 print(f"💰   Crédito: {credito:,.2f} | Débito: {debito:,.2f} | Saldo: {saldo_sequencial:,.2f}")
 
         # 5. 🔥 PASSO 2: VERIFICAR SE PRECISA DE AJUSTE (APÓS calcular o saldo sequencial)

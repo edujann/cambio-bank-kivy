@@ -253,24 +253,10 @@
     },
     "581914585": {
         "moeda": "USD",
-        "saldo": 13705.0,
+        "saldo": 14485.0,
         "cliente": "nike",
         "cliente_nome": "NIKE LLC",
         "data_criacao": "2025-10-29"
-    },
-    "802194129": {
-        "moeda": "BRL",
-        "saldo": 10698.54,
-        "cliente": "pantanal",
-        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
-    },
-    "607906288": {
-        "moeda": "USD",
-        "saldo": 28475.0,
-        "cliente": "pantanal",
-        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
     },
     "202973672": {
         "moeda": "BRL",
@@ -298,6 +284,20 @@
         "saldo": 0.0,
         "cliente": "lins",
         "cliente_nome": "LINS CHAIR LIMITADA",
+        "data_criacao": "2025-11-18"
+    },
+    "802194129": {
+        "moeda": "BRL",
+        "saldo": 10698.54,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18"
+    },
+    "607906288": {
+        "moeda": "USD",
+        "saldo": 28000.0,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
         "data_criacao": "2025-11-18"
     },
     "277435777": {
