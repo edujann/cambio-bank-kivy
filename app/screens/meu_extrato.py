@@ -2323,6 +2323,91 @@ class TelaMeuExtrato(Screen):
         
         print(f"💰 TOTAIS CALCULADOS: Entradas={total_entradas:,.2f}, Saídas={total_saidas:,.2f}")  # DEBUG
         
+        # 🔥 🔥 🔥 CORREÇÃO: GARANTIR QUE SALDO INICIAL É A PRIMEIRA LINHA
+        
+        # (1). SEPARAR O SALDO INICIAL E AS OUTRAS TRANSAÇÕES
+        saldo_inicial = None
+        outras_transacoes = []
+        
+        for trans in transacoes_exibicao:
+            if trans.get('tipo') == "Saldo Inicial":
+                # Encontrou o saldo inicial - guardar separadamente
+                saldo_inicial = trans
+                print(f"✅ ENCONTRADO SALDO INICIAL: {trans.get('descricao')} = {trans.get('saldo_apos', 0):,.2f}")
+            elif trans.get('credito', 0) != 0 or trans.get('debito', 0) != 0:
+                # É uma transação válida (não zerada)
+                if not trans.get('descricao', '').strip():
+                    trans['descricao'] = trans.get('tipo', 'Transação')
+                outras_transacoes.append(trans)
+            else:
+                print(f"🚫 REMOVIDA LINHA ZERADA: {trans.get('id', 'N/A')} - {trans.get('descricao', '')[:30]}")
+        
+        # (2). 🔥 GARANTIR QUE TEMOS UM SALDO INICIAL
+        if not saldo_inicial:
+            print("⚠️ NENHUM SALDO INICIAL ENCONTRADO! Criando um...")
+            if periodo == "personalizado":
+                saldo_inicial = {
+                    'data': data_inicio_filtro.strftime("%Y-%m-%d") + " 00:00:00",
+                    'descricao': "SALDO INICIAL DO PERÍODO",
+                    'credito': 0.00,
+                    'debito': 0.00,
+                    'saldo_apos': saldo_inicial_periodo,
+                    'tipo': "Saldo Inicial",
+                    'moeda': moeda,
+                    'timestamp': data_inicio_filtro.replace(hour=0, minute=0, second=0),
+                    'id': 'SALDO_INICIAL'
+                }
+            else:
+                saldo_inicial = {
+                    'data': data_inicio_filtro.strftime("%Y-%m-%d") + " 00:00:00",
+                    'descricao': f"SALDO INICIAL - {periodo} DIAS",
+                    'credito': 0.00,
+                    'debito': 0.00,
+                    'saldo_apos': saldo_inicial_periodo,
+                    'tipo': "Saldo Inicial",
+                    'moeda': moeda,
+                    'timestamp': data_inicio_filtro.replace(hour=0, minute=0, second=0),
+                    'id': 'SALDO_INICIAL'
+                }
+        
+        # (3). 🔥 CRIAR LISTA FINAL COM SALDO INICIAL COMO PRIMEIRA LINHA
+        transacoes_final = []
+        transacoes_final.append(saldo_inicial)  # 🔥 PRIMEIRA LINHA SEMPRE É O SALDO INICIAL
+        transacoes_final.extend(outras_transacoes)  # 🔥 DEPOIS AS OUTRAS TRANSAÇÕES
+        
+        # (4). RE-CALCULAR SALDO CORRETAMENTE
+        saldo_sequencial = saldo_inicial_periodo
+        
+        for i, trans in enumerate(transacoes_final):
+            if i == 0:
+                # Primeira transação (saldo inicial) já tem saldo correto
+                trans['saldo_apos'] = saldo_inicial_periodo
+                continue
+                
+            # Para as demais transações, calcular saldo sequencial
+            credito = trans.get('credito', 0)
+            debito = trans.get('debito', 0)
+            saldo_sequencial += credito - debito
+            trans['saldo_apos'] = saldo_sequencial
+        
+        # (5). USAR A LISTA FINAL
+        transacoes_exibicao = transacoes_final
+        
+        # 🔥 DEBUG: VERIFICAR A PRIMEIRA LINHA
+        if transacoes_exibicao:
+            primeira = transacoes_exibicao[0]
+            print(f"\n📋 PRIMEIRA LINHA DO EXTRATO:")
+            print(f"   Tipo: {primeira.get('tipo')}")
+            print(f"   Descrição: {primeira.get('descricao')}")
+            print(f"   Saldo: {primeira.get('saldo_apos', 0):,.2f}")
+            print(f"   Total de transações: {len(transacoes_exibicao)} (1 saldo inicial + {len(outras_transacoes)} transações)")
+        
+        # 🔥 CONTINUAR COM O CÓDIGO ORIGINAL ABAIXO
+        total_entradas = sum(t.get('credito', 0) for t in transacoes_exibicao)
+        total_saidas = sum(t.get('debito', 0) for t in transacoes_exibicao)
+        
+        print(f"✅ TRANSAÇÕES VÁLIDAS: {len(transacoes_exibicao)} (1 saldo inicial + {len(outras_transacoes)} transações)")
+
         # 8. ATUALIZAR A INTERFACE
         self.atualizar_interface_extrato(transacoes_exibicao, saldo_atual, total_entradas, total_saidas, moeda, periodo)
         
