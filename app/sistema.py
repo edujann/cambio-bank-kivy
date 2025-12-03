@@ -983,43 +983,47 @@ class SistemaCambioPremium:
             return False
 
     def parse_data_unificada(self, data_str):
-        """
-        Converte string de data para objeto datetime - VERSÃO UNIFICADA
-        USAR EM TODO O SISTEMA para consistência
-        """
-        import datetime
+        """Parseia datas em vários formatos diferentes - VERSÃO SUPER TOLERANTE"""
+        import datetime  # 🔥 Adicione esta linha se não tiver import
         
-        # 1. 🔥 SE DATA É VAZIA/NULA: Usa data ATUAL (não 2000-01-01)
-        if not data_str or data_str in ['None', 'null', '']:
-            return datetime.datetime.now()  # ✅ Data atual como fallback
+        if not data_str or data_str == 'None' or data_str == '':
+            return None
         
-        # Converter para string se necessário
-        data_str = str(data_str).strip()
+        print(f"🔍 PARSING DATA: '{data_str}'")
         
         try:
-            # 2. 📅 FORMATO 1: "2025-11-19 14:44:24" (com espaço)
-            if ' ' in data_str and ':' in data_str:
-                return datetime.datetime.strptime(data_str, "%Y-%m-%d %H:%M:%S")
+            # Remover espaços extras
+            data_str = str(data_str).strip()
             
-            # 3. 🌐 FORMATO 2: "2025-11-19T14:44:24" (formato ISO)
-            elif 'T' in data_str:
-                # Remove timezone: "2025-11-19T14:44:24.21892Z" → "2025-11-19T14:44:24.21892"
-                data_str = data_str.split('+')[0].split('Z')[0]
-                
-                # Se tem microssegundos, usar formato completo
-                if '.' in data_str:
-                    return datetime.datetime.strptime(data_str, "%Y-%m-%dT%H:%M:%S.%f")
-                else:
-                    return datetime.datetime.strptime(data_str, "%Y-%m-%dT%H:%M:%S")
+            # Se já for datetime, retornar
+            if isinstance(data_str, datetime.datetime):
+                return data_str
             
-            # 4. 📆 FORMATO 3: "2025-11-19" (apenas data)
-            else:
-                return datetime.datetime.strptime(data_str, "%Y-%m-%d")
-                
+            # 🔥🔥🔥 FORMATOS NA ORDEM CORRETA (mais comuns primeiro)
+            formatos = [
+                "%Y-%m-%d %H:%M:%S.%f",      # 2025-12-01 19:22:29.684899 (SEU CASO!)
+                "%Y-%m-%dT%H:%M:%S.%f",      # 2025-12-01T19:22:29.684899
+                "%Y-%m-%d %H:%M:%S",         # 2025-12-01 19:22:29
+                "%Y-%m-%dT%H:%M:%S",         # 2025-12-01T19:22:29
+                "%d/%m/%Y %H:%M:%S",         # 01/12/2025 19:22:29
+                "%d/%m/%Y",                  # 01/12/2025
+                "%Y-%m-%d",                  # 2025-12-01
+            ]
+            
+            for formato in formatos:
+                try:
+                    parsed = datetime.datetime.strptime(data_str, formato)
+                    print(f"✅ Data '{data_str}' parseada com formato '{formato}': {parsed}")
+                    return parsed
+                except ValueError:
+                    continue
+            
+            print(f"⚠️ Nenhum formato funcionou para: '{data_str}'")
+            return None
+            
         except Exception as e:
-            print(f"⚠️ Erro ao parse data '{data_str}': {e}")
-            # 5. 🆘 SE TUDO FALHAR: Usa data ATUAL
-            return datetime.datetime.now()
+            print(f"❌ ERRO CRÍTICO parseando data '{data_str}': {e}")
+            return None
 
     def cadastrar_usuario_existente(self, usuario, senha_hash, dados):
         """Método auxiliar para cadastrar usuário já validado"""

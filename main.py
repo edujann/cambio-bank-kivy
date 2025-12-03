@@ -3,7 +3,7 @@ import os
 import builtins
 
 # 🔧 CONFIGURAÇÃO GLOBAL DE DEBUG 
-DEBUG_MODE = False  # 🎚️ False=Produção (RÁPIDO), True=Desenvolvimento
+DEBUG_MODE = True  # 🎚️ False=Produção (RÁPIDO), True=Desenvolvimento
 
 # 🔧 SALVAR PRINT ORIGINAL
 _original_print = builtins.print

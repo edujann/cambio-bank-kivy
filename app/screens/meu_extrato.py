@@ -772,6 +772,28 @@ class TelaMeuExtrato(Screen):
         
         return False
 
+    def debug_transferencias_solicitadas(self, transacoes_todas):
+        """Método de debug específico para transferências solicitadas"""
+        print("🔍🔍🔍 DEBUG DETALHADO DE TRANSFERÊNCIAS SOLICITADAS 🔍🔍🔍")
+        solicitadas_encontradas = []
+        
+        for i, trans in enumerate(transacoes_todas):
+            descricao = trans.get('descricao', '')
+            if 'SOLICITADA' in descricao.upper():
+                solicitadas_encontradas.append({
+                    'indice': i,
+                    'descricao': descricao[:80],
+                    'data': trans.get('data'),
+                    'timestamp': trans.get('timestamp'),
+                    'id': trans.get('id')
+                })
+        
+        print(f"✅ Total de transferências solicitadas encontradas: {len(solicitadas_encontradas)}")
+        for t in solicitadas_encontradas:
+            print(f"   [{t['indice']}] {t['data']} - {t['descricao']}")
+        
+        return solicitadas_encontradas
+
     def filtrar_por_data_personalizada(self, transacoes, data_inicio_filtro, data_fim_filtro):
         """Filtra transações por data para período personalizado"""
         from kivy.app import App
@@ -811,42 +833,231 @@ class TelaMeuExtrato(Screen):
                 transacoes_filtradas.append(transacao)
         
         return transacoes_filtradas
+    
+    def obter_data_transferencia_solicitada(self, dados):
+        """Obtém a data correta para transferências solicitadas - VERSÃO CORRIGIDA"""
+        print(f"🔍🔍🔍 DEBUG OBTENDO DATA PARA SOLICITADA")
+        
+        # 1. Primeiro tentar data_solicitacao
+        data_solicitacao = dados.get('data_solicitacao')
+        print(f"   data_solicitacao: {data_solicitacao}")
+        
+        if data_solicitacao and data_solicitacao != 'None' and data_solicitacao != '':
+            print(f"✅ Usando data_solicitacao: {data_solicitacao}")
+            return data_solicitacao
+        
+        # 2. Tentar data (campo genérico)
+        data_gen = dados.get('data')
+        print(f"   data: {data_gen}")
+        
+        if data_gen and data_gen != 'None' and data_gen != '':
+            print(f"✅ Usando data: {data_gen}")
+            return data_gen
+        
+        # 3. Tentar created_at
+        created_at = dados.get('created_at')
+        print(f"   created_at: {created_at}")
+        
+        if created_at and created_at != 'None' and created_at != '':
+            print(f"✅ Usando created_at: {created_at}")
+            # NÃO adicionar 'T' se não existir!
+            return created_at
+        
+        # 4. Fallback: data atual
+        data_atual = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"⚠️ Nenhuma data encontrada, usando fallback: {data_atual}")
+        return data_atual
+    
+    def aplicar_filtro_data_personalizado(self, transacoes, data_inicio_filtro, data_fim_filtro):
+        """Aplica filtro de data para período personalizado - VERSÃO DEBUG"""
+        from kivy.app import App
+        
+        sistema = App.get_running_app().sistema
+        transacoes_filtradas = []
+        
+        print(f"\n🔍🔍🔍 DEBUG ESPECÍFICO PARA FILTRO PERSONALIZADO 🔍🔍🔍")
+        print(f"Período: {data_inicio_filtro} a {data_fim_filtro}")
+        print(f"Total de transações a filtrar: {len(transacoes)}")
+        
+        # 🔥🔥🔥 DEBUG ESPECIAL: PROCURAR TRANSAÇÃO 705982 NAS transacoes 🔥🔥🔥
+        print(f"\n🎯🎯🎯 BUSCANDO TRANSAÇÃO 705982 EM transacoes:")
+        encontrada_705982 = False
+        for i, trans in enumerate(transacoes):
+            trans_id = trans.get('id', '')
+            if trans_id == '705982' or '705982' in str(trans_id):
+                encontrada_705982 = True
+                print(f"\n✅✅✅ 705982 ENCONTRADA NA POSIÇÃO {i}")
+                print(f"   ID: {trans_id}")
+                print(f"   Tipo de trans: {type(trans)}")
+                print(f"   Chaves: {trans.keys() if isinstance(trans, dict) else 'N/A'}")
+                print(f"   Data: {trans.get('data')}")
+                print(f"   Timestamp: {trans.get('timestamp')}")
+                print(f"   Descrição: {trans.get('descricao', '')[:50]}")
+                break
+        
+        if not encontrada_705982:
+            print("\n❌❌❌ 705982 NÃO ENCONTRADA EM transacoes!")
+            # 🔥 DEBUG: Listar as primeiras 10 transações para ver o que há
+            print("\n📋 PRIMEIRAS 10 TRANSAÇÕES EM transacoes:")
+            for i in range(min(10, len(transacoes))):
+                trans = transacoes[i]
+                print(f"   [{i}] ID: {trans.get('id', 'N/A')} | Data: {trans.get('data', 'N/A')} | Tipo: {trans.get('tipo', 'N/A')}")
+        
+        # DEBUG: Encontrar todas as transferências solicitadas
+        solicitadas = []
+        for i, transacao in enumerate(transacoes):
+            desc = transacao.get('descricao', '')
+            if 'SOLICITADA' in desc:
+                solicitadas.append({
+                    'indice': i,
+                    'id': transacao.get('id'),
+                    'data_str': transacao.get('data'),
+                    'descricao': desc[:50]
+                })
+        
+        print(f"\n🎯 TRANSFERÊNCIAS SOLICITADAS ANTES DO FILTRO: {len(solicitadas)}")
+        for s in solicitadas:
+            print(f"   [{s['indice']}] ID: {s['id']} | Data: {s['data_str']} | {s['descricao']}")
+        
+        # Processar cada transação
+        for i, transacao in enumerate(transacoes):
+            data_transacao_str = transacao.get('data', '')
+            descricao = transacao.get('descricao', '')[:50]
+            trans_id = transacao.get('id', '')
+            
+            # DEBUG ESPECIAL para 705982
+            if trans_id == '705982':
+                print(f"\n🎯🎯🎯 DEBUG ESPECIAL PARA 705982 🎯🎯🎯")
+                print(f"   Índice: {i}")
+                print(f"   Data string: '{data_transacao_str}'")
+                print(f"   Descrição: {descricao}")
+                print(f"   Tipo: {transacao.get('tipo')}")
+                print(f"   Status: {transacao.get('status')}")
+            
+            try:
+                if not data_transacao_str or data_transacao_str == 'None':
+                    if trans_id == '705982':
+                        print(f"⚠️ 705982 sem data válida!")
+                    transacoes_filtradas.append(transacao)
+                    continue
+                
+                # Converter data da transação
+                data_transacao = sistema.parse_data_unificada(data_transacao_str)
+                
+                if not data_transacao:
+                    if trans_id == '705982':
+                        print(f"❌ 705982: parse_data_unificada retornou None!")
+                    transacoes_filtradas.append(transacao)
+                    continue
+                
+                # Verificar se está dentro do período
+                if data_inicio_filtro <= data_transacao <= data_fim_filtro:
+                    if trans_id == '705982':
+                        print(f"✅✅✅ 705982 INCLUÍDA NO PERÍODO!")
+                        print(f"      Data: {data_transacao}")
+                        print(f"      Período: {data_inicio_filtro} a {data_fim_filtro}")
+                    transacoes_filtradas.append(transacao)
+                else:
+                    if trans_id == '705982':
+                        print(f"❌❌❌ 705982 EXCLUÍDA - FORA DO PERÍODO!")
+                        print(f"      Data: {data_transacao}")
+                        print(f"      Período: {data_inicio_filtro} a {data_fim_filtro}")
+                        
+            except Exception as e:
+                print(f"⚠️ Erro ao processar transação {i} (ID: {trans_id}): {e}")
+                transacoes_filtradas.append(transacao)
+        
+        # DEBUG FINAL
+        solicitadas_filtradas = []
+        for i, trans in enumerate(transacoes_filtradas):
+            desc = trans.get('descricao', '')
+            if 'SOLICITADA' in desc:
+                solicitadas_filtradas.append({
+                    'indice': i,
+                    'id': trans.get('id'),
+                    'data_str': trans.get('data'),
+                    'descricao': desc[:50]
+                })
+        
+        print(f"\n📊 RESULTADO FINAL:")
+        print(f"   Transações totais: {len(transacoes)}")
+        print(f"   Transações filtradas: {len(transacoes_filtradas)}")
+        print(f"   Transferências solicitadas após filtro: {len(solicitadas_filtradas)}")
+        
+        for s in solicitadas_filtradas:
+            print(f"   ✅ [{s['indice']}] ID: {s['id']} | Data: {s['data_str']} | {s['descricao']}")
+        
+        return transacoes_filtradas
+    
 
-    def carregar_extrato(self):
-        """Carrega o extrato - VERSÃO CORRIGIDA COM RECEITAS E SALDO INICIAL"""
+
+    def carregar_extrato(self, periodo="30_dias", data_inicio=None, data_fim=None):
+        """Carrega o extrato da conta selecionada"""
+        from kivy.app import App
+        import datetime
         
-        # ========== 🔍 DEBUG CRÍTICO - COLOCAR AQUI ==========
         sistema = App.get_running_app().sistema
         
-        print("=== 🔍 HISTÓRICO COMPLETO DO AJUSTE ===")
+        # 🔥 CORREÇÃO: VERIFICAR SE TEM conta_selecionada OU USAR A DO COMBO
+        if hasattr(self, 'conta_selecionada'):
+            conta_num = self.conta_selecionada['numero']
+        else:
+            # Pegar a conta do combo box
+            if hasattr(self, 'ids') and hasattr(self.ids, 'combo_contas') and self.ids.combo_contas.text:
+                conta_filtro = self.ids.combo_contas.text
+                conta_num = conta_filtro.split(' - ')[0].strip()
+            else:
+                print("❌ ERRO: Nenhuma conta selecionada!")
+                return
         
-        # 1. Verificar logs do sistema durante o ajuste
-        print("📋 Buscando por logs do ajuste...")
-        for trans_id, dados in sistema.transferencias.items():
-            if (dados.get('valor') == 10000 and 
-                dados.get('tipo_ajuste') == 'CREDITO' and
-                'ajuste' in str(dados).lower()):
-                print(f"💰 POSSÍVEL AJUSTE: {trans_id}")
-                print(f"   Conta: {dados.get('conta_remetente')}")
+        # 🔥🔥🔥 DEBUG INICIAL - VERIFICANDO 705982 NO SISTEMA 🔥🔥🔥
+        print(f"\n🎯🎯🎯 DEBUG INICIAL - VERIFICANDO 705982 NO SISTEMA")
+        print(f"📊 Total de transferências no sistema: {len(sistema.transferencias)}")
+        print(f"🎯 Conta selecionada: {conta_num}")
+        print(f"📅 Período: {periodo}")
+        if data_inicio and data_fim:
+            print(f"📅 Data início: {data_inicio}")
+            print(f"📅 Data fim: {data_fim}")
+
+        # Procurar especificamente a 705982
+        encontrou_705982 = False
+        for transferencia_id, dados in sistema.transferencias.items():
+            if transferencia_id == '705982':
+                encontrou_705982 = True
+                print(f"\n✅✅✅ 705982 ENCONTRADA NO SISTEMA!")
+                print(f"   ID: {transferencia_id}")
+                print(f"   Tipo: {dados.get('tipo')}")
+                print(f"   Status: {dados.get('status')}")
                 print(f"   Data: {dados.get('data')}")
-                print(f"   Executado por: {dados.get('executado_por')}")
-                print(f"   Sincronizado: {dados.get('sincronizado_supabase', 'N/A')}")
+                print(f"   Conta remetente: {dados.get('conta_remetente')}")
+                print(f"   Conta destinatario: {dados.get('conta_destinatario')}")
+                print(f"   Nossa conta: {conta_num}")
+                print(f"   É nossa conta? {dados.get('conta_remetente') == conta_num}")
+                
+                # Verificar se está dentro do período personalizado
+                if periodo == "personalizado" and data_inicio and data_fim:
+                    data_transacao_str = dados.get('data', '')
+                    try:
+                        data_transacao = parse_data(data_transacao_str)
+                        dentro_periodo = data_inicio <= data_transacao <= data_fim
+                        print(f"   📅 Dentro do período {data_inicio} a {data_fim}? {dentro_periodo}")
+                    except:
+                        print(f"   ⚠️ Erro ao analisar data: {data_transacao_str}")
+                break
+
+        if not encontrou_705982:
+            print("\n❌❌❌ 705982 NÃO ENCONTRADA NO SISTEMA.TRANSFERENCIAS!")
+            print("📋 Primeiras 5 transferências do sistema:")
+            for i, (transf_id, transf_dados) in enumerate(list(sistema.transferencias.items())[:5]):
+                print(f"   [{i}] ID: {transf_id} | Tipo: {transf_dados.get('tipo')} | Data: {transf_dados.get('data')}")
         
-        # 2. Verificar se há transações "fantasma"
-        print("\n=== 🔍 TRANSAÇÕES RECENTES DA CONTA 607906288 ===")
-        for trans_id, dados in sistema.transferencias.items():
-            if (dados.get('conta_remetente') == '607906288' or 
-                dados.get('conta_destinatario') == '607906288'):
-                data = dados.get('data', '')
-                if '2025-11-21' in data:  # Transações de hoje
-                    print(f"📅 {data} | {dados.get('tipo')} | Valor: {dados.get('valor')} | Status: {dados.get('status')}")
-        # ========== FIM DO DEBUG ==========
-        print("🔄 INICIANDO carregar_extrato...")  
+        print("🎯🎯🎯 FIM DEBUG INICIAL 🎯🎯🎯\n")
         
-        # 🔥 LIMPAR EXTRATO ANTES DE CARREGAR NOVOS DADOS
-        self.limpar_extrato()
-        
-        sistema = App.get_running_app().sistema
+        # 🔥🔥🔥 FIM DO DEBUG 🔥🔥🔥
+
+        # Resto do código continua normalmente...
+        print(f"Carregando extrato para conta: {conta_num}")
+        print(f"Período: {periodo}")
         
         # ✅ DEBUG CRÍTICO - VERIFICAR DE ONDE VÊM AS TRANSAÇÕES
         print(f"🔍 DEBUG: Sistema tem {len(sistema.transferencias)} transferências totais")
@@ -933,6 +1144,85 @@ class TelaMeuExtrato(Screen):
                 data_inicio_filtro = datetime.datetime.strptime(data_inicio_iso, "%Y-%m-%d")
                 data_fim_filtro = datetime.datetime.strptime(data_fim_iso, "%Y-%m-%d")
                 
+                # 🔥🔥🔥 CORREÇÃO CRÍTICA: PARA PERÍODO PERSONALIZADO, CRIAR transacoes_todas IGUAL AO RÁPIDO
+                print(f"🔧🔧🔧 CRIANDO transacoes_todas PARA PERÍODO PERSONALIZADO")
+                
+                # ✅ MESMA LÓGICA DO PERÍODO RÁPIDO: Buscar todas as transferências da conta
+                todas_transferencias = sistema.transferencias
+                print(f"📊 Total de transferências no sistema: {len(todas_transferencias)}")
+                
+                # Filtrar transferências da conta selecionada (MESMO FILTRO DO RÁPIDO)
+                contador_filtradas = 0
+                for transferencia_id, dados in todas_transferencias.items():
+                    
+                    # 🔍 DEBUG ESPECÍFICO PARA A 705982
+                    if transferencia_id == "705982":
+                        print(f"🔍 DEBUG 705982 NO PERÍODO PERSONALIZADO: Data='{dados.get('data')}' | Tipo='{dados.get('tipo')}' | Status='{dados.get('status')}'")
+                    
+                    # ✅ FILTRO RIGOROSO - Apenas transações que REALMENTE afetam a conta (MESMO DO RÁPIDO)
+                    conta_principal = (
+                        dados.get('conta_remetente') == conta_num or 
+                        dados.get('conta_destinatario') == conta_num or
+                        dados.get('conta_origem') == conta_num or
+                        dados.get('conta_destino') == conta_num
+                    )
+                    
+                    if conta_principal:
+                        # ✅ VERIFICAÇÕES EXATAMENTE IGUAIS AO RÁPIDO
+                        valor = dados.get('valor', 0)
+                        valor_valido = valor != 0 and valor is not None
+                        
+                        tem_descricao = bool(dados.get('descricao'))
+                        tem_tipo = bool(dados.get('tipo'))
+                        dados_validos = tem_descricao or tem_tipo
+                        
+                        nao_e_cambio_zerado = not (dados.get('tipo') == 'cambio' and valor == 0)
+                        
+                        if valor_valido and dados_validos and nao_e_cambio_zerado:
+                            # 🔍 DEBUG PARA 705982
+                            if transferencia_id == "705982":
+                                print(f"✅✅✅ 705982 PASSOU NO FILTRO DO PERÍODO PERSONALIZADO!")
+                                print(f"✅✅✅ Valor: {valor}, Dados válidos: {dados_validos}, Não é câmbio zerado: {nao_e_cambio_zerado}")
+                            
+                            transacoes_todas.append({
+                                'id': transferencia_id,
+                                'dados': dados,
+                                'data': dados.get('data', ''),
+                                'tipo': dados.get('tipo', 'transferencia')
+                            })
+                        
+                        else:
+                            contador_filtradas += 1
+                            # DEBUG para 705982
+                            if transferencia_id == "705982":
+                                print(f"🚫 705982 NÃO PASSOU NO FILTRO: valor_valido={valor_valido}, dados_validos={dados_validos}, nao_e_cambio_zerado={nao_e_cambio_zerado}")
+                
+                print(f"✅ PERÍODO PERSONALIZADO: {len(transacoes_todas)} transações válidas para a conta {conta_num}")
+                print(f"🚫 PERÍODO PERSONALIZADO: {contador_filtradas} transações filtradas")
+                
+                # ✅ DEBUG: Verificar se a 705982 foi adicionada
+                encontrou_705982 = False
+                for trans in transacoes_todas:
+                    if trans['id'] == '705982':
+                        encontrou_705982 = True
+                        print(f"✅✅✅ 705982 FOI ADICIONADA A transacoes_todas DO PERÍODO PERSONALIZADO!")
+                        print(f"   Data da transação: {trans['data']}")
+                        # Verificar se está dentro do período
+                        try:
+                            data_transacao = parse_data(trans['data'])
+                            if data_inicio_filtro <= data_transacao <= data_fim_filtro:
+                                print(f"   ✅ ESTÁ DENTRO DO PERÍODO: {data_inicio_filtro} <= {data_transacao} <= {data_fim_filtro}")
+                            else:
+                                print(f"   ❌ NÃO ESTÁ DENTRO DO PERÍODO: {data_transacao} fora de {data_inicio_filtro} a {data_fim_filtro}")
+                        except:
+                            print(f"   ⚠️ Não foi possível verificar data")
+                        break
+                
+                if not encontrou_705982:
+                    print(f"❌❌❌ 705982 NÃO FOI ADICIONADA A transacoes_todas DO PERÍODO PERSONALIZADO!")
+                
+                print(f"🔧🔧🔧 FIM DA CORREÇÃO DO PERÍODO PERSONALIZADO 🔧🔧🔧\n")
+
                 # 🔥 DEBUG: Verificar se as datas estão corretas
                 print(f"🔧 DEBUG DATAS CALCULADAS:")
                 print(f"   data_inicio_br: {data_inicio_br}")
@@ -1341,6 +1631,38 @@ class TelaMeuExtrato(Screen):
             # CLIENTE É REMETENTE (SAÍDAS/DÉBITOS)
             if dados['conta_remetente'] == conta_num:
                 
+                # 🔥 DEBUG ESPECÍFICO PARA 705982 - ADICIONE AQUI 🔥
+                if transferencia_id == '705982':
+                    print(f"\n🔍🔍🔍 DEBUG ESPECÍFICO PARA 705982")
+                    print(f"   Tipo: {dados.get('tipo')}")
+                    print(f"   Status: {dados.get('status')}")
+                    print(f"   Conta remetente: {dados.get('conta_remetente')}")
+                    print(f"   Nossa conta: {conta_num}")
+                    print(f"   É remetente? {dados.get('conta_remetente') == conta_num}")
+                    print(f"   Tem conta_remetente? {'conta_remetente' in dados}")
+                    
+                    # Verificar cada condição do if
+                    conta_envolvida = (
+                        dados['conta_remetente'] == conta_num or 
+                        dados.get('conta_destinatario') == conta_num
+                    )
+                    print(f"   Conta envolvida? {conta_envolvida}")
+                    
+                    # Verificar regras de decisão
+                    status = dados['status']
+                    tipo = dados.get('tipo', 'transferencia_interna')
+                    
+                    if tipo in ['ajuste_admin', 'cambio']:
+                        print(f"   ✅ PASSA: Tipo especial ({tipo})")
+                    elif status == 'pending':
+                        print(f"   ✅ PASSA: Status pending")
+                    elif status == 'rejected':
+                        print(f"   ✅ PASSA: Status rejected")
+                    elif status in ['processing', 'completed']:
+                        print(f"   ✅ PASSA: Status {status}")
+                    else:
+                        print(f"   ❌ NÃO PASSA: Status {status}, Tipo {tipo}")
+                
                 # 🔥 🔥 🔥 CORREÇÃO: CASO ESPECIAL PARA DEPÓSITOS (cliente como remetente)
                 if tipo == 'deposito':
                     # Cliente está como remetente no depósito - isso é um CRÉDITO para o cliente
@@ -1405,9 +1727,27 @@ class TelaMeuExtrato(Screen):
                         print(f"🎯🎯🎯 DEBUG 520676 - PROCESSANDO COMO TRANSFERÊNCIA INTERNACIONAL")
                         print(f"🎯🎯🎯 Status: {status}, Valor: {dados['valor']}")
                     
-                    # 🔥🔥🔥 CORREÇÃO CRÍTICA: GARANTIR DATA VÁLIDA PARA PROCESSING
-                    data_transacao = dados.get('data')
-                    if status == 'processing':
+                    # 🔥🔥🔥 CORREÇÃO CRÍTICA: GARANTIR DATA VÁLIDA PARA TODOS OS STATUS
+                    # PARA TRANSFERÊNCIAS SOLICITADAS: USAR data_solicitacao SE DISPONÍVEL
+                    if status == 'solicitada' or status == 'pending':
+                        # 🔥 NOVA LÓGICA: Buscar data de solicitação específica
+                        data_transacao = self.obter_data_transferencia_solicitada(dados)
+                        status_text = "SOLICITADA"
+                        
+                        # 🔥🔥🔥 DEBUG ESPECÍFICO PARA 705982
+                        if transferencia_id == "705982":
+                            print(f"🎯🎯🎯 DEBUG 705982 - STATUS SOLICITADA")
+                            print(f"🎯🎯🎯 ID: {transferencia_id}")
+                            print(f"🎯🎯🎯 Status: {status}")
+                            print(f"🎯🎯🎯 Data obtida: {data_transacao}")
+                            print(f"🎯🎯🎯 Beneficiário: {dados.get('beneficiario')}")
+                            print(f"🎯🎯🎯 Valor: {dados.get('valor')}")
+                        
+                        print(f"🔧 TRANSFERÊNCIA SOLICITADA: usando data {data_transacao}")
+                        
+                    elif status == 'processing':
+                        # Para processing, usar lógica existente
+                        data_transacao = dados.get('data')
                         if not data_transacao or data_transacao is None:
                             # Tentar várias fontes de data
                             data_transacao = (dados.get('data_solicitacao') or 
@@ -1426,13 +1766,35 @@ class TelaMeuExtrato(Screen):
                         except:
                             # Fallback para data atual
                             data_transacao = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        
+                        status_text = "EM PROCESSAMENTO"
                     
-                    # TRANSFERENCIA INTERNACIOAL REJEITADAS
+                    else:
+                        # Para outros status: criar UMA transação com status apropriado
+                        status_text = "CONCLUÍDA" if status == 'completed' else "RECUSADA"
+                        
+                        # 🔥🔥🔥 CORREÇÃO: GARANTIR DATA VÁLIDA PARA TODOS OS STATUS
+                        # Buscar data de MÚLTIPLAS fontes para evitar None
+                        data_transacao = (dados.get('data_conclusao') or 
+                                         dados.get('data_aprovacao') or 
+                                         dados.get('data_processing') or 
+                                         dados.get('data_solicitacao') or 
+                                         dados.get('data') or
+                                         datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+                        # 🔥 CONVERTER para formato padrão se necessário
+                        try:
+                            if data_transacao and 'T' in data_transacao:
+                                data_obj = datetime.datetime.fromisoformat(data_transacao.replace('Z', '+00:00'))
+                                data_transacao = data_obj.strftime("%Y-%m-%d %H:%M:%S")
+                        except Exception as e:
+                            print(f"⚠️ Erro ao converter data {data_transacao}: {e}")
+                            data_transacao = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    
+                    # TRANSFERENCIA INTERNACIONAL REJEITADAS
                     if status == 'rejected':
                         # 1. Transação de débito (quando foi solicitada)
-                        data_solicitacao = dados.get('data_solicitacao') or dados.get('data')
-                        if not data_solicitacao:
-                            data_solicitacao = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        data_solicitacao = self.obter_data_transferencia_solicitada(dados)
                         
                         timestamp_debito = parse_data(data_solicitacao)
                         
@@ -1470,25 +1832,12 @@ class TelaMeuExtrato(Screen):
                     
                     else:
                         # Para outros status: criar UMA transação com status apropriado
-                        status_text = "SOLICITADA" if status == 'pending' else "EM PROCESSAMENTO" if status == 'processing' else "CONCLUÍDA"
-
-                        # 🔥🔥🔥 CORREÇÃO: GARANTIR DATA VÁLIDA PARA TODOS OS STATUS
-                        # Buscar data de MÚLTIPLAS fontes para evitar None
-                        data_transacao = (dados.get('data_conclusao') or 
-                                         dados.get('data_aprovacao') or 
-                                         dados.get('data_processing') or 
-                                         dados.get('data_solicitacao') or 
-                                         dados.get('data') or  # 🔥 ADICIONAR ESTA LINHA
-                                         datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-
-                        # 🔥 CONVERTER para formato padrão se necessário
-                        try:
-                            if data_transacao and 'T' in data_transacao:
-                                data_obj = datetime.datetime.fromisoformat(data_transacao.replace('Z', '+00:00'))
-                                data_transacao = data_obj.strftime("%Y-%m-%d %H:%M:%S")
-                        except Exception as e:
-                            print(f"⚠️ Erro ao converter data {data_transacao}: {e}")
+                        # Já definimos status_text e data_transacao acima
+                        
+                        # 🔥 GARANTIR que a data_transacao não é None
+                        if not data_transacao or data_transacao == 'None':
                             data_transacao = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            print(f"⚠️ CORREÇÃO: Data None para {transferencia_id}, usando data atual")
 
                         nova_transacao = {
                             'data': data_transacao,
@@ -1505,7 +1854,6 @@ class TelaMeuExtrato(Screen):
                         if transferencia_id == "520676":
                             print(f"🎯🎯🎯 DEBUG 520676 - CRIANDO TRANSAÇÃO FINAL")
                             print(f"🎯🎯🎯 Nova transação: {nova_transacao}")
-
 
                         transacoes_todas.append(nova_transacao)
                         transacoes_ids_utilizados.add(transferencia_id)
@@ -1713,11 +2061,50 @@ class TelaMeuExtrato(Screen):
         if not ajuste_na_lista:
             print("❌ AJUSTE NÃO ESTÁ NA LISTA FINAL!")
 
-        # 🔥 PASSO 3: AGORA APLICAR O FILTRO NAS TRANSAÇÕES JÁ CRIADAS
-        # ✅ CORREÇÃO: Para período personalizado, usar a nova função de filtro
+        # 🔥🔥🔥 NOVO: DEBUG ANTES DO FILTRO
         if periodo == "personalizado":
-            print(f"🔍 Aplicando filtro personalizado para {len(transacoes_todas)} transações")
-            transacoes_filtradas = self.filtrar_por_data_personalizada(
+            print("\n" + "="*80)
+            print("🎯 DEBUG ANTES DO FILTRO PERSONALIZADO")
+            print("="*80)
+            self.debug_transferencias_solicitadas(transacoes_todas)
+        
+        # 🔥 PASSO 3: AGORA APLICAR O FILTRO NAS TRANSAÇÕES JÁ CRIADAS
+        print(f"🎯 TOTAL DE TRANSAÇÕES ANTES DO FILTRO: {len(transacoes_todas)}")
+
+        # 🔥 DEBUG CRÍTICO: VERIFICAR TRANSAÇÕES ANTES DO FILTRO PERSONALIZADO
+        if periodo == "personalizado":
+            print(f"\n🎯🎯🎯 DEBUG ANTES DE CHAMAR aplicar_filtro_data_personalizado 🎯🎯🎯")
+            print(f"Total de transacoes_todas: {len(transacoes_todas)}")
+            
+            # Procurar por 705982 em transacoes_todas
+            encontrou_705982_antes = False
+            for i, trans in enumerate(transacoes_todas):
+                trans_id = trans.get('id', '')
+                if trans_id == '705982' or '705982' in str(trans_id):
+                    encontrou_705982_antes = True
+                    print(f"\n✅✅✅ 705982 ENCONTRADA EM transacoes_todas NA POSIÇÃO {i}")
+                    print(f"   ID: {trans_id}")
+                    print(f"   Tipo: {trans.get('tipo', 'N/A')}")
+                    print(f"   Data: {trans.get('data', 'N/A')}")
+                    print(f"   Descrição: {trans.get('descricao', 'N/A')[:50]}")
+                    break
+            
+            if not encontrou_705982_antes:
+                print("\n❌❌❌ 705982 NÃO ENCONTRADA EM transacoes_todas!")
+                
+                # Listar TODAS as transferências internacionais em transacoes_todas
+                print("\n📋 TODAS AS TRANSFERÊNCIAS INTERNACIONAIS EM transacoes_todas:")
+                transferencias_count = 0
+                for i, trans in enumerate(transacoes_todas):
+                    descricao = trans.get('descricao', '')
+                    if 'INTERNACIONAL' in descricao or 'TRANSF.' in descricao:
+                        transferencias_count += 1
+                        print(f"   [{i}] ID: {trans.get('id', 'N/A')} | Data: {trans.get('data', 'N/A')} | Desc: {descricao[:60]}")
+                
+                print(f"\n📊 Total de transferências internacionais em transacoes_todas: {transferencias_count}")
+            
+            print("🎯🎯🎯 FIM DEBUG ANTES DO FILTRO 🎯🎯🎯\n")
+            transacoes_filtradas = self.aplicar_filtro_data_personalizado(
                 transacoes_todas, 
                 data_inicio_filtro, 
                 data_fim_filtro
@@ -1725,8 +2112,6 @@ class TelaMeuExtrato(Screen):
             
             print(f"📊 TRANSAÇÕES APÓS FILTRO PERSONALIZADO: {len(transacoes_filtradas)}")
             
-            # 🔥 CONTINUAR COM O RESTO DO PROCESSAMENTO
-            transacoes = transacoes_filtradas
         else:
             # Para períodos rápidos, manter o filtro original
             for transacao in transacoes_todas:
@@ -1864,7 +2249,7 @@ class TelaMeuExtrato(Screen):
         
         # 4. CALCULAR SALDO SEQUENCIAL CORRETAMENTE
         # Ordenar por timestamp (mais antiga primeiro) para cálculo
-        transacoes_ordenadas_calculo = sorted(transacoes, key=lambda x: x.get('timestamp', datetime.datetime(2000, 1, 1)))
+        transacoes_ordenadas_calculo = sorted(transacoes, key=lambda x: x.get('timestamp') or datetime.datetime(2000, 1, 1))
         
         # 🔥 VERIFICAR SE ORDENOU CORRETAMENTE E SE TEM DADOS
         print("=== ✅ VERIFICAÇÃO DAS TRANSAÇÕES ===")
