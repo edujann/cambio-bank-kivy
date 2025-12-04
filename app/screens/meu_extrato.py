@@ -1879,8 +1879,8 @@ class TelaMeuExtrato(Screen):
                     transacoes_todas.append(nova_transacao)
                     transacoes_ids_utilizados.add(transferencia_id)
                 
-                # TRANSFERÊNCIA INTERNA
-                else:
+                # TRANSFERÊNCIA INTERNA ou TRANSFERÊNCIA INTERNA CLIENTE
+                elif tipo in ['transferencia_interna', 'transferencia_interna_cliente']:
                     # 🔥 CORREÇÃO: PARA REJEITADAS, CRIAR DUAS TRANSAÇÕES
                     if status == 'rejected':
                         # 1. Transação de débito (quando foi solicitada)
@@ -1925,17 +1925,44 @@ class TelaMeuExtrato(Screen):
                     else:
                         # Para outros status: criar UMA transação com status apropriado
                         status_text = "SOLICITADA" if status == 'pending' else "EM PROCESSAMENTO" if status == 'processing' else "CONCLUÍDA"
-                        data_transferencia = dados.get('data_recusa', dados.get('data', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                        
+                        # 🔥🔥🔥 CORREÇÃO CRÍTICA: OBTER DATA CORRETA
+                        # Primeiro tentar 'data', depois 'data_conclusao', depois fallback
+                        data_transferencia = dados.get('data')
+                        
+                        # 🔥 DEBUG ESPECÍFICO PARA 733125
+                        if transferencia_id == "733125":
+                            print(f"🎯🎯🎯 DEBUG 733125 - OBTENDO DATA")
+                            print(f"   Campo 'data': {dados.get('data')}")
+                            print(f"   Campo 'data_conclusao': {dados.get('data_conclusao')}")
+                            print(f"   Campo 'created_at': {dados.get('created_at')}")
+                        
+                        if not data_transferencia or data_transferencia == 'None':
+                            data_transferencia = dados.get('data_conclusao', 
+                                        dados.get('data_solicitacao', 
+                                        datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                        
+                        # 🔥 CORREÇÃO: Se ainda não tem data, usar fallback com horário da transação
+                        if not data_transferencia or data_transferencia == 'None':
+                            data_transferencia = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        
                         nova_transacao = {
                             'data': data_transferencia,
                             'descricao': f"TRANSFERÊNCIA {status_text} - {self.obter_nome_cliente_por_conta(sistema, dados.get('conta_destinatario', 'N/A'))}",
                             'credito': 0.00,
                             'debito': dados['valor'],
-                            'tipo': "Transferência",
+                            'tipo': "Transferência" if tipo == 'transferencia_interna' else "Transferência Interna",
                             'moeda': dados['moeda'],
                             'timestamp': parse_data(data_transferencia),
                             'id': transferencia_id
                         }
+                        
+                        # 🔥 DEBUG ESPECÍFICO PARA 733125
+                        if transferencia_id == "733125":
+                            print(f"🎯🎯🎯 DEBUG 733125 - TRANSAÇÃO CRIADA")
+                            print(f"   Data usada: {data_transferencia}")
+                            print(f"   Timestamp: {parse_data(data_transferencia)}")
+                            print(f"   Descrição: {nova_transacao['descricao']}")
                         
                         transacoes_todas.append(nova_transacao)
                         transacoes_ids_utilizados.add(transferencia_id)
@@ -2618,25 +2645,25 @@ class TelaMeuExtrato(Screen):
                     })
                     print(f"💰 DEPÓSITO CLIENTE: +{valor:,.2f}")
             
-            else:
-                # 🔥 TIPO NÃO IDENTIFICADO - Tentar lógica genérica
-                print(f"⚠️ TIPO CLIENTE NÃO MAPEADO: {tipo_transacao}")
-                if dados.get('conta_remetente') == conta_num:
-                    # SAÍDA
-                    todas_transacoes.append({
-                        'data': data_transacao,
-                        'credito': 0.00,
-                        'debito': valor,
-                        'timestamp': timestamp
-                    })
-                elif dados.get('conta_destinatario') == conta_num:
-                    # ENTRADA
-                    todas_transacoes.append({
-                        'data': data_transacao,
-                        'credito': valor,
-                        'debito': 0.00,
-                        'timestamp': timestamp
-                    })
+                else:
+                    # 🔥 TIPO NÃO IDENTIFICADO - Tentar lógica genérica
+                    print(f"⚠️ TIPO CLIENTE NÃO MAPEADO: {tipo_transacao}")
+                    if dados.get('conta_remetente') == conta_num:
+                        # SAÍDA
+                        todas_transacoes.append({
+                            'data': data_transacao,
+                            'credito': 0.00,
+                            'debito': valor,
+                            'timestamp': timestamp
+                        })
+                    elif dados.get('conta_destinatario') == conta_num:
+                        # ENTRADA
+                        todas_transacoes.append({
+                            'data': data_transacao,
+                            'credito': valor,
+                            'debito': 0.00,
+                            'timestamp': timestamp
+                        })
         
         # 🔥 DEBUG: Resumo do processamento
         print(f"📊 RESUMO PROCESSAMENTO:")
