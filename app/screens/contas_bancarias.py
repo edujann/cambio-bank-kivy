@@ -2857,7 +2857,6 @@ class TelaExtratoContaBancaria(Screen):
             # NOSSA CONTA É REMETENTE (SAÍDA DE DINHEIRO) = CRÉDITO (diminui saldo)
             if dados.get('conta_remetente') == self.conta_bancaria_numero:
 
-
                 # 🔥 DEBUG: Verificar qual tipo está sendo processado
                 print(f"🎯 PROCESSANDO TRANSAÇÃO {transferencia_id}: tipo='{tipo}' (NOSSA CONTA É REMETENTE)")
                 
@@ -2927,63 +2926,32 @@ class TelaExtratoContaBancaria(Screen):
                 
                 transacoes_todas.append(nova_transacao)
                 transacoes_ids_utilizados.add(transferencia_id)
-            
+
             # NOSSA CONTA É DESTINATÁRIO (ENTRADA DE DINHEIRO) = DÉBITO (aumenta saldo)
             elif dados.get('conta_destinatario') == self.conta_bancaria_numero:
                 
                 if tipo == 'deposito' or tipo == 'deposito_confirmado':
-                    # 🔥 BUSCAR DADOS DIRETAMENTE DA TABELA
-                    remetente = dados.get('remetente') or dados.get('conta_remetente') or ''
-                    banco_origem = dados.get('banco_origem', '')
-                    cliente_nome = dados.get('cliente', '')
+                    # 🔥🔥🔥 SOLUÇÃO SIMPLES: USAR A DESCRIÇÃO QUE JÁ EXISTE NO SUPABASE!
                     
-                    # 🔥 DEBUG PARA VERIFICAR DADOS REAIS
-                    print(f"🔍 DEBUG DEPÓSITO {transferencia_id}:")
-                    print(f"   - remetente: {remetente}")
-                    print(f"   - banco_origem: {banco_origem}")
-                    print(f"   - cliente: {cliente_nome}")
+                    # 1. PRIMEIRO TENTAR USAR A DESCRIÇÃO DO SUPABASE
+                    descricao = dados.get('descricao', '')
                     
-                    # 🔥 MONTAR DESCRIÇÃO COM 3 INFORMAÇÕES NA ORDEM CORRETA
-                    descricao_parts = ["DEPÓSITO"]
+                    # 🔥 DEBUG: Verificar o que tem
+                    print(f"🔍 DEPÓSITO {transferencia_id}:")
+                    print(f"   - Descrição do Supabase: '{descricao}'")
                     
-                    # 1. CLIENTE (BUSCAR EM OUTRAS FONTES SE ESTIVER VAZIO)
-                    nome_cliente_final = cliente_nome
-                    if not nome_cliente_final and remetente and remetente.isdigit():
-                        nome_cliente_final = self.obter_cliente_por_remetente(sistema, remetente)
+                    # 2. Se não tem descrição, montar uma básica
+                    if not descricao:
+                        banco_origem = dados.get('banco_origem', 'Banco não informado')
+                        remetente = dados.get('remetente', 'Remetente não informado')
+                        descricao = f"DEPÓSITO - Banco: {banco_origem.upper()} - Remetente: {remetente}"
+                        print(f"   - Descrição montada: '{descricao}'")
                     
-                    if nome_cliente_final:
-                        descricao_parts.append(f"{nome_cliente_final}")
-                    else:
-                        descricao_parts.append("Cliente: Não informado")
-                    
-                    # 2. BANCO (BUSCAR EM OUTRAS FONTES SE ESTIVER VAZIO)
-                    nome_banco_final = banco_origem
-                    if not nome_banco_final and remetente and remetente.isdigit():
-                        nome_banco_final = self.inferir_banco_por_conta(remetente)
-                    
-                    if nome_banco_final:
-                        descricao_parts.append(f"Banco: {nome_banco_final}")
-                    else:
-                        descricao_parts.append("Banco: Não informado")
-                    
-                    # 3. REMETENTE (CONVERTER NÚMERO PARA NOME)
-                    nome_remetente_final = remetente
-                    if remetente and remetente.isdigit():
-                        nome_remetente_final = self.obter_nome_remetente_por_conta(remetente)
-                        print(f"   ✅ Remetente convertido: {remetente} → {nome_remetente_final}")
-                    
-                    if nome_remetente_final:
-                        descricao_parts.append(f"Remetente: {nome_remetente_final}")
-                    else:
-                        descricao_parts.append("Remetente: Não informado")
-                    
-                    # 🔥 MONTAR DESCRIÇÃO FINAL
-                    descricao = " - ".join(descricao_parts)
-                    print(f"   🎯 Descrição final: {descricao}")
+                    print(f"   ✅ Usando descrição: {descricao}")
                     
                     nova_transacao = {
                         'data': data_transacao,
-                        'descricao': descricao,
+                        'descricao': descricao,  # 🔥 USAR A DESCRIÇÃO DO SUPABASE
                         'credito': 0.00,
                         'debito': dados['valor'],
                         'tipo': "Depósito",
@@ -3113,7 +3081,7 @@ class TelaExtratoContaBancaria(Screen):
 
             # 🔥🔥🔥 NOVO BLOCO: CÂMBIO ENTRE CONTAS (conta_origem/conta_destino)
             elif (dados.get('conta_origem') == self.conta_bancaria_numero or 
-                  dados.get('conta_destino') == self.conta_bancaria_numero):
+                dados.get('conta_destino') == self.conta_bancaria_numero):
                 
                 # 🔥 DEBUG: Verificar qual tipo está sendo processado
                 print(f"🎯 PROCESSANDO TRANSAÇÃO {transferencia_id}: tipo='{tipo}' (NOSSA CONTA É ORIGEM/DESTINO)")
@@ -3611,6 +3579,25 @@ class TelaExtratoContaBancaria(Screen):
             pass
         return data_br
     
+    def formatar_data_curta(self, data_string):
+        """Formata data curta para exibição: DD/MM/AAAA"""
+        try:
+            # Extrair apenas a parte da data
+            if 'T' in data_string:
+                data = data_string.split('T')[0]
+            elif ' ' in data_string:
+                data = data_string.split(' ')[0]
+            else:
+                data = data_string
+            
+            # Formatar DD/MM/AAAA
+            if '-' in data:
+                ano, mes, dia = data.split('-')
+                return f"{dia}/{mes}/{ano}"
+            return data
+        except:
+            return data_string
+
     def scroll_para_topo(self):
         """Rola automaticamente para o topo"""
         if hasattr(self, 'ids') and hasattr(self.ids, 'scroll_extrato'):
@@ -3859,12 +3846,44 @@ class CardTransacaoExtrato(BoxLayout):
             self.rect.pos = instance.pos
             self.rect.size = instance.size
     
+    def formatar_data_para_exibicao(self, data_string):
+        """Formata data para exibição amigável: 2025-11-28 10:04"""
+        try:
+            # Remover microssegundos e timezone se existir
+            if 'T' in data_string:
+                # Formato ISO: 2025-11-28T10:04:24.541064
+                data_str_limpa = data_string.split('T')[0] + ' ' + data_string.split('T')[1].split('.')[0]
+            else:
+                # Formato normal: 2025-11-28 10:04:24
+                data_str_limpa = data_string.split('.')[0] if '.' in data_string else data_string
+            
+            # Converter para datetime
+            if 'T' in data_str_limpa:
+                # Ainda tem T? Remover
+                data_str_limpa = data_str_limpa.replace('T', ' ')
+            
+            # Formatar para datetime
+            try:
+                data_obj = datetime.datetime.strptime(data_str_limpa, "%Y-%m-%d %H:%M:%S")
+            except:
+                try:
+                    data_obj = datetime.datetime.strptime(data_str_limpa, "%Y-%m-%d")
+                except:
+                    return data_string.split(' ')[0]  # Fallback
+            
+            # Formatar para exibição: DD/MM/AAAA HH:MM
+            return data_obj.strftime("%d/%m/%Y %H:%M")
+            
+        except Exception as e:
+            print(f"⚠️ Erro ao formatar data '{data_string}': {e}")
+            return data_string.split(' ')[0] if ' ' in data_string else data_string
+
     def criar_widgets(self):
         """Cria os widgets do card de transação"""
         transacao = self.transacao
         
         # Data - REDUZIDA
-        data_str = transacao['data'].split(' ')[0] if ' ' in transacao['data'] else transacao['data']
+        data_str = self.formatar_data_para_exibicao(transacao['data'])
         lbl_data = Label(
             text=data_str,
             font_size='11sp',

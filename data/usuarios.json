@@ -317,18 +317,41 @@
         ]
     },
     "makita": {
-        "senha": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
-        "tipo": "cliente",
+        "id": "f327b9a0-7fda-449a-9211-2868d35ac508",
+        "username": "makita",
+        "senha_hash": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
         "nome": "MAKITA MACHINES LLC",
         "email": "makita@mail.com",
-        "documento": "45987698000125",
+        "documento_hash": "45987698000125",
         "telefone": "55 11 998655896",
+        "endereco": "",
+        "cidade": "",
+        "cep": "",
+        "estado": "",
+        "pais": "",
+        "tipo": "cliente",
+        "data_cadastro": "2025-11-26T09:37:40.93491",
+        "created_at": "2025-11-26T12:37:41.362802",
         "contas": [
-            "747744825",
-            "453017402",
-            "642479015",
-            "782862887"
+            "382984608",
+            "277435777",
+            "846873177",
+            "224565364"
+        ]
+    },
+    "hidro europa": {
+        "senha": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
+        "tipo": "cliente",
+        "nome": "HIDRO EUROPA S.A",
+        "email": "hidroeuropa@mail.com",
+        "documento": "5642132545",
+        "telefone": "",
+        "contas": [
+            "499685386",
+            "458302256",
+            "102200838",
+            "285928254"
         ],
-        "data_cadastro": "2025-11-26"
+        "data_cadastro": "2025-12-04"
     }
 }

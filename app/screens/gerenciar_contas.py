@@ -313,23 +313,31 @@ class CardTransacao(BoxLayout):
     def criar_conteudo(self, transacao):
         """Cria o conteúdo do card com data no formato BR"""
         
-        # 🔥 FORMATAR DATA PARA DD/MM/AAAA
-        data_original = transacao['data'].split(' ')[0] if ' ' in transacao['data'] else transacao['data']
+        # 🔥🔥🔥 CORREÇÃO: LIDAR COM FORMATO ISO (com T)
+        data_original = transacao['data']
+        
+        # Se tiver formato ISO com T, converter
+        if 'T' in data_original:
+            # Formato: 2025-11-28T10:04:24.541064 → 2025-11-28
+            data_original = data_original.split('T')[0]
+        
+        # Agora formatar normalmente
+        data_sem_hora = data_original.split(' ')[0] if ' ' in data_original else data_original
+        
         try:
-            # Converter de AAAA-MM-DD para DD/MM/AAAA
-            partes = data_original.split('-')
+            partes = data_sem_hora.split('-')
             if len(partes) == 3:
                 data_formatada = f"{partes[2]}/{partes[1]}/{partes[0]}"
             else:
-                data_formatada = data_original
+                data_formatada = data_sem_hora
         except:
-            data_formatada = data_original
+            data_formatada = data_sem_hora
         
-        # Coluna 1: Data (20%)
-        col_data = BoxLayout(orientation='vertical', size_hint_x=0.2)
+        # Coluna 1: Data (12%) - REDUZIDA PELA METADE
+        col_data = BoxLayout(orientation='vertical', size_hint_x=0.10)  # 🔥 12%
         lbl_data = Label(
-            text=data_formatada,  # 🔥 USAR DATA FORMATADA
-            font_size='12sp',
+            text=data_formatada,  # 🔥 SUA DATA FORMATADA
+            font_size='11sp',
             color=(0.2, 0.2, 0.2, 1),
             text_size=(None, None),
             halign='center',
@@ -337,20 +345,22 @@ class CardTransacao(BoxLayout):
         )
         col_data.add_widget(lbl_data)
         
-        # Coluna 2: Descrição (40%)
-        col_descricao = BoxLayout(orientation='vertical', size_hint_x=0.4)
+        # Coluna 2: Descrição (48%) - AUMENTADA SIGNIFICATIVAMENTE
+        col_descricao = BoxLayout(orientation='vertical', size_hint_x=0.60)  # 🔥 60%
         lbl_descricao = Label(
             text=transacao['descricao'],
             font_size='11sp',
             color=(0.3, 0.3, 0.3, 1),
             text_size=(None, None),
             halign='left',
-            valign='middle'
+            valign='middle',
+            shorten=True,  # 🔥 PERMITE ENCURTAR TEXTO SE NECESSÁRIO
+            shorten_from='right'  # 🔥 ENCURTA DO FIM
         )
         col_descricao.add_widget(lbl_descricao)
         
-        # Coluna 3: Crédito (15%)
-        col_credito = BoxLayout(orientation='vertical', size_hint_x=0.15)
+        # Coluna 3: Crédito (15%) - MANTIDO
+        col_credito = BoxLayout(orientation='vertical', size_hint_x=0.10)
         credito = transacao.get('credito', 0)
         lbl_credito = Label(
             text=f"{credito:,.2f}" if credito > 0 else "",
@@ -362,8 +372,8 @@ class CardTransacao(BoxLayout):
         )
         col_credito.add_widget(lbl_credito)
         
-        # Coluna 4: Débito (15%)
-        col_debito = BoxLayout(orientation='vertical', size_hint_x=0.15)
+        # Coluna 4: Débito (15%) - MANTIDO
+        col_debito = BoxLayout(orientation='vertical', size_hint_x=0.10)
         debito = transacao.get('debito', 0)
         lbl_debito = Label(
             text=f"{debito:,.2f}" if debito > 0 else "",
@@ -375,17 +385,16 @@ class CardTransacao(BoxLayout):
         )
         col_debito.add_widget(lbl_debito)
         
-        # Coluna 5: Saldo (10%)
-        col_saldo = BoxLayout(orientation='vertical', size_hint_x=0.1)
+        # Coluna 5: Saldo (10%) - MANTIDO
+        col_saldo = BoxLayout(orientation='vertical', size_hint_x=0.10)
         saldo_apos = transacao.get('saldo_apos', 0)
         
-        # 🔥 MUDANÇA: Cor vermelha se saldo for negativo
         cor_saldo = (0.8, 0.2, 0.2, 1) if saldo_apos < 0 else (0.1, 0.3, 0.8, 1)
         
         lbl_saldo = Label(
             text=f"{saldo_apos:,.2f}",
             font_size='11sp',
-            color=cor_saldo,  # 🔥 AGORA MUDA DINAMICAMENTE
+            color=cor_saldo,
             text_size=(None, None),
             halign='right',
             valign='middle'
@@ -489,6 +498,64 @@ class TelaGerenciarContas(Screen):
         except Exception as e:
             print(f"⚠️ Erro ao forçar atualização de combos: {e}")
     
+    def formatar_data_para_exibicao_admin(self, data_string):
+        """Formata data para exibição amigável: DD/MM/AAAA HH:MM"""
+        if not data_string or data_string == 'SEM DATA' or data_string == 'Data não disponível':
+            return data_string
+        
+        try:
+            # Remover microssegundos e timezone se existir
+            if 'T' in data_string:
+                # Formato ISO: 2025-11-28T10:04:24.541064
+                partes = data_string.split('T')
+                if len(partes) == 2:
+                    data = partes[0]
+                    hora_completa = partes[1]
+                    
+                    # Remover timezone e microssegundos
+                    hora = hora_completa.split('.')[0] if '.' in hora_completa else hora_completa
+                    hora = hora.split('+')[0]  # Remover timezone (+00:00)
+                    hora = hora.split('Z')[0]  # Remover Z
+                    
+                    # Formatar para DD/MM/AAAA HH:MM
+                    try:
+                        ano, mes, dia = data.split('-')
+                        hora_parts = hora.split(':')
+                        hora_fmt = f"{hora_parts[0]}:{hora_parts[1]}" if len(hora_parts) >= 2 else hora
+                        
+                        return f"{dia}/{mes}/{ano} {hora_fmt}"
+                    except:
+                        return f"{data} {hora}"
+            
+            elif ' ' in data_string:
+                # Formato normal: 2025-11-28 10:04:24
+                data, hora_completa = data_string.split(' ', 1)
+                hora = hora_completa.split('.')[0] if '.' in hora_completa else hora_completa
+                
+                # Formatar para DD/MM/AAAA HH:MM
+                try:
+                    ano, mes, dia = data.split('-')
+                    hora_parts = hora.split(':')
+                    hora_fmt = f"{hora_parts[0]}:{hora_parts[1]}" if len(hora_parts) >= 2 else hora
+                    
+                    return f"{dia}/{mes}/{ano} {hora_fmt}"
+                except:
+                    # Se não conseguir formatar, retornar a data original
+                    return data_string
+            
+            else:
+                # Apenas data: 2025-11-28
+                try:
+                    ano, mes, dia = data_string.split('-')
+                    return f"{dia}/{mes}/{ano}"
+                except:
+                    return data_string
+                    
+        except Exception as e:
+            print(f"⚠️ Erro ao formatar data admin '{data_string}': {e}")
+            # Fallback: mostrar apenas a parte da data
+            return data_string.split(' ')[0] if ' ' in data_string else data_string
+
     def on_enter(self):
         """Chamado quando a tela é carregada - GARANTIR POSIÇÃO"""
         from kivy.core.window import Window
@@ -1398,13 +1465,13 @@ class TelaGerenciarContas(Screen):
                     # Atualizar conta origem
                     response_origem = sistema.supabase.client.table('contas')\
                         .update({'saldo': saldo_origem_depois})\
-                        .eq('numero', conta_origem)\
+                        .eq('id', conta_origem)\
                         .execute()
                     
                     # Atualizar conta destino  
                     response_destino = sistema.supabase.client.table('contas')\
                         .update({'saldo': saldo_destino_depois})\
-                        .eq('numero', conta_destino)\
+                        .eq('id', conta_destino)\
                         .execute()
                     
                     if response_origem.data and response_destino.data:

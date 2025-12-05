@@ -56,23 +56,22 @@ class SupabaseManager:
             return None
 
     def salvar_usuario(self, dados_usuario):
-        """Salva/atualiza usuário no Supabase - VERSÃO CORRIGIDA"""
+        """Salva/atualiza usuário no Supabase - VERSÃO PARA CADASTRO PENDENTE"""
         try:
             import hashlib
             from datetime import datetime
             
-            # 🔥 CORREÇÃO: Sempre fazer hash da senha
+            # Hash da senha
             senha_original = dados_usuario['senha']
             senha_hash = hashlib.sha256(senha_original.encode()).hexdigest()
             
-            # 🔥 CORREÇÃO CRÍTICA: Não salvar moedas na coluna 'contas'
-            # A coluna 'contas' deve armazenar IDs de contas, não moedas!
+            # Dados para cadastro inicial (pendente)
             usuario_data = {
                 'username': dados_usuario['username'],
                 'senha_hash': senha_hash,
                 'nome': dados_usuario['nome'],
                 'email': dados_usuario['email'],
-                'documento_hash': dados_usuario['documento'],
+                'documento_hash': hashlib.sha256(dados_usuario['documento'].encode()).hexdigest() if dados_usuario['documento'] else '',
                 'telefone': dados_usuario.get('telefone', ''),
                 'endereco': '',
                 'cidade': '',
@@ -80,50 +79,185 @@ class SupabaseManager:
                 'estado': '',
                 'pais': '',
                 'tipo': 'cliente',
-                'contas': [],  # 🔥 CORREÇÃO: Array vazio - serão preenchidas depois
-                'data_cadastro': datetime.now().isoformat()
+                'contas': [],  # 🔥 VAZIO inicialmente - contas serão criadas após verificação
+                'data_cadastro': datetime.now().isoformat(),
+                'status': 'pendente',  # 🔥 NOVO CAMPO
+                'verificado': False,   # 🔥 NOVO CAMPO
+                'codigo_verificacao': ''  # Será preenchido separadamente
             }
             
             # Verificar se usuário já existe
             usuario_existente = self.obter_usuario(dados_usuario['username'])
             
             if usuario_existente:
-                # Atualizar usuário existente
-                response = self.client.table('usuarios')\
-                    .update(usuario_data)\
-                    .eq('username', dados_usuario['username'])\
-                    .execute()
-            else:
-                # Criar novo usuário
-                response = self.client.table('usuarios')\
-                    .insert(usuario_data)\
-                    .execute()
+                print(f"⚠️ Usuário {dados_usuario['username']} já existe")
+                return False
             
-            # 🔥 CORREÇÃO: Criar contas e atualizar usuário com IDs reais
+            # Criar novo usuário
+            response = self.client.table('usuarios')\
+                .insert(usuario_data)\
+                .execute()
+            
             if response.data:
-                sistema = App.get_running_app().sistema
-                moedas_selecionadas = dados_usuario.get('moedas_selecionadas', [])
+                print(f"✅ Usuário {dados_usuario['username']} salvo no Supabase (pendente)")
+                return True
+            else:
+                print(f"❌ Falha ao salvar usuário no Supabase")
+                return False
                 
-                # Criar contas no Supabase
-                ids_contas = sistema.criar_contas_supabase(
-                    dados_usuario['username'], 
-                    moedas_selecionadas
-                )
-                
-                # Atualizar usuário com IDs das contas
-                if ids_contas:
-                    usuario_data['contas'] = ids_contas
-                    response_update = self.client.table('usuarios')\
-                        .update({'contas': ids_contas})\
-                        .eq('username', dados_usuario['username'])\
-                        .execute()
-                    print(f"✅ Usuário atualizado com IDs das contas: {ids_contas}")
-            
-            return True
         except Exception as e:
             print(f"❌ Erro ao salvar usuário: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
+    def salvar_usuario_pendente(self, dados_usuario):
+        """Salva usuário como pendente (sem criar contas ainda)"""
+        try:
+            import hashlib
+            from datetime import datetime
+            
+            # Hash da senha
+            senha_hash = hashlib.sha256(dados_usuario['senha'].encode()).hexdigest()
+            
+            # Hash do documento
+            documento_hash = ''
+            if dados_usuario.get('documento'):
+                documento_hash = hashlib.sha256(dados_usuario['documento'].encode()).hexdigest()
+            
+            # Dados para cadastro inicial (pendente)
+            usuario_data = {
+                'username': dados_usuario['username'],
+                'email': dados_usuario['email'],
+                'senha_hash': senha_hash,
+                'nome': dados_usuario['nome'],
+                'documento_hash': documento_hash,
+                'telefone': dados_usuario.get('telefone', ''),
+                'endereco': dados_usuario.get('endereco', ''),
+                'cidade': dados_usuario.get('cidade', ''),
+                'cep': dados_usuario.get('cep', ''),
+                'estado': dados_usuario.get('estado', ''),
+                'pais': dados_usuario.get('pais', ''),
+                'tipo': 'cliente',
+                'contas': [],  # VAZIO inicialmente
+                'status': 'pendente',
+                'verificado': False,
+                'data_cadastro': datetime.now().isoformat()
+            }
+            
+            # Verificar se usuário já existe
+            existing = self.client.table('usuarios')\
+                .select('id')\
+                .or_(f'username.eq.{dados_usuario["username"]},email.eq.{dados_usuario["email"]}')\
+                .execute()
+            
+            if existing.data:
+                print(f"⚠️ Usuário ou email já existe: {dados_usuario['username']}")
+                return False
+            
+            # Inserir novo usuário
+            response = self.client.table('usuarios')\
+                .insert(usuario_data)\
+                .execute()
+            
+            if response.data:
+                print(f"✅ Usuário {dados_usuario['username']} salvo como pendente no Supabase")
+                return True
+            else:
+                print(f"❌ Falha ao salvar usuário")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Erro ao salvar usuário pendente: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+# No arquivo supabase_manager.py, dentro da classe SupabaseManager:
+
+    def salvar_usuario_com_verificacao(self, dados_usuario):
+        """Salva usuário com dados de verificação - VERSÃO CORRIGIDA"""
+        try:
+            import hashlib
+            from datetime import datetime
+            
+            # 🔥 CORREÇÃO: Aceita tanto 'senha' quanto 'senha_hash'
+            senha_fornecida = dados_usuario.get('senha_hash') or dados_usuario.get('senha', '')
+            
+            if not senha_fornecida:
+                print(f"❌ Nenhuma senha fornecida")
+                return False
+            
+            print(f"🔐 Senha fornecida: {senha_fornecida[:20]}...")
+            print(f"🔐 Tamanho: {len(senha_fornecida)} caracteres")
+            
+            # Verificar se já é hash (64 chars hex)
+            if len(senha_fornecida) == 64 and all(c in '0123456789abcdef' for c in senha_fornecida.lower()):
+                print(f"✅ Senha já está hashada")
+                senha_hash = senha_fornecida
+            else:
+                print(f"ℹ️ Senha é texto puro, fazendo hash...")
+                senha_hash = hashlib.sha256(senha_fornecida.encode()).hexdigest()
+            
+            print(f"🔐 Hash final: {senha_hash[:20]}...")
+            
+            # Hash do documento
+            documento_hash = ''
+            if dados_usuario.get('documento'):
+                documento_hash = hashlib.sha256(dados_usuario['documento'].encode()).hexdigest()
+            
+            # Dados completos para Supabase
+            usuario_data = {
+                'username': dados_usuario['username'],
+                'senha_hash': senha_hash,
+                'nome': dados_usuario['nome'],
+                'email': dados_usuario['email'],
+                'documento_hash': documento_hash,
+                'telefone': dados_usuario.get('telefone', ''),
+                'endereco': dados_usuario.get('endereco', ''),
+                'cidade': dados_usuario.get('cidade', ''),
+                'cep': dados_usuario.get('cep', ''),
+                'estado': dados_usuario.get('estado', ''),
+                'pais': dados_usuario.get('pais', ''),
+                'tipo': 'cliente',
+                'contas': [],  # Array vazio - contas serão criadas após verificação
+                'codigo_verificacao': dados_usuario.get('codigo_verificacao', ''),
+                'status': dados_usuario.get('status', 'pendente'),
+                'verificado': dados_usuario.get('verificado', False),
+                'data_cadastro': datetime.now().isoformat()
+            }
+            
+            print(f"📊 Dados para Supabase:")
+            print(f"   Username: {usuario_data['username']}")
+            print(f"   Email: {usuario_data['email']}")
+            print(f"   Código: {usuario_data['codigo_verificacao']}")
+            
+            # Verificar se usuário já existe
+            usuario_existente = self.obter_usuario(dados_usuario['username'])
+            
+            if usuario_existente:
+                print(f"⚠️ Usuário {dados_usuario['username']} já existe no Supabase")
+                return False
+            
+            # Criar novo usuário
+            response = self.client.table('usuarios')\
+                .insert(usuario_data)\
+                .execute()
+            
+            if response.data:
+                print(f"✅✅✅ USUÁRIO SALVO NO SUPABASE!")
+                print(f"   ID: {response.data[0]['id']}")
+                return True
+            else:
+                print(f"❌ Falha ao salvar usuário no Supabase")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Erro ao salvar usuário com verificação: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
     def atualizar_usuario(self, username, dados_atualizados):
         """Atualiza usuário no Supabase"""
         try:

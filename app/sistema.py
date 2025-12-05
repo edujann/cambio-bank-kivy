@@ -511,52 +511,525 @@ class SistemaCambioPremium:
         """Gera código de 6 dígitos para verificação"""
         return ''.join(random.choices(string.digits, k=6))
 
-    def cadastrar_usuario_pendente(self, usuario, email, senha, dados_extras):
-        """Cadastra usuário como pendente de verificação - MODO SIMULAÇÃO"""
-        codigo = self.gerar_codigo_verificacao()
+    def cadastrar_usuario_pendente(self, usuario, email, senha_hash, dados_extras):
+        """Cadastra usuário como pendente de verificação - PRIORIDADE SUPABASE"""
+        try:
+            codigo = self.gerar_codigo_verificacao()
+            
+            print(f"🔧 Cadastrando usuário pendente: {usuario} ({email})")
+            print(f"🎯 Código gerado: {codigo}")
+            
+            # 1. PRIMEIRO: TENTAR SALVAR NO SUPABASE
+            print("📤 Prioridade: Tentando salvar no Supabase primeiro...")
+            
+            try:
+                # Importar SupabaseManager da raiz
+                import sys
+                import os
+                
+                # Adicionar diretório raiz ao path
+                current_dir = os.path.dirname(os.path.abspath(__file__))  # app/
+                project_root = os.path.dirname(current_dir)  # cambio_bank_kivy/
+                
+                if project_root not in sys.path:
+                    sys.path.append(project_root)
+                
+                from supabase_manager import SupabaseManager
+                
+                # Criar manager
+                manager = SupabaseManager()
+                
+                if manager.conectado:
+                    print("✅ SupabaseManager conectado ao Supabase")
+                    
+                    # Preparar dados para o manager (com código de verificação)
+                    dados_manager = {
+                        'username': usuario,
+                        'email': email,
+                        'senha_hash': senha_hash,   # 🔥 AGORA COM NOME CORRETO
+                        'nome': dados_extras.get('nome', ''),
+                        'documento': dados_extras.get('documento', ''),
+                        'telefone': dados_extras.get('telefone', ''),
+                        'moedas_selecionadas': dados_extras.get('moedas_selecionadas', []),
+                        'codigo_verificacao': codigo,  # 🔥 Incluir código aqui
+                        'status': 'pendente',  # 🔥 Status pendente
+                        'verificado': False  # 🔥 Não verificado ainda
+                    }
+                    
+                    # Usar o método salvar_usuario do manager
+                    resultado = manager.salvar_usuario_com_verificacao(dados_manager)
+                    
+                    if resultado:
+                        print(f"✅✅✅ USUÁRIO SALVO NO SUPABASE COM SUCESSO!")
+                        print(f"   Username: {usuario}")
+                        print(f"   Email: {email}")
+                        print(f"   Código: {codigo}")
+                        
+                        # 🔥 MODO SIMULAÇÃO
+                        print(f"🎯 MODO SIMULAÇÃO: Código de verificação para {email}: {codigo}")
+                        
+                        return {
+                            'sucesso': True,
+                            'modo_simulacao': True,
+                            'codigo': codigo,
+                            'email': email,
+                            'salvo_no_supabase': True  # 🔥 Nova flag
+                        }
+                    else:
+                        print(f"❌ Falha ao salvar no Supabase via Manager")
+                        # Vai para fallback local
+                        raise Exception("Falha ao salvar no Supabase")
+                else:
+                    print("❌ SupabaseManager não conectado")
+                    # Vai para fallback local
+                    raise Exception("Supabase não conectado")
+                    
+            except Exception as e:
+                print(f"⚠️ Erro com Supabase: {e}")
+                print("🔄 Usando fallback local...")
+                
+                # 2. FALLBACK: Salvar localmente apenas se Supabase falhar
+                usuario_id_local = f"user_{random.randint(100000, 999999)}"
+                
+                dados_local = {
+                    'id': usuario_id_local,
+                    'username': usuario,
+                    'email': email,
+                    'senha_hash': senha_hash,
+                    'nome': dados_extras.get('nome', ''),
+                    'documento': dados_extras.get('documento', ''),
+                    'telefone': dados_extras.get('telefone', ''),
+                    'endereco': dados_extras.get('endereco', ''),
+                    'cidade': dados_extras.get('cidade', ''),
+                    'cep': dados_extras.get('cep', ''),
+                    'estado': dados_extras.get('estado', ''),
+                    'pais': dados_extras.get('pais', ''),
+                    'status': 'pendente',
+                    'data_cadastro': datetime.datetime.now().isoformat(),
+                    'moedas_selecionadas': dados_extras.get('moedas_selecionadas', []),
+                    'verificado': False,
+                    'codigo_verificacao': codigo
+                }
+                
+                # Salvar localmente (apenas como fallback)
+                self.usuarios[usuario] = dados_local
+                self.usuarios_nao_verificados[email] = {
+                    'usuario': usuario,
+                    'senha_hash': senha_hash, 
+                    'dados': dados_extras,
+                    'timestamp': time.time()
+                }
+                
+                self.codigos_verificacao[email] = {
+                    'codigo': codigo,
+                    'timestamp': time.time()
+                }
+                
+                print(f"✅ Usuário salvo LOCALMENTE (fallback): {usuario}")
+                
+                # 🔥 MODO SIMULAÇÃO
+                print(f"🎯 MODO SIMULAÇÃO: Código de verificação para {email}: {codigo}")
+                
+                return {
+                    'sucesso': True,
+                    'modo_simulacao': True,
+                    'codigo': codigo,
+                    'email': email,
+                    'salvo_no_supabase': False,  # 🔥 Flag indicando que foi local
+                    'aviso': 'Usuário salvo apenas localmente (Supabase falhou)'
+                }
+                
+        except Exception as e:
+            print(f"❌ Erro crítico ao cadastrar usuário pendente: {e}")
+            import traceback
+            traceback.print_exc()
+            return {
+                'sucesso': False,
+                'erro': str(e)
+            }
+
+    def salvar_usuario_pendente_supabase(self, dados_usuario):
+        """Salva usuário pendente diretamente no Supabase"""
+        try:
+            if not hasattr(self, 'supabase_manager') or not self.supabase_manager:
+                print("❌ SupabaseManager não disponível")
+                return False
+            
+            # Conectar ao Supabase diretamente
+            try:
+                from app.supabase_client import supabase
+                if not supabase:
+                    print("❌ Conexão Supabase não disponível")
+                    return False
+            except ImportError:
+                print("❌ Módulo supabase_client não encontrado")
+                return False
+            
+            # Preparar dados para Supabase
+            import hashlib
+            from datetime import datetime
+            
+            dados_supabase = {
+                'username': dados_usuario['username'],
+                'email': dados_usuario['email'],
+                'senha_hash': dados_usuario['senha'],  # Já está hashado
+                'nome': dados_usuario['nome'],
+                'documento_hash': hashlib.sha256(dados_usuario['documento'].encode()).hexdigest() if dados_usuario['documento'] else '',
+                'telefone': dados_usuario.get('telefone', ''),
+                'endereco': '',
+                'cidade': '',
+                'cep': '',
+                'estado': '',
+                'pais': '',
+                'tipo': 'cliente',
+                'contas': [],  # Vazio inicialmente
+                'codigo_verificacao': dados_usuario['codigo_verificacao'],
+                'status': 'pendente',
+                'verificado': False,
+                'data_cadastro': datetime.now().isoformat()
+            }
+            
+            print(f"📤 Salvando diretamente no Supabase: {dados_usuario['username']}")
+            
+            # Verificar se já existe
+            response_existe = supabase.table('usuarios')\
+                .select('id')\
+                .or_(f"username.eq.{dados_usuario['username']},email.eq.{dados_usuario['email']}")\
+                .execute()
+            
+            if response_existe.data:
+                print(f"⚠️ Usuário ou email já existe: {dados_usuario['username']}")
+                return False
+            
+            # Inserir novo usuário
+            response = supabase.table('usuarios')\
+                .insert(dados_supabase)\
+                .execute()
+            
+            if response.data:
+                print(f"✅ Usuário {dados_usuario['username']} salvo no Supabase com código")
+                print(f"   ID: {response.data[0]['id']}")
+                print(f"   Código: {dados_usuario['codigo_verificacao']}")
+                return True
+            else:
+                print(f"❌ Falha ao inserir usuário no Supabase")
+                return False
+                
+        except Exception as e:
+            print(f"🔥 ERRO ao salvar usuário pendente no Supabase: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
         
-        # Armazenar dados temporários
-        self.usuarios_nao_verificados[email] = {
-            'usuario': usuario,
-            'senha': senha,
-            'dados': dados_extras,
-            'timestamp': time.time()
-        }
+    def atualizar_codigo_verificacao_supabase(self, email, codigo):
+        """Atualiza código de verificação no Supabase"""
+        try:
+            if hasattr(self, 'supabase_manager'):
+                # Buscar usuário pelo email
+                from app.supabase_client import supabase
+                if supabase:
+                    response = supabase.table('usuarios')\
+                        .select('id, username')\
+                        .eq('email', email)\
+                        .execute()
+                    
+                    if response.data:
+                        usuario_id = response.data[0]['id']
+                        # Atualizar código
+                        supabase.table('usuarios')\
+                            .update({'codigo_verificacao': codigo})\
+                            .eq('id', usuario_id)\
+                            .execute()
+                        print(f"✅ Código de verificação {codigo} salvo no Supabase para {email}")
+                        return True
+            return False
+        except Exception as e:
+            print(f"⚠️ Não foi possível salvar código no Supabase: {e}")
+            return False
+
+    def salvar_usuario_supabase(self, dados_usuario):
+        """Salva usuário na tabela 'usuarios' do Supabase com a estrutura exata"""
+        try:
+            from app.supabase_client import supabase
+            
+            if supabase is None:
+                print("❌ Supabase não está conectado")
+                return False
+            
+            print(f"📤 Conectando ao Supabase para salvar usuário: {dados_usuario['username']}")
+            
+            # Verificar se usuário já existe pelo email
+            try:
+                response_existe = supabase.table('usuarios').select('id').eq('email', dados_usuario['email']).execute()
+                
+                if response_existe.data and len(response_existe.data) > 0:
+                    print(f"⚠️ Usuário já existe no Supabase: {dados_usuario['email']}")
+                    return False  # Não permitir cadastro duplicado
+                
+                # Inserir novo usuário
+                print("➕ Inserindo novo usuário no Supabase...")
+                
+                # Remover campos que podem ser gerados automaticamente pelo Supabase
+                # para evitar conflitos
+                dados_para_inserir = dict(dados_usuario)
+                
+                # Não enviar se o Supabase gera automaticamente
+                dados_para_inserir.pop('data_cadastro', None)
+                dados_para_inserir.pop('created_at', None)
+                
+                response = supabase.table('usuarios').insert(dados_para_inserir).execute()
+                
+                if response.data and len(response.data) > 0:
+                    usuario_id = response.data[0]['id']
+                    print(f"✅ Usuário inserido no Supabase. ID: {usuario_id}")
+                    return True
+                else:
+                    print(f"❌ Nenhum dado retornado do Supabase")
+                    print(f"   Response: {response}")
+                    return False
+                    
+            except Exception as e:
+                print(f"🔥 Erro na comunicação com Supabase: {e}")
+                import traceback
+                traceback.print_exc()
+                return False
+            
+        except ImportError:
+            print("⚠️ Módulo supabase não encontrado")
+            return False
+        except Exception as e:
+            print(f"🔥 Erro crítico ao salvar no Supabase: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
         
-        self.codigos_verificacao[email] = {
-            'codigo': codigo,
-            'timestamp': time.time()
-        }
+    def hash_documento(self, documento):
+        """Cria hash do documento para privacidade"""
+        if not documento:
+            return ''
         
-        # 🔥 MODO SIMULAÇÃO - Mostra código na tela em vez de enviar email
-        print(f"🎯 MODO SIMULAÇÃO: Código de verificação para {email}: {codigo}")
-        
-        return {
-            'sucesso': True,
-            'modo_simulacao': True,
-            'codigo': codigo,
-            'email': email
-        }
+        # Usar o mesmo método de hash da senha
+        documento_limpo = documento.strip().replace('.', '').replace('-', '').replace('/', '')
+        return hashlib.sha256(documento_limpo.encode()).hexdigest()
 
     def verificar_codigo_email(self, email, codigo_digitado):
-        """Verifica se o código digitado está correto"""
-        if email not in self.codigos_verificacao:
-            return False, "Email não encontrado para verificação"
+        """Verifica código de verificação de email - VERSAO SIMPLIFICADA"""
+        try:
+            print(f"🔍 Verificando código para email: {email}")
+            print(f"📧 Código digitado: {codigo_digitado}")
+            
+            # Conectar ao Supabase
+            import sys
+            import os
+            from dotenv import load_dotenv
+            
+            load_dotenv()
+            url = os.getenv('SUPABASE_URL')
+            key = os.getenv('SUPABASE_KEY')
+            
+            if not url or not key:
+                print("❌ Credenciais do Supabase não configuradas")
+                return False, "Erro de configuração do sistema"
+            
+            from supabase import create_client
+            supabase = create_client(url, key)
+            
+            # Buscar usuário no Supabase
+            response = supabase.table('usuarios')\
+                .select('codigo_verificacao, username, verificado, status')\
+                .eq('email', email)\
+                .execute()
+            
+            if not response.data or len(response.data) == 0:
+                print(f"❌ Email não encontrado no Supabase: {email}")
+                return False, "Email não encontrado para verificação"
+            
+            usuario_data = response.data[0]
+            codigo_correto = usuario_data.get('codigo_verificacao')
+            username = usuario_data.get('username')
+            verificado = usuario_data.get('verificado', False)
+            
+            print(f"✅ Usuário encontrado no Supabase: {username}")
+            print(f"   Código no Supabase: {codigo_correto}")
+            print(f"   Verificado atual: {verificado}")
+            
+            # Verificar se já está verificado
+            if verificado:
+                print(f"⚠️ Usuário já está verificado")
+                return True, f"Usuário {username} já está verificado"
+            
+            # Verificar código
+            if not codigo_correto:
+                print(f"❌ Nenhum código de verificação encontrado")
+                return False, "Nenhum código de verificação encontrado"
+            
+            if str(codigo_correto) != str(codigo_digitado):
+                print(f"❌ Código incorreto")
+                print(f"   Esperado: {codigo_correto}")
+                print(f"   Recebido: {codigo_digitado}")
+                return False, "Código incorreto"
+            
+            # ✅ Código correto!
+            print(f"🎯 Código correto!")
+            
+            # Atualizar status no Supabase
+            update_response = supabase.table('usuarios')\
+                .update({
+                    'verificado': True,
+                    'status': 'ativo',
+                    'codigo_verificacao': None  # Limpar código após verificação
+                })\
+                .eq('email', email)\
+                .execute()
+            
+            if not update_response.data:
+                print(f"❌ Erro ao atualizar status no Supabase")
+                return False, "Erro ao atualizar status"
+            
+            print(f"✅✅✅ Usuário {username} verificado no Supabase!")
+            
+            # 🔥 CORREÇÃO: Buscar moedas da coluna CORRETA (contas, não moedas_selecionadas)
+            # Buscar dados completos do usuário
+            user_full_response = supabase.table('usuarios')\
+                .select('contas, nome')\
+                .eq('email', email)\
+                .execute()
+            
+            if user_full_response.data:
+                user_data = user_full_response.data[0]
+                contas = user_data.get('contas', [])
+                nome_cliente = user_data.get('nome', username)
+                
+                print(f"📊 Dados do usuário:")
+                print(f"   Nome: {nome_cliente}")
+                print(f"   Contas: {contas}")
+                
+                # Se não tem contas ainda, criar com moedas padrão
+                if not contas:
+                    print(f"💰 Criando contas padrão...")
+                    # Usar moedas padrão
+                    moedas_padrao = ['USD', 'EUR', 'GBP', 'BRL']
+                    
+                    # Usar SupabaseManager para criar contas
+                    current_dir = os.path.dirname(os.path.abspath(__file__))
+                    project_root = os.path.dirname(current_dir)
+                    
+                    if project_root not in sys.path:
+                        sys.path.append(project_root)
+                    
+                    try:
+                        from supabase_manager import SupabaseManager
+                        manager = SupabaseManager()
+                        
+                        if manager.conectado:
+                            contas_criadas = manager.criar_contas_supabase(
+                                username, 
+                                nome_cliente, 
+                                moedas_padrao
+                            )
+                            
+                            if contas_criadas:
+                                print(f"✅ {len(contas_criadas)} contas criadas")
+                                
+                                # Atualizar usuário com IDs das contas
+                                supabase.table('usuarios')\
+                                    .update({'contas': contas_criadas})\
+                                    .eq('email', email)\
+                                    .execute()
+                                
+                                print(f"✅ Usuário atualizado com IDs das contas")
+                            else:
+                                print(f"⚠️ Nenhuma conta criada")
+                        else:
+                            print(f"⚠️ SupabaseManager não conectado")
+                    except Exception as e:
+                        print(f"⚠️ Erro ao criar contas: {e}")
+                else:
+                    print(f"✅ Usuário já tem {len(contas)} contas")
+            
+            return True, f"Email verificado com sucesso! Bem-vindo, {username}!"
+                
+        except Exception as e:
+            print(f"🔥 ERRO na verificação: {e}")
+            import traceback
+            traceback.print_exc()
+            return False, f"Erro interno: {str(e)}"
         
-        dados_codigo = self.codigos_verificacao[email]
-        codigo_correto = dados_codigo['codigo']
-        timestamp = dados_codigo['timestamp']
-        
-        # Verificar expiração (15 minutos)
-        if time.time() - timestamp > 900:  # 15 minutos
-            del self.codigos_verificacao[email]
-            return False, "Código expirado. Solicite um novo."
-        
-        if codigo_digitado == codigo_correto:
-            # Código correto - completar cadastro
-            return self.completar_cadastro(email), "Cadastro verificado com sucesso!"
-        else:
-            return False, "Código incorreto. Tente novamente."
+    def criar_contas_apos_verificacao(self, email, username):
+        """Cria contas no Supabase após verificação do email"""
+        try:
+            print(f"💰 Criando contas para {username} após verificação...")
+            
+            # Buscar dados do usuário no Supabase
+            import sys
+            import os
+            from dotenv import load_dotenv
+            
+            load_dotenv()
+            url = os.getenv('SUPABASE_URL')
+            key = os.getenv('SUPABASE_KEY')
+            
+            if url and key:
+                from supabase import create_client
+                supabase = create_client(url, key)
+                
+                # Buscar moedas selecionadas
+                response = supabase.table('usuarios')\
+                    .select('moedas_selecionadas')\
+                    .eq('username', username)\
+                    .execute()
+                
+                if response.data:
+                    usuario_data = response.data[0]
+                    moedas_selecionadas = usuario_data.get('moedas_selecionadas', [])
+                    
+                    if moedas_selecionadas:
+                        print(f"🎯 Moedas selecionadas: {moedas_selecionadas}")
+                        
+                        # Usar SupabaseManager para criar contas
+                        current_dir = os.path.dirname(os.path.abspath(__file__))
+                        project_root = os.path.dirname(current_dir)
+                        
+                        if project_root not in sys.path:
+                            sys.path.append(project_root)
+                        
+                        from supabase_manager import SupabaseManager
+                        manager = SupabaseManager()
+                        
+                        if manager.conectado:
+                            # Criar contas
+                            contas_criadas = manager.criar_contas_supabase(
+                                username, 
+                                username,  # nome_cliente
+                                moedas_selecionadas
+                            )
+                            
+                            if contas_criadas:
+                                print(f"✅ {len(contas_criadas)} contas criadas no Supabase")
+                                print(f"   IDs: {contas_criadas}")
+                                
+                                # Atualizar usuário com IDs das contas
+                                supabase.table('usuarios')\
+                                    .update({'contas': contas_criadas})\
+                                    .eq('username', username)\
+                                    .execute()
+                                
+                                print(f"✅ Usuário atualizado com IDs das contas")
+                            else:
+                                print(f"⚠️ Nenhuma conta criada")
+                        else:
+                            print(f"⚠️ SupabaseManager não conectado para criar contas")
+                    else:
+                        print(f"⚠️ Nenhuma moeda selecionada para {username}")
+                else:
+                    print(f"❌ Usuário não encontrado no Supabase: {username}")
+            else:
+                print(f"❌ Credenciais do Supabase não configuradas")
+                
+        except Exception as e:
+            print(f"❌ Erro ao criar contas após verificação: {e}")
+            import traceback
+            traceback.print_exc()
 
     def completar_cadastro(self, email):
         """Completa o cadastro após verificação do email"""
@@ -1155,27 +1628,106 @@ class SistemaCambioPremium:
             print(f"❌ Erro ao salvar contas: {e}")
     
     def fazer_login(self, usuario, senha):
-        """Faz login do usuário - VERSÃO COMPATÍVEL SUPABASE"""
+        """Faz login do usuário - VERSÃO SUPABASE + LOCAL"""
+        print(f"🔐 Tentando login para: {usuario}")
+        
+        # 1. PRIMEIRO: Tentar login via Supabase
+        try:
+            print("📤 Verificando no Supabase...")
+            resultado_supabase = self.login_supabase(usuario, senha)
+            
+            if resultado_supabase['sucesso']:
+                print(f"✅✅✅ LOGIN SUPABASE BEM-SUCEDIDO!")
+                self.usuario_logado = usuario
+                self.tipo_usuario_logado = resultado_supabase.get('tipo', 'cliente')
+                
+                # 🔥 ATUALIZAR CACHE LOCAL
+                self.usuarios[usuario] = resultado_supabase.get('usuario_data', {})
+                
+                return True
+            else:
+                print(f"⚠️ Login Supabase falhou: {resultado_supabase.get('erro')}")
+        except Exception as e:
+            print(f"⚠️ Erro ao tentar Supabase: {e}")
+        
+        # 2. DEPOIS: Tentar login local (fallback)
+        print("🔄 Tentando login local...")
         if usuario in self.usuarios:
-            # 🔥 COMPATIBILIDADE: Supabase usa 'senha_hash', JSON usa 'senha'
             usuario_data = self.usuarios[usuario]
             
-            # Verificar se a senha está em 'senha' (JSON) ou 'senha_hash' (Supabase)
+            # Verificar senha
             senha_armazenada = usuario_data.get('senha') or usuario_data.get('senha_hash', '')
-            
             senha_hash = self.hash_senha(senha)
             
             if senha_armazenada == senha_hash:
                 self.usuario_logado = usuario
                 self.tipo_usuario_logado = usuario_data.get('tipo', 'cliente')
-                print(f"✅ Login bem-sucedido: {usuario} ({self.tipo_usuario_logado})")
+                print(f"✅ Login local bem-sucedido: {usuario}")
                 return True
         
         print(f"❌ Login falhou para: {usuario}")
         return False
     
+    def login_supabase(self, username, senha):
+        """Faz login usando Supabase - RETORNA SIMPLES"""
+        try:
+            # Hash da senha para comparar
+            senha_hash = self.hash_senha(senha)
+            
+            # Conectar ao Supabase
+            import os
+            from dotenv import load_dotenv
+            load_dotenv()
+            
+            url = os.getenv('SUPABASE_URL')
+            key = os.getenv('SUPABASE_KEY')
+            
+            if not url or not key:
+                return {'sucesso': False, 'erro': 'Supabase não configurado'}
+            
+            from supabase import create_client
+            supabase = create_client(url, key)
+            
+            # Buscar usuário
+            response = supabase.table('usuarios')\
+                .select('senha_hash, verificado, status, tipo, nome, email, contas')\
+                .eq('username', username)\
+                .execute()
+            
+            if not response.data or len(response.data) == 0:
+                return {'sucesso': False, 'erro': 'Usuário não encontrado'}
+            
+            usuario_data = response.data[0]
+            
+            # Verificar se está verificado
+            if not usuario_data.get('verificado', False):
+                return {'sucesso': False, 'erro': 'Email não verificado'}
+            
+            # Verificar senha
+            if usuario_data['senha_hash'] != senha_hash:
+                return {'sucesso': False, 'erro': 'Senha incorreta'}
+            
+            # ✅ Login bem-sucedido!
+            return {
+                'sucesso': True,
+                'usuario_data': {
+                    'username': username,
+                    'nome': usuario_data.get('nome', ''),
+                    'email': usuario_data.get('email', ''),
+                    'senha_hash': usuario_data['senha_hash'],
+                    'tipo': usuario_data.get('tipo', 'cliente'),
+                    'verificado': usuario_data.get('verificado', False),
+                    'status': usuario_data.get('status', 'ativo'),
+                    'contas': usuario_data.get('contas', [])
+                },
+                'tipo': usuario_data.get('tipo', 'cliente')
+            }
+            
+        except Exception as e:
+            return {'sucesso': False, 'erro': f'Erro: {str(e)}'}
+    
     def calcular_saldos_usuario(self):
-        """Calcula saldos por moeda do usuário logado - VERSÃO ORIGINAL"""
+        """Calcula saldos por moeda do usuário logado - VERSÃO SUPABASE + LOCAL"""
         if not self.usuario_logado:
             print("❌ Nenhum usuário logado para calcular saldos")
             return {}
@@ -1183,31 +1735,116 @@ class SistemaCambioPremium:
         usuario_data = self.usuarios.get(self.usuario_logado, {})
         contas_usuario = usuario_data.get('contas', [])
         
+        print(f"🔍 Calculando saldos para: {self.usuario_logado}")
+        print(f"📋 IDs das contas do usuário: {contas_usuario}")
+        
         saldos = {}
-        username = self.usuario_logado
         
-        print(f"🔍 Calculando saldos para: {username}")
-        print(f"📋 Contas do usuário: {contas_usuario}")
+        # 1. PRIMEIRO: Tentar carregar do Supabase
+        try:
+            print("📤 Tentando carregar contas do Supabase...")
+            
+            import os
+            from dotenv import load_dotenv
+            load_dotenv()
+            
+            url = os.getenv('SUPABASE_URL')
+            key = os.getenv('SUPABASE_KEY')
+            
+            if url and key and contas_usuario:
+                from supabase import create_client
+                supabase = create_client(url, key)
+                
+                # Buscar cada conta pelo ID no Supabase
+                for conta_id in contas_usuario:
+                    response = supabase.table('contas')\
+                        .select('moeda, saldo')\
+                        .eq('id', conta_id)\
+                        .execute()
+                    
+                    if response.data and len(response.data) > 0:
+                        conta_data = response.data[0]
+                        moeda = conta_data['moeda']
+                        saldo = float(conta_data['saldo'])
+                        
+                        print(f"   ✅ Conta {conta_id} no Supabase: {moeda} = {saldo}")
+                        
+                        # Atualizar cache local
+                        if conta_id not in self.contas:
+                            self.contas[conta_id] = {
+                                'moeda': moeda,
+                                'saldo': saldo,
+                                'cliente_username': self.usuario_logado
+                            }
+                        
+                        # Somar ao saldo total da moeda
+                        if moeda in saldos:
+                            saldos[moeda] += saldo
+                        else:
+                            saldos[moeda] = saldo
+                    else:
+                        print(f"   ⚠️ Conta {conta_id} não encontrada no Supabase")
+                
+                print(f"💰 Saldos do Supabase: {saldos}")
+                
+        except Exception as e:
+            print(f"⚠️ Erro ao carregar do Supabase: {e}")
         
+        # 2. DEPOIS: Complementar com dados locais
+        print("🔄 Complementando com dados locais...")
         for conta_num in contas_usuario:
             if conta_num in self.contas:
                 conta = self.contas[conta_num]
                 moeda = conta['moeda']
                 saldo = conta['saldo']
                 
-                print(f"   💳 Conta {conta_num}: {moeda} = {saldo}")
+                print(f"   💳 Conta {conta_num} local: {moeda} = {saldo}")
                 
                 if moeda in saldos:
-                    saldos[moeda] += saldo
+                    # Só adiciona se ainda não foi carregado do Supabase
+                    pass  # Já temos do Supabase
                 else:
                     saldos[moeda] = saldo
             else:
-                print(f"   ⚠️ Conta {conta_num} não encontrada no sistema")
+                print(f"   ⚠️ Conta {conta_num} não encontrada localmente")
         
-        print(f"💰 Saldos finais: {saldos}")
-        return saldos  # 🔥 VOLTAR PARA O ORIGINAL - SEM ORDENAÇÃO
+        # 3. Se ainda não encontrou nada, verificar se o usuário tem contas no Supabase
+        if not saldos and contas_usuario:
+            print("🔍 Nenhuma conta encontrada, verificando diretamente no Supabase...")
+            # Podemos tentar buscar todas as contas do usuário de uma vez
+            try:
+                import os
+                from dotenv import load_dotenv
+                load_dotenv()
+                
+                url = os.getenv('SUPABASE_URL')
+                key = os.getenv('SUPABASE_KEY')
+                
+                if url and key:
+                    from supabase import create_client
+                    supabase = create_client(url, key)
+                    
+                    # Buscar todas as contas do usuário
+                    response = supabase.table('contas')\
+                        .select('moeda, saldo')\
+                        .eq('cliente_username', self.usuario_logado)\
+                        .execute()
+                    
+                    if response.data:
+                        for conta in response.data:
+                            moeda = conta['moeda']
+                            saldo = float(conta['saldo'])
+                            
+                            if moeda in saldos:
+                                saldos[moeda] += saldo
+                            else:
+                                saldos[moeda] = saldo
+                        
+                        print(f"💰 Saldos diretos do Supabase: {saldos}")
+            except Exception as e:
+                print(f"⚠️ Erro na busca direta: {e}")
         
-        # 🔥🔥🔥 ADICIONAR APENAS ESTA PARTE PARA ORDENAR
+        # 4. Ordenar as moedas
         ordem_moedas = ['USD', 'GBP', 'EUR', 'BRL']
         saldos_ordenados = {}
         
@@ -1220,7 +1857,7 @@ class SistemaCambioPremium:
             if moeda not in saldos_ordenados:
                 saldos_ordenados[moeda] = saldo
         
-        print(f"💰 Saldos ORDENADOS: {saldos_ordenados}")
+        print(f"💰 Saldos finais ordenados: {saldos_ordenados}")
         return saldos_ordenados
     
     def salvar_transferencias(self):

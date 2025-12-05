@@ -188,18 +188,29 @@ class TelaCadastroConta(Screen):
             # Coletar moedas selecionadas
             moedas_selecionadas = self.obter_moedas_selecionadas()
             
-            # 🔥 NOVO: Verificar se usuário já existe
+            print(f"📋 DADOS COLETADOS:")
+            print(f"   Username: {username}")
+            print(f"   Email: {email}")
+            print(f"   Nome: {nome_cliente}")
+            print(f"   Documento: {documento}")
+            print(f"   Moedas: {moedas_selecionadas}")
+            
+            # Verificar se usuário já existe
             if username in sistema.usuarios:
                 self.mostrar_erro_cadastro("Usuário já existe! Escolha outro nome.")
                 return
             
-            # 🔥 NOVO: Verificar se email já existe
+            # Verificar se email já existe
             for user_data in sistema.usuarios.values():
                 if user_data.get('email') == email:
                     self.mostrar_erro_cadastro("Email já cadastrado! Use outro email.")
                     return
             
-            # 🔥 NOVO: Cadastrar como pendente de verificação
+            # Criar hash da senha
+            senha_hash = sistema.hash_senha(senha)
+            print(f"🔐 Senha hash criada: {senha_hash[:20]}...")
+            
+            # Preparar dados extras
             dados_usuario = {
                 'nome': nome_cliente,
                 'email': email,
@@ -213,40 +224,78 @@ class TelaCadastroConta(Screen):
                 'moedas_selecionadas': moedas_selecionadas
             }
             
-            resultado = sistema.cadastrar_usuario_pendente(username, email, sistema.hash_senha(senha), dados_usuario)
+            print(f"📤 Chamando cadastrar_usuario_pendente...")
+            resultado = sistema.cadastrar_usuario_pendente(username, email, senha_hash, dados_usuario)
+            
+            print(f"📥 RESULTADO: {resultado}")
             
             if resultado['sucesso']:
                 if resultado.get('modo_simulacao'):
-                    # 🔥 MODO SIMULAÇÃO: Ir para tela de verificação mostrando o código
-                    print(f"Cadastro pendente criado para {username}. Código: {resultado['codigo']}")
-                    print(f"NAVEGANDO PARA TELA DE VERIFICAÇÃO...")
+                    print(f"✅ Cadastro pendente criado para {username}. Código: {resultado['codigo']}")
                     
-                    # 🔥 CORREÇÃO: FORÇAR A NAVEGAÇÃO
-                    from kivy.clock import Clock
-                    Clock.schedule_once(lambda dt: self.ir_para_verificacao(email, resultado['codigo']), 0.5)
+                    # 🔥 CORREÇÃO: Navegar para verificação
+                    self.ir_para_verificacao(email, resultado['codigo'])
                     
                 else:
                     # Modo produção
-                    from kivy.clock import Clock
-                    Clock.schedule_once(lambda dt: self.ir_para_verificacao(email, None), 0.5)
+                    self.ir_para_verificacao(email, None)
             else:
-                self.mostrar_erro_cadastro("Erro ao criar conta. Tente novamente.")
+                erro_msg = resultado.get('erro', 'Erro desconhecido')
+                print(f"❌ ERRO NO CADASTRO: {erro_msg}")
+                self.mostrar_erro_cadastro(f"Erro ao criar conta: {erro_msg}")
             
         except Exception as e:
-            print(f"Erro ao criar conta: {e}")
+            print(f"🔥 ERRO CRÍTICO ao criar conta: {e}")
             import traceback
             traceback.print_exc()
             self.mostrar_erro_cadastro(f"Erro interno: {str(e)}")
     
     def ir_para_verificacao(self, email, codigo):
-        """Navega para tela de verificação"""
+        """Navega para tela de verificação - VERSÃO MELHORADA"""
         try:
-            tela_verificacao = self.manager.get_screen('verificacao_email')
+            print(f"🔗 Navegando para tela de verificação...")
+            print(f"   Email: {email}")
+            print(f"   Código: {codigo}")
+            
+            # 1. Verificar se o manager existe
+            if not hasattr(self, 'manager') or not self.manager:
+                print("❌ Manager não disponível")
+                self.mostrar_erro_cadastro("Erro interno: tela não configurada")
+                return
+            
+            # 2. Obter tela de verificação
+            try:
+                tela_verificacao = self.manager.get_screen('verificacao_email')
+            except:
+                print("❌ Tela 'verificacao_email' não encontrada no manager")
+                self.mostrar_erro_cadastro("Erro: tela de verificação não disponível")
+                return
+            
+            # 3. Verificar se o método configurar_dados existe
+            if not hasattr(tela_verificacao, 'configurar_dados'):
+                print("❌ Método configurar_dados não existe na tela de verificação")
+                self.mostrar_erro_cadastro("Erro interno: tela mal configurada")
+                return
+            
+            # 4. Configurar dados
+            print("⚙️ Configurando dados na tela de verificação...")
             tela_verificacao.configurar_dados(email, codigo)
+            
+            print(f"✅ Dados configurados:")
+            print(f"   Email: {email}")
+            print(f"   Código: {codigo}")
+            
+            # 5. Navegar para a tela
+            print("🎯 Navegando para tela de verificação...")
             self.manager.current = 'verificacao_email'
-            print(f"TELA DE VERIFICAÇÃO ABERTA para {email}")
+            
+            print(f"✅ TELA DE VERIFICAÇÃO ABERTA para {email}")
+            
         except Exception as e:
-            print(f"Erro ao abrir tela de verificação: {e}")
+            print(f"🔥 ERRO CRÍTICO ao navegar para verificação: {e}")
+            import traceback
+            traceback.print_exc()
+            self.mostrar_erro_cadastro(f"Erro ao abrir tela de verificação")
 
     def mostrar_sucesso_cadastro(self, username, nome_cliente, contas_criadas, moedas_selecionadas):
         """Mostra um popup de sucesso quando o cliente e contas são criados"""
