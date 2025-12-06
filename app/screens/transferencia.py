@@ -22,8 +22,8 @@ class TelaTransferencia(Screen):
         """Chamado antes da tela ser mostrada"""
         from kivy.core.window import Window
         Window.size = (550, 1000)
-        print("📋 Tela de transferência carregada")
-        print(f"🔍 DEBUG: beneficiario_preenchido = {self.beneficiario_preenchido}")
+        print(" Tela de transferência carregada")
+        print(f" DEBUG: beneficiario_preenchido = {self.beneficiario_preenchido}")
         
         # 🔥 CORREÇÃO: Só carregar contas - NUNCA limpar aqui
         self.carregar_contas_origem()
@@ -44,7 +44,7 @@ class TelaTransferencia(Screen):
     
     def on_enter(self):
         """Chamado quando a tela é carregada - CORRIGIDO"""
-        print("📋 Carregando dados da transferência...")
+        print(" Carregando dados da transferência...")
         
         # 🔥 CORREÇÃO: Só recarregar se não veio de beneficiário
         if not self.beneficiario_preenchido:
@@ -68,14 +68,14 @@ class TelaTransferencia(Screen):
                     if hasattr(self, 'ids'):
                         if 'scroll_view_transferencia' in self.ids:
                             self.ids.scroll_view_transferencia.scroll_y = 1.0
-                            print("✅ ScrollView rolada para o topo (via ID)")
+                            print(" ScrollView rolada para o topo (via ID)")
                             return
                         
                         # Método 2: Tentar outros IDs possíveis
                         for id_name, widget in self.ids.items():
                             if 'scroll' in id_name.lower():
                                 widget.scroll_y = 1.0
-                                print(f"✅ ScrollView encontrada por '{id_name}' e rolada para o topo")
+                                print(f" ScrollView encontrada por '{id_name}' e rolada para o topo")
                                 return
                     
                     # Método 3: Buscar na hierarquia
@@ -92,19 +92,19 @@ class TelaTransferencia(Screen):
                     scrollview = encontrar_scrollview(self)
                     if scrollview:
                         scrollview.scroll_y = 1.0
-                        print("✅ ScrollView encontrada na hierarquia e rolada para o topo")
+                        print(" ScrollView encontrada na hierarquia e rolada para o topo")
                     else:
-                        print("❌ ScrollView não encontrada de nenhuma forma")
+                        print(" ScrollView não encontrada de nenhuma forma")
                         
                 except Exception as e:
-                    print(f"❌ Erro durante rolagem: {e}")
+                    print(f" Erro durante rolagem: {e}")
             
             # Agendar múltiplas tentativas
             Clock.schedule_once(rolar, 0.1)  # Primeira tentativa
             Clock.schedule_once(rolar, 0.3)  # Segunda tentativa (backup)
             
         except Exception as e:
-            print(f"⚠️ Erro ao agendar rolagem: {e}")
+            print(f" Erro ao agendar rolagem: {e}")
     
     def _rolar_para_topo_delay(self, dt):
         """Função auxiliar para rolar com delay"""
@@ -115,18 +115,18 @@ class TelaTransferencia(Screen):
                 for child in self.children:
                     if child.__class__.__name__ == 'ScrollView':
                         child.scroll_y = 1.0  # 1.0 = topo, 0.0 = base
-                        print("✅ ScrollView rolada para o topo")
+                        print(" ScrollView rolada para o topo")
                         return
                 
                 # Se não encontrou, tenta pelo ID (se existir)
                 if 'scroll_view' in self.ids:
                     self.ids.scroll_view.scroll_y = 1.0
-                    print("✅ ScrollView (por ID) rolada para o topo")
+                    print(" ScrollView (por ID) rolada para o topo")
                 else:
-                    print("⚠️ ScrollView não encontrada para rolar ao topo")
+                    print(" ScrollView não encontrada para rolar ao topo")
                     
         except Exception as e:
-            print(f"⚠️ Erro ao rolar para o topo: {e}")
+            print(f" Erro ao rolar para o topo: {e}")
 
     def on_leave(self):
         """Chamado quando sai da tela - prepara para próxima entrada"""
@@ -154,10 +154,10 @@ class TelaTransferencia(Screen):
             self.ids.entry_iban.text = dados_beneficiario['iban']
             self.ids.entry_aba.text = dados_beneficiario.get('aba', '')
             
-            print(f"✅ Dados preenchidos manualmente com sucesso!")
+            print(f" Dados preenchidos manualmente com sucesso!")
             
         except Exception as e:
-            print(f"❌ Erro ao preencher dados manualmente: {e}")
+            print(f" Erro ao preencher dados manualmente: {e}")
 
     def carregar_beneficiarios(self):
         """Carrega a lista de beneficiários salvos do usuário"""
@@ -170,11 +170,11 @@ class TelaTransferencia(Screen):
             try:
                 # Obter beneficiários do usuário logado
                 usuario_atual = sistema.usuario_logado
-                print(f"🔍 DEBUG: Usuário atual: {usuario_atual}")
+                print(f" DEBUG: Usuário atual: {usuario_atual}")
                 
                 # Verificar se o sistema tem a estrutura de beneficiários
                 if not hasattr(sistema, 'beneficiarios'):
-                    print("❌ DEBUG: Sistema não tem atributo 'beneficiarios'")
+                    print(" DEBUG: Sistema não tem atributo 'beneficiarios'")
                     self.ids.combo_beneficiarios.values = [""]
                     self.ids.combo_beneficiarios.text = ""
                     return
@@ -203,7 +203,7 @@ class TelaTransferencia(Screen):
                     
                     self.ids.combo_beneficiarios.values = valores
                     self.ids.combo_beneficiarios.text = ""
-                    print(f"✅ {len(beneficiarios)} beneficiários carregados no combo")
+                    print(f" {len(beneficiarios)} beneficiários carregados no combo")
                     
                     # 🔥 ADICIONAR binding APÓS carregar os valores
                     self.ids.combo_beneficiarios.unbind(text=self.preencher_dados_beneficiario)
@@ -211,7 +211,7 @@ class TelaTransferencia(Screen):
                     print("🔍 DEBUG: Binding adicionado ao combo_beneficiarios")
                     
             except Exception as e:
-                print(f"❌ Erro ao carregar beneficiários: {e}")
+                print(f" Erro ao carregar beneficiários: {e}")
                 import traceback
                 traceback.print_exc()
                 # Fallback: inicializar com valor vazio
@@ -265,7 +265,7 @@ class TelaTransferencia(Screen):
     
     def limpar_formulario(self):
         """Limpa todos os campos do formulário"""
-        print("🧹 Limpando formulário completo")
+        print(" Limpando formulário completo")
         
         campos_para_limpar = [
             'entry_beneficiario', 'entry_endereco', 'entry_cidade', 'entry_pais',
@@ -308,29 +308,29 @@ class TelaTransferencia(Screen):
                 self.ids.conta_origem.text = self.ids.conta_origem.values[0]
                 self.atualizar_info_conta()
         
-        print("✅ Formulário limpo completamente")
+        print(" Formulário limpo completamente")
 
     def limpar_campos_transitorios(self):
         """Limpa APENAS os campos que devem ser resetados a cada nova transferência"""
-        print("🧹 Limpando campos transitorios (valor e invoice)")
+        print(" Limpando campos transitorios (valor e invoice)")
         
         # 🔥 LIMPAR CAMPO VALOR
         if hasattr(self, 'ids') and 'entry_valor_transferencia' in self.ids:
             self.ids.entry_valor_transferencia.text = "0.00"
             # Forçar o cursor para o final
             self.ids.entry_valor_transferencia.cursor = (4, 0)
-            print("✅ Campo valor resetado para '0.00'")
+            print(" Campo valor resetado para '0.00'")
         
         # 🔥 LIMPAR CAMPO INVOICE
         if hasattr(self, 'ids') and 'label_arquivo_invoice' in self.ids:
             self.ids.label_arquivo_invoice.text = "Nenhum arquivo selecionado"
             self.ids.label_arquivo_invoice.color = (0.7, 0.7, 0.7, 1)  # Cinza
-            print("✅ Campo invoice resetado")
+            print(" Campo invoice resetado")
         
         # 🔥 LIMPAR VARIÁVEL INTERNA DO INVOICE
         if hasattr(self, 'arquivo_invoice_selecionado'):
             self.arquivo_invoice_selecionado = None
-            print("✅ Variável invoice resetada")
+            print(" Variável invoice resetada")
     
     def validar_formulario(self):
         """Valida todos os campos - VERSÃO SIMPLIFICADA"""
@@ -408,12 +408,12 @@ class TelaTransferencia(Screen):
         """Processa a solicitação de transferência - ATUALIZADO COM SUPABASE"""
         sistema = App.get_running_app().sistema
         
-        print("🌍 Processando solicitação de transferência...")
+        print(" Processando solicitação de transferência...")
         
         # Validar formulário
         valido, mensagem = self.validar_formulario()
         if not valido:
-            print(f"❌ {mensagem}")
+            print(f" {mensagem}")
             self.mostrar_erro_transferencia(mensagem)
             return
         
@@ -429,7 +429,7 @@ class TelaTransferencia(Screen):
             
             # ✅ USAR MÉTODO get_valor_numerico PARA OBTER O VALOR
             valor = self.get_valor_numerico()
-            print(f"💰 Valor processado: {valor}")
+            print(f" Valor processado: {valor}")
             
             # Preparar dados para o sistema
             dados_transferencia = {
@@ -461,16 +461,16 @@ class TelaTransferencia(Screen):
                 
                 if sucesso:
                     transferencia_id = resultado
-                    print(f"✅ Transferência criada com ID: {transferencia_id}")
+                    print(f" Transferência criada com ID: {transferencia_id}")
                     
                     # 🔥🔥🔥 NOVO: SALVAR NO SUPABASE APÓS SUCESSO NO SISTEMA ATUAL
                     self.salvar_transferencia_supabase(dados_transferencia, transferencia_id, valor, moeda_origem)
                     
                     # Agora anexa a invoice
                     if self.anexar_invoice_transferencia(transferencia_id):
-                        print(f"✅ Invoice anexado com sucesso à transferência {transferencia_id}")
+                        print(f" Invoice anexado com sucesso à transferência {transferencia_id}")
                     else:
-                        print(f"⚠️ Invoice não pôde ser anexado à transferência {transferencia_id}")
+                        print(f" Invoice não pôde ser anexado à transferência {transferencia_id}")
                     
                     # Continuar com o processo normal
                     conta_origem = dados_transferencia['conta_origem']
@@ -505,11 +505,11 @@ class TelaTransferencia(Screen):
                     )
                     
                 else:
-                    print(f"❌ Erro na transferência: {resultado}")
+                    print(f" Erro na transferência: {resultado}")
                     self.mostrar_erro_transferencia(resultado)
             else:
                 # Processamento normal sem invoice
-                print("ℹ️ Nenhum invoice selecionado, processando transferência normalmente")
+                print(" Nenhum invoice selecionado, processando transferência normalmente")
                 sucesso, resultado = sistema.solicitar_transferencia_internacional(dados_transferencia)
                 
                 if sucesso:
@@ -549,11 +549,11 @@ class TelaTransferencia(Screen):
                         beneficiario_salvo
                     )
                 else:
-                    print(f"❌ Erro na transferência: {resultado}")
+                    print(f" Erro na transferência: {resultado}")
                     self.mostrar_erro_transferencia(resultado)
             
         except Exception as e:
-            print(f"❌ Erro ao processar transferência: {e}")
+            print(f" Erro ao processar transferência: {e}")
             self.mostrar_erro_transferencia(f"Erro interno: {str(e)}")
 
     def salvar_transferencia_supabase(self, dados_transferencia, transferencia_id, valor, moeda_origem):
@@ -563,7 +563,7 @@ class TelaTransferencia(Screen):
             
             sistema = App.get_running_app().sistema
             
-            print(f"🔥 SALVAR_TRANSFERENCIA_SUPABASE (VERSÃO CORRIGIDA)")
+            print(f"   SALVAR_TRANSFERENCIA_SUPABASE (VERSÃO CORRIGIDA)")
             print(f"   ID: {transferencia_id}")
             print(f"   Valor: {valor} {moeda_origem}")
             print(f"   Usuário: {sistema.usuario_logado}")
@@ -572,17 +572,17 @@ class TelaTransferencia(Screen):
             if hasattr(sistema, 'supabase') and sistema.supabase.conectado:
                 try:
                     # 🔥 NOVO: VERIFICAR SE JÁ EXISTE ANTES DE SALVAR
-                    print(f"🔍 Verificando se transferência {transferencia_id} já existe no Supabase...")
+                    print(f" Verificando se transferência {transferencia_id} já existe no Supabase...")
                     response_existente = sistema.supabase.client.table('transferencias')\
                         .select('id')\
                         .eq('id', transferencia_id)\
                         .execute()
                     
                     if response_existente.data:
-                        print(f"✅ Transferência {transferencia_id} JÁ EXISTE no Supabase (evitando duplicação)")
+                        print(f" Transferência {transferencia_id} JÁ EXISTE no Supabase (evitando duplicação)")
                         return True
                     
-                    print(f"🔍 Transferência {transferencia_id} não existe, prosseguindo com salvamento...")
+                    print(f" Transferência {transferencia_id} não existe, prosseguindo com salvamento...")
                     
                     # 🔥 PREPARAR DADOS COM MESMO PADRÃO DAS OUTRAS TELAS
                     dados_supabase = {
@@ -611,7 +611,7 @@ class TelaTransferencia(Screen):
                         'created_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     }
                     
-                    print(f"🔥 Dados preparados para Supabase:")
+                    print(f"   Dados preparados para Supabase:")
                     print(f"   ID: {dados_supabase['id']}")
                     print(f"   Tipo: {dados_supabase['tipo']}")
                     print(f"   Beneficiário: {dados_supabase['beneficiario']}")
@@ -620,23 +620,23 @@ class TelaTransferencia(Screen):
                     sucesso = sistema.supabase.salvar_transacao(dados_supabase)
                     
                     if sucesso:
-                        print(f"✅✅✅ TRANSFERÊNCIA SALVA NO SUPABASE: {transferencia_id}")
+                        print(f" TRANSFERÊNCIA SALVA NO SUPABASE: {transferencia_id}")
                         return True
                     else:
-                        print(f"❌❌❌ FALHA: Transferência NÃO salva no Supabase")
+                        print(f" FALHA: Transferência NÃO salva no Supabase")
                         return False
                         
                 except Exception as e:
-                    print(f"❌ Erro ao salvar transferência no Supabase: {e}")
+                    print(f" Erro ao salvar transferência no Supabase: {e}")
                     import traceback
                     traceback.print_exc()
                     return False
             else:
-                print("❌ Supabase não disponível - transferência salva apenas localmente")
+                print(" Supabase não disponível - transferência salva apenas localmente")
                 return False
                 
         except Exception as e:
-            print(f"❌ Erro geral em salvar_transferencia_supabase: {e}")
+            print(f" Erro geral em salvar_transferencia_supabase: {e}")
             import traceback
             traceback.print_exc()
             return False
@@ -655,7 +655,7 @@ class TelaTransferencia(Screen):
         
         # Título
         lbl_titulo = Label(
-            text='🔍 CONFIRMAR TRANSFERÊNCIA',
+            text=' CONFIRMAR TRANSFERÊNCIA',
             color=(1, 1, 1, 1),
             font_size='16sp',
             bold=True,
@@ -675,9 +675,9 @@ class TelaTransferencia(Screen):
         
         # Adicionar informação do invoice se existir
         if tem_invoice:
-            detalhes += "\n📎 INVOICE:  ANEXADO"
+            detalhes += "\n INVOICE:  ANEXADO"
         else:
-            detalhes += "\n📎 INVOICE:  NÃO ANEXADO"
+            detalhes += "\n INVOICE:  NÃO ANEXADO"
         
         detalhes += "\n\n Esta operação não pode ser desfeita."
         
@@ -892,7 +892,7 @@ class TelaTransferencia(Screen):
         
         # Adicionar mensagem do beneficiário se foi salvo
         if beneficiario_salvo:
-            detalhes += "\n\n✅ BENEFICIÁRIO SALVO COM SUCESSO!"
+            detalhes += "\n\n BENEFICIÁRIO SALVO COM SUCESSO!"
         
         lbl_detalhes = Label(
             text=detalhes,
@@ -1062,7 +1062,7 @@ class TelaTransferencia(Screen):
 # === MÉTODOS PARA TelaTransferencia ===
 
     def selecionar_invoice(self):
-        """Abre seletor SUPER simplificado com drag & drop"""
+        """Abre seletor SUPER simplificado com drag & drop - VERSÃO COM BOTÃO CANCELAR"""
         try:
             from kivy.uix.popup import Popup
             from kivy.uix.boxlayout import BoxLayout
@@ -1080,25 +1080,25 @@ class TelaTransferencia(Screen):
                 markup=True,
                 color=(0.9, 0.9, 0.9, 1),
                 font_size='18sp',
-                size_hint_y=0.2,
+                size_hint_y=0.15,
                 text_size=(400, None),
                 halign='center'
             )
             
             # Área de Drag & Drop
             area_drag_drop = Button(
-                text='[b]SOLTE O ARQUIVO AQUI[/b]\n\nou clique para procurar\n\n📄 PDF, JPG, PNG (até 5MB)',
+                text='[b]SOLTE O ARQUIVO AQUI[/b]\n\nou clique para procurar\n\n PDF, JPG, PNG (até 5MB)',
                 markup=True,
                 background_color=(0.2, 0.3, 0.4, 0.3),
                 background_normal='',
                 color=(0.8, 0.8, 0.8, 1),
                 font_size='14sp',
-                size_hint_y=0.4,
+                size_hint_y=0.35,
                 halign='center'
             )
             
             # Pastas rápidas
-            pastas_layout = BoxLayout(orientation='horizontal', size_hint_y=0.2, spacing=10)
+            pastas_layout = BoxLayout(orientation='horizontal', size_hint_y=0.15, spacing=10)
             
             btn_documentos = Button(
                 text='Documentos',
@@ -1122,8 +1122,8 @@ class TelaTransferencia(Screen):
             pastas_layout.add_widget(btn_downloads)
             pastas_layout.add_widget(btn_desktop)
             
-            # Botões de ação
-            botoes_layout = BoxLayout(orientation='horizontal', size_hint_y=0.2, spacing=10)
+            # Botões de ação - ATUALIZADO COM CANCELAR
+            botoes_layout = BoxLayout(orientation='horizontal', size_hint_y=0.15, spacing=10)
             
             btn_limpar = Button(
                 text='Limpar',
@@ -1131,7 +1131,13 @@ class TelaTransferencia(Screen):
                 font_size='12sp'
             )
             
-            btn_fechar = Button(
+            btn_cancelar = Button(  # 🔥 NOVO BOTÃO CANCELAR
+                text='Cancelar',
+                background_color=(0.5, 0.5, 0.5, 1),
+                font_size='13sp'
+            )
+            
+            btn_concluir = Button(  # Renomeado de btn_fechar para btn_concluir
                 text='Concluir',
                 background_color=(0.2, 0.7, 0.3, 1),
                 font_size='14sp',
@@ -1139,7 +1145,8 @@ class TelaTransferencia(Screen):
             )
             
             botoes_layout.add_widget(btn_limpar)
-            botoes_layout.add_widget(btn_fechar)
+            botoes_layout.add_widget(btn_cancelar)  # 🔥 ADICIONAR BOTÃO CANCELAR
+            botoes_layout.add_widget(btn_concluir)
             
             content.add_widget(lbl_titulo)
             content.add_widget(area_drag_drop)
@@ -1156,7 +1163,7 @@ class TelaTransferencia(Screen):
                 content=content,
                 size_hint=(0.85, 0.6),
                 background_color=(0.12, 0.16, 0.23, 1),
-                auto_dismiss=False
+                auto_dismiss=False  # Importante: não fecha automaticamente
             )
             
             def atualizar_status(nome_arquivo, sucesso=True):
@@ -1167,10 +1174,10 @@ class TelaTransferencia(Screen):
                     content.remove_widget(lbl_status)
                 
                 if sucesso:
-                    texto = f'✅ [b]{nome_arquivo}[/b]\nPronto para anexar!'
+                    texto = f' [b]{nome_arquivo}[/b]\nPronto para anexar!'
                     cor = (0.2, 0.8, 0.2, 1)
                 else:
-                    texto = f'❌ {nome_arquivo}'
+                    texto = f' {nome_arquivo}'
                     cor = (1, 0.3, 0.3, 1)
                 
                 lbl_status = Label(
@@ -1178,7 +1185,7 @@ class TelaTransferencia(Screen):
                     markup=True,
                     color=cor,
                     font_size='12sp',
-                    size_hint_y=0.15,
+                    size_hint_y=0.1,
                     text_size=(400, None),
                     halign='center'
                 )
@@ -1212,7 +1219,7 @@ class TelaTransferencia(Screen):
                     atualizar_status(nome_arquivo, True)
                     
                     # Atualizar área visual
-                    area_drag_drop.text = f'[b]✅ PRONTO![/b]\n\n{nome_arquivo}\n({tamanho:.1f} MB)'
+                    area_drag_drop.text = f'[b] PRONTO![/b]\n\n{nome_arquivo}\n({tamanho:.1f} MB)'
                     area_drag_drop.background_color = (0.2, 0.5, 0.2, 0.5)
                     
                     return True
@@ -1222,7 +1229,7 @@ class TelaTransferencia(Screen):
                     return False
             
             def abrir_seletor_pasta(pasta):
-                """Abre seletor em pasta específica"""
+                """Abre seletor em pasta específica - VERSÃO COM CANCELAR"""
                 nonlocal popup
                 
                 # Fechar popup atual
@@ -1234,7 +1241,8 @@ class TelaTransferencia(Screen):
                 lbl_instrucao = Label(
                     text=f'Procurando em: {pasta}',
                     color=(0.9, 0.9, 0.9, 1),
-                    font_size='14sp'
+                    font_size='14sp',
+                    size_hint_y=0.1
                 )
                 
                 filechooser = FileChooserListView(
@@ -1246,8 +1254,13 @@ class TelaTransferencia(Screen):
                 botoes_avancado = BoxLayout(orientation='horizontal', size_hint_y=0.2, spacing=10)
                 
                 btn_voltar = Button(
-                    text='⬅Voltar',
+                    text='⬅ Voltar',
                     background_color=(0.5, 0.5, 0.5, 1)
+                )
+                
+                btn_cancelar_avancado = Button(  # 🔥 BOTÃO CANCELAR NO POPUP AVANÇADO
+                    text='Cancelar',
+                    background_color=(0.8, 0.5, 0.5, 1)
                 )
                 
                 btn_escolher = Button(
@@ -1256,6 +1269,7 @@ class TelaTransferencia(Screen):
                 )
                 
                 botoes_avancado.add_widget(btn_voltar)
+                botoes_avancado.add_widget(btn_cancelar_avancado)  # 🔥 ADICIONAR CANCELAR
                 botoes_avancado.add_widget(btn_escolher)
                 
                 content_avancado.add_widget(lbl_instrucao)
@@ -1271,11 +1285,17 @@ class TelaTransferencia(Screen):
                 )
                 
                 def voltar_simples(instance):
+                    """Volta para o popup principal"""
                     popup_avancado.dismiss()
                     self.selecionar_invoice()  # Reabre o popup simples
                 
-                def escolher_arquivo(instance=None, selection=None, touch=None):
-                    """Função corrigida para aceitar diferentes chamadas"""
+                def cancelar_avancado(instance):
+                    """Fecha tudo e volta para a tela principal"""
+                    popup_avancado.dismiss()
+                    # Não precisa reabrir nada, apenas fecha
+                
+                def escolher_arquivo(instance=None):
+                    """Função para escolher arquivo"""
                     if filechooser.selection:
                         caminho = filechooser.selection[0]
                         if processar_arquivo(caminho):
@@ -1285,6 +1305,7 @@ class TelaTransferencia(Screen):
                         lbl_instrucao.color = (1, 0.3, 0.3, 1)
                 
                 btn_voltar.bind(on_press=voltar_simples)
+                btn_cancelar_avancado.bind(on_press=cancelar_avancado)  # 🔥 BIND CANCELAR
                 btn_escolher.bind(on_press=escolher_arquivo)
                 
                 # Usar lambda para evitar problemas de argumentos
@@ -1300,7 +1321,7 @@ class TelaTransferencia(Screen):
                 """Limpa a seleção atual"""
                 nonlocal arquivo_selecionado
                 arquivo_selecionado = None
-                area_drag_drop.text = '[b]SOLTE O ARQUIVO AQUI[/b]\n\nou clique para procurar\n\n📄 PDF, JPG, PNG (até 5MB)'
+                area_drag_drop.text = '[b]SOLTE O ARQUIVO AQUI[/b]\n\nou clique para procurar\n\n PDF, JPG, PNG (até 5MB)'
                 area_drag_drop.background_color = (0.2, 0.3, 0.4, 0.3)
                 
                 # Remover status
@@ -1309,6 +1330,11 @@ class TelaTransferencia(Screen):
                     content.remove_widget(lbl_status)
                     content.do_layout()
             
+            def cancelar(instance):
+                """Fecha o popup sem fazer nada"""
+                print(" Seleção de invoice cancelada pelo usuário")
+                popup.dismiss()
+            
             def finalizar(instance):
                 """Finaliza o processo"""
                 if arquivo_selecionado:
@@ -1316,7 +1342,60 @@ class TelaTransferencia(Screen):
                     popup.dismiss()
                     self.mostrar_mensagem_sucesso("Invoice anexado com sucesso!")
                 else:
-                    atualizar_status("Nenhum arquivo selecionado!", False)
+                    # Se não tem arquivo selecionado, pergunta se quer cancelar
+                    from kivy.uix.popup import Popup as ConfirmPopup
+                    from kivy.uix.label import Label
+                    from kivy.uix.boxlayout import BoxLayout
+                    from kivy.uix.button import Button
+                    
+                    # Popup de confirmação
+                    confirm_content = BoxLayout(orientation='vertical', padding=15, spacing=15)
+                    
+                    lbl_confirm = Label(
+                        text='Nenhum arquivo selecionado.\nDeseja cancelar a seleção?',
+                        color=(0.9, 0.9, 0.9, 1),
+                        font_size='14sp',
+                        text_size=(300, None),
+                        halign='center'
+                    )
+                    
+                    confirm_buttons = BoxLayout(orientation='horizontal', spacing=10, size_hint_y=0.4)
+                    
+                    btn_nao = Button(
+                        text='Continuar',
+                        background_color=(0.3, 0.5, 0.7, 1)
+                    )
+                    
+                    btn_sim = Button(
+                        text='Cancelar',
+                        background_color=(0.8, 0.3, 0.3, 1)
+                    )
+                    
+                    confirm_buttons.add_widget(btn_nao)
+                    confirm_buttons.add_widget(btn_sim)
+                    
+                    confirm_content.add_widget(lbl_confirm)
+                    confirm_content.add_widget(confirm_buttons)
+                    
+                    confirm_popup = ConfirmPopup(
+                        title='Confirmação',
+                        content=confirm_content,
+                        size_hint=(0.6, 0.3),
+                        background_color=(0.12, 0.16, 0.23, 1),
+                        auto_dismiss=False
+                    )
+                    
+                    def fechar_confirm(instance):
+                        confirm_popup.dismiss()
+                    
+                    def cancelar_tudo(instance):
+                        confirm_popup.dismiss()
+                        popup.dismiss()
+                    
+                    btn_nao.bind(on_press=fechar_confirm)
+                    btn_sim.bind(on_press=cancelar_tudo)
+                    
+                    confirm_popup.open()
             
             # Bind dos eventos
             area_drag_drop.bind(on_press=abrir_seletor_generico)
@@ -1324,26 +1403,27 @@ class TelaTransferencia(Screen):
             btn_downloads.bind(on_press=lambda x: abrir_seletor_pasta(os.path.expanduser('~/Downloads')))
             btn_desktop.bind(on_press=lambda x: abrir_seletor_pasta(os.path.expanduser('~/Desktop')))
             btn_limpar.bind(on_press=limpar_selecao)
-            btn_fechar.bind(on_press=finalizar)
+            btn_cancelar.bind(on_press=cancelar)  # 🔥 BIND DO BOTÃO CANCELAR
+            btn_concluir.bind(on_press=finalizar)
             
-            # 🔥 CORREÇÃO: Suporte a drag & drop real - função corrigida
+            # 🔥 CORREÇÃO: Suporte a drag & drop real
             def on_dropfile(window, file_path, *args):
                 """Processa arquivo arrastado para a janela - VERSÃO COMPATÍVEL"""
                 try:
                     file_path_str = file_path.decode('utf-8') if isinstance(file_path, bytes) else str(file_path)
                     if processar_arquivo(file_path_str):
-                        print(f"✅ Arquivo arrastado processado: {file_path_str}")
+                        print(f" Arquivo arrastado processado: {file_path_str}")
                 except Exception as e:
-                    print(f"❌ Erro ao processar arquivo arrastado: {e}")
+                    print(f" Erro ao processar arquivo arrastado: {e}")
 
-            # ✅ ADICIONAR: Binding do evento ORIGINAL
+            # ✅ ADICIONAR: Binding do evento
             from kivy.core.window import Window
-            Window.bind(on_dropfile=on_dropfile)    # ✅ ORIGINAL QUE FUNCIONA
+            Window.bind(on_dropfile=on_dropfile)
 
             # Limpar binding quando popup fechar
             def on_dismiss(instance):
                 from kivy.core.window import Window
-                Window.unbind(on_dropfile=on_dropfile)  # ✅ ORIGINAL QUE FUNCIONA
+                Window.unbind(on_dropfile=on_dropfile)
             
             popup.bind(on_dismiss=on_dismiss)
             
@@ -1351,7 +1431,7 @@ class TelaTransferencia(Screen):
             popup.open()
             
         except Exception as e:
-            print(f"❌ Erro ao abrir seletor de arquivos: {e}")
+            print(f" Erro ao abrir seletor de arquivos: {e}")
             self.mostrar_erro_simples("Erro ao abrir seletor de arquivos")
 
     # Manter estas funções auxiliares (elas já estão boas)
@@ -1456,7 +1536,7 @@ class TelaTransferencia(Screen):
             # 🔥 USAR SEU SUPABASEMANAGER EXISTENTE
             sistema = App.get_running_app().sistema
             if not hasattr(sistema, 'supabase') or not sistema.supabase.conectado:
-                print("❌ Supabase não disponível - usando fallback local")
+                print(" Supabase não disponível - usando fallback local")
                 # Fallback: copiar para pasta local (compatibilidade)
                 pasta_invoices = 'data/invoices'
                 if not os.path.exists(pasta_invoices):
@@ -1491,11 +1571,11 @@ class TelaTransferencia(Screen):
                 )
                 
                 # ✅ SE CHEGOU AQUI, UPLOAD FOI BEM-SUCEDIDO
-                print(f"✅ Upload Supabase bem-sucedido: {caminho_supabase}")
+                print(f" Upload Supabase bem-sucedido: {caminho_supabase}")
                 return caminho_supabase
                 
             except Exception as e:
-                print(f"❌ Erro no upload Supabase: {e}")
+                print(f" Erro no upload Supabase: {e}")
                 # Continuar para fallback local
                 # Fallback para local se Supabase falhar
                 pasta_invoices = 'data/invoices'
@@ -1511,11 +1591,11 @@ class TelaTransferencia(Screen):
                 shutil.copy2(caminho_origem, caminho_destino)
                 return caminho_destino
             
-            print(f"✅ Invoice salvo no Supabase: {caminho_supabase}")
+            print(f" Invoice salvo no Supabase: {caminho_supabase}")
             return caminho_supabase
             
         except Exception as e:
-            print(f"❌ Erro ao copiar invoice: {e}")
+            print(f" Erro ao copiar invoice: {e}")
             return None
 
     def anexar_invoice_transferencia(self, transferencia_id):

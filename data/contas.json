@@ -20,6 +20,27 @@
         "cliente_nome": "TEXACO LLC",
         "data_criacao": "2025-11-01"
     },
+    "364559635": {
+        "moeda": "GBP",
+        "saldo": 0.0,
+        "cliente": "titan",
+        "cliente_nome": "TITAN LIMITED",
+        "data_criacao": "2025-12-06"
+    },
+    "900519236": {
+        "moeda": "BRL",
+        "saldo": 0.0,
+        "cliente": "titan",
+        "cliente_nome": "TITAN LIMITED",
+        "data_criacao": "2025-12-06"
+    },
+    "607906288": {
+        "moeda": "USD",
+        "saldo": 10000.0,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18"
+    },
     "654000645": {
         "moeda": "EUR",
         "saldo": 0.0,
@@ -237,13 +258,6 @@
         "cliente_nome": "JBS FRIBOI LTDA",
         "data_criacao": "2025-12-05"
     },
-    "607906288": {
-        "moeda": "USD",
-        "saldo": 17000.0,
-        "cliente": "pantanal",
-        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
-    },
     "967240582": {
         "moeda": "BRL",
         "saldo": 0.0,
@@ -277,20 +291,6 @@
         "saldo": 0.0,
         "cliente": "google",
         "cliente_nome": "[EXCLUÍDO] GOOGLE LLC",
-        "data_criacao": "2025-12-06"
-    },
-    "364559635": {
-        "moeda": "GBP",
-        "saldo": 0.0,
-        "cliente": "titan",
-        "cliente_nome": "TITAN LIMITED",
-        "data_criacao": "2025-12-06"
-    },
-    "900519236": {
-        "moeda": "BRL",
-        "saldo": 0.0,
-        "cliente": "titan",
-        "cliente_nome": "TITAN LIMITED",
         "data_criacao": "2025-12-06"
     }
 }
