@@ -139,6 +139,34 @@
             "aba": ""
         }
     ],
+    "nike": [
+        {
+            "nome": "PUMA LLC",
+            "banco": "BANK OF AMERIA",
+            "swift": "BOFANYKK",
+            "iban": "2135415185",
+            "endereco": "FIRT AVENUE",
+            "cidade": "MIAMI",
+            "pais": "USA",
+            "endereco_banco": "FITH AVENUE",
+            "cidade_banco": null,
+            "pais_banco": null,
+            "aba": ""
+        },
+        {
+            "nome": "JBL LIMITED",
+            "banco": "JP MORGAN",
+            "swift": "CHASEMMNY",
+            "iban": "6354654",
+            "endereco": "JHON STREET",
+            "cidade": "NEW YORK",
+            "pais": "USA",
+            "endereco_banco": "TIMES SQUAER",
+            "cidade_banco": null,
+            "pais_banco": null,
+            "aba": ""
+        }
+    ],
     "pantanal": [
         {
             "nome": "HUIZHOU MAITONG OPTOELECTRONIC TECHNOLOGY CO., LTD",

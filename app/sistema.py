@@ -120,6 +120,46 @@ class SistemaCambioPremium:
         self.codigos_verificacao = {}       # Códigos temporários
         self.carregar_dados_hibrido()  # 🔥 NOVO MÉTODO
     
+    def criar_conta_supabase_direta(self, username, nome_cliente, moeda, saldo_inicial=0.0):
+        """Cria uma conta diretamente no Supabase (para uso da tela de detalhes)"""
+        try:
+            if hasattr(self, 'supabase') and self.supabase.conectado:
+                import random
+                from datetime import datetime
+                
+                # Gerar número de conta único
+                numero_conta = str(random.randint(100000000, 999999999))
+                
+                conta_data = {
+                    'id': numero_conta,
+                    'moeda': moeda,
+                    'saldo': float(saldo_inicial),
+                    'cliente_username': username,
+                    'cliente_nome': nome_cliente,
+                    'data_criacao': datetime.now().date().isoformat(),
+                    'ativa': True,
+                    'created_at': datetime.now().isoformat()
+                }
+                
+                # Inserir conta no Supabase
+                response = self.supabase.client.table('contas')\
+                    .insert(conta_data)\
+                    .execute()
+                
+                if response.data:
+                    print(f"✅ Conta {numero_conta} criada no Supabase em {moeda} para {username}")
+                    
+                    # Atualizar lista de contas do usuário
+                    self.atualizar_contas_usuario_supabase(username)
+                    
+                    return numero_conta
+            
+            return None
+            
+        except Exception as e:
+            print(f"❌ Erro ao criar conta diretamente no Supabase: {e}")
+            return None
+
     def carregar_dados_essenciais(self):
         """Carrega apenas dados essenciais para login rápido"""
         print("🔄 Carregando dados essenciais...")
@@ -4867,6 +4907,115 @@ class SistemaCambioPremium:
         
         return f"CÂMBIO - {moeda_origem} {valor_origem:,.2f} --> {moeda_destino} {valor_destino:,.2f} (Taxa: {taxa:.4f})"
 
+
+    # No arquivo sistema.py, adicione estes métodos DENTRO da classe SistemaCambioPremium:
+
+    def atualizar_contas_usuario_supabase(self, username, conta_id_remover=None):
+        """Wrapper para atualizar contas do usuário no Supabase"""
+        if hasattr(self, 'supabase') and self.supabase.conectado:
+            return self.supabase.atualizar_contas_usuario_supabase(username, conta_id_remover)
+        return False
+
+    def excluir_usuario_completo_supabase(self, username):
+        """Wrapper para excluir usuário completo do Supabase"""
+        if hasattr(self, 'supabase') and self.supabase.conectado:
+            return self.supabase.excluir_usuario_completo_supabase(username)
+        return False
+
+    def obter_contas_cliente_supabase(self, username):
+        """Wrapper para obter contas do cliente do Supabase"""
+        if hasattr(self, 'supabase') and self.supabase.conectado:
+            return self.supabase.obter_contas_cliente_supabase(username)
+        return []
+
+    def atualizar_dados_cliente_supabase(self, username, dados_atualizados):
+        """Wrapper para atualizar dados do cliente no Supabase"""
+        if hasattr(self, 'supabase') and self.supabase.conectado:
+            return self.supabase.atualizar_dados_cliente_supabase(username, dados_atualizados)
+        return False
+
+    # No sistema.py, adicione este método:
+
+    def excluir_cliente_preservando_transferencias(self, username):
+        """Exclui cliente preservando transferências para histórico contábil"""
+        try:
+            print(f"🗑️ Excluindo cliente {username} (preservando transferências)...")
+            
+            # 🔥 PRIORIDADE: Excluir do Supabase (soft delete)
+            sucesso_supabase = False
+            if hasattr(self, 'supabase') and self.supabase.conectado:
+                sucesso_supabase = self.supabase.excluir_usuario_completo_supabase(username)
+            
+            # 🔥 FALLBACK: Excluir localmente também
+            self._excluir_cliente_local_preservando_transferencias(username)
+            
+            mensagem = f"✅ Cliente {username} excluído"
+            if sucesso_supabase:
+                mensagem += " do Supabase (soft delete)"
+            else:
+                mensagem += " apenas localmente"
+            
+            mensagem += "\n⚠️ Transferências preservadas para histórico contábil"
+            
+            print(mensagem)
+            return True, mensagem
+            
+        except Exception as e:
+            print(f"❌ Erro ao excluir cliente: {e}")
+            return False, f"Erro: {str(e)}"
+
+    def _excluir_cliente_local_preservando_transferencias(self, username):
+        """Exclui cliente localmente preservando transferências"""
+        try:
+            # 1. Marcar contas como excluídas (soft delete no cache local)
+            contas_cliente = []
+            for conta_num, dados_conta in self.contas.items():
+                if dados_conta.get('cliente') == username:
+                    # Marcar como excluída no cache
+                    self.contas[conta_num]['cliente_nome'] = f"[EXCLUÍDO] {dados_conta.get('cliente_nome', username)}"
+                    self.contas[conta_num]['ativo'] = False
+                    contas_cliente.append(conta_num)
+            
+            print(f"   🔄 {len(contas_cliente)} contas marcadas como excluídas no cache")
+            
+            # 2. Remover usuário do cache local
+            if username in self.usuarios:
+                # Criar backup dos dados antes de remover (opcional)
+                dados_backup = {
+                    'username': username,
+                    'nome': self.usuarios[username].get('nome', ''),
+                    'email': self.usuarios[username].get('email', ''),
+                    'data_exclusao': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }
+                
+                # Remover do cache
+                del self.usuarios[username]
+                print(f"   🗑️ Usuário removido do cache local")
+            
+            # 3. Remover beneficiários do cache local
+            if username in self.beneficiarios:
+                del self.beneficiarios[username]
+                print(f"   🗑️ Beneficiários removidos do cache")
+            
+            # 4. Remover configurações de cotações do cache
+            for estrutura in [self.spreads_clientes, self.permissoes_cambio, self.limites_operacionais, self.horarios_clientes]:
+                if username in estrutura:
+                    del estrutura[username]
+            
+            # 5. 🔥 NÃO REMOVER TRANSFERÊNCIAS - preservar histórico
+            print(f"   📊 Transferências preservadas para histórico contábil")
+            
+            # 6. Salvar dados locais
+            self.salvar_usuarios()
+            self.salvar_contas()
+            self.salvar_beneficiarios()
+            self.salvar_dados_cotacoes()
+            
+            print(f"   💾 Dados locais salvos")
+            
+        except Exception as e:
+            print(f"❌ Erro ao excluir cliente localmente: {e}")
+            raise e
 
 
 

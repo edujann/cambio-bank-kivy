@@ -570,7 +570,7 @@ class SupabaseManager:
 
 
     def criar_contas_supabase(self, username, nome_cliente, moedas):
-        """Cria contas para um cliente no Supabase"""
+        """Cria contas para um cliente no Supabase - VERSÃO MELHORADA"""
         try:
             import random
             from datetime import datetime
@@ -582,14 +582,14 @@ class SupabaseManager:
                 numero_conta = str(random.randint(100000000, 999999999))
                 
                 conta_data = {
-                    'id': numero_conta,  # ✅ COLUNA CORRETA: 'id'
-                    'moeda': moeda,      # ✅ COLUNA CORRETA: 'moeda'
-                    'saldo': 0.0,        # ✅ COLUNA CORRETA: 'saldo'
-                    'cliente_username': username,    # ✅ COLUNA CORRETA
-                    'cliente_nome': nome_cliente,    # ✅ COLUNA CORRETA
-                    'data_criacao': datetime.now().date().isoformat(),  # ✅ Formato DATE
-                    'ativa': True,       # ✅ COLUNA CORRETA: 'ativa'
-                    'created_at': datetime.now().isoformat()  # ✅ COLUNA CORRETA
+                    'id': numero_conta,
+                    'moeda': moeda,
+                    'saldo': 0.0,
+                    'cliente_username': username,
+                    'cliente_nome': nome_cliente,
+                    'data_criacao': datetime.now().date().isoformat(),
+                    'ativa': True,
+                    'created_at': datetime.now().isoformat()
                 }
                 
                 # Inserir conta no Supabase
@@ -603,19 +603,9 @@ class SupabaseManager:
                 else:
                     print(f"❌ Erro ao criar conta {numero_conta} no Supabase")
             
-            # 🔥🔥🔥 CORREÇÃO CRÍTICA: ATUALIZAR USUÁRIO COM IDs DAS CONTAS
+            # 🔥 AGORA: Atualizar usuário com IDs das contas
             if contas_criadas:
-                print(f"🔄 Atualizando usuário {username} com IDs das contas: {contas_criadas}")
-                
-                response_usuario = self.client.table('usuarios')\
-                    .update({'contas': contas_criadas})\
-                    .eq('username', username)\
-                    .execute()
-                
-                if response_usuario.data:
-                    print(f"✅✅✅ USUÁRIO ATUALIZADO: {username} com contas: {contas_criadas}")
-                else:
-                    print(f"❌❌❌ FALHA CRÍTICA: Não foi possível atualizar usuário no Supabase")
+                self.atualizar_contas_usuario_supabase(username)
             
             return contas_criadas
             
@@ -911,6 +901,330 @@ class SupabaseManager:
             print(f"❌ Erro ao obter beneficiários do cliente {username_cliente}: {e}")
             return []
 
+    # No arquivo supabase_manager.py, adicione estes métodos NO FINAL DA CLASSE SupabaseManager:
+
+    def atualizar_contas_usuario_supabase(self, username, conta_id_remover=None):
+        """Atualiza a lista de contas do usuário no Supabase (remove uma conta se especificada)"""
+        try:
+            # Buscar todas as contas atuais do usuário
+            response = self.client.table('contas')\
+                .select('id')\
+                .eq('cliente_username', username)\
+                .eq('ativa', True)\
+                .execute()
+            
+            if response.data:
+                # Filtrar contas ativas (exceto a que está sendo removida)
+                contas_ativas = [conta['id'] for conta in response.data 
+                            if conta['id'] != conta_id_remover]
+                
+                # Atualizar campo 'contas' do usuário
+                response_update = self.client.table('usuarios')\
+                    .update({'contas': contas_ativas})\
+                    .eq('username', username)\
+                    .execute()
+                
+                if response_update.data:
+                    print(f"✅ Lista de contas atualizada para {username}: {len(contas_ativas)} contas")
+                    return True
+            
+            return False
+            
+        except Exception as e:
+            print(f"❌ Erro ao atualizar contas do usuário no Supabase: {e}")
+            return False
+
+    def excluir_usuario_completo_supabase(self, username):
+        """Exclui usuário e dados relacionados MAS PRESERVA TRANSFERÊNCIAS"""
+        try:
+            print(f"\n{'='*60}")
+            print(f"🗑️  INICIANDO EXCLUSÃO SEGURA DE: {username}")
+            print(f"{'='*60}")
+            print(f"⚠️  ATENÇÃO: Transferências NÃO serão excluídas para preservar histórico!")
+            
+            # 1. Verificar se usuário existe
+            response_usuario = self.client.table('usuarios')\
+                .select('id, email, nome, status')\
+                .eq('username', username)\
+                .execute()
+            
+            if not response_usuario.data:
+                print(f"❌ Usuário '{username}' não encontrado no Supabase")
+                return False
+            
+            usuario_data = response_usuario.data[0]
+            usuario_id = usuario_data['id']
+            usuario_email = usuario_data.get('email', '')
+            usuario_nome = usuario_data.get('nome', username)
+            usuario_status = usuario_data.get('status', 'ativo')
+            
+            print(f"   Dados do usuário encontrados:")
+            print(f"   ID: {usuario_id}")
+            print(f"   Nome: {usuario_nome}")
+            print(f"   Email: {usuario_email}")
+            print(f"   Status atual: {usuario_status}")
+            
+            # 2. Desativar contas do usuário (soft delete)
+            sucesso_contas = self.desativar_contas_usuario_supabase(username)
+            
+            # 3. Excluir beneficiários
+            print(f"\n Excluindo beneficiários...")
+            try:
+                response_benef = self.client.table('beneficiarios')\
+                    .delete()\
+                    .eq('cliente_username', username)\
+                    .execute()
+                
+                count_benef = len(response_benef.data) if response_benef.data else 0
+                print(f" {count_benef} beneficiários excluídos")
+            except Exception as e:
+                print(f" Erro ao excluir beneficiários: {e}")
+            
+            # 4. Excluir configurações de cotações
+            print(f"\n Excluindo configurações de cotações...")
+            try:
+                response_config = self.client.table('config_cotacoes')\
+                    .delete()\
+                    .eq('cliente_username', username)\
+                    .execute()
+                
+                count_config = len(response_config.data) if response_config.data else 0
+                print(f" {count_config} configurações excluídas")
+            except Exception as e:
+                print(f" Erro ao excluir configurações: {e}")
+            
+            # 5. Marcar usuário como excluído (soft delete)
+            print(f"\n Marcando usuário como excluído (soft delete)...")
+            
+            # Criar novo username/email para evitar conflitos
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            novo_username = f"excluido_{timestamp}_{username[:10]}"
+            
+            # Tratamento especial para email
+            if usuario_email and '@' in usuario_email:
+                # Preservar domínio original
+                dominio = usuario_email.split('@')[1]
+                novo_email = f"excluido_{timestamp}@{dominio}"
+            elif usuario_email:
+                novo_email = f"excluido_{timestamp}_{usuario_email}"
+            else:
+                novo_email = f"excluido_{timestamp}@excluido.com"
+            
+            # 🔥 USANDO APENAS COLUNAS QUE EXISTEM NA TABELA 'usuarios':
+            update_data = {
+                'username': novo_username,          # ✅ EXISTE
+                'email': novo_email,                # ✅ EXISTE
+                'status': 'excluido',               # ✅ EXISTE
+                'nome': f"[EXCLUÍDO] {usuario_nome}",  # ✅ EXISTE
+                'documento_hash': '',               # ✅ EXISTE
+                'telefone': '',                     # ✅ EXISTE
+                'endereco': '',                     # ✅ EXISTE
+                'cidade': '',                       # ✅ EXISTE
+                'cep': '',                          # ✅ EXISTE
+                'estado': '',                       # ✅ EXISTE
+                'pais': '',                         # ✅ EXISTE
+                'tipo': 'excluido',                 # ✅ EXISTE
+                'contas': [],                       # ✅ EXISTE
+                'verificado': False,                # ✅ EXISTE
+                'codigo_verificacao': '',           # ✅ EXISTE
+                'cambio_liberado': False            # ✅ EXISTE
+                # 🔥 NÃO INCLUIR: 'ativo' - não existe
+                # 🔥 NÃO INCLUIR: 'updated_at' - pode ser automático
+                # 🔥 'data_cadastro' e 'created_at' mantemos como estão
+            }
+            
+            response_update = self.client.table('usuarios')\
+                .update(update_data)\
+                .eq('id', usuario_id)\
+                .execute()
+            
+            if response_update.data:
+                print(f"\n{''*20}")
+                print(f" EXCLUSÃO SEGURA CONCLUÍDA!")
+                print(f"{''*20}")
+                print(f"\n RESUMO DA EXCLUSÃO:")
+                print(f"    Cliente: {username}")
+                print(f"    Nome original: {usuario_nome}")
+                print(f"    Novo username: {novo_username}")
+                print(f"    Novo email: {novo_email}")
+                print(f"    Contas desativadas: {'Sim' if sucesso_contas else 'Não'}")
+                print(f"    Transferências: PRESERVADAS")
+                print(f"    Histórico contábil: INTACTO")
+                print(f"\n  IMPORTANTE:")
+                print(f"   • O usuário não pode mais fazer login")
+                print(f"   • Contas estão desativadas")
+                print(f"   • Transferências permanecem para auditoria")
+                print(f"   • Dados sensíveis foram removidos")
+                
+                return True
+            else:
+                print(f" Erro ao marcar usuário como excluído")
+                return False
+                
+        except Exception as e:
+            print(f"\n{''*20}")
+            print(f" ERRO NA EXCLUSÃO!")
+            print(f"{''*20}")
+            print(f"Erro: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    def desativar_contas_usuario_supabase(self, username):
+        """Desativa contas de um usuário (soft delete)"""
+        try:
+            response = self.client.table('contas')\
+                .update({
+                    'ativa': False,
+                    'cliente_nome': f"[EXCLUÍDO] {self.obter_nome_cliente(username)}"
+                })\
+                .eq('cliente_username', username)\
+                .execute()
+            
+            if response.data:
+                print(f"✅ Contas de {username} desativadas no Supabase")
+                return True
+            else:
+                print(f"⚠️ Nenhuma conta encontrada para {username}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Erro ao desativar contas: {e}")
+            return False
+
+    def obter_nome_cliente(self, username):
+        """Obtém nome do cliente para usar no soft delete"""
+        try:
+            response = self.client.table('usuarios')\
+                .select('nome')\
+                .eq('username', username)\
+                .execute()
+            
+            if response.data:
+                return response.data[0].get('nome', username)
+            return username
+        except:
+            return username
+
+    def obter_contas_cliente_supabase(self, username):
+        """Obtém contas de um cliente específico do Supabase"""
+        try:
+            response = self.client.table('contas')\
+                .select('*')\
+                .eq('cliente_username', username)\
+                .execute()
+            
+            contas = []
+            for conta in response.data:
+                contas.append({
+                    'id': conta['id'],
+                    'numero': conta['id'],
+                    'moeda': conta['moeda'],
+                    'saldo': float(conta['saldo']),
+                    'cliente_username': conta['cliente_username'],
+                    'cliente_nome': conta.get('cliente_nome', ''),
+                    'data_criacao': conta.get('data_criacao', ''),
+                    'ativa': conta.get('ativa', True)
+                })
+            
+            print(f"✅ {len(contas)} contas obtidas do Supabase para {username}")
+            return contas
+            
+        except Exception as e:
+            print(f"❌ Erro ao obter contas do cliente do Supabase: {e}")
+            return []
+
+    def atualizar_dados_cliente_supabase(self, username, dados_atualizados):
+        """Atualiza dados do cliente no Supabase"""
+        try:
+            # Preparar dados para atualização
+            dados_supabase = {}
+            
+            # Mapear campos que podem ser atualizados
+            campos_permitidos = [
+                'nome', 'email', 'telefone', 'endereco', 'cidade', 
+                'cep', 'estado', 'pais', 'status', 'cambio_liberado'
+            ]
+            
+            for campo in campos_permitidos:
+                if campo in dados_atualizados:
+                    dados_supabase[campo] = dados_atualizados[campo]
+            
+            # Atualizar no Supabase
+            response = self.client.table('usuarios')\
+                .update(dados_supabase)\
+                .eq('username', username)\
+                .execute()
+            
+            if response.data:
+                print(f"✅ Dados do cliente {username} atualizados no Supabase")
+                return True
+            else:
+                print(f"❌ Erro ao atualizar dados do cliente no Supabase")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Erro ao atualizar dados do cliente no Supabase: {e}")
+            return False
+        
+    def obter_transferencias_cliente(self, username):
+        """Obtém transferências relacionadas a um cliente (para auditoria)"""
+        try:
+            # Primeiro, buscar contas do cliente
+            contas_response = self.client.table('contas')\
+                .select('id')\
+                .eq('cliente_username', username)\
+                .execute()
+            
+            if not contas_response.data:
+                return []
+            
+            contas_ids = [conta['id'] for conta in contas_response.data]
+            
+            # Buscar transferências onde o cliente está envolvido
+            transferencias = []
+            
+            # Buscar como remetente
+            for conta_id in contas_ids:
+                response = self.client.table('transferencias')\
+                    .select('*')\
+                    .eq('conta_remetente', conta_id)\
+                    .execute()
+                
+                transferencias.extend(response.data)
+            
+            # Buscar como destinatário
+            for conta_id in contas_ids:
+                response = self.client.table('transferencias')\
+                    .select('*')\
+                    .eq('conta_destinatario', conta_id)\
+                    .execute()
+                
+                transferencias.extend(response.data)
+            
+            # Buscar por nome do cliente em outros campos
+            response_cliente = self.client.table('transferencias')\
+                .select('*')\
+                .or_(f"cliente.eq.{username},solicitado_por.eq.{username},executado_por.eq.{username}")\
+                .execute()
+            
+            transferencias.extend(response_cliente.data)
+            
+            # Remover duplicatas
+            ids_vistos = set()
+            transferencias_unicas = []
+            
+            for transf in transferencias:
+                if transf['id'] not in ids_vistos:
+                    ids_vistos.add(transf['id'])
+                    transferencias_unicas.append(transf)
+            
+            print(f"✅ {len(transferencias_unicas)} transferências encontradas para {username}")
+            return transferencias_unicas
+            
+        except Exception as e:
+            print(f"❌ Erro ao buscar transferências do cliente: {e}")
+            return []
 
 
 # Teste rápido
