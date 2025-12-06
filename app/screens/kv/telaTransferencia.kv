@@ -184,7 +184,7 @@
                 BoxLayout:
                     orientation: 'vertical'
                     size_hint_y: None
-                    height: 350
+                    height: 430  # 🔥 AUMENTEI A ALTURA de 350 para 430 (para caber os 2 novos campos)
                     padding: 10
                     canvas:
                         Color:
@@ -199,13 +199,13 @@
                         font_size: '14sp'
                         bold: True
                         color: 0.23, 0.51, 0.96, 1
-                        size_hint_y: 0.1
+                        size_hint_y: 0.08  # 🔥 AJUSTEI de 0.1 para 0.08
                         text_size: self.width, None
                         halign: 'left'
                     
                     GridLayout:
                         cols: 1
-                        size_hint_y: 0.9
+                        size_hint_y: 0.92  # 🔥 AJUSTEI de 0.9 para 0.92
                         spacing: 8
                         
                         CampoTexto:
@@ -215,6 +215,14 @@
                         CampoTexto:
                             id: endereco_banco
                             hint_text: 'Endereço do Banco'
+                        
+                        CampoTexto:
+                            id: cidade_banco  # 🔥 NOVO CAMPO
+                            hint_text: 'Cidade do Banco *'  # 🔥 ADICIONE O *
+                        
+                        CampoTexto:
+                            id: pais_banco  # 🔥 NOVO CAMPO
+                            hint_text: 'País do Banco *'  # 🔥 ADICIONE O *
                         
                         CampoTexto:
                             id: entry_swift

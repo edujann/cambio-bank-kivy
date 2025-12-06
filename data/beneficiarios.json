@@ -9,6 +9,8 @@
             "cidade": "NEW YORK",
             "pais": "USA",
             "endereco_banco": "WALL STREET",
+            "cidade_banco": null,
+            "pais_banco": null,
             "aba": ""
         },
         {
@@ -20,6 +22,8 @@
             "cidade": "NAPOLI",
             "pais": "ITALY",
             "endereco_banco": "STRADA TRESTADA",
+            "cidade_banco": null,
+            "pais_banco": null,
             "aba": ""
         },
         {
@@ -31,6 +35,8 @@
             "cidade": "SHANDONG",
             "pais": "CHINA",
             "endereco_banco": "CHARTER HOUSE, 8 CONNAUGHT ROAD",
+            "cidade_banco": null,
+            "pais_banco": null,
             "aba": ""
         }
     ],
@@ -44,6 +50,8 @@
             "cidade": "adfadfa",
             "pais": "afdafds",
             "endereco_banco": "adfadfaafd",
+            "cidade_banco": null,
+            "pais_banco": null,
             "aba": "afdafdafda"
         }
     ],
@@ -57,6 +65,8 @@
             "cidade": "MILAN",
             "pais": "ITALY",
             "endereco_banco": "TURN STREET",
+            "cidade_banco": null,
+            "pais_banco": null,
             "aba": ""
         },
         {
@@ -68,6 +78,8 @@
             "cidade": "MIAMI",
             "pais": "USA",
             "endereco_banco": "OCEAN DRIVA",
+            "cidade_banco": null,
+            "pais_banco": null,
             "aba": ""
         }
     ],
@@ -81,6 +93,8 @@
             "cidade": "NEW YORK",
             "pais": "USA",
             "endereco_banco": "3RD AVENUE",
+            "cidade_banco": null,
+            "pais_banco": null,
             "aba": ""
         },
         {
@@ -92,6 +106,8 @@
             "cidade": "MIAMI",
             "pais": "USA",
             "endereco_banco": "TREE STREET",
+            "cidade_banco": null,
+            "pais_banco": null,
             "aba": ""
         }
     ],
@@ -105,6 +121,8 @@
             "cidade": "SHANDONG",
             "pais": "CHINA",
             "endereco_banco": "3 CHANGI BUSINESS, PARK CRESCENT - SINGAPORE",
+            "cidade_banco": null,
+            "pais_banco": null,
             "aba": ""
         },
         {
@@ -116,6 +134,8 @@
             "cidade": "NEW YORK",
             "pais": "USA",
             "endereco_banco": "FITH AVENUE",
+            "cidade_banco": null,
+            "pais_banco": null,
             "aba": ""
         }
     ],
@@ -129,6 +149,8 @@
             "cidade": "MIAMI",
             "pais": "USA",
             "endereco_banco": "FITH AVENUE",
+            "cidade_banco": null,
+            "pais_banco": null,
             "aba": ""
         },
         {
@@ -140,6 +162,8 @@
             "cidade": "NEW YORK",
             "pais": "USA",
             "endereco_banco": "TIMES SQUAER",
+            "cidade_banco": null,
+            "pais_banco": null,
             "aba": ""
         }
     ],
@@ -153,6 +177,8 @@
             "cidade": "HUIZHOU CITY",
             "pais": "CHINA",
             "endereco_banco": "96 LUOYANG 1 ROAD",
+            "cidade_banco": null,
+            "pais_banco": null,
             "aba": ""
         },
         {
@@ -164,6 +190,8 @@
             "cidade": "SUZHOU",
             "pais": "CHINA",
             "endereco_banco": "11TH FLOOR, THE CENTER, 99 QUEEN'S ROAD CENTRAL, HONG KONG",
+            "cidade_banco": null,
+            "pais_banco": null,
             "aba": ""
         },
         {
@@ -175,7 +203,23 @@
             "cidade": "NEW YORK",
             "pais": "USA",
             "endereco_banco": "WALL STREET",
+            "cidade_banco": null,
+            "pais_banco": null,
             "aba": ""
+        },
+        {
+            "nome": "XHIN JIN XHANG TAI LIMITED",
+            "endereco": "10 CHENG FIN SHAN STREET",
+            "cidade": "SHANGAI",
+            "pais": "CHINA",
+            "banco": "HSBC HONG KONG",
+            "endereco_banco": "1 CENTRAL ROAD",
+            "cidade_banco": "HONG KONG",
+            "pais_banco": "CHINA",
+            "swift": "HSBCHKHHH",
+            "iban": "546235456",
+            "aba": "",
+            "data_cadastro": "2025-12-05 17:48:55"
         }
     ],
     "lins": [
@@ -188,6 +232,8 @@
             "cidade": "HONG KONG",
             "pais": "HONG KONG",
             "endereco_banco": "Champion Tower THREE Garden ROAD CENTRAL, HONG KONG",
+            "cidade_banco": null,
+            "pais_banco": null,
             "aba": ""
         }
     ],
@@ -201,6 +247,8 @@
             "cidade": "MIAMI",
             "pais": "USA",
             "endereco_banco": "3543 OCEAN DRIVE",
+            "cidade_banco": null,
+            "pais_banco": null,
             "aba": ""
         },
         {
@@ -212,19 +260,37 @@
             "cidade": "LONDON",
             "pais": "ENGLAND",
             "endereco_banco": "1 BARCKLEY SQUARE",
+            "cidade_banco": null,
+            "pais_banco": null,
             "aba": ""
         },
         {
             "nome": "LG TECHNOLOGY LTD",
+            "banco": "BANK OF AMERICA",
+            "swift": "BOFAWSTLK",
+            "iban": "56462214512",
             "endereco": "456 OXFORD STREET",
             "cidade": "WASHINGTON",
             "pais": "USA",
-            "banco": "BANK OF AMERICA",
             "endereco_banco": "1984 GERMAN CANION STREET",
-            "swift": "BOFAWSTLK",
-            "iban": "56462214512",
-            "aba": "",
-            "data_cadastro": "2025-11-26 13:51:44"
+            "cidade_banco": null,
+            "pais_banco": null,
+            "aba": ""
+        }
+    ],
+    "hidroamerica": [
+        {
+            "nome": "HIDROEUROPA, S.L.",
+            "banco": "CAJAMAR CAJA RURAL",
+            "swift": "CCRIES2A",
+            "iban": "ES4830580210902720011338",
+            "endereco": "FINCA LA CERCA, 30 POZO ESTRECHO",
+            "cidade": "MURCIA",
+            "pais": "SPAIN",
+            "endereco_banco": "PLAZA DE BARCELONA 5, ALMERIA - SPAIN",
+            "cidade_banco": null,
+            "pais_banco": null,
+            "aba": ""
         }
     ]
 }

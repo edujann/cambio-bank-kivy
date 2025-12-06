@@ -148,6 +148,8 @@ class TelaTransferencia(Screen):
             self.ids.entry_pais.text = dados_beneficiario['pais']
             self.ids.entry_banco.text = dados_beneficiario['banco']
             self.ids.endereco_banco.text = dados_beneficiario.get('endereco_banco', '')
+            self.ids.cidade_banco.text = dados_beneficiario.get('cidade_banco', '')  # 🔥 NOVO
+            self.ids.pais_banco.text = dados_beneficiario.get('pais_banco', '')      # 🔥 NOVO
             self.ids.entry_swift.text = dados_beneficiario['swift']
             self.ids.entry_iban.text = dados_beneficiario['iban']
             self.ids.entry_aba.text = dados_beneficiario.get('aba', '')
@@ -185,7 +187,7 @@ class TelaTransferencia(Screen):
                 if not beneficiarios:
                     self.ids.combo_beneficiarios.values = [""]
                     self.ids.combo_beneficiarios.text = ""
-                    print("ℹ️ Nenhum beneficiário salvo encontrado")
+                    print("Nenhum beneficiário salvo encontrado")
                     # 🔥 REMOVER binding antigo se existir
                     self.ids.combo_beneficiarios.unbind(text=self.preencher_dados_beneficiario)
                     # 🔥 ADICIONAR binding
@@ -268,7 +270,8 @@ class TelaTransferencia(Screen):
         campos_para_limpar = [
             'entry_beneficiario', 'entry_endereco', 'entry_cidade', 'entry_pais',
             'entry_banco', 'endereco_banco', 'entry_swift', 'entry_iban', 'entry_aba',
-            'text_descricao'
+            'text_descricao',
+            'cidade_banco', 'pais_banco'  # 🔥 AQUI ADICIONE OS DOIS NOVOS CAMPOS
         ]
         
         for campo_id in campos_para_limpar:
@@ -364,6 +367,8 @@ class TelaTransferencia(Screen):
             'entry_cidade': 'Cidade',
             'entry_pais': 'País',
             'entry_banco': 'Nome do Banco Destinatário',
+            'cidade_banco': 'Cidade do Banco',  # 🔥 NOVO
+            'pais_banco': 'País do Banco',      # 🔥 NOVO
             'entry_swift': 'Código SWIFT/BIC',
             'entry_iban': 'Código IBAN / Account #'
         }
@@ -438,6 +443,8 @@ class TelaTransferencia(Screen):
                 'pais': self.ids.entry_pais.text.strip(),
                 'banco': self.ids.entry_banco.text.strip(),
                 'endereco_banco': self.ids.endereco_banco.text.strip(),
+                'cidade_banco': self.ids.cidade_banco.text.strip(),  # 🔥 NOVO
+                'pais_banco': self.ids.pais_banco.text.strip(),      # 🔥 NOVO
                 'swift': self.ids.entry_swift.text.strip(),
                 'iban': self.ids.entry_iban.text.strip(),
                 'aba': self.ids.entry_aba.text.strip()
@@ -478,6 +485,8 @@ class TelaTransferencia(Screen):
                             'pais': dados_transferencia['pais'],
                             'banco': dados_transferencia['banco'],
                             'endereco_banco': dados_transferencia['endereco_banco'],
+                            'cidade_banco': dados_transferencia['cidade_banco'],  # 🔥 NOVO
+                            'pais_banco': dados_transferencia['pais_banco'],      # 🔥 NOVO
                             'swift': dados_transferencia['swift'],
                             'iban': dados_transferencia['iban'],
                             'aba': dados_transferencia['aba']
@@ -521,6 +530,8 @@ class TelaTransferencia(Screen):
                             'pais': dados_transferencia['pais'],
                             'banco': dados_transferencia['banco'],
                             'endereco_banco': dados_transferencia['endereco_banco'],
+                            'cidade_banco': dados_transferencia['cidade_banco'],  # 🔥 NOVO
+                            'pais_banco': dados_transferencia['pais_banco'],      # 🔥 NOVO
                             'swift': dados_transferencia['swift'],
                             'iban': dados_transferencia['iban'],
                             'aba': dados_transferencia['aba']
@@ -591,6 +602,8 @@ class TelaTransferencia(Screen):
                         'pais': dados_transferencia['pais'],
                         'nome_banco': dados_transferencia['banco'],
                         'endereco_banco': dados_transferencia.get('endereco_banco', ''),
+                        'cidade_banco': dados_transferencia.get('cidade_banco', ''),  # 🔥 NOVO
+                        'pais_banco': dados_transferencia.get('pais_banco', ''),      # 🔥 NOVO
                         'codigo_swift': dados_transferencia['swift'],
                         'iban_account': dados_transferencia['iban'],
                         'aba_routing': dados_transferencia.get('aba', ''),
@@ -741,10 +754,12 @@ class TelaTransferencia(Screen):
                     'cidade': dados_transferencia['cidade'],
                     'pais': dados_transferencia['pais'],
                     'banco': dados_transferencia['banco'],
-                    'endereco_banco': dados_transferencia['endereco_banco'],
+                    'endereco_banco': dados_transferencia.get('endereco_banco', ''),
+                    'cidade_banco': dados_transferencia.get('cidade_banco', ''),  # 🔥 NOVO
+                    'pais_banco': dados_transferencia.get('pais_banco', ''),      # 🔥 NOVO
                     'swift': dados_transferencia['swift'],
                     'iban': dados_transferencia['iban'],
-                    'aba': dados_transferencia['aba']
+                    'aba': dados_transferencia.get('aba', '')
                 }
                 sistema.salvar_beneficiario(dados_beneficiario)
                 beneficiario_salvo = True
@@ -816,6 +831,8 @@ class TelaTransferencia(Screen):
                     self.ids.entry_pais.text = benef['pais']
                     self.ids.entry_banco.text = benef['banco']
                     self.ids.endereco_banco.text = benef.get('endereco_banco', '')
+                    self.ids.cidade_banco.text = benef.get('cidade_banco', '')  # 🔥 NOVO
+                    self.ids.pais_banco.text = benef.get('pais_banco', '')      # 🔥 NOVO
                     self.ids.entry_swift.text = benef['swift']
                     self.ids.entry_iban.text = benef['iban']
                     self.ids.entry_aba.text = benef.get('aba', '')
@@ -835,7 +852,8 @@ class TelaTransferencia(Screen):
         """Limpa apenas os campos do beneficiário"""
         campos_beneficiario = [
             'entry_beneficiario', 'entry_endereco', 'entry_cidade', 'entry_pais',
-            'entry_banco', 'endereco_banco', 'entry_swift', 'entry_iban', 'entry_aba'
+            'entry_banco', 'endereco_banco', 'cidade_banco', 'pais_banco',  # 🔥 ATUALIZADO
+            'entry_swift', 'entry_iban', 'entry_aba'
         ]
         
         for campo_id in campos_beneficiario:

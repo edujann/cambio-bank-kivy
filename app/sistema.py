@@ -519,6 +519,10 @@ class SistemaCambioPremium:
             print(f"🔧 Cadastrando usuário pendente: {usuario} ({email})")
             print(f"🎯 Código gerado: {codigo}")
             
+            # 🔥🔥🔥 IMPORTANTE: Salvar as moedas selecionadas para uso posterior
+            moedas_selecionadas = dados_extras.get('moedas_selecionadas', [])
+            print(f"🎯 Moedas selecionadas no cadastro: {moedas_selecionadas}")
+            
             # 1. PRIMEIRO: TENTAR SALVAR NO SUPABASE
             print("📤 Prioridade: Tentando salvar no Supabase primeiro...")
             
@@ -542,28 +546,54 @@ class SistemaCambioPremium:
                 if manager.conectado:
                     print("✅ SupabaseManager conectado ao Supabase")
                     
-                    # Preparar dados para o manager (com código de verificação)
+                    # 🔥 Preparar dados para Supabase (SEM moedas_selecionadas)
                     dados_manager = {
                         'username': usuario,
                         'email': email,
-                        'senha_hash': senha_hash,   # 🔥 AGORA COM NOME CORRETO
+                        'senha_hash': senha_hash,
                         'nome': dados_extras.get('nome', ''),
                         'documento': dados_extras.get('documento', ''),
                         'telefone': dados_extras.get('telefone', ''),
-                        'moedas_selecionadas': dados_extras.get('moedas_selecionadas', []),
-                        'codigo_verificacao': codigo,  # 🔥 Incluir código aqui
-                        'status': 'pendente',  # 🔥 Status pendente
-                        'verificado': False  # 🔥 Não verificado ainda
+                        'endereco': dados_extras.get('endereco', ''),
+                        'cidade': dados_extras.get('cidade', ''),
+                        'cep': dados_extras.get('cep', ''),
+                        'estado': dados_extras.get('estado', ''),
+                        'pais': dados_extras.get('pais', ''),
+                        'codigo_verificacao': codigo,
+                        'status': 'pendente',
+                        'verificado': False,
+                        'cambio_liberado': False
                     }
                     
                     # Usar o método salvar_usuario do manager
                     resultado = manager.salvar_usuario_com_verificacao(dados_manager)
                     
                     if resultado:
-                        print(f"✅✅✅ USUÁRIO SALVO NO SUPABASE COM SUCESSO!")
+                        print(f"✅✅✅ USUÁRIO SALVO NO SUPABASE COM TODOS OS DADOS!")
                         print(f"   Username: {usuario}")
                         print(f"   Email: {email}")
+                        print(f"   Endereço: {dados_extras.get('endereco', '')}")
+                        print(f"   Cidade: {dados_extras.get('cidade', '')}")
+                        print(f"   CEP: {dados_extras.get('cep', '')}")
+                        print(f"   Estado: {dados_extras.get('estado', '')}")
+                        print(f"   País: {dados_extras.get('pais', '')}")
                         print(f"   Código: {codigo}")
+                        print(f"   Moedas selecionadas: {moedas_selecionadas}")
+                        print(f"   Câmbio liberado: NÃO (padrão para novos clientes)")
+                        
+                        # 🔥 SALVAR MOEDAS NOS DADOS PENDENTES PARA USO POSTERIOR
+                        self.usuarios_nao_verificados[email] = {
+                            'usuario': usuario,
+                            'senha_hash': senha_hash,
+                            'dados': dados_extras,  # 🔥 JÁ TEM AS MOEDAS AQUI
+                            'moedas_selecionadas': moedas_selecionadas,  # 🔥 GUARDAR SEPARADAMENTE
+                            'timestamp': time.time()
+                        }
+                        
+                        self.codigos_verificacao[email] = {
+                            'codigo': codigo,
+                            'timestamp': time.time()
+                        }
                         
                         # 🔥 MODO SIMULAÇÃO
                         print(f"🎯 MODO SIMULAÇÃO: Código de verificação para {email}: {codigo}")
@@ -573,7 +603,8 @@ class SistemaCambioPremium:
                             'modo_simulacao': True,
                             'codigo': codigo,
                             'email': email,
-                            'salvo_no_supabase': True  # 🔥 Nova flag
+                            'salvo_no_supabase': True,
+                            'moedas_selecionadas': moedas_selecionadas  # 🔥 RETORNAR TAMBÉM
                         }
                     else:
                         print(f"❌ Falha ao salvar no Supabase via Manager")
@@ -606,17 +637,22 @@ class SistemaCambioPremium:
                     'pais': dados_extras.get('pais', ''),
                     'status': 'pendente',
                     'data_cadastro': datetime.datetime.now().isoformat(),
-                    'moedas_selecionadas': dados_extras.get('moedas_selecionadas', []),
                     'verificado': False,
-                    'codigo_verificacao': codigo
+                    'codigo_verificacao': codigo,
+                    'cambio_liberado': False
                 }
+                
+                # 🔥 SALVAR MOEDAS LOCALMENTE
+                if 'moedas_selecionadas' in dados_extras:
+                    dados_local['moedas_selecionadas'] = dados_extras['moedas_selecionadas']
                 
                 # Salvar localmente (apenas como fallback)
                 self.usuarios[usuario] = dados_local
                 self.usuarios_nao_verificados[email] = {
                     'usuario': usuario,
-                    'senha_hash': senha_hash, 
-                    'dados': dados_extras,
+                    'senha_hash': senha_hash,
+                    'dados': dados_extras,  # 🔥 TEM AS MOEDAS
+                    'moedas_selecionadas': moedas_selecionadas,  # 🔥 GUARDAR SEPARADAMENTE
                     'timestamp': time.time()
                 }
                 
@@ -626,6 +662,7 @@ class SistemaCambioPremium:
                 }
                 
                 print(f"✅ Usuário salvo LOCALMENTE (fallback): {usuario}")
+                print(f"🎯 Moedas salvas localmente: {moedas_selecionadas}")
                 
                 # 🔥 MODO SIMULAÇÃO
                 print(f"🎯 MODO SIMULAÇÃO: Código de verificação para {email}: {codigo}")
@@ -635,8 +672,9 @@ class SistemaCambioPremium:
                     'modo_simulacao': True,
                     'codigo': codigo,
                     'email': email,
-                    'salvo_no_supabase': False,  # 🔥 Flag indicando que foi local
-                    'aviso': 'Usuário salvo apenas localmente (Supabase falhou)'
+                    'salvo_no_supabase': False,
+                    'aviso': 'Usuário salvo apenas localmente (Supabase falhou)',
+                    'moedas_selecionadas': moedas_selecionadas  # 🔥 RETORNAR TAMBÉM
                 }
                 
         except Exception as e:
@@ -813,7 +851,7 @@ class SistemaCambioPremium:
         return hashlib.sha256(documento_limpo.encode()).hexdigest()
 
     def verificar_codigo_email(self, email, codigo_digitado):
-        """Verifica código de verificação de email - VERSAO SIMPLIFICADA"""
+        """Verifica código de verificação de email - VERSÃO CORRIGIDA"""
         try:
             print(f"🔍 Verificando código para email: {email}")
             print(f"📧 Código digitado: {codigo_digitado}")
@@ -834,16 +872,129 @@ class SistemaCambioPremium:
             from supabase import create_client
             supabase = create_client(url, key)
             
-            # Buscar usuário no Supabase
+            # 🔥 PRIMEIRO: Verificar se o usuário foi realmente salvo
+            print("🔍 Verificando todos os usuários no Supabase...")
+            all_users = supabase.table('usuarios').select('email, username, status').execute()
+            print(f"📊 Total de usuários no Supabase: {len(all_users.data) if all_users.data else 0}")
+            
+            if all_users.data:
+                for user in all_users.data:
+                    print(f"   👤 Email: {user.get('email')}, Username: {user.get('username')}, Status: {user.get('status')}")
+            
+            # Buscar usuário específico
             response = supabase.table('usuarios')\
-                .select('codigo_verificacao, username, verificado, status')\
+                .select('codigo_verificacao, username, verificado, status, nome, email')\
                 .eq('email', email)\
                 .execute()
             
+            print(f"🔍 Resultado da busca específica: {response.data}")
+            
             if not response.data or len(response.data) == 0:
                 print(f"❌ Email não encontrado no Supabase: {email}")
-                return False, "Email não encontrado para verificação"
+                
+                # 🔥 VERIFICAR SE ESTÁ NA LISTA DE PENDENTES
+                if hasattr(self, 'usuarios_nao_verificados') and email in self.usuarios_nao_verificados:
+                    print(f"✅ Email encontrado na lista de pendentes LOCAIS")
+                    dados_pendentes = self.usuarios_nao_verificados[email]
+                    
+                    # Verificar código local
+                    if hasattr(self, 'codigos_verificacao') and email in self.codigos_verificacao:
+                        codigo_local = self.codigos_verificacao[email].get('codigo')
+                        print(f"📧 Código local: {codigo_local}, Código digitado: {codigo_digitado}")
+                        
+                        if str(codigo_local) == str(codigo_digitado):
+                            print(f"✅✅✅ CÓDIGO CORRETO (verificação local)!")
+                            
+                            # 🔥 SALVAR NO SUPABASE AGORA (cadastro tardio)
+                            try:
+                                print("📤 Tentando salvar no Supabase agora...")
+                                
+                                # Preparar dados
+                                from datetime import datetime
+                                import hashlib
+                                
+                                dados_supabase = {
+                                    'username': dados_pendentes['usuario'],
+                                    'email': email,
+                                    'senha_hash': dados_pendentes['senha_hash'],
+                                    'nome': dados_pendentes['dados']['nome'],
+                                    'telefone': dados_pendentes['dados'].get('telefone', ''),
+                                    'endereco': dados_pendentes['dados'].get('endereco', ''),
+                                    'cidade': dados_pendentes['dados'].get('cidade', ''),
+                                    'cep': dados_pendentes['dados'].get('cep', ''),
+                                    'estado': dados_pendentes['dados'].get('estado', ''),
+                                    'pais': dados_pendentes['dados'].get('pais', ''),
+                                    'tipo': 'cliente',
+                                    'status': 'ativo',
+                                    'verificado': True,
+                                    'cambio_liberado': False,
+                                    'data_cadastro': datetime.now().isoformat()
+                                }
+                                
+                                # Hash do documento se existir
+                                if 'documento' in dados_pendentes['dados'] and dados_pendentes['dados']['documento']:
+                                    dados_supabase['documento_hash'] = hashlib.sha256(
+                                        dados_pendentes['dados']['documento'].encode()
+                                    ).hexdigest()
+                                
+                                # Inserir no Supabase
+                                response_insert = supabase.table('usuarios')\
+                                    .insert(dados_supabase)\
+                                    .execute()
+                                
+                                if response_insert.data:
+                                    print(f"✅✅✅ Usuário salvo NO SUPABASE com sucesso!")
+                                    username = dados_pendentes['usuario']
+                                    
+                                    # 🔥 SALVAR CONFIGURAÇÃO DE CÂMBIO (DESATIVADO)
+                                    config_data = {
+                                        'tipo_config': 'permissoes',
+                                        'cliente_username': username,
+                                        'valor_config': False,  # CÂMBIO DESATIVADO
+                                        'data_atualizacao': datetime.now().isoformat()
+                                    }
+                                    
+                                    supabase.table('config_cotacoes')\
+                                        .insert(config_data)\
+                                        .execute()
+                                    
+                                    print(f"✅ Configuração salva: câmbio DESATIVADO para {username}")
+                                    
+                                    # 🔥 CRIAR CONTAS COM AS MOEDAS SELECIONADAS NO CADASTRO
+                                    moedas_selecionadas = dados_pendentes.get('moedas_selecionadas', [])
+                                    if not moedas_selecionadas and 'dados' in dados_pendentes:
+                                        moedas_selecionadas = dados_pendentes['dados'].get('moedas_selecionadas', [])
+                                    
+                                    print(f"🎯 Moedas selecionadas para criar contas: {moedas_selecionadas}")
+                                    
+                                    if moedas_selecionadas:
+                                        self.criar_contas_com_moedas(email, username, moedas_selecionadas)
+                                    else:
+                                        print("⚠️ Nenhuma moeda selecionada, usando padrão")
+                                        self.criar_contas_apos_verificacao(email, username)
+                                    
+                                    # Limpar dados temporários
+                                    self.completar_cadastro_local_verificacao(email, dados_pendentes, moedas_selecionadas)
+                                    
+                                    return True, f"Email verificado e conta criada! Bem-vindo, {username}!"
+                                else:
+                                    print(f"❌ Falha ao salvar no Supabase")
+                                    return False, "Erro ao salvar conta no sistema"
+                                    
+                            except Exception as save_error:
+                                print(f"❌ Erro ao salvar no Supabase: {save_error}")
+                                return False, f"Erro técnico: {str(save_error)}"
+                        else:
+                            print(f"❌ Código incorreto (local)")
+                            return False, "Código incorreto"
+                    else:
+                        print(f"❌ Nenhum código local encontrado")
+                        return False, "Nenhum código de verificação encontrado"
+                else:
+                    print(f"❌ Email não encontrado em lugar nenhum")
+                    return False, "Email não encontrado para verificação"
             
+            # Se chegou aqui, o email foi encontrado no Supabase
             usuario_data = response.data[0]
             codigo_correto = usuario_data.get('codigo_verificacao')
             username = usuario_data.get('username')
@@ -860,24 +1011,24 @@ class SistemaCambioPremium:
             
             # Verificar código
             if not codigo_correto:
-                print(f"❌ Nenhum código de verificação encontrado")
+                print(f"❌ Nenhum código de verificação encontrado no Supabase")
                 return False, "Nenhum código de verificação encontrado"
             
             if str(codigo_correto) != str(codigo_digitado):
                 print(f"❌ Código incorreto")
-                print(f"   Esperado: {codigo_correto}")
-                print(f"   Recebido: {codigo_digitado}")
                 return False, "Código incorreto"
             
             # ✅ Código correto!
             print(f"🎯 Código correto!")
             
             # Atualizar status no Supabase
+            from datetime import datetime
             update_response = supabase.table('usuarios')\
                 .update({
                     'verificado': True,
                     'status': 'ativo',
-                    'codigo_verificacao': None  # Limpar código após verificação
+                    'codigo_verificacao': None,
+                    'cambio_liberado': False  # 🔥 CÂMBIO DESATIVADO
                 })\
                 .eq('email', email)\
                 .execute()
@@ -886,66 +1037,45 @@ class SistemaCambioPremium:
                 print(f"❌ Erro ao atualizar status no Supabase")
                 return False, "Erro ao atualizar status"
             
-            print(f"✅✅✅ Usuário {username} verificado no Supabase!")
+            print(f"✅ Usuário {username} verificado no Supabase!")
             
-            # 🔥 CORREÇÃO: Buscar moedas da coluna CORRETA (contas, não moedas_selecionadas)
-            # Buscar dados completos do usuário
-            user_full_response = supabase.table('usuarios')\
-                .select('contas, nome')\
-                .eq('email', email)\
+            # 🔥 SALVAR CONFIGURAÇÃO DE CÂMBIO (SE NÃO EXISTIR)
+            config_check = supabase.table('config_cotacoes')\
+                .select('id')\
+                .eq('tipo_config', 'permissoes')\
+                .eq('cliente_username', username)\
                 .execute()
             
-            if user_full_response.data:
-                user_data = user_full_response.data[0]
-                contas = user_data.get('contas', [])
-                nome_cliente = user_data.get('nome', username)
+            if not config_check.data:
+                config_data = {
+                    'tipo_config': 'permissoes',
+                    'cliente_username': username,
+                    'valor_config': False,  # CÂMBIO DESATIVADO
+                    'data_atualizacao': datetime.now().isoformat()
+                }
                 
-                print(f"📊 Dados do usuário:")
-                print(f"   Nome: {nome_cliente}")
-                print(f"   Contas: {contas}")
+                supabase.table('config_cotacoes')\
+                    .insert(config_data)\
+                    .execute()
                 
-                # Se não tem contas ainda, criar com moedas padrão
-                if not contas:
-                    print(f"💰 Criando contas padrão...")
-                    # Usar moedas padrão
-                    moedas_padrao = ['USD', 'EUR', 'GBP', 'BRL']
-                    
-                    # Usar SupabaseManager para criar contas
-                    current_dir = os.path.dirname(os.path.abspath(__file__))
-                    project_root = os.path.dirname(current_dir)
-                    
-                    if project_root not in sys.path:
-                        sys.path.append(project_root)
-                    
-                    try:
-                        from supabase_manager import SupabaseManager
-                        manager = SupabaseManager()
-                        
-                        if manager.conectado:
-                            contas_criadas = manager.criar_contas_supabase(
-                                username, 
-                                nome_cliente, 
-                                moedas_padrao
-                            )
-                            
-                            if contas_criadas:
-                                print(f"✅ {len(contas_criadas)} contas criadas")
-                                
-                                # Atualizar usuário com IDs das contas
-                                supabase.table('usuarios')\
-                                    .update({'contas': contas_criadas})\
-                                    .eq('email', email)\
-                                    .execute()
-                                
-                                print(f"✅ Usuário atualizado com IDs das contas")
-                            else:
-                                print(f"⚠️ Nenhuma conta criada")
-                        else:
-                            print(f"⚠️ SupabaseManager não conectado")
-                    except Exception as e:
-                        print(f"⚠️ Erro ao criar contas: {e}")
-                else:
-                    print(f"✅ Usuário já tem {len(contas)} contas")
+                print(f"✅ Configuração de câmbio salva: DESATIVADO para {username}")
+            
+            # 🔥 CRIAR CONTAS COM AS MOEDAS SELECIONADAS NO CADASTRO
+            moedas_selecionadas = []
+            if hasattr(self, 'usuarios_nao_verificados') and email in self.usuarios_nao_verificados:
+                dados_pendentes = self.usuarios_nao_verificados[email]
+                moedas_selecionadas = dados_pendentes.get('moedas_selecionadas', [])
+                if not moedas_selecionadas and 'dados' in dados_pendentes:
+                    moedas_selecionadas = dados_pendentes['dados'].get('moedas_selecionadas', [])
+            
+            print(f"🎯 Moedas selecionadas encontradas: {moedas_selecionadas}")
+            
+            if moedas_selecionadas:
+                # Criar contas com moedas específicas
+                self.criar_contas_com_moedas(email, username, moedas_selecionadas)
+            else:
+                # Usar método original (fallback para moedas padrão)
+                self.criar_contas_apos_verificacao(email, username)
             
             return True, f"Email verificado com sucesso! Bem-vindo, {username}!"
                 
@@ -955,10 +1085,151 @@ class SistemaCambioPremium:
             traceback.print_exc()
             return False, f"Erro interno: {str(e)}"
         
+    def completar_cadastro_local_verificacao(self, email, dados_pendentes, moedas_selecionadas=None):
+        """Completa cadastro local após verificação bem-sucedida"""
+        try:
+            usuario = dados_pendentes['usuario']
+            senha_hash = dados_pendentes['senha_hash']
+            dados = dados_pendentes['dados']
+            
+            # Usar moedas passadas ou buscar dos dados
+            if moedas_selecionadas is None:
+                moedas_selecionadas = dados_pendentes.get('moedas_selecionadas', [])
+                if not moedas_selecionadas:
+                    moedas_selecionadas = dados.get('moedas_selecionadas', ['USD', 'BRL'])
+            
+            # Salvar localmente
+            self.usuarios[usuario] = {
+                'senha': senha_hash,
+                'tipo': 'cliente',
+                'nome': dados['nome'],
+                'email': email,
+                'documento': dados.get('documento', ''),
+                'telefone': dados.get('telefone', ''),
+                'endereco': dados.get('endereco', ''),
+                'cidade': dados.get('cidade', ''),
+                'cep': dados.get('cep', ''),
+                'estado': dados.get('estado', ''),
+                'pais': dados.get('pais', ''),
+                'contas': [],
+                'moedas_selecionadas': moedas_selecionadas,  # 🔥 SALVAR LOCALMENTE
+                'data_cadastro': datetime.datetime.now().strftime('%Y-%m-%d'),
+                'cambio_liberado': False
+            }
+            
+            # Configurar permissões
+            if not hasattr(self, 'permissoes_cambio'):
+                self.permissoes_cambio = {}
+            self.permissoes_cambio[usuario] = False
+            
+            # Criar contas localmente também
+            if moedas_selecionadas:
+                self.criar_contas_cliente(usuario, dados['nome'], moedas_selecionadas)
+            
+            # Limpar dados temporários
+            if hasattr(self, 'usuarios_nao_verificados') and email in self.usuarios_nao_verificados:
+                del self.usuarios_nao_verificados[email]
+            
+            if hasattr(self, 'codigos_verificacao') and email in self.codigos_verificacao:
+                del self.codigos_verificacao[email]
+            
+            # Salvar dados
+            self.salvar_usuarios()
+            self.salvar_dados_cotacoes()
+            
+            print(f"✅ Cadastro local completado para {usuario} com moedas: {moedas_selecionadas}")
+            
+        except Exception as e:
+            print(f"⚠️ Erro ao completar cadastro local: {e}")
+
+    def criar_contas_com_moedas(self, email, username, moedas_selecionadas):
+        """Cria contas com moedas específicas"""
+        try:
+            print(f"💰 Criando contas para {username} com moedas: {moedas_selecionadas}")
+            
+            import sys
+            import os
+            from dotenv import load_dotenv
+            
+            load_dotenv()
+            url = os.getenv('SUPABASE_URL')
+            key = os.getenv('SUPABASE_KEY')
+            
+            if url and key:
+                from supabase import create_client
+                supabase = create_client(url, key)
+                
+                # Buscar nome do cliente
+                response = supabase.table('usuarios')\
+                    .select('nome')\
+                    .eq('username', username)\
+                    .execute()
+                
+                if response.data:
+                    nome_cliente = response.data[0].get('nome', username)
+                    
+                    # Usar SupabaseManager
+                    current_dir = os.path.dirname(os.path.abspath(__file__))
+                    project_root = os.path.dirname(current_dir)
+                    
+                    if project_root not in sys.path:
+                        sys.path.append(project_root)
+                    
+                    from supabase_manager import SupabaseManager
+                    manager = SupabaseManager()
+                    
+                    if manager.conectado:
+                        contas_criadas = manager.criar_contas_supabase(
+                            username, 
+                            nome_cliente, 
+                            moedas_selecionadas
+                        )
+                        
+                        if contas_criadas:
+                            print(f"✅ {len(contas_criadas)} contas criadas no Supabase")
+                            
+                            # Atualizar campo 'contas' do usuário
+                            supabase.table('usuarios')\
+                                .update({'contas': contas_criadas})\
+                                .eq('username', username)\
+                                .execute()
+                            
+                            print(f"✅ Usuário atualizado com IDs das contas")
+                            
+                            # 🔥 ATUALIZAR CACHE LOCAL
+                            if username in self.usuarios:
+                                self.usuarios[username]['contas'] = contas_criadas
+                            
+                            return True
+                    
+                print(f"⚠️ Não foi possível criar contas para {username}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Erro ao criar contas com moedas: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
     def criar_contas_apos_verificacao(self, email, username):
-        """Cria contas no Supabase após verificação do email"""
+        """Cria contas no Supabase após verificação do email - VERSÃO CORRIGIDA"""
         try:
             print(f"💰 Criando contas para {username} após verificação...")
+            
+            # 🔥 PRIMEIRO: Buscar moedas dos dados pendentes
+            moedas_selecionadas = []
+            if hasattr(self, 'usuarios_nao_verificados') and email in self.usuarios_nao_verificados:
+                dados_pendentes = self.usuarios_nao_verificados[email]
+                moedas_selecionadas = dados_pendentes.get('moedas_selecionadas', [])
+                if not moedas_selecionadas and 'dados' in dados_pendentes:
+                    moedas_selecionadas = dados_pendentes['dados'].get('moedas_selecionadas', [])
+            
+            if not moedas_selecionadas:
+                # Fallback: usar moedas padrão
+                moedas_selecionadas = ['USD', 'BRL']
+                print(f"⚠️ Nenhuma moeda encontrada, usando padrão: {moedas_selecionadas}")
+            
+            print(f"🎯 Moedas para criar contas: {moedas_selecionadas}")
             
             # Buscar dados do usuário no Supabase
             import sys
@@ -973,18 +1244,17 @@ class SistemaCambioPremium:
                 from supabase import create_client
                 supabase = create_client(url, key)
                 
-                # Buscar moedas selecionadas
+                # Buscar nome do cliente
                 response = supabase.table('usuarios')\
-                    .select('moedas_selecionadas')\
+                    .select('nome')\
                     .eq('username', username)\
                     .execute()
                 
                 if response.data:
-                    usuario_data = response.data[0]
-                    moedas_selecionadas = usuario_data.get('moedas_selecionadas', [])
+                    nome_cliente = response.data[0].get('nome', username)
                     
                     if moedas_selecionadas:
-                        print(f"🎯 Moedas selecionadas: {moedas_selecionadas}")
+                        print(f"🎯 Criando contas com moedas: {moedas_selecionadas}")
                         
                         # Usar SupabaseManager para criar contas
                         current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -1000,7 +1270,7 @@ class SistemaCambioPremium:
                             # Criar contas
                             contas_criadas = manager.criar_contas_supabase(
                                 username, 
-                                username,  # nome_cliente
+                                nome_cliente, 
                                 moedas_selecionadas
                             )
                             
@@ -1008,7 +1278,7 @@ class SistemaCambioPremium:
                                 print(f"✅ {len(contas_criadas)} contas criadas no Supabase")
                                 print(f"   IDs: {contas_criadas}")
                                 
-                                # Atualizar usuário com IDs das contas
+                                # Atualizar usuário com IDs das contas (campo 'contas' EXISTE)
                                 supabase.table('usuarios')\
                                     .update({'contas': contas_criadas})\
                                     .eq('username', username)\
@@ -1051,33 +1321,6 @@ class SistemaCambioPremium:
             del self.codigos_verificacao[email]
             
         return sucesso
-
-    def cadastrar_usuario_existente(self, usuario, senha_hash, dados):
-        """Método auxiliar para cadastrar usuário já validado"""
-        try:
-            self.usuarios[usuario] = {
-                'senha': senha_hash,
-                'tipo': 'cliente',
-                'nome': dados['nome'],
-                'email': dados['email'],
-                'documento': dados.get('documento', ''),
-                'telefone': dados.get('telefone', ''),
-                'contas': [],
-                'data_cadastro': datetime.datetime.now().strftime('%Y-%m-%d')
-            }
-            
-            # Criar contas baseadas nas moedas selecionadas
-            moedas_selecionadas = dados.get('moedas_selecionadas', [])
-            if moedas_selecionadas:
-                self.criar_contas_cliente(usuario, dados['nome'], moedas_selecionadas)
-            
-            self.salvar_usuarios()
-            print(f"✅ Usuário {usuario} cadastrado com sucesso via verificação")
-            return True, "Usuário cadastrado com sucesso"
-            
-        except Exception as e:
-            print(f"❌ Erro ao cadastrar usuário existente: {e}")
-            return False, str(e)
 
     def reenviar_codigo_verificacao(self, email):
         """Reenvia código de verificação"""
@@ -1508,14 +1751,79 @@ class SistemaCambioPremium:
                 'email': dados['email'],
                 'documento': dados.get('documento', ''),
                 'telefone': dados.get('telefone', ''),
+                'endereco': dados.get('endereco', ''),        # 🔥
+                'cidade': dados.get('cidade', ''),            # 🔥
+                'cep': dados.get('cep', ''),                  # 🔥
+                'estado': dados.get('estado', ''),            # 🔥
+                'pais': dados.get('pais', ''),                # 🔥
                 'contas': [],
                 'data_cadastro': datetime.datetime.now().strftime('%Y-%m-%d')
             }
             
             # Criar contas baseadas nas moedas selecionadas
-            moedas_selecionadas = dados.get('moedas_selecionadas', ['USD', 'BRL'])
+            moedas_selecionadas = dados.get('moedas_selecionadas', [])
             if moedas_selecionadas:
                 self.criar_contas_cliente(usuario, dados['nome'], moedas_selecionadas)
+            
+            # 🔥🔥🔥 CORREÇÃO: DESATIVAR CÂMBIO PARA NOVOS CLIENTES
+            self.permissoes_cambio[usuario] = False
+            
+            # 🔥 SALVAR NO SUPABASE - AGORA COM DADOS COMPLETOS
+            if hasattr(self, 'supabase') and self.supabase.conectado:
+                try:
+                    # Preparar dados para Supabase
+                    dados_supabase = {
+                        'username': usuario,
+                        'email': dados['email'],
+                        'senha_hash': senha_hash,
+                        'nome': dados['nome'],
+                        'telefone': dados.get('telefone', ''),
+                        'endereco': dados.get('endereco', ''),
+                        'cidade': dados.get('cidade', ''),
+                        'cep': dados.get('cep', ''),
+                        'estado': dados.get('estado', ''),
+                        'pais': dados.get('pais', ''),
+                        'tipo': 'cliente',
+                        'status': 'ativo',
+                        'verificado': True,
+                        'cambio_liberado': False,  # 🔥 Câmbio desativado
+                        'data_cadastro': datetime.datetime.now().isoformat()
+                    }
+                    
+                    # Adicionar hash do documento se existir
+                    if 'documento' in dados and dados['documento']:
+                        import hashlib
+                        dados_supabase['documento_hash'] = hashlib.sha256(dados['documento'].encode()).hexdigest()
+                    
+                    # Verificar se já existe
+                    response_existe = self.supabase.client.table('usuarios')\
+                        .select('id')\
+                        .eq('username', usuario)\
+                        .execute()
+                    
+                    if response_existe.data:
+                        # Atualizar existente
+                        response = self.supabase.client.table('usuarios')\
+                            .update(dados_supabase)\
+                            .eq('username', usuario)\
+                            .execute()
+                    else:
+                        # Inserir novo
+                        response = self.supabase.client.table('usuarios')\
+                            .insert(dados_supabase)\
+                            .execute()
+                    
+                    if response.data:
+                        print(f"✅ Usuário {usuario} salvo no Supabase com todos os dados!")
+                        self.supabase.salvar_permissao_cambio(usuario, False)
+                    else:
+                        print(f"⚠️ Erro ao salvar usuário no Supabase")
+                        
+                except Exception as e:
+                    print(f"⚠️ Erro ao salvar usuário completo no Supabase: {e}")
+            
+            # 🔥 SALVAR LOCALMENTE
+            self.salvar_dados_cotacoes()
             
             self.salvar_usuarios()
             print(f"✅ Usuário {usuario} cadastrado com sucesso via verificação")
@@ -1948,6 +2256,8 @@ class SistemaCambioPremium:
                 'pais': dados_transferencia['pais'],
                 'nome_banco': dados_transferencia['banco'],
                 'endereco_banco': dados_transferencia.get('endereco_banco', ''),
+                'cidade_banco': dados_transferencia.get('cidade_banco', ''),  # 🔥 NOVO
+                'pais_banco': dados_transferencia.get('pais_banco', ''),      # 🔥 NOVO
                 'codigo_swift': dados_transferencia['swift'],
                 'iban_account': dados_transferencia['iban'],
                 'aba_routing': dados_transferencia.get('aba', '')
@@ -1985,6 +2295,8 @@ class SistemaCambioPremium:
                     'pais': dados_transferencia['pais'],
                     'nome_banco': dados_transferencia['banco'],
                     'endereco_banco': dados_transferencia.get('endereco_banco', ''),
+                    'cidade_banco': dados_transferencia.get('cidade_banco', ''),  # 🔥 NOVO
+                    'pais_banco': dados_transferencia.get('pais_banco', ''),      # 🔥 NOVO
                     'codigo_swift': dados_transferencia['swift'],
                     'iban_account': dados_transferencia['iban'],
                     'aba_routing': dados_transferencia.get('aba', ''),
@@ -2031,11 +2343,15 @@ class SistemaCambioPremium:
         try:
             print(f"🔍 DEBUG SALVAR_BENEFICIARIO - Tipo: {type(dados_beneficiario)}")
             print(f"🔍 DEBUG SALVAR_BENEFICIARIO - Dados: {dados_beneficiario}")
+            print(f"🔍 TEM cidade_banco? {'cidade_banco' in dados_beneficiario}")
+            print(f"🔍 TEM pais_banco? {'pais_banco' in dados_beneficiario}")
             
             # 🔥 CORREÇÃO: self.usuario_logado é string, usar diretamente
             usuario_atual = self.usuario_logado  # Já é o username como string
             
             print(f"🔍 Usuário atual: {usuario_atual} (tipo: {type(usuario_atual)})")
+            print(f"🔍 Valor cidade_banco: {dados_beneficiario.get('cidade_banco', 'NÃO ENCONTRADO')}")
+            print(f"🔍 Valor pais_banco: {dados_beneficiario.get('pais_banco', 'NÃO ENCONTRADO')}")
             
             # Verificar se é um dicionário
             if not isinstance(dados_beneficiario, dict):
@@ -4021,6 +4337,8 @@ class SistemaCambioPremium:
                     'cidade': ben.get('cidade', ''),
                     'pais': ben.get('pais', ''),
                     'endereco_banco': ben.get('endereco_banco', ''),
+                    'cidade_banco': ben.get('cidade_banco', ''),  # 🔥 NOVO
+                    'pais_banco': ben.get('pais_banco', ''),      # 🔥 NOVO
                     'aba': ben.get('aba', '')
                 }
                 beneficiarios_organizados[usuario].append(beneficiario_formatado)
@@ -4041,12 +4359,17 @@ class SistemaCambioPremium:
             return {}
 
     def salvar_beneficiario_supabase(self, dados_beneficiario):
-        """Salva um beneficiário no Supabase - VERSÃO CORRIGIDA"""
+        """Salva beneficiário no Supabase - VERSÃO CORRIGIDA"""
         try:
+            print(f"🔍 SALVAR_BENEFICIARIO_SUPABASE CHAMADO")
+            print(f"🔍 Dados recebidos: {dados_beneficiario}")
+            print(f"🔍 Tem cidade_banco? {'cidade_banco' in dados_beneficiario}")
+            print(f"🔍 Tem pais_banco? {'pais_banco' in dados_beneficiario}")
+            
             # 🔥 CORREÇÃO: self.usuario_logado é string, usar diretamente
             usuario_atual = self.usuario_logado  # Já é o username como string
             
-            # 🔥 CORREÇÃO: Mapeamento exato das colunas
+            # 🔥 CORREÇÃO: Mapeamento exato das colunas - ADICIONANDO OS NOVOS CAMPOS
             dados_supabase = {
                 'cliente_username': usuario_atual,
                 'nome': dados_beneficiario['nome'],
@@ -4057,15 +4380,21 @@ class SistemaCambioPremium:
                 'cidade': dados_beneficiario['cidade'],
                 'pais': dados_beneficiario['pais'],
                 'endereco_banco': dados_beneficiario.get('endereco_banco', ''),
+                'cidade_banco': dados_beneficiario.get('cidade_banco', ''),  # 🔥 NOVO
+                'pais_banco': dados_beneficiario.get('pais_banco', ''),      # 🔥 NOVO
                 'aba': dados_beneficiario.get('aba', ''),
                 'data_criacao': datetime.datetime.now().isoformat(),
                 'ativo': True
             }
             
+            print(f"🔍 Dados para Supabase: {dados_supabase}")
+            
             response = self.supabase.client.table('beneficiarios').insert(dados_supabase).execute()
             
             if response.data:
                 print(f"✅ Beneficiário salvo no Supabase: {dados_beneficiario['nome']}")
+                print(f"🔍 cidade_banco salvo: {dados_supabase['cidade_banco']}")
+                print(f"🔍 pais_banco salvo: {dados_supabase['pais_banco']}")
                 return True
             else:
                 print(f"❌ Erro ao salvar no Supabase: Dados não retornados")

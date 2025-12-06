@@ -15,7 +15,11 @@
         "tipo": "admin",
         "data_cadastro": "2024-01-01T00:00:00",
         "created_at": "2025-11-20T14:03:57.28632",
-        "contas": []
+        "contas": [],
+        "status": "pendente",
+        "verificado": false,
+        "codigo_verificacao": null,
+        "cambio_liberado": false
     },
     "nike": {
         "id": "d1a76692-9ee4-4a44-ad91-633120443821",
@@ -38,7 +42,11 @@
             "345058852",
             "983847231",
             "846405315"
-        ]
+        ],
+        "status": "pendente",
+        "verificado": false,
+        "codigo_verificacao": null,
+        "cambio_liberado": false
     },
     "adidas": {
         "id": "281ec6eb-83dd-4c00-9724-8d371eb44474",
@@ -59,7 +67,11 @@
         "contas": [
             "891355178",
             "313590705"
-        ]
+        ],
+        "status": "pendente",
+        "verificado": false,
+        "codigo_verificacao": null,
+        "cambio_liberado": false
     },
     "lacoste": {
         "id": "0afc7801-d543-4aa6-8d90-e080b518bdd9",
@@ -82,7 +94,11 @@
             "558434406",
             "280682543",
             "509180416"
-        ]
+        ],
+        "status": "pendente",
+        "verificado": false,
+        "codigo_verificacao": null,
+        "cambio_liberado": false
     },
     "bmw": {
         "id": "349fffc8-36cc-49f3-8c11-e4e84c40179e",
@@ -105,7 +121,11 @@
             "669417037",
             "100561780",
             "179993933"
-        ]
+        ],
+        "status": "pendente",
+        "verificado": false,
+        "codigo_verificacao": null,
+        "cambio_liberado": false
     },
     "texaco": {
         "id": "53905f2f-c259-4b70-ae48-335364f7ed3f",
@@ -128,7 +148,11 @@
             "860559342",
             "501703684",
             "202973672"
-        ]
+        ],
+        "status": "pendente",
+        "verificado": false,
+        "codigo_verificacao": null,
+        "cambio_liberado": false
     },
     "ibiza": {
         "id": "9e7cef06-a16b-4b92-a0f7-afcdf9a6d629",
@@ -151,7 +175,11 @@
             "266286833",
             "221073098",
             "862524228"
-        ]
+        ],
+        "status": "pendente",
+        "verificado": false,
+        "codigo_verificacao": null,
+        "cambio_liberado": false
     },
     "prada": {
         "id": "47fb076b-e4b0-4391-97bb-7e34366f05db",
@@ -176,7 +204,11 @@
             "960934914",
             "568397247",
             "576233453"
-        ]
+        ],
+        "status": "pendente",
+        "verificado": false,
+        "codigo_verificacao": null,
+        "cambio_liberado": false
     },
     "apple": {
         "id": "11d905b0-472a-4284-8235-574b1b6f9b14",
@@ -199,7 +231,11 @@
             "376901423",
             "786389477",
             "887160827"
-        ]
+        ],
+        "status": "pendente",
+        "verificado": false,
+        "codigo_verificacao": null,
+        "cambio_liberado": false
     },
     "titan": {
         "id": "021b82f7-daf6-42ac-8948-004ec6ae324b",
@@ -222,7 +258,11 @@
             "830745478",
             "845871240",
             "269404516"
-        ]
+        ],
+        "status": "pendente",
+        "verificado": false,
+        "codigo_verificacao": null,
+        "cambio_liberado": false
     },
     "londrina": {
         "id": "6344fe23-ce57-495e-8561-8aecfc6e2b10",
@@ -245,7 +285,11 @@
             "654000645",
             "783643563",
             "878657222"
-        ]
+        ],
+        "status": "pendente",
+        "verificado": false,
+        "codigo_verificacao": null,
+        "cambio_liberado": false
     },
     "pantanal": {
         "id": "3e80e625-025f-4fdb-add3-e0e95bd325dd",
@@ -268,7 +312,11 @@
             "930349314",
             "464754825",
             "802194129"
-        ]
+        ],
+        "status": "pendente",
+        "verificado": false,
+        "codigo_verificacao": null,
+        "cambio_liberado": false
     },
     "lins": {
         "id": "40e1adca-b1c8-4265-8290-7717863c8af5",
@@ -291,7 +339,11 @@
             "732926229",
             "366470532",
             "873134916"
-        ]
+        ],
+        "status": "pendente",
+        "verificado": false,
+        "codigo_verificacao": null,
+        "cambio_liberado": false
     },
     "interpress": {
         "id": "d1f9a3ea-89c3-41c7-8b98-4863cadb5f8d",
@@ -314,7 +366,11 @@
             "735520593",
             "674587563",
             "691581249"
-        ]
+        ],
+        "status": "pendente",
+        "verificado": false,
+        "codigo_verificacao": null,
+        "cambio_liberado": false
     },
     "makita": {
         "id": "f327b9a0-7fda-449a-9211-2868d35ac508",
@@ -337,21 +393,58 @@
             "277435777",
             "846873177",
             "224565364"
-        ]
-    },
-    "hidro europa": {
-        "senha": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
-        "tipo": "cliente",
-        "nome": "HIDRO EUROPA S.A",
-        "email": "hidroeuropa@mail.com",
-        "documento": "5642132545",
-        "telefone": "",
-        "contas": [
-            "499685386",
-            "458302256",
-            "102200838",
-            "285928254"
         ],
-        "data_cadastro": "2025-12-04"
+        "status": "pendente",
+        "verificado": false,
+        "codigo_verificacao": null,
+        "cambio_liberado": false
+    },
+    "hidroamerica": {
+        "id": "3f89795e-6c24-4173-8aad-18da8ab27dfd",
+        "username": "hidroamerica",
+        "senha_hash": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
+        "nome": "HIDROAMERICA LTDA",
+        "email": "hidroamerica@mail.com",
+        "documento_hash": "15e2b0d3c33891ebb0f1ef609ec419420c20e320ce94c65fbc8c3312448eb225",
+        "telefone": "",
+        "endereco": "AVENIDA ANDROMEDA, 703 SALA 3305, ALPHAVILLE",
+        "cidade": "BARUERI",
+        "cep": "6.473-000",
+        "estado": "SP",
+        "pais": "BRASIL",
+        "tipo": "cliente",
+        "data_cadastro": "2025-12-04T17:23:49.88107",
+        "created_at": "2025-12-04T20:23:50.429134",
+        "contas": [
+            "402886768",
+            "759223170",
+            "418825678",
+            "608201541"
+        ],
+        "status": "ativo",
+        "verificado": true,
+        "codigo_verificacao": null,
+        "cambio_liberado": false
+    },
+    "jbs": {
+        "username": "jbs",
+        "nome": "JBS FRIBOI LTDA",
+        "email": "jbs@mail.com",
+        "senha_hash": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
+        "tipo": "cliente",
+        "verificado": true,
+        "status": "ativo",
+        "contas": [
+            "164914690",
+            "512168503",
+            "878377843",
+            "584914760"
+        ],
+        "telefone": "",
+        "endereco": "AVENIDA PAULISTA 3465",
+        "cidade": "SÃO PAULO",
+        "cep": "45.563-000",
+        "estado": "SP",
+        "pais": "BRASIL"
     }
 }

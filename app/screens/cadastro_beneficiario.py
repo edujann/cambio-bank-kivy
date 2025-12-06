@@ -41,6 +41,8 @@ class TelaCadastroBeneficiario(Screen):
             self.ids.entry_pais.text = dados.get('pais', '')
             self.ids.entry_banco.text = dados.get('banco', '')
             self.ids.endereco_banco.text = dados.get('endereco_banco', '')
+            self.ids.cidade_banco.text = dados.get('cidade_banco', '')  # 🔥 NOVO
+            self.ids.pais_banco.text = dados.get('pais_banco', '')      # 🔥 NOVO
             self.ids.entry_swift.text = dados.get('swift', '')
             self.ids.entry_iban.text = dados.get('iban', '')
             self.ids.entry_aba.text = dados.get('aba', '')
@@ -67,6 +69,8 @@ class TelaCadastroBeneficiario(Screen):
             ('entry_cidade', 'Cidade'),
             ('entry_pais', 'País'),
             ('entry_banco', 'Banco'),
+            ('cidade_banco', 'Cidade do Banco'),  # 🔥 NOVO
+            ('pais_banco', 'País do Banco'),      # 🔥 NOVO
             ('entry_swift', 'Código SWIFT'),
             ('entry_iban', 'IBAN')
         ]
@@ -156,6 +160,8 @@ class TelaCadastroBeneficiario(Screen):
                 'pais': self.ids.entry_pais.text.strip(),
                 'banco': self.ids.entry_banco.text.strip(),
                 'endereco_banco': self.ids.endereco_banco.text.strip(),
+                'cidade_banco': self.ids.cidade_banco.text.strip(),  # 🔥 NOVO
+                'pais_banco': self.ids.pais_banco.text.strip(),      # 🔥 NOVO
                 'swift': self.ids.entry_swift.text.strip(),
                 'iban': self.ids.entry_iban.text.strip(),
                 'aba': self.ids.entry_aba.text.strip(),

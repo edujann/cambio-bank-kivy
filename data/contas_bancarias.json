@@ -49,24 +49,34 @@
         "data_criacao": null,
         "saldo_inicial": 0.0
     },
-    "BANK_USD_001": {
-        "numero": "BANK_USD_001",
-        "banco": "Banco Principal",
-        "agencia": null,
-        "moeda": "USD",
-        "saldo": 958788.45,
-        "tipo": "empresa",
-        "data_criacao": null,
-        "saldo_inicial": 0.0
-    },
     "JACKS_BRL_001": {
         "numero": "JACKS_BRL_001",
         "banco": "JACKS BANK",
         "agencia": "0001",
         "moeda": "BRL",
-        "saldo": 14634.03,
+        "saldo": 399.76,
         "tipo": "empresa",
         "data_criacao": "2025-11-27T14:11:41",
+        "saldo_inicial": 0.0
+    },
+    "JACKS_EUR_001": {
+        "numero": "JACKS_EUR_001",
+        "banco": "JACKS BANK",
+        "agencia": "0001",
+        "moeda": "EUR",
+        "saldo": 2263.0,
+        "tipo": "empresa",
+        "data_criacao": "2025-12-05T10:48:42",
+        "saldo_inicial": 0.0
+    },
+    "BANK_USD_001": {
+        "numero": "BANK_USD_001",
+        "banco": "Banco Principal",
+        "agencia": null,
+        "moeda": "USD",
+        "saldo": 958138.45,
+        "tipo": "empresa",
+        "data_criacao": null,
         "saldo_inicial": 0.0
     }
 }

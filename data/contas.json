@@ -265,13 +265,6 @@
         "cliente_nome": "TEXACO LLC",
         "data_criacao": "2025-11-01"
     },
-    "402886768": {
-        "moeda": "USD",
-        "saldo": 0.0,
-        "cliente": "hidroeuropa",
-        "cliente_nome": "HIDROEUROPA, S.L.",
-        "data_criacao": "2025-12-04"
-    },
     "394549984": {
         "moeda": "USD",
         "saldo": 0.0,
@@ -286,25 +279,25 @@
         "cliente_nome": "LINS CHAIR LIMITADA",
         "data_criacao": "2025-11-18"
     },
-    "418825678": {
-        "moeda": "GBP",
-        "saldo": 0.0,
-        "cliente": "hidroeuropa",
-        "cliente_nome": "HIDROEUROPA, S.L.",
-        "data_criacao": "2025-12-04"
-    },
     "608201541": {
         "moeda": "BRL",
         "saldo": 0.0,
-        "cliente": "hidroeuropa",
-        "cliente_nome": "HIDROEUROPA, S.L.",
+        "cliente": "hidroamerica",
+        "cliente_nome": "HIDROAMERICA LTDA",
         "data_criacao": "2025-12-04"
     },
-    "759223170": {
-        "moeda": "EUR",
-        "saldo": 2283.0,
-        "cliente": "hidroeuropa",
-        "cliente_nome": "HIDROEUROPA, S.L.",
+    "418825678": {
+        "moeda": "GBP",
+        "saldo": 0.0,
+        "cliente": "hidroamerica",
+        "cliente_nome": "HIDROAMERICA LTDA",
+        "data_criacao": "2025-12-04"
+    },
+    "402886768": {
+        "moeda": "USD",
+        "saldo": 0.0,
+        "cliente": "hidroamerica",
+        "cliente_nome": "HIDROAMERICA LTDA",
         "data_criacao": "2025-12-04"
     },
     "277435777": {
@@ -328,16 +321,51 @@
         "cliente_nome": "NIKE LLC",
         "data_criacao": "2025-10-29"
     },
-    "607906288": {
-        "moeda": "USD",
-        "saldo": 20000.0,
+    "802194129": {
+        "moeda": "BRL",
+        "saldo": 15000.0,
         "cliente": "pantanal",
         "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
         "data_criacao": "2025-11-18"
     },
-    "802194129": {
+    "759223170": {
+        "moeda": "EUR",
+        "saldo": 40.0,
+        "cliente": "hidroamerica",
+        "cliente_nome": "HIDROAMERICA LTDA",
+        "data_criacao": "2025-12-04"
+    },
+    "164914690": {
+        "moeda": "USD",
+        "saldo": 0.0,
+        "cliente": "jbs",
+        "cliente_nome": "JBS FRIBOI LTDA",
+        "data_criacao": "2025-12-05"
+    },
+    "512168503": {
+        "moeda": "EUR",
+        "saldo": 0.0,
+        "cliente": "jbs",
+        "cliente_nome": "JBS FRIBOI LTDA",
+        "data_criacao": "2025-12-05"
+    },
+    "584914760": {
         "moeda": "BRL",
-        "saldo": 15000.0,
+        "saldo": 0.0,
+        "cliente": "jbs",
+        "cliente_nome": "JBS FRIBOI LTDA",
+        "data_criacao": "2025-12-05"
+    },
+    "878377843": {
+        "moeda": "GBP",
+        "saldo": 0.0,
+        "cliente": "jbs",
+        "cliente_nome": "JBS FRIBOI LTDA",
+        "data_criacao": "2025-12-05"
+    },
+    "607906288": {
+        "moeda": "USD",
+        "saldo": 17000.0,
         "cliente": "pantanal",
         "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
         "data_criacao": "2025-11-18"

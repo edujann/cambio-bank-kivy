@@ -230,6 +230,21 @@ class TelaCadastroConta(Screen):
             print(f"📥 RESULTADO: {resultado}")
             
             if resultado['sucesso']:
+                # 🔥🔥🔥 CORREÇÃO: DESATIVAR CÂMBIO PARA NOVOS CLIENTES
+                # Configurar permissões de câmbio como FALSE (OFF) por padrão
+                sistema.permissoes_cambio[username] = False
+                
+                # 🔥 SALVAR NO SUPABASE
+                if hasattr(sistema, 'supabase') and sistema.supabase.conectado:
+                    try:
+                        sistema.supabase.salvar_permissao_cambio(username, False)
+                        print(f"✅ Permissão de câmbio DESATIVADA para novo cliente {username}")
+                    except Exception as e:
+                        print(f"⚠️ Erro ao salvar permissão no Supabase: {e}")
+                
+                # 🔥 SALVAR LOCALMENTE
+                sistema.salvar_dados_cotacoes()
+                
                 if resultado.get('modo_simulacao'):
                     print(f"✅ Cadastro pendente criado para {username}. Código: {resultado['codigo']}")
                     

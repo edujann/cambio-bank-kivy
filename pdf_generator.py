@@ -128,14 +128,16 @@ class PDFGenerator:
 
     def _adicionar_dados_transferencia(self, pdf, width, height, dados):
         """Seção de dados da transferência em inglês"""
-        y_pos = height - 120  # 🔥 AJUSTADO PARA CABEÇALHO MAIOR
+        y_pos = height - 120
         
-        # Status em inglês
-        status = dados['status'].upper()
+        # 🔥 AJUSTE: Converter "solicitada" para "PENDING"
+        status_original = dados['status'].upper()
+        status = "PENDING" if status_original == "SOLICITADA" else status_original
+        
         status_colors = {
             "COMPLETED": (0.15, 0.55, 0.15),   # Verde escuro
-            "PENDING": (0.75, 0.55, 0.1),      # Âmbar escuro  
-            "PROCESSING": (0.2, 0.4, 0.7),     # Azul escuro
+            "PENDING": (1.0, 0.65, 0.0),      # Âmbar escuro (AJUSTADO)  
+            "PROCESSING": (0.25, 0.45, 0.85),     # Azul escuro
             "REJECTED": (0.7, 0.2, 0.2)        # Vermelho escuro
         }
         
@@ -305,14 +307,15 @@ class PDFGenerator:
             pdf.setFillColorRGB(0.1, 0.1, 0.1)
             pdf.drawString(col2_x, y_pos - 22, dados.get('cidade', 'N/A'))
             
+            # 🔥🔥🔥 AJUSTE FINAL: "Country:" alinhado com "Address:" - SUBIR UM POUCO
             pdf.setFont("Helvetica-Bold", 7)
             pdf.setFillColorRGB(0.5, 0.5, 0.5)
-            pdf.drawString(col2_x, y_pos - 34, "Country:")  # 🔥 EM INGLÊS
+            pdf.drawString(col2_x, y_pos - 34 - (y_pos_adjust // 2), "Country:")  # 🔥 AJUSTE: usar metade do ajuste
             pdf.setFont("Helvetica", 7)
             pdf.setFillColorRGB(0.1, 0.1, 0.1)
-            pdf.drawString(col2_x, y_pos - 44, dados.get('pais', 'N/A'))
+            pdf.drawString(col2_x, y_pos - 44 - (y_pos_adjust // 2), dados.get('pais', 'N/A'))  # 🔥 AJUSTE: usar metade do ajuste
             
-            return y_pos - 70 - y_pos_adjust
+            return y_pos - 70 - y_pos_adjust - 10
             
         else:
             # Para transferências internas em inglês
@@ -342,78 +345,130 @@ class PDFGenerator:
 
     def _adicionar_dados_bancarios(self, pdf, width, height, y_pos, dados):
         """Informações bancárias em inglês"""
-        # 🔥 CORREÇÃO MÍNIMA: Incluir 'transferencia_internacional' como internacional
         if dados.get('tipo') in ['internacional', 'transferencia_internacional']:
             # Título em inglês
-            y_pos = self._adicionar_secao_titulo(pdf, width, y_pos, "BANKING INFORMATION")  # 🔥 EM INGLÊS
+            y_pos = self._adicionar_secao_titulo(pdf, width, y_pos, "BANKING INFORMATION")
             
             pdf.setFillColorRGB(0.2, 0.2, 0.2)
             col1_x, col2_x = 60, width/2 + 10
             
-            # Banco em inglês
+            # 🔥 MESMOS VALORES PARA AMBAS COLUNAS
+            linha_normal = 14    # Campos superiores
+            linha_meio = 20      # 🔥 NOVO: para Bank Country (direita tinha 16-20)
+            linha_final = 22     # Campos inferiores
+            
+            # COLUNA ESQUERDA ============================================
+            y_esquerda = y_pos - 12
+            
+            # Banco em inglês (superior - igual SWIFT/BIC da direita)
             pdf.setFont("Helvetica-Bold", 7)
             pdf.setFillColorRGB(0.5, 0.5, 0.5)
-            pdf.drawString(col1_x, y_pos - 12, "Beneficiary Bank:")  # 🔥 EM INGLÊS
+            pdf.drawString(col1_x, y_esquerda, "Beneficiary Bank:")
             pdf.setFont("Helvetica", 7)
             pdf.setFillColorRGB(0.1, 0.1, 0.1)
             banco = dados.get('nome_banco', 'N/A')
             if len(banco) > 35:
-                pdf.drawString(col1_x, y_pos - 22, banco[:35])
-                pdf.drawString(col1_x, y_pos - 32, banco[35:70] if len(banco) > 70 else banco[35:])
-                y_pos_adjust = 20
+                pdf.drawString(col1_x, y_esquerda - 10, banco[:35])
+                pdf.drawString(col1_x, y_esquerda - 20, banco[35:70] if len(banco) > 70 else banco[35:])
+                y_esquerda -= 25  # Igual SWIFT/BIC com 2 linhas
             else:
-                pdf.drawString(col1_x, y_pos - 22, banco)
-                y_pos_adjust = 10
+                pdf.drawString(col1_x, y_esquerda - 10, banco)
+                y_esquerda -= linha_normal  # 14px igual SWIFT/BIC
             
-            # Endereço do Banco em inglês
+            # Endereço do Banco (meio - igual Bank Country da direita)
             if dados.get('endereco_banco'):
                 pdf.setFont("Helvetica-Bold", 7)
                 pdf.setFillColorRGB(0.5, 0.5, 0.5)
-                pdf.drawString(col1_x, y_pos - 34 - y_pos_adjust, "Bank Address:")  # 🔥 EM INGLÊS
+                pdf.drawString(col1_x, y_esquerda - 12, "Bank Address:")  # 🔥 ERA -8 (igual a Bank Country -12)
                 pdf.setFont("Helvetica", 7)
                 pdf.setFillColorRGB(0.1, 0.1, 0.1)
                 endereco_banco = dados['endereco_banco']
                 if len(endereco_banco) > 35:
-                    pdf.drawString(col1_x, y_pos - 44 - y_pos_adjust, endereco_banco[:35])
-                    pdf.drawString(col1_x, y_pos - 54 - y_pos_adjust, endereco_banco[35:70] if len(endereco_banco) > 70 else endereco_banco[35:])
-                    y_pos_adjust += 20
+                    pdf.drawString(col1_x, y_esquerda - 22, endereco_banco[:35])  # 🔥 ERA -18 (igual a Bank Country -22)
+                    pdf.drawString(col1_x, y_esquerda - 32, endereco_banco[35:70] if len(endereco_banco) > 70 else endereco_banco[35:])  # 🔥 ERA -28 (igual -32)
+                    y_esquerda -= 32  # 🔥 ERA 25 (igual Bank Country 2 linhas: 32)
                 else:
-                    pdf.drawString(col1_x, y_pos - 44 - y_pos_adjust, endereco_banco)
-                    y_pos_adjust += 10
+                    pdf.drawString(col1_x, y_esquerda - 22, endereco_banco)  # 🔥 ERA -18 (igual -22)
+                    y_esquerda -= linha_meio  # 🔥 NOVO: 20px igual Bank Country (tinha 16-20)
             
-            # SWIFT/BIC em inglês
+            # Cidade do Banco (inferior - igual IBAN/Account da direita)
+            if dados.get('cidade_banco'):
+                pdf.setFont("Helvetica-Bold", 7)
+                pdf.setFillColorRGB(0.5, 0.5, 0.5)
+                pdf.drawString(col1_x, y_esquerda - 16, "Bank City:")  # 🔥 ERA -14 (igual IBAN -16)
+                pdf.setFont("Helvetica", 7)
+                pdf.setFillColorRGB(0.1, 0.1, 0.1)
+                cidade_banco = dados['cidade_banco']
+                if len(cidade_banco) > 35:
+                    pdf.drawString(col1_x, y_esquerda - 26, cidade_banco[:35])  # 🔥 ERA -24 (igual IBAN -26)
+                    pdf.drawString(col1_x, y_esquerda - 36, cidade_banco[35:70] if len(cidade_banco) > 70 else cidade_banco[35:])  # 🔥 ERA -34 (igual IBAN -36)
+                    y_esquerda -= 38  # 🔥 ERA 35 (igual IBAN 2 linhas: 38)
+                else:
+                    pdf.drawString(col1_x, y_esquerda - 26, cidade_banco)  # 🔥 ERA -24 (igual IBAN -26)
+                    y_esquerda -= linha_final  # 🔥 22px igual IBAN
+            
+            # COLUNA DIREITA =============================================
+            # 🔥 NÃO MEXER - JÁ ESTÁ PERFEITA
+            y_direita = y_pos - 12
+            
+            # SWIFT/BIC (superior - compacto)
             pdf.setFont("Helvetica-Bold", 7)
             pdf.setFillColorRGB(0.5, 0.5, 0.5)
-            pdf.drawString(col2_x, y_pos - 12, "SWIFT/BIC Code:")  # 🔥 EM INGLÊS
+            pdf.drawString(col2_x, y_direita, "SWIFT/BIC Code:")
             pdf.setFont("Helvetica", 7)
             pdf.setFillColorRGB(0.1, 0.1, 0.1)
-            pdf.drawString(col2_x, y_pos - 22, dados.get('codigo_swift', 'N/A'))
+            swift = dados.get('codigo_swift', 'N/A')
+            pdf.drawString(col2_x, y_direita - 10, swift)
+            y_direita -= linha_normal
             
-            # IBAN/Account em inglês
+            # País do Banco (meio)
+            if dados.get('pais_banco'):
+                pdf.setFont("Helvetica-Bold", 7)
+                pdf.setFillColorRGB(0.5, 0.5, 0.5)
+                pdf.drawString(col2_x, y_direita - 12, "Bank Country:")
+                pdf.setFont("Helvetica", 7)
+                pdf.setFillColorRGB(0.1, 0.1, 0.1)
+                pais_banco = dados['pais_banco']
+                if len(pais_banco) > 25:
+                    pdf.drawString(col2_x, y_direita - 22, pais_banco[:25])
+                    pdf.drawString(col2_x, y_direita - 32, pais_banco[25:50] if len(pais_banco) > 50 else pais_banco[25:])
+                    y_direita -= 32
+                else:
+                    pdf.drawString(col2_x, y_direita - 22, pais_banco)
+                    y_direita -= 20
+            
+            # IBAN/Account (inferior)
             pdf.setFont("Helvetica-Bold", 7)
             pdf.setFillColorRGB(0.5, 0.5, 0.5)
-            pdf.drawString(col2_x, y_pos - 34, "IBAN/Account:")  # 🔥 EM INGLÊS
+            pdf.drawString(col2_x, y_direita - 16, "IBAN/Account:")
             pdf.setFont("Helvetica", 7)
             pdf.setFillColorRGB(0.1, 0.1, 0.1)
             iban = dados.get('iban_account', 'N/A')
             if len(iban) > 25:
-                pdf.drawString(col2_x, y_pos - 44, iban[:25])
-                pdf.drawString(col2_x, y_pos - 54, iban[25:50] if len(iban) > 50 else iban[25:])
-                y_pos_adjust += 10
+                pdf.drawString(col2_x, y_direita - 26, iban[:25])
+                pdf.drawString(col2_x, y_direita - 36, iban[25:50] if len(iban) > 50 else iban[25:])
+                y_direita -= 38
             else:
-                pdf.drawString(col2_x, y_pos - 44, iban)
+                pdf.drawString(col2_x, y_direita - 26, iban)
+                y_direita -= linha_final
             
-            # ABA/Routing em inglês
+            # ABA/Routing (extra inferior)
             if dados.get('aba'):
                 pdf.setFont("Helvetica-Bold", 7)
                 pdf.setFillColorRGB(0.5, 0.5, 0.5)
-                pdf.drawString(col2_x, y_pos - 59, "ABA/Routing Code:")  # 🔥 EM INGLÊS
+                pdf.drawString(col2_x, y_direita - 16, "ABA/Routing Code:")
                 pdf.setFont("Helvetica", 7)
                 pdf.setFillColorRGB(0.1, 0.1, 0.1)
-                pdf.drawString(col2_x, y_pos - 69, dados['aba'])
-                y_pos_adjust += 15
-                
-            return y_pos - 60 - y_pos_adjust
+                pdf.drawString(col2_x, y_direita - 26, dados['aba'])
+                y_direita -= linha_final
+            
+            # Encontra qual coluna terminou mais abaixo
+            if y_esquerda < y_direita:
+                y_mais_baixa = y_esquerda
+            else:
+                y_mais_baixa = y_direita
+            
+            return y_mais_baixa - 12
             
         return y_pos
 
@@ -561,11 +616,12 @@ class PDFGenerator:
         pdf.drawString(50, text_y, "STATUS:")
         
         # 🔥 Status específico na cor correspondente
-        status = dados['status'].upper()
+        status_original = dados['status'].upper()
+        status = "PENDING" if status_original == "SOLICITADA" else status_original
         status_color = {
             "COMPLETED": (0.15, 0.55, 0.15),
-            "PENDING": (0.75, 0.55, 0.1),
-            "PROCESSING": (0.2, 0.4, 0.7),
+            "PENDING": (1.0, 0.65, 0.0),
+            "PROCESSING": (0.25, 0.45, 0.85),
             "REJECTED": (0.7, 0.2, 0.2)
         }.get(status, (0.4, 0.4, 0.4))
         

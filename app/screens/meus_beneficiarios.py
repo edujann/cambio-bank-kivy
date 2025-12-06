@@ -62,17 +62,7 @@ class CardBeneficiario(BoxLayout):
         )
         lbl_nome.bind(size=lbl_nome.setter('text_size'))
         
-        # 🔥 REMOVIDO: Label da data
-        # data_cadastro = self.dados.get('data_cadastro', 'Data não disponível')
-        # lbl_data = Label(
-        #     text=f"{data_cadastro}",
-        #     font_size='11sp',
-        #     color=(0.80, 0.84, 0.88, 1),
-        #     halign='right'
-        # )
-        
         linha1.add_widget(lbl_nome)
-        # 🔥 REMOVIDO: linha1.add_widget(lbl_data)
         
         # Linha 2: Informações básicas
         info_basica = f"{self.dados.get('banco', 'N/A')} |  {self.dados.get('pais', 'N/A')} |  {self.dados.get('cidade', 'N/A')}"
@@ -86,7 +76,30 @@ class CardBeneficiario(BoxLayout):
         )
         lbl_info.bind(size=lbl_info.setter('text_size'))
         
-        # Linha 3: Dados bancários
+        # 🔥 NOVA LINHA: Dados do banco (cidade e país)
+        info_banco = []
+        if self.dados.get('cidade_banco'):
+            info_banco.append(f"Banco Cidade: {self.dados['cidade_banco']}")
+        if self.dados.get('pais_banco'):
+            info_banco.append(f"Banco País: {self.dados['pais_banco']}")
+        
+        if info_banco:
+            lbl_info_banco = Label(
+                text=" | ".join(info_banco),
+                font_size='12sp',
+                color=(0.70, 0.84, 0.96, 1),  # Azul mais claro para diferenciar
+                halign='left',
+                text_size=(None, None),
+                size_hint_y=0.15  # 🔥 AJUSTEI: de 0.2 para 0.15 para caber nova linha
+            )
+            lbl_info_banco.bind(size=lbl_info_banco.setter('text_size'))
+        else:
+            lbl_info_banco = Label(
+                text="",
+                size_hint_y=0.15
+            )
+        
+        # Linha 3: Dados bancários (SWIFT, IBAN, ABA) - 🔥 AJUSTEI: de 0.2 para 0.15
         dados_bancarios = f"SWIFT: {self.dados.get('swift', 'N/A')} |  IBAN: {self.dados.get('iban', 'N/A')}"
         if self.dados.get('aba'):
             dados_bancarios += f" |  ABA: {self.dados['aba']}"
@@ -97,12 +110,12 @@ class CardBeneficiario(BoxLayout):
             color=(0.80, 0.84, 0.88, 1),
             halign='left',
             text_size=(None, None),
-            size_hint_y=0.2
+            size_hint_y=0.15  # 🔥 AJUSTEI: de 0.2 para 0.15
         )
         lbl_bancarios.bind(size=lbl_bancarios.setter('text_size'))
         
-        # Linha 4: Botões de ação
-        linha4 = BoxLayout(orientation='horizontal', size_hint_y=0.35, spacing=12)
+        # Linha 4: Botões de ação - 🔥 AJUSTEI: de 0.35 para 0.3 para compensar
+        linha4 = BoxLayout(orientation='horizontal', size_hint_y=0.3, spacing=12)
         
         btn_usar = Button(
             text='Usar em Transferência',
@@ -135,6 +148,7 @@ class CardBeneficiario(BoxLayout):
         # Adicionar todos os widgets
         self.add_widget(linha1)
         self.add_widget(lbl_info)
+        self.add_widget(lbl_info_banco)  # 🔥 NOVA LINHA
         self.add_widget(lbl_bancarios)
         self.add_widget(linha4)
     
@@ -308,6 +322,8 @@ class TelaMeusBeneficiarios(Screen):
                     tela_transferencia.ids.entry_pais.text = beneficiario_encontrado['pais']
                     tela_transferencia.ids.entry_banco.text = beneficiario_encontrado['banco']
                     tela_transferencia.ids.endereco_banco.text = beneficiario_encontrado.get('endereco_banco', '')
+                    tela_transferencia.ids.cidade_banco.text = beneficiario_encontrado.get('cidade_banco', '')  # 🔥 NOVO
+                    tela_transferencia.ids.pais_banco.text = beneficiario_encontrado.get('pais_banco', '')      # 🔥 NOVO
                     tela_transferencia.ids.entry_swift.text = beneficiario_encontrado['swift']
                     tela_transferencia.ids.entry_iban.text = beneficiario_encontrado['iban']
                     tela_transferencia.ids.entry_aba.text = beneficiario_encontrado.get('aba', '')
