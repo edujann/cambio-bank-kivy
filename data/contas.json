@@ -132,13 +132,6 @@
         "cliente_nome": "TITAN LIMITED",
         "data_criacao": "2025-11-03"
     },
-    "846405315": {
-        "moeda": "GBP",
-        "saldo": 0.0,
-        "cliente": "nike",
-        "cliente_nome": "NIKE LLC",
-        "data_criacao": "2025-11-10"
-    },
     "860559342": {
         "moeda": "EUR",
         "saldo": -1102.5,
@@ -194,13 +187,6 @@
         "cliente": "titan",
         "cliente_nome": "TITAN LIMITED",
         "data_criacao": "2025-11-03"
-    },
-    "983847231": {
-        "moeda": "EUR",
-        "saldo": 0.0,
-        "cliente": "nike",
-        "cliente_nome": "NIKE LLC",
-        "data_criacao": "2025-11-10"
     },
     "224565364": {
         "moeda": "BRL",
@@ -314,13 +300,6 @@
         "cliente_nome": "MAKITA MACHINES LLC",
         "data_criacao": "2025-11-26"
     },
-    "581914585": {
-        "moeda": "USD",
-        "saldo": 15265.0,
-        "cliente": "nike",
-        "cliente_nome": "NIKE LLC",
-        "data_criacao": "2025-10-29"
-    },
     "802194129": {
         "moeda": "BRL",
         "saldo": 15000.0,
@@ -431,13 +410,6 @@
         "saldo": 0.0,
         "cliente": "adidas",
         "cliente_nome": "ADIDAS LIMITED",
-        "data_criacao": "2025-10-29"
-    },
-    "345058852": {
-        "moeda": "BRL",
-        "saldo": -265000.0,
-        "cliente": "nike",
-        "cliente_nome": "NIKE LLC",
         "data_criacao": "2025-10-29"
     },
     "366470532": {

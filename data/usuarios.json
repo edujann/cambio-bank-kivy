@@ -21,33 +21,6 @@
         "codigo_verificacao": null,
         "cambio_liberado": false
     },
-    "nike": {
-        "id": "d1a76692-9ee4-4a44-ad91-633120443821",
-        "username": "nike",
-        "senha_hash": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
-        "nome": "NIKE LLC",
-        "email": "nike@mail.com",
-        "documento_hash": "7250fe8b2a57a9b6daccfebd10240d4ea22eb2bde472ff922e88ceb118c89095",
-        "telefone": "9999999999",
-        "endereco": null,
-        "cidade": null,
-        "cep": null,
-        "estado": null,
-        "pais": null,
-        "tipo": "cliente",
-        "data_cadastro": "2025-10-29T00:00:00",
-        "created_at": "2025-11-20T14:03:57.351514",
-        "contas": [
-            "581914585",
-            "345058852",
-            "983847231",
-            "846405315"
-        ],
-        "status": "pendente",
-        "verificado": false,
-        "codigo_verificacao": null,
-        "cambio_liberado": false
-    },
     "adidas": {
         "id": "281ec6eb-83dd-4c00-9724-8d371eb44474",
         "username": "adidas",
@@ -400,51 +373,45 @@
         "cambio_liberado": false
     },
     "hidroamerica": {
-        "id": "3f89795e-6c24-4173-8aad-18da8ab27dfd",
         "username": "hidroamerica",
-        "senha_hash": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
         "nome": "HIDROAMERICA LTDA",
         "email": "hidroamerica@mail.com",
-        "documento_hash": "15e2b0d3c33891ebb0f1ef609ec419420c20e320ce94c65fbc8c3312448eb225",
-        "telefone": "",
-        "endereco": "AVENIDA ANDROMEDA, 703 SALA 3305, ALPHAVILLE",
-        "cidade": "BARUERI",
-        "cep": "6.473-000",
-        "estado": "SP",
-        "pais": "BRASIL",
+        "senha_hash": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
         "tipo": "cliente",
-        "data_cadastro": "2025-12-04T17:23:49.88107",
-        "created_at": "2025-12-04T20:23:50.429134",
+        "verificado": true,
+        "status": "ativo",
         "contas": [
             "402886768",
             "759223170",
             "418825678",
             "608201541"
-        ],
-        "status": "ativo",
-        "verificado": true,
-        "codigo_verificacao": null,
-        "cambio_liberado": false
+        ]
     },
     "jbs": {
+        "id": "84332463-2f71-4bd8-9211-2445f2acd6a2",
         "username": "jbs",
+        "senha_hash": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
         "nome": "JBS FRIBOI LTDA",
         "email": "jbs@mail.com",
-        "senha_hash": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
+        "documento_hash": "4da9ec65a2d2b546c86963022ab3e2ffee8b087a976f33c8f7c5fc5ad93df325",
+        "telefone": "",
+        "endereco": "AVENIDA PAULISTA 3465",
+        "cidade": "SÃO PAULO",
+        "cep": "45.563-000",
+        "estado": "SP",
+        "pais": "BRASIL",
         "tipo": "cliente",
-        "verificado": true,
-        "status": "ativo",
+        "data_cadastro": "2025-12-05T15:11:57.494842",
+        "created_at": "2025-12-05T18:11:58.321206",
         "contas": [
             "164914690",
             "512168503",
             "878377843",
             "584914760"
         ],
-        "telefone": "",
-        "endereco": "AVENIDA PAULISTA 3465",
-        "cidade": "SÃO PAULO",
-        "cep": "45.563-000",
-        "estado": "SP",
-        "pais": "BRASIL"
+        "status": "ativo",
+        "verificado": true,
+        "codigo_verificacao": null,
+        "cambio_liberado": false
     }
 }

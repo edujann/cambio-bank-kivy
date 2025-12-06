@@ -31,21 +31,29 @@ class TelaCadastroBeneficiario(Screen):
         self.modo_edicao = True
         self.nome_original = nome_beneficiario
         
-        if hasattr(self, 'ids'):
-            self.ids.lbl_titulo.text = 'EDITAR BENEFICIÁRIO'
-            self.ids.btn_salvar.text = 'ATUALIZAR BENEFICIÁRIO'
-            
-            self.ids.entry_beneficiario.text = dados.get('nome', '')
-            self.ids.entry_endereco.text = dados.get('endereco', '')
-            self.ids.entry_cidade.text = dados.get('cidade', '')
-            self.ids.entry_pais.text = dados.get('pais', '')
-            self.ids.entry_banco.text = dados.get('banco', '')
-            self.ids.endereco_banco.text = dados.get('endereco_banco', '')
-            self.ids.cidade_banco.text = dados.get('cidade_banco', '')  # 🔥 NOVO
-            self.ids.pais_banco.text = dados.get('pais_banco', '')      # 🔥 NOVO
-            self.ids.entry_swift.text = dados.get('swift', '')
-            self.ids.entry_iban.text = dados.get('iban', '')
-            self.ids.entry_aba.text = dados.get('aba', '')
+        if not hasattr(self, 'ids'):
+            return
+        
+        # 🔥 GARANTIR que os novos campos existam (mesmo que vazios)
+        dados_completos = dados.copy()
+        dados_completos.setdefault('cidade_banco', '')
+        dados_completos.setdefault('pais_banco', '')
+        
+        # Agora todos os campos existem
+        self.ids.lbl_titulo.text = 'EDITAR BENEFICIÁRIO'
+        self.ids.btn_salvar.text = 'ATUALIZAR BENEFICIÁRIO'
+        
+        self.ids.entry_beneficiario.text = dados_completos.get('nome', '')
+        self.ids.entry_endereco.text = dados_completos.get('endereco', '')
+        self.ids.entry_cidade.text = dados_completos.get('cidade', '')
+        self.ids.entry_pais.text = dados_completos.get('pais', '')
+        self.ids.entry_banco.text = dados_completos.get('banco', '')
+        self.ids.endereco_banco.text = dados_completos.get('endereco_banco', '')
+        self.ids.cidade_banco.text = dados_completos.get('cidade_banco', '')  # ✅ SEMPRE EXISTE
+        self.ids.pais_banco.text = dados_completos.get('pais_banco', '')      # ✅ SEMPRE EXISTE
+        self.ids.entry_swift.text = dados_completos.get('swift', '')
+        self.ids.entry_iban.text = dados_completos.get('iban', '')
+        self.ids.entry_aba.text = dados_completos.get('aba', '')
     
     def limpar_formulario(self):
         if hasattr(self, 'ids'):

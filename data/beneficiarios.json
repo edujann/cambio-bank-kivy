@@ -139,34 +139,6 @@
             "aba": ""
         }
     ],
-    "nike": [
-        {
-            "nome": "PUMA LLC",
-            "banco": "BANK OF AMERIA",
-            "swift": "BOFANYKK",
-            "iban": "2135415185",
-            "endereco": "FIRT AVENUE",
-            "cidade": "MIAMI",
-            "pais": "USA",
-            "endereco_banco": "FITH AVENUE",
-            "cidade_banco": null,
-            "pais_banco": null,
-            "aba": ""
-        },
-        {
-            "nome": "JBL LIMITED",
-            "banco": "JP MORGAN",
-            "swift": "CHASEMMNY",
-            "iban": "6354654",
-            "endereco": "JHON STREET",
-            "cidade": "NEW YORK",
-            "pais": "USA",
-            "endereco_banco": "TIMES SQUAER",
-            "cidade_banco": null,
-            "pais_banco": null,
-            "aba": ""
-        }
-    ],
     "pantanal": [
         {
             "nome": "HUIZHOU MAITONG OPTOELECTRONIC TECHNOLOGY CO., LTD",
@@ -209,17 +181,16 @@
         },
         {
             "nome": "XHIN JIN XHANG TAI LIMITED",
+            "banco": "HSBC HONG KONG",
+            "swift": "HSBCHKHHH",
+            "iban": "546235456",
             "endereco": "10 CHENG FIN SHAN STREET",
             "cidade": "SHANGAI",
             "pais": "CHINA",
-            "banco": "HSBC HONG KONG",
             "endereco_banco": "1 CENTRAL ROAD",
             "cidade_banco": "HONG KONG",
             "pais_banco": "CHINA",
-            "swift": "HSBCHKHHH",
-            "iban": "546235456",
-            "aba": "",
-            "data_cadastro": "2025-12-05 17:48:55"
+            "aba": ""
         }
     ],
     "lins": [
@@ -287,9 +258,9 @@
             "endereco": "FINCA LA CERCA, 30 POZO ESTRECHO",
             "cidade": "MURCIA",
             "pais": "SPAIN",
-            "endereco_banco": "PLAZA DE BARCELONA 5, ALMERIA - SPAIN",
-            "cidade_banco": null,
-            "pais_banco": null,
+            "endereco_banco": "PLAZA DE BARCELONA 5",
+            "cidade_banco": "ALMERIA",
+            "pais_banco": "SPAIN",
             "aba": ""
         }
     ]
