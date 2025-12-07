@@ -12,904 +12,6 @@ from kivy.properties import ListProperty, StringProperty, ObjectProperty
 from kivy.app import App
 import datetime
 
-
-class TransferenciaCard(BoxLayout):
-    """Card individual para cada transferência - CORES DO SISTEMA ESCURAS"""
-    
-    cor_status = ListProperty([0.8, 0.5, 0.0, 1])
-    transferencia_id = StringProperty("")
-    dados = ObjectProperty(None)
-    
-    def __init__(self, transferencia_id, dados, **kwargs):
-        super().__init__(**kwargs)
-        self.transferencia_id = transferencia_id
-        self.dados = dados
-
-        # CORES DO SISTEMA - VERSÕES MAIS ESCURAS
-        self.COR_PRIMARIA = (0.15, 0.35, 0.75, 1)
-        self.COR_SECUNDARIA = (0.4, 0.25, 0.75, 1)
-        self.COR_SUCESSO = (0.1, 0.6, 0.1, 1)
-        self.COR_AVISO = (0.8, 0.5, 0.0, 1)
-        self.COR_ERRO = (0.7, 0.2, 0.2, 1)
-        self.FUNDO_CARD = (0.15, 0.20, 0.28, 1)
-        
-        self.orientation = 'vertical'
-        self.size_hint_y = None
-        self.height = dp(250)
-        self.padding = [4, 4]
-        self.spacing = 0
-        
-
-        # 🔥 NOVOS VALORES PARA BORDAS ARREDONDADAS
-        self.RAIO_BORDA_CARD = [dp(12)]  # Aumentado de 5 para 12
-        self.RAIO_BORDA_HEADER = [dp(12), dp(12), 0, 0]  # Cantos superiores arredondados
-
-        # Calcular cor do status
-        self.cor_status = self.calcular_cor_status()
-        
-        # Adicionar fundo do card
-        with self.canvas.before:
-            from kivy.graphics import Color, RoundedRectangle
-            Color(*self.FUNDO_CARD)
-            self.bg_rect = RoundedRectangle(
-                pos=self.pos, 
-                size=self.size,
-                radius=[5]
-            )
-        
-        def update_bg_rect(instance, value):
-            self.bg_rect.pos = instance.pos
-            self.bg_rect.size = instance.size
-        
-        self.bind(pos=update_bg_rect, size=update_bg_rect)
-        
-        self.criar_card()
-
-        # 🔥 CONFIGURAR BOTÕES IMEDIATAMENTE - SEM DELAY
-        self.configurar_botoes_card()
-
-    def calcular_cor_status(self):
-        """Calcula a cor baseada no status da TRANSFERÊNCIA - CORES ESCURAS"""
-        if not hasattr(self, 'dados') or not self.dados:
-            return [0.8, 0.5, 0.0, 1]
-        
-        # 🔥 CORREÇÃO: TRATAR 'solicitada' COMO 'pending' TAMBÉM AQUI
-        status = self.dados['status']
-        if status == 'solicitada':
-            status = 'pending'
-            
-        if status == 'pending':
-            return [0.8, 0.5, 0.0, 1]  # 🟠 ÂMBAR/ LARANJA ESCURO
-        elif status == 'processing':
-            return [0.2, 0.5, 0.8, 1]  # 🔵 AZUL ESCURO
-        elif status == 'completed':
-            return [0.1, 0.6, 0.1, 1]  # 🟢 VERDE ESCURO
-        else:  # rejected
-            return [0.7, 0.2, 0.2, 1]  # 🔴 VERMELHO ESCURO
-
-    def criar_card(self):
-        """Cria o conteúdo do card"""
-        if not hasattr(self, 'dados') or not self.dados:
-            return
-            
-        sistema = App.get_running_app().sistema
-        
-        # 🔥 CORREÇÃO: Obter dados do usuário CORRETAMENTE
-        usuario_data = sistema.usuarios.get(sistema.usuario_logado, {})
-        contas_usuario = usuario_data.get('contas', [])
-        
-        # 🔥 CORREÇÃO: TRATAR 'solicitada' COMO 'pending' (PADRÃO ANTERIOR)
-        status = self.dados['status']
-        if status == 'solicitada':
-            status = 'pending'
-        
-        # Calcular a cor do status (MANTIDO COMO ANTES)
-        self.cor_status = self.calcular_cor_status()
-        
-        # 🔥 PADRÃO ORIGINAL - TEXTOS EXATOS COMO ANTES
-        if status == 'pending':
-            texto_status = "PENDENTE"
-        elif status == 'processing':
-            texto_status = "PROCESSANDO"  # ✅ PADRÃO ORIGINAL
-        elif status == 'completed':
-            texto_status = "CONCLUÍDA"    # ✅ PADRÃO ORIGINAL
-        else:  # rejected
-            texto_status = "RECUSADA"     # ✅ PADRÃO ORIGINAL
-        
-        # 🔥 ATUALIZAR FUNDO DO CARD COM BORDAS MAIS ARREDONDADAS
-        with self.canvas.before:
-            from kivy.graphics import Color, RoundedRectangle
-            Color(*self.FUNDO_CARD)
-            self.bg_rect = RoundedRectangle(
-                pos=self.pos, 
-                size=self.size,
-                radius=self.RAIO_BORDA_CARD  # 🔥 USANDO NOVO RAIO
-            )
-
-        # 🔥🔥🔥 DEBUG: VERIFICAR DADOS DA TRANSFERÊNCIA
-        print(f"🔍 DEBUG TIPO TRANSFERÊNCIA {self.dados.get('id')}:")
-        print(f"   tipo = {self.dados.get('tipo')}")
-        print(f"   pais = {self.dados.get('pais')}")
-        print(f"   beneficiario = {self.dados.get('beneficiario')}")
-        print(f"   nome_banco = {self.dados.get('nome_banco')}")
-        print(f"   conta_remetente = {self.dados.get('conta_remetente')}")
-
-        # Determinar tipo e informações
-        if self.dados.get('tipo') in ['internacional', 'transferencia_internacional']:
-            texto_tipo = "INTERNACIONAL"
-            pais = self.dados.get('pais', '')
-            if pais:
-                texto_tipo += f" • {pais}"
-            beneficiario = self.dados.get('beneficiario', 'N/A')
-            banco = self.dados.get('nome_banco', 'N/A')
-            swift = self.dados.get('codigo_swift', 'N/A')
-            iban = self.dados.get('iban_account', 'N/A')
-        else:
-            texto_tipo = "INTERNA"
-            # 🔥 CORREÇÃO: Usar contas_usuario em vez de sistema.usuario_logado['contas']
-            if self.dados['conta_remetente'] in contas_usuario:
-                beneficiario = self.obter_nome_cliente(self.dados.get('conta_destinatario', 'N/A'))
-                info_extra = " • Enviada"
-            else:
-                beneficiario = self.obter_nome_cliente(self.dados.get('conta_remetente', 'N/A'))
-                info_extra = " • Recebida"
-            texto_tipo += info_extra
-            banco = "Banco Interno"
-            swift = "N/A"
-            iban = self.dados.get('conta_destinatario', 'N/A')
-
-        # 🔥 PREENCHER DADOS IMEDIATAMENTE
-        self._preencher_dados_card_sincrono(texto_status, texto_tipo, beneficiario, banco, swift, iban)
-
-    def configurar_botoes_card(self):
-        """Configura os botões do card UMA VEZ na inicialização - VERSÃO SÍNCRONA"""
-        try:
-            if not hasattr(self, 'ids'):
-                return
-                
-            # 🔥 CORES DEFINITIVAS - MESMAS DO SISTEMA
-            COR_AZUL_ESCURO = [0.2, 0.4, 0.5, 1]
-            COR_VERDE_ESCURO = [0.3, 0.5, 0.4, 1]
-            COR_ROXO_ESCURO = [0.4, 0.4, 0.45, 1]
-            COR_BRANCO = [1, 1, 1, 1]
-            COR_CINZA = [0.3, 0.3, 0.3, 1]
-            
-            # 🔥 CONFIGURAR BOTÕES IMEDIATAMENTE
-            if 'btn_detalhes_card' in self.ids:
-                btn = self.ids.btn_detalhes_card
-                btn.background_color = COR_AZUL_ESCURO
-                btn.color = COR_BRANCO
-                btn.background_normal = ''
-                btn.font_size = '11sp'
-            
-            # 🔥 VERIFICAR INVOICE DE FORMA SÍNCRONA
-            sistema = App.get_running_app().sistema
-            info_invoice = sistema.obter_info_invoice(self.transferencia_id)
-            tem_invoice = info_invoice is not None
-            
-            if 'btn_visualizar_invoice_card' in self.ids:
-                btn = self.ids.btn_visualizar_invoice_card
-                if tem_invoice:
-                    btn.background_color = COR_VERDE_ESCURO
-                    btn.disabled = False
-                else:
-                    btn.background_color = COR_CINZA
-                    btn.disabled = True
-                btn.color = COR_BRANCO
-                btn.background_normal = ''
-                btn.font_size = '10sp'
-            
-            if 'btn_pdf_card' in self.ids:
-                btn = self.ids.btn_pdf_card
-                btn.background_color = COR_ROXO_ESCURO
-                btn.color = COR_BRANCO
-                btn.background_normal = ''
-                btn.font_size = '10sp'
-                
-        except Exception as e:
-            print(f"Erro rápido ao configurar botões: {e}")
-
-    def _preencher_dados_card_sincrono(self, texto_status, texto_tipo, beneficiario, banco, swift, iban):
-        """Preenche os dados do card sincronamente - SEM DELAY"""
-        try:
-            if not hasattr(self, 'ids'):
-                return
-                
-            # Atualizar header IMEDIATAMENTE
-            if 'lbl_status_transferencia' in self.ids:
-                self.ids.lbl_status_transferencia.text = f"TRANSFERÊNCIA {texto_status}"
-            
-            if 'lbl_tipo_transferencia' in self.ids:
-                self.ids.lbl_tipo_transferencia.text = texto_tipo
-            
-            # Atualizar informações bancárias IMEDIATAMENTE
-            if 'lbl_beneficiario' in self.ids:
-                self.ids.lbl_beneficiario.text = beneficiario
-            
-            if 'lbl_banco' in self.ids:
-                self.ids.lbl_banco.text = banco
-            
-            if 'lbl_swift' in self.ids:
-                self.ids.lbl_swift.text = swift
-            
-            # Atualizar tipo de conta (IBAN/Conta)
-            if 'lbl_tipo_conta' in self.ids:
-                if self.dados.get('tipo') == 'internacional':
-                    self.ids.lbl_tipo_conta.text = "IBAN:"
-                else:
-                    self.ids.lbl_tipo_conta.text = "Conta:"
-            
-            if 'lbl_conta' in self.ids:
-                self.ids.lbl_conta.text = iban
-            
-            # Atualizar valor IMEDIATAMENTE
-            if 'lbl_valor' in self.ids:
-                moeda = self.dados['moeda']
-                if moeda == 'USD':
-                    simbolo = "US$"
-                elif moeda == 'EUR':
-                    simbolo = "€"
-                elif moeda == 'GBP':
-                    simbolo = "£"
-                else:
-                    simbolo = moeda
-                    
-                self.ids.lbl_valor.text = f"{simbolo} {self.dados['valor']:,.2f}"
-            
-            # Atualizar data IMEDIATAMENTE
-            if 'lbl_data' in self.ids:
-                data_simples = self.dados.get('data_solicitacao', self.dados.get('data', '')).split(' ')[0]
-                self.ids.lbl_data.text = data_simples
-            
-            # Atualizar ID IMEDIATAMENTE
-            if 'lbl_id' in self.ids:
-                self.ids.lbl_id.text = self.transferencia_id
-            
-            # 🔥 CONFIGURAR INVOICE IMEDIATAMENTE (sem Clock)
-            self.adicionar_linha_invoice_se_necesario_sincrono()
-                
-        except Exception as e:
-            print(f"Erro rápido no preenchimento: {e}")
-
-    def adicionar_linha_invoice_se_necesario_sincrono(self):
-        """Adiciona linha da invoice sincronamente - COM DEBUG ESPECÍFICO"""
-        try:
-            sistema = App.get_running_app().sistema
-            
-            # 🔥 DEBUG ESPECÍFICO PARA 841328
-            if self.transferencia_id == "841328":
-                print(f"🎯 DEBUG ESPECIAL 841328: Iniciando busca de invoice")
-            
-            info_invoice = sistema.obter_info_invoice(self.transferencia_id)
-            
-            # 🔥 DEBUG ESPECÍFICO PARA 841328
-            if self.transferencia_id == "841328":
-                print(f"🎯 DEBUG ESPECIAL 841328: Info Invoice = {info_invoice}")
-                print(f"🎯 DEBUG ESPECIAL 841328: Tem container? {'linha_invoice_container' in self.ids}")
-            
-            # 🔥 CONTROLAR BOTÃO VISUALIZAR INVOICE
-            if hasattr(self, 'ids') and 'btn_visualizar_invoice_card' in self.ids:
-                btn_invoice = self.ids.btn_visualizar_invoice_card
-                if info_invoice:
-                    print(f"✅ DEBUG: Tem invoice, habilitando botão")
-                    # Habilitar botão se existe invoice
-                    btn_invoice.background_color = (0.1, 0.5, 0.1, 1)  # Verde
-                    btn_invoice.disabled = False
-                else:
-                    print(f"❌ DEBUG: Sem invoice, desabilitando botão")
-                    # Desabilitar botão se não existe invoice
-                    btn_invoice.background_color = (0.3, 0.3, 0.3, 1)  # Cinza
-                    btn_invoice.disabled = True
-            
-            if not info_invoice:
-                print(f"❌ DEBUG: Nenhuma invoice encontrada")
-                if 'linha_invoice_container' in self.ids:
-                    self.ids.linha_invoice_container.height = 0
-                    self.ids.linha_invoice_container.opacity = 0
-                return
-            
-            # 🔥 QUANDO HÁ INVOICE, MOSTRAR A LINHA E AJUSTAR ALTURA DO CARD
-            print(f"✅ DEBUG: Invoice encontrada, criando linha...")
-            container = self.ids.linha_invoice_container
-            container.clear_widgets()
-            container.height = dp(25)  # Altura fixa quando visível
-            container.opacity = 1
-            
-            # 🔥 AJUSTAR ALTURA TOTAL DO CARD QUANDO TEM INVOICE
-            self.height = dp(295)  # 270 + 25 da linha da invoice
-            
-            # CORES MAIS ESCURAS PARA CONTRASTE
-            COR_TEXTO_ESCURO = (0.6, 0.6, 0.6, 1)
-            COR_AMARELO_ESCURO = (0.7, 0.5, 0.1, 1)
-            COR_VERDE_ESCURO = (0.08, 0.4, 0.08, 1)
-            COR_VERMELHO_ESCURO = (0.5, 0.15, 0.15, 1)
-            
-            # Label do status da invoice
-            self.lbl_status_invoice = Label(
-                text='Invoice: Pendente',
-                font_size='12sp',
-                color=COR_AMARELO_ESCURO,
-                size_hint_x=0.7,
-                text_size=(None, None),
-                halign='left'
-            )
-            
-            # Botão reenviar
-            self.btn_reenviar_invoice = Button(
-                text='Reenviar',
-                font_size='10sp',
-                size_hint_x=0.3,
-                background_color=COR_VERDE_ESCURO,
-                background_normal='',
-                color=(1, 1, 1, 1),
-                on_press=self.reenviar_invoice,
-                opacity=0
-            )
-            
-            container.add_widget(self.lbl_status_invoice)
-            container.add_widget(self.btn_reenviar_invoice)
-            
-            # Atualizar status com a cor correta
-            self.atualizar_status_invoice_sincrono()
-            
-        except Exception as e:
-            print(f"❌ DEBUG: Erro ao adicionar linha invoice: {e}")
-            pass
-
-    def atualizar_status_invoice_sincrono(self):
-        """Atualiza o status da invoice sincronamente"""
-        try:
-            sistema = App.get_running_app().sistema
-            info_invoice = sistema.obter_info_invoice(self.transferencia_id)
-            
-            if not info_invoice or 'linha_invoice_container' not in self.ids:
-                return
-            
-            status = info_invoice['status']
-            motivo_recusa = info_invoice.get('motivo_recusa', '')
-            
-            # 🔥 CORES MAIS VIVAS E DESTACADAS COM NEGRITO
-            COR_AMARELO_DESTACADO = (1.0, 0.8, 0.0, 1)      # Amarelo vibrante
-            COR_VERDE_DESTACADO = (0.2, 0.8, 0.2, 1)        # Verde vibrante
-            COR_VERMELHO_DESTACADO = (0.9, 0.2, 0.2, 1)     # Vermelho vibrante
-            
-            # Definir texto e cor baseado no status
-            if status == 'pending':
-                texto = 'Invoice: Pendente'
-                cor_texto = COR_AMARELO_DESTACADO
-                mostrar_botao = False
-            elif status == 'approved':
-                texto = 'Invoice: Aprovado'
-                cor_texto = COR_VERDE_DESTACADO
-                mostrar_botao = False
-            elif status == 'rejected':
-                texto = 'Invoice: Recusado'
-                cor_texto = COR_VERMELHO_DESTACADO
-                mostrar_botao = True
-            else:
-                texto = 'Invoice: Pendente'
-                cor_texto = COR_AMARELO_DESTACADO
-                mostrar_botao = False
-            
-            # Adicionar motivo se existir
-            if motivo_recusa and status == 'rejected':
-                texto += f' - {motivo_recusa}'
-            
-            # 🔥 APLICAR FORMATAÇÃO DESTACADA
-            if hasattr(self, 'lbl_status_invoice'):
-                self.lbl_status_invoice.text = texto
-                self.lbl_status_invoice.font_size = '13sp'  # 🔥 Tamanho maior
-                self.lbl_status_invoice.color = cor_texto
-                self.lbl_status_invoice.bold = True         # 🔥 NEGRITO
-            
-            # Atualizar botão
-            if hasattr(self, 'btn_reenviar_invoice'):
-                self.btn_reenviar_invoice.opacity = 1 if mostrar_botao else 0
-                self.btn_reenviar_invoice.font_size = '11sp'
-                self.btn_reenviar_invoice.background_color = COR_VERDE_DESTACADO
-                self.btn_reenviar_invoice.bold = True       # 🔥 Botão também em negrito
-            
-        except Exception:
-            pass
-
-    def obter_nome_cliente(self, conta_numero):
-        """Obtém o nome do cliente a partir do número da conta"""
-        sistema = App.get_running_app().sistema
-        if conta_numero in sistema.contas:
-            return sistema.contas[conta_numero].get('cliente_nome', 'Cliente não encontrado')
-        return 'Conta não encontrada'
-
-    def ver_detalhes(self, instance=None):
-        """Mostra detalhes da transferência"""
-        popup = self.criar_popup_detalhes()
-        popup.open()
-
-    def gerar_pdf(self, instance=None):
-        """Gera PDF da transferência - VERSÃO FINAL CORRIGIDA"""
-        try:
-            print(f"🔍 PDF CARD: Iniciando para {self.transferencia_id}")
-            print(f"🔍 PDF CARD: Tipo de dados = {type(self.dados)}")
-            
-            # Os dados JÁ SÃO dict (como mostrado no debug)
-            dados_para_pdf = self.dados
-            
-            sistema = App.get_running_app().sistema
-            
-            # Obter dados do cliente
-            usuario_atual = sistema.usuario_logado['username']
-            dados_cliente = sistema.usuarios[usuario_atual]
-            
-            # Gerar PDF
-            from pdf_generator import PDFGenerator
-            pdf_generator = PDFGenerator()
-            caminho_pdf = pdf_generator.gerar_comprovante_transferencia(
-                self.transferencia_id, 
-                dados_para_pdf,
-                dados_cliente
-            )
-            
-            # Mostrar popup de sucesso
-            self.mostrar_popup_sucesso_pdf(caminho_pdf)
-            
-        except Exception as e:
-            print(f"❌ ERRO PDF CARD: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            self.mostrar_popup_erro_pdf(str(e))
-    
-    def mostrar_popup_sucesso_pdf_global(self, caminho_pdf):
-        """Popup de sucesso para PDF global"""
-        from kivy.uix.popup import Popup
-        from kivy.uix.boxlayout import BoxLayout
-        from kivy.uix.label import Label
-        from kivy.uix.button import Button
-        import os
-        
-        content = BoxLayout(orientation='vertical', padding=20, spacing=15)
-        
-        content.add_widget(Label(
-            text="COMPROVANTE GERADO!",
-            font_size='18sp',
-            bold=True,
-            color=(0.2, 0.8, 0.2, 1),
-            text_size=(400, None),
-            halign='center'
-        ))
-        
-        nome_arquivo = os.path.basename(caminho_pdf)
-        content.add_widget(Label(
-            text=f"{nome_arquivo}\n\nPasta: Downloads",
-            font_size='14sp',
-            text_size=(400, None),
-            halign='center'
-        ))
-        
-        btn_ok = Button(
-            text='OK',
-            background_color=(0.55, 0.36, 0.96, 1),
-            color=(1, 1, 1, 1)
-        )
-        
-        content.add_widget(btn_ok)
-        
-        popup = Popup(
-            title='Comprovante Gerado',
-            content=content,
-            size_hint=(None, None),
-            size=(500, 250),
-            background_color=(0.12, 0.16, 0.23, 1)
-        )
-        
-        btn_ok.bind(on_press=popup.dismiss)
-        popup.open()
-    
-    def mostrar_popup_erro_pdf_global(self, mensagem_erro):
-        """Popup de erro para PDF global"""
-        from kivy.uix.popup import Popup
-        from kivy.uix.boxlayout import BoxLayout
-        from kivy.uix.label import Label
-        from kivy.uix.button import Button
-        
-        content = BoxLayout(orientation='vertical', padding=20, spacing=15)
-        
-        content.add_widget(Label(
-            text="ERRO AO GERAR COMPROVANTE",
-            font_size='18sp',
-            bold=True,
-            color=(1, 0.3, 0.3, 1),
-            text_size=(400, None),
-            halign='center'
-        ))
-        
-        content.add_widget(Label(
-            text=f"Detalhes: {mensagem_erro}",
-            font_size='14sp',
-            text_size=(400, None),
-            halign='center'
-        ))
-        
-        btn_ok = Button(
-            text='OK',
-            background_color=(0.55, 0.36, 0.96, 1),
-            color=(1, 1, 1, 1)
-        )
-        
-        content.add_widget(btn_ok)
-        
-        popup = Popup(
-            title='Erro no PDF',
-            content=content,
-            size_hint=(None, None),
-            size=(450, 250),
-            background_color=(0.12, 0.16, 0.23, 1)
-        )
-        
-        btn_ok.bind(on_press=popup.dismiss)
-        popup.open()
-
-    def reenviar_invoice(self, instance=None):
-        """Abre modal SUPER SIMPLIFICADO para reenviar invoice - MESMA LÓGICA DA TELA TRANSFERENCIA"""
-        try:
-            from kivy.uix.popup import Popup
-            from kivy.uix.boxlayout import BoxLayout
-            from kivy.uix.label import Label
-            from kivy.uix.button import Button
-            import os
-            
-            sistema = App.get_running_app().sistema
-            info_invoice = sistema.obter_info_invoice(self.transferencia_id)
-            
-            if not info_invoice or info_invoice['status'] != 'rejected':
-                self.mostrar_erro("Não é possível reenviar invoice neste status!")
-                return
-            
-            motivo_recusa = info_invoice.get('motivo_recusa', 'Motivo não especificado')
-            
-            # 🔥 USAR MESMA LÓGICA DA TELA TRANSFERENCIA - INTERFACE SIMPLIFICADA
-            content = BoxLayout(orientation='vertical', spacing=15, padding=25)
-            
-            # Título amigável
-            lbl_titulo = Label(
-                text='[b]REENVIAR INVOICE[/b]',
-                markup=True,
-                color=(0.9, 0.9, 0.9, 1),
-                font_size='18sp',
-                size_hint_y=0.15,
-                text_size=(400, None),
-                halign='center'
-            )
-            
-            # Motivo da recusa
-            lbl_motivo = Label(
-                text=f'[b]Motivo da recusa anterior:[/b]\n"{motivo_recusa}"',
-                markup=True,
-                color=(1, 0.5, 0.5, 1),  # Vermelho claro
-                font_size='12sp',
-                size_hint_y=0.25,
-                text_size=(400, None),
-                halign='center'
-            )
-            
-            # Área de Drag & Drop (igual à tela transferência)
-            area_drag_drop = Button(
-                text='[b]SOLTE O NOVO INVOICE AQUI[/b]\n\nou clique para procurar\n\n📄 PDF, JPG, PNG (até 5MB)',
-                markup=True,
-                background_color=(0.2, 0.3, 0.4, 0.3),
-                background_normal='',
-                color=(0.8, 0.8, 0.8, 1),
-                font_size='14sp',
-                size_hint_y=0.35,
-                halign='center'
-            )
-            
-            # Pastas rápidas
-            pastas_layout = BoxLayout(orientation='horizontal', size_hint_y=0.15, spacing=10)
-            
-            btn_documentos = Button(
-                text='Documentos',
-                background_color=(0.3, 0.5, 0.7, 1),
-                font_size='12sp'
-            )
-            
-            btn_downloads = Button(
-                text='Downloads', 
-                background_color=(0.3, 0.5, 0.7, 1),
-                font_size='12sp'
-            )
-            
-            btn_desktop = Button(
-                text='Desktop',
-                background_color=(0.3, 0.5, 0.7, 1),
-                font_size='12sp'
-            )
-            
-            pastas_layout.add_widget(btn_documentos)
-            pastas_layout.add_widget(btn_downloads)
-            pastas_layout.add_widget(btn_desktop)
-            
-            # Botões de ação
-            botoes_layout = BoxLayout(orientation='horizontal', size_hint_y=0.15, spacing=10)
-            
-            btn_limpar = Button(
-                text='Limpar',
-                background_color=(0.8, 0.3, 0.3, 1),
-                font_size='12sp'
-            )
-            
-            btn_cancelar = Button(
-                text='CANCELAR',
-                background_color=(0.5, 0.5, 0.5, 1),
-                font_size='12sp'
-            )
-            
-            btn_enviar = Button(
-                text='ENVIAR NOVA INVOICE',
-                background_color=(0.2, 0.7, 0.3, 1),
-                font_size='14sp',
-                bold=True
-            )
-            
-            botoes_layout.add_widget(btn_limpar)
-            botoes_layout.add_widget(btn_cancelar)
-            botoes_layout.add_widget(btn_enviar)
-            
-            content.add_widget(lbl_titulo)
-            content.add_widget(lbl_motivo)
-            content.add_widget(area_drag_drop)
-            content.add_widget(pastas_layout)
-            content.add_widget(botoes_layout)
-            
-            # Variável para armazenar arquivo selecionado
-            arquivo_selecionado = None
-            lbl_status = None
-            
-            # Criar popup
-            popup = Popup(
-                title='',
-                content=content,
-                size_hint=(0.85, 0.75),  # Um pouco maior para acomodar o botão extra
-                background_color=(0.12, 0.16, 0.23, 1),
-                auto_dismiss=False
-            )
-            
-            def atualizar_status(nome_arquivo, sucesso=True):
-                """Atualiza o status visual"""
-                nonlocal lbl_status
-                
-                if lbl_status and lbl_status in content.children:
-                    content.remove_widget(lbl_status)
-                
-                if sucesso:
-                    texto = f'✅ [b]{nome_arquivo}[/b]\nPronto para enviar!'
-                    cor = (0.2, 0.8, 0.2, 1)
-                else:
-                    texto = f'❌ {nome_arquivo}'
-                    cor = (1, 0.3, 0.3, 1)
-                
-                lbl_status = Label(
-                    text=texto,
-                    markup=True,
-                    color=cor,
-                    font_size='12sp',
-                    size_hint_y=0.1,
-                    text_size=(400, None),
-                    halign='center'
-                )
-                content.add_widget(lbl_status)
-                content.do_layout()
-            
-            def processar_arquivo(caminho):
-                """Processa o arquivo selecionado"""
-                nonlocal arquivo_selecionado
-                
-                try:
-                    # Verificar se é arquivo válido
-                    if not os.path.isfile(caminho):
-                        return False
-                    
-                    # Verificar extensão
-                    extensoes_validas = ['.pdf', '.jpg', '.jpeg', '.png']
-                    _, ext = os.path.splitext(caminho)
-                    if ext.lower() not in extensoes_validas:
-                        atualizar_status(f'Tipo não suportado: {ext}', False)
-                        return False
-                    
-                    # Verificar tamanho (5MB)
-                    tamanho = os.path.getsize(caminho) / (1024 * 1024)
-                    if tamanho > 5:
-                        atualizar_status('Arquivo muito grande! Máx: 5MB', False)
-                        return False
-                    
-                    arquivo_selecionado = caminho
-                    nome_arquivo = os.path.basename(caminho)
-                    atualizar_status(nome_arquivo, True)
-                    
-                    # Atualizar área visual
-                    area_drag_drop.text = f'[b]✅ PRONTO![/b]\n\n{nome_arquivo}\n({tamanho:.1f} MB)'
-                    area_drag_drop.background_color = (0.2, 0.5, 0.2, 0.5)
-                    
-                    return True
-                    
-                except Exception as e:
-                    atualizar_status(f'Erro: {str(e)}', False)
-                    return False
-            
-            def abrir_seletor_pasta(pasta):
-                """Abre seletor em pasta específica"""
-                nonlocal popup
-                
-                # Fechar popup atual
-                popup.dismiss()
-                
-                # Criar novo popup com filechooser
-                from kivy.uix.filechooser import FileChooserListView
-                
-                content_avancado = BoxLayout(orientation='vertical', spacing=10, padding=10)
-                
-                lbl_instrucao = Label(
-                    text=f'Procurando em: {pasta}',
-                    color=(0.9, 0.9, 0.9, 1),
-                    font_size='14sp'
-                )
-                
-                filechooser = FileChooserListView(
-                    path=pasta,
-                    filters=['*.pdf', '*.jpg', '*.jpeg', '*.png'],
-                    size_hint_y=0.7
-                )
-                
-                botoes_avancado = BoxLayout(orientation='horizontal', size_hint_y=0.2, spacing=10)
-                
-                btn_voltar = Button(
-                    text='⬅Voltar',
-                    background_color=(0.5, 0.5, 0.5, 1)
-                )
-                
-                btn_escolher = Button(
-                    text='Usar Este',
-                    background_color=(0.2, 0.7, 0.3, 1)
-                )
-                
-                botoes_avancado.add_widget(btn_voltar)
-                botoes_avancado.add_widget(btn_escolher)
-                
-                content_avancado.add_widget(lbl_instrucao)
-                content_avancado.add_widget(filechooser)
-                content_avancado.add_widget(botoes_avancado)
-                
-                popup_avancado = Popup(
-                    title='Selecione o arquivo',
-                    content=content_avancado,
-                    size_hint=(0.9, 0.8),
-                    background_color=(0.12, 0.16, 0.23, 1),
-                    auto_dismiss=False
-                )
-                
-                def voltar_simples(instance):
-                    popup_avancado.dismiss()
-                    self.reenviar_invoice()  # Reabre o popup simples
-                
-                def escolher_arquivo(instance=None, selection=None, touch=None):
-                    """Função corrigida para aceitar diferentes chamadas"""
-                    if filechooser.selection:
-                        caminho = filechooser.selection[0]
-                        if processar_arquivo(caminho):
-                            popup_avancado.dismiss()
-                    else:
-                        lbl_instrucao.text = '❌ Selecione um arquivo!'
-                        lbl_instrucao.color = (1, 0.3, 0.3, 1)
-                
-                btn_voltar.bind(on_press=voltar_simples)
-                btn_escolher.bind(on_press=escolher_arquivo)
-                
-                # Usar lambda para evitar problemas de argumentos
-                filechooser.bind(on_submit=lambda instance, value, touch: escolher_arquivo())
-                
-                popup_avancado.open()
-            
-            def abrir_seletor_generico(instance):
-                """Abre seletor de arquivos genérico"""
-                abrir_seletor_pasta(os.path.expanduser('~'))
-            
-            def limpar_selecao(instance):
-                """Limpa a seleção atual"""
-                nonlocal arquivo_selecionado
-                arquivo_selecionado = None
-                area_drag_drop.text = '[b]SOLTE O NOVO INVOICE AQUI[/b]\n\nou clique para procurar\n\n📄 PDF, JPG, PNG (até 5MB)'
-                area_drag_drop.background_color = (0.2, 0.3, 0.4, 0.3)
-                
-                # Remover status
-                nonlocal lbl_status
-                if lbl_status and lbl_status in content.children:
-                    content.remove_widget(lbl_status)
-                    content.do_layout()
-            
-            def cancelar_upload(instance):
-                """Fecha o popup e volta para minhas transferências"""
-                popup.dismiss()
-                # Não é necessário fazer nada mais, o usuário já está na tela Minhas Transferências
-            
-            def enviar_nova_invoice(instance):
-                """Processa o envio da nova invoice - MESMA LÓGICA DA TELA TRANSFERENCIA"""
-                if not arquivo_selecionado:
-                    atualizar_status("Selecione um arquivo primeiro!", False)
-                    return
-                
-                # 🔥 USAR MESMA LÓGICA: Copiar arquivo para o sistema
-                caminho_destino = self.copiar_arquivo_invoice(
-                    arquivo_selecionado, 
-                    self.transferencia_id
-                )
-                
-                if caminho_destino:
-                    # Atualizar no sistema - MARCAR COMO PENDENTE NOVAMENTE
-                    if sistema.adicionar_invoice_info_transferencia(self.transferencia_id, caminho_destino):
-                        popup.dismiss()
-                        
-                        # 🔥 MOSTRAR MENSAGEM DE SUCESSO COM BOTÃO OK
-                        self.mostrar_sucesso_com_botao(
-                            "Nova invoice enviada com sucesso!\n\n" +
-                            "Status: Pendente de análise\n" +
-                            "Aguarde a revisão do administrador."
-                        )
-                        
-                        # Atualizar o card - CORREÇÃO: usar o método correto
-                        self.atualizar_status_invoice_sincrono()  # 🔥 NOME CORRETO
-                    else:
-                        atualizar_status("Erro ao enviar nova invoice!", False)
-                else:
-                    atualizar_status("Erro ao processar arquivo!", False)
-            
-            # Bind dos eventos
-            area_drag_drop.bind(on_press=abrir_seletor_generico)
-            btn_documentos.bind(on_press=lambda x: abrir_seletor_pasta(os.path.expanduser('~/Documents')))
-            btn_downloads.bind(on_press=lambda x: abrir_seletor_pasta(os.path.expanduser('~/Downloads')))
-            btn_desktop.bind(on_press=lambda x: abrir_seletor_pasta(os.path.expanduser('~/Desktop')))
-            btn_limpar.bind(on_press=limpar_selecao)
-            btn_cancelar.bind(on_press=cancelar_upload)  # 🔥 NOVO BOTÃO CANCELAR
-            btn_enviar.bind(on_press=enviar_nova_invoice)
-            
-            # 🔥 ADICIONAR: Suporte a drag & drop real
-            def on_drop_file(window, file_path, x, y):
-                """Processa arquivo arrastado para a janela - VERSÃO CORRIGIDA"""
-                try:
-                    file_path_str = file_path.decode('utf-8') if isinstance(file_path, bytes) else str(file_path)
-                    if processar_arquivo(file_path_str):
-                        print(f"✅ Arquivo arrastado processado: {file_path_str}")
-                except Exception as e:
-                    print(f"❌ Erro ao processar arquivo arrastado: {e}")
-            
-            # Registrar evento de drop
-            from kivy.core.window import Window
-            Window.bind(on_drop_file=on_drop_file)
-            
-            # Limpar binding quando popup fechar
-            def on_dismiss(instance):
-                Window.unbind(on_drop_file=on_drop_file)
-            
-            popup.bind(on_dismiss=on_dismiss)
-            
-            # Abrir popup
-            popup.open()
-            
-        except Exception as e:
-            print(f"❌ Erro ao reenviar invoice: {e}")
-            self.mostrar_erro(f"Erro: {str(e)}")
-
-from kivy.uix.screenmanager import Screen
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.label import Label
-from kivy.uix.button import Button
-from kivy.uix.popup import Popup
-from kivy.uix.textinput import TextInput
-from kivy.uix.widget import Widget
-from kivy.uix.gridlayout import GridLayout
-from kivy.uix.scrollview import ScrollView
-from kivy.metrics import dp
-from kivy.properties import ListProperty, StringProperty, ObjectProperty
-from kivy.app import App
-import datetime
-
 class TransferenciaCard(BoxLayout):
     """Card individual para cada transferência - CORES DO SISTEMA ESCURAS"""
     
@@ -2434,39 +1536,103 @@ class TelaMinhasTransferencias(Screen):
         }
 
     def on_pre_enter(self):
-        """Chamado antes da tela ser mostrada - LIMPAR CACHE AO TROCAR USUÁRIO"""
+        """Chamado antes da tela ser mostrada - VERSÃO RESPONSIVA"""
         from kivy.core.window import Window
-        Window.size = (1000, 900)
+        from kivy.metrics import dp
         
+        # 🔥 TAMANHO PREFERIDO
+        largura_preferida = dp(1000)
+        altura_preferida = dp(900)
+        
+        print(f"📐 Minhas Transferências: {largura_preferida/dp(1)}x{altura_preferida/dp(1)}")
+        
+        # 1. Define tamanho preferido
+        Window.size = (largura_preferida, altura_preferida)
+        
+        # 2. Ajusta automaticamente se não couber
+        def ajustar_se_necessario(dt):
+            altura_disponivel = Window.height
+            largura_disponivel = Window.width
+            
+            print(f"📏 Tela disponível: {largura_disponivel:.0f}x{altura_disponivel:.0f}")
+            
+            precisa_ajustar = False
+            
+            # Se LARGURA muito estreita (<950px)
+            if largura_disponivel < dp(950):
+                print(f"⚠️  Tela estreita! Ajustando largura...")
+                nova_largura = largura_disponivel * 0.95
+                nova_altura = altura_preferida * (nova_largura / largura_preferida)
+                Window.size = (nova_largura, nova_altura)
+                precisa_ajustar = True
+            
+            # Se ALTURA não couber (900px > 90% da tela)
+            if altura_preferida > altura_disponivel * 0.9:
+                print(f"⚠️  Tela baixa! Ajustando altura...")
+                nova_altura = altura_disponivel * 0.85
+                if not precisa_ajustar:  # Só ajusta largura se já não tiver ajustado
+                    nova_largura = largura_preferida * (nova_altura / altura_preferida)
+                    Window.size = (nova_largura, nova_altura)
+                precisa_ajustar = True
+            
+            if precisa_ajustar:
+                print(f"📐 Tamanho ajustado: {Window.size[0]/dp(1):.0f}x{Window.size[1]/dp(1):.0f}")
+            else:
+                print(f"✅ Tela adequada - Mantendo {largura_preferida/dp(1)}x{altura_preferida/dp(1)}")
+            
+            # 🔥 POSICIONAMENTO PERSONALIZADO (Windows)
+            try:
+                import ctypes
+                user32 = ctypes.windll.user32
+                screen_width = user32.GetSystemMetrics(0)
+                screen_height = user32.GetSystemMetrics(1)
+                
+                window_width, window_height = Window.size
+                
+                # Offset personalizado (ajuste se quiser)
+                offset_x = 60  # 🔥 Ajuste este valor para sua preferência
+                offset_y = 40  # 🔥 Ajuste este valor
+                
+                x = (screen_width - window_width) // 2 + offset_x
+                y = (screen_height - window_height) // 2 - offset_y
+                
+                Window.left = max(10, x)
+                Window.top = max(10, y)
+                
+                print(f"📍 Transferências posicionada em: ({Window.left:.0f}, {Window.top:.0f})")
+                
+            except Exception as e:
+                print(f"⚠️  Não foi possível posicionar: {e}")
+                Window.center()
+        
+        from kivy.clock import Clock
+        Clock.schedule_once(ajustar_se_necessario, 0.3)
+        
+        # 🔥 SEU CÓDIGO ORIGINAL (mantém)
         sistema = App.get_running_app().sistema
         if sistema.usuario_logado and sistema.tipo_usuario_logado == 'cliente':
-            # 🔥 LIMPAR CACHE AO TROCAR DE USUÁRIO
             self.transferencias_cache = None
-            
-            # Configurar cores dos botões inferiores
             self.configurar_cores_botoes_inferiores()
-            
-            # Inicializar filtro
             self.filtro_status = "all"
             self.forcar_cores_botoes()
 
     def on_enter(self):
-        """Chamado quando a tela é carregada - VERSÃO COM TRANSIÇÃO SUAVE"""
+        """Chamado quando a tela é carregada - VERSÃO RESPONSIVA"""
         from kivy.core.window import Window
-        Window.size = (1000, 900)
+        
+        # 🔥 GARANTIR TAMANHO (backup)
+        if Window.size[0] < 800:  # Se por algum motivo ficou muito pequena
+            Window.size = (1000, 900)
+            print("⚠️  Restaurando tamanho mínimo da tela")
         
         sistema = App.get_running_app().sistema
         if sistema.usuario_logado and sistema.tipo_usuario_logado == 'cliente':
             print("🎯 Minhas Transferências - AGUARDANDO TRANSIÇÃO...")
             
-            # 🔥 CONFIGURAÇÃO RÁPIDA (não pesa)
             self.filtro_status = "all"
             self.forcar_cores_botoes()
-            
-            # 🔥 MOSTRAR LOADING IMEDIATO (leve)
             self._mostrar_loading_simples()
             
-            # 🔥 AGUARDAR TRANSIÇÃO TERMINAR ANTES DE CARREGAR DADOS PESADOS
             from kivy.clock import Clock
             Clock.schedule_once(lambda dt: self._iniciar_carregamento_apos_transicao(), 0.5)
 

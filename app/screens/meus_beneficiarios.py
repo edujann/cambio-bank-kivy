@@ -171,11 +171,91 @@ class TelaMeusBeneficiarios(Screen):
         super().__init__(**kwargs)
     
     def on_pre_enter(self):
+        """Chamado antes da tela ser mostrada - VERSÃO RESPONSIVA"""
         from kivy.core.window import Window
-        Window.size = (900, 700)
+        from kivy.metrics import dp
+        
+        # 🔥 TAMANHO PREFERIDO PARA BENEFICIÁRIOS
+        largura_preferida = dp(900)
+        altura_preferida = dp(700)
+        
+        print(f"📐 Meus Beneficiários: {largura_preferida/dp(1)}x{altura_preferida/dp(1)}")
+        
+        # 1. Define tamanho preferido
+        Window.size = (largura_preferida, altura_preferida)
+        
+        # 2. Ajusta automaticamente se não couber
+        def ajustar_se_necessario(dt):
+            altura_disponivel = Window.height
+            largura_disponivel = Window.width
+            
+            print(f"📏 Tela disponível: {largura_disponivel:.0f}x{altura_disponivel:.0f}")
+            
+            precisa_ajustar = False
+            
+            # Se LARGURA muito estreita (<850px)
+            if largura_disponivel < dp(850):
+                print(f"⚠️  Tela estreita! Ajustando largura...")
+                nova_largura = largura_disponivel * 0.95
+                nova_altura = altura_preferida * (nova_largura / largura_preferida)
+                Window.size = (nova_largura, nova_altura)
+                precisa_ajustar = True
+            
+            # Se ALTURA não couber (700px > 90% da tela)
+            if altura_preferida > altura_disponivel * 0.9:
+                print(f"⚠️  Tela baixa! Ajustando altura...")
+                nova_altura = altura_disponivel * 0.85
+                if not precisa_ajustar:  # Só ajusta largura se já não tiver ajustado
+                    nova_largura = largura_preferida * (nova_altura / altura_preferida)
+                    Window.size = (nova_largura, nova_altura)
+                precisa_ajustar = True
+            
+            if precisa_ajustar:
+                print(f"📐 Tamanho ajustado: {Window.size[0]/dp(1):.0f}x{Window.size[1]/dp(1):.0f}")
+            else:
+                print(f"✅ Tela adequada - Mantendo {largura_preferida/dp(1)}x{altura_preferida/dp(1)}")
+            
+            # 🔥 POSICIONAMENTO PERSONALIZADO (Windows)
+            try:
+                import ctypes
+                user32 = ctypes.windll.user32
+                screen_width = user32.GetSystemMetrics(0)
+                screen_height = user32.GetSystemMetrics(1)
+                
+                window_width, window_height = Window.size
+                
+                # Offset personalizado (ajuste se quiser)
+                offset_x = 80  # 🔥 Mais à direita que outras telas
+                offset_y = 50  # 🔥 Ajuste vertical
+                
+                x = (screen_width - window_width) // 2 + offset_x
+                y = (screen_height - window_height) // 2 - offset_y
+                
+                Window.left = max(10, x)
+                Window.top = max(10, y)
+                
+                print(f"📍 Beneficiários posicionada em: ({Window.left:.0f}, {Window.top:.0f})")
+                
+            except Exception as e:
+                print(f"⚠️  Não foi possível posicionar: {e}")
+                Window.center()
+        
+        from kivy.clock import Clock
+        Clock.schedule_once(ajustar_se_necessario, 0.3)
+        
+        # 🔥 SEU CÓDIGO ORIGINAL (mantém)
         self.carregar_beneficiarios()
     
     def on_enter(self):
+        """Chamado quando a tela é carregada - COM PROTEÇÃO"""
+        from kivy.core.window import Window
+        from kivy.metrics import dp
+        
+        # 🔥 PROTEÇÃO: Se por algum motivo ficou muito pequena
+        if Window.width < dp(800) or Window.height < dp(600):
+            print(f"⚠️  Janela muito pequena detectada! Restaurando tamanho mínimo...")
+            Window.size = (dp(900), dp(700))
+        
         print("👥 Tela Meus Beneficiários carregada")
         self.carregar_beneficiarios()
         

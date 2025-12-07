@@ -84,24 +84,61 @@ class TelaCambioMoedas(Screen):
             print(" Nenhum par selecionado para atualização automática")
 
     def on_pre_enter(self):
-        """Chamado antes da tela ser mostrada - AGORA COM VERIFICAÇÃO DE PERMISSÃO"""
+        """Chamado antes da tela ser mostrada - VERSÃO INTELIGENTE"""
         sistema = App.get_running_app().sistema
         
-        # 🔥 VERIFICAR SE CLIENTE TEM PERMISSÃO PARA CÂMBIO
+        # 🔥 SEU CÓDIGO ORIGINAL DE VERIFICAÇÃO
         if (sistema.usuario_logado and 
             sistema.tipo_usuario_logado == 'cliente' and
             not sistema.cliente_tem_permissao_cambio(sistema.usuario_logado)):
             
             self.mostrar_erro_permissao()
-            # Voltar para dashboard se não tiver permissão
             Clock.schedule_once(lambda dt: setattr(self.manager, 'current', 'dashboard'), 0.5)
             return
         
+        print("📊 Preparando tela de câmbio...")
+        
+        # 🔥🔥🔥 VERSÃO INTELIGENTE:
+        from kivy.core.window import Window
+        
+        altura_tela = Window.height
+        largura_tela = Window.width
+        
+        print(f"📐 Tela do usuário: {largura_tela:.0f}×{altura_tela:.0f}")
+        
+        if altura_tela >= 1000:
+            # 🔥 MONITOR GRANDE (como o SEU)
+            Window.size = (800, 900)
+            print("✅ Monitor grande detectado: Câmbio 800×900")
+            
+        else:
+            # 🔥 TELA PEQUENA/MÉDIA
+            # Calcula tamanho que caiba (85% da altura, mantém proporção)
+            nova_altura = altura_tela * 0.85
+            
+            # Se a largura também for problema (muito estreita)
+            if largura_tela < 850:
+                # Reduz mais para caber na largura
+                proporcao_largura = largura_tela / 800
+                proporcao_altura = nova_altura / 900
+                fator = min(proporcao_largura, proporcao_altura) * 0.9
+                
+                nova_altura = 900 * fator
+                nova_largura = 800 * fator
+            else:
+                # Só ajusta altura, mantém largura 800
+                nova_largura = 800 * (nova_altura / 900)
+            
+            # Garante tamanhos mínimos
+            nova_largura = max(600, nova_largura)
+            nova_altura = max(500, nova_altura)
+            
+            Window.size = (nova_largura, nova_altura)
+            print(f"✅ Tela pequena: Câmbio ajustado para {nova_largura:.0f}×{nova_altura:.0f}")
+        
+        # 🔥 SEU CÓDIGO ORIGINAL CONTINUA
         print("Preparando tela de câmbio...")
-        print("Preparando tela de câmbio...")
-        # Reiniciar contador quando entrar na tela
-        self.iniciar_contador_atualizacao(None)  # 🔥 CORREÇÃO: Adicionar None como argumento
-        # 🔥 CORREÇÃO: Carregar pares apenas quando usuário estiver logado
+        self.iniciar_contador_atualizacao(None)
         Clock.schedule_once(lambda dt: self.carregar_pares_disponiveis(), 0.1)
         Clock.schedule_once(lambda dt: self.carregar_saldos_ui(), 0.2)
 
@@ -526,7 +563,7 @@ class TelaCambioMoedas(Screen):
         self.entry_valor = CampoValor(
             hint_text='0.00',
             multiline=False,
-            font_size='16sp',
+            font_size='14sp',
             size_hint_x=0.6,
             background_color=(0.20, 0.25, 0.33, 1),
             foreground_color=(1, 1, 1, 1),

@@ -3,8 +3,8 @@
     
     BoxLayout:
         orientation: 'vertical'
-        padding: [25, 25, 25, 25]
-        spacing: 15
+        padding: [dp(25), dp(25), dp(25), dp(25)]
+        spacing: dp(15) 
         canvas:
             Color:
                 rgba: 0.06, 0.09, 0.16, 1
@@ -21,8 +21,11 @@
             Button:
                 text: '< Voltar'
                 size_hint_x: 0.2
+                size_hint_y: None
+                height: dp(40)
                 background_color: 0.55, 0.36, 0.96, 1
                 color: 1, 1, 1, 1
+                font_size: '14sp' 
                 on_press: root.voltar_dashboard()
             
             Label:
@@ -94,14 +97,16 @@
             BoxLayout:
                 orientation: 'horizontal'
                 size_hint_y: 0.3
-                spacing: 20
-                padding: [20, 0, 20, 0]
+                spacing: dp(20)  
+                padding: [dp(20), 0, dp(20), 0] 
                 
                 ToggleButton:
                     id: btn_compra
                     text: 'COMPRAR MOEDA'
                     group: 'operacao'
                     state: 'down'
+                    size_hint_y: None
+                    height: dp(45) 
                     background_color: 0.2, 0.8, 0.2, 1
                     background_normal: ''
                     background_down: ''
@@ -114,6 +119,8 @@
                     id: btn_venda
                     text: 'VENDER MOEDA'
                     group: 'operacao'
+                    size_hint_y: None
+                    height: dp(45) 
                     background_color: 0.96, 0.36, 0.36, 0.5
                     background_normal: ''
                     background_down: ''
@@ -147,6 +154,8 @@
                         text: 'De...'
                         values: []
                         size_hint_x: 0.4
+                        size_hint_y: None
+                        height: dp(40) 
                         background_color: 0.20, 0.25, 0.33, 1
                         color: 1, 1, 1, 1
                         font_size: '13sp'
@@ -165,6 +174,8 @@
                         text: 'Para...'
                         values: []
                         size_hint_x: 0.4
+                        size_hint_y: None
+                        height: dp(40)                         
                         background_color: 0.20, 0.25, 0.33, 1
                         color: 1, 1, 1, 1
                         font_size: '13sp'
@@ -219,12 +230,14 @@
                         id: entry_valor
                         hint_text: '0.00'
                         multiline: False
-                        font_size: '16sp'
+                        font_size: '12sp'
                         size_hint_x: 0.7
+                        size_hint_y: None
+                        height: dp(70)
                         background_color: 0.20, 0.25, 0.33, 1
                         foreground_color: 1, 1, 1, 1
                         cursor_color: 1, 1, 1, 1
-                        padding: [10, 10]
+                        padding: [dp(10), dp(13)]
                         input_filter: 'float'
                         on_text: root.on_valor_change
                     
@@ -259,6 +272,7 @@
                 bold: True
                 background_color: 0.23, 0.51, 0.96, 1
                 color: 1, 1, 1, 1
-                size_hint_y: 0.25
+                size_hint_y: None
+                height: dp(50)
                 disabled: True
                 on_press: root.on_confirmar_operacao

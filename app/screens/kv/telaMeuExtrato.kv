@@ -22,6 +22,8 @@
             Button:
                 text: '‹ Voltar'
                 size_hint_x: 0.12
+                size_hint_y: None  
+                height: dp(40)
                 background_color: (0.4, 0.4, 0.45, 1)  # 🔥 VALOR FIXO
                 background_normal: ''
                 color: 1, 1, 1, 1
@@ -41,6 +43,8 @@
             Button:
                 text: 'Atualizar'
                 size_hint_x: 0.12
+                size_hint_y: None  
+                height: dp(40)
                 background_color: (0.25, 0.35, 0.55, 0.3)
                 background_normal: ''
                 color: 1, 1, 1, 1
@@ -131,6 +135,8 @@
                     ToggleButton:
                         text: '7 dias'
                         group: 'periodo'
+                        size_hint_y: None 
+                        height: dp(30)
                         background_color: (0.20, 0.36, 0.80, 1) if self.state == 'down' else (0.20, 0.25, 0.33, 1)  # 🔥 CORREÇÃO
                         background_normal: ''
                         color: (1, 1, 1, 1)
@@ -140,6 +146,8 @@
                     ToggleButton:
                         text: '15 dias'
                         group: 'periodo'
+                        size_hint_y: None 
+                        height: dp(30)
                         background_color: (0.20, 0.36, 0.80, 1) if self.state == 'down' else (0.20, 0.25, 0.33, 1)  # 🔥 CORREÇÃO
                         background_normal: ''
                         color: (1, 1, 1, 1)
@@ -149,6 +157,8 @@
                     ToggleButton:
                         text: '30 dias'
                         group: 'periodo'
+                        size_hint_y: None 
+                        height: dp(30)
                         background_color: (0.20, 0.36, 0.80, 1) if self.state == 'down' else (0.20, 0.25, 0.33, 1)  # 🔥 CORREÇÃO
                         background_normal: ''
                         color: (1, 1, 1, 1)
@@ -159,6 +169,8 @@
                     ToggleButton:
                         text: '90 dias'
                         group: 'periodo'
+                        size_hint_y: None 
+                        height: dp(30)
                         background_color: (0.20, 0.36, 0.80, 1) if self.state == 'down' else (0.20, 0.25, 0.33, 1)  # 🔥 CORREÇÃO
                         background_normal: ''
                         color: (1, 1, 1, 1)
@@ -168,6 +180,8 @@
                     ToggleButton:
                         text: '1 ano'
                         group: 'periodo'
+                        size_hint_y: None 
+                        height: dp(30)
                         background_color: (0.20, 0.36, 0.80, 1) if self.state == 'down' else (0.20, 0.25, 0.33, 1)  # 🔥 CORREÇÃO
                         background_normal: ''
                         color: (1, 1, 1, 1)
@@ -177,6 +191,8 @@
                     ToggleButton:
                         text: 'Todo'
                         group: 'periodo'
+                        size_hint_y: None 
+                        height: dp(30)
                         background_color: (0.20, 0.36, 0.80, 1) if self.state == 'down' else (0.20, 0.25, 0.33, 1)  # 🔥 CORREÇÃO
                         background_normal: ''
                         color: (1, 1, 1, 1)
@@ -218,6 +234,8 @@
                         text: '01/01/2024'
                         font_size: '12sp'
                         size_hint_x: 0.12
+                        size_hint_y: None 
+                        height: dp(35)
                         background_color: (0.20, 0.25, 0.33, 1)
                         foreground_color: 1, 1, 1, 1
                         cursor_color: 1, 1, 1, 1
@@ -240,6 +258,8 @@
                         text: '05/11/2025'
                         font_size: '12sp'
                         size_hint_x: 0.12
+                        size_hint_y: None 
+                        height: dp(35)
                         background_color: (0.20, 0.25, 0.33, 1)
                         foreground_color: 1, 1, 1, 1
                         cursor_color: 1, 1, 1, 1
@@ -251,6 +271,8 @@
                     Button:
                         text: 'Aplicar'
                         font_size: '12sp'
+                        size_hint_y: None 
+                        height: dp(35)
                         background_color: (0.18, 0.80, 0.44, 1)  # 🔥 VALOR FIXO
                         background_normal: ''
                         color: 1, 1, 1, 1
@@ -261,6 +283,8 @@
                         text: 'Exportar PDF'
                         font_size: '12sp'
                         bold: True
+                        size_hint_y: None 
+                        height: dp(35)
                         background_color: (0.95, 0.61, 0.07, 1)  # 🔥 VALOR FIXO
                         background_normal: ''
                         color: 1, 1, 1, 1
@@ -271,6 +295,8 @@
                         text: 'Carregar Extrato'
                         font_size: '12sp'
                         bold: True
+                        size_hint_y: None 
+                        height: dp(35)
                         background_color: (0.20, 0.36, 0.80, 1)  # 🔥 VALOR FIXO
                         background_normal: ''
                         color: 1, 1, 1, 1

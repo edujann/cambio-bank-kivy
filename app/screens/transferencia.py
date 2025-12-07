@@ -19,27 +19,41 @@ class TelaTransferencia(Screen):
         self._scroll_view = None  # 🔥 NOVA VARIÁVEL para referência da ScrollView
     
     def on_pre_enter(self):
-        """Chamado antes da tela ser mostrada"""
+        """Chamado antes da tela ser mostrada - VERSÃO OTIMIZADA"""
         from kivy.core.window import Window
-        Window.size = (550, 1000)
-        print(" Tela de transferência carregada")
-        print(f" DEBUG: beneficiario_preenchido = {self.beneficiario_preenchido}")
+        from kivy.metrics import dp
         
-        # 🔥 CORREÇÃO: Só carregar contas - NUNCA limpar aqui
+        # 🔥 TAMANHO FLEXÍVEL
+        largura = dp(550)  # Sua preferência
+        altura = dp(1000)  # Sua preferência
+        
+        print(f"📐 Tela Transferência: {largura/dp(1)}x{altura/dp(1)}")
+        
+        # 1. Define tamanho
+        Window.size = (largura, altura)
+        
+        # 2. Se altura não couber, reduz automaticamente
+        def ajustar_altura(dt):
+            if Window.height < dp(900):  # Se tela menor que 900dp
+                nova_altura = Window.height * 0.85  # 85% da tela
+                nova_largura = largura * (nova_altura / altura)
+                Window.size = (nova_largura, nova_altura)
+                print(f"📐 Ajustado para: {Window.size[0]/dp(1):.0f}x{Window.size[1]/dp(1):.0f}")
+        
+        from kivy.clock import Clock
+        Clock.schedule_once(ajustar_altura, 0.3)
+        
+        # 🔥 SEU CÓDIGO ORIGINAL (mantém)
+        print(" Tela de transferência carregada")
         self.carregar_contas_origem()
         self.carregar_beneficiarios()
         
-        # 🔥 CORREÇÃO: Só limpar se NÃO veio de beneficiário
         if not self.beneficiario_preenchido:
             self.limpar_formulario()
         else:
-            # Se veio de beneficiário, resetar a flag mas NÃO limpar
             self.beneficiario_preenchido = False
         
-        # 🔥 NOVO: SEMPRE limpar campo valor e invoice, independente de como chegou na tela
         self.limpar_campos_transitorios()
-        
-        # 🔥 NOVO: Rolar para o topo após um pequeno delay
         self.rolar_para_topo()
     
     def on_enter(self):

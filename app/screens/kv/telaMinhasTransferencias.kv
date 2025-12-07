@@ -12,7 +12,7 @@
                 pos: self.pos
                 size: self.size
 
-        # CABEÇALHO - 🔥 CORRIGIR CORES DOS LABELS
+        # CABEÇALHO
         BoxLayout:
             orientation: 'vertical'
             size_hint_y: None
@@ -38,7 +38,7 @@
                 text_size: self.width, None
                 halign: 'center'
 
-        # ÁREA DE FILTROS - CORES DINÂMICAS
+        # ÁREA DE FILTROS
         BoxLayout:
             orientation: 'vertical'
             size_hint_y: None
@@ -47,10 +47,10 @@
             canvas.before:
                 Color:
                     rgba: 0.20, 0.25, 0.33, 1
-                RoundedRectangle:  # 🔥 MUDANÇA: RoundedRectangle em vez de Rectangle
+                RoundedRectangle:
                     pos: self.pos
                     size: self.size
-                    radius: [dp(8)]  # 🔥 BORDAS ARREDONDADAS
+                    radius: [dp(8)]
 
             Label:
                 text: 'Filtrar por Status:'
@@ -71,6 +71,8 @@
                 Button:
                     id: btn_todas
                     text: 'Todas'
+                    size_hint_y: None           # 🔥 ADICIONADO
+                    height: dp(35)              # 🔥 ADICIONADO
                     background_color: 0.15, 0.35, 0.75, 1
                     color: 1, 1, 1, 1
                     on_press: root.atualizar_filtro('all')
@@ -79,6 +81,8 @@
                 Button:
                     id: btn_pendentes
                     text: 'Pendentes'
+                    size_hint_y: None           # 🔥 ADICIONADO
+                    height: dp(35)              # 🔥 ADICIONADO
                     background_color: 0.08, 0.15, 0.30, 1
                     color: 0.6, 0.6, 0.6, 1
                     on_press: root.atualizar_filtro('pending')
@@ -87,6 +91,8 @@
                 Button:
                     id: btn_processamento
                     text: 'Processando'
+                    size_hint_y: None           # 🔥 ADICIONADO
+                    height: dp(35)              # 🔥 ADICIONADO
                     background_color: 0.08, 0.15, 0.30, 1
                     color: 0.6, 0.6, 0.6, 1
                     on_press: root.atualizar_filtro('processing')
@@ -95,6 +101,8 @@
                 Button:
                     id: btn_concluidas
                     text: 'Concluídas'
+                    size_hint_y: None           # 🔥 ADICIONADO
+                    height: dp(35)              # 🔥 ADICIONADO
                     background_color: 0.08, 0.15, 0.30, 1
                     color: 0.6, 0.6, 0.6, 1
                     on_press: root.atualizar_filtro('completed')
@@ -103,6 +111,8 @@
                 Button:
                     id: btn_recusadas
                     text: 'Recusadas'
+                    size_hint_y: None           # 🔥 ADICIONADO
+                    height: dp(35)              # 🔥 ADICIONADO
                     background_color: 0.08, 0.15, 0.30, 1
                     color: 0.6, 0.6, 0.6, 1
                     on_press: root.atualizar_filtro('rejected')
@@ -125,7 +135,7 @@
                 spacing: dp(10)
                 padding: [dp(5), dp(5), dp(15), dp(5)]
 
-        # BOTÕES INFERIORES - CORES CONTROLADAS PELO PYTHON
+        # BOTÕES INFERIORES
         BoxLayout:
             size_hint_y: None
             height: dp(50)
@@ -136,6 +146,8 @@
                 text: 'Atualizar'
                 font_size: '14sp'
                 bold: True
+                size_hint_y: None           # 🔥 ADICIONADO
+                height: dp(45)              # 🔥 ADICIONADO
                 on_press: root.carregar_transferencias_rapido(root.filtro_status)
                 background_normal: ''
 
@@ -144,26 +156,28 @@
                 text: 'Voltar ao Dashboard'
                 font_size: '14sp'
                 bold: True
+                size_hint_y: None           # 🔥 ADICIONADO
+                height: dp(45)              # 🔥 ADICIONADO
                 on_press: root.voltar_dashboard()
                 background_normal: ''
 
 <TransferenciaCard>:
     orientation: 'vertical'
     size_hint_y: None
-    height: dp(250)  # 🔥 ALTURA ORIGINAL MANTIDA
+    height: dp(250)
     padding: [dp(8), dp(8)]
     spacing: dp(0)
     canvas.before:
         Color:
             rgba: 0.20, 0.25, 0.33, 1
-        RoundedRectangle:  # 🔥 MUDANÇA: RoundedRectangle em vez de Rectangle
+        RoundedRectangle:
             pos: self.pos
             size: self.size
-            radius: [dp(8)]  # 🔥 BORDAS ARREDONDADAS
+            radius: [dp(8)]
         Color:
             rgba: 0.55, 0.36, 0.96, 0.3
         Line:
-            rounded_rectangle: [self.x, self.y, self.width, self.height, dp(8)]  # 🔥 RAIO ATUALIZADO
+            rounded_rectangle: [self.x, self.y, self.width, self.height, dp(8)]
             width: dp(1)
 
     # HEADER - Faixa colorida
@@ -175,10 +189,10 @@
         canvas.before:
             Color:
                 rgba: root.cor_status
-            RoundedRectangle:  # 🔥 MUDANÇA: RoundedRectangle com cantos superiores arredondados
+            RoundedRectangle:
                 pos: self.pos
                 size: self.size
-                radius: [dp(8)]  # 🔥 BORDAS ARREDONDADAS APENAS NO TOPO
+                radius: [dp(8)]
         
         Label:
             id: lbl_status_transferencia
@@ -199,7 +213,7 @@
             halign: 'right'
             text_size: self.width, None
 
-    # LINHA DA INVOICE (FORA da faixa, SEM cor de fundo)
+    # LINHA DA INVOICE
     BoxLayout:
         id: linha_invoice_container
         orientation: 'horizontal'
@@ -220,7 +234,7 @@
                 pos: self.pos
                 size: self.size
 
-    # CONTEÚDO PRINCIPAL - 🔥 CORRIGIR CORES DOS LABELS
+    # CONTEÚDO PRINCIPAL
     GridLayout:
         cols: 2
         size_hint_y: None
@@ -413,7 +427,7 @@
                 pos: self.pos
                 size: self.size
 
-    # BOTÕES - CORES INICIAIS DEFINIDAS
+    # BOTÕES
     BoxLayout:
         size_hint_y: None
         height: dp(40)
@@ -424,6 +438,8 @@
             id: btn_detalhes_card
             text: 'DETALHES'
             size_hint_x: 0.33
+            size_hint_y: None           # 🔥 ADICIONADO
+            height: dp(35)              # 🔥 ADICIONADO
             background_color: 0.15, 0.35, 0.75, 1
             color: 1, 1, 1, 1
             background_normal: ''
@@ -434,13 +450,14 @@
             id: btn_visualizar_invoice_card
             text: 'VISUALIZAR\nINVOICE'
             size_hint_x: 0.34
+            size_hint_y: None           # 🔥 ADICIONADO
+            height: dp(35)              # 🔥 ADICIONADO
             background_color: 0.3, 0.3, 0.3, 1
             color: 1, 1, 1, 1
             background_normal: ''
             font_size: '10sp'
             disabled: True
             on_press: root.visualizar_invoice()
-            # 🔥 CENTRALIZAR TEXTO COM QUEBRA DE LINHA
             text_size: self.width, None
             halign: 'center'
             valign: 'middle'
@@ -449,12 +466,13 @@
             id: btn_pdf_card  
             text: 'GERAR\nCOMPROVANTE'
             size_hint_x: 0.33
+            size_hint_y: None           # 🔥 ADICIONADO
+            height: dp(35)              # 🔥 ADICIONADO
             background_color: 0.4, 0.25, 0.75, 1
             color: 1, 1, 1, 1
             background_normal: ''
             font_size: '10sp'
             on_press: root.gerar_pdf()
-            # 🔥 CENTRALIZAR TEXTO COM QUEBRA DE LINHA
             text_size: self.width, None
             halign: 'center'
             valign: 'middle'

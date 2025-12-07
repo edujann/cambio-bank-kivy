@@ -14,19 +14,60 @@ class TelaDashboard(Screen):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-    
+        
     def on_pre_enter(self):
-        """Chamado ANTES da tela ser mostrada - ajusta tamanho"""
+        """Chamado ANTES da tela ser mostrada - VERSÃO SIMPLIFICADA E CONFIÁVEL"""
+        from kivy.core.window import Window
+        from kivy.metrics import dp
         from kivy.clock import Clock
         
-        # 🔥 Tamanho do DASHBOARD: 1000x965
-        Window.size = (1000, 965)
+        print("🎯 ======== DASHBOARD - TAMANHO FIXO ========")
         
-        print(f"Dashboard: Tamanho ajustado para {Window.size}")
+        # 🔥 SOLUÇÃO DEFINITIVA: Ignora detecção, usa tamanho FIXO no SEU monitor
+        # Mas mantém capacidade de reduzir se necessário
         
-        # 🔥 REPOSICIONAR com pequeno delay para garantir
-        Clock.schedule_once(lambda dt: self.posicionar_janela(), 0.1)
+        # 1. PRIMEIRO: Sempre define o tamanho PADRÃO (1000x965)
+        Window.size = (dp(1000), dp(965))
+        print(f"📐 Tamanho padrão definido: 1000x965 dp")
         
+        # 2. DEPOIS: Verifica se precisa ajustar (mas sem reduzir no SEU monitor)
+        # Obter tamanho REAL da tela (pode não estar disponível imediatamente)
+        try:
+            # Espera um pouco para o Kivy detectar a tela
+            from kivy.clock import Clock
+            
+            def ajustar_se_necessario(dt):
+                """Ajusta tamanho apenas se realmente não couber"""
+                altura_disponivel = Window.height
+                
+                print(f"📏 Altura disponível após carregamento: {altura_disponivel:.0f} dp")
+                
+                # 🔥 CRITÉRIO MAIS PERMISSIVO: Só reduz se for MUITO menor
+                if altura_disponivel < dp(800):  # Apenas se for MENOR que 800dp
+                    print(f"⚠️  Tela muito pequena ({altura_disponivel:.0f}dp) - Ajustando...")
+                    # Reduz PROPORCIONALMENTE, mas mantém aspecto
+                    nova_altura = altura_disponivel * 0.85  # 85% da tela
+                    nova_largura = dp(1000) * (nova_altura / dp(965))  # Mantém proporção
+                    
+                    # Limites mínimos
+                    nova_largura = max(dp(800), nova_largura)
+                    nova_altura = max(dp(650), nova_altura)
+                    
+                    Window.size = (nova_largura, nova_altura)
+                    print(f"📐 Ajustado para: {Window.size[0]:.0f}x{Window.size[1]:.0f}")
+                else:
+                    print(f"✅ Tela grande o suficiente - Mantendo 1000x965")
+                    
+            # Agenda o ajuste com pequeno delay
+            Clock.schedule_once(ajustar_se_necessario, 0.3)
+            
+        except Exception as e:
+            print(f"ℹ️ Não foi possível verificar ajuste: {e}")
+            # Mantém o tamanho padrão
+        
+        print("🎯 ===========================================")
+        
+        # 🔥 SEU CÓDIGO ORIGINAL (mantém TUDO igual):
         sistema = App.get_running_app().sistema
         usuario = sistema.usuario_logado
         
@@ -38,7 +79,7 @@ class TelaDashboard(Screen):
             nome = usuario_data.get('nome', sistema.usuario_logado)
             tipo = usuario_data.get('tipo', 'cliente')
 
-            print(f"Dashboard carregado para: {nome} ({tipo})")
+            print(f"🏠 Dashboard carregado para: {nome} ({tipo})")
             
             # 🔥 CONFIGURAR HEADER DINAMICAMENTE
             self.configurar_header_dinamico()
@@ -46,6 +87,9 @@ class TelaDashboard(Screen):
             # Carregar conteúdo
             self.carregar_saldos()
             self.criar_botoes_menu()
+        
+        # 🔥 SEU REPOSICIONAMENTO (mantém igual)
+        Clock.schedule_once(lambda dt: self.posicionar_janela(), 0.1)
 
     def configurar_header_dinamico(self):
         app = App.get_running_app()
@@ -94,7 +138,17 @@ class TelaDashboard(Screen):
             
             window_width, window_height = Window.size
             
-            # 🔥 AJUSTE ESTES VALORES CONFORME SUA PREFERÊNCIA:
+            # 🔥🔥🔥 ADICIONE APENAS ESTA VERIFICAÇÃO:
+            # Se a janela for maior que a tela, reduz um pouco
+            if window_width > screen_width:
+                print(f"⚠️  Janela muito larga! Reduzindo para 90% da tela...")
+                window_width = screen_width * 0.9  # 90% da largura da tela
+                # Mantém proporção da altura
+                window_height = window_height * (window_width / Window.width)
+                Window.size = (window_width, window_height)
+                print(f"📐 Nova janela: {window_width:.0f}x{window_height:.0f}")
+            
+            # 🔥 SEUS VALORES PREFERIDOS (não mude):
             offset_x = 45  # 🔥 AUMENTE para mais direita, DIMINUA para mais esquerda
             offset_y = 20   # 🔥 AUMENTE para mais baixo, DIMINUA para mais alto
             
@@ -131,11 +185,6 @@ class TelaDashboard(Screen):
         # 🔥 AGORA SIM ATUALIZAR TOTAIS (DEPOIS de carregar as contas)
         self.atualizar_totais_dashboard()
         
-        # 🔥 COMENTE ESTAS LINHAS TEMPORARIAMENTE:
-        # 🔥 DEBUG: Verificar contas do usuário logado (TEMPORÁRIO)
-        # if sistema.usuario_logado == 'londrina':
-        #     sistema.debug_contas_londrina()
-        
         # 🔥 TESTAR SISTEMA DE CÂMBIO (APENAS CLIENTES)
         if sistema.usuario_logado and tipo_usuario == 'cliente':
             sistema.testar_sistema_cambio()
@@ -147,6 +196,10 @@ class TelaDashboard(Screen):
             # Carregar conteúdo
             self.carregar_saldos()
             self.criar_botoes_menu()
+        
+        # 🔥🔥🔥 ADICIONE ESTA ÚNICA LINHA NO FINAL:
+        from kivy.clock import Clock
+        Clock.schedule_once(lambda dt: self.posicionar_janela(), 0.3)
 
     def sair(self):
         """Voltar para tela de login"""

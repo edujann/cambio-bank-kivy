@@ -518,33 +518,133 @@ class TelaMeuExtrato(Screen):
             return False
 
     def on_pre_enter(self):
-        """Chamado antes da tela ser mostrada"""
+        """Chamado antes da tela ser mostrada - VERSÃO SIMPLES E EFICAZ"""
         from kivy.core.window import Window
-        Window.size = (1400, 1000)
-        
-        # 🔥 AGENDAR POSICIONAMENTO
+        from kivy.metrics import dp
         from kivy.clock import Clock
+        
+        print("🎯 ======== TELA MEU EXTRATO ========")
+        
+        # 🔥 1. SEMPRE define 1400x1000 primeiro (SEU tamanho preferido)
+        Window.size = (dp(1400), dp(1000))
+        print(f"📐 Extrato configurado: 1400x1000 dp")
+        
+        # 🔥 2. SÓ ajusta DEPOIS se realmente não couber
+        def ajustar_se_necessario(dt):
+            altura_disponivel = Window.height
+            largura_disponivel = Window.width
+            
+            print(f"📏 Tela disponível: {largura_disponivel:.0f}x{altura_disponivel:.0f}")
+            
+            # 🔥 CRITÉRIO MUITO PERMISSIVO:
+            # Só ajusta se a tela for MUITO menor que o extrato
+            precisa_ajustar = False
+            
+            # Se a LARGURA da tela é menor que a do extrato
+            if largura_disponivel < dp(1300):  # 🔥 1300 é menor que 1400
+                print(f"⚠️  Tela estreita! ({largura_disponivel:.0f} < 1300)")
+                precisa_ajustar = True
+            
+            # Se a ALTURA da tela é menor que 850dp (deixa 150dp de margem)
+            if altura_disponivel < dp(850):
+                print(f"⚠️  Tela baixa! ({altura_disponivel:.0f} < 850)")
+                precisa_ajustar = True
+            
+            if precisa_ajustar:
+                print("🔧 Ajustando extrato para caber na tela...")
+                
+                # Reduz proporcionalmente (90% do menor fator)
+                fator_largura = largura_disponivel / dp(1400)
+                fator_altura = altura_disponivel / dp(1000)
+                fator = min(fator_largura, fator_altura) * 0.9
+                
+                nova_largura = dp(1400) * fator
+                nova_altura = dp(1000) * fator
+                
+                # Garante tamanhos mínimos
+                nova_largura = max(dp(1000), nova_largura)  # Mínimo 1000px
+                nova_altura = max(dp(700), nova_altura)     # Mínimo 700px
+                
+                Window.size = (nova_largura, nova_altura)
+                print(f"📐 Extrato ajustado: {Window.size[0]:.0f}x{Window.size[1]:.0f}")
+            else:
+                print(f"✅ Tela grande o suficiente - Mantendo 1400x1000")
+        
+        # Agenda o ajuste com 0.3 segundos de delay
+        Clock.schedule_once(ajustar_se_necessario, 0.3)
+        
+        print("🎯 ==================================")
+        
+        # 🔥 3. SEU CÓDIGO ORIGINAL (mantém TUDO igual):
+        # 🔥 AGENDAR POSICIONAMENTO
         Clock.schedule_once(self._reposicionar_janela, 0.1)
         
+        # 🔥 CARREGAR DADOS
         self.carregar_dados_iniciais()
     
     def _reposicionar_janela(self, dt):
-        """Reposiciona a janela após um pequeno delay"""
+        """Reposiciona a janela de forma INTELIGENTE - VERSÃO CORRIGIDA"""
         from kivy.core.window import Window
-        Window.left = 300
-        Window.top = 70
-        print("✅ Janela de extrato reposicionada para esquerda")
+        
+        largura_janela = Window.width
+        
+        # 🔥 CRITÉRIO CORRETO: Se a janela ORIGINAL era 1400px (sua preferência)
+        # Mas agora pode estar menor devido ao ajuste
+        sistema = App.get_running_app().sistema
+        
+        try:
+            # Obter tamanho da tela do sistema
+            import ctypes
+            user32 = ctypes.windll.user32
+            screen_width = user32.GetSystemMetrics(0)
+            
+            # 🔥 REGRA MAIS INTELIGENTE:
+            # Se a tela do sistema é larga (>1500px) E a janela é grande (>1200px)
+            if screen_width >= 1500 and largura_janela >= 1200:
+                # POSIÇÃO PERSONALIZADA (sua preferência)
+                Window.left = 300
+                Window.top = 70
+                print(f"✅ Janela posicionada: left=300, top=70 (Monitor grande)")
+                
+            else:
+                # PARA TELAS MENORES: CENTRALIZA
+                screen_height = user32.GetSystemMetrics(1)
+                
+                # Calcular posição central
+                left = (screen_width - largura_janela) // 2
+                top = (screen_height - largura_janela) // 2
+                
+                # Ajustar para não ficar muito em cima
+                top = max(50, top - 50)
+                
+                Window.left = left
+                Window.top = top
+                
+                print(f"✅ Janela CENTRALIZADA: left={left}, top={top}")
+                
+        except Exception as e:
+            # Fallback: centralização simples
+            print(f"⚠️ Centralização automática não disponível: {e}")
+            Window.center()
+            print("✅ Janela centralizada automaticamente")
     
     def on_enter(self):
-        """Chamado quando a tela é carregada - AGORA CARREGA EXTRATO AUTOMATICAMENTE"""
+        """Chamado quando a tela é carregada - COM PROTEÇÃO"""
         from kivy.core.window import Window
         from kivy.clock import Clock
         
         print("📊 Tela Meu Extrato carregada")
         
-        # 🔥 GARANTIR POSIÇÃO NOVAMENTE
-        Window.left = 300
-        Window.top = 70
+        # 🔥 PROTEÇÃO EXTRA: Se por algum motivo a janela ficou muito pequena
+        if Window.width < dp(1000) or Window.height < dp(700):
+            print(f"⚠️  Janela muito pequena detectada! Restaurando tamanho mínimo...")
+            Window.size = (dp(1200), dp(800))
+            # Reposicionar novamente
+            Clock.schedule_once(self._reposicionar_janela, 0.2)
+        
+        # 🔥 REMOVER posicionamento fixo aqui!
+        # NÃO fazer: Window.left = 300, Window.top = 70
+        # Em vez disso, confiar no _reposicionar_janela que já foi chamado
         
         # 🔥 PRIMEIRO GARANTIR QUE OS DADOS INICIAIS ESTÃO CARREGADOS
         self.carregar_dados_iniciais()

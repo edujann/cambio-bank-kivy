@@ -21,33 +21,6 @@
         "codigo_verificacao": null,
         "cambio_liberado": false
     },
-    "titan": {
-        "id": "021b82f7-daf6-42ac-8948-004ec6ae324b",
-        "username": "titan",
-        "senha_hash": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
-        "nome": "TITAN LIMITED",
-        "email": "titan@mail.com",
-        "documento_hash": "1ad1ee666c3c9fc91864f7abb23c8536f92a4780dc5d5586da9dcd8f141893bf",
-        "telefone": "",
-        "endereco": null,
-        "cidade": null,
-        "cep": null,
-        "estado": null,
-        "pais": null,
-        "tipo": "cliente",
-        "data_cadastro": "2025-11-03T00:00:00",
-        "created_at": "2025-11-20T14:03:57.861576",
-        "contas": [
-            "664011205",
-            "960532724",
-            "364559635",
-            "900519236"
-        ],
-        "status": "pendente",
-        "verificado": false,
-        "codigo_verificacao": null,
-        "cambio_liberado": false
-    },
     "excluido_20251206_143857_google": {
         "id": "bd9571c6-817e-4df0-bc37-ab31f0c39c0c",
         "username": "excluido_20251206_143857_google",
@@ -91,6 +64,33 @@
             "860559342",
             "501703684",
             "202973672"
+        ],
+        "status": "pendente",
+        "verificado": false,
+        "codigo_verificacao": null,
+        "cambio_liberado": false
+    },
+    "titan": {
+        "id": "021b82f7-daf6-42ac-8948-004ec6ae324b",
+        "username": "titan",
+        "senha_hash": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
+        "nome": "TITAN LIMITED",
+        "email": "titan@mail.com",
+        "documento_hash": "1ad1ee666c3c9fc91864f7abb23c8536f92a4780dc5d5586da9dcd8f141893bf",
+        "telefone": "",
+        "endereco": null,
+        "cidade": null,
+        "cep": null,
+        "estado": null,
+        "pais": null,
+        "tipo": "cliente",
+        "data_cadastro": "2025-11-03T00:00:00",
+        "created_at": "2025-11-20T14:03:57.861576",
+        "contas": [
+            "664011205",
+            "364559635",
+            "900519236",
+            "960532724"
         ],
         "status": "pendente",
         "verificado": false,
