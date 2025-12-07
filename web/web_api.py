@@ -28,7 +28,7 @@ try:
     print(f"DEBUG: Key (início): {supabase_key[:30] if supabase_key else 'None'}...")
     
     if supabase_url and supabase_key:
-        supabase = create_client(supabase_url, supabase_key)
+        supabase = create_client(supabase_url, supabase_key, options={})
         print("✅ Conectado ao Supabase!")
         print(f"DEBUG: Conexão bem-sucedida!")
     else:
