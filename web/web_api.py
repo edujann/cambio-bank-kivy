@@ -139,13 +139,7 @@ def test_supabase():
 
 @app.route('/api/login', methods=['POST'])
 def login():
-    """Autentica um usuário"""
-    if supabase is None:
-        return jsonify({
-            "success": False,
-            "message": "Sistema indisponível"
-        }), 500
-    
+    """Autentica um usuário (versão MOCK para teste)"""
     try:
         dados = request.json
         
@@ -164,39 +158,28 @@ def login():
                 "message": "Usuário e senha são obrigatórios"
             }), 400
         
-        # 🔐 Calcula o hash SHA-256 da senha fornecida
-        senha_hash = hashlib.sha256(senha.encode()).hexdigest()
-        
-        # 🔍 Busca o usuário no Supabase
-        response = supabase.table('usuarios')\
-            .select('*')\
-            .eq('username', usuario)\
-            .eq('senha_hash', senha_hash)\
-            .execute()
-        
-        if not response.data or len(response.data) == 0:
+        # ✅ MOCK: Aceita QUALQUER login com senha "123"
+        if senha == "123":
+            return jsonify({
+                "success": True,
+                "message": "Login realizado com sucesso",
+                "usuario": {
+                    "username": usuario,
+                    "nome": usuario.capitalize(),
+                    "email": f"{usuario}@exemplo.com",
+                    "saldo": 48750.00
+                }
+            })
+        else:
             return jsonify({
                 "success": False,
-                "message": "Usuário ou senha inválidos"
+                "message": "Senha incorreta (use '123' para teste)"
             }), 401
-        
-        usuario_data = response.data[0]
-        
-        # 🚫 Remove a senha da resposta por segurança
-        if 'senha_hash' in usuario_data:
-            del usuario_data['senha_hash']
-        
-        return jsonify({
-            "success": True,
-            "message": "Login realizado com sucesso",
-            "usuario": usuario_data
-        })
-        
+            
     except Exception as e:
         return jsonify({
             "success": False,
-            "message": "Erro ao processar login",
-            "error": str(e)
+            "message": f"Erro: {str(e)}"
         }), 500
 
 # ============================================
