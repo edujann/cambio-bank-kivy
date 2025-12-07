@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏦 Cambio Bank - Login</title>
+    <link rel="stylesheet" href="/static/css/login.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <!-- Logo -->
+            <div class="logo">
+                <i class="fas fa-university"></i>
+                <h1>Cambio Bank</h1>
+                <p class="tagline">Sistema de Câmbio Internacional</p>
+            </div>
+
+            <!-- Formulário de Login -->
+            <form id="loginForm" class="login-form">
+                <div class="input-group">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="username" placeholder="Usuário" required>
+                </div>
+                
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="password" placeholder="Senha" required>
+                </div>
+
+                <button type="submit" class="btn-login" id="btnLogin">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Entrar</span>
+                </button>
+
+                <div class="form-footer">
+                    <a href="#" class="forgot-link">Esqueceu a senha?</a>
+                    <div class="status" id="statusMessage"></div>
+                </div>
+            </form>
+
+            <!-- Informações do sistema -->
+            <div class="system-info">
+                <p><i class="fas fa-shield-alt"></i> Sistema 100% seguro</p>
+                <p><i class="fas fa-sync-alt"></i> Dados em tempo real</p>
+                <p><i class="fas fa-globe"></i> Transferências internacionais</p>
+            </div>
+        </div>
+
+        <!-- Rodapé -->
+        <footer class="login-footer">
+            <p>© 2024 Cambio Bank • v2.1.0 • <span id="apiStatus">Conectando...</span></p>
+        </footer>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const loginForm = document.getElementById('loginForm');
+        const statusMessage = document.getElementById('statusMessage');
+        const btnLogin = document.getElementById('btnLogin');
+        
+        // Verifica status da API
+        async function verificarAPI() {
+            try {
+                const response = await fetch('/api/status');
+                const apiStatus = document.getElementById('apiStatus');
+                
+                if (response.ok) {
+                    apiStatus.textContent = '● Online';
+                    apiStatus.className = 'online';
+                } else {
+                    apiStatus.textContent = '● Offline';
+                    apiStatus.className = 'offline';
+                }
+            } catch (error) {
+                document.getElementById('apiStatus').textContent = '● Offline';
+                document.getElementById('apiStatus').className = 'offline';
+            }
+        }
+        
+        // Envia login
+        loginForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // Validação básica
+            if (!username || !password) {
+                mostrarStatus('Preencha todos os campos', 'error');
+                return;
+            }
+            
+            // Mostra loading
+            btnLogin.disabled = true;
+            btnLogin.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Entrando...</span>';
+            mostrarStatus('Verificando credenciais...', 'loading');
+            
+            try {
+                // Envia para API
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario: username,
+                        senha: password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    mostrarStatus('Login realizado com sucesso!', 'success');
+                    
+                    // Redireciona para dashboard com usuário
+                    setTimeout(() => {
+                        window.location.href = `/dashboard?usuario=${encodeURIComponent(username)}`;
+                    }, 1000);
+                    
+                } else {
+                    mostrarStatus(data.message || 'Usuário ou senha inválidos', 'error');
+                    btnLogin.disabled = false;
+                    btnLogin.innerHTML = '<i class="fas fa-sign-in-alt"></i><span>Entrar</span>';
+                }
+                
+            } catch (error) {
+                mostrarStatus('Erro de conexão com o servidor', 'error');
+                btnLogin.disabled = false;
+                btnLogin.innerHTML = '<i class="fas fa-sign-in-alt"></i><span>Entrar</span>';
+            }
+        });
+        
+        function mostrarStatus(mensagem, tipo) {
+            statusMessage.textContent = mensagem;
+            statusMessage.className = 'status ' + tipo;
+        }
+        
+        // Verifica API ao carregar
+        verificarAPI();
+        setInterval(verificarAPI, 30000); // Verifica a cada 30 segundos
+    });
+    </script>
+
+</body>
+</html>

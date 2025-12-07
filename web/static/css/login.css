@@ -1,0 +1,536 @@
+/* ============================================
+   VARIÁVEIS E RESET
+   ============================================ */
+:root {
+    /* Cores do sistema (igual ao seu Kivy) */
+    --cor-fundo: #0a0e15;
+    --cor-card: #0d1117;
+    --cor-borda: #1e232e;
+    --cor-texto: #e0e0e0;
+    --cor-texto-secundario: #8b949e;
+    
+    /* Cores de destaque */
+    --cor-primaria: #1a5fb4;
+    --cor-sucesso: #2ec27e;
+    --cor-alerta: #f39c12;
+    --cor-perigo: #e01b24;
+    
+    /* Sombras */
+    --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.3);
+    --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.4);
+    --sombra-forte: 0 12px 24px rgba(0, 0, 0, 0.5);
+    
+    /* Bordas */
+    --borda-radius: 16px;
+    --borda-radius-pequeno: 8px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #0a0e15 0%, #0d1117 100%);
+    color: var(--cor-texto);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* ============================================
+   CONTAINER PRINCIPAL
+   ============================================ */
+.login-container {
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+}
+
+/* ============================================
+   CARD DE LOGIN
+   ============================================ */
+.login-card {
+    background: var(--cor-card);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--borda-radius);
+    padding: 40px;
+    box-shadow: var(--sombra-forte);
+    margin-bottom: 30px;
+    position: relative;
+    overflow: hidden;
+}
+
+.login-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--cor-primaria), var(--cor-sucesso));
+}
+
+/* ============================================
+   LOGO
+   ============================================ */
+.logo {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.logo i {
+    font-size: 48px;
+    color: var(--cor-primaria);
+    margin-bottom: 15px;
+    display: block;
+}
+
+.logo h1 {
+    font-size: 32px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.tagline {
+    color: var(--cor-texto-secundario);
+    font-size: 14px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* ============================================
+   FORMULÁRIO
+   ============================================ */
+.login-form {
+    margin-bottom: 30px;
+}
+
+.input-group {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.input-group i {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--cor-texto-secundario);
+    font-size: 18px;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 16px 16px 16px 48px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--borda-radius-pequeno);
+    color: var(--cor-texto);
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: var(--cor-primaria);
+    background: rgba(26, 95, 180, 0.05);
+    box-shadow: 0 0 0 3px rgba(26, 95, 180, 0.1);
+}
+
+.input-group input::placeholder {
+    color: var(--cor-texto-secundario);
+}
+
+/* ============================================
+   BOTÃO DE LOGIN
+   ============================================ */
+.btn-login {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(90deg, var(--cor-primaria), #1c71d8);
+    color: white;
+    border: none;
+    border-radius: var(--borda-radius-pequeno);
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+}
+
+.btn-login:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(26, 95, 180, 0.3);
+}
+
+.btn-login:active {
+    transform: translateY(0);
+}
+
+.btn-login:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ============================================
+   RODAPÉ DO FORM
+   ============================================ */
+.form-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--cor-borda);
+}
+
+.forgot-link {
+    color: var(--cor-primaria);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s ease;
+}
+
+.forgot-link:hover {
+    color: #2d8fff;
+    text-decoration: underline;
+}
+
+.status {
+    font-size: 14px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+}
+
+.status.success {
+    color: var(--cor-sucesso);
+    background: rgba(46, 194, 126, 0.1);
+}
+
+.status.error {
+    color: var(--cor-perigo);
+    background: rgba(224, 27, 36, 0.1);
+}
+
+.status.loading {
+    color: var(--cor-alerta);
+    background: rgba(243, 156, 18, 0.1);
+}
+
+/* ============================================
+   INFORMAÇÕES DO SISTEMA
+   ============================================ */
+.system-info {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--borda-radius-pequeno);
+    padding: 20px;
+    margin-top: 30px;
+}
+
+.system-info p {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    color: var(--cor-texto-secundario);
+    font-size: 14px;
+}
+
+.system-info p:last-child {
+    margin-bottom: 0;
+}
+
+.system-info i {
+    color: var(--cor-primaria);
+    width: 20px;
+}
+
+/* ============================================
+   RODAPÉ DA PÁGINA
+   ============================================ */
+.login-footer {
+    text-align: center;
+    color: var(--cor-texto-secundario);
+    font-size: 14px;
+    padding: 20px;
+}
+
+.login-footer p {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+#apiStatus {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#apiStatus::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--cor-texto-secundario);
+    display: inline-block;
+}
+
+#apiStatus.online::before {
+    background: var(--cor-sucesso);
+}
+
+#apiStatus.offline::before {
+    background: var(--cor-perigo);
+}
+
+/* ============================================
+   ANIMAÇÕES
+   ============================================ */
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
+.loading {
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.login-card {
+    animation: slideIn 0.6s ease-out;
+}
+
+/* ============================================
+   RESPONSIVIDADE
+   ============================================ */
+@media (max-width: 480px) {
+    .login-container {
+        padding: 10px;
+    }
+    
+    .login-card {
+        padding: 30px 20px;
+    }
+    
+    .logo h1 {
+        font-size: 28px;
+    }
+    
+    .input-group input {
+        padding: 14px 14px 14px 44px;
+    }
+    
+    .btn-login {
+        padding: 16px;
+    }
+    
+    .form-footer {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+}
+
+/* ============================================
+   NOVO: SALDOS POR MOEDA (4 CARDS)
+   ============================================ */
+.saldos-moedas-section {
+    margin-bottom: 40px;
+}
+
+.saldos-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.saldo-moeda-card {
+    background: var(--cor-card);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--borda-radius);
+    padding: 25px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.saldo-moeda-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--cor-primaria);
+    box-shadow: var(--sombra-media);
+}
+
+.saldo-moeda-card[data-moeda="USD"] {
+    border-top: 4px solid #1a5fb4;
+}
+
+.saldo-moeda-card[data-moeda="EUR"] {
+    border-top: 4px solid #1c71d8;
+}
+
+.saldo-moeda-card[data-moeda="GBP"] {
+    border-top: 4px solid #c64600;
+}
+
+.saldo-moeda-card[data-moeda="BRL"] {
+    border-top: 4px solid #2ec27e;
+}
+
+.moeda-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.moeda-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.saldo-moeda-card[data-moeda="USD"] .moeda-icon {
+    background: rgba(26, 95, 180, 0.15);
+    color: #1a5fb4;
+    border: 1px solid rgba(26, 95, 180, 0.3);
+}
+
+.saldo-moeda-card[data-moeda="EUR"] .moeda-icon {
+    background: rgba(28, 113, 216, 0.15);
+    color: #1c71d8;
+    border: 1px solid rgba(28, 113, 216, 0.3);
+}
+
+.saldo-moeda-card[data-moeda="GBP"] .moeda-icon {
+    background: rgba(198, 70, 0, 0.15);
+    color: #c64600;
+    border: 1px solid rgba(198, 70, 0, 0.3);
+}
+
+.saldo-moeda-card[data-moeda="BRL"] .moeda-icon {
+    background: rgba(46, 194, 126, 0.15);
+    color: #2ec27e;
+    border: 1px solid rgba(46, 194, 126, 0.3);
+}
+
+.moeda-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.moeda-nome {
+    font-size: 14px;
+    color: var(--cor-texto-secundario);
+}
+
+.moeda-codigo {
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--cor-texto);
+}
+
+.moeda-valor {
+    font-size: 32px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.moeda-conta {
+    font-size: 13px;
+    color: var(--cor-texto-secundario);
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* SALDO TOTAL RESUMO */
+.saldo-total-resumo {
+    background: linear-gradient(135deg, rgba(26, 95, 180, 0.1) 0%, rgba(46, 194, 126, 0.1) 100%);
+    border: 1px solid rgba(26, 95, 180, 0.2);
+    border-radius: var(--borda-radius);
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.saldo-total-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--cor-texto-secundario);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.saldo-total-label i {
+    color: var(--cor-sucesso);
+}
+
+.saldo-total-valor {
+    font-size: 28px;
+    font-weight: bold;
+    color: var(--cor-texto);
+}
+
+/* RESPONSIVIDADE */
+@media (max-width: 1200px) {
+    .saldos-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .saldos-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .moeda-valor {
+        font-size: 28px;
+    }
+}
