@@ -23,14 +23,23 @@ try:
     supabase_url = os.getenv('SUPABASE_URL')
     supabase_key = os.getenv('SUPABASE_KEY')
     
+    print(f"DEBUG: Tentando conectar ao Supabase...")
+    print(f"DEBUG: URL: {supabase_url}")
+    print(f"DEBUG: Key (início): {supabase_key[:30] if supabase_key else 'None'}...")
+    
     if supabase_url and supabase_key:
         supabase = create_client(supabase_url, supabase_key)
         print("✅ Conectado ao Supabase!")
+        print(f"DEBUG: Conexão bem-sucedida!")
     else:
-        print("⚠️  Variáveis do Supabase não encontradas no .env")
+        print("⚠️  Variáveis do Supabase não encontradas")
+        print(f"DEBUG: URL existe: {bool(supabase_url)}")
+        print(f"DEBUG: Key existe: {bool(supabase_key)}")
         supabase = None
 except Exception as e:
     print(f"❌ Erro ao conectar ao Supabase: {e}")
+    import traceback
+    traceback.print_exc()  # ← MOSTRA O ERRO COMPLETO
     supabase = None
 
 # Cria app Flask
