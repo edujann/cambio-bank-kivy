@@ -115,7 +115,9 @@ function mostrarNotificacao(titulo, mensagem, tipo = 'info', duracao = 5000) {
 
 function atualizarTempoAtualizacao() {
     const agora = new Date();
-    lastUpdate.textContent = `Atualizado ${agora.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}`;
+    if (lastUpdate) {
+        lastUpdate.textContent = `Atualizado ${agora.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}`;
+    }
 }
 
 // ============================================
@@ -173,8 +175,8 @@ async function carregarDashboard() {
             // Esconde loading e mostra dashboard
             setTimeout(() => {
                 console.log('🔍 DEBUG [14]: Timeout executado - Mostrando dashboard');
-                loading.style.display = 'none';
-                dashboardContainer.style.display = 'block';
+                if (loading) loading.style.display = 'none';
+                if (dashboardContainer) dashboardContainer.style.display = 'block';
                 
                 // 🔥 NOVO: Configura event listeners AGORA que o DOM está visível
                 configurarEventListeners();
