@@ -516,6 +516,127 @@ def tela_transferencia():
     """Renderiza a tela de transferência internacional"""
     return render_template('transferencia.html')
 
+# ============================================================================
+# APIs PARA TRANSFERÊNCIA (MOCK - DEPOIS SUBSTITUI POR SUPABASE)
+# ============================================================================
+
+@app.route('/api/user')
+def get_user_info():
+    """Retorna informações do usuário logado"""
+    return jsonify({
+        "success": True,
+        "user": {
+            "username": "cliente_exemplo",
+            "nome": "João da Silva",
+            "email": "joao@email.com",
+            "tipo": "cliente"
+        }
+    })
+
+@app.route('/api/user/contas')
+def get_user_contas():
+    """Retorna contas do usuário"""
+    return jsonify({
+        "success": True,
+        "contas": [
+            {
+                "numero": "001234-5",
+                "moeda": "USD",
+                "saldo": 48750.00,
+                "tipo": "corrente",
+                "descricao": "Conta Corrente USD"
+            },
+            {
+                "numero": "001235-6",
+                "moeda": "EUR",
+                "saldo": 32500.00,
+                "tipo": "corrente",
+                "descricao": "Conta Corrente EUR"
+            },
+            {
+                "numero": "001236-7",
+                "moeda": "GBP",
+                "saldo": 28000.00,
+                "tipo": "corrente",
+                "descricao": "Conta Corrente GBP"
+            }
+        ]
+    })
+
+@app.route('/api/beneficiarios')
+def get_beneficiarios():
+    """Retorna beneficiários salvos do usuário"""
+    return jsonify({
+        "success": True,
+        "beneficiarios": [
+            {
+                "id": "1",
+                "nome": "Microsoft Corporation",
+                "endereco": "One Microsoft Way, Redmond",
+                "cidade": "Redmond",
+                "pais": "Estados Unidos",
+                "banco": "JPMorgan Chase Bank",
+                "swift": "CHASUS33XXX",
+                "iban": "US12345678901234567890"
+            },
+            {
+                "id": "2",
+                "nome": "Amazon Web Services",
+                "endereco": "410 Terry Ave N, Seattle",
+                "cidade": "Seattle",
+                "pais": "Estados Unidos",
+                "banco": "Bank of America",
+                "swift": "BOFAUS3NXXX",
+                "iban": "US09876543210987654321"
+            }
+        ]
+    })
+
+@app.route('/api/beneficiarios/<benef_id>')
+def get_beneficiario(benef_id):
+    """Retorna um beneficiário específico"""
+    beneficiarios = {
+        "1": {
+            "id": "1",
+            "nome": "Microsoft Corporation",
+            "endereco": "One Microsoft Way, Redmond",
+            "cidade": "Redmond",
+            "pais": "Estados Unidos",
+            "banco": "JPMorgan Chase Bank",
+            "endereco_banco": "383 Madison Avenue, New York",
+            "cidade_banco": "New York",
+            "pais_banco": "Estados Unidos",
+            "swift": "CHASUS33XXX",
+            "iban": "US12345678901234567890",
+            "aba": "021000021"
+        },
+        "2": {
+            "id": "2",
+            "nome": "Amazon Web Services",
+            "endereco": "410 Terry Ave N, Seattle",
+            "cidade": "Seattle",
+            "pais": "Estados Unidos",
+            "banco": "Bank of America",
+            "endereco_banco": "100 North Tryon Street, Charlotte",
+            "cidade_banco": "Charlotte",
+            "pais_banco": "Estados Unidos",
+            "swift": "BOFAUS3NXXX",
+            "iban": "US09876543210987654321",
+            "aba": "026009593"
+        }
+    }
+    
+    if benef_id in beneficiarios:
+        return jsonify({
+            "success": True,
+            "beneficiario": beneficiarios[benef_id]
+        })
+    
+    return jsonify({
+        "success": False,
+        "message": "Beneficiário não encontrado"
+    }), 404
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
