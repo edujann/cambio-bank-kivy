@@ -340,19 +340,26 @@ def dashboard_data(username):
 def get_dashboard_saldos():
     """Retorna saldos REAIS para o dashboard"""
     try:
-        usuario_atual = 'pantanal'  # TODO: Autenticação
+        # ✅ Pega usuário da SESSÃO (correto!)
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({
+                "success": False,
+                "message": "Usuário não autenticado"
+            }), 401
         
         # Buscar contas do usuário
         contas_response = supabase.table('contas')\
             .select('moeda, saldo, cliente_nome')\
-            .eq('cliente_username', usuario_atual)\
+            .eq('cliente_username', usuario)\
             .eq('ativa', True)\
             .execute()
         
         # Buscar últimas transferências
         transferencias_response = supabase.table('transferencias')\
             .select('id, tipo, data, valor, moeda, status, descricao, beneficiario')\
-            .eq('usuario', usuario_atual)\
+            .eq('usuario', usuario)\
             .order('data', desc=True)\
             .limit(5)\
             .execute()
@@ -361,7 +368,7 @@ def get_dashboard_saldos():
             "success": True,
             "contas": contas_response.data if contas_response.data else [],
             "ultimas_transferencias": transferencias_response.data if transferencias_response.data else [],
-            "usuario": usuario_atual
+            "usuario": usuario
         })
         
     except Exception as e:
@@ -460,8 +467,18 @@ def criar_transferencia_cliente():
             valor = dados.get(campo, 'NÃO ENCONTRADO')
             print(f"   {campo}: '{valor}' {'✅' if valor != 'NÃO ENCONTRADO' else '❌'}")
         
-        # Validação básica
-        campos_obrigatorios = ['usuario', 'conta_origem', 'valor', 'moeda', 'beneficiario']
+        # ✅ PRIMEIRO: Verificar quem está logado (SESSÃO)
+        usuario_logado = session.get('username')
+        
+        if not usuario_logado:
+            print(f"❌ USUÁRIO NÃO AUTENTICADO NA SESSÃO")
+            return jsonify({
+                "success": False,
+                "message": "Usuário não autenticado"
+            }), 401
+        
+        # ✅ SEGUNDO: Validar campos obrigatórios (SEM 'usuario' - pegamos da sessão!)
+        campos_obrigatorios = ['conta_origem', 'valor', 'moeda', 'beneficiario']
         for campo in campos_obrigatorios:
             if campo not in dados:
                 print(f"❌ CAMPO OBRIGATÓRIO FALTANDO: {campo}")
@@ -469,21 +486,44 @@ def criar_transferencia_cliente():
                     "success": False,
                     "message": f"Campo '{campo}' é obrigatório"
                 }), 400
+        
+        # ✅ TERCEIRO: Se vier 'usuario' nos dados, IGNORAR e usar o da sessão
+        if 'usuario' in dados:
+            print(f"⚠️  Campo 'usuario' recebido nos dados: '{dados['usuario']}' - Usando da sessão: '{usuario_logado}'")
+        
+        # ✅ QUARTO: Sobrescrever com usuário da sessão (SEGURANÇA!)
+        dados['usuario'] = usuario_logado
+        print(f"✅ Usuário da transferência definido como: {usuario_logado}")
             
-        # Buscar saldo atual da conta
-        print(f"🔍 Buscando saldo da conta: {dados['conta_origem']}")
+        # Buscar saldo atual da conta E verificar se pertence ao usuário
+        print(f"🔍 Buscando conta: {dados['conta_origem']} para usuário: {usuario_logado}")
 
-        response_conta = supabase.table('contas').select('saldo').eq('id', dados['conta_origem']).execute()
+        response_conta = supabase.table('contas')\
+            .select('id, saldo, cliente_username, moeda')\
+            .eq('id', dados['conta_origem'])\
+            .eq('cliente_username', usuario_logado)\
+            .eq('ativa', True)\
+            .execute()
 
         if not response_conta.data:
-            print(f"❌ Conta não encontrada: {dados['conta_origem']}")
+            print(f"❌ Conta não encontrada ou não pertence ao usuário: {dados['conta_origem']}")
             return jsonify({
                 "success": False,
-                "message": "Conta de origem não encontrada"
+                "message": "Conta de origem não encontrada ou não autorizada"
             }), 400
 
         conta = response_conta.data[0]
         saldo_atual = float(conta['saldo']) if conta['saldo'] else 0.0
+        
+        print(f"✅ Conta encontrada: ID {conta['id']}, Moeda: {conta.get('moeda', 'N/A')}, Saldo: {saldo_atual}")
+        
+        # ✅ GARANTIR que a moeda da conta bate com a moeda da transferência
+        if 'moeda' in conta and conta['moeda'] != dados['moeda']:
+            print(f"❌ Moeda da conta ({conta['moeda']}) diferente da transferência ({dados['moeda']})")
+            return jsonify({
+                "success": False,
+                "message": f"Moeda da conta ({conta['moeda']}) não corresponde à moeda da transferência ({dados['moeda']})"
+            }), 400
         valor_transferencia = float(dados['valor'])
 
         print(f"💰 Saldo atual: {saldo_atual}, Valor transferência: {valor_transferencia}") 
@@ -638,11 +678,18 @@ def criar_transferencia_cliente():
 def get_user_info():
     """Retorna informações REAIS do usuário logado"""
     try:
-        usuario_atual = 'pantanal'  # TODO: Autenticação
+        # ✅ Pega usuário da SESSÃO (correto!)
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({
+                "success": False,
+                "message": "Usuário não autenticado"
+            }), 401
         
         response = supabase.table('usuarios')\
             .select('username, nome, email, tipo, telefone, verificado, cambio_liberado')\
-            .eq('username', usuario_atual)\
+            .eq('username', usuario)\
             .single()\
             .execute()
         
@@ -656,9 +703,9 @@ def get_user_info():
             return jsonify({
                 "success": True,
                 "user": {
-                    "username": usuario_atual,
-                    "nome": "Cliente Pantanal",
-                    "email": "cliente@email.com",
+                    "username": usuario,
+                    "nome": usuario.upper(),
+                    "email": f"{usuario}@exemplo.com",
                     "tipo": "cliente",
                     "telefone": "",
                     "verificado": True,
@@ -677,13 +724,19 @@ def get_user_info():
 def get_user_contas():
     """Retorna contas REAIS do usuário logado"""
     try:
-        # Por enquanto, usar usuário fixo 'pantanal' 
-        # Depois trocar por usuário logado quando tiver autenticação
-        usuario_atual = 'pantanal'
+        # ✅ Pega usuário da SESSÃO (correto!)
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({
+                "success": False,
+                "message": "Usuário não autenticado",
+                "contas": []
+            }), 401
         
         response = supabase.table('contas')\
             .select('id, moeda, saldo, cliente_username, cliente_nome, ativa')\
-            .eq('cliente_username', usuario_atual)\
+            .eq('cliente_username', usuario)\
             .eq('ativa', True)\
             .execute()
         
@@ -711,11 +764,19 @@ def get_user_contas():
 def get_beneficiarios():
     """Retorna beneficiários REAIS do usuário logado"""
     try:
-        usuario_atual = 'pantanal'  # TODO: Autenticação
+        # ✅ Pega usuário da SESSÃO (correto!)
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({
+                "success": False,
+                "message": "Usuário não autenticado",
+                "beneficiarios": []
+            }), 401
         
         response = supabase.table('beneficiarios')\
             .select('id, nome, endereco, cidade, pais, banco, swift, iban, aba, cidade_banco, pais_banco, endereco_banco')\
-            .eq('cliente_username', usuario_atual)\
+            .eq('cliente_username', usuario)\
             .eq('ativo', True)\
             .execute()
         
@@ -742,14 +803,21 @@ def get_beneficiarios():
 def get_beneficiario_detalhe(benef_id):
     """Retorna detalhes de UM beneficiário específico do Supabase"""
     try:
-        usuario_atual = 'pantanal'  # TODO: Autenticação
+        # ✅ Pega usuário da SESSÃO (correto!)
+        usuario = session.get('username')
         
-        print(f"🔍 Buscando beneficiário ID: {benef_id} para usuário: {usuario_atual}")
+        if not usuario:
+            return jsonify({
+                "success": False,
+                "message": "Usuário não autenticado"
+            }), 401
+        
+        print(f"🔍 Buscando beneficiário ID: {benef_id} para usuário: {usuario}")
         
         response = supabase.table('beneficiarios')\
             .select('id, nome, endereco, cidade, pais, banco, endereco_banco, cidade_banco, pais_banco, swift, iban, aba')\
             .eq('id', benef_id)\
-            .eq('cliente_username', usuario_atual)\
+            .eq('cliente_username', usuario)\
             .eq('ativo', True)\
             .single()\
             .execute()
@@ -761,7 +829,7 @@ def get_beneficiario_detalhe(benef_id):
                 "beneficiario": response.data
             })
         else:
-            print(f"⚠️ Beneficiário {benef_id} não encontrado para {usuario_atual}")
+            print(f"⚠️ Beneficiário {benef_id} não encontrado para {usuario}")
             return jsonify({
                 "success": False,
                 "message": "Beneficiário não encontrado"
@@ -779,7 +847,38 @@ def get_beneficiario_detalhe(benef_id):
 @app.route('/transferencia')
 def tela_transferencia():
     """Renderiza a tela de transferência internacional"""
-    return render_template('transferencia.html')
+    # ✅ Pega usuário da SESSÃO
+    usuario = session.get('username')
+    
+    if not usuario:
+        # Se não estiver logado, redireciona para login
+        return redirect('/login')
+    
+    # Busca dados básicos do usuário
+    email = f'{usuario}@exemplo.com'
+    nome = usuario.upper()
+    
+    try:
+        if supabase:
+            response = supabase.table('usuarios')\
+                .select('email, nome')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if response.data:
+                if response.data.get('email'):
+                    email = response.data['email']
+                if response.data.get('nome'):
+                    nome = response.data['nome']
+    except Exception as e:
+        print(f"⚠️  Erro ao buscar usuário em /transferencia: {e}")
+    
+    # Passa variáveis para o template (igual ao dashboard!)
+    return render_template('transferencia.html', 
+                          usuario=usuario,
+                          nome=nome,
+                          email=email)
 
 # ============================================================================
 # APIs PARA TRANSFERÊNCIA (MOCK - DEPOIS SUBSTITUI POR SUPABASE)

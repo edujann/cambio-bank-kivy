@@ -546,6 +546,19 @@
         </div>
     </div>
 
+    <!-- VARIÁVEIS DO FLASK (CRÍTICO!) -->
+    <script>
+        // Dados do usuário logado (do Flask)
+        window.USER = { 
+            username: "{{ usuario if usuario else '' }}", 
+            nome: "{{ nome if nome else 'Usuário' }}", 
+            email: "{{ email if email else 'usuario@exemplo.com' }}"
+        };
+        window.API_URL = "";
+        
+        console.log('Transferência - Usuário logado:', window.USER);
+    </script>
+
     <!-- SCRIPTS -->
     <script src="/static/js/script.js"></script>
     <script>
