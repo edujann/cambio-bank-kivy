@@ -11,6 +11,95 @@
     
     <!-- Ícones FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- CSS ESPECÍFICO DO CABEÇALHO/FOOTER DA TRANSFERÊNCIA -->
+    <style>
+    /* CABEÇALHO ESPECÍFICO PARA TRANSFERÊNCIA */
+    .main-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 30px;
+        background: var(--cor-card);
+        border-bottom: 1px solid var(--cor-borda);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    .header-left, .header-right {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 20px;
+        font-weight: bold;
+    }
+
+    .logo i {
+        color: var(--cor-primaria);
+        font-size: 24px;
+    }
+
+    .logo h1 {
+        font-size: 20px;
+        font-weight: bold;
+        background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--cor-texto);
+    }
+
+    .btn-back {
+        background: transparent;
+        border: 1px solid var(--cor-borda);
+        color: var(--cor-texto);
+        padding: 8px 16px;
+        border-radius: var(--borda-radius-pequeno);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-back:hover {
+        border-color: var(--cor-primaria);
+        background: rgba(26, 95, 180, 0.1);
+    }
+
+    /* FOOTER ESPECÍFICO */
+    .main-footer {
+        margin-top: 40px;
+        padding: 20px 30px;
+        border-top: 1px solid var(--cor-borda);
+        background: var(--cor-card);
+        text-align: center;
+        color: var(--cor-texto-secundario);
+    }
+
+    .footer-links a {
+        color: var(--cor-texto-secundario);
+        text-decoration: none;
+        margin: 0 10px;
+    }
+
+    .footer-links a:hover {
+        color: var(--cor-primaria);
+    }
+    </style>
 </head>
 <body>
     <!-- CABEÇALHO FIXO (IGUAL AO DASHBOARD) -->
@@ -324,7 +413,7 @@
     </div>
 
     <!-- SCRIPTS -->
-    <script src="/static/script.js"></script>
+    <script src="/static/js/script.js"></script>
     <script>
         // JavaScript específico para esta página será adicionado aqui
         document.addEventListener('DOMContentLoaded', function() {
