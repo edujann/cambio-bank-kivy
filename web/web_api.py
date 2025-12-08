@@ -415,7 +415,7 @@ def criar_transferencia_cliente():
         print("🔍 DEBUG - INICIANDO CRIAÇÃO DE TRANSFERÊNCIA")
         print("="*60)
         
-        import json  # ← ADICIONE ESTA LINHA!
+        import json
         
         # DEBUG 1: Verificar tipo de requisição
         print(f"📨 Método: {request.method}")
@@ -426,19 +426,17 @@ def criar_transferencia_cliente():
         
         # Obter dados da requisição
         dados = {}
-        
+
         if request.is_json:
             dados = request.json
             print("✅ Dados recebidos como JSON")
         elif request.form:
             dados_json_str = request.form.get('dados', '{}')
             print(f"📦 String JSON do FormData: {dados_json_str}")
-            try:
-                dados = json.loads(dados_json_str)
-                print("✅ Dados convertidos de FormData JSON")
-            except json.JSONDecodeError as e:
-                print(f"❌ Erro ao decodificar JSON: {e}")
-                dados = {}
+            
+            dados = json.loads(dados_json_str)
+            print("✅ Dados convertidos de FormData JSON")
+            
         else:
             print("⚠️ Nenhum dado recebido ou formato desconhecido")
         
@@ -463,11 +461,37 @@ def criar_transferencia_cliente():
                     "success": False,
                     "message": f"Campo '{campo}' é obrigatório"
                 }), 400
+            
+        # Buscar saldo atual da conta
+        print(f"🔍 Buscando saldo da conta: {dados['conta_origem']}")
+
+        response_conta = supabase.table('contas').select('saldo').eq('id', dados['conta_origem']).execute()
+
+        if not response_conta.data:
+            print(f"❌ Conta não encontrada: {dados['conta_origem']}")
+            return jsonify({
+                "success": False,
+                "message": "Conta de origem não encontrada"
+            }), 400
+
+        conta = response_conta.data[0]
+        saldo_atual = float(conta['saldo']) if conta['saldo'] else 0.0
+        valor_transferencia = float(dados['valor'])
+
+        print(f"💰 Saldo atual: {saldo_atual}, Valor transferência: {valor_transferencia}") 
+
+        # Verificar saldo suficiente
+        if valor_transferencia > saldo_atual:
+            print(f"❌ Saldo insuficiente! Disponível: {saldo_atual}, Necessário: {valor_transferencia}")
+            return jsonify({
+                "success": False,
+                "message": f"Saldo insuficiente! Disponível: {saldo_atual:.2f}"
+            }), 400         
         
         # Criar ID único
         import random
         from datetime import datetime
-        transferencia_id = f"TRF{int(datetime.now().timestamp())}{random.randint(1000, 9999)}"
+        transferencia_id = f"{random.randint(100000, 999999)}"
         
         # Preparar dados para Supabase - COM COLUNAS CORRETAS!
         dados_supabase = {
@@ -513,11 +537,25 @@ def criar_transferencia_cliente():
         
         # Salvar NO SUPABASE REAL
         response = supabase.table('transferencias').insert(dados_supabase).execute()
-        
+
         if response.data:
             print(f"✅✅✅ TRANSFERÊNCIA SALVA COM SUCESSO!")
             print(f"✅ ID: {transferencia_id}")
             print(f"✅ Registros inseridos: {len(response.data)}")
+            
+            # ATUALIZAR SALDO DA CONTA (DÉBITO)
+            novo_saldo = saldo_atual - valor_transferencia
+            print(f"💸 Atualizando saldo: {saldo_atual} - {valor_transferencia} = {novo_saldo}")
+            
+            update_response = supabase.table('contas').update({
+                'saldo': novo_saldo,
+                'ultima_atualizacao': datetime.now().isoformat()
+            }).eq('id', dados['conta_origem']).execute()
+            
+            if update_response.data:
+                print(f"✅ Saldo atualizado com sucesso! Novo saldo: {novo_saldo}")
+            else:
+                print(f"⚠️ Transferência salva mas erro ao atualizar saldo")
             
             # DEBUG 5: Verificar dados salvos
             print(f"\n📊 VERIFICANDO DADOS SALVOS NO SUPABASE:")
