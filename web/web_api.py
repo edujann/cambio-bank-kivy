@@ -301,7 +301,7 @@ def dashboard_data(username):
         # 3. Busca últimas transferências
         transferencias_res = supabase.table('transferencias')\
             .select('id, tipo, status, data, moeda, valor, conta_remetente, conta_destinatario, descricao, cliente, usuario')\
-            .or_(f'cliente.eq.{username},usuario.eq.{username},conta_remetente.eq.{username},conta_destinatario.eq.{username}')\
+            .eq('usuario', username)\
             .order('data', desc=True)\
             .limit(10)\
             .execute()
