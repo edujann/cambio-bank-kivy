@@ -549,7 +549,7 @@ def criar_transferencia_cliente():
             
             update_response = supabase.table('contas').update({
                 'saldo': novo_saldo,
-                'ultima_atualizacao': datetime.now().isoformat()
+                'created_at': datetime.now().isoformat()
             }).eq('id', dados['conta_origem']).execute()
             
             if update_response.data:
