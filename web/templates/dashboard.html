@@ -648,6 +648,111 @@
         }
     }
 
+    /* ============================================
+    ESTILOS PARA TRANSAÇÕES MELHORADAS
+    ============================================ */
+
+    /* Classes de entrada/saída */
+    .transacao-item.entrada {
+        border-left: 3px solid #2ecc71;
+        background: linear-gradient(to right, rgba(46, 204, 113, 0.05), transparent);
+    }
+
+    .transacao-item.saida {
+        border-left: 3px solid #e74c3c;
+        background: linear-gradient(to right, rgba(231, 76, 60, 0.05), transparent);
+    }
+
+    /* Lado direito da transação */
+    .transacao-lado-direito {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
+        margin-left: auto;
+        text-align: right;
+    }
+
+    /* Meta informações (data + status) */
+    .transacao-meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 2px;
+    }
+
+    /* Status coloridos */
+    .transacao-status {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-weight: 500;
+        display: inline-block;
+    }
+
+    .status-solicitada,
+    .status-pendente {
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+    }
+
+    .status-aprovada,
+    .status-approved {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+    }
+
+    .status-completed,
+    .status-concluida,
+    .status-finalizada {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .status-recusada,
+    .status-rejected,
+    .status-cancelada,
+    .status-cancelled {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    /* Informações adicionais */
+    .transacao-info {
+        font-size: 12px;
+        color: #7f8c8d;
+        margin-top: 2px;
+        font-style: italic;
+    }
+
+    /* Ícones coloridos */
+    .transacao-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    /* Para transações antigas (backward compatibility) */
+    .transacao-valor.positivo {
+        color: #2ecc71;
+        font-weight: 600;
+    }
+
+    .transacao-valor.negativo {
+        color: #e74c3c;
+        font-weight: 600;
+    }
+
     </style>
     <!-- Ícones FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">

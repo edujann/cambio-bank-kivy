@@ -292,52 +292,6 @@ function mostrarDadosDashboard(dashboard) {
     }
 }
 
-function renderizarTransacoes(transacoes) {
-    console.log('🔍 DEBUG: renderizarTransacoes');
-    
-    // ✅ CORREÇÃO: ID correto é 'transacoesLista' (com 'a' no final)
-    const transacoesLista = document.getElementById('transacoesLista');
-    if (!transacoesLista) {
-        console.warn('⚠️ DEBUG: transacoesLista não encontrado');
-        return;
-    }
-    
-    if (!transacoes || transacoes.length === 0) {
-        transacoesLista.innerHTML = `
-            <div class="vazio-message">
-                <i class="fas fa-history"></i>
-                <p>Nenhuma transação recente</p>
-            </div>
-        `;
-        return;
-    }
-    
-    // ✅ MUDAR TODAS as referências de transacoesList para transacoesLista
-    transacoesLista.innerHTML = transacoes.map(trans => {
-        const isEntrada = trans.conta_destinatario === USER.username;
-        const iconClass = isEntrada ? 'fas fa-arrow-down' : 'fas fa-arrow-up';
-        const iconColor = isEntrada ? '#2ec27e' : '#e01b24';
-        const valorClass = isEntrada ? 'positivo' : 'negativo';
-        const sinal = isEntrada ? '+' : '-';
-        
-        return `
-            <div class="transacao-item ${isEntrada ? 'recebida' : 'sucesso'}">
-                <div class="transacao-icon">
-                    <i class="${iconClass}"></i>
-                </div>
-                <div class="transacao-detalhes">
-                    <div class="transacao-titulo">${trans.descricao || 'Transferência'}</div>
-                    <div class="transacao-desc">${trans.conta_remetente || 'Remetente'} → ${trans.conta_destinatario || 'Destinatário'}</div>
-                </div>
-                <div class="transacao-valor ${valorClass}">
-                    ${sinal} ${formatarMoeda(trans.valor || 0, trans.moeda || 'BRL')}
-                </div>
-                <div class="transacao-data">${formatarData(trans.data)}</div>
-            </div>
-        `;
-    }).join('');
-}
-
 function mostrarSaldosPorMoeda(contas) {
     console.log('🔍 DEBUG [mostrarSaldosPorMoeda]: Contas recebidas:', contas);
     
@@ -411,12 +365,11 @@ function renderizarBeneficiarios(beneficiarios) {
 }
 
 function renderizarTransacoes(transacoes) {
-    console.log('🔍 DEBUG: renderizarTransacoes');
+    console.log('🔍 DEBUG [renderizarTransacoes MELHORADA]: Iniciando...');
     
-    // ✅ CORREÇÃO: ID correto é 'transacoesLista' (com 'a' no final)
     const transacoesLista = document.getElementById('transacoesLista');
     if (!transacoesLista) {
-        console.warn('⚠️ DEBUG: transacoesLista não encontrado');  // ✅ Mensagem atualizada
+        console.warn('⚠️ DEBUG: transacoesLista não encontrado');
         return;
     }
     
@@ -430,29 +383,78 @@ function renderizarTransacoes(transacoes) {
         return;
     }
     
-    transacoesLista.innerHTML = transacoes.map(trans => {
-        const isEntrada = trans.conta_destinatario === USER.username;
-        const iconClass = isEntrada ? 'fas fa-arrow-down' : 'fas fa-arrow-up';
-        const iconColor = isEntrada ? '#2ec27e' : '#e01b24';
-        const valorClass = isEntrada ? 'positivo' : 'negativo';
-        const sinal = isEntrada ? '+' : '-';
-        
-        return `
-            <div class="transacao-item ${isEntrada ? 'recebida' : 'sucesso'}">
-                <div class="transacao-icon">
-                    <i class="${iconClass}"></i>
-                </div>
-                <div class="transacao-detalhes">
-                    <div class="transacao-titulo">${trans.descricao || 'Transferência'}</div>
-                    <div class="transacao-desc">${trans.conta_remetente || 'Remetente'} → ${trans.conta_destinatario || 'Destinatário'}</div>
-                </div>
-                <div class="transacao-valor ${valorClass}">
-                    ${sinal} ${formatarMoeda(trans.valor || 0, trans.moeda || 'BRL')}
-                </div>
-                <div class="transacao-data">${formatarData(trans.data)}</div>
+    // Filtra transações do usuário atual e ordena por data (mais recente primeiro)
+    const transacoesUsuario = transacoes
+        .filter(trans => {
+            // Inclui transações onde o usuário é remetente, destinatário ou cliente
+            return trans.usuario === USER.username || 
+                   trans.cliente === USER.username ||
+                   trans.conta_remetente === USER.username ||
+                   trans.conta_destinatario === USER.username;
+        })
+        .sort((a, b) => new Date(b.data || b.created_at) - new Date(a.data || a.created_at))
+        .slice(0, 8); // Limita às 8 mais recentes
+    
+    console.log(`📊 DEBUG: ${transacoes.length} transações totais, ${transacoesUsuario.length} do usuário`);
+    
+    if (transacoesUsuario.length === 0) {
+        transacoesLista.innerHTML = `
+            <div class="vazio-message">
+                <i class="fas fa-history"></i>
+                <p>Nenhuma transação recente</p>
             </div>
         `;
+        return;
+    }
+    
+    // Renderiza cada transação
+    transacoesLista.innerHTML = transacoesUsuario.map(trans => {
+        try {
+            const tipo = classificarTransacao(trans);
+            const fluxo = determinarFluxoTransacao(trans);
+            const config = obterConfiguracaoTransacao(tipo, trans);
+            const detalhes = formatarDetalhesTransacao(trans);
+            
+            return `
+                <div class="transacao-item ${fluxo.tipoFluxo}">
+                    <div class="transacao-icon" style="color: ${config.corIcone};">
+                        <i class="${config.icone}"></i>
+                    </div>
+                    <div class="transacao-detalhes">
+                        <div class="transacao-titulo">${config.titulo}</div>
+                        <div class="transacao-desc">${detalhes.descricao}</div>
+                        ${detalhes.detalhes ? `<div class="transacao-info">${detalhes.detalhes}</div>` : ''}
+                    </div>
+                    <div class="transacao-lado-direito">
+                        <div class="transacao-valor ${fluxo.ehEntrada ? 'positivo' : 'negativo'}">
+                            ${fluxo.ehEntrada ? '+' : '-'} ${formatarMoeda(trans.valor || 0, trans.moeda || 'BRL')}
+                        </div>
+                        <div class="transacao-meta">
+                            <div class="transacao-data">${formatarData(trans.data || trans.created_at)}</div>
+                            <div class="transacao-status status-${trans.status}">
+                                ${config.statusFormatado}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } catch (error) {
+            console.error('❌ Erro ao renderizar transação', trans.id, error);
+            return `
+                <div class="transacao-item">
+                    <div class="transacao-icon" style="color: #7f8c8d;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="transacao-detalhes">
+                        <div class="transacao-titulo">Erro ao carregar</div>
+                        <div class="transacao-desc">Transação ${trans.id}</div>
+                    </div>
+                </div>
+            `;
+        }
     }).join('');
+    
+    console.log(`✅ DEBUG: ${transacoesUsuario.length} transações renderizadas com sucesso`);
 }
 
 function renderizarBeneficiarios(beneficiarios) {
@@ -646,6 +648,281 @@ document.querySelectorAll('.menu-item').forEach(item => {
         }
     });
 });
+
+// ============================================
+// FUNÇÕES PARA CLASSIFICAR TRANSAÇÕES (NOVAS)
+// ============================================
+
+function classificarTransacao(trans) {
+    /**
+     * Classifica uma transação em tipos específicos para melhor exibição
+     */
+    console.log('🔍 DEBUG [classificarTransacao]:', trans.id, trans.tipo, trans.operacao);
+    
+    // 1. Câmbio (cliente ou admin)
+    if (trans.tipo === 'cambio') {
+        if (trans.operacao === 'cambio_admin') {
+            return 'cambio_admin';
+        } else if (trans.operacao === 'compra' || trans.operacao === 'venda') {
+            return 'cambio_cliente';
+        }
+    }
+    
+    // 2. Transferências
+    if (trans.tipo === 'transferencia_internacional') return 'transferencia_exterior';
+    if (trans.tipo === 'transferencia_interna_cliente') return 'transferencia_interna';
+    
+    // 3. Ajustes administrativos
+    if (trans.tipo === 'ajuste_admin') {
+        if (trans.tipo_ajuste === 'CREDITO') return 'ajuste_credito';
+        if (trans.tipo_ajuste === 'DEBITO') return 'ajuste_debito';
+    }
+    
+    // 4. Receitas (taxas do banco) - LEMBRAR: é DESPESA para o cliente!
+    if (trans.tipo === 'receita') return 'taxa_banco';
+    
+    // 5. Outros tipos (fallback)
+    console.log('⚠️ DEBUG: Tipo não classificado:', trans.tipo);
+    return trans.tipo || 'desconhecido';
+}
+
+function determinarFluxoTransacao(trans) {
+    /**
+     * Determina se uma transação é ENTRADA ou SAÍDA para o usuário atual
+     * Retorna: { ehEntrada: boolean, tipoFluxo: 'entrada' | 'saida' }
+     */
+    const usuarioAtual = USER.username;
+    if (!usuarioAtual) {
+        console.warn('⚠️ DEBUG [determinarFluxo]: USER.username não definido');
+        return { ehEntrada: false, tipoFluxo: 'saida' };
+    }
+    
+    const tipo = classificarTransacao(trans);
+    let ehEntrada = false;
+    let tipoFluxo = 'saida';
+    
+    console.log('🔍 DEBUG [determinarFluxo]:', trans.id, 'Tipo:', tipo, 'Usuário:', usuarioAtual);
+    
+    switch(tipo) {
+        case 'transferencia_exterior':
+        case 'transferencia_interna':
+            // É entrada se o usuário for o DESTINATÁRIO
+            if (trans.conta_destinatario === usuarioAtual) {
+                ehEntrada = true;
+                tipoFluxo = 'entrada';
+                console.log('✅ É ENTRADA: usuário é destinatário');
+            } else {
+                console.log('✅ É SAÍDA: usuário é remetente');
+            }
+            break;
+            
+        case 'cambio_cliente':
+            // Para COMPRA: usuário RECEBE moeda_destino (entrada na conta destino)
+            // Para VENDA: usuário RECEBE moeda_origem (entrada na conta remetente)
+            if (trans.operacao === 'compra') {
+                ehEntrada = trans.conta_destinatario === usuarioAtual;  // Recebe moeda destino
+            } else if (trans.operacao === 'venda') {
+                ehEntrada = trans.conta_remetente === usuarioAtual;     // Recebe moeda origem
+            }
+            tipoFluxo = ehEntrada ? 'entrada' : 'saida';
+            console.log(`✅ Cambio ${trans.operacao}: ${ehEntrada ? 'ENTRADA' : 'SAÍDA'}`);
+            break;
+            
+        case 'cambio_admin':
+            // Cambio admin: geralmente entrada (crédito) ou saída (débito)
+            // Lógica simplificada: se tem valor_destino e usuário recebeu
+            ehEntrada = trans.conta_destinatario === usuarioAtual;
+            tipoFluxo = ehEntrada ? 'entrada' : 'saida';
+            break;
+            
+        case 'ajuste_credito':
+            // Crédito administrativo é SEMPRE entrada
+            ehEntrada = true;
+            tipoFluxo = 'entrada';
+            console.log('✅ É ENTRADA: ajuste crédito');
+            break;
+            
+        case 'ajuste_debito':
+        case 'taxa_banco':
+            // Débito e taxas são SEMPRE saída
+            ehEntrada = false;
+            tipoFluxo = 'saida';
+            console.log('✅ É SAÍDA: ajuste débito ou taxa');
+            break;
+            
+        default:
+            // Lógica padrão: baseado em conta_destinatario
+            ehEntrada = trans.conta_destinatario === usuarioAtual;
+            tipoFluxo = ehEntrada ? 'entrada' : 'saida';
+            console.log(`✅ Tipo ${tipo}: ${ehEntrada ? 'ENTRADA' : 'SAÍDA'} (padrão)`);
+    }
+    
+    return { ehEntrada, tipoFluxo };
+}
+
+function formatarStatusTransacao(status) {
+    /**
+     * Formata o status para exibição amigável
+     */
+    if (!status) return 'Desconhecido';
+    
+    const statusMap = {
+        'solicitada': 'Solicitada',
+        'pendente': 'Pendente',
+        'aprovada': 'Aprovada',
+        'approved': 'Aprovada',
+        'completed': 'Concluída',
+        'concluida': 'Concluída',
+        'finalizada': 'Concluída',
+        'recusada': 'Recusada',
+        'rejected': 'Recusada',
+        'cancelada': 'Cancelada',
+        'cancelled': 'Cancelada',
+        'processing': 'Processando'
+    };
+    
+    return statusMap[status.toLowerCase()] || status;
+}
+
+function formatarDetalhesTransacao(trans) {
+    /**
+     * Formata detalhes específicos baseados no tipo de transação
+     * Retorna: { descricao: string, detalhes: string }
+     */
+    const tipo = classificarTransacao(trans);
+    
+    console.log('🔍 DEBUG [formatarDetalhes]:', trans.id, 'Tipo:', tipo);
+    
+    let descricao = '';
+    let detalhes = '';
+    
+    switch(tipo) {
+        case 'cambio_cliente':
+            if (trans.operacao === 'compra') {
+                descricao = `Comprou ${trans.moeda_destino} com ${trans.moeda_origem}`;
+            } else {
+                descricao = `Vendeu ${trans.moeda_origem} por ${trans.moeda_destino}`;
+            }
+            if (trans.cotacao) {
+                detalhes = `Cotação: ${parseFloat(trans.cotacao).toFixed(4)}`;
+            }
+            break;
+            
+        case 'cambio_admin':
+            descricao = `${trans.moeda_origem} → ${trans.moeda_destino}`;
+            if (trans.cotacao) {
+                detalhes = `Cotação admin: ${parseFloat(trans.cotacao).toFixed(4)}`;
+            }
+            break;
+            
+        case 'transferencia_exterior':
+            descricao = trans.beneficiario || 'Beneficiário';
+            if (trans.cidade || trans.pais) {
+                detalhes = `${trans.cidade || ''}${trans.cidade && trans.pais ? ', ' : ''}${trans.pais || ''}`;
+            }
+            if (trans.invoice_info) {
+                detalhes += (detalhes ? ' • ' : '') + '📄 Tem invoice';
+            }
+            break;
+            
+        case 'transferencia_interna':
+            const fluxo = determinarFluxoTransacao(trans);
+            if (fluxo.ehEntrada) {
+                descricao = 'Recebido de outro cliente';
+            } else {
+                descricao = 'Enviado para outro cliente';
+            }
+            if (trans.descricao) {
+                detalhes = trans.descricao;
+            }
+            break;
+            
+        case 'ajuste_credito':
+            descricao = trans.descricao_ajuste || 'Crédito administrativo';
+            detalhes = 'Executado pelo sistema';
+            break;
+            
+        case 'ajuste_debito':
+            descricao = trans.descricao_ajuste || 'Débito administrativo';
+            detalhes = 'Executado pelo sistema';
+            break;
+            
+        case 'taxa_banco':
+            descricao = trans.descricao_receita || 'Taxa bancária';
+            if (trans.categoria_receita) {
+                detalhes = trans.categoria_receita;
+            }
+            break;
+            
+        default:
+            descricao = trans.descricao || 'Transação';
+            if (trans.tipo) {
+                detalhes = `Tipo: ${trans.tipo}`;
+            }
+    }
+    
+    // Limita o tamanho da descrição
+    if (descricao.length > 60) {
+        descricao = descricao.substring(0, 57) + '...';
+    }
+    
+    return { descricao, detalhes };
+}
+
+function obterConfiguracaoTransacao(tipo, trans) {
+    /**
+     * Retorna configurações visuais (ícone, cor, título) baseadas no tipo
+     */
+    const configs = {
+        'cambio_cliente': {
+            icone: 'fas fa-exchange-alt',
+            corIcone: '#1a5fb4', // Azul
+            titulo: trans.operacao === 'compra' ? 'Compra de Moeda' : 'Venda de Moeda'
+        },
+        'cambio_admin': {
+            icone: 'fas fa-cogs',
+            corIcone: '#9b59b6', // Roxo
+            titulo: 'Câmbio Administrativo'
+        },
+        'transferencia_exterior': {
+            icone: 'fas fa-globe-americas',
+            corIcone: '#2ecc71', // Verde
+            titulo: 'Transferência Internacional'
+        },
+        'transferencia_interna': {
+            icone: 'fas fa-users',
+            corIcone: '#f39c12', // Laranja
+            titulo: 'Transferência entre Clientes'
+        },
+        'ajuste_credito': {
+            icone: 'fas fa-plus-circle',
+            corIcone: '#27ae60', // Verde escuro
+            titulo: 'Crédito Administrativo'
+        },
+        'ajuste_debito': {
+            icone: 'fas fa-minus-circle',
+            corIcone: '#e74c3c', // Vermelho
+            titulo: 'Débito Administrativo'
+        },
+        'taxa_banco': {
+            icone: 'fas fa-file-invoice-dollar',
+            corIcone: '#34495e', // Cinza escuro
+            titulo: trans.descricao_receita || 'Taxa do Banco'
+        },
+        'desconhecido': {
+            icone: 'fas fa-question-circle',
+            corIcone: '#7f8c8d', // Cinza
+            titulo: 'Transação'
+        }
+    };
+    
+    const config = configs[tipo] || configs['desconhecido'];
+    
+    // Adiciona status formatado
+    config.statusFormatado = formatarStatusTransacao(trans.status);
+    
+    return config;
+}
 
 // ============================================
 // INICIALIZAÇÃO
