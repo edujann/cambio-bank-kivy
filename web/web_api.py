@@ -6,7 +6,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from dotenv import load_dotenv
 from flask import render_template, send_from_directory
-from flask import Flask, jsonify, request, render_template, send_from_directory, redirect
+from flask import Flask, jsonify, request, render_template, send_from_directory, redirect, session  # ← ADICIONE 'session' AQUI
 import os
 import hashlib
 
@@ -46,6 +46,9 @@ except Exception as e:
 app = Flask(__name__)
 CORS(app)  # Permite conexão do frontend
 
+# ✅ ADICIONE ESTAS 2 LINHAS PARA CONFIGURAR SESSÕES
+import secrets
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', secrets.token_hex(32))
 # ============================================
 # ENDPOINTS BÁSICOS (VAMOS COMEÇAR COM ESTES)
 # ============================================
@@ -186,6 +189,12 @@ def login():
         if 'senha_hash' in usuario_data:
             del usuario_data['senha_hash']
         
+        # ✅ CRÍTICO: Salva o usuário na SESSÃO Flask
+        session['username'] = usuario_data['username']
+        session['nome'] = usuario_data.get('nome', usuario_data['username'])
+        session['email'] = usuario_data.get('email', f"{usuario_data['username']}@exemplo.com")
+        session['user_id'] = usuario_data['id']
+        
         return jsonify({
             "success": True,
             "message": "Login realizado com sucesso",
@@ -211,46 +220,41 @@ def pagina_login():
 @app.route('/dashboard')
 def dashboard():
     """Página do dashboard - requer login"""
-    # Pega usuário da query string (simplificado)
-    usuario = request.args.get('usuario')
+    # ✅ Pega usuário da SESSÃO (correto!)
+    usuario = session.get('username')
     
     if not usuario:
-        # Se não tem usuário, redireciona para login
+        # Se não estiver logado, redireciona para login
         return redirect('/login')
     
     try:
-        # Busca dados REAIS do Supabase
+        # Busca dados básicos do usuário
+        email = f'{usuario}@exemplo.com'
+        nome = usuario.upper()
+        
         if supabase:
             response = supabase.table('usuarios')\
-                .select('username, email, nome, saldo')\
+                .select('email, nome')\
                 .eq('username', usuario)\
                 .single()\
                 .execute()
             
             if response.data:
-                dados = response.data
-            else:
-                dados = {
-                    'usuario': usuario,
-                    'email': f'{usuario}@exemplo.com',
-                    'saldo': 48750.00
-                }
-        else:
-            dados = {
-                'usuario': usuario,
-                'email': f'{usuario}@exemplo.com', 
-                'saldo': 48750.00
-            }
-            
+                if response.data.get('email'):
+                    email = response.data['email']
+                if response.data.get('nome'):
+                    nome = response.data['nome']
     except Exception as e:
-        print(f"Erro ao buscar usuário: {e}")
-        dados = {
-            'usuario': usuario,
-            'email': f'{usuario}@exemplo.com',
-            'saldo': 48750.00
-        }
+        print(f"⚠️  Erro ao buscar usuário: {e}")
     
-    return render_template('dashboard.html', **dados)
+    # Dados para o template
+    dados = {
+        'usuario': usuario,
+        'email': email,
+        'nome': nome
+    }
+    
+    return render_template('dashboard.html', usuario=usuario, **dados)
 
 @app.route('/static/<path:path>')
 def servir_estaticos(path):
@@ -369,6 +373,8 @@ def get_dashboard_saldos():
 
 @app.route('/logout')
 def logout():
+    """Limpa a sessão e faz logout"""
+    session.clear()
     return redirect('/login')
 
 @app.route('/api/transacoes')

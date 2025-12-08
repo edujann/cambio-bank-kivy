@@ -945,15 +945,19 @@ function abrirTransferencia() {
     </button>
 
     <script>
-        // Dados do Flask para JavaScript
+        // Dados do Flask para JavaScript (usando variáveis dinâmicas)
         window.usuarioData = {
-            nome: "pantanal",
-            email: "pantanal@exemplo.com", 
+            nome: "{{ nome if nome else 'Usuário' }}",
+            email: "{{ email if email else 'usuario@exemplo.com' }}", 
             saldo: 48750.00
         };
         
-        // 👇 ADICIONE ESTAS 2 LINHAS 👇
-        window.USER = { username: "pantanal", nome: "pantanal", email: "pantanal@exemplo.com" };
+        // ✅ VARIÁVEIS DINÂMICAS DO FLASK!
+        window.USER = { 
+            username: "{{ usuario if usuario else '' }}", 
+            nome: "{{ nome if nome else 'Usuário' }}", 
+            email: "{{ email if email else 'usuario@exemplo.com' }}"
+        };
         window.API_URL = "";
     </script>
 
