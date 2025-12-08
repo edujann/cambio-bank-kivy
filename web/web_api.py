@@ -411,20 +411,54 @@ def add_header(response):
 def criar_transferencia_cliente():
     """Cliente cria transferência internacional - SALVA NO SUPABASE REAL"""
     try:
+        print("\n" + "="*60)
+        print("🔍 DEBUG - INICIANDO CRIAÇÃO DE TRANSFERÊNCIA")
+        print("="*60)
+        
         import json  # ← ADICIONE ESTA LINHA!
         
-        dados = request.json if request.is_json else {}
+        # DEBUG 1: Verificar tipo de requisição
+        print(f"📨 Método: {request.method}")
+        print(f"📨 Content-Type: {request.content_type}")
+        print(f"📨 Tem JSON: {request.is_json}")
+        print(f"📨 Tem Form: {request.form}")
+        print(f"📨 Tem Files: {request.files}")
         
-        # Se veio como FormData (com arquivo)
-        if not dados and request.form:
-            dados = json.loads(request.form.get('dados', '{}'))
+        # Obter dados da requisição
+        dados = {}
         
-        print(f"📨 Dados recebidos para transferência: {dados}")
+        if request.is_json:
+            dados = request.json
+            print("✅ Dados recebidos como JSON")
+        elif request.form:
+            dados_json_str = request.form.get('dados', '{}')
+            print(f"📦 String JSON do FormData: {dados_json_str}")
+            try:
+                dados = json.loads(dados_json_str)
+                print("✅ Dados convertidos de FormData JSON")
+            except json.JSONDecodeError as e:
+                print(f"❌ Erro ao decodificar JSON: {e}")
+                dados = {}
+        else:
+            print("⚠️ Nenhum dado recebido ou formato desconhecido")
+        
+        # DEBUG 2: Mostrar TODOS os campos recebidos
+        print("\n📋 TODOS OS CAMPOS RECEBIDOS:")
+        for campo, valor in dados.items():
+            print(f"   {campo}: '{valor}'")
+        
+        # DEBUG 3: Verificar os 3 CAMPOS PROBLEMÁTICOS
+        print("\n🎯 CAMPOS CRÍTICOS VERIFICAÇÃO:")
+        campos_criticos = ['endereco_banco', 'cidade_banco', 'pais_banco']
+        for campo in campos_criticos:
+            valor = dados.get(campo, 'NÃO ENCONTRADO')
+            print(f"   {campo}: '{valor}' {'✅' if valor != 'NÃO ENCONTRADO' else '❌'}")
         
         # Validação básica
         campos_obrigatorios = ['usuario', 'conta_origem', 'valor', 'moeda', 'beneficiario']
         for campo in campos_obrigatorios:
             if campo not in dados:
+                print(f"❌ CAMPO OBRIGATÓRIO FALTANDO: {campo}")
                 return jsonify({
                     "success": False,
                     "message": f"Campo '{campo}' é obrigatório"
@@ -464,13 +498,35 @@ def criar_transferencia_cliente():
             'solicitado_por': dados['usuario']
         }
         
-        print(f"💾 Salvando transferência REAL no Supabase: {transferencia_id}")
+        # DEBUG 4: Mostrar o que será salvo no Supabase
+        print(f"\n💾 DADOS QUE SERÃO SALVOS NO SUPABASE:")
+        print(f"   ID: {transferencia_id}")
+        print(f"   conta_remetente: {dados_supabase['conta_remetente']}")
+        print(f"   beneficiario: {dados_supabase['beneficiario']}")
+        print(f"   valor: {dados_supabase['valor']}")
+        print(f"   moeda: {dados_supabase['moeda']}")
+        print(f"   endereco_banco: '{dados_supabase['endereco_banco']}'")
+        print(f"   cidade_banco: '{dados_supabase['cidade_banco']}'")
+        print(f"   pais_banco: '{dados_supabase['pais_banco']}'")
+        
+        print(f"\n🚀 Inserindo no Supabase REAL...")
         
         # Salvar NO SUPABASE REAL
         response = supabase.table('transferencias').insert(dados_supabase).execute()
         
         if response.data:
-            print(f"✅ Transferência salva no Supabase: {transferencia_id}")
+            print(f"✅✅✅ TRANSFERÊNCIA SALVA COM SUCESSO!")
+            print(f"✅ ID: {transferencia_id}")
+            print(f"✅ Registros inseridos: {len(response.data)}")
+            
+            # DEBUG 5: Verificar dados salvos
+            print(f"\n📊 VERIFICANDO DADOS SALVOS NO SUPABASE:")
+            check = supabase.table('transferencias').select('endereco_banco, cidade_banco, pais_banco').eq('id', transferencia_id).execute()
+            if check.data:
+                saved = check.data[0]
+                print(f"   endereco_banco salvo: '{saved.get('endereco_banco', 'VAZIO')}'")
+                print(f"   cidade_banco salvo: '{saved.get('cidade_banco', 'VAZIO')}'")
+                print(f"   pais_banco salvo: '{saved.get('pais_banco', 'VAZIO')}'")
             
             # Upload de arquivo se existir
             if 'invoice' in request.files:
@@ -479,6 +535,8 @@ def criar_transferencia_cliente():
                     try:
                         caminho = f"invoices/{transferencia_id}/{arquivo.filename}"
                         arquivo_bytes = arquivo.read()
+                        
+                        print(f"📎 Upload de invoice: {arquivo.filename}")
                         
                         # Upload para bucket 'documentos'
                         supabase.storage.from_("documentos").upload(
@@ -501,19 +559,25 @@ def criar_transferencia_cliente():
                     except Exception as upload_error:
                         print(f"⚠️ Erro no upload do arquivo: {upload_error}")
             
+            print("="*60)
+            print("🎉 TRANSFERÊNCIA FINALIZADA COM SUCESSO")
+            print("="*60 + "\n")
+            
             return jsonify({
                 "success": True,
                 "message": "Transferência solicitada com sucesso!",
                 "transferencia_id": transferencia_id
             })
         else:
+            print(f"❌ ERRO: Nenhum dado retornado do Supabase")
+            print(f"❌ Response: {response}")
             return jsonify({
                 "success": False,
                 "message": "Erro ao salvar no banco de dados"
             }), 500
             
     except Exception as e:
-        print(f"❌ Erro na API criar_transferencia: {e}")
+        print(f"❌❌❌ ERRO CRÍTICO NA API criar_transferencia: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({
