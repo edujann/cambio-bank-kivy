@@ -267,6 +267,31 @@ function mostrarDadosUsuario(usuario) {
     console.log('✅ DEBUG [mostrarDadosUsuario]: Concluído com sucesso');
 }
 
+function mostrarDadosDashboard(dashboard) {
+    console.log('🔍 DEBUG [mostrarDadosDashboard SIMPLIFICADA]: Iniciando...');
+    
+    try {
+        // 1. APENAS O ESSENCIAL: Mostra saldos por moeda
+        mostrarSaldosPorMoeda(dashboard.contas);
+        
+        // 2. Ações rápidas (já funciona)
+        renderizarAcoesRapidas();
+        
+        // 3. Transações (já funciona)
+        renderizarTransacoes(dashboard.ultimas_transferencias);
+        
+        // 4. ❌ REMOVER: renderizarContas (não existe no protótipo)
+        // 5. ❌ REMOVER: renderizarBeneficiarios (não existe no protótipo)
+        
+        console.log('✅ DEBUG [mostrarDadosDashboard]: Concluído (apenas saldos + ações + transações)');
+        
+    } catch (error) {
+        console.error('❌ DEBUG [mostrarDadosDashboard]: Erro:', error);
+        // Não relança - continua mesmo com erro parcial
+        mostrarNotificacao('Aviso', 'Alguns dados não puderam ser carregados.', 'warning');
+    }
+}
+
 function renderizarTransacoes(transacoes) {
     console.log('🔍 DEBUG: renderizarTransacoes');
     
