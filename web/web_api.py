@@ -521,7 +521,7 @@ def tela_transferencia():
 # ============================================================================
 
 @app.route('/api/user')
-def get_user_info():
+def get_user_info_web():
     """Retorna informações do usuário logado"""
     return jsonify({
         "success": True,
@@ -534,7 +534,7 @@ def get_user_info():
     })
 
 @app.route('/api/user/contas')
-def get_user_contas():
+def get_user_contas_web():
     """Retorna contas do usuário"""
     return jsonify({
         "success": True,
@@ -564,7 +564,7 @@ def get_user_contas():
     })
 
 @app.route('/api/beneficiarios')
-def get_beneficiarios():
+def get_beneficiarios_web():
     """Retorna beneficiários salvos do usuário"""
     return jsonify({
         "success": True,
@@ -593,7 +593,7 @@ def get_beneficiarios():
     })
 
 @app.route('/api/beneficiarios/<benef_id>')
-def get_beneficiario(benef_id):
+def get_beneficiario_web(benef_id):
     """Retorna um beneficiário específico"""
     beneficiarios = {
         "1": {
