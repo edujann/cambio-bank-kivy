@@ -587,10 +587,13 @@ def criar_transferencia_cliente():
                         # Atualizar transferência com info do invoice
                         supabase.table('transferencias').update({
                             'invoice_info': {
-                                'caminho': caminho,
+                                'caminho_arquivo': caminho,
                                 'nome_arquivo': arquivo.filename,
                                 'tipo': arquivo.content_type,
-                                'tamanho': len(arquivo_bytes)
+                                'tamanho': len(arquivo_bytes),
+                                'status': 'pending',
+                                'data_upload': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                'motivo_recusa': ''
                             }
                         }).eq('id', transferencia_id).execute()
                         
