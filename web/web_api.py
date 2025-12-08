@@ -511,6 +511,11 @@ def get_beneficiarios():
         ]
     })
 
+@app.route('/transferencia')
+def tela_transferencia():
+    """Renderiza a tela de transferência internacional"""
+    return render_template('transferencia.html')
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
