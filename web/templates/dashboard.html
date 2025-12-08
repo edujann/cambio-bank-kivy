@@ -652,6 +652,13 @@
     <!-- Ícones FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+<script>
+// Sobrescrever qualquer função abrirTransferencia que exista
+function abrirTransferencia() {
+    window.location.href = '/transferencia';
+    return false; // Previne comportamento padrão
+}
+</script>
 <body>
     <!-- CONTAINER PRINCIPAL -->
     <div class="app-container">

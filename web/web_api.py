@@ -411,6 +411,8 @@ def add_header(response):
 def criar_transferencia_cliente():
     """Cliente cria transferência internacional - SALVA NO SUPABASE REAL"""
     try:
+        import json  # ← ADICIONE ESTA LINHA!
+        
         dados = request.json if request.is_json else {}
         
         # Se veio como FormData (com arquivo)
