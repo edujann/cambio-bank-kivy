@@ -571,7 +571,7 @@ def criar_transferencia_cliente():
                 arquivo = request.files['invoice']
                 if arquivo and arquivo.filename:
                     try:
-                        caminho = f"transferencias/{transferencia_id}_{arquivo.filename}"
+                        caminho = f"transferencias/{transferencia_id}/{arquivo.filename}"
                         arquivo_bytes = arquivo.read()
                         
                         print(f"📎 Upload de invoice: {arquivo.filename}")
