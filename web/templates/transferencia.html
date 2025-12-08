@@ -99,6 +99,116 @@
     .footer-links a:hover {
         color: var(--cor-primaria);
     }
+
+    /* NAVEGAÇÃO (BREADCRUMB) */
+    .page-nav {
+        padding: 15px 30px;
+        background: rgba(255, 255, 255, 0.02);
+        border-bottom: 1px solid var(--cor-borda);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+    }
+
+    .page-nav a {
+        color: var(--cor-texto-secundario);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .page-nav a:hover {
+        color: var(--cor-primaria);
+    }
+
+    .page-nav i {
+        font-size: 12px;
+    }
+
+    .page-nav .fa-chevron-right {
+        color: var(--cor-texto-secundario);
+        opacity: 0.5;
+    }
+
+    .current-page {
+        color: var(--cor-texto);
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* TÍTULO DA PÁGINA */
+    .page-header {
+        padding: 30px 30px 20px;
+    }
+
+    .page-header h2 {
+        font-size: 28px;
+        margin-bottom: 10px;
+        color: var(--cor-texto);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .page-header h2 i {
+        color: var(--cor-primaria);
+    }
+
+    .page-subtitle {
+        color: var(--cor-texto-secundario);
+        font-size: 16px;
+        margin: 0;
+    }
+
+    /* BOTÕES (ESTILO DO DASHBOARD) */
+    .btn-primary, .btn-secondary {
+        padding: 12px 24px;
+        border-radius: var(--borda-radius-pequeno);
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        font-size: 15px;
+        border: none;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--cor-primaria), #2d8fff);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(26, 95, 180, 0.3);
+    }
+
+    .btn-secondary {
+        background: transparent;
+        color: var(--cor-texto);
+        border: 1px solid var(--cor-borda);
+    }
+
+    .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: var(--cor-texto-secundario);
+    }
+
+    /* CONTAINER DOS BOTÕES */
+    .form-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 15px;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid var(--cor-borda);
+    }    
+
     </style>
 </head>
 <body>
