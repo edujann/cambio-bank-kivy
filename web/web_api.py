@@ -254,7 +254,7 @@ def dashboard():
         'nome': nome
     }
     
-    return render_template('dashboard.html', usuario=usuario, **dados)
+    return render_template('dashboard.html', **dados)
 
 @app.route('/static/<path:path>')
 def servir_estaticos(path):
