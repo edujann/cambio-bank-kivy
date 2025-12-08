@@ -276,25 +276,27 @@ def dashboard_data(username):
         
         usuario = usuario_res.data
         
-        # 2. Busca saldo das contas
+        # 2. Busca saldo das contas REAIS do Supabase
         saldo_total = 0
-        contas_detalhes = []
         
-        if usuario.get('contas'):
-            for conta_id in usuario['contas']:
+        # Busca TODAS as contas ativas do usuário
+        contas_res = supabase.table('contas')\
+            .select('id, saldo, moeda, cliente_username, cliente_nome, ativa')\
+            .eq('cliente_username', username)\
+            .eq('ativa', True)\
+            .execute()
+        
+        if contas_res.data:
+            contas_detalhes = contas_res.data
+            
+            # Calcula saldo total
+            for conta in contas_detalhes:
                 try:
-                    conta_res = supabase.table('contas')\
-                        .select('id, saldo, moeda, cliente_username, cliente_nome, ativa')\
-                        .eq('id', conta_id)\
-                        .single()\
-                        .execute()
-                    
-                    if conta_res.data:
-                        conta = conta_res.data
-                        contas_detalhes.append(conta)
-                        saldo_total += float(conta.get('saldo', 0))
-                except:
-                    continue  # Se não encontrar a conta, continua
+                    saldo_total += float(conta.get('saldo', 0))
+                except (ValueError, TypeError):
+                    saldo_total += 0  # Se saldo for inválido, ignora
+        else:
+            contas_detalhes = []
         
         # 3. Busca últimas transferências
         transferencias_res = supabase.table('transferencias')\
