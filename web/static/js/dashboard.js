@@ -267,29 +267,50 @@ function mostrarDadosUsuario(usuario) {
     console.log('✅ DEBUG [mostrarDadosUsuario]: Concluído com sucesso');
 }
 
-function mostrarDadosDashboard(dashboard) {
-    console.log('🔍 DEBUG [mostrarDadosDashboard SIMPLIFICADA]: Iniciando...');
+function renderizarTransacoes(transacoes) {
+    console.log('🔍 DEBUG: renderizarTransacoes');
     
-    try {
-        // 1. APENAS O ESSENCIAL: Mostra saldos por moeda
-        mostrarSaldosPorMoeda(dashboard.contas);
-        
-        // 2. Ações rápidas (já funciona)
-        renderizarAcoesRapidas();
-        
-        // 3. Transações (já funciona)
-        renderizarTransacoes(dashboard.ultimas_transferencias);
-        
-        // 4. ❌ REMOVER: renderizarContas (não existe no protótipo)
-        // 5. ❌ REMOVER: renderizarBeneficiarios (não existe no protótipo)
-        
-        console.log('✅ DEBUG [mostrarDadosDashboard]: Concluído (apenas saldos + ações + transações)');
-        
-    } catch (error) {
-        console.error('❌ DEBUG [mostrarDadosDashboard]: Erro:', error);
-        // Não relança - continua mesmo com erro parcial
-        mostrarNotificacao('Aviso', 'Alguns dados não puderam ser carregados.', 'warning');
+    // ✅ CORREÇÃO: ID correto é 'transacoesLista' (com 'a' no final)
+    const transacoesLista = document.getElementById('transacoesLista');
+    if (!transacoesLista) {
+        console.warn('⚠️ DEBUG: transacoesLista não encontrado');
+        return;
     }
+    
+    if (!transacoes || transacoes.length === 0) {
+        transacoesLista.innerHTML = `
+            <div class="vazio-message">
+                <i class="fas fa-history"></i>
+                <p>Nenhuma transação recente</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // ✅ MUDAR TODAS as referências de transacoesList para transacoesLista
+    transacoesLista.innerHTML = transacoes.map(trans => {
+        const isEntrada = trans.conta_destinatario === USER.username;
+        const iconClass = isEntrada ? 'fas fa-arrow-down' : 'fas fa-arrow-up';
+        const iconColor = isEntrada ? '#2ec27e' : '#e01b24';
+        const valorClass = isEntrada ? 'positivo' : 'negativo';
+        const sinal = isEntrada ? '+' : '-';
+        
+        return `
+            <div class="transacao-item ${isEntrada ? 'recebida' : 'sucesso'}">
+                <div class="transacao-icon">
+                    <i class="${iconClass}"></i>
+                </div>
+                <div class="transacao-detalhes">
+                    <div class="transacao-titulo">${trans.descricao || 'Transferência'}</div>
+                    <div class="transacao-desc">${trans.conta_remetente || 'Remetente'} → ${trans.conta_destinatario || 'Destinatário'}</div>
+                </div>
+                <div class="transacao-valor ${valorClass}">
+                    ${sinal} ${formatarMoeda(trans.valor || 0, trans.moeda || 'BRL')}
+                </div>
+                <div class="transacao-data">${formatarData(trans.data)}</div>
+            </div>
+        `;
+    }).join('');
 }
 
 function mostrarSaldosPorMoeda(contas) {
@@ -367,14 +388,15 @@ function renderizarBeneficiarios(beneficiarios) {
 function renderizarTransacoes(transacoes) {
     console.log('🔍 DEBUG: renderizarTransacoes');
     
-    const transacoesList = document.getElementById('transacoesList');
-    if (!transacoesList) {
-        console.warn('⚠️ DEBUG: transacoesList não encontrado');
+    // ✅ CORREÇÃO: ID correto é 'transacoesLista' (com 'a' no final)
+    const transacoesLista = document.getElementById('transacoesLista');
+    if (!transacoesLista) {
+        console.warn('⚠️ DEBUG: transacoesLista não encontrado');  // ✅ Mensagem atualizada
         return;
     }
     
     if (!transacoes || transacoes.length === 0) {
-        transacoesList.innerHTML = `
+        transacoesLista.innerHTML = `
             <div class="vazio-message">
                 <i class="fas fa-history"></i>
                 <p>Nenhuma transação recente</p>
@@ -383,7 +405,7 @@ function renderizarTransacoes(transacoes) {
         return;
     }
     
-    transacoesList.innerHTML = transacoes.map(trans => {
+    transacoesLista.innerHTML = transacoes.map(trans => {
         const isEntrada = trans.conta_destinatario === USER.username;
         const iconClass = isEntrada ? 'fas fa-arrow-down' : 'fas fa-arrow-up';
         const iconColor = isEntrada ? '#2ec27e' : '#e01b24';
