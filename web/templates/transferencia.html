@@ -19,12 +19,16 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 20px 30px;
+        padding: 20px 30px; /* ← JÁ TEM */
         background: var(--cor-card);
         border-bottom: 1px solid var(--cor-borda);
         position: sticky;
         top: 0;
         z-index: 100;
+        /* ADICIONE: */
+        max-width: 1400px;
+        margin: 0 auto;
+        width: 100%;
     }
 
     .header-left, .header-right {
@@ -88,6 +92,10 @@
         background: var(--cor-card);
         text-align: center;
         color: var(--cor-texto-secundario);
+        /* ADICIONE: */
+        max-width: 1400px;
+        margin: 20px auto 0;
+        width: 100%;
     }
 
     .footer-links a {
@@ -102,13 +110,17 @@
 
     /* NAVEGAÇÃO (BREADCRUMB) */
     .page-nav {
-        padding: 15px 30px;
+        padding: 15px 30px; /* ← JÁ TEM */
         background: rgba(255, 255, 255, 0.02);
         border-bottom: 1px solid var(--cor-borda);
         display: flex;
         align-items: center;
         gap: 10px;
         font-size: 14px;
+        /* ADICIONE: */
+        max-width: 1400px;
+        margin: 0 auto;
+        width: 100%;
     }
 
     .page-nav a {
@@ -143,6 +155,9 @@
     /* TÍTULO DA PÁGINA */
     .page-header {
         padding: 30px 30px 20px;
+        text-align: center; /* ← ADICIONE ESTA LINHA */
+        max-width: 1200px; /* ← ADICIONE ESTA LINHA */
+        margin: 0 auto; /* ← ADICIONE ESTA LINHA */
     }
 
     .page-header h2 {
@@ -152,6 +167,7 @@
         display: flex;
         align-items: center;
         gap: 12px;
+        justify-content: center; /* ← ADICIONE ESTA LINHA */
     }
 
     .page-header h2 i {
@@ -207,7 +223,14 @@
         margin-top: 30px;
         padding-top: 20px;
         border-top: 1px solid var(--cor-borda);
-    }    
+    }
+    
+    .content-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        width: 100%;
+        padding: 0 20px;
+    }
 
     </style>
 </head>
@@ -234,6 +257,7 @@
     <!-- CONTEÚDO PRINCIPAL -->
     <main class="main-content">
         <!-- BREADCRUMB/NAVEGAÇÃO -->
+        <div class="content-container">
         <nav class="page-nav">
             <a href="/dashboard"><i class="fas fa-home"></i> Home</a>
             <i class="fas fa-chevron-right"></i>
