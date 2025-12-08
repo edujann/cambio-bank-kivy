@@ -207,10 +207,10 @@ function handleFileSelect(file) {
     const icon = preview.querySelector('i');
     if (file.type === 'application/pdf') {
         icon.className = 'fas fa-file-pdf';
-        icon.style.color = '#e74c3c';
+        icon.style.color = '#27ae60';  // ← VERDE ESCURO
     } else {
         icon.className = 'fas fa-file-image';
-        icon.style.color = '#3498db';
+        icon.style.color = '#27ae60';  // ← VERDE ESCURO
     }
 }
 
