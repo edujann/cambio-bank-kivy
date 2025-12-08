@@ -232,17 +232,25 @@ document.getElementById('transferenciaForm').addEventListener('submit', async fu
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
         
-        // Validar saldo
-        const contaSelect = document.getElementById('conta_origem');
-        const valor = parseFloat(document.getElementById('valor').value);
-        const saldo = parseFloat(contaSelect.options[contaSelect.selectedIndex]?.dataset.saldo || 0);
-        
-        if (valor > saldo) {
-            showAlert(`Saldo insuficiente! Disponível: ${saldo.toFixed(2)}`, 'error');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalText;
-            return;
-        }
+    // Validar se uma conta foi selecionada
+    const contaSelect = document.getElementById('conta_origem');
+    if (!contaSelect.value || contaSelect.value === '' || contaSelect.value === 'undefined') {
+        showAlert('❌ Por favor, selecione uma conta de origem!', 'error');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        return;
+    }
+
+    // SÓ DEPOIS validar saldo
+    const valor = parseFloat(document.getElementById('valor').value);
+    const saldo = parseFloat(contaSelect.options[contaSelect.selectedIndex]?.dataset.saldo || 0);
+
+    if (valor > saldo) {
+        showAlert(`Saldo insuficiente! Disponível: ${saldo.toFixed(2)}`, 'error');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        return;
+    }
         
         // Coletar dados do formulário
         const formData = new FormData();
