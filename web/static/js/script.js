@@ -48,10 +48,11 @@ function updateContasSelect() {
     
     userContas.forEach(conta => {
         const option = document.createElement('option');
-        option.value = conta.numero;
-        option.textContent = `${conta.numero} | ${conta.moeda} | Saldo: ${conta.saldo.toFixed(2)}`;
+        // CORREÇÃO: usar conta.id em vez de conta.numero
+        option.value = conta.id;
+        option.textContent = `${conta.id} | ${conta.moeda} | Saldo: ${conta.saldo ? conta.saldo.toFixed(2) : '0.00'}`;
         option.dataset.moeda = conta.moeda;
-        option.dataset.saldo = conta.saldo;
+        option.dataset.saldo = conta.saldo || 0;
         select.appendChild(option);
     });
 }
