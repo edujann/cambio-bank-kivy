@@ -242,6 +242,10 @@ document.getElementById('transferenciaForm').addEventListener('submit', async fu
         return;
     }
 
+    // Obter a moeda da conta selecionada
+    const moedaConta = contaSelect.options[contaSelect.selectedIndex].dataset.moeda;
+    console.log('💰 Moeda selecionada:', moedaConta);
+
     // SÓ DEPOIS validar saldo
     const valor = parseFloat(document.getElementById('valor').value);
     const saldo = parseFloat(contaSelect.options[contaSelect.selectedIndex]?.dataset.saldo || 0);
@@ -253,21 +257,26 @@ document.getElementById('transferenciaForm').addEventListener('submit', async fu
         return;
     }
         
-        // Coletar dados do formulário
-        const formData = new FormData();
-        const formJson = {};
-        
-        // Adicionar campos do formulário
-        const formElements = this.elements;
-        for (let element of formElements) {
-            if (element.name && !element.disabled) {
-                if (element.type === 'checkbox') {
-                    formJson[element.name] = element.checked;
-                } else {
-                    formJson[element.name] = element.value;
-                }
+    // Coletar dados do formulário
+    const formData = new FormData();
+    const formJson = {};
+
+    // Adicionar campos do formulário
+    const formElements = this.elements;
+    for (let element of formElements) {
+        if (element.name && !element.disabled) {
+            if (element.type === 'checkbox') {
+                formJson[element.name] = element.checked;
+            } else {
+                formJson[element.name] = element.value;
             }
         }
+    }
+
+    // 👇 ADICIONE ESTAS 2 LINHAS AQUI 👇
+    // Adicionar moeda (que veio da conta selecionada)
+    formJson.moeda = moedaConta;
+    console.log('📤 Dados completos com moeda:', formJson);
         
         // Adicionar usuário atual
         const user = await loadUserData();
