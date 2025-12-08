@@ -105,11 +105,18 @@ document.getElementById('beneficiarios_salvos').addEventListener('change', async
     if (!this.value) return;
     
     try {
+        console.log(`🔄 Buscando beneficiário ID: ${this.value}`);
         const response = await fetch(`/api/beneficiarios/${this.value}`);
+        
         if (response.ok) {
             const data = await response.json();
-            if (data.success) {
+            console.log('📦 Resposta API:', data);
+            
+            if (data.success && data.beneficiario) {
                 const benef = data.beneficiario;
+                console.log(`✅ Preenchendo dados de: ${benef.nome}`);
+                
+                // PREENCHER CAMPOS COM DADOS REAIS DO SUPABASE
                 document.getElementById('beneficiario').value = benef.nome || '';
                 document.getElementById('endereco').value = benef.endereco || '';
                 document.getElementById('cidade').value = benef.cidade || '';
@@ -121,10 +128,20 @@ document.getElementById('beneficiarios_salvos').addEventListener('change', async
                 document.getElementById('swift').value = benef.swift || '';
                 document.getElementById('iban').value = benef.iban || '';
                 document.getElementById('aba').value = benef.aba || '';
+                
+                // FEEDBACK VISUAL
+                showAlert(`Beneficiário "${benef.nome}" selecionado!`, 'success');
+            } else {
+                console.error('❌ API retornou erro:', data.message);
+                showAlert(`Erro ao carregar beneficiário: ${data.message || 'Não encontrado'}`, 'error');
             }
+        } else {
+            console.error('❌ Erro HTTP:', response.status);
+            showAlert('Erro ao conectar com o servidor', 'error');
         }
     } catch (error) {
-        console.error('Erro ao carregar beneficiário:', error);
+        console.error('❌ Erro ao carregar beneficiário:', error);
+        showAlert('Erro de conexão. Tente novamente.', 'error');
     }
 });
 

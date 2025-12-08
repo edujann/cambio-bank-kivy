@@ -329,6 +329,41 @@ def dashboard_data(username):
             "message": "Erro ao buscar dados do dashboard",
             "error": str(e)
         }), 500
+    
+@app.route('/api/dashboard/saldos')
+def get_dashboard_saldos():
+    """Retorna saldos REAIS para o dashboard"""
+    try:
+        usuario_atual = 'pantanal'  # TODO: Autenticação
+        
+        # Buscar contas do usuário
+        contas_response = supabase.table('contas')\
+            .select('moeda, saldo, cliente_nome')\
+            .eq('cliente_username', usuario_atual)\
+            .eq('ativa', True)\
+            .execute()
+        
+        # Buscar últimas transferências
+        transferencias_response = supabase.table('transferencias')\
+            .select('id, tipo, data, valor, moeda, status, descricao, beneficiario')\
+            .eq('usuario', usuario_atual)\
+            .order('data', desc=True)\
+            .limit(5)\
+            .execute()
+        
+        return jsonify({
+            "success": True,
+            "contas": contas_response.data if contas_response.data else [],
+            "ultimas_transferencias": transferencias_response.data if transferencias_response.data else [],
+            "usuario": usuario_atual
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro no dashboard: {e}")
+        return jsonify({
+            "success": False,
+            "message": f"Erro ao carregar dashboard: {str(e)}"
+        }), 500
 
 @app.route('/logout')
 def logout():
@@ -586,6 +621,44 @@ def get_beneficiarios():
             "success": False,
             "message": f"Erro ao carregar beneficiários: {str(e)}",
             "beneficiarios": []
+        }), 500
+
+@app.route('/api/beneficiarios/<int:benef_id>')
+def get_beneficiario_detalhe(benef_id):
+    """Retorna detalhes de UM beneficiário específico do Supabase"""
+    try:
+        usuario_atual = 'pantanal'  # TODO: Autenticação
+        
+        print(f"🔍 Buscando beneficiário ID: {benef_id} para usuário: {usuario_atual}")
+        
+        response = supabase.table('beneficiarios')\
+            .select('id, nome, endereco, cidade, pais, banco, endereco_banco, cidade_banco, pais_banco, swift, iban, aba')\
+            .eq('id', benef_id)\
+            .eq('cliente_username', usuario_atual)\
+            .eq('ativo', True)\
+            .single()\
+            .execute()
+        
+        if response.data:
+            print(f"✅ Beneficiário encontrado: {response.data['nome']}")
+            return jsonify({
+                "success": True,
+                "beneficiario": response.data
+            })
+        else:
+            print(f"⚠️ Beneficiário {benef_id} não encontrado para {usuario_atual}")
+            return jsonify({
+                "success": False,
+                "message": "Beneficiário não encontrado"
+            }), 404
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar beneficiário {benef_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "message": f"Erro ao carregar beneficiário: {str(e)}"
         }), 500
 
 @app.route('/transferencia')
