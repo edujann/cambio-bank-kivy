@@ -372,6 +372,145 @@ def add_header(response):
     
     return response
 
+@app.route('/api/transferencias/criar', methods=['POST'])
+def criar_transferencia_cliente():
+    """Cliente cria transferência internacional (igual ao app Python)"""
+    try:
+        dados = request.json
+        
+        print(f"📨 Dados recebidos: {dados}")
+        
+        # Validação básica (igual ao seu código Python)
+        campos_obrigatorios = ['usuario', 'conta_origem', 'valor', 'moeda', 'beneficiario']
+        for campo in campos_obrigatorios:
+            if campo not in dados:
+                return jsonify({
+                    "success": False,
+                    "message": f"Campo '{campo}' é obrigatório"
+                }), 400
+        
+        # Criar ID único (igual ao seu sistema Python)
+        import random
+        from datetime import datetime
+        transferencia_id = f"TRF{int(datetime.now().timestamp())}{random.randint(1000, 9999)}"
+        
+        # Preparar dados para Supabase (MESMOS CAMPOS do seu Python)
+        dados_supabase = {
+            'id': transferencia_id,
+            'tipo': 'transferencia_internacional',
+            'status': 'solicitada',
+            'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'moeda': dados['moeda'],
+            'valor': float(dados['valor']),
+            'conta_remetente': dados['conta_origem'],
+            'descricao': dados.get('descricao', ''),
+            'usuario': dados['usuario'],
+            'cliente': dados['usuario'],  # 🔥 IGUAL AO SEU PYTHON
+            'beneficiario': dados['beneficiario'],
+            'endereco_beneficiario': dados.get('endereco', ''),
+            'cidade': dados.get('cidade', ''),
+            'pais': dados.get('pais', ''),
+            'nome_banco': dados.get('banco', ''),
+            'endereco_banco': dados.get('endereco_banco', ''),
+            'cidade_banco': dados.get('cidade_banco', ''),
+            'pais_banco': dados.get('pais_banco', ''),
+            'codigo_swift': dados.get('swift', ''),
+            'iban_account': dados.get('iban', ''),
+            'aba_routing': dados.get('aba', ''),
+            'finalidade': dados.get('finalidade', ''),
+            'created_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
+        print(f"💾 Salvando no Supabase: {transferencia_id}")
+        
+        # Salvar no Supabase (MESMA TABELA que seu Python usa)
+        response = supabase.table('transferencias').insert(dados_supabase).execute()
+        
+        if response.data:
+            return jsonify({
+                "success": True,
+                "message": "Transferência solicitada com sucesso!",
+                "transferencia_id": transferencia_id,
+                "dados": dados_supabase
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": "Erro ao salvar no banco de dados"
+            }), 500
+            
+    except Exception as e:
+        print(f"❌ Erro na API criar_transferencia: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "message": f"Erro interno: {str(e)}"
+        }), 500
+    
+@app.route('/api/user')
+def get_user_info():
+    """Retorna informações do usuário logado (mock por enquanto)"""
+    # TODO: Implementar autenticação real
+    return jsonify({
+        "success": True,
+        "user": {
+            "username": "cliente_exemplo",
+            "nome": "João da Silva",
+            "tipo": "cliente"
+        }
+    })
+
+@app.route('/api/user/contas')
+def get_user_contas():
+    """Retorna contas do usuário (mock por enquanto)"""
+    # TODO: Buscar do Supabase baseado no usuário
+    return jsonify({
+        "success": True,
+        "contas": [
+            {
+                "numero": "001234-5",
+                "moeda": "USD",
+                "saldo": 48750.00,
+                "tipo": "corrente"
+            },
+            {
+                "numero": "001235-6", 
+                "moeda": "EUR",
+                "saldo": 32500.00,
+                "tipo": "corrente"
+            },
+            {
+                "numero": "001236-7",
+                "moeda": "GBP", 
+                "saldo": 28000.00,
+                "tipo": "corrente"
+            }
+        ]
+    })
+
+@app.route('/api/beneficiarios')
+def get_beneficiarios():
+    """Retorna beneficiários salvos (mock por enquanto)"""
+    # TODO: Buscar do Supabase baseado no usuário
+    return jsonify({
+        "success": True,
+        "beneficiarios": [
+            {
+                "id": "1",
+                "nome": "Microsoft Corporation",
+                "banco": "JPMorgan Chase Bank",
+                "pais": "Estados Unidos"
+            },
+            {
+                "id": "2",
+                "nome": "Amazon Web Services",
+                "banco": "Bank of America", 
+                "pais": "Estados Unidos"
+            }
+        ]
+    })
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'

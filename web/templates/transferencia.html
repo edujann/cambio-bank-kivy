@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transferência Internacional | Cambio Bank</title>
+    
+    <!-- CSS ORGANIZADO -->
+    <link rel="stylesheet" href="/static/css/style.css">          <!-- Estilos gerais -->
+    <link rel="stylesheet" href="/static/css/formularios.css">   <!-- Estilos específicos de formulários -->
+    
+    <!-- Ícones FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- CABEÇALHO FIXO (IGUAL AO DASHBOARD) -->
+    <header class="main-header">
+        <div class="header-left">
+            <div class="logo">
+                <i class="fas fa-university"></i>
+                <h1>CAMBI<span class="logo-highlight">O</span> BANK</h1>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="user-info">
+                <span id="username">Carregando...</span>
+                <i class="fas fa-user-circle"></i>
+            </div>
+            <a href="/dashboard" class="btn-back">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </header>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="main-content">
+        <!-- BREADCRUMB/NAVEGAÇÃO -->
+        <nav class="page-nav">
+            <a href="/dashboard"><i class="fas fa-home"></i> Home</a>
+            <i class="fas fa-chevron-right"></i>
+            <span class="current-page"><i class="fas fa-exchange-alt"></i> Transferência Internacional</span>
+        </nav>
+
+        <!-- TÍTULO DA PÁGINA -->
+        <div class="page-header">
+            <h2><i class="fas fa-globe-americas"></i> TRANSFERÊNCIA INTERNACIONAL</h2>
+            <p class="page-subtitle">Envie dinheiro para qualquer parte do mundo com segurança</p>
+        </div>
+
+        <!-- FORMULÁRIO DE TRANSFERÊNCIA -->
+        <div class="form-container">
+            <div class="form-card">
+                <h3 class="form-title">
+                    <i class="fas fa-file-invoice-dollar"></i> Dados da Transferência
+                </h3>
+                
+                <!-- ALERTAS -->
+                <div id="alert" class="alert hidden"></div>
+
+                <form id="transferenciaForm">
+                    <!-- LINHA 1: CONTA ORIGEM E VALOR -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="conta_origem">
+                                <i class="fas fa-wallet"></i> Conta de Origem *
+                            </label>
+                            <select id="conta_origem" name="conta_origem" required>
+                                <option value="">Selecione sua conta...</option>
+                                <!-- Contas serão carregadas via JavaScript -->
+                            </select>
+                            <div id="saldo_info" class="saldo-info">
+                                <i class="fas fa-info-circle"></i> Saldo disponível: <span id="saldo_valor">--</span>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="valor">
+                                <i class="fas fa-money-bill-wave"></i> Valor a Transferir *
+                            </label>
+                            <div class="input-with-icon">
+                                <input type="number" id="valor" name="valor" step="0.01" min="0.01" 
+                                       placeholder="0.00" required>
+                                <span id="moeda_label" class="currency-label">USD</span>
+                            </div>
+                            <small class="helper-text">Valor mínimo: 0.01</small>
+                        </div>
+                    </div>
+
+                    <!-- LINHA 2: FINALIDADE -->
+                    <div class="form-group">
+                        <label for="finalidade">
+                            <i class="fas fa-bullseye"></i> Finalidade da Transferência *
+                        </label>
+                        <select id="finalidade" name="finalidade" required>
+                            <option value="Pagamento de Serviços">Pagamento de Serviços</option>
+                            <option value="Pagamento de Produtos">Pagamento de Produtos</option>
+                            <option value="Remessa Familiar">Remessa Familiar</option>
+                            <option value="Investimento">Investimento</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+
+                    <!-- LINHA 3: DESCRIÇÃO -->
+                    <div class="form-group">
+                        <label for="descricao">
+                            <i class="fas fa-comment-alt"></i> Descrição / Observações
+                        </label>
+                        <textarea id="descricao" name="descricao" rows="3" 
+                                  placeholder="Descreva o propósito desta transferência..."></textarea>
+                    </div>
+
+                    <hr class="form-divider">
+
+                    <!-- SEÇÃO BENEFICIÁRIO -->
+                    <h3 class="form-subtitle">
+                        <i class="fas fa-user-tie"></i> Dados do Beneficiário
+                    </h3>
+
+                    <!-- BENEFICIÁRIOS SALVOS -->
+                    <div class="form-group">
+                        <label for="beneficiarios_salvos">
+                            <i class="fas fa-address-book"></i> Beneficiários Salvos
+                        </label>
+                        <select id="beneficiarios_salvos" class="beneficiarios-select">
+                            <option value="">Selecione um beneficiário salvo...</option>
+                            <!-- Beneficiários serão carregados via JavaScript -->
+                        </select>
+                        <small class="helper-text">Selecione para preencher automaticamente</small>
+                    </div>
+
+                    <!-- CAMPOS DO BENEFICIÁRIO -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="beneficiario">
+                                <i class="fas fa-user"></i> Nome Completo do Beneficiário *
+                            </label>
+                            <input type="text" id="beneficiario" name="beneficiario" 
+                                   placeholder="Nome completo" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="endereco">
+                                <i class="fas fa-map-marker-alt"></i> Endereço Completo *
+                            </label>
+                            <input type="text" id="endereco" name="endereco" 
+                                   placeholder="Rua, número, complemento" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="cidade">
+                                <i class="fas fa-city"></i> Cidade *
+                            </label>
+                            <input type="text" id="cidade" name="cidade" 
+                                   placeholder="Cidade" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="pais">
+                                <i class="fas fa-flag"></i> País *
+                            </label>
+                            <input type="text" id="pais" name="pais" 
+                                   placeholder="País" required>
+                        </div>
+                    </div>
+
+                    <hr class="form-divider">
+
+                    <!-- SEÇÃO BANCO DESTINATÁRIO -->
+                    <h3 class="form-subtitle">
+                        <i class="fas fa-university"></i> Banco Destinatário
+                    </h3>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="banco">
+                                <i class="fas fa-landmark"></i> Nome do Banco *
+                            </label>
+                            <input type="text" id="banco" name="banco" 
+                                   placeholder="Nome do banco destinatário" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="endereco_banco">
+                                <i class="fas fa-map-pin"></i> Endereço do Banco
+                            </label>
+                            <input type="text" id="endereco_banco" name="endereco_banco" 
+                                   placeholder="Endereço do banco">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="cidade_banco">
+                                <i class="fas fa-city"></i> Cidade do Banco *
+                            </label>
+                            <input type="text" id="cidade_banco" name="cidade_banco" 
+                                   placeholder="Cidade do banco" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="pais_banco">
+                                <i class="fas fa-flag"></i> País do Banco *
+                            </label>
+                            <input type="text" id="pais_banco" name="pais_banco" 
+                                   placeholder="País do banco" required>
+                        </div>
+                    </div>
+
+                    <hr class="form-divider">
+
+                    <!-- SEÇÃO DADOS BANCÁRIOS -->
+                    <h3 class="form-subtitle">
+                        <i class="fas fa-key"></i> Dados Bancários
+                    </h3>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="swift">
+                                <i class="fas fa-barcode"></i> Código SWIFT/BIC *
+                            </label>
+                            <input type="text" id="swift" name="swift" 
+                                   placeholder="Ex: CHASUS33XXX" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="iban">
+                                <i class="fas fa-hashtag"></i> Código IBAN / Account # *
+                            </label>
+                            <input type="text" id="iban" name="iban" 
+                                   placeholder="Número da conta" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="aba">
+                            <i class="fas fa-route"></i> Código ABA / Routing #
+                        </label>
+                        <input type="text" id="aba" name="aba" 
+                               placeholder="Apenas para transferências EUA">
+                    </div>
+
+                    <hr class="form-divider">
+
+                    <!-- SEÇÃO INVOICE -->
+                    <h3 class="form-subtitle">
+                        <i class="fas fa-file-invoice"></i> Documento Comprobatório (Invoice)
+                    </h3>
+
+                    <div class="form-group">
+                        <div class="file-upload-area" id="uploadArea">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>Arraste e solte o arquivo aqui ou</p>
+                            <button type="button" class="btn-select-file" id="selectFileBtn">
+                                <i class="fas fa-folder-open"></i> Selecionar Arquivo
+                            </button>
+                            <input type="file" id="invoiceFile" accept=".pdf,.jpg,.jpeg,.png" style="display: none;">
+                            <p class="file-info">
+                                <small>Formatos aceitos: PDF, JPG, PNG (máx. 5MB)</small>
+                            </p>
+                        </div>
+                        <div id="filePreview" class="file-preview hidden">
+                            <i class="fas fa-file-pdf"></i>
+                            <span id="fileName">arquivo.pdf</span>
+                            <button type="button" class="btn-remove-file" id="removeFileBtn">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- CHECKBOX SALVAR BENEFICIÁRIO -->
+                    <div class="form-checkbox">
+                        <input type="checkbox" id="salvar_beneficiario" name="salvar_beneficiario">
+                        <label for="salvar_beneficiario">
+                            <i class="fas fa-save"></i> Salvar este beneficiário para futuras transferências
+                        </label>
+                    </div>
+
+                    <!-- BOTÕES -->
+                    <div class="form-buttons">
+                        <button type="button" class="btn-secondary" onclick="window.history.back()">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                        <button type="submit" class="btn-primary" id="submitBtn">
+                            <i class="fas fa-paper-plane"></i> Solicitar Transferência
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- RODAPÉ -->
+    <footer class="main-footer">
+        <p>© 2024 Cambio Bank - Sistema de Câmbio Internacional. Todos os direitos reservados.</p>
+        <p class="footer-links">
+            <a href="#"><i class="fas fa-shield-alt"></i> Segurança</a> |
+            <a href="#"><i class="fas fa-question-circle"></i> Ajuda</a> |
+            <a href="#"><i class="fas fa-envelope"></i> Contato</a>
+        </p>
+    </footer>
+
+    <!-- MODAL DE SUCESSO -->
+    <div id="successModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-icon success">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h3>Transferência Solicitada com Sucesso!</h3>
+            <p id="modalMessage">Sua transferência foi registrada e está aguardando aprovação.</p>
+            <div class="modal-details">
+                <p><strong>ID da Transferência:</strong> <span id="modalTransferId">--</span></p>
+                <p><strong>Valor:</strong> <span id="modalValor">--</span></p>
+                <p><strong>Status:</strong> <span class="status-pending">Aguardando Aprovação</span></p>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-secondary" id="closeModalBtn">Fechar</button>
+                <button class="btn-primary" id="goToDashboardBtn">
+                    <i class="fas fa-tachometer-alt"></i> Voltar ao Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="/static/script.js"></script>
+    <script>
+        // JavaScript específico para esta página será adicionado aqui
+        document.addEventListener('DOMContentLoaded', function() {
+            // Carregar dados do usuário e contas
+            loadUserData();
+            loadContas();
+            
+            // Configurar eventos
+            setupEventListeners();
+        });
+    </script>
+</body>
+</html>

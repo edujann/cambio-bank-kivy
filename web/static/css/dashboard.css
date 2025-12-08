@@ -43,7 +43,7 @@
     background: var(--cor-fundo);
 }
 
-/* HEADER */
+/* HEADER ESPECÍFICO DO DASHBOARD */
 .dashboard-header {
     display: flex;
     justify-content: space-between;
@@ -76,19 +76,19 @@
     color: transparent;
 }
 
-/* LOGO NO HEADER */
-.logo {
+/* LOGO NO HEADER (específico dashboard) */
+.dashboard-logo {
     display: flex;
     align-items: center;
     gap: 12px;
 }
 
-.logo i {
+.dashboard-logo i {
     color: var(--cor-primaria);
     font-size: 24px;
 }
 
-.logo h1 {
+.dashboard-logo h1 {
     font-size: 20px;
     font-weight: bold;
     background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
@@ -97,7 +97,7 @@
     color: transparent;
 }
 
-/* BOTÕES DO HEADER */
+/* BOTÕES DO HEADER (específicos) */
 .btn-menu, .btn-logout {
     background: transparent;
     border: 1px solid var(--cor-borda);
@@ -117,8 +117,8 @@
     background: rgba(26, 95, 180, 0.1);
 }
 
-/* INFORMAÇÕES DO USUÁRIO */
-.user-info {
+/* INFORMAÇÕES DO USUÁRIO (dashboard) */
+.dashboard-user-info {
     display: flex;
     align-items: center;
     gap: 15px;
@@ -128,23 +128,23 @@
     border-radius: var(--borda-radius-pequeno);
 }
 
-.user-avatar {
+.dashboard-user-avatar {
     font-size: 32px;
     color: var(--cor-primaria);
 }
 
-.user-details {
+.dashboard-user-details {
     display: flex;
     flex-direction: column;
     gap: 4px;
 }
 
-.user-name {
+.dashboard-user-name {
     font-weight: 600;
     font-size: 16px;
 }
 
-.user-status {
+.dashboard-user-status {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -163,7 +163,7 @@
     border: 1px solid rgba(46, 194, 126, 0.3);
 }
 
-/* SEÇÃO DE SALDO */
+/* SEÇÃO DE SALDO (dashboard) */
 .saldo-section {
     padding: 30px;
 }
@@ -274,7 +274,7 @@
     padding: 0 30px 30px;
 }
 
-.section-title {
+.dashboard-section-title {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -283,13 +283,13 @@
     color: var(--cor-texto);
 }
 
-.section-title i {
+.dashboard-section-title i {
     color: var(--cor-primaria);
 }
 
 .acoes-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* 🔽 de 250px para 300px */
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 20px;
 }
 
@@ -339,7 +339,7 @@
 /* GRID DE CONTEÚDO */
 .content-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); /* 🔽 de 400px para 500px */
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
     gap: 30px;
     padding: 0 30px 30px;
 }
@@ -599,7 +599,7 @@
     font-weight: bold;
 }
 
-/* BOTÕES */
+/* BOTÕES ESPECÍFICOS */
 .btn-ver-tudo {
     background: transparent;
     border: 1px solid var(--cor-borda);
@@ -735,7 +735,7 @@
     margin: 15px 25px;
 }
 
-/* FOOTER */
+/* FOOTER ESPECÍFICO */
 .dashboard-footer {
     margin-top: auto;
     padding: 20px 30px;
@@ -749,10 +749,6 @@
     align-items: center;
     color: var(--cor-texto-secundario);
     font-size: 14px;
-}
-
-.footer-left p {
-    margin: 0;
 }
 
 .system-status {
@@ -847,7 +843,7 @@
     font-size: 14px;
 }
 
-/* ANIMAÇÕES */
+/* ANIMAÇÕES ESPECÍFICAS */
 @keyframes slideInRight {
     from {
         transform: translateX(100%);
@@ -859,79 +855,11 @@
     }
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
-
 .dashboard-container {
     animation: fadeIn 0.5s ease;
 }
 
-/* RESPONSIVIDADE */
-@media (max-width: 1024px) {
-    .content-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .acoes-grid {
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    }
-}
-
-@media (max-width: 768px) {
-    .dashboard-header {
-        flex-direction: column;
-        gap: 15px;
-        padding: 15px;
-    }
-    
-    .header-left, .header-center, .header-right {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .saldo-section, .acoes-section, .content-grid {
-        padding: 20px;
-    }
-    
-    .saldo-detalhes {
-        flex-direction: column;
-        gap: 15px;
-    }
-    
-    .footer-content {
-        flex-direction: column;
-        gap: 10px;
-        text-align: center;
-    }
-}
-
-@media (max-width: 480px) {
-    .saldo-valor {
-        font-size: 36px;
-    }
-    
-    .acoes-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .content-grid {
-        padding: 15px;
-    }
-    
-    .sidebar {
-        width: 280px;
-    }
-}
-
-/* ============================================
-   SALDOS POR MOEDA (4 CARDS LADO A LADO)
-   ============================================ */
+/* SALDOS POR MOEDA (4 CARDS LADO A LADO) */
 .saldos-moedas-section {
     padding: 25px 30px 15px;
 }
@@ -1035,7 +963,7 @@
 }
 
 .moeda-valor {
-    font-size: 28px;  /* 🔽 MENOR que o saldo único (era 48px) */
+    font-size: 28px;
     font-weight: bold;
     margin-bottom: 8px;
     white-space: nowrap;
@@ -1097,5 +1025,62 @@
     
     .moeda-valor {
         font-size: 24px;
+    }
+}
+
+/* RESPONSIVIDADE ESPECÍFICA */
+@media (max-width: 1024px) {
+    .content-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .acoes-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-header {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px;
+    }
+    
+    .header-left, .header-center, .header-right {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .saldo-section, .acoes-section, .content-grid {
+        padding: 20px;
+    }
+    
+    .saldo-detalhes {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .footer-content {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .saldo-valor {
+        font-size: 36px;
+    }
+    
+    .acoes-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .content-grid {
+        padding: 15px;
+    }
+    
+    .sidebar {
+        width: 280px;
     }
 }

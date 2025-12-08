@@ -1,0 +1,267 @@
+/* ============================================
+   ESTILOS GERAIS - COMPARTILHADOS
+   ============================================ */
+
+/* RESET E CONFIGURAÇÕES GERAIS */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+:root {
+    /* PALETA DE CORES DO SEU KIVY */
+    --cor-fundo: #0a0e15;
+    --cor-card: #0d1117;
+    --cor-borda: #1e232e;
+    --cor-texto: #e0e0e0;
+    --cor-texto-secundario: #8b949e;
+    --cor-primaria: #1a5fb4;
+    --cor-sucesso: #2ec27e;
+    --cor-alerta: #f39c12;
+    --cor-perigo: #e01b24;
+    --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.3);
+    --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.4);
+    --sombra-forte: 0 12px 24px rgba(0, 0, 0, 0.5);
+    --borda-radius: 12px;
+    --borda-radius-pequeno: 8px;
+}
+
+body {
+    background: var(--cor-fundo);
+    color: var(--cor-texto);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* UTILITÁRIOS */
+.hidden {
+    display: none !important;
+}
+
+/* CONTAINER PRINCIPAL */
+.app-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* HEADER COMPARTILHADO */
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 0;
+    margin-bottom: 30px;
+    border-bottom: 1px solid var(--cor-borda);
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.logo i {
+    color: var(--cor-primaria);
+    font-size: 28px;
+}
+
+.logo-text {
+    background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.page-title {
+    font-size: 28px;
+    font-weight: bold;
+    text-align: center;
+    background: linear-gradient(90deg, #fff, #e0e0e0);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.user-menu {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--cor-card);
+    border-radius: var(--borda-radius-pequeno);
+    border: 1px solid var(--cor-borda);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.user-menu:hover {
+    border-color: var(--cor-primaria);
+    transform: translateY(-2px);
+}
+
+.user-avatar {
+    font-size: 24px;
+    color: var(--cor-primaria);
+}
+
+.user-name {
+    font-weight: 600;
+}
+
+/* FOOTER COMPARTILHADO */
+.app-footer {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--cor-borda);
+}
+
+.footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--cor-texto-secundario);
+    font-size: 14px;
+}
+
+.status-online {
+    color: var(--cor-sucesso);
+    font-weight: 600;
+}
+
+/* TÍTULOS DE SEÇÃO */
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 22px;
+    margin-bottom: 25px;
+}
+
+.section-title i {
+    color: var(--cor-primaria);
+}
+
+/* CARDS GENÉRICOS */
+.card-generico {
+    background: var(--cor-card);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--borda-radius);
+    padding: 25px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.card-generico:hover {
+    border-color: var(--cor-primaria);
+    transform: translateY(-3px);
+    box-shadow: var(--sombra-media);
+}
+
+/* GRIDS GENÉRICOS */
+.grid-4-colunas {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+.grid-2-colunas {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.grid-1-coluna {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+/* RESPONSIVIDADE */
+@media (max-width: 1200px) {
+    .grid-4-colunas {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .grid-4-colunas,
+    .grid-2-colunas {
+        grid-template-columns: 1fr;
+    }
+    
+    .app-header {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .header-left, .header-center, .header-right {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* BOTÕES GENÉRICOS */
+.btn {
+    padding: 12px 24px;
+    border-radius: var(--borda-radius-pequeno);
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--cor-primaria), #2d8fff);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(26, 95, 180, 0.3);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--cor-texto);
+    border: 1px solid var(--cor-borda);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--cor-texto-secundario);
+}
+
+/* ANIMAÇÕES */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease;
+}
