@@ -951,8 +951,14 @@ function abrirTransferencia() {
             email: "pantanal@exemplo.com", 
             saldo: 48750.00
         };
+        
+        // 👇 ADICIONE ESTAS 2 LINHAS 👇
+        window.USER = { username: "pantanal", nome: "pantanal", email: "pantanal@exemplo.com" };
+        window.API_URL = "";
     </script>
 
     <script src="{{ url_for('static', filename='js/app_simples.js') }}"></script>
+    <!-- 👇 ADICIONE ESTA LINHA 👇 -->
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 </body>
 </html>
