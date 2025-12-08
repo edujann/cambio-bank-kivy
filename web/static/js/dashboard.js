@@ -291,6 +291,8 @@ function mostrarDadosDashboard(dashboard) {
 }
 
 function mostrarSaldosPorMoeda(contas) {
+    console.log('🔍 DEBUG [mostrarSaldosPorMoeda]: Contas recebidas:', contas);
+    
     // Inicializa com zeros
     const saldos = {
         USD: { valor: 0, conta: '--' },
@@ -308,28 +310,41 @@ function mostrarSaldosPorMoeda(contas) {
         }
     });
     
-    // Atualiza DOM
-    document.getElementById('saldoUSD').textContent = formatarMoeda(saldos.USD.valor, 'USD');
-    document.getElementById('contaUSD').textContent = `Conta: ${saldos.USD.conta}`;
+    console.log('🔍 Saldos processados:', saldos);
     
-    document.getElementById('saldoEUR').textContent = formatarMoeda(saldos.EUR.valor, 'EUR');
-    document.getElementById('contaEUR').textContent = `Conta: ${saldos.EUR.conta}`;
+    // Atualiza SOMENTE os elementos que EXISTEM
+    const saldoUSDElem = document.getElementById('saldoUSD');
+    const saldoBRLElem = document.getElementById('saldoBRL');
+    const saldoEURElem = document.getElementById('saldoEUR');
+    const saldoGBPElem = document.getElementById('saldoGBP');
     
-    document.getElementById('saldoGBP').textContent = formatarMoeda(saldos.GBP.valor, 'GBP');
-    document.getElementById('contaGBP').textContent = `Conta: ${saldos.GBP.conta}`;
+    if (saldoUSDElem) saldoUSDElem.textContent = formatarMoeda(saldos.USD.valor, 'USD');
+    if (saldoBRLElem) saldoBRLElem.textContent = formatarMoeda(saldos.BRL.valor, 'BRL');
+    if (saldoEURElem) saldoEURElem.textContent = formatarMoeda(saldos.EUR.valor, 'EUR');
+    if (saldoGBPElem) saldoGBPElem.textContent = formatarMoeda(saldos.GBP.valor, 'GBP');
     
-    document.getElementById('saldoBRL').textContent = formatarMoeda(saldos.BRL.valor, 'BRL');
-    document.getElementById('contaBRL').textContent = `Conta: ${saldos.BRL.conta}`;
+    // Elementos de conta (se não existirem, não tenta atualizar)
+    const contaUSDElem = document.getElementById('contaUSD');
+    const contaBRLElem = document.getElementById('contaBRL');
+    const contaEURElem = document.getElementById('contaEUR');
+    const contaGBPElem = document.getElementById('contaGBP');
     
-    // Calcula saldo total convertido para BRL (simplificado)
-    // Em produção, você usaria a cotação atual
+    if (contaUSDElem) contaUSDElem.textContent = `Conta: ${saldos.USD.conta}`;
+    if (contaBRLElem) contaBRLElem.textContent = `Conta: ${saldos.BRL.conta}`;
+    if (contaEURElem) contaEURElem.textContent = `Conta: ${saldos.EUR.conta}`;
+    if (contaGBPElem) contaGBPElem.textContent = `Conta: ${saldos.GBP.conta}`;
+    
+    // Calcula saldo total
     const saldoTotalBRL = 
-        (saldos.USD.valor * 5.0) +  // USD → BRL (cotação exemplo: 5.0)
-        (saldos.EUR.valor * 5.5) +  // EUR → BRL (cotação exemplo: 5.5)
-        (saldos.GBP.valor * 6.5) +  // GBP → BRL (cotação exemplo: 6.5)
+        (saldos.USD.valor * 5.3) +  // USD → BRL
+        (saldos.EUR.valor * 6.1) +  // EUR → BRL
+        (saldos.GBP.valor * 7.1) +  // GBP → BRL
         saldos.BRL.valor;
     
-    document.getElementById('saldoTotal').textContent = formatarMoeda(saldoTotalBRL, 'BRL');
+    const saldoTotalElem = document.getElementById('saldoTotal');
+    if (saldoTotalElem) {
+        saldoTotalElem.textContent = formatarMoeda(saldoTotalBRL, 'BRL');
+    }
 }
 
 // ============================================
