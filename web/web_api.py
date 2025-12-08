@@ -577,7 +577,7 @@ def criar_transferencia_cliente():
                         print(f"📎 Upload de invoice: {arquivo.filename}")
                         
                         # Upload para bucket 'documentos'
-                        supabase.storage.from_("documentos").upload(
+                        supabase.storage.from_("invoices").upload(
                             caminho,
                             arquivo_bytes,
                             file_options={"content-type": arquivo.content_type}
