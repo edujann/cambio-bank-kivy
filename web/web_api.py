@@ -374,13 +374,17 @@ def add_header(response):
 
 @app.route('/api/transferencias/criar', methods=['POST'])
 def criar_transferencia_cliente():
-    """Cliente cria transferência internacional (igual ao app Python)"""
+    """Cliente cria transferência internacional - SALVA NO SUPABASE REAL"""
     try:
-        dados = request.json
+        dados = request.json if request.is_json else {}
         
-        print(f"📨 Dados recebidos: {dados}")
+        # Se veio como FormData (com arquivo)
+        if not dados and request.form:
+            dados = json.loads(request.form.get('dados', '{}'))
         
-        # Validação básica (igual ao seu código Python)
+        print(f"📨 Dados recebidos para transferência: {dados}")
+        
+        # Validação básica
         campos_obrigatorios = ['usuario', 'conta_origem', 'valor', 'moeda', 'beneficiario']
         for campo in campos_obrigatorios:
             if campo not in dados:
@@ -389,12 +393,12 @@ def criar_transferencia_cliente():
                     "message": f"Campo '{campo}' é obrigatório"
                 }), 400
         
-        # Criar ID único (igual ao seu sistema Python)
+        # Criar ID único
         import random
         from datetime import datetime
         transferencia_id = f"TRF{int(datetime.now().timestamp())}{random.randint(1000, 9999)}"
         
-        # Preparar dados para Supabase (MESMOS CAMPOS do seu Python)
+        # Preparar dados para Supabase - COM COLUNAS CORRETAS!
         dados_supabase = {
             'id': transferencia_id,
             'tipo': 'transferencia_internacional',
@@ -405,7 +409,7 @@ def criar_transferencia_cliente():
             'conta_remetente': dados['conta_origem'],
             'descricao': dados.get('descricao', ''),
             'usuario': dados['usuario'],
-            'cliente': dados['usuario'],  # 🔥 IGUAL AO SEU PYTHON
+            'cliente': dados['usuario'],
             'beneficiario': dados['beneficiario'],
             'endereco_beneficiario': dados.get('endereco', ''),
             'cidade': dados.get('cidade', ''),
@@ -418,20 +422,52 @@ def criar_transferencia_cliente():
             'iban_account': dados.get('iban', ''),
             'aba_routing': dados.get('aba', ''),
             'finalidade': dados.get('finalidade', ''),
-            'created_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            'created_at': datetime.now().isoformat(),
+            'data_solicitacao': datetime.now().isoformat(),
+            'solicitado_por': dados['usuario']
         }
         
-        print(f"💾 Salvando no Supabase: {transferencia_id}")
+        print(f"💾 Salvando transferência REAL no Supabase: {transferencia_id}")
         
-        # Salvar no Supabase (MESMA TABELA que seu Python usa)
+        # Salvar NO SUPABASE REAL
         response = supabase.table('transferencias').insert(dados_supabase).execute()
         
         if response.data:
+            print(f"✅ Transferência salva no Supabase: {transferencia_id}")
+            
+            # Upload de arquivo se existir
+            if 'invoice' in request.files:
+                arquivo = request.files['invoice']
+                if arquivo and arquivo.filename:
+                    try:
+                        caminho = f"invoices/{transferencia_id}/{arquivo.filename}"
+                        arquivo_bytes = arquivo.read()
+                        
+                        # Upload para bucket 'documentos'
+                        supabase.storage.from_("documentos").upload(
+                            caminho,
+                            arquivo_bytes,
+                            file_options={"content-type": arquivo.content_type}
+                        )
+                        print(f"✅ Invoice salvo no Storage: {caminho}")
+                        
+                        # Atualizar transferência com info do invoice
+                        supabase.table('transferencias').update({
+                            'invoice_info': {
+                                'caminho': caminho,
+                                'nome_arquivo': arquivo.filename,
+                                'tipo': arquivo.content_type,
+                                'tamanho': len(arquivo_bytes)
+                            }
+                        }).eq('id', transferencia_id).execute()
+                        
+                    except Exception as upload_error:
+                        print(f"⚠️ Erro no upload do arquivo: {upload_error}")
+            
             return jsonify({
                 "success": True,
                 "message": "Transferência solicitada com sucesso!",
-                "transferencia_id": transferencia_id,
-                "dados": dados_supabase
+                "transferencia_id": transferencia_id
             })
         else:
             return jsonify({
@@ -450,66 +486,107 @@ def criar_transferencia_cliente():
     
 @app.route('/api/user')
 def get_user_info():
-    """Retorna informações do usuário logado (mock por enquanto)"""
-    # TODO: Implementar autenticação real
-    return jsonify({
-        "success": True,
-        "user": {
-            "username": "cliente_exemplo",
-            "nome": "João da Silva",
-            "tipo": "cliente"
-        }
-    })
+    """Retorna informações REAIS do usuário logado"""
+    try:
+        usuario_atual = 'pantanal'  # TODO: Autenticação
+        
+        response = supabase.table('usuarios')\
+            .select('username, nome, email, tipo, telefone, verificado, cambio_liberado')\
+            .eq('username', usuario_atual)\
+            .single()\
+            .execute()
+        
+        if response.data:
+            return jsonify({
+                "success": True,
+                "user": response.data
+            })
+        else:
+            # Fallback se não encontrar
+            return jsonify({
+                "success": True,
+                "user": {
+                    "username": usuario_atual,
+                    "nome": "Cliente Pantanal",
+                    "email": "cliente@email.com",
+                    "tipo": "cliente",
+                    "telefone": "",
+                    "verificado": True,
+                    "cambio_liberado": True
+                }
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar usuário do Supabase: {e}")
+        return jsonify({
+            "success": False,
+            "message": f"Erro ao carregar dados do usuário: {str(e)}"
+        }), 500
 
 @app.route('/api/user/contas')
 def get_user_contas():
-    """Retorna contas do usuário (mock por enquanto)"""
-    # TODO: Buscar do Supabase baseado no usuário
-    return jsonify({
-        "success": True,
-        "contas": [
-            {
-                "numero": "001234-5",
-                "moeda": "USD",
-                "saldo": 48750.00,
-                "tipo": "corrente"
-            },
-            {
-                "numero": "001235-6", 
-                "moeda": "EUR",
-                "saldo": 32500.00,
-                "tipo": "corrente"
-            },
-            {
-                "numero": "001236-7",
-                "moeda": "GBP", 
-                "saldo": 28000.00,
-                "tipo": "corrente"
-            }
-        ]
-    })
+    """Retorna contas REAIS do usuário logado"""
+    try:
+        # Por enquanto, usar usuário fixo 'pantanal' 
+        # Depois trocar por usuário logado quando tiver autenticação
+        usuario_atual = 'pantanal'
+        
+        response = supabase.table('contas')\
+            .select('id, moeda, saldo, cliente_username, cliente_nome, ativa')\
+            .eq('cliente_username', usuario_atual)\
+            .eq('ativa', True)\
+            .execute()
+        
+        if response.data:
+            return jsonify({
+                "success": True,
+                "contas": response.data
+            })
+        else:
+            # Se não tem contas, retorna vazio
+            return jsonify({
+                "success": True,
+                "contas": []
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar contas do Supabase: {e}")
+        return jsonify({
+            "success": False,
+            "message": f"Erro ao carregar contas: {str(e)}",
+            "contas": []
+        }), 500
 
 @app.route('/api/beneficiarios')
 def get_beneficiarios():
-    """Retorna beneficiários salvos (mock por enquanto)"""
-    # TODO: Buscar do Supabase baseado no usuário
-    return jsonify({
-        "success": True,
-        "beneficiarios": [
-            {
-                "id": "1",
-                "nome": "Microsoft Corporation",
-                "banco": "JPMorgan Chase Bank",
-                "pais": "Estados Unidos"
-            },
-            {
-                "id": "2",
-                "nome": "Amazon Web Services",
-                "banco": "Bank of America", 
-                "pais": "Estados Unidos"
-            }
-        ]
-    })
+    """Retorna beneficiários REAIS do usuário logado"""
+    try:
+        usuario_atual = 'pantanal'  # TODO: Autenticação
+        
+        response = supabase.table('beneficiarios')\
+            .select('id, nome, endereco, cidade, pais, banco, swift, iban, aba, cidade_banco, pais_banco, endereco_banco')\
+            .eq('cliente_username', usuario_atual)\
+            .eq('ativo', True)\
+            .execute()
+        
+        if response.data:
+            return jsonify({
+                "success": True,
+                "beneficiarios": response.data
+            })
+        else:
+            return jsonify({
+                "success": True,
+                "beneficiarios": []
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar beneficiários: {e}")
+        return jsonify({
+            "success": False,
+            "message": f"Erro ao carregar beneficiários: {str(e)}",
+            "beneficiarios": []
+        }), 500
 
 @app.route('/transferencia')
 def tela_transferencia():
@@ -522,17 +599,50 @@ def tela_transferencia():
 
 @app.route('/api/user')
 def get_user_info_web():
-    """Retorna informações do usuário logado"""
-    return jsonify({
-        "success": True,
-        "user": {
-            "username": "cliente_exemplo",
-            "nome": "João da Silva",
-            "email": "joao@email.com",
-            "tipo": "cliente"
-        }
-    })
-
+    """Retorna informações REAIS do usuário do Supabase"""
+    try:
+        # TODO: Quando tiver autenticação, buscar usuário logado
+        # Por enquanto, buscar um usuário exemplo ou mock
+        
+        # Tentar buscar usuários do Supabase
+        response = supabase.table('usuarios').select('*').limit(1).execute()
+        
+        if response.data and len(response.data) > 0:
+            usuario = response.data[0]
+            return jsonify({
+                "success": True,
+                "user": {
+                    "id": usuario.get('id'),
+                    "username": usuario.get('username', 'cliente'),
+                    "nome": usuario.get('nome', 'Cliente Exemplo'),
+                    "email": usuario.get('email', 'cliente@email.com'),
+                    "tipo": usuario.get('tipo', 'cliente'),
+                    "telefone": usuario.get('telefone', ''),
+                    "documento": usuario.get('documento', '')
+                }
+            })
+        else:
+            # Se não tem usuários no Supabase, criar um mock melhor
+            return jsonify({
+                "success": True,
+                "user": {
+                    "id": "user_001",
+                    "username": "cliente_exemplo",
+                    "nome": "João da Silva",
+                    "email": "joao.silva@email.com",
+                    "tipo": "cliente",
+                    "telefone": "+55 11 99999-9999",
+                    "documento": "123.456.789-00"
+                }
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar usuário do Supabase: {e}")
+        return jsonify({
+            "success": False,
+            "message": f"Erro ao carregar dados do usuário: {str(e)}"
+        }), 500
+    
 @app.route('/api/user/contas')
 def get_user_contas_web():
     """Retorna contas do usuário"""
