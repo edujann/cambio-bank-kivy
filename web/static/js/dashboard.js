@@ -425,6 +425,10 @@ function renderizarTransacoes(transacoes) {
                 } else if (descUpper.includes('VENDA')) {
                     tituloFinal = 'Venda de Moeda';
                 }
+            } else if (tipo === 'cambio_admin') {
+                // Para câmbio admin, podemos deixar "Câmbio Administrativo"
+                // ou adicionar informação específica se quiser
+                tituloFinal = 'Câmbio Administrativo';
             }
             
             return `
@@ -757,27 +761,15 @@ function determinarFluxoTransacao(trans) {
             let moedaDestino = trans.moeda_destino;
             let operacao = trans.operacao;
             
-            // 1. Primeiro tenta extrair da descrição usando regex
-            if (trans.descricao) {
-                // Padrão 1: "CÂMBIO CLIENTE - COMPRA - USD → EUR"
-                const padrao1 = trans.descricao.match(/(COMPRA|VENDA)\s*[-\s]*([A-Z]{3})\s*→\s*([A-Z]{3})/i);
-                if (padrao1) {
-                    operacao = padrao1[1].toLowerCase();
-                    moedaOrigem = padrao1[2];
-                    moedaDestino = padrao1[3];
-                    console.log('✅ Extraído (padrão 1):', { operacao, moedaOrigem, moedaDestino });
-                }
-                
-                // Padrão 2: "CÂMBIO CLIENTE - VENDA - BRL → USD"
-                const padrao2 = trans.descricao.match(/([A-Z]{3})\s*→\s*([A-Z]{3})/i);
-                if (padrao2 && !moedaOrigem) {
-                    moedaOrigem = padrao2[1];
-                    moedaDestino = padrao2[2];
-                    console.log('✅ Extraído (padrão 2):', { moedaOrigem, moedaDestino });
-                }
-            }
+            console.log('🔍 DEBUG formato câmbio:', {
+                id: trans.id,
+                descricao: trans.descricao,
+                temMoedaOrigem: !!moedaOrigem,
+                temMoedaDestino: !!moedaDestino,
+                temOperacao: !!operacao
+            });
             
-            // 2. Se ainda não tem operação, tenta inferir pela descrição
+            // 1. Se não tem operação, tenta detectar pela descrição
             if (!operacao && trans.descricao) {
                 const descUpper = trans.descricao.toUpperCase();
                 if (descUpper.includes('COMPRA') || descUpper.includes('COMPRA -')) {
@@ -787,35 +779,53 @@ function determinarFluxoTransacao(trans) {
                 }
             }
             
-            // 3. Fallbacks para moedas
-            if (!moedaOrigem) {
-                // Se não tem moeda origem, usa a moeda da transação
-                moedaOrigem = trans.moeda || '???';
+            // 2. Extrair moedas da descrição usando REGEX melhorado
+            if (trans.descricao && (!moedaOrigem || !moedaDestino)) {
+                // Padrões: "USD → EUR", "BRL → USD", "USD->EUR"
+                const padraoMoedas = trans.descricao.match(/([A-Z]{3})\s*[→-]\s*([A-Z]{3})/i);
+                if (padraoMoedas) {
+                    moedaOrigem = moedaOrigem || padraoMoedas[1];
+                    moedaDestino = moedaDestino || padraoMoedas[2];
+                    console.log('✅ Moedas extraídas:', { moedaOrigem, moedaDestino });
+                }
             }
+            
+            // 3. Fallback: se ainda não tem moeda origem, usa a moeda da transação
+            if (!moedaOrigem) {
+                moedaOrigem = trans.moeda || '???';
+                console.log('⚠️ Usando moeda transação como origem:', moedaOrigem);
+            }
+            
+            // 4. Fallback para moeda destino (se ainda não tem)
             if (!moedaDestino) {
-                // Se não tem moeda destino, tenta inferir
-                moedaDestino = '???';
+                // Tenta inferir do par_moedas
                 if (trans.par_moedas) {
                     const partes = trans.par_moedas.split('_');
                     if (partes.length === 2) {
                         moedaDestino = partes[1];
                     }
+                } else {
+                    // Se for compra, destino é diferente da origem
+                    // Se for venda, destino pode ser a moeda oposta
+                    moedaDestino = '???';
                 }
             }
             
-            // 4. Montar descrição
+            // 5. Montar descrição FINAL
             if (operacao === 'compra') {
                 descricao = `Comprou ${moedaDestino} com ${moedaOrigem}`;
             } else if (operacao === 'venda') {
                 descricao = `Vendeu ${moedaOrigem} por ${moedaDestino}`;
-            } else {
+            } else if (moedaOrigem && moedaDestino) {
                 descricao = `Câmbio ${moedaOrigem} → ${moedaDestino}`;
+            } else {
+                descricao = 'Operação de câmbio';
             }
             
-            // 5. Adicionar detalhes (cotação)
+            // 6. Adicionar detalhes (cotação)
             if (trans.cotacao) {
                 detalhes = `Cotação: ${parseFloat(trans.cotacao).toFixed(4)}`;
-            } else if (trans.descricao && trans.descricao.includes('→')) {
+            } else if (trans.descricao && (trans.descricao.includes('→') || trans.descricao.includes('-'))) {
                 detalhes = 'Operação de câmbio';
             }
             break;
@@ -882,33 +892,129 @@ function formatarDetalhesTransacao(trans) {
      * Retorna: { descricao: string, detalhes: string }
      */
     const tipo = classificarTransacao(trans);
+    const fluxo = determinarFluxoTransacao(trans);  // Calculado uma vez só
     
-    console.log('🔍 DEBUG [formatarDetalhes]:', trans.id, 'Tipo:', tipo);
+    console.log('🔍 DEBUG [formatarDetalhes]:', trans.id, 'Tipo:', tipo, 'Fluxo:', fluxo.ehEntrada ? 'ENTRADA' : 'SAÍDA');
     
     let descricao = '';
     let detalhes = '';
     
     switch(tipo) {
         case 'cambio_cliente':
-            if (trans.operacao === 'compra') {
-                descricao = `Comprou ${trans.moeda_destino} com ${trans.moeda_origem}`;
-            } else {
-                descricao = `Vendeu ${trans.moeda_origem} por ${trans.moeda_destino}`;
+            // Extrair informações da descrição (padrão: "CÂMBIO CLIENTE - COMPRA - USD → EUR")
+            let moedaOrigem = trans.moeda_origem;
+            let moedaDestino = trans.moeda_destino;
+            let operacao = trans.operacao;
+            
+            // 1. Se não tem operação, tenta detectar pela descrição
+            if (!operacao && trans.descricao) {
+                const descUpper = trans.descricao.toUpperCase();
+                if (descUpper.includes('COMPRA') || descUpper.includes('COMPRA -')) {
+                    operacao = 'compra';
+                } else if (descUpper.includes('VENDA') || descUpper.includes('VENDA -')) {
+                    operacao = 'venda';
+                }
             }
+            
+            // 2. Extrair moedas da descrição usando REGEX melhorado
+            if (trans.descricao && (!moedaOrigem || !moedaDestino)) {
+                // Padrões: "USD → EUR", "BRL → USD", "USD->EUR"
+                const padraoMoedas = trans.descricao.match(/([A-Z]{3})\s*[→-]\s*([A-Z]{3})/i);
+                if (padraoMoedas) {
+                    moedaOrigem = moedaOrigem || padraoMoedas[1];
+                    moedaDestino = moedaDestino || padraoMoedas[2];
+                    console.log('✅ Câmbio cliente: moedas extraídas', { moedaOrigem, moedaDestino });
+                }
+            }
+            
+            // 3. Fallback: se ainda não tem moeda origem, usa a moeda da transação
+            if (!moedaOrigem) {
+                moedaOrigem = trans.moeda || '???';
+            }
+            
+            // 4. Fallback para moeda destino
+            if (!moedaDestino) {
+                moedaDestino = '???';
+            }
+            
+            // 5. Montar descrição FINAL
+            if (operacao === 'compra') {
+                descricao = `Comprou ${moedaDestino} com ${moedaOrigem}`;
+            } else if (operacao === 'venda') {
+                descricao = `Vendeu ${moedaOrigem} por ${moedaDestino}`;
+            } else if (moedaOrigem && moedaDestino) {
+                descricao = `Câmbio ${moedaOrigem} → ${moedaDestino}`;
+            } else {
+                descricao = 'Operação de câmbio';
+            }
+            
+            // 6. Adicionar detalhes (cotação)
             if (trans.cotacao) {
                 detalhes = `Cotação: ${parseFloat(trans.cotacao).toFixed(4)}`;
+            } else if (trans.descricao && (trans.descricao.includes('→') || trans.descricao.includes('-'))) {
+                detalhes = 'Operação de câmbio';
             }
             break;
             
         case 'cambio_admin':
-            descricao = `${trans.moeda_origem} → ${trans.moeda_destino}`;
+            // CÂMBIO ADMINISTRATIVO (executado pelo sistema)
+            
+            // 1. Tentar extrair moedas da descrição se campos estiverem missing
+            let moedaOrigemAdmin = trans.moeda_origem;
+            let moedaDestinoAdmin = trans.moeda_destino;
+            
+            if ((!moedaOrigemAdmin || !moedaDestinoAdmin) && trans.descricao) {
+                // Padrão: "CÂMBIO ADMIN - USD → BRL" ou "CÂMBIO ADMIN - USD->BRL"
+                const padrao = trans.descricao.match(/([A-Z]{3})\s*[→-]\s*([A-Z]{3})/i);
+                if (padrao) {
+                    moedaOrigemAdmin = moedaOrigemAdmin || padrao[1];
+                    moedaDestinoAdmin = moedaDestinoAdmin || padrao[2];
+                    console.log('✅ Câmbio admin: moedas extraídas', { moedaOrigemAdmin, moedaDestinoAdmin });
+                }
+            }
+            
+            // Fallbacks
+            if (!moedaOrigemAdmin) moedaOrigemAdmin = trans.moeda || '???';
+            if (!moedaDestinoAdmin) moedaDestinoAdmin = '???';
+            
+            // 2. Montar descrição baseada no fluxo (já calculado)
+            if (fluxo.ehEntrada) {
+                // Usuário RECEBEU moeda (entrada)
+                descricao = `Recebeu ${moedaDestinoAdmin} (câmbio administrativo)`;
+            } else {
+                // Usuário ENVIOU moeda (saída)
+                descricao = `Pagou ${moedaOrigemAdmin} (câmbio administrativo)`;
+            }
+            
+            // 3. Detalhes
             if (trans.cotacao) {
-                detalhes = `Cotação admin: ${parseFloat(trans.cotacao).toFixed(4)}`;
+                detalhes = `Cotação: ${parseFloat(trans.cotacao).toFixed(4)}`;
+            } else if (trans.taxa_principal_registro) {
+                detalhes = `Taxa usada: ${parseFloat(trans.taxa_principal_registro).toFixed(4)}`;
+            } else if (trans.descricao) {
+                // Tenta extrair info útil da descrição
+                const descLimpa = trans.descricao.replace('CÂMBIO ADMIN - ', '').replace('CÂMBIO ADMIN ', '');
+                if (descLimpa && descLimpa !== trans.descricao) {
+                    detalhes = descLimpa;
+                } else {
+                    detalhes = 'Câmbio executado pelo sistema';
+                }
+            } else {
+                detalhes = 'Câmbio administrativo';
             }
             break;
             
         case 'transferencia_exterior':
-            descricao = trans.beneficiario || 'Beneficiário';
+            // MOSTRA APENAS O NOME DO BENEFICIÁRIO (não a palavra "Beneficiário")
+            if (trans.beneficiario && trans.beneficiario.trim() !== '') {
+                descricao = trans.beneficiario;
+            } else if (trans.descricao && trans.descricao.trim() !== '') {
+                descricao = trans.descricao;
+            } else {
+                descricao = 'Transferência internacional';
+            }
+            
+            // Detalhes: cidade/pais (apenas se existir)
             if (trans.cidade || trans.pais) {
                 detalhes = `${trans.cidade || ''}${trans.cidade && trans.pais ? ', ' : ''}${trans.pais || ''}`;
             }
@@ -918,7 +1024,7 @@ function formatarDetalhesTransacao(trans) {
             break;
             
         case 'transferencia_interna':
-            const fluxo = determinarFluxoTransacao(trans);
+            // Já tem fluxo calculado, não precisa chamar novamente
             if (fluxo.ehEntrada) {
                 descricao = 'Recebido de outro cliente';
             } else {
