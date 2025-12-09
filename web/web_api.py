@@ -1159,8 +1159,12 @@ def get_beneficiario_web(benef_id):
 @app.route('/minhas-transferencias')
 def minhas_transferencias():
     """Tela de minhas transferências (histórico, status, invoices, comprovantes)"""
+    # VERIFICAR SE USUÁRIO ESTÁ LOGADO
     if 'usuario' not in session:
+        print("⚠️ Usuário não logado! Redirecionando para login...")
         return redirect('/login')
+    
+    print(f"✅ Usuário {session['usuario']} acessando minhas-transferencias")
     
     return render_template('minhas_transferencias.html',
                          usuario=session['usuario'],
