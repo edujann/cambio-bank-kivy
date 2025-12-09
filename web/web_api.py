@@ -1210,101 +1210,135 @@ def api_transferencias_internacionais():
     print(f"🔍 [API] Buscando transferências internacionais para: {usuario_nome}")
     
     try:
-        # 1. BUSCAR AS CONTAS DO USUÁRIO
+        # 1. BUSCAR O USUÁRIO E SUAS CONTAS
         user_response = supabase.table('usuarios').select('contas').eq('username', usuario_nome).execute()
         
         if not user_response.data:
-            print(f"❌ [API] Usuário {usuario_nome} não encontrado")
+            print(f"❌ [API] Usuário não encontrado na tabela usuarios")
             return jsonify([])
         
         contas_usuario = user_response.data[0].get('contas', [])
         print(f"📊 [API] Contas do usuário: {contas_usuario}")
         
-        if not contas_usuario:
-            print(f"⚠️ [API] Usuário não tem contas cadastradas")
-            return jsonify([])
-        
-        # 2. BUSCAR TRANSFERÊNCIAS INTERNACIONAIS
+        # 2. BUSCAR TRANSFERÊNCIAS POR MÚLTIPLOS CAMPOS
         todas_transferencias = []
+        ids_ja_adicionados = set()
         
+        # ESTRATÉGIA 1: Buscar pelo campo 'cliente'
+        print(f"🔍 Buscando pelo campo 'cliente' = {usuario_nome}")
+        response_cliente = supabase.table('transferencias').select(
+            '*'
+        ).eq('cliente', usuario_nome).execute()
+        
+        if response_cliente.data:
+            for transf in response_cliente.data:
+                if transf['id'] not in ids_ja_adicionados:
+                    todas_transferencias.append(transf)
+                    ids_ja_adicionados.add(transf['id'])
+            print(f"✅ Encontradas {len(response_cliente.data)} pelo campo 'cliente'")
+        
+        # ESTRATÉGIA 2: Buscar pelo campo 'usuario'
+        print(f"🔍 Buscando pelo campo 'usuario' = {usuario_nome}")
+        response_usuario = supabase.table('transferencias').select(
+            '*'
+        ).eq('usuario', usuario_nome).execute()
+        
+        if response_usuario.data:
+            novas = 0
+            for transf in response_usuario.data:
+                if transf['id'] not in ids_ja_adicionados:
+                    todas_transferencias.append(transf)
+                    ids_ja_adicionados.add(transf['id'])
+                    novas += 1
+            print(f"✅ Encontradas {novas} pelo campo 'usuario' (total únicas)")
+        
+        # ESTRATÉGIA 3: Buscar pelas contas do usuário
         for conta in contas_usuario:
-            print(f"   🔍 Buscando transferências para conta: {conta}")
+            print(f"🔍 Buscando pela conta '{conta}'")
+            response_conta = supabase.table('transferencias').select(
+                '*'
+            ).eq('conta_remetente', conta).execute()
             
-            # Buscar pelo campo 'conta_remetente' (que tem os valores reais)
-            response = supabase.table('transferencias').select(
-                'id, tipo, status, valor, moeda, beneficiario, '
-                'nome_banco, codigo_swift, iban_account, pais, '
-                'data_solicitacao, data, finalidade, '
-                'invoice_info, motivo_recusa, created_at, '
-                'conta_remetente, conta, usuario, cliente'
-            ).eq('tipo', 'transferencia_internacional').eq('conta_remetente', conta).execute()
-            
-            if response.data:
-                todas_transferencias.extend(response.data)
-                print(f"     ✅ Encontradas: {len(response.data)}")
-                
-                # Log das primeiras 2 de cada conta
-                for i, transf in enumerate(response.data[:2]):
-                    print(f"       {i+1}. ID: {transf.get('id')}, Status: {transf.get('status')}")
-                    print(f"           {transf.get('beneficiario')} - {transf.get('valor')} {transf.get('moeda')}")
+            if response_conta.data:
+                novas = 0
+                for transf in response_conta.data:
+                    if transf['id'] not in ids_ja_adicionados:
+                        todas_transferencias.append(transf)
+                        ids_ja_adicionados.add(transf['id'])
+                        novas += 1
+                print(f"✅ Encontradas {novas} pela conta '{conta}'")
         
-        # 3. ORDENAR E RETORNAR
-        if todas_transferencias:
-            # Ordenar por data (mais recente primeiro)
-            todas_transferencias.sort(
-                key=lambda x: x.get('created_at') or x.get('data_solicitacao') or x.get('data') or '', 
-                reverse=True
+        print(f"📊 [API] Total de transferências únicas encontradas: {len(todas_transferencias)}")
+        
+        # 3. FILTRAR APENAS INTERNACIONAIS
+        transferencias_internacionais = []
+        
+        for transf in todas_transferencias:
+            tipo = transf.get('tipo', '')
+            
+            # VERIFICAR SE É INTERNACIONAL
+            is_internacional = (
+                tipo == 'transferencia_internacional' or
+                'internacional' in str(tipo).lower() or
+                transf.get('codigo_swift') or
+                transf.get('iban_account') or
+                (transf.get('pais') and transf.get('pais').lower() != 'brasil')
             )
             
-            print(f"🎯 [API] Total de transferências internacionais: {len(todas_transferencias)}")
+            if is_internacional:
+                transferencias_internacionais.append(transf)
+        
+        print(f"🎯 [API] Transferências internacionais filtradas: {len(transferencias_internacionais)}")
+        
+        # 4. LOG DETALHADO
+        if transferencias_internacionais:
+            print(f"📋 TRANSFERÊNCIAS INTERNACIONAIS ENCONTRADAS:")
+            for i, t in enumerate(transferencias_internacionais):
+                print(f"   {i+1}. ID: {t.get('id')}")
+                print(f"      Tipo: {t.get('tipo')}")
+                print(f"      Status: {t.get('status')}")
+                print(f"      Cliente: {t.get('cliente')}")
+                print(f"      Usuário: {t.get('usuario')}")
+                print(f"      Conta: {t.get('conta_remetente')}")
+                print(f"      Beneficiário: {t.get('beneficiario')}")
+                print(f"      Valor: {t.get('valor')} {t.get('moeda')}")
+        
+        # 5. FORMATAR RESPOSTA
+        resultado = []
+        for t in transferencias_internacionais:
+            invoice_info = t.get('invoice_info') or {}
             
-            # Preparar resposta formatada
-            transferencias_formatadas = []
-            for transf in todas_transferencias:
-                # Extrair status do invoice
-                invoice_info = transf.get('invoice_info') or {}
-                invoice_status = invoice_info.get('status') if isinstance(invoice_info, dict) else None
-                
-                transferencias_formatadas.append({
-                    'id': transf.get('id'),
-                    'tipo': transf.get('tipo'),
-                    'status': transf.get('status'),
-                    'beneficiario': transf.get('beneficiario'),
-                    'nome_banco': transf.get('nome_banco'),
-                    'codigo_swift': transf.get('codigo_swift'),
-                    'iban_account': transf.get('iban_account'),
-                    'pais': transf.get('pais'),
-                    'valor': float(transf.get('valor', 0)) if transf.get('valor') else 0,
-                    'moeda': transf.get('moeda', 'USD'),
-                    'data': transf.get('data') or transf.get('data_solicitacao') or transf.get('created_at'),
-                    'finalidade': transf.get('finalidade'),
-                    'descricao': transf.get('finalidade'),  # Usar finalidade como descrição
-                    'invoice': bool(invoice_info),
-                    'invoice_status': invoice_status,
-                    'invoice_recusada': invoice_status == 'rejected' or transf.get('status') == 'rejected',
-                    'motivo_recusa': transf.get('motivo_recusa') or 
-                                    (invoice_info.get('motivo_recusa') if isinstance(invoice_info, dict) else None),
-                    'conta_remetente': transf.get('conta_remetente'),
-                    'created_at': transf.get('created_at')
-                })
-            
-            # Log resumido
-            print(f"📋 Resumo das transferências:")
-            for i, t in enumerate(transferencias_formatadas[:5]):
-                print(f"   {i+1}. {t['id']} - {t['status']} - {t['valor']} {t['moeda']}")
-                print(f"       {t['beneficiario']} ({t['pais']})")
-            
-            return jsonify(transferencias_formatadas)
-        else:
-            print(f"📭 [API] Nenhuma transferência internacional encontrada")
-            print(f"   Contas pesquisadas: {contas_usuario}")
-            print(f"   Campo usado: conta_remetente")
-            return jsonify([])
+            resultado.append({
+                'id': t['id'],
+                'tipo': t.get('tipo'),
+                'status': t.get('status'),
+                'beneficiario': t.get('beneficiario'),
+                'nome_banco': t.get('nome_banco'),
+                'codigo_swift': t.get('codigo_swift'),
+                'iban_account': t.get('iban_account'),
+                'pais': t.get('pais'),
+                'valor': float(t['valor']) if t.get('valor') else 0,
+                'moeda': t.get('moeda', 'USD'),
+                'data': t.get('data') or t.get('data_solicitacao') or t.get('created_at'),
+                'finalidade': t.get('finalidade'),
+                'descricao': t.get('finalidade'),
+                'invoice': bool(invoice_info),
+                'invoice_status': invoice_info.get('status') if isinstance(invoice_info, dict) else None,
+                'invoice_recusada': t.get('status') == 'rejected' or 
+                                   (invoice_info.get('status') == 'rejected' if isinstance(invoice_info, dict) else False),
+                'motivo_recusa': t.get('motivo_recusa'),
+                'conta_remetente': t.get('conta_remetente'),
+                'cliente': t.get('cliente'),
+                'usuario': t.get('usuario'),
+                'created_at': t.get('created_at')
+            })
+        
+        return jsonify(resultado)
         
     except Exception as e:
         print(f"❌ [API] Erro: {str(e)}")
         import traceback
-        print(f"📝 Traceback: {traceback.format_exc()}")
+        traceback.print_exc()
         return jsonify([])
 
 if __name__ == '__main__':
