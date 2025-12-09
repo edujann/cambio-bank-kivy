@@ -1206,44 +1206,105 @@ def api_transferencias_internacionais():
     if 'usuario' not in session:
         return jsonify({'error': 'Não autenticado'}), 401
     
-    usuario = session['usuario']
-    print(f"🔍 [API] Buscando transferências internacionais para: {usuario}")
+    usuario_nome = session['usuario']
+    print(f"🔍 [API] Buscando transferências internacionais para: {usuario_nome}")
     
     try:
-        # Buscar transferências do Supabase
-        response = supabase.table('transferencias').select('*').eq('usuario', usuario).execute()
+        # 1. BUSCAR AS CONTAS DO USUÁRIO
+        user_response = supabase.table('usuarios').select('contas').eq('username', usuario_nome).execute()
         
-        transferencias = []
-        if response.data:
-            print(f"📊 [API] Total de transferências encontradas: {len(response.data)}")
+        if not user_response.data:
+            print(f"❌ [API] Usuário {usuario_nome} não encontrado")
+            return jsonify([])
+        
+        contas_usuario = user_response.data[0].get('contas', [])
+        print(f"📊 [API] Contas do usuário: {contas_usuario}")
+        
+        if not contas_usuario:
+            print(f"⚠️ [API] Usuário não tem contas cadastradas")
+            return jsonify([])
+        
+        # 2. BUSCAR TRANSFERÊNCIAS INTERNACIONAIS
+        todas_transferencias = []
+        
+        for conta in contas_usuario:
+            print(f"   🔍 Buscando transferências para conta: {conta}")
             
-            # Filtrar apenas internacionais
-            for transf in response.data:
-                tipo = transf.get('tipo', '')
-                # Verificar se é internacional
-                is_internacional = (
-                    tipo == 'transferencia_internacional' or 
-                    tipo == 'internacional' or
-                    'internacional' in str(tipo).lower() or
-                    transf.get('swift') or 
-                    transf.get('codigo_swift') or
-                    transf.get('iban') or
-                    transf.get('iban_account') or
-                    transf.get('pais_beneficiario')
-                )
+            # Buscar pelo campo 'conta_remetente' (que tem os valores reais)
+            response = supabase.table('transferencias').select(
+                'id, tipo, status, valor, moeda, beneficiario, '
+                'nome_banco, codigo_swift, iban_account, pais, '
+                'data_solicitacao, data, finalidade, '
+                'invoice_info, motivo_recusa, created_at, '
+                'conta_remetente, conta, usuario, cliente'
+            ).eq('tipo', 'transferencia_internacional').eq('conta_remetente', conta).execute()
+            
+            if response.data:
+                todas_transferencias.extend(response.data)
+                print(f"     ✅ Encontradas: {len(response.data)}")
                 
-                if is_internacional:
-                    transferencias.append(transf)
-                    print(f"✅ [API] Internacional: ID {transf.get('id')} - {tipo}")
+                # Log das primeiras 2 de cada conta
+                for i, transf in enumerate(response.data[:2]):
+                    print(f"       {i+1}. ID: {transf.get('id')}, Status: {transf.get('status')}")
+                    print(f"           {transf.get('beneficiario')} - {transf.get('valor')} {transf.get('moeda')}")
         
-        print(f"🎯 [API] Transferências internacionais filtradas: {len(transferencias)}")
-        
-        # REMOVER PARTE DE DADOS DE EXEMPLO - SEMPRE RETORNAR O QUE TEM NO BANCO
-        return jsonify(transferencias)
+        # 3. ORDENAR E RETORNAR
+        if todas_transferencias:
+            # Ordenar por data (mais recente primeiro)
+            todas_transferencias.sort(
+                key=lambda x: x.get('created_at') or x.get('data_solicitacao') or x.get('data') or '', 
+                reverse=True
+            )
+            
+            print(f"🎯 [API] Total de transferências internacionais: {len(todas_transferencias)}")
+            
+            # Preparar resposta formatada
+            transferencias_formatadas = []
+            for transf in todas_transferencias:
+                # Extrair status do invoice
+                invoice_info = transf.get('invoice_info') or {}
+                invoice_status = invoice_info.get('status') if isinstance(invoice_info, dict) else None
+                
+                transferencias_formatadas.append({
+                    'id': transf.get('id'),
+                    'tipo': transf.get('tipo'),
+                    'status': transf.get('status'),
+                    'beneficiario': transf.get('beneficiario'),
+                    'nome_banco': transf.get('nome_banco'),
+                    'codigo_swift': transf.get('codigo_swift'),
+                    'iban_account': transf.get('iban_account'),
+                    'pais': transf.get('pais'),
+                    'valor': float(transf.get('valor', 0)) if transf.get('valor') else 0,
+                    'moeda': transf.get('moeda', 'USD'),
+                    'data': transf.get('data') or transf.get('data_solicitacao') or transf.get('created_at'),
+                    'finalidade': transf.get('finalidade'),
+                    'descricao': transf.get('finalidade'),  # Usar finalidade como descrição
+                    'invoice': bool(invoice_info),
+                    'invoice_status': invoice_status,
+                    'invoice_recusada': invoice_status == 'rejected' or transf.get('status') == 'rejected',
+                    'motivo_recusa': transf.get('motivo_recusa') or 
+                                    (invoice_info.get('motivo_recusa') if isinstance(invoice_info, dict) else None),
+                    'conta_remetente': transf.get('conta_remetente'),
+                    'created_at': transf.get('created_at')
+                })
+            
+            # Log resumido
+            print(f"📋 Resumo das transferências:")
+            for i, t in enumerate(transferencias_formatadas[:5]):
+                print(f"   {i+1}. {t['id']} - {t['status']} - {t['valor']} {t['moeda']}")
+                print(f"       {t['beneficiario']} ({t['pais']})")
+            
+            return jsonify(transferencias_formatadas)
+        else:
+            print(f"📭 [API] Nenhuma transferência internacional encontrada")
+            print(f"   Contas pesquisadas: {contas_usuario}")
+            print(f"   Campo usado: conta_remetente")
+            return jsonify([])
         
     except Exception as e:
-        print(f"❌ [API] Erro ao buscar transferências: {str(e)}")
-        # Retornar array vazio em caso de erro
+        print(f"❌ [API] Erro: {str(e)}")
+        import traceback
+        print(f"📝 Traceback: {traceback.format_exc()}")
         return jsonify([])
 
 if __name__ == '__main__':
