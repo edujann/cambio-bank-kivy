@@ -366,6 +366,7 @@ function renderizarBeneficiarios(beneficiarios) {
 
 function renderizarTransacoes(transacoes) {
     console.log('🔍 DEBUG [renderizarTransacoes MELHORADA]: Iniciando...');
+    console.log('👤 Usuário atual:', USER.username); // ← ADICIONE ESTA LINHA
     
     const transacoesLista = document.getElementById('transacoesLista');
     if (!transacoesLista) {
@@ -416,7 +417,10 @@ function renderizarTransacoes(transacoes) {
             const detalhes = formatarDetalhesTransacao(trans);
             
             return `
-                <div class="transacao-item ${fluxo.tipoFluxo}">
+                <div class="transacao-item ${fluxo.tipoFluxo}" 
+                    data-tipo="${tipo}" 
+                    data-status="${trans.status}"
+                    data-id="${trans.id}">
                     <div class="transacao-icon" style="color: ${config.corIcone};">
                         <i class="${config.icone}"></i>
                     </div>
@@ -661,10 +665,30 @@ function classificarTransacao(trans) {
     
     // 1. Câmbio (cliente ou admin)
     if (trans.tipo === 'cambio') {
+        // Verifica se é cambio_admin
         if (trans.operacao === 'cambio_admin') {
             return 'cambio_admin';
-        } else if (trans.operacao === 'compra' || trans.operacao === 'venda') {
+        }
+        
+        // Tenta detectar compra/venda pela descrição se operacao estiver undefined
+        const descricao = (trans.descricao || '').toUpperCase();
+        if (descricao.includes('COMPRA') || descricao.includes('COMPRA -')) {
+            console.log('✅ Detectado: Câmbio COMPRA pela descrição');
             return 'cambio_cliente';
+        } else if (descricao.includes('VENDA') || descricao.includes('VENDA -')) {
+            console.log('✅ Detectado: Câmbio VENDA pela descrição');
+            return 'cambio_cliente';
+        }
+        
+        // Se tem par_moedas e campos de câmbio, assume que é cambio_cliente
+        if (trans.par_moedas || trans.moeda_origem || trans.moeda_destino) {
+            console.log('✅ Detectado: Câmbio cliente por campos de câmbio');
+            return 'cambio_cliente';
+        }
+        
+        // Fallback para cambio_admin se executado por admin
+        if (trans.executado_por === 'admin' || trans.usuario === 'admin') {
+            return 'cambio_admin';
         }
     }
     
@@ -717,15 +741,25 @@ function determinarFluxoTransacao(trans) {
             break;
             
         case 'cambio_cliente':
-            // Para COMPRA: usuário RECEBE moeda_destino (entrada na conta destino)
-            // Para VENDA: usuário RECEBE moeda_origem (entrada na conta remetente)
-            if (trans.operacao === 'compra') {
-                ehEntrada = trans.conta_destinatario === usuarioAtual;  // Recebe moeda destino
-            } else if (trans.operacao === 'venda') {
-                ehEntrada = trans.conta_remetente === usuarioAtual;     // Recebe moeda origem
+            // Tenta detectar compra/venda
+            const descricao = (trans.descricao || '').toUpperCase();
+            const isCompra = descricao.includes('COMPRA') || descricao.includes('COMPRA -');
+            const isVenda = descricao.includes('VENDA') || descricao.includes('VENDA -');
+            
+            if (isCompra) {
+                // COMPRA: usuário RECEBE moeda_destino (entrada na conta destino)
+                ehEntrada = trans.conta_destinatario === usuarioAtual;
+                console.log(`✅ Cambio COMPRA: ${ehEntrada ? 'ENTRADA' : 'SAÍDA'} (recebe ${trans.moeda_destino})`);
+            } else if (isVenda) {
+                // VENDA: usuário RECEBE moeda_origem (entrada na conta remetente)
+                ehEntrada = trans.conta_remetente === usuarioAtual;
+                console.log(`✅ Cambio VENDA: ${ehEntrada ? 'ENTRADA' : 'SAÍDA'} (recebe ${trans.moeda_origem})`);
+            } else {
+                // Se não conseguir detectar, usa lógica padrão
+                ehEntrada = trans.conta_destinatario === usuarioAtual;
+                console.log(`✅ Cambio indeterminado: ${ehEntrada ? 'ENTRADA' : 'SAÍDA'} (padrão)`);
             }
             tipoFluxo = ehEntrada ? 'entrada' : 'saida';
-            console.log(`✅ Cambio ${trans.operacao}: ${ehEntrada ? 'ENTRADA' : 'SAÍDA'}`);
             break;
             
         case 'cambio_admin':
