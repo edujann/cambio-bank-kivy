@@ -415,7 +415,7 @@ function renderizarTransacoes(transacoes) {
             return false;
         })
         .sort((a, b) => new Date(b.data || b.created_at) - new Date(a.data || a.created_at))
-        .slice(0, 8); // Limita às 8 mais recentes
+        .slice(0, 5); // Limita às 8 mais recentes
     
     console.log(`📊 DEBUG: ${transacoes.length} transações totais, ${transacoesUsuario.length} do usuário`);
     

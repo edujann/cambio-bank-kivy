@@ -302,12 +302,13 @@ def dashboard_data(username):
         else:
             contas_detalhes = []
         
-        # 3. Busca últimas transferências
+        # 3. Busca últimas transferências INTERNACIONAIS (5 mais recentes)
         transferencias_res = supabase.table('transferencias')\
-            .select('id, tipo, status, data, moeda, valor, conta_remetente, conta_destinatario, descricao, cliente, usuario')\
-            .eq('usuario', username)\
+            .select('id, tipo, status, data, moeda, valor, conta_remetente, conta_destinatario, descricao, cliente, usuario, beneficiario, cidade, pais, invoice_info')\
+            .eq('tipo', 'transferencia_internacional')\
+            .eq('cliente', username)\
             .order('data', desc=True)\
-            .limit(10)\
+            .limit(5)\
             .execute()
         
         # 4. Conta beneficiários
