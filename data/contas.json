@@ -34,6 +34,13 @@
         "cliente_nome": "LONDRES LIMITED",
         "data_criacao": "2025-11-04"
     },
+    "438146195": {
+        "moeda": "USD",
+        "saldo": 34950.0,
+        "cliente": "londrina",
+        "cliente_nome": "LONDRES LIMITED",
+        "data_criacao": "2025-11-04"
+    },
     "674587563": {
         "moeda": "GBP",
         "saldo": 0.0,
@@ -97,13 +104,6 @@
         "cliente_nome": "PRADA LIMITED",
         "data_criacao": "2025-11-02"
     },
-    "930349314": {
-        "moeda": "EUR",
-        "saldo": 5000.0,
-        "cliente": "pantanal",
-        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
-    },
     "949381419": {
         "moeda": "USD",
         "saldo": 0.0,
@@ -141,17 +141,17 @@
     },
     "607906288": {
         "moeda": "USD",
-        "saldo": 25000.0,
+        "saldo": 19750.0,
         "cliente": "pantanal",
         "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
         "data_criacao": "2025-11-18"
     },
-    "438146195": {
-        "moeda": "USD",
-        "saldo": 34950.0,
-        "cliente": "londrina",
-        "cliente_nome": "LONDRES LIMITED",
-        "data_criacao": "2025-11-04"
+    "930349314": {
+        "moeda": "EUR",
+        "saldo": 5000.0,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18"
     },
     "202973672": {
         "moeda": "BRL",
@@ -166,6 +166,13 @@
         "cliente": "texaco",
         "cliente_nome": "TEXACO LLC",
         "data_criacao": "2025-11-01"
+    },
+    "802194129": {
+        "moeda": "BRL",
+        "saldo": 33048.31,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18"
     },
     "394549984": {
         "moeda": "USD",
@@ -216,16 +223,9 @@
         "cliente_nome": "MAKITA MACHINES LLC",
         "data_criacao": "2025-11-26"
     },
-    "802194129": {
-        "moeda": "BRL",
-        "saldo": 33048.31,
-        "cliente": "pantanal",
-        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
-    },
     "759223170": {
         "moeda": "EUR",
-        "saldo": 40.0,
+        "saldo": 0.0,
         "cliente": "hidroamerica",
         "cliente_nome": "HIDROAMERICA LTDA",
         "data_criacao": "2025-12-04"
