@@ -171,8 +171,8 @@
         
         /* CARD DE TRANSFERÊNCIA (IGUAL KIVY) */
         .card-transferencia {
-            background: var(--fundo-card);
-            border-radius: var(--raio-borda);
+            background: var(--cor-card);  /* #0d1117 - escuro */
+            border-color: var(--cor-borda); /* #1e232e */
             padding: 20px;
             position: relative;
             border-left: 5px solid var(--cor-primaria);
@@ -259,11 +259,12 @@
             display: flex;
             gap: 10px;
         }
-        
+
+        /* BOTÕES DE AÇÃO DOS CARDS - IGUAL AO DASHBOARD */
         .btn-acao {
             padding: 8px 16px;
-            border: none;
-            border-radius: var(--raio-borda-pequeno);
+            border: 1px solid var(--cor-borda);  /* Borda cinza */
+            border-radius: var(--borda-radius-pequeno);
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
@@ -271,49 +272,77 @@
             align-items: center;
             gap: 6px;
             transition: all 0.3s;
+            background: transparent;  /* Fundo transparente */
+            color: var(--cor-texto);  /* Texto cinza */
         }
-        
-        .btn-acao:hover {
-            transform: translateY(-2px);
-            opacity: 0.9;
+
+        /* HOVER COM CORES (igual aos ícones do dashboard) */
+        .btn-detalhes:hover {
+            border-color: var(--cor-primaria);    /* Azul */
+            color: var(--cor-primaria);          /* Azul */
+            background: rgba(26, 95, 180, 0.1);  /* Azul claro */
         }
-        
-        .btn-detalhes { background: var(--cor-primaria); color: white; }
-        .btn-invoice { background: var(--cor-sucesso); color: white; }
-        .btn-pdf { background: #8e44ad; color: white; }
-        
-        /* LINHA DA INVOICE (IGUAL KIVY) */
+
+        .btn-invoice:hover {
+            border-color: var(--cor-sucesso);     /* Verde */
+            color: var(--cor-sucesso);           /* Verde */
+            background: rgba(46, 194, 126, 0.1); /* Verde claro */
+        }
+
+        .btn-pdf:hover {
+            border-color: #9b59b6;               /* Roxo */
+            color: #9b59b6;                     /* Roxo */
+            background: rgba(155, 89, 182, 0.1); /* Roxo claro */
+        }
+
+        /* LINHA DA INVOICE (MELHORADA) */
         .invoice-line {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-top: 15px;
-            padding: 10px 15px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: var(--raio-borda-pequeno);
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.03);  /* Mais escuro */
+            border-radius: var(--borda-radius-pequeno);
+            border: 1px solid var(--cor-borda);     /* Borda igual dashboard */
         }
-        
+
         .invoice-status {
             display: flex;
             align-items: center;
             gap: 8px;
+            font-size: 13px;
+            font-weight: 500;
         }
-        
-        .invoice-status.pending { color: var(--cor-aviso); }
-        .invoice-status.approved { color: var(--cor-sucesso); }
-        .invoice-status.rejected { color: var(--cor-erro); }
-        
+
+        /* CORRETO: usar as variáveis do dashboard */
+        .invoice-status.pending { 
+            color: var(--cor-alerta);  /* Amarelo #f39c12 */
+        }
+        .invoice-status.approved { 
+            color: var(--cor-sucesso); /* Verde #2ec27e */
+        }
+        .invoice-status.rejected { 
+            color: var(--cor-perigo);  /* Vermelho #e01b24 */
+        }
+
         .btn-renviar-invoice {
             padding: 6px 12px;
-            background: var(--cor-sucesso);
-            color: white;
-            border: none;
-            border-radius: var(--raio-borda-pequeno);
+            background: transparent;              /* Transparente igual dashboard */
+            border: 1px solid var(--cor-sucesso); /* Borda verde */
+            color: var(--cor-sucesso);           /* Texto verde */
+            border-radius: var(--borda-radius-pequeno);
             font-size: 12px;
             cursor: pointer;
             display: flex;
             align-items: center;
             gap: 5px;
+            transition: all 0.3s;
+        }
+
+        .btn-renviar-invoice:hover {
+            background: rgba(46, 194, 126, 0.1);  /* Verde claro no hover */
+            transform: translateY(-1px);         /* Efeito de elevação */
         }
         
         /* MODAL DE DETALHES */
@@ -804,7 +833,7 @@
                     <strong>Invoice:</strong> ${statusText}
                     ${recusada && transferencia.motivo_recusa ? 
                         `<span style="margin-left: 10px; font-size: 11px; opacity: 0.8;">
-                            Motivo: ${transferencia.motivo_recusa}
+                             Motivo: Ver detalhes
                         </span>` : ''}
                 </div>
                 ${showButton ? `
