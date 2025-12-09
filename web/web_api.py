@@ -1159,17 +1159,44 @@ def get_beneficiario_web(benef_id):
 @app.route('/minhas-transferencias')
 def minhas_transferencias():
     """Tela de minhas transferências (histórico, status, invoices, comprovantes)"""
-    # VERIFICAR SE USUÁRIO ESTÁ LOGADO
-    if 'usuario' not in session:
-        print("⚠️ Usuário não logado! Redirecionando para login...")
+    
+    # MÉTODO 1: Verificar sessão Flask
+    if 'usuario' in session:
+        usuario = session['usuario']
+        print(f"✅ [SESSÃO] Usuário {usuario} acessando minhas-transferencias")
+    
+    # MÉTODO 2: Verificar parâmetro na URL (fallback)
+    elif request.args.get('usuario'):
+        usuario = request.args.get('usuario')
+        print(f"✅ [URL PARAM] Usuário {usuario} acessando minhas-transferencias via URL")
+        
+        # Armazenar na sessão para futuras requisições
+        session['usuario'] = usuario
+    
+    # MÉTODO 3: Tentar extrair do referer ou cabeçalhos
+    elif request.referrer and 'usuario=' in request.referrer:
+        # Extrair usuário da URL de referência
+        import urllib.parse
+        referrer_url = urllib.parse.urlparse(request.referrer)
+        query_params = urllib.parse.parse_qs(referrer_url.query)
+        if 'usuario' in query_params:
+            usuario = query_params['usuario'][0]
+            print(f"✅ [REFERER] Usuário {usuario} acessando minhas-transferencias via referer")
+            session['usuario'] = usuario
+    
+    # NENHUM MÉTODO FUNCIONOU: Redirecionar para login
+    else:
+        print(f"⚠️ Nenhum método de autenticação funcionou para minhas-transferencias")
+        print(f"   Sessão: {dict(session)}")
+        print(f"   Args: {dict(request.args)}")
+        print(f"   Referer: {request.referrer}")
         return redirect('/login')
     
-    print(f"✅ Usuário {session['usuario']} acessando minhas-transferencias")
-    
+    # Renderizar template com dados do usuário
     return render_template('minhas_transferencias.html',
-                         usuario=session['usuario'],
-                         nome=session.get('nome'),
-                         email=session.get('email'))
+                         usuario=usuario,
+                         nome=session.get('nome') or usuario,
+                         email=session.get('email') or '')
 
 
 if __name__ == '__main__':
