@@ -1155,6 +1155,18 @@ def get_beneficiario_web(benef_id):
         "message": "Beneficiário não encontrado"
     }), 404
 
+# Adicione esta rota no web_api.py (logo após as rotas existentes)
+@app.route('/minhas-transferencias')
+def minhas_transferencias():
+    """Tela de minhas transferências (histórico, status, invoices, comprovantes)"""
+    if 'usuario' not in session:
+        return redirect('/login')
+    
+    return render_template('minhas_transferencias.html',
+                         usuario=session['usuario'],
+                         nome=session.get('nome'),
+                         email=session.get('email'))
+
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
