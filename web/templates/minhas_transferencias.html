@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minhas Transferências - Cambio Bank</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/formularios.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* ============================================
+           ESTILOS ESPECÍFICOS MINHAS TRANSFERÊNCIAS
+           ============================================ */
+        
+        /* FILTROS */
+        .filtros-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .filtro-btn {
+            padding: 10px 20px;
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            color: var(--cor-texto-secundario);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .filtro-btn:hover {
+            border-color: var(--cor-primaria);
+            transform: translateY(-2px);
+        }
+        
+        .filtro-btn.active {
+            background: var(--cor-primaria);
+            color: white;
+            border-color: var(--cor-primaria);
+        }
+        
+        .filtro-btn.pending {
+            border-color: #f39c12;
+        }
+        
+        .filtro-btn.processing {
+            border-color: #3498db;
+        }
+        
+        .filtro-btn.completed {
+            border-color: #2ec27e;
+        }
+        
+        .filtro-btn.rejected {
+            border-color: #e01b24;
+        }
+        
+        /* CARDS DE TRANSFERÊNCIA */
+        .transferencias-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .transferencia-card {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 25px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .transferencia-card:hover {
+            border-color: var(--cor-primaria);
+            transform: translateY(-3px);
+            box-shadow: var(--sombra-media);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+        
+        .status-badge {
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-pending {
+            background: rgba(243, 156, 18, 0.15);
+            color: var(--cor-alerta);
+            border: 1px solid rgba(243, 156, 18, 0.3);
+        }
+        
+        .status-processing {
+            background: rgba(52, 152, 219, 0.15);
+            color: #3498db;
+            border: 1px solid rgba(52, 152, 219, 0.3);
+        }
+        
+        .status-completed {
+            background: rgba(46, 194, 126, 0.15);
+            color: var(--cor-sucesso);
+            border: 1px solid rgba(46, 194, 126, 0.3);
+        }
+        
+        .status-rejected {
+            background: rgba(224, 27, 36, 0.15);
+            color: var(--cor-perigo);
+            border: 1px solid rgba(224, 27, 36, 0.3);
+        }
+        
+        .transferencia-id {
+            font-size: 12px;
+            color: var(--cor-texto-secundario);
+            font-family: 'Courier New', monospace;
+        }
+        
+        .card-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .info-group {
+            margin-bottom: 15px;
+        }
+        
+        .info-label {
+            font-size: 12px;
+            color: var(--cor-texto-secundario);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .info-value {
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        .valor-destaque {
+            font-size: 24px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 20px;
+            border-top: 1px solid var(--cor-borda);
+        }
+        
+        .data-transferencia {
+            font-size: 14px;
+            color: var(--cor-texto-secundario);
+        }
+        
+        .botoes-acao {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-acao {
+            padding: 10px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        
+        .btn-detalhes {
+            background: rgba(26, 95, 180, 0.15);
+            color: var(--cor-primaria);
+            border: 1px solid rgba(26, 95, 180, 0.3);
+        }
+        
+        .btn-detalhes:hover {
+            background: rgba(26, 95, 180, 0.25);
+            transform: translateY(-2px);
+        }
+        
+        .btn-invoice {
+            background: rgba(46, 194, 126, 0.15);
+            color: var(--cor-sucesso);
+            border: 1px solid rgba(46, 194, 126, 0.3);
+        }
+        
+        .btn-invoice:hover {
+            background: rgba(46, 194, 126, 0.25);
+            transform: translateY(-2px);
+        }
+        
+        .btn-pdf {
+            background: rgba(155, 89, 182, 0.15);
+            color: #9b59b6;
+            border: 1px solid rgba(155, 89, 182, 0.3);
+        }
+        
+        .btn-pdf:hover {
+            background: rgba(155, 89, 182, 0.25);
+            transform: translateY(-2px);
+        }
+        
+        /* LINHA DE INVOICE (quando recusada) */
+        .invoice-line {
+            background: rgba(224, 27, 36, 0.05);
+            border: 1px solid rgba(224, 27, 36, 0.1);
+            border-radius: var(--borda-radius-pequeno);
+            padding: 15px;
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .invoice-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .invoice-status-text {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .invoice-status.rejected {
+            color: var(--cor-perigo);
+        }
+        
+        .btn-renviar-invoice {
+            background: var(--cor-perigo);
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--borda-radius-pequeno);
+            border: none;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-renviar-invoice:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+        }
+        
+        /* MENSAGEM VAZIA */
+        .mensagem-vazia {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--cor-texto-secundario);
+        }
+        
+        .mensagem-vazia i {
+            font-size: 48px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .mensagem-vazia h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: var(--cor-texto);
+        }
+        
+        /* LOADING */
+        .loading-transferencias {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--cor-texto-secundario);
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(26, 95, 180, 0.3);
+            border-top: 3px solid var(--cor-primaria);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* MODAL DETALHES */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 9998;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .modal-overlay.show {
+            display: block;
+            opacity: 1;
+        }
+        
+        .modal-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .modal-container.show {
+            opacity: 1;
+        }
+        
+        .modal-header {
+            padding: 25px 30px;
+            border-bottom: 1px solid var(--cor-borda);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .btn-fechar-modal {
+            background: transparent;
+            border: none;
+            color: var(--cor-texto-secundario);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-fechar-modal:hover {
+            color: var(--cor-texto);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .modal-content {
+            padding: 30px;
+        }
+        
+        .modal-section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--cor-primaria);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        /* RESPONSIVIDADE */
+        @media (max-width: 768px) {
+            .card-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .botoes-acao {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .btn-acao {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .filtros-container {
+                justify-content: center;
+            }
+            
+            .modal-container {
+                width: 95%;
+                max-height: 80vh;
+            }
+        }
+        
+        /* DROPDOWN MENU DO USUÁRIO (mesmo do dashboard) */
+        .dropdown-menu-user {
+            display: none;
+            position: fixed;
+            top: 0;
+            right: 0;
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            min-width: 250px;
+            box-shadow: var(--sombra-media);
+            z-index: 9999;
+            padding: 10px 0;
+        }
+        
+        .dropdown-menu-user.show {
+            display: block;
+        }
+        
+        .dropdown-header {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--cor-borda);
+            margin-bottom: 8px;
+        }
+        
+        .dropdown-username {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .dropdown-email {
+            font-size: 12px;
+            color: var(--cor-texto-secundario);
+        }
+        
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            color: var(--cor-texto);
+            text-decoration: none;
+            transition: background 0.3s ease;
+        }
+        
+        .dropdown-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .dropdown-item i {
+            width: 20px;
+            color: var(--cor-texto-secundario);
+        }
+        
+        .dropdown-divider {
+            height: 1px;
+            background: var(--cor-borda);
+            margin: 10px 0;
+        }
+        
+        .logout-item {
+            color: #ff6b6b !important;
+        }
+        
+        .logout-item i {
+            color: #ff6b6b !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- CONTAINER PRINCIPAL -->
+    <div class="app-container">
+        
+        <!-- HEADER (igual ao dashboard) -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo">
+                    <i class="fas fa-university"></i>
+                    <span class="logo-text">CAMBIO BANK</span>
+                </div>
+            </div>
+            
+            <div class="header-center">
+                <h1 class="page-title">MINHAS TRANSFERÊNCIAS</h1>
+            </div>
+            
+            <div class="header-right">
+                <div class="user-menu" onclick="toggleUserMenu()">
+                    <div class="user-avatar">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <span class="user-name" id="userName">
+                        {{ usuario if usuario else 'pantanal' }}
+                    </span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+            </div>
+        </header>
+        
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="main-content">
+            
+            <!-- FILTROS DE STATUS -->
+            <div class="filtros-container">
+                <button class="filtro-btn active" data-filtro="all" onclick="filtrarTransferencias('all')">
+                    <i class="fas fa-layer-group"></i> Todas
+                </button>
+                <button class="filtro-btn pending" data-filtro="pending" onclick="filtrarTransferencias('pending')">
+                    <i class="fas fa-clock"></i> Pendentes
+                </button>
+                <button class="filtro-btn processing" data-filtro="processing" onclick="filtrarTransferencias('processing')">
+                    <i class="fas fa-sync-alt"></i> Processando
+                </button>
+                <button class="filtro-btn completed" data-filtro="completed" onclick="filtrarTransferencias('completed')">
+                    <i class="fas fa-check-circle"></i> Concluídas
+                </button>
+                <button class="filtro-btn rejected" data-filtro="rejected" onclick="filtrarTransferencias('rejected')">
+                    <i class="fas fa-times-circle"></i> Recusadas
+                </button>
+            </div>
+            
+            <!-- CONTADOR -->
+            <div class="contador-transferencias" style="margin-bottom: 20px; color: var(--cor-texto-secundario);">
+                <i class="fas fa-list-check"></i>
+                <span id="contador">Carregando...</span> transferências encontradas
+            </div>
+            
+            <!-- LISTA DE TRANSFERÊNCIAS -->
+            <div class="transferencias-container" id="transferenciasLista">
+                <!-- CARDS SERÃO INSERIDOS AQUI VIA JavaScript -->
+                
+                <!-- LOADING INICIAL -->
+                <div class="loading-transferencias" id="loadingTransferencias">
+                    <div class="loading-spinner"></div>
+                    <p>Carregando suas transferências...</p>
+                </div>
+                
+                <!-- MENSAGEM VAZIA (será mostrada se não houver transferências) -->
+                <div class="mensagem-vazia" id="mensagemVazia" style="display: none;">
+                    <i class="fas fa-exchange-alt"></i>
+                    <h3>Nenhuma transferência encontrada</h3>
+                    <p>Quando você fizer transferências, elas aparecerão aqui.</p>
+                    <button class="btn-acao btn-detalhes" onclick="window.location.href='/transferencia'" style="margin-top: 20px;">
+                        <i class="fas fa-plus"></i> Fazer uma transferência
+                    </button>
+                </div>
+            </div>
+            
+            <!-- BOTÕES INFERIORES -->
+            <div class="botoes-inferiores" style="display: flex; justify-content: space-between; margin-top: 40px;">
+                <button class="btn-acao btn-detalhes" onclick="window.location.href='/'">
+                    <i class="fas fa-arrow-left"></i> Voltar ao Dashboard
+                </button>
+                
+                <button class="btn-acao btn-invoice" onclick="window.location.href='/transferencia'">
+                    <i class="fas fa-plus"></i> Nova Transferência
+                </button>
+            </div>
+            
+        </main>
+        
+        <!-- FOOTER -->
+        <footer class="app-footer">
+            <div class="footer-content">
+                <div class="footer-left">
+                    <span>© 2025 Cambio Bank. Todos os direitos reservados.</span>
+                </div>
+                <div class="footer-right">
+                    <span class="status-online">
+                        <i class="fas fa-circle"></i> Sistema Online
+                    </span>
+                </div>
+            </div>
+        </footer>
+        
+    </div>
+    
+    <!-- MODAL DETALHES (inicialmente oculto) -->
+    <div class="modal-overlay" id="modalOverlay" onclick="fecharModal()"></div>
+    
+    <div class="modal-container" id="modalDetalhes">
+        <div class="modal-header">
+            <h2 class="modal-title">Detalhes da Transferência</h2>
+            <button class="btn-fechar-modal" onclick="fecharModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-content" id="modalContent">
+            <!-- Conteúdo será preenchido via JavaScript -->
+        </div>
+    </div>
+    
+    <!-- DROPDOWN MENU DO USUÁRIO -->
+    <div class="dropdown-menu-user" id="userDropdown" style="display: none;">
+        <div class="dropdown-header">
+            <div class="dropdown-username" id="dropdownUserName">{{ usuario if usuario else 'Usuário' }}</div>
+            <div class="dropdown-email" id="dropdownUserEmail">{{ email if email else '' }}</div>
+        </div>
+        
+        <a href="/perfil" class="dropdown-item">
+            <i class="fas fa-user"></i> Meu Perfil
+        </a>
+        
+        <a href="/configuracoes" class="dropdown-item">
+            <i class="fas fa-cog"></i> Configurações
+        </a>
+        
+        <div class="dropdown-divider"></div>
+        
+        <a href="/logout" class="dropdown-item logout-item">
+            <i class="fas fa-sign-out-alt"></i> Sair
+        </a>
+    </div>
+    
+    <!-- SCRIPTS -->
+    <script>
+        // Dados do usuário
+        window.USER = {
+            username: "{{ usuario if usuario else '' }}",
+            nome: "{{ nome if nome else 'Usuário' }}",
+            email: "{{ email if email else 'usuario@exemplo.com' }}"
+        };
+        
+        // URL da API
+        window.API_URL = "";
+    </script>
+    
+    <script src="{{ url_for('static', filename='js/app_simples.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    
+    <!-- Script específico para esta página -->
+    <script>
+        // ============================================
+        // MINHAS TRANSFERÊNCIAS - FUNÇÕES PRINCIPAIS
+        // ============================================
+        
+        // Variáveis globais
+        let transferencias = [];
+        let filtroAtual = 'all';
+        
+        // Quando a página carregar
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 Minhas Transferências - Página carregada');
+            carregarTransferencias();
+        });
+        
+        // Carregar transferências do usuário
+        async function carregarTransferencias() {
+            console.log('🔄 Carregando transferências...');
+            
+            try {
+                // Simular carregamento (depois substituir por API real)
+                mostrarLoading(true);
+                
+                // TODO: Substituir por chamada real à API
+                // const response = await fetch('/api/minhas-transferencias');
+                // transferencias = await response.json();
+                
+                // Dados de exemplo (simulação)
+                transferencias = obterDadosExemplo();
+                
+                // Atualizar interface
+                atualizarListaTransferencias();
+                atualizarContador();
+                
+            } catch (error) {
+                console.error('❌ Erro ao carregar transferências:', error);
+                mostrarErro('Erro ao carregar transferências. Tente novamente.');
+            } finally {
+                mostrarLoading(false);
+            }
+        }
+        
+        // Filtrar transferências por status
+        function filtrarTransferencias(filtro) {
+            console.log(`🎯 Filtrando por: ${filtro}`);
+            
+            // Atualizar botões ativos
+            document.querySelectorAll('.filtro-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('data-filtro') === filtro) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            filtroAtual = filtro;
+            atualizarListaTransferencias();
+            atualizarContador();
+        }
+        
+        // Atualizar lista de transferências com filtro
+        function atualizarListaTransferencias() {
+            const container = document.getElementById('transferenciasLista');
+            const mensagemVazia = document.getElementById('mensagemVazia');
+            
+            // Aplicar filtro
+            let transferenciasFiltradas = transferencias;
+            if (filtroAtual !== 'all') {
+                transferenciasFiltradas = transferencias.filter(t => t.status === filtroAtual);
+            }
+            
+            // Limpar container (exceto loading e mensagem vazia)
+            Array.from(container.children).forEach(child => {
+                if (!child.id || (child.id !== 'loadingTransferencias' && child.id !== 'mensagemVazia')) {
+                    container.removeChild(child);
+                }
+            });
+            
+            // Mostrar mensagem se não houver transferências
+            if (transferenciasFiltradas.length === 0) {
+                mensagemVazia.style.display = 'block';
+                return;
+            }
+            
+            mensagemVazia.style.display = 'none';
+            
+            // Ordenar por data (mais recente primeiro)
+            transferenciasFiltradas.sort((a, b) => new Date(b.data) - new Date(a.data));
+            
+            // Adicionar cards
+            transferenciasFiltradas.forEach(transferencia => {
+                const card = criarCardTransferencia(transferencia);
+                container.appendChild(card);
+            });
+        }
+        
+        // Atualizar contador
+        function atualizarContador() {
+            const contador = document.getElementById('contador');
+            let transferenciasFiltradas = transferencias;
+            
+            if (filtroAtual !== 'all') {
+                transferenciasFiltradas = transferencias.filter(t => t.status === filtroAtual);
+            }
+            
+            contador.textContent = transferenciasFiltradas.length;
+        }
+        
+        // Criar card de transferência (HTML)
+        function criarCardTransferencia(transf) {
+            const card = document.createElement('div');
+            card.className = 'transferencia-card';
+            card.dataset.id = transf.id;
+            
+            // Determinar classe do status
+            let statusClass = 'status-pending';
+            let statusIcon = 'fa-clock';
+            let statusText = 'PENDENTE';
+            
+            switch(transf.status) {
+                case 'processing':
+                    statusClass = 'status-processing';
+                    statusIcon = 'fa-sync-alt';
+                    statusText = 'PROCESSANDO';
+                    break;
+                case 'completed':
+                    statusClass = 'status-completed';
+                    statusIcon = 'fa-check-circle';
+                    statusText = 'CONCLUÍDA';
+                    break;
+                case 'rejected':
+                    statusClass = 'status-rejected';
+                    statusIcon = 'fa-times-circle';
+                    statusText = 'RECUSADA';
+                    break;
+            }
+            
+            // Formatar valor
+            const valorFormatado = new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: transf.moeda
+            }).format(transf.valor);
+            
+            // Formatar data
+            const dataFormatada = new Date(transf.data).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            card.innerHTML = `
+                <div class="card-header">
+                    <div class="status-badge ${statusClass}">
+                        <i class="fas ${statusIcon}"></i> ${statusText}
+                    </div>
+                    <div class="transferencia-id">ID: ${transf.id}</div>
+                </div>
+                
+                <div class="card-content">
+                    <div class="info-group">
+                        <div class="info-label">Tipo</div>
+                        <div class="info-value">${transf.tipo === 'internacional' ? 'INTERNACIONAL' : 'INTERNA'}</div>
+                    </div>
+                    
+                    <div class="info-group">
+                        <div class="info-label">Beneficiário</div>
+                        <div class="info-value">${transf.beneficiario}</div>
+                    </div>
+                    
+                    <div class="info-group">
+                        <div class="info-label">Banco</div>
+                        <div class="info-value">${transf.banco}</div>
+                    </div>
+                    
+                    <div class="info-group">
+                        <div class="info-label">Valor</div>
+                        <div class="info-value valor-destaque">${valorFormatado}</div>
+                    </div>
+                </div>
+                
+                <div class="card-footer">
+                    <div class="data-transferencia">
+                        <i class="far fa-calendar"></i> ${dataFormatada}
+                    </div>
+                    
+                    <div class="botoes-acao">
+                        <button class="btn-acao btn-detalhes" onclick="verDetalhes('${transf.id}')">
+                            <i class="fas fa-eye"></i> Detalhes
+                        </button>
+                        
+                        ${transf.invoice ? `
+                        <button class="btn-acao btn-invoice" onclick="visualizarInvoice('${transf.id}')">
+                            <i class="fas fa-file-invoice"></i> Invoice
+                        </button>
+                        ` : ''}
+                        
+                        <button class="btn-acao btn-pdf" onclick="gerarPDF('${transf.id}')">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </button>
+                    </div>
+                </div>
+                
+                ${transf.invoiceRecusada ? `
+                <div class="invoice-line">
+                    <div class="invoice-status rejected">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div class="invoice-status-text">
+                            Invoice Recusada: ${transf.motivoRecusa}
+                        </div>
+                    </div>
+                    <button class="btn-renviar-invoice" onclick="reenviarInvoice('${transf.id}')">
+                        <i class="fas fa-paper-plane"></i> Reenviar
+                    </button>
+                </div>
+                ` : ''}
+            `;
+            
+            return card;
+        }
+        
+        // Ver detalhes da transferência (abrir modal)
+        function verDetalhes(idTransferencia) {
+            console.log(`🔍 Ver detalhes: ${idTransferencia}`);
+            
+            const transferencia = transferencias.find(t => t.id === idTransferencia);
+            if (!transferencia) return;
+            
+            // Preencher modal
+            const modalContent = document.getElementById('modalContent');
+            
+            // Formatar valor
+            const valorFormatado = new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: transferencia.moeda
+            }).format(transferencia.valor);
+            
+            modalContent.innerHTML = `
+                <div class="modal-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-info-circle"></i> Informações Básicas
+                    </h3>
+                    <div class="info-grid">
+                        <div class="info-group">
+                            <div class="info-label">ID da Transferência</div>
+                            <div class="info-value">${transferencia.id}</div>
+                        </div>
+                        <div class="info-group">
+                            <div class="info-label">Status</div>
+                            <div class="info-value">
+                                <span class="status-badge ${getStatusClass(transferencia.status)}">
+                                    ${getStatusText(transferencia.status)}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="info-group">
+                            <div class="info-label">Tipo</div>
+                            <div class="info-value">${transferencia.tipo === 'internacional' ? 'Internacional' : 'Interna'}</div>
+                        </div>
+                        <div class="info-group">
+                            <div class="info-label">Valor</div>
+                            <div class="info-value">${valorFormatado}</div>
+                        </div>
+                        <div class="info-group">
+                            <div class="info-label">Data</div>
+                            <div class="info-value">${new Date(transferencia.data).toLocaleString('pt-BR')}</div>
+                        </div>
+                        <div class="info-group">
+                            <div class="info-label">Moeda</div>
+                            <div class="info-value">${transferencia.moeda}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-user"></i> Beneficiário
+                    </h3>
+                    <div class="info-grid">
+                        <div class="info-group">
+                            <div class="info-label">Nome</div>
+                            <div class="info-value">${transferencia.beneficiario}</div>
+                        </div>
+                        <div class="info-group">
+                            <div class="info-label">Banco</div>
+                            <div class="info-value">${transferencia.banco}</div>
+                        </div>
+                        ${transferencia.tipo === 'internacional' ? `
+                        <div class="info-group">
+                            <div class="info-label">SWIFT/BIC</div>
+                            <div class="info-value">${transferencia.swift || 'N/A'}</div>
+                        </div>
+                        <div class="info-group">
+                            <div class="info-label">IBAN/Conta</div>
+                            <div class="info-value">${transferencia.iban || 'N/A'}</div>
+                        </div>
+                        <div class="info-group">
+                            <div class="info-label">País</div>
+                            <div class="info-value">${transferencia.pais || 'N/A'}</div>
+                        </div>
+                        ` : `
+                        <div class="info-group">
+                            <div class="info-label">Conta</div>
+                            <div class="info-value">${transferencia.conta || 'N/A'}</div>
+                        </div>
+                        `}
+                    </div>
+                </div>
+                
+                ${transferencia.descricao ? `
+                <div class="modal-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-file-alt"></i> Descrição
+                    </h3>
+                    <p style="color: var(--cor-texto); padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                        ${transferencia.descricao}
+                    </p>
+                </div>
+                ` : ''}
+                
+                ${transferencia.invoiceRecusada ? `
+                <div class="modal-section">
+                    <h3 class="section-title" style="color: var(--cor-perigo);">
+                        <i class="fas fa-exclamation-triangle"></i> Invoice Recusada
+                    </h3>
+                    <div class="info-grid">
+                        <div class="info-group">
+                            <div class="info-label">Motivo da Recusa</div>
+                            <div class="info-value">${transferencia.motivoRecusa}</div>
+                        </div>
+                        <div class="info-group">
+                            <div class="info-label">Ação</div>
+                            <div class="info-value">
+                                <button class="btn-renviar-invoice" onclick="reenviarInvoice('${transferencia.id}')">
+                                    <i class="fas fa-paper-plane"></i> Reenviar Invoice
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+                
+                <div style="text-align: center; margin-top: 30px;">
+                    <button class="btn-acao btn-pdf" onclick="gerarPDF('${transferencia.id}')" style="padding: 12px 30px;">
+                        <i class="fas fa-file-pdf"></i> Gerar Comprovante PDF
+                    </button>
+                </div>
+            `;
+            
+            // Mostrar modal
+            abrirModal();
+        }
+        
+        // Visualizar invoice
+        function visualizarInvoice(idTransferencia) {
+            console.log(`📄 Visualizar invoice: ${idTransferencia}`);
+            alert('Funcionalidade de visualizar invoice será implementada em breve!');
+            // TODO: Abrir PDF/Imagem em nova aba ou visualizador
+        }
+        
+        // Gerar PDF da transferência
+        function gerarPDF(idTransferencia) {
+            console.log(`📊 Gerar PDF: ${idTransferencia}`);
+            alert('Funcionalidade de gerar PDF será implementada em breve!');
+            // TODO: Chamar API para gerar PDF e fazer download
+        }
+        
+        // Reenviar invoice
+        function reenviarInvoice(idTransferencia) {
+            console.log(`🔄 Reenviar invoice: ${idTransferencia}`);
+            alert('Funcionalidade de reenviar invoice será implementada em breve!');
+            // TODO: Abrir modal para upload de novo arquivo
+        }
+        
+        // Abrir modal de detalhes
+        function abrirModal() {
+            document.getElementById('modalOverlay').classList.add('show');
+            document.getElementById('modalDetalhes').classList.add('show');
+            document.body.style.overflow = 'hidden'; // Previne scroll do body
+        }
+        
+        // Fechar modal
+        function fecharModal() {
+            document.getElementById('modalOverlay').classList.remove('show');
+            document.getElementById('modalDetalhes').classList.remove('show');
+            document.body.style.overflow = 'auto'; // Restaura scroll
+        }
+        
+        // Mostrar/ocultar loading
+        function mostrarLoading(mostrar) {
+            const loading = document.getElementById('loadingTransferencias');
+            loading.style.display = mostrar ? 'block' : 'none';
+        }
+        
+        // Mostrar erro
+        function mostrarErro(mensagem) {
+            alert('Erro: ' + mensagem);
+        }
+        
+        // Funções auxiliares
+        function getStatusClass(status) {
+            switch(status) {
+                case 'pending': return 'status-pending';
+                case 'processing': return 'status-processing';
+                case 'completed': return 'status-completed';
+                case 'rejected': return 'status-rejected';
+                default: return 'status-pending';
+            }
+        }
+        
+        function getStatusText(status) {
+            switch(status) {
+                case 'pending': return 'PENDENTE';
+                case 'processing': return 'PROCESSANDO';
+                case 'completed': return 'CONCLUÍDA';
+                case 'rejected': return 'RECUSADA';
+                default: return 'PENDENTE';
+            }
+        }
+        
+        // Dados de exemplo (REMOVER DEPOIS - substituir por API real)
+        function obterDadosExemplo() {
+            return [
+                {
+                    id: 'TRF-2025-001',
+                    status: 'pending',
+                    tipo: 'internacional',
+                    beneficiario: 'EMPRESA EXTERIOR LTDA',
+                    banco: 'BANCO EXTERIOR SA',
+                    swift: 'EXTBRSP',
+                    iban: 'BR00123456789012345678',
+                    pais: 'Brasil',
+                    valor: 15000.50,
+                    moeda: 'USD',
+                    data: '2025-12-08T14:30:00',
+                    descricao: 'Pagamento de serviços técnicos',
+                    invoice: true,
+                    invoiceRecusada: false
+                },
+                {
+                    id: 'TRF-2025-002',
+                    status: 'processing',
+                    tipo: 'internacional',
+                    beneficiario: 'FORNECEDOR GLOBAL INC',
+                    banco: 'GLOBAL BANK',
+                    swift: 'GLBBNYC',
+                    iban: 'US00123456789012345678',
+                    pais: 'Estados Unidos',
+                    valor: 8500.75,
+                    moeda: 'EUR',
+                    data: '2025-12-07T10:15:00',
+                    descricao: 'Importação de equipamentos',
+                    invoice: true,
+                    invoiceRecusada: false
+                },
+                {
+                    id: 'TRF-2025-003',
+                    status: 'completed',
+                    tipo: 'internacional',
+                    beneficiario: 'CONSULTORIA EUROPA',
+                    banco: 'EURO BANK',
+                    swift: 'EURBBER',
+                    iban: 'DE00123456789012345678',
+                    pais: 'Alemanha',
+                    valor: 12000.00,
+                    moeda: 'GBP',
+                    data: '2025-12-05T09:45:00',
+                    descricao: 'Honorários consultoria',
+                    invoice: true,
+                    invoiceRecusada: false
+                },
+                {
+                    id: 'TRF-2025-004',
+                    status: 'rejected',
+                    tipo: 'internacional',
+                    beneficiario: 'TECH SOLUTIONS LTD',
+                    banco: 'TECH BANK',
+                    swift: 'TCHBLON',
+                    iban: 'GB00123456789012345678',
+                    pais: 'Reino Unido',
+                    valor: 9500.25,
+                    moeda: 'USD',
+                    data: '2025-12-03T16:20:00',
+                    descricao: 'Pagamento software',
+                    invoice: true,
+                    invoiceRecusada: true,
+                    motivoRecusa: 'Invoice ilegível - enviar novamente'
+                },
+                {
+                    id: 'TRF-2025-005',
+                    status: 'pending',
+                    tipo: 'interna',
+                    beneficiario: 'CLIENTE INTERNO BR',
+                    banco: 'BANCO BRASIL',
+                    conta: '001234-5',
+                    valor: 5000.00,
+                    moeda: 'BRL',
+                    data: '2025-12-09T11:30:00',
+                    descricao: 'Transferência entre contas',
+                    invoice: false,
+                    invoiceRecusada: false
+                }
+            ];
+        }
+    </script>
+</body>
+</html>
