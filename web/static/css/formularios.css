@@ -73,20 +73,42 @@
 .form-group textarea {
     width: 100%;
     padding: 12px 15px;
-    background: rgba(255, 255, 255, 0.05);
+    background: #1a1a2e !important;  /* ← CORREÇÃO: fundo ESCURO SÓLIDO */
     border: 1px solid var(--cor-borda);
     border-radius: var(--borda-radius-pequeno);
-    color: var(--cor-texto);
+    color: #ffffff !important;       /* ← CORREÇÃO: texto BRANCO */
     font-size: 15px;
     transition: all 0.3s ease;
+    opacity: 1 !important;           /* ← SEM transparência */
 }
 
+/* Adicione também o focus corrigido */
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
-    outline: none;
     border-color: var(--cor-primaria);
-    box-shadow: 0 0 0 3px rgba(26, 95, 180, 0.1);
+    background: #2d3748 !important;  /* ← Fundo um pouco mais claro no focus */
+    box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2);
+    outline: none;
+}
+
+/* CORREÇÃO PARA AUTOFILL */
+.form-group input:-webkit-autofill,
+.form-group input:-webkit-autofill:hover,
+.form-group input:-webkit-autofill:focus,
+.form-group input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px #1a1a2e inset !important;
+    -webkit-text-fill-color: #ffffff !important;
+    caret-color: #ffffff !important;
+    background-color: #1a1a2e !important;
+    border: 1px solid var(--cor-primaria) !important;
+    transition: background-color 5000s ease-in-out 0s !important;
+}
+
+/* Para outros navegadores */
+.form-group input:-moz-autofill {
+    background-color: #1a1a2e !important;
+    color: #ffffff !important;
 }
 
 /* INPUT COM ÍCONE DE MOEDA */

@@ -636,3 +636,67 @@ body {
 .hidden {
     display: none !important;
 }
+
+/* ============================================
+   CORREÇÕES PARA INPUTS/SELECTS/AUTOFILL
+   ============================================ */
+
+/* 1. CORREÇÃO PARA INPUTS */
+input,
+textarea,
+select {
+    background-color: #1a1a2e !important;
+    color: #ffffff !important;
+    border: 1px solid #3498db !important;
+    opacity: 1 !important;
+    padding: 12px 15px !important;
+    border-radius: 8px !important;
+    font-size: 14px !important;
+}
+
+/* 2. CORREÇÃO PARA AUTOFILL/AUTOCOMPLETE */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+textarea:-webkit-autofill:active,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus,
+select:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px #1a1a2e inset !important;
+    -webkit-text-fill-color: #ffffff !important;
+    caret-color: #ffffff !important;
+    background-color: #1a1a2e !important;
+    border: 1px solid #3498db !important;
+}
+
+/* 3. ESPECIFICAMENTE PARA FORMULÁRIO DE TRANSFERÊNCIA */
+#transferenciaForm input,
+#transferenciaForm textarea,
+#transferenciaForm select {
+    background-color: #2d3748 !important;
+}
+
+/* 4. SELECTS/SPINNERS */
+select,
+select:focus,
+select option {
+    background-color: #1a1a2e !important;
+    color: #ffffff !important;
+    border: 1px solid #3498db !important;
+}
+
+select option:checked,
+select option:hover {
+    background-color: #3498db !important;
+    color: #ffffff !important;
+}
+
+/* 5. REMOVER QUALQUER TRANSPARÊNCIA */
+* {
+    opacity: 1 !important;
+}
