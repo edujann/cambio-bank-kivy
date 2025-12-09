@@ -5,30 +5,78 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transferência Internacional | Cambio Bank</title>
     
-    <!-- CSS ORGANIZADO -->
-    <link rel="stylesheet" href="/static/css/style.css">          <!-- Estilos gerais -->
-    <link rel="stylesheet" href="/static/css/formularios.css">   <!-- Estilos específicos de formulários -->
-    
-    <!-- Ícones FontAwesome -->
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- CSS ESPECÍFICO DO CABEÇALHO/FOOTER DA TRANSFERÊNCIA -->
     <style>
-    /* CABEÇALHO ESPECÍFICO PARA TRANSFERÊNCIA */
+    /* ============================================
+       VARIÁVEIS CSS (IGUAL AO DASHBOARD)
+    ============================================ */
+    :root {
+        /* PALETA DE CORES DO DASHBOARD */
+        --cor-fundo: #0a0e15;
+        --cor-card: #0d1117;
+        --cor-borda: #1e232e;
+        --cor-texto: #e0e0e0;
+        --cor-texto-secundario: #8b949e;
+        --cor-primaria: #1a5fb4;
+        --cor-sucesso: #2ec27e;
+        --cor-alerta: #f39c12;
+        --cor-perigo: #e01b24;
+        --roxo: #9b59b6;
+        
+        /* SOMBRAS (IGUAL DASHBOARD) */
+        --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.3);
+        --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.4);
+        --sombra-forte: 0 12px 24px rgba(0, 0, 0, 0.5);
+        
+        /* BORDAS (IGUAL DASHBOARD) */
+        --borda-radius: 12px;
+        --borda-radius-pequeno: 8px;
+    }
+
+    /* ============================================
+       RESET E CONFIGURAÇÕES GERAIS
+    ============================================ */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+        background: var(--cor-fundo);
+        color: var(--cor-texto);
+        min-height: 100vh;
+        overflow-x: hidden;
+    }
+
+    /* ============================================
+       LAYOUT PRINCIPAL (IGUAL DASHBOARD)
+    ============================================ */
+    .app-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        width: 100%;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* ============================================
+       CABEÇALHO (IGUAL AO DASHBOARD)
+    ============================================ */
     .main-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 20px 30px; /* ← JÁ TEM */
+        padding: 20px 30px;
         background: var(--cor-card);
         border-bottom: 1px solid var(--cor-borda);
         position: sticky;
         top: 0;
         z-index: 100;
-        /* ADICIONE: */
-        max-width: 1400px;
-        margin: 0 auto;
-        width: 100%;
     }
 
     .header-left, .header-right {
@@ -41,17 +89,17 @@
         display: flex;
         align-items: center;
         gap: 12px;
-        font-size: 20px;
+        font-size: 24px;
         font-weight: bold;
     }
 
     .logo i {
         color: var(--cor-primaria);
-        font-size: 24px;
+        font-size: 28px;
     }
 
     .logo h1 {
-        font-size: 20px;
+        font-size: 24px;
         font-weight: bold;
         background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
         -webkit-background-clip: text;
@@ -66,6 +114,11 @@
         color: var(--cor-texto);
     }
 
+    .user-info i {
+        color: var(--cor-primaria);
+        font-size: 24px;
+    }
+
     .btn-back {
         background: transparent;
         border: 1px solid var(--cor-borda);
@@ -77,50 +130,26 @@
         align-items: center;
         gap: 8px;
         transition: all 0.3s ease;
+        font-weight: 500;
     }
 
     .btn-back:hover {
         border-color: var(--cor-primaria);
         background: rgba(26, 95, 180, 0.1);
+        transform: translateY(-1px);
     }
 
-    /* FOOTER ESPECÍFICO */
-    .main-footer {
-        margin-top: 40px;
-        padding: 20px 30px;
-        border-top: 1px solid var(--cor-borda);
-        background: var(--cor-card);
-        text-align: center;
-        color: var(--cor-texto-secundario);
-        /* ADICIONE: */
-        max-width: 1400px;
-        margin: 20px auto 0;
-        width: 100%;
-    }
-
-    .footer-links a {
-        color: var(--cor-texto-secundario);
-        text-decoration: none;
-        margin: 0 10px;
-    }
-
-    .footer-links a:hover {
-        color: var(--cor-primaria);
-    }
-
-    /* NAVEGAÇÃO (BREADCRUMB) */
+    /* ============================================
+       NAVEGAÇÃO (BREADCRUMB) - ESTILO DASHBOARD
+    ============================================ */
     .page-nav {
-        padding: 15px 30px; /* ← JÁ TEM */
+        padding: 15px 30px;
         background: rgba(255, 255, 255, 0.02);
         border-bottom: 1px solid var(--cor-borda);
         display: flex;
         align-items: center;
         gap: 10px;
         font-size: 14px;
-        /* ADICIONE: */
-        max-width: 1400px;
-        margin: 0 auto;
-        width: 100%;
     }
 
     .page-nav a {
@@ -129,6 +158,7 @@
         display: flex;
         align-items: center;
         gap: 6px;
+        transition: color 0.3s ease;
     }
 
     .page-nav a:hover {
@@ -152,12 +182,21 @@
         gap: 6px;
     }
 
-    /* TÍTULO DA PÁGINA */
+    /* ============================================
+       CONTEÚDO PRINCIPAL
+    ============================================ */
+    .main-content {
+        flex: 1;
+        padding: 30px;
+    }
+
+    /* ============================================
+       TÍTULO DA PÁGINA (ESTILO DASHBOARD)
+    ============================================ */
     .page-header {
-        padding: 30px 30px 20px;
-        text-align: center; /* ← ADICIONE ESTA LINHA */
-        max-width: 1200px; /* ← ADICIONE ESTA LINHA */
-        margin: 0 auto; /* ← ADICIONE ESTA LINHA */
+        text-align: center;
+        margin-bottom: 30px;
+        padding: 20px 0;
     }
 
     .page-header h2 {
@@ -167,7 +206,7 @@
         display: flex;
         align-items: center;
         gap: 12px;
-        justify-content: center; /* ← ADICIONE ESTA LINHA */
+        justify-content: center;
     }
 
     .page-header h2 i {
@@ -180,7 +219,299 @@
         margin: 0;
     }
 
-    /* BOTÕES (ESTILO DO DASHBOARD) */
+    /* ============================================
+       CONTAINER DO FORMULÁRIO (CARD STYLE)
+    ============================================ */
+    .form-container {
+        background: var(--cor-card);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius);
+        padding: 30px;
+        max-width: 1200px;
+        margin: 0 auto;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .form-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--cor-primaria), transparent);
+    }
+
+    /* ============================================
+       TÍTULOS DO FORMULÁRIO
+    ============================================ */
+    .form-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--cor-borda);
+        color: var(--cor-texto);
+        font-size: 22px;
+    }
+
+    .form-title i {
+        color: var(--cor-primaria);
+    }
+
+    .form-subtitle {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 25px 0 20px;
+        color: var(--cor-texto);
+        font-size: 18px;
+    }
+
+    .form-subtitle i {
+        color: var(--cor-primaria);
+        font-size: 16px;
+    }
+
+    /* ============================================
+       LAYOUT DO FORMULÁRIO (GRID)
+    ============================================ */
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 25px;
+        margin-bottom: 30px;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    /* ============================================
+       GRUPOS DE FORMULÁRIO
+    ============================================ */
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        color: var(--cor-texto-secundario);
+        font-weight: 500;
+        font-size: 14px;
+    }
+
+    .form-group label i {
+        color: var(--cor-primaria);
+        font-size: 14px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px 15px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius-pequeno);
+        color: var(--cor-texto);
+        font-size: 15px;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--cor-primaria);
+        box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2);
+        background: rgba(255, 255, 255, 0.08);
+    }
+
+    select.form-control {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%238b949e' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 15px center;
+        background-size: 12px;
+        padding-right: 40px;
+    }
+
+    textarea.form-control {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    /* ============================================
+       INPUT COM ÍCONE (VALOR)
+    ============================================ */
+    .input-with-icon {
+        position: relative;
+    }
+
+    .input-with-icon input {
+        padding-right: 60px;
+    }
+
+    .currency-label {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--cor-primaria);
+        font-weight: 600;
+        background: rgba(26, 95, 180, 0.1);
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    /* ============================================
+       INFO DE SALDO (ESTILO DASHBOARD)
+    ============================================ */
+    .saldo-info {
+        margin-top: 8px;
+        padding: 10px;
+        background: rgba(46, 194, 126, 0.1);
+        border: 1px solid rgba(46, 194, 126, 0.2);
+        border-radius: var(--borda-radius-pequeno);
+        color: var(--cor-sucesso);
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .saldo-info i {
+        font-size: 14px;
+    }
+
+    .helper-text {
+        display: block;
+        margin-top: 6px;
+        color: var(--cor-texto-secundario);
+        font-size: 12px;
+    }
+
+    /* ============================================
+       DIVISORES (ESTILO DASHBOARD)
+    ============================================ */
+    .form-divider {
+        height: 1px;
+        background: var(--cor-borda);
+        border: none;
+        margin: 30px 0;
+    }
+
+    /* ============================================
+       UPLOAD DE ARQUIVO
+    ============================================ */
+    .file-upload-area {
+        border: 2px dashed var(--cor-borda);
+        border-radius: var(--borda-radius);
+        padding: 40px 20px;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .file-upload-area:hover {
+        border-color: var(--cor-primaria);
+        background: rgba(26, 95, 180, 0.05);
+    }
+
+    .file-upload-area i {
+        font-size: 48px;
+        color: var(--cor-primaria);
+        margin-bottom: 15px;
+    }
+
+    .file-upload-area p {
+        color: var(--cor-texto-secundario);
+        margin-bottom: 15px;
+    }
+
+    .file-info small {
+        color: var(--cor-texto-secundario);
+        opacity: 0.8;
+    }
+
+    .file-preview {
+        margin-top: 15px;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius-pequeno);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .file-preview i {
+        color: var(--cor-perigo);
+        font-size: 20px;
+    }
+
+    .file-preview span {
+        flex: 1;
+        color: var(--cor-texto);
+    }
+
+    .btn-remove-file {
+        background: transparent;
+        border: 1px solid var(--cor-perigo);
+        color: var(--cor-perigo);
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-remove-file:hover {
+        background: rgba(224, 27, 36, 0.1);
+    }
+
+    /* ============================================
+       CHECKBOX (ESTILO DASHBOARD)
+    ============================================ */
+    .form-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 20px 0;
+    }
+
+    .form-checkbox input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--cor-primaria);
+        cursor: pointer;
+    }
+
+    .form-checkbox label {
+        color: var(--cor-texto);
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .form-checkbox label i {
+        color: var(--cor-primaria);
+    }
+
+    /* ============================================
+       BOTÕES (IGUAL AO DASHBOARD)
+    ============================================ */
     .btn-primary, .btn-secondary {
         padding: 12px 24px;
         border-radius: var(--borda-radius-pequeno);
@@ -197,11 +528,12 @@
     .btn-primary {
         background: linear-gradient(135deg, var(--cor-primaria), #2d8fff);
         color: white;
+        box-shadow: 0 4px 12px rgba(26, 95, 180, 0.3);
     }
 
     .btn-primary:hover {
         transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(26, 95, 180, 0.3);
+        box-shadow: 0 6px 20px rgba(26, 95, 180, 0.4);
     }
 
     .btn-secondary {
@@ -213,9 +545,30 @@
     .btn-secondary:hover {
         background: rgba(255, 255, 255, 0.05);
         border-color: var(--cor-texto-secundario);
+        transform: translateY(-1px);
     }
 
-    /* CONTAINER DOS BOTÕES */
+    .btn-select-file {
+        background: var(--cor-primaria);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: var(--borda-radius-pequeno);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-select-file:hover {
+        background: #2d8fff;
+        transform: translateY(-1px);
+    }
+
+    /* ============================================
+       CONTAINER DOS BOTÕES
+    ============================================ */
     .form-buttons {
         display: flex;
         justify-content: flex-end;
@@ -224,353 +577,661 @@
         padding-top: 20px;
         border-top: 1px solid var(--cor-borda);
     }
-    
-    .content-container {
-        max-width: 1400px;
-        margin: 0 auto;
-        width: 100%;
-        padding: 0 20px;
+
+    /* ============================================
+       ALERTAS (ESTILO DASHBOARD)
+    ============================================ */
+    .alert {
+        padding: 15px;
+        border-radius: var(--borda-radius-pequeno);
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 500;
     }
 
+    .alert.hidden {
+        display: none;
+    }
+
+    .alert.success {
+        background: rgba(46, 194, 126, 0.1);
+        border: 1px solid rgba(46, 194, 126, 0.3);
+        color: var(--cor-sucesso);
+    }
+
+    .alert.error {
+        background: rgba(224, 27, 36, 0.1);
+        border: 1px solid rgba(224, 27, 36, 0.3);
+        color: var(--cor-perigo);
+    }
+
+    .alert.info {
+        background: rgba(26, 95, 180, 0.1);
+        border: 1px solid rgba(26, 95, 180, 0.3);
+        color: var(--cor-primaria);
+    }
+
+    /* ============================================
+       MODAL (ESTILO DASHBOARD)
+    ============================================ */
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 20px;
+    }
+
+    .modal.hidden {
+        display: none;
+    }
+
+    .modal-content {
+        background: var(--cor-card);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius);
+        padding: 40px;
+        max-width: 500px;
+        width: 100%;
+        text-align: center;
+        position: relative;
+        animation: modalFadeIn 0.3s ease;
+    }
+
+    @keyframes modalFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .modal-icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+    }
+
+    .modal-icon.success {
+        color: var(--cor-sucesso);
+    }
+
+    .modal-content h3 {
+        font-size: 24px;
+        margin-bottom: 15px;
+        color: var(--cor-texto);
+    }
+
+    .modal-content p {
+        color: var(--cor-texto-secundario);
+        margin-bottom: 25px;
+        line-height: 1.6;
+    }
+
+    .modal-details {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius-pequeno);
+        padding: 20px;
+        margin: 25px 0;
+        text-align: left;
+    }
+
+    .modal-details p {
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-details strong {
+        color: var(--cor-texto);
+    }
+
+    .modal-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 25px;
+    }
+
+    .status-pending {
+        background: rgba(243, 156, 18, 0.15);
+        color: var(--cor-alerta);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    /* ============================================
+       FOOTER (IGUAL AO DASHBOARD)
+    ============================================ */
+    .main-footer {
+        padding: 20px 30px;
+        border-top: 1px solid var(--cor-borda);
+        background: var(--cor-card);
+        text-align: center;
+        color: var(--cor-texto-secundario);
+        font-size: 14px;
+    }
+
+    .footer-links {
+        margin-top: 10px;
+    }
+
+    .footer-links a {
+        color: var(--cor-texto-secundario);
+        text-decoration: none;
+        margin: 0 10px;
+        transition: color 0.3s ease;
+    }
+
+    .footer-links a:hover {
+        color: var(--cor-primaria);
+    }
+
+    /* ============================================
+       RESPONSIVIDADE
+    ============================================ */
+    @media (max-width: 1024px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .main-header {
+            flex-direction: column;
+            gap: 15px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .header-left, .header-right {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .main-content {
+            padding: 15px;
+        }
+        
+        .form-container {
+            padding: 20px;
+        }
+        
+        .form-buttons {
+            flex-direction: column;
+        }
+        
+        .btn-primary, .btn-secondary {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            padding: 25px;
+        }
+        
+        .modal-buttons {
+            flex-direction: column;
+        }
+    }
+
+    /* ============================================
+       UTILITIES
+    ============================================ */
+    .hidden {
+        display: none !important;
+    }
     </style>
 </head>
 <body>
-    <!-- CABEÇALHO FIXO (IGUAL AO DASHBOARD) -->
+<div class="app-container">
+    
+    <!-- CABEÇALHO -->
     <header class="main-header">
         <div class="header-left">
             <div class="logo">
                 <i class="fas fa-university"></i>
-                <h1>CAMBI<span class="logo-highlight">O</span> BANK</h1>
+                <h1>Cambio Bank</h1>
             </div>
         </div>
+        
         <div class="header-right">
             <div class="user-info">
-                <span id="username">Carregando...</span>
+                <span id="userName">Carregando...</span>
                 <i class="fas fa-user-circle"></i>
             </div>
             <a href="/dashboard" class="btn-back">
-                <i class="fas fa-arrow-left"></i> Voltar
+                <i class="fas fa-arrow-left"></i>
+                Voltar ao Dashboard
             </a>
         </div>
     </header>
-
+    
+    <!-- NAVEGAÇÃO -->
+    <nav class="page-nav">
+        <a href="/dashboard">
+            <i class="fas fa-home"></i>
+            Dashboard
+        </a>
+        <i class="fas fa-chevron-right"></i>
+        <span class="current-page">
+            <i class="fas fa-exchange-alt"></i>
+            Transferência Internacional
+        </span>
+    </nav>
+    
     <!-- CONTEÚDO PRINCIPAL -->
     <main class="main-content">
-        <!-- BREADCRUMB/NAVEGAÇÃO -->
-        <div class="content-container">
-        <nav class="page-nav">
-            <a href="/dashboard"><i class="fas fa-home"></i> Home</a>
-            <i class="fas fa-chevron-right"></i>
-            <span class="current-page"><i class="fas fa-exchange-alt"></i> Transferência Internacional</span>
-        </nav>
-
-        <!-- TÍTULO DA PÁGINA -->
         <div class="page-header">
-            <h2><i class="fas fa-globe-americas"></i> TRANSFERÊNCIA INTERNACIONAL</h2>
-            <p class="page-subtitle">Envie dinheiro para qualquer parte do mundo com segurança</p>
+            <h2>
+                <i class="fas fa-globe-americas"></i>
+                Transferência Internacional
+            </h2>
+            <p class="page-subtitle">Envie dinheiro para qualquer parte do mundo com segurança e taxa zero</p>
         </div>
-
-        <!-- FORMULÁRIO DE TRANSFERÊNCIA -->
+        
+        <!-- ALERTA -->
+        <div id="alert" class="alert hidden"></div>
+        
         <div class="form-container">
-            <div class="form-card">
-                <h3 class="form-title">
-                    <i class="fas fa-file-invoice-dollar"></i> Dados da Transferência
+            <h3 class="form-title">
+                <i class="fas fa-file-invoice-dollar"></i>
+                Dados da Transferência
+            </h3>
+            
+            <form id="transferenciaForm">
+                <!-- CONTA ORIGEM E VALOR -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="conta_origem">
+                            <i class="fas fa-wallet"></i> Conta de Origem *
+                        </label>
+                        <select id="conta_origem" class="form-control" required>
+                            <option value="">Selecione sua conta...</option>
+                        </select>
+                        <div id="saldo_info" class="saldo-info">
+                            <i class="fas fa-info-circle"></i> Saldo disponível: <span id="saldo_valor">--</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="valor">
+                            <i class="fas fa-money-bill-wave"></i> Valor a Transferir *
+                        </label>
+                        <div class="input-with-icon">
+                            <input type="number" id="valor" class="form-control" step="0.01" min="0.01" placeholder="0.00" required>
+                            <span id="moeda_label" class="currency-label">USD</span>
+                        </div>
+                        <small class="helper-text">Valor mínimo: 0.01</small>
+                    </div>
+                </div>
+
+                <!-- FINALIDADE -->
+                <div class="form-group">
+                    <label for="finalidade">
+                        <i class="fas fa-bullseye"></i> Finalidade da Transferência *
+                    </label>
+                    <select id="finalidade" class="form-control" required>
+                        <option value="Pagamento de Serviços">Pagamento de Serviços</option>
+                        <option value="Pagamento de Produtos">Pagamento de Produtos</option>
+                        <option value="Remessa Familiar">Remessa Familiar</option>
+                        <option value="Investimento">Investimento</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                </div>
+
+                <!-- DESCRIÇÃO -->
+                <div class="form-group">
+                    <label for="descricao">
+                        <i class="fas fa-comment-alt"></i> Descrição / Observações
+                    </label>
+                    <textarea id="descricao" class="form-control" rows="3" placeholder="Descreva o propósito desta transferência..."></textarea>
+                </div>
+
+                <hr class="form-divider">
+
+                <!-- BENEFICIÁRIO -->
+                <h3 class="form-subtitle">
+                    <i class="fas fa-user-tie"></i> Dados do Beneficiário
                 </h3>
-                
-                <!-- ALERTAS -->
-                <div id="alert" class="alert hidden"></div>
 
-                <form id="transferenciaForm">
-                    <!-- LINHA 1: CONTA ORIGEM E VALOR -->
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="conta_origem">
-                                <i class="fas fa-wallet"></i> Conta de Origem *
-                            </label>
-                            <select id="conta_origem" name="conta_origem" required>
-                                <option value="">Selecione sua conta...</option>
-                                <!-- Contas serão carregadas via JavaScript -->
-                            </select>
-                            <div id="saldo_info" class="saldo-info">
-                                <i class="fas fa-info-circle"></i> Saldo disponível: <span id="saldo_valor">--</span>
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="valor">
-                                <i class="fas fa-money-bill-wave"></i> Valor a Transferir *
-                            </label>
-                            <div class="input-with-icon">
-                                <input type="number" id="valor" name="valor" step="0.01" min="0.01" 
-                                       placeholder="0.00" required>
-                                <span id="moeda_label" class="currency-label">USD</span>
-                            </div>
-                            <small class="helper-text">Valor mínimo: 0.01</small>
-                        </div>
-                    </div>
+                <!-- BENEFICIÁRIOS SALVOS -->
+                <div class="form-group">
+                    <label for="beneficiarios_salvos">
+                        <i class="fas fa-address-book"></i> Beneficiários Salvos
+                    </label>
+                    <select id="beneficiarios_salvos" class="form-control">
+                        <option value="">Selecione um beneficiário salvo...</option>
+                    </select>
+                    <small class="helper-text">Selecione para preencher automaticamente</small>
+                </div>
 
-                    <!-- LINHA 2: FINALIDADE -->
+                <!-- CAMPOS DO BENEFICIÁRIO -->
+                <div class="form-row">
                     <div class="form-group">
-                        <label for="finalidade">
-                            <i class="fas fa-bullseye"></i> Finalidade da Transferência *
+                        <label for="beneficiario">
+                            <i class="fas fa-user"></i> Nome Completo do Beneficiário *
                         </label>
-                        <select id="finalidade" name="finalidade" required>
-                            <option value="Pagamento de Serviços">Pagamento de Serviços</option>
-                            <option value="Pagamento de Produtos">Pagamento de Produtos</option>
-                            <option value="Remessa Familiar">Remessa Familiar</option>
-                            <option value="Investimento">Investimento</option>
-                            <option value="Outros">Outros</option>
-                        </select>
+                        <input type="text" id="beneficiario" class="form-control" placeholder="Nome completo" required>
                     </div>
-
-                    <!-- LINHA 3: DESCRIÇÃO -->
+                    
                     <div class="form-group">
-                        <label for="descricao">
-                            <i class="fas fa-comment-alt"></i> Descrição / Observações
+                        <label for="endereco">
+                            <i class="fas fa-map-marker-alt"></i> Endereço Completo *
                         </label>
-                        <textarea id="descricao" name="descricao" rows="3" 
-                                  placeholder="Descreva o propósito desta transferência..."></textarea>
+                        <input type="text" id="endereco" class="form-control" placeholder="Rua, número, complemento" required>
                     </div>
+                </div>
 
-                    <hr class="form-divider">
-
-                    <!-- SEÇÃO BENEFICIÁRIO -->
-                    <h3 class="form-subtitle">
-                        <i class="fas fa-user-tie"></i> Dados do Beneficiário
-                    </h3>
-
-                    <!-- BENEFICIÁRIOS SALVOS -->
+                <div class="form-row">
                     <div class="form-group">
-                        <label for="beneficiarios_salvos">
-                            <i class="fas fa-address-book"></i> Beneficiários Salvos
+                        <label for="cidade">
+                            <i class="fas fa-city"></i> Cidade *
                         </label>
-                        <select id="beneficiarios_salvos" class="beneficiarios-select">
-                            <option value="">Selecione um beneficiário salvo...</option>
-                            <!-- Beneficiários serão carregados via JavaScript -->
-                        </select>
-                        <small class="helper-text">Selecione para preencher automaticamente</small>
+                        <input type="text" id="cidade" class="form-control" placeholder="Cidade" required>
                     </div>
-
-                    <!-- CAMPOS DO BENEFICIÁRIO -->
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="beneficiario">
-                                <i class="fas fa-user"></i> Nome Completo do Beneficiário *
-                            </label>
-                            <input type="text" id="beneficiario" name="beneficiario" 
-                                   placeholder="Nome completo" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="endereco">
-                                <i class="fas fa-map-marker-alt"></i> Endereço Completo *
-                            </label>
-                            <input type="text" id="endereco" name="endereco" 
-                                   placeholder="Rua, número, complemento" required>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="cidade">
-                                <i class="fas fa-city"></i> Cidade *
-                            </label>
-                            <input type="text" id="cidade" name="cidade" 
-                                   placeholder="Cidade" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="pais">
-                                <i class="fas fa-flag"></i> País *
-                            </label>
-                            <input type="text" id="pais" name="pais" 
-                                   placeholder="País" required>
-                        </div>
-                    </div>
-
-                    <hr class="form-divider">
-
-                    <!-- SEÇÃO BANCO DESTINATÁRIO -->
-                    <h3 class="form-subtitle">
-                        <i class="fas fa-university"></i> Banco Destinatário
-                    </h3>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="banco">
-                                <i class="fas fa-landmark"></i> Nome do Banco *
-                            </label>
-                            <input type="text" id="banco" name="banco" 
-                                   placeholder="Nome do banco destinatário" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="endereco_banco">
-                                <i class="fas fa-map-pin"></i> Endereço do Banco
-                            </label>
-                            <input type="text" id="endereco_banco" name="endereco_banco" 
-                                   placeholder="Endereço do banco">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="cidade_banco">
-                                <i class="fas fa-city"></i> Cidade do Banco *
-                            </label>
-                            <input type="text" id="cidade_banco" name="cidade_banco" 
-                                   placeholder="Cidade do banco" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="pais_banco">
-                                <i class="fas fa-flag"></i> País do Banco *
-                            </label>
-                            <input type="text" id="pais_banco" name="pais_banco" 
-                                   placeholder="País do banco" required>
-                        </div>
-                    </div>
-
-                    <hr class="form-divider">
-
-                    <!-- SEÇÃO DADOS BANCÁRIOS -->
-                    <h3 class="form-subtitle">
-                        <i class="fas fa-key"></i> Dados Bancários
-                    </h3>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="swift">
-                                <i class="fas fa-barcode"></i> Código SWIFT/BIC *
-                            </label>
-                            <input type="text" id="swift" name="swift" 
-                                   placeholder="Ex: CHASUS33XXX" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="iban">
-                                <i class="fas fa-hashtag"></i> Código IBAN / Account # *
-                            </label>
-                            <input type="text" id="iban" name="iban" 
-                                   placeholder="Número da conta" required>
-                        </div>
-                    </div>
-
+                    
                     <div class="form-group">
-                        <label for="aba">
-                            <i class="fas fa-route"></i> Código ABA / Routing #
+                        <label for="pais">
+                            <i class="fas fa-flag"></i> País *
                         </label>
-                        <input type="text" id="aba" name="aba" 
-                               placeholder="Apenas para transferências EUA">
+                        <input type="text" id="pais" class="form-control" placeholder="País" required>
                     </div>
+                </div>
 
-                    <hr class="form-divider">
+                <hr class="form-divider">
 
-                    <!-- SEÇÃO INVOICE -->
-                    <h3 class="form-subtitle">
-                        <i class="fas fa-file-invoice"></i> Documento Comprobatório (Invoice)
-                    </h3>
+                <!-- BANCO DESTINATÁRIO -->
+                <h3 class="form-subtitle">
+                    <i class="fas fa-university"></i> Banco Destinatário
+                </h3>
 
+                <div class="form-row">
                     <div class="form-group">
-                        <div class="file-upload-area" id="uploadArea">
-                            <i class="fas fa-cloud-upload-alt"></i>
-                            <p>Arraste e solte o arquivo aqui ou</p>
-                            <button type="button" class="btn-select-file" id="selectFileBtn">
-                                <i class="fas fa-folder-open"></i> Selecionar Arquivo
-                            </button>
-                            <input type="file" id="invoiceFile" accept=".pdf,.jpg,.jpeg,.png" style="display: none;">
-                            <p class="file-info">
-                                <small>Formatos aceitos: PDF, JPG, PNG (máx. 5MB)</small>
-                            </p>
-                        </div>
-                        <div id="filePreview" class="file-preview hidden">
-                            <i class="fas fa-file-pdf"></i>
-                            <span id="fileName">arquivo.pdf</span>
-                            <button type="button" class="btn-remove-file" id="removeFileBtn">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- CHECKBOX SALVAR BENEFICIÁRIO -->
-                    <div class="form-checkbox">
-                        <input type="checkbox" id="salvar_beneficiario" name="salvar_beneficiario">
-                        <label for="salvar_beneficiario">
-                            <i class="fas fa-save"></i> Salvar este beneficiário para futuras transferências
+                        <label for="banco">
+                            <i class="fas fa-landmark"></i> Nome do Banco *
                         </label>
+                        <input type="text" id="banco" class="form-control" placeholder="Nome do banco destinatário" required>
                     </div>
+                    
+                    <div class="form-group">
+                        <label for="endereco_banco">
+                            <i class="fas fa-map-pin"></i> Endereço do Banco
+                        </label>
+                        <input type="text" id="endereco_banco" class="form-control" placeholder="Endereço do banco">
+                    </div>
+                </div>
 
-                    <!-- BOTÕES -->
-                    <div class="form-buttons">
-                        <button type="button" class="btn-secondary" onclick="window.history.back()">
-                            <i class="fas fa-times"></i> Cancelar
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cidade_banco">
+                            <i class="fas fa-city"></i> Cidade do Banco *
+                        </label>
+                        <input type="text" id="cidade_banco" class="form-control" placeholder="Cidade do banco" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="pais_banco">
+                            <i class="fas fa-flag"></i> País do Banco *
+                        </label>
+                        <input type="text" id="pais_banco" class="form-control" placeholder="País do banco" required>
+                    </div>
+                </div>
+
+                <hr class="form-divider">
+
+                <!-- DADOS BANCÁRIOS -->
+                <h3 class="form-subtitle">
+                    <i class="fas fa-key"></i> Dados Bancários
+                </h3>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="swift">
+                            <i class="fas fa-barcode"></i> Código SWIFT/BIC *
+                        </label>
+                        <input type="text" id="swift" class="form-control" placeholder="Ex: CHASUS33XXX" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="iban">
+                            <i class="fas fa-hashtag"></i> Código IBAN / Account # *
+                        </label>
+                        <input type="text" id="iban" class="form-control" placeholder="Número da conta" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="aba">
+                        <i class="fas fa-route"></i> Código ABA / Routing #
+                    </label>
+                    <input type="text" id="aba" class="form-control" placeholder="Apenas para transferências EUA">
+                </div>
+
+                <hr class="form-divider">
+
+                <!-- INVOICE -->
+                <h3 class="form-subtitle">
+                    <i class="fas fa-file-invoice"></i> Documento Comprobatório (Invoice)
+                </h3>
+
+                <div class="form-group">
+                    <div class="file-upload-area" id="uploadArea">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Arraste e solte o arquivo aqui ou</p>
+                        <button type="button" class="btn-select-file" id="selectFileBtn">
+                            <i class="fas fa-folder-open"></i> Selecionar Arquivo
                         </button>
-                        <button type="submit" class="btn-primary" id="submitBtn">
-                            <i class="fas fa-paper-plane"></i> Solicitar Transferência
+                        <p class="file-info">
+                            <small>Formatos aceitos: PDF, JPG, PNG (máx. 5MB)</small>
+                        </p>
+                    </div>
+                    <div id="filePreview" class="file-preview hidden">
+                        <i class="fas fa-file-pdf"></i>
+                        <span id="fileName">arquivo.pdf</span>
+                        <button type="button" class="btn-remove-file" id="removeFileBtn">
+                            <i class="fas fa-times"></i>
                         </button>
                     </div>
-                </form>
-            </div>
+                </div>
+
+                <!-- SALVAR BENEFICIÁRIO -->
+                <div class="form-checkbox">
+                    <input type="checkbox" id="salvar_beneficiario">
+                    <label for="salvar_beneficiario">
+                        <i class="fas fa-save"></i> Salvar este beneficiário para futuras transferências
+                    </label>
+                </div>
+
+                <!-- BOTÕES -->
+                <div class="form-buttons">
+                    <button type="button" class="btn-secondary" onclick="window.history.back()">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn-primary" id="submitBtn">
+                        <i class="fas fa-paper-plane"></i> Solicitar Transferência
+                    </button>
+                </div>
+            </form>
         </div>
     </main>
-
-    <!-- RODAPÉ -->
+    
+    <!-- FOOTER -->
     <footer class="main-footer">
-        <p>© 2024 Cambio Bank - Sistema de Câmbio Internacional. Todos os direitos reservados.</p>
-        <p class="footer-links">
-            <a href="#"><i class="fas fa-shield-alt"></i> Segurança</a> |
-            <a href="#"><i class="fas fa-question-circle"></i> Ajuda</a> |
+        <p>© 2024 Cambio Bank • Sistema de Câmbio Internacional</p>
+        <div class="footer-links">
+            <a href="#"><i class="fas fa-shield-alt"></i> Segurança</a>
+            <a href="#"><i class="fas fa-question-circle"></i> Ajuda</a>
             <a href="#"><i class="fas fa-envelope"></i> Contato</a>
-        </p>
+        </div>
     </footer>
+</div>
 
-    <!-- MODAL DE SUCESSO -->
-    <div id="successModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-icon success">
-                <i class="fas fa-check-circle"></i>
-            </div>
-            <h3>Transferência Solicitada com Sucesso!</h3>
-            <p id="modalMessage">Sua transferência foi registrada e está aguardando aprovação.</p>
-            <div class="modal-details">
-                <p><strong>ID da Transferência:</strong> <span id="modalTransferId">--</span></p>
-                <p><strong>Valor:</strong> <span id="modalValor">--</span></p>
-                <p><strong>Status:</strong> <span class="status-pending">Aguardando Aprovação</span></p>
-            </div>
-            <div class="modal-buttons">
-                <button class="btn-secondary" id="closeModalBtn">Fechar</button>
-                <button class="btn-primary" id="goToDashboardBtn">
-                    <i class="fas fa-tachometer-alt"></i> Voltar ao Dashboard
-                </button>
-            </div>
+<!-- MODAL DE SUCESSO -->
+<div id="successModal" class="modal hidden">
+    <div class="modal-content">
+        <div class="modal-icon success">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <h3>Transferência Solicitada com Sucesso!</h3>
+        <p id="modalMessage">Sua transferência foi registrada e está aguardando aprovação.</p>
+        <div class="modal-details">
+            <p><strong>ID da Transferência:</strong> <span id="modalTransferId">--</span></p>
+            <p><strong>Valor:</strong> <span id="modalValor">--</span></p>
+            <p><strong>Status:</strong> <span class="status-pending">Aguardando Aprovação</span></p>
+        </div>
+        <div class="modal-buttons">
+            <button class="btn-secondary" id="closeModalBtn">Fechar</button>
+            <button class="btn-primary" id="goToDashboardBtn">
+                <i class="fas fa-tachometer-alt"></i> Voltar ao Dashboard
+            </button>
         </div>
     </div>
+</div>
 
-    <!-- VARIÁVEIS DO FLASK (CRÍTICO!) -->
-    <script>
-        // Dados do usuário logado (do Flask)
-        window.USER = { 
-            username: "{{ usuario if usuario else '' }}", 
-            nome: "{{ nome if nome else 'Usuário' }}", 
-            email: "{{ email if email else 'usuario@exemplo.com' }}"
-        };
-        window.API_URL = "";
+<!-- DADOS DO USUÁRIO -->
+<script>
+    // Dados do Flask
+    window.USER = { 
+        username: "{{ usuario if usuario else '' }}", 
+        nome: "{{ nome if nome else 'Usuário' }}", 
+        email: "{{ email if email else 'usuario@exemplo.com' }}"
+    };
+    
+    // API URL
+    window.API_URL = "";
+    
+    console.log('Transferência - Usuário:', window.USER);
+</script>
+
+<!-- SCRIPT BÁSICO -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Mostrar nome do usuário
+        const userNameElement = document.getElementById('userName');
+        if (userNameElement && window.USER.nome) {
+            userNameElement.textContent = window.USER.nome;
+        }
         
-        console.log('Transferência - Usuário logado:', window.USER);
-    </script>
-
-    <!-- SCRIPTS -->
-    <script src="/static/js/script.js"></script>
-    <script>
-        // JavaScript específico para esta página será adicionado aqui
-        document.addEventListener('DOMContentLoaded', function() {
-            // Carregar dados do usuário e contas
-            loadUserData();
-            loadContas();
-            
-            // Configurar eventos
-            setupEventListeners();
+        // Configurar evento do botão voltar
+        document.getElementById('goToDashboardBtn')?.addEventListener('click', function() {
+            window.location.href = '/dashboard';
         });
-    </script>
+        
+        // Configurar evento para fechar modal
+        document.getElementById('closeModalBtn')?.addEventListener('click', function() {
+            document.getElementById('successModal').classList.add('hidden');
+        });
+        
+        // Configurar upload de arquivo
+        const selectFileBtn = document.getElementById('selectFileBtn');
+        const invoiceFile = document.getElementById('invoiceFile');
+        const uploadArea = document.getElementById('uploadArea');
+        const filePreview = document.getElementById('filePreview');
+        const removeFileBtn = document.getElementById('removeFileBtn');
+        
+        if (selectFileBtn && invoiceFile) {
+            selectFileBtn.addEventListener('click', function() {
+                invoiceFile.click();
+            });
+            
+            invoiceFile.addEventListener('change', function(e) {
+                if (this.files.length > 0) {
+                    const file = this.files[0];
+                    if (file.size > 5 * 1024 * 1024) {
+                        showAlert('Arquivo muito grande! O tamanho máximo é 5MB.', 'error');
+                        this.value = '';
+                        return;
+                    }
+                    
+                    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+                    if (!allowedTypes.includes(file.type)) {
+                        showAlert('Formato de arquivo não suportado! Use PDF, JPG ou PNG.', 'error');
+                        this.value = '';
+                        return;
+                    }
+                    
+                    // Mostrar preview
+                    document.getElementById('fileName').textContent = file.name;
+                    filePreview.classList.remove('hidden');
+                    
+                    showAlert('Arquivo selecionado com sucesso!', 'success');
+                }
+            });
+        }
+        
+        if (removeFileBtn) {
+            removeFileBtn.addEventListener('click', function() {
+                invoiceFile.value = '';
+                filePreview.classList.add('hidden');
+                showAlert('Arquivo removido.', 'info');
+            });
+        }
+        
+        // Evento de submit do formulário
+        const form = document.getElementById('transferenciaForm');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Validação básica
+                const valor = document.getElementById('valor').value;
+                if (!valor || parseFloat(valor) <= 0) {
+                    showAlert('Por favor, insira um valor válido.', 'error');
+                    return;
+                }
+                
+                // Mostrar loading
+                const submitBtn = document.getElementById('submitBtn');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+                submitBtn.disabled = true;
+                
+                // Simular envio
+                setTimeout(function() {
+                    // Mostrar modal de sucesso
+                    document.getElementById('modalTransferId').textContent = 'TRF' + Date.now().toString().slice(-8);
+                    document.getElementById('modalValor').textContent = 'US$ ' + parseFloat(valor).toFixed(2);
+                    document.getElementById('successModal').classList.remove('hidden');
+                    
+                    // Resetar botão
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }, 1500);
+            });
+        }
+    });
+    
+    function showAlert(message, type = 'info') {
+        const alert = document.getElementById('alert');
+        if (alert) {
+            alert.textContent = message;
+            alert.className = 'alert ' + type;
+            alert.classList.remove('hidden');
+            
+            setTimeout(function() {
+                alert.classList.add('hidden');
+            }, 5000);
+        }
+    }
+</script>
 </body>
 </html>
