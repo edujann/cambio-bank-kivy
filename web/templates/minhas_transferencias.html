@@ -9,44 +9,34 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* CORES IGUAIS AO DASHBOARD - VERSÃO ESCURA */
+        /* CORES IGUAIS AO KIVY - VERSÃO ESCURA DEFINITIVA */
         :root {
-            /* CORES PRINCIPAIS (dashboard) */
-            --cor-primaria: #1a5fb4;      /* Azul dashboard */
-            --cor-aviso: #cc8000;         /* Âmbar/Laranja */
-            --cor-processando: #2980b9;   /* Azul mais claro */
-            --cor-sucesso: #27ae60;       /* Verde dashboard */
-            --cor-erro: #c0392b;          /* Vermelho dashboard */
+            /* CORES ATIVAS (Kivy) */
+            --cor-primaria: #2646c7;      /* Azul - COR_PRIMARIA (0.15, 0.35, 0.75, 1) */
+            --cor-aviso: #cc8000;         /* Âmbar - COR_AVISO (0.8, 0.5, 0.0, 1) */
+            --cor-processando: #3380cc;   /* Azul processando - COR_PROCESSANDO (0.2, 0.5, 0.8, 1) */
+            --cor-sucesso: #1a8a1a;       /* Verde - COR_SUCESSO (0.1, 0.6, 0.1, 1) */
+            --cor-erro: #b33333;          /* Vermelho - COR_ERRO (0.7, 0.2, 0.2, 1) */
             
-            /* CORES INATIVAS - TONS MAIS ESCUROS */
-            --cor-primaria-escura: #0d3a66;
-            --cor-aviso-escura: #663d00;
-            --cor-processando-escura: #1a5276;
-            --cor-sucesso-escura: #1e8449;
-            --cor-erro-escura: #922b21;
+            /* CORES INATIVAS - MAIS ESCURAS (Kivy) */
+            --cor-primaria-escura: #142266;
+            --cor-aviso-escura: #663300;
+            --cor-processando-escura: #1a4066;
+            --cor-sucesso-escura: #0d440d;
+            --cor-erro-escura: #4d1414;
             
-            /* FUNDOS (dashboard style) */
-            --fundo-escuro: #0f141c;      /* Mais escuro que dashboard */
-            --fundo-card: #1c2533;        /* Card mais escuro */
-            --fundo-input: #141c26;
-            --fundo-hover: #2d3a4d;
+            /* FUNDOS (Kivy) */
+            --fundo-escuro: #121a26;      /* FUNDO_ESCURO (0.07, 0.10, 0.15, 1) */
+            --fundo-card: #263448;        /* FUNDO_CARD (0.15, 0.20, 0.28, 1) */
             
-            /* TEXTO (dashboard style) */
-            --texto-principal: #d1d8e0;
-            --texto-secundario: #95a5a6;
+            /* TEXTO */
+            --texto-principal: #e0e0e0;
+            --texto-secundario: #a0a0a0;
             --texto-destaque: #ffffff;
             
-            /* CORES ADICIONAIS DO DASHBOARD */
-            --roxo-dashboard: #8e44ad;
-            --turquesa-dashboard: #16a085;
-            
             /* BORDAS */
-            --raio-borda: 10px;
-            --raio-borda-pequeno: 6px;
-            
-            /* SOMBRAS */
-            --sombra-card: 0 4px 15px rgba(0, 0, 0, 0.4);
-            --sombra-botao: 0 2px 10px rgba(0, 0, 0, 0.3);
+            --raio-borda: 12px;
+            --raio-borda-pequeno: 8px;
         }
         
         * {
@@ -100,28 +90,6 @@
             padding: 10px 20px;
             border-radius: var(--raio-borda);
             font-size: 14px;
-        }
-
-        /* BOTÃO VOLTAR */
-        .btn-voltar-dashboard {
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            color: var(--texto-principal);
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            transition: all 0.3s;
-            margin-right: 10px;
-        }
-        
-        .btn-voltar-dashboard:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateX(-3px);
         }
         
         /* FILTROS RÁPIDOS (IGUAL KIVY) */
@@ -483,9 +451,6 @@
         <!-- HEADER -->
         <div class="header">
             <div class="titulo-pagina">
-                <button class="btn-voltar-dashboard" onclick="voltarDashboard()" title="Voltar ao Dashboard">
-                    <i class="fas fa-arrow-left"></i>
-                </button>
                 <i class="fas fa-exchange-alt"></i>
                 <h1>Minhas Transferências Internacionais</h1>
             </div>
@@ -512,6 +477,11 @@
             <button id="btn-recusadas" class="btn-filtro" onclick="filtrarTransferencias('rejected')">
                 <i class="fas fa-times-circle"></i> RECUSADAS
             </button>
+        </div>
+        
+        <!-- ESTATÍSTICAS -->
+        <div class="estatisticas" id="estatisticas">
+            <!-- Será preenchido via JavaScript -->
         </div>
         
         <!-- LISTA DE TRANSFERÊNCIAS -->
@@ -587,6 +557,7 @@
                     todasTransferencias = data;
                     console.log(`✅ ${data.length} transferências carregadas`);
                     
+                    atualizarEstatisticas(data);
                     filtrarTransferencias(filtroAtual);
                 } else {
                     throw new Error('Erro ao carregar transferências');
@@ -639,6 +610,57 @@
                 'rejected': 'recusadas'
             };
             return mapeamento[filtro];
+        }
+        
+        function atualizarEstatisticas(transferencias) {
+            const estatisticas = document.getElementById('estatisticas');
+            
+            const total = transferencias.length;
+            const pendentes = transferencias.filter(t => 
+                t.status === 'pending' || t.status === 'solicitada'
+            ).length;
+            const processando = transferencias.filter(t => 
+                t.status === 'processing'
+            ).length;
+            const concluidas = transferencias.filter(t => 
+                t.status === 'completed'
+            ).length;
+            const recusadas = transferencias.filter(t => 
+                t.status === 'rejected'
+            ).length;
+            
+            const totalValor = transferencias.reduce((sum, t) => {
+                return sum + (parseFloat(t.valor) || 0);
+            }, 0);
+            
+            estatisticas.innerHTML = `
+                <div class="card-estatistica">
+                    <div class="numero" style="color: var(--cor-primaria);">${total}</div>
+                    <div class="label">Total de Transferências</div>
+                </div>
+                <div class="card-estatistica">
+                    <div class="numero" style="color: var(--cor-aviso);">${pendentes}</div>
+                    <div class="label">Pendentes</div>
+                </div>
+                <div class="card-estatistica">
+                    <div class="numero" style="color: var(--cor-processando);">${processando}</div>
+                    <div class="label">Processando</div>
+                </div>
+                <div class="card-estatistica">
+                    <div class="numero" style="color: var(--cor-sucesso);">${concluidas}</div>
+                    <div class="label">Concluídas</div>
+                </div>
+                <div class="card-estatistica">
+                    <div class="numero" style="color: var(--cor-erro);">${recusadas}</div>
+                    <div class="label">Recusadas</div>
+                </div>
+                <div class="card-estatistica">
+                    <div class="numero" style="color: var(--texto-destaque);">
+                        ${formatarMoeda(totalValor, 'USD')}
+                    </div>
+                    <div class="label">Valor Total</div>
+                </div>
+            `;
         }
         
         function formatarMoeda(valor, moeda) {
@@ -1163,13 +1185,7 @@
             }
         }, 30000);
 
-        // FUNÇÃO VOLTAR AO DASHBOARD  <-- ADICIONE AQUI
-        function voltarDashboard() {
-            window.location.href = '/dashboard';
-        }
-
         // EXPORTAR FUNÇÕES GLOBAIS
-        window.voltarDashboard = voltarDashboard;
         window.filtrarTransferencias = filtrarTransferencias;
         window.mostrarDetalhes = mostrarDetalhes;
         window.fecharModal = fecharModal;
