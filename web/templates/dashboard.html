@@ -1265,19 +1265,17 @@ function abrirTransferencia() {
                         <div class="card-badge" id="badgeExtrato">Hoje</div>
                     </div>
 
-                    <!-- CARD 4: BENEFICIÁRIOS -->
-                    <div class="acao-card" onclick="abrirBeneficiarios()">
-                        <div class="card-icon beneficiarios">
-                            <i class="fas fa-users"></i>
+                    <!-- CARD 4: MINHAS TRANSFERÊNCIAS -->
+                    <div class="acao-card" onclick="window.location.href='/minhas-transferencias'">
+                        <div class="card-icon" style="background: linear-gradient(135deg, #1a5fb4, #2d8fff);">
+                            <i class="fas fa-exchange-alt"></i>
                         </div>
-                        <h3 class="card-title">Beneficiários</h3>
-                        <p class="card-desc">Gerencie seus contatos</p>
-                        <div class="card-badge" id="badgeBeneficiarios2">
-                            {{ beneficiarios_count if beneficiarios_count else '6' }} cadastrados
+                        <h3 class="card-title">Minhas Transferências</h3>
+                        <p class="card-desc">Transferências internacionais</p>
+                        <div class="card-badge" id="badgeTransferencias">
+                            <i class="fas fa-sync-alt"></i> Carregando...
                         </div>
                     </div>
-                </div>
-            </section>
 
             <!-- ULTIMAS TRANSAÇÕES -->
             <section class="transacoes-recentes">
