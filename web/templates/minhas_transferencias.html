@@ -9,34 +9,35 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* CORES IGUAIS AO KIVY - VERSÃO ESCURA DEFINITIVA */
+        /* CORES IGUAIS AO DASHBOARD - VERSÃO ESCURA */
         :root {
-            /* CORES ATIVAS (Kivy) */
-            --cor-primaria: #2646c7;      /* Azul - COR_PRIMARIA (0.15, 0.35, 0.75, 1) */
-            --cor-aviso: #cc8000;         /* Âmbar - COR_AVISO (0.8, 0.5, 0.0, 1) */
-            --cor-processando: #3380cc;   /* Azul processando - COR_PROCESSANDO (0.2, 0.5, 0.8, 1) */
-            --cor-sucesso: #1a8a1a;       /* Verde - COR_SUCESSO (0.1, 0.6, 0.1, 1) */
-            --cor-erro: #b33333;          /* Vermelho - COR_ERRO (0.7, 0.2, 0.2, 1) */
+            /* CORES PRINCIPAIS (dashboard) */
+            --azul-dashboard: #1a5fb4;
+            --azul-claro-dashboard: #2d8fff;
+            --roxo-dashboard: #8e44ad;
+            --verde-dashboard: #27ae60;
+            --vermelho-dashboard: #c0392b;
+            --amarelo-dashboard: #f39c12;
             
-            /* CORES INATIVAS - MAIS ESCURAS (Kivy) */
-            --cor-primaria-escura: #142266;
-            --cor-aviso-escura: #663300;
-            --cor-processando-escura: #1a4066;
-            --cor-sucesso-escura: #0d440d;
-            --cor-erro-escura: #4d1414;
+            /* CORES DE STATUS (dashboard style) */
+            --cor-pendente: #f39c12;      /* Amarelo */
+            --cor-processando: #3498db;    /* Azul */
+            --cor-concluida: #27ae60;      /* Verde */
+            --cor-recusada: #c0392b;       /* Vermelho */
             
-            /* FUNDOS (Kivy) */
-            --fundo-escuro: #121a26;      /* FUNDO_ESCURO (0.07, 0.10, 0.15, 1) */
-            --fundo-card: #263448;        /* FUNDO_CARD (0.15, 0.20, 0.28, 1) */
+            /* FUNDOS (dashboard style) */
+            --fundo-escuro: #0f141c;
+            --fundo-card: #1c2533;
+            --fundo-hover: #2d3a4d;
             
-            /* TEXTO */
-            --texto-principal: #e0e0e0;
-            --texto-secundario: #a0a0a0;
+            /* TEXTO (dashboard style) */
+            --texto-principal: #d1d8e0;
+            --texto-secundario: #95a5a6;
             --texto-destaque: #ffffff;
             
             /* BORDAS */
-            --raio-borda: 12px;
-            --raio-borda-pequeno: 8px;
+            --raio-borda: 10px;
+            --raio-borda-pequeno: 6px;
         }
         
         * {
@@ -121,19 +122,19 @@
             color: var(--texto-secundario);
         }
         
-        /* CORES DOS FILTROS ATIVOS (IGUAL KIVY) */
-        #btn-todas.ativo { background: var(--cor-primaria); }
-        #btn-pendentes.ativo { background: var(--cor-aviso); }
+        /* CORES DOS FILTROS ATIVOS (IGUAL DASHBOARD) */
+        #btn-todas.ativo { background: var(--azul-dashboard); }
+        #btn-pendentes.ativo { background: var(--cor-pendente); }
         #btn-processando.ativo { background: var(--cor-processando); }
-        #btn-concluidas.ativo { background: var(--cor-sucesso); }
-        #btn-recusadas.ativo { background: var(--cor-erro); }
+        #btn-concluidas.ativo { background: var(--cor-concluida); }
+        #btn-recusadas.ativo { background: var(--cor-recusada); }
         
-        /* CORES DOS FILTROS INATIVOS (IGUAL KIVY) */
-        #btn-todas:not(.ativo) { background: var(--cor-primaria-escura); }
-        #btn-pendentes:not(.ativo) { background: var(--cor-aviso-escura); }
-        #btn-processando:not(.ativo) { background: var(--cor-processando-escura); }
-        #btn-concluidas:not(.ativo) { background: var(--cor-sucesso-escura); }
-        #btn-recusadas:not(.ativo) { background: var(--cor-erro-escura); }
+        /* CORES DOS FILTROS INATIVOS */
+        #btn-todas:not(.ativo) { background: #1a3a66; }
+        #btn-pendentes:not(.ativo) { background: #664d00; }
+        #btn-processando:not(.ativo) { background: #1a5276; }
+        #btn-concluidas:not(.ativo) { background: #1e8449; }
+        #btn-recusadas:not(.ativo) { background: #7b241c; }
         
         /* ESTATÍSTICAS */
         .estatisticas {
@@ -196,10 +197,10 @@
             gap: 6px;
         }
         
-        .status-pending { background: var(--cor-aviso); color: white; }
+        .status-pending { background: var(--cor-pendente); color: white; }
         .status-processing { background: var(--cor-processando); color: white; }
-        .status-completed { background: var(--cor-sucesso); color: white; }
-        .status-rejected { background: var(--cor-erro); color: white; }
+        .status-completed { background: var(--cor-concluida); color: white; }
+        .status-rejected { background: var(--cor-recusada); color: white; }
         
         .transferencia-id {
             font-size: 12px;
@@ -446,7 +447,7 @@
         }
 
         .btn-carregar-mais {
-            background: linear-gradient(135deg, #1a5fb4, #2d8fff);
+            background: linear-gradient(135deg, var(--azul-dashboard), var(--azul-claro-dashboard));
             color: white;
             border: none;
             padding: 15px 30px;
