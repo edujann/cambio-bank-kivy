@@ -1030,6 +1030,77 @@
         opacity: 1 !important;
     }
 
+    /* ============================================
+    DROPDOWN MENU DO USUÁRIO
+    ============================================ */
+
+    .dropdown-menu-user {
+        display: none;
+        position: fixed; /* Usar fixed para ficar acima de tudo */
+        top: 0;
+        right: 0;
+        background: var(--cor-card);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius-pequeno);
+        min-width: 250px;
+        box-shadow: var(--sombra-media);
+        z-index: 9999; /* Alta prioridade */
+        padding: 10px 0;
+    }
+
+    .dropdown-menu-user.show {
+        display: block;
+    }
+
+    .dropdown-header {
+        padding: 12px 20px;
+        border-bottom: 1px solid var(--cor-borda);
+        margin-bottom: 8px;
+    }
+
+    .dropdown-username {
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .dropdown-email {
+        font-size: 12px;
+        color: var(--cor-texto-secundario);
+    }
+
+    .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 20px;
+        color: var(--cor-texto);
+        text-decoration: none;
+        transition: background 0.3s ease;
+    }
+
+    .dropdown-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .dropdown-item i {
+        width: 20px;
+        color: var(--cor-texto-secundario);
+    }
+
+    .dropdown-divider {
+        height: 1px;
+        background: var(--cor-borda);
+        margin: 10px 0;
+    }
+
+    .logout-item {
+        color: #ff6b6b !important;
+    }
+
+    .logout-item i {
+        color: #ff6b6b !important;
+    }
+
     </style>
     
     <!-- Ícones FontAwesome -->

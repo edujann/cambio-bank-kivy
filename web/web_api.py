@@ -1155,6 +1155,13 @@ def get_beneficiario_web(benef_id):
         "message": "Beneficiário não encontrado"
     }), 404
 
+@app.route('/logout')
+def logout():
+    # Limpar sessão
+    session.clear()
+    # Redirecionar para login
+    return redirect(url_for('login'))
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'

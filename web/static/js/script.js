@@ -436,3 +436,97 @@ document.addEventListener('DOMContentLoaded', async function() {
     await loadBeneficiarios();
     setupEventListeners();
 });
+
+// ============================================
+// FUNÇÃO PARA MENU DO USUÁRIO
+// ============================================
+
+// Função que está sendo chamada pelo onclick mas não existe
+function toggleUserMenu() {
+    console.log('Menu do usuário clicado');
+    
+    // Verificar se dropdown existe
+    let dropdown = document.getElementById('userDropdown');
+    
+    // Se não existir, criar
+    if (!dropdown) {
+        createUserDropdown();
+        dropdown = document.getElementById('userDropdown');
+    }
+    
+    // Alternar visibilidade
+    dropdown.classList.toggle('show');
+    
+    // Posicionar corretamente
+    if (dropdown.classList.contains('show')) {
+        positionDropdown(dropdown);
+    }
+}
+
+// Criar dropdown do usuário
+function createUserDropdown() {
+    const dropdownHTML = `
+        <div class="dropdown-menu-user" id="userDropdown">
+            <div class="dropdown-header">
+                <div class="dropdown-username" id="dropdownUserName">${USER?.username || 'Usuário'}</div>
+                <div class="dropdown-email" id="dropdownUserEmail">${USER?.email || ''}</div>
+            </div>
+            
+            <a href="/perfil" class="dropdown-item">
+                <i class="fas fa-user"></i> Meu Perfil
+            </a>
+            
+            <a href="/configuracoes" class="dropdown-item">
+                <i class="fas fa-cog"></i> Configurações
+            </a>
+            
+            <div class="dropdown-divider"></div>
+            
+            <a href="/logout" class="dropdown-item logout-item">
+                <i class="fas fa-sign-out-alt"></i> Sair
+            </a>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', dropdownHTML);
+}
+
+// Posicionar dropdown corretamente
+function positionDropdown(dropdown) {
+    const userMenu = document.querySelector('.user-menu');
+    if (!userMenu || !dropdown) return;
+    
+    const rect = userMenu.getBoundingClientRect();
+    dropdown.style.top = (rect.bottom + window.scrollY + 10) + 'px';
+    dropdown.style.right = (window.innerWidth - rect.right) + 'px';
+}
+
+// Fechar dropdown ao clicar fora
+document.addEventListener('click', function(e) {
+    const dropdown = document.getElementById('userDropdown');
+    const userMenu = document.querySelector('.user-menu');
+    
+    if (dropdown && dropdown.classList.contains('show')) {
+        if (!dropdown.contains(e.target) && !userMenu?.contains(e.target)) {
+            dropdown.classList.remove('show');
+        }
+    }
+});
+
+// Fechar ao pressionar ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const dropdown = document.getElementById('userDropdown');
+        if (dropdown && dropdown.classList.contains('show')) {
+            dropdown.classList.remove('show');
+        }
+    }
+});
+
+// Reposicionar dropdown ao redimensionar a janela
+window.addEventListener('resize', function() {
+    const dropdown = document.getElementById('userDropdown');
+    if (dropdown && dropdown.classList.contains('show')) {
+        positionDropdown(dropdown);
+    }
+});
