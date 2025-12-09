@@ -132,19 +132,44 @@ body {
 .input-group input {
     width: 100%;
     padding: 16px 16px 16px 48px;
-    background: rgba(255, 255, 255, 0.05);
+    background: #1a1a2e !important;  /* ← CORREÇÃO: fundo ESCURO SÓLIDO */
     border: 1px solid var(--cor-borda);
     border-radius: var(--borda-radius-pequeno);
-    color: var(--cor-texto);
+    color: var(--cor-texto) !important;
     font-size: 16px;
     transition: all 0.3s ease;
+    opacity: 1 !important;
 }
 
 .input-group input:focus {
     outline: none;
     border-color: var(--cor-primaria);
-    background: rgba(26, 95, 180, 0.05);
+    background: #2d3748 !important;  /* ← CORREÇÃO: escuro mais claro no focus */
     box-shadow: 0 0 0 3px rgba(26, 95, 180, 0.1);
+}
+
+/* ADICIONE ESTE CÓDIGO PARA CORRIGIR AUTOFILL */
+.input-group input:-webkit-autofill,
+.input-group input:-webkit-autofill:hover,
+.input-group input:-webkit-autofill:focus,
+.input-group input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px #1a1a2e inset !important;
+    -webkit-text-fill-color: var(--cor-texto) !important;
+    caret-color: var(--cor-texto) !important;
+    background-color: #1a1a2e !important;
+    border: 1px solid var(--cor-primaria) !important;
+    transition: background-color 5000s ease-in-out 0s !important;
+}
+
+/* Para outros navegadores */
+.input-group input:-moz-autofill {
+    background-color: #1a1a2e !important;
+    color: var(--cor-texto) !important;
+}
+
+.input-group input:autofill {
+    background-color: #1a1a2e !important;
+    color: var(--cor-texto) !important;
 }
 
 .input-group input::placeholder {

@@ -128,10 +128,12 @@
     color: var(--cor-primaria);
 }
 
-/* SELECT ESPECIAL PARA BENEFICIÁRIOS */
+/* SELECT ESPECIAL PARA BENEFICIÁRIOS - VERSÃO CORRIGIDA */
 .beneficiarios-select {
-    background: rgba(255, 255, 255, 0.03) !important;
+    background: #1a1a2e !important;  /* ← CORREÇÃO: fundo ESCURO SÓLIDO */
     border: 2px dashed var(--cor-borda) !important;
+    color: #ffffff !important;  /* ← ADICIONE isso também */
+    opacity: 1 !important;      /* ← REMOVER transparência */
 }
 
 /* DIVISOR DE FORMULÁRIO */

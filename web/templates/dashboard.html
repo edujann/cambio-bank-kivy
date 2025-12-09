@@ -978,6 +978,51 @@
         text-shadow: 0 0 0 #ffffff !important;
     }
 
+    /* ============================================
+       CORREÇÃO FINAL - SOBRESCREVE TUDO
+       ============================================ */
+    
+    /* OVERRIDE COMPLETO PARA INPUTS */
+    input,
+    textarea,
+    select,
+    select option {
+        background-color: #1a1a2e !important;
+        color: #ffffff !important;
+        border: 1px solid #3498db !important;
+        padding: 12px 15px !important;
+        border-radius: 8px !important;
+        opacity: 1 !important;
+        font-size: 14px !important;
+        min-height: 46px !important;
+    }
+    
+    /* REMOVER QUALQUER HERANÇA DE TRANSPARÊNCIA */
+    input *,
+    textarea *,
+    select *,
+    option * {
+        opacity: 1 !important;
+        background-color: inherit !important;
+    }
+    
+    /* AUTOFILL CORRIGIDO */
+    input:-webkit-autofill {
+        -webkit-box-shadow: 0 0 0 1000px #1a1a2e inset !important;
+        -webkit-text-fill-color: #ffffff !important;
+        background-color: #1a1a2e !important;
+    }
+    
+    /* PARA TODOS OS FORMULÁRIOS */
+    form * {
+        opacity: 1 !important;
+    }
+    
+    /* SOBRESCREVER QUALQUER OUTRO ESTILO */
+    * {
+        opacity: 1 !important;
+    }
+
     </style>
     
     <!-- Ícones FontAwesome -->
