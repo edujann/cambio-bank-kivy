@@ -387,11 +387,32 @@ function renderizarTransacoes(transacoes) {
     // Filtra transações do usuário atual e ordena por data (mais recente primeiro)
     const transacoesUsuario = transacoes
         .filter(trans => {
-            // Inclui transações onde o usuário é remetente, destinatário ou cliente
-            return trans.usuario === USER.username || 
-                   trans.cliente === USER.username ||
-                   trans.conta_remetente === USER.username ||
-                   trans.conta_destinatario === USER.username;
+            const username = USER.username;
+            
+            // 1. Se tem cliente ou usuário direto → INCLUI
+            if (trans.cliente === username || trans.usuario === username) {
+                return true;
+            }
+            
+            // 2. Se tem conta remetente ou destinatário → INCLUI
+            if (trans.conta_remetente === username || trans.conta_destinatario === username) {
+                return true;
+            }
+            
+            // 3. PARA AJUSTES ADMINISTRATIVOS (especial):
+            // Eles não têm cliente/usuario, mas têm conta_remetente
+            if (trans.tipo === 'ajuste_admin') {
+                if (trans.conta_remetente === username) {
+                    return true;
+                }
+                // Também verifica na descrição "Cliente: pantanal"
+                if (trans.descricao_ajuste && trans.descricao_ajuste.includes(`Cliente: ${username}`)) {
+                    return true;
+                }
+            }
+            
+            // 4. Não é do usuário → EXCLUI
+            return false;
         })
         .sort((a, b) => new Date(b.data || b.created_at) - new Date(a.data || a.created_at))
         .slice(0, 8); // Limita às 8 mais recentes
