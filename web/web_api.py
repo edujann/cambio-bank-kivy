@@ -761,9 +761,9 @@ def get_user_contas():
             "contas": []
         }), 500
 
-@app.route('/api/beneficiarios')
+@app.route('/api/beneficiarios', methods=['GET', 'POST'])  # ← ADICIONAR POST AQUI!
 def get_beneficiarios():
-    """Retorna beneficiários REAIS do usuário logado"""
+    """Retorna beneficiários REAIS do usuário logado (GET) ou cria novo (POST)"""
     try:
         # ✅ Pega usuário da SESSÃO (correto!)
         usuario = session.get('username')
@@ -775,28 +775,79 @@ def get_beneficiarios():
                 "beneficiarios": []
             }), 401
         
-        response = supabase.table('beneficiarios')\
-            .select('id, nome, endereco, cidade, pais, banco, swift, iban, aba, cidade_banco, pais_banco, endereco_banco')\
-            .eq('cliente_username', usuario)\
-            .eq('ativo', True)\
-            .execute()
-        
-        if response.data:
-            return jsonify({
-                "success": True,
-                "beneficiarios": response.data
-            })
-        else:
-            return jsonify({
-                "success": True,
-                "beneficiarios": []
-            })
+        # ********** SE FOR POST **********
+        if request.method == 'POST':
+            print("📥 RECEBENDO POST PARA CRIAR BENEFICIÁRIO")
+            dados = request.get_json()
             
+            print(f"📋 Dados recebidos: {dados}")
+            
+            # Validar campos obrigatórios
+            if not dados.get('nome'):
+                return jsonify({"success": False, "message": "Nome do beneficiário é obrigatório"}), 400
+            if not dados.get('banco'):
+                return jsonify({"success": False, "message": "Nome do banco é obrigatório"}), 400
+            if not dados.get('swift'):
+                return jsonify({"success": False, "message": "Código SWIFT é obrigatório"}), 400
+            
+            # Preparar dados para inserção
+            novo_beneficiario = {
+                'nome': dados['nome'],
+                'banco': dados['banco'],
+                'swift': dados['swift'],
+                'iban': dados.get('iban', ''),
+                'endereco': dados.get('endereco', ''),
+                'cidade': dados.get('cidade', ''),
+                'pais': dados.get('pais', ''),
+                'cliente_username': usuario,
+                'ativo': True
+            }
+            
+            print(f"💾 Inserindo beneficiário: {novo_beneficiario}")
+            
+            # Inserir no Supabase
+            response = supabase.table('beneficiarios').insert(novo_beneficiario).execute()
+            
+            if response.data:
+                print(f"✅ Beneficiário salvo com sucesso! ID: {response.data[0]['id']}")
+                return jsonify({
+                    "success": True,
+                    "message": "Beneficiário salvo com sucesso",
+                    "id": response.data[0]['id']
+                })
+            else:
+                print(f"❌ Erro ao salvar beneficiário: {response}")
+                return jsonify({
+                    "success": False,
+                    "message": "Erro ao salvar beneficiário"
+                }), 500
+        
+        # ********** SE FOR GET (código original) **********
+        else:  # GET
+            response = supabase.table('beneficiarios')\
+                .select('id, nome, endereco, cidade, pais, banco, swift, iban, aba, cidade_banco, pais_banco, endereco_banco')\
+                .eq('cliente_username', usuario)\
+                .eq('ativo', True)\
+                .execute()
+            
+            if response.data:
+                return jsonify({
+                    "success": True,
+                    "beneficiarios": response.data
+                })
+            else:
+                return jsonify({
+                    "success": True,
+                    "beneficiarios": []
+                })
+                
     except Exception as e:
-        print(f"❌ Erro ao buscar beneficiários: {e}")
+        print(f"❌ Erro em /api/beneficiarios: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             "success": False,
-            "message": f"Erro ao carregar beneficiários: {str(e)}",
+            "message": f"Erro ao processar beneficiários: {str(e)}",
             "beneficiarios": []
         }), 500
 
@@ -880,6 +931,75 @@ def tela_transferencia():
                           usuario=usuario,
                           nome=nome,
                           email=email)
+
+@app.route('/api/beneficiarios', methods=['GET', 'POST'])
+def handle_beneficiarios():
+    """Gerencia beneficiários: GET para listar, POST para criar"""
+    try:
+        usuario = session.get('username')
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        if request.method == 'GET':
+            # Listar beneficiários do usuário
+            response = supabase.table('beneficiarios') \
+                .select('*') \
+                .eq('cliente_username', usuario) \
+                .eq('ativo', True) \
+                .order('nome') \
+                .execute()
+            
+            return jsonify({
+                "success": True,
+                "beneficiarios": response.data if response.data else []
+            })
+            
+        elif request.method == 'POST':
+            # Criar novo beneficiário
+            dados = request.get_json()
+            
+            # Validar campos obrigatórios
+            if not dados.get('nome'):
+                return jsonify({"success": False, "message": "Nome do beneficiário é obrigatório"}), 400
+            if not dados.get('banco'):
+                return jsonify({"success": False, "message": "Nome do banco é obrigatório"}), 400
+            if not dados.get('swift'):
+                return jsonify({"success": False, "message": "Código SWIFT é obrigatório"}), 400
+            
+            # Preparar dados
+            novo_beneficiario = {
+                'nome': dados['nome'],
+                'banco': dados['banco'],
+                'swift': dados['swift'],
+                'iban': dados.get('iban', ''),
+                'endereco': dados.get('endereco', ''),
+                'cidade': dados.get('cidade', ''),
+                'pais': dados.get('pais', ''),
+                'cliente_username': usuario,
+                'ativo': True
+            }
+            
+            # Inserir no Supabase
+            response = supabase.table('beneficiarios').insert(novo_beneficiario).execute()
+            
+            if response.data:
+                return jsonify({
+                    "success": True,
+                    "message": "Beneficiário salvo com sucesso",
+                    "id": response.data[0]['id']
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "message": "Erro ao salvar beneficiário"
+                }), 500
+                
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": "Erro ao processar beneficiários",
+            "error": str(e)
+        }), 500
 
 # ============================================================================
 # APIs PARA TRANSFERÊNCIA (MOCK - DEPOIS SUBSTITUI POR SUPABASE)
