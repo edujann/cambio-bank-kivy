@@ -1198,6 +1198,37 @@ def minhas_transferencias():
                          nome=session.get('nome') or usuario,
                          email=session.get('email') or '')
 
+@app.route('/api/transferencias-internacionais')
+def api_transferencias_internacionais():
+    """API para buscar transferências internacionais do usuário logado"""
+    
+    if 'usuario' not in session:
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    usuario = session['usuario']
+    print(f"🔍 Buscando transferências internacionais para: {usuario}")
+    
+    try:
+        # Buscar transferências internacionais do Supabase
+        response = supabase.table('transferencias').select('*').eq('usuario', usuario).execute()
+        
+        transferencias = []
+        if response.data:
+            print(f"📊 Total de transferências encontradas: {len(response.data)}")
+            
+            # Filtrar apenas internacionais
+            for transf in response.data:
+                tipo = transf.get('tipo', '')
+                if tipo == 'transferencia_internacional' or 'internacional' in tipo.lower():
+                    transferencias.append(transf)
+                    print(f"✅ Internacional: {transf.get('id')} - {tipo}")
+        
+        print(f"🎯 Transferências internacionais filtradas: {len(transferencias)}")
+        return jsonify(transferencias)
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar transferências internacionais: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
