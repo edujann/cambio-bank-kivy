@@ -741,11 +741,31 @@
     }
 
     /* ============================================
-       CORREÇÃO DEFINITIVA PARA AUTOFILL/AUTOCOMPLETE
-       Remove o fundo branco que navegadores aplicam
+       CORREÇÃO DEFINITIVA PARA AUTOFILL/AUTOCOMPLETE E INPUTS
+       Remove transparência e fundo branco dos navegadores
        ============================================ */
     
-    /* Chrome, Safari, Edge, Opera */
+    /* 1. REMOVER TRANSPARÊNCIA DE TODOS OS INPUTS/TEXTAREA */
+    input,
+    textarea {
+        background-color: #1a1a2e !important;
+        color: #ffffff !important;
+        border: 1px solid #3498db !important;
+        opacity: 1 !important;
+        padding: 12px 15px !important;
+        border-radius: 8px !important;
+        font-size: 14px !important;
+        min-height: 46px !important;
+    }
+    
+    input:focus,
+    textarea:focus {
+        border-color: #4a90e2 !important;
+        box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.3) !important;
+        outline: none !important;
+    }
+    
+    /* 2. CORREÇÃO PARA AUTOFILL DO CHROME/SAFARI/EDGE */
     input:-webkit-autofill,
     input:-webkit-autofill:hover,
     input:-webkit-autofill:focus,
@@ -753,125 +773,209 @@
     textarea:-webkit-autofill,
     textarea:-webkit-autofill:hover,
     textarea:-webkit-autofill:focus,
-    textarea:-webkit-autofill:active,
-    select:-webkit-autofill,
-    select:-webkit-autofill:hover,
-    select:-webkit-autofill:focus,
-    select:-webkit-autofill:active {
+    textarea:-webkit-autofill:active {
         -webkit-box-shadow: 0 0 0 1000px #1a1a2e inset !important;
         -webkit-text-fill-color: #ffffff !important;
         caret-color: #ffffff !important;
-        transition: background-color 5000s ease-in-out 0s, color 5000s ease-in-out 0s !important;
-        border: 1px solid #3498db !important;
+        transition: background-color 5000s ease-in-out 0s !important;
         background-color: #1a1a2e !important;
+        border: 1px solid #3498db !important;
     }
     
-    /* Para quando estiver focado */
-    input:-webkit-autofill:focus,
-    textarea:-webkit-autofill:focus,
-    select:-webkit-autofill:focus {
-        -webkit-box-shadow: 
-            0 0 0 1000px #1a1a2e inset,
-            0 0 0 2px rgba(52, 152, 219, 0.5) !important;
-        border-color: #3498db !important;
-        outline: none !important;
-    }
-    
-    /* Firefox */
+    /* 3. CORREÇÃO PARA AUTOFILL DO FIREFOX */
     input:-moz-autofill,
     input:-moz-autofill:hover,
     input:-moz-autofill:focus,
     textarea:-moz-autofill,
     textarea:-moz-autofill:hover,
-    textarea:-moz-autofill:focus,
-    select:-moz-autofill,
-    select:-moz-autofill:hover,
-    select:-moz-autofill:focus {
+    textarea:-moz-autofill:focus {
         background-color: #1a1a2e !important;
         color: #ffffff !important;
         border-color: #3498db !important;
         box-shadow: 0 0 0 1000px #1a1a2e inset !important;
     }
     
-    /* Para todos os navegadores modernos */
+    /* 4. PARA TODOS OS NAVEGADORES MODERNOS */
     input:autofill,
     input:autofill:hover,
     input:autofill:focus,
     textarea:autofill,
     textarea:autofill:hover,
-    textarea:autofill:focus,
-    select:autofill,
-    select:autofill:hover,
-    select:autofill:focus {
+    textarea:autofill:focus {
         background-color: #1a1a2e !important;
         color: #ffffff !important;
         border-color: #3498db !important;
     }
     
-    /* Para formulários específicos */
-    #transferenciaForm input,
-    #loginForm input,
-    #cambioForm input,
-    #registerForm input {
-        background-color: #1a1a2e !important;
-        color: #ffffff !important;
+    /* 5. INPUTS ESPECÍFICOS DO FORMULÁRIO DE TRANSFERÊNCIA */
+    #beneficiario,
+    #banco,
+    #swift,
+    #iban,
+    #endereco,
+    #cidade,
+    #valor,
+    #descricao,
+    #invoice_info,
+    #pais_input {
+        background-color: #2d3748 !important;
     }
     
-    /* Corrigir seleção de texto */
-    input::selection,
-    input::-moz-selection {
+    /* 6. PLACEHOLDER VISÍVEL */
+    ::placeholder {
+        color: rgba(255, 255, 255, 0.6) !important;
+        opacity: 1 !important;
+    }
+    
+    :-ms-input-placeholder {
+        color: rgba(255, 255, 255, 0.6) !important;
+    }
+    
+    ::-ms-input-placeholder {
+        color: rgba(255, 255, 255, 0.6) !important;
+    }
+    
+    /* 7. CORRIGIR SELEÇÃO DE TEXTO */
+    ::selection {
         background-color: #3498db !important;
         color: #ffffff !important;
     }
     
-    /* Para inputs com tipos específicos */
-    input[type="text"]:-webkit-autofill,
-    input[type="email"]:-webkit-autofill,
-    input[type="password"]:-webkit-autofill,
-    input[type="number"]:-webkit-autofill,
-    input[type="tel"]:-webkit-autofill {
-        -webkit-box-shadow: 0 0 0 1000px #1a1a2e inset !important;
-        -webkit-text-fill-color: #ffffff !important;
+    ::-moz-selection {
+        background-color: #3498db !important;
+        color: #ffffff !important;
     }
     
-    /* Remove seta do autocomplete do Chrome */
+    /* 8. REMOVER SETA DO AUTOFILL DO CHROME */
     input::-webkit-calendar-picker-indicator {
         filter: invert(1);
         opacity: 0.7;
     }
+    
+    /* 9. PARA CAMPOS READONLY/DISABLED */
+    input:read-only,
+    input:disabled,
+    textarea:read-only,
+    textarea:disabled {
+        background-color: #2d3748 !important;
+        color: #718096 !important;
+        border-color: #4a5568 !important;
+        opacity: 0.7 !important;
+        cursor: not-allowed !important;
+    }
+    
+    /* 10. INPUTS COM ERRO/SUCESSO */
+    input.error,
+    textarea.error {
+        border-color: #e74c3c !important;
+        background-color: rgba(231, 76, 60, 0.1) !important;
+    }
+    
+    input.success,
+    textarea.success {
+        border-color: #2ecc71 !important;
+        background-color: rgba(46, 204, 113, 0.1) !important;
+    }
 
     /* ============================================
-       CORREÇÃO PARA SPINNERS/SELECTS NO TEMA ESCURO
-       Melhora visibilidade dos dropdowns abertos
+       CORREÇÃO DEFINITIVA PARA SELECTS/SPINNERS
+       Remove transparência e melhora visibilidade
        ============================================ */
     
-    /* Estilo básico para todos os selects */
-    select {
+    /* SELECTS PRINCIPAIS */
+    select,
+    select:focus,
+    select:active,
+    select:hover {
         background-color: #1a1a2e !important;
         color: #ffffff !important;
         border: 1px solid #3498db !important;
-        padding: 10px 15px !important;
+        padding: 12px 15px !important;
         border-radius: 8px !important;
+        opacity: 1 !important;
+        appearance: none !important;
+        -webkit-appearance: none !important;
+        -moz-appearance: none !important;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e") !important;
+        background-repeat: no-repeat !important;
+        background-position: right 15px center !important;
+        background-size: 20px !important;
+        padding-right: 45px !important;
+        font-size: 14px !important;
+        cursor: pointer !important;
+        min-height: 46px !important;
     }
     
-    /* Quando o dropdown está aberto */
-    select:focus {
-        border-color: #4a90e2 !important;
-        box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.3) !important;
-    }
-    
-    /* Opções dentro do dropdown */
+    /* OPÇÕES DENTRO DO DROPDOWN */
     select option {
         background-color: #1a1a2e !important;
         color: #ffffff !important;
-        padding: 12px !important;
+        padding: 12px 15px !important;
+        font-size: 14px !important;
+        border-bottom: 1px solid rgba(52, 152, 219, 0.2) !important;
     }
     
-    /* Opção quando selecionada ou em hover */
+    /* OPÇÃO SELECIONADA OU EM HOVER */
     select option:checked,
-    select option:hover {
+    select option:hover,
+    select option:focus {
         background-color: #3498db !important;
         color: #ffffff !important;
+        font-weight: 500 !important;
+    }
+    
+    /* SELECTS ESPECÍFICOS DO FORMULÁRIO DE TRANSFERÊNCIA */
+    #conta_origem,
+    #finalidade,
+    .beneficiarios-select,
+    select[name="banco"],
+    select[name="pais"],
+    select[name="beneficiario_id"] {
+        background-color: #2d3748 !important;
+    }
+    
+    /* REMOVER QUALQUER TRANSPARÊNCIA HERDADA */
+    select * {
+        opacity: 1 !important;
+        background-color: #1a1a2e !important;
+    }
+    
+    /* PARA SELECTS DESABILITADOS */
+    select:disabled {
+        background-color: #2d3748 !important;
+        color: #718096 !important;
+        border-color: #4a5568 !important;
+        opacity: 0.7 !important;
+        cursor: not-allowed !important;
+    }
+    
+    /* SCROLLBAR DO DROPDOWN */
+    select::-webkit-scrollbar {
+        width: 8px !important;
+    }
+    
+    select::-webkit-scrollbar-track {
+        background: #1a1a2e !important;
+        border-radius: 4px !important;
+    }
+    
+    select::-webkit-scrollbar-thumb {
+        background: #4a5568 !important;
+        border-radius: 4px !important;
+    }
+    
+    select::-webkit-scrollbar-thumb:hover {
+        background: #3498db !important;
+    }
+    
+    /* REMOVER SETA PADRÃO DO FIREFOX */
+    select::-moz-focus-inner {
+        border: 0 !important;
+    }
+    
+    select:-moz-focusring {
+        color: transparent !important;
+        text-shadow: 0 0 0 #ffffff !important;
     }
 
     </style>
