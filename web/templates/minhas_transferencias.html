@@ -478,11 +478,7 @@
                 <i class="fas fa-times-circle"></i> RECUSADAS
             </button>
         </div>
-        
-        <!-- ESTATÍSTICAS -->
-        <div class="estatisticas" id="estatisticas">
-            <!-- Será preenchido via JavaScript -->
-        </div>
+
         
         <!-- LISTA DE TRANSFERÊNCIAS -->
         <div class="loading" id="loading">
@@ -557,7 +553,6 @@
                     todasTransferencias = data;
                     console.log(`✅ ${data.length} transferências carregadas`);
                     
-                    atualizarEstatisticas(data);
                     filtrarTransferencias(filtroAtual);
                 } else {
                     throw new Error('Erro ao carregar transferências');
@@ -612,56 +607,6 @@
             return mapeamento[filtro];
         }
         
-        function atualizarEstatisticas(transferencias) {
-            const estatisticas = document.getElementById('estatisticas');
-            
-            const total = transferencias.length;
-            const pendentes = transferencias.filter(t => 
-                t.status === 'pending' || t.status === 'solicitada'
-            ).length;
-            const processando = transferencias.filter(t => 
-                t.status === 'processing'
-            ).length;
-            const concluidas = transferencias.filter(t => 
-                t.status === 'completed'
-            ).length;
-            const recusadas = transferencias.filter(t => 
-                t.status === 'rejected'
-            ).length;
-            
-            const totalValor = transferencias.reduce((sum, t) => {
-                return sum + (parseFloat(t.valor) || 0);
-            }, 0);
-            
-            estatisticas.innerHTML = `
-                <div class="card-estatistica">
-                    <div class="numero" style="color: var(--cor-primaria);">${total}</div>
-                    <div class="label">Total de Transferências</div>
-                </div>
-                <div class="card-estatistica">
-                    <div class="numero" style="color: var(--cor-aviso);">${pendentes}</div>
-                    <div class="label">Pendentes</div>
-                </div>
-                <div class="card-estatistica">
-                    <div class="numero" style="color: var(--cor-processando);">${processando}</div>
-                    <div class="label">Processando</div>
-                </div>
-                <div class="card-estatistica">
-                    <div class="numero" style="color: var(--cor-sucesso);">${concluidas}</div>
-                    <div class="label">Concluídas</div>
-                </div>
-                <div class="card-estatistica">
-                    <div class="numero" style="color: var(--cor-erro);">${recusadas}</div>
-                    <div class="label">Recusadas</div>
-                </div>
-                <div class="card-estatistica">
-                    <div class="numero" style="color: var(--texto-destaque);">
-                        ${formatarMoeda(totalValor, 'USD')}
-                    </div>
-                    <div class="label">Valor Total</div>
-                </div>
-            `;
-        }
         
         function formatarMoeda(valor, moeda) {
             return new Intl.NumberFormat('pt-BR', {
