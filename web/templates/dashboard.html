@@ -1265,10 +1265,10 @@ function abrirTransferencia() {
                         <div class="card-badge" id="badgeExtrato">Hoje</div>
                     </div>
 
-                    <!-- CARD 4: MINHAS TRANSFERÊNCIAS -->
+                    <!-- CARD 4: MINHAS TRANSFERÊNCIAS (MANTENDO PADRÃO) -->
                     <div class="acao-card" onclick="window.location.href='/minhas-transferencias'">
-                        <div class="card-icon" style="background: linear-gradient(135deg, #1a5fb4, #2d8fff);">
-                            <i class="fas fa-exchange-alt"></i>
+                        <div class="card-icon beneficiarios">  <!-- REMOVEU O STYLE INLINE -->
+                            <i class="fas fa-history"></i>
                         </div>
                         <h3 class="card-title">Minhas Transferências</h3>
                         <p class="card-desc">Transferências internacionais</p>
@@ -1276,6 +1276,8 @@ function abrirTransferencia() {
                             <i class="fas fa-sync-alt"></i> Carregando...
                         </div>
                     </div>
+                </div>  <!-- ADICIONE ESTA LINHA PARA FECHAR .cards-grid -->
+            </section>
 
             <!-- ULTIMAS TRANSAÇÕES -->
             <section class="transacoes-recentes">
