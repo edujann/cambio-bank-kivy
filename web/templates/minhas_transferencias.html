@@ -444,6 +444,31 @@
                 justify-content: center;
             }
         }
+
+        .btn-carregar-mais {
+            background: linear-gradient(135deg, #1a5fb4, #2d8fff);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(26, 95, 180, 0.3);
+        }
+
+        .btn-carregar-mais:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(26, 95, 180, 0.4);
+        }
+
+        .btn-carregar-mais small {
+            font-size: 12px;
+            opacity: 0.8;
+            font-weight: normal;
+        }
+
     </style>
 </head>
 <body>
@@ -515,6 +540,10 @@
         let todasTransferencias = [];
         let transferenciasFiltradas = [];
         let filtroAtual = 'all';
+        
+        // VARIÁVEIS DE PAGINAÇÃO
+        let limiteAtual = 10;
+        const limitePorPagina = 10;
         
         // INICIAR CARREGAMENTO
         document.addEventListener('DOMContentLoaded', function() {
@@ -592,6 +621,9 @@
                 return new Date(b.data || b.created_at) - new Date(a.data || a.created_at);
             });
             
+            // Resetar limite ao filtrar
+            limiteAtual = 10;
+            
             // Atualizar lista
             atualizarListaTransferencias();
         }
@@ -644,9 +676,13 @@
             
             mensagemVazia.style.display = 'none';
             
+            // PEGAR APENAS AS PRIMEIRAS X TRANSFERÊNCIAS (PAGINAÇÃO)
+            const transferenciasParaExibir = transferenciasFiltradas.slice(0, limiteAtual);
+            
             let html = '';
             
-            transferenciasFiltradas.forEach(transferencia => {
+            // ALTERAR: usar transferenciasParaExibir em vez de transferenciasFiltradas
+            transferenciasParaExibir.forEach(transferencia => {
                 const status = transferencia.status;
                 const statusClass = getStatusClass(status);
                 const statusText = getStatusText(status);
@@ -719,7 +755,28 @@
                 `;
             });
             
+            // ADICIONAR BOTÃO "CARREGAR MAIS" SE HOUVER MAIS TRANSFERÊNCIAS
+            if (transferenciasFiltradas.length > limiteAtual) {
+                const restantes = transferenciasFiltradas.length - limiteAtual;
+                const proximaLimite = Math.min(restantes, limitePorPagina);
+                
+                html += `
+                <div style="text-align: center; margin-top: 30px; padding: 20px;">
+                    <button onclick="carregarMais()" class="btn-carregar-mais">
+                        <i class="fas fa-plus-circle"></i> Carregar mais ${proximaLimite} transferências
+                        <br><small>(${restantes} restantes no total)</small>
+                    </button>
+                </div>
+                `;
+            }
+            
             lista.innerHTML = html;
+        }
+
+        // FUNÇÃO CARREGAR MAIS TRANSFERÊNCIAS
+        function carregarMais() {
+            limiteAtual += limitePorPagina;
+            atualizarListaTransferencias();
         }
 
         function criarLinhaInvoice(status, recusada, transferenciaId) {
@@ -1123,12 +1180,12 @@
             alert('Erro: ' + mensagem);
         }
 
-        // ATUALIZAR A CADA 30 SEGUNDOS
+        // ATUALIZAR A CADA 90 SEGUNDOS
         setInterval(() => {
             if (document.visibilityState === 'visible') {
                 carregarTransferencias();
             }
-        }, 30000);
+        }, 90000);
 
         // EXPORTAR FUNÇÕES GLOBAIS
         window.filtrarTransferencias = filtrarTransferencias;
