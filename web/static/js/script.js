@@ -273,14 +273,72 @@ document.getElementById('transferenciaForm').addEventListener('submit', async fu
         }
     }
 
-    // 👇 ADICIONE ESTAS 2 LINHAS AQUI 👇
     // Adicionar moeda (que veio da conta selecionada)
     formJson.moeda = moedaConta;
     console.log('📤 Dados completos com moeda:', formJson);
         
+        // ********** NOVO CÓDIGO: SALVAR BENEFICIÁRIO **********
+        // VERIFICAR SE DEVE SALVAR BENEFICIÁRIO
+        const checkboxSalvar = document.getElementById('salvar_beneficiario');
+        const deveSalvarBeneficiario = checkboxSalvar && checkboxSalvar.checked;
+        
+        if (deveSalvarBeneficiario) {
+            console.log('💾 CHECKBOX MARCADO - Salvando beneficiário...');
+            
+            // Preparar dados do beneficiário
+            const beneficiarioData = {
+                nome: formJson.beneficiario,
+                banco: formJson.banco,
+                swift: formJson.swift,
+                iban: formJson.iban || '',
+                endereco: formJson.endereco || '',
+                cidade: formJson.cidade || '',
+                pais: formJson.pais || '',
+                cliente_username: USER.username,
+                ativo: true
+            };
+            
+            console.log('📝 Dados do beneficiário:', beneficiarioData);
+            
+            // Verificar campos obrigatórios
+            if (beneficiarioData.nome && beneficiarioData.banco && beneficiarioData.swift) {
+                try {
+                    console.log('🌐 Enviando para API /api/beneficiarios...');
+                    const benefResponse = await fetch('/api/beneficiarios', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(beneficiarioData)
+                    });
+                    
+                    console.log('📨 Resposta da API:', benefResponse.status, benefResponse.statusText);
+                    
+                    if (benefResponse.ok) {
+                        const benefResult = await benefResponse.json();
+                        if (benefResult.success) {
+                            console.log('✅ Beneficiário salvo com sucesso! ID:', benefResult.id);
+                        } else {
+                            console.warn('⚠️ API respondeu com erro:', benefResult.message);
+                        }
+                    } else {
+                        console.warn('⚠️ Erro HTTP ao salvar beneficiário:', benefResponse.status);
+                    }
+                } catch (benefError) {
+                    console.error('❌ Erro ao salvar beneficiário:', benefError);
+                    // Não impedir a transferência por causa disso
+                }
+            } else {
+                console.warn('⚠️ Campos obrigatórios do beneficiário faltando, não será salvo');
+            }
+        } else {
+            console.log('📝 Checkbox NÃO marcado - Não salvando beneficiário');
+        }
+        // ********** FIM DO NOVO CÓDIGO **********
+        
         // Adicionar usuário atual
-        const user = await loadUserData();
-        formJson.usuario = user?.username || 'cliente';
+        //const user = await loadUserData();
+        //formJson.usuario = user?.username || 'cliente';
         
         // Adicionar arquivo se existir
         if (selectedFile) {
