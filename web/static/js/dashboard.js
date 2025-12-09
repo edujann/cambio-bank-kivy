@@ -416,16 +416,27 @@ function renderizarTransacoes(transacoes) {
             const config = obterConfiguracaoTransacao(tipo, trans);
             const detalhes = formatarDetalhesTransacao(trans);
             
+            // CORREÇÃO: Título específico para câmbio
+            let tituloFinal = config.titulo;
+            if (tipo === 'cambio_cliente') {
+                const descUpper = (trans.descricao || '').toUpperCase();
+                if (descUpper.includes('COMPRA')) {
+                    tituloFinal = 'Compra de Moeda';
+                } else if (descUpper.includes('VENDA')) {
+                    tituloFinal = 'Venda de Moeda';
+                }
+            }
+            
             return `
                 <div class="transacao-item ${fluxo.tipoFluxo}" 
-                    data-tipo="${tipo}" 
-                    data-status="${trans.status}"
-                    data-id="${trans.id}">
+                     data-tipo="${tipo}" 
+                     data-status="${trans.status}"
+                     data-id="${trans.id}">
                     <div class="transacao-icon" style="color: ${config.corIcone};">
                         <i class="${config.icone}"></i>
                     </div>
                     <div class="transacao-detalhes">
-                        <div class="transacao-titulo">${config.titulo}</div>
+                        <div class="transacao-titulo">${tituloFinal}</div>
                         <div class="transacao-desc">${detalhes.descricao}</div>
                         ${detalhes.detalhes ? `<div class="transacao-info">${detalhes.detalhes}</div>` : ''}
                     </div>
@@ -958,13 +969,7 @@ function obterConfiguracaoTransacao(tipo, trans) {
         'cambio_cliente': {
             icone: 'fas fa-exchange-alt',
             corIcone: '#1a5fb4',
-            titulo: function(trans) {
-                // Tenta detectar operação para título correto
-                const descUpper = (trans.descricao || '').toUpperCase();
-                if (descUpper.includes('COMPRA')) return 'Compra de Moeda';
-                if (descUpper.includes('VENDA')) return 'Venda de Moeda';
-                return 'Operação de Câmbio';
-            }
+            titulo: 'Operação de Câmbio'  // ← Título padrão
         },
         'cambio_admin': {
             icone: 'fas fa-cogs',
