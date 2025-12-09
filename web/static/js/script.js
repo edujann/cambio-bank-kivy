@@ -285,7 +285,7 @@ document.getElementById('transferenciaForm').addEventListener('submit', async fu
         if (deveSalvarBeneficiario) {
             console.log('💾 CHECKBOX MARCADO - Salvando beneficiário...');
             
-            // Preparar dados do beneficiário
+            // Preparar dados do beneficiário - VERSÃO COMPLETA
             const beneficiarioData = {
                 nome: formJson.beneficiario,
                 banco: formJson.banco,
@@ -294,6 +294,9 @@ document.getElementById('transferenciaForm').addEventListener('submit', async fu
                 endereco: formJson.endereco || '',
                 cidade: formJson.cidade || '',
                 pais: formJson.pais || '',
+                endereco_banco: formJson.endereco_banco || '',      // ← ADICIONAR
+                cidade_banco: formJson.cidade_banco || '',          // ← ADICIONAR  
+                pais_banco: formJson.pais_banco || '',              // ← ADICIONAR
                 cliente_username: USER.username,
                 ativo: true
             };
