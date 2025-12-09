@@ -110,19 +110,6 @@
         font-weight: 600;
     }
 
-    /* ADICIONE MAIS AQUI SE PRECISAR - mas comece com isso */
-    </style>
-    <style>
-        body {
-        background: #0a0e15 !important;
-        color: #e0e0e0 !important;
-        }
-        .app-container {
-        max-width: 1400px;
-        margin: 0 auto;
-        padding: 20px;
-        }
-
     /* SALDO SECTION */
     .saldo-section {
         margin-bottom: 40px;
@@ -753,18 +740,107 @@
         font-weight: 600;
     }
 
-    /* CORREÇÃO AUTOFILL */
+    /* ============================================
+       CORREÇÃO DEFINITIVA PARA AUTOFILL/AUTOCOMPLETE
+       Remove o fundo branco que navegadores aplicam
+       ============================================ */
+    
+    /* Chrome, Safari, Edge, Opera */
     input:-webkit-autofill,
     input:-webkit-autofill:hover,
     input:-webkit-autofill:focus,
-    input:-webkit-autofill:active {
+    input:-webkit-autofill:active,
+    textarea:-webkit-autofill,
+    textarea:-webkit-autofill:hover,
+    textarea:-webkit-autofill:focus,
+    textarea:-webkit-autofill:active,
+    select:-webkit-autofill,
+    select:-webkit-autofill:hover,
+    select:-webkit-autofill:focus,
+    select:-webkit-autofill:active {
         -webkit-box-shadow: 0 0 0 1000px #1a1a2e inset !important;
         -webkit-text-fill-color: #ffffff !important;
-        transition: background-color 5000s ease-in-out 0s !important;
         caret-color: #ffffff !important;
+        transition: background-color 5000s ease-in-out 0s, color 5000s ease-in-out 0s !important;
+        border: 1px solid #3498db !important;
+        background-color: #1a1a2e !important;
     }
-
+    
+    /* Para quando estiver focado */
+    input:-webkit-autofill:focus,
+    textarea:-webkit-autofill:focus,
+    select:-webkit-autofill:focus {
+        -webkit-box-shadow: 
+            0 0 0 1000px #1a1a2e inset,
+            0 0 0 2px rgba(52, 152, 219, 0.5) !important;
+        border-color: #3498db !important;
+        outline: none !important;
+    }
+    
+    /* Firefox */
+    input:-moz-autofill,
+    input:-moz-autofill:hover,
+    input:-moz-autofill:focus,
+    textarea:-moz-autofill,
+    textarea:-moz-autofill:hover,
+    textarea:-moz-autofill:focus,
+    select:-moz-autofill,
+    select:-moz-autofill:hover,
+    select:-moz-autofill:focus {
+        background-color: #1a1a2e !important;
+        color: #ffffff !important;
+        border-color: #3498db !important;
+        box-shadow: 0 0 0 1000px #1a1a2e inset !important;
+    }
+    
+    /* Para todos os navegadores modernos */
+    input:autofill,
+    input:autofill:hover,
+    input:autofill:focus,
+    textarea:autofill,
+    textarea:autofill:hover,
+    textarea:autofill:focus,
+    select:autofill,
+    select:autofill:hover,
+    select:autofill:focus {
+        background-color: #1a1a2e !important;
+        color: #ffffff !important;
+        border-color: #3498db !important;
+    }
+    
+    /* Para formulários específicos */
+    #transferenciaForm input,
+    #loginForm input,
+    #cambioForm input,
+    #registerForm input {
+        background-color: #1a1a2e !important;
+        color: #ffffff !important;
+    }
+    
+    /* Corrigir seleção de texto */
+    input::selection,
+    input::-moz-selection {
+        background-color: #3498db !important;
+        color: #ffffff !important;
+    }
+    
+    /* Para inputs com tipos específicos */
+    input[type="text"]:-webkit-autofill,
+    input[type="email"]:-webkit-autofill,
+    input[type="password"]:-webkit-autofill,
+    input[type="number"]:-webkit-autofill,
+    input[type="tel"]:-webkit-autofill {
+        -webkit-box-shadow: 0 0 0 1000px #1a1a2e inset !important;
+        -webkit-text-fill-color: #ffffff !important;
+    }
+    
+    /* Remove seta do autocomplete do Chrome */
+    input::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+        opacity: 0.7;
+    }
     </style>
+    
     <!-- Ícones FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>

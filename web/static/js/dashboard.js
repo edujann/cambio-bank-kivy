@@ -33,6 +33,8 @@ const btnRefresh = document.getElementById('btnRefresh');
 const lastUpdate = document.getElementById('lastUpdate');
 const notificationsContainer = document.getElementById('notificationsContainer');
 
+
+
 // ============================================
 // FUNÇÕES DE UTILIDADE
 // ============================================

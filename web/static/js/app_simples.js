@@ -28,8 +28,22 @@ document.addEventListener('DOMContentLoaded', function() {
     // Configurar cards
     const cards = document.querySelectorAll('.acao-card');
     cards.forEach(card => {
-        card.addEventListener('click', function() {
-            alert('Funcionalidade: ' + this.querySelector('.card-title').textContent);
+        card.addEventListener('click', function(e) {
+            const cardTitle = this.querySelector('.card-title').textContent;
+            
+            // Mapeamento de ações
+            const actionMap = {
+                'Transferência': '/transferencia',
+                'Câmbio': '/cambio', 
+                'Extrato': '/extrato',
+                'Beneficiários': '/beneficiarios'
+            };
+            
+            if (actionMap[cardTitle]) {
+                e.preventDefault();
+                e.stopPropagation();
+                window.location.href = actionMap[cardTitle];
+            }
         });
     });
     
@@ -45,6 +59,7 @@ function selecionarMoeda(moeda) {
     const cardSelecionado = document.querySelector(`[data-moeda="${moeda}"]`);
     if (cardSelecionado) {
         cardSelecionado.style.border = '2px solid var(--cor-primaria)';
-        mostrarNotificacao(`Moeda ${moeda} selecionada para operações`, 'info');
+        // Removido o mostrarNotificacao para evitar erros
+        console.log(`Moeda ${moeda} selecionada`);
     }
 }
