@@ -640,11 +640,19 @@ function configurarEventListeners() {
         });
     }
     
-    // Navegação por ações rápidas
+    // Navegação por ações rápidas (ATUALIZADA)
     document.addEventListener('click', (e) => {
         const acaoCard = e.target.closest('.acao-card');
         if (acaoCard) {
             const action = acaoCard.dataset.action;
+            
+            // 🎯 ESPECIAL para Transferência: REDIRECIONAR
+            if (action === 'transferencia') {
+                window.location.href = '/transferencia';
+                return;
+            }
+            
+            // Para outras ações, mostra notificação
             mostrarNotificacao('Em desenvolvimento', `Funcionalidade "${action}" em breve.`, 'info');
         }
     });
@@ -665,15 +673,6 @@ function configurarEventListeners() {
     
     console.log('✅ DEBUG: Event listeners configurados');
 }
-
-// Navegação por ações rápidas
-document.addEventListener('click', (e) => {
-    const acaoCard = e.target.closest('.acao-card');
-    if (acaoCard) {
-        const action = acaoCard.dataset.action;
-        mostrarNotificacao('Em desenvolvimento', `Funcionalidade "${action}" em breve.`, 'info');
-    }
-});
 
 // Navegação do menu
 document.querySelectorAll('.menu-item').forEach(item => {
