@@ -1159,6 +1159,191 @@ def get_beneficiario_web(benef_id):
         "message": "Beneficiário não encontrado"
     }), 404
 
+# Adicione esta rota no web_api.py (logo após as rotas existentes)
+@app.route('/minhas-transferencias')
+def minhas_transferencias():
+    """Tela de minhas transferências (histórico, status, invoices, comprovantes)"""
+    
+    # MÉTODO 1: Verificar sessão Flask
+    if 'usuario' in session:
+        usuario = session['usuario']
+        print(f"✅ [SESSÃO] Usuário {usuario} acessando minhas-transferencias")
+    
+    # MÉTODO 2: Verificar parâmetro na URL (fallback)
+    elif request.args.get('usuario'):
+        usuario = request.args.get('usuario')
+        print(f"✅ [URL PARAM] Usuário {usuario} acessando minhas-transferencias via URL")
+        
+        # Armazenar na sessão para futuras requisições
+        session['usuario'] = usuario
+    
+    # MÉTODO 3: Tentar extrair do referer ou cabeçalhos
+    elif request.referrer and 'usuario=' in request.referrer:
+        # Extrair usuário da URL de referência
+        import urllib.parse
+        referrer_url = urllib.parse.urlparse(request.referrer)
+        query_params = urllib.parse.parse_qs(referrer_url.query)
+        if 'usuario' in query_params:
+            usuario = query_params['usuario'][0]
+            print(f"✅ [REFERER] Usuário {usuario} acessando minhas-transferencias via referer")
+            session['usuario'] = usuario
+    
+    # NENHUM MÉTODO FUNCIONOU: Redirecionar para login
+    else:
+        print(f"⚠️ Nenhum método de autenticação funcionou para minhas-transferencias")
+        print(f"   Sessão: {dict(session)}")
+        print(f"   Args: {dict(request.args)}")
+        print(f"   Referer: {request.referrer}")
+        return redirect('/login')
+    
+    # Renderizar template com dados do usuário
+    return render_template('minhas_transferencias.html',
+                         usuario=usuario,
+                         nome=session.get('nome') or usuario,
+                         email=session.get('email') or '')
+
+# === NOVO ENDPOINT PARA TRANSFERÊNCIAS INTERNACIONAIS ===
+@app.route('/api/transferencias-internacionais')
+def api_transferencias_internacionais():
+    """API para buscar transferências internacionais do usuário logado"""
+    
+    if 'usuario' not in session:
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    usuario_nome = session['usuario']
+    print(f"🔍 [API] Buscando transferências internacionais para: {usuario_nome}")
+    
+    try:
+        # 1. BUSCAR O USUÁRIO E SUAS CONTAS
+        user_response = supabase.table('usuarios').select('contas').eq('username', usuario_nome).execute()
+        
+        if not user_response.data:
+            print(f"❌ [API] Usuário não encontrado na tabela usuarios")
+            return jsonify([])
+        
+        contas_usuario = user_response.data[0].get('contas', [])
+        print(f"📊 [API] Contas do usuário: {contas_usuario}")
+        
+        # 2. BUSCAR TRANSFERÊNCIAS POR MÚLTIPLOS CAMPOS
+        todas_transferencias = []
+        ids_ja_adicionados = set()
+        
+        # ESTRATÉGIA 1: Buscar pelo campo 'cliente'
+        print(f"🔍 Buscando pelo campo 'cliente' = {usuario_nome}")
+        response_cliente = supabase.table('transferencias').select(
+            '*'
+        ).eq('cliente', usuario_nome).execute()
+        
+        if response_cliente.data:
+            for transf in response_cliente.data:
+                if transf['id'] not in ids_ja_adicionados:
+                    todas_transferencias.append(transf)
+                    ids_ja_adicionados.add(transf['id'])
+            print(f"✅ Encontradas {len(response_cliente.data)} pelo campo 'cliente'")
+        
+        # ESTRATÉGIA 2: Buscar pelo campo 'usuario'
+        print(f"🔍 Buscando pelo campo 'usuario' = {usuario_nome}")
+        response_usuario = supabase.table('transferencias').select(
+            '*'
+        ).eq('usuario', usuario_nome).execute()
+        
+        if response_usuario.data:
+            novas = 0
+            for transf in response_usuario.data:
+                if transf['id'] not in ids_ja_adicionados:
+                    todas_transferencias.append(transf)
+                    ids_ja_adicionados.add(transf['id'])
+                    novas += 1
+            print(f"✅ Encontradas {novas} pelo campo 'usuario' (total únicas)")
+        
+        # ESTRATÉGIA 3: Buscar pelas contas do usuário
+        for conta in contas_usuario:
+            print(f"🔍 Buscando pela conta '{conta}'")
+            response_conta = supabase.table('transferencias').select(
+                '*'
+            ).eq('conta_remetente', conta).execute()
+            
+            if response_conta.data:
+                novas = 0
+                for transf in response_conta.data:
+                    if transf['id'] not in ids_ja_adicionados:
+                        todas_transferencias.append(transf)
+                        ids_ja_adicionados.add(transf['id'])
+                        novas += 1
+                print(f"✅ Encontradas {novas} pela conta '{conta}'")
+        
+        print(f"📊 [API] Total de transferências únicas encontradas: {len(todas_transferencias)}")
+        
+        # 3. FILTRAR APENAS INTERNACIONAIS
+        transferencias_internacionais = []
+        
+        for transf in todas_transferencias:
+            tipo = transf.get('tipo', '')
+            
+            # VERIFICAR SE É INTERNACIONAL
+            is_internacional = (
+                tipo == 'transferencia_internacional' or
+                'internacional' in str(tipo).lower() or
+                transf.get('codigo_swift') or
+                transf.get('iban_account') or
+                (transf.get('pais') and transf.get('pais').lower() != 'brasil')
+            )
+            
+            if is_internacional:
+                transferencias_internacionais.append(transf)
+        
+        print(f"🎯 [API] Transferências internacionais filtradas: {len(transferencias_internacionais)}")
+        
+        # 4. LOG DETALHADO
+        if transferencias_internacionais:
+            print(f"📋 TRANSFERÊNCIAS INTERNACIONAIS ENCONTRADAS:")
+            for i, t in enumerate(transferencias_internacionais):
+                print(f"   {i+1}. ID: {t.get('id')}")
+                print(f"      Tipo: {t.get('tipo')}")
+                print(f"      Status: {t.get('status')}")
+                print(f"      Cliente: {t.get('cliente')}")
+                print(f"      Usuário: {t.get('usuario')}")
+                print(f"      Conta: {t.get('conta_remetente')}")
+                print(f"      Beneficiário: {t.get('beneficiario')}")
+                print(f"      Valor: {t.get('valor')} {t.get('moeda')}")
+        
+        # 5. FORMATAR RESPOSTA
+        resultado = []
+        for t in transferencias_internacionais:
+            invoice_info = t.get('invoice_info') or {}
+            
+            resultado.append({
+                'id': t['id'],
+                'tipo': t.get('tipo'),
+                'status': t.get('status'),
+                'beneficiario': t.get('beneficiario'),
+                'nome_banco': t.get('nome_banco'),
+                'codigo_swift': t.get('codigo_swift'),
+                'iban_account': t.get('iban_account'),
+                'pais': t.get('pais'),
+                'valor': float(t['valor']) if t.get('valor') else 0,
+                'moeda': t.get('moeda', 'USD'),
+                'data': t.get('data') or t.get('data_solicitacao') or t.get('created_at'),
+                'finalidade': t.get('finalidade'),
+                'descricao': t.get('finalidade'),
+                'invoice': bool(invoice_info),
+                'invoice_status': invoice_info.get('status') if isinstance(invoice_info, dict) else None,
+                'invoice_recusada': t.get('status') == 'rejected' or 
+                                   (invoice_info.get('status') == 'rejected' if isinstance(invoice_info, dict) else False),
+                'motivo_recusa': t.get('motivo_recusa'),
+                'conta_remetente': t.get('conta_remetente'),
+                'cliente': t.get('cliente'),
+                'usuario': t.get('usuario'),
+                'created_at': t.get('created_at')
+            })
+        
+        return jsonify(resultado)
+        
+    except Exception as e:
+        print(f"❌ [API] Erro: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify([])
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
