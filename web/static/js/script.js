@@ -336,7 +336,7 @@ function positionDropdown(dropdown) {
 }
 
 // ============================================
-// FUNÇÃO ENVIARTRANSFERENCIA - VERSÃO 2024 CORRETA
+// FUNÇÃO ENVIARTRANSFERENCIA - VERSÃO 2025 CORRETA
 // BASEADA NA ESTRUTURA REAL DO SUPABASE
 // ============================================
 
@@ -396,9 +396,21 @@ window.enviarTransferencia = async function(e) {
         { id: 'cidade', nome: 'Cidade' },
         { id: 'pais', nome: 'País' },
         { id: 'banco', nome: 'Banco' },
+        { id: 'endereco_banco', nome: 'Endereço do banco' },
+        { id: 'cidade_banco', nome: 'Cidade do banco' },
+        { id: 'pais_banco', nome: 'País do banco' },
         { id: 'swift', nome: 'SWIFT' },
         { id: 'iban', nome: 'IBAN' }
     ];
+    
+    for (const { id, nome } of obrigatorios) {
+        const valor = document.getElementById(id).value.trim();
+        if (!valor) {
+            showAlert(`❌ ${nome} é obrigatório`, 'error');
+            document.getElementById(id).focus();
+            return false;
+        }
+    }
     
     for (const { id, nome } of obrigatorios) {
         const valor = document.getElementById(id).value.trim();
@@ -453,10 +465,26 @@ window.enviarTransferencia = async function(e) {
         if (!response.ok) throw new Error(resultado.message || `Erro ${response.status}`);
         
         if (resultado.success) {
-            // MODAL DE SUCESSO
-            document.getElementById('modalTransferId').textContent = resultado.transferencia_id;
-            document.getElementById('modalValor').textContent = `${dados.valor.toFixed(2)} ${dados.moeda}`;
-            document.getElementById('successModal').classList.remove('hidden');
+            // TENTAR USAR MODAL PRIMEIRO
+            const modal = document.getElementById('successModal');
+            const transferIdEl = document.getElementById('modalTransferId');
+            const valorEl = document.getElementById('modalValor');
+            
+            if (modal && transferIdEl && valorEl) {
+                // Modal existe - usar modal
+                transferIdEl.textContent = resultado.transferencia_id;
+                valorEl.textContent = `${dados.valor.toFixed(2)} ${dados.moeda}`;
+                modal.classList.remove('hidden');
+                console.log('✅ Modal de sucesso mostrado');
+            } else {
+                // Modal não existe - usar alerta alternativo
+                console.log('⚠️ Modal não encontrado, usando alerta alternativo');
+                mostrarAlertaSucesso(
+                    resultado.transferencia_id, 
+                    dados.valor.toFixed(2), 
+                    dados.moeda
+                );
+            }
             
             // SALVAR BENEFICIÁRIO (OPCIONAL)
             if (document.getElementById('salvar_beneficiario')?.checked) {

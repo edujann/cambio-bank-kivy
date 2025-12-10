@@ -806,8 +806,13 @@ def get_beneficiarios():
                 'endereco': dados.get('endereco', ''),
                 'cidade': dados.get('cidade', ''),
                 'pais': dados.get('pais', ''),
+                # 🔍 CAMPOS ADICIONADOS
+                'endereco_banco': dados.get('endereco_banco', ''),
+                'cidade_banco': dados.get('cidade_banco', ''),
+                'pais_banco': dados.get('pais_banco', ''),
                 'cliente_username': usuario,
-                'ativo': True
+                'ativo': True,
+                'criado_em': datetime.now().isoformat()
             }
             
             print(f"💾 Inserindo beneficiário: {novo_beneficiario}")
