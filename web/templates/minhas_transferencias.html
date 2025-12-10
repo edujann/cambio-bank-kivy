@@ -752,6 +752,39 @@
     .text-center {
         text-align: center;
     }
+
+    /* ============================================
+    BOTÃO ATUALIZAR NO HEADER
+    ============================================ */
+    .btn-atualizar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        background: transparent;
+        border: 1px solid var(--cor-borda);
+        color: var(--cor-texto);
+        border-radius: var(--borda-radius-pequeno);
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-atualizar:hover {
+        border-color: var(--cor-sucesso);
+        color: var(--cor-sucesso);
+        background: rgba(46, 194, 126, 0.1);
+        transform: translateY(-1px);
+    }
+
+    .btn-atualizar.animando i {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
     </style>
 </head>
 <body>
@@ -902,11 +935,11 @@
                 filtrarTransferencias('all');
                 
                 // Configurar auto-atualização (1 minuto)
-                setInterval(() => {
-                    if (document.visibilityState === 'visible') {
-                        carregarTransferencias();
-                    }
-                }, 60000);
+                //setInterval(() => {
+                //    if (document.visibilityState === 'visible') {
+                //        carregarTransferencias();
+                //    }
+                //}, 60000);
                 
             } else {
                 console.error('❌ Erro ao carregar transferências:', response.status);
@@ -918,6 +951,66 @@
         }
     }
     
+    // ADICIONE esta função para o botão atualizar:
+    function setupAtualizacaoManual() {
+        const btnAtualizar = document.getElementById('btnAtualizar');
+        let estaAtualizando = false;
+        
+        if (btnAtualizar) {
+            btnAtualizar.addEventListener('click', async function() {
+                if (estaAtualizando) return;
+                
+                // Mostrar animação
+                estaAtualizando = true;
+                btnAtualizar.classList.add('animando');
+                btnAtualizar.disabled = true;
+                
+                try {
+                    await carregarTransferencias();
+                    
+                    // Mostrar feedback visual
+                    btnAtualizar.innerHTML = '<i class="fas fa-check"></i> Atualizado!';
+                    btnAtualizar.style.borderColor = 'var(--cor-sucesso)';
+                    btnAtualizar.style.color = 'var(--cor-sucesso)';
+                    
+                    setTimeout(() => {
+                        btnAtualizar.innerHTML = '<i class="fas fa-sync-alt"></i> Atualizar';
+                        btnAtualizar.style.borderColor = '';
+                        btnAtualizar.style.color = '';
+                        btnAtualizar.classList.remove('animando');
+                        btnAtualizar.disabled = false;
+                        estaAtualizando = false;
+                    }, 1500);
+                    
+                } catch (error) {
+                    console.error('Erro ao atualizar:', error);
+                    
+                    // Mostrar erro
+                    btnAtualizar.innerHTML = '<i class="fas fa-times"></i> Erro';
+                    btnAtualizar.style.borderColor = 'var(--cor-perigo)';
+                    btnAtualizar.style.color = 'var(--cor-perigo)';
+                    
+                    setTimeout(() => {
+                        btnAtualizar.innerHTML = '<i class="fas fa-sync-alt"></i> Atualizar';
+                        btnAtualizar.style.borderColor = '';
+                        btnAtualizar.style.color = '';
+                        btnAtualizar.classList.remove('animando');
+                        btnAtualizar.disabled = false;
+                        estaAtualizando = false;
+                    }, 2000);
+                }
+            });
+        }
+    }
+
+    // NO DOMContentLoaded, adicione:
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Página Minhas Transferências carregada');
+        carregarUsuario();
+        carregarTransferencias();
+        setupAtualizacaoManual();  // <-- ADICIONE ESTA LINHA
+    });
+
     // FILTRAR TRANSFERÊNCIAS
     function filtrarTransferencias(filtro) {
         filtroAtual = filtro;
