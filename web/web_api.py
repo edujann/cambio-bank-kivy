@@ -426,7 +426,17 @@ def criar_transferencia():
         
         conta = response_conta.data[0]
         saldo_atual = float(conta['saldo']) if conta['saldo'] else 0.0
-        valor = float(dados['valor'])
+        
+        # Converter valor para float CORRETAMENTE
+        try:
+            # Tenta converter independente do tipo
+            valor_str = str(dados['valor']).replace(',', '.')
+            valor = float(valor_str)
+        except (ValueError, TypeError):
+            print(f"❌ Erro ao converter valor: {dados['valor']}")
+            valor = 0.0
+        
+        print(f"💰 Saldo atual: {saldo_atual}, Valor convertido: {valor} (tipo: {type(valor)})")
         
         print(f"💰 Conta: {conta_id}, Saldo: {saldo_atual}, Valor: {valor}")
         
