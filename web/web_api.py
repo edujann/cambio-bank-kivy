@@ -814,7 +814,6 @@ def get_beneficiarios():
                 'pais_banco': dados.get('pais_banco', ''),
                 'cliente_username': usuario,
                 'ativo': True,
-                'criado_em': datetime.now().isoformat()
             }
             
             print(f"💾 Inserindo beneficiário: {novo_beneficiario}")

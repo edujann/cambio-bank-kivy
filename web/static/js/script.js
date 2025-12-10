@@ -5,6 +5,33 @@
 let selectedFile = null;
 let userContas = [];
 
+// ============================================
+// FUNÇÃO DE EMERGÊNCIA: POPUP DE SUCESSO
+// (Cole isso NO TOPO do seu script.js, antes de tudo)
+// ============================================
+
+function garantirPopupSucesso(transferenciaId, valor, moeda) {
+    console.log('🎉 MOSTRANDO POPUP PARA TRANSFERÊNCIA:', transferenciaId);
+    
+    // Método 1: Alerta nativo (sempre funciona)
+    alert(`✅ Transferência ${transferenciaId} criada com sucesso!\nValor: ${valor} ${moeda}`);
+    
+    // Método 2: Também tentar modal HTML
+    try {
+        const modal = document.getElementById('successModal');
+        const idEl = document.getElementById('modalTransferId');
+        const valorEl = document.getElementById('modalValor');
+        
+        if (modal && idEl && valorEl) {
+            idEl.textContent = transferenciaId;
+            valorEl.textContent = `${valor} ${moeda}`;
+            modal.classList.remove('hidden');
+        }
+    } catch (e) {
+        // Ignora erro - já mostramos o alerta
+    }
+}
+
 // CARREGAR DADOS DO USUÁRIO
 async function loadUserData() {
     try {
@@ -336,19 +363,19 @@ function positionDropdown(dropdown) {
 }
 
 // ============================================
-// FUNÇÃO ENVIARTRANSFERENCIA - VERSÃO 2025 CORRETA
-// BASEADA NA ESTRUTURA REAL DO SUPABASE
+// FUNÇÃO ENVIARTRANSFERENCIA - VERSÃO 2025 CORRIGIDA
+// POPUP GARANTIDO + BENEFICIÁRIO EM SEGUNDO PLANO
 // ============================================
 
 window.enviarTransferencia = async function(e) {
     if (e) e.preventDefault();
     
-    console.log('🚀 enviarTransferencia() - ESTRUTURA CORRETA');
+    console.log('🚀 enviarTransferencia() - VERSÃO CORRIGIDA');
     
     // 1. COLETAR DADOS (COM NOMES EXATOS DA TABELA)
     const dados = {
         // === DADOS DA CONTA ===
-        conta_origem: document.getElementById('conta_origem').value,  // ← NOME CORRETO!
+        conta_origem: document.getElementById('conta_origem').value,
         valor: parseFloat(document.getElementById('valor').value) || 0,
         moeda: document.getElementById('conta_origem').options[
             document.getElementById('conta_origem').selectedIndex
@@ -387,7 +414,7 @@ window.enviarTransferencia = async function(e) {
     
     console.log('📦 DADOS (estrutura correta):', dados);
     
-    // 2. VALIDAR CAMPOS OBRIGATÓRIOS
+    // 2. VALIDAR CAMPOS OBRIGATÓRIOS (APENAS UM LOOP - SEM DUPLICATA!)
     const obrigatorios = [
         { id: 'conta_origem', nome: 'Conta de origem' },
         { id: 'valor', nome: 'Valor' },
@@ -402,15 +429,6 @@ window.enviarTransferencia = async function(e) {
         { id: 'swift', nome: 'SWIFT' },
         { id: 'iban', nome: 'IBAN' }
     ];
-    
-    for (const { id, nome } of obrigatorios) {
-        const valor = document.getElementById(id).value.trim();
-        if (!valor) {
-            showAlert(`❌ ${nome} é obrigatório`, 'error');
-            document.getElementById(id).focus();
-            return false;
-        }
-    }
     
     for (const { id, nome } of obrigatorios) {
         const valor = document.getElementById(id).value.trim();
@@ -460,44 +478,35 @@ window.enviarTransferencia = async function(e) {
         });
         
         const resultado = await response.json();
-        console.log('✅ Resposta:', resultado);
+        console.log('✅ Resposta API:', resultado);
         
         if (!response.ok) throw new Error(resultado.message || `Erro ${response.status}`);
         
         if (resultado.success) {
-            // TENTAR USAR MODAL PRIMEIRO
-            const modal = document.getElementById('successModal');
-            const transferIdEl = document.getElementById('modalTransferId');
-            const valorEl = document.getElementById('modalValor');
+            // 🎯 1. MOSTRAR POPUP IMEDIATAMENTE (GARANTIDO!)
+            garantirPopupSucesso(resultado.transferencia_id, dados.valor.toFixed(2), dados.moeda);
             
-            if (modal && transferIdEl && valorEl) {
-                // Modal existe - usar modal
-                transferIdEl.textContent = resultado.transferencia_id;
-                valorEl.textContent = `${dados.valor.toFixed(2)} ${dados.moeda}`;
-                modal.classList.remove('hidden');
-                console.log('✅ Modal de sucesso mostrado');
-            } else {
-                // Modal não existe - usar alerta alternativo
-                console.log('⚠️ Modal não encontrado, usando alerta alternativo');
-                mostrarAlertaSucesso(
-                    resultado.transferencia_id, 
-                    dados.valor.toFixed(2), 
-                    dados.moeda
-                );
-            }
-            
-            // SALVAR BENEFICIÁRIO (OPCIONAL)
+            // 🎯 2. SALVAR BENEFICIÁRIO EM SEGUNDO PLANO (se marcado)
             if (document.getElementById('salvar_beneficiario')?.checked) {
-                await salvarBeneficiario(dados);
+                // Executar em background - NÃO BLOQUEIA O POPUP
+                setTimeout(async () => {
+                    try {
+                        await salvarBeneficiario(dados);
+                        console.log('✅ Beneficiário salvo opcionalmente');
+                    } catch (error) {
+                        console.warn('⚠️ Erro ao salvar beneficiário:', error.message);
+                        // NÃO FAZ NADA - NÃO AFETA O SUCESSO DA TRANSFERÊNCIA!
+                    }
+                }, 100); // Pequeno delay para não atrapalhar
             }
             
-            // LIMPAR FORMULÁRIO
+            // 🎯 3. LIMPAR FORMULÁRIO
             document.getElementById('transferenciaForm').reset();
             selectedFile = null;
             document.getElementById('filePreview').classList.add('hidden');
             document.getElementById('saldo_valor').textContent = '--';
             
-            // RECARREGAR CONTAS
+            // 🎯 4. RECARREGAR CONTAS
             await window.carregarContas();
             
         } else {
@@ -516,7 +525,7 @@ window.enviarTransferencia = async function(e) {
 };
 
 // ============================================
-// FUNÇÃO AUXILIAR: SALVAR BENEFICIÁRIO
+// FUNÇÃO AUXILIAR: SALVAR BENEFICIÁRIO (OPCIONAL)
 // ============================================
 
 async function salvarBeneficiario(dados) {
@@ -548,10 +557,15 @@ async function salvarBeneficiario(dados) {
         if (response.ok) {
             const result = await response.json();
             console.log('✅ Beneficiário salvo:', result);
-            showAlert('✅ Beneficiário salvo para uso futuro!', 'success');
+            // Não mostra alerta para não poluir - transferência já teve sucesso
+        } else {
+            console.warn('⚠️ Erro ao salvar beneficiário, status:', response.status);
+            const errorData = await response.json().catch(() => ({}));
+            console.warn('📋 Detalhes do erro:', errorData);
         }
     } catch (error) {
         console.warn('⚠️ Erro ao salvar beneficiário:', error);
+        // NÃO LANÇA ERRO - É OPICIONAL!
     }
 }
 
