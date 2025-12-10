@@ -3,1229 +3,1267 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minhas Transferências - Sistema Câmbio</title>
+    <title>Minhas Transferências | Cambio Bank</title>
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* CORES IGUAIS AO DASHBOARD - VERSÃO ESCURA */
-        :root {
-            /* CORES PRINCIPAIS (dashboard) */
-            --azul-dashboard: #1a5fb4;
-            --azul-claro-dashboard: #2d8fff;
-            --roxo-dashboard: #8e44ad;
-            --verde-dashboard: #27ae60;
-            --vermelho-dashboard: #c0392b;
-            --amarelo-dashboard: #f39c12;
-            
-            /* CORES DE STATUS (dashboard style) */
-            --cor-pendente: #f39c12;      /* Amarelo */
-            --cor-processando: #3498db;    /* Azul */
-            --cor-concluida: #27ae60;      /* Verde */
-            --cor-recusada: #c0392b;       /* Vermelho */
-            
-            /* FUNDOS (dashboard style) */
-            --fundo-escuro: #0f141c;
-            --fundo-card: #1c2533;
-            --fundo-hover: #2d3a4d;
-            
-            /* TEXTO (dashboard style) */
-            --texto-principal: #d1d8e0;
-            --texto-secundario: #95a5a6;
-            --texto-destaque: #ffffff;
-            
-            /* BORDAS */
-            --raio-borda: 10px;
-            --raio-borda-pequeno: 6px;
+    /* ============================================
+       VARIÁVEIS CSS (EXATAMENTE IGUAL AO DASHBOARD)
+    ============================================ */
+    :root {
+        /* PALETA DE CORES DO SEU KIVY/DASHBOARD */
+        --cor-fundo: #0a0e15;
+        --cor-card: #0d1117;
+        --cor-borda: #1e232e;
+        --cor-texto: #e0e0e0;
+        --cor-texto-secundario: #8b949e;
+        --cor-primaria: #1a5fb4;
+        --cor-sucesso: #2ec27e;
+        --cor-alerta: #f39c12;
+        --cor-perigo: #e01b24;
+        --roxo: #9b59b6;
+        
+        /* SOMBRAS (IGUAL DASHBOARD) */
+        --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.3);
+        --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.4);
+        --sombra-forte: 0 12px 24px rgba(0, 0, 0, 0.5);
+        
+        /* BORDAS (IGUAL DASHBOARD) */
+        --borda-radius: 12px;
+        --borda-radius-pequeno: 8px;
+    }
+
+    /* ============================================
+       RESET E CONFIGURAÇÕES GERAIS
+    ============================================ */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+        background: #070b12;  /* MAIS ESCURO QUE O DASHBOARD */
+        color: var(--cor-texto);
+        min-height: 100vh;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* ============================================
+       CONTAINER PRINCIPAL
+    ============================================ */
+    .app-container {
+        background: var(--cor-fundo);  /* #0a0e15 */
+        min-height: 100vh;
+        max-width: 1400px;
+        margin: 0 auto;
+        width: 100%;
+    }
+
+    /* ============================================
+       CABEÇALHO (EXATAMENTE IGUAL AO DASHBOARD)
+    ============================================ */
+    .app-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 30px;
+        background: var(--cor-card);
+        border-bottom: 1px solid var(--cor-borda);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 24px;
+        font-weight: bold;
+    }
+
+    .logo i {
+        color: var(--cor-primaria);
+        font-size: 28px;
+    }
+
+    .logo-text {
+        background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .user-menu {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 16px;
+        background: var(--cor-card);
+        border-radius: var(--borda-radius-pequeno);
+        border: 1px solid var(--cor-borda);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .user-menu:hover {
+        border-color: var(--cor-primaria);
+        transform: translateY(-2px);
+    }
+
+    .user-avatar {
+        font-size: 24px;
+        color: var(--cor-primaria);
+    }
+
+    .user-name {
+        font-weight: 600;
+    }
+
+    .btn-voltar-dashboard {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        background: transparent;
+        border: 1px solid var(--cor-borda);
+        color: var(--cor-texto);
+        border-radius: var(--borda-radius-pequeno);
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-voltar-dashboard:hover {
+        border-color: var(--cor-primaria);
+        background: rgba(26, 95, 180, 0.1);
+        transform: translateY(-1px);
+    }
+
+    /* ============================================
+       CONTEÚDO PRINCIPAL
+    ============================================ */
+    .main-content {
+        padding: 30px;
+    }
+
+    /* ============================================
+       TÍTULO DA PÁGINA (ESTILO DASHBOARD)
+    ============================================ */
+    .page-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding: 20px 0;
+    }
+
+    .page-title {
+        font-size: 28px;
+        margin-bottom: 10px;
+        color: var(--cor-texto);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        justify-content: center;
+    }
+
+    .page-title i {
+        color: var(--cor-primaria);
+    }
+
+    .page-subtitle {
+        color: var(--cor-texto-secundario);
+        font-size: 16px;
+        margin: 0;
+    }
+
+    /* ============================================
+       FILTROS RÁPIDOS (ESTILO DASHBOARD)
+    ============================================ */
+    .filtros-container {
+        margin-bottom: 30px;
+    }
+
+    .filtros-title {
+        font-size: 14px;
+        color: var(--cor-texto-secundario);
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .filtros-rapidos {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-filtro {
+        padding: 10px 20px;
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius-pequeno);
+        background: transparent;
+        color: var(--cor-texto);
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-filtro:hover {
+        border-color: var(--cor-primaria);
+        background: rgba(26, 95, 180, 0.1);
+    }
+
+    .btn-filtro.ativo {
+        background: var(--cor-primaria);
+        color: white;
+        border-color: var(--cor-primaria);
+    }
+
+    #btn-pendentes.ativo {
+        background: var(--cor-alerta);
+        border-color: var(--cor-alerta);
+    }
+
+    #btn-processando.ativo {
+        background: var(--cor-primaria);
+        border-color: var(--cor-primaria);
+    }
+
+    #btn-concluidas.ativo {
+        background: var(--cor-sucesso);
+        border-color: var(--cor-sucesso);
+    }
+
+    #btn-recusadas.ativo {
+        background: var(--cor-perigo);
+        border-color: var(--cor-perigo);
+    }
+
+    /* ============================================
+       CARDS DE TRANSFERÊNCIA (COM EFEITOS DASHBOARD)
+    ============================================ */
+    .transferencias-container {
+        margin-bottom: 40px;
+    }
+
+    .card-transferencia {
+        background: var(--cor-card);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius);
+        padding: 25px;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+        box-shadow: var(--sombra-suave);
+    }
+
+    /* LINHA SUPERIOR COLORIDA (status) */
+    .card-transferencia::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--cor-primaria), transparent);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    /* CORES POR STATUS NA LINHA SUPERIOR */
+    .card-transferencia[data-status="pending"]::before,
+    .card-transferencia[data-status="pendente"]::before {
+        background: linear-gradient(90deg, var(--cor-alerta), transparent);
+    }
+
+    .card-transferencia[data-status="processing"]::before,
+    .card-transferencia[data-status="processando"]::before {
+        background: linear-gradient(90deg, var(--cor-primaria), transparent);
+    }
+
+    .card-transferencia[data-status="completed"]::before,
+    .card-transferencia[data-status="concluida"]::before {
+        background: linear-gradient(90deg, var(--cor-sucesso), transparent);
+    }
+
+    .card-transferencia[data-status="rejected"]::before,
+    .card-transferencia[data-status="recusada"]::before {
+        background: linear-gradient(90deg, var(--cor-perigo), transparent);
+    }
+
+    /* EFEITO HOVER IGUAL AOS CARDS DO DASHBOARD */
+    .card-transferencia:hover {
+        border-color: var(--cor-primaria);
+        transform: translateY(-5px);
+        box-shadow: var(--sombra-forte);
+    }
+
+    .card-transferencia:hover::before {
+        opacity: 1;
+    }
+
+    /* BORDA COM GRADIENTE NO HOVER */
+    .card-transferencia::after {
+        content: '';
+        position: absolute;
+        top: -2px;
+        left: -2px;
+        right: -2px;
+        bottom: -2px;
+        border-radius: calc(var(--borda-radius) + 2px);
+        background: linear-gradient(45deg, 
+            transparent 0%,
+            var(--cor-primaria) 50%,
+            transparent 100%
+        );
+        z-index: -1;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .card-transferencia:hover::after {
+        opacity: 0.3;
+    }
+
+    /* GRADIENTE ESPECÍFICO POR STATUS NO HOVER */
+    .card-transferencia[data-status="pending"]:hover::after,
+    .card-transferencia[data-status="pendente"]:hover::after {
+        background: linear-gradient(45deg, 
+            transparent 0%,
+            var(--cor-alerta) 50%,
+            transparent 100%
+        );
+    }
+
+    .card-transferencia[data-status="processing"]:hover::after,
+    .card-transferencia[data-status="processando"]:hover::after {
+        background: linear-gradient(45deg, 
+            transparent 0%,
+            var(--cor-primaria) 50%,
+            transparent 100%
+        );
+    }
+
+    .card-transferencia[data-status="completed"]:hover::after,
+    .card-transferencia[data-status="concluida"]:hover::after {
+        background: linear-gradient(45deg, 
+            transparent 0%,
+            var(--cor-sucesso) 50%,
+            transparent 100%
+        );
+    }
+
+    .card-transferencia[data-status="rejected"]:hover::after,
+    .card-transferencia[data-status="recusada"]:hover::after {
+        background: linear-gradient(45deg, 
+            transparent 0%,
+            var(--cor-perigo) 50%,
+            transparent 100%
+        );
+    }
+
+    /* ============================================
+       HEADER DO CARD
+    ============================================ */
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid var(--cor-borda);
+        position: relative;
+    }
+
+    /* BADGE DE STATUS (IGUAL DASHBOARD) */
+    .status-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: all 0.3s ease;
+    }
+
+    .card-transferencia:hover .status-badge {
+        transform: scale(1.05);
+    }
+
+    /* CORES DOS STATUS */
+    .status-pending {
+        background: rgba(243, 156, 18, 0.15);
+        color: var(--cor-alerta);
+        border: 1px solid rgba(243, 156, 18, 0.3);
+    }
+
+    .status-processing {
+        background: rgba(26, 95, 180, 0.15);
+        color: var(--cor-primaria);
+        border: 1px solid rgba(26, 95, 180, 0.3);
+    }
+
+    .status-completed {
+        background: rgba(46, 194, 126, 0.15);
+        color: var(--cor-sucesso);
+        border: 1px solid rgba(46, 194, 126, 0.3);
+    }
+
+    .status-rejected {
+        background: rgba(224, 27, 36, 0.15);
+        color: var(--cor-perigo);
+        border: 1px solid rgba(224, 27, 36, 0.3);
+    }
+
+    .transferencia-id {
+        font-size: 12px;
+        color: var(--cor-texto-secundario);
+        font-family: monospace;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+
+    /* ============================================
+       CONTEÚDO DO CARD
+    ============================================ */
+    .card-content {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .info-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .info-label {
+        font-size: 11px;
+        color: var(--cor-texto-secundario);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .info-value {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--cor-texto);
+    }
+
+    .valor-destaque {
+        font-size: 20px;
+        font-weight: bold;
+        color: var(--cor-texto);
+    }
+
+    /* ============================================
+       LINHA DA INVOICE
+    ============================================ */
+    .invoice-line {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 15px;
+        padding: 12px 15px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: var(--borda-radius-pequeno);
+        border: 1px solid var(--cor-borda);
+    }
+
+    .invoice-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .invoice-status.pending { 
+        color: var(--cor-alerta);
+    }
+    
+    .invoice-status.approved { 
+        color: var(--cor-sucesso);
+    }
+    
+    .invoice-status.rejected { 
+        color: var(--cor-perigo);
+    }
+
+    .btn-renviar-invoice {
+        padding: 6px 12px;
+        background: transparent;
+        border: 1px solid var(--cor-sucesso);
+        color: var(--cor-sucesso);
+        border-radius: var(--borda-radius-pequeno);
+        font-size: 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        transition: all 0.3s;
+    }
+
+    .btn-renviar-invoice:hover {
+        background: rgba(46, 194, 126, 0.1);
+        transform: translateY(-1px);
+    }
+
+    /* ============================================
+       FOOTER DO CARD
+    ============================================ */
+    .card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid var(--cor-borda);
+    }
+
+    .data-transferencia {
+        font-size: 12px;
+        color: var(--cor-texto-secundario);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* ============================================
+       BOTÕES DE AÇÃO
+    ============================================ */
+    .botoes-acao {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-acao {
+        padding: 8px 16px;
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius-pequeno);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.3s;
+        background: transparent;
+        color: var(--cor-texto);
+    }
+
+    .btn-detalhes:hover {
+        border-color: var(--cor-primaria);
+        color: var(--cor-primaria);
+        background: rgba(26, 95, 180, 0.1);
+    }
+
+    .btn-invoice:hover {
+        border-color: var(--cor-sucesso);
+        color: var(--cor-sucesso);
+        background: rgba(46, 194, 126, 0.1);
+    }
+
+    .btn-pdf:hover {
+        border-color: var(--roxo);
+        color: var(--roxo);
+        background: rgba(155, 89, 182, 0.1);
+    }
+
+    /* ============================================
+       BOTÃO CARREGAR MAIS
+    ============================================ */
+    .btn-carregar-mais {
+        background: linear-gradient(135deg, var(--cor-primaria), #2d8fff);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: var(--borda-radius);
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: 0 4px 15px rgba(26, 95, 180, 0.3);
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        justify-content: center;
+        margin: 30px auto;
+        display: block;
+    }
+
+    .btn-carregar-mais:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(26, 95, 180, 0.4);
+    }
+
+    .btn-carregar-mais i {
+        font-size: 18px;
+    }
+
+    .btn-carregar-mais small {
+        font-size: 12px;
+        opacity: 0.8;
+        font-weight: normal;
+        display: block;
+        margin-top: 4px;
+    }
+
+    /* ============================================
+       MENSAGEM VAZIA
+    ============================================ */
+    .mensagem-vazia {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--cor-texto-secundario);
+        background: var(--cor-card);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius);
+    }
+
+    .mensagem-vazia i {
+        font-size: 48px;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+
+    /* ============================================
+       LOADING
+    ============================================ */
+    .loading {
+        text-align: center;
+        padding: 40px;
+        color: var(--cor-texto-secundario);
+    }
+
+    .loading i {
+        font-size: 24px;
+        margin-bottom: 10px;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* ============================================
+       FOOTER (IGUAL AO DASHBOARD)
+    ============================================ */
+    .app-footer {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid var(--cor-borda);
+    }
+
+    .footer-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--cor-texto-secundario);
+        font-size: 14px;
+    }
+
+    .footer-links {
+        display: flex;
+        gap: 20px;
+    }
+
+    .footer-links a {
+        color: var(--cor-texto-secundario);
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+
+    .footer-links a:hover {
+        color: var(--cor-primaria);
+    }
+
+    .status-online {
+        color: var(--cor-sucesso);
+        font-weight: 600;
+    }
+
+    /* ============================================
+       RESPONSIVIDADE
+    ============================================ */
+    @media (max-width: 768px) {
+        .app-container {
+            padding: 10px;
         }
         
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        body {
-            background: var(--fundo-escuro);
-            color: var(--texto-principal);
-            min-height: 100vh;
-        }
-        
-        /* CONTAINER PRINCIPAL */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        /* HEADER */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px 0;
-            margin-bottom: 30px;
-            border-bottom: 2px solid var(--cor-primaria);
-        }
-        
-        .titulo-pagina {
-            display: flex;
-            align-items: center;
+        .app-header {
+            flex-direction: column;
             gap: 15px;
-        }
-        
-        .titulo-pagina i {
-            font-size: 32px;
-            color: var(--cor-primaria);
-        }
-        
-        .titulo-pagina h1 {
-            font-size: 28px;
-            color: var(--texto-destaque);
-        }
-        
-        .info-usuario {
-            background: var(--fundo-card);
-            padding: 10px 20px;
-            border-radius: var(--raio-borda);
-            font-size: 14px;
-        }
-        
-        /* FILTROS RÁPIDOS (IGUAL KIVY) */
-        .filtros-rapidos {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
-        
-        .btn-filtro {
-            padding: 12px 24px;
-            border: none;
-            border-radius: var(--raio-borda-pequeno);
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .btn-filtro.ativo {
-            color: white;
-        }
-        
-        .btn-filtro:not(.ativo) {
-            color: var(--texto-secundario);
-        }
-        
-        /* CORES DOS FILTROS ATIVOS (IGUAL DASHBOARD) */
-        #btn-todas.ativo { background: var(--azul-dashboard); }
-        #btn-pendentes.ativo { background: var(--cor-pendente); }
-        #btn-processando.ativo { background: var(--cor-processando); }
-        #btn-concluidas.ativo { background: var(--cor-concluida); }
-        #btn-recusadas.ativo { background: var(--cor-recusada); }
-        
-        /* CORES DOS FILTROS INATIVOS */
-        #btn-todas:not(.ativo) { background: #1a3a66; }
-        #btn-pendentes:not(.ativo) { background: #664d00; }
-        #btn-processando:not(.ativo) { background: #1a5276; }
-        #btn-concluidas:not(.ativo) { background: #1e8449; }
-        #btn-recusadas:not(.ativo) { background: #7b241c; }
-        
-        /* ESTATÍSTICAS */
-        .estatisticas {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-        
-        .card-estatistica {
-            background: var(--fundo-card);
-            padding: 20px;
-            border-radius: var(--raio-borda);
             text-align: center;
         }
         
-        .card-estatistica .numero {
-            font-size: 32px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        
-        .card-estatistica .label {
-            font-size: 14px;
-            color: var(--texto-secundario);
-        }
-        
-        /* LISTA DE TRANSFERÊNCIAS */
-        .lista-transferencias {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        
-        /* CARD DE TRANSFERÊNCIA (IGUAL KIVY) */
-        .card-transferencia {
-            background: var(--cor-card);  /* #0d1117 - escuro */
-            border-color: var(--cor-borda); /* #1e232e */
-            padding: 20px;
-            position: relative;
-            border-left: 5px solid var(--cor-primaria);
-        }
-        
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .status-badge {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        
-        .status-pending { background: var(--cor-pendente); color: white; }
-        .status-processing { background: var(--cor-processando); color: white; }
-        .status-completed { background: var(--cor-concluida); color: white; }
-        .status-rejected { background: var(--cor-recusada); color: white; }
-        
-        .transferencia-id {
-            font-size: 12px;
-            color: var(--texto-secundario);
-            font-family: monospace;
+        .filtros-rapidos {
+            justify-content: center;
         }
         
         .card-content {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        
-        .info-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        
-        .info-label {
-            font-size: 12px;
-            color: var(--texto-secundario);
-            text-transform: uppercase;
-        }
-        
-        .info-value {
-            font-size: 14px;
-            font-weight: 500;
-        }
-        
-        .valor-destaque {
-            font-size: 18px;
-            font-weight: bold;
-            color: var(--texto-destaque);
+            grid-template-columns: 1fr;
         }
         
         .card-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .data-transferencia {
-            font-size: 12px;
-            color: var(--texto-secundario);
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .botoes-acao {
-            display: flex;
-            gap: 10px;
-        }
-
-        /* BOTÕES DE AÇÃO DOS CARDS - IGUAL AO DASHBOARD */
-        .btn-acao {
-            padding: 8px 16px;
-            border: 1px solid var(--cor-borda);  /* Borda cinza */
-            border-radius: var(--borda-radius-pequeno);
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.3s;
-            background: transparent;  /* Fundo transparente */
-            color: var(--cor-texto);  /* Texto cinza */
-        }
-
-        /* HOVER COM CORES (igual aos ícones do dashboard) */
-        .btn-detalhes:hover {
-            border-color: var(--cor-primaria);    /* Azul */
-            color: var(--cor-primaria);          /* Azul */
-            background: rgba(26, 95, 180, 0.1);  /* Azul claro */
-        }
-
-        .btn-invoice:hover {
-            border-color: var(--cor-sucesso);     /* Verde */
-            color: var(--cor-sucesso);           /* Verde */
-            background: rgba(46, 194, 126, 0.1); /* Verde claro */
-        }
-
-        .btn-pdf:hover {
-            border-color: #9b59b6;               /* Roxo */
-            color: #9b59b6;                     /* Roxo */
-            background: rgba(155, 89, 182, 0.1); /* Roxo claro */
-        }
-
-        /* LINHA DA INVOICE (MELHORADA) */
-        .invoice-line {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 15px;
-            padding: 12px 15px;
-            background: rgba(255, 255, 255, 0.03);  /* Mais escuro */
-            border-radius: var(--borda-radius-pequeno);
-            border: 1px solid var(--cor-borda);     /* Borda igual dashboard */
-        }
-
-        .invoice-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            font-weight: 500;
-        }
-
-        /* CORRETO: usar as variáveis do dashboard */
-        .invoice-status.pending { 
-            color: var(--cor-alerta);  /* Amarelo #f39c12 */
-        }
-        .invoice-status.approved { 
-            color: var(--cor-sucesso); /* Verde #2ec27e */
-        }
-        .invoice-status.rejected { 
-            color: var(--cor-perigo);  /* Vermelho #e01b24 */
-        }
-
-        .btn-renviar-invoice {
-            padding: 6px 12px;
-            background: transparent;              /* Transparente igual dashboard */
-            border: 1px solid var(--cor-sucesso); /* Borda verde */
-            color: var(--cor-sucesso);           /* Texto verde */
-            border-radius: var(--borda-radius-pequeno);
-            font-size: 12px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            transition: all 0.3s;
-        }
-
-        .btn-renviar-invoice:hover {
-            background: rgba(46, 194, 126, 0.1);  /* Verde claro no hover */
-            transform: translateY(-1px);         /* Efeito de elevação */
-        }
-        
-        /* MODAL DE DETALHES */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        
-        .modal-container {
-            background: var(--fundo-card);
-            border-radius: var(--raio-borda);
-            width: 90%;
-            max-width: 800px;
-            max-height: 90vh;
-            overflow-y: auto;
-            padding: 30px;
-        }
-        
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid var(--cor-primaria);
-        }
-        
-        .modal-title {
-            font-size: 24px;
-            color: var(--texto-destaque);
-        }
-        
-        .btn-fechar-modal {
-            background: none;
-            border: none;
-            color: var(--texto-secundario);
-            font-size: 24px;
-            cursor: pointer;
-        }
-        
-        .modal-section {
-            margin-bottom: 25px;
-        }
-        
-        .section-title {
-            font-size: 18px;
-            color: var(--cor-primaria);
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            flex-direction: column;
             gap: 15px;
         }
         
-        /* LOADING */
-        .loading {
-            display: none;
+        .botoes-acao {
+            width: 100%;
             justify-content: center;
-            align-items: center;
-            padding: 40px;
+            flex-wrap: wrap;
         }
         
-        .loading-spinner {
-            border: 4px solid rgba(255, 255, 255, 0.1);
-            border-left-color: var(--cor-primaria);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        /* MENSAGEM VAZIA */
-        .mensagem-vazia {
+        .footer-content {
+            flex-direction: column;
+            gap: 10px;
             text-align: center;
-            padding: 60px 20px;
-            color: var(--texto-secundario);
         }
         
-        .mensagem-vazia i {
-            font-size: 48px;
-            margin-bottom: 20px;
-            opacity: 0.5;
+        .footer-links {
+            justify-content: center;
         }
-        
-        /* RESPONSIVIDADE */
-        @media (max-width: 768px) {
-            .container {
-                padding: 10px;
-            }
-            
-            .header {
-                flex-direction: column;
-                gap: 15px;
-                text-align: center;
-            }
-            
-            .filtros-rapidos {
-                justify-content: center;
-            }
-            
-            .card-content {
-                grid-template-columns: 1fr;
-            }
-            
-            .card-footer {
-                flex-direction: column;
-                gap: 15px;
-            }
-            
-            .botoes-acao {
-                width: 100%;
-                justify-content: center;
-            }
-        }
+    }
 
-        .btn-carregar-mais {
-            background: linear-gradient(135deg, var(--azul-dashboard), var(--azul-claro-dashboard));
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(26, 95, 180, 0.3);
-        }
+    /* ============================================
+       UTILITIES
+    ============================================ */
+    .hidden {
+        display: none !important;
+    }
 
-        .btn-carregar-mais:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(26, 95, 180, 0.4);
-        }
-
-        .btn-carregar-mais small {
-            font-size: 12px;
-            opacity: 0.8;
-            font-weight: normal;
-        }
-
+    .text-center {
+        text-align: center;
+    }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- HEADER -->
-        <div class="header">
-            <div class="titulo-pagina">
-                <i class="fas fa-exchange-alt"></i>
-                <h1>Minhas Transferências Internacionais</h1>
-            </div>
-            <div class="info-usuario">
-                <i class="fas fa-user"></i>
-                <span id="nomeUsuario">Carregando...</span>
-            </div>
+<div class="app-container">
+    
+    <!-- CABEÇALHO -->
+    <header class="app-header">
+        <div class="logo">
+            <i class="fas fa-university"></i>
+            <span class="logo-text">Cambio Bank</span>
         </div>
         
-        <!-- FILTROS RÁPIDOS (IGUAL KIVY) -->
-        <div class="filtros-rapidos">
-            <button id="btn-todas" class="btn-filtro ativo" onclick="filtrarTransferencias('all')">
-                <i class="fas fa-layer-group"></i> TODAS
-            </button>
-            <button id="btn-pendentes" class="btn-filtro" onclick="filtrarTransferencias('pending')">
-                <i class="fas fa-clock"></i> PENDENTES
-            </button>
-            <button id="btn-processando" class="btn-filtro" onclick="filtrarTransferencias('processing')">
-                <i class="fas fa-sync-alt"></i> PROCESSANDO
-            </button>
-            <button id="btn-concluidas" class="btn-filtro" onclick="filtrarTransferencias('completed')">
-                <i class="fas fa-check-circle"></i> CONCLUÍDAS
-            </button>
-            <button id="btn-recusadas" class="btn-filtro" onclick="filtrarTransferencias('rejected')">
-                <i class="fas fa-times-circle"></i> RECUSADAS
-            </button>
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <a href="/dashboard" class="btn-voltar-dashboard">
+                <i class="fas fa-arrow-left"></i>
+                Voltar ao Dashboard
+            </a>
+            
+            <div class="user-menu">
+                <div class="user-avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="user-name" id="userName">Carregando...</div>
+            </div>
         </div>
-
+    </header>
+    
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="main-content">
+        <!-- TÍTULO -->
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-exchange-alt"></i>
+                MINHAS TRANSFERÊNCIAS
+            </h1>
+            <p class="page-subtitle">Gerencie e acompanhe todas as suas transferências internacionais</p>
+        </div>
+        
+        <!-- FILTROS -->
+        <div class="filtros-container">
+            <div class="filtros-title">
+                <i class="fas fa-filter"></i> Filtrar por Status:
+            </div>
+            <div class="filtros-rapidos">
+                <button class="btn-filtro ativo" id="btn-todas" onclick="filtrarTransferencias('all')">
+                    <i class="fas fa-layer-group"></i> Todas
+                </button>
+                <button class="btn-filtro" id="btn-pendentes" onclick="filtrarTransferencias('pending')">
+                    <i class="fas fa-clock"></i> Pendentes
+                </button>
+                <button class="btn-filtro" id="btn-processando" onclick="filtrarTransferencias('processing')">
+                    <i class="fas fa-sync-alt"></i> Processando
+                </button>
+                <button class="btn-filtro" id="btn-concluidas" onclick="filtrarTransferencias('completed')">
+                    <i class="fas fa-check-circle"></i> Concluídas
+                </button>
+                <button class="btn-filtro" id="btn-recusadas" onclick="filtrarTransferencias('rejected')">
+                    <i class="fas fa-times-circle"></i> Recusadas
+                </button>
+            </div>
+        </div>
         
         <!-- LISTA DE TRANSFERÊNCIAS -->
-        <div class="loading" id="loading">
-            <div class="loading-spinner"></div>
+        <div class="transferencias-container">
+            <div id="listaTransferencias">
+                <!-- Loading inicial -->
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Carregando transferências...</p>
+                </div>
+            </div>
+            
+            <!-- Mensagem vazia -->
+            <div id="mensagemVazia" class="mensagem-vazia hidden">
+                <i class="fas fa-inbox"></i>
+                <h3>Nenhuma transferência encontrada</h3>
+                <p>Você ainda não realizou transferências internacionais.</p>
+                <a href="/transferencia" class="btn-voltar-dashboard" style="margin-top: 20px;">
+                    <i class="fas fa-plus"></i> Nova Transferência
+                </a>
+            </div>
+            
+            <!-- Botão Carregar Mais -->
+            <div id="carregarMaisContainer" class="hidden"></div>
         </div>
-        
-        <div class="lista-transferencias" id="listaTransferencias">
-            <!-- Transferências serão carregadas aqui -->
-        </div>
-        
-        <!-- MENSAGEM VAZIA -->
-        <div class="mensagem-vazia" id="mensagemVazia" style="display: none;">
-            <i class="fas fa-globe-americas"></i>
-            <h3>Nenhuma transferência internacional encontrada</h3>
-            <p>Quando você fizer transferências internacionais, elas aparecerão aqui.</p>
-        </div>
-    </div>
+    </main>
     
-    <!-- MODAL DE DETALHES -->
-    <div class="modal-overlay" id="modalOverlay">
-        <div class="modal-container">
-            <div class="modal-header">
-                <h2 class="modal-title">Detalhes da Transferência</h2>
-                <button class="btn-fechar-modal" onclick="fecharModal()">×</button>
+    <!-- FOOTER -->
+    <footer class="app-footer">
+        <div class="footer-content">
+            <div class="footer-copyright">
+                © 2024 Cambio Bank • Sistema de Câmbio Internacional
             </div>
-            <div id="modalContent">
-                <!-- Conteúdo do modal será preenchido via JavaScript -->
+            <div class="footer-links">
+                <a href="#"><i class="fas fa-shield-alt"></i> Segurança</a>
+                <a href="#"><i class="fas fa-question-circle"></i> Ajuda</a>
+                <a href="#"><i class="fas fa-envelope"></i> Contato</a>
+            </div>
+            <div class="footer-version">
+                v2.1.0 • <span class="status-online">● Online</span>
             </div>
         </div>
-    </div>
+    </footer>
+</div>
 
-    <script>
-        // DADOS GLOBAIS
-        let todasTransferencias = [];
-        let transferenciasFiltradas = [];
-        let filtroAtual = 'all';
-        
-        // VARIÁVEIS DE PAGINAÇÃO
-        let limiteAtual = 10;
-        const limitePorPagina = 10;
-        
-        // INICIAR CARREGAMENTO
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Página Minhas Transferências carregada');
-            carregarUsuario();
-            carregarTransferencias();
-        });
-        
-        // FUNÇÕES PRINCIPAIS
-        async function carregarUsuario() {
-            try {
-                const response = await fetch('/api/dashboard-data', {
-                    credentials: 'include'
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    const nomeUsuario = data.usuario || data.nome || 'Cliente';
-                    document.getElementById('nomeUsuario').textContent = nomeUsuario;
-                }
-            } catch (error) {
-                console.log('Erro ao carregar usuário:', error);
+<!-- JAVASCRIPT -->
+<script>
+    // DADOS GLOBAIS
+    let todasTransferencias = [];
+    let transferenciasFiltradas = [];
+    let filtroAtual = 'all';
+    
+    // VARIÁVEIS DE PAGINAÇÃO
+    let limiteAtual = 10;
+    const limitePorPagina = 10;
+    
+    // INICIAR CARREGAMENTO
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Página Minhas Transferências carregada');
+        carregarUsuario();
+        carregarTransferencias();
+    });
+    
+    // CARREGAR USUÁRIO
+    async function carregarUsuario() {
+        try {
+            const userNameElement = document.getElementById('userName');
+            if (userNameElement) {
+                userNameElement.textContent = window.USER?.nome || 'Usuário';
             }
+        } catch (error) {
+            console.log('Erro ao carregar usuário:', error);
         }
-        
-        async function carregarTransferencias() {
-            mostrarLoading(true);
+    }
+    
+    // CARREGAR TRANSFERÊNCIAS
+    async function carregarTransferencias() {
+        try {
+            // Limpar loading
+            document.getElementById('listaTransferencias').innerHTML = '';
             
-            try {
-                const response = await fetch('/api/transferencias-internacionais', {
-                    credentials: 'include'
-                });
+            const response = await fetch('/api/transferencias-internacionais');
+            if (response.ok) {
+                const data = await response.json();
+                console.log(`✅ ${data.length} transferências carregadas`);
                 
-                if (response.ok) {
-                    const data = await response.json();
-                    todasTransferencias = data;
-                    console.log(`✅ ${data.length} transferências carregadas`);
-                    
-                    filtrarTransferencias(filtroAtual);
-                } else {
-                    throw new Error('Erro ao carregar transferências');
-                }
-            } catch (error) {
-                console.error('❌ Erro:', error);
-                mostrarErro('Erro ao carregar transferências: ' + error.message);
-            } finally {
-                mostrarLoading(false);
-            }
-        }
-        
-        function filtrarTransferencias(filtro) {
-            filtroAtual = filtro;
-            
-            // Atualizar botões ativos
-            document.querySelectorAll('.btn-filtro').forEach(btn => {
-                btn.classList.remove('ativo');
-            });
-            
-            document.getElementById(`btn-${getNomeFiltro(filtro)}`).classList.add('ativo');
-            
-            // Aplicar filtro
-            if (filtro === 'all') {
-                transferenciasFiltradas = [...todasTransferencias];
-            } else {
-                transferenciasFiltradas = todasTransferencias.filter(t => {
-                    if (filtro === 'pending') {
-                        return t.status === 'pending' || t.status === 'solicitada';
+                todasTransferencias = data;
+                filtrarTransferencias('all');
+                
+                // Configurar auto-atualização (1 minuto)
+                setInterval(() => {
+                    if (document.visibilityState === 'visible') {
+                        carregarTransferencias();
                     }
-                    return t.status === filtro;
-                });
+                }, 60000);
+                
+            } else {
+                console.error('❌ Erro ao carregar transferências:', response.status);
+                mostrarErro('Erro ao carregar transferências');
             }
-            
-            // Ordenar por data (mais recente primeiro)
-            transferenciasFiltradas.sort((a, b) => {
-                return new Date(b.data || b.created_at) - new Date(a.data || a.created_at);
-            });
-            
-            // Resetar limite ao filtrar
-            limiteAtual = 10;
-            
-            // Atualizar lista
-            atualizarListaTransferencias();
+        } catch (error) {
+            console.error('❌ Erro de rede:', error);
+            mostrarErro('Erro de conexão');
         }
+    }
+    
+    // FILTRAR TRANSFERÊNCIAS
+    function filtrarTransferencias(filtro) {
+        filtroAtual = filtro;
         
-        function getNomeFiltro(filtro) {
-            const mapeamento = {
-                'all': 'todas',
-                'pending': 'pendentes',
-                'processing': 'processando',
-                'completed': 'concluidas',
-                'rejected': 'recusadas'
-            };
-            return mapeamento[filtro];
-        }
-        
-        
-        function formatarMoeda(valor, moeda) {
-            return new Intl.NumberFormat('pt-BR', {
-                style: 'currency',
-                currency: moeda || 'USD'
-            }).format(valor);
-        }
-        
-        function formatarData(dataString) {
-            if (!dataString) return 'N/A';
-            
-            try {
-                const data = new Date(dataString);
-                return data.toLocaleDateString('pt-BR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-            } catch (e) {
-                return dataString;
-            }
-        }
-        
-        function atualizarListaTransferencias() {
-            const lista = document.getElementById('listaTransferencias');
-            const mensagemVazia = document.getElementById('mensagemVazia');
-            
-            if (transferenciasFiltradas.length === 0) {
-                lista.innerHTML = '';
-                mensagemVazia.style.display = 'block';
-                return;
-            }
-            
-            mensagemVazia.style.display = 'none';
-            
-            // PEGAR APENAS AS PRIMEIRAS X TRANSFERÊNCIAS (PAGINAÇÃO)
-            const transferenciasParaExibir = transferenciasFiltradas.slice(0, limiteAtual);
-            
-            let html = '';
-            
-            // ALTERAR: usar transferenciasParaExibir em vez de transferenciasFiltradas
-            transferenciasParaExibir.forEach(transferencia => {
-                const status = transferencia.status;
-                const statusClass = getStatusClass(status);
-                const statusText = getStatusText(status);
-                const valorFormatado = formatarMoeda(transferencia.valor, transferencia.moeda);
-                const dataFormatada = formatarData(transferencia.data || transferencia.created_at);
-                
-                // Verificar status da invoice
-                const invoiceStatus = transferencia.invoice_status;
-                const invoiceRecusada = transferencia.invoice_recusada;
-                const temInvoice = transferencia.invoice;
-                
-                // Gerar HTML do card (IGUAL KIVY)
-                html += `
-                <div class="card-transferencia" data-id="${transferencia.id}">
-                    <div class="card-header">
-                        <div class="status-badge ${statusClass}">
-                            <i class="fas ${getStatusIcon(status)}"></i>
-                            ${statusText}
-                        </div>
-                        <div class="transferencia-id">#${transferencia.id}</div>
-                    </div>
-                    
-                    <div class="card-content">
-                        <div class="info-group">
-                            <div class="info-label">Beneficiário</div>
-                            <div class="info-value">${transferencia.beneficiario || 'N/A'}</div>
-                        </div>
-                        
-                        <div class="info-group">
-                            <div class="info-label">Banco</div>
-                            <div class="info-value">${transferencia.nome_banco || 'N/A'}</div>
-                        </div>
-                        
-                        <div class="info-group">
-                            <div class="info-label">País</div>
-                            <div class="info-value">${transferencia.pais || 'N/A'}</div>
-                        </div>
-                        
-                        <div class="info-group">
-                            <div class="info-label">Valor</div>
-                            <div class="info-value valor-destaque">${valorFormatado}</div>
-                        </div>
-                    </div>
-                    
-                    ${temInvoice ? criarLinhaInvoice(invoiceStatus, invoiceRecusada, transferencia.id) : ''}
-                    
-                    <div class="card-footer">
-                        <div class="data-transferencia">
-                            <i class="far fa-calendar"></i>
-                            ${dataFormatada}
-                        </div>
-                        
-                        <div class="botoes-acao">
-                            <button class="btn-acao btn-detalhes" onclick="mostrarDetalhes('${transferencia.id}')">
-                                <i class="fas fa-eye"></i> Detalhes
-                            </button>
-                            
-                            ${temInvoice ? `
-                            <button class="btn-acao btn-invoice" onclick="visualizarInvoice('${transferencia.id}')">
-                                <i class="fas fa-file-invoice"></i> Invoice
-                            </button>
-                            ` : ''}
-                            
-                            <button class="btn-acao btn-pdf" onclick="gerarPDF('${transferencia.id}')">
-                                <i class="fas fa-file-pdf"></i> PDF
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                `;
-            });
-            
-            // ADICIONAR BOTÃO "CARREGAR MAIS" SE HOUVER MAIS TRANSFERÊNCIAS
-            if (transferenciasFiltradas.length > limiteAtual) {
-                const restantes = transferenciasFiltradas.length - limiteAtual;
-                const proximaLimite = Math.min(restantes, limitePorPagina);
-                
-                html += `
-                <div style="text-align: center; margin-top: 30px; padding: 20px;">
-                    <button onclick="carregarMais()" class="btn-carregar-mais">
-                        <i class="fas fa-plus-circle"></i> Carregar mais ${proximaLimite} transferências
-                        <br><small>(${restantes} restantes no total)</small>
-                    </button>
-                </div>
-                `;
-            }
-            
-            lista.innerHTML = html;
-        }
-
-        // FUNÇÃO CARREGAR MAIS TRANSFERÊNCIAS
-        function carregarMais() {
-            limiteAtual += limitePorPagina;
-            atualizarListaTransferencias();
-        }
-
-        function criarLinhaInvoice(status, recusada, transferenciaId) {
-            let statusClass = 'pending';
-            let statusIcon = 'fa-clock';
-            let statusText = 'Pendente';
-            let showButton = false;
-            
-            if (status === 'approved') {
-                statusClass = 'approved';
-                statusIcon = 'fa-check-circle';
-                statusText = 'Aprovada';
-            } else if (status === 'rejected' || recusada) {
-                statusClass = 'rejected';
-                statusIcon = 'fa-times-circle';
-                statusText = 'Recusada';
-                showButton = true;
-            }
-            
-            return `
-            <div class="invoice-line">
-                <div class="invoice-status ${statusClass}">
-                    <i class="fas ${statusIcon}"></i>
-                    <strong>Invoice:</strong> ${statusText}
-                    ${recusada && transferencia.motivo_recusa ? 
-                        `<span style="margin-left: 10px; font-size: 11px; opacity: 0.8;">
-                             Motivo: Ver detalhes
-                        </span>` : ''}
-                </div>
-                ${showButton ? `
-                <button class="btn-renviar-invoice" onclick="reenviarInvoice('${transferenciaId}')">
-                    <i class="fas fa-redo"></i> Reenviar
-                </button>
-                ` : ''}
-            </div>
-            `;
-        }
-
-        function getStatusClass(status) {
-            if (status === 'pending' || status === 'solicitada') {
-                return 'status-pending';
-            } else if (status === 'processing') {
-                return 'status-processing';
-            } else if (status === 'completed') {
-                return 'status-completed';
-            } else if (status === 'rejected') {
-                return 'status-rejected';
-            }
-            return 'status-pending';
-        }
-
-        function getStatusText(status) {
-            if (status === 'pending' || status === 'solicitada') {
-                return 'PENDENTE';
-            } else if (status === 'processing') {
-                return 'PROCESSANDO';
-            } else if (status === 'completed') {
-                return 'CONCLUÍDA';
-            } else if (status === 'rejected') {
-                return 'RECUSADA';
-            }
-            return status.toUpperCase();
-        }
-
-        function getStatusIcon(status) {
-            if (status === 'pending' || status === 'solicitada') {
-                return 'fa-clock';
-            } else if (status === 'processing') {
-                return 'fa-sync-alt';
-            } else if (status === 'completed') {
-                return 'fa-check-circle';
-            } else if (status === 'rejected') {
-                return 'fa-times-circle';
-            }
-            return 'fa-question-circle';
-        }
-
-        // MODAL DE DETALHES
-        function mostrarDetalhes(transferenciaId) {
-            const transferencia = todasTransferencias.find(t => t.id === transferenciaId);
-            if (!transferencia) return;
-            
-            const modalContent = document.getElementById('modalContent');
-            
-            modalContent.innerHTML = `
-                <div class="modal-section">
-                    <h3 class="section-title">
-                        <i class="fas fa-info-circle"></i>
-                        Informações Básicas
-                    </h3>
-                    <div class="info-grid">
-                        <div class="info-group">
-                            <div class="info-label">ID</div>
-                            <div class="info-value">${transferencia.id}</div>
-                        </div>
-                        <div class="info-group">
-                            <div class="info-label">Status</div>
-                            <div class="info-value ${getStatusClass(transferencia.status)}" style="display: inline-block; padding: 4px 8px; border-radius: 4px;">
-                                ${getStatusText(transferencia.status)}
-                            </div>
-                        </div>
-                        <div class="info-group">
-                            <div class="info-label">Tipo</div>
-                            <div class="info-value">${transferencia.tipo === 'transferencia_internacional' ? 'INTERNACIONAL' : 'INTERNA'}</div>
-                        </div>
-                        <div class="info-group">
-                            <div class="info-label">Valor</div>
-                            <div class="info-value valor-destaque">${formatarMoeda(transferencia.valor, transferencia.moeda)}</div>
-                        </div>
-                        <div class="info-group">
-                            <div class="info-label">Data Solicitação</div>
-                            <div class="info-value">${formatarData(transferencia.data || transferencia.created_at)}</div>
-                        </div>
-                        <div class="info-group">
-                            <div class="info-label">Conta Remetente</div>
-                            <div class="info-value">${transferencia.conta_remetente || 'N/A'}</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="modal-section">
-                    <h3 class="section-title">
-                        <i class="fas fa-user-tie"></i>
-                        Beneficiário
-                    </h3>
-                    <div class="info-grid">
-                        <div class="info-group">
-                            <div class="info-label">Nome</div>
-                            <div class="info-value">${transferencia.beneficiario || 'N/A'}</div>
-                        </div>
-                        <div class="info-group">
-                            <div class="info-label">País</div>
-                            <div class="info-value">${transferencia.pais || 'N/A'}</div>
-                        </div>
-                        <div class="info-group">
-                            <div class="info-label">Finalidade</div>
-                            <div class="info-value">${transferencia.finalidade || 'N/A'}</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="modal-section">
-                    <h3 class="section-title">
-                        <i class="fas fa-university"></i>
-                        Informações Bancárias
-                    </h3>
-                    <div class="info-grid">
-                        <div class="info-group">
-                            <div class="info-label">Banco</div>
-                            <div class="info-value">${transferencia.nome_banco || 'N/A'}</div>
-                        </div>
-                        <div class="info-group">
-                            <div class="info-label">Código SWIFT</div>
-                            <div class="info-value">${transferencia.codigo_swift || 'N/A'}</div>
-                        </div>
-                        <div class="info-group">
-                            <div class="info-label">IBAN/Conta</div>
-                            <div class="info-value">${transferencia.iban_account || 'N/A'}</div>
-                        </div>
-                    </div>
-                </div>
-                
-                ${transferencia.motivo_recusa ? `
-                <div class="modal-section">
-                    <h3 class="section-title" style="color: var(--cor-erro);">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        Motivo da Recusa
-                    </h3>
-                    <div style="background: rgba(179, 51, 51, 0.1); padding: 15px; border-radius: var(--raio-borda-pequeno);">
-                        ${transferencia.motivo_recusa}
-                    </div>
-                </div>
-                ` : ''}
-                
-                ${transferencia.invoice ? `
-                <div class="modal-section">
-                    <h3 class="section-title">
-                        <i class="fas fa-file-invoice"></i>
-                        Status da Invoice
-                    </h3>
-                    <div class="info-grid">
-                        <div class="info-group">
-                            <div class="info-label">Status</div>
-                            <div class="info-value invoice-status ${transferencia.invoice_status || 'pending'}">
-                                ${transferencia.invoice_status === 'approved' ? 'APROVADA' : 
-                                transferencia.invoice_status === 'rejected' ? 'RECUSADA' : 'PENDENTE'}
-                            </div>
-                        </div>
-                        ${transferencia.invoice_recusada && transferencia.motivo_recusa ? `
-                        <div class="info-group">
-                            <div class="info-label">Motivo Recusa</div>
-                            <div class="info-value">${transferencia.motivo_recusa}</div>
-                        </div>
-                        ` : ''}
-                    </div>
-                </div>
-                ` : ''}
-            `;
-            
-            document.getElementById('modalOverlay').style.display = 'flex';
-        }
-
-        function fecharModal() {
-            document.getElementById('modalOverlay').style.display = 'none';
-        }
-
-        // FECHAR MODAL CLICANDO FORA
-        document.getElementById('modalOverlay').addEventListener('click', function(e) {
-            if (e.target === this) {
-                fecharModal();
-            }
+        // Atualizar botões ativos
+        document.querySelectorAll('.btn-filtro').forEach(btn => {
+            btn.classList.remove('ativo');
         });
-
-        // FUNÇÕES DE AÇÃO
-        function visualizarInvoice(transferenciaId) {
-            alert(`Visualizar invoice da transferência ${transferenciaId}\n(Integração com Supabase Storage)`);
-            // Implementar: Baixar invoice do Supabase Storage e abrir
+        
+        document.getElementById(`btn-${getNomeFiltro(filtro)}`).classList.add('ativo');
+        
+        // Aplicar filtro
+        if (filtro === 'all') {
+            transferenciasFiltradas = [...todasTransferencias];
+        } else {
+            transferenciasFiltradas = todasTransferencias.filter(t => {
+                if (filtro === 'pending') {
+                    return t.status === 'pending' || t.status === 'pendente' || t.status === 'solicitada';
+                }
+                if (filtro === 'processing') {
+                    return t.status === 'processing' || t.status === 'processando';
+                }
+                if (filtro === 'completed') {
+                    return t.status === 'completed' || t.status === 'concluida' || t.status === 'aprovada';
+                }
+                if (filtro === 'rejected') {
+                    return t.status === 'rejected' || t.status === 'recusada';
+                }
+                return t.status === filtro;
+            });
         }
-
-        function gerarPDF(transferenciaId) {
-            alert(`Gerar PDF da transferência ${transferenciaId}`);
-            // Implementar: Gerar PDF com dados da transferência
+        
+        // Ordenar por data (mais recente primeiro)
+        transferenciasFiltradas.sort((a, b) => {
+            return new Date(b.data || b.created_at) - new Date(a.data || a.created_at);
+        });
+        
+        // Resetar limite ao filtrar
+        limiteAtual = 10;
+        
+        // Atualizar lista
+        atualizarListaTransferencias();
+    }
+    
+    // ATUALIZAR LISTA
+    function atualizarListaTransferencias() {
+        const lista = document.getElementById('listaTransferencias');
+        const mensagemVazia = document.getElementById('mensagemVazia');
+        
+        if (transferenciasFiltradas.length === 0) {
+            lista.innerHTML = '';
+            mensagemVazia.classList.remove('hidden');
+            return;
         }
-
-        async function reenviarInvoice(transferenciaId) {
-            const transferencia = todasTransferencias.find(t => t.id === transferenciaId);
-            if (!transferencia) return;
+        
+        mensagemVazia.classList.add('hidden');
+        
+        // PEGAR APENAS AS PRIMEIRAS X TRANSFERÊNCIAS
+        const transferenciasParaExibir = transferenciasFiltradas.slice(0, limiteAtual);
+        
+        let html = '';
+        
+        transferenciasParaExibir.forEach(transferencia => {
+            const status = transferencia.status;
+            const statusClass = getStatusClass(status);
+            const statusText = getStatusText(status);
+            const valorFormatado = formatarMoeda(transferencia.valor, transferencia.moeda);
+            const dataFormatada = formatarData(transferencia.data || transferencia.created_at);
             
-            // MODAL PARA REENVIAR INVOICE (IGUAL KIVY)
-            const modalHTML = `
-            <div style="padding: 20px; max-width: 500px;">
-                <h3 style="color: var(--cor-primaria); margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-                    <i class="fas fa-redo"></i> Reenviar Invoice
-                </h3>
-                
-                ${transferencia.motivo_recusa ? `
-                <div style="background: rgba(179, 51, 51, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                    <strong>Motivo da recusa anterior:</strong><br>
-                    ${transferencia.motivo_recusa}
-                </div>
-                ` : ''}
-                
-                <div style="border: 2px dashed var(--cor-primaria); border-radius: 12px; padding: 40px; text-align: center; margin-bottom: 20px; cursor: pointer;"
-                    onclick="document.getElementById('fileInput').click()"
-                    id="dropArea">
-                    <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: var(--cor-primaria); margin-bottom: 15px;"></i>
-                    <h4 style="margin-bottom: 10px;">SOLTE O NOVO INVOICE AQUI</h4>
-                    <p style="color: var(--texto-secundario); margin-bottom: 10px;">ou clique para procurar</p>
-                    <p style="font-size: 12px; color: var(--texto-secundario);">
-                        📄 PDF, JPG, PNG (até 5MB)
-                    </p>
+            // Verificar status da invoice
+            const invoiceStatus = transferencia.invoice_status || 'pending';
+            const invoiceRecusada = transferencia.invoice_recusada || false;
+            const temInvoice = transferencia.invoice || transferencia.invoice_status;
+            
+            // STATUS PARA O DATA-ATTRIBUTE (correção aqui)
+            const dataStatus = getDataStatus(status);
+            
+            // Gerar HTML do card
+            html += `
+            <div class="card-transferencia" data-id="${transferencia.id}" data-status="${dataStatus}">
+                <div class="card-header">
+                    <div class="status-badge ${statusClass}">
+                        <i class="fas ${getStatusIcon(status)}"></i>
+                        ${statusText}
+                    </div>
+                    <div class="transferencia-id">#${transferencia.id}</div>
                 </div>
                 
-                <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png" style="display: none;">
-                
-                <div id="fileInfo" style="display: none; margin-bottom: 20px; padding: 10px; background: var(--fundo-input); border-radius: 8px;">
-                    <!-- Informações do arquivo serão mostradas aqui -->
+                <div class="card-content">
+                    <div class="info-group">
+                        <div class="info-label">Beneficiário</div>
+                        <div class="info-value">${transferencia.beneficiario || 'N/A'}</div>
+                    </div>
+                    
+                    <div class="info-group">
+                        <div class="info-label">Banco</div>
+                        <div class="info-value">${transferencia.nome_banco || 'N/A'}</div>
+                    </div>
+                    
+                    <div class="info-group">
+                        <div class="info-label">País</div>
+                        <div class="info-value">${transferencia.pais || 'N/A'}</div>
+                    </div>
+                    
+                    <div class="info-group">
+                        <div class="info-label">Valor</div>
+                        <div class="info-value valor-destaque">${valorFormatado}</div>
+                    </div>
                 </div>
                 
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button onclick="fecharModalUpload()" 
-                            style="flex: 1; padding: 12px; background: var(--cor-erro-escura); color: white; border: none; border-radius: 8px; cursor: pointer;">
-                        Cancelar
-                    </button>
-                    <button onclick="enviarNovaInvoice('${transferenciaId}')" 
-                            style="flex: 1; padding: 12px; background: var(--cor-sucesso); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
-                        <i class="fas fa-paper-plane"></i> Enviar Nova Invoice
-                    </button>
+                ${temInvoice ? criarLinhaInvoice(invoiceStatus, invoiceRecusada, transferencia.id) : ''}
+                
+                <div class="card-footer">
+                    <div class="data-transferencia">
+                        <i class="far fa-calendar"></i>
+                        ${dataFormatada}
+                    </div>
+                    
+                    <div class="botoes-acao">
+                        <button class="btn-acao btn-detalhes" onclick="mostrarDetalhes('${transferencia.id}')">
+                            <i class="fas fa-eye"></i> Detalhes
+                        </button>
+                        
+                        ${temInvoice ? `
+                        <button class="btn-acao btn-invoice" onclick="visualizarInvoice('${transferencia.id}')">
+                            <i class="fas fa-file-invoice"></i> Invoice
+                        </button>
+                        ` : ''}
+                        
+                        <button class="btn-acao btn-pdf" onclick="gerarPDF('${transferencia.id}')">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </button>
+                    </div>
                 </div>
             </div>
             `;
+        });
+        
+        // ADICIONAR BOTÃO "CARREGAR MAIS" SE HOUVER MAIS TRANSFERÊNCIAS
+        if (transferenciasFiltradas.length > limiteAtual) {
+            const restantes = transferenciasFiltradas.length - limiteAtual;
+            const proximaLimite = Math.min(restantes, limitePorPagina);
             
-            // Criar modal temporário
-            const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
-            modal.id = 'modalUpload';
-            modal.innerHTML = modalHTML;
-            document.body.appendChild(modal);
-            
-            // Configurar eventos do modal
-            const fileInput = document.getElementById('fileInput');
-            const dropArea = document.getElementById('dropArea');
-            let arquivoSelecionado = null;
-            
-            fileInput.addEventListener('change', function(e) {
-                if (e.target.files.length > 0) {
-                    processarArquivo(e.target.files[0]);
-                }
-            });
-            
-            // Drag and drop
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                dropArea.addEventListener(eventName, preventDefaults, false);
-            });
-            
-            function preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-            
-            ['dragenter', 'dragover'].forEach(eventName => {
-                dropArea.addEventListener(eventName, highlight, false);
-            });
-            
-            ['dragleave', 'drop'].forEach(eventName => {
-                dropArea.addEventListener(eventName, unhighlight, false);
-            });
-            
-            function highlight() {
-                dropArea.style.borderColor = 'var(--cor-sucesso)';
-                dropArea.style.background = 'rgba(26, 138, 26, 0.1)';
-            }
-            
-            function unhighlight() {
-                dropArea.style.borderColor = 'var(--cor-primaria)';
-                dropArea.style.background = 'transparent';
-            }
-            
-            dropArea.addEventListener('drop', function(e) {
-                const dt = e.dataTransfer;
-                const files = dt.files;
-                
-                if (files.length > 0) {
-                    processarArquivo(files[0]);
-                }
-            });
-            
-            function processarArquivo(file) {
-                // Validar tamanho (5MB)
-                if (file.size > 5 * 1024 * 1024) {
-                    alert('Arquivo muito grande! Máximo 5MB.');
-                    return;
-                }
-                
-                // Validar extensão
-                const extensoesValidas = ['.pdf', '.jpg', '.jpeg', '.png'];
-                const nomeArquivo = file.name.toLowerCase();
-                const extensaoValida = extensoesValidas.some(ext => nomeArquivo.endsWith(ext));
-                
-                if (!extensaoValida) {
-                    alert('Tipo de arquivo não suportado! Use PDF, JPG ou PNG.');
-                    return;
-                }
-                
-                arquivoSelecionado = file;
-                
-                // Mostrar informações do arquivo
-                const fileInfo = document.getElementById('fileInfo');
-                fileInfo.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-file" style="font-size: 24px; color: var(--cor-primaria);"></i>
-                        <div>
-                            <strong>${file.name}</strong><br>
-                            <small>${(file.size / 1024 / 1024).toFixed(2)} MB</small>
-                        </div>
-                        <div style="margin-left: auto; color: var(--cor-sucesso);">
-                            <i class="fas fa-check-circle"></i> Pronto para enviar
-                        </div>
-                    </div>
-                `;
-                fileInfo.style.display = 'block';
-                
-                // Atualizar área de drop
-                dropArea.innerHTML = `
-                    <i class="fas fa-check-circle" style="font-size: 48px; color: var(--cor-sucesso); margin-bottom: 15px;"></i>
-                    <h4 style="margin-bottom: 10px; color: var(--cor-sucesso);">✅ PRONTO!</h4>
-                    <p style="color: var(--texto-secundario);">${file.name}</p>
-                    <p style="font-size: 12px; color: var(--texto-secundario);">
-                        (${(file.size / 1024 / 1024).toFixed(2)} MB)
-                    </p>
-                `;
-            }
+            html += `
+            <div style="text-align: center; margin-top: 30px;">
+                <button onclick="carregarMais()" class="btn-carregar-mais">
+                    <i class="fas fa-plus-circle"></i> Carregar mais ${proximaLimite} transferências
+                    <br><small>(${restantes} restantes no total)</small>
+                </button>
+            </div>
+            `;
         }
-
-        function fecharModalUpload() {
-            const modal = document.getElementById('modalUpload');
-            if (modal) {
-                modal.remove();
-            }
+        
+        lista.innerHTML = html;
+    }
+    
+    // FUNÇÃO CARREGAR MAIS
+    function carregarMais() {
+        limiteAtual += limitePorPagina;
+        atualizarListaTransferencias();
+    }
+    
+    // FUNÇÕES AUXILIARES
+    function getStatusClass(status) {
+        switch (status) {
+            case 'pending':
+            case 'pendente':
+            case 'solicitada':
+                return 'status-pending';
+            case 'processing':
+            case 'processando':
+                return 'status-processing';
+            case 'completed':
+            case 'concluida':
+            case 'aprovada':
+                return 'status-completed';
+            case 'rejected':
+            case 'recusada':
+                return 'status-rejected';
+            default:
+                return 'status-pending';
         }
-
-        async function enviarNovaInvoice(transferenciaId) {
-            // Implementar upload para Supabase Storage (mesma lógica do Kivy)
-            alert(`Upload da nova invoice para transferência ${transferenciaId}\n(Integração com Supabase Storage)`);
-            
-            // Fechar modal após upload
-            fecharModalUpload();
-            
-            // Recarregar dados após upload
-            setTimeout(() => {
-                carregarTransferencias();
-            }, 1000);
+    }
+    
+    function getDataStatus(status) {
+        switch (status) {
+            case 'pending':
+            case 'pendente':
+            case 'solicitada':
+                return 'pending';
+            case 'processing':
+            case 'processando':
+                return 'processing';
+            case 'completed':
+            case 'concluida':
+            case 'aprovada':
+                return 'completed';
+            case 'rejected':
+            case 'recusada':
+                return 'rejected';
+            default:
+                return 'pending';
         }
-
-        // UTILITÁRIOS
-        function mostrarLoading(mostrar) {
-            document.getElementById('loading').style.display = mostrar ? 'flex' : 'none';
+    }
+    
+    function getStatusText(status) {
+        switch (status) {
+            case 'pending':
+            case 'pendente':
+            case 'solicitada':
+                return 'Pendente';
+            case 'processing':
+            case 'processando':
+                return 'Processando';
+            case 'completed':
+            case 'concluida':
+            case 'aprovada':
+                return 'Concluída';
+            case 'rejected':
+            case 'recusada':
+                return 'Recusada';
+            default:
+                return status;
         }
-
-        function mostrarErro(mensagem) {
-            alert('Erro: ' + mensagem);
+    }
+    
+    function getStatusIcon(status) {
+        switch (status) {
+            case 'pending':
+            case 'pendente':
+            case 'solicitada':
+                return 'fa-clock';
+            case 'processing':
+            case 'processando':
+                return 'fa-sync-alt';
+            case 'completed':
+            case 'concluida':
+            case 'aprovada':
+                return 'fa-check-circle';
+            case 'rejected':
+            case 'recusada':
+                return 'fa-times-circle';
+            default:
+                return 'fa-clock';
         }
+    }
+    
+    function getNomeFiltro(filtro) {
+        switch (filtro) {
+            case 'all': return 'todas';
+            case 'pending': return 'pendentes';
+            case 'processing': return 'processando';
+            case 'completed': return 'concluidas';
+            case 'rejected': return 'recusadas';
+            default: return 'todas';
+        }
+    }
+    
+    // FUNÇÃO CRIAR LINHA INVOICE (CORRIGIDA)
+    function criarLinhaInvoice(status, recusada, transferenciaId) {
+        let statusClass = 'pending';
+        let statusIcon = 'fa-clock';
+        let statusText = 'Pendente';
+        let showButton = false;
+        
+        if (status === 'approved') {
+            statusClass = 'approved';
+            statusIcon = 'fa-check-circle';
+            statusText = 'Aprovada';
+        } else if (status === 'rejected' || recusada) {
+            statusClass = 'rejected';
+            statusIcon = 'fa-times-circle';
+            statusText = 'Recusada';
+            showButton = true;
+        }
+        
+        return `
+        <div class="invoice-line">
+            <div class="invoice-status ${statusClass}">
+                <i class="fas ${statusIcon}"></i>
+                <strong>Invoice:</strong> ${statusText}
+            </div>
+            ${showButton ? `
+            <button class="btn-renviar-invoice" onclick="reenviarInvoice('${transferenciaId}')">
+                <i class="fas fa-redo"></i> Reenviar
+            </button>
+            ` : ''}
+        </div>
+        `;
+    }
+    
+    function formatarMoeda(valor, moeda) {
+        if (!valor) return '--';
+        const simbolos = {
+            'USD': '$', 'EUR': '€', 'GBP': '£', 'BRL': 'R$'
+        };
+        const simbolo = simbolos[moeda] || moeda;
+        return `${simbolo} ${parseFloat(valor).toFixed(2)}`;
+    }
+    
+    function formatarData(dataString) {
+        if (!dataString) return '--';
+        const data = new Date(dataString);
+        return data.toLocaleDateString('pt-BR') + ' ' + data.toLocaleTimeString('pt-BR');
+    }
+    
+    function mostrarErro(mensagem) {
+        const lista = document.getElementById('listaTransferencias');
+        lista.innerHTML = `
+            <div class="mensagem-vazia">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>${mensagem}</h3>
+                <button onclick="carregarTransferencias()" class="btn-voltar-dashboard" style="margin-top: 20px;">
+                    <i class="fas fa-redo"></i> Tentar Novamente
+                </button>
+            </div>
+        `;
+    }
+    
+    // FUNÇÕES DE AÇÃO (placeholder)
+    function mostrarDetalhes(id) {
+        alert('Detalhes da transferência ' + id);
+    }
+    
+    function visualizarInvoice(id) {
+        alert('Visualizar invoice ' + id);
+    }
+    
+    function gerarPDF(id) {
+        alert('Gerar PDF da transferência ' + id);
+    }
+    
+    function reenviarInvoice(id) {
+        alert('Reenviar invoice ' + id);
+    }
+</script>
 
-        // ATUALIZAR A CADA 90 SEGUNDOS
-        setInterval(() => {
-            if (document.visibilityState === 'visible') {
-                carregarTransferencias();
-            }
-        }, 90000);
-
-        // EXPORTAR FUNÇÕES GLOBAIS
-        window.filtrarTransferencias = filtrarTransferencias;
-        window.mostrarDetalhes = mostrarDetalhes;
-        window.fecharModal = fecharModal;
-        window.visualizarInvoice = visualizarInvoice;
-        window.gerarPDF = gerarPDF;
-        window.reenviarInvoice = reenviarInvoice;
-        window.fecharModalUpload = fecharModalUpload;
-        window.enviarNovaInvoice = enviarNovaInvoice;
-    </script>
+<!-- DADOS DO FLASK -->
+<script>
+    // Dados do usuário logado (do Flask)
+    window.USER = { 
+        username: "{{ usuario if usuario else '' }}", 
+        nome: "{{ nome if nome else 'Usuário' }}", 
+        email: "{{ email if email else 'usuario@exemplo.com' }}"
+    };
+    window.API_URL = "";
+</script>
 </body>
 </html>
