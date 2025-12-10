@@ -2,11 +2,13 @@
 API Web para o Cambio Bank
 Versão inicial - apenas endpoints básicos
 """
+from datetime import datetime
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from dotenv import load_dotenv
 from flask import render_template, send_from_directory
 from flask import Flask, jsonify, request, render_template, send_from_directory, redirect, session  # ← ADICIONE 'session' AQUI
+
 import os
 import hashlib
 
