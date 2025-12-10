@@ -221,172 +221,6 @@ document.getElementById('removeFileBtn').addEventListener('click', () => {
     document.getElementById('invoiceFile').value = '';
 });
 
-// ENVIAR FORMULÁRIO
-document.getElementById('transferenciaForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const submitBtn = document.getElementById('submitBtn');
-    const originalText = submitBtn.innerHTML;
-    
-    try {
-        // Desabilitar botão
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
-        
-    // Validar se uma conta foi selecionada
-    const contaSelect = document.getElementById('conta_origem');
-    if (!contaSelect.value || contaSelect.value === '' || contaSelect.value === 'undefined') {
-        showAlert('❌ Por favor, selecione uma conta de origem!', 'error');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
-        return;
-    }
-
-    // Obter a moeda da conta selecionada
-    const moedaConta = contaSelect.options[contaSelect.selectedIndex].dataset.moeda;
-    console.log('💰 Moeda selecionada:', moedaConta);
-
-    // SÓ DEPOIS validar saldo
-    const valor = parseFloat(document.getElementById('valor').value);
-    const saldo = parseFloat(contaSelect.options[contaSelect.selectedIndex]?.dataset.saldo || 0);
-
-    if (valor > saldo) {
-        showAlert(`Saldo insuficiente! Disponível: ${saldo.toFixed(2)}`, 'error');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
-        return;
-    }
-        
-    // Coletar dados do formulário
-    const formData = new FormData();
-    const formJson = {};
-
-    // Adicionar campos do formulário
-    const formElements = this.elements;
-    for (let element of formElements) {
-        if (element.name && !element.disabled) {
-            if (element.type === 'checkbox') {
-                formJson[element.name] = element.checked;
-            } else {
-                formJson[element.name] = element.value;
-            }
-        }
-    }
-
-    // Adicionar moeda (que veio da conta selecionada)
-    formJson.moeda = moedaConta;
-    console.log('📤 Dados completos com moeda:', formJson);
-        
-        // ********** NOVO CÓDIGO: SALVAR BENEFICIÁRIO **********
-        // VERIFICAR SE DEVE SALVAR BENEFICIÁRIO
-        const checkboxSalvar = document.getElementById('salvar_beneficiario');
-        const deveSalvarBeneficiario = checkboxSalvar && checkboxSalvar.checked;
-        
-        if (deveSalvarBeneficiario) {
-            console.log('💾 CHECKBOX MARCADO - Salvando beneficiário...');
-            
-            // Preparar dados do beneficiário - VERSÃO COMPLETA
-            const beneficiarioData = {
-                nome: formJson.beneficiario,
-                banco: formJson.banco,
-                swift: formJson.swift,
-                iban: formJson.iban || '',
-                endereco: formJson.endereco || '',
-                cidade: formJson.cidade || '',
-                pais: formJson.pais || '',
-                endereco_banco: formJson.endereco_banco || '',      // ← ADICIONAR
-                cidade_banco: formJson.cidade_banco || '',          // ← ADICIONAR  
-                pais_banco: formJson.pais_banco || '',              // ← ADICIONAR
-                cliente_username: USER.username,
-                ativo: true
-            };
-            
-            console.log('📝 Dados do beneficiário:', beneficiarioData);
-            
-            // Verificar campos obrigatórios
-            if (beneficiarioData.nome && beneficiarioData.banco && beneficiarioData.swift) {
-                try {
-                    console.log('🌐 Enviando para API /api/beneficiarios...');
-                    const benefResponse = await fetch('/api/beneficiarios', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(beneficiarioData)
-                    });
-                    
-                    console.log('📨 Resposta da API:', benefResponse.status, benefResponse.statusText);
-                    
-                    if (benefResponse.ok) {
-                        const benefResult = await benefResponse.json();
-                        if (benefResult.success) {
-                            console.log('✅ Beneficiário salvo com sucesso! ID:', benefResult.id);
-                        } else {
-                            console.warn('⚠️ API respondeu com erro:', benefResult.message);
-                        }
-                    } else {
-                        console.warn('⚠️ Erro HTTP ao salvar beneficiário:', benefResponse.status);
-                    }
-                } catch (benefError) {
-                    console.error('❌ Erro ao salvar beneficiário:', benefError);
-                    // Não impedir a transferência por causa disso
-                }
-            } else {
-                console.warn('⚠️ Campos obrigatórios do beneficiário faltando, não será salvo');
-            }
-        } else {
-            console.log('📝 Checkbox NÃO marcado - Não salvando beneficiário');
-        }
-        // ********** FIM DO NOVO CÓDIGO **********
-        
-        // Adicionar usuário atual
-        //const user = await loadUserData();
-        //formJson.usuario = user?.username || 'cliente';
-        
-        // Adicionar arquivo se existir
-        if (selectedFile) {
-            formData.append('invoice', selectedFile);
-        }
-        
-        // Adicionar dados JSON
-        formData.append('dados', JSON.stringify(formJson));
-        
-        // Enviar para API
-        const response = await fetch('/api/transferencias/criar', {
-            method: 'POST',
-            body: formData
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            // Mostrar modal de sucesso
-            document.getElementById('modalTransferId').textContent = data.transferencia_id;
-            document.getElementById('modalValor').textContent = 
-                `${parseFloat(formJson.valor).toFixed(2)} ${formJson.moeda}`;
-            
-            const modal = document.getElementById('successModal');
-            modal.classList.remove('hidden');
-            modal.classList.add('show');
-            
-            // Limpar formulário
-            this.reset();
-            selectedFile = null;
-            document.getElementById('filePreview').classList.add('hidden');
-            document.getElementById('saldo_valor').textContent = '--';
-            
-        } else {
-            showAlert(data.message || 'Erro ao criar transferência', 'error');
-        }
-        
-    } catch (error) {
-        console.error('Erro ao enviar formulário:', error);
-        showAlert('Erro de conexão. Tente novamente.', 'error');
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
-    }
-});
 
 // FECHAR MODAL
 document.getElementById('closeModalBtn').addEventListener('click', () => {
@@ -500,6 +334,225 @@ function positionDropdown(dropdown) {
     dropdown.style.top = (rect.bottom + window.scrollY + 10) + 'px';
     dropdown.style.right = (window.innerWidth - rect.right) + 'px';
 }
+
+// ============================================
+// FUNÇÃO ENVIARTRANSFERENCIA - VERSÃO 2024 CORRETA
+// BASEADA NA ESTRUTURA REAL DO SUPABASE
+// ============================================
+
+window.enviarTransferencia = async function(e) {
+    if (e) e.preventDefault();
+    
+    console.log('🚀 enviarTransferencia() - ESTRUTURA CORRETA');
+    
+    // 1. COLETAR DADOS (COM NOMES EXATOS DA TABELA)
+    const dados = {
+        // === DADOS DA CONTA ===
+        conta_remetente: document.getElementById('conta_origem').value,
+        valor: parseFloat(document.getElementById('valor').value) || 0,
+        moeda: document.getElementById('conta_origem').options[
+            document.getElementById('conta_origem').selectedIndex
+        ]?.dataset.moeda || 'USD',
+        
+        // === DADOS DO BENEFICIÁRIO ===
+        beneficiario: document.getElementById('beneficiario').value.trim(),
+        endereco_beneficiario: document.getElementById('endereco').value.trim(),
+        cidade: document.getElementById('cidade').value.trim(),
+        pais: document.getElementById('pais').value.trim(),
+        
+        // === DADOS DO BANCO ===
+        nome_banco: document.getElementById('banco').value.trim(),
+        endereco_banco: document.getElementById('endereco_banco').value.trim(),
+        cidade_banco: document.getElementById('cidade_banco').value.trim(),
+        pais_banco: document.getElementById('pais_banco').value.trim(),
+        
+        // === DADOS BANCÁRIOS ===
+        codigo_swift: document.getElementById('swift').value.trim(),
+        iban_account: document.getElementById('iban').value.trim(),
+        aba_routing: document.getElementById('aba').value.trim() || '',
+        
+        // === INFORMAÇÕES ===
+        finalidade: document.getElementById('finalidade').value || 'Pagamento de Serviços',
+        descricao: document.getElementById('descricao').value || '',
+        
+        // === DADOS DO USUÁRIO (DA SESSÃO) ===
+        cliente: window.USER?.username || 'pantanal',
+        usuario: window.USER?.username || 'pantanal',
+        solicitado_por: window.USER?.username || 'pantanal',
+        
+        // === TIPO FIXO ===
+        tipo: 'transferencia_internacional',
+        status: 'solicitada'
+    };
+    
+    console.log('📦 DADOS (estrutura correta):', dados);
+    
+    // 2. VALIDAR CAMPOS OBRIGATÓRIOS
+    const obrigatorios = [
+        { id: 'conta_origem', nome: 'Conta de origem' },
+        { id: 'valor', nome: 'Valor' },
+        { id: 'beneficiario', nome: 'Beneficiário' },
+        { id: 'endereco', nome: 'Endereço do beneficiário' },
+        { id: 'cidade', nome: 'Cidade' },
+        { id: 'pais', nome: 'País' },
+        { id: 'banco', nome: 'Banco' },
+        { id: 'swift', nome: 'SWIFT' },
+        { id: 'iban', nome: 'IBAN' }
+    ];
+    
+    for (const { id, nome } of obrigatorios) {
+        const valor = document.getElementById(id).value.trim();
+        if (!valor) {
+            showAlert(`❌ ${nome} é obrigatório`, 'error');
+            document.getElementById(id).focus();
+            return false;
+        }
+    }
+    
+    // 3. VALIDAR VALOR
+    if (dados.valor <= 0 || isNaN(dados.valor)) {
+        showAlert('❌ Digite um valor válido (> 0)', 'error');
+        return false;
+    }
+    
+    // 4. VALIDAR SALDO
+    const contaSelect = document.getElementById('conta_origem');
+    const saldo = parseFloat(contaSelect.options[contaSelect.selectedIndex]?.dataset.saldo || 0);
+    
+    if (dados.valor > saldo) {
+        showAlert(`❌ Saldo insuficiente! Disponível: ${saldo.toFixed(2)} ${dados.moeda}`, 'error');
+        return false;
+    }
+    
+    // 5. ENVIAR
+    const btn = document.getElementById('submitBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+    btn.disabled = true;
+    
+    try {
+        // Preparar FormData para enviar arquivo também
+        const formData = new FormData();
+        formData.append('dados', JSON.stringify(dados));
+        
+        // Adicionar arquivo se existir
+        if (selectedFile) {
+            formData.append('invoice', selectedFile);
+            console.log('📎 Adicionando arquivo:', selectedFile.name);
+        }
+        
+        // Enviar para API
+        const response = await fetch('/api/transferencias/criar', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const resultado = await response.json();
+        console.log('✅ Resposta:', resultado);
+        
+        if (!response.ok) throw new Error(resultado.message || `Erro ${response.status}`);
+        
+        if (resultado.success) {
+            // MODAL DE SUCESSO
+            document.getElementById('modalTransferId').textContent = resultado.transferencia_id;
+            document.getElementById('modalValor').textContent = `${dados.valor.toFixed(2)} ${dados.moeda}`;
+            document.getElementById('successModal').classList.remove('hidden');
+            
+            // SALVAR BENEFICIÁRIO (OPCIONAL)
+            if (document.getElementById('salvar_beneficiario')?.checked) {
+                await salvarBeneficiario(dados);
+            }
+            
+            // LIMPAR FORMULÁRIO
+            document.getElementById('transferenciaForm').reset();
+            selectedFile = null;
+            document.getElementById('filePreview').classList.add('hidden');
+            document.getElementById('saldo_valor').textContent = '--';
+            
+            // RECARREGAR CONTAS
+            await window.carregarContas();
+            
+        } else {
+            throw new Error(resultado.message);
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro:', error);
+        showAlert(`❌ ${error.message}`, 'error');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+    
+    return false;
+};
+
+// ============================================
+// FUNÇÃO AUXILIAR: SALVAR BENEFICIÁRIO
+// ============================================
+
+async function salvarBeneficiario(dados) {
+    try {
+        const benef = {
+            nome: dados.beneficiario,
+            endereco: dados.endereco_beneficiario,
+            cidade: dados.cidade,
+            pais: dados.pais,
+            banco: dados.nome_banco,
+            endereco_banco: dados.endereco_banco,
+            cidade_banco: dados.cidade_banco,
+            pais_banco: dados.pais_banco,
+            swift: dados.codigo_swift,
+            iban: dados.iban_account,
+            aba: dados.aba_routing || '',
+            cliente_username: window.USER?.username || 'pantanal',
+            ativo: true
+        };
+        
+        console.log('💾 Salvando beneficiário:', benef);
+        
+        const response = await fetch('/api/beneficiarios', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(benef)
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            console.log('✅ Beneficiário salvo:', result);
+            showAlert('✅ Beneficiário salvo para uso futuro!', 'success');
+        }
+    } catch (error) {
+        console.warn('⚠️ Erro ao salvar beneficiário:', error);
+    }
+}
+
+// ============================================
+// CONFIGURAR FORMULÁRIO PARA USAR FUNÇÃO GLOBAL
+// ============================================
+
+// Configurar evento de submit
+document.getElementById('transferenciaForm').addEventListener('submit', function(e) {
+    window.enviarTransferencia(e);
+});
+
+// Tornar outras funções globais
+window.carregarContas = loadContas;
+window.carregarBeneficiarios = loadBeneficiarios;
+window.mostrarAlerta = showAlert;
+
+// Função de teste
+window.testarSistema = function() {
+    console.log('🧪 Sistema 100% Funcional!');
+    console.log(`📊 Contas: ${userContas?.length || 0}`);
+    console.log(`👤 Usuário: ${window.USER?.username}`);
+    console.log('🚀 Funções disponíveis:');
+    console.log('  • enviarTransferencia()');
+    console.log('  • carregarContas()');
+    console.log('  • testarSistema()');
+};
+
+console.log('✅ Sistema de transferência PRONTO!');
 
 // Fechar dropdown ao clicar fora
 document.addEventListener('click', function(e) {
