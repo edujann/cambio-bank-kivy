@@ -542,6 +542,9 @@ def criar_transferencia_cliente():
         from datetime import datetime
         transferencia_id = f"{random.randint(100000, 999999)}"
         
+        # 🔍 DEFINIR 'agora' AQUI
+        agora = datetime.now()
+        
         # 8. Preparar dados para Supabase
         dados_supabase = {
             'id': transferencia_id,
@@ -549,11 +552,11 @@ def criar_transferencia_cliente():
             'status': 'solicitada',
             'data': agora.strftime("%Y-%m-%d %H:%M:%S"),
             'moeda': dados['moeda'],
-            'valor': valor,
-            'conta_remetente': conta_id,
+            'valor': valor_transferencia,  # ← CORRIGIDO
+            'conta_remetente': dados['conta_origem'],  # ← CORRIGIDO
             'descricao': dados.get('descricao', ''),
-            'usuario': usuario,
-            'cliente': usuario,
+            'usuario': usuario_logado,  # ← CORRIGIDO
+            'cliente': usuario_logado,  # ← CORRIGIDO
             'beneficiario': dados['beneficiario'],
             'endereco_beneficiario': dados.get('endereco_beneficiario', ''),
             'cidade': dados.get('cidade', ''),
@@ -568,7 +571,7 @@ def criar_transferencia_cliente():
             'finalidade': dados.get('finalidade', ''),
             'created_at': agora.isoformat(),
             'data_solicitacao': agora.isoformat(),
-            'solicitado_por': usuario
+            'solicitado_por': usuario_logado  # ← CORRIGIDO
         }
 
         # 🔍 PRIMEIRO: VERIFIQUE SE CHEGA AQUI
