@@ -785,6 +785,62 @@
         to { transform: rotate(360deg); }
     }
 
+    /* ============================================
+    BOTÃO ATUALIZAR (FIX FINAL - NÃO APAGUE NADA!)
+    ============================================ */
+    #btnAtualizar.btn-atualizar {
+        /* GARANTIR VISIBILIDADE */
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        
+        /* LAYOUT */
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 20px;
+        
+        /* CORES DASHBOARD */
+        background: transparent;
+        border: 1px solid var(--cor-borda);
+        color: var(--cor-texto);
+        border-radius: var(--borda-radius-pequeno);
+        
+        /* TEXTO */
+        font-weight: 500;
+        font-size: 14px;
+        font-family: inherit;
+        
+        /* DIMENSÕES */
+        width: auto;
+        height: auto;
+        min-width: 100px;
+        min-height: 40px;
+        white-space: nowrap;
+        
+        /* INTERAÇÃO */
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    /* HOVER EFFECT */
+    #btnAtualizar.btn-atualizar:hover {
+        border-color: var(--cor-sucesso);
+        color: var(--cor-sucesso);
+        background: rgba(46, 194, 126, 0.1);
+        transform: translateY(-1px);
+    }
+
+    /* ANIMAÇÃO DE LOADING */
+    #btnAtualizar.btn-atualizar.animando i {
+        animation: spin 1s linear infinite;
+    }
+
+    /* GARANTIR QUE NÃO FICA ESCONDIDO */
+    #btnAtualizar:not(.hidden) {
+        display: flex !important;
+    }
+
     </style>
 </head>
 <body>
@@ -798,11 +854,19 @@
         </div>
         
         <div style="display: flex; align-items: center; gap: 20px;">
+            <!-- BOTÃO ATUALIZAR -->
+            <button class="btn-atualizar" id="btnAtualizar" title="Atualizar lista">
+                <i class="fas fa-sync-alt"></i>
+                Atualizar
+            </button>
+            
+            <!-- BOTÃO VOLTAR -->
             <a href="/dashboard" class="btn-voltar-dashboard">
                 <i class="fas fa-arrow-left"></i>
                 Voltar ao Dashboard
             </a>
             
+            <!-- USUÁRIO -->
             <div class="user-menu">
                 <div class="user-avatar">
                     <i class="fas fa-user-circle"></i>
