@@ -1338,6 +1338,11 @@ def api_transferencias_internacionais():
                 'codigo_swift': t.get('codigo_swift', ''),
                 'iban_account': t.get('iban_account', ''),
                 'aba_routing': t.get('aba_routing', ''),
+
+                # 🔥 CAMPOS SWIFT:
+                'dados_swift_pagamento': t.get('dados_swift_pagamento', {}),  # ← FALTANDO!
+                'data_conclusao': t.get('data_conclusao'),  # ← Para mostrar data completed
+
                 # 🔍 INFORMAÇÕES FINANCEIRAS
                 'valor': float(t['valor']) if t.get('valor') else 0,
                 'moeda': t.get('moeda', 'USD'),
