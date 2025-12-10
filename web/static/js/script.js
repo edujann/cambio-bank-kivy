@@ -6,7 +6,7 @@ let selectedFile = null;
 let userContas = [];
 
 // ============================================
-// FUNÇÃO: MOSTRAR POPUP ELEGANTE DE SUCESSO
+// FUNÇÃO: POPUP DE SUCESSO VERDE FINANCEIRO
 // Substitua a função atual "garantirPopupSucesso"
 // ============================================
 
@@ -16,8 +16,23 @@ function garantirPopupSucesso(transferenciaId, valor, moeda) {
     // Remover qualquer popup anterior
     const popupAntigo = document.getElementById('elegantSuccessPopup');
     if (popupAntigo) popupAntigo.remove();
+    document.querySelectorAll('.popup-overlay').forEach(el => el.remove());
     
-    // Criar popup elegante
+    // Criar overlay escuro
+    const overlay = document.createElement('div');
+    overlay.className = 'popup-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 99998;
+        animation: fadeInOverlay 0.3s ease;
+    `;
+    
+    // Criar popup elegante VERDE
     const popup = document.createElement('div');
     popup.id = 'elegantSuccessPopup';
     popup.style.cssText = `
@@ -25,152 +40,157 @@ function garantirPopupSucesso(transferenciaId, valor, moeda) {
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
         color: white;
         padding: 40px;
         border-radius: 20px;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        box-shadow: 0 25px 80px rgba(5, 150, 105, 0.4);
         z-index: 99999;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         width: 90%;
         max-width: 500px;
         text-align: center;
-        animation: popupFadeIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255,255,255,0.2);
+        animation: popupSlideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        border: 1px solid rgba(255, 255, 255, 0.3);
     `;
     
     popup.innerHTML = `
         <div style="
-            font-size: 60px;
+            font-size: 70px;
             margin-bottom: 20px;
-            animation: bounce 1s infinite alternate;
+            animation: iconBounce 1s infinite alternate;
+            filter: drop-shadow(0 5px 10px rgba(0,0,0,0.2));
         ">✅</div>
         
         <h2 style="
-            margin: 0 0 10px 0;
-            font-size: 28px;
+            margin: 0 0 15px 0;
+            font-size: 32px;
             font-weight: 700;
             letter-spacing: -0.5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
         ">Transferência Concluída!</h2>
         
         <p style="
-            margin: 0 0 25px 0;
-            font-size: 16px;
-            opacity: 0.9;
+            margin: 0 0 30px 0;
+            font-size: 17px;
+            opacity: 0.95;
             line-height: 1.5;
-        ">Sua transferência internacional foi solicitada com sucesso.</p>
+            font-weight: 400;
+        ">Sua transferência internacional foi<br>solicitada com sucesso e está em processamento.</p>
         
         <div style="
-            background: rgba(255,255,255,0.1);
-            border-radius: 12px;
-            padding: 20px;
-            margin: 20px 0;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
             text-align: left;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         ">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                <span style="opacity: 0.8;">ID da Transferência:</span>
-                <strong style="font-size: 18px;">${transferenciaId}</strong>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 15px; align-items: center;">
+                <span style="opacity: 0.9; font-size: 15px;">ID da Transferência:</span>
+                <strong style="font-size: 20px; letter-spacing: 1px;">${transferenciaId}</strong>
             </div>
-            <div style="display: flex; justify-content: space-between;">
-                <span style="opacity: 0.8;">Valor:</span>
-                <strong style="font-size: 22px; color: #4ade80;">${parseFloat(valor).toFixed(2)} ${moeda}</strong>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="opacity: 0.9; font-size: 15px;">Valor Transferido:</span>
+                <strong style="font-size: 28px; color: #a7f3d0; font-weight: 800;">
+                    ${parseFloat(valor).toFixed(2)} ${moeda}
+                </strong>
             </div>
         </div>
         
         <div style="
             display: flex;
-            gap: 10px;
-            margin-top: 25px;
+            gap: 15px;
+            margin-top: 30px;
             justify-content: center;
         ">
             <button id="fecharPopupBtn" style="
-                background: rgba(255,255,255,0.2);
-                border: 1px solid rgba(255,255,255,0.3);
+                background: rgba(255, 255, 255, 0.2);
+                border: 1px solid rgba(255, 255, 255, 0.3);
                 color: white;
-                padding: 12px 30px;
+                padding: 15px 35px;
                 border-radius: 50px;
                 font-size: 16px;
                 font-weight: 600;
                 cursor: pointer;
                 transition: all 0.3s;
                 flex: 1;
+                min-width: 140px;
             ">Fechar</button>
             
             <button id="verTransferenciaBtn" style="
                 background: white;
-                color: #667eea;
+                color: #059669;
                 border: none;
-                padding: 12px 30px;
+                padding: 15px 35px;
                 border-radius: 50px;
                 font-size: 16px;
                 font-weight: 600;
                 cursor: pointer;
                 transition: all 0.3s;
                 flex: 1;
+                min-width: 140px;
+                box-shadow: 0 5px 15px rgba(255, 255, 255, 0.1);
             ">Ver Detalhes</button>
         </div>
         
         <div style="
-            margin-top: 20px;
+            margin-top: 25px;
             font-size: 14px;
-            opacity: 0.7;
+            opacity: 0.8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         ">
-            <i class="fas fa-clock"></i> Status: <strong>Em processamento</strong>
+            <span style="display: inline-block; width: 10px; height: 10px; background: #a7f3d0; border-radius: 50%; animation: pulse 2s infinite;"></span>
+            Status: <strong>Em processamento</strong>
         </div>
     `;
     
     // Adicionar estilos de animação
     const style = document.createElement('style');
     style.textContent = `
-        @keyframes popupFadeIn {
-            from {
+        @keyframes popupSlideIn {
+            0% {
                 opacity: 0;
-                transform: translate(-50%, -50%) scale(0.8);
+                transform: translate(-50%, -50%) scale(0.8) translateY(30px);
             }
-            to {
+            100% {
                 opacity: 1;
                 transform: translate(-50%, -50%) scale(1);
             }
         }
         
-        @keyframes bounce {
-            from { transform: translateY(0px); }
-            to { transform: translateY(-10px); }
-        }
-        
-        #fecharPopupBtn:hover {
-            background: rgba(255,255,255,0.3) !important;
-            transform: translateY(-2px);
-        }
-        
-        #verTransferenciaBtn:hover {
-            background: #f8fafc !important;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 99998;
-            animation: fadeIn 0.3s;
-        }
-        
-        @keyframes fadeIn {
+        @keyframes fadeInOverlay {
             from { opacity: 0; }
             to { opacity: 1; }
         }
+        
+        @keyframes iconBounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-10px); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        #fecharPopupBtn:hover {
+            background: rgba(255, 255, 255, 0.3) !important;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        #verTransferenciaBtn:hover {
+            background: #f0fdf4 !important;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(255, 255, 255, 0.2);
+        }
     `;
     document.head.appendChild(style);
-    
-    // Criar overlay escuro de fundo
-    const overlay = document.createElement('div');
-    overlay.className = 'overlay';
     
     // Adicionar ao body
     document.body.appendChild(overlay);
@@ -202,62 +222,22 @@ function garantirPopupSucesso(transferenciaId, valor, moeda) {
 
 function fecharPopupElegante() {
     const popup = document.getElementById('elegantSuccessPopup');
-    const overlay = document.querySelector('.overlay');
+    const overlay = document.querySelector('.popup-overlay');
     const style = document.querySelector('style');
     
     if (popup) {
-        popup.style.animation = 'popupFadeIn 0.3s reverse';
+        popup.style.animation = 'popupSlideIn 0.3s reverse';
         setTimeout(() => popup.remove(), 300);
     }
     
     if (overlay) {
-        overlay.style.animation = 'fadeIn 0.3s reverse';
+        overlay.style.animation = 'fadeInOverlay 0.3s reverse';
         setTimeout(() => overlay.remove(), 300);
     }
     
-    if (style && style.textContent.includes('popupFadeIn')) {
+    if (style && style.textContent.includes('popupSlideIn')) {
         setTimeout(() => style.remove(), 500);
     }
-}
-
-// ============================================
-// FUNÇÃO DE FALLBACK (caso precise)
-// ============================================
-
-function mostrarPopupEmergencia(transferenciaId, valor, moeda) {
-    // Se o popup elegante falhar, usa este mais simples
-    const html = `
-        <div style="
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #10b981;
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
-            z-index: 9999;
-            max-width: 400px;
-            animation: slideInRight 0.5s;
-        ">
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <div style="font-size: 32px;">✅</div>
-                <div>
-                    <strong style="font-size: 16px;">Transferência Concluída</strong><br>
-                    <small>ID: ${transferenciaId} | ${valor} ${moeda}</small>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    const div = document.createElement('div');
-    div.innerHTML = html;
-    document.body.appendChild(div.firstElementChild);
-    
-    setTimeout(() => {
-        div.firstElementChild.style.animation = 'slideInRight 0.5s reverse';
-        setTimeout(() => div.firstElementChild.remove(), 500);
-    }, 5000);
 }
 
 // CARREGAR DADOS DO USUÁRIO
