@@ -5,282 +5,237 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transferência Internacional | Cambio Bank</title>
     
-    <!-- CSS -->
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="/static/css/formularios.css">
+    <!-- CSS ORGANIZADO -->
+    <link rel="stylesheet" href="/static/css/style.css">          <!-- Estilos gerais -->
+    <link rel="stylesheet" href="/static/css/formularios.css">   <!-- Estilos específicos de formulários -->
+    
+    <!-- Ícones FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- CSS ESPECÍFICO PARA ESTA PÁGINA -->
+    <!-- CSS ESPECÍFICO DO CABEÇALHO/FOOTER DA TRANSFERÊNCIA -->
     <style>
-        /* CABEÇALHO COM BREADCRUMB (do history) */
-        .page-nav {
-            background: var(--cor-card);
-            border-bottom: 1px solid var(--cor-borda);
-            padding: 15px 30px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 14px;
-            margin-bottom: 0;
-        }
+    /* CABEÇALHO ESPECÍFICO PARA TRANSFERÊNCIA */
+    .main-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 30px; /* ← JÁ TEM */
+        background: var(--cor-card);
+        border-bottom: 1px solid var(--cor-borda);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        /* ADICIONE: */
+        max-width: 1400px;
+        margin: 0 auto;
+        width: 100%;
+    }
 
-        .page-nav a {
-            color: var(--cor-texto-secundario);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
+    .header-left, .header-right {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
 
-        .page-nav a:hover {
-            color: var(--cor-primaria);
-        }
+    .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 20px;
+        font-weight: bold;
+    }
 
-        .page-nav i {
-            font-size: 12px;
-        }
+    .logo i {
+        color: var(--cor-primaria);
+        font-size: 24px;
+    }
 
-        .page-nav .fa-chevron-right {
-            color: var(--cor-texto-secundario);
-            opacity: 0.5;
-        }
+    .logo h1 {
+        font-size: 20px;
+        font-weight: bold;
+        background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
 
-        .current-page {
-            color: var(--cor-texto);
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--cor-texto);
+    }
 
-        /* TÍTULO CENTRALIZADO (do history) */
-        .page-header {
-            text-align: center;
-            padding: 30px 20px 20px;
-            margin-bottom: 20px;
-        }
+    .btn-back {
+        background: transparent;
+        border: 1px solid var(--cor-borda);
+        color: var(--cor-texto);
+        padding: 8px 16px;
+        border-radius: var(--borda-radius-pequeno);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+    }
 
-        .page-header h2 {
-            font-size: 28px;
-            margin-bottom: 10px;
-            color: var(--cor-texto);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            justify-content: center;
-        }
+    .btn-back:hover {
+        border-color: var(--cor-primaria);
+        background: rgba(26, 95, 180, 0.1);
+    }
 
-        .page-header h2 i {
-            color: var(--cor-primaria);
-        }
+    /* FOOTER ESPECÍFICO */
+    .main-footer {
+        margin-top: 40px;
+        padding: 20px 30px;
+        border-top: 1px solid var(--cor-borda);
+        background: var(--cor-card);
+        text-align: center;
+        color: var(--cor-texto-secundario);
+        /* ADICIONE: */
+        max-width: 1400px;
+        margin: 20px auto 0;
+        width: 100%;
+    }
 
-        .page-subtitle {
-            color: var(--cor-texto-secundario);
-            font-size: 16px;
-            margin: 0;
-        }
+    .footer-links a {
+        color: var(--cor-texto-secundario);
+        text-decoration: none;
+        margin: 0 10px;
+    }
 
-        /* MANTER O DESIGN DE CARDS DA VERSÃO ATUAL */
-        .form-container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-        }
+    .footer-links a:hover {
+        color: var(--cor-primaria);
+    }
 
-        .form-card {
-            background: var(--cor-card);
-            border-radius: var(--borda-radius-grande);
-            padding: 30px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-            border: 1px solid var(--cor-borda);
-            /* Borda elegante da versão atual */
-            position: relative;
-        }
+    /* NAVEGAÇÃO (BREADCRUMB) */
+    .page-nav {
+        padding: 15px 30px; /* ← JÁ TEM */
+        background: rgba(255, 255, 255, 0.02);
+        border-bottom: 1px solid var(--cor-borda);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+        /* ADICIONE: */
+        max-width: 1400px;
+        margin: 0 auto;
+        width: 100%;
+    }
 
-        .form-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
-            border-radius: var(--borda-radius-grande) var(--borda-radius-grande) 0 0;
-        }
+    .page-nav a {
+        color: var(--cor-texto-secundario);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
 
-        .form-title {
-            font-size: 22px;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid var(--cor-borda);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+    .page-nav a:hover {
+        color: var(--cor-primaria);
+    }
 
-        .form-title i {
-            color: var(--cor-primaria);
-        }
+    .page-nav i {
+        font-size: 12px;
+    }
 
-        .form-subtitle {
-            font-size: 18px;
-            margin: 25px 0 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid var(--cor-borda);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+    .page-nav .fa-chevron-right {
+        color: var(--cor-texto-secundario);
+        opacity: 0.5;
+    }
 
-        .form-subtitle i {
-            color: var(--cor-secundaria);
-        }
+    .current-page {
+        color: var(--cor-texto);
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
 
-        /* INPUTS E SELECTS COM BORDAS ELEGANTES */
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            border: 1px solid var(--cor-borda);
-            border-radius: var(--borda-radius-pequeno);
-            padding: 12px 15px;
-            background: var(--cor-card);
-            color: var(--cor-texto);
-            transition: all 0.3s ease;
-        }
+    /* TÍTULO DA PÁGINA */
+    .page-header {
+        padding: 30px 30px 20px;
+        text-align: center; /* ← ADICIONE ESTA LINHA */
+        max-width: 1200px; /* ← ADICIONE ESTA LINHA */
+        margin: 0 auto; /* ← ADICIONE ESTA LINHA */
+    }
 
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            border-color: var(--cor-primaria);
-            box-shadow: 0 0 0 3px rgba(26, 95, 180, 0.1);
-        }
+    .page-header h2 {
+        font-size: 28px;
+        margin-bottom: 10px;
+        color: var(--cor-texto);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        justify-content: center; /* ← ADICIONE ESTA LINHA */
+    }
 
-        /* ÁREA DE UPLOAD MELHORADA */
-        .file-upload-area {
-            background: var(--cor-card);
-            border: 2px dashed var(--cor-borda);
-            border-radius: var(--borda-radius-medio);
-            padding: 40px 20px;
-            text-align: center;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
+    .page-header h2 i {
+        color: var(--cor-primaria);
+    }
 
-        .file-upload-area:hover,
-        .file-upload-area.dragover {
-            border-color: var(--cor-primaria);
-            background: rgba(26, 95, 180, 0.03);
-        }
+    .page-subtitle {
+        color: var(--cor-texto-secundario);
+        font-size: 16px;
+        margin: 0;
+    }
 
-        .file-upload-area i {
-            font-size: 48px;
-            color: var(--cor-primaria);
-            margin-bottom: 15px;
-            opacity: 0.8;
-        }
+    /* BOTÕES (ESTILO DO DASHBOARD) */
+    .btn-primary, .btn-secondary {
+        padding: 12px 24px;
+        border-radius: var(--borda-radius-pequeno);
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        font-size: 15px;
+        border: none;
+    }
 
-        /* PREVIEW DE ARQUIVO */
-        .file-preview {
-            background: rgba(26, 95, 180, 0.05);
-            border: 1px solid rgba(26, 95, 180, 0.2);
-            border-radius: var(--borda-radius-pequeno);
-            padding: 12px 15px;
-            margin-top: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
+    .btn-primary {
+        background: linear-gradient(135deg, var(--cor-primaria), #2d8fff);
+        color: white;
+    }
 
-        .file-preview i {
-            color: var(--cor-primaria);
-            margin-right: 10px;
-        }
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(26, 95, 180, 0.3);
+    }
 
-        /* BOTÕES ELEGANTES */
-        .form-buttons {
-            display: flex;
-            justify-content: flex-end;
-            gap: 15px;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid var(--cor-borda);
-        }
+    .btn-secondary {
+        background: transparent;
+        color: var(--cor-texto);
+        border: 1px solid var(--cor-borda);
+    }
 
-        .btn-primary, .btn-secondary {
-            padding: 12px 24px;
-            border-radius: var(--borda-radius-pequeno);
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-            font-size: 15px;
-            border: none;
-        }
+    .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: var(--cor-texto-secundario);
+    }
 
-        .btn-primary {
-            background: linear-gradient(135deg, var(--cor-primaria), #2d8fff);
-            color: white;
-        }
+    /* CONTAINER DOS BOTÕES */
+    .form-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 15px;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid var(--cor-borda);
+    }
+    
+    .content-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        width: 100%;
+        padding: 0 20px;
+    }
 
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(26, 95, 180, 0.3);
-        }
-
-        .btn-secondary {
-            background: transparent;
-            color: var(--cor-texto);
-            border: 1px solid var(--cor-borda);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.05);
-            border-color: var(--cor-texto-secundario);
-        }
-
-        /* LABEL DA MOEDA ELEGANTE */
-        .currency-label {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: rgba(26, 95, 180, 0.1);
-            color: var(--cor-primaria);
-            padding: 4px 12px;
-            border-radius: var(--borda-radius-pequeno);
-            font-weight: 600;
-            font-size: 14px;
-            border: 1px solid rgba(26, 95, 180, 0.2);
-        }
-
-        /* CORREÇÃO DO FUNDO BRANCO NOS SPINNERS */
-        .fa-spinner, .fa-spin {
-            background-color: transparent !important;
-        }
-
-        input:-webkit-autofill,
-        input:-webkit-autofill:hover,
-        input:-webkit-autofill:focus {
-            -webkit-box-shadow: 0 0 0px 1000px var(--cor-card) inset !important;
-            -webkit-text-fill-color: var(--cor-texto) !important;
-            background-color: var(--cor-card) !important;
-        }
-
-        select, option {
-            background-color: var(--cor-card) !important;
-            color: var(--cor-texto) !important;
-        }
-
-        select option:checked {
-            background: var(--cor-primaria) !important;
-            color: white !important;
-        }
     </style>
 </head>
 <body>
-    <!-- HEADER PRINCIPAL -->
+    <!-- CABEÇALHO FIXO (IGUAL AO DASHBOARD) -->
     <header class="main-header">
         <div class="header-left">
             <div class="logo">
@@ -290,31 +245,32 @@
         </div>
         <div class="header-right">
             <div class="user-info">
-                <span id="username">{{ nome if nome else 'Usuário' }}</span>
+                <span id="username">Carregando...</span>
                 <i class="fas fa-user-circle"></i>
             </div>
             <a href="/dashboard" class="btn-back">
-                <i class="fas fa-arrow-left"></i> Voltar ao Dashboard
+                <i class="fas fa-arrow-left"></i> Voltar
             </a>
         </div>
     </header>
 
-    <!-- BREADCRUMB DE NAVEGAÇÃO (do history) -->
-    <nav class="page-nav">
-        <a href="/dashboard"><i class="fas fa-home"></i> Dashboard</a>
-        <i class="fas fa-chevron-right"></i>
-        <span class="current-page"><i class="fas fa-exchange-alt"></i> Transferência Internacional</span>
-    </nav>
-
     <!-- CONTEÚDO PRINCIPAL -->
     <main class="main-content">
-        <!-- TÍTULO DA PÁGINA (do history) -->
+        <!-- BREADCRUMB/NAVEGAÇÃO -->
+        <div class="content-container">
+        <nav class="page-nav">
+            <a href="/dashboard"><i class="fas fa-home"></i> Home</a>
+            <i class="fas fa-chevron-right"></i>
+            <span class="current-page"><i class="fas fa-exchange-alt"></i> Transferência Internacional</span>
+        </nav>
+
+        <!-- TÍTULO DA PÁGINA -->
         <div class="page-header">
             <h2><i class="fas fa-globe-americas"></i> TRANSFERÊNCIA INTERNACIONAL</h2>
-            <p class="page-subtitle">Envie dinheiro para qualquer parte do mundo com segurança e as melhores taxas</p>
+            <p class="page-subtitle">Envie dinheiro para qualquer parte do mundo com segurança</p>
         </div>
 
-        <!-- FORMULÁRIO COM DESIGN DE CARD (versão atual) -->
+        <!-- FORMULÁRIO DE TRANSFERÊNCIA -->
         <div class="form-container">
             <div class="form-card">
                 <h3 class="form-title">
@@ -325,7 +281,7 @@
                 <div id="alert" class="alert hidden"></div>
 
                 <form id="transferenciaForm">
-                    <!-- SEÇÃO CONTA E VALOR -->
+                    <!-- LINHA 1: CONTA ORIGEM E VALOR -->
                     <div class="form-row">
                         <div class="form-group">
                             <label for="conta_origem">
@@ -333,46 +289,47 @@
                             </label>
                             <select id="conta_origem" name="conta_origem" required>
                                 <option value="">Selecione sua conta...</option>
-                                <!-- Carregado via JS -->
+                                <!-- Contas serão carregadas via JavaScript -->
                             </select>
-                            <div id="saldo_info" class="saldo-info hidden">
+                            <div id="saldo_info" class="saldo-info">
                                 <i class="fas fa-info-circle"></i> Saldo disponível: <span id="saldo_valor">--</span>
                             </div>
                         </div>
                         
-                        <div class="form-group" style="position: relative;">
+                        <div class="form-group">
                             <label for="valor">
                                 <i class="fas fa-money-bill-wave"></i> Valor a Transferir *
                             </label>
-                            <input type="number" id="valor" name="valor" step="0.01" min="0.01" 
-                                   placeholder="0.00" required>
-                            <span id="moeda_label" class="currency-label">USD</span>
+                            <div class="input-with-icon">
+                                <input type="number" id="valor" name="valor" step="0.01" min="0.01" 
+                                       placeholder="0.00" required>
+                                <span id="moeda_label" class="currency-label">USD</span>
+                            </div>
                             <small class="helper-text">Valor mínimo: 0.01</small>
                         </div>
                     </div>
 
-                    <!-- SEÇÃO FINALIDADE E DESCRIÇÃO -->
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="finalidade">
-                                <i class="fas fa-bullseye"></i> Finalidade *
-                            </label>
-                            <select id="finalidade" name="finalidade" required>
-                                <option value="Pagamento de Serviços">Pagamento de Serviços</option>
-                                <option value="Pagamento de Produtos">Pagamento de Produtos</option>
-                                <option value="Remessa Familiar">Remessa Familiar</option>
-                                <option value="Investimento">Investimento</option>
-                                <option value="Outros">Outros</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="descricao">
-                                <i class="fas fa-comment-alt"></i> Descrição
-                            </label>
-                            <input type="text" id="descricao" name="descricao" 
-                                   placeholder="Breve descrição da transferência...">
-                        </div>
+                    <!-- LINHA 2: FINALIDADE -->
+                    <div class="form-group">
+                        <label for="finalidade">
+                            <i class="fas fa-bullseye"></i> Finalidade da Transferência *
+                        </label>
+                        <select id="finalidade" name="finalidade" required>
+                            <option value="Pagamento de Serviços">Pagamento de Serviços</option>
+                            <option value="Pagamento de Produtos">Pagamento de Produtos</option>
+                            <option value="Remessa Familiar">Remessa Familiar</option>
+                            <option value="Investimento">Investimento</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+
+                    <!-- LINHA 3: DESCRIÇÃO -->
+                    <div class="form-group">
+                        <label for="descricao">
+                            <i class="fas fa-comment-alt"></i> Descrição / Observações
+                        </label>
+                        <textarea id="descricao" name="descricao" rows="3" 
+                                  placeholder="Descreva o propósito desta transferência..."></textarea>
                     </div>
 
                     <hr class="form-divider">
@@ -389,27 +346,27 @@
                         </label>
                         <select id="beneficiarios_salvos" class="beneficiarios-select">
                             <option value="">Selecione um beneficiário salvo...</option>
-                            <!-- Carregado via JS -->
+                            <!-- Beneficiários serão carregados via JavaScript -->
                         </select>
-                        <small class="helper-text">Selecione para preencher automaticamente os campos abaixo</small>
+                        <small class="helper-text">Selecione para preencher automaticamente</small>
                     </div>
 
                     <!-- CAMPOS DO BENEFICIÁRIO -->
                     <div class="form-row">
                         <div class="form-group">
                             <label for="beneficiario">
-                                <i class="fas fa-user"></i> Nome Completo *
+                                <i class="fas fa-user"></i> Nome Completo do Beneficiário *
                             </label>
                             <input type="text" id="beneficiario" name="beneficiario" 
-                                   placeholder="Nome completo do beneficiário" required>
+                                   placeholder="Nome completo" required>
                         </div>
                         
                         <div class="form-group">
                             <label for="endereco">
-                                <i class="fas fa-map-marker-alt"></i> Endereço *
+                                <i class="fas fa-map-marker-alt"></i> Endereço Completo *
                             </label>
                             <input type="text" id="endereco" name="endereco" 
-                                   placeholder="Endereço completo" required>
+                                   placeholder="Rua, número, complemento" required>
                         </div>
                     </div>
 
@@ -523,17 +480,14 @@
                             </button>
                             <input type="file" id="invoiceFile" accept=".pdf,.jpg,.jpeg,.png" style="display: none;">
                             <p class="file-info">
-                                <small>Formatos aceitos: PDF, JPG, PNG (máximo 5MB)</small>
+                                <small>Formatos aceitos: PDF, JPG, PNG (máx. 5MB)</small>
                             </p>
                         </div>
                         <div id="filePreview" class="file-preview hidden">
-                            <div>
-                                <i class="fas fa-file-pdf" id="fileIcon"></i>
-                                <span id="fileName">arquivo.pdf</span>
-                                <span id="fileSize" class="file-size"></span>
-                            </div>
+                            <i class="fas fa-file-pdf"></i>
+                            <span id="fileName">arquivo.pdf</span>
                             <button type="button" class="btn-remove-file" id="removeFileBtn">
-                                <i class="fas fa-times"></i> Remover
+                                <i class="fas fa-times"></i>
                             </button>
                         </div>
                     </div>
@@ -560,7 +514,7 @@
         </div>
     </main>
 
-    <!-- FOOTER -->
+    <!-- RODAPÉ -->
     <footer class="main-footer">
         <p>© 2024 Cambio Bank - Sistema de Câmbio Internacional. Todos os direitos reservados.</p>
         <p class="footer-links">
@@ -592,463 +546,30 @@
         </div>
     </div>
 
-    <!-- VARIÁVEIS DO FLASK -->
+    <!-- VARIÁVEIS DO FLASK (CRÍTICO!) -->
     <script>
-        // Dados do usuário logado
+        // Dados do usuário logado (do Flask)
         window.USER = { 
-            username: "{{ usuario if usuario else 'pantanal' }}", 
-            nome: "{{ nome if nome else 'PANTANAL COMERCIO IMP LTDA' }}", 
-            email: "{{ email if email else '' }}"
+            username: "{{ usuario if usuario else '' }}", 
+            nome: "{{ nome if nome else 'Usuário' }}", 
+            email: "{{ email if email else 'usuario@exemplo.com' }}"
         };
+        window.API_URL = "";
         
-        console.log('✅ Usuário carregado:', window.USER);
+        console.log('Transferência - Usuário logado:', window.USER);
     </script>
 
-    <!-- SCRIPTS DO SISTEMA FUNCIONAL (que já sabemos que funciona) -->
+    <!-- SCRIPTS -->
+    <script src="/static/js/script.js"></script>
     <script>
-        // ============================================
-        // SISTEMA DE TRANSFERÊNCIA INTERNACIONAL
-        // FUNÇÕES GLOBAIS EXPLÍCITAS
-        // ============================================
-
-        // VARIÁVEL GLOBAL
-        window.arquivoInvoice = null;
-
-        // 1. CARREGAR CONTAS (GLOBAL)
-        window.carregarContas = async function() {
-            console.log('📋 Carregando contas...');
-            
-            const select = document.getElementById('conta_origem');
-            if (!select) return;
-            
-            while (select.options.length > 1) select.remove(1);
-            
-            try {
-                const response = await fetch('/api/user/contas');
-                if (!response.ok) throw new Error(`API retornou ${response.status}`);
-                
-                const data = await response.json();
-                
-                data.contas.forEach(conta => {
-                    if (conta.ativa !== false) {
-                        const option = document.createElement('option');
-                        option.value = conta.id;
-                        option.textContent = `${window.getEmojiMoeda(conta.moeda)} ${window.getNomeMoeda(conta.moeda)} - Saldo: ${window.formatarSaldo(conta.saldo, conta.moeda)}`;
-                        option.dataset.moeda = conta.moeda;
-                        option.dataset.saldo = conta.saldo;
-                        select.appendChild(option);
-                    }
-                });
-                
-                console.log(`✅ ${data.contas.length} contas carregadas`);
-                
-                select.addEventListener('change', function() {
-                    const selected = this.options[this.selectedIndex];
-                    if (selected && selected.value) {
-                        const moedaLabel = document.getElementById('moeda_label');
-                        if (moedaLabel) moedaLabel.textContent = selected.dataset.moeda;
-                        
-                        const infoSaldo = document.getElementById('saldo_info');
-                        if (infoSaldo) {
-                            const saldoFormatado = window.formatarSaldo(selected.dataset.saldo, selected.dataset.moeda);
-                            infoSaldo.innerHTML = `<i class="fas fa-info-circle"></i> Saldo disponível: <strong>${saldoFormatado}</strong>`;
-                            infoSaldo.classList.remove('hidden');
-                        }
-                    }
-                });
-                
-                if (select.options.length > 1) {
-                    select.selectedIndex = 1;
-                    select.dispatchEvent(new Event('change'));
-                }
-                
-            } catch (error) {
-                console.error('❌ Erro ao carregar contas:', error);
-                window.mostrarMensagem('Erro ao carregar contas. Tente recarregar a página.', 'error');
-            }
-        };
-
-        // 2. CARREGAR BENEFICIÁRIOS (GLOBAL)
-        window.carregarBeneficiarios = async function() {
-            console.log('👥 Carregando beneficiários...');
-            
-            const select = document.getElementById('beneficiarios_salvos');
-            if (!select) return;
-            
-            while (select.options.length > 1) select.remove(1);
-            
-            try {
-                const response = await fetch('/api/beneficiarios');
-                if (!response.ok) throw new Error(`API retornou ${response.status}`);
-                
-                const data = await response.json();
-                
-                data.beneficiarios.forEach(benef => {
-                    const option = document.createElement('option');
-                    option.value = benef.id;
-                    option.textContent = `${window.getEmojiPais(benef.pais)} ${benef.nome} - ${benef.banco}`;
-                    option.dataset.beneficiario = JSON.stringify(benef);
-                    select.appendChild(option);
-                });
-                
-                console.log(`✅ ${data.beneficiarios.length} beneficiários carregados`);
-                
-                select.addEventListener('change', function() {
-                    const selected = this.options[this.selectedIndex];
-                    if (selected && selected.value) {
-                        try {
-                            const beneficiario = JSON.parse(selected.dataset.beneficiario);
-                            window.preencherCamposBeneficiario(beneficiario);
-                        } catch (error) {
-                            console.error('❌ Erro ao processar beneficiário:', error);
-                        }
-                    }
-                });
-                
-            } catch (error) {
-                console.error('❌ Erro ao carregar beneficiários:', error);
-            }
-        };
-
-        // 3. FUNÇÕES AUXILIARES (GLOBAIS)
-        window.getEmojiMoeda = function(moeda) {
-            const emojis = { USD: '💵', EUR: '💶', GBP: '💷', BRL: '💰' };
-            return emojis[moeda] || '💳';
-        };
-
-        window.getNomeMoeda = function(moeda) {
-            const nomes = {
-                USD: 'Dólar Americano',
-                EUR: 'Euro',
-                GBP: 'Libra Esterlina',
-                BRL: 'Real Brasileiro'
-            };
-            return nomes[moeda] || moeda;
-        };
-
-        window.getEmojiPais = function(pais) {
-            const emojis = {
-                'CHINA': '🇨🇳', 'CHINA (MAINLAND)': '🇨🇳',
-                'USA': '🇺🇸', 'UNITED STATES': '🇺🇸',
-                'GERMANY': '🇩🇪', 'DEUTSCHLAND': '🇩🇪',
-                'UK': '🇬🇧', 'UNITED KINGDOM': '🇬🇧',
-                'BRAZIL': '🇧🇷', 'BRASIL': '🇧🇷'
-            };
-            return emojis[pais?.toUpperCase()] || '🌎';
-        };
-
-        window.formatarSaldo = function(saldo, moeda) {
-            const simbolos = { USD: '$', EUR: '€', GBP: '£', BRL: 'R$' };
-            const simbolo = simbolos[moeda] || moeda;
-            const numero = parseFloat(saldo) || 0;
-            return `${simbolo} ${numero.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
-        };
-
-        window.preencherCamposBeneficiario = function(beneficiario) {
-            console.log('📝 Preenchendo dados do beneficiário:', beneficiario.nome);
-            
-            const campos = {
-                'beneficiario': beneficiario.nome,
-                'endereco': beneficiario.endereco || '',
-                'cidade': beneficiario.cidade || '',
-                'pais': beneficiario.pais || '',
-                'banco': beneficiario.banco || '',
-                'endereco_banco': beneficiario.endereco_banco || '',
-                'cidade_banco': beneficiario.cidade_banco || '',
-                'pais_banco': beneficiario.pais_banco || '',
-                'swift': beneficiario.swift || '',
-                'iban': beneficiario.iban || '',
-                'aba': beneficiario.aba || ''
-            };
-            
-            Object.entries(campos).forEach(([id, valor]) => {
-                const element = document.getElementById(id);
-                if (element) element.value = valor || '';
-            });
-        };
-
-        window.mostrarMensagem = function(texto, tipo = 'info') {
-            const alert = document.getElementById('alert');
-            if (!alert) return;
-            
-            alert.textContent = texto;
-            alert.className = `alert ${tipo}`;
-            alert.classList.remove('hidden');
-            
-            setTimeout(() => alert.classList.add('hidden'), 5000);
-        };
-
-        window.formatarTamanho = function(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        };
-
-        window.mostrarSucessoTransferencia = function(id, dados) {
-            document.getElementById('modalTransferId').textContent = id;
-            document.getElementById('modalValor').textContent = 
-                `${dados.moeda} ${parseFloat(dados.valor).toFixed(2)}`;
-            
-            const modal = document.getElementById('successModal');
-            modal.classList.remove('hidden');
-            
-            document.getElementById('closeModalBtn').onclick = () => modal.classList.add('hidden');
-            document.getElementById('goToDashboardBtn').onclick = () => window.location.href = '/dashboard';
-        };
-
-        // ============================================
-        // FUNÇÕES DE ENVIO (GLOBAIS)
-        // ============================================
-
-        // INICIALIZAR DRAG & DROP
-        window.inicializarDragDrop = function() {
-            const uploadArea = document.getElementById('uploadArea');
-            const fileInput = document.getElementById('invoiceFile');
-            const selectBtn = document.getElementById('selectFileBtn');
-            const removeBtn = document.getElementById('removeFileBtn');
-            
-            if (!uploadArea) return;
-            
-            ['dragover', 'dragleave', 'drop'].forEach(event => {
-                uploadArea.addEventListener(event, e => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                });
-            });
-            
-            uploadArea.addEventListener('dragover', () => uploadArea.classList.add('dragover'));
-            uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
-            uploadArea.addEventListener('drop', e => {
-                uploadArea.classList.remove('dragover');
-                if (e.dataTransfer.files.length > 0) window.processarArquivo(e.dataTransfer.files[0]);
-            });
-            
-            selectBtn?.addEventListener('click', () => fileInput?.click());
-            fileInput?.addEventListener('change', function(e) {
-                if (this.files.length > 0) window.processarArquivo(this.files[0]);
-            });
-            
-            removeBtn?.addEventListener('click', function() {
-                window.arquivoInvoice = null;
-                fileInput.value = '';
-                document.getElementById('filePreview')?.classList.add('hidden');
-                window.mostrarMensagem('Arquivo removido', 'info');
-            });
-        };
-
-        // PROCESSAR ARQUIVO
-        window.processarArquivo = function(file) {
-            const maxSize = 5 * 1024 * 1024;
-            const tiposPermitidos = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-            
-            if (file.size > maxSize) {
-                window.mostrarMensagem('Arquivo muito grande! Máximo 5MB.', 'error');
-                return;
-            }
-            
-            if (!tiposPermitidos.includes(file.type)) {
-                window.mostrarMensagem('Formato não suportado! Use PDF, JPG ou PNG.', 'error');
-                return;
-            }
-            
-            window.arquivoInvoice = file;
-            
-            const fileName = document.getElementById('fileName');
-            const fileSize = document.getElementById('fileSize');
-            const fileIcon = document.getElementById('fileIcon');
-            const preview = document.getElementById('filePreview');
-            
-            if (fileName) fileName.textContent = file.name;
-            if (fileSize) fileSize.textContent = window.formatarTamanho(file.size);
-            
-            if (fileIcon) {
-                fileIcon.className = file.type === 'application/pdf' ? 
-                    'fas fa-file-pdf' : 'fas fa-file-image';
-                fileIcon.style.color = file.type === 'application/pdf' ? '#e74c3c' : '#27ae60';
-            }
-            
-            if (preview) preview.classList.remove('hidden');
-            window.mostrarMensagem('Arquivo selecionado com sucesso!', 'success');
-        };
-
-        // FUNÇÃO PRINCIPAL ENVIAR TRANSFERÊNCIA
-        window.enviarTransferencia = async function() {
-            console.log('🚀 Iniciando envio da transferência...');
-            
-            if (!window.validarFormulario()) return false;
-            
-            const submitBtn = document.getElementById('submitBtn');
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
-            submitBtn.disabled = true;
-            
-            try {
-                const dadosTransferencia = window.coletarDadosFormulario();
-                console.log('📋 Dados coletados:', dadosTransferencia);
-                
-                const formData = new FormData();
-                formData.append('dados', JSON.stringify(dadosTransferencia));
-                
-                if (window.arquivoInvoice) {
-                    formData.append('invoice', window.arquivoInvoice);
-                    console.log('📎 Adicionando arquivo:', window.arquivoInvoice.name);
-                }
-                
-                console.log('📤 Enviando para /api/transferencias/criar...');
-                const response = await fetch('/api/transferencias/criar', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.message || `Erro ${response.status}`);
-                }
-                
-                const resultado = await response.json();
-                console.log('✅ Resultado:', resultado);
-                
-                if (!resultado.success) throw new Error(resultado.message);
-                
-                if (document.getElementById('salvar_beneficiario')?.checked) {
-                    await window.salvarBeneficiarioSeparado(dadosTransferencia);
-                }
-                
-                window.mostrarSucessoTransferencia(resultado.transferencia_id, dadosTransferencia);
-                return true;
-                
-            } catch (error) {
-                console.error('❌ Erro:', error);
-                window.mostrarMensagem(`Erro: ${error.message}`, 'error');
-                return false;
-                
-            } finally {
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
-            }
-        };
-
-        // COLETAR DADOS DO FORMULÁRIO
-        window.coletarDadosFormulario = function() {
-            const contaSelecionada = document.getElementById('conta_origem');
-            const opcaoSelecionada = contaSelecionada?.options[contaSelecionada.selectedIndex];
-            
-            return {
-                conta_origem: contaSelecionada?.value || '',
-                valor: document.getElementById('valor')?.value || '0',
-                moeda: opcaoSelecionada?.dataset.moeda || 'USD',
-                beneficiario: document.getElementById('beneficiario')?.value || '',
-                endereco: document.getElementById('endereco')?.value || '',
-                cidade: document.getElementById('cidade')?.value || '',
-                pais: document.getElementById('pais')?.value || '',
-                banco: document.getElementById('banco')?.value || '',
-                endereco_banco: document.getElementById('endereco_banco')?.value || '',
-                cidade_banco: document.getElementById('cidade_banco')?.value || '',
-                pais_banco: document.getElementById('pais_banco')?.value || '',
-                swift: document.getElementById('swift')?.value || '',
-                iban: document.getElementById('iban')?.value || '',
-                aba: document.getElementById('aba')?.value || '',
-                finalidade: document.getElementById('finalidade')?.value || '',
-                descricao: document.getElementById('descricao')?.value || ''
-            };
-        };
-
-        // SALVAR BENEFICIÁRIO SEPARADAMENTE
-        window.salvarBeneficiarioSeparado = async function(dadosTransferencia) {
-            try {
-                const dadosBeneficiario = {
-                    nome: dadosTransferencia.beneficiario,
-                    endereco: dadosTransferencia.endereco,
-                    cidade: dadosTransferencia.cidade,
-                    pais: dadosTransferencia.pais,
-                    banco: dadosTransferencia.banco,
-                    endereco_banco: dadosTransferencia.endereco_banco,
-                    cidade_banco: dadosTransferencia.cidade_banco,
-                    pais_banco: dadosTransferencia.pais_banco,
-                    swift: dadosTransferencia.swift,
-                    iban: dadosTransferencia.iban,
-                    aba: dadosTransferencia.aba || ''
-                };
-                
-                console.log('📤 Salvando beneficiário...');
-                
-                const response = await fetch('/api/beneficiarios', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(dadosBeneficiario)
-                });
-                
-                if (response.ok) {
-                    const resultado = await response.json();
-                    console.log('✅ Beneficiário salvo:', resultado);
-                } else {
-                    console.warn('⚠️ Não foi possível salvar beneficiário');
-                }
-                
-            } catch (error) {
-                console.warn('⚠️ Erro ao salvar beneficiário:', error);
-            }
-        };
-
-        // VALIDAÇÃO
-        window.validarFormulario = function() {
-            const camposObrigatorios = [
-                'conta_origem', 'valor', 'finalidade', 'beneficiario',
-                'endereco', 'cidade', 'pais', 'banco', 'swift', 'iban'
-            ];
-            
-            for (const campoId of camposObrigatorios) {
-                const campo = document.getElementById(campoId);
-                if (!campo || !campo.value.trim()) {
-                    window.mostrarMensagem(`Preencha: ${campoId.replace('_', ' ')}`, 'error');
-                    campo?.focus();
-                    return false;
-                }
-            }
-            
-            const valor = parseFloat(document.getElementById('valor')?.value);
-            if (isNaN(valor) || valor <= 0) {
-                window.mostrarMensagem('Digite um valor válido > 0', 'error');
-                return false;
-            }
-            
-            return true;
-        };
-
-        // ============================================
-        // INICIALIZAR TUDO (DOMContentLoaded)
-        // ============================================
+        // JavaScript específico para esta página será adicionado aqui
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Sistema de Transferência iniciando...');
+            // Carregar dados do usuário e contas
+            loadUserData();
+            loadContas();
             
-            // Atualizar nome do usuário
-            const usernameElement = document.getElementById('username');
-            if (usernameElement && window.USER?.nome) {
-                usernameElement.textContent = window.USER.nome;
-            }
-            
-            // Carregar dados
-            window.carregarContas();
-            window.carregarBeneficiarios();
-            
-            // Inicializar drag & drop
-            window.inicializarDragDrop();
-            
-            // Configurar submit do formulário
-            const form = document.getElementById('transferenciaForm');
-            if (form) {
-                form.addEventListener('submit', async function(e) {
-                    e.preventDefault();
-                    await window.enviarTransferencia();
-                });
-            }
-            
-            console.log('✅ Sistema carregado e pronto para uso!');
-            console.log('🔍 Funções disponíveis globalmente:');
-            console.log('  enviarTransferencia:', typeof window.enviarTransferencia);
-            console.log('  carregarContas:', typeof window.carregarContas);
+            // Configurar eventos
+            setupEventListeners();
         });
     </script>
 </body>

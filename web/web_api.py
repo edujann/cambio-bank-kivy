@@ -542,49 +542,53 @@ def criar_transferencia_cliente():
         from datetime import datetime
         transferencia_id = f"{random.randint(100000, 999999)}"
         
-        # Preparar dados para Supabase - COM COLUNAS CORRETAS!
+        # 8. Preparar dados para Supabase
         dados_supabase = {
             'id': transferencia_id,
             'tipo': 'transferencia_internacional',
             'status': 'solicitada',
-            'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'data': agora.strftime("%Y-%m-%d %H:%M:%S"),
             'moeda': dados['moeda'],
-            'valor': float(dados['valor']),
-            'conta_remetente': dados['conta_origem'],
+            'valor': valor,
+            'conta_remetente': conta_id,
             'descricao': dados.get('descricao', ''),
-            'usuario': dados['usuario'],
-            'cliente': dados['usuario'],
+            'usuario': usuario,
+            'cliente': usuario,
             'beneficiario': dados['beneficiario'],
-            'endereco_beneficiario': dados.get('endereco', ''),
+            'endereco_beneficiario': dados.get('endereco_beneficiario', ''),
             'cidade': dados.get('cidade', ''),
             'pais': dados.get('pais', ''),
-            'nome_banco': dados.get('banco', ''),
+            'nome_banco': dados.get('nome_banco', ''),
             'endereco_banco': dados.get('endereco_banco', ''),
             'cidade_banco': dados.get('cidade_banco', ''),
             'pais_banco': dados.get('pais_banco', ''),
-            'codigo_swift': dados.get('swift', ''),
-            'iban_account': dados.get('iban', ''),
-            'aba_routing': dados.get('aba', ''),
+            'codigo_swift': dados.get('codigo_swift', ''),
+            'iban_account': dados.get('iban_account', ''),
+            'aba_routing': dados.get('aba_routing', ''),
             'finalidade': dados.get('finalidade', ''),
-            'created_at': datetime.now().isoformat(),
-            'data_solicitacao': datetime.now().isoformat(),
-            'solicitado_por': dados['usuario']
+            'created_at': agora.isoformat(),
+            'data_solicitacao': agora.isoformat(),
+            'solicitado_por': usuario
         }
+
+        # 🔍 PRIMEIRO: VERIFIQUE SE CHEGA AQUI
+        print(f"\n" + "="*60)
+        print(f"🔍 ETAPA 1: CHEGOU ATÉ AQUI?")
+        print(f"   Tem dados_supabase? {bool(dados_supabase)}")
+        print(f"   Número de campos: {len(dados_supabase)}")
+        print(f"="*60)
+
+        # 🔍 SEGUNDO: DEBUG COMPLETO
+        print(f"\n" + "="*60)
+        print(f"🔍 DEBUG COMPLETO - dados_supabase:")
+        print(f"="*60)
+        for chave, valor in dados_supabase.items():
+            print(f"   {chave}: {repr(valor)}")
         
-        # DEBUG 4: Mostrar o que será salvo no Supabase
-        print(f"\n💾 DADOS QUE SERÃO SALVOS NO SUPABASE:")
-        print(f"   ID: {transferencia_id}")
-        print(f"   conta_remetente: {dados_supabase['conta_remetente']}")
-        print(f"   beneficiario: {dados_supabase['beneficiario']}")
-        print(f"   valor: {dados_supabase['valor']}")
-        print(f"   moeda: {dados_supabase['moeda']}")
-        print(f"   endereco_banco: '{dados_supabase['endereco_banco']}'")
-        print(f"   cidade_banco: '{dados_supabase['cidade_banco']}'")
-        print(f"   pais_banco: '{dados_supabase['pais_banco']}'")
-        
-        print(f"\n🚀 Inserindo no Supabase REAL...")
-        
-        # Salvar NO SUPABASE REAL
+        print(f"="*60 + "\n")
+
+        # 9. Salvar no Supabase
+        print(f"💾 Salvando transferência {transferencia_id}...")
         response = supabase.table('transferencias').insert(dados_supabase).execute()
 
         if response.data:
