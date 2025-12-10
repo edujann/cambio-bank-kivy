@@ -1326,24 +1326,38 @@ def api_transferencias_internacionais():
                 'tipo': t.get('tipo'),
                 'status': t.get('status'),
                 'beneficiario': t.get('beneficiario'),
-                'nome_banco': t.get('nome_banco'),
-                'codigo_swift': t.get('codigo_swift'),
-                'iban_account': t.get('iban_account'),
-                'pais': t.get('pais'),
+                # 🔍 CAMPOS DO BENEFICIÁRIO (FALTANDOS)
+                'endereco_beneficiario': t.get('endereco_beneficiario', ''),
+                'cidade': t.get('cidade', ''),
+                'pais': t.get('pais', ''),
+                # 🔍 CAMPOS DO BANCO (FALTANDOS)
+                'nome_banco': t.get('nome_banco', ''),
+                'endereco_banco': t.get('endereco_banco', ''),
+                'cidade_banco': t.get('cidade_banco', ''),
+                'pais_banco': t.get('pais_banco', ''),
+                'codigo_swift': t.get('codigo_swift', ''),
+                'iban_account': t.get('iban_account', ''),
+                'aba_routing': t.get('aba_routing', ''),
+                # 🔍 INFORMAÇÕES FINANCEIRAS
                 'valor': float(t['valor']) if t.get('valor') else 0,
                 'moeda': t.get('moeda', 'USD'),
+                # 🔍 DATAS E TEMPOS
                 'data': t.get('data') or t.get('data_solicitacao') or t.get('created_at'),
-                'finalidade': t.get('finalidade'),
-                'descricao': t.get('finalidade'),
+                'created_at': t.get('created_at'),
+                # 🔍 INFORMAÇÕES ADICIONAIS
+                'finalidade': t.get('finalidade', ''),
+                'descricao': t.get('descricao', ''),
+                # 🔍 INFORMAÇÕES DA CONTA
+                'conta_remetente': t.get('conta_remetente', ''),
+                'cliente': t.get('cliente', ''),
+                'usuario': t.get('usuario', ''),
+                'solicitado_por': t.get('solicitado_por', ''),
+                # 🔍 INVOICE/COMPROVANTES
                 'invoice': bool(invoice_info),
                 'invoice_status': invoice_info.get('status') if isinstance(invoice_info, dict) else None,
                 'invoice_recusada': t.get('status') == 'rejected' or 
                                    (invoice_info.get('status') == 'rejected' if isinstance(invoice_info, dict) else False),
-                'motivo_recusa': t.get('motivo_recusa'),
-                'conta_remetente': t.get('conta_remetente'),
-                'cliente': t.get('cliente'),
-                'usuario': t.get('usuario'),
-                'created_at': t.get('created_at')
+                'motivo_recusa': t.get('motivo_recusa', '')
             })
         
         return jsonify(resultado)
