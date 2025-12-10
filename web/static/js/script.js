@@ -348,7 +348,7 @@ window.enviarTransferencia = async function(e) {
     // 1. COLETAR DADOS (COM NOMES EXATOS DA TABELA)
     const dados = {
         // === DADOS DA CONTA ===
-        conta_remetente: document.getElementById('conta_origem').value,
+        conta_origem: document.getElementById('conta_origem').value,  // ← NOME CORRETO!
         valor: parseFloat(document.getElementById('valor').value) || 0,
         moeda: document.getElementById('conta_origem').options[
             document.getElementById('conta_origem').selectedIndex
