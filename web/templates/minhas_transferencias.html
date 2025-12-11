@@ -2102,20 +2102,17 @@
         }
         
         _adicionarRodapeFixo(doc, width, height, dados) {
-            // 🔥 RODAPÉ DESCE 7mm PARA BAIXO (33mm → 26mm do final? NÃO! Oposto!)
-            // Para descer para baixo = FICAR MAIS PERTO DA BORDA INFERIOR
-            // Se estava a 33mm da borda inferior, para descer 7mm = 26mm da borda inferior
-            // Mas você disse "descer 7mm" = MAIS PARA BAIXO = MENOS ESPAÇO NA PARTE DE BAIXO
-            const footerY = height - 28; // 🔥 ESTÁ CORRETO! 33mm → 26mm (7mm MAIS PRÓXIMO DA BORDA)
+            // 🔥 RODAPÉ A 28mm DO FINAL
+            const footerY = height - 28;
             
             // LINHA DIVISÓRIA
             doc.setDrawColor(200, 200, 200);
             doc.setLineWidth(0.5);
             doc.line(10, footerY, width - 10, footerY);
             
-            // CAIXA DE STATUS (FONTES AUMENTADAS UM POUCO)
+            // CAIXA DE STATUS
             doc.setFillColor(247, 247, 247);
-            doc.roundedRect(10, footerY + 4, width - 20, 11, 1, 1, 'F'); // 🔥 ALTURA: 8 → 11
+            doc.roundedRect(10, footerY + 4, width - 20, 11, 1, 1, 'F');
             doc.setDrawColor(220, 220, 220);
             doc.setLineWidth(0.3);
             doc.roundedRect(10, footerY + 4, width - 20, 11, 1, 1, 'S');
@@ -2131,33 +2128,33 @@
             
             const color = statusColors[status] || [100, 100, 100];
             
-            // "STATUS:" (FONTE AUMENTADA UM POUCO)
+            // "STATUS:" 
             doc.setTextColor(80, 80, 80);
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(9); // 🔥 ALTERADO: 8 → 9 (UM POUCO MAIOR)
+            doc.setFontSize(8.5);
             doc.text('STATUS:', 15, footerY + 9.8);
             
-            // STATUS COLORIDO (FONTE AUMENTADA UM POUCO)
+            // STATUS COLORIDO
             doc.setTextColor(...color);
             doc.text(status, 15 + doc.getTextWidth('STATUS: '), footerY + 9.8);
             
-            // INFORMAÇÕES INSTITUCIONAIS (FONTES AUMENTADAS UM POUCO)
+            // 🔥 MAIS ESPAÇO ENTRE CAIXA DO STATUS E TEXTO
             doc.setTextColor(120, 120, 120);
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(7); // 🔥 ALTERADO: 6.5 → 7 (UM POUCO MAIOR)
+            doc.setFontSize(7);
             
-            // Primeira linha
-            doc.text('Câmbio Bank - International Transfers', 15, footerY + 17);
+            // 🔥 PRIMEIRA LINHA (2mm MAIS PARA BAIXO)
+            doc.text('Câmbio Bank - International Transfers', 15, footerY + 19); // 🔥 ALTERADO: 17 → 19
             
-            // Segunda linha
-            doc.text('Automatically generated document', 15, footerY + 22);
+            // 🔥 SEGUNDA LINHA (2mm MAIS PARA BAIXO)
+            doc.text('Automatically generated document', 15, footerY + 24); // 🔥 ALTERADO: 22 → 24
             
-            // DATA DE EMISSÃO (FONTE AUMENTADA UM POUCO)
+            // DATA DE EMISSÃO (2mm MAIS PARA BAIXO)
             const dataEmissao = new Date().toLocaleString('pt-BR');
-            doc.text(`Issued: ${dataEmissao}`, width - 15 - doc.getTextWidth(`Issued: ${dataEmissao}`), footerY + 17);
+            doc.text(`Issued: ${dataEmissao}`, width - 15 - doc.getTextWidth(`Issued: ${dataEmissao}`), footerY + 19); // 🔥 17 → 19
             
-            // PÁGINA (FONTE AUMENTADA UM POUCO)
-            doc.text('Page 1 of 1', width - 15 - doc.getTextWidth('Page 1 of 1'), footerY + 22);
+            // PÁGINA (2mm MAIS PARA BAIXO)
+            doc.text('Page 1 of 1', width - 15 - doc.getTextWidth('Page 1 of 1'), footerY + 24); // 🔥 22 → 24
         }
 
         _formatarDataParaDisplay(dataString) {
