@@ -1564,48 +1564,85 @@
         }
         
         _adicionarCabecalhoKivy(doc, width, height, transferencia) {
-            // 🔥 VERSÃO 100% FUNCIONAL - SEM RISCO
+            // 🔥 MESMA DISPOSIÇÃO DO ORIGINAL, NOVO VISUAL DO DASHBOARD
             
-            // 1. FUNDO PRETO (GARANTIDO)
-            doc.setFillColor(0, 0, 0);
+            // CORES DO DASHBOARD
+            const azulEscuro = [10, 14, 21];     // #0a0e15 - fundo
+            const azulPrimario = [26, 95, 180];  // #1a5fb4 - azul escuro do logo
+            const azulClaro = [45, 143, 255];    // #2d8fff - azul claro do logo
+            const amarelo = [255, 215, 0];       // Amarelo para ID
+            const cinzaClaro = [200, 200, 200];  // Cinza para data
+            
+            // ============================================
+            // 1. FUNDO AZUL ESCURO (igual dashboard)
+            // ============================================
+            doc.setFillColor(...azulEscuro);
             doc.rect(0, 0, width, 28, 'F');
             
-            // 2. LOGO BRANCA
-            doc.setTextColor(255, 255, 255);
+            // ============================================
+            // 2. LOGO À ESQUERDA (mesma posição original)
+            // ============================================
+            // Ícone
+            doc.setTextColor(azulPrimario);
             doc.setFont('helvetica', 'bold');
+            doc.setFontSize(18);
+            doc.text('●', 15, 15);
+            
+            // Texto "CAMBIO" em azul escuro
+            doc.setTextColor(azulPrimario);
             doc.setFontSize(16);
-            doc.text('CAMBIO BANK', 20, 15);
+            doc.text('CAMBIO', 30, 15);
             
-            // 3. LINHA AZUL
-            doc.setDrawColor(0, 100, 255); // Azul simples
-            doc.setLineWidth(2);
-            doc.line(20, 18, 20 + doc.getTextWidth('CAMBIO BANK'), 18);
+            // Texto "BANK" em azul claro (gradiente simulado)
+            doc.setTextColor(azulClaro);
+            doc.text('BANK', 30 + doc.getTextWidth('CAMBIO '), 15);
             
-            // 4. SUBTÍTULO CINZA
-            doc.setTextColor(200, 200, 200);
+            // ============================================
+            // 3. SUBTÍTULO ABAIXO (mesma posição original)
+            // ============================================
+            doc.setTextColor(cinzaClaro);
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(9);
-            doc.text('Wire Transfer Receipt', 20, 23);
+            doc.setFontSize(10);
+            doc.text('Wire Transfer Receipt', 30, 21);
             
-            // 5. ID AMARELO
-            doc.setTextColor(255, 255, 0);
+            // ============================================
+            // 4. ID À DIREITA (mesma posição original)
+            // ============================================
+            const idText = `ID: ${transferencia.id}`;
+            const idWidth = doc.getTextWidth(idText);
+            
+            doc.setTextColor(amarelo);
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(9);
-            const idText = `ID: ${transferencia.id}`;
-            doc.text(idText, width - 20, 15, { align: 'right' });
+            doc.text(idText, width - 15 - idWidth, 15);
             
-            // 6. DATA CINZA CLARO
-            doc.setTextColor(180, 180, 180);
+            // ============================================
+            // 5. DATA À DIREITA (mesma posição original)
+            // ============================================
+            const dataAtual = new Date().toLocaleString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            const dataText = dataAtual;
+            const dataWidth = doc.getTextWidth(dataText);
+            
+            doc.setTextColor(cinzaClaro);
+            doc.setFont('helvetica', 'normal');
             doc.setFontSize(8);
-            const dataAtual = new Date().toLocaleString('pt-BR');
-            doc.text(dataAtual, width - 20, 22, { align: 'right' });
+            doc.text(dataText, width - 15 - dataWidth, 21);
             
-            // 7. LINHA SEPARADORA
-            doc.setDrawColor(100, 100, 100);
-            doc.setLineWidth(0.3);
-            doc.line(10, 27, width - 10, 27);
+            // ============================================
+            // 6. LINHA DIVISÓRIA (nova cor do dashboard)
+            // ============================================
+            doc.setDrawColor(30, 35, 46); // #1e232e - cor da borda do dashboard
+            doc.setLineWidth(0.5);
+            doc.line(10, 26, width - 10, 26);
             
-            console.log('✅ Cabeçalho seguro aplicado');
+            console.log('✅ Cabeçalho atualizado - mesma disposição, novo visual');
         }
         
         _adicionarDadosTransferenciaKivy(doc, width, dados) {
