@@ -1564,19 +1564,19 @@
         }
         
         _adicionarCabecalhoKivy(doc, width, height, transferencia) {
-            // 🔥 VERSÃO SUPER SIMPLES - SEM CORES PROBLEMÁTICAS
+            // 🔥 VERSÃO COM ÍCONE E FUNDO AZUL
             
-            // 1. FUNDO PRETO (sempre funciona)
-            doc.setFillColor(0, 0, 0);
+            // 1. FUNDO AZUL MARINHO ORIGINAL
+            doc.setFillColor(20, 46, 82); // #142E52
             doc.rect(0, 0, width, 28, 'F');
             
-            // 2. LOGO BRANCA
+            // 2. LOGO COM ÍCONE (como antes)
             doc.setTextColor(255, 255, 255);
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(16);
-            doc.text('CAMBIO BANK', 20, 15);
+            doc.text('CÂMBIO BANK', 20, 15); // Note: com acento como antes
             
-            // 3. SUBTÍTULO CINZA
+            // 3. SUBTÍTULO
             doc.setTextColor(200, 200, 200);
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(10);
@@ -1586,24 +1586,23 @@
             const idText = `ID: ${transferencia.id}`;
             const idWidth = doc.getTextWidth(idText);
             
-            doc.setTextColor(255, 255, 0);
-            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(230, 230, 0); // Amarelo mais suave
+            doc.setFont('helvetica', 'normal');
             doc.setFontSize(9);
             doc.text(idText, width - 20 - idWidth, 15);
             
-            // 5. DATA CINZA
+            // 5. DATA CINZA CLARO
+            doc.setTextColor(200, 200, 200);
+            doc.setFontSize(8);
             const dataAtual = new Date().toLocaleString('pt-BR');
             const dataText = dataAtual;
             const dataWidth = doc.getTextWidth(dataText);
+            doc.text(dataText, width - 20 - dataWidth, 22);
             
-            doc.setTextColor(180, 180, 180);
-            doc.setFontSize(8);
-            doc.text(dataText, width - 20 - dataWidth, 21);
-            
-            // 6. LINHA CINZA
+            // 6. LINHA DIVISÓRIA
             doc.setDrawColor(100, 100, 100);
-            doc.setLineWidth(0.5);
-            doc.line(10, 26, width - 10, 26);
+            doc.setLineWidth(0.3);
+            doc.line(10, 30, width - 10, 30);
         }
         
         _adicionarDadosTransferenciaKivy(doc, width, dados) {
