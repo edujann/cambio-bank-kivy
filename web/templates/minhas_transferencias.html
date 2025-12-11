@@ -1478,26 +1478,27 @@
             const pageHeight = doc.internal.pageSize.getHeight();
             
             try {
-                // 1. CABEÇALHO
+                // 1. CABEÇALHO (mantém como está)
                 this._adicionarCabecalhoKivy(doc, pageWidth, pageHeight, transferencia);
                 
-                // 2. DADOS DA TRANSFERÊNCIA
+                // 2. DADOS DA TRANSFERÊNCIA (use a função compacta CORRETA)
                 let yPos = this._adicionarDadosTransferenciaKivy(doc, pageWidth, transferencia);
                 
-                // 3. BENEFICIÁRIO (BOX SEPARADO)
-                yPos = this._adicionarBeneficiarioKivy(doc, pageWidth, yPos, transferencia);
+                // 3. BENEFICIÁRIO (use a função compacta)
+                yPos = this._adicionarBeneficiarioCompacto(doc, pageWidth, yPos, transferencia);
                 
-                // 4. INFORMAÇÕES BANCÁRIAS (BOX SEPARADO)
-                yPos = this._adicionarInfoBancariaKivy(doc, pageWidth, yPos, transferencia);
+                // 4. INFORMAÇÕES BANCÁRIAS (use a função com layout corrigido)
+                yPos = this._adicionarInfoBancariaCorrigido(doc, pageWidth, yPos, transferencia);
                 
-                // 5. SWIFT PAYMENT DETAILS (BOX SEPARADO - apenas para completed)
+                // 5. SWIFT PAYMENT DETAILS (use a função compacta)
                 const status = this._getStatusNormalizado(transferencia.status);
-                if (status === 'COMPLETED' && transferencia.dados_swift_pagamento) {
-                    yPos = this._adicionarSwiftDetailsKivy(doc, pageWidth, yPos, transferencia.dados_swift_pagamento);
+                if (status === 'COMPLETED' && transferencia.dados_swift_pagamento && 
+                    Object.keys(transferencia.dados_swift_pagamento).length > 0) {
+                    yPos = this._adicionarSwiftDetailsCompacto(doc, pageWidth, yPos, transferencia.dados_swift_pagamento);
                 }
                 
-                // 6. RODAPÉ (POSIÇÃO AJUSTADA)
-                this._adicionarRodapeKivy(doc, pageWidth, pageHeight, yPos, transferencia);
+                // 6. RODAPÉ (use a função compacta)
+                this._adicionarRodapeCompacto(doc, pageWidth, pageHeight, yPos, transferencia);
                 
                 // 7. SALVAR
                 const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -1553,9 +1554,9 @@
         }
         
         _adicionarDadosTransferenciaKivy(doc, width, dados) {
-            let yPos = 40;
+            let yPos = 38; // 🔥 SUBIU 2mm
             
-            // STATUS
+            // 🔥 STATUS COMPACTADO
             const status = this._getStatusNormalizado(dados.status);
             const statusColors = {
                 'PENDING': [255, 165, 0],
@@ -1566,66 +1567,83 @@
             
             const color = statusColors[status] || [100, 100, 100];
             
-            // Caixa do status
-            const statusWidth = doc.getTextWidth(status) + 20;
+            // Caixa do status compacta
+            const statusWidth = doc.getTextWidth(status) + 16; // 🔥 REDUZIDO
             doc.setFillColor(...color);
-            doc.roundedRect(15, yPos, statusWidth, 10, 2, 2, 'F');
+            doc.roundedRect(15, yPos, statusWidth, 8, 1.5, 1.5, 'F'); // 🔥 ALTURA REDUZIDA
             
             // Texto do status
             doc.setTextColor(255, 255, 255);
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(9);
-            doc.text(status, 15 + (statusWidth - doc.getTextWidth(status)) / 2, yPos + 6.5);
+            doc.setFontSize(8); // 🔥 FONTE REDUZIDA
+            doc.text(status, 15 + (statusWidth - doc.getTextWidth(status)) / 2, yPos + 5.2);
             
-            yPos += 18;
+            yPos += 14; // 🔥 ESPAÇO REDUZIDO
             
-            // CAIXA DO VALOR (COM BORDA FINA)
+            // 🔥 TRANSFER AMOUNT COMPACTADO
             doc.setFillColor(247, 247, 247);
-            doc.roundedRect(15, yPos, width - 30, 20, 4, 4, 'F');
+            doc.roundedRect(15, yPos, width - 30, 16, 3, 3, 'F'); // 🔥 ALTURA REDUZIDA
             
-            // 🔥 ADICIONAR BORDA FINA
+            // Borda fina na caixa
             doc.setDrawColor(220, 220, 220);
             doc.setLineWidth(0.3);
-            doc.roundedRect(15, yPos, width - 30, 20, 4, 4, 'S');
+            doc.roundedRect(15, yPos, width - 30, 16, 3, 3, 'S');
             
             doc.setTextColor(80, 80, 80);
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(9);
-            doc.text('TRANSFER AMOUNT', 25, yPos + 8);
+            doc.setFontSize(8); // 🔥 FONTE REDUZIDA
+            doc.text('TRANSFER AMOUNT', 20, yPos + 6);
             
             const valorTexto = `${parseFloat(dados.valor || 0).toFixed(2)} ${dados.moeda || 'USD'}`;
             doc.setTextColor(20, 46, 82);
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(18);
-            doc.text(valorTexto, width / 2, yPos + 16, { align: 'center' });
+            doc.setFontSize(16); // 🔥 FONTE REDUZIDA
+            doc.text(valorTexto, width / 2, yPos + 12, { align: 'center' });
             
-            yPos += 32;
+            yPos += 24; // 🔥 ESPAÇO REDUZIDO
             
-            // INFORMAÇÕES GERAIS (2 colunas)
-            const col1X = 20;
-            const col2X = width / 2 + 15;
+            // 🔥 INFORMAÇÕES GERAIS COMPACTADAS
+            const col1X = 18;
+            const col2X = width / 2 + 12;
             
-            // 🔥 CORREÇÃO: DAR MAIS ESPAÇO ENTRE TYPE: E BENEFICIARY DETAILS
-            const dataFormatada = this._formatarDataParaDisplay(dados.data || dados.created_at);
+            // Formatar data
+            const formatarData = (dataString) => {
+                if (!dataString) return 'N/A';
+                try {
+                    const data = new Date(dataString);
+                    const dia = data.getDate().toString().padStart(2, '0');
+                    const mes = (data.getMonth() + 1).toString().padStart(2, '0');
+                    const ano = data.getFullYear();
+                    const horas = data.getHours().toString().padStart(2, '0');
+                    const minutos = data.getMinutes().toString().padStart(2, '0');
+                    const segundos = data.getSeconds().toString().padStart(2, '0');
+                    return `${dia}/${mes}/${ano} ${horas}:${minutos}:${segundos}`;
+                } catch {
+                    return dataString;
+                }
+            };
+            
+            const dataFormatada = formatarData(dados.data || dados.created_at);
             
             // Coluna 1
             doc.setTextColor(100, 100, 100);
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(8);
+            doc.setFontSize(8); // 🔥 FONTE REDUZIDA
             doc.text('Request Date:', col1X, yPos);
             
             doc.setTextColor(20, 46, 82);
             doc.setFont('helvetica', 'bold');
-            doc.text(dataFormatada, col1X, yPos + 5);
+            doc.setFontSize(8);
+            doc.text(dataFormatada, col1X, yPos + 4.5); // 🔥 ESPAÇO REDUZIDO
             
             doc.setTextColor(100, 100, 100);
             doc.setFont('helvetica', 'normal');
-            doc.text('Type:', col1X, yPos + 12);
+            doc.text('Type:', col1X, yPos + 10); // 🔥 ESPAÇO REDUZIDO
             
             const tipoTexto = dados.tipo === 'transferencia_internacional' ? 'International' : 'Internal';
             doc.setTextColor(20, 46, 82);
             doc.setFont('helvetica', 'bold');
-            doc.text(tipoTexto, col1X, yPos + 17);
+            doc.text(tipoTexto, col1X, yPos + 14.5); // 🔥 ESPAÇO REDUZIDO
             
             // Coluna 2
             doc.setTextColor(100, 100, 100);
@@ -1636,7 +1654,7 @@
             doc.setTextColor(20, 46, 82);
             doc.setFont('helvetica', 'bold');
             
-            // Quebra de linha inteligente
+            // Quebra de linha inteligente e compacta
             if (finalidade.length > 25) {
                 const palavras = finalidade.split(' ');
                 let linha1 = '';
@@ -1653,52 +1671,52 @@
                     }
                 }
                 
-                doc.text(linha1, col2X, yPos + 5);
+                doc.text(linha1, col2X, yPos + 4.5); // 🔥 ESPAÇO REDUZIDO
                 if (linha2) {
-                    doc.text(linha2, col2X, yPos + 10);
+                    doc.text(linha2, col2X, yPos + 9); // 🔥 ESPAÇO REDUZIDO
                     yPos += 5;
                 }
             } else {
-                doc.text(finalidade, col2X, yPos + 5);
+                doc.text(finalidade, col2X, yPos + 4.5); // 🔥 ESPAÇO REDUZIDO
             }
             
-            // Data de conclusão (apenas para COMPLETED)
+            // Data de conclusão (apenas para COMPLETED) - compactado
             if (status === 'COMPLETED' && dados.data_conclusao) {
                 doc.setTextColor(100, 100, 100);
                 doc.setFont('helvetica', 'normal');
-                doc.text('Completed Date:', col2X, yPos + 12);
+                doc.text('Completed Date:', col2X, yPos + 10); // 🔥 ESPAÇO REDUZIDO
                 
-                const dataConclusaoFormatada = this._formatarDataParaDisplay(dados.data_conclusao);
+                const dataConclusaoFormatada = formatarData(dados.data_conclusao);
                 doc.setTextColor(20, 46, 82);
                 doc.setFont('helvetica', 'bold');
-                doc.text(dataConclusaoFormatada, col2X, yPos + 17);
-                yPos += 10;
+                doc.text(dataConclusaoFormatada, col2X, yPos + 14.5); // 🔥 ESPAÇO REDUZIDO
+                yPos += 8; // 🔥 ESPAÇO REDUZIDO
             }
             
-            // 🔥 RETORNAR COM MAIS ESPAÇO PARA EVITAR SOBREPOSIÇÃO
-            return yPos + 25;
+            // 🔥 RETORNAR COM ESPAÇO ADEQUADO
+            return yPos + 20;
         }
         
-        _adicionarBeneficiarioKivy(doc, width, yPos, dados) {
-            // 🔥 CAIXA SEPARADA COM BORDA FINA
-            const boxHeight = 50; // Altura ajustada
+        _adicionarBeneficiarioCompacto(doc, width, yPos, dados) {
+            // 🔥 CAIXA COMPACTADA
+            const boxHeight = 45; // ALTURA REDUZIDA
             
             // Fundo cinza claro
             doc.setFillColor(250, 250, 250);
             doc.roundedRect(15, yPos, width - 30, boxHeight, 3, 3, 'F');
             
-            // 🔥 BORDA FINA EM VOLTA DO BOX
+            // Borda fina
             doc.setDrawColor(220, 220, 220);
             doc.setLineWidth(0.3);
             doc.roundedRect(15, yPos, width - 30, boxHeight, 3, 3, 'S');
             
-            // TÍTULO DA SEÇÃO
+            // TÍTULO
             doc.setTextColor(20, 46, 82);
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(10);
             doc.text('BENEFICIARY DETAILS', 20, yPos + 8);
             
-            // LINHA ABAIXO DO TÍTULO
+            // Linha
             doc.setDrawColor(20, 46, 82);
             doc.setLineWidth(0.8);
             const textWidth = doc.getTextWidth('BENEFICIARY DETAILS');
@@ -1708,7 +1726,7 @@
             const col2X = width / 2 + 15;
             let contentY = yPos + 18;
             
-            // NOME
+            // NOME (compactado)
             doc.setTextColor(120, 120, 120);
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(7);
@@ -1717,54 +1735,72 @@
             doc.setTextColor(20, 20, 20);
             doc.setFont('helvetica', 'normal');
             const nome = dados.beneficiario || 'N/A';
-            doc.text(nome, col1X, contentY + 4);
             
-            // ENDEREÇO
+            if (nome.length > 35) {
+                doc.text(nome.substring(0, 35), col1X, contentY + 3.5);
+                doc.text(nome.substring(35, 70), col1X, contentY + 7);
+                contentY += 7;
+            } else {
+                doc.text(nome, col1X, contentY + 3.5);
+            }
+            
+            contentY += 4;
+            
+            // ENDEREÇO (compactado)
             if (dados.endereco_beneficiario) {
                 doc.setTextColor(120, 120, 120);
                 doc.setFont('helvetica', 'bold');
-                doc.text('Address:', col1X, contentY + 10);
+                doc.text('Address:', col1X, contentY + 2);
                 
                 doc.setTextColor(20, 20, 20);
                 doc.setFont('helvetica', 'normal');
-                doc.text(dados.endereco_beneficiario, col1X, contentY + 14);
+                const endereco = dados.endereco_beneficiario;
+                
+                if (endereco.length > 35) {
+                    doc.text(endereco.substring(0, 35), col1X, contentY + 5.5);
+                    doc.text(endereco.substring(35, 70), col1X, contentY + 9);
+                    contentY += 9;
+                } else {
+                    doc.text(endereco, col1X, contentY + 5.5);
+                    contentY += 5;
+                }
             }
             
-            // CIDADE (coluna direita)
+            // CIDADE (coluna direita - compactado)
             if (dados.cidade) {
                 doc.setTextColor(120, 120, 120);
                 doc.setFont('helvetica', 'bold');
-                doc.text('City:', col2X, contentY);
+                doc.text('City:', col2X, yPos + 18);
                 
                 doc.setTextColor(20, 20, 20);
                 doc.setFont('helvetica', 'normal');
-                doc.text(dados.cidade, col2X, contentY + 4);
+                doc.text(dados.cidade, col2X, yPos + 21.5);
             }
             
-            // PAÍS (coluna direita)
+            // PAÍS (coluna direita - compactado)
             if (dados.pais) {
                 doc.setTextColor(120, 120, 120);
                 doc.setFont('helvetica', 'bold');
-                doc.text('Country:', col2X, contentY + 10);
+                doc.text('Country:', col2X, yPos + 28);
                 
                 doc.setTextColor(20, 20, 20);
                 doc.setFont('helvetica', 'normal');
-                doc.text(dados.pais, col2X, contentY + 14);
+                doc.text(dados.pais, col2X, yPos + 31.5);
             }
             
-            return yPos + boxHeight + 10;
+            return yPos + boxHeight + 8; // 🔥 ESPAÇO REDUZIDO
         }
         
-        _adicionarInfoBancariaKivy(doc, width, yPos, dados) {
+        _adicionarInfoBancariaCorrigido(doc, width, yPos, dados) {
             if (dados.tipo === 'transferencia_internacional') {
-                // 🔥 CAIXA SEPARADA COM BORDA FINA
-                const boxHeight = 70; // Altura ajustada
+                // 🔥 CAIXA COMPACTADA
+                const boxHeight = 65; // ALTURA REDUZIDA
                 
                 // Fundo cinza claro
                 doc.setFillColor(250, 250, 250);
                 doc.roundedRect(15, yPos, width - 30, boxHeight, 3, 3, 'F');
                 
-                // 🔥 BORDA FINA EM VOLTA DO BOX
+                // Borda fina
                 doc.setDrawColor(220, 220, 220);
                 doc.setLineWidth(0.3);
                 doc.roundedRect(15, yPos, width - 30, boxHeight, 3, 3, 'S');
@@ -1775,19 +1811,19 @@
                 doc.setFontSize(10);
                 doc.text('BANKING INFORMATION', 20, yPos + 8);
                 
-                // LINHA
+                // Linha
                 doc.setDrawColor(20, 46, 82);
                 doc.setLineWidth(0.8);
                 const textWidth = doc.getTextWidth('BANKING INFORMATION');
                 doc.line(20, yPos + 10.5, 20 + textWidth, yPos + 10.5);
                 
-                const col1X = 25;
-                const col2X = width / 2 + 15;
+                const col1X = 25;   // Coluna esquerda
+                const col2X = width / 2 + 20; // Coluna direita
                 let yEsquerda = yPos + 18;
                 let yDireita = yPos + 18;
                 
-                // 🔥 CORREÇÃO: COLUNA ESQUERDA - TODOS OS CAMPOS DO BANCO
-                // Beneficiary Bank
+                // 🔥 COLUNA ESQUERDA - 3 CAMPOS
+                // 1. Beneficiary Bank
                 if (dados.nome_banco) {
                     doc.setTextColor(120, 120, 120);
                     doc.setFont('helvetica', 'bold');
@@ -1797,11 +1833,19 @@
                     doc.setTextColor(20, 20, 20);
                     doc.setFont('helvetica', 'normal');
                     const banco = dados.nome_banco;
-                    doc.text(banco, col1X, yEsquerda + 4);
-                    yEsquerda += 10;
+                    
+                    // Truncar se muito longo
+                    if (banco.length > 30) {
+                        doc.text(banco.substring(0, 30), col1X, yEsquerda + 4);
+                        doc.text(banco.substring(30, 60), col1X, yEsquerda + 8);
+                        yEsquerda += 12;
+                    } else {
+                        doc.text(banco, col1X, yEsquerda + 4);
+                        yEsquerda += 8;
+                    }
                 }
                 
-                // Bank Address
+                // 2. Bank Address
                 if (dados.endereco_banco) {
                     doc.setTextColor(120, 120, 120);
                     doc.setFont('helvetica', 'bold');
@@ -1809,11 +1853,19 @@
                     
                     doc.setTextColor(20, 20, 20);
                     doc.setFont('helvetica', 'normal');
-                    doc.text(dados.endereco_banco, col1X, yEsquerda + 4);
-                    yEsquerda += 10;
+                    const endereco = dados.endereco_banco;
+                    
+                    if (endereco.length > 30) {
+                        doc.text(endereco.substring(0, 30), col1X, yEsquerda + 4);
+                        doc.text(endereco.substring(30, 60), col1X, yEsquerda + 8);
+                        yEsquerda += 12;
+                    } else {
+                        doc.text(endereco, col1X, yEsquerda + 4);
+                        yEsquerda += 8;
+                    }
                 }
                 
-                // Bank City
+                // 3. Bank City
                 if (dados.cidade_banco) {
                     doc.setTextColor(120, 120, 120);
                     doc.setFont('helvetica', 'bold');
@@ -1822,35 +1874,24 @@
                     doc.setTextColor(20, 20, 20);
                     doc.setFont('helvetica', 'normal');
                     doc.text(dados.cidade_banco, col1X, yEsquerda + 4);
-                    yEsquerda += 10;
+                    yEsquerda += 8;
                 }
                 
-                // 🔥 Bank Country (AGORA NA COLUNA ESQUERDA)
-                if (dados.pais_banco) {
-                    doc.setTextColor(120, 120, 120);
-                    doc.setFont('helvetica', 'bold');
-                    doc.text('Bank Country:', col1X, yEsquerda);
-                    
-                    doc.setTextColor(20, 20, 20);
-                    doc.setFont('helvetica', 'normal');
-                    doc.text(dados.pais_banco, col1X, yEsquerda + 4);
-                    yEsquerda += 10;
-                }
-                
-                // 🔥 COLUNA DIREITA - APENAS CÓDIGOS
-                // SWIFT/BIC Code
+                // 🔥 COLUNA DIREITA - 3 CAMPOS
+                // 1. SWIFT/BIC Code
                 if (dados.codigo_swift) {
                     doc.setTextColor(120, 120, 120);
                     doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(7);
                     doc.text('SWIFT/BIC Code:', col2X, yDireita);
                     
                     doc.setTextColor(20, 20, 20);
                     doc.setFont('helvetica', 'normal');
                     doc.text(dados.codigo_swift, col2X, yDireita + 4);
-                    yDireita += 10;
+                    yDireita += 8;
                 }
                 
-                // IBAN/Account
+                // 2. IBAN/Account
                 if (dados.iban_account) {
                     doc.setTextColor(120, 120, 120);
                     doc.setFont('helvetica', 'bold');
@@ -1858,11 +1899,31 @@
                     
                     doc.setTextColor(20, 20, 20);
                     doc.setFont('helvetica', 'normal');
-                    doc.text(dados.iban_account, col2X, yDireita + 4);
-                    yDireita += 10;
+                    const iban = dados.iban_account;
+                    
+                    if (iban.length > 25) {
+                        doc.text(iban.substring(0, 25), col2X, yDireita + 4);
+                        doc.text(iban.substring(25, 50), col2X, yDireita + 8);
+                        yDireita += 12;
+                    } else {
+                        doc.text(iban, col2X, yDireita + 4);
+                        yDireita += 8;
+                    }
                 }
                 
-                // ABA/Routing Code (se existir)
+                // 3. Bank Country
+                if (dados.pais_banco) {
+                    doc.setTextColor(120, 120, 120);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Bank Country:', col2X, yDireita);
+                    
+                    doc.setTextColor(20, 20, 20);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(dados.pais_banco, col2X, yDireita + 4);
+                    yDireita += 8;
+                }
+                
+                // ABA/Routing Code (extra - se existir)
                 if (dados.aba_routing) {
                     doc.setTextColor(120, 120, 120);
                     doc.setFont('helvetica', 'bold');
@@ -1871,24 +1932,28 @@
                     doc.setTextColor(20, 20, 20);
                     doc.setFont('helvetica', 'normal');
                     doc.text(dados.aba_routing, col2X, yDireita + 4);
-                    yDireita += 10;
+                    yDireita += 8;
                 }
                 
-                return yPos + boxHeight + 10;
+                return yPos + boxHeight + 8; // 🔥 ESPAÇO REDUZIDO
             }
             
             return yPos;
         }
         
-        _adicionarSwiftDetailsKivy(doc, width, yPos, dadosSwift) {
-            // 🔥 CAIXA SEPARADA COM BORDA FINA
-            const boxHeight = 140; // Altura ajustada
+        _adicionarSwiftDetailsCompacto(doc, width, yPos, dadosSwift) {
+            if (!dadosSwift || Object.keys(dadosSwift).length === 0) {
+                return yPos;
+            }
+            
+            // 🔥 CAIXA COMPACTADA
+            const boxHeight = 120; // ALTURA REDUZIDA
             
             // Fundo cinza claro
             doc.setFillColor(250, 250, 250);
             doc.roundedRect(15, yPos, width - 30, boxHeight, 3, 3, 'F');
             
-            // 🔥 BORDA FINA EM VOLTA DO BOX
+            // Borda fina
             doc.setDrawColor(220, 220, 220);
             doc.setLineWidth(0.3);
             doc.roundedRect(15, yPos, width - 30, boxHeight, 3, 3, 'S');
@@ -1899,42 +1964,55 @@
             doc.setFontSize(10);
             doc.text('SWIFT PAYMENT DETAILS', 20, yPos + 8);
             
-            // LINHA
+            // Linha
             doc.setDrawColor(20, 46, 82);
             doc.setLineWidth(0.8);
             const textWidth = doc.getTextWidth('SWIFT PAYMENT DETAILS');
             doc.line(20, yPos + 10.5, 20 + textWidth, yPos + 10.5);
             
             const xPos = 25;
-            const valorXPos = 40;
+            const valorXPos = 42; // 🔥 AJUSTADO PARA MAIS COMPACTO
             let yContent = yPos + 18;
             
-            doc.setFontSize(7);
+            doc.setFontSize(6.5); // 🔥 FONTE REDUZIDA
             
-            // Função auxiliar para adicionar linha SWIFT
+            // 🔥 FUNÇÃO COMPACTA PARA ADICIONAR LINHA SWIFT
             const adicionarLinhaSwift = (rotulo, valor, chave) => {
-                if (dadosSwift[chave]) {
+                if (dadosSwift[chave] && dadosSwift[chave].trim()) {
                     doc.setFont('helvetica', 'bold');
                     doc.setTextColor(120, 120, 120);
                     doc.text(rotulo, xPos, yContent);
                     
                     doc.setFont('helvetica', 'normal');
                     doc.setTextColor(20, 20, 20);
-                    doc.text(dadosSwift[chave], valorXPos, yContent);
-                    yContent += 10;
+                    
+                    // Quebrar linha se necessário
+                    const valorTexto = dadosSwift[chave];
+                    if (valorTexto.length > 60) {
+                        doc.text(valorTexto.substring(0, 60), valorXPos, yContent);
+                        yContent += 8; // 🔥 ESPAÇO REDUZIDO
+                        doc.text(valorTexto.substring(60, 120), valorXPos, yContent);
+                        yContent += 8; // 🔥 ESPAÇO REDUZIDO
+                    } else {
+                        doc.text(valorTexto, valorXPos, yContent);
+                        yContent += 8; // 🔥 ESPAÇO REDUZIDO
+                    }
                 }
             };
             
-            // Adicionar linhas SWIFT
+            // 🔥 ADICIONAR LINHAS SWIFT COM ORDEM CORRETA
+            // UETR# (linha mais importante primeiro)
             adicionarLinhaSwift('UETR#:', dadosSwift.linha1_uetr, 'linha1_uetr');
-            adicionarLinhaSwift(':20:', dadosSwift.linha2_20, 'linha2_20');
-            adicionarLinhaSwift(':32A:', dadosSwift.linha3_32a, 'linha3_32a');
-            adicionarLinhaSwift(':50K:', dadosSwift.linha4_50k, 'linha4_50k');
-            adicionarLinhaSwift(':57A:', dadosSwift.linha5_57a, 'linha5_57a');
-            adicionarLinhaSwift(':59:', dadosSwift.linha6_59, 'linha6_59');
             
-            // Beneficiário
-            if (dadosSwift.linha7_beneficiario) {
+            // Campos SWIFT padrão
+            adicionarLinhaSwift(':20:', dadosSwift.linha2_20, 'linha2_20');       // Transaction Reference
+            adicionarLinhaSwift(':32A:', dadosSwift.linha3_32a, 'linha3_32a');     // Value Date/Currency/Amount
+            adicionarLinhaSwift(':50K:', dadosSwift.linha4_50k, 'linha4_50k');     // Ordering Customer
+            adicionarLinhaSwift(':57A:', dadosSwift.linha5_57a, 'linha5_57a');     // Account With Institution
+            adicionarLinhaSwift(':59:', dadosSwift.linha6_59, 'linha6_59');        // Beneficiary Customer
+            
+            // 🔥 BENEFICIÁRIO (com tratamento especial para quebra de linha)
+            if (dadosSwift.linha7_beneficiario && dadosSwift.linha7_beneficiario.trim()) {
                 doc.setFont('helvetica', 'bold');
                 doc.setTextColor(120, 120, 120);
                 doc.text('Benef.:', xPos, yContent);
@@ -1943,49 +2021,51 @@
                 doc.setTextColor(20, 20, 20);
                 const benef = dadosSwift.linha7_beneficiario;
                 
+                // Quebrar em até 3 linhas se necessário
                 if (benef.length > 60) {
                     doc.text(benef.substring(0, 60), valorXPos, yContent);
-                    yContent += 10;
-                    doc.text(benef.substring(60, 120), valorXPos, yContent);
-                    yContent += 10;
+                    yContent += 8;
+                    
+                    if (benef.length > 120) {
+                        doc.text(benef.substring(60, 120), valorXPos, yContent);
+                        yContent += 8;
+                        doc.text(benef.substring(120, 180) + '...', valorXPos, yContent);
+                        yContent += 8;
+                    } else {
+                        doc.text(benef.substring(60), valorXPos, yContent);
+                        yContent += 8;
+                    }
                 } else {
                     doc.text(benef, valorXPos, yContent);
-                    yContent += 10;
+                    yContent += 8;
                 }
             }
             
-            adicionarLinhaSwift(':70:', dadosSwift.linha8_70, 'linha8_70');
-            adicionarLinhaSwift(':71A:', dadosSwift.linha9_71a, 'linha9_71a');
+            // Campos finais
+            adicionarLinhaSwift(':70:', dadosSwift.linha8_70, 'linha8_70');       // Remittance Information
+            adicionarLinhaSwift(':71A:', dadosSwift.linha9_71a, 'linha9_71a');    // Details of Charges
             
-            return yPos + boxHeight + 10;
+            return yPos + boxHeight + 8; // 🔥 ESPAÇO REDUZIDO
         }
         
-        _adicionarRodapeKivy(doc, width, height, currentYPos, dados) {
-            // 🔥 CALCULAR POSIÇÃO DO RODAPÉ BASEADO NO CONTEÚDO
-            // Garantir que o rodapé não fique muito baixo
-            const minFooterY = height - 40; // Mínimo 40mm do fundo
-            const footerY = Math.min(currentYPos + 20, minFooterY);
-            
-            // Se estiver muito perto do fundo, adicionar nova página?
-            if (footerY > height - 30) {
-                doc.addPage();
-                this._adicionarRodapeKivy(doc, width, height, 20, dados);
-                return;
-            }
+        _adicionarRodapeCompacto(doc, width, height, currentYPos, dados) {
+            // 🔥 CALCULAR POSIÇÃO DO RODAPÉ (MAIS PRÓXIMO DO CONTEÚDO)
+            const minSpace = 15; // Espaço mínimo abaixo do rodapé
+            const footerY = Math.min(currentYPos + 12, height - minSpace); // 🔥 REDUZIDO ESPAÇO ACIMA
             
             // LINHA DIVISÓRIA
             doc.setDrawColor(200, 200, 200);
             doc.setLineWidth(0.5);
             doc.line(10, footerY, width - 10, footerY);
             
-            // CAIXA DE STATUS FINAL
+            // CAIXA DE STATUS FINAL (COMPACTADA)
             doc.setFillColor(247, 247, 247);
-            doc.roundedRect(10, footerY + 5, width - 20, 12, 1, 1, 'F');
+            doc.roundedRect(10, footerY + 4, width - 20, 10, 1, 1, 'F'); // 🔥 ALTURA REDUZIDA
             
-            // Borda fina na caixa
+            // Borda fina
             doc.setDrawColor(220, 220, 220);
             doc.setLineWidth(0.3);
-            doc.roundedRect(10, footerY + 5, width - 20, 12, 1, 1, 'S');
+            doc.roundedRect(10, footerY + 4, width - 20, 10, 1, 1, 'S');
             
             // STATUS
             const status = this._getStatusNormalizado(dados.status);
@@ -1998,27 +2078,27 @@
             
             const color = statusColors[status] || [100, 100, 100];
             
-            // "STATUS:"
+            // "STATUS:" (compactado)
             doc.setTextColor(80, 80, 80);
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(9);
-            doc.text('STATUS:', 15, footerY + 12);
+            doc.setFontSize(8); // 🔥 FONTE REDUZIDA
+            doc.text('STATUS:', 15, footerY + 9.5);
             
             // STATUS COLORIDO
             doc.setTextColor(...color);
-            doc.text(status, 15 + doc.getTextWidth('STATUS: '), footerY + 12);
+            doc.text(status, 15 + doc.getTextWidth('STATUS: '), footerY + 9.5);
             
-            // INFORMAÇÕES INSTITUCIONAIS
+            // INFORMAÇÕES INSTITUCIONAIS (compactadas)
             doc.setTextColor(120, 120, 120);
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(7);
-            doc.text('Câmbio Bank - International Transfers', 15, footerY + 22);
-            doc.text('Automatically generated document', 15, footerY + 28);
+            doc.setFontSize(6.5); // 🔥 FONTE REDUZIDA
+            doc.text('Câmbio Bank - International Transfers', 15, footerY + 17);
+            doc.text('Automatically generated document', 15, footerY + 22);
             
-            // DATA DE EMISSÃO
+            // DATA DE EMISSÃO (compactada)
             const dataEmissao = new Date().toLocaleString('pt-BR');
-            doc.text(`Issued: ${dataEmissao}`, width - 15 - doc.getTextWidth(`Issued: ${dataEmissao}`), footerY + 22);
-            doc.text('Page 1 of 1', width - 15 - doc.getTextWidth('Page 1 of 1'), footerY + 28);
+            doc.text(`Issued: ${dataEmissao}`, width - 15 - doc.getTextWidth(`Issued: ${dataEmissao}`), footerY + 17);
+            doc.text('Page 1 of 1', width - 15 - doc.getTextWidth('Page 1 of 1'), footerY + 22);
         }
 
         _formatarDataParaDisplay(dataString) {
