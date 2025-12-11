@@ -1844,7 +1844,7 @@
                         yEsquerda += 12;
                     } else {
                         doc.text(banco, col1X, yEsquerda + 4);
-                        yEsquerda += 8;
+                        yEsquerda += 10;
                     }
                 }
                 
@@ -1864,7 +1864,7 @@
                         yEsquerda += 12;
                     } else {
                         doc.text(endereco, col1X, yEsquerda + 4);
-                        yEsquerda += 8;
+                        yEsquerda += 10;
                     }
                 }
                 
@@ -1877,7 +1877,7 @@
                     doc.setTextColor(20, 20, 20);
                     doc.setFont('helvetica', 'normal');
                     doc.text(dados.cidade_banco, col1X, yEsquerda + 4);
-                    yEsquerda += 8;
+                    yEsquerda += 10;
                 }
                 
                 // 🔥 COLUNA DIREITA - 3 CAMPOS
@@ -1891,7 +1891,7 @@
                     doc.setTextColor(20, 20, 20);
                     doc.setFont('helvetica', 'normal');
                     doc.text(dados.codigo_swift, col2X, yDireita + 4);
-                    yDireita += 8;
+                    yDireita += 10;
                 }
                 
                 // 2. IBAN/Account
@@ -1910,7 +1910,7 @@
                         yDireita += 12;
                     } else {
                         doc.text(iban, col2X, yDireita + 4);
-                        yDireita += 8;
+                        yDireita += 10;
                     }
                 }
                 
@@ -1923,7 +1923,7 @@
                     doc.setTextColor(20, 20, 20);
                     doc.setFont('helvetica', 'normal');
                     doc.text(dados.pais_banco, col2X, yDireita + 4);
-                    yDireita += 8;
+                    yDireita += 10;
                 }
                 
                 // ABA/Routing Code (extra - se existir)
@@ -1935,7 +1935,7 @@
                     doc.setTextColor(20, 20, 20);
                     doc.setFont('helvetica', 'normal');
                     doc.text(dados.aba_routing, col2X, yDireita + 4);
-                    yDireita += 8;
+                    yDireita += 10;
                 }
                 
                 return yPos + boxHeight + 6; // 🔥 ESPAÇO REDUZIDO
