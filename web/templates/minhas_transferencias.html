@@ -1478,29 +1478,44 @@
             const pageHeight = doc.internal.pageSize.getHeight();
             
             try {
-                // 1. CABEÇALHO (mantém como está)
+                // 1. CABEÇALHO
                 this._adicionarCabecalhoKivy(doc, pageWidth, pageHeight, transferencia);
                 
-                // 2. DADOS DA TRANSFERÊNCIA (use a função compacta CORRETA)
+                // 2. DADOS DA TRANSFERÊNCIA
                 let yPos = this._adicionarDadosTransferenciaKivy(doc, pageWidth, transferencia);
                 
-                // 3. BENEFICIÁRIO (use a função compacta)
+                // 🔥 GARANTIR POSIÇÃO FIXA PARA O BENEFICIARY DETAILS
+                const posicaoFixaBeneficiary = 100; // Posição fixa em mm
+                if (yPos < posicaoFixaBeneficiary) {
+                    yPos = posicaoFixaBeneficiary;
+                }
+                
+                // 3. BENEFICIÁRIO (na posição fixa)
                 yPos = this._adicionarBeneficiarioCompacto(doc, pageWidth, yPos, transferencia);
                 
-                // 4. INFORMAÇÕES BANCÁRIAS (use a função com layout corrigido)
+                // 4. INFORMAÇÕES BANCÁRIAS
                 yPos = this._adicionarInfoBancariaCorrigido(doc, pageWidth, yPos, transferencia);
                 
-                // 5. SWIFT PAYMENT DETAILS (use a função compacta)
+                // 5. SWIFT PAYMENT DETAILS (apenas COMPLETED)
                 const status = this._getStatusNormalizado(transferencia.status);
                 if (status === 'COMPLETED' && transferencia.dados_swift_pagamento && 
                     Object.keys(transferencia.dados_swift_pagamento).length > 0) {
                     yPos = this._adicionarSwiftDetailsCompacto(doc, pageWidth, yPos, transferencia.dados_swift_pagamento);
                 }
                 
-                // 6. RODAPÉ (use a função compacta)
-                this._adicionarRodapeCompacto(doc, pageWidth, pageHeight, yPos, transferencia);
+                // 🔥 6. GARANTIR ESPAÇO MÍNIMO ANTES DO RODAPÉ
+                const espacoMinimoAntesRodape = 30; // Espaço mínimo entre último conteúdo e rodapé
                 
-                // 7. SALVAR
+                // Se o conteúdo está muito alto, precisa de nova página
+                if (yPos > pageHeight - 50) {
+                    doc.addPage();
+                    yPos = 20; // Reinicia Y na nova página
+                }
+                
+                // 7. RODAPÉ SEMPRE NA MESMA POSIÇÃO (fixo na parte de baixo)
+                this._adicionarRodapeFixo(doc, pageWidth, pageHeight, transferencia);
+                
+                // 8. SALVAR
                 const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
                 const nomeArquivo = `comprovante_${transferencia.id}_${timestamp}.pdf`;
                 doc.save(nomeArquivo);
@@ -1556,7 +1571,7 @@
         _adicionarDadosTransferenciaKivy(doc, width, dados) {
             let yPos = 36;
             
-            // STATUS
+            // STATUS (mantém igual)
             const status = this._getStatusNormalizado(dados.status);
             const statusColors = {
                 'PENDING': [255, 165, 0],
@@ -1578,7 +1593,7 @@
             
             yPos += 14;
             
-            // TRANSFER AMOUNT
+            // TRANSFER AMOUNT (mantém igual)
             doc.setFillColor(247, 247, 247);
             doc.roundedRect(15, yPos, width - 30, 14, 3, 3, 'F');
             
@@ -1599,7 +1614,7 @@
             
             yPos += 20;
             
-            // INFORMAÇÕES GERAIS
+            // INFORMAÇÕES GERAIS (mantém igual)
             const col1X = 18;
             const col2X = width / 2 + 12;
             
@@ -1675,6 +1690,9 @@
                 doc.text(finalidade, col2X, yPos + 4.5);
             }
             
+            // 🔥 AJUSTE CRÍTICO: SEMPRE RETORNAR A MESMA POSIÇÃO
+            const posicaoFinalFixa = 85; // Posição fixa onde deve começar o Beneficiary
+            
             if (status === 'COMPLETED' && dados.data_conclusao) {
                 doc.setTextColor(100, 100, 100);
                 doc.setFont('helvetica', 'normal');
@@ -1684,10 +1702,16 @@
                 doc.setTextColor(20, 46, 82);
                 doc.setFont('helvetica', 'bold');
                 doc.text(dataConclusaoFormatada, col2X, yPos + 14.5);
-                yPos += 8;
+                
+                // Se for COMPLETED, já está na posição certa
+                return posicaoFinalFixa;
+            } else {
+                // Para outros status, adicionar espaço extra para igualar altura
+                const espacoExtra = 8; // Mesmo espaço que "Completed Date" ocuparia
+                doc.text('', col2X, yPos + 10); // Texto invisível para ocupar espaço
+                doc.text('', col2X, yPos + 14.5); // Texto invisível para ocupar espaço
+                return posicaoFinalFixa;
             }
-            
-            return yPos + 14;
         }
 
         _adicionarBeneficiarioCompacto(doc, width, yPos, dados) {
@@ -2043,10 +2067,9 @@
             return yPos + boxHeight + 3;
         }
         
-        _adicionarRodapeCompacto(doc, width, height, currentYPos, dados) {
-            // 🔥 CALCULAR POSIÇÃO DO RODAPÉ (MAIS PRÓXIMO DO CONTEÚDO)
-            const minSpace = 15; // Espaço mínimo abaixo do rodapé
-            const footerY = Math.min(currentYPos + 12, height - minSpace); // 🔥 REDUZIDO ESPAÇO ACIMA
+        _adicionarRodapeFixo(doc, width, height, dados) {
+            // 🔥 RODAPÉ SEMPRE NA MESMA POSIÇÃO (40mm do final da página)
+            const footerY = height - 40;
             
             // LINHA DIVISÓRIA
             doc.setDrawColor(200, 200, 200);
@@ -2055,7 +2078,7 @@
             
             // CAIXA DE STATUS FINAL (COMPACTADA)
             doc.setFillColor(247, 247, 247);
-            doc.roundedRect(10, footerY + 4, width - 20, 10, 1, 1, 'F'); // 🔥 ALTURA REDUZIDA
+            doc.roundedRect(10, footerY + 4, width - 20, 10, 1, 1, 'F');
             
             // Borda fina
             doc.setDrawColor(220, 220, 220);
@@ -2073,24 +2096,24 @@
             
             const color = statusColors[status] || [100, 100, 100];
             
-            // "STATUS:" (compactado)
+            // "STATUS:"
             doc.setTextColor(80, 80, 80);
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(8); // 🔥 FONTE REDUZIDA
+            doc.setFontSize(8);
             doc.text('STATUS:', 15, footerY + 9.5);
             
             // STATUS COLORIDO
             doc.setTextColor(...color);
             doc.text(status, 15 + doc.getTextWidth('STATUS: '), footerY + 9.5);
             
-            // INFORMAÇÕES INSTITUCIONAIS (compactadas)
+            // INFORMAÇÕES INSTITUCIONAIS
             doc.setTextColor(120, 120, 120);
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(6.5); // 🔥 FONTE REDUZIDA
+            doc.setFontSize(6.5);
             doc.text('Câmbio Bank - International Transfers', 15, footerY + 17);
             doc.text('Automatically generated document', 15, footerY + 22);
             
-            // DATA DE EMISSÃO (compactada)
+            // DATA DE EMISSÃO
             const dataEmissao = new Date().toLocaleString('pt-BR');
             doc.text(`Issued: ${dataEmissao}`, width - 15 - doc.getTextWidth(`Issued: ${dataEmissao}`), footerY + 17);
             doc.text('Page 1 of 1', width - 15 - doc.getTextWidth('Page 1 of 1'), footerY + 22);
