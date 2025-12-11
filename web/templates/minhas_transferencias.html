@@ -1564,69 +1564,48 @@
         }
         
         _adicionarCabecalhoKivy(doc, width, height, transferencia) {
-            // 🔥 CORES DO SEU DASHBOARD
-            const azulEscuro = [10, 14, 21];     // #0a0e15 - fundo
-            const azulPrimario = [26, 95, 180];  // #1a5fb4 - azul principal
-            const azulClaro = [45, 143, 255];    // #2d8fff - azul claro para gradiente
+            // 🔥 VERSÃO 100% FUNCIONAL - SEM RISCO
             
-            // 1. FUNDO AZUL ESCURO (GARANTIR QUE ESTÁ SENDO APLICADO)
-            doc.setFillColor(...azulEscuro);
-            doc.rect(0, 0, width, 32, 'F');
+            // 1. FUNDO PRETO (GARANTIDO)
+            doc.setFillColor(0, 0, 0);
+            doc.rect(0, 0, width, 28, 'F');
             
-            // 2. CABEÇALHO COM LOGO (SEM EMOJI PROBLEMÁTICO)
-            // Usar texto ao invés de emoji
+            // 2. LOGO BRANCA
             doc.setTextColor(255, 255, 255);
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(18);
-            
-            // 🔥 USAR "●" ou texto simples ao invés de emoji
-            doc.text('●', 18, 16); // Ponto decorativo
-            
-            // Texto "CAMBIO BANK" - VERIFICAR SE FONTE SUPORTA
-            doc.setTextColor(azulClaro[0], azulClaro[1], azulClaro[2]);
             doc.setFontSize(16);
+            doc.text('CAMBIO BANK', 20, 15);
             
-            // 🔥 TESTAR FONTE DIFERENTE SE PRECISAR
-            doc.setFont('helvetica', 'bold'); // Garantir fonte
-            doc.text('CAMBIO BANK', 35, 16);
+            // 3. LINHA AZUL
+            doc.setDrawColor(0, 100, 255); // Azul simples
+            doc.setLineWidth(2);
+            doc.line(20, 18, 20 + doc.getTextWidth('CAMBIO BANK'), 18);
             
-            // 3. VERIFICAR SE AS CORES ESTÃO SENDO APLICADAS
-            console.log('🎨 Cabeçalho - Cores aplicadas:');
-            console.log('   - Fundo:', azulEscuro);
-            console.log('   - Texto logo:', azulClaro);
-            
-            // 4. SUBTÍTULO
-            doc.setTextColor(180, 180, 180);
+            // 4. SUBTÍTULO CINZA
+            doc.setTextColor(200, 200, 200);
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(10);
-            doc.text('Wire Transfer Receipt', 35, 22);
+            doc.setFontSize(9);
+            doc.text('Wire Transfer Receipt', 20, 23);
             
-            // 5. ID DA TRANSFERÊNCIA
-            doc.setTextColor(255, 215, 0); // Amarelo ouro
+            // 5. ID AMARELO
+            doc.setTextColor(255, 255, 0);
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(9);
             const idText = `ID: ${transferencia.id}`;
-            const idWidth = doc.getTextWidth(idText);
-            doc.text(idText, width - 20 - idWidth, 16);
+            doc.text(idText, width - 20, 15, { align: 'right' });
             
-            // 6. DATA E HORA
-            doc.setTextColor(200, 200, 200);
+            // 6. DATA CINZA CLARO
+            doc.setTextColor(180, 180, 180);
             doc.setFontSize(8);
-            const dataAtual = new Date().toLocaleString('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            const dataText = dataAtual;
-            const dataWidth = doc.getTextWidth(dataText);
-            doc.text(dataText, width - 20 - dataWidth, 22);
+            const dataAtual = new Date().toLocaleString('pt-BR');
+            doc.text(dataAtual, width - 20, 22, { align: 'right' });
             
-            // 7. LINHA DIVISÓRIA
-            doc.setDrawColor(30, 35, 46); // #1e232e
+            // 7. LINHA SEPARADORA
+            doc.setDrawColor(100, 100, 100);
             doc.setLineWidth(0.3);
-            doc.line(15, 30, width - 15, 30);
+            doc.line(10, 27, width - 10, 27);
+            
+            console.log('✅ Cabeçalho seguro aplicado');
         }
         
         _adicionarDadosTransferenciaKivy(doc, width, dados) {
