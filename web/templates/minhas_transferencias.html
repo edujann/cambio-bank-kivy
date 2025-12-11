@@ -1554,7 +1554,7 @@
         }
         
         _adicionarDadosTransferenciaKivy(doc, width, dados) {
-            let yPos = 38; // 🔥 SUBIU 2mm
+            let yPos = 36; // 🔥 SUBIU 2mm
             
             // 🔥 STATUS COMPACTADO
             const status = this._getStatusNormalizado(dados.status);
@@ -1582,25 +1582,25 @@
             
             // 🔥 TRANSFER AMOUNT COMPACTADO
             doc.setFillColor(247, 247, 247);
-            doc.roundedRect(15, yPos, width - 30, 16, 3, 3, 'F'); // 🔥 ALTURA REDUZIDA
+            doc.roundedRect(15, yPos, width - 30, 14, 3, 3, 'F'); // 🔥 ALTURA REDUZIDA
             
             // Borda fina na caixa
             doc.setDrawColor(220, 220, 220);
             doc.setLineWidth(0.3);
-            doc.roundedRect(15, yPos, width - 30, 16, 3, 3, 'S');
+            doc.roundedRect(15, yPos, width - 30, 14, 3, 3, 'S');
             
             doc.setTextColor(80, 80, 80);
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(8); // 🔥 FONTE REDUZIDA
-            doc.text('TRANSFER AMOUNT', 20, yPos + 6);
+            doc.text('TRANSFER AMOUNT', 20, yPos + 5.5);
             
             const valorTexto = `${parseFloat(dados.valor || 0).toFixed(2)} ${dados.moeda || 'USD'}`;
             doc.setTextColor(20, 46, 82);
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(16); // 🔥 FONTE REDUZIDA
-            doc.text(valorTexto, width / 2, yPos + 12, { align: 'center' });
+            doc.setFontSize(14); // 🔥 FONTE REDUZIDA
+            doc.text(valorTexto, width / 2, yPos + 10.5, { align: 'center' });
             
-            yPos += 24; // 🔥 ESPAÇO REDUZIDO
+            yPos += 22; // 🔥 ESPAÇO REDUZIDO
             
             // 🔥 INFORMAÇÕES GERAIS COMPACTADAS
             const col1X = 18;
