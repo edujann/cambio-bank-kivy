@@ -1554,9 +1554,9 @@
         }
         
         _adicionarDadosTransferenciaKivy(doc, width, dados) {
-            let yPos = 36; // 🔥 SUBIU 2mm
+            let yPos = 36;
             
-            // 🔥 STATUS COMPACTADO
+            // STATUS
             const status = this._getStatusNormalizado(dados.status);
             const statusColors = {
                 'PENDING': [255, 165, 0],
@@ -1567,46 +1567,42 @@
             
             const color = statusColors[status] || [100, 100, 100];
             
-            // Caixa do status compacta
-            const statusWidth = doc.getTextWidth(status) + 16; // 🔥 REDUZIDO
+            const statusWidth = doc.getTextWidth(status) + 16;
             doc.setFillColor(...color);
-            doc.roundedRect(15, yPos, statusWidth, 8, 1.5, 1.5, 'F'); // 🔥 ALTURA REDUZIDA
+            doc.roundedRect(15, yPos, statusWidth, 8, 1.5, 1.5, 'F');
             
-            // Texto do status
             doc.setTextColor(255, 255, 255);
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(8); // 🔥 FONTE REDUZIDA
+            doc.setFontSize(8);
             doc.text(status, 15 + (statusWidth - doc.getTextWidth(status)) / 2, yPos + 5.2);
             
-            yPos += 14; // 🔥 ESPAÇO REDUZIDO
+            yPos += 14;
             
-            // 🔥 TRANSFER AMOUNT COMPACTADO
+            // TRANSFER AMOUNT
             doc.setFillColor(247, 247, 247);
-            doc.roundedRect(15, yPos, width - 30, 14, 3, 3, 'F'); // 🔥 ALTURA REDUZIDA
+            doc.roundedRect(15, yPos, width - 30, 14, 3, 3, 'F');
             
-            // Borda fina na caixa
             doc.setDrawColor(220, 220, 220);
             doc.setLineWidth(0.3);
             doc.roundedRect(15, yPos, width - 30, 14, 3, 3, 'S');
             
             doc.setTextColor(80, 80, 80);
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(8); // 🔥 FONTE REDUZIDA
+            doc.setFontSize(8);
             doc.text('TRANSFER AMOUNT', 20, yPos + 5.5);
             
             const valorTexto = `${parseFloat(dados.valor || 0).toFixed(2)} ${dados.moeda || 'USD'}`;
             doc.setTextColor(20, 46, 82);
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(14); // 🔥 FONTE REDUZIDA
+            doc.setFontSize(14);
             doc.text(valorTexto, width / 2, yPos + 10.5, { align: 'center' });
             
-            yPos += 20; // 🔥 ESPAÇO REDUZIDO
+            yPos += 20;
             
-            // 🔥 INFORMAÇÕES GERAIS COMPACTADAS
+            // INFORMAÇÕES GERAIS
             const col1X = 18;
             const col2X = width / 2 + 12;
             
-            // Formatar data
             const formatarData = (dataString) => {
                 if (!dataString) return 'N/A';
                 try {
@@ -1628,22 +1624,22 @@
             // Coluna 1
             doc.setTextColor(100, 100, 100);
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(8); // 🔥 FONTE REDUZIDA
+            doc.setFontSize(8);
             doc.text('Request Date:', col1X, yPos);
             
             doc.setTextColor(20, 46, 82);
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(8);
-            doc.text(dataFormatada, col1X, yPos + 4.5); // 🔥 ESPAÇO REDUZIDO
+            doc.text(dataFormatada, col1X, yPos + 4.5);
             
             doc.setTextColor(100, 100, 100);
             doc.setFont('helvetica', 'normal');
-            doc.text('Type:', col1X, yPos + 10); // 🔥 ESPAÇO REDUZIDO
+            doc.text('Type:', col1X, yPos + 10);
             
             const tipoTexto = dados.tipo === 'transferencia_internacional' ? 'International' : 'Internal';
             doc.setTextColor(20, 46, 82);
             doc.setFont('helvetica', 'bold');
-            doc.text(tipoTexto, col1X, yPos + 14.5); // 🔥 ESPAÇO REDUZIDO
+            doc.text(tipoTexto, col1X, yPos + 14.5);
             
             // Coluna 2
             doc.setTextColor(100, 100, 100);
@@ -1654,7 +1650,6 @@
             doc.setTextColor(20, 46, 82);
             doc.setFont('helvetica', 'bold');
             
-            // Quebra de linha inteligente e compacta
             if (finalidade.length > 25) {
                 const palavras = finalidade.split(' ');
                 let linha1 = '';
@@ -1671,92 +1666,89 @@
                     }
                 }
                 
-                doc.text(linha1, col2X, yPos + 4.5); // 🔥 ESPAÇO REDUZIDO
+                doc.text(linha1, col2X, yPos + 4.5);
                 if (linha2) {
-                    doc.text(linha2, col2X, yPos + 9); // 🔥 ESPAÇO REDUZIDO
+                    doc.text(linha2, col2X, yPos + 9);
                     yPos += 5;
                 }
             } else {
-                doc.text(finalidade, col2X, yPos + 4.5); // 🔥 ESPAÇO REDUZIDO
+                doc.text(finalidade, col2X, yPos + 4.5);
             }
             
-            // Data de conclusão (apenas para COMPLETED) - compactado
             if (status === 'COMPLETED' && dados.data_conclusao) {
                 doc.setTextColor(100, 100, 100);
                 doc.setFont('helvetica', 'normal');
-                doc.text('Completed Date:', col2X, yPos + 10); // 🔥 ESPAÇO REDUZIDO
+                doc.text('Completed Date:', col2X, yPos + 10);
                 
                 const dataConclusaoFormatada = formatarData(dados.data_conclusao);
                 doc.setTextColor(20, 46, 82);
                 doc.setFont('helvetica', 'bold');
-                doc.text(dataConclusaoFormatada, col2X, yPos + 14.5); // 🔥 ESPAÇO REDUZIDO
-                yPos += 8; // 🔥 ESPAÇO REDUZIDO
+                doc.text(dataConclusaoFormatada, col2X, yPos + 14.5);
+                yPos += 8;
             }
             
-            // 🔥 RETORNAR COM ESPAÇO ADEQUADO
             return yPos + 14;
         }
-        
+
         _adicionarBeneficiarioCompacto(doc, width, yPos, dados) {
-            // 🔥 CAIXA COMPACTADA
-            const boxHeight = 40; // ALTURA REDUZIDA
+            const boxHeight = 40;
             
-            // Fundo cinza claro
             doc.setFillColor(250, 250, 250);
             doc.roundedRect(15, yPos, width - 30, boxHeight, 3, 3, 'F');
             
-            // Borda fina
             doc.setDrawColor(220, 220, 220);
             doc.setLineWidth(0.3);
             doc.roundedRect(15, yPos, width - 30, boxHeight, 3, 3, 'S');
             
-            // TÍTULO
+            // TÍTULO (FONTE 10, SUBLINHADO 0.6)
             doc.setTextColor(20, 46, 82);
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(10);
             doc.text('BENEFICIARY DETAILS', 20, yPos + 8);
             
-            // Linha
             doc.setDrawColor(20, 46, 82);
-            doc.setLineWidth(0.8);
-            const textWidth = doc.getTextWidth('BENEFICIARY DETAILS');
-            doc.line(20, yPos + 10.5, 20 + textWidth, yPos + 10.5);
+            doc.setLineWidth(0.6); // 🔥 SUBLINHADO MAIS FINO
+            const textWidth1 = doc.getTextWidth('BENEFICIARY DETAILS');
+            doc.line(20, yPos + 10.5, 20 + textWidth1, yPos + 10.5);
             
             const col1X = 25;
             const col2X = width / 2 + 15;
             let contentY = yPos + 18;
             
-            // NOME
+            // NOME (FONTE 8)
             doc.setTextColor(120, 120, 120);
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(7);
+            doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
             doc.text('Name:', col1X, contentY);
 
             doc.setTextColor(20, 20, 20);
             doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
             const nome = dados.beneficiario || 'N/A';
 
             let nomeHeight = 0;
             if (nome.length > 35) {
                 doc.text(nome.substring(0, 35), col1X, contentY + 3.5);
                 doc.text(nome.substring(35, 70), col1X, contentY + 7);
-                nomeHeight = 10; // Nome ocupa 10mm (2 linhas)
+                nomeHeight = 10;
             } else {
                 doc.text(nome, col1X, contentY + 3.5);
-                nomeHeight = 6; // Nome ocupa 6mm (1 linha)
+                nomeHeight = 6;
             }
 
             contentY += nomeHeight;
-            contentY += 4; // 🔥 ESPAÇO ENTRE NAME E ADDRESS (igual a coluna direita)
+            contentY += 4;
 
-            // ENDEREÇO
+            // ENDEREÇO (FONTE 8)
             if (dados.endereco_beneficiario) {
                 doc.setTextColor(120, 120, 120);
                 doc.setFont('helvetica', 'bold');
-                doc.text('Address:', col1X, contentY); // 🔥 POSIÇÃO CORRIGIDA
+                doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
+                doc.text('Address:', col1X, contentY);
                 
                 doc.setTextColor(20, 20, 20);
                 doc.setFont('helvetica', 'normal');
+                doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
                 const endereco = dados.endereco_beneficiario;
                 
                 if (endereco.length > 35) {
@@ -1769,75 +1761,74 @@
                 }
             }
             
-            // CIDADE (coluna direita - compactado)
+            // CIDADE (FONTE 8)
             if (dados.cidade) {
                 doc.setTextColor(120, 120, 120);
                 doc.setFont('helvetica', 'bold');
+                doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
                 doc.text('City:', col2X, yPos + 18);
                 
                 doc.setTextColor(20, 20, 20);
                 doc.setFont('helvetica', 'normal');
+                doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
                 doc.text(dados.cidade, col2X, yPos + 21.5);
             }
             
-            // PAÍS (coluna direita - compactado)
+            // PAÍS (FONTE 8)
             if (dados.pais) {
                 doc.setTextColor(120, 120, 120);
                 doc.setFont('helvetica', 'bold');
+                doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
                 doc.text('Country:', col2X, yPos + 28);
                 
                 doc.setTextColor(20, 20, 20);
                 doc.setFont('helvetica', 'normal');
+                doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
                 doc.text(dados.pais, col2X, yPos + 31.5);
             }
             
-            return yPos + boxHeight + 6; // 🔥 ESPAÇO REDUZIDO
+            return yPos + boxHeight + 6;
         }
-        
+
         _adicionarInfoBancariaCorrigido(doc, width, yPos, dados) {
             if (dados.tipo === 'transferencia_internacional') {
-                // 🔥 CAIXA COMPACTADA
-                const boxHeight = 50; // ALTURA REDUZIDA
+                const boxHeight = 50;
                 
-                // Fundo cinza claro
                 doc.setFillColor(250, 250, 250);
                 doc.roundedRect(15, yPos, width - 30, boxHeight, 3, 3, 'F');
                 
-                // Borda fina
                 doc.setDrawColor(220, 220, 220);
                 doc.setLineWidth(0.3);
                 doc.roundedRect(15, yPos, width - 30, boxHeight, 3, 3, 'S');
                 
-                // TÍTULO
+                // TÍTULO (FONTE 10, SUBLINHADO 0.6)
                 doc.setTextColor(20, 46, 82);
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(10);
                 doc.text('BANKING INFORMATION', 20, yPos + 8);
                 
-                // Linha
                 doc.setDrawColor(20, 46, 82);
-                doc.setLineWidth(0.8);
-                const textWidth = doc.getTextWidth('BANKING INFORMATION');
-                doc.line(20, yPos + 10.5, 20 + textWidth, yPos + 10.5);
+                doc.setLineWidth(0.6); // 🔥 SUBLINHADO MAIS FINO
+                const textWidth2 = doc.getTextWidth('BANKING INFORMATION');
+                doc.line(20, yPos + 10.5, 20 + textWidth2, yPos + 10.5);
                 
-                const col1X = 25;   // Coluna esquerda
-                const col2X = width / 2 + 15; // Coluna direita
+                const col1X = 25;
+                const col2X = width / 2 + 15;
                 let yEsquerda = yPos + 18;
                 let yDireita = yPos + 18;
                 
-                // 🔥 COLUNA ESQUERDA - 3 CAMPOS
-                // 1. Beneficiary Bank
+                // Beneficiary Bank (FONTE 8)
                 if (dados.nome_banco) {
                     doc.setTextColor(120, 120, 120);
                     doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(7);
+                    doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
                     doc.text('Beneficiary Bank:', col1X, yEsquerda);
                     
                     doc.setTextColor(20, 20, 20);
                     doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
                     const banco = dados.nome_banco;
                     
-                    // Truncar se muito longo
                     if (banco.length > 30) {
                         doc.text(banco.substring(0, 30), col1X, yEsquerda + 4);
                         doc.text(banco.substring(30, 60), col1X, yEsquerda + 8);
@@ -1848,14 +1839,16 @@
                     }
                 }
                 
-                // 2. Bank Address
+                // Bank Address (FONTE 8)
                 if (dados.endereco_banco) {
                     doc.setTextColor(120, 120, 120);
                     doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
                     doc.text('Bank Address:', col1X, yEsquerda);
                     
                     doc.setTextColor(20, 20, 20);
                     doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
                     const endereco = dados.endereco_banco;
                     
                     if (endereco.length > 30) {
@@ -1868,40 +1861,44 @@
                     }
                 }
                 
-                // 3. Bank City
+                // Bank City (FONTE 8)
                 if (dados.cidade_banco) {
                     doc.setTextColor(120, 120, 120);
                     doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
                     doc.text('Bank City:', col1X, yEsquerda);
                     
                     doc.setTextColor(20, 20, 20);
                     doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
                     doc.text(dados.cidade_banco, col1X, yEsquerda + 4);
                     yEsquerda += 10;
                 }
                 
-                // 🔥 COLUNA DIREITA - 3 CAMPOS
-                // 1. SWIFT/BIC Code
+                // SWIFT/BIC Code (FONTE 8)
                 if (dados.codigo_swift) {
                     doc.setTextColor(120, 120, 120);
                     doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(7);
+                    doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
                     doc.text('SWIFT/BIC Code:', col2X, yDireita);
                     
                     doc.setTextColor(20, 20, 20);
                     doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
                     doc.text(dados.codigo_swift, col2X, yDireita + 4);
                     yDireita += 10;
                 }
                 
-                // 2. IBAN/Account
+                // IBAN/Account (FONTE 8)
                 if (dados.iban_account) {
                     doc.setTextColor(120, 120, 120);
                     doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
                     doc.text('IBAN/Account:', col2X, yDireita);
                     
                     doc.setTextColor(20, 20, 20);
                     doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
                     const iban = dados.iban_account;
                     
                     if (iban.length > 25) {
@@ -1914,97 +1911,95 @@
                     }
                 }
                 
-                // 3. Bank Country
+                // Bank Country (FONTE 8)
                 if (dados.pais_banco) {
                     doc.setTextColor(120, 120, 120);
                     doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
                     doc.text('Bank Country:', col2X, yDireita);
                     
                     doc.setTextColor(20, 20, 20);
                     doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
                     doc.text(dados.pais_banco, col2X, yDireita + 4);
                     yDireita += 10;
                 }
                 
-                // ABA/Routing Code (extra - se existir)
                 if (dados.aba_routing) {
                     doc.setTextColor(120, 120, 120);
                     doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
                     doc.text('ABA/Routing Code:', col2X, yDireita);
                     
                     doc.setTextColor(20, 20, 20);
                     doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
                     doc.text(dados.aba_routing, col2X, yDireita + 4);
                     yDireita += 10;
                 }
                 
-                return yPos + boxHeight + 4; // 🔥 ESPAÇO REDUZIDO
+                return yPos + boxHeight + 4;
             }
             
             return yPos;
         }
-        
+
         _adicionarSwiftDetailsCompacto(doc, width, yPos, dadosSwift) {
             if (!dadosSwift || Object.keys(dadosSwift).length === 0) {
                 return yPos;
             }
             
-            // 🔥 CAIXA MUITO MAIS COMPACTADA
-            const boxHeight = 60; // 🔥 ALTURA DRAMATICAMENTE REDUZIDA (de 90 para 60)
+            const boxHeight = 60;
             
-            // Fundo cinza claro
             doc.setFillColor(250, 250, 250);
             doc.roundedRect(15, yPos, width - 30, boxHeight, 3, 3, 'F');
             
-            // Borda fina
             doc.setDrawColor(220, 220, 220);
             doc.setLineWidth(0.3);
             doc.roundedRect(15, yPos, width - 30, boxHeight, 3, 3, 'S');
             
-            // TÍTULO (compactado)
+            // TÍTULO (FONTE 10, SUBLINHADO 0.6)
             doc.setTextColor(20, 46, 82);
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(10);
             doc.text('SWIFT PAYMENT DETAILS', 20, yPos + 7);
             
-            // Linha
             doc.setDrawColor(20, 46, 82);
-            doc.setLineWidth(0.8);
-            const textWidth = doc.getTextWidth('SWIFT PAYMENT DETAILS');
-            doc.line(20, yPos + 9.5, 20 + textWidth, yPos + 9.5);
+            doc.setLineWidth(0.6); // 🔥 SUBLINHADO MAIS FINO
+            const textWidth3 = doc.getTextWidth('SWIFT PAYMENT DETAILS');
+            doc.line(20, yPos + 9.5, 20 + textWidth3, yPos + 9.5);
             
             const xPos = 25;
             const valorXPos = 42;
             let yContent = yPos + 16;
             
-            // 🔥 FONTE AUMENTADA PARA 7 (IGUAL AOS OUTROS BOXES)
-            doc.setFontSize(7); // 🔥 ALTERADO: DE 6.5 PARA 7
+            // 🔥 FONTE 8 (PADRÃO COM OS OUTROS)
+            doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
             
-            // 🔥 FUNÇÃO COM ESPAÇAMENTO AINDA MAIS REDUZIDO
             const adicionarLinhaSwift = (rotulo, valor, chave) => {
                 if (dadosSwift[chave] && dadosSwift[chave].trim()) {
                     doc.setFont('helvetica', 'bold');
                     doc.setTextColor(120, 120, 120);
+                    doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
                     doc.text(rotulo, xPos, yContent);
                     
                     doc.setFont('helvetica', 'normal');
                     doc.setTextColor(20, 20, 20);
+                    doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
                     
-                    // Quebrar linha se necessário
                     const valorTexto = dadosSwift[chave];
-                    if (valorTexto.length > 55) { // 🔥 REDUZIDO DE 60 PARA 55
+                    if (valorTexto.length > 55) {
                         doc.text(valorTexto.substring(0, 55), valorXPos, yContent);
-                        yContent += 4.5; // 🔥 ESPAÇO AINDA MENOR: 5 → 4.5
+                        yContent += 4.5;
                         doc.text(valorTexto.substring(55, 110), valorXPos, yContent);
-                        yContent += 4.5; // 🔥 ESPAÇO AINDA MENOR
+                        yContent += 4.5;
                     } else {
                         doc.text(valorTexto, valorXPos, yContent);
-                        yContent += 4.5; // 🔥 ESPAÇO AINDA MENOR: 5 → 4.5
+                        yContent += 4.5;
                     }
                 }
             };
             
-            // 🔥 ADICIONAR LINHAS SWIFT
             adicionarLinhaSwift('UETR#:', dadosSwift.linha1_uetr, 'linha1_uetr');
             adicionarLinhaSwift(':20:', dadosSwift.linha2_20, 'linha2_20');
             adicionarLinhaSwift(':32A:', dadosSwift.linha3_32a, 'linha3_32a');
@@ -2012,51 +2007,40 @@
             adicionarLinhaSwift(':57A:', dadosSwift.linha5_57a, 'linha5_57a');
             adicionarLinhaSwift(':59:', dadosSwift.linha6_59, 'linha6_59');
             
-            // 🔥 BENEFICIÁRIO COM FONTE AUMENTADA
             if (dadosSwift.linha7_beneficiario && dadosSwift.linha7_beneficiario.trim()) {
                 doc.setFont('helvetica', 'bold');
                 doc.setTextColor(120, 120, 120);
+                doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
                 doc.text('Benef.:', xPos, yContent);
                 
                 doc.setFont('helvetica', 'normal');
                 doc.setTextColor(20, 20, 20);
+                doc.setFontSize(8); // 🔥 ALTERADO: 7 → 8
                 const benef = dadosSwift.linha7_beneficiario;
                 
-                // Quebrar em até 3 linhas se necessário
-                if (benef.length > 55) { // 🔥 REDUZIDO DE 60 PARA 55
+                if (benef.length > 55) {
                     doc.text(benef.substring(0, 55), valorXPos, yContent);
-                    yContent += 4.5; // 🔥 5 → 4.5
+                    yContent += 4.5;
                     
-                    if (benef.length > 110) { // 🔥 REDUZIDO DE 120 PARA 110
+                    if (benef.length > 110) {
                         doc.text(benef.substring(55, 110), valorXPos, yContent);
-                        yContent += 4.5; // 🔥 5 → 4.5
+                        yContent += 4.5;
                         doc.text(benef.substring(110, 165) + '...', valorXPos, yContent);
-                        yContent += 4.5; // 🔥 5 → 4.5
+                        yContent += 4.5;
                     } else {
                         doc.text(benef.substring(55), valorXPos, yContent);
-                        yContent += 4.5; // 🔥 5 → 4.5
+                        yContent += 4.5;
                     }
                 } else {
                     doc.text(benef, valorXPos, yContent);
-                    yContent += 4.5; // 🔥 5 → 4.5
+                    yContent += 4.5;
                 }
             }
             
-            // Campos finais
             adicionarLinhaSwift(':70:', dadosSwift.linha8_70, 'linha8_70');
             adicionarLinhaSwift(':71A:', dadosSwift.linha9_71a, 'linha9_71a');
             
-            // 🔥 CALCULAR SE PRECISAMOS REDUZIR AINDA MAIS
-            const alturaUsada = yContent - yPos;
-            
-            // Se o conteúdo não preencheu o box, podemos reduzir mais
-            if (alturaUsada < boxHeight - 10) {
-                // Podemos reduzir boxHeight para alturaUsada + 10mm de margem
-                // Mas vamos manter como está por enquanto
-            }
-            
-            // 🔥 RETORNAR COM ESPAÇO MÍNIMO
-            return yPos + boxHeight + 3; // 🔥 ESPAÇO REDUZIDO: 4 → 3
+            return yPos + boxHeight + 3;
         }
         
         _adicionarRodapeCompacto(doc, width, height, currentYPos, dados) {
