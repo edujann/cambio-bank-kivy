@@ -1821,7 +1821,7 @@
                 doc.line(20, yPos + 10.5, 20 + textWidth, yPos + 10.5);
                 
                 const col1X = 25;   // Coluna esquerda
-                const col2X = width / 2 + 20; // Coluna direita
+                const col2X = width / 2 + 15; // Coluna direita
                 let yEsquerda = yPos + 18;
                 let yDireita = yPos + 18;
                 
@@ -1949,8 +1949,8 @@
                 return yPos;
             }
             
-            // 🔥 CAIXA COMPACTADA
-            const boxHeight = 110; // ALTURA REDUZIDA
+            // 🔥 CAIXA MAIS COMPACTADA
+            const boxHeight = 90; // 🔥 ALTURA REDUZIDA SIGNIFICATIVAMENTE (de 110 para 90)
             
             // Fundo cinza claro
             doc.setFillColor(250, 250, 250);
@@ -1961,25 +1961,25 @@
             doc.setLineWidth(0.3);
             doc.roundedRect(15, yPos, width - 30, boxHeight, 3, 3, 'S');
             
-            // TÍTULO
+            // TÍTULO (compactado)
             doc.setTextColor(20, 46, 82);
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(10);
-            doc.text('SWIFT PAYMENT DETAILS', 20, yPos + 8);
+            doc.text('SWIFT PAYMENT DETAILS', 20, yPos + 7); // 🔥 SUBIU 1mm
             
             // Linha
             doc.setDrawColor(20, 46, 82);
             doc.setLineWidth(0.8);
             const textWidth = doc.getTextWidth('SWIFT PAYMENT DETAILS');
-            doc.line(20, yPos + 10.5, 20 + textWidth, yPos + 10.5);
+            doc.line(20, yPos + 9.5, 20 + textWidth, yPos + 9.5); // 🔥 AJUSTADO
             
             const xPos = 25;
-            const valorXPos = 42; // 🔥 AJUSTADO PARA MAIS COMPACTO
-            let yContent = yPos + 18;
+            const valorXPos = 42;
+            let yContent = yPos + 16; // 🔥 SUBIU 2mm (de 18 para 16)
             
-            doc.setFontSize(6.5); // 🔥 FONTE REDUZIDA
+            doc.setFontSize(6.5);
             
-            // 🔥 FUNÇÃO COMPACTA PARA ADICIONAR LINHA SWIFT
+            // 🔥 FUNÇÃO COMPACTA COM ESPAÇAMENTO REDUZIDO
             const adicionarLinhaSwift = (rotulo, valor, chave) => {
                 if (dadosSwift[chave] && dadosSwift[chave].trim()) {
                     doc.setFont('helvetica', 'bold');
@@ -1993,28 +1993,25 @@
                     const valorTexto = dadosSwift[chave];
                     if (valorTexto.length > 60) {
                         doc.text(valorTexto.substring(0, 60), valorXPos, yContent);
-                        yContent += 8; // 🔥 ESPAÇO REDUZIDO
+                        yContent += 5; // 🔥 ESPAÇO REDUZIDO: 8 → 5
                         doc.text(valorTexto.substring(60, 120), valorXPos, yContent);
-                        yContent += 8; // 🔥 ESPAÇO REDUZIDO
+                        yContent += 5; // 🔥 ESPAÇO REDUZIDO: 8 → 5
                     } else {
                         doc.text(valorTexto, valorXPos, yContent);
-                        yContent += 8; // 🔥 ESPAÇO REDUZIDO
+                        yContent += 5; // 🔥 ESPAÇO REDUZIDO: 8 → 5
                     }
                 }
             };
             
-            // 🔥 ADICIONAR LINHAS SWIFT COM ORDEM CORRETA
-            // UETR# (linha mais importante primeiro)
+            // 🔥 ADICIONAR LINHAS SWIFT COM ESPAÇAMENTO REDUZIDO
             adicionarLinhaSwift('UETR#:', dadosSwift.linha1_uetr, 'linha1_uetr');
+            adicionarLinhaSwift(':20:', dadosSwift.linha2_20, 'linha2_20');
+            adicionarLinhaSwift(':32A:', dadosSwift.linha3_32a, 'linha3_32a');
+            adicionarLinhaSwift(':50K:', dadosSwift.linha4_50k, 'linha4_50k');
+            adicionarLinhaSwift(':57A:', dadosSwift.linha5_57a, 'linha5_57a');
+            adicionarLinhaSwift(':59:', dadosSwift.linha6_59, 'linha6_59');
             
-            // Campos SWIFT padrão
-            adicionarLinhaSwift(':20:', dadosSwift.linha2_20, 'linha2_20');       // Transaction Reference
-            adicionarLinhaSwift(':32A:', dadosSwift.linha3_32a, 'linha3_32a');     // Value Date/Currency/Amount
-            adicionarLinhaSwift(':50K:', dadosSwift.linha4_50k, 'linha4_50k');     // Ordering Customer
-            adicionarLinhaSwift(':57A:', dadosSwift.linha5_57a, 'linha5_57a');     // Account With Institution
-            adicionarLinhaSwift(':59:', dadosSwift.linha6_59, 'linha6_59');        // Beneficiary Customer
-            
-            // 🔥 BENEFICIÁRIO (com tratamento especial para quebra de linha)
+            // 🔥 BENEFICIÁRIO COM ESPAÇAMENTO REDUZIDO
             if (dadosSwift.linha7_beneficiario && dadosSwift.linha7_beneficiario.trim()) {
                 doc.setFont('helvetica', 'bold');
                 doc.setTextColor(120, 120, 120);
@@ -2027,28 +2024,38 @@
                 // Quebrar em até 3 linhas se necessário
                 if (benef.length > 60) {
                     doc.text(benef.substring(0, 60), valorXPos, yContent);
-                    yContent += 8;
+                    yContent += 5; // 🔥 8 → 5
                     
                     if (benef.length > 120) {
                         doc.text(benef.substring(60, 120), valorXPos, yContent);
-                        yContent += 8;
+                        yContent += 5; // 🔥 8 → 5
                         doc.text(benef.substring(120, 180) + '...', valorXPos, yContent);
-                        yContent += 8;
+                        yContent += 5; // 🔥 8 → 5
                     } else {
                         doc.text(benef.substring(60), valorXPos, yContent);
-                        yContent += 8;
+                        yContent += 5; // 🔥 8 → 5
                     }
                 } else {
                     doc.text(benef, valorXPos, yContent);
-                    yContent += 8;
+                    yContent += 5; // 🔥 8 → 5
                 }
             }
             
             // Campos finais
-            adicionarLinhaSwift(':70:', dadosSwift.linha8_70, 'linha8_70');       // Remittance Information
-            adicionarLinhaSwift(':71A:', dadosSwift.linha9_71a, 'linha9_71a');    // Details of Charges
+            adicionarLinhaSwift(':70:', dadosSwift.linha8_70, 'linha8_70');
+            adicionarLinhaSwift(':71A:', dadosSwift.linha9_71a, 'linha9_71a');
             
-            return yPos + boxHeight + 6; // 🔥 ESPAÇO REDUZIDO
+            // 🔥 CALCULAR QUANTO ESPAÇO FOI USADO REALMENTE
+            const conteudoUsado = yContent - (yPos + 16);
+            const espacoVazio = boxHeight - (yContent - yPos);
+            
+            // Se ainda tem muito espaço vazio, podemos reduzir mais a altura do box
+            // Mas vamos manter um mínimo de 5mm de margem inferior
+            const margemInferior = 5;
+            const alturaNecessaria = conteudoUsado + 16 + margemInferior; // 16 = espaço do título
+            
+            // 🔥 RETORNAR COM ESPAÇO MÍNIMO APÓS O BOX
+            return yPos + boxHeight + 4; // 🔥 ESPAÇO REDUZIDO: 6 → 4
         }
         
         _adicionarRodapeCompacto(doc, width, height, currentYPos, dados) {
