@@ -383,8 +383,9 @@ def get_dashboard_saldos():
 
 @app.route('/logout')
 def logout():
-    """Limpa a sessão e faz logout"""
-    session.clear()
+    """Limpa COMPLETAMENTE a sessão e faz logout"""
+    session.clear()  # ← Remove TODAS as chaves da sessão
+    print("✅ Sessão completamente limpa - logout realizado")
     return redirect('/login')
 
 @app.route('/api/transacoes')
@@ -1173,53 +1174,58 @@ def get_beneficiario_web(benef_id):
 def minhas_transferencias():
     """Tela de minhas transferências (histórico, status, invoices, comprovantes)"""
     
-    # MÉTODO 1: Verificar sessão Flask
-    if 'usuario' in session:
-        usuario = session['usuario']
+    # ✅ CORREÇÃO: usar 'username' (igual ao login), não 'usuario'
+    usuario = session.get('username')
+    
+    if usuario:
         print(f"✅ [SESSÃO] Usuário {usuario} acessando minhas-transferencias")
-    
-    # MÉTODO 2: Verificar parâmetro na URL (fallback)
-    elif request.args.get('usuario'):
-        usuario = request.args.get('usuario')
-        print(f"✅ [URL PARAM] Usuário {usuario} acessando minhas-transferencias via URL")
-        
-        # Armazenar na sessão para futuras requisições
-        session['usuario'] = usuario
-    
-    # MÉTODO 3: Tentar extrair do referer ou cabeçalhos
-    elif request.referrer and 'usuario=' in request.referrer:
-        # Extrair usuário da URL de referência
-        import urllib.parse
-        referrer_url = urllib.parse.urlparse(request.referrer)
-        query_params = urllib.parse.parse_qs(referrer_url.query)
-        if 'usuario' in query_params:
-            usuario = query_params['usuario'][0]
-            print(f"✅ [REFERER] Usuário {usuario} acessando minhas-transferencias via referer")
-            session['usuario'] = usuario
-    
-    # NENHUM MÉTODO FUNCIONOU: Redirecionar para login
     else:
-        print(f"⚠️ Nenhum método de autenticação funcionou para minhas-transferencias")
-        print(f"   Sessão: {dict(session)}")
-        print(f"   Args: {dict(request.args)}")
-        print(f"   Referer: {request.referrer}")
-        return redirect('/login')
+        # Fallback: tentar parâmetro da URL
+        usuario = request.args.get('usuario')
+        
+        if usuario:
+            print(f"✅ [URL PARAM] Usuário {usuario} acessando minhas-transferencias via URL")
+            # Salva na sessão com a chave CORRETA
+            session['username'] = usuario
+        else:
+            print(f"❌ Nenhum usuário autenticado")
+            return redirect('/login')
     
-    # Renderizar template com dados do usuário
+    # Buscar dados do usuário para o template
+    email = f'{usuario}@exemplo.com'
+    nome = usuario.upper()
+    
+    try:
+        if supabase:
+            response = supabase.table('usuarios')\
+                .select('email, nome')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if response.data:
+                if response.data.get('email'):
+                    email = response.data['email']
+                if response.data.get('nome'):
+                    nome = response.data['nome']
+    except Exception as e:
+        print(f"⚠️  Erro ao buscar usuário: {e}")
+    
+    # Renderizar template
     return render_template('minhas_transferencias.html',
                          usuario=usuario,
-                         nome=session.get('nome') or usuario,
-                         email=session.get('email') or '')
+                         nome=nome,
+                         email=email)
 
 # === NOVO ENDPOINT PARA TRANSFERÊNCIAS INTERNACIONAIS ===
 @app.route('/api/transferencias-internacionais')
 def api_transferencias_internacionais():
     """API para buscar transferências internacionais do usuário logado"""
     
-    if 'usuario' not in session:
+    if 'username' not in session:  # ✅ CORRIGIDO
         return jsonify({'error': 'Não autenticado'}), 401
     
-    usuario_nome = session['usuario']
+    usuario_nome = session['username']  # ✅ CORRIGIDO
     print(f"🔍 [API] Buscando transferências internacionais para: {usuario_nome}")
     
     try:
@@ -1372,6 +1378,110 @@ def api_transferencias_internacionais():
         import traceback
         traceback.print_exc()
         return jsonify([])
+    
+# === ENDPOINT ESPECÍFICO PARA PDF ===
+@app.route('/api/transferencias/<int:transferencia_id>/completo')
+def transferencia_completa(transferencia_id):
+    """Retorna TODOS os dados de uma transferência específica para o PDF"""
+    
+    if 'username' not in session:  # ✅ CORRIGIDO
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    usuario_nome = session['username']  # ✅ CORRIGIDO
+    print(f"📄 [PDF API] Buscando dados completos para transferência {transferencia_id}")
+    
+    try:
+        # Buscar transferência específica
+        response = supabase.table('transferencias').select('*').eq('id', transferencia_id).execute()
+        
+        if not response.data:
+            print(f"❌ Transferência {transferencia_id} não encontrada")
+            return jsonify({'error': 'Transferência não encontrada'}), 404
+        
+        transferencia = response.data[0]
+        
+        # Verificar se o usuário tem permissão para ver esta transferência
+        usuario_permitido = (
+            transferencia.get('cliente') == usuario_nome or
+            transferencia.get('usuario') == usuario_nome or
+            usuario_nome in transferencia.get('conta_remetente', '')
+        )
+        
+        if not usuario_permitido:
+            print(f"⚠️ Usuário {usuario_nome} não tem permissão para ver transferência {transferencia_id}")
+            return jsonify({'error': 'Acesso não autorizado'}), 403
+        
+        # 🔥 CORREÇÃO CRÍTICA: Garantir que dados_swift_pagamento seja um dict
+        dados_swift_raw = transferencia.get('dados_swift_pagamento')
+        dados_swift = {}
+        
+        if dados_swift_raw:
+            if isinstance(dados_swift_raw, dict):
+                dados_swift = dados_swift_raw
+            elif isinstance(dados_swift_raw, str):
+                try:
+                    # Tentar parsear JSON string
+                    import json
+                    dados_swift = json.loads(dados_swift_raw)
+                except:
+                    print(f"⚠️ Não foi possível parsear dados_swift_pagamento: {dados_swift_raw}")
+                    # Criar dicionário vazio se não conseguir parsear
+                    dados_swift = {}
+        
+        print(f"✅ Dados SWIFT encontrados: {bool(dados_swift)}")
+        if dados_swift:
+            print(f"   Keys SWIFT: {list(dados_swift.keys())}")
+        
+        # Preparar resposta completa
+        dados_formatados = {
+            'id': transferencia.get('id'),
+            'status': transferencia.get('status', 'solicitada').lower(),
+            'valor': float(transferencia.get('valor', 0)),
+            'moeda': transferencia.get('moeda', 'USD'),
+            'data': transferencia.get('data') or transferencia.get('data_solicitacao') or transferencia.get('created_at'),
+            'data_conclusao': transferencia.get('data_conclusao'),
+            'tipo': transferencia.get('tipo', 'transferencia_internacional'),
+            'finalidade': transferencia.get('finalidade', 'Not informed'),
+            
+            # 🔥 DADOS DO BENEFICIÁRIO (garantir que existem)
+            'beneficiario': transferencia.get('beneficiario', ''),
+            'endereco_beneficiario': transferencia.get('endereco_beneficiario', ''),
+            'cidade': transferencia.get('cidade', ''),
+            'pais': transferencia.get('pais', ''),
+            
+            # 🔥 DADOS DO BANCO (garantir que existem)
+            'nome_banco': transferencia.get('nome_banco', ''),
+            'endereco_banco': transferencia.get('endereco_banco', ''),
+            'cidade_banco': transferencia.get('cidade_banco', ''),
+            'pais_banco': transferencia.get('pais_banco', ''),
+            'codigo_swift': transferencia.get('codigo_swift', ''),
+            'iban_account': transferencia.get('iban_account', ''),
+            'aba_routing': transferencia.get('aba_routing', ''),
+            
+            # 🔥 DADOS SWIFT (CRÍTICO!)
+            'dados_swift_pagamento': dados_swift,
+            
+            # Informações adicionais
+            'cliente': transferencia.get('cliente', ''),
+            'usuario': transferencia.get('usuario', ''),
+            'conta_remetente': transferencia.get('conta_remetente', ''),
+            'solicitado_por': transferencia.get('solicitado_por', ''),
+            'descricao': transferencia.get('descricao', ''),
+            'motivo_recusa': transferencia.get('motivo_recusa', ''),
+            'created_at': transferencia.get('created_at')
+        }
+        
+        print(f"✅ [PDF API] Dados preparados para transferência {transferencia_id}")
+        print(f"   Status: {dados_formatados['status']}")
+        print(f"   Tem SWIFT: {bool(dados_formatados['dados_swift_pagamento'])}")
+        
+        return jsonify(dados_formatados)
+        
+    except Exception as e:
+        print(f"❌ [PDF API] Erro: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Erro interno do servidor'}), 500
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
