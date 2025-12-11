@@ -1564,85 +1564,46 @@
         }
         
         _adicionarCabecalhoKivy(doc, width, height, transferencia) {
-            // 🔥 MESMA DISPOSIÇÃO DO ORIGINAL, NOVO VISUAL DO DASHBOARD
+            // 🔥 VERSÃO SUPER SIMPLES - SEM CORES PROBLEMÁTICAS
             
-            // CORES DO DASHBOARD
-            const azulEscuro = [10, 14, 21];     // #0a0e15 - fundo
-            const azulPrimario = [26, 95, 180];  // #1a5fb4 - azul escuro do logo
-            const azulClaro = [45, 143, 255];    // #2d8fff - azul claro do logo
-            const amarelo = [255, 215, 0];       // Amarelo para ID
-            const cinzaClaro = [200, 200, 200];  // Cinza para data
-            
-            // ============================================
-            // 1. FUNDO AZUL ESCURO (igual dashboard)
-            // ============================================
-            doc.setFillColor(...azulEscuro);
+            // 1. FUNDO PRETO (sempre funciona)
+            doc.setFillColor(0, 0, 0);
             doc.rect(0, 0, width, 28, 'F');
             
-            // ============================================
-            // 2. LOGO À ESQUERDA (mesma posição original)
-            // ============================================
-            // Ícone
-            doc.setTextColor(azulPrimario);
+            // 2. LOGO BRANCA
+            doc.setTextColor(255, 255, 255);
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(18);
-            doc.text('●', 15, 15);
-            
-            // Texto "CAMBIO" em azul escuro
-            doc.setTextColor(azulPrimario);
             doc.setFontSize(16);
-            doc.text('CAMBIO', 30, 15);
+            doc.text('CAMBIO BANK', 20, 15);
             
-            // Texto "BANK" em azul claro (gradiente simulado)
-            doc.setTextColor(azulClaro);
-            doc.text('BANK', 30 + doc.getTextWidth('CAMBIO '), 15);
-            
-            // ============================================
-            // 3. SUBTÍTULO ABAIXO (mesma posição original)
-            // ============================================
-            doc.setTextColor(cinzaClaro);
+            // 3. SUBTÍTULO CINZA
+            doc.setTextColor(200, 200, 200);
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(10);
-            doc.text('Wire Transfer Receipt', 30, 21);
+            doc.text('Wire Transfer Receipt', 20, 21);
             
-            // ============================================
-            // 4. ID À DIREITA (mesma posição original)
-            // ============================================
+            // 4. ID AMARELO
             const idText = `ID: ${transferencia.id}`;
             const idWidth = doc.getTextWidth(idText);
             
-            doc.setTextColor(amarelo);
+            doc.setTextColor(255, 255, 0);
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(9);
-            doc.text(idText, width - 15 - idWidth, 15);
+            doc.text(idText, width - 20 - idWidth, 15);
             
-            // ============================================
-            // 5. DATA À DIREITA (mesma posição original)
-            // ============================================
-            const dataAtual = new Date().toLocaleString('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
+            // 5. DATA CINZA
+            const dataAtual = new Date().toLocaleString('pt-BR');
             const dataText = dataAtual;
             const dataWidth = doc.getTextWidth(dataText);
             
-            doc.setTextColor(cinzaClaro);
-            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(180, 180, 180);
             doc.setFontSize(8);
-            doc.text(dataText, width - 15 - dataWidth, 21);
+            doc.text(dataText, width - 20 - dataWidth, 21);
             
-            // ============================================
-            // 6. LINHA DIVISÓRIA (nova cor do dashboard)
-            // ============================================
-            doc.setDrawColor(30, 35, 46); // #1e232e - cor da borda do dashboard
+            // 6. LINHA CINZA
+            doc.setDrawColor(100, 100, 100);
             doc.setLineWidth(0.5);
             doc.line(10, 26, width - 10, 26);
-            
-            console.log('✅ Cabeçalho atualizado - mesma disposição, novo visual');
         }
         
         _adicionarDadosTransferenciaKivy(doc, width, dados) {
