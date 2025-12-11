@@ -1509,12 +1509,6 @@
                 console.log('   - Altura página:', pageHeight);
                 console.log('   - Tem Swift?', temSwift);
                 
-                // Se NÃO couber, reduzir Swift dinamicamente
-                if (alturaTotalNecessaria > pageHeight - margemSeguranca && temSwift) {
-                    console.log('⚠️ Ajustando Swift para caber em uma página...');
-                    // Podemos reduzir ainda mais o Swift
-                    alturaSwift = 40 + 3; // Reduz Swift em 10mm
-                }
                 
                 // Posição fixa do Beneficiary (você escolheu 90mm)
                 const posicaoFixaBeneficiary = 90; // 🔥 SEU AJUSTE: 90mm
@@ -1530,19 +1524,15 @@
                 
                 // 5. SWIFT PAYMENT DETAILS (com altura ajustada se necessário)
                 if (temSwift) {
-                    // 🔥 CALCULAR NOVAMENTE SE AINDA CABE
                     const alturaRestante = pageHeight - yPos - alturaRodape - margemSeguranca;
                     console.log('📏 Altura restante para Swift:', alturaRestante);
                     
                     if (alturaRestante < 50) {
                         // Swift MUITO compacto
                         yPos = this._adicionarSwiftDetailsUltraCompacto(doc, pageWidth, yPos, transferencia.dados_swift_pagamento);
-                    } else if (alturaRestante < 60) {
-                        // Swift compacto (50mm)
-                        yPos = this._adicionarSwiftDetailsCompacto(doc, pageWidth, yPos, transferencia.dados_swift_pagamento);
                     } else {
-                        // Swift normal (60mm)
-                        yPos = this._adicionarSwiftDetailsNormal(doc, pageWidth, yPos, transferencia.dados_swift_pagamento);
+                        // Swift normal (usa a função que já existe)
+                        yPos = this._adicionarSwiftDetailsCompacto(doc, pageWidth, yPos, transferencia.dados_swift_pagamento);
                     }
                 }
                 
