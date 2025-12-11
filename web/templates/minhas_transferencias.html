@@ -1980,24 +1980,25 @@
         console.log(`📄 GERANDO PDF KIVY PARA: ${transferenciaId}`);
         
         try {
-            // Mostrar loading
             showAlert('Generating PDF...', 'info');
             
-            // 🔥 USAR O NOVO ENDPOINT ESPECÍFICO PARA PDF
-            const response = await fetch(`/api/transferencias/${transferenciaId}/completo`);
+            // 🔥 USAR O ENDPOINT QUE JÁ FUNCIONA com parâmetro
+            const response = await fetch(`/api/transferencias-internacionais?id=${transferenciaId}`);
             
             if (!response.ok) {
-                if (response.status === 404) {
-                    throw new Error('Transferência não encontrada');
-                } else if (response.status === 403) {
-                    throw new Error('Você não tem permissão para ver esta transferência');
-                } else {
-                    throw new Error('Erro ao buscar dados da transferência');
-                }
+                throw new Error('Erro ao buscar dados da transferência');
             }
             
-            const transferencia = await response.json();
-            console.log('✅ Dados completos carregados:', transferencia);
+            const transferencias = await response.json();
+            
+            // A API retorna um array, pegar o primeiro item
+            const transferencia = Array.isArray(transferencias) ? transferencias[0] : transferencias;
+            
+            if (!transferencia || transferencia.error) {
+                throw new Error(transferencia?.error || 'Transferência não encontrada');
+            }
+            
+            console.log('✅ Dados carregados:', transferencia);
             console.log('🔍 Status:', transferencia.status);
             console.log('🔍 Tem SWIFT?', transferencia.dados_swift_pagamento ? '✅ SIM' : '❌ NÃO');
             
