@@ -1484,38 +1484,82 @@
                 // 2. DADOS DA TRANSFERÊNCIA
                 let yPos = this._adicionarDadosTransferenciaKivy(doc, pageWidth, transferencia);
                 
-                // 🔥 GARANTIR POSIÇÃO FIXA PARA O BENEFICIARY DETAILS
-                const posicaoFixaBeneficiary = 85; // Posição fixa em mm
+                // 🔥 CALCULAR ALTURA RESTANTE DINAMICAMENTE
+                const status = this._getStatusNormalizado(transferencia.status);
+                const temSwift = status === 'COMPLETED' && transferencia.dados_swift_pagamento && 
+                                Object.keys(transferencia.dados_swift_pagamento).length > 0;
+                
+                // 🔥 ALTURAS ESTIMADAS (em mm)
+                const alturaBeneficiary = 40 + 6; // boxHeight + espaço
+                const alturaBanking = transferencia.tipo === 'transferencia_internacional' ? 50 + 4 : 0;
+                const alturaSwift = temSwift ? 50 + 3 : 0;
+                const alturaRodape = 40;
+                
+                // 🔥 CALCULAR SE CABE NA PÁGINA
+                const alturaTotalNecessaria = yPos + alturaBeneficiary + alturaBanking + alturaSwift + alturaRodape;
+                const margemSeguranca = 5; // mm de margem
+                
+                console.log('📏 Cálculo de altura:');
+                console.log('   - yPos atual:', yPos);
+                console.log('   - Beneficiary:', alturaBeneficiary);
+                console.log('   - Banking:', alturaBanking);
+                console.log('   - Swift:', alturaSwift);
+                console.log('   - Rodapé:', alturaRodape);
+                console.log('   - Total necessário:', alturaTotalNecessaria);
+                console.log('   - Altura página:', pageHeight);
+                console.log('   - Tem Swift?', temSwift);
+                
+                // Se NÃO couber, reduzir Swift dinamicamente
+                if (alturaTotalNecessaria > pageHeight - margemSeguranca && temSwift) {
+                    console.log('⚠️ Ajustando Swift para caber em uma página...');
+                    // Podemos reduzir ainda mais o Swift
+                    alturaSwift = 40 + 3; // Reduz Swift em 10mm
+                }
+                
+                // Posição fixa do Beneficiary (você escolheu 90mm)
+                const posicaoFixaBeneficiary = 90; // 🔥 SEU AJUSTE: 90mm
                 if (yPos < posicaoFixaBeneficiary) {
                     yPos = posicaoFixaBeneficiary;
                 }
                 
-                // 3. BENEFICIÁRIO (na posição fixa)
+                // 3. BENEFICIÁRIO
                 yPos = this._adicionarBeneficiarioCompacto(doc, pageWidth, yPos, transferencia);
                 
                 // 4. INFORMAÇÕES BANCÁRIAS
                 yPos = this._adicionarInfoBancariaCorrigido(doc, pageWidth, yPos, transferencia);
                 
-                // 5. SWIFT PAYMENT DETAILS (apenas COMPLETED)
-                const status = this._getStatusNormalizado(transferencia.status);
-                if (status === 'COMPLETED' && transferencia.dados_swift_pagamento && 
-                    Object.keys(transferencia.dados_swift_pagamento).length > 0) {
-                    yPos = this._adicionarSwiftDetailsCompacto(doc, pageWidth, yPos, transferencia.dados_swift_pagamento);
+                // 5. SWIFT PAYMENT DETAILS (com altura ajustada se necessário)
+                if (temSwift) {
+                    // 🔥 CALCULAR NOVAMENTE SE AINDA CABE
+                    const alturaRestante = pageHeight - yPos - alturaRodape - margemSeguranca;
+                    console.log('📏 Altura restante para Swift:', alturaRestante);
+                    
+                    if (alturaRestante < 50) {
+                        // Swift MUITO compacto
+                        yPos = this._adicionarSwiftDetailsUltraCompacto(doc, pageWidth, yPos, transferencia.dados_swift_pagamento);
+                    } else if (alturaRestante < 60) {
+                        // Swift compacto (50mm)
+                        yPos = this._adicionarSwiftDetailsCompacto(doc, pageWidth, yPos, transferencia.dados_swift_pagamento);
+                    } else {
+                        // Swift normal (60mm)
+                        yPos = this._adicionarSwiftDetailsNormal(doc, pageWidth, yPos, transferencia.dados_swift_pagamento);
+                    }
                 }
                 
-                // 🔥 6. GARANTIR ESPAÇO MÍNIMO ANTES DO RODAPÉ
-                const espacoMinimoAntesRodape = 30; // Espaço mínimo entre último conteúdo e rodapé
+                // 🔥 VERIFICAR SE O RODAPÉ VAI CABER
+                const espacoParaRodape = pageHeight - yPos;
+                console.log('📏 Espaço para rodapé:', espacoParaRodape);
                 
-                // Se o conteúdo está muito alto, precisa de nova página
-                if (yPos > pageHeight - 50) {
-                    doc.addPage();
-                    yPos = 20; // Reinicia Y na nova página
+                if (espacoParaRodape < alturaRodape + 5) {
+                    console.log('⚠️ Conteúdo muito longo! Ajustando...');
+                    // Se não couber, podemos subir tudo um pouco mais
+                    // Mas com seu ajuste para 90mm, deve caber
                 }
                 
-                // 7. RODAPÉ SEMPRE NA MESMA POSIÇÃO (fixo na parte de baixo)
+                // 6. RODAPÉ FIXO (agora deve caber)
                 this._adicionarRodapeFixo(doc, pageWidth, pageHeight, transferencia);
                 
-                // 8. SALVAR
+                // 7. SALVAR
                 const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
                 const nomeArquivo = `comprovante_${transferencia.id}_${timestamp}.pdf`;
                 doc.save(nomeArquivo);
