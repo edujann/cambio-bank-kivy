@@ -1949,8 +1949,8 @@
                 return yPos;
             }
             
-            // 🔥 CAIXA MAIS COMPACTADA
-            const boxHeight = 90; // 🔥 ALTURA REDUZIDA SIGNIFICATIVAMENTE (de 110 para 90)
+            // 🔥 CAIXA MUITO MAIS COMPACTADA
+            const boxHeight = 60; // 🔥 ALTURA DRAMATICAMENTE REDUZIDA (de 90 para 60)
             
             // Fundo cinza claro
             doc.setFillColor(250, 250, 250);
@@ -1965,21 +1965,22 @@
             doc.setTextColor(20, 46, 82);
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(10);
-            doc.text('SWIFT PAYMENT DETAILS', 20, yPos + 7); // 🔥 SUBIU 1mm
+            doc.text('SWIFT PAYMENT DETAILS', 20, yPos + 7);
             
             // Linha
             doc.setDrawColor(20, 46, 82);
             doc.setLineWidth(0.8);
             const textWidth = doc.getTextWidth('SWIFT PAYMENT DETAILS');
-            doc.line(20, yPos + 9.5, 20 + textWidth, yPos + 9.5); // 🔥 AJUSTADO
+            doc.line(20, yPos + 9.5, 20 + textWidth, yPos + 9.5);
             
             const xPos = 25;
             const valorXPos = 42;
-            let yContent = yPos + 16; // 🔥 SUBIU 2mm (de 18 para 16)
+            let yContent = yPos + 16;
             
-            doc.setFontSize(6.5);
+            // 🔥 FONTE AUMENTADA PARA 7 (IGUAL AOS OUTROS BOXES)
+            doc.setFontSize(7); // 🔥 ALTERADO: DE 6.5 PARA 7
             
-            // 🔥 FUNÇÃO COMPACTA COM ESPAÇAMENTO REDUZIDO
+            // 🔥 FUNÇÃO COM ESPAÇAMENTO AINDA MAIS REDUZIDO
             const adicionarLinhaSwift = (rotulo, valor, chave) => {
                 if (dadosSwift[chave] && dadosSwift[chave].trim()) {
                     doc.setFont('helvetica', 'bold');
@@ -1991,19 +1992,19 @@
                     
                     // Quebrar linha se necessário
                     const valorTexto = dadosSwift[chave];
-                    if (valorTexto.length > 60) {
-                        doc.text(valorTexto.substring(0, 60), valorXPos, yContent);
-                        yContent += 5; // 🔥 ESPAÇO REDUZIDO: 8 → 5
-                        doc.text(valorTexto.substring(60, 120), valorXPos, yContent);
-                        yContent += 5; // 🔥 ESPAÇO REDUZIDO: 8 → 5
+                    if (valorTexto.length > 55) { // 🔥 REDUZIDO DE 60 PARA 55
+                        doc.text(valorTexto.substring(0, 55), valorXPos, yContent);
+                        yContent += 4.5; // 🔥 ESPAÇO AINDA MENOR: 5 → 4.5
+                        doc.text(valorTexto.substring(55, 110), valorXPos, yContent);
+                        yContent += 4.5; // 🔥 ESPAÇO AINDA MENOR
                     } else {
                         doc.text(valorTexto, valorXPos, yContent);
-                        yContent += 5; // 🔥 ESPAÇO REDUZIDO: 8 → 5
+                        yContent += 4.5; // 🔥 ESPAÇO AINDA MENOR: 5 → 4.5
                     }
                 }
             };
             
-            // 🔥 ADICIONAR LINHAS SWIFT COM ESPAÇAMENTO REDUZIDO
+            // 🔥 ADICIONAR LINHAS SWIFT
             adicionarLinhaSwift('UETR#:', dadosSwift.linha1_uetr, 'linha1_uetr');
             adicionarLinhaSwift(':20:', dadosSwift.linha2_20, 'linha2_20');
             adicionarLinhaSwift(':32A:', dadosSwift.linha3_32a, 'linha3_32a');
@@ -2011,7 +2012,7 @@
             adicionarLinhaSwift(':57A:', dadosSwift.linha5_57a, 'linha5_57a');
             adicionarLinhaSwift(':59:', dadosSwift.linha6_59, 'linha6_59');
             
-            // 🔥 BENEFICIÁRIO COM ESPAÇAMENTO REDUZIDO
+            // 🔥 BENEFICIÁRIO COM FONTE AUMENTADA
             if (dadosSwift.linha7_beneficiario && dadosSwift.linha7_beneficiario.trim()) {
                 doc.setFont('helvetica', 'bold');
                 doc.setTextColor(120, 120, 120);
@@ -2022,22 +2023,22 @@
                 const benef = dadosSwift.linha7_beneficiario;
                 
                 // Quebrar em até 3 linhas se necessário
-                if (benef.length > 60) {
-                    doc.text(benef.substring(0, 60), valorXPos, yContent);
-                    yContent += 5; // 🔥 8 → 5
+                if (benef.length > 55) { // 🔥 REDUZIDO DE 60 PARA 55
+                    doc.text(benef.substring(0, 55), valorXPos, yContent);
+                    yContent += 4.5; // 🔥 5 → 4.5
                     
-                    if (benef.length > 120) {
-                        doc.text(benef.substring(60, 120), valorXPos, yContent);
-                        yContent += 5; // 🔥 8 → 5
-                        doc.text(benef.substring(120, 180) + '...', valorXPos, yContent);
-                        yContent += 5; // 🔥 8 → 5
+                    if (benef.length > 110) { // 🔥 REDUZIDO DE 120 PARA 110
+                        doc.text(benef.substring(55, 110), valorXPos, yContent);
+                        yContent += 4.5; // 🔥 5 → 4.5
+                        doc.text(benef.substring(110, 165) + '...', valorXPos, yContent);
+                        yContent += 4.5; // 🔥 5 → 4.5
                     } else {
-                        doc.text(benef.substring(60), valorXPos, yContent);
-                        yContent += 5; // 🔥 8 → 5
+                        doc.text(benef.substring(55), valorXPos, yContent);
+                        yContent += 4.5; // 🔥 5 → 4.5
                     }
                 } else {
                     doc.text(benef, valorXPos, yContent);
-                    yContent += 5; // 🔥 8 → 5
+                    yContent += 4.5; // 🔥 5 → 4.5
                 }
             }
             
@@ -2045,17 +2046,17 @@
             adicionarLinhaSwift(':70:', dadosSwift.linha8_70, 'linha8_70');
             adicionarLinhaSwift(':71A:', dadosSwift.linha9_71a, 'linha9_71a');
             
-            // 🔥 CALCULAR QUANTO ESPAÇO FOI USADO REALMENTE
-            const conteudoUsado = yContent - (yPos + 16);
-            const espacoVazio = boxHeight - (yContent - yPos);
+            // 🔥 CALCULAR SE PRECISAMOS REDUZIR AINDA MAIS
+            const alturaUsada = yContent - yPos;
             
-            // Se ainda tem muito espaço vazio, podemos reduzir mais a altura do box
-            // Mas vamos manter um mínimo de 5mm de margem inferior
-            const margemInferior = 5;
-            const alturaNecessaria = conteudoUsado + 16 + margemInferior; // 16 = espaço do título
+            // Se o conteúdo não preencheu o box, podemos reduzir mais
+            if (alturaUsada < boxHeight - 10) {
+                // Podemos reduzir boxHeight para alturaUsada + 10mm de margem
+                // Mas vamos manter como está por enquanto
+            }
             
-            // 🔥 RETORNAR COM ESPAÇO MÍNIMO APÓS O BOX
-            return yPos + boxHeight + 4; // 🔥 ESPAÇO REDUZIDO: 6 → 4
+            // 🔥 RETORNAR COM ESPAÇO MÍNIMO
+            return yPos + boxHeight + 3; // 🔥 ESPAÇO REDUZIDO: 4 → 3
         }
         
         _adicionarRodapeCompacto(doc, width, height, currentYPos, dados) {
