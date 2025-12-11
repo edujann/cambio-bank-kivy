@@ -956,6 +956,58 @@
 
 <!-- JAVASCRIPT -->
 <script>
+
+    // ============================================
+    // FUNÇÕES GLOBAIS DE UTILIDADE
+    // ============================================
+    
+    function showAlert(mensagem, tipo = 'info') {
+        // Cria um alerta temporário
+        const alertDiv = document.createElement('div');
+        alertDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            z-index: 9999;
+            animation: fadeInOut 3s ease-in-out;
+        `;
+        
+        const cores = {
+            'success': '#2ec27e',
+            'error': '#e01b24',
+            'info': '#1a5fb4',
+            'warning': '#f39c12'
+        };
+        
+        alertDiv.style.backgroundColor = cores[tipo] || cores.info;
+        alertDiv.textContent = mensagem;
+        
+        document.body.appendChild(alertDiv);
+        
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 3000);
+    }
+    
+    // Adicionar CSS para animação
+    if (!document.querySelector('#alert-animation-style')) {
+        const style = document.createElement('style');
+        style.id = 'alert-animation-style';
+        style.textContent = `
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-20px); }
+            15% { opacity: 1; transform: translateY(0); }
+            85% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+        `;
+        document.head.appendChild(style);
+    }
+
     // DADOS GLOBAIS
     let todasTransferencias = [];
     let transferenciasFiltradas = [];
@@ -1404,676 +1456,627 @@
     }
     
     // ============================================
-    // PDF GENERATOR COMPLETO COM SWIFT 
-    // (substitui a versão anterior)
+    // PDF GENERATOR IDÊNTICO AO KIVY
     // ============================================
 
-    function criarClassePDFGeneratorFinal() {
-        if (window.PDFGeneratorFinal) return;
+    class PDFGeneratorKivyStyle {
+        constructor() {
+            this.mmToPt = 0.3528; // Fator de conversão mm para points
+        }
         
-        class PDFGeneratorFinal {
-            async gerarComprovante(transferenciaId, dados) {
-                console.log(`📄 PDFGeneratorFinal: Gerando para ${transferenciaId}`);
+        async gerarComprovanteKivy(transferencia) {
+            console.log('🎨 Gerando PDF estilo Kivy para:', transferencia.id);
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+            
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            
+            try {
+                // 1. CABEÇALHO IDÊNTICO AO KIVY
+                this._adicionarCabecalhoKivy(doc, pageWidth, pageHeight, transferencia);
                 
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'mm',
-                    format: 'a4'
-                });
+                // 2. DADOS DA TRANSFERÊNCIA (com status colorido)
+                let yPos = this._adicionarDadosTransferenciaKivy(doc, pageWidth, transferencia);
                 
-                const pageWidth = doc.internal.pageSize.getWidth();
-                const pageHeight = doc.internal.pageSize.getHeight();
+                // 3. BENEFICIÁRIO
+                yPos = this._adicionarBeneficiarioKivy(doc, pageWidth, yPos, transferencia);
                 
-                try {
-                    // 1. CABEÇALHO
-                    this._adicionarCabecalho(doc, pageWidth, pageHeight, transferenciaId);
-                    
-                    // 2. DADOS DA TRANSFERÊNCIA
-                    let yPos = this._adicionarDadosTransferencia(doc, pageWidth, dados);
-                    
-                    // 3. DADOS DO BENEFICIÁRIO
-                    yPos = this._adicionarDadosBeneficiario(doc, pageWidth, yPos, dados);
-                    
-                    // 4. INFORMAÇÕES BANCÁRIAS
-                    yPos = this._adicionarDadosBancarios(doc, pageWidth, yPos, dados);
-                    
-                    // 5. DADOS SWIFT (APENAS SE COMPLETED E TIVER DADOS)
-                    const isCompleted = dados.status === 'completed' || dados.status === 'concluida';
-                    const hasSwiftData = dados.dados_swift_pagamento && 
-                                    Object.keys(dados.dados_swift_pagamento).length > 0;
-                    
-                    if (isCompleted && hasSwiftData) {
-                        console.log('🔍 Adicionando seção SWIFT ao PDF');
-                        yPos = this._adicionarDadosSwiftPagamento(doc, pageWidth, yPos, dados.dados_swift_pagamento);
-                    }
-                    
-                    // 6. RODAPÉ
-                    this._adicionarRodape(doc, pageWidth, pageHeight, dados);
-                    
-                    // 7. SALVAR
-                    const nomeArquivo = `receipt_${transferenciaId}_${new Date().toISOString().slice(0,10)}.pdf`;
-                    doc.save(nomeArquivo);
-                    
-                    console.log(`✅ PDF Final gerado com sucesso: ${nomeArquivo}`);
-                    return nomeArquivo;
-                    
-                } catch (error) {
-                    console.error('❌ Erro ao gerar PDF Final:', error);
-                    return null;
+                // 4. INFORMAÇÕES BANCÁRIAS
+                yPos = this._adicionarInfoBancariaKivy(doc, pageWidth, yPos, transferencia);
+                
+                // 5. SWIFT PAYMENT DETAILS (apenas para completed)
+                const status = this._getStatusNormalizado(transferencia.status);
+                if (status === 'COMPLETED' && transferencia.dados_swift_pagamento) {
+                    yPos = this._adicionarSwiftDetailsKivy(doc, pageWidth, yPos, transferencia.dados_swift_pagamento);
                 }
+                
+                // 6. RODAPÉ
+                this._adicionarRodapeKivy(doc, pageWidth, pageHeight, transferencia);
+                
+                // 7. SALVAR
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                const nomeArquivo = `comprovante_${transferencia.id}_${timestamp}.pdf`;
+                doc.save(nomeArquivo);
+                
+                console.log('✅ PDF Kivy gerado com sucesso!');
+                return nomeArquivo;
+                
+            } catch (error) {
+                console.error('❌ Erro ao gerar PDF Kivy:', error);
+                return null;
+            }
+        }
+        
+        _adicionarCabecalhoKivy(doc, width, height, transferencia) {
+            // CABEÇALHO AZUL MARINHO ESCURO (0.08, 0.18, 0.32)
+            const azulEscuro = [20, 46, 82]; // #142E52 - RGB(20, 46, 82)
+            doc.setFillColor(...azulEscuro);
+            doc.rect(0, 0, width, 28, 'F'); // Retângulo azul
+            
+            // LOGO EM BRANCO
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(16);
+            doc.text('CÂMBIO BANK', 15, 15);
+            
+            // SUBTÍTULO
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.text('Wire Transfer Receipt', 15, 21);
+            
+            // ID DA TRANSFERÊNCIA (AMARELO)
+            doc.setTextColor(230, 230, 0); // Amarelo
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            const idText = `ID: ${transferencia.id}`;
+            const idWidth = doc.getTextWidth(idText);
+            doc.text(idText, width - 15 - idWidth, 15);
+            
+            // DATA (CINZA CLARO)
+            doc.setTextColor(200, 200, 200);
+            doc.setFontSize(8);
+            const dataAtual = new Date().toLocaleString('pt-BR');
+            const dataText = dataAtual;
+            const dataWidth = doc.getTextWidth(dataText);
+            doc.text(dataText, width - 15 - dataWidth, 22);
+            
+            // LINHA DIVISÓRIA FINA
+            doc.setDrawColor(100, 100, 100);
+            doc.setLineWidth(0.3);
+            doc.line(10, 30, width - 10, 30);
+        }
+        
+        _adicionarDadosTransferenciaKivy(doc, width, dados) {
+            let yPos = 40;
+            
+            // STATUS COLORIDO EM CAIXA
+            const status = this._getStatusNormalizado(dados.status);
+            const statusColors = {
+                'PENDING': [255, 165, 0],     // Âmbar #FFA500
+                'PROCESSING': [64, 115, 217], // Azul #4073D9
+                'COMPLETED': [38, 150, 38],   // Verde #269626
+                'REJECTED': [178, 51, 51]     // Vermelho #B23333
+            };
+            
+            const color = statusColors[status] || [100, 100, 100];
+            
+            // CAIXA DO STATUS (como no Kivy)
+            doc.setFillColor(...color);
+            doc.roundedRect(15, yPos, 30, 8, 1.5, 1.5, 'F');
+            
+            // TEXTO DO STATUS (branco dentro da caixa)
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8);
+            const textWidth = doc.getTextWidth(status);
+            doc.text(status, 15 + (30 - textWidth) / 2, yPos + 5.5);
+            
+            yPos += 15;
+            
+            // CAIXA DO VALOR (fundo cinza claro)
+            doc.setFillColor(247, 247, 247); // #F7F7F7
+            doc.roundedRect(10, yPos, width - 20, 15, 2, 2, 'F');
+            
+            // "TRANSFER AMOUNT" (cinza escuro)
+            doc.setTextColor(80, 80, 80);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8);
+            doc.text('TRANSFER AMOUNT', 20, yPos + 5);
+            
+            // VALOR (azul marinho, centralizado)
+            const valorTexto = `${parseFloat(dados.valor || 0).toFixed(2)} ${dados.moeda || 'USD'}`;
+            doc.setTextColor(20, 46, 82); // Azul marinho
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(14);
+            doc.text(valorTexto, width / 2, yPos + 11, { align: 'center' });
+            
+            yPos += 25;
+            
+            // INFORMAÇÕES GERAIS (2 colunas)
+            const col1X = 15;
+            const col2X = width / 2 + 10;
+            
+            // COLUNA 1
+            // Request Date
+            doc.setTextColor(100, 100, 100);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7);
+            doc.text('Request Date:', col1X, yPos);
+            
+            doc.setTextColor(20, 46, 82);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(7);
+            doc.text(this._formatarData(dados.data || dados.created_at), col1X, yPos + 4);
+            
+            // Type
+            doc.setTextColor(100, 100, 100);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Type:', col1X, yPos + 10);
+            
+            doc.setTextColor(20, 46, 82);
+            doc.setFont('helvetica', 'bold');
+            const tipo = dados.tipo === 'transferencia_internacional' ? 'International' : 'Internal';
+            doc.text(tipo, col1X, yPos + 14);
+            
+            // COLUNA 2
+            // Purpose
+            doc.setTextColor(100, 100, 100);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Purpose:', col2X, yPos);
+            
+            const finalidade = dados.finalidade || 'Not informed';
+            doc.setTextColor(20, 46, 82);
+            doc.setFont('helvetica', 'bold');
+            
+            if (finalidade.length > 28) {
+                const parte1 = finalidade.substring(0, 28);
+                const parte2 = finalidade.substring(28, 56);
+                doc.text(parte1, col2X, yPos + 4);
+                doc.text(parte2, col2X, yPos + 8);
+                yPos += 12;
+            } else {
+                doc.text(finalidade, col2X, yPos + 4);
             }
             
-            // ================ MÉTODOS DO DESIGN KIVY ================
-            
-            _adicionarCabecalho(doc, width, height, transferenciaId) {
-                // Cabeçalho azul marinho (0.08, 0.18, 0.32)
-                doc.setFillColor(20, 46, 82); // #142E52
-                doc.rect(0, 0, width, 28, 'F');
-                
-                // Logo em branco
-                doc.setTextColor(255, 255, 255);
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(16);
-                doc.text('CÂMBIO BANK', 15, 15);
-                
-                // Subtítulo
+            // Completed Date (apenas para COMPLETED)
+            if (status === 'COMPLETED' && dados.data_conclusao) {
+                doc.setTextColor(100, 100, 100);
                 doc.setFont('helvetica', 'normal');
+                doc.text('Completed Date:', col2X, yPos + 10);
+                
+                doc.setTextColor(20, 46, 82);
+                doc.setFont('helvetica', 'bold');
+                doc.text(this._formatarData(dados.data_conclusao), col2X, yPos + 14);
+                yPos += 10;
+            }
+            
+            return yPos + 15;
+        }
+        
+        _adicionarBeneficiarioKivy(doc, width, yPos, dados) {
+            // CAIXA DE FUNDO CINZA CLARO (como no Kivy)
+            doc.setFillColor(250, 250, 250); // #FAFAFA
+            doc.roundedRect(15, yPos - 5, width - 30, 60, 3, 3, 'F');
+            
+            // TÍTULO DA SEÇÃO
+            doc.setTextColor(20, 46, 82); // Azul marinho
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(10);
+            doc.text('BENEFICIARY DETAILS', 20, yPos + 5);
+            
+            // LINHA ABAIXO DO TÍTULO
+            doc.setDrawColor(20, 46, 82);
+            doc.setLineWidth(0.8);
+            const textWidth = doc.getTextWidth('BENEFICIARY DETAILS');
+            doc.line(20, yPos + 7.5, 20 + textWidth, yPos + 7.5);
+            
+            yPos += 15;
+            
+            const col1X = 25;
+            const col2X = width / 2 + 15;
+            
+            // NOME
+            doc.setTextColor(120, 120, 120); // Cinza
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(7);
+            doc.text('Name:', col1X, yPos);
+            
+            doc.setTextColor(20, 20, 20); // Preto
+            doc.setFont('helvetica', 'normal');
+            const nome = dados.beneficiario || 'N/A';
+            doc.text(nome, col1X, yPos + 4);
+            
+            // ENDEREÇO
+            if (dados.endereco_beneficiario) {
+                doc.setTextColor(120, 120, 120);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Address:', col1X, yPos + 10);
+                
+                doc.setTextColor(20, 20, 20);
+                doc.setFont('helvetica', 'normal');
+                doc.text(dados.endereco_beneficiario, col1X, yPos + 14);
+            }
+            
+            // CIDADE (coluna direita)
+            if (dados.cidade) {
+                doc.setTextColor(120, 120, 120);
+                doc.setFont('helvetica', 'bold');
+                doc.text('City:', col2X, yPos);
+                
+                doc.setTextColor(20, 20, 20);
+                doc.setFont('helvetica', 'normal');
+                doc.text(dados.cidade, col2X, yPos + 4);
+            }
+            
+            // PAÍS (coluna direita)
+            if (dados.pais) {
+                doc.setTextColor(120, 120, 120);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Country:', col2X, yPos + 10);
+                
+                doc.setTextColor(20, 20, 20);
+                doc.setFont('helvetica', 'normal');
+                doc.text(dados.pais, col2X, yPos + 14);
+            }
+            
+            return yPos + 25;
+        }
+        
+        _adicionarInfoBancariaKivy(doc, width, yPos, dados) {
+            if (dados.tipo === 'transferencia_internacional') {
+                // CAIXA DE FUNDO CINZA CLARO
+                doc.setFillColor(250, 250, 250);
+                doc.roundedRect(15, yPos - 5, width - 30, 80, 3, 3, 'F');
+                
+                // TÍTULO
+                doc.setTextColor(20, 46, 82);
+                doc.setFont('helvetica', 'bold');
                 doc.setFontSize(10);
-                doc.text('Wire Transfer Receipt', 15, 21);
+                doc.text('BANKING INFORMATION', 20, yPos + 5);
                 
-                // ID da transferência (amarelo)
-                doc.setTextColor(255, 235, 59);
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(9);
-                const idText = `ID: ${transferenciaId}`;
-                const idWidth = doc.getTextWidth(idText);
-                doc.text(idText, width - 15 - idWidth, 15);
-                
-                // Data (cinza claro)
-                doc.setTextColor(200, 200, 200);
-                doc.setFontSize(8);
-                const dataText = new Date().toLocaleDateString('pt-BR');
-                const dataWidth = doc.getTextWidth(dataText);
-                doc.text(dataText, width - 15 - dataWidth, 22);
-                
-                // Linha divisória fina
-                doc.setDrawColor(100, 100, 100);
-                doc.setLineWidth(0.3);
-                doc.line(10, 30, width - 10, 30);
-            }
-            
-            _adicionarDadosTransferencia(doc, width, dados) {
-                let yPos = 40;
-                
-                // STATUS
-                const statusMap = {
-                    'solicitada': 'PENDING',
-                    'processando': 'PROCESSING',
-                    'concluida': 'COMPLETED',
-                    'recusada': 'REJECTED'
-                };
-                
-                const statusOriginal = dados.status?.toLowerCase() || 'solicitada';
-                const status = statusMap[statusOriginal] || 'PENDING';
-                
-                const statusColors = {
-                    'COMPLETED': [38, 150, 38],    // Verde #269626
-                    'PENDING': [255, 165, 0],      // Âmbar #FFA500
-                    'PROCESSING': [64, 115, 217],  // Azul #4073D9
-                    'REJECTED': [178, 51, 51]      // Vermelho #B23333
-                };
-                
-                const color = statusColors[status] || [100, 100, 100];
-                
-                // Caixa do status
-                doc.setFillColor(...color);
-                doc.roundedRect(15, yPos, 30, 8, 1.5, 1.5, 'F');
-                
-                // Texto do status
-                doc.setTextColor(255, 255, 255);
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(8);
-                const textWidth = doc.getTextWidth(status);
-                doc.text(status, 15 + (30 - textWidth) / 2, yPos + 5.5);
+                // LINHA
+                doc.setDrawColor(20, 46, 82);
+                doc.setLineWidth(0.8);
+                const textWidth = doc.getTextWidth('BANKING INFORMATION');
+                doc.line(20, yPos + 7.5, 20 + textWidth, yPos + 7.5);
                 
                 yPos += 15;
                 
-                // VALOR
-                doc.setFillColor(247, 247, 247);
-                doc.roundedRect(10, yPos, width - 20, 15, 2, 2, 'F');
-                
-                doc.setTextColor(80, 80, 80);
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(8);
-                doc.text('TRANSFER AMOUNT', 20, yPos + 5);
-                
-                const valorTexto = `${parseFloat(dados.valor || 0).toFixed(2)} ${dados.moeda || 'USD'}`;
-                doc.setTextColor(20, 46, 82);
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(14);
-                doc.text(valorTexto, width / 2, yPos + 11, { align: 'center' });
-                
-                yPos += 25;
-                
-                // INFORMAÇÕES GERAIS
-                const col1X = 15;
-                const col2X = width / 2 + 10;
-                
-                // Data da transferência
-                let dataFormatada = 'N/A';
-                if (dados.data) {
-                    const data = new Date(dados.data);
-                    dataFormatada = data.toLocaleDateString('pt-BR');
-                }
-                
-                // Coluna 1
-                doc.setTextColor(100, 100, 100);
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(7);
-                doc.text('Request Date:', col1X, yPos);
-                
-                doc.setTextColor(20, 46, 82);
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(7);
-                doc.text(dataFormatada, col1X, yPos + 4);
-                
-                doc.setTextColor(100, 100, 100);
-                doc.setFont('helvetica', 'normal');
-                doc.text('Type:', col1X, yPos + 10);
-                
-                const tipoTexto = dados.tipo === 'transferencia_internacional' ? 'International' : 'Internal';
-                doc.setTextColor(20, 46, 82);
-                doc.setFont('helvetica', 'bold');
-                doc.text(tipoTexto, col1X, yPos + 14);
-                
-                // Coluna 2
-                doc.setTextColor(100, 100, 100);
-                doc.setFont('helvetica', 'normal');
-                doc.text('Purpose:', col2X, yPos);
-                
-                const finalidade = dados.finalidade || 'Not informed';
-                doc.setTextColor(20, 46, 82);
-                doc.setFont('helvetica', 'bold');
-                
-                if (finalidade.length > 28) {
-                    const parte1 = finalidade.substring(0, 28);
-                    const parte2 = finalidade.substring(28, 56);
-                    doc.text(parte1, col2X, yPos + 4);
-                    doc.text(parte2, col2X, yPos + 8);
-                    yPos += 12;
-                } else {
-                    doc.text(finalidade, col2X, yPos + 4);
-                }
-                
-                // Data de conclusão (apenas para COMPLETED)
-                if (status === 'COMPLETED' && dados.data_conclusao) {
-                    doc.setTextColor(100, 100, 100);
-                    doc.setFont('helvetica', 'normal');
-                    doc.text('Completed Date:', col2X, yPos + 10);
-                    
-                    const dataConclusao = new Date(dados.data_conclusao).toLocaleDateString('pt-BR');
-                    doc.setTextColor(20, 46, 82);
-                    doc.setFont('helvetica', 'bold');
-                    doc.text(dataConclusao, col2X, yPos + 14);
-                    yPos += 10;
-                }
-                
-                return yPos + 15;
-            }
-            
-            _adicionarDadosBeneficiario(doc, width, yPos, dados) {
-                // Título da seção
-                yPos = this._adicionarSecaoTitulo(doc, width, yPos, 'BENEFICIARY DETAILS');
-                
-                const col1X = 20;
+                const col1X = 25;
                 const col2X = width / 2 + 15;
+                let yEsquerda = yPos;
+                let yDireita = yPos;
                 
-                if (dados.tipo === 'transferencia_internacional') {
-                    // Nome
+                // COLUNA ESQUERDA
+                if (dados.nome_banco) {
                     doc.setTextColor(120, 120, 120);
                     doc.setFont('helvetica', 'bold');
                     doc.setFontSize(7);
-                    doc.text('Name:', col1X, yPos);
+                    doc.text('Beneficiary Bank:', col1X, yEsquerda);
                     
                     doc.setTextColor(20, 20, 20);
                     doc.setFont('helvetica', 'normal');
-                    const beneficiario = dados.beneficiario || 'N/A';
-                    
-                    let yAdjust = 0;
-                    if (beneficiario.length > 35) {
-                        doc.text(beneficiario.substring(0, 35), col1X, yPos + 4);
-                        doc.text(beneficiario.substring(35, 70), col1X, yPos + 8);
-                        yAdjust = 8;
-                    } else {
-                        doc.text(beneficiario, col1X, yPos + 4);
-                        yAdjust = 4;
-                    }
-                    
-                    // Endereço
-                    if (dados.endereco_beneficiario) {
-                        doc.setTextColor(120, 120, 120);
-                        doc.setFont('helvetica', 'bold');
-                        doc.text('Address:', col1X, yPos + yAdjust + 6);
-                        
-                        doc.setTextColor(20, 20, 20);
-                        doc.setFont('helvetica', 'normal');
-                        const endereco = dados.endereco_beneficiario;
-                        
-                        if (endereco.length > 35) {
-                            doc.text(endereco.substring(0, 35), col1X, yPos + yAdjust + 10);
-                            doc.text(endereco.substring(35, 70), col1X, yPos + yAdjust + 14);
-                            yAdjust += 14;
-                        } else {
-                            doc.text(endereco, col1X, yPos + yAdjust + 10);
-                            yAdjust += 10;
-                        }
-                    }
-                    
-                    // Cidade (coluna direita)
-                    if (dados.cidade) {
-                        doc.setTextColor(120, 120, 120);
-                        doc.setFont('helvetica', 'bold');
-                        doc.text('City:', col2X, yPos);
-                        
-                        doc.setTextColor(20, 20, 20);
-                        doc.setFont('helvetica', 'normal');
-                        doc.text(dados.cidade, col2X, yPos + 4);
-                    }
-                    
-                    // País (coluna direita)
-                    if (dados.pais) {
-                        doc.setTextColor(120, 120, 120);
-                        doc.setFont('helvetica', 'bold');
-                        doc.text('Country:', col2X, yPos + yAdjust - 4);
-                        
-                        doc.setTextColor(20, 20, 20);
-                        doc.setFont('helvetica', 'normal');
-                        doc.text(dados.pais, col2X, yPos + yAdjust);
-                    }
-                    
-                    return yPos + yAdjust + 15;
+                    doc.text(dados.nome_banco, col1X, yEsquerda + 4);
+                    yEsquerda += 8;
                 }
                 
-                return yPos;
-            }
-            
-            _adicionarDadosBancarios(doc, width, yPos, dados) {
-                if (dados.tipo === 'transferencia_internacional') {
-                    yPos = this._adicionarSecaoTitulo(doc, width, yPos, 'BANKING INFORMATION');
+                if (dados.endereco_banco) {
+                    doc.setTextColor(120, 120, 120);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Bank Address:', col1X, yEsquerda + 4);
                     
-                    const col1X = 20;
-                    const col2X = width / 2 + 15;
-                    
-                    let yEsquerda = yPos;
-                    let yDireita = yPos;
-                    
-                    // COLUNA ESQUERDA - INFORMAÇÕES DO BANCO
-                    if (dados.nome_banco) {
-                        doc.setTextColor(120, 120, 120);
-                        doc.setFont('helvetica', 'bold');
-                        doc.setFontSize(7);
-                        doc.text('Beneficiary Bank:', col1X, yEsquerda);
-                        
-                        doc.setTextColor(20, 20, 20);
-                        doc.setFont('helvetica', 'normal');
-                        const banco = dados.nome_banco;
-                        
-                        if (banco.length > 35) {
-                            doc.text(banco.substring(0, 35), col1X, yEsquerda + 4);
-                            doc.text(banco.substring(35, 70), col1X, yEsquerda + 8);
-                            yEsquerda += 12;
-                        } else {
-                            doc.text(banco, col1X, yEsquerda + 4);
-                            yEsquerda += 8;
-                        }
-                    }
-                    
-                    if (dados.endereco_banco) {
-                        doc.setTextColor(120, 120, 120);
-                        doc.setFont('helvetica', 'bold');
-                        doc.text('Bank Address:', col1X, yEsquerda + 4);
-                        
-                        doc.setTextColor(20, 20, 20);
-                        doc.setFont('helvetica', 'normal');
-                        doc.text(dados.endereco_banco, col1X, yEsquerda + 8);
-                        yEsquerda += 12;
-                    }
-                    
-                    if (dados.cidade_banco) {
-                        doc.setTextColor(120, 120, 120);
-                        doc.setFont('helvetica', 'bold');
-                        doc.text('Bank City:', col1X, yEsquerda + 4);
-                        
-                        doc.setTextColor(20, 20, 20);
-                        doc.setFont('helvetica', 'normal');
-                        doc.text(dados.cidade_banco, col1X, yEsquerda + 8);
-                        yEsquerda += 12;
-                    }
-                    
-                    if (dados.pais_banco) {
-                        doc.setTextColor(120, 120, 120);
-                        doc.setFont('helvetica', 'bold');
-                        doc.text('Bank Country:', col1X, yEsquerda + 4);
-                        
-                        doc.setTextColor(20, 20, 20);
-                        doc.setFont('helvetica', 'normal');
-                        doc.text(dados.pais_banco, col1X, yEsquerda + 8);
-                        yEsquerda += 12;
-                    }
-                    
-                    // COLUNA DIREITA - CÓDIGOS
-                    if (dados.codigo_swift) {
-                        doc.setTextColor(120, 120, 120);
-                        doc.setFont('helvetica', 'bold');
-                        doc.text('SWIFT/BIC Code:', col2X, yDireita);
-                        
-                        doc.setTextColor(20, 20, 20);
-                        doc.setFont('helvetica', 'normal');
-                        doc.text(dados.codigo_swift, col2X, yDireita + 4);
-                        yDireita += 8;
-                    }
-                    
-                    if (dados.iban_account) {
-                        doc.setTextColor(120, 120, 120);
-                        doc.setFont('helvetica', 'bold');
-                        doc.text('IBAN/Account:', col2X, yDireita + 4);
-                        
-                        doc.setTextColor(20, 20, 20);
-                        doc.setFont('helvetica', 'normal');
-                        doc.text(dados.iban_account, col2X, yDireita + 8);
-                        yDireita += 12;
-                    }
-                    
-                    if (dados.aba_routing) {
-                        doc.setTextColor(120, 120, 120);
-                        doc.setFont('helvetica', 'bold');
-                        doc.text('ABA/Routing Code:', col2X, yDireita + 4);
-                        
-                        doc.setTextColor(20, 20, 20);
-                        doc.setFont('helvetica', 'normal');
-                        doc.text(dados.aba_routing, col2X, yDireita + 8);
-                        yDireita += 12;
-                    }
-                    
-                    // Usar a coluna que terminou mais abaixo
-                    return Math.max(yEsquerda, yDireita) + 10;
+                    doc.setTextColor(20, 20, 20);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(dados.endereco_banco, col1X, yEsquerda + 8);
+                    yEsquerda += 12;
                 }
                 
-                return yPos;
+                if (dados.cidade_banco) {
+                    doc.setTextColor(120, 120, 120);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Bank City:', col1X, yEsquerda + 4);
+                    
+                    doc.setTextColor(20, 20, 20);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(dados.cidade_banco, col1X, yEsquerda + 8);
+                    yEsquerda += 12;
+                }
+                
+                if (dados.pais_banco) {
+                    doc.setTextColor(120, 120, 120);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Bank Country:', col1X, yEsquerda + 4);
+                    
+                    doc.setTextColor(20, 20, 20);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(dados.pais_banco, col1X, yEsquerda + 8);
+                    yEsquerda += 12;
+                }
+                
+                // COLUNA DIREITA
+                if (dados.codigo_swift) {
+                    doc.setTextColor(120, 120, 120);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('SWIFT/BIC Code:', col2X, yDireita);
+                    
+                    doc.setTextColor(20, 20, 20);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(dados.codigo_swift, col2X, yDireita + 4);
+                    yDireita += 8;
+                }
+                
+                if (dados.iban_account) {
+                    doc.setTextColor(120, 120, 120);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('IBAN/Account:', col2X, yDireita + 4);
+                    
+                    doc.setTextColor(20, 20, 20);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(dados.iban_account, col2X, yDireita + 8);
+                    yDireita += 12;
+                }
+                
+                // Retornar a posição mais baixa
+                return Math.max(yEsquerda, yDireita) + 10;
             }
             
-            _adicionarDadosSwiftPagamento(doc, width, yPos, dadosSwift) {
-                console.log('🎯 Adicionando seção SWIFT ao PDF:', dadosSwift);
-                
-                yPos -= 15;
-                
-                // Caixa de fundo cinza claro
-                doc.setFillColor(250, 250, 250);
-                doc.roundedRect(15, yPos - 70, width - 30, 85, 2, 2, 'F');
-                
-                // Título
-                doc.setTextColor(20, 46, 82);
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(10);
-                doc.text('SWIFT PAYMENT DETAILS', 20, yPos - 55);
-                
-                // Linha fina abaixo do título
-                doc.setDrawColor(20, 46, 82);
-                doc.setLineWidth(0.8);
-                const textWidth = doc.getTextWidth('SWIFT PAYMENT DETAILS');
-                doc.line(20, yPos - 52, 20 + textWidth, yPos - 52);
-                
-                // Conteúdo SWIFT
-                const xPos = 20;
-                const valorXPos = 40;
-                let yContent = yPos - 45;
-                
-                doc.setFontSize(7);
-                
-                // Função auxiliar para adicionar linha SWIFT
-                const adicionarLinhaSwift = (rotulo, valor, chave) => {
-                    if (dadosSwift[chave]) {
-                        doc.setFont('helvetica', 'bold');
-                        doc.setTextColor(120, 120, 120);
-                        doc.text(rotulo, xPos, yContent);
-                        
-                        doc.setFont('helvetica', 'normal');
-                        doc.setTextColor(20, 20, 20);
-                        doc.text(dadosSwift[chave], valorXPos, yContent);
-                        yContent -= 10;
-                    }
-                };
-                
-                // Adicionar todas as linhas SWIFT
-                adicionarLinhaSwift('UETR#:', dadosSwift.linha1_uetr, 'linha1_uetr');
-                adicionarLinhaSwift(':20:', dadosSwift.linha2_20, 'linha2_20');
-                adicionarLinhaSwift(':32A:', dadosSwift.linha3_32a, 'linha3_32a');
-                adicionarLinhaSwift(':50K:', dadosSwift.linha4_50k, 'linha4_50k');
-                adicionarLinhaSwift(':57A:', dadosSwift.linha5_57a, 'linha5_57a');
-                adicionarLinhaSwift(':59:', dadosSwift.linha6_59, 'linha6_59');
-                
-                // Beneficiário (pode ser longo)
-                if (dadosSwift.linha7_beneficiario) {
+            return yPos;
+        }
+        
+        _adicionarSwiftDetailsKivy(doc, width, yPos, dadosSwift) {
+            // CAIXA DE FUNDO CINZA CLARO
+            doc.setFillColor(250, 250, 250);
+            doc.roundedRect(15, yPos - 10, width - 30, 160, 3, 3, 'F');
+            
+            // TÍTULO
+            doc.setTextColor(20, 46, 82);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(10);
+            doc.text('SWIFT PAYMENT DETAILS', 20, yPos + 5);
+            
+            // LINHA
+            doc.setDrawColor(20, 46, 82);
+            doc.setLineWidth(0.8);
+            const textWidth = doc.getTextWidth('SWIFT PAYMENT DETAILS');
+            doc.line(20, yPos + 7.5, 20 + textWidth, yPos + 7.5);
+            
+            yPos += 15;
+            
+            const xPos = 25;
+            const valorXPos = 40;
+            
+            // FUNÇÃO PARA ADICIONAR LINHA
+            const adicionarLinha = (rotulo, valor, chave) => {
+                if (dadosSwift[chave]) {
                     doc.setFont('helvetica', 'bold');
                     doc.setTextColor(120, 120, 120);
-                    doc.text('Benef.:', xPos, yContent);
+                    doc.setFontSize(7);
+                    doc.text(rotulo, xPos, yPos);
                     
                     doc.setFont('helvetica', 'normal');
                     doc.setTextColor(20, 20, 20);
-                    const benef = dadosSwift.linha7_beneficiario;
-                    
-                    if (benef.length > 60) {
-                        doc.text(benef.substring(0, 60), valorXPos, yContent);
-                        yContent -= 10;
-                        doc.text(benef.substring(60, 120), valorXPos, yContent);
-                        yContent -= 10;
-                    } else {
-                        doc.text(benef, valorXPos, yContent);
-                        yContent -= 10;
-                    }
+                    doc.text(dadosSwift[chave], valorXPos, yPos);
+                    yPos += 10;
                 }
-                
-                adicionarLinhaSwift(':70:', dadosSwift.linha8_70, 'linha8_70');
-                adicionarLinhaSwift(':71A:', dadosSwift.linha9_71a, 'linha9_71a');
-                
-                return yPos - 85;
-            }
+            };
             
-            _adicionarSecaoTitulo(doc, width, yPos, titulo) {
-                // Caixa de fundo cinza claro
-                doc.setFillColor(250, 250, 250);
-                doc.roundedRect(15, yPos - 40, width - 30, 50, 2, 2, 'F');
-                
-                // Título
-                doc.setTextColor(20, 46, 82);
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(10);
-                doc.text(titulo, 20, yPos - 25);
-                
-                // Linha fina
-                doc.setDrawColor(20, 46, 82);
-                doc.setLineWidth(0.8);
-                const textWidth = doc.getTextWidth(titulo);
-                doc.line(20, yPos - 22, 20 + textWidth, yPos - 22);
-                
-                return yPos - 15;
-            }
+            // ADICIONAR LINHAS SWIFT
+            adicionarLinha('UETR#:', dadosSwift.linha1_uetr, 'linha1_uetr');
+            adicionarLinha(':20:', dadosSwift.linha2_20, 'linha2_20');
+            adicionarLinha(':32A:', dadosSwift.linha3_32a, 'linha3_32a');
+            adicionarLinha(':50K:', dadosSwift.linha4_50k, 'linha4_50k');
+            adicionarLinha(':57A:', dadosSwift.linha5_57a, 'linha5_57a');
+            adicionarLinha(':59:', dadosSwift.linha6_59, 'linha6_59');
             
-            _adicionarRodape(doc, width, height, dados) {
-                const rodapeY = height - 30;
-                
-                // Linha divisória
-                doc.setDrawColor(200, 200, 200);
-                doc.setLineWidth(0.5);
-                doc.line(10, rodapeY + 5, width - 10, rodapeY + 5);
-                
-                // Caixa de status final
-                doc.setFillColor(247, 247, 247);
-                doc.roundedRect(10, rodapeY + 10, width - 20, 12, 1, 1, 'F');
-                
-                // Status
-                const statusMap = {
-                    'solicitada': 'PENDING',
-                    'processando': 'PROCESSING',
-                    'concluida': 'COMPLETED',
-                    'recusada': 'REJECTED'
-                };
-                
-                const statusOriginal = dados.status?.toLowerCase() || 'solicitada';
-                const status = statusMap[statusOriginal] || 'PENDING';
-                
-                const statusColors = {
-                    'COMPLETED': [38, 150, 38],
-                    'PENDING': [255, 165, 0],
-                    'PROCESSING': [64, 115, 217],
-                    'REJECTED': [178, 51, 51]
-                };
-                
-                const color = statusColors[status] || [100, 100, 100];
-                
-                // "STATUS:"
-                doc.setTextColor(80, 80, 80);
+            // BENEFICIÁRIO (pode ser longo)
+            if (dadosSwift.linha7_beneficiario) {
                 doc.setFont('helvetica', 'bold');
-                doc.setFontSize(9);
-                doc.text('STATUS:', 15, rodapeY + 17);
-                
-                // Status colorido
-                doc.setTextColor(...color);
-                doc.text(status, 15 + doc.getTextWidth('STATUS: '), rodapeY + 17);
-                
-                // Informações institucionais
                 doc.setTextColor(120, 120, 120);
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(7);
-                doc.text('Câmbio Bank - International Transfers', 15, rodapeY + 25);
-                doc.text('Automatically generated document', 15, rodapeY + 30);
+                doc.text('Benef.:', xPos, yPos);
                 
-                // Data de emissão
-                const dataEmissao = new Date().toLocaleDateString('pt-BR');
-                doc.text(`Issued: ${dataEmissao}`, width - 15 - doc.getTextWidth(`Issued: ${dataEmissao}`), rodapeY + 25);
-                doc.text('Page 1 of 1', width - 15 - doc.getTextWidth('Page 1 of 1'), rodapeY + 30);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(20, 20, 20);
+                const benef = dadosSwift.linha7_beneficiario;
+                
+                if (benef.length > 60) {
+                    doc.text(benef.substring(0, 60), valorXPos, yPos);
+                    yPos += 10;
+                    doc.text(benef.substring(60, 120), valorXPos, yPos);
+                    yPos += 10;
+                } else {
+                    doc.text(benef, valorXPos, yPos);
+                    yPos += 10;
+                }
             }
+            
+            adicionarLinha(':70:', dadosSwift.linha8_70, 'linha8_70');
+            adicionarLinha(':71A:', dadosSwift.linha9_71a, 'linha9_71a');
+            
+            return yPos + 10;
         }
         
-        window.PDFGeneratorFinal = PDFGeneratorFinal;
-        console.log('✅ PDFGeneratorFinal criado - com SWIFT como no Kivy');
+        _adicionarRodapeKivy(doc, width, height, dados) {
+            const rodapeY = height - 30;
+            
+            // LINHA DIVISÓRIA
+            doc.setDrawColor(200, 200, 200);
+            doc.setLineWidth(0.5);
+            doc.line(10, rodapeY + 5, width - 10, rodapeY + 5);
+            
+            // CAIXA DE STATUS FINAL
+            doc.setFillColor(247, 247, 247);
+            doc.roundedRect(10, rodapeY + 10, width - 20, 12, 1, 1, 'F');
+            
+            // STATUS
+            const status = this._getStatusNormalizado(dados.status);
+            const statusColors = {
+                'PENDING': [255, 165, 0],
+                'PROCESSING': [64, 115, 217],
+                'COMPLETED': [38, 150, 38],
+                'REJECTED': [178, 51, 51]
+            };
+            
+            const color = statusColors[status] || [100, 100, 100];
+            
+            // "STATUS:"
+            doc.setTextColor(80, 80, 80);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(9);
+            doc.text('STATUS:', 15, rodapeY + 17);
+            
+            // STATUS COLORIDO
+            doc.setTextColor(...color);
+            doc.text(status, 15 + doc.getTextWidth('STATUS: '), rodapeY + 17);
+            
+            // INFORMAÇÕES INSTITUCIONAIS
+            doc.setTextColor(120, 120, 120);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7);
+            doc.text('Câmbio Bank - International Transfers', 15, rodapeY + 25);
+            doc.text('Automatically generated document', 15, rodapeY + 30);
+            
+            // DATA DE EMISSÃO
+            const dataEmissao = new Date().toLocaleString('pt-BR');
+            doc.text(`Issued: ${dataEmissao}`, width - 15 - doc.getTextWidth(`Issued: ${dataEmissao}`), rodapeY + 25);
+            doc.text('Page 1 of 1', width - 15 - doc.getTextWidth('Page 1 of 1'), rodapeY + 30);
+        }
+        
+        _getStatusNormalizado(status) {
+            const statusMap = {
+                'solicitada': 'PENDING',
+                'pendente': 'PENDING',
+                'pending': 'PENDING',
+                'processando': 'PROCESSING',
+                'processing': 'PROCESSING',
+                'concluida': 'COMPLETED',
+                'completed': 'COMPLETED',
+                'aprovada': 'COMPLETED',
+                'recusada': 'REJECTED',
+                'rejected': 'REJECTED'
+            };
+            
+            const statusLower = (status || '').toLowerCase();
+            return statusMap[statusLower] || 'PENDING';
+        }
+        
+        _formatarData(dataString) {
+            if (!dataString) return 'N/A';
+            const data = new Date(dataString);
+            return data.toLocaleString('pt-BR');
+        }
     }
 
     // ============================================
-    // ATUALIZAR FUNÇÃO gerarPDF PARA USAR VERSÃO FINAL
+    // ATUALIZAR FUNÇÃO gerarPDF
     // ============================================
 
-    function configurarPDFFinal() {
-        console.log('🔄 CONFIGURANDO PDF FINAL COM SWIFT');
+    async function gerarPDF(transferenciaId) {
+        console.log(`📄 GERANDO PDF KIVY PARA: ${transferenciaId}`);
         
-        // Sobrescrever função gerarPDF
-        const originalGerarPDF = window.gerarPDF;
-        
-        window.gerarPDF = async function(transferenciaId) {
-            console.log(`📄 GERANDO PDF FINAL PARA: ${transferenciaId}`);
+        try {
+            // Mostrar loading
+            showAlert('Generating PDF...', 'info');
             
-            try {
-                // Buscar dados
-                const response = await fetch('/api/transferencias-internacionais');
-                const todasTransferencias = await response.json();
-                
-                const transferencia = todasTransferencias.find(t => 
-                    t.id === transferenciaId || t.id.toString() === transferenciaId.toString()
-                );
-                
-                if (!transferencia) {
-                    console.log(`❌ Transferência ${transferenciaId} não encontrada`);
-                    showAlert(`Transferência ${transferenciaId} não encontrada`, 'error');
-                    return;
-                }
-                
-                console.log('✅ Dados encontrados. Status:', transferencia.status);
-                console.log('🔍 Tem dados SWIFT?', transferencia.dados_swift_pagamento ? '✅ SIM' : '❌ NÃO');
-                
-                // Preparar dados para PDF
-                const dadosParaPDF = {
-                    id: transferencia.id,
-                    status: transferencia.status?.toLowerCase() || 'solicitada',
-                    valor: parseFloat(transferencia.valor || 0),
-                    moeda: transferencia.moeda || 'USD',
-                    data: transferencia.data || transferencia.created_at,
-                    data_conclusao: transferencia.data_conclusao,
-                    tipo: transferencia.tipo || 'transferencia_internacional',
-                    finalidade: transferencia.finalidade || 'Not informed',
-                    beneficiario: transferencia.beneficiario || '',
-                    endereco_beneficiario: transferencia.endereco_beneficiario || '',
-                    cidade: transferencia.cidade || '',
-                    pais: transferencia.pais || '',
-                    nome_banco: transferencia.nome_banco || '',
-                    endereco_banco: transferencia.endereco_banco || '',
-                    cidade_banco: transferencia.cidade_banco || '',
-                    pais_banco: transferencia.pais_banco || '',
-                    codigo_swift: transferencia.codigo_swift || '',
-                    iban_account: transferencia.iban_account || '',
-                    aba_routing: transferencia.aba_routing || '',
-                    dados_swift_pagamento: transferencia.dados_swift_pagamento || {},
-                    cliente: transferencia.cliente || '',
-                    usuario: transferencia.usuario || '',
-                    solicitado_por: transferencia.solicitado_por || ''
-                };
-                
-                // Criar gerador se necessário
-                if (!window.pdfGeneratorFinal) {
-                    criarClassePDFGeneratorFinal();
-                    window.pdfGeneratorFinal = new PDFGeneratorFinal();
-                }
-                
-                // Gerar PDF
-                const resultado = await window.pdfGeneratorFinal.gerarComprovante(transferenciaId, dadosParaPDF);
-                
-                if (resultado) {
-                    console.log('🎉 PDF Final gerado com sucesso!');
-                    showAlert('PDF generated successfully! Check your downloads.', 'success');
+            // 🔥 USAR O NOVO ENDPOINT ESPECÍFICO PARA PDF
+            const response = await fetch(`/api/transferencias/${transferenciaId}/completo`);
+            
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error('Transferência não encontrada');
+                } else if (response.status === 403) {
+                    throw new Error('Você não tem permissão para ver esta transferência');
                 } else {
-                    console.log('❌ Falha ao gerar PDF');
-                    showAlert('Failed to generate PDF. Please try again.', 'error');
+                    throw new Error('Erro ao buscar dados da transferência');
                 }
-                
-            } catch (error) {
-                console.error('❌ Erro ao gerar PDF:', error);
-                showAlert(`Error: ${error.message}`, 'error');
             }
+            
+            const transferencia = await response.json();
+            console.log('✅ Dados completos carregados:', transferencia);
+            console.log('🔍 Status:', transferencia.status);
+            console.log('🔍 Tem SWIFT?', transferencia.dados_swift_pagamento ? '✅ SIM' : '❌ NÃO');
+            
+            if (transferencia.dados_swift_pagamento) {
+                console.log('📊 Dados SWIFT:', transferencia.dados_swift_pagamento);
+            }
+            
+            // Garantir que jsPDF está carregado
+            if (typeof window.jspdf === 'undefined') {
+                console.log('📦 Carregando jsPDF...');
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+                console.log('✅ jsPDF carregado');
+            }
+            
+            // Criar gerador
+            const gerador = new PDFGeneratorKivyStyle();
+            await gerador.gerarComprovanteKivy(transferencia);
+            
+            showAlert('PDF gerado com sucesso! Verifique seus downloads.', 'success');
+            
+        } catch (error) {
+            console.error('❌ Erro ao gerar PDF:', error);
+            showAlert(`Erro: ${error.message}`, 'error');
+        }
+    }
+
+    // ============================================
+    // FUNÇÃO showAlert (se não existir)
+    // ============================================
+
+    function showAlert(mensagem, tipo = 'info') {
+        // Cria um alerta temporário
+        const alertDiv = document.createElement('div');
+        alertDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            z-index: 9999;
+            animation: fadeInOut 3s ease-in-out;
+        `;
+        
+        const cores = {
+            'success': '#2ec27e',
+            'error': '#e01b24',
+            'info': '#1a5fb4',
+            'warning': '#f39c12'
         };
         
-        console.log('✅ PDF Final configurado!');
-        console.log('👉 Agora os PDFs terão seção SWIFT quando a transferência for completed!');
+        alertDiv.style.backgroundColor = cores[tipo] || cores.info;
+        alertDiv.textContent = mensagem;
+        
+        document.body.appendChild(alertDiv);
+        
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 3000);
     }
 
-    // ============================================
-    // INICIALIZAR SISTEMA
-    // ============================================
-
-    async function inicializarSistemaPDF() {
-        console.log('🚀 INICIALIZANDO SISTEMA PDF FINAL');
-        
-        // Carregar jsPDF se necessário
-        if (typeof window.jspdf === 'undefined') {
-            console.log('📦 Carregando jsPDF...');
-            await new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-                script.onload = resolve;
-                script.onerror = reject;
-                document.head.appendChild(script);
-            });
-            console.log('✅ jsPDF carregado');
-        }
-        
-        // Configurar PDF Final
-        configurarPDFFinal();
-        
-        console.log('✅ Sistema PDF Final inicializado!');
-        console.log('👉 Teste com a transferência 630980 (tem SWIFT)');
+    // Adicione este CSS para a animação
+    const style = document.createElement('style');
+    style.textContent = `
+    @keyframes fadeInOut {
+        0% { opacity: 0; transform: translateY(-20px); }
+        15% { opacity: 1; transform: translateY(0); }
+        85% { opacity: 1; transform: translateY(0); }
+        100% { opacity: 0; transform: translateY(-20px); }
     }
-
-    // Execute para configurar
-    inicializarSistemaPDF();
+    `;
+    document.head.appendChild(style);
     
     function reenviarInvoice(id) {
         alert('Reenviar invoice ' + id);
