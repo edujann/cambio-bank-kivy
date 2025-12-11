@@ -1694,7 +1694,7 @@
             }
             
             // 🔥 RETORNAR COM ESPAÇO ADEQUADO
-            return yPos + 20;
+            return yPos + 14;
         }
         
         _adicionarBeneficiarioCompacto(doc, width, yPos, dados) {
@@ -1797,7 +1797,7 @@
         _adicionarInfoBancariaCorrigido(doc, width, yPos, dados) {
             if (dados.tipo === 'transferencia_internacional') {
                 // 🔥 CAIXA COMPACTADA
-                const boxHeight = 65; // ALTURA REDUZIDA
+                const boxHeight = 60; // ALTURA REDUZIDA
                 
                 // Fundo cinza claro
                 doc.setFillColor(250, 250, 250);
@@ -1938,7 +1938,7 @@
                     yDireita += 8;
                 }
                 
-                return yPos + boxHeight + 8; // 🔥 ESPAÇO REDUZIDO
+                return yPos + boxHeight + 6; // 🔥 ESPAÇO REDUZIDO
             }
             
             return yPos;
@@ -1950,7 +1950,7 @@
             }
             
             // 🔥 CAIXA COMPACTADA
-            const boxHeight = 120; // ALTURA REDUZIDA
+            const boxHeight = 110; // ALTURA REDUZIDA
             
             // Fundo cinza claro
             doc.setFillColor(250, 250, 250);
@@ -2048,7 +2048,7 @@
             adicionarLinhaSwift(':70:', dadosSwift.linha8_70, 'linha8_70');       // Remittance Information
             adicionarLinhaSwift(':71A:', dadosSwift.linha9_71a, 'linha9_71a');    // Details of Charges
             
-            return yPos + boxHeight + 8; // 🔥 ESPAÇO REDUZIDO
+            return yPos + boxHeight + 6; // 🔥 ESPAÇO REDUZIDO
         }
         
         _adicionarRodapeCompacto(doc, width, height, currentYPos, dados) {
