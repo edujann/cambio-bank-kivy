@@ -1564,42 +1564,46 @@
         }
         
         _adicionarCabecalhoKivy(doc, width, height, transferencia) {
-            // CABEÇALHO AZUL MARINHO ESCURO (0.08, 0.18, 0.32)
-            const azulEscuro = [20, 46, 82]; // #142E52 - RGB(20, 46, 82)
-            doc.setFillColor(...azulEscuro);
-            doc.rect(0, 0, width, 28, 'F'); // Retângulo azul
+            // 🔥 VERSÃO MAIS CLEAN E PROFISSIONAL
+            const azulEscuro = [10, 14, 21]; // #0a0e15
+            const azulPrimario = [26, 95, 180]; // #1a5fb4
             
-            // LOGO EM BRANCO
+            // 1. FUNDO AZUL ESCURO
+            doc.setFillColor(...azulEscuro);
+            doc.rect(0, 0, width, 28, 'F');
+            
+            // 2. LOGO E TÍTULO
             doc.setTextColor(255, 255, 255);
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(16);
-            doc.text('CÂMBIO BANK', 15, 15);
+            doc.text('🏦 CAMBIO BANK', 20, 14);
             
-            // SUBTÍTULO
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(10);
-            doc.text('Wire Transfer Receipt', 15, 21);
-            
-            // ID DA TRANSFERÊNCIA (AMARELO)
-            doc.setTextColor(230, 230, 0); // Amarelo
+            // 3. SUBTÍTULO
+            doc.setTextColor(180, 180, 180);
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(9);
-            const idText = `ID: ${transferencia.id}`;
-            const idWidth = doc.getTextWidth(idText);
-            doc.text(idText, width - 15 - idWidth, 15);
+            doc.text('INTERNATIONAL TRANSFER SYSTEM', 20, 20);
             
-            // DATA (CINZA CLARO)
+            // 4. ID (LADO DIREITO)
+            doc.setTextColor(255, 215, 0);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(9);
+            const idText = `TRANSACTION #${transferencia.id}`;
+            const idWidth = doc.getTextWidth(idText);
+            doc.text(idText, width - 20 - idWidth, 14);
+            
+            // 5. DATA (LADO DIREITO)
             doc.setTextColor(200, 200, 200);
             doc.setFontSize(8);
             const dataAtual = new Date().toLocaleString('pt-BR');
             const dataText = dataAtual;
             const dataWidth = doc.getTextWidth(dataText);
-            doc.text(dataText, width - 15 - dataWidth, 22);
+            doc.text(dataText, width - 20 - dataWidth, 20);
             
-            // LINHA DIVISÓRIA FINA
-            doc.setDrawColor(100, 100, 100);
+            // 6. LINHA DIVISÓRIA FINA
+            doc.setDrawColor(30, 35, 46);
             doc.setLineWidth(0.3);
-            doc.line(10, 30, width - 10, 30);
+            doc.line(15, 26, width - 15, 26);
         }
         
         _adicionarDadosTransferenciaKivy(doc, width, dados) {
