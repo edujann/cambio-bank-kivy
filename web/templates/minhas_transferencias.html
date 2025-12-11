@@ -1797,7 +1797,7 @@
         _adicionarInfoBancariaCorrigido(doc, width, yPos, dados) {
             if (dados.tipo === 'transferencia_internacional') {
                 // 🔥 CAIXA COMPACTADA
-                const boxHeight = 60; // ALTURA REDUZIDA
+                const boxHeight = 50; // ALTURA REDUZIDA
                 
                 // Fundo cinza claro
                 doc.setFillColor(250, 250, 250);
@@ -1938,7 +1938,7 @@
                     yDireita += 10;
                 }
                 
-                return yPos + boxHeight + 6; // 🔥 ESPAÇO REDUZIDO
+                return yPos + boxHeight + 4; // 🔥 ESPAÇO REDUZIDO
             }
             
             return yPos;
