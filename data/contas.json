@@ -141,10 +141,17 @@
     },
     "607906288": {
         "moeda": "USD",
-        "saldo": 19750.0,
+        "saldo": 17900.0,
         "cliente": "pantanal",
         "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
         "data_criacao": "2025-11-18"
+    },
+    "759223170": {
+        "moeda": "EUR",
+        "saldo": 0.0,
+        "cliente": "hidroamerica",
+        "cliente_nome": "HIDROAMERICA LTDA",
+        "data_criacao": "2025-12-04"
     },
     "930349314": {
         "moeda": "EUR",
@@ -176,14 +183,14 @@
     },
     "394549984": {
         "moeda": "USD",
-        "saldo": 0.0,
+        "saldo": 11050.32,
         "cliente": "lins",
         "cliente_nome": "LINS CHAIR LIMITADA",
         "data_criacao": "2025-11-18"
     },
     "873134916": {
         "moeda": "BRL",
-        "saldo": 0.0,
+        "saldo": -12876.32,
         "cliente": "lins",
         "cliente_nome": "LINS CHAIR LIMITADA",
         "data_criacao": "2025-11-18"
@@ -222,13 +229,6 @@
         "cliente": "makita",
         "cliente_nome": "MAKITA MACHINES LLC",
         "data_criacao": "2025-11-26"
-    },
-    "759223170": {
-        "moeda": "EUR",
-        "saldo": 0.0,
-        "cliente": "hidroamerica",
-        "cliente_nome": "HIDROAMERICA LTDA",
-        "data_criacao": "2025-12-04"
     },
     "164914690": {
         "moeda": "USD",

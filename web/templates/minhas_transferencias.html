@@ -1446,9 +1446,766 @@
         `;
     }
     
-    // FUNÇÕES DE AÇÃO (placeholder)
-    function mostrarDetalhes(id) {
-        alert('Detalhes da transferência ' + id);
+    // ============================================
+    // FUNÇÃO MOSTRAR DETALHES (IDÊNTICA AO KIVY)
+    // ============================================
+
+    async function mostrarDetalhes(transferenciaId) {
+        console.log(`🔍 Buscando detalhes da transferência ${transferenciaId}...`);
+        
+        try {
+            showAlert('Carregando detalhes...', 'info');
+            
+            // 1. Buscar dados da transferência específica
+            const response = await fetch(`/api/transferencias-internacionais`);
+            
+            if (!response.ok) {
+                throw new Error('Erro ao buscar dados da transferência');
+            }
+            
+            const todasTransferencias = await response.json();
+            
+            // Encontrar a transferência específica
+            const transferencia = todasTransferencias.find(t => 
+                t.id === transferenciaId || 
+                t.id.toString() === transferenciaId.toString()
+            );
+            
+            if (!transferencia) {
+                throw new Error(`Transferência ${transferenciaId} não encontrada`);
+            }
+            
+            console.log('✅ Dados da transferência carregados:', transferencia);
+            
+            // 2. Criar modal de detalhes (estilo Kivy)
+            criarModalDetalhesKivy(transferencia);
+            
+        } catch (error) {
+            console.error('❌ Erro ao mostrar detalhes:', error);
+            showAlert(`Erro: ${error.message}`, 'error');
+        }
+    }
+
+    // ============================================
+    // MODAL DE DETALHES (ESTILO KIVY)
+    // ============================================
+
+    function criarModalDetalhesKivy(dados) {
+        // Criar overlay/modal
+        const modalOverlay = document.createElement('div');
+        modalOverlay.id = 'modalDetalhesOverlay';
+        modalOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 10000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s ease;
+        `;
+        
+        // Criar modal container
+        const modalContainer = document.createElement('div');
+        modalContainer.style.cssText = `
+            background: #0d1117;
+            border-radius: 12px;
+            width: 700px;
+            max-width: 90vw;
+            max-height: 85vh;
+            overflow: hidden;
+            border: 1px solid #1e232e;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.3s ease;
+        `;
+        
+        // 🔥 CABEÇALHO DO MODAL (igual ao Kivy)
+        const modalHeader = document.createElement('div');
+        modalHeader.style.cssText = `
+            background: linear-gradient(90deg, #1a5fb4, #2d8fff);
+            color: white;
+            padding: 20px 25px;
+            font-size: 18px;
+            font-weight: bold;
+            border-bottom: 2px solid #1a5fb4;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        `;
+        
+        modalHeader.innerHTML = `
+            <div>
+                <i class="fas fa-exchange-alt"></i>
+                DETALHES COMPLETOS DA TRANSFERÊNCIA
+            </div>
+            <div style="font-size: 14px; font-weight: normal; opacity: 0.9;">
+                ID: #${dados.id}
+            </div>
+        `;
+        
+        // 🔥 CONTEÚDO COM SCROLL (igual ao Kivy)
+        const modalContent = document.createElement('div');
+        modalContent.style.cssText = `
+            flex: 1;
+            overflow-y: auto;
+            padding: 25px;
+            color: #e0e0e0;
+            font-size: 14px;
+            line-height: 1.6;
+        `;
+        
+        // 🔥 GERAR CONTEÚDO DETALHADO (igual ao Kivy)
+        modalContent.innerHTML = gerarConteudoDetalhesKivy(dados);
+        
+        // 🔥 FOOTER DO MODAL
+        const modalFooter = document.createElement('div');
+        modalFooter.style.cssText = `
+            padding: 20px 25px;
+            border-top: 1px solid #1e232e;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        `;
+        
+        // Botão FECHAR (roxo como no Kivy)
+        const btnFechar = document.createElement('button');
+        btnFechar.innerHTML = '<i class="fas fa-times"></i> FECHAR';
+        btnFechar.style.cssText = `
+            padding: 10px 25px;
+            background: #9b59b6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        `;
+        
+        btnFechar.onmouseover = () => {
+            btnFechar.style.background = '#8e44ad';
+            btnFechar.style.transform = 'translateY(-2px)';
+        };
+        
+        btnFechar.onmouseout = () => {
+            btnFechar.style.background = '#9b59b6';
+            btnFechar.style.transform = 'translateY(0)';
+        };
+        
+        btnFechar.onclick = () => {
+            document.body.removeChild(modalOverlay);
+        };
+        
+        modalFooter.appendChild(btnFechar);
+        
+        // Montar modal
+        modalContainer.appendChild(modalHeader);
+        modalContainer.appendChild(modalContent);
+        modalContainer.appendChild(modalFooter);
+        modalOverlay.appendChild(modalContainer);
+        
+        // Adicionar ao body
+        document.body.appendChild(modalOverlay);
+        
+        // Fechar ao clicar fora do modal
+        modalOverlay.onclick = (e) => {
+            if (e.target === modalOverlay) {
+                document.body.removeChild(modalOverlay);
+            }
+        };
+        
+        // Adicionar animações CSS
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            
+            @keyframes slideUp {
+                from { 
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+                to { 
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            
+            #modalDetalhesOverlay .detalhes-secao {
+                margin-bottom: 25px;
+                padding-bottom: 15px;
+                border-bottom: 1px solid #2a2f3a;
+            }
+            
+            #modalDetalhesOverlay .detalhes-titulo {
+                color: #1a5fb4;
+                font-size: 16px;
+                font-weight: bold;
+                margin-bottom: 12px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            #modalDetalhesOverlay .detalhes-item {
+                display: grid;
+                grid-template-columns: 140px 1fr;
+                margin-bottom: 8px;
+                padding: 4px 0;
+            }
+            
+            #modalDetalhesOverlay .detalhes-label {
+                color: #8b949e;
+                font-weight: 600;
+            }
+            
+            #modalDetalhesOverlay .detalhes-valor {
+                color: #e0e0e0;
+                word-break: break-word;
+            }
+            
+            #modalDetalhesOverlay .status-badge {
+                display: inline-block;
+                padding: 4px 12px;
+                border-radius: 4px;
+                font-size: 12px;
+                font-weight: bold;
+                text-transform: uppercase;
+            }
+            
+            #modalDetalhesOverlay .status-pending {
+                background: rgba(243, 156, 18, 0.15);
+                color: #f39c12;
+                border: 1px solid rgba(243, 156, 18, 0.3);
+            }
+            
+            #modalDetalhesOverlay .status-processing {
+                background: rgba(26, 95, 180, 0.15);
+                color: #1a5fb4;
+                border: 1px solid rgba(26, 95, 180, 0.3);
+            }
+            
+            #modalDetalhesOverlay .status-completed {
+                background: rgba(46, 194, 126, 0.15);
+                color: #2ec27e;
+                border: 1px solid rgba(46, 194, 126, 0.3);
+            }
+            
+            #modalDetalhesOverlay .status-rejected {
+                background: rgba(224, 27, 36, 0.15);
+                color: #e01b24;
+                border: 1px solid rgba(224, 27, 36, 0.3);
+            }
+            
+            #modalDetalhesOverlay .invoice-status-approved {
+                color: #2ec27e;
+                font-weight: bold;
+            }
+            
+            #modalDetalhesOverlay .invoice-status-rejected {
+                color: #e01b24;
+                font-weight: bold;
+            }
+            
+            #modalDetalhesOverlay .invoice-status-pending {
+                color: #f39c12;
+                font-weight: bold;
+            }
+            
+            /* Scrollbar personalizada */
+            #modalDetalhesOverlay ::-webkit-scrollbar {
+                width: 8px;
+            }
+            
+            #modalDetalhesOverlay ::-webkit-scrollbar-track {
+                background: #1a1f2e;
+                border-radius: 4px;
+            }
+            
+            #modalDetalhesOverlay ::-webkit-scrollbar-thumb {
+                background: #2d3a5a;
+                border-radius: 4px;
+            }
+            
+            #modalDetalhesOverlay ::-webkit-scrollbar-thumb:hover {
+                background: #3a4a70;
+            }
+        `;
+        
+        document.head.appendChild(style);
+    }
+
+    // ============================================
+    // GERAR CONTEÚDO DOS DETALHES (IDÊNTICO AO KIVY)
+    // ============================================
+
+    function gerarConteudoDetalhesKivy(dados) {
+        // 🔥 FORMATAR STATUS (igual ao Kivy)
+        const statusText = formatarStatusKivy(dados.status);
+        const statusClass = getStatusClass(dados.status);
+        
+        // 🔥 FORMATAR DATA (igual ao Kivy)
+        const dataFormatada = formatarDataKivy(dados.data || dados.created_at);
+        const dataAprovacaoFormatada = dados.data_aprovacao ? formatarDataKivy(dados.data_aprovacao) : null;
+        const dataConclusaoFormatada = dados.data_conclusao ? formatarDataKivy(dados.data_conclusao) : null;
+        
+        // 🔥 DETERMINAR TIPO (igual ao Kivy)
+        const tipoTransferencia = dados.tipo === 'transferencia_internacional' ? 'INTERNACIONAL' : 'INTERNA';
+        
+        // 🔥 VALOR FORMATADO (igual ao Kivy)
+        const valorFormatado = formatarMoedaKivy(dados.valor, dados.moeda);
+        
+        let html = '';
+        
+        // 🔥 SEÇÃO 1: INFORMAÇÕES BÁSICAS (igual ao Kivy)
+        html += `
+            <div class="detalhes-secao">
+                <div class="detalhes-titulo">
+                    <i class="fas fa-info-circle"></i>
+                    INFORMAÇÕES BÁSICAS
+                </div>
+                
+                <div class="detalhes-item">
+                    <span class="detalhes-label">ID:</span>
+                    <span class="detalhes-valor">${dados.id}</span>
+                </div>
+                
+                <div class="detalhes-item">
+                    <span class="detalhes-label">Status:</span>
+                    <span class="detalhes-valor">
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </span>
+                </div>
+                
+                <div class="detalhes-item">
+                    <span class="detalhes-label">Tipo:</span>
+                    <span class="detalhes-valor">${tipoTransferencia}</span>
+                </div>
+                
+                <div class="detalhes-item">
+                    <span class="detalhes-label">Valor:</span>
+                    <span class="detalhes-valor" style="font-weight: bold; font-size: 15px;">
+                        ${valorFormatado}
+                    </span>
+                </div>
+                
+                <div class="detalhes-item">
+                    <span class="detalhes-label">Data:</span>
+                    <span class="detalhes-valor">${dataFormatada}</span>
+                </div>
+            </div>
+        `;
+        
+        // 🔥 SEÇÃO 2: BENEFICIÁRIO INTERNACIONAL (igual ao Kivy)
+        if (tipoTransferencia === 'INTERNACIONAL') {
+            html += `
+                <div class="detalhes-secao">
+                    <div class="detalhes-titulo">
+                        <i class="fas fa-user-tie"></i>
+                        BENEFICIÁRIO INTERNACIONAL
+                    </div>
+                    
+                    <div class="detalhes-item">
+                        <span class="detalhes-label">Nome:</span>
+                        <span class="detalhes-valor">${dados.beneficiario || 'N/A'}</span>
+                    </div>
+                    
+                    <div class="detalhes-item">
+                        <span class="detalhes-label">Endereço:</span>
+                        <span class="detalhes-valor">${dados.endereco_beneficiario || 'N/A'}</span>
+                    </div>
+                    
+                    <div class="detalhes-item">
+                        <span class="detalhes-label">Cidade:</span>
+                        <span class="detalhes-valor">${dados.cidade || dados.cidade_banco || 'N/A'}</span>
+                    </div>
+                    
+                    <div class="detalhes-item">
+                        <span class="detalhes-label">País:</span>
+                        <span class="detalhes-valor">${dados.pais || dados.pais_banco || 'N/A'}</span>
+                    </div>
+                </div>
+                
+                <div class="detalhes-secao">
+                    <div class="detalhes-titulo">
+                        <i class="fas fa-university"></i>
+                        INFORMAÇÕES BANCÁRIAS
+                    </div>
+                    
+                    <div class="detalhes-item">
+                        <span class="detalhes-label">Banco:</span>
+                        <span class="detalhes-valor">${dados.nome_banco || 'N/A'}</span>
+                    </div>
+                    
+                    ${dados.endereco_banco ? `
+                    <div class="detalhes-item">
+                        <span class="detalhes-label">Endereço Banco:</span>
+                        <span class="detalhes-valor">${dados.endereco_banco}</span>
+                    </div>
+                    ` : ''}
+                    
+                    ${dados.cidade_banco ? `
+                    <div class="detalhes-item">
+                        <span class="detalhes-label">Cidade Banco:</span>
+                        <span class="detalhes-valor">${dados.cidade_banco}</span>
+                    </div>
+                    ` : ''}
+                    
+                    ${dados.pais_banco ? `
+                    <div class="detalhes-item">
+                        <span class="detalhes-label">País Banco:</span>
+                        <span class="detalhes-valor">${dados.pais_banco}</span>
+                    </div>
+                    ` : ''}
+                    
+                    <div class="detalhes-item">
+                        <span class="detalhes-label">Código SWIFT:</span>
+                        <span class="detalhes-valor" style="font-family: monospace;">
+                            ${dados.codigo_swift || 'N/A'}
+                        </span>
+                    </div>
+                    
+                    <div class="detalhes-item">
+                        <span class="detalhes-label">IBAN/Conta:</span>
+                        <span class="detalhes-valor" style="font-family: monospace;">
+                            ${dados.iban_account || 'N/A'}
+                        </span>
+                    </div>
+                    
+                    ${dados.aba_routing ? `
+                    <div class="detalhes-item">
+                        <span class="detalhes-label">ABA/Routing:</span>
+                        <span class="detalhes-valor">${dados.aba_routing}</span>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+        
+        // 🔥 SEÇÃO 3: INFORMAÇÕES ADICIONAIS (igual ao Kivy)
+        const temInfoAdicional = dados.finalidade || dados.descricao;
+        if (temInfoAdicional) {
+            html += `
+                <div class="detalhes-secao">
+                    <div class="detalhes-titulo">
+                        <i class="fas fa-sticky-note"></i>
+                        INFORMAÇÕES ADICIONAIS
+                    </div>
+                    
+                    ${dados.finalidade ? `
+                    <div class="detalhes-item">
+                        <span class="detalhes-label">Finalidade:</span>
+                        <span class="detalhes-valor">${dados.finalidade}</span>
+                    </div>
+                    ` : ''}
+                    
+                    ${dados.descricao ? `
+                    <div class="detalhes-item">
+                        <span class="detalhes-label">Descrição:</span>
+                        <span class="detalhes-valor">${dados.descricao}</span>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+        
+        // 🔥 SEÇÃO 4: PROCESSAMENTO (igual ao Kivy - só mostra se tiver dados)
+        if (dados.data_aprovacao || dados.executado_por || dados.data_conclusao || dados.concluido_por) {
+            html += `
+                <div class="detalhes-secao">
+                    <div class="detalhes-titulo">
+                        <i class="fas fa-cogs"></i>
+                        PROCESSAMENTO
+                    </div>
+                    
+                    ${dados.data_aprovacao ? `
+                    <div class="detalhes-item">
+                        <span class="detalhes-label">Aprovado por:</span>
+                        <span class="detalhes-valor">${dados.executado_por || dados.concluido_por || 'N/A'}</span>
+                    </div>
+                    
+                    <div class="detalhes-item">
+                        <span class="detalhes-label">Data Aprovação:</span>
+                        <span class="detalhes-valor">${dataAprovacaoFormatada}</span>
+                    </div>
+                    ` : ''}
+                    
+                    ${dados.data_conclusao ? `
+                    <div class="detalhes-item">
+                        <span class="detalhes-label">Concluído por:</span>
+                        <span class="detalhes-valor">${dados.concluido_por || 'N/A'}</span>
+                    </div>
+                    
+                    <div class="detalhes-item">
+                        <span class="detalhes-label">Data Conclusão:</span>
+                        <span class="detalhes-valor">${dataConclusaoFormatada}</span>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+        
+        // 🔥 SEÇÃO 5: MOTIVO DA RECUSA (igual ao Kivy)
+        if (dados.status === 'rejected' && dados.motivo_recusa) {
+            html += `
+                <div class="detalhes-secao">
+                    <div class="detalhes-titulo" style="color: #e01b24;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        MOTIVO DA RECUSA
+                    </div>
+                    
+                    <div class="detalhes-item" style="grid-template-columns: 1fr;">
+                        <span class="detalhes-valor" style="color: #ff6b6b; font-style: italic;">
+                            "${dados.motivo_recusa}"
+                        </span>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 🔥 SEÇÃO 6: DADOS SWIFT (igual ao Kivy)
+        if (dados.dados_swift_pagamento && Object.keys(dados.dados_swift_pagamento).length > 0) {
+            html += `
+                <div class="detalhes-secao">
+                    <div class="detalhes-titulo" style="color: #6c8eff;">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        DADOS SWIFT DO PAGAMENTO
+                    </div>
+            `;
+            
+            // Ordenar as linhas SWIFT corretamente
+            const swiftKeys = [
+                'linha1_uetr', 'linha2_20', 'linha3_32a', 'linha4_50k',
+                'linha5_57a', 'linha6_59', 'linha7_beneficiario', 'linha8_70', 'linha9_71a'
+            ];
+            
+            swiftKeys.forEach(key => {
+                if (dados.dados_swift_pagamento[key]) {
+                    const label = formatarLabelSwift(key);
+                    html += `
+                        <div class="detalhes-item">
+                            <span class="detalhes-label">${label}:</span>
+                            <span class="detalhes-valor" style="font-family: monospace; font-size: 13px;">
+                                ${dados.dados_swift_pagamento[key]}
+                            </span>
+                        </div>
+                    `;
+                }
+            });
+            
+            html += `</div>`;
+        }
+        
+        // 🔥 SEÇÃO 7: INFORMAÇÕES DA INVOICE (igual ao Kivy)
+        if (dados.invoice_info) {
+            const invoiceStatus = dados.invoice_info.status || 'pending';
+            const invoiceStatusText = formatarStatusInvoiceKivy(invoiceStatus);
+            const invoiceStatusClass = `invoice-status-${invoiceStatus}`;
+            
+            html += `
+                <div class="detalhes-secao">
+                    <div class="detalhes-titulo">
+                        <i class="fas fa-file-contract"></i>
+                        STATUS DA INVOICE
+                    </div>
+                    
+                    <div class="detalhes-item">
+                        <span class="detalhes-label">Status:</span>
+                        <span class="detalhes-valor ${invoiceStatusClass}">
+                            ${invoiceStatusText}
+                        </span>
+                    </div>
+            `;
+            
+            if (invoiceStatus === 'rejected' && dados.invoice_info.motivo_recusa) {
+                html += `
+                    <div class="detalhes-item">
+                        <span class="detalhes-label">Motivo:</span>
+                        <span class="detalhes-valor" style="color: #ff6b6b;">
+                            ${dados.invoice_info.motivo_recusa}
+                        </span>
+                    </div>
+                `;
+            }
+            
+            if (dados.invoice_info.data_upload) {
+                const dataUploadFormatada = formatarDataKivy(dados.invoice_info.data_upload);
+                html += `
+                    <div class="detalhes-item">
+                        <span class="detalhes-label">Data Upload:</span>
+                        <span class="detalhes-valor">${dataUploadFormatada}</span>
+                    </div>
+                `;
+            }
+            
+            html += `</div>`;
+        }
+        
+        return html;
+    }
+
+    // ============================================
+    // FUNÇÕES AUXILIARES (IGUAL AO KIVY)
+    // ============================================
+
+    function formatarStatusKivy(status) {
+        const statusMap = {
+            'solicitada': 'PENDENTE',
+            'pendente': 'PENDENTE',
+            'pending': 'PENDENTE',
+            'processando': 'PROCESSANDO',
+            'processing': 'PROCESSANDO',
+            'concluida': 'CONCLUÍDA',
+            'completed': 'CONCLUÍDA',
+            'aprovada': 'CONCLUÍDA',
+            'recusada': 'RECUSADA',
+            'rejected': 'RECUSADA'
+        };
+        
+        return statusMap[status.toLowerCase()] || status.toUpperCase();
+    }
+
+    function formatarStatusInvoiceKivy(status) {
+        const statusMap = {
+            'pending': 'Pendente',
+            'approved': 'Aprovada',
+            'rejected': 'Recusada'
+        };
+        
+        return statusMap[status.toLowerCase()] || status;
+    }
+
+    function getStatusClass(status) {
+        switch (status.toLowerCase()) {
+            case 'pending':
+            case 'pendente':
+            case 'solicitada':
+                return 'status-pending';
+            case 'processing':
+            case 'processando':
+                return 'status-processing';
+            case 'completed':
+            case 'concluida':
+            case 'aprovada':
+                return 'status-completed';
+            case 'rejected':
+            case 'recusada':
+                return 'status-rejected';
+            default:
+                return 'status-pending';
+        }
+    }
+
+    function formatarDataKivy(dataString) {
+        if (!dataString) return 'N/A';
+        
+        try {
+            const data = new Date(dataString);
+            if (isNaN(data.getTime())) return dataString;
+            
+            // Formato: "04/12/2025 12:19:29" (DD/MM/YYYY HH:MM:SS)
+            const dia = data.getDate().toString().padStart(2, '0');
+            const mes = (data.getMonth() + 1).toString().padStart(2, '0');
+            const ano = data.getFullYear();
+            const horas = data.getHours().toString().padStart(2, '0');
+            const minutos = data.getMinutes().toString().padStart(2, '0');
+            const segundos = data.getSeconds().toString().padStart(2, '0');
+            
+            return `${dia}/${mes}/${ano} ${horas}:${minutos}:${segundos}`;
+        } catch (error) {
+            return dataString;
+        }
+    }
+
+    function formatarMoedaKivy(valor, moeda) {
+        if (!valor) return '--';
+        
+        const simbolos = {
+            'USD': 'US$',
+            'EUR': '€',
+            'GBP': '£',
+            'BRL': 'R$'
+        };
+        
+        const simbolo = simbolos[moeda] || moeda;
+        const valorNumerico = parseFloat(valor);
+        
+        // Formatar com 2 decimais e separador de milhares
+        return `${simbolo} ${valorNumerico.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}`;
+    }
+
+    function formatarLabelSwift(key) {
+        const labelMap = {
+            'linha1_uetr': 'UETR #',
+            'linha2_20': ':20:',
+            'linha3_32a': ':32A:',
+            'linha4_50k': ':50K:',
+            'linha5_57a': ':57A:',
+            'linha6_59': ':59:',
+            'linha7_beneficiario': 'Beneficiário',
+            'linha8_70': ':70:',
+            'linha9_71a': ':71A:'
+        };
+        
+        return labelMap[key] || key.replace('linha', 'Linha ').replace('_', ':');
+    }
+
+    // Função de alerta (se ainda não existir)
+    function showAlert(mensagem, tipo = 'info') {
+        const alertDiv = document.createElement('div');
+        alertDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            z-index: 9999;
+            animation: fadeInOut 3s ease-in-out;
+        `;
+        
+        const cores = {
+            'success': '#2ec27e',
+            'error': '#e01b24',
+            'info': '#1a5fb4',
+            'warning': '#f39c12'
+        };
+        
+        alertDiv.style.backgroundColor = cores[tipo] || cores.info;
+        alertDiv.textContent = mensagem;
+        
+        document.body.appendChild(alertDiv);
+        
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 3000);
+        
+        // Adicionar animação CSS se não existir
+        if (!document.querySelector('#alert-animation-style')) {
+            const style = document.createElement('style');
+            style.id = 'alert-animation-style';
+            style.textContent = `
+                @keyframes fadeInOut {
+                    0% { opacity: 0; transform: translateY(-20px); }
+                    15% { opacity: 1; transform: translateY(0); }
+                    85% { opacity: 1; transform: translateY(0); }
+                    100% { opacity: 0; transform: translateY(-20px); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
     }
     
     function visualizarInvoice(id) {
@@ -1574,7 +2331,7 @@
             doc.setTextColor(255, 255, 255);
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(16);
-            doc.text('CÂMBIO BANK', 20, 15); // Note: com acento como antes
+            doc.text('CAMBIO BANK', 20, 15); // Note: com acento como antes
             
             // 3. SUBTÍTULO
             doc.setTextColor(200, 200, 200);
@@ -1583,7 +2340,7 @@
             doc.text('Wire Transfer Receipt', 20, 21);
             
             // 4. ID AMARELO
-            const idText = `ID: ${transferencia.id}`;
+            const idText = `ID: #${transferencia.id}`;
             const idWidth = doc.getTextWidth(idText);
             
             doc.setTextColor(230, 230, 0); // Amarelo mais suave
@@ -2147,7 +2904,7 @@
             doc.setFontSize(7);
             
             // 🔥 PRIMEIRA LINHA (2mm MAIS PARA BAIXO)
-            doc.text('Câmbio Bank - International Transfers', 15, footerY + 19); // 🔥 ALTERADO: 17 → 19
+            doc.text('Cambio Bank - International Transfers', 15, footerY + 19); // 🔥 ALTERADO: 17 → 19
             
             // 🔥 SEGUNDA LINHA (2mm MAIS PARA BAIXO)
             doc.text('Automatically generated document', 15, footerY + 24); // 🔥 ALTERADO: 22 → 24
