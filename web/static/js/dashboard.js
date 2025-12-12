@@ -227,7 +227,11 @@ function mostrarDadosUsuario(usuario) {
         return;
     }
     
-    // 1. Atualiza nome no header (userMenu)
+    // 1. Atualiza nome no header (userMenu) - COMENTADO PARA EVITAR CONFLITO
+    // O nome já está sendo definido pelo template Flask no HTML
+    // e pelo script separado do menu dropdown
+    
+    /* REMOVIDO PARA EVITAR CONFLITO
     try {
         const userMenu = document.getElementById('userMenu');
         if (userMenu) {
@@ -244,6 +248,7 @@ function mostrarDadosUsuario(usuario) {
     } catch (error) {
         console.error('❌ DEBUG: Erro ao atualizar header:', error);
     }
+    */
     
     // 2. Se tiver sidebar (opcional - se seu novo layout tiver)
     try {
@@ -261,10 +266,6 @@ function mostrarDadosUsuario(usuario) {
         // Não é crítico se não tiver sidebar
         console.log('ℹ️ DEBUG: Elementos da sidebar não encontrados (normal se não existirem)');
     }
-    
-    // 3. Remove a lógica antiga do statusBadge (não existe no novo layout)
-    // ❌ NÃO FAZER: const statusBadge = document.querySelector('.status-badge');
-    // O novo layout do protótipo não tem status badge visível
     
     console.log('✅ DEBUG [mostrarDadosUsuario]: Concluído com sucesso');
 }

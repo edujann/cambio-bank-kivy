@@ -1132,7 +1132,8 @@ function abrirTransferencia() {
             </div>
             
             <div class="header-right">
-                <div class="user-menu" onclick="toggleUserMenu()">
+                <!-- ADICIONE ID "userMenu" AQUI -->
+                <div class="user-menu" id="userMenu" onclick="toggleUserMenu()">
                     <div class="user-avatar">
                         <i class="fas fa-user-circle"></i>
                     </div>
@@ -1443,24 +1444,28 @@ function abrirTransferencia() {
     </div>
     <script>
     // ============================================
-    // MENU DROPDOWN DO USUÁRIO - VERSÃO DEFINITIVA
+    // MENU DROPDOWN - VERSÃO COMPATÍVEL COM DASHBOARD.JS
     // ============================================
 
-    // Variável para controlar se o menu está aberto
+    console.log('🚀 Menu dropdown - carregando...');
+
     let userMenuOpen = false;
     let userMenuClickHandler = null;
 
-    // Função principal para abrir/fechar o menu
+    // Função principal
     function toggleUserMenu(event) {
         if (event) event.stopPropagation();
         
         console.log('🔄 toggleUserMenu chamado');
         
         const dropdown = document.getElementById('userDropdown');
-        const userMenuBtn = document.querySelector('.user-menu');
+        const userMenuBtn = document.getElementById('userMenu'); // ← USA O ID QUE ADICIONAMOS
         
         if (!dropdown || !userMenuBtn) {
-            console.error('❌ Elementos do menu não encontrados');
+            console.error('❌ Elementos do menu não encontrados:', {
+                dropdown: !!dropdown,
+                userMenuBtn: !!userMenuBtn
+            });
             return;
         }
         
@@ -1470,7 +1475,7 @@ function abrirTransferencia() {
         if (userMenuOpen) {
             console.log('📂 ABRIR menu dropdown');
             
-            // REMOVER display: none inline style
+            // REMOVER display: none inline style se existir
             dropdown.style.display = '';
             dropdown.classList.add('show');
             
@@ -1487,7 +1492,6 @@ function abrirTransferencia() {
                 fecharMenuAoClicarFora(e);
             };
             
-            // Usar setTimeout para não fechar imediatamente
             setTimeout(() => {
                 document.addEventListener('click', userMenuClickHandler);
             }, 100);
@@ -1496,7 +1500,6 @@ function abrirTransferencia() {
             console.log('📁 FECHAR menu dropdown');
             dropdown.classList.remove('show');
             
-            // Remover event listener
             if (userMenuClickHandler) {
                 document.removeEventListener('click', userMenuClickHandler);
             }
@@ -1505,31 +1508,14 @@ function abrirTransferencia() {
 
     // Atualizar informações do usuário no dropdown
     function atualizarInfoDropdown() {
-        console.log('🔄 Atualizando info dropdown');
-        
         try {
-            // Obter nome do usuário
-            const userNameElement = document.getElementById('userName');
-            const nomeUsuario = userNameElement ? userNameElement.textContent.trim() : 'Usuário';
+            const nomeUsuario = document.getElementById('userName').textContent.trim();
+            const emailUsuario = window.USER?.email || '{{ email if email else "usuario@exemplo.com" }}';
             
-            // Obter email (do Flask ou do objeto USER)
-            let emailUsuario = 'email@exemplo.com';
-            if (window.USER && window.USER.email) {
-                emailUsuario = window.USER.email;
-            } else {
-                // Tentar pegar do Flask template
-                emailUsuario = '{{ email if email else "usuario@exemplo.com" }}';
-            }
+            document.getElementById('dropdownUserName').textContent = nomeUsuario;
+            document.getElementById('dropdownUserEmail').textContent = emailUsuario;
             
-            console.log(`👤 Nome: ${nomeUsuario}, Email: ${emailUsuario}`);
-            
-            // Atualizar elementos no dropdown
-            const dropdownName = document.getElementById('dropdownUserName');
-            const dropdownEmail = document.getElementById('dropdownUserEmail');
-            
-            if (dropdownName) dropdownName.textContent = nomeUsuario;
-            if (dropdownEmail) dropdownEmail.textContent = emailUsuario;
-            
+            console.log(`👤 Dropdown atualizado: ${nomeUsuario} - ${emailUsuario}`);
         } catch (error) {
             console.error('❌ Erro ao atualizar info dropdown:', error);
         }
@@ -1538,16 +1524,14 @@ function abrirTransferencia() {
     // Fechar menu ao clicar fora
     function fecharMenuAoClicarFora(event) {
         const dropdown = document.getElementById('userDropdown');
-        const userMenuBtn = document.querySelector('.user-menu');
+        const userMenuBtn = document.getElementById('userMenu');
         
         if (!dropdown || !userMenuBtn) return;
         
-        // Verificar se o clique foi fora do menu
         const clickedInsideMenu = dropdown.contains(event.target);
         const clickedOnButton = userMenuBtn.contains(event.target);
         
         if (!clickedInsideMenu && !clickedOnButton) {
-            console.log('👆 Clicou fora do menu - fechando');
             dropdown.classList.remove('show');
             userMenuOpen = false;
             
@@ -1557,73 +1541,44 @@ function abrirTransferencia() {
         }
     }
 
-    // Fechar com tecla ESC
-    function handleEscapeKey(event) {
-        if (event.key === 'Escape' && userMenuOpen) {
-            console.log('⎋ Tecla ESC - fechando menu');
-            const dropdown = document.getElementById('userDropdown');
-            if (dropdown) {
-                dropdown.classList.remove('show');
-                userMenuOpen = false;
-                
-                if (userMenuClickHandler) {
-                    document.removeEventListener('click', userMenuClickHandler);
-                }
-            }
-        }
-    }
-
-    // Configurar tudo quando a página carregar
+    // Configurar quando DOM carregar
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('🚀 Configurando menu dropdown do usuário...');
+        console.log('🏗️ DOM carregado - configurando menu...');
         
-        const userMenuBtn = document.querySelector('.user-menu');
+        const userMenuBtn = document.getElementById('userMenu');
         const dropdown = document.getElementById('userDropdown');
         
         if (!userMenuBtn) {
-            console.error('❌ Botão do menu do usuário não encontrado!');
+            console.error('❌ Elemento userMenu não encontrado!');
             return;
         }
         
-        if (!dropdown) {
-            console.error('❌ Dropdown menu não encontrado!');
-            return;
-        }
+        console.log('✅ Elementos encontrados:', {
+            userMenuBtn: !!userMenuBtn,
+            dropdown: !!dropdown
+        });
         
-        console.log('✅ Elementos do menu encontrados');
-        
-        // Configurar clique no botão
+        // Configurar clique no botão (ambos os métodos)
+        userMenuBtn.onclick = toggleUserMenu;
         userMenuBtn.addEventListener('click', toggleUserMenu);
         
-        // Configurar tecla ESC
-        document.addEventListener('keydown', handleEscapeKey);
-        
-        // Garantir que o menu está fechado inicialmente
-        dropdown.classList.remove('show');
+        // Fechar com ESC
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && userMenuOpen) {
+                const dropdown = document.getElementById('userDropdown');
+                if (dropdown) {
+                    dropdown.classList.remove('show');
+                    userMenuOpen = false;
+                    
+                    if (userMenuClickHandler) {
+                        document.removeEventListener('click', userMenuClickHandler);
+                    }
+                }
+            }
+        });
         
         console.log('✅ Menu dropdown configurado com sucesso!');
-        
-        // Log para debug
-        setTimeout(() => {
-            console.log('🔍 Elementos disponíveis:');
-            console.log('- userMenuBtn:', userMenuBtn);
-            console.log('- dropdown:', dropdown);
-            console.log('- USER object:', window.USER);
-        }, 500);
     });
-
-    // Função para forçar fechar o menu (útil para outros scripts)
-    function fecharMenuUsuario() {
-        const dropdown = document.getElementById('userDropdown');
-        if (dropdown) {
-            dropdown.classList.remove('show');
-            userMenuOpen = false;
-            
-            if (userMenuClickHandler) {
-                document.removeEventListener('click', userMenuClickHandler);
-            }
-        }
-    }
-    </script>   
+    </script>
 </body>
 </html>
