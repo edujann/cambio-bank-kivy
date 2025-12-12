@@ -1288,14 +1288,16 @@ function abrirTransferencia() {
                         </div>
                     </div>
 
-                    <!-- CARD 2: CÂMBIO -->
-                    <div class="acao-card" onclick="abrirCambio()">
-                        <div class="card-icon cambio">
-                            <i class="fas fa-chart-line"></i>
+                    <!-- CARD 2: Meus Beneficiários -->
+                    <div class="acao-card" onclick="abrirBeneficiarios()">
+                        <div class="card-icon beneficiarios">
+                            <i class="fas fa-users"></i>
                         </div>
-                        <h3 class="card-title">Câmbio</h3>
-                        <p class="card-desc">Compra e venda de moedas</p>
-                        <div class="card-badge">12 pares</div>
+                        <h3 class="card-title">Meus Beneficiários</h3>
+                        <p class="card-desc">Gerencie seus contatos</p>
+                        <div class="card-badge" id="badgeBeneficiarios2">
+                            {{ beneficiarios_count if beneficiarios_count else '6' }} cadastrados
+                        </div>
                     </div>
 
                     <!-- CARD 3: EXTRATO -->
