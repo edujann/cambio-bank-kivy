@@ -1442,5 +1442,77 @@ function abrirTransferencia() {
             <i class="fas fa-sign-out-alt"></i> Sair
         </a>
     </div>
+    <script>
+    // ============================================
+    // MENU DROPDOWN DO USUÁRIO (VERSÃO SIMPLES E FUNCIONAL)
+    // ============================================
+
+    let userMenuOpen = false;
+
+    function toggleUserMenu() {
+        const dropdown = document.getElementById('userDropdown');
+        const userMenuBtn = document.querySelector('.user-menu');
+        
+        // Alternar visibilidade
+        userMenuOpen = !userMenuOpen;
+        
+        if (userMenuOpen) {
+            // ABRIR MENU
+            dropdown.classList.add('show');
+            
+            // Posicionar corretamente abaixo do botão
+            const rect = userMenuBtn.getBoundingClientRect();
+            dropdown.style.top = (rect.bottom + 5) + 'px';
+            dropdown.style.right = (window.innerWidth - rect.right) + 'px';
+            
+            // Atualizar informações no dropdown
+            const nomeUsuario = document.getElementById('userName').textContent.trim();
+            const emailUsuario = window.USER?.email || '{{ email if email else "usuario@exemplo.com" }}';
+            
+            document.getElementById('dropdownUserName').textContent = nomeUsuario;
+            document.getElementById('dropdownUserEmail').textContent = emailUsuario;
+            
+            // Adicionar listener para fechar ao clicar fora
+            document.addEventListener('click', fecharMenuAoClicarFora);
+            
+        } else {
+            // FECHAR MENU
+            dropdown.classList.remove('show');
+            document.removeEventListener('click', fecharMenuAoClicarFora);
+        }
+    }
+
+    function fecharMenuAoClicarFora(event) {
+        const dropdown = document.getElementById('userDropdown');
+        const userMenuBtn = document.querySelector('.user-menu');
+        
+        // Verificar se o clique foi fora do menu
+        if (!dropdown.contains(event.target) && !userMenuBtn.contains(event.target)) {
+            dropdown.classList.remove('show');
+            userMenuOpen = false;
+            document.removeEventListener('click', fecharMenuAoClicarFora);
+        }
+    }
+
+    // Fechar menu com ESC
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && userMenuOpen) {
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.remove('show');
+            userMenuOpen = false;
+            document.removeEventListener('click', fecharMenuAoClicarFora);
+        }
+    });
+
+    // Garantir que o menu está oculto ao carregar a página
+    document.addEventListener('DOMContentLoaded', function() {
+        const dropdown = document.getElementById('userDropdown');
+        if (dropdown) {
+            dropdown.classList.remove('show');
+        }
+        
+        console.log('✅ Menu dropdown carregado e pronto para uso!');
+    });
+    </script>    
 </body>
 </html>
