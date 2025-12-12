@@ -232,6 +232,47 @@
         padding: 0 20px;
     }
 
+    /* ============================================
+    GRADIENTE AZUL NO FORMULÁRIO (IGUAL AO DASHBOARD)
+    ============================================ */
+
+    /* Borda superior com gradiente para o container principal */
+    .form-container {
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Borda com gradiente azul (IGUAL AO DASHBOARD) */
+    .form-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #1a5fb4, #2d8fff);
+        border-radius: 8px 8px 0 0;
+        z-index: 2;
+    }
+
+    /* Card do formulário - manter borda existente + gradiente */
+    .form-card {
+        position: relative;
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius);
+        padding: 30px;
+        background: var(--cor-card);
+        box-shadow: var(--sombra-media);
+    }
+
+    /* Linhas divisórias com leve gradiente */
+    .form-divider {
+        border: none;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(26, 95, 180, 0.3), transparent);
+        margin: 30px 0;
+    }
+
     </style>
 </head>
 <body>
