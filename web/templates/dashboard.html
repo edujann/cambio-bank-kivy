@@ -1103,6 +1103,46 @@
         color: #ff6b6b !important;
     }
 
+    /* APENAS para estilização básica - NÃO controla visibilidade */
+    .dropdown-header {
+        padding: 12px 20px;
+        border-bottom: 1px solid #1e232e;
+        margin-bottom: 8px;
+    }
+
+    .dropdown-username {
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .dropdown-email {
+        font-size: 12px;
+        color: #8b949e;
+    }
+
+    .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 20px;
+        color: #e0e0e0;
+        text-decoration: none;
+    }
+
+    .dropdown-item:hover {
+        background: rgba(26, 95, 180, 0.15);
+    }
+
+    .dropdown-divider {
+        height: 1px;
+        background: #1e232e;
+        margin: 10px 0;
+    }
+
+    .logout-item {
+        color: #ff6b6b !important;
+    }
+
     </style>
     
     <!-- Ícones FontAwesome -->
@@ -1445,74 +1485,87 @@ function abrirTransferencia() {
     </div>
     <script>
     // ============================================
-    // MENU DROPDOWN - VERSÃO FINAL FUNCIONAL
+    // MENU DROPDOWN - VERSÃO ULTRA SIMPLES QUE FUNCIONA
     // ============================================
 
-    console.log('🚀 Menu dropdown - VERSÃO FINAL');
+    console.log('⚡ Menu ULTRA SIMPLES - carregando');
 
-    let menuAberto = false;
-
-    function toggleMenuUsuario(event) {
-        if (event) {
-            event.preventDefault();
-            event.stopPropagation();
+    // Criar um NOVO dropdown se não existir
+    function criarDropdownSeNecessario() {
+        let dropdown = document.getElementById('userDropdown');
+        
+        if (!dropdown) {
+            console.log('📦 Criando dropdown...');
+            dropdown = document.createElement('div');
+            dropdown.id = 'userDropdown';
+            dropdown.innerHTML = `
+                <div class="dropdown-header">
+                    <div class="dropdown-username" id="dropdownUserName">Usuário</div>
+                    <div class="dropdown-email" id="dropdownUserEmail">email@exemplo.com</div>
+                </div>
+                
+                <a href="/perfil" class="dropdown-item">
+                    <i class="fas fa-user"></i> Meu Perfil
+                </a>
+                
+                <a href="/configuracoes" class="dropdown-item">
+                    <i class="fas fa-cog"></i> Configurações
+                </a>
+                
+                <div class="dropdown-divider"></div>
+                
+                <a href="/logout" class="dropdown-item logout-item">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </a>
+            `;
+            document.body.appendChild(dropdown);
         }
         
-        console.log('🎯 Clicou no menu do usuário');
+        // GARANTIR que está escondido inicialmente
+        dropdown.style.display = 'none';
         
-        const dropdown = document.getElementById('userDropdown');
-        const botaoMenu = document.getElementById('userMenu');
+        return dropdown;
+    }
+
+    // Controle principal
+    let menuVisivel = false;
+
+    function toggleMenu() {
+        console.log('🎯 toggleMenu executando');
         
-        if (!dropdown || !botaoMenu) {
-            console.error('❌ Elementos não encontrados');
+        const dropdown = criarDropdownSeNecessario();
+        const botao = document.getElementById('userMenu');
+        
+        if (!botao) {
+            console.error('❌ Botão não encontrado');
             return;
         }
         
-        menuAberto = !menuAberto;
+        menuVisivel = !menuVisivel;
         
-        if (menuAberto) {
+        if (menuVisivel) {
             console.log('📂 ABRINDO menu...');
             
-            // 1. CALCULAR POSIÇÃO CORRETA E GARANTIR QUE ESTÁ NA TELA
-            const rect = botaoMenu.getBoundingClientRect();
+            // 1. Posição
+            const rect = botao.getBoundingClientRect();
+            const top = rect.bottom + window.scrollY + 5;
             
-            // Calcular posição Y (abaixo do botão, mas garantindo que está na tela)
-            let topPos = rect.bottom + window.scrollY + 5;
-            const maxTop = window.innerHeight - 300; // Altura máxima (deixa 300px para o menu)
-            
-            if (topPos > maxTop) {
-                topPos = maxTop; // Ajusta se for muito baixo
-            }
-            
-            // Calcular posição X (alinhado à direita do botão)
-            let rightPos = window.innerWidth - rect.right + window.scrollX;
-            
-            console.log(`📍 Posição calculada:`, {
-                botaoBottom: rect.bottom,
-                scrollY: window.scrollY,
-                topFinal: topPos,
-                windowHeight: window.innerHeight,
-                botaoRight: rect.right,
-                rightFinal: rightPos
-            });
-            
-            // 2. APLICAR ESTILOS QUE GARANTEM VISIBILIDADE
+            // 2. APLICAR ESTILOS DE UMA VEZ (sem CSS externo interferindo)
             dropdown.style.cssText = `
-                /* VISIBILIDADE GARANTIDA */
+                /* VISIBILIDADE */
                 display: block !important;
                 visibility: visible !important;
                 opacity: 1 !important;
                 
-                /* POSIÇÃO - CENTRALIZADA HORIZONTALMENTE, ABAIXO DO BOTÃO */
+                /* POSIÇÃO */
                 position: fixed !important;
                 z-index: 99999 !important;
-                top: ${topPos}px !important;
+                top: ${top}px !important;
                 left: 50% !important;
                 transform: translateX(-50%) !important;
                 
                 /* TAMANHO */
                 width: 250px !important;
-                height: auto !important;
                 min-height: 200px !important;
                 
                 /* APARÊNCIA */
@@ -1522,117 +1575,101 @@ function abrirTransferencia() {
                 box-shadow: 0 10px 30px rgba(0,0,0,0.7) !important;
                 padding: 10px 0 !important;
                 
-                /* GARANTIR VISIBILIDADE */
-                overflow: visible !important;
-                pointer-events: auto !important;
+                /* TEXTO */
+                color: #ffffff !important;
+                font-family: Arial, sans-serif !important;
             `;
             
             // 3. Atualizar informações
-            atualizarInfoDropdown();
-            
-            // 4. Configurar fechamento
-            setTimeout(() => {
-                document.addEventListener('click', fecharMenuClickFora);
-                document.addEventListener('keydown', fecharMenuESC);
-            }, 10);
-            
-            console.log('✅ Menu ABERTO e VISÍVEL!');
-            
-        } else {
-            console.log('📁 FECHANDO menu...');
-            fecharMenu();
-        }
-    }
-
-    function atualizarInfoDropdown() {
-        try {
-            const nome = document.getElementById('userName')?.textContent?.trim() || 'Usuário';
-            const email = window.USER?.email || '{{ email if email else "usuario@exemplo.com" }}';
-            
+            const nome = document.getElementById('userName')?.textContent || 'Usuário';
+            const email = window.USER?.email || '{{ email if email else "email@exemplo.com" }}';
             document.getElementById('dropdownUserName').textContent = nome;
             document.getElementById('dropdownUserEmail').textContent = email;
             
-            console.log(`👤 Informações: ${nome} - ${email}`);
-        } catch (error) {
-            console.error('❌ Erro ao atualizar informações:', error);
-        }
-    }
-
-    function fecharMenu() {
-        const dropdown = document.getElementById('userDropdown');
-        if (dropdown) {
-            dropdown.style.display = 'none';
-            menuAberto = false;
+            console.log(`📍 Menu em: top=${top}px, centralizado`);
             
-            document.removeEventListener('click', fecharMenuClickFora);
-            document.removeEventListener('keydown', fecharMenuESC);
+            // 4. Fechar ao clicar fora (com timeout para não fechar imediatamente)
+            setTimeout(() => {
+                document.addEventListener('click', function fecharFora(e) {
+                    if (!dropdown.contains(e.target) && !botao.contains(e.target)) {
+                        console.log('👆 Clicou fora - fechando');
+                        dropdown.style.display = 'none';
+                        menuVisivel = false;
+                        document.removeEventListener('click', fecharFora);
+                    }
+                }, true); // true = captura (executa primeiro)
+            }, 100);
             
-            console.log('📁 Menu fechado');
-        }
-    }
-
-    function fecharMenuClickFora(event) {
-        const dropdown = document.getElementById('userDropdown');
-        const botaoMenu = document.getElementById('userMenu');
-        
-        if (!dropdown || !botaoMenu) return;
-        
-        const clicouNoMenu = dropdown.contains(event.target);
-        const clicouNoBotao = botaoMenu.contains(event.target);
-        
-        if (!clicouNoMenu && !clicouNoBotao) {
-            console.log('👆 Clicou fora - fechando');
-            fecharMenu();
-        }
-    }
-
-    function fecharMenuESC(event) {
-        if (event.key === 'Escape' && menuAberto) {
-            console.log('⎋ Tecla ESC - fechando');
-            fecharMenu();
-        }
-    }
-
-    // ============================================
-    // INICIALIZAÇÃO
-    // ============================================
-
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('🏗️ Inicializando menu dropdown FINAL...');
-        
-        // Garantir que o dropdown está oculto inicialmente
-        const dropdown = document.getElementById('userDropdown');
-        if (dropdown) {
-            dropdown.style.display = 'none';
-        }
-        
-        // Configurar botão
-        const botaoMenu = document.getElementById('userMenu');
-        if (botaoMenu) {
-            // Usar onclick DIRETO (mais confiável)
-            botaoMenu.onclick = toggleMenuUsuario;
-            
-            // Também adicionar event listener como backup
-            botaoMenu.addEventListener('click', toggleMenuUsuario);
-            
-            console.log('✅ Botão configurado! Clique para testar.');
-            
-            // Log para debug
-            console.log('📍 Informações do botão:', {
-                id: botaoMenu.id,
-                offsetTop: botaoMenu.offsetTop,
-                offsetLeft: botaoMenu.offsetLeft,
-                offsetWidth: botaoMenu.offsetWidth,
-                offsetHeight: botaoMenu.offsetHeight
-            });
+            // 5. Fechar com ESC
+            document.addEventListener('keydown', function fecharESC(e) {
+                if (e.key === 'Escape' && menuVisivel) {
+                    console.log('⎋ ESC - fechando');
+                    dropdown.style.display = 'none';
+                    menuVisivel = false;
+                    document.removeEventListener('keydown', fecharESC);
+                }
+            }, true);
             
         } else {
-            console.error('❌ Botão #userMenu não encontrado!');
-            console.log('🔍 Procurando botões:', document.querySelectorAll('.user-menu'));
+            console.log('📁 FECHANDO menu...');
+            dropdown.style.display = 'none';
+        }
+    }
+
+    // ============================================
+    // INICIALIZAÇÃO ULTRA SIMPLES
+    // ============================================
+
+    // Executar quando DOM carregar
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🏗️ Inicializando menu ULTRA SIMPLES...');
+        
+        // Criar dropdown
+        criarDropdownSeNecessario();
+        
+        // Configurar botão
+        const botao = document.getElementById('userMenu');
+        if (botao) {
+            // REMOVER todos os listeners anteriores
+            const novoBotao = botao.cloneNode(true);
+            botao.parentNode.replaceChild(novoBotao, botao);
+            
+            // Adicionar nosso listener
+            document.getElementById('userMenu').addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                toggleMenu();
+            }, true); // true = CAPTURA (executa ANTES de outros)
+            
+            console.log('✅ Botão configurado com listener ÚNICO');
+            
+        } else {
+            console.error('❌ Botão #userMenu não encontrado após DOM carregado');
         }
         
-        console.log('🎉 Menu dropdown FINAL pronto!');
+        console.log('🎉 Menu ULTRA SIMPLES pronto!');
     });
+
+    // Também tentar configurar se o botão aparecer depois
+    setInterval(() => {
+        const botao = document.getElementById('userMenu');
+        const dropdown = document.getElementById('userDropdown');
+        
+        if (botao && !botao._configuradoPorNos) {
+            console.log('🔄 Configurando botão (fallback)...');
+            botao._configuradoPorNos = true;
+            botao.addEventListener('click', function(e) {
+                e.stopImmediatePropagation();
+                toggleMenu();
+            }, true);
+        }
+        
+        if (dropdown && menuVisivel && dropdown.style.display !== 'block') {
+            console.log('🛡️ Reforçando visibilidade...');
+            dropdown.style.display = 'block !important';
+        }
+    }, 500);
     </script>
 </body>
 </html>
