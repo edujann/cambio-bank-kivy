@@ -1031,74 +1031,33 @@
     }
 
     /* ============================================
-    DROPDOWN MENU DO USUÁRIO
+    DROPDOWN MENU DO USUÁRIO (VERSÃO SIMPLIFICADA)
     ============================================ */
-
     .dropdown-menu-user {
         display: none;
-        position: fixed; /* Usar fixed para ficar acima de tudo */
-        top: 0;
-        right: 0;
-        background: var(--cor-card);
-        border: 1px solid var(--cor-borda);
-        border-radius: var(--borda-radius-pequeno);
+        position: fixed;
+        background: #0d1117;
+        border: 1px solid #1e232e;
+        border-radius: 8px;
         min-width: 250px;
-        box-shadow: var(--sombra-media);
-        z-index: 9999; /* Alta prioridade */
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        z-index: 9999;
         padding: 10px 0;
+        animation: fadeInDown 0.2s ease;
     }
 
     .dropdown-menu-user.show {
         display: block;
     }
 
-    .dropdown-header {
-        padding: 12px 20px;
-        border-bottom: 1px solid var(--cor-borda);
-        margin-bottom: 8px;
+    @keyframes fadeInDown {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 
-    .dropdown-username {
-        font-weight: 600;
-        margin-bottom: 4px;
-    }
-
-    .dropdown-email {
-        font-size: 12px;
-        color: var(--cor-texto-secundario);
-    }
-
-    .dropdown-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 12px 20px;
-        color: var(--cor-texto);
-        text-decoration: none;
-        transition: background 0.3s ease;
-    }
-
-    .dropdown-item:hover {
-        background: rgba(255, 255, 255, 0.05);
-    }
-
-    .dropdown-item i {
-        width: 20px;
-        color: var(--cor-texto-secundario);
-    }
-
-    .dropdown-divider {
-        height: 1px;
-        background: var(--cor-borda);
-        margin: 10px 0;
-    }
-
-    .logout-item {
-        color: #ff6b6b !important;
-    }
-
-    .logout-item i {
-        color: #ff6b6b !important;
+    .user-menu {
+        cursor: pointer;
+        position: relative;
     }
 
     </style>
@@ -1421,9 +1380,6 @@ function abrirTransferencia() {
 
     <!-- Dropdown Menu do Usuário -->
     <div class="dropdown-menu-user" id="userDropdown" style="display: none;">
-
-    <!-- Dropdown Menu do Usuário -->
-    <div class="dropdown-menu-user" id="userDropdown" style="display: none;">
         <div class="dropdown-header">
             <div class="dropdown-username" id="dropdownUserName">Usuário</div>
             <div class="dropdown-email" id="dropdownUserEmail">email@exemplo.com</div>
@@ -1443,5 +1399,265 @@ function abrirTransferencia() {
             <i class="fas fa-sign-out-alt"></i> Sair
         </a>
     </div>
+
+    <script>
+    // ============================================
+    // FUNÇÕES DO MENU DO USUÁRIO
+    // ============================================
+
+    let userMenuOpen = false;
+    let clickIniciadoNoMenu = false;
+
+    function toggleUserMenu() {
+        const dropdown = document.getElementById('userDropdown');
+        
+        if (userMenuOpen) {
+            // Fechar menu
+            dropdown.classList.remove('show');
+            userMenuOpen = false;
+            
+            // Remover event listeners
+            document.removeEventListener('click', fecharMenuAoClicarFora);
+        } else {
+            // Abrir menu
+            dropdown.classList.add('show');
+            userMenuOpen = true;
+            
+            // Atualizar informações do usuário no dropdown
+            atualizarInfoDropdown();
+            
+            // Posicionar corretamente (logo abaixo do botão)
+            const userMenuBtn = document.querySelector('.user-menu');
+            const rect = userMenuBtn.getBoundingClientRect();
+            
+            dropdown.style.top = (rect.bottom + 5) + 'px';
+            dropdown.style.right = (window.innerWidth - rect.right) + 'px';
+            
+            // Adicionar event listener para fechar ao clicar fora
+            setTimeout(() => {
+                document.addEventListener('click', fecharMenuAoClicarFora);
+            }, 10);
+        }
+    }
+
+    function atualizarInfoDropdown() {
+        // Atualizar nome e email no dropdown
+        const nomeUsuario = document.getElementById('userName').textContent;
+        const emailUsuario = window.USER?.email || '{{ email if email else "usuario@exemplo.com" }}';
+        
+        document.getElementById('dropdownUserName').textContent = nomeUsuario;
+        document.getElementById('dropdownUserEmail').textContent = emailUsuario;
+    }
+
+    function fecharMenuAoClicarFora(event) {
+        const dropdown = document.getElementById('userDropdown');
+        const userMenuBtn = document.querySelector('.user-menu');
+        
+        // Verificar se o clique foi fora do menu e do botão
+        if (!dropdown.contains(event.target) && !userMenuBtn.contains(event.target)) {
+            dropdown.classList.remove('show');
+            userMenuOpen = false;
+            document.removeEventListener('click', fecharMenuAoClicarFora);
+        }
+    }
+
+    // Fechar menu ao pressionar ESC
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && userMenuOpen) {
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.remove('show');
+            userMenuOpen = false;
+            document.removeEventListener('click', fecharMenuAoClicarFora);
+        }
+    });
+
+    // ============================================
+    // FUNÇÕES AUXILIARES DASHBOARD
+    // ============================================
+
+    function abrirCambio() {
+        alert('Funcionalidade de câmbio em desenvolvimento!');
+    }
+
+    function abrirExtrato() {
+        alert('Funcionalidade de extrato em desenvolvimento!');
+    }
+
+    function abrirBeneficiarios() {
+        alert('Funcionalidade de beneficiários em desenvolvimento!');
+    }
+
+    function selecionarMoeda(moeda) {
+        console.log(`Moeda selecionada: ${moeda}`);
+        // Aqui você pode redirecionar para página de câmbio ou mostrar conversor
+    }
+
+    // ============================================
+    // CARREGAR DADOS DO DASHBOARD
+    // ============================================
+
+    async function carregarDadosDashboard() {
+        try {
+            // 1. Carregar saldos das contas
+            const responseContas = await fetch('/api/user/contas');
+            if (responseContas.ok) {
+                const dataContas = await responseContas.json();
+                if (dataContas.success && dataContas.contas) {
+                    atualizarSaldosContas(dataContas.contas);
+                }
+            }
+            
+            // 2. Carregar últimas transações
+            const responseTransacoes = await fetch('/api/dashboard/saldos');
+            if (responseTransacoes.ok) {
+                const dataTransacoes = await responseTransacoes.json();
+                if (dataTransacoes.success && dataTransacoes.ultimas_transferencias) {
+                    atualizarUltimasTransacoes(dataTransacoes.ultimas_transferencias);
+                }
+            }
+            
+            // 3. Carregar contagem de beneficiários
+            const responseBeneficiarios = await fetch('/api/beneficiarios');
+            if (responseBeneficiarios.ok) {
+                const dataBenef = await responseBeneficiarios.json();
+                if (dataBenef.success) {
+                    const badge = document.getElementById('badgeBeneficiarios');
+                    if (badge) {
+                        badge.textContent = `${dataBenef.beneficiarios?.length || 0} beneficiários`;
+                    }
+                }
+            }
+            
+        } catch (error) {
+            console.error('Erro ao carregar dados do dashboard:', error);
+        }
+    }
+
+    function atualizarSaldosContas(contas) {
+        contas.forEach(conta => {
+            const moeda = conta.moeda;
+            const saldo = parseFloat(conta.saldo || 0);
+            
+            const elementoSaldo = document.getElementById(`saldo${moeda}`);
+            if (elementoSaldo) {
+                if (moeda === 'USD') {
+                    elementoSaldo.textContent = `$ ${saldo.toFixed(2)}`;
+                } else if (moeda === 'EUR') {
+                    elementoSaldo.textContent = `€ ${saldo.toFixed(2)}`;
+                } else if (moeda === 'GBP') {
+                    elementoSaldo.textContent = `£ ${saldo.toFixed(2)}`;
+                } else if (moeda === 'BRL') {
+                    elementoSaldo.textContent = `R$ ${saldo.toFixed(2)}`;
+                }
+            }
+        });
+        
+        // Calcular saldo total
+        const saldoTotal = contas.reduce((total, conta) => total + parseFloat(conta.saldo || 0), 0);
+        document.getElementById('saldoTotal').textContent = `R$ ${saldoTotal.toFixed(2)}`;
+    }
+
+    function atualizarUltimasTransacoes(transacoes) {
+        const container = document.getElementById('transacoesLista');
+        if (!container || !transacoes || transacoes.length === 0) {
+            container.innerHTML = '<div class="transacao-item">Nenhuma transação recente</div>';
+            return;
+        }
+        
+        let html = '';
+        
+        transacoes.forEach(transacao => {
+            const tipo = transacao.tipo || 'transferencia';
+            const valor = parseFloat(transacao.valor || 0);
+            const moeda = transacao.moeda || 'USD';
+            const status = transacao.status || 'pending';
+            const descricao = transacao.descricao || transacao.beneficiario || 'Transferência';
+            const data = transacao.data ? formatarData(transacao.data) : 'Hoje';
+            
+            // Determinar se é entrada ou saída
+            const isEntrada = tipo.includes('receb') || valor > 0;
+            const valorFormatado = isEntrada ? `+${moeda} ${Math.abs(valor).toFixed(2)}` : `-${moeda} ${Math.abs(valor).toFixed(2)}`;
+            
+            html += `
+            <div class="transacao-item ${isEntrada ? 'entrada' : 'saida'}">
+                <div class="transacao-icon">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+                <div class="transacao-detalhes">
+                    <div class="transacao-titulo">${descricao}</div>
+                    <div class="transacao-info">Transferência Internacional</div>
+                </div>
+                <div class="transacao-lado-direito">
+                    <div class="transacao-valor ${isEntrada ? 'positivo' : 'negativo'}">
+                        ${valorFormatado}
+                    </div>
+                    <div class="transacao-meta">
+                        <span class="transacao-data">${data}</span>
+                        <span class="transacao-status status-${status}">${formatarStatus(status)}</span>
+                    </div>
+                </div>
+            </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+    }
+
+    function formatarData(dataString) {
+        if (!dataString) return 'Hoje';
+        
+        try {
+            const data = new Date(dataString);
+            const hoje = new Date();
+            const ontem = new Date(hoje);
+            ontem.setDate(hoje.getDate() - 1);
+            
+            if (data.toDateString() === hoje.toDateString()) {
+                return 'Hoje';
+            } else if (data.toDateString() === ontem.toDateString()) {
+                return 'Ontem';
+            } else {
+                return data.toLocaleDateString('pt-BR');
+            }
+        } catch {
+            return dataString;
+        }
+    }
+
+    function formatarStatus(status) {
+        const statusMap = {
+            'pending': 'Pendente',
+            'solicitada': 'Solicitada',
+            'processing': 'Processando',
+            'completed': 'Concluída',
+            'approved': 'Aprovada',
+            'rejected': 'Recusada',
+            'cancelled': 'Cancelada'
+        };
+        
+        return statusMap[status] || status;
+    }
+
+    // ============================================
+    // INICIALIZAÇÃO
+    // ============================================
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Dashboard carregado');
+        
+        // Inicializar informações do usuário
+        const userNameElement = document.getElementById('userName');
+        if (userNameElement && window.USER?.nome) {
+            userNameElement.textContent = window.USER.nome;
+        }
+        
+        // Carregar dados do dashboard
+        carregarDadosDashboard();
+        
+        // Atualizar a cada 30 segundos (opcional)
+        // setInterval(carregarDadosDashboard, 30000);
+    });
+    </script>
+
 </body>
 </html>
