@@ -1482,6 +1482,161 @@ def transferencia_completa(transferencia_id):
         import traceback
         traceback.print_exc()
         return jsonify({'error': 'Erro interno do servidor'}), 500
+    
+@app.route('/api/transferencias/<transferencia_id>/invoice')
+def download_invoice(transferencia_id):
+    """Download da invoice do Supabase Storage"""
+    
+    if 'username' not in session:
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    usuario_nome = session['username']
+    print(f"📄 [INVOICE API] Buscando invoice para transferência {transferencia_id} para usuário {usuario_nome}")
+    
+    try:
+        # 1. VERIFICAR PERMISSÃO: Buscar transferência e verificar se pertence ao usuário
+        response = supabase.table('transferencias')\
+            .select('id, cliente, usuario, invoice_info')\
+            .eq('id', transferencia_id)\
+            .execute()
+        
+        if not response.data:
+            print(f"❌ Transferência {transferencia_id} não encontrada")
+            return jsonify({'error': 'Transferência não encontrada'}), 404
+        
+        transferencia = response.data[0]
+        
+        # Verificar se o usuário tem permissão (cliente OU usuario)
+        usuario_permitido = (
+            transferencia.get('cliente') == usuario_nome or
+            transferencia.get('usuario') == usuario_nome or
+            usuario_nome in str(transferencia.get('conta_remetente', ''))
+        )
+        
+        if not usuario_permitido:
+            print(f"⚠️ Acesso negado: {usuario_nome} não tem permissão para transferência {transferencia_id}")
+            return jsonify({'error': 'Acesso não autorizado'}), 403
+        
+        print(f"✅ Usuário {usuario_nome} autorizado para transferência {transferencia_id}")
+        
+        # 2. VERIFICAR SE TEM INVOICE
+        invoice_info = transferencia.get('invoice_info')
+        if not invoice_info:
+            print(f"⚠️ Transferência {transferencia_id} não tem invoice_info")
+            return jsonify({'error': 'Nenhuma invoice encontrada para esta transferência'}), 404
+        
+        # 3. OBTER CAMINHO DO ARQUIVO
+        caminho_arquivo = invoice_info.get('caminho_arquivo')
+        if not caminho_arquivo:
+            print(f"⚠️ Invoice sem caminho_arquivo: {invoice_info}")
+            return jsonify({'error': 'Caminho do arquivo não configurado'}), 404
+        
+        print(f"📄 Caminho do arquivo no Supabase: {caminho_arquivo}")
+        
+        # 4. VERIFICAR STATUS (só permite visualizar se approved ou rejected com arquivo)
+        invoice_status = invoice_info.get('status', 'pending')
+        if invoice_status not in ['approved', 'rejected']:
+            print(f"⚠️ Invoice com status não permitido: {invoice_status}")
+            return jsonify({'error': f'Invoice com status {invoice_status} - não disponível para visualização'}), 403
+        
+        # 5. BAIXAR DO SUPABASE STORAGE
+        try:
+            print(f"⬇️  Baixando arquivo do Supabase Storage: {caminho_arquivo}")
+            
+            # Baixar do bucket 'invoices'
+            response_storage = supabase.client.storage.from_("invoices").download(caminho_arquivo)
+            
+            if response_storage is None:
+                print(f"❌ Arquivo não encontrado no storage: {caminho_arquivo}")
+                return jsonify({'error': 'Arquivo não encontrado no storage'}), 404
+            
+            print(f"✅ Arquivo baixado com sucesso! Tamanho: {len(response_storage)} bytes")
+            
+            # 6. DETERMINAR TIPO MIME PELA EXTENSÃO
+            nome_arquivo = caminho_arquivo.split('/')[-1]
+            extensao = nome_arquivo.lower().split('.')[-1] if '.' in nome_arquivo else ''
+            
+            mime_types = {
+                'pdf': 'application/pdf',
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'png': 'image/png'
+            }
+            
+            content_type = mime_types.get(extensao, 'application/octet-stream')
+            
+            # 7. RETORNAR ARQUIVO PARA DOWNLOAD/VISUALIZAÇÃO
+            from flask import Response
+            return Response(
+                response_storage,
+                content_type=content_type,
+                headers={
+                    'Content-Disposition': f'inline; filename="{nome_arquivo}"',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0',
+                    'X-File-Name': nome_arquivo,
+                    'X-File-Size': str(len(response_storage))
+                }
+            )
+            
+        except Exception as storage_error:
+            print(f"❌ Erro ao baixar do Supabase Storage: {storage_error}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'error': f'Erro ao acessar arquivo: {str(storage_error)}'}), 500
+        
+    except Exception as e:
+        print(f"❌ [INVOICE API] Erro crítico: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Erro interno do servidor'}), 500
+
+
+# ROTA ALTERNATIVA PARA VERIFICAR DISPONIBILIDADE DA INVOICE
+@app.route('/api/transferencias/<transferencia_id>/invoice/status')
+def check_invoice_status(transferencia_id):
+    """Verifica status da invoice sem baixar o arquivo"""
+    
+    if 'username' not in session:
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    usuario_nome = session['username']
+    
+    try:
+        response = supabase.table('transferencias')\
+            .select('invoice_info, cliente, usuario')\
+            .eq('id', transferencia_id)\
+            .execute()
+        
+        if not response.data:
+            return jsonify({'available': False, 'error': 'Transferência não encontrada'}), 404
+        
+        transferencia = response.data[0]
+        
+        # Verificar permissão
+        usuario_permitido = (
+            transferencia.get('cliente') == usuario_nome or
+            transferencia.get('usuario') == usuario_nome
+        )
+        
+        if not usuario_permitido:
+            return jsonify({'available': False, 'error': 'Acesso não autorizado'}), 403
+        
+        invoice_info = transferencia.get('invoice_info')
+        if not invoice_info:
+            return jsonify({'available': False, 'error': 'Nenhuma invoice encontrada'})
+        
+        return jsonify({
+            'available': True,
+            'status': invoice_info.get('status', 'pending'),
+            'filename': invoice_info.get('caminho_arquivo', '').split('/')[-1] if invoice_info.get('caminho_arquivo') else '',
+            'upload_date': invoice_info.get('data_upload', ''),
+            'rejection_reason': invoice_info.get('motivo_recusa', '')
+        })
+        
+    except Exception as e:
+        return jsonify({'available': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))

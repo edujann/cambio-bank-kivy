@@ -2208,8 +2208,342 @@
         }
     }
     
-    function visualizarInvoice(id) {
-        alert('Visualizar invoice ' + id);
+    // ============================================
+    // VISUALIZAR INVOICE (VERSÃO COMPLETA - WEB)
+    // ============================================
+
+    async function visualizarInvoice(transferenciaId) {
+        console.log(`📄 [INVOICE] Iniciando visualização para transferência: ${transferenciaId}`);
+        
+        try {
+            showAlert('🔍 Verificando invoice...', 'info');
+            
+            // 1. PRIMEIRO: Verificar status e disponibilidade
+            console.log(`🔍 Verificando status da invoice...`);
+            const statusResponse = await fetch(`/api/transferencias/${transferenciaId}/invoice/status`);
+            
+            if (!statusResponse.ok) {
+                const errorData = await statusResponse.json();
+                throw new Error(errorData.error || 'Erro ao verificar status da invoice');
+            }
+            
+            const statusData = await statusResponse.json();
+            
+            if (!statusData.available) {
+                showAlert(`❌ ${statusData.error || 'Invoice não disponível'}`, 'error');
+                return;
+            }
+            
+            const invoiceStatus = statusData.status;
+            const fileName = statusData.filename || 'invoice.pdf';
+            
+            console.log(`✅ Invoice disponível: ${fileName}, Status: ${invoiceStatus}`);
+            
+            // 2. VERIFICAR SE STATUS PERMITE VISUALIZAÇÃO
+            if (invoiceStatus === 'pending') {
+                showAlert('⏳ Invoice pendente de aprovação - aguarde a análise do administrador', 'warning');
+                return;
+            }
+            
+            if (invoiceStatus === 'rejected') {
+                const motivo = statusData.rejection_reason ? `Motivo: ${statusData.rejection_reason}` : '';
+                const userChoice = confirm(`⚠️ Invoice RECUSADA\n\n${motivo}\n\nDeseja visualizar mesmo assim?`);
+                
+                if (!userChoice) {
+                    return;
+                }
+            }
+            
+            // 3. MOSTRAR LOADING E BAIXAR O ARQUIVO
+            showAlert(`⬇️ Baixando ${fileName}...`, 'info');
+            
+            const downloadResponse = await fetch(`/api/transferencias/${transferenciaId}/invoice`);
+            
+            if (!downloadResponse.ok) {
+                const errorText = await downloadResponse.text();
+                let errorMessage = 'Erro ao baixar arquivo';
+                
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    errorMessage = errorJson.error || errorMessage;
+                } catch {
+                    errorMessage = errorText || errorMessage;
+                }
+                
+                throw new Error(errorMessage);
+            }
+            
+            // 4. OBTER O ARQUIVO E CRIAR URL PARA VISUALIZAÇÃO
+            const fileBlob = await downloadResponse.blob();
+            const fileUrl = URL.createObjectURL(fileBlob);
+            
+            // Obter nome do arquivo do header ou do response
+            const contentDisposition = downloadResponse.headers.get('Content-Disposition');
+            let finalFileName = fileName;
+            
+            if (contentDisposition) {
+                const matches = contentDisposition.match(/filename="?(.+?)"?$/);
+                if (matches && matches[1]) {
+                    finalFileName = matches[1];
+                }
+            }
+            
+            console.log(`✅ Arquivo baixado: ${finalFileName}, Tamanho: ${fileBlob.size} bytes, Tipo: ${fileBlob.type}`);
+            
+            // 5. VERIFICAR TIPO DE ARQUIVO PARA DECIDIR COMO ABRIR
+            const fileType = fileBlob.type;
+            const isPDF = fileType === 'application/pdf';
+            const isImage = fileType.startsWith('image/');
+            
+            // 6. ABRIR O ARQUIVO CONFORME O TIPO
+            if (isPDF) {
+                // PARA PDF: Abrir em nova aba ou usar visualizador embutido
+                abrirPDF(fileUrl, finalFileName, transferenciaId);
+            } else if (isImage) {
+                // PARA IMAGENS: Abrir em modal
+                abrirImagem(fileUrl, finalFileName, transferenciaId);
+            } else {
+                // PARA OUTROS TIPOS: Forçar download
+                forcarDownload(fileBlob, finalFileName);
+            }
+            
+            showAlert(`✅ Invoice "${finalFileName}" aberta com sucesso!`, 'success');
+            
+        } catch (error) {
+            console.error(`❌ [INVOICE] Erro:`, error);
+            showAlert(`❌ Erro: ${error.message}`, 'error');
+        }
+    }
+
+    // ============================================
+    // FUNÇÕES AUXILIARES PARA VISUALIZAÇÃO
+    // ============================================
+
+    function abrirPDF(pdfUrl, fileName, transferenciaId) {
+        console.log(`📖 Abrindo PDF: ${fileName}`);
+        
+        // Opção 1: Abrir em nova aba (simples)
+        window.open(pdfUrl, '_blank');
+        
+        // Opção 2: Modal embutido (mais sofisticado)
+        // criarModalPDF(pdfUrl, fileName, transferenciaId);
+    }
+
+    function abrirImagem(imageUrl, fileName, transferenciaId) {
+        console.log(`🖼️ Abrindo imagem: ${fileName}`);
+        
+        // Criar modal para visualização de imagem
+        const modalOverlay = document.createElement('div');
+        modalOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 10000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        `;
+        
+        const modalContent = document.createElement('div');
+        modalContent.style.cssText = `
+            position: relative;
+            max-width: 90vw;
+            max-height: 90vh;
+            background: #0d1117;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.3s ease;
+        `;
+        
+        // Header do modal
+        const modalHeader = document.createElement('div');
+        modalHeader.style.cssText = `
+            padding: 15px 20px;
+            background: #1a1f2e;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #2d3a5a;
+        `;
+        
+        modalHeader.innerHTML = `
+            <div style="font-weight: bold;">
+                <i class="fas fa-file-image"></i> ${fileName}
+            </div>
+            <button id="closeImageModal" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer;">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        // Imagem
+        const imgElement = document.createElement('img');
+        imgElement.src = imageUrl;
+        imgElement.alt = fileName;
+        imgElement.style.cssText = `
+            display: block;
+            max-width: 100%;
+            max-height: 70vh;
+            margin: 0 auto;
+            padding: 20px;
+        `;
+        
+        // Footer com ações
+        const modalFooter = document.createElement('div');
+        modalFooter.style.cssText = `
+            padding: 15px 20px;
+            background: #1a1f2e;
+            border-top: 1px solid #2d3a5a;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        `;
+        
+        modalFooter.innerHTML = `
+            <button id="downloadImageBtn" style="padding: 8px 15px; background: #1a5fb4; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                <i class="fas fa-download"></i> Download
+            </button>
+        `;
+        
+        // Montar modal
+        modalContent.appendChild(modalHeader);
+        modalContent.appendChild(imgElement);
+        modalContent.appendChild(modalFooter);
+        modalOverlay.appendChild(modalContent);
+        
+        // Adicionar ao body
+        document.body.appendChild(modalOverlay);
+        
+        // Event listeners
+        document.getElementById('closeImageModal').onclick = () => {
+            document.body.removeChild(modalOverlay);
+            URL.revokeObjectURL(imageUrl); // Liberar memória
+        };
+        
+        document.getElementById('downloadImageBtn').onclick = () => {
+            forcarDownload(new Blob([imageUrl]), fileName);
+        };
+        
+        // Fechar ao clicar fora
+        modalOverlay.onclick = (e) => {
+            if (e.target === modalOverlay) {
+                document.body.removeChild(modalOverlay);
+                URL.revokeObjectURL(imageUrl);
+            }
+        };
+    }
+
+    function forcarDownload(blob, fileName) {
+        console.log(`💾 Forçando download: ${fileName}`);
+        
+        const downloadUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        // Liberar memória depois de um tempo
+        setTimeout(() => {
+            URL.revokeObjectURL(downloadUrl);
+        }, 100);
+    }
+
+    // ============================================
+    // MODAL AVANÇADO PARA PDF (OPCIONAL)
+    // ============================================
+
+    function criarModalPDF(pdfUrl, fileName, transferenciaId) {
+        console.log(`📚 Criando modal PDF avançado para: ${fileName}`);
+        
+        const modalOverlay = document.createElement('div');
+        modalOverlay.id = 'pdfModalOverlay';
+        modalOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            animation: fadeIn 0.3s ease;
+        `;
+        
+        // Header
+        const modalHeader = document.createElement('div');
+        modalHeader.style.cssText = `
+            padding: 15px 20px;
+            background: #1a1f2e;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #2d3a5a;
+        `;
+        
+        modalHeader.innerHTML = `
+            <div style="font-weight: bold; display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-file-pdf" style="color: #e01b24;"></i>
+                <span>${fileName}</span>
+                <span style="font-size: 12px; opacity: 0.7; margin-left: 10px;">
+                    Transferência: #${transferenciaId}
+                </span>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button id="downloadPdfBtn" style="padding: 6px 12px; background: #1a5fb4; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                    <i class="fas fa-download"></i> Download
+                </button>
+                <button id="closePdfModal" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        // Iframe para PDF
+        const pdfFrame = document.createElement('iframe');
+        pdfFrame.src = pdfUrl;
+        pdfFrame.style.cssText = `
+            flex: 1;
+            width: 100%;
+            border: none;
+            background: white;
+        `;
+        
+        pdfFrame.title = `Invoice - ${fileName}`;
+        
+        // Montar modal
+        modalOverlay.appendChild(modalHeader);
+        modalOverlay.appendChild(pdfFrame);
+        document.body.appendChild(modalOverlay);
+        
+        // Event listeners
+        document.getElementById('closePdfModal').onclick = () => {
+            document.body.removeChild(modalOverlay);
+            URL.revokeObjectURL(pdfUrl); // Liberar memória
+        };
+        
+        document.getElementById('downloadPdfBtn').onclick = () => {
+            forcarDownload(new Blob([pdfUrl]), fileName);
+        };
+        
+        // Adicionar tecla ESC para fechar
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                document.body.removeChild(modalOverlay);
+                URL.revokeObjectURL(pdfUrl);
+                document.removeEventListener('keydown', handleKeyDown);
+            }
+        };
+        
+        document.addEventListener('keydown', handleKeyDown);
     }
     
     // ============================================
