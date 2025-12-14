@@ -2862,20 +2862,63 @@ def obter_extrato_kivy():
                                 'timestamp': data_transacao
                             })
                     elif transf_tipo in ['internacional', 'transferencia_internacional']:
-                        status_text = "SOLICITADA" if transf_status == 'pending' else \
-                                     "EM PROCESSAMENTO" if transf_status == 'processing' else \
-                                     "CONCLUÍDA" if transf_status == 'completed' else "RECUSADA"
+                        status_normalizado = transf_status.lower() if transf_status else ''
                         
-                        transacoes_todas.append({
-                            'id': transf_id,
-                            'data': data_transacao_str,
-                            'descricao': f"TRANSF. INTERNACIONAL {status_text} - {transf.get('beneficiario', 'N/A')}",
-                            'credito': 0.00,
-                            'debito': valor,
-                            'tipo': "Transferência Internacional",
-                            'moeda': moeda,
-                            'timestamp': data_transacao
-                        })
+                        # 🔥 LÓGICA DO KIVY PARA TRANSFERÊNCIAS REJEITADAS (CRÍTICO!)
+                        if status_normalizado == 'rejected':
+                            # No Kivy, cria DUAS transações para rejeitadas:
+                            # 1. Transação de débito (quando foi solicitada)
+                            # 2. Transação de crédito (estorno quando foi rejeitada)
+                            
+                            # 🔥 1. TRANSAÇÃO DE DÉBITO (solicitação original)
+                            data_solicitacao = transf.get('data_solicitacao') or data_transacao_str
+                            descricao_debito = f"TRANSF. INTERNACIONAL SOLICITADA - {transf.get('beneficiario', 'N/A')}"
+                            
+                            transacoes_todas.append({
+                                'id': f"{transf_id}_DEBITO",
+                                'data': data_solicitacao,
+                                'descricao': descricao_debito,
+                                'credito': 0.00,
+                                'debito': valor,
+                                'tipo': "Transferência Internacional",
+                                'moeda': moeda,
+                                'timestamp': parse_data_unificada(data_solicitacao) or data_transacao
+                            })
+                            
+                            # 🔥 2. TRANSAÇÃO DE CRÉDITO (estorno)
+                            data_estorno = transf.get('data_recusa') or transf.get('data_processing') or data_transacao_str
+                            descricao_credito = f"ESTORNO TRANSF. INTERNACIONAL - {transf.get('beneficiario', 'N/A')}"
+                            
+                            transacoes_todas.append({
+                                'id': f"{transf_id}_CREDITO",
+                                'data': data_estorno,
+                                'descricao': descricao_credito,
+                                'credito': valor,  # 🔥 CRÉDITO (estorno)
+                                'debito': 0.00,
+                                'tipo': "Estorno",
+                                'moeda': moeda,
+                                'timestamp': parse_data_unificada(data_estorno) or data_transacao
+                            })
+                            
+                            # DEBUG
+                            print(f"💰 ESTORNO CRIADO: {descricao_credito} | +{valor:,.2f}")
+                            
+                        else:
+                            # Para outros status: SOLICITADA, EM PROCESSAMENTO, CONCLUÍDA
+                            status_text = "SOLICITADA" if status_normalizado in ['pending', 'solicitada'] else \
+                                        "EM PROCESSAMENTO" if status_normalizado == 'processing' else \
+                                        "CONCLUÍDA" if status_normalizado == 'completed' else "STATUS DESCONHECIDO"
+                            
+                            transacoes_todas.append({
+                                'id': transf_id,
+                                'data': data_transacao_str,
+                                'descricao': f"TRANSF. INTERNACIONAL {status_text} - {transf.get('beneficiario', 'N/A')}",
+                                'credito': 0.00,
+                                'debito': valor,
+                                'tipo': "Transferência Internacional",
+                                'moeda': moeda,
+                                'timestamp': data_transacao
+                            })
                     elif transf_tipo == 'cambio':
                         transacoes_todas.append({
                             'id': transf_id,
@@ -2935,20 +2978,60 @@ def obter_extrato_kivy():
                             'timestamp': data_transacao
                         })
                     elif transf_tipo not in ['ajuste_admin']:
-                        status_text = "SOLICITADA" if transf_status == 'pending' else \
-                                     "EM PROCESSAMENTO" if transf_status == 'processing' else \
-                                     "CONCLUÍDA" if transf_status == 'completed' else "RECUSADA"
+                        status_normalizado = transf_status.lower() if transf_status else ''
                         
-                        transacoes_todas.append({
-                            'id': transf_id,
-                            'data': data_transacao_str,
-                            'descricao': f"TRANSFERÊNCIA {status_text} RECEBIDA",
-                            'credito': valor,
-                            'debito': 0.00,
-                            'tipo': "Transferência",
-                            'moeda': moeda,
-                            'timestamp': data_transacao
-                        })
+                        # Verificar se é uma transferência interna rejeitada
+                        if status_normalizado == 'rejected' and transf_tipo in ['transferencia_interna', 'transferencia_interna_cliente']:
+                            # 🔥 LÓGICA DO KIVY: Para transferências internas rejeitadas, criar duas transações
+                            
+                            # 1. Transação de débito (solicitação original)
+                            data_solicitacao = transf.get('data_solicitacao') or data_transacao_str
+                            nome_destinatario = transf.get('nome_destinatario', 'N/A')
+                            
+                            transacoes_todas.append({
+                                'id': f"{transf_id}_DEBITO",
+                                'data': data_solicitacao,
+                                'descricao': f"TRANSFERÊNCIA SOLICITADA - {nome_destinatario}",
+                                'credito': 0.00,
+                                'debito': valor,
+                                'tipo': "Transferência",
+                                'moeda': moeda,
+                                'timestamp': parse_data_unificada(data_solicitacao) or data_transacao
+                            })
+                            
+                            # 2. Transação de crédito (estorno)
+                            data_estorno = transf.get('data_recusa') or data_transacao_str
+                            
+                            transacoes_todas.append({
+                                'id': f"{transf_id}_CREDITO",
+                                'data': data_estorno,
+                                'descricao': f"ESTORNO TRANSFERÊNCIA - {nome_destinatario}",
+                                'credito': valor,  # 🔥 CRÉDITO (estorno)
+                                'debito': 0.00,
+                                'tipo': "Estorno",
+                                'moeda': moeda,
+                                'timestamp': parse_data_unificada(data_estorno) or data_transacao
+                            })
+                            
+                            # DEBUG
+                            print(f"💰 ESTORNO INTERNO CRIADO: ESTORNO TRANSFERÊNCIA - {nome_destinatario} | +{valor:,.2f}")
+                            
+                        else:
+                            # Para outros status ou tipos
+                            status_text = "SOLICITADA" if status_normalizado in ['pending', 'solicitada'] else \
+                                        "EM PROCESSAMENTO" if status_normalizado == 'processing' else \
+                                        "CONCLUÍDA" if status_normalizado == 'completed' else "RECUSADA"
+                            
+                            transacoes_todas.append({
+                                'id': transf_id,
+                                'data': data_transacao_str,
+                                'descricao': f"TRANSFERÊNCIA {status_text} RECEBIDA",
+                                'credito': valor,
+                                'debito': 0.00,
+                                'tipo': "Transferência",
+                                'moeda': moeda,
+                                'timestamp': data_transacao
+                            })
                         
             except Exception as e:
                 print(f"⚠️ Erro ao processar transação {transf_id}: {e}")
