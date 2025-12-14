@@ -2652,6 +2652,37 @@ def obter_extrato_kivy():
             print(f"   {tipo}: {quantidade}")
         print("="*80 + "\n")
         
+        def gerar_descricao_cambio_inteligente(dados_cambio, conta_num, sistema_supabase=None):
+            """Gera descrição clara para operações de câmbio - VERSÃO WEB (igual ao Kivy)"""
+            
+            # 1. Obter informações básicas
+            operacao = dados_cambio.get('operacao', '').lower()
+            moeda_origem = dados_cambio.get('moeda_origem', 'USD')
+            moeda_destino = dados_cambio.get('moeda_destino', 'BRL')
+            valor_origem = dados_cambio.get('valor_origem', 0)
+            valor_destino = dados_cambio.get('valor_destino', 0)
+            
+            # 2. Obter taxa (cotacao)
+            taxa = dados_cambio.get('cotacao', 0)
+            if not taxa or taxa == 0:
+                # Tentar calcular com base nos valores
+                if valor_origem > 0 and valor_destino > 0:
+                    taxa = valor_destino / valor_origem
+            
+            # 3. Gerar descrição baseada na operação (versão simplificada do Kivy)
+            if operacao == 'compra':
+                return f"COMPRA {moeda_destino} - Pagou {valor_origem:,.2f} {moeda_origem} → Recebeu {valor_destino:,.2f} {moeda_destino} (Taxa: {taxa:.4f})"
+            elif operacao == 'venda':
+                return f"VENDA {moeda_origem} - Vendeu {valor_origem:,.2f} {moeda_origem} → Recebeu {valor_destino:,.2f} {moeda_destino} (Taxa: {taxa:.4f})"
+            elif operacao == 'cambio_admin':
+                return f"CÂMBIO ADMINISTRATIVO - {moeda_origem} {valor_origem:,.2f} → {moeda_destino} {valor_destino:,.2f} (Taxa: {taxa:.4f})"
+            else:
+                # Descrição padrão
+                if moeda_origem and moeda_destino:
+                    return f"CÂMBIO {moeda_origem}/{moeda_destino} - {valor_origem:,.2f} {moeda_origem} → {valor_destino:,.2f} {moeda_destino} (Taxa: {taxa:.4f})"
+                else:
+                    return f"CÂMBIO - {valor_origem:,.2f} → {valor_destino:,.2f} (Taxa: {taxa:.4f})"
+
         # 🔥 4. CALCULAR SALDO INICIAL (MESMA LÓGICA DO KIVY)
         def calcular_saldo_ate_data(conta_numero, data_limite):
             """Calcula saldo até o final do dia anterior"""
@@ -3028,22 +3059,8 @@ def obter_extrato_kivy():
                                 'timestamp': data_transacao
                             })
                     elif transf_tipo == 'cambio':
-                        # 🔥 DESCRIÇÃO DETALHADA IGUAL AO KIVY
-                        moeda_origem = transf.get('moeda_origem', 'USD')
-                        moeda_destino = transf.get('moeda_destino', 'BRL')
-                        valor_origem = transf.get('valor_origem', valor)
-                        valor_destino = transf.get('valor_destino', 0)
-                        
-                        # Determinar tipo de operação
-                        operacao = transf.get('operacao', '')
-                        if not operacao:
-                            if moeda_origem == 'USD' and moeda_destino == 'BRL':
-                                operacao = 'VENDA USD/COMPRA BRL'
-                            else:
-                                operacao = f'{moeda_origem}/{moeda_destino}'
-                        
-                        # Formatar descrição
-                        descricao_cambio = f"CÂMBIO {operacao}"
+                        # 🔥 USAR FUNÇÃO IGUAL AO KIVY
+                        descricao_cambio = gerar_descricao_cambio_inteligente(transf, conta_num)
                         
                         transacoes_todas.append({
                             'id': transf_id,
@@ -3066,59 +3083,45 @@ def obter_extrato_kivy():
                             'moeda': moeda,
                             'timestamp': data_transacao
                         })
-                
-                # Cliente é DESTINATÁRIO
-                elif transf.get('conta_destinatario') == conta_num or transf.get('conta_destino') == conta_num:
-                    if transf_tipo == 'deposito':
-                        transacoes_todas.append({
-                            'id': transf_id,
-                            'data': data_transacao_str,
-                            'descricao': f"DEPÓSITO CONFIRMADO - {transf.get('banco_origem', 'Banco')}",
-                            'credito': valor,
-                            'debito': 0.00,
-                            'tipo': "Depósito",
-                            'moeda': moeda,
-                            'timestamp': data_transacao
-                        })
-                    elif transf_tipo == 'ajuste_admin' and transf.get('tipo_ajuste') == 'CREDITO':
-                        transacoes_todas.append({
-                            'id': transf_id,
-                            'data': data_transacao_str,
-                            'descricao': f"CRÉDITO ADMINISTRATIVO - {transf.get('descricao_ajuste', '')}",
-                            'credito': valor,
-                            'debito': 0.00,
-                            'tipo': "Crédito Admin",
-                            'moeda': moeda,
-                            'timestamp': data_transacao
-                        })
-                    elif transf_tipo == 'cambio':
-                        # 🔥 DESCRIÇÃO DETALHADA IGUAL AO KIVY (DESTINATÁRIO)
-                        moeda_origem = transf.get('moeda_origem', 'USD')
-                        moeda_destino = transf.get('moeda_destino', 'BRL')
-                        valor_origem = transf.get('valor_origem', 0)
-                        valor_destino = transf.get('valor_destino', valor)
-                        
-                        # Determinar tipo de operação
-                        operacao = transf.get('operacao', '')
-                        if not operacao:
-                            if moeda_origem == 'USD' and moeda_destino == 'BRL':
-                                operacao = 'COMPRA BRL/VENDA USD'
-                            else:
-                                operacao = f'{moeda_destino}/{moeda_origem}'
-                        
-                        # Formatar descrição
-                        descricao_cambio = f"CÂMBIO {operacao}"
-                        
-                        transacoes_todas.append({
-                            'id': transf_id,
-                            'data': data_transacao_str,
-                            'descricao': descricao_cambio,
-                            'credito': transf.get('valor_destino', valor),
-                            'debito': 0.00,
-                            'tipo': "Câmbio",
-                            'moeda': moeda,
-                            'timestamp': data_transacao
-                        })
+
+                    # Cliente é DESTINATÁRIO
+                    elif transf.get('conta_destinatario') == conta_num or transf.get('conta_destino') == conta_num:
+                        if transf_tipo == 'deposito':
+                            transacoes_todas.append({
+                                'id': transf_id,
+                                'data': data_transacao_str,
+                                'descricao': f"DEPÓSITO CONFIRMADO - {transf.get('banco_origem', 'Banco')}",
+                                'credito': valor,
+                                'debito': 0.00,
+                                'tipo': "Depósito",
+                                'moeda': moeda,
+                                'timestamp': data_transacao
+                            })
+                        elif transf_tipo == 'ajuste_admin' and transf.get('tipo_ajuste') == 'CREDITO':
+                            transacoes_todas.append({
+                                'id': transf_id,
+                                'data': data_transacao_str,
+                                'descricao': f"CRÉDITO ADMINISTRATIVO - {transf.get('descricao_ajuste', '')}",
+                                'credito': valor,
+                                'debito': 0.00,
+                                'tipo': "Crédito Admin",
+                                'moeda': moeda,
+                                'timestamp': data_transacao
+                            })
+                        elif transf_tipo == 'cambio':
+                            # 🔥 USAR FUNÇÃO IGUAL AO KIVY
+                            descricao_cambio = gerar_descricao_cambio_inteligente(transf, conta_num)
+                            
+                            transacoes_todas.append({
+                                'id': transf_id,
+                                'data': data_transacao_str,
+                                'descricao': descricao_cambio,
+                                'credito': transf.get('valor_destino', valor),
+                                'debito': 0.00,
+                                'tipo': "Câmbio",
+                                'moeda': moeda,
+                                'timestamp': data_transacao
+                            })
                     elif transf_tipo not in ['ajuste_admin']:
                         status_normalizado = transf_status.lower() if transf_status else ''
                         
