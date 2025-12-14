@@ -2228,135 +2228,150 @@ def meu_extrato():
 
 @app.route('/api/contas')
 def obter_contas_usuario():
-    """Obtém contas REAIS do usuário logado"""
+    """Obtém contas REAIS do usuário logado - VERSÃO DEFINITIVA"""
     try:
         usuario = session.get('username')
         if not usuario:
+            print("❌ [CONTAS] Usuário não autenticado")
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
-        print(f"📊 [API CONTAS] Buscando contas para: {usuario}")
+        print(f"✅ [CONTAS] Usuário autenticado: {usuario}")
         
-        # 🔥 CORREÇÃO: A coluna na tabela contas é 'cliente', não 'cliente_username'
-        # E também tem 'usuario' como alternativa
+        # 🔥 AGORA USANDO A COLUNA CORRETA: 'cliente_username'
         response = supabase.table('contas')\
-            .select('*')\
-            .or_(f"cliente.eq.{usuario},usuario.eq.{usuario},cliente_username.eq.{usuario}")\
+            .select('id, moeda, saldo, cliente_username, cliente_nome, data_criacao, ativa, created_at')\
+            .eq('cliente_username', usuario)\
             .execute()
         
-        print(f"📊 [API CONTAS] Resultados: {len(response.data)} contas")
+        print(f"📊 [CONTAS] Query executada. Resultados: {len(response.data)}")
         
         contas = []
         for conta in response.data:
-            print(f"📊 [API CONTAS] Processando conta: {conta.get('id')}")
+            print(f"📊 [CONTAS] Processando conta ID: {conta.get('id')}")
+            
+            # O campo 'id' é provavelmente o número da conta
+            numero_conta = conta.get('id', '')
+            
+            # Converter saldo para float (pode ser None)
+            saldo = conta.get('saldo')
+            if saldo is None:
+                saldo = 0.0
+            else:
+                try:
+                    saldo = float(saldo)
+                except:
+                    saldo = 0.0
+            
             contas.append({
-                'id': conta.get('id'),
-                'numero': conta.get('numero', ''),
+                'numero': numero_conta,  # Usando 'id' como número da conta
                 'moeda': conta.get('moeda', 'USD'),
-                'saldo': float(conta.get('saldo', 0)),
+                'saldo': saldo,
                 'cliente_nome': conta.get('cliente_nome', ''),
-                'cliente': conta.get('cliente', ''),
-                'usuario': conta.get('usuario', ''),
+                'cliente_username': conta.get('cliente_username', ''),
                 'data_criacao': conta.get('data_criacao', ''),
-                'ativa': conta.get('ativa', True)
+                'ativa': conta.get('ativa', True),
+                'id_supabase': conta.get('id')  # Mantendo o ID original
             })
         
-        # Se não encontrar, verificar se usuário tem contas no registro
+        print(f"✅ [CONTAS] Retornando {len(contas)} contas para {usuario}")
+        
+        # Se não encontrar contas, verificar se o usuário existe
         if not contas:
-            print(f"⚠️ [API CONTAS] Nenhuma conta encontrada. Verificando usuário...")
+            print(f"⚠️ [CONTAS] Nenhuma conta encontrada para {usuario}")
             
-            # Buscar usuário para ver suas contas
-            user_response = supabase.table('usuarios')\
-                .select('contas')\
+            # Verificar se o usuário existe na tabela usuarios
+            user_check = supabase.table('usuarios')\
+                .select('username, nome')\
                 .eq('username', usuario)\
                 .execute()
             
-            if user_response.data and user_response.data[0].get('contas'):
-                contas_usuario = user_response.data[0]['contas']
-                print(f"📊 [API CONTAS] Usuário tem contas: {contas_usuario}")
-                
-                # Buscar cada conta pelo número
-                for conta_num in contas_usuario:
-                    conta_response = supabase.table('contas')\
-                        .select('*')\
-                        .eq('numero', conta_num)\
-                        .execute()
-                    
-                    if conta_response.data:
-                        conta = conta_response.data[0]
-                        contas.append({
-                            'id': conta.get('id'),
-                            'numero': conta.get('numero', ''),
-                            'moeda': conta.get('moeda', 'USD'),
-                            'saldo': float(conta.get('saldo', 0)),
-                            'cliente_nome': conta.get('cliente_nome', ''),
-                            'cliente': conta.get('cliente', ''),
-                            'usuario': conta.get('usuario', ''),
-                            'data_criacao': conta.get('data_criacao', ''),
-                            'ativa': conta.get('ativa', True)
-                        })
-        
-        print(f"✅ [API CONTAS] Retornando {len(contas)} contas")
+            if user_check.data:
+                print(f"✅ [CONTAS] Usuário {usuario} existe no sistema")
+                mensagem = f"Usuário encontrado mas sem contas cadastradas"
+            else:
+                print(f"❌ [CONTAS] Usuário {usuario} NÃO existe na tabela usuarios!")
+                mensagem = f"Usuário não encontrado no sistema"
+            
+            return jsonify({
+                "success": True,
+                "contas": [],
+                "total": 0,
+                "message": mensagem,
+                "debug": {
+                    "usuario": usuario,
+                    "existe_na_tabela_usuarios": bool(user_check.data)
+                }
+            })
         
         return jsonify({
             "success": True,
             "contas": contas,
-            "total": len(contas)
+            "total": len(contas),
+            "usuario": usuario
         })
         
     except Exception as e:
-        print(f"❌ [API CONTAS] Erro: {e}")
+        print(f"❌ [CONTAS] ERRO: {str(e)}")
         import traceback
         traceback.print_exc()
+        
         return jsonify({
             "success": False,
-            "message": f"Erro ao buscar contas: {str(e)}"
+            "message": f"Erro interno: {str(e)}",
+            "error_type": type(e).__name__
         }), 500
 
 @app.route('/api/extrato')
 def obter_extrato():
-    """Obtém extrato com MESMA lógica do Kivy - usando estrutura REAL"""
+    """Obtém extrato com MESMA lógica do Kivy - ESTRUTURA REAL"""
     try:
         usuario = session.get('username')
         if not usuario:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
         # Parâmetros
-        conta_num = request.args.get('conta')
+        conta_num = request.args.get('conta')  # Este é o 'id' da tabela contas
         periodo = request.args.get('periodo', '30')
-        data_inicio = request.args.get('data_inicio')
-        data_fim = request.args.get('data_fim')
         
         if not conta_num:
             return jsonify({"success": False, "message": "Conta não especificada"}), 400
         
         print(f"📊 [EXTRATO] Usuário: {usuario}, Conta: {conta_num}, Período: {periodo}")
         
-        # 🔥 1. OBTER DADOS REAIS DA CONTA
+        # 🔥 1. VERIFICAR SE A CONTA PERTENCE AO USUÁRIO
         conta_response = supabase.table('contas')\
             .select('*')\
-            .eq('numero', conta_num)\
+            .eq('id', conta_num)\
+            .eq('cliente_username', usuario)\
             .execute()
         
         if not conta_response.data:
-            return jsonify({"success": False, "message": "Conta não encontrada"}), 404
+            print(f"❌ [EXTRATO] Conta {conta_num} não encontrada ou não pertence a {usuario}")
+            return jsonify({
+                "success": False, 
+                "message": "Conta não encontrada ou não pertence ao usuário"
+            }), 404
         
         conta = conta_response.data[0]
         moeda = conta.get('moeda', 'USD')
-        saldo_atual = float(conta.get('saldo', 0))
+        saldo_atual = float(conta.get('saldo', 0)) if conta.get('saldo') is not None else 0.0
         
-        print(f"📊 [EXTRATO] Conta encontrada: {conta_num} | Moeda: {moeda} | Saldo: {saldo_atual}")
+        print(f"✅ [EXTRATO] Conta validada: {conta_num} | Moeda: {moeda} | Saldo atual: {saldo_atual}")
         
         # 🔥 2. CALCULAR DATAS DO PERÍODO
         from datetime import datetime, timedelta
         
         data_fim_filtro = datetime.now()
-        data_inicio_filtro = None
         
         if periodo == '0':
-            # Todo período
-            data_inicio_filtro = datetime(2020, 1, 1)
-        elif periodo == 'personalizado' and data_inicio and data_fim:
-            # Período personalizado
+            data_inicio_filtro = datetime(2024, 1, 1)  # Data inicial razoável
+        elif periodo == 'personalizado':
+            data_inicio = request.args.get('data_inicio')
+            data_fim = request.args.get('data_fim')
+            
+            if not data_inicio or not data_fim:
+                return jsonify({"success": False, "message": "Datas não fornecidas"}), 400
+            
             try:
                 data_inicio_filtro = datetime.strptime(data_inicio, '%d/%m/%Y')
                 data_fim_filtro = datetime.strptime(data_fim, '%d/%m/%Y').replace(
@@ -2365,39 +2380,32 @@ def obter_extrato():
             except ValueError:
                 return jsonify({"success": False, "message": "Formato de data inválido"}), 400
         else:
-            # Períodos rápidos
             dias = int(periodo)
             data_inicio_filtro = data_fim_filtro - timedelta(days=dias)
         
-        print(f"📊 [EXTRATO] Período: {data_inicio_filtro} até {data_fim_filtro}")
+        print(f"📅 [EXTRATO] Período: {data_inicio_filtro.date()} até {data_fim_filtro.date()}")
         
-        # 🔥 3. BUSCAR TRANSAÇÕES REAIS DO USUÁRIO
-        def buscar_transferencias_usuario():
-            """Busca transferências REAIS do usuário para a conta especificada"""
-            try:
-                # Buscar por MÚLTIPLOS campos que podem identificar o usuário
-                # Na tabela transferencias temos: cliente, usuario, solicitado_por
-                response = supabase.table('transferencias')\
-                    .select('*')\
-                    .or_(f"conta_remetente.eq.{conta_num},conta_destinatario.eq.{conta_num},conta_origem.eq.{conta_num},conta_destino.eq.{conta_num}")\
-                    .or_(f"cliente.eq.{usuario},usuario.eq.{usuario},solicitado_por.eq.{usuario}")\
-                    .execute()
-                
-                print(f"📊 [EXTRATO] Transferências encontradas: {len(response.data)}")
-                return response.data
-                
-            except Exception as e:
-                print(f"❌ [EXTRATO] Erro ao buscar transferências: {e}")
-                return []
+        # 🔥 3. BUSCAR TRANSFERÊNCIAS DA CONTA
+        print(f"🔍 [EXTRATO] Buscando transferências para conta {conta_num}...")
         
-        # 🔥 4. FUNÇÃO PARA PROCESSAR TRANSAÇÃO REAL
-        def processar_transacao_real(dados):
-            """Processa uma transação REAL com lógica do Kivy"""
+        # Na tabela transferencias, a conta pode estar em vários campos:
+        # conta_remetente, conta_destinatario, conta_origem, conta_destino
+        transferencias_response = supabase.table('transferencias')\
+            .select('*')\
+            .or_(f"conta_remetente.eq.{conta_num},conta_destinatario.eq.{conta_num},conta_origem.eq.{conta_num},conta_destino.eq.{conta_num}")\
+            .execute()
+        
+        transferencias = transferencias_response.data
+        print(f"📊 [EXTRATO] {len(transferencias)} transferências encontradas")
+        
+        # 🔥 4. PROCESSAR CADA TRANSAÇÃO (MESMA LÓGICA DO KIVY)
+        def processar_transacao_kivy_real(dados):
+            """Processa transação REAL com lógica do Kivy"""
             tipo = dados.get('tipo', '')
             status = dados.get('status', '')
-            valor = float(dados.get('valor', 0))
+            valor = float(dados.get('valor', 0)) if dados.get('valor') is not None else 0.0
             
-            # Lógica de decisão (igual ao Kivy)
+            # Lógica de decisão do Kivy
             if tipo in ['ajuste_admin', 'cambio']:
                 deve_incluir = True
             elif status == 'pending':
@@ -2412,7 +2420,7 @@ def obter_extrato():
             if not deve_incluir:
                 return None
             
-            # Data da transação (usar campo correto)
+            # Data da transação
             data_transacao = dados.get('data') or dados.get('created_at') or datetime.now()
             
             transacao = {
@@ -2420,13 +2428,11 @@ def obter_extrato():
                 'data': data_transacao,
                 'tipo': tipo,
                 'status': status,
-                'moeda': moeda,
-                'descricao': dados.get('descricao', ''),
-                'beneficiario': dados.get('beneficiario', ''),
-                'finalidade': dados.get('finalidade', '')
+                'moeda': dados.get('moeda', moeda),
+                'valor': valor
             }
             
-            # 🔥 VERIFICAR SE A CONTA É REMETENTE OU DESTINATÁRIO
+            # Verificar se conta é remetente ou destinatário
             conta_remetente = dados.get('conta_remetente', '')
             conta_destinatario = dados.get('conta_destinatario', '')
             conta_origem = dados.get('conta_origem', '')
@@ -2436,19 +2442,18 @@ def obter_extrato():
             if (conta_remetente == conta_num) or (conta_origem == conta_num):
                 
                 if tipo == 'deposito':
-                    # Depósito como crédito
-                    transacao['descricao'] = f"DEPÓSITO CONFIRMADO - {dados.get('banco_origem', 'Banco')}"
+                    transacao['descricao'] = f"DEPÓSITO - {dados.get('banco_origem', '')}"
                     transacao['credito'] = valor
                     transacao['debito'] = 0.00
                     
                 elif tipo == 'ajuste_admin':
                     tipo_ajuste = dados.get('tipo_ajuste', 'DÉBITO')
                     if tipo_ajuste and tipo_ajuste.upper() == 'CREDITO':
-                        transacao['descricao'] = f"CRÉDITO ADMINISTRATIVO - {dados.get('descricao_ajuste', 'Ajuste')}"
+                        transacao['descricao'] = f"CRÉDITO ADMIN - {dados.get('descricao_ajuste', '')}"
                         transacao['credito'] = valor
                         transacao['debito'] = 0.00
                     else:
-                        transacao['descricao'] = f"DÉBITO ADMINISTRATIVO - {dados.get('descricao_ajuste', 'Ajuste')}"
+                        transacao['descricao'] = f"DÉBITO ADMIN - {dados.get('descricao_ajuste', '')}"
                         transacao['credito'] = 0.00
                         transacao['debito'] = valor
                         
@@ -2457,22 +2462,17 @@ def obter_extrato():
                                  "EM PROCESSAMENTO" if status == 'processing' else \
                                  "CONCLUÍDA" if status == 'completed' else "RECUSADA"
                     
-                    transacao['descricao'] = f"TRANSF. INTERNACIONAL {status_text} - {dados.get('beneficiario', 'N/A')}"
+                    transacao['descricao'] = f"TRANSF. INTERNACIONAL {status_text} - {dados.get('beneficiario', '')}"
                     transacao['credito'] = 0.00
                     transacao['debito'] = valor
                     
                 elif tipo == 'cambio':
-                    descricao = dados.get('descricao') or f"CÂMBIO {dados.get('par_moedas', '')}"
-                    transacao['descricao'] = descricao
+                    transacao['descricao'] = f"CÂMBIO - {dados.get('descricao', dados.get('par_moedas', ''))}"
                     transacao['credito'] = 0.00
                     transacao['debito'] = valor
                     
-                elif tipo in ['transferencia_interna', 'transferencia_interna_cliente']:
-                    status_text = "SOLICITADA" if status == 'pending' else \
-                                 "EM PROCESSAMENTO" if status == 'processing' else \
-                                 "CONCLUÍDA" if status == 'completed' else "RECUSADA"
-                    
-                    transacao['descricao'] = f"TRANSFERÊNCIA {status_text} - {dados.get('beneficiario', 'N/A')}"
+                else:  # Outros tipos
+                    transacao['descricao'] = f"{tipo.upper()} - {dados.get('descricao', '')}"
                     transacao['credito'] = 0.00
                     transacao['debito'] = valor
             
@@ -2480,21 +2480,21 @@ def obter_extrato():
             elif (conta_destinatario == conta_num) or (conta_destino == conta_num):
                 
                 if tipo == 'deposito':
-                    transacao['descricao'] = f"DEPÓSITO CONFIRMADO - {dados.get('banco_origem', 'Banco')}"
+                    transacao['descricao'] = f"DEPÓSITO RECEBIDO - {dados.get('banco_origem', '')}"
                     transacao['credito'] = valor
                     transacao['debito'] = 0.00
                     
                 elif tipo == 'ajuste_admin' and dados.get('tipo_ajuste') == 'CREDITO':
-                    transacao['descricao'] = f"CRÉDITO ADMINISTRATIVO - {dados.get('descricao_ajuste', 'Ajuste')}"
+                    transacao['descricao'] = f"CRÉDITO ADMIN - {dados.get('descricao_ajuste', '')}"
                     transacao['credito'] = valor
                     transacao['debito'] = 0.00
                     
                 elif tipo == 'cambio':
-                    transacao['descricao'] = dados.get('descricao') or f"CÂMBIO {dados.get('par_moedas', '')}"
+                    transacao['descricao'] = f"CÂMBIO - {dados.get('descricao', dados.get('par_moedas', ''))}"
                     transacao['credito'] = float(dados.get('valor_destino', valor))
                     transacao['debito'] = 0.00
                     
-                elif tipo not in ['ajuste_admin']:
+                else:  # Transferências recebidas
                     status_text = "SOLICITADA" if status == 'pending' else \
                                  "EM PROCESSAMENTO" if status == 'processing' else \
                                  "CONCLUÍDA" if status == 'completed' else "RECUSADA"
@@ -2505,18 +2505,16 @@ def obter_extrato():
             
             return transacao
         
-        # 🔥 5. BUSCAR E PROCESSAR TRANSAÇÕES
-        transferencias = buscar_transferencias_usuario()
+        # 🔥 5. FILTRAR E PROCESSAR TRANSAÇÕES DO PERÍODO
         transacoes = []
         
         for transf in transferencias:
-            # Filtrar por data
-            data_str = transf.get('data') or transf.get('created_at')
-            if not data_str:
-                continue
-                
             try:
-                # Converter data string para objeto datetime
+                # Converter data
+                data_str = transf.get('data') or transf.get('created_at')
+                if not data_str:
+                    continue
+                
                 if isinstance(data_str, str):
                     if 'T' in data_str:
                         data_obj = datetime.fromisoformat(data_str.replace('Z', '+00:00'))
@@ -2525,48 +2523,50 @@ def obter_extrato():
                 else:
                     data_obj = data_str
                 
-                # Verificar se está no período
+                # Filtrar por período
                 if data_inicio_filtro <= data_obj <= data_fim_filtro:
-                    transacao = processar_transacao_real(transf)
+                    transacao = processar_transacao_kivy_real(transf)
                     if transacao:
                         transacao['timestamp'] = data_obj
                         transacoes.append(transacao)
                         
             except Exception as e:
-                print(f"⚠️ [EXTRATO] Erro ao processar data: {e}")
+                print(f"⚠️ [EXTRATO] Erro ao processar transação {transf.get('id')}: {e}")
                 continue
         
-        # 🔥 6. ORDENAR POR DATA (mais antiga primeiro)
+        print(f"📊 [EXTRATO] {len(transacoes)} transações dentro do período")
+        
+        # 🔥 6. ORDENAR POR DATA (mais antiga primeiro para cálculo)
         transacoes.sort(key=lambda x: x.get('timestamp', datetime.min))
         
-        # 🔥 7. ADICIONAR SALDO INICIAL (MESMA LÓGICA DO KIVY)
+        # 🔥 7. ADICIONAR SALDO INICIAL E CALCULAR SALDO SEQUENCIAL
         saldo_inicial = 0.0
-        if periodo != '0':  # Para períodos limitados, calcular saldo inicial
-            # Buscar todas as transferências ANTES do período
-            for transf in transferencias:
+        
+        # Calcular saldo inicial (transações antes do período)
+        for transf in transferencias:
+            try:
                 data_str = transf.get('data') or transf.get('created_at')
                 if not data_str:
                     continue
-                    
-                try:
-                    if isinstance(data_str, str):
-                        if 'T' in data_str:
-                            data_obj = datetime.fromisoformat(data_str.replace('Z', '+00:00'))
-                        else:
-                            data_obj = datetime.strptime(data_str, '%Y-%m-%d %H:%M:%S')
+                
+                if isinstance(data_str, str):
+                    if 'T' in data_str:
+                        data_obj = datetime.fromisoformat(data_str.replace('Z', '+00:00'))
                     else:
-                        data_obj = data_str
-                    
-                    if data_obj < data_inicio_filtro:
-                        transacao = processar_transacao_real(transf)
-                        if transacao:
-                            saldo_inicial += transacao.get('credito', 0) - transacao.get('debito', 0)
-                            
-                except:
-                    continue
+                        data_obj = datetime.strptime(data_str, '%Y-%m-%d %H:%M:%S')
+                else:
+                    data_obj = data_str
+                
+                if data_obj < data_inicio_filtro:
+                    transacao = processar_transacao_kivy_real(transf)
+                    if transacao:
+                        saldo_inicial += transacao.get('credito', 0) - transacao.get('debito', 0)
+                        
+            except:
+                continue
         
         # Adicionar transação de saldo inicial
-        if saldo_inicial != 0:
+        if saldo_inicial != 0 or periodo == '0':
             transacoes.insert(0, {
                 'id': 'SALDO_INICIAL',
                 'data': data_inicio_filtro.strftime('%Y-%m-%d 00:00:00'),
@@ -2594,10 +2594,10 @@ def obter_extrato():
         total_entradas = sum(t.get('credito', 0) for t in transacoes if t.get('tipo') != 'Saldo Inicial')
         total_saidas = sum(t.get('debito', 0) for t in transacoes if t.get('tipo') != 'Saldo Inicial')
         
-        # Ordenar para exibição (mais recente primeiro)
+        # 🔥 10. ORDENAR PARA EXIBIÇÃO (mais recente primeiro)
         transacoes_exibicao = list(reversed(transacoes))
         
-        print(f"✅ [EXTRATO] {len(transacoes_exibicao)} transações, Saldo: {saldo_sequencial:,.2f}")
+        print(f"✅ [EXTRATO] Processamento concluído: {len(transacoes_exibicao)} transações")
         
         return jsonify({
             "success": True,
@@ -2612,7 +2612,7 @@ def obter_extrato():
         })
         
     except Exception as e:
-        print(f"❌ [EXTRATO] Erro: {e}")
+        print(f"❌ [EXTRATO] ERRO: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({
@@ -2790,6 +2790,42 @@ def debug_contas():
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+@app.route('/api/test-supabase')
+def test_supabase():
+    """Testa conexão básica com Supabase"""
+    try:
+        # Teste 1: Contar registros em contas
+        contas_count = supabase.table('contas')\
+            .select('id', count='exact')\
+            .execute()
+        
+        # Teste 2: Pegar primeiro usuário
+        usuarios = supabase.table('usuarios')\
+            .select('username, nome')\
+            .limit(1)\
+            .execute()
+        
+        # Teste 3: Pegar primeira transferência
+        transferencias = supabase.table('transferencias')\
+            .select('id, tipo')\
+            .limit(1)\
+            .execute()
+        
+        return jsonify({
+            "success": True,
+            "contas_total": contas_count.count,
+            "primeiro_usuario": usuarios.data[0] if usuarios.data else None,
+            "primeira_transferencia": transferencias.data[0] if transferencias.data else None,
+            "mensagem": "Conexão Supabase OK"
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Erro na conexão com Supabase"
+        }), 500
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
