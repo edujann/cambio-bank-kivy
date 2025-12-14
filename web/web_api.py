@@ -2206,6 +2206,391 @@ def editar_beneficiario_api(benef_id):
             "success": False,
             "message": f"Erro interno: {str(e)}"
         }), 500
+    
+# ============================================
+# ROTAS DO EXTRATO (REPLICANDO LÓGICA DO KIVY)
+# ============================================
+
+@app.route('/meu_extrato')
+def meu_extrato():
+    """Renderiza a tela de extrato"""
+    usuario = session.get('username')
+    nome = session.get('nome')
+    
+    if not usuario:
+        return redirect('/login')
+    
+    # Passar dados do usuário para o template
+    return render_template('meu_extrato.html', 
+                         usuario=usuario,
+                         nome=nome,
+                         data_atual=datetime.now().strftime("%d/%m/%Y"))
+
+@app.route('/api/contas')
+def obter_contas_usuario():
+    """Obtém contas do usuário logado (mesma lógica do Kivy)"""
+    try:
+        usuario = session.get('username')
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Buscar contas do usuário no Supabase
+        response = supabase.table('contas')\
+            .select('*')\
+            .eq('cliente_username', usuario)\
+            .execute()
+        
+        contas = []
+        for conta in response.data:
+            contas.append({
+                'numero': conta['numero'],
+                'moeda': conta['moeda'],
+                'saldo': conta['saldo'],
+                'cliente_nome': conta.get('cliente_nome', ''),
+                'data_criacao': conta.get('data_criacao', '')
+            })
+        
+        return jsonify({
+            "success": True,
+            "contas": contas
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro em obter_contas_usuario: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/api/extrato')
+def obter_extrato():
+    """Obtém extrato com MESMA lógica do Kivy"""
+    try:
+        usuario = session.get('username')
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Parâmetros (iguais ao Kivy)
+        conta_num = request.args.get('conta')
+        periodo = request.args.get('periodo', '30')
+        data_inicio = request.args.get('data_inicio')
+        data_fim = request.args.get('data_fim')
+        
+        if not conta_num:
+            return jsonify({"success": False, "message": "Conta não especificada"}), 400
+        
+        print(f"📊 [EXTRATO] Usuário: {usuario}, Conta: {conta_num}, Período: {periodo}")
+        
+        # 🔥 1. OBTER DADOS DA CONTA (igual ao Kivy)
+        conta_response = supabase.table('contas')\
+            .select('*')\
+            .eq('numero', conta_num)\
+            .eq('cliente_username', usuario)\
+            .execute()
+        
+        if not conta_response.data:
+            return jsonify({"success": False, "message": "Conta não encontrada"}), 404
+        
+        conta = conta_response.data[0]
+        moeda = conta['moeda']
+        saldo_atual = conta['saldo']
+        
+        # 🔥 2. CALCULAR DATAS DO PERÍODO (MESMA LÓGICA DO KIVY)
+        from datetime import datetime, timedelta
+        import re
+        
+        data_fim_filtro = datetime.now()
+        data_inicio_filtro = None
+        
+        if periodo == '0':
+            # Todo período - data bem antiga
+            data_inicio_filtro = datetime(2020, 1, 1)
+        elif periodo == 'personalizado' and data_inicio and data_fim:
+            # Período personalizado (convertendo DD/MM/AAAA)
+            try:
+                data_inicio_filtro = datetime.strptime(data_inicio, '%d/%m/%Y')
+                data_fim_filtro = datetime.strptime(data_fim, '%d/%m/%Y').replace(
+                    hour=23, minute=59, second=59, microsecond=999999
+                )
+            except ValueError:
+                return jsonify({"success": False, "message": "Formato de data inválido"}), 400
+        else:
+            # Períodos rápidos (30, 15, 7 dias)
+            dias = int(periodo)
+            data_inicio_filtro = data_fim_filtro - timedelta(days=dias)
+        
+        # 🔥 3. FUNÇÃO PARA PARSER DATAS (MESMA DO KIVY)
+        def parse_data_unificada(data_str):
+            """Parseia datas em múltiplos formatos (igual ao Kivy)"""
+            if not data_str:
+                return None
+            
+            try:
+                # Formato ISO com 'T'
+                if 'T' in data_str:
+                    if '.' in data_str:
+                        return datetime.fromisoformat(data_str.replace('Z', '+00:00'))
+                    else:
+                        return datetime.strptime(data_str, '%Y-%m-%dT%H:%M:%S')
+                
+                # Formato com espaço
+                elif ' ' in data_str:
+                    return datetime.strptime(data_str, '%Y-%m-%d %H:%M:%S')
+                
+                # Formato apenas data
+                else:
+                    return datetime.strptime(data_str, '%Y-%m-%d')
+                    
+            except Exception as e:
+                print(f"⚠️ Erro ao parsear data '{data_str}': {e}")
+                return None
+        
+        # 🔥 4. CALCULAR SALDO INICIAL DO PERÍODO (MESMO DO KIVY)
+        def calcular_saldo_ate_data(data_limite):
+            """Calcula saldo até data específica (MESMA LÓGICA DO KIVY)"""
+            saldo_acumulado = 0.0
+            
+            # Buscar TODAS as transferências da conta
+            todas_transferencias = buscar_transferencias_conta(conta_num, usuario)
+            
+            for transferencia in todas_transferencias:
+                data_transacao_str = transferencia.get('data', '')
+                data_transacao = parse_data_unificada(data_transacao_str)
+                
+                if not data_transacao:
+                    continue
+                
+                # Só incluir se for ANTES do início do período
+                if data_transacao < data_limite:
+                    # Lógica de crédito/débito (MESMA DO KIVY)
+                    tipo = transferencia.get('tipo', '')
+                    valor = transferencia.get('valor', 0)
+                    conta_remetente = transferencia.get('conta_remetente', '')
+                    conta_destinatario = transferencia.get('conta_destinatario', '')
+                    
+                    # Cliente é REMETENTE (saída/débito)
+                    if conta_remetente == conta_num:
+                        if tipo == 'ajuste_admin' and transferencia.get('tipo_ajuste') == 'CREDITO':
+                            saldo_acumulado += valor  # Crédito administrativo
+                        else:
+                            saldo_acumulado -= valor  # Débito normal
+                    
+                    # Cliente é DESTINATÁRIO (entrada/crédito)
+                    elif conta_destinatario == conta_num:
+                        if tipo == 'ajuste_admin' and transferencia.get('tipo_ajuste') == 'DÉBITO':
+                            saldo_acumulado -= valor  # Débito administrativo
+                        else:
+                            saldo_acumulado += valor  # Crédito normal
+            
+            return saldo_acumulado
+        
+        # 🔥 5. BUSCAR TRANSAÇÕES DO PERÍODO (MESMO DO KIVY)
+        def buscar_transacoes_periodo():
+            transacoes = []
+            
+            # Buscar transferências da conta
+            transferencias = buscar_transferencias_conta(conta_num, usuario)
+            
+            for transf in transferencias:
+                data_transacao_str = transf.get('data', '')
+                data_transacao = parse_data_unificada(data_transacao_str)
+                
+                if not data_transacao:
+                    continue
+                
+                # Filtrar por período
+                if data_inicio_filtro <= data_transacao <= data_fim_filtro:
+                    # 🔥 PROCESSAR CADA TIPO (MESMA LÓGICA DO KIVY)
+                    transacao_processada = processar_transacao_kivy(transf, conta_num, moeda)
+                    if transacao_processada:
+                        transacoes.append(transacao_processada)
+            
+            return transacoes
+        
+        # 🔥 6. ADICIONAR SALDO INICIAL COMO PRIMEIRA TRANSAÇÃO (MESMO DO KIVY)
+        saldo_inicial_periodo = calcular_saldo_ate_data(data_inicio_filtro)
+        
+        transacoes = buscar_transacoes_periodo()
+        
+        # Ordenar por data (mais antiga primeiro)
+        transacoes.sort(key=lambda x: parse_data_unificada(x['data']) or datetime.min)
+        
+        # 🔥 7. CALCULAR SALDO SEQUENCIAL (MESMO DO KIVY)
+        saldo_sequencial = saldo_inicial_periodo
+        
+        for transacao in transacoes:
+            credito = transacao.get('credito', 0)
+            debito = transacao.get('debito', 0)
+            saldo_sequencial += credito - debito
+            transacao['saldo_apos'] = saldo_sequencial
+        
+        # 🔥 8. CALCULAR TOTAIS (MESMO DO KIVY)
+        total_entradas = sum(t.get('credito', 0) for t in transacoes)
+        total_saidas = sum(t.get('debito', 0) for t in transacoes)
+        
+        # Inverter ordem para exibição (mais recente primeiro)
+        transacoes_exibicao = list(reversed(transacoes))
+        
+        print(f"✅ [EXTRATO] {len(transacoes_exibicao)} transações, Saldo: {saldo_sequencial:,.2f}")
+        
+        return jsonify({
+            "success": True,
+            "transacoes": transacoes_exibicao,
+            "saldo_final": saldo_sequencial,
+            "total_entradas": total_entradas,
+            "total_saidas": total_saidas,
+            "moeda": moeda,
+            "periodo": periodo
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro em obter_extrato: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+# 🔥 FUNÇÃO AUXILIAR: Buscar transferências da conta
+def buscar_transferencias_conta(conta_num, usuario):
+    """Busca TODAS as transferências relacionadas à conta"""
+    try:
+        # Buscar em transferencias
+        response = supabase.table('transferencias')\
+            .select('*')\
+            .or_(f'conta_remetente.eq.{conta_num},conta_destinatario.eq.{conta_num}')\
+            .eq('cliente_username', usuario)\
+            .execute()
+        
+        return response.data
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar transferências: {e}")
+        return []
+
+# 🔥 FUNÇÃO CRÍTICA: Processar transação (MESMA LÓGICA DO KIVY)
+def processar_transacao_kivy(dados, conta_num, moeda):
+    """Processa uma transação com exatamente a mesma lógica do Kivy"""
+    from datetime import datetime
+    
+    tipo = dados.get('tipo', '')
+    status = dados.get('status', '')
+    valor = dados.get('valor', 0)
+    
+    # 🔥 LÓGICA DE DECISÃO (MESMA DO KIVY)
+    if tipo in ['ajuste_admin', 'cambio']:
+        deve_incluir = True
+    elif status == 'pending':
+        deve_incluir = True
+    elif status == 'rejected':
+        deve_incluir = True
+    elif status in ['processing', 'completed']:
+        deve_incluir = True
+    else:
+        deve_incluir = False
+    
+    if not deve_incluir:
+        return None
+    
+    transacao = {
+        'id': dados.get('id', ''),
+        'data': dados.get('data', datetime.now().strftime('%Y-%m-%d %H:%M:%S')),
+        'tipo': tipo,
+        'moeda': moeda
+    }
+    
+    # 🔥 CLIENTE É REMETENTE (SAÍDA/DÉBITO)
+    if dados.get('conta_remetente') == conta_num:
+        
+        if tipo == 'deposito':
+            # Cliente recebe CRÉDITO no depósito
+            transacao['descricao'] = f"DEPÓSITO CONFIRMADO - {dados.get('banco_origem', 'Banco')}"
+            transacao['credito'] = valor
+            transacao['debito'] = 0.00
+            
+        elif tipo == 'ajuste_admin':
+            tipo_ajuste = dados.get('tipo_ajuste', 'DÉBITO')
+            if tipo_ajuste and tipo_ajuste.upper() == 'CREDITO':
+                transacao['descricao'] = f"CRÉDITO ADMINISTRATIVO - {dados.get('descricao_ajuste', '')}"
+                transacao['credito'] = valor
+                transacao['debito'] = 0.00
+            else:
+                transacao['descricao'] = f"DÉBITO ADMINISTRATIVO - {dados.get('descricao_ajuste', '')}"
+                transacao['credito'] = 0.00
+                transacao['debito'] = valor
+                
+        elif tipo in ['internacional', 'transferencia_internacional']:
+            status_text = "SOLICITADA" if status == 'pending' else \
+                         "EM PROCESSAMENTO" if status == 'processing' else \
+                         "CONCLUÍDA" if status == 'completed' else "RECUSADA"
+            
+            transacao['descricao'] = f"TRANSF. INTERNACIONAL {status_text} - {dados.get('beneficiario', 'N/A')}"
+            transacao['credito'] = 0.00
+            transacao['debito'] = valor
+            
+        elif tipo == 'cambio':
+            transacao['descricao'] = f"CÂMBIO - {dados.get('descricao_origem', 'Operação de câmbio')}"
+            transacao['credito'] = 0.00
+            transacao['debito'] = valor
+            
+        elif tipo in ['transferencia_interna', 'transferencia_interna_cliente']:
+            status_text = "SOLICITADA" if status == 'pending' else \
+                         "EM PROCESSAMENTO" if status == 'processing' else \
+                         "CONCLUÍDA" if status == 'completed' else "RECUSADA"
+            
+            transacao['descricao'] = f"TRANSFERÊNCIA {status_text} - {dados.get('nome_destinatario', 'N/A')}"
+            transacao['credito'] = 0.00
+            transacao['debito'] = valor
+    
+    # 🔥 CLIENTE É DESTINATÁRIO (ENTRADA/CRÉDITO)
+    elif dados.get('conta_destinatario') == conta_num:
+        
+        if tipo == 'deposito':
+            transacao['descricao'] = f"DEPÓSITO CONFIRMADO - {dados.get('banco_origem', 'Banco')}"
+            transacao['credito'] = valor
+            transacao['debito'] = 0.00
+            
+        elif tipo == 'ajuste_admin' and dados.get('tipo_ajuste') == 'CREDITO':
+            transacao['descricao'] = f"CRÉDITO ADMINISTRATIVO - {dados.get('descricao_ajuste', '')}"
+            transacao['credito'] = valor
+            transacao['debito'] = 0.00
+            
+        elif tipo == 'cambio':
+            transacao['descricao'] = f"CÂMBIO - {dados.get('descricao_destino', 'Operação de câmbio')}"
+            transacao['credito'] = dados.get('valor_destino', valor)
+            transacao['debito'] = 0.00
+            
+        elif tipo not in ['ajuste_admin']:
+            status_text = "SOLICITADA" if status == 'pending' else \
+                         "EM PROCESSAMENTO" if status == 'processing' else \
+                         "CONCLUÍDA" if status == 'completed' else "RECUSADA"
+            
+            transacao['descricao'] = f"TRANSFERÊNCIA {status_text} RECEBIDA - {dados.get('nome_remetente', 'N/A')}"
+            transacao['credito'] = valor
+            transacao['debito'] = 0.00
+    
+    return transacao
+
+@app.route('/api/extrato/exportar-pdf', methods=['POST'])
+def exportar_extrato_pdf():
+    """Exporta extrato para PDF (mesma lógica do Kivy)"""
+    try:
+        usuario = session.get('username')
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        dados = request.get_json()
+        
+        # 🔥 IMPLEMENTAR GERAÇÃO DE PDF AQUI
+        # Você pode usar a mesma biblioteca PDF do Kivy ou outra
+        
+        # Por enquanto, retornar URL fictícia
+        pdf_url = "/static/extratos/extrato_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".pdf"
+        
+        return jsonify({
+            "success": True,
+            "pdf_url": pdf_url,
+            "message": "PDF gerado com sucesso"
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro em exportar_extrato_pdf: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))

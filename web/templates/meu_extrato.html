@@ -1,0 +1,1604 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏦 Cambio Bank - Meu Extrato</title>
+    
+    <!-- Estilos principais (mesmo do dashboard) -->
+    <style>
+    /* ============================================
+    CSS DO DASHBOARD (PARA FUNDO E HEADER)
+    ============================================ */
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    :root {
+        /* PALETA DE CORES DO SEU KIVY */
+        --cor-fundo: #0a0e15;
+        --cor-card: #0d1117;
+        --cor-borda: #1e232e;
+        --cor-texto: #e0e0e0;
+        --cor-texto-secundario: #8b949e;
+        --cor-primaria: #1a5fb4;
+        --cor-sucesso: #2ec27e;
+        --cor-alerta: #f39c12;
+        --cor-perigo: #e01b24;
+        --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.3);
+        --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.4);
+        --sombra-forte: 0 12px 24px rgba(0, 0, 0, 0.5);
+        --borda-radius: 12px;
+        --borda-radius-pequeno: 8px;
+    }
+
+    body {
+        background: var(--cor-fundo) !important;
+        color: var(--cor-texto) !important;
+        min-height: 100vh;
+        overflow-x: hidden;
+    }
+
+    /* CONTAINER PRINCIPAL */
+    .app-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+        min-height: 100vh;
+    }
+
+    /* HEADER (igual ao dashboard) */
+    .app-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 0;
+        margin-bottom: 30px;
+        border-bottom: 1px solid var(--cor-borda);
+    }
+
+    .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 24px;
+        font-weight: bold;
+    }
+
+    .logo i {
+        color: var(--cor-primaria);
+        font-size: 28px;
+    }
+
+    .logo-text {
+        background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .page-title {
+        font-size: 28px;
+        font-weight: bold;
+        text-align: center;
+        background: linear-gradient(90deg, #fff, #e0e0e0);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .user-menu {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 16px;
+        background: var(--cor-card);
+        border-radius: var(--borda-radius-pequeno);
+        border: 1px solid var(--cor-borda);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .user-menu:hover {
+        border-color: var(--cor-primaria);
+        transform: translateY(-2px);
+    }
+
+    .user-avatar {
+        font-size: 24px;
+        color: var(--cor-primaria);
+    }
+
+    .user-name {
+        font-weight: 600;
+    }
+
+    /* FOOTER (igual ao dashboard) */
+    .app-footer {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid var(--cor-borda);
+    }
+
+    .footer-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--cor-texto-secundario);
+        font-size: 14px;
+    }
+
+    .status-online {
+        color: var(--cor-sucesso);
+        font-weight: 600;
+    }
+
+    /* ============================================
+    CSS ESPECÍFICO DO EXTRATO
+    ============================================ */
+
+    .container-extrato {
+        padding: 20px 0;
+    }
+
+    /* CARD PRINCIPAL DO EXTRATO */
+    .card-extrato-principal {
+        background: var(--cor-card);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius);
+        padding: 30px;
+        margin-bottom: 30px;
+        box-shadow: var(--sombra-suave);
+    }
+
+    /* HEADER DO EXTRATO */
+    .header-extrato {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--cor-borda);
+    }
+
+    .header-extrato h1 {
+        font-size: 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--cor-texto);
+    }
+
+    .header-extrato h1 i {
+        color: var(--cor-primaria);
+    }
+
+    /* PAINEL DE CONTROLE (FILTROS) */
+    .painel-controle {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius);
+        padding: 20px;
+        margin-bottom: 25px;
+    }
+
+    .controle-linha {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .controle-linha:last-child {
+        margin-bottom: 0;
+    }
+
+    .form-group {
+        flex: 1;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--cor-texto);
+        font-weight: 500;
+        font-size: 14px;
+    }
+
+    .form-group select,
+    .form-group input {
+        width: 100%;
+        padding: 12px 15px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius-pequeno);
+        color: var(--cor-texto);
+        font-size: 14px;
+    }
+
+    .form-group input {
+        background: rgba(255, 255, 255, 0.07);
+    }
+
+    .form-group select:focus,
+    .form-group input:focus {
+        outline: none;
+        border-color: var(--cor-primaria);
+    }
+
+    /* BOTÕES DE PERÍODO RÁPIDO */
+    .periodos-rapidos {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    .btn-periodo {
+        flex: 1;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius-pequeno);
+        color: var(--cor-texto);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 14px;
+        text-align: center;
+    }
+
+    .btn-periodo:hover,
+    .btn-periodo.ativo {
+        background: var(--cor-primaria);
+        border-color: var(--cor-primaria);
+        color: white;
+    }
+
+    /* PERÍODO PERSONALIZADO */
+    .periodo-personalizado {
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid var(--cor-borda);
+    }
+
+    .datas-personalizadas {
+        display: flex;
+        gap: 15px;
+        align-items: flex-end;
+    }
+
+    .btn-usar-periodo {
+        padding: 12px 24px;
+        background: rgba(26, 95, 180, 0.2);
+        border: 1px solid rgba(26, 95, 180, 0.4);
+        border-radius: var(--borda-radius-pequeno);
+        color: var(--cor-primaria);
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        height: fit-content;
+    }
+
+    .btn-usar-periodo:hover {
+        background: rgba(26, 95, 180, 0.3);
+    }
+
+    /* PAINEL DE RESUMO */
+    .painel-resumo {
+        background: linear-gradient(135deg, rgba(26, 95, 180, 0.1), rgba(45, 143, 255, 0.1));
+        border: 1px solid rgba(26, 95, 180, 0.3);
+        border-radius: var(--borda-radius);
+        padding: 25px;
+        margin-bottom: 25px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+    }
+
+    .resumo-item {
+        text-align: center;
+    }
+
+    .resumo-item h3 {
+        font-size: 14px;
+        color: var(--cor-texto-secundario);
+        margin-bottom: 8px;
+        font-weight: normal;
+    }
+
+    .resumo-item .valor {
+        font-size: 24px;
+        font-weight: bold;
+        color: var(--cor-texto);
+    }
+
+    .resumo-item .valor.saldo {
+        color: var(--cor-primaria);
+    }
+
+    .resumo-item .valor.entradas {
+        color: var(--cor-sucesso);
+    }
+
+    .resumo-item .valor.saidas {
+        color: var(--cor-alerta);
+    }
+
+    /* LISTA DE TRANSAÇÕES */
+    .cabecalho-transacoes {
+        display: grid;
+        grid-template-columns: 12% 48% 10% 10% 12% 8%;
+        gap: 10px;
+        padding: 15px 20px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius-pequeno) var(--borda-radius-pequeno) 0 0;
+        font-weight: 600;
+        color: var(--cor-texto-secundario);
+        font-size: 13px;
+    }
+
+    .lista-transacoes {
+        max-height: 500px;
+        overflow-y: auto;
+        border: 1px solid var(--cor-borda);
+        border-top: none;
+        border-radius: 0 0 var(--borda-radius-pequeno) var(--borda-radius-pequeno);
+        background: var(--cor-card);
+    }
+
+    .lista-transacoes::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .lista-transacoes::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .lista-transacoes::-webkit-scrollbar-thumb {
+        background: var(--cor-primaria);
+        border-radius: 4px;
+    }
+
+    /* CARD DE TRANSAÇÃO (ESTILO KIVY) */
+    .card-transacao {
+        display: grid;
+        grid-template-columns: 12% 48% 10% 10% 12% 8%;
+        gap: 10px;
+        padding: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        transition: all 0.2s ease;
+    }
+
+    .card-transacao:hover {
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .card-transacao:last-child {
+        border-bottom: none;
+    }
+
+    /* COLUNAS DA TRANSAÇÃO */
+    .col-data {
+        text-align: center;
+    }
+
+    .col-data .dia {
+        font-size: 18px;
+        font-weight: bold;
+        color: var(--cor-texto);
+        line-height: 1.2;
+    }
+
+    .col-data .mes-ano {
+        font-size: 11px;
+        color: var(--cor-texto-secundario);
+        line-height: 1.2;
+    }
+
+    .col-descricao {
+        color: var(--cor-texto);
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+    }
+
+    .col-valor {
+        text-align: right;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+    }
+
+    .col-valor.credito {
+        color: var(--cor-sucesso);
+        font-weight: bold;
+        font-size: 13px;
+    }
+
+    .col-valor.debito {
+        color: var(--cor-perigo);
+        font-weight: bold;
+        font-size: 13px;
+    }
+
+    .col-saldo {
+        text-align: right;
+        color: var(--cor-primaria);
+        font-weight: bold;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+    }
+
+    .col-acoes {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* BOTÕES DE AÇÃO */
+    .btn-acao {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--cor-borda);
+        color: var(--cor-texto);
+        padding: 8px 12px;
+        border-radius: var(--borda-radius-pequeno);
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s ease;
+    }
+
+    .btn-acao:hover {
+        background: rgba(26, 95, 180, 0.2);
+        border-color: var(--cor-primaria);
+        color: var(--cor-primaria);
+    }
+
+    /* BOTÕES PRINCIPAIS */
+    .botoes-principais {
+        display: flex;
+        justify-content: flex-end;
+        gap: 15px;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid var(--cor-borda);
+    }
+
+    .btn-voltar {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--cor-texto-secundario);
+        text-decoration: none;
+        padding: 12px 24px;
+        border-radius: var(--borda-radius-pequeno);
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--cor-borda);
+        transition: all 0.2s ease;
+    }
+
+    .btn-voltar:hover {
+        color: var(--cor-texto);
+        background: rgba(255, 255, 255, 0.1);
+        border-color: var(--cor-primaria);
+    }
+
+    .btn-exportar {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 24px;
+        background: linear-gradient(135deg, var(--cor-sucesso), #27ae60);
+        color: white;
+        border: none;
+        border-radius: var(--borda-radius-pequeno);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-exportar:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(46, 194, 126, 0.3);
+    }
+
+    /* ESTADO VAZIO */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--cor-texto-secundario);
+    }
+
+    .empty-state i {
+        font-size: 48px;
+        margin-bottom: 20px;
+        color: var(--cor-texto-secundario);
+        opacity: 0.5;
+    }
+
+    .empty-state h3 {
+        font-size: 20px;
+        margin-bottom: 10px;
+        color: var(--cor-texto);
+    }
+
+    .empty-state p {
+        font-size: 14px;
+        color: var(--cor-texto-secundario);
+    }
+
+    /* LOADING */
+    .loading {
+        text-align: center;
+        padding: 40px;
+        color: var(--cor-texto-secundario);
+    }
+
+    .loading i {
+        margin-right: 10px;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* MODAL DETALHES (igual ao Kivy) */
+    .modal-detalhes {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .modal-detalhes-content {
+        background: var(--cor-card);
+        border-radius: var(--borda-radius);
+        width: 100%;
+        max-width: 600px;
+        max-height: 80vh;
+        overflow-y: auto;
+        border: 1px solid var(--cor-borda);
+        box-shadow: var(--sombra-media);
+    }
+
+    .modal-detalhes-header {
+        padding: 25px;
+        border-bottom: 1px solid var(--cor-borda);
+        text-align: center;
+    }
+
+    .modal-detalhes-header h2 {
+        margin: 0;
+        font-size: 22px;
+        color: var(--cor-primaria);
+        font-weight: bold;
+    }
+
+    .modal-detalhes-body {
+        padding: 25px;
+    }
+
+    .detalhes-linha {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .detalhes-linha:last-child {
+        border-bottom: none;
+    }
+
+    .detalhes-chave {
+        color: var(--cor-texto-secundario);
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .detalhes-valor {
+        color: var(--cor-texto);
+        font-size: 14px;
+        text-align: right;
+        max-width: 300px;
+        word-break: break-word;
+    }
+
+    .modal-detalhes-footer {
+        padding: 20px;
+        border-top: 1px solid var(--cor-borda);
+        text-align: center;
+    }
+
+    .btn-fechar-modal {
+        background: var(--cor-primaria);
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: var(--borda-radius-pequeno);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-fechar-modal:hover {
+        background: #1a5fb4;
+        transform: translateY(-2px);
+    }
+
+    /* RESPONSIVIDADE */
+    @media (max-width: 1200px) {
+        .cabecalho-transacoes,
+        .card-transacao {
+            grid-template-columns: 15% 40% 12% 12% 12% 9%;
+        }
+    }
+
+    @media (max-width: 992px) {
+        .painel-resumo {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .controle-linha {
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .cabecalho-transacoes,
+        .card-transacao {
+            grid-template-columns: 20% 35% 15% 15% 15%;
+            gap: 8px;
+        }
+        
+        .col-acoes {
+            grid-column: 1 / -1;
+            justify-content: center;
+            margin-top: 10px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .painel-resumo {
+            grid-template-columns: 1fr;
+        }
+        
+        .periodos-rapidos {
+            flex-wrap: wrap;
+        }
+        
+        .btn-periodo {
+            flex: 0 0 calc(50% - 5px);
+        }
+        
+        .datas-personalizadas {
+            flex-direction: column;
+        }
+        
+        .cabecalho-transacoes {
+            display: none; /* Esconder cabeçalho em mobile */
+        }
+        
+        .card-transacao {
+            grid-template-columns: 1fr;
+            gap: 10px;
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            margin-bottom: 10px;
+        }
+        
+        .col-data,
+        .col-descricao,
+        .col-valor,
+        .col-saldo {
+            text-align: left;
+            justify-content: flex-start;
+        }
+        
+        .col-valor::before {
+            content: "Valor: ";
+            color: var(--cor-texto-secundario);
+            margin-right: 5px;
+        }
+        
+        .col-saldo::before {
+            content: "Saldo: ";
+            color: var(--cor-texto-secundario);
+            margin-right: 5px;
+        }
+    }
+    </style>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- CONTAINER PRINCIPAL (IGUAL AO DASHBOARD) -->
+    <div class="app-container">
+        
+        <!-- HEADER (IGUAL AO DASHBOARD) -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo">
+                    <i class="fas fa-university"></i>
+                    <span class="logo-text">CAMBIO BANK</span>
+                </div>
+            </div>
+            
+            <div class="header-center">
+                <h1 class="page-title">MEU EXTRATO</h1>
+            </div>
+            
+            <div class="header-right">
+                <div class="user-menu" onclick="window.location.href='/dashboard'">
+                    <div class="user-avatar">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <span class="user-name" id="userName">
+                        {{ usuario if usuario else 'pantanal' }}
+                    </span>
+                    <i class="fas fa-home"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- CONTEÚDO DO EXTRATO -->
+        <div class="container-extrato">
+            <!-- Botão voltar -->
+            <a href="/dashboard" class="btn-voltar">
+                <i class="fas fa-arrow-left"></i> Voltar ao Dashboard
+            </a>
+
+            <!-- Header do extrato -->
+            <div class="header-extrato">
+                <h1>
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    Meu Extrato Bancário
+                </h1>
+                <div class="resumo-rapido">
+                    <small style="color: var(--cor-texto-secundario);">Última atualização: <span id="ultimaAtualizacao">--:--</span></small>
+                </div>
+            </div>
+
+            <!-- CARD PRINCIPAL -->
+            <div class="card-extrato-principal">
+                <!-- PAINEL DE CONTROLE -->
+                <div class="painel-controle">
+                    <div class="controle-linha">
+                        <div class="form-group">
+                            <label><i class="fas fa-wallet"></i> Conta</label>
+                            <select id="selectConta" class="form-control">
+                                <option value="">Carregando contas...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar-alt"></i> Período</label>
+                            <select id="selectPeriodo" class="form-control">
+                                <option value="30">Últimos 30 dias</option>
+                                <option value="15">Últimos 15 dias</option>
+                                <option value="7">Últimos 7 dias</option>
+                                <option value="0">Todo período</option>
+                                <option value="personalizado">Personalizado</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- PERÍODOS RÁPIDOS -->
+                    <div class="periodos-rapidos">
+                        <button class="btn-periodo ativo" data-periodo="30">30 dias</button>
+                        <button class="btn-periodo" data-periodo="15">15 dias</button>
+                        <button class="btn-periodo" data-periodo="7">7 dias</button>
+                        <button class="btn-periodo" data-periodo="0">Todo período</button>
+                    </div>
+
+                    <!-- PERÍODO PERSONALIZADO (oculto por padrão) -->
+                    <div class="periodo-personalizado" id="periodoPersonalizado" style="display: none;">
+                        <div class="datas-personalizadas">
+                            <div class="form-group">
+                                <label>Data inicial</label>
+                                <input type="text" id="dataInicio" placeholder="DD/MM/AAAA" 
+                                       maxlength="10" oninput="formatarData(this)">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Data final</label>
+                                <input type="text" id="dataFim" placeholder="DD/MM/AAAA" 
+                                       maxlength="10" oninput="formatarData(this)" 
+                                       value="{{ data_atual if data_atual else '' }}">
+                            </div>
+                            
+                            <button class="btn-usar-periodo" onclick="usarPeriodoPersonalizado()">
+                                <i class="fas fa-check"></i> Usar Período
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PAINEL DE RESUMO -->
+                <div class="painel-resumo" id="painelResumo">
+                    <div class="resumo-item">
+                        <h3><i class="fas fa-chart-line"></i> Saldo Total</h3>
+                        <div class="valor saldo" id="resumoSaldo">0,00 USD</div>
+                    </div>
+                    
+                    <div class="resumo-item">
+                        <h3><i class="fas fa-arrow-down"></i> Entradas</h3>
+                        <div class="valor entradas" id="resumoEntradas">0,00 USD</div>
+                    </div>
+                    
+                    <div class="resumo-item">
+                        <h3><i class="fas fa-arrow-up"></i> Saídas</h3>
+                        <div class="valor saidas" id="resumoSaidas">0,00 USD</div>
+                    </div>
+                    
+                    <div class="resumo-item">
+                        <h3><i class="fas fa-list"></i> Transações</h3>
+                        <div class="valor" id="resumoTransacoes">0</div>
+                    </div>
+                </div>
+
+                <!-- LISTA DE TRANSAÇÕES -->
+                <div class="cabecalho-transacoes">
+                    <div>DATA</div>
+                    <div>DESCRIÇÃO</div>
+                    <div>CRÉDITO</div>
+                    <div>DÉBITO</div>
+                    <div>SALDO</div>
+                    <div>AÇÕES</div>
+                </div>
+                
+                <div class="lista-transacoes" id="listaTransacoes">
+                    <div class="loading">
+                        <i class="fas fa-spinner"></i> Carregando extrato...
+                    </div>
+                </div>
+
+                <!-- BOTÕES PRINCIPAIS -->
+                <div class="botoes-principais">
+                    <button class="btn-exportar" onclick="exportarExtratoPDF()">
+                        <i class="fas fa-file-pdf"></i> Exportar Extrato (PDF)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <footer class="app-footer">
+            <div class="footer-content">
+                <div class="footer-copyright">
+                    © 2024 Cambio Bank • Sistema de Câmbio Internacional
+                </div>
+                <div class="footer-version">
+                    v2.1.0 • <span class="status-online">● Online</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- MODAL DE DETALHES DA TRANSAÇÃO -->
+    <div class="modal-detalhes" id="modalDetalhes">
+        <div class="modal-detalhes-content">
+            <div class="modal-detalhes-header">
+                <h2><i class="fas fa-info-circle"></i> DETALHES DA TRANSAÇÃO</h2>
+            </div>
+            <div class="modal-detalhes-body" id="modalDetalhesBody">
+                <!-- Conteúdo dinâmico -->
+            </div>
+            <div class="modal-detalhes-footer">
+                <button class="btn-fechar-modal" onclick="fecharModalDetalhes()">
+                    <i class="fas fa-times"></i> Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script>
+    // ============================================
+    // VARIÁVEIS GLOBAIS E INICIALIZAÇÃO
+    // ============================================
+    
+    let extratoData = [];
+    let transacoesFiltradas = [];
+    let periodoAtivo = "30";
+    let saldoFinal = 0;
+    let totalEntradas = 0;
+    let totalSaidas = 0;
+    let moedaAtual = "USD";
+    
+    // ============================================
+    // FUNÇÕES DE FORMATO (IGUAIS AO KIVY)
+    // ============================================
+    
+    // 🔥 FUNÇÃO CRÍTICA: formatarDataApenasDiaMesAno (MESMO DO KIVY)
+    function formatarDataApenasDiaMesAno(dataString) {
+        // 🔥 CORREÇÃO: Se data é None ou vazia, retornar string vazia
+        if (!dataString || dataString === 'None' || dataString === 'null' || dataString === null) {
+            return "";
+        }
+        
+        try {
+            // 🔥🔥🔥 CORREÇÃO CRÍTICA: FORMATO CORROMPIDO "26T15:22:51/11/2025"
+            if (dataString.includes('T') && dataString.includes('/')) {
+                try {
+                    const dia = dataString.split('T')[0];
+                    const resto = dataString.split('T')[1];
+                    const mesAno = resto.split('/');
+                    if (mesAno.length >= 3) {
+                        const mes = mesAno[1];
+                        const ano = mesAno[2];
+                        return `${dia}/${mes}/${ano}`;
+                    }
+                } catch (e) {
+                    console.warn(`⚠️ Erro ao corrigir formato corrompido '${dataString}':`, e);
+                }
+            }
+            
+            // Se for formato com 'T' (ISO): 2025-11-15T17:15:24
+            if (dataString.includes('T')) {
+                const dataParte = dataString.split('T')[0];
+                const partes = dataParte.split('-');
+                if (partes.length === 3) {
+                    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+                }
+            }
+            
+            // Se for formato com espaço: 2025-11-15 17:15:24
+            if (dataString.includes(' ')) {
+                const dataParte = dataString.split(' ')[0];
+                const partes = dataParte.split('-');
+                if (partes.length === 3) {
+                    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+                }
+            }
+            
+            // Se já estiver no formato DD/MM/AAAA
+            if (dataString.includes('/') && dataString.length === 10) {
+                return dataString;
+            }
+            
+            return dataString;
+            
+        } catch (error) {
+            console.error(`⚠️ Erro ao formatar data '${dataString}':`, error);
+            return dataString;
+        }
+    }
+    
+    // 🔥 FUNÇÃO: Separar data em dia e mês/ano (para exibição no card)
+    function separarDataParaCard(dataFormatada) {
+        if (!dataFormatada || !dataFormatada.includes('/')) {
+            return { dia: '', mesAno: '' };
+        }
+        
+        const partes = dataFormatada.split('/');
+        if (partes.length >= 3) {
+            return {
+                dia: partes[0],
+                mesAno: `${partes[1]}/${partes[2].slice(-2)}` // Mostra apenas últimos 2 dígitos do ano
+            };
+        }
+        
+        return { dia: dataFormatada, mesAno: '' };
+    }
+    
+    // 🔥 FUNÇÃO: Formatar número com separadores (MESMA LÓGICA DO KIVY)
+    function formatarNumero(numero, decimais = 2) {
+        if (numero === null || numero === undefined) return '0,00';
+        
+        return numero.toLocaleString('pt-BR', {
+            minimumFractionDigits: decimais,
+            maximumFractionDigits: decimais
+        });
+    }
+    
+    // 🔥 FUNÇÃO: Formatar data no input (DD/MM/AAAA)
+    function formatarData(input) {
+        let value = input.value.replace(/\D/g, '');
+        
+        if (value.length > 8) {
+            value = value.substring(0, 8);
+        }
+        
+        if (value.length > 4) {
+            value = value.substring(0, 2) + '/' + value.substring(2, 4) + '/' + value.substring(4);
+        } else if (value.length > 2) {
+            value = value.substring(0, 2) + '/' + value.substring(2);
+        }
+        
+        input.value = value;
+    }
+    
+    // 🔥 FUNÇÃO: Validar data no formato BR
+    function validarDataBR(dataStr) {
+        if (!dataStr || dataStr.length !== 10) return false;
+        
+        const partes = dataStr.split('/');
+        if (partes.length !== 3) return false;
+        
+        const dia = parseInt(partes[0], 10);
+        const mes = parseInt(partes[1], 10);
+        const ano = parseInt(partes[2], 10);
+        
+        // Validações básicas
+        if (mes < 1 || mes > 12) return false;
+        if (dia < 1 || dia > 31) return false;
+        if (ano < 1900 || ano > 2100) return false;
+        
+        // Validação de dias por mês
+        const diasNoMes = new Date(ano, mes, 0).getDate();
+        if (dia > diasNoMes) return false;
+        
+        return true;
+    }
+    
+    // ============================================
+    // FUNÇÕES DE CARREGAMENTO DE DADOS
+    // ============================================
+    
+    // 🔥 FUNÇÃO: Carregar contas do usuário
+    async function carregarContas() {
+        try {
+            const response = await fetch('/api/contas');
+            const data = await response.json();
+            
+            if (data.success && data.contas) {
+                const selectConta = document.getElementById('selectConta');
+                selectConta.innerHTML = '';
+                
+                data.contas.forEach(conta => {
+                    const option = document.createElement('option');
+                    option.value = conta.numero;
+                    option.textContent = `${conta.numero} - ${conta.moeda} (Saldo: ${formatarNumero(conta.saldo)})`;
+                    selectConta.appendChild(option);
+                });
+                
+                // Selecionar primeira conta
+                if (data.contas.length > 0) {
+                    selectConta.value = data.contas[0].numero;
+                    moedaAtual = data.contas[0].moeda;
+                    // Carregar extrato automaticamente
+                    carregarExtrato();
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao carregar contas:', error);
+            mostrarMensagem('Erro ao carregar contas', 'erro');
+        }
+    }
+    
+    // 🔥 FUNÇÃO PRINCIPAL: Carregar extrato (MESMA LÓGICA DO KIVY)
+    async function carregarExtrato() {
+        const contaSelecionada = document.getElementById('selectConta').value;
+        const periodoSelecionado = document.getElementById('selectPeriodo').value;
+        
+        if (!contaSelecionada) {
+            mostrarMensagem('Selecione uma conta', 'erro');
+            return;
+        }
+        
+        // Mostrar loading
+        document.getElementById('listaTransacoes').innerHTML = `
+            <div class="loading">
+                <i class="fas fa-spinner"></i> Carregando extrato...
+            </div>
+        `;
+        
+        try {
+            // 🔥 MONTAR PARÂMETROS EXATAMENTE COMO NO KIVY
+            const params = new URLSearchParams({
+                conta: contaSelecionada,
+                periodo: periodoAtivo
+            });
+            
+            // Se for período personalizado, adicionar datas
+            if (periodoAtivo === 'personalizado') {
+                const dataInicio = document.getElementById('dataInicio').value;
+                const dataFim = document.getElementById('dataFim').value;
+                
+                if (!validarDataBR(dataInicio) || !validarDataBR(dataFim)) {
+                    mostrarMensagem('Datas inválidas! Use DD/MM/AAAA', 'erro');
+                    return;
+                }
+                
+                params.append('data_inicio', dataInicio);
+                params.append('data_fim', dataFim);
+            }
+            
+            // 🔥 CHAMAR API COM MESMOS PARÂMETROS DO KIVY
+            const response = await fetch(`/api/extrato?${params.toString()}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                // 🔥 PROCESSAR DADOS COM MESMA LÓGICA DO KIVY
+                processarDadosExtrato(data);
+            } else {
+                throw new Error(data.message || 'Erro ao carregar extrato');
+            }
+            
+        } catch (error) {
+            console.error('Erro ao carregar extrato:', error);
+            mostrarMensagem('Erro ao carregar extrato', 'erro');
+            
+            document.getElementById('listaTransacoes').innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <h3>Erro ao carregar extrato</h3>
+                    <p>${error.message}</p>
+                </div>
+            `;
+        }
+    }
+    
+    // 🔥 FUNÇÃO: Processar dados do extrato (LÓGICA IDÊNTICA AO KIVY)
+    function processarDadosExtrato(data) {
+        extratoData = data.transacoes || [];
+        saldoFinal = data.saldo_final || 0;
+        totalEntradas = data.total_entradas || 0;
+        totalSaidas = data.total_saidas || 0;
+        moedaAtual = data.moeda || 'USD';
+        
+        // 🔥 APLICAR FILTROS (MESMA LÓGICA DO KIVY)
+        aplicarFiltros();
+        
+        // 🔥 ATUALIZAR INTERFACE
+        atualizarInterfaceExtrato();
+        
+        // 🔥 ATUALIZAR RESUMO
+        atualizarPainelResumo();
+        
+        // Atualizar hora da última atualização
+        document.getElementById('ultimaAtualizacao').textContent = 
+            new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    // 🔥 FUNÇÃO: Aplicar filtros (MESMA LÓGICA DO KIVY)
+    function aplicarFiltros() {
+        transacoesFiltradas = [...extratoData];
+        
+        // 🔥 ORDENAR POR DATA (mais recente primeiro para exibição)
+        transacoesFiltradas.sort((a, b) => {
+            // Converter datas para objetos Date para comparação
+            const dataA = parseDataParaOrdenacao(a.data);
+            const dataB = parseDataParaOrdenacao(b.data);
+            return dataB - dataA; // Ordem decrescente (mais recente primeiro)
+        });
+    }
+    
+    // 🔥 FUNÇÃO AUXILIAR: Parsear data para ordenação
+    function parseDataParaOrdenacao(dataStr) {
+        try {
+            // Tentar múltiplos formatos (igual ao Kivy)
+            if (dataStr.includes('T')) {
+                // Formato ISO
+                return new Date(dataStr);
+            } else if (dataStr.includes('/')) {
+                // Formato DD/MM/AAAA ou DD/MM/AAAA HH:MM:SS
+                const [dataParte, horaParte] = dataStr.split(' ');
+                const [dia, mes, ano] = dataParte.split('/').map(Number);
+                
+                if (horaParte) {
+                    const [hora, minuto, segundo] = horaParte.split(':').map(Number);
+                    return new Date(ano, mes - 1, dia, hora, minuto, segundo);
+                } else {
+                    return new Date(ano, mes - 1, dia);
+                }
+            } else if (dataStr.includes('-')) {
+                // Formato AAAA-MM-DD
+                return new Date(dataStr);
+            }
+            
+            // Fallback
+            return new Date();
+        } catch (e) {
+            console.warn('Erro ao parsear data:', dataStr, e);
+            return new Date();
+        }
+    }
+    
+    // ============================================
+    // FUNÇÕES DE ATUALIZAÇÃO DA INTERFACE
+    // ============================================
+    
+    // 🔥 FUNÇÃO: Atualizar interface do extrato
+    function atualizarInterfaceExtrato() {
+        const container = document.getElementById('listaTransacoes');
+        
+        if (transacoesFiltradas.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-receipt"></i>
+                    <h3>Nenhuma transação no período</h3>
+                    <p>Não foram encontradas transações para o período selecionado.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // 🔥 CRIAR HTML DAS TRANSAÇÕES (ESTILO IDÊNTICO AO KIVY)
+        let html = '';
+        
+        transacoesFiltradas.forEach((transacao, index) => {
+            // 🔥 FORMATAR DATA (MESMO DO KIVY)
+            const dataFormatada = formatarDataApenasDiaMesAno(transacao.data);
+            const dataSeparada = separarDataParaCard(dataFormatada);
+            
+            // 🔥 DETERMINAR COR DO SALDO (MESMA LÓGICA DO KIVY)
+            const saldoApos = transacao.saldo_apos || 0;
+            const corSaldo = saldoApos < 0 ? 'var(--cor-perigo)' : 'var(--cor-primaria)';
+            
+            html += `
+                <div class="card-transacao" data-id="${transacao.id}" data-index="${index}">
+                    <div class="col-data">
+                        <div class="dia">${dataSeparada.dia}</div>
+                        <div class="mes-ano">${dataSeparada.mesAno}</div>
+                    </div>
+                    
+                    <div class="col-descricao">
+                        ${transacao.descricao || transacao.tipo || 'Transação'}
+                    </div>
+                    
+                    <div class="col-valor credito">
+                        ${transacao.credito > 0 ? `+${formatarNumero(transacao.credito)}` : ''}
+                    </div>
+                    
+                    <div class="col-valor debito">
+                        ${transacao.debito > 0 ? `-${formatarNumero(transacao.debito)}` : ''}
+                    </div>
+                    
+                    <div class="col-saldo" style="color: ${corSaldo}">
+                        ${formatarNumero(saldoApos)}
+                    </div>
+                    
+                    <div class="col-acoes">
+                        <button class="btn-acao" onclick="mostrarDetalhesTransacao(${index})">
+                            <i class="fas fa-eye"></i> Detalhes
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+    }
+    
+    // 🔥 FUNÇÃO: Atualizar painel de resumo
+    function atualizarPainelResumo() {
+        document.getElementById('resumoSaldo').textContent = 
+            `${formatarNumero(saldoFinal)} ${moedaAtual}`;
+        
+        document.getElementById('resumoEntradas').textContent = 
+            `${formatarNumero(totalEntradas)} ${moedaAtual}`;
+        
+        document.getElementById('resumoSaidas').textContent = 
+            `${formatarNumero(totalSaidas)} ${moedaAtual}`;
+        
+        document.getElementById('resumoTransacoes').textContent = 
+            transacoesFiltradas.length;
+    }
+    
+    // ============================================
+    // FUNÇÕES DE CONTROLE DE PERÍODO
+    // ============================================
+    
+    // 🔥 FUNÇÃO: Mudar período (MESMA LÓGICA DO KIVY)
+    function mudarPeriodo(periodo) {
+        periodoAtivo = periodo;
+        
+        // Atualizar select
+        document.getElementById('selectPeriodo').value = periodo;
+        
+        // Atualizar botões ativos
+        document.querySelectorAll('.btn-periodo').forEach(btn => {
+            btn.classList.remove('ativo');
+            if (btn.dataset.periodo === periodo) {
+                btn.classList.add('ativo');
+            }
+        });
+        
+        // Mostrar/ocultar período personalizado
+        const periodoPersonalizado = document.getElementById('periodoPersonalizado');
+        if (periodo === 'personalizado') {
+            periodoPersonalizado.style.display = 'block';
+        } else {
+            periodoPersonalizado.style.display = 'none';
+            
+            // Se não for personalizado, carregar extrato automaticamente
+            carregarExtrato();
+        }
+    }
+    
+    // 🔥 FUNÇÃO: Usar período personalizado
+    function usarPeriodoPersonalizado() {
+        const dataInicio = document.getElementById('dataInicio').value;
+        const dataFim = document.getElementById('dataFim').value;
+        
+        if (!validarDataBR(dataInicio) || !validarDataBR(dataFim)) {
+            mostrarMensagem('Datas inválidas! Use DD/MM/AAAA', 'erro');
+            return;
+        }
+        
+        // Validar que data início <= data fim
+        const inicio = new Date(dataInicio.split('/').reverse().join('-'));
+        const fim = new Date(dataFim.split('/').reverse().join('-'));
+        
+        if (inicio > fim) {
+            mostrarMensagem('Data inicial não pode ser maior que data final', 'erro');
+            return;
+        }
+        
+        mostrarMensagem(`Período personalizado definido: ${dataInicio} a ${dataFim}`, 'sucesso');
+        
+        // Carregar extrato com período personalizado
+        carregarExtrato();
+    }
+    
+    // ============================================
+    // FUNÇÕES DE MODAL DE DETALHES
+    // ============================================
+    
+    // 🔥 FUNÇÃO: Mostrar detalhes da transação (MESMO DO KIVY)
+    function mostrarDetalhesTransacao(index) {
+        const transacao = transacoesFiltradas[index];
+        
+        if (!transacao) {
+            mostrarMensagem('Transação não encontrada', 'erro');
+            return;
+        }
+        
+        // 🔥 FORMATAR DETALHES (MESMA LÓGICA DO KIVY)
+        const detalhes = formatarDetalhesTransacao(transacao);
+        
+        // Montar HTML do modal
+        let html = '';
+        Object.entries(detalhes).forEach(([chave, valor]) => {
+            html += `
+                <div class="detalhes-linha">
+                    <div class="detalhes-chave">${chave}:</div>
+                    <div class="detalhes-valor">${valor}</div>
+                </div>
+            `;
+        });
+        
+        document.getElementById('modalDetalhesBody').innerHTML = html;
+        document.getElementById('modalDetalhes').style.display = 'flex';
+    }
+    
+    // 🔥 FUNÇÃO: Formatar detalhes da transação (MESMO DO KIVY)
+    function formatarDetalhesTransacao(transacao) {
+        const detalhes = {
+            'Data': transacao.data || 'N/A',
+            'Descrição': transacao.descricao || 'N/A',
+            'Tipo': transacao.tipo || 'N/A',
+            'Moeda': transacao.moeda || moedaAtual,
+            'Valor Crédito': transacao.credito > 0 ? formatarNumero(transacao.credito) : '0,00',
+            'Valor Débito': transacao.debito > 0 ? formatarNumero(transacao.debito) : '0,00',
+            'Saldo Após': formatarNumero(transacao.saldo_apos || 0),
+            'ID Transação': transacao.id || 'N/A'
+        };
+        
+        // 🔥 ADICIONAR INFORMAÇÕES ESPECÍFICAS BASEADAS NO TIPO (MESMO DO KIVY)
+        const tipo = transacao.tipo || '';
+        
+        if (tipo.includes('Transferência')) {
+            detalhes['Status'] = extrairStatusDaDescricao(transacao.descricao);
+            detalhes['Tipo Transferência'] = transacao.descricao?.includes('INTERNACIONAL') ? 'Internacional' : 'Interna';
+        } else if (tipo.includes('Câmbio')) {
+            detalhes['Operação'] = transacao.credito > 0 ? 'Compra' : 'Venda';
+        } else if (tipo.includes('Estorno')) {
+            detalhes['Motivo'] = 'Transferência Rejeitada';
+        } else if (tipo.includes('Admin')) {
+            detalhes['Tipo Ajuste'] = transacao.credito > 0 ? 'Crédito' : 'Débito';
+        }
+        
+        return detalhes;
+    }
+    
+    // 🔥 FUNÇÃO: Extrair status da descrição (MESMO DO KIVY)
+    function extrairStatusDaDescricao(descricao) {
+        if (!descricao) return 'Status Desconhecido';
+        
+        const descUpper = descricao.toUpperCase();
+        if (descUpper.includes('SOLICITADA')) return 'Solicitada';
+        if (descUpper.includes('EM PROCESSAMENTO')) return 'Em Processamento';
+        if (descUpper.includes('CONCLUÍDA')) return 'Concluída';
+        if (descUpper.includes('RECUSADA')) return 'Recusada';
+        
+        return 'Status Desconhecido';
+    }
+    
+    // 🔥 FUNÇÃO: Fechar modal de detalhes
+    function fecharModalDetalhes() {
+        document.getElementById('modalDetalhes').style.display = 'none';
+    }
+    
+    // ============================================
+    // FUNÇÕES DE EXPORTAÇÃO
+    // ============================================
+    
+    // 🔥 FUNÇÃO: Exportar extrato para PDF
+    async function exportarExtratoPDF() {
+        const contaSelecionada = document.getElementById('selectConta').value;
+        
+        if (!contaSelecionada || transacoesFiltradas.length === 0) {
+            mostrarMensagem('Nenhuma transação para exportar', 'erro');
+            return;
+        }
+        
+        try {
+            mostrarMensagem('Gerando PDF...', 'info');
+            
+            // 🔥 PREPARAR DADOS PARA O PDF (MESMA ESTRUTURA DO KIVY)
+            const dadosPDF = {
+                conta: contaSelecionada,
+                periodo: periodoAtivo === 'personalizado' ? 
+                    `${document.getElementById('dataInicio').value} a ${document.getElementById('dataFim').value}` :
+                    `Últimos ${periodoAtivo === '0' ? 'todo período' : periodoAtivo + ' dias'}`,
+                transacoes: transacoesFiltradas.map(t => ({
+                    ...t,
+                    data_formatada: formatarDataApenasDiaMesAno(t.data)
+                })),
+                resumo: {
+                    saldo_final: saldoFinal,
+                    total_entradas: totalEntradas,
+                    total_saidas: totalSaidas,
+                    total_transacoes: transacoesFiltradas.length,
+                    moeda: moedaAtual
+                }
+            };
+            
+            // 🔥 CHAMAR API DE EXPORTAÇÃO
+            const response = await fetch('/api/extrato/exportar-pdf', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(dadosPDF)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success && data.pdf_url) {
+                // 🔥 ABRIR PDF EM NOVA ABA
+                window.open(data.pdf_url, '_blank');
+                mostrarMensagem('PDF gerado com sucesso!', 'sucesso');
+            } else {
+                throw new Error(data.message || 'Erro ao gerar PDF');
+            }
+            
+        } catch (error) {
+            console.error('Erro ao exportar PDF:', error);
+            mostrarMensagem('Erro ao gerar PDF: ' + error.message, 'erro');
+        }
+    }
+    
+    // ============================================
+    // FUNÇÕES AUXILIARES
+    // ============================================
+    
+    // 🔥 FUNÇÃO: Mostrar mensagem
+    function mostrarMensagem(mensagem, tipo = 'info') {
+        // Criar elemento de mensagem
+        const mensagemDiv = document.createElement('div');
+        mensagemDiv.className = `mensagem ${tipo}`;
+        mensagemDiv.innerHTML = `
+            <div style="
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 25px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 600;
+                z-index: 10000;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                animation: slideIn 0.3s ease;
+                max-width: 400px;
+                font-family: 'Segoe UI', sans-serif;
+            " style="
+                ${tipo === 'sucesso' ? 'background: #2ecc71;' : ''}
+                ${tipo === 'erro' ? 'background: #e74c3c;' : ''}
+                ${tipo === 'info' ? 'background: #3498db;' : ''}
+            ">
+                <i class="fas fa-${tipo === 'sucesso' ? 'check-circle' : tipo === 'erro' ? 'exclamation-circle' : 'info-circle'}"></i>
+                ${mensagem}
+            </div>
+        `;
+        
+        document.body.appendChild(mensagemDiv);
+        
+        // Remover após 5 segundos
+        setTimeout(() => {
+            mensagemDiv.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => mensagemDiv.remove(), 300);
+        }, 5000);
+    }
+    
+    // 🔥 FUNÇÃO: Configurar eventos
+    function configurarEventos() {
+        // Evento de mudança de conta
+        document.getElementById('selectConta').addEventListener('change', function() {
+            const contaSelecionada = this.options[this.selectedIndex];
+            moedaAtual = contaSelecionada.textContent.split(' - ')[1]?.split(' ')[0] || 'USD';
+            carregarExtrato();
+        });
+        
+        // Evento de mudança de período
+        document.getElementById('selectPeriodo').addEventListener('change', function() {
+            mudarPeriodo(this.value);
+        });
+        
+        // Eventos dos botões de período rápido
+        document.querySelectorAll('.btn-periodo').forEach(btn => {
+            btn.addEventListener('click', function() {
+                mudarPeriodo(this.dataset.periodo);
+            });
+        });
+        
+        // Evento de clique fora do modal para fechar
+        document.getElementById('modalDetalhes').addEventListener('click', function(e) {
+            if (e.target === this) {
+                fecharModalDetalhes();
+            }
+        });
+        
+        // Evento de tecla ESC para fechar modal
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                fecharModalDetalhes();
+            }
+        });
+        
+        // Preencher data atual no campo data fim
+        const hoje = new Date();
+        const dataAtual = hoje.toLocaleDateString('pt-BR');
+        document.getElementById('dataFim').value = dataAtual;
+        
+        // Preencher data de 30 dias atrás no campo data início
+        const trintaDiasAtras = new Date();
+        trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
+        const dataTrintaDiasAtras = trintaDiasAtras.toLocaleDateString('pt-BR');
+        document.getElementById('dataInicio').value = dataTrintaDiasAtras;
+    }
+    
+    // ============================================
+    // INICIALIZAÇÃO
+    // ============================================
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Carregar contas do usuário
+        carregarContas();
+        
+        // Configurar eventos
+        configurarEventos();
+        
+        // Adicionar animações CSS
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    });
+    </script>
+</body>
+</html>
