@@ -1083,7 +1083,6 @@
     // 🔥 FUNÇÃO PRINCIPAL: Carregar extrato (MESMA LÓGICA DO KIVY)
     async function carregarExtrato() {
         const contaSelecionada = document.getElementById('selectConta').value;
-        const periodoSelecionado = document.getElementById('selectPeriodo').value;
         
         if (!contaSelecionada) {
             mostrarMensagem('Selecione uma conta', 'erro');
@@ -1093,18 +1092,17 @@
         // Mostrar loading
         document.getElementById('listaTransacoes').innerHTML = `
             <div class="loading">
-                <i class="fas fa-spinner"></i> Carregando extrato...
+                <i class="fas fa-spinner"></i> Carregando extrato (modo Kivy)...
             </div>
         `;
         
         try {
-            // 🔥 MONTAR PARÂMETROS EXATAMENTE COMO NO KIVY
-            const params = new URLSearchParams({
-                conta: contaSelecionada,
-                periodo: periodoAtivo
-            });
+            // 🔥 MONTAR PARÂMETROS EXATAMENTE IGUAL AO KIVY
+            const params = new URLSearchParams();
+            params.append('conta', contaSelecionada);
+            params.append('periodo', periodoAtivo);
             
-            // Se for período personalizado, adicionar datas
+            // 🔥 SE FOR PERSONALIZADO, ENVIAR DATAS NO FORMATO BR
             if (periodoAtivo === 'personalizado') {
                 const dataInicio = document.getElementById('dataInicio').value;
                 const dataFim = document.getElementById('dataFim').value;
@@ -1116,28 +1114,59 @@
                 
                 params.append('data_inicio', dataInicio);
                 params.append('data_fim', dataFim);
+                
+                console.log(`🔍 [WEB] Período personalizado: ${dataInicio} a ${dataFim}`);
+            } else {
+                console.log(`🔍 [WEB] Período rápido: ${periodoAtivo} dias`);
             }
             
-            // 🔥 CHAMAR API COM MESMOS PARÂMETROS DO KIVY
-            const response = await fetch(`/api/extrato?${params.toString()}`);
+            // 🔥 CHAMAR API KIVY
+            const url = `/api/extrato_kivy?${params.toString()}`;
+            console.log(`🔍 [WEB] Chamando API: ${url}`);
+            
+            const response = await fetch(url);
             const data = await response.json();
             
+            console.log(`🔍 [WEB] Resposta da API:`, data);
+            
             if (data.success) {
-                // 🔥 PROCESSAR DADOS COM MESMA LÓGICA DO KIVY
+                // 🔥 FORMATAR DATAS IGUAL AO KIVY ANTES DE PROCESSAR
+                if (data.transacoes) {
+                    data.transacoes.forEach(transacao => {
+                        // Garantir formato de data igual ao Kivy
+                        transacao.data_formatada = formatarDataApenasDiaMesAno(transacao.data);
+                    });
+                }
+                
                 processarDadosExtrato(data);
+                
+                // 🔥 ATUALIZAR RESUMO
+                atualizarPainelResumo();
+                
+                // 🔥 DEBUG: Mostrar algumas transações no console
+                if (data.transacoes && data.transacoes.length > 0) {
+                    console.log('🔍 Primeiras 3 transações:');
+                    data.transacoes.slice(0, 3).forEach((t, i) => {
+                        console.log(`  ${i+1}. ${t.data} | ${t.descricao} | Crédito: ${t.credito} | Débito: ${t.debito} | Saldo: ${t.saldo_apos}`);
+                    });
+                }
+                
             } else {
                 throw new Error(data.message || 'Erro ao carregar extrato');
             }
             
         } catch (error) {
-            console.error('Erro ao carregar extrato:', error);
-            mostrarMensagem('Erro ao carregar extrato', 'erro');
+            console.error('❌ [WEB] Erro ao carregar extrato:', error);
+            mostrarMensagem('Erro ao carregar extrato: ' + error.message, 'erro');
             
             document.getElementById('listaTransacoes').innerHTML = `
                 <div class="empty-state">
                     <i class="fas fa-exclamation-circle"></i>
                     <h3>Erro ao carregar extrato</h3>
                     <p>${error.message}</p>
+                    <button onclick="carregarExtrato()" class="btn-acao" style="margin-top: 15px;">
+                        <i class="fas fa-redo"></i> Tentar novamente
+                    </button>
                 </div>
             `;
         }
