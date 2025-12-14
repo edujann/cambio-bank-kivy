@@ -5,8 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🏦 Cambio Bank - Meus Beneficiários</title>
     <style>
-    /* ESTILOS ESPECÍFICOS PARA TELA DE BENEFICIÁRIOS */
+    /* ============================================
+    CSS DO DASHBOARD (PARA FUNDO E HEADER)
+    ============================================ */
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
     :root {
+        /* PALETA DE CORES DO SEU KIVY */
         --cor-fundo: #0a0e15;
         --cor-card: #0d1117;
         --cor-borda: #1e232e;
@@ -18,19 +29,121 @@
         --cor-perigo: #e01b24;
         --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.3);
         --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.4);
+        --sombra-forte: 0 12px 24px rgba(0, 0, 0, 0.5);
         --borda-radius: 12px;
         --borda-radius-pequeno: 8px;
     }
 
-    /* CONTAINER PRINCIPAL */
-    .container-beneficiarios {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 20px;
-        min-height: calc(100vh - 100px);
+    body {
+        background: var(--cor-fundo) !important;
+        color: var(--cor-texto) !important;
+        min-height: 100vh;
+        overflow-x: hidden;
     }
 
-    /* HEADER */
+    /* CONTAINER PRINCIPAL */
+    .app-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+        min-height: 100vh;
+    }
+
+    /* HEADER (igual ao dashboard) */
+    .app-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 0;
+        margin-bottom: 30px;
+        border-bottom: 1px solid var(--cor-borda);
+    }
+
+    .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 24px;
+        font-weight: bold;
+    }
+
+    .logo i {
+        color: var(--cor-primaria);
+        font-size: 28px;
+    }
+
+    .logo-text {
+        background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .page-title {
+        font-size: 28px;
+        font-weight: bold;
+        text-align: center;
+        background: linear-gradient(90deg, #fff, #e0e0e0);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .user-menu {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 16px;
+        background: var(--cor-card);
+        border-radius: var(--borda-radius-pequeno);
+        border: 1px solid var(--cor-borda);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .user-menu:hover {
+        border-color: var(--cor-primaria);
+        transform: translateY(-2px);
+    }
+
+    .user-avatar {
+        font-size: 24px;
+        color: var(--cor-primaria);
+    }
+
+    .user-name {
+        font-weight: 600;
+    }
+
+    /* FOOTER (igual ao dashboard) */
+    .app-footer {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid var(--cor-borda);
+    }
+
+    .footer-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--cor-texto-secundario);
+        font-size: 14px;
+    }
+
+    .status-online {
+        color: var(--cor-sucesso);
+        font-weight: 600;
+    }
+
+    /* ============================================
+    CSS DOS BENEFICIÁRIOS (SIMPLIFICADO)
+    ============================================ */
+
+    .container-beneficiarios {
+        padding: 20px 0;
+    }
+
+    /* HEADER BENEFICIÁRIOS */
     .header-beneficiarios {
         display: flex;
         justify-content: space-between;
@@ -41,21 +154,18 @@
     }
 
     .header-beneficiarios h1 {
-        font-size: 28px;
+        font-size: 24px;
         display: flex;
         align-items: center;
         gap: 12px;
-        background: linear-gradient(90deg, #fff, #e0e0e0);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
+        color: var(--cor-texto);
     }
 
     .header-beneficiarios h1 i {
         color: #1abc9c; /* Turquesa dos beneficiários */
     }
 
-    /* BOTÕES */
+    /* BOTÃO NOVO */
     .btn-novo-beneficiario {
         background: linear-gradient(135deg, var(--cor-primaria), #2d8fff);
         color: white;
@@ -84,7 +194,7 @@
         margin-bottom: 40px;
     }
 
-    /* CARD INDIVIDUAL */
+    /* CARD SIMPLIFICADO */
     .card-beneficiario {
         background: var(--cor-card);
         border: 1px solid var(--cor-borda);
@@ -96,7 +206,7 @@
     }
 
     .card-beneficiario:hover {
-        border-color: var(--cor-primaria);
+        border-color: #1abc9c;
         transform: translateY(-3px);
         box-shadow: var(--sombra-media);
     }
@@ -117,14 +227,15 @@
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        margin-bottom: 15px;
+        margin-bottom: 20px;
     }
 
     .card-header h3 {
-        font-size: 20px;
+        font-size: 18px;
         color: var(--cor-texto);
         margin: 0;
         flex: 1;
+        font-weight: 600;
     }
 
     .status-ativo {
@@ -145,28 +256,40 @@
         font-weight: 600;
     }
 
-    /* INFORMAÇÕES DO CARD */
+    /* INFORMAÇÕES SIMPLIFICADAS DO CARD */
     .card-info {
         margin-bottom: 20px;
     }
 
-    .info-line {
+    .info-item {
         display: flex;
-        margin-bottom: 8px;
-        align-items: flex-start;
+        margin-bottom: 12px;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .info-item i {
+        color: var(--cor-texto-secundario);
+        width: 20px;
+        font-size: 14px;
+    }
+
+    .info-text {
+        color: var(--cor-texto);
+        font-size: 14px;
+        flex: 1;
     }
 
     .info-label {
-        min-width: 120px;
         color: var(--cor-texto-secundario);
-        font-size: 14px;
+        font-size: 13px;
+        margin-bottom: 2px;
     }
 
     .info-value {
         color: var(--cor-texto);
         font-size: 14px;
-        flex: 1;
-        word-break: break-word;
+        font-weight: 500;
     }
 
     /* BOTÕES DE AÇÃO */
@@ -243,6 +366,11 @@
         color: var(--cor-texto);
     }
 
+    .empty-state p {
+        font-size: 14px;
+        color: var(--cor-texto-secundario);
+    }
+
     /* LOADING */
     .loading {
         grid-column: 1 / -1;
@@ -295,6 +423,7 @@
         display: flex;
         align-items: center;
         gap: 10px;
+        color: var(--cor-texto);
     }
 
     .modal-header h2 i {
@@ -432,25 +561,6 @@
         border: 1px solid rgba(224, 27, 36, 0.3);
     }
 
-    /* RESPONSIVIDADE */
-    @media (max-width: 768px) {
-        .lista-beneficiarios {
-            grid-template-columns: 1fr;
-        }
-        
-        .form-grid {
-            grid-template-columns: 1fr;
-        }
-        
-        .card-actions {
-            flex-direction: column;
-        }
-        
-        .modal-content {
-            max-height: 80vh;
-        }
-    }
-
     /* BOTÃO VOLTAR */
     .btn-voltar {
         display: inline-flex;
@@ -471,170 +581,238 @@
         background: rgba(255, 255, 255, 0.1);
         border-color: var(--cor-primaria);
     }
+
+    /* RESPONSIVIDADE */
+    @media (max-width: 768px) {
+        .lista-beneficiarios {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .card-actions {
+            flex-direction: column;
+        }
+        
+        .modal-content {
+            max-height: 80vh;
+        }
+        
+        .header-beneficiarios {
+            flex-direction: column;
+            gap: 15px;
+            align-items: flex-start;
+        }
+    }
     </style>
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <!-- CONTAINER PRINCIPAL -->
-    <div class="container-beneficiarios">
-        <!-- BOTÃO VOLTAR -->
-        <a href="/dashboard" class="btn-voltar">
-            <i class="fas fa-arrow-left"></i> Voltar ao Dashboard
-        </a>
+    <!-- CONTAINER PRINCIPAL (IGUAL AO DASHBOARD) -->
+    <div class="app-container">
+        
+        <!-- HEADER (IGUAL AO DASHBOARD) -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo">
+                    <i class="fas fa-university"></i>
+                    <span class="logo-text">CAMBIO BANK</span>
+                </div>
+            </div>
+            
+            <div class="header-center">
+                <h1 class="page-title">MEUS BENEFICIÁRIOS</h1>
+            </div>
+            
+            <div class="header-right">
+                <div class="user-menu" onclick="window.location.href='/dashboard'">
+                    <div class="user-avatar">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <span class="user-name" id="userName">
+                        {{ usuario if usuario else 'pantanal' }}
+                    </span>
+                    <i class="fas fa-home"></i>
+                </div>
+            </div>
+        </header>
 
-        <!-- HEADER -->
-        <div class="header-beneficiarios">
-            <h1>
-                <i class="fas fa-users"></i>
-                Meus Beneficiários
-            </h1>
-            <button class="btn-novo-beneficiario" onclick="abrirModalNovo()">
-                <i class="fas fa-plus"></i> Cadastrar Novo
-            </button>
-        </div>
+        <!-- CONTEÚDO DOS BENEFICIÁRIOS -->
+        <div class="container-beneficiarios">
+            <!-- Botão voltar -->
+            <a href="/dashboard" class="btn-voltar">
+                <i class="fas fa-arrow-left"></i> Voltar ao Dashboard
+            </a>
 
-        <!-- LISTA DE BENEFICIÁRIOS -->
-        <div class="lista-beneficiarios" id="listaBeneficiarios">
-            <div class="loading">
-                <i class="fas fa-spinner fa-spin"></i> Carregando beneficiários...
+            <!-- Header específico de beneficiários -->
+            <div class="header-beneficiarios">
+                <h1>
+                    <i class="fas fa-users"></i>
+                    Meus Beneficiários
+                </h1>
+                <button class="btn-novo-beneficiario" onclick="abrirModalNovo()">
+                    <i class="fas fa-plus"></i> Cadastrar Novo
+                </button>
+            </div>
+            
+            <!-- Lista de beneficiários (SIMPLIFICADA) -->
+            <div class="lista-beneficiarios" id="listaBeneficiarios">
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i> Carregando beneficiários...
+                </div>
             </div>
         </div>
 
-        <!-- MODAL DE CRIAÇÃO/EDIÇÃO -->
-        <div class="modal" id="modalBeneficiario">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2><i class="fas fa-user-plus"></i> <span id="modalTitulo">Novo Beneficiário</span></h2>
-                    <button class="btn-fechar-modal" onclick="fecharModal()">
-                        <i class="fas fa-times"></i>
-                    </button>
+        <!-- FOOTER -->
+        <footer class="app-footer">
+            <div class="footer-content">
+                <div class="footer-copyright">
+                    © 2024 Cambio Bank • Sistema de Câmbio Internacional
                 </div>
-                <div class="modal-body">
-                    <!-- MENSAGENS DE ERRO/SUCESSO -->
-                    <div id="modalMensagem" class="mensagem" style="display: none;"></div>
+                <div class="footer-version">
+                    v2.1.0 • <span class="status-online">● Online</span>
+                </div>
+            </div>
+        </footer>
+        
+    </div>
+
+    <!-- MODAL DE CRIAÇÃO/EDIÇÃO -->
+    <div class="modal" id="modalBeneficiario">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-plus"></i> <span id="modalTitulo">Novo Beneficiário</span></h2>
+                <button class="btn-fechar-modal" onclick="fecharModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- MENSAGENS DE ERRO/SUCESSO -->
+                <div id="modalMensagem" class="mensagem" style="display: none;"></div>
+                
+                <!-- FORMULÁRIO -->
+                <form id="formBeneficiario" onsubmit="salvarBeneficiario(event)">
+                    <input type="hidden" id="beneficiarioId">
                     
-                    <!-- FORMULÁRIO -->
-                    <form id="formBeneficiario" onsubmit="salvarBeneficiario(event)">
-                        <input type="hidden" id="beneficiarioId">
-                        
-                        <div class="form-grid">
-                            <!-- INFORMAÇÕES PESSOAIS -->
-                            <div class="form-group full-width">
-                                <h3 style="color: var(--cor-texto); margin-bottom: 15px; font-size: 16px;">
-                                    <i class="fas fa-user"></i> Informações Pessoais
-                                </h3>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>Nome do Beneficiário <span class="required">*</span></label>
-                                <input type="text" id="nome" name="nome" required 
-                                    placeholder="Nome completo ou empresa"
-                                    maxlength="255">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>Endereço <span class="required">*</span></label>
-                                <input type="text" id="endereco" name="endereco" required 
-                                    placeholder="Endereço completo"
-                                    maxlength="500">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>Cidade <span class="required">*</span></label>
-                                <input type="text" id="cidade" name="cidade" required 
-                                    placeholder="Cidade"
-                                    maxlength="100">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>País <span class="required">*</span></label>
-                                <input type="text" id="pais" name="pais" required 
-                                    placeholder="País"
-                                    maxlength="100">
-                            </div>
-                            
-                            <!-- INFORMAÇÕES BANCÁRIAS -->
-                            <div class="form-group full-width">
-                                <h3 style="color: var(--cor-texto); margin-bottom: 15px; font-size: 16px;">
-                                    <i class="fas fa-university"></i> Informações Bancárias
-                                </h3>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>Nome do Banco <span class="required">*</span></label>
-                                <input type="text" id="banco" name="banco" required 
-                                    placeholder="Nome do banco"
-                                    maxlength="255">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>Endereço do Banco <span class="required">*</span></label>
-                                <input type="text" id="endereco_banco" name="endereco_banco" required 
-                                    placeholder="Endereço do banco"
-                                    maxlength="500">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>Cidade do Banco <span class="required">*</span></label>
-                                <input type="text" id="cidade_banco" name="cidade_banco" required 
-                                    placeholder="Cidade do banco"
-                                    maxlength="100">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>País do Banco <span class="required">*</span></label>
-                                <input type="text" id="pais_banco" name="pais_banco" required 
-                                    placeholder="País do banco"
-                                    maxlength="100">
-                            </div>
-                            
-                            <!-- CÓDIGOS BANCÁRIOS -->
-                            <div class="form-group">
-                                <label>Código SWIFT/BIC <span class="required">*</span></label>
-                                <input type="text" id="swift" name="swift" required 
-                                    placeholder="Ex: CHASUS33XXX"
-                                    minlength="8" maxlength="11"
-                                    pattern="[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?">
-                                <small style="color: var(--cor-texto-secundario); font-size: 12px;">
-                                    8 ou 11 caracteres (letras e números)
-                                </small>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>Número IBAN <span class="required">*</span></label>
-                                <input type="text" id="iban" name="iban" required 
-                                    placeholder="Ex: GB29NWBK60161331926819"
-                                    maxlength="34">
-                                <small style="color: var(--cor-texto-secundario); font-size: 12px;">
-                                    Até 34 caracteres
-                                </small>
-                            </div>
-                            
-                            <!-- ✅ APENAS ESTE É OPCIONAL -->
-                            <div class="form-group">
-                                <label>Código ABA (para EUA)</label>  <!-- NÃO TEM asterisco! -->
-                                <input type="text" id="aba" name="aba" 
-                                    placeholder="Ex: 021000021 (opcional)"
-                                    maxlength="9"
-                                    pattern="[0-9]{9}">
-                                <small style="color: var(--cor-texto-secundario); font-size: 12px;">
-                                    9 dígitos (somente números) - Opcional
-                                </small>
-                            </div>
+                    <div class="form-grid">
+                        <!-- INFORMAÇÕES PESSOAIS -->
+                        <div class="form-group full-width">
+                            <h3 style="color: var(--cor-texto); margin-bottom: 15px; font-size: 16px;">
+                                <i class="fas fa-user"></i> Informações Pessoais
+                            </h3>
                         </div>
                         
-                        <!-- AÇÕES DO FORMULÁRIO -->
-                        <div class="form-actions">
-                            <button type="button" class="btn-cancelar" onclick="fecharModal()">
-                                Cancelar
-                            </button>
-                            <button type="submit" class="btn-salvar">
-                                <i class="fas fa-save"></i> Salvar Beneficiário
-                            </button>
+                        <div class="form-group">
+                            <label>Nome do Beneficiário <span class="required">*</span></label>
+                            <input type="text" id="nome" name="nome" required 
+                                   placeholder="Nome completo ou empresa"
+                                   maxlength="255">
                         </div>
-                    </form>
-                </div>
+                        
+                        <div class="form-group">
+                            <label>Endereço <span class="required">*</span></label>
+                            <input type="text" id="endereco" name="endereco" required 
+                                   placeholder="Endereço completo"
+                                   maxlength="500">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Cidade <span class="required">*</span></label>
+                            <input type="text" id="cidade" name="cidade" required 
+                                   placeholder="Cidade"
+                                   maxlength="100">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>País <span class="required">*</span></label>
+                            <input type="text" id="pais" name="pais" required 
+                                   placeholder="País"
+                                   maxlength="100">
+                        </div>
+                        
+                        <!-- INFORMAÇÕES BANCÁRIAS -->
+                        <div class="form-group full-width">
+                            <h3 style="color: var(--cor-texto); margin-bottom: 15px; font-size: 16px;">
+                                <i class="fas fa-university"></i> Informações Bancárias
+                            </h3>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Nome do Banco <span class="required">*</span></label>
+                            <input type="text" id="banco" name="banco" required 
+                                   placeholder="Nome do banco"
+                                   maxlength="255">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Endereço do Banco <span class="required">*</span></label>
+                            <input type="text" id="endereco_banco" name="endereco_banco" required 
+                                   placeholder="Endereço do banco"
+                                   maxlength="500">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Cidade do Banco <span class="required">*</span></label>
+                            <input type="text" id="cidade_banco" name="cidade_banco" required 
+                                   placeholder="Cidade do banco"
+                                   maxlength="100">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>País do Banco <span class="required">*</span></label>
+                            <input type="text" id="pais_banco" name="pais_banco" required 
+                                   placeholder="País do banco"
+                                   maxlength="100">
+                        </div>
+                        
+                        <!-- CÓDIGOS BANCÁRIOS -->
+                        <div class="form-group">
+                            <label>Código SWIFT/BIC <span class="required">*</span></label>
+                            <input type="text" id="swift" name="swift" required 
+                                   placeholder="Ex: CHASUS33XXX"
+                                   minlength="8" maxlength="11"
+                                   pattern="[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?">
+                            <small style="color: var(--cor-texto-secundario); font-size: 12px;">
+                                8 ou 11 caracteres (letras e números)
+                            </small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Número IBAN <span class="required">*</span></label>
+                            <input type="text" id="iban" name="iban" required 
+                                   placeholder="Ex: GB29NWBK60161331926819"
+                                   maxlength="34">
+                            <small style="color: var(--cor-texto-secundario); font-size: 12px;">
+                                Até 34 caracteres
+                            </small>
+                        </div>
+                        
+                        <!-- ✅ APENAS ESTE É OPCIONAL -->
+                        <div class="form-group">
+                            <label>Código ABA (para EUA)</label>  <!-- NÃO TEM asterisco! -->
+                            <input type="text" id="aba" name="aba" 
+                                   placeholder="Ex: 021000021 (opcional)"
+                                   maxlength="9"
+                                   pattern="[0-9]{9}">
+                            <small style="color: var(--cor-texto-secundario); font-size: 12px;">
+                                9 dígitos (somente números) - Opcional
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <!-- AÇÕES DO FORMULÁRIO -->
+                    <div class="form-actions">
+                        <button type="button" class="btn-cancelar" onclick="fecharModal()">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn-salvar">
+                            <i class="fas fa-save"></i> Salvar Beneficiário
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -669,7 +847,7 @@
         }
     }
 
-    // RENDERIZAR LISTA DE BENEFICIÁRIOS
+    // RENDERIZAR LISTA DE BENEFICIÁRIOS (SIMPLIFICADO)
     function renderizarBeneficiarios() {
         const container = document.getElementById('listaBeneficiarios');
         
@@ -694,54 +872,43 @@
                 </div>
                 
                 <div class="card-info">
-                    <div class="info-line">
-                        <span class="info-label">Banco:</span>
-                        <span class="info-value">${benef.banco || 'Não informado'}</span>
+                    <!-- BANCO -->
+                    <div class="info-item">
+                        <i class="fas fa-university"></i>
+                        <div class="info-text">
+                            <div class="info-label">Banco</div>
+                            <div class="info-value">${benef.banco || 'Não informado'}</div>
+                        </div>
                     </div>
                     
-                    ${benef.endereco ? `
-                    <div class="info-line">
-                        <span class="info-label">Endereço:</span>
-                        <span class="info-value">${benef.endereco}</span>
-                    </div>
-                    ` : ''}
-                    
-                    ${benef.cidade || benef.pais ? `
-                    <div class="info-line">
-                        <span class="info-label">Localização:</span>
-                        <span class="info-value">
-                            ${benef.cidade || ''}${benef.cidade && benef.pais ? ', ' : ''}${benef.pais || ''}
-                        </span>
-                    </div>
-                    ` : ''}
-                    
-                    <div class="info-line">
-                        <span class="info-label">SWIFT/BIC:</span>
-                        <span class="info-value">${benef.swift || 'Não informado'}</span>
+                    <!-- SWIFT/BIC -->
+                    <div class="info-item">
+                        <i class="fas fa-code"></i>
+                        <div class="info-text">
+                            <div class="info-label">SWIFT/BIC</div>
+                            <div class="info-value">${benef.swift || 'Não informado'}</div>
+                        </div>
                     </div>
                     
+                    <!-- IBAN/ACCOUNT -->
                     ${benef.iban ? `
-                    <div class="info-line">
-                        <span class="info-label">IBAN:</span>
-                        <span class="info-value">${benef.iban}</span>
+                    <div class="info-item">
+                        <i class="fas fa-credit-card"></i>
+                        <div class="info-text">
+                            <div class="info-label">IBAN/Account</div>
+                            <div class="info-value">${benef.iban}</div>
+                        </div>
                     </div>
                     ` : ''}
                     
-                    ${benef.aba ? `
-                    <div class="info-line">
-                        <span class="info-label">ABA:</span>
-                        <span class="info-value">${benef.aba}</span>
-                    </div>
-                    ` : ''}
-                    
-                    ${benef.endereco_banco || benef.cidade_banco ? `
-                    <div class="info-line">
-                        <span class="info-label">Banco Localização:</span>
-                        <span class="info-value">
-                            ${benef.endereco_banco || ''}${benef.endereco_banco && benef.cidade_banco ? ' - ' : ''}
-                            ${benef.cidade_banco || ''}${benef.cidade_banco && benef.pais_banco ? ', ' : ''}
-                            ${benef.pais_banco || ''}
-                        </span>
+                    <!-- PAÍS DO BANCO -->
+                    ${benef.pais_banco ? `
+                    <div class="info-item">
+                        <i class="fas fa-globe"></i>
+                        <div class="info-text">
+                            <div class="info-label">País do Banco</div>
+                            <div class="info-value">${benef.pais_banco}</div>
+                        </div>
                     </div>
                     ` : ''}
                 </div>
@@ -861,7 +1028,6 @@
             let method = 'POST';
             
             if (modoEdicao && id) {
-                // Para edição, precisamos de um endpoint PUT
                 url = `/api/beneficiarios/${id}`;
                 method = 'PUT';
             }
@@ -882,7 +1048,6 @@
                     'sucesso'
                 );
                 
-                // Atualizar lista após 1 segundo
                 setTimeout(() => {
                     carregarBeneficiarios();
                     fecharModal();
@@ -899,20 +1064,30 @@
     function usarBeneficiario(id) {
         const beneficiario = beneficiariosData.find(b => b.id === id);
         if (beneficiario) {
-            // Redirecionar para tela de transferência com os dados
             sessionStorage.setItem('beneficiarioSelecionado', JSON.stringify(beneficiario));
             window.location.href = '/transferencia';
         }
     }
 
-    function excluirBeneficiario(id, nome) {
+    async function excluirBeneficiario(id, nome) {
         if (confirm(`Tem certeza que deseja excluir o beneficiário "${nome}"?\n\nEsta ação não pode ser desfeita.`)) {
-            // Chamar API para exclusão (soft delete - marcar como inativo)
-            // Você precisará criar um endpoint DELETE
-            console.log('Excluir beneficiário:', id);
-            
-            // Por enquanto, apenas mostra mensagem
-            mostrarMensagemErro('Funcionalidade de exclusão será implementada em breve');
+            try {
+                const response = await fetch(`/api/beneficiarios/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                const resultado = await response.json();
+                
+                if (resultado.success) {
+                    alert(resultado.message);
+                    carregarBeneficiarios();
+                } else {
+                    alert('Erro ao excluir: ' + (resultado.message || 'Erro desconhecido'));
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro de conexão ao excluir beneficiário');
+            }
         }
     }
 
@@ -925,13 +1100,10 @@
         div.textContent = mensagem;
         div.className = `mensagem ${tipo}`;
         div.style.display = 'flex';
-        
-        // Rolagem para a mensagem
         div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function mostrarMensagemErro(mensagem) {
-        // Implementar sistema de notificação global se necessário
         alert(mensagem);
     }
 
@@ -942,14 +1114,12 @@
     document.addEventListener('DOMContentLoaded', function() {
         carregarBeneficiarios();
         
-        // Fechar modal ao clicar fora
         document.getElementById('modalBeneficiario').addEventListener('click', function(e) {
             if (e.target === this) {
                 fecharModal();
             }
         });
         
-        // Fechar modal com ESC
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 fecharModal();
