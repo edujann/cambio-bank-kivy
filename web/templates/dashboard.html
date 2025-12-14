@@ -231,14 +231,19 @@
         color: var(--cor-sucesso);
     }
 
+    .card-icon.beneficiarios {
+        background: rgba(26, 188, 156, 0.15);  /* 15% de opacidade */
+        color: #1abc9c;  /* Turquesa vibrante */
+    }
+
     .card-icon.extrato {
         background: rgba(243, 156, 18, 0.15);
         color: var(--cor-alerta);
     }
 
-    .card-icon.beneficiarios {
-        background: rgba(26, 188, 156, 0.15);  /* 15% de opacidade */
-        color: #1abc9c;  /* Turquesa vibrante */
+    .card-icon.historico {
+        background: rgba(52, 152, 219, 0.15);  /* Azul celeste com opacidade */
+        color: #3498db;  /* Azul celeste sólido */
     }
 
     .card-title {
@@ -1312,7 +1317,7 @@ function abrirTransferencia() {
 
                     <!-- CARD 4: MINHAS TRANSFERÊNCIAS (MANTENDO PADRÃO) -->
                     <div class="acao-card" onclick="window.location.href='/minhas-transferencias'">
-                        <div class="card-icon beneficiarios">  <!-- REMOVEU O STYLE INLINE -->
+                        <div class="card-icon historico">  
                             <i class="fas fa-history"></i>
                         </div>
                         <h3 class="card-title">Minhas Transferências</h3>
