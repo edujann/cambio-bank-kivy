@@ -3000,6 +3000,7 @@ def obter_extrato_kivy():
                                 'moeda': moeda,
                                 'timestamp': data_transacao
                             })
+                    
                     elif transf_tipo in ['internacional', 'transferencia_internacional']:
                         status_normalizado = transf_status.lower() if transf_status else ''
                         
@@ -3058,20 +3059,47 @@ def obter_extrato_kivy():
                                 'moeda': moeda,
                                 'timestamp': data_transacao
                             })
+                    
                     elif transf_tipo == 'cambio':
-                        # 🔥 USAR FUNÇÃO IGUAL AO KIVY
-                        descricao_cambio = gerar_descricao_cambio_inteligente(transf, conta_num)
-                        
-                        transacoes_todas.append({
-                            'id': transf_id,
-                            'data': data_transacao_str,
-                            'descricao': descricao_cambio,
-                            'credito': 0.00,
-                            'debito': valor,
-                            'tipo': "Câmbio",
-                            'moeda': moeda,
-                            'timestamp': data_transacao
-                        })
+                        # 🔥 VERIFICAR SE É CÂMBIO DA NOVA TELA (_nt) ou usa conta_origem/conta_destino
+                        if '_nt' in str(transf_id) or 'conta_origem' in transf or 'conta_destino' in transf:
+                            # 🔥 CÂMBIO DA NOVA TELA - Estrutura diferente
+                            if transf.get('conta_origem') == conta_num:
+                                # Cliente é ORIGEM (pagou/saída)
+                                descricao_cambio = gerar_descricao_cambio_inteligente(transf, conta_num)
+                                
+                                transacoes_todas.append({
+                                    'id': transf_id,
+                                    'data': data_transacao_str,
+                                    'descricao': descricao_cambio,
+                                    'credito': 0.00,
+                                    'debito': valor,
+                                    'tipo': "Câmbio",
+                                    'moeda': transf.get('moeda_origem', moeda),
+                                    'timestamp': data_transacao
+                                })
+                                print(f"💰 CÂMBIO NT SAÍDA: {descricao_cambio[:50]}...")
+                            elif transf.get('conta_destino') == conta_num:
+                                # Cliente é DESTINO (recebeu/entrada) - Esta parte será processada na seção do destinatário
+                                pass
+                            else:
+                                print(f"⚠️ CÂMBIO NT não processado (conta não correspondente): conta_origem={transf.get('conta_origem')}, conta_destino={transf.get('conta_destino')}")
+                        else:
+                            # 🔥 CÂMBIO NORMAL (tela antiga)
+                            descricao_cambio = gerar_descricao_cambio_inteligente(transf, conta_num)
+                            
+                            transacoes_todas.append({
+                                'id': transf_id,
+                                'data': data_transacao_str,
+                                'descricao': descricao_cambio,
+                                'credito': 0.00,
+                                'debito': valor,
+                                'tipo': "Câmbio",
+                                'moeda': moeda,
+                                'timestamp': data_transacao
+                            })
+                            print(f"💰 CÂMBIO NORMAL: {descricao_cambio[:50]}...")
+                    
                     elif transf_tipo == 'receita':
                         transacoes_todas.append({
                             'id': transf_id,
@@ -3083,33 +3111,53 @@ def obter_extrato_kivy():
                             'moeda': moeda,
                             'timestamp': data_transacao
                         })
-
-                    # Cliente é DESTINATÁRIO
-                    elif transf.get('conta_destinatario') == conta_num or transf.get('conta_destino') == conta_num:
-                        if transf_tipo == 'deposito':
-                            transacoes_todas.append({
-                                'id': transf_id,
-                                'data': data_transacao_str,
-                                'descricao': f"DEPÓSITO CONFIRMADO - {transf.get('banco_origem', 'Banco')}",
-                                'credito': valor,
-                                'debito': 0.00,
-                                'tipo': "Depósito",
-                                'moeda': moeda,
-                                'timestamp': data_transacao
-                            })
-                        elif transf_tipo == 'ajuste_admin' and transf.get('tipo_ajuste') == 'CREDITO':
-                            transacoes_todas.append({
-                                'id': transf_id,
-                                'data': data_transacao_str,
-                                'descricao': f"CRÉDITO ADMINISTRATIVO - {transf.get('descricao_ajuste', '')}",
-                                'credito': valor,
-                                'debito': 0.00,
-                                'tipo': "Crédito Admin",
-                                'moeda': moeda,
-                                'timestamp': data_transacao
-                            })
-                        elif transf_tipo == 'cambio':
-                            # 🔥 USAR FUNÇÃO IGUAL AO KIVY
+                
+                # Cliente é DESTINATÁRIO
+                elif transf.get('conta_destinatario') == conta_num or transf.get('conta_destino') == conta_num:
+                    if transf_tipo == 'deposito':
+                        transacoes_todas.append({
+                            'id': transf_id,
+                            'data': data_transacao_str,
+                            'descricao': f"DEPÓSITO CONFIRMADO - {transf.get('banco_origem', 'Banco')}",
+                            'credito': valor,
+                            'debito': 0.00,
+                            'tipo': "Depósito",
+                            'moeda': moeda,
+                            'timestamp': data_transacao
+                        })
+                    elif transf_tipo == 'ajuste_admin' and transf.get('tipo_ajuste') == 'CREDITO':
+                        transacoes_todas.append({
+                            'id': transf_id,
+                            'data': data_transacao_str,
+                            'descricao': f"CRÉDITO ADMINISTRATIVO - {transf.get('descricao_ajuste', '')}",
+                            'credito': valor,
+                            'debito': 0.00,
+                            'tipo': "Crédito Admin",
+                            'moeda': moeda,
+                            'timestamp': data_transacao
+                        })
+                    elif transf_tipo == 'cambio':
+                        # 🔥 VERIFICAR SE É CÂMBIO DA NOVA TELA (_nt) ou usa conta_origem/conta_destino
+                        if '_nt' in str(transf_id) or 'conta_origem' in transf or 'conta_destino' in transf:
+                            # 🔥 CÂMBIO DA NOVA TELA - Cliente é DESTINO (recebeu/entrada)
+                            if transf.get('conta_destino') == conta_num:
+                                descricao_cambio = gerar_descricao_cambio_inteligente(transf, conta_num)
+                                
+                                transacoes_todas.append({
+                                    'id': transf_id,
+                                    'data': data_transacao_str,
+                                    'descricao': descricao_cambio,
+                                    'credito': transf.get('valor_destino', valor),
+                                    'debito': 0.00,
+                                    'tipo': "Câmbio",
+                                    'moeda': transf.get('moeda_destino', moeda),
+                                    'timestamp': data_transacao
+                                })
+                                print(f"💰 CÂMBIO NT ENTRADA: {descricao_cambio[:50]}...")
+                            else:
+                                print(f"⚠️ CÂMBIO NT DESTINATÁRIO não processado: conta_destino={transf.get('conta_destino')}")
+                        else:
+                            # 🔥 CÂMBIO NORMAL (tela antiga) - Cliente recebe
                             descricao_cambio = gerar_descricao_cambio_inteligente(transf, conta_num)
                             
                             transacoes_todas.append({
@@ -3122,7 +3170,11 @@ def obter_extrato_kivy():
                                 'moeda': moeda,
                                 'timestamp': data_transacao
                             })
-                    elif transf_tipo not in ['ajuste_admin']:
+                            print(f"💰 CÂMBIO NORMAL RECEBIDO: {descricao_cambio[:50]}...")
+                
+                # 🔥 OUTROS TIPOS DE TRANSAÇÕES (quando cliente é destinatário em transferências normais)
+                elif transf.get('conta_destinatario') == conta_num or transf.get('conta_destino') == conta_num:
+                    if transf_tipo not in ['ajuste_admin', 'deposito', 'cambio']:
                         status_normalizado = transf_status.lower() if transf_status else ''
                         
                         # Verificar se é uma transferência interna rejeitada
@@ -3167,10 +3219,14 @@ def obter_extrato_kivy():
                                         "EM PROCESSAMENTO" if status_normalizado == 'processing' else \
                                         "CONCLUÍDA" if status_normalizado == 'completed' else "RECUSADA"
                             
+                            # Buscar nome do remetente
+                            conta_remetente = transf.get('conta_remetente', '')
+                            nome_remetente = obter_nome_cliente_por_conta(conta_remetente)
+                            
                             transacoes_todas.append({
                                 'id': transf_id,
                                 'data': data_transacao_str,
-                                'descricao': f"TRANSFERÊNCIA {status_text} RECEBIDA",
+                                'descricao': f"TRANSFERÊNCIA {status_text} RECEBIDA - {nome_remetente}",
                                 'credito': valor,
                                 'debito': 0.00,
                                 'tipo': "Transferência",
