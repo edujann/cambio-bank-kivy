@@ -2784,20 +2784,23 @@ def obter_extrato_kivy():
                 # Transação dentro do período
                 contadores['dentro_periodo'] += 1
                 
-                # 🔥 LÓGICA DE DECISÃO DO KIVY
+                # 🔥 LÓGICA DE DECISÃO DO KIVY (CORRIGIDA)
                 deve_incluir = False
                 motivo = ""
-                
+
+                # Normalizar status (alguns podem ser "solicitada" em vez de "pending")
+                status_normalizado = transf_status.lower() if transf_status else ''
+
                 if transf_tipo in ['ajuste_admin', 'cambio']:
                     deve_incluir = True
                     motivo = f"Tipo especial: {transf_tipo}"
-                elif transf_status == 'pending':
+                elif status_normalizado in ['pending', 'solicitada']:  # 🔥 CORREÇÃO CRÍTICA AQUI
                     deve_incluir = True
-                    motivo = "Status: pending"
-                elif transf_status == 'rejected':
+                    motivo = f"Status: {transf_status} (solicitação)"
+                elif status_normalizado == 'rejected':
                     deve_incluir = True
                     motivo = "Status: rejected"
-                elif transf_status in ['processing', 'completed']:
+                elif status_normalizado in ['processing', 'completed']:
                     deve_incluir = True
                     motivo = f"Status: {transf_status}"
                 else:
@@ -2807,7 +2810,7 @@ def obter_extrato_kivy():
                     
                     if contadores['excluidas_status'] <= 3:
                         print(f"🚫 EXCLUÍDA POR STATUS: ID {transf_id} | Motivo: {motivo}")
-                
+
                 if not deve_incluir:
                     excluidas_detalhes.append(f"Status: {transf_status} | ID: {transf_id} | Tipo: {transf_tipo}")
                     continue
