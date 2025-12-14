@@ -3028,21 +3028,22 @@ def obter_extrato_kivy():
                                 'timestamp': data_transacao
                             })
                     elif transf_tipo == 'cambio':
-                        # 🔥 DEBUG TEMPORÁRIO PARA VER CAMPOS DE CÂMBIO
-                        if str(transf_id) in ['577695', '339024', '671309', '778779']:  # IDs de exemplo que apareceram nos logs
-                            print(f"\n🔍 DEBUG CÂMBIO ID {transf_id}:")
-                            print(f"   Campos disponíveis: {list(transf.keys())}")
-                            print(f"   descricao_origem: {transf.get('descricao_origem')}")
-                            print(f"   descricao_destino: {transf.get('descricao_destino')}")
-                            print(f"   moeda_origem: {transf.get('moeda_origem')}")
-                            print(f"   moeda_destino: {transf.get('moeda_destino')}")
-                            print(f"   valor_origem: {transf.get('valor_origem')}")
-                            print(f"   valor_destino: {transf.get('valor_destino')}")
-                            print(f"   tipo_operacao: {transf.get('tipo_operacao')}")
-                            print(f"   observacao: {transf.get('observacao')}")
+                        # 🔥 DESCRIÇÃO DETALHADA IGUAL AO KIVY
+                        moeda_origem = transf.get('moeda_origem', 'USD')
+                        moeda_destino = transf.get('moeda_destino', 'BRL')
+                        valor_origem = transf.get('valor_origem', valor)
+                        valor_destino = transf.get('valor_destino', 0)
                         
-                        # 🔥 MELHORAR DESCRIÇÃO IGUAL AO KIVY
-                        descricao_cambio = f"CÂMBIO - {transf.get('descricao_origem', 'Operação de câmbio')}"
+                        # Determinar tipo de operação
+                        operacao = transf.get('operacao', '')
+                        if not operacao:
+                            if moeda_origem == 'USD' and moeda_destino == 'BRL':
+                                operacao = 'VENDA USD/COMPRA BRL'
+                            else:
+                                operacao = f'{moeda_origem}/{moeda_destino}'
+                        
+                        # Formatar descrição
+                        descricao_cambio = f"CÂMBIO {operacao}"
                         
                         transacoes_todas.append({
                             'id': transf_id,
@@ -3091,21 +3092,22 @@ def obter_extrato_kivy():
                             'timestamp': data_transacao
                         })
                     elif transf_tipo == 'cambio':
-                        # 🔥 DEBUG TEMPORÁRIO PARA VER CAMPOS DE CÂMBIO
-                        if str(transf_id) in ['577695', '339024', '671309', '778779']:  # IDs de exemplo que apareceram nos logs
-                            print(f"\n🔍 DEBUG CÂMBIO ID {transf_id}:")
-                            print(f"   Campos disponíveis: {list(transf.keys())}")
-                            print(f"   descricao_origem: {transf.get('descricao_origem')}")
-                            print(f"   descricao_destino: {transf.get('descricao_destino')}")
-                            print(f"   moeda_origem: {transf.get('moeda_origem')}")
-                            print(f"   moeda_destino: {transf.get('moeda_destino')}")
-                            print(f"   valor_origem: {transf.get('valor_origem')}")
-                            print(f"   valor_destino: {transf.get('valor_destino')}")
-                            print(f"   tipo_operacao: {transf.get('tipo_operacao')}")
-                            print(f"   observacao: {transf.get('observacao')}")
+                        # 🔥 DESCRIÇÃO DETALHADA IGUAL AO KIVY (DESTINATÁRIO)
+                        moeda_origem = transf.get('moeda_origem', 'USD')
+                        moeda_destino = transf.get('moeda_destino', 'BRL')
+                        valor_origem = transf.get('valor_origem', 0)
+                        valor_destino = transf.get('valor_destino', valor)
                         
-                        # 🔥 MELHORAR DESCRIÇÃO IGUAL AO KIVY (DESTINATÁRIO)
-                        descricao_cambio = f"CÂMBIO - {transf.get('descricao_destino', 'Operação de câmbio')}"
+                        # Determinar tipo de operação
+                        operacao = transf.get('operacao', '')
+                        if not operacao:
+                            if moeda_origem == 'USD' and moeda_destino == 'BRL':
+                                operacao = 'COMPRA BRL/VENDA USD'
+                            else:
+                                operacao = f'{moeda_destino}/{moeda_origem}'
+                        
+                        # Formatar descrição
+                        descricao_cambio = f"CÂMBIO {operacao}"
                         
                         transacoes_todas.append({
                             'id': transf_id,
