@@ -2908,10 +2908,15 @@ def obter_extrato_kivy():
                                         "EM PROCESSAMENTO" if status_normalizado == 'processing' else \
                                         "CONCLUÍDA" if status_normalizado == 'completed' else "RECUSADA"
                             
+                            # 🔥 ADICIONAR NOME DO DESTINATÁRIO NA DESCRIÇÃO
+                            nome_destinatario = transf.get('nome_destinatario', 'N/A')
+                            if not nome_destinatario or nome_destinatario == 'None':
+                                nome_destinatario = 'N/A'
+                            
                             transacoes_todas.append({
                                 'id': transf_id,
                                 'data': data_transacao_str,
-                                'descricao': f"TRANSFERÊNCIA INTERNA {status_text}",
+                                'descricao': f"TRANSFERÊNCIA INTERNA {status_text} - {nome_destinatario}",
                                 'credito': 0.00,
                                 'debito': valor,
                                 'tipo': "Transferência Interna",
@@ -2920,7 +2925,7 @@ def obter_extrato_kivy():
                             })
                             
                             # DEBUG
-                            print(f"💰 TRANSFERÊNCIA INTERNA CLIENTE: {status_text} | -{valor:,.2f}")
+                            print(f"💰 TRANSFERÊNCIA INTERNA CLIENTE: {status_text} - {nome_destinatario} | -{valor:,.2f}")
                         
                         # Cliente é DESTINATÁRIO (crédito - se for transferência recebida)
                         elif transf.get('conta_destinatario') == conta_num:
@@ -2928,17 +2933,21 @@ def obter_extrato_kivy():
                                         "EM PROCESSAMENTO" if status_normalizado == 'processing' else \
                                         "CONCLUÍDA" if status_normalizado == 'completed' else "RECUSADA"
                             
+                            # 🔥 ADICIONAR NOME DO REMETENTE NA DESCRIÇÃO (se for recebida)
+                            nome_remetente = transf.get('nome_remetente', 'N/A')
+                            if not nome_remetente or nome_remetente == 'None':
+                                nome_remetente = 'N/A'
+                            
                             transacoes_todas.append({
                                 'id': transf_id,
                                 'data': data_transacao_str,
-                                'descricao': f"TRANSFERÊNCIA INTERNA {status_text} RECEBIDA",
+                                'descricao': f"TRANSFERÊNCIA INTERNA {status_text} RECEBIDA - {nome_remetente}",
                                 'credito': valor,
                                 'debito': 0.00,
                                 'tipo': "Transferência Interna",
                                 'moeda': moeda,
                                 'timestamp': data_transacao
                             })
-
                     elif transf_tipo in ['internacional', 'transferencia_internacional']:
                         status_normalizado = transf_status.lower() if transf_status else ''
                         
@@ -2998,10 +3007,13 @@ def obter_extrato_kivy():
                                 'timestamp': data_transacao
                             })
                     elif transf_tipo == 'cambio':
+                        # 🔥 MELHORAR DESCRIÇÃO IGUAL AO KIVY
+                        descricao_cambio = f"CÂMBIO - {transf.get('descricao_origem', 'Operação de câmbio')}"
+                        
                         transacoes_todas.append({
                             'id': transf_id,
                             'data': data_transacao_str,
-                            'descricao': "CÂMBIO",
+                            'descricao': descricao_cambio,
                             'credito': 0.00,
                             'debito': valor,
                             'tipo': "Câmbio",
@@ -3045,10 +3057,13 @@ def obter_extrato_kivy():
                             'timestamp': data_transacao
                         })
                     elif transf_tipo == 'cambio':
+                        # 🔥 MELHORAR DESCRIÇÃO IGUAL AO KIVY (DESTINATÁRIO)
+                        descricao_cambio = f"CÂMBIO - {transf.get('descricao_destino', 'Operação de câmbio')}"
+                        
                         transacoes_todas.append({
                             'id': transf_id,
                             'data': data_transacao_str,
-                            'descricao': "CÂMBIO",
+                            'descricao': descricao_cambio,
                             'credito': transf.get('valor_destino', valor),
                             'debito': 0.00,
                             'tipo': "Câmbio",
