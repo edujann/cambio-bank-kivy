@@ -2911,7 +2911,40 @@ def obter_extrato_kivy():
         
         transferencias = list(transferencias_dict.values())
         print(f"📊 Total de transferências únicas: {len(transferencias)}")
-        
+
+        # 🔥 🔥 🔥 ADICIONE AQUI O CÓDIGO DE DEBUG QUE TE MANDEI 🔥 🔥 🔥
+        print(f"\n" + "="*80)
+        print("🔍 DEBUG INICIAL - LISTANDO TODAS AS TRANSFERÊNCIAS ENCONTRADAS")
+        print("="*80)
+
+        # Contar tipos de transações
+        tipos_contagem = {}
+        for i, transf in enumerate(transferencias[:20]):  # Mostrar apenas 20 para não poluir
+            tipo = transf.get('tipo', 'sem_tipo')
+            status = transf.get('status', 'sem_status')
+            valor = transf.get('valor', 0)
+            conta_remetente = transf.get('conta_remetente', '')
+            conta_destinatario = transf.get('conta_destinatario', '')
+            
+            # Contar tipo
+            tipos_contagem[tipo] = tipos_contagem.get(tipo, 0) + 1
+            
+            # Mostrar detalhes das primeiras
+            if i < 10:  # Apenas 10 primeiras
+                print(f"{i+1}. ID: {transf.get('id', 'N/A')}")
+                print(f"   Tipo: {tipo}")
+                print(f"   Status: {status}")
+                print(f"   Valor: {valor}")
+                print(f"   Conta remetente: {conta_remetente}")
+                print(f"   Conta destinatário: {conta_destinatario}")
+                print(f"   É nossa conta? {conta_remetente == conta_num or conta_destinatario == conta_num}")
+
+        print(f"\n📊 RESUMO: {len(transferencias)} transferências encontradas")
+        for tipo, quantidade in tipos_contagem.items():
+            print(f"   {tipo}: {quantidade}")
+        print("="*80 + "\n")
+        # 🔥 🔥 🔥 FIM DO CÓDIGO DE DEBUG 🔥 🔥 🔥
+
         # 🔥 4. CALCULAR SALDO INICIAL (MESMA LÓGICA DO KIVY)
         def calcular_saldo_ate_data(conta_numero, data_limite):
             """Calcula saldo até o final do dia anterior"""
