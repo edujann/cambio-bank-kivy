@@ -11,6 +11,7 @@ from flask import Flask, jsonify, request, render_template, send_from_directory,
 
 import os
 import hashlib
+import re
 
 # Carrega variáveis de ambiente
 load_dotenv()
@@ -955,7 +956,7 @@ def handle_beneficiarios():
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
         if request.method == 'GET':
-            # Listar beneficiários do usuário
+            # Listar beneficiários ATIVOS do usuário
             response = supabase.table('beneficiarios') \
                 .select('*') \
                 .eq('cliente_username', usuario) \
@@ -1790,6 +1791,255 @@ def test_storage_simple():
             'success': False,
             'message': f'Erro geral: {str(e)}'
         })
+    
+# Adicione estas rotas no web_api.py:
+
+@app.route('/api/beneficiarios/<int:benef_id>', methods=['PUT', 'DELETE'])
+def gerenciar_beneficiario(benef_id):
+    """Editar ou excluir (soft delete) um beneficiário"""
+    usuario = session.get('username')
+    
+    if not usuario:
+        return jsonify({"success": False, "message": "Não autenticado"}), 401
+    
+    if request.method == 'PUT':
+        # Editar beneficiário
+        dados = request.get_json()
+        
+        # Verificar se o beneficiário pertence ao usuário
+        benef_response = supabase.table('beneficiarios')\
+            .select('id')\
+            .eq('id', benef_id)\
+            .eq('cliente_username', usuario)\
+            .execute()
+        
+        if not benef_response.data:
+            return jsonify({"success": False, "message": "Beneficiário não encontrado"}), 404
+        
+        # Atualizar beneficiário
+        update_response = supabase.table('beneficiarios')\
+            .update(dados)\
+            .eq('id', benef_id)\
+            .execute()
+        
+        if update_response.data:
+            return jsonify({"success": True, "message": "Beneficiário atualizado"})
+        else:
+            return jsonify({"success": False, "message": "Erro ao atualizar"}), 500
+    
+    elif request.method == 'DELETE':
+        # Soft delete (marcar como inativo)
+        update_response = supabase.table('beneficiarios')\
+            .update({'ativo': False})\
+            .eq('id', benef_id)\
+            .eq('cliente_username', usuario)\
+            .execute()
+        
+        if update_response.data:
+            return jsonify({"success": True, "message": "Beneficiário excluído"})
+        else:
+            return jsonify({"success": False, "message": "Erro ao excluir"}), 500
+        
+@app.route('/meus-beneficiarios')
+def meus_beneficiarios():
+    """Tela de gerenciamento de beneficiários"""
+    # ✅ Pega usuário da SESSÃO
+    usuario = session.get('username')
+    
+    if not usuario:
+        return redirect('/login')
+    
+    # Buscar dados do usuário
+    email = f'{usuario}@exemplo.com'
+    nome = usuario.upper()
+    
+    try:
+        if supabase:
+            response = supabase.table('usuarios')\
+                .select('email, nome')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if response.data:
+                if response.data.get('email'):
+                    email = response.data['email']
+                if response.data.get('nome'):
+                    nome = response.data['nome']
+    except Exception as e:
+        print(f"⚠️  Erro ao buscar usuário: {e}")
+    
+    return render_template('meus_beneficiarios.html',
+                         usuario=usuario,
+                         nome=nome,
+                         email=email)
+
+@app.route('/api/beneficiarios/<int:benef_id>', methods=['PUT'])
+def editar_beneficiario(benef_id):
+    """Editar um beneficiário existente"""
+    try:
+        # ✅ Pega usuário da SESSÃO
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({
+                "success": False,
+                "message": "Usuário não autenticado"
+            }), 401
+        
+        dados = request.get_json()
+        
+        # Validar campos obrigatórios (exceto aba)
+        campos_obrigatorios = [
+            'nome', 'endereco', 'cidade', 'pais', 
+            'banco', 'endereco_banco', 'cidade_banco', 'pais_banco',
+            'swift', 'iban'
+        ]
+        
+        for campo in campos_obrigatorios:
+            if campo not in dados or not dados[campo]:
+                return jsonify({
+                    "success": False,
+                    "message": f"Campo '{campo}' é obrigatório"
+                }), 400
+        
+        # Validação SWIFT (8 ou 11 caracteres)
+        swift = dados['swift'].upper().replace(' ', '')
+        if not re.match(r'^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$', swift):
+            return jsonify({
+                "success": False,
+                "message": "Código SWIFT inválido. Deve ter 8 ou 11 caracteres"
+            }), 400
+        
+        # Validação ABA (se preenchido, deve ter 9 dígitos)
+        if dados.get('aba'):
+            if not re.match(r'^[0-9]{9}$', dados['aba']):
+                return jsonify({
+                    "success": False,
+                    "message": "Código ABA inválido. Deve ter 9 dígitos"
+                }), 400
+        
+        # Primeiro, verificar se o beneficiário pertence ao usuário
+        benef_existente = supabase.table('beneficiarios')\
+            .select('id')\
+            .eq('id', benef_id)\
+            .eq('cliente_username', usuario)\
+            .execute()
+        
+        if not benef_existente.data:
+            return jsonify({
+                "success": False,
+                "message": "Beneficiário não encontrado ou não pertence ao usuário"
+            }), 404
+        
+        # Preparar dados para atualização
+        dados_atualizados = {
+            'nome': dados['nome'],
+            'endereco': dados['endereco'],
+            'cidade': dados['cidade'],
+            'pais': dados['pais'],
+            'banco': dados['banco'],
+            'endereco_banco': dados['endereco_banco'],
+            'cidade_banco': dados['cidade_banco'],
+            'pais_banco': dados['pais_banco'],
+            'swift': swift,
+            'iban': dados['iban'].upper().replace(' ', ''),
+            'aba': dados.get('aba', '')  # Pode ser vazio
+        }
+        
+        print(f"🔄 Atualizando beneficiário {benef_id} para usuário {usuario}")
+        print(f"📝 Dados: {dados_atualizados}")
+        
+        # Atualizar no Supabase
+        response = supabase.table('beneficiarios')\
+            .update(dados_atualizados)\
+            .eq('id', benef_id)\
+            .eq('cliente_username', usuario)\
+            .execute()
+        
+        if response.data:
+            print(f"✅ Beneficiário {benef_id} atualizado com sucesso!")
+            return jsonify({
+                "success": True,
+                "message": "Beneficiário atualizado com sucesso",
+                "id": benef_id
+            })
+        else:
+            print(f"❌ Erro ao atualizar beneficiário {benef_id}")
+            return jsonify({
+                "success": False,
+                "message": "Erro ao atualizar beneficiário"
+            }), 500
+            
+    except Exception as e:
+        print(f"❌ Erro em editar_beneficiario: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "message": f"Erro interno: {str(e)}"
+        }), 500
+    
+@app.route('/api/beneficiarios/<int:benef_id>', methods=['DELETE'])
+def excluir_beneficiario(benef_id):
+    """Excluir (soft delete) um beneficiário - marca como inativo"""
+    try:
+        # ✅ Pega usuário da SESSÃO
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({
+                "success": False,
+                "message": "Usuário não autenticado"
+            }), 401
+        
+        print(f"🗑️  Excluindo beneficiário {benef_id} para usuário {usuario}")
+        
+        # Verificar se o beneficiário existe e pertence ao usuário
+        benef_existente = supabase.table('beneficiarios')\
+            .select('id, nome')\
+            .eq('id', benef_id)\
+            .eq('cliente_username', usuario)\
+            .execute()
+        
+        if not benef_existente.data:
+            return jsonify({
+                "success": False,
+                "message": "Beneficiário não encontrado ou não pertence ao usuário"
+            }), 404
+        
+        # Soft delete - marcar como inativo
+        response = supabase.table('beneficiarios')\
+            .update({'ativo': False})\
+            .eq('id', benef_id)\
+            .eq('cliente_username', usuario)\
+            .execute()
+        
+        if response.data:
+            nome_beneficiario = benef_existente.data[0]['nome']
+            print(f"✅ Beneficiário '{nome_beneficiario}' ({benef_id}) marcado como inativo")
+            
+            return jsonify({
+                "success": True,
+                "message": f"Beneficiário '{nome_beneficiario}' excluído com sucesso"
+            })
+        else:
+            print(f"❌ Erro ao excluir beneficiário {benef_id}")
+            return jsonify({
+                "success": False,
+                "message": "Erro ao excluir beneficiário"
+            }), 500
+            
+    except Exception as e:
+        print(f"❌ Erro em excluir_beneficiario: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "message": f"Erro interno: {str(e)}"
+        }), 500
+    
+
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
