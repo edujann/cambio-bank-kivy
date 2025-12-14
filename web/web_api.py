@@ -2039,7 +2039,173 @@ def excluir_beneficiario(benef_id):
             "message": f"Erro interno: {str(e)}"
         }), 500
     
+@app.route('/api/beneficiarios/<int:benef_id>', methods=['DELETE'])
+def excluir_beneficiario_api(benef_id):
+    """Excluir um beneficiário do Supabase"""
+    try:
+        # ✅ Pega usuário da SESSÃO
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({
+                "success": False,
+                "message": "Usuário não autenticado"
+            }), 401
+        
+        print(f"🗑️  [API DELETE] Excluindo beneficiário {benef_id} para usuário {usuario}")
+        
+        # 1. Verificar se o beneficiário existe e pertence ao usuário
+        benef_existente = supabase.table('beneficiarios')\
+            .select('id, nome')\
+            .eq('id', benef_id)\
+            .eq('cliente_username', usuario)\
+            .eq('ativo', True)\
+            .execute()
+        
+        if not benef_existente.data:
+            print(f"❌ Beneficiário {benef_id} não encontrado para {usuario}")
+            return jsonify({
+                "success": False,
+                "message": "Beneficiário não encontrado ou não pertence ao usuário"
+            }), 404
+        
+        nome_beneficiario = benef_existente.data[0]['nome']
+        
+        # 2. DELETAR REALMENTE do Supabase (hard delete)
+        response = supabase.table('beneficiarios')\
+            .delete()\
+            .eq('id', benef_id)\
+            .eq('cliente_username', usuario)\
+            .execute()
+        
+        if response.data:
+            print(f"✅ Beneficiário '{nome_beneficiario}' ({benef_id}) deletado com sucesso!")
+            
+            return jsonify({
+                "success": True,
+                "message": f"Beneficiário '{nome_beneficiario}' excluído com sucesso"
+            })
+        else:
+            print(f"❌ Erro ao deletar beneficiário {benef_id}")
+            return jsonify({
+                "success": False,
+                "message": "Erro ao excluir beneficiário"
+            }), 500
+            
+    except Exception as e:
+        print(f"❌ Erro em excluir_beneficiario_api: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "message": f"Erro interno: {str(e)}"
+        }), 500
 
+@app.route('/api/beneficiarios/<int:benef_id>', methods=['PUT'])
+def editar_beneficiario_api(benef_id):
+    """Editar um beneficiário existente"""
+    try:
+        # ✅ Pega usuário da SESSÃO
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({
+                "success": False,
+                "message": "Usuário não autenticado"
+            }), 401
+        
+        dados = request.get_json()
+        
+        print(f"🔄 [API PUT] Editando beneficiário {benef_id} para usuário {usuario}")
+        print(f"📝 Dados recebidos: {dados}")
+        
+        # Validar campos obrigatórios (exceto aba)
+        campos_obrigatorios = [
+            'nome', 'endereco', 'cidade', 'pais', 
+            'banco', 'endereco_banco', 'cidade_banco', 'pais_banco',
+            'swift', 'iban'
+        ]
+        
+        for campo in campos_obrigatorios:
+            if campo not in dados or not dados[campo]:
+                return jsonify({
+                    "success": False,
+                    "message": f"Campo '{campo}' é obrigatório"
+                }), 400
+        
+        # Validação SWIFT (8 ou 11 caracteres)
+        swift = dados['swift'].upper().replace(' ', '')
+        if not re.match(r'^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$', swift):
+            return jsonify({
+                "success": False,
+                "message": "Código SWIFT inválido. Deve ter 8 ou 11 caracteres"
+            }), 400
+        
+        # Validação ABA (se preenchido, deve ter 9 dígitos)
+        if dados.get('aba'):
+            if not re.match(r'^[0-9]{9}$', dados['aba']):
+                return jsonify({
+                    "success": False,
+                    "message": "Código ABA inválido. Deve ter 9 dígitos"
+                }), 400
+        
+        # Verificar se o beneficiário pertence ao usuário
+        benef_existente = supabase.table('beneficiarios')\
+            .select('id')\
+            .eq('id', benef_id)\
+            .eq('cliente_username', usuario)\
+            .execute()
+        
+        if not benef_existente.data:
+            return jsonify({
+                "success": False,
+                "message": "Beneficiário não encontrado ou não pertence ao usuário"
+            }), 404
+        
+        # Preparar dados para atualização
+        dados_atualizados = {
+            'nome': dados['nome'],
+            'endereco': dados['endereco'],
+            'cidade': dados['cidade'],
+            'pais': dados['pais'],
+            'banco': dados['banco'],
+            'endereco_banco': dados['endereco_banco'],
+            'cidade_banco': dados['cidade_banco'],
+            'pais_banco': dados['pais_banco'],
+            'swift': swift,
+            'iban': dados['iban'].upper().replace(' ', ''),
+            'aba': dados.get('aba', '')
+        }
+        
+        # Atualizar no Supabase
+        response = supabase.table('beneficiarios')\
+            .update(dados_atualizados)\
+            .eq('id', benef_id)\
+            .eq('cliente_username', usuario)\
+            .execute()
+        
+        if response.data:
+            print(f"✅ Beneficiário {benef_id} atualizado com sucesso!")
+            return jsonify({
+                "success": True,
+                "message": "Beneficiário atualizado com sucesso",
+                "id": benef_id
+            })
+        else:
+            print(f"❌ Erro ao atualizar beneficiário {benef_id}")
+            return jsonify({
+                "success": False,
+                "message": "Erro ao atualizar beneficiário"
+            }), 500
+            
+    except Exception as e:
+        print(f"❌ Erro em editar_beneficiario_api: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "message": f"Erro interno: {str(e)}"
+        }), 500
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))

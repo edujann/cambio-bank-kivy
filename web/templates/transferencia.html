@@ -572,5 +572,144 @@
             setupEventListeners();
         });
     </script>
+
+    <script>
+    // ============================================
+    // PREENCHER BENEFICIÁRIO AUTOMATICAMENTE
+    // ============================================
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🔄 Verificando se há beneficiário para preencher...');
+        
+        // Verificar se há beneficiário salvo no sessionStorage
+        const beneficiarioJSON = sessionStorage.getItem('beneficiarioParaTransferencia');
+        
+        if (beneficiarioJSON) {
+            try {
+                const beneficiario = JSON.parse(beneficiarioJSON);
+                console.log('✅ Beneficiário encontrado:', beneficiario.nome);
+                
+                // 1. PREENCHER CAMPOS DO FORMULÁRIO
+                // (Use os IDs EXATOS do seu formulário)
+                
+                // Beneficiário
+                preencherCampoSeExistir('beneficiario', beneficiario.nome);
+                preencherCampoSeExistir('nome_beneficiario', beneficiario.nome);
+                
+                // Endereço do beneficiário
+                preencherCampoSeExistir('endereco_beneficiario', beneficiario.endereco);
+                preencherCampoSeExistir('endereco', beneficiario.endereco);
+                
+                // Cidade
+                preencherCampoSeExistir('cidade', beneficiario.cidade);
+                
+                // País
+                preencherCampoSeExistir('pais', beneficiario.pais);
+                
+                // Informações do banco
+                preencherCampoSeExistir('banco', beneficiario.banco);
+                preencherCampoSeExistir('nome_banco', beneficiario.banco);
+                
+                preencherCampoSeExistir('endereco_banco', beneficiario.endereco_banco);
+                preencherCampoSeExistir('cidade_banco', beneficiario.cidade_banco);
+                preencherCampoSeExistir('pais_banco', beneficiario.pais_banco);
+                
+                // Códigos bancários
+                preencherCampoSeExistir('swift', beneficiario.swift);
+                preencherCampoSeExistir('codigo_swift', beneficiario.swift);
+                
+                preencherCampoSeExistir('iban', beneficiario.iban);
+                preencherCampoSeExistir('iban_account', beneficiario.iban);
+                
+                preencherCampoSeExistir('aba', beneficiario.aba);
+                preencherCampoSeExistir('aba_routing', beneficiario.aba);
+                
+                // 2. LIMPAR O sessionStorage (para não preencher novamente)
+                sessionStorage.removeItem('beneficiarioParaTransferencia');
+                
+                // 3. MOSTRAR MENSAGEM DE CONFIRMAÇÃO
+                mostrarMensagemBeneficiario(beneficiario.nome);
+                
+            } catch (error) {
+                console.error('❌ Erro ao carregar beneficiário:', error);
+            }
+        } else {
+            console.log('ℹ️ Nenhum beneficiário salvo para preencher');
+        }
+    });
+
+    // FUNÇÃO AUXILIAR: Preencher campo se ele existir
+    function preencherCampoSeExistir(idOuName, valor) {
+        if (!valor) return; // Não preencher se valor for vazio
+        
+        // Tentar por ID primeiro
+        let campo = document.getElementById(idOuName);
+        
+        // Se não encontrou por ID, tentar por name
+        if (!campo) {
+            campo = document.querySelector(`[name="${idOuName}"]`);
+        }
+        
+        // Se encontrou o campo e ele é input/textarea/select
+        if (campo && (campo.tagName === 'INPUT' || campo.tagName === 'TEXTAREA' || campo.tagName === 'SELECT')) {
+            campo.value = valor;
+            console.log(`   📝 Campo "${idOuName}" preenchido: "${valor}"`);
+        }
+    }
+
+    // FUNÇÃO AUXILIAR: Mostrar mensagem de confirmação
+    function mostrarMensagemBeneficiario(nomeBeneficiario) {
+        // Criar elemento de mensagem
+        const mensagemDiv = document.createElement('div');
+        mensagemDiv.id = 'mensagem-beneficiario';
+        mensagemDiv.innerHTML = `
+            <div style="
+                background: rgba(46, 204, 113, 0.15);
+                border: 1px solid #2ecc71;
+                color: #2ecc71;
+                padding: 15px 20px;
+                border-radius: 8px;
+                margin-bottom: 20px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            ">
+                <i class="fas fa-check-circle" style="font-size: 18px;"></i>
+                <div>
+                    <strong style="display: block; margin-bottom: 2px;">Beneficiário carregado!</strong>
+                    <span>Dados de <strong>${nomeBeneficiario}</strong> preenchidos automaticamente.</span>
+                </div>
+                <button onclick="this.parentElement.remove()" style="
+                    margin-left: auto;
+                    background: transparent;
+                    border: none;
+                    color: #2ecc71;
+                    cursor: pointer;
+                    font-size: 16px;
+                ">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        // Encontrar onde colocar a mensagem (no início do formulário)
+        const formulario = document.querySelector('form');
+        if (formulario) {
+            formulario.insertBefore(mensagemDiv, formulario.firstChild);
+            
+            // Remover automaticamente após 10 segundos
+            setTimeout(() => {
+                if (mensagemDiv.parentElement) {
+                    mensagemDiv.style.opacity = '0';
+                    mensagemDiv.style.transition = 'opacity 0.5s';
+                    setTimeout(() => mensagemDiv.remove(), 500);
+                }
+            }, 10000);
+        }
+        
+        console.log(`✅ Mensagem exibida para beneficiário: ${nomeBeneficiario}`);
+    }
+    </script>
+
 </body>
 </html>

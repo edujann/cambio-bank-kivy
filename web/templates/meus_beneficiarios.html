@@ -1064,8 +1064,37 @@
     function usarBeneficiario(id) {
         const beneficiario = beneficiariosData.find(b => b.id === id);
         if (beneficiario) {
-            sessionStorage.setItem('beneficiarioSelecionado', JSON.stringify(beneficiario));
-            window.location.href = '/transferencia';
+            // Salvar TODOS os dados do beneficiário
+            const dadosParaTransferencia = {
+                id: beneficiario.id,
+                nome: beneficiario.nome,
+                endereco: beneficiario.endereco || '',
+                cidade: beneficiario.cidade || '',
+                pais: beneficiario.pais || '',
+                banco: beneficiario.banco || '',
+                endereco_banco: beneficiario.endereco_banco || '',
+                cidade_banco: beneficiario.cidade_banco || '',
+                pais_banco: beneficiario.pais_banco || '',
+                swift: beneficiario.swift || '',
+                iban: beneficiario.iban || '',
+                aba: beneficiario.aba || '',
+                data_selecao: new Date().toISOString()
+            };
+            
+            console.log('💾 Salvando beneficiário para transferência:', dadosParaTransferencia.nome);
+            
+            // Salvar no sessionStorage (dura enquanto o navegador está aberto)
+            sessionStorage.setItem('beneficiarioParaTransferencia', JSON.stringify(dadosParaTransferencia));
+            
+            // Mostrar mensagem
+            alert(`✅ Beneficiário "${beneficiario.nome}" selecionado!\nRedirecionando para transferência...`);
+            
+            // Redirecionar após 0.5 segundos
+            setTimeout(() => {
+                window.location.href = '/transferencia';
+            }, 500);
+        } else {
+            alert('❌ Beneficiário não encontrado!');
         }
     }
 
