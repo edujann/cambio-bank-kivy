@@ -2752,6 +2752,42 @@ def obter_extrato_kivy():
             'id': 'SALDO_INICIAL'
         })
         
+        # 🔥 DEBUG ESPECÍFICO PARA TRANSAÇÃO 733125
+        print(f"\n" + "="*80)
+        print("🔍 BUSCANDO ESPECIFICAMENTE A TRANSAÇÃO 733125")
+        print("="*80)
+
+        transf_733125_encontrada = False
+        for transf in transferencias:
+            transf_id = transf.get('id', '')
+            if str(transf_id) == '733125':
+                transf_733125_encontrada = True
+                print(f"✅ TRANSAÇÃO 733125 ENCONTRADA!")
+                print(f"   ID: {transf.get('id')}")
+                print(f"   Tipo: {transf.get('tipo')}")
+                print(f"   Status: {transf.get('status')}")
+                print(f"   Valor: {transf.get('valor')}")
+                print(f"   Data: {transf.get('data')}")
+                print(f"   Conta remetente: {transf.get('conta_remetente')}")
+                print(f"   Conta destinatario: {transf.get('conta_destinatario')}")
+                print(f"   Nome destinatário: {transf.get('nome_destinatario')}")
+                print(f"   É remetente? {transf.get('conta_remetente') == conta_num}")
+                print(f"   É destinatário? {transf.get('conta_destinatario') == conta_num}")
+                break
+
+        if not transf_733125_encontrada:
+            print("❌ TRANSAÇÃO 733125 NÃO ENCONTRADA NAS TRANSFERÊNCIAS!")
+            print("🔍 Verificando se está em alguma outra conta...")
+            
+            for transf in transferencias:
+                transf_id = transf.get('id', '')
+                if '733125' in str(transf_id):
+                    print(f"⚠️  ID PARECIDO ENCONTRADO: {transf_id}")
+                    print(f"   Tipo: {transf.get('tipo')}")
+                    print(f"   Status: {transf.get('status')}")
+
+        print("="*80 + "\n")
+
         # 🔥 6. PROCESSAR CADA TRANSAÇÃO COM DEBUG
         for transf in transferencias:
             contadores['total'] += 1
