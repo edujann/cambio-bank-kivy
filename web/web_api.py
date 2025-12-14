@@ -2897,6 +2897,48 @@ def obter_extrato_kivy():
                                 'moeda': moeda,
                                 'timestamp': data_transacao
                             })
+
+                    # 🔥 CORREÇÃO CRÍTICA: TRANSFERÊNCIA INTERNA CLIENTE (TIPO ESPECIAL)
+                    elif transf_tipo == 'transferencia_interna_cliente':
+                        status_normalizado = transf_status.lower() if transf_status else ''
+                        
+                        # Cliente é REMETENTE (debitar valor)
+                        if transf.get('conta_remetente') == conta_num:
+                            status_text = "SOLICITADA" if status_normalizado in ['pending', 'solicitada'] else \
+                                        "EM PROCESSAMENTO" if status_normalizado == 'processing' else \
+                                        "CONCLUÍDA" if status_normalizado == 'completed' else "RECUSADA"
+                            
+                            transacoes_todas.append({
+                                'id': transf_id,
+                                'data': data_transacao_str,
+                                'descricao': f"TRANSFERÊNCIA INTERNA {status_text}",
+                                'credito': 0.00,
+                                'debito': valor,
+                                'tipo': "Transferência Interna",
+                                'moeda': moeda,
+                                'timestamp': data_transacao
+                            })
+                            
+                            # DEBUG
+                            print(f"💰 TRANSFERÊNCIA INTERNA CLIENTE: {status_text} | -{valor:,.2f}")
+                        
+                        # Cliente é DESTINATÁRIO (crédito - se for transferência recebida)
+                        elif transf.get('conta_destinatario') == conta_num:
+                            status_text = "SOLICITADA" if status_normalizado in ['pending', 'solicitada'] else \
+                                        "EM PROCESSAMENTO" if status_normalizado == 'processing' else \
+                                        "CONCLUÍDA" if status_normalizado == 'completed' else "RECUSADA"
+                            
+                            transacoes_todas.append({
+                                'id': transf_id,
+                                'data': data_transacao_str,
+                                'descricao': f"TRANSFERÊNCIA INTERNA {status_text} RECEBIDA",
+                                'credito': valor,
+                                'debito': 0.00,
+                                'tipo': "Transferência Interna",
+                                'moeda': moeda,
+                                'timestamp': data_transacao
+                            })
+
                     elif transf_tipo in ['internacional', 'transferencia_internacional']:
                         status_normalizado = transf_status.lower() if transf_status else ''
                         
