@@ -2493,6 +2493,29 @@ def obter_extrato_kivy():
         
         print(f"📊 [EXTRATO KIVY] Usuário: {usuario}, Conta: {conta_num}, Período: {periodo}")
         
+        # 🔥 FUNÇÃO AUXILIAR PARA BUSCAR NOMES (IGUAL AO KIVY)
+        def obter_nome_cliente_por_conta(conta_numero):
+            """Busca nome do cliente pelo número da conta (igual ao Kivy)"""
+            if not conta_numero:
+                return f"Conta N/A"
+            
+            try:
+                response = supabase.table('contas')\
+                    .select('cliente_nome')\
+                    .eq('id', conta_numero)\
+                    .execute()
+                
+                if response.data and response.data[0].get('cliente_nome'):
+                    nome = response.data[0]['cliente_nome']
+                    if nome and nome != 'None':
+                        return nome
+                
+                # Se não encontrar, retorna o número da conta
+                return f"Conta {conta_numero}"
+            except Exception as e:
+                print(f"⚠️ Erro ao buscar nome para conta {conta_numero}: {e}")
+                return f"Conta {conta_numero}"
+        
         # 🔥 1. VERIFICAR CONTA
         conta_response = supabase.table('contas')\
             .select('*')\
@@ -2908,10 +2931,9 @@ def obter_extrato_kivy():
                                         "EM PROCESSAMENTO" if status_normalizado == 'processing' else \
                                         "CONCLUÍDA" if status_normalizado == 'completed' else "RECUSADA"
                             
-                            # 🔥 ADICIONAR NOME DO DESTINATÁRIO NA DESCRIÇÃO
-                            nome_destinatario = transf.get('nome_destinatario', 'N/A')
-                            if not nome_destinatario or nome_destinatario == 'None':
-                                nome_destinatario = 'N/A'
+                            # 🔥 USAR FUNÇÃO PARA BUSCAR NOME DO DESTINATÁRIO (IGUAL AO KIVY)
+                            conta_destinatario = transf.get('conta_destinatario', '')
+                            nome_destinatario = obter_nome_cliente_por_conta(conta_destinatario)
                             
                             transacoes_todas.append({
                                 'id': transf_id,
@@ -2933,10 +2955,9 @@ def obter_extrato_kivy():
                                         "EM PROCESSAMENTO" if status_normalizado == 'processing' else \
                                         "CONCLUÍDA" if status_normalizado == 'completed' else "RECUSADA"
                             
-                            # 🔥 ADICIONAR NOME DO REMETENTE NA DESCRIÇÃO (se for recebida)
-                            nome_remetente = transf.get('nome_remetente', 'N/A')
-                            if not nome_remetente or nome_remetente == 'None':
-                                nome_remetente = 'N/A'
+                            # 🔥 USAR FUNÇÃO PARA BUSCAR NOME DO REMETENTE (IGUAL AO KIVY)
+                            conta_remetente = transf.get('conta_remetente', '')
+                            nome_remetente = obter_nome_cliente_por_conta(conta_remetente)
                             
                             transacoes_todas.append({
                                 'id': transf_id,
@@ -3007,6 +3028,19 @@ def obter_extrato_kivy():
                                 'timestamp': data_transacao
                             })
                     elif transf_tipo == 'cambio':
+                        # 🔥 DEBUG TEMPORÁRIO PARA VER CAMPOS DE CÂMBIO
+                        if str(transf_id) in ['577695', '339024', '671309', '778779']:  # IDs de exemplo que apareceram nos logs
+                            print(f"\n🔍 DEBUG CÂMBIO ID {transf_id}:")
+                            print(f"   Campos disponíveis: {list(transf.keys())}")
+                            print(f"   descricao_origem: {transf.get('descricao_origem')}")
+                            print(f"   descricao_destino: {transf.get('descricao_destino')}")
+                            print(f"   moeda_origem: {transf.get('moeda_origem')}")
+                            print(f"   moeda_destino: {transf.get('moeda_destino')}")
+                            print(f"   valor_origem: {transf.get('valor_origem')}")
+                            print(f"   valor_destino: {transf.get('valor_destino')}")
+                            print(f"   tipo_operacao: {transf.get('tipo_operacao')}")
+                            print(f"   observacao: {transf.get('observacao')}")
+                        
                         # 🔥 MELHORAR DESCRIÇÃO IGUAL AO KIVY
                         descricao_cambio = f"CÂMBIO - {transf.get('descricao_origem', 'Operação de câmbio')}"
                         
@@ -3057,6 +3091,19 @@ def obter_extrato_kivy():
                             'timestamp': data_transacao
                         })
                     elif transf_tipo == 'cambio':
+                        # 🔥 DEBUG TEMPORÁRIO PARA VER CAMPOS DE CÂMBIO
+                        if str(transf_id) in ['577695', '339024', '671309', '778779']:  # IDs de exemplo que apareceram nos logs
+                            print(f"\n🔍 DEBUG CÂMBIO ID {transf_id}:")
+                            print(f"   Campos disponíveis: {list(transf.keys())}")
+                            print(f"   descricao_origem: {transf.get('descricao_origem')}")
+                            print(f"   descricao_destino: {transf.get('descricao_destino')}")
+                            print(f"   moeda_origem: {transf.get('moeda_origem')}")
+                            print(f"   moeda_destino: {transf.get('moeda_destino')}")
+                            print(f"   valor_origem: {transf.get('valor_origem')}")
+                            print(f"   valor_destino: {transf.get('valor_destino')}")
+                            print(f"   tipo_operacao: {transf.get('tipo_operacao')}")
+                            print(f"   observacao: {transf.get('observacao')}")
+                        
                         # 🔥 MELHORAR DESCRIÇÃO IGUAL AO KIVY (DESTINATÁRIO)
                         descricao_cambio = f"CÂMBIO - {transf.get('descricao_destino', 'Operação de câmbio')}"
                         
