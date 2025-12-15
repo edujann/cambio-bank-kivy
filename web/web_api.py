@@ -2639,8 +2639,20 @@ def obter_extrato_kivy():
             
             tipos_contagem[tipo] = tipos_contagem.get(tipo, 0) + 1
             
+            # 🔥 DEBUG ESPECÍFICO PARA 850030
+            transf_id = transf.get('id', 'N/A')
+            if str(transf_id) == '850030':
+                print(f"\n🔍🔍🔍 DEBUG 850030 NA LISTA COMPLETA:")
+                print(f"   Índice: {i}")
+                print(f"   ID: {transf_id}")
+                print(f"   Tipo: {tipo}")
+                print(f"   Status: {status}")
+                print(f"   Conta remetente: {conta_remetente}")
+                print(f"   Conta destinatario: {conta_destinatario}")
+                print(f"   Valor: {valor}")
+            
             if i < 10:
-                print(f"{i+1}. ID: {transf.get('id', 'N/A')}")
+                print(f"{i+1}. ID: {transf_id}")
                 print(f"   Tipo: {tipo}")
                 print(f"   Status: {status}")
                 print(f"   Valor: {valor}")
@@ -2652,6 +2664,14 @@ def obter_extrato_kivy():
         for tipo, quantidade in tipos_contagem.items():
             print(f"   {tipo}: {quantidade}")
         print("="*80 + "\n")
+
+        # 🔥 VERIFICAR QUANTAS VEZES 850030 APARECE
+        contador_850030 = 0
+        for transf in transferencias:
+            if str(transf.get('id', '')) == '850030':
+                contador_850030 += 1
+
+        print(f"\n🔍 CONTAGEM DA TRANSAÇÃO 850030: {contador_850030} ocorrência(s)")
 
         # 🔥 DEBUG ESPECÍFICO PARA CÂMBIOS DA NOVA TELA
         print(f"\n🎯🎯🎯 DEBUG CÂMBIOS ENCONTRADOS 🎯🎯🎯")
