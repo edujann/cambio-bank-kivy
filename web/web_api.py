@@ -2746,63 +2746,202 @@ def obter_extrato_kivy():
 
         # 🔥 4. CALCULAR SALDO INICIAL (MESMA LÓGICA DO KIVY)
         def calcular_saldo_ate_data(conta_numero, data_limite):
-            """Calcula saldo até o final do dia anterior"""
+            """Calcula saldo até o final do dia anterior à data_limite (EXATAMENTE IGUAL AO KIVY)"""
             saldo_acumulado = 0.0
+            
+            print(f"\n💰💰💰 [CALCULAR SALDO ATÉ DATA - IGUAL KIVY] 🔥🔥🔥")
+            print(f"   Conta: {conta_numero}")
+            print(f"   Data limite recebida: {data_limite}")
+            print(f"   Tipo data_limite: {type(data_limite)}")
+            print(f"   Total transferências: {len(transferencias_dict)}")
+            
+            # 🔥 Data limite ajustada: FIM DO DIA ANTERIOR à data_limite (IGUAL KIVY)
+            data_limite_ajustada = data_limite - timedelta(days=1)
+            data_limite_ajustada = data_limite_ajustada.replace(hour=23, minute=59, second=59, microsecond=999999)
+            
+            print(f"   🔥 Data limite ajustada (FIM do dia anterior): {data_limite_ajustada}")
+            
+            transacoes_incluidas = 0
+            transacoes_excluidas_status = 0
+            transacoes_excluidas_data = 0
             
             for transf_id, dados in transferencias_dict.items():
                 try:
-                    # Verificar se a transação afeta a conta
+                    # 🔥 1. VERIFICAR SE A TRANSAÇÃO AFETA A CONTA (IGUAL AO KIVY)
+                    tipo_transacao = dados.get('tipo', '')
+                    status = dados.get('status', '')
+                    
+                    # DEBUG para transações específicas
+                    debug_transacao = str(transf_id) in ['707591', '816705', '850030']
+                    
+                    if debug_transacao:
+                        print(f"\n🎯🎯🎯 TRANSAÇÃO CRÍTICA {transf_id} NO CÁLCULO DO SALDO:")
+                        print(f"   Tipo: {tipo_transacao}")
+                        print(f"   Status: {status}")
+                        print(f"   Data: {dados.get('data', 'N/A')}")
+                    
+                    # Verificar TODOS os campos possíveis (igual ao Kivy)
+                    conta_remetente = dados.get('conta_remetente')
+                    conta_destinatario = dados.get('conta_destinatario')
+                    conta_origem = dados.get('conta_origem')
+                    conta_destino = dados.get('conta_destino')
+                    
                     conta_envolvida = (
-                        dados.get('conta_remetente') == conta_numero or
-                        dados.get('conta_destinatario') == conta_numero or
-                        dados.get('conta_origem') == conta_numero or
-                        dados.get('conta_destino') == conta_numero
+                        conta_remetente == conta_numero or 
+                        conta_destinatario == conta_numero or
+                        conta_origem == conta_numero or
+                        conta_destino == conta_numero
                     )
                     
                     if not conta_envolvida:
+                        if debug_transacao:
+                            print(f"   ❌ EXCLUÍDA - Conta não envolvida")
                         continue
                     
-                    # Obter data da transação
+                    # 🔥🔥🔥 CRÍTICO: VERIFICAÇÃO DE STATUS (EXATAMENTE IGUAL AO KIVY!)
+                    # NO KIVY: SÓ 'completed' e 'processing' são incluídos no cálculo do saldo!
+                    # 'solicitada', 'pending', 'rejected' são EXCLUÍDOS!
+                    if status not in ['completed', 'processing']:
+                        if debug_transacao:
+                            print(f"   ❌ EXCLUÍDA - Status não válido para cálculo: {status}")
+                            print(f"   ⚠️  KIVY: Só 'completed' e 'processing' afetam saldo!")
+                        transacoes_excluidas_status += 1
+                        continue
+                    
+                    # 🔥 3. OBTER E PARSEAR DATA
                     data_transacao_str = dados.get('data', '')
                     if not data_transacao_str:
+                        if debug_transacao:
+                            print(f"   ❌ EXCLUÍDA - Sem data")
                         continue
                     
-                    # Parsear data
                     data_transacao = parse_data_unificada(data_transacao_str)
                     if not data_transacao:
+                        if debug_transacao:
+                            print(f"   ❌ EXCLUÍDA - Data inválida: {data_transacao_str}")
                         continue
                     
-                    # Calcular até o FINAL do dia anterior
-                    data_fim_calculo = data_limite - timedelta(days=1)
-                    data_fim_calculo = data_fim_calculo.replace(hour=23, minute=59, second=59, microsecond=999999)
-                    
-                    # Incluir apenas transações até data_fim_calculo
-                    if data_transacao <= data_fim_calculo:
-                        tipo = dados.get('tipo', '')
-                        status = dados.get('status', '')
+                    # 🔥 4. VERIFICAR SE ESTÁ DENTRO DO PERÍODO (ATÉ O FIM DO DIA ANTERIOR)
+                    if data_transacao <= data_limite_ajustada:
                         valor = float(dados.get('valor', 0)) if dados.get('valor') is not None else 0.0
                         
-                        # Cliente é REMETENTE (SAÍDA)
-                        if dados.get('conta_remetente') == conta_numero or dados.get('conta_origem') == conta_numero:
-                            if tipo == 'deposito':
-                                saldo_acumulado += valor
-                            elif tipo == 'ajuste_admin' and dados.get('tipo_ajuste', '').upper() == 'CREDITO':
-                                saldo_acumulado += valor
-                            elif tipo in ['cambio', 'internacional', 'transferencia_interna']:
-                                saldo_acumulado -= valor
+                        if debug_transacao:
+                            print(f"   ✅ INCLUÍDA NO CÁLCULO:")
+                            print(f"      Data: {data_transacao} <= {data_limite_ajustada} ✓")
+                            print(f"      Valor: {valor:,.2f}")
                         
-                        # Cliente é DESTINATÁRIO (ENTRADA)
-                        elif dados.get('conta_destinatario') == conta_numero or dados.get('conta_destino') == conta_numero:
-                            if tipo == 'deposito':
+                        # 🔥 5. LÓGICA DE CÁLCULO (EXATAMENTE IGUAL AO KIVY)
+                        
+                        # 🔥 CÂMBIO
+                        if tipo_transacao == 'cambio':
+                            if conta_remetente == conta_numero or conta_origem == conta_numero:
+                                # Cliente é REMETENTE/ORIGEM (vendeu moeda) → SAÍDA
+                                saldo_acumulado -= valor
+                                if debug_transacao:
+                                    print(f"      💰 CÂMBIO SAÍDA: -{valor:,.2f}")
+                            elif conta_destinatario == conta_numero or conta_destino == conta_numero:
+                                # Cliente é DESTINATÁRIO/DESTINO (comprou moeda) → ENTRADA
+                                valor_entrada = dados.get('valor_destino', valor)
+                                saldo_acumulado += valor_entrada
+                                if debug_transacao:
+                                    print(f"      💰 CÂMBIO ENTRADA: +{valor_entrada:,.2f}")
+                        
+                        # 🔥 TRANSFERÊNCIA INTERNACIONAL
+                        elif tipo_transacao in ['transferencia_internacional', 'internacional']:
+                            if conta_remetente == conta_numero or conta_origem == conta_numero:
+                                # Cliente é REMETENTE → SAÍDA
+                                saldo_acumulado -= valor
+                                if debug_transacao:
+                                    print(f"      💰 INTERNACIONAL SAÍDA: -{valor:,.2f}")
+                            elif conta_destinatario == conta_numero or conta_destino == conta_numero:
+                                # Cliente é DESTINATÁRIO → ENTRADA
                                 saldo_acumulado += valor
-                            elif tipo == 'ajuste_admin' and dados.get('tipo_ajuste', '').upper() == 'CREDITO':
+                                if debug_transacao:
+                                    print(f"      💰 INTERNACIONAL ENTRADA: +{valor:,.2f}")
+                        
+                        # 🔥 TRANSFERÊNCIA INTERNA CLIENTE
+                        elif tipo_transacao == 'transferencia_interna_cliente':
+                            if conta_remetente == conta_numero or conta_origem == conta_numero:
+                                # Cliente é REMETENTE → SAÍDA
+                                saldo_acumulado -= valor
+                                if debug_transacao:
+                                    print(f"      💰 TRANSF. INTERNA SAÍDA: -{valor:,.2f}")
+                            elif conta_destinatario == conta_numero or conta_destino == conta_numero:
+                                # Cliente é DESTINATÁRIO → ENTRADA
                                 saldo_acumulado += valor
-                            elif tipo in ['cambio', 'internacional', 'transferencia_interna']:
+                                if debug_transacao:
+                                    print(f"      💰 TRANSF. INTERNA ENTRADA: +{valor:,.2f}")
+                        
+                        # 🔥 RECEITA (TAXA/DESPESA)
+                        elif tipo_transacao == 'receita':
+                            if conta_remetente == conta_numero or conta_origem == conta_numero:
+                                # Cliente é REMETENTE → SAÍDA (DÉBITO)
+                                saldo_acumulado -= valor
+                                if debug_transacao:
+                                    print(f"      💰 RECEITA SAÍDA: -{valor:,.2f}")
+                        
+                        # 🔥 AJUSTE ADMINISTRATIVO
+                        elif tipo_transacao == 'ajuste_admin':
+                            tipo_ajuste = dados.get('tipo_ajuste', 'DÉBITO')
+                            if tipo_ajuste and (tipo_ajuste.upper() == 'CREDITO' or tipo_ajuste == 'credito'):
+                                # AJUSTE POSITIVO → ENTRADA
                                 saldo_acumulado += valor
-                                
+                                if debug_transacao:
+                                    print(f"      💰 AJUSTE POSITIVO: +{valor:,.2f}")
+                            else:
+                                # AJUSTE NEGATIVO → SAÍDA
+                                saldo_acumulado -= valor
+                                if debug_transacao:
+                                    print(f"      💰 AJUSTE NEGATIVO: -{valor:,.2f}")
+                        
+                        # 🔥 DEPÓSITO
+                        elif tipo_transacao == 'deposito':
+                            if conta_destinatario == conta_numero or conta_destino == conta_numero:
+                                # Cliente é DESTINATÁRIO → ENTRADA
+                                saldo_acumulado += valor
+                                if debug_transacao:
+                                    print(f"      💰 DEPÓSITO ENTRADA: +{valor:,.2f}")
+                            elif conta_remetente == conta_numero or conta_origem == conta_numero:
+                                # Cliente é REMETENTE → SAÍDA (para completude)
+                                saldo_acumulado -= valor
+                                if debug_transacao:
+                                    print(f"      💰 DEPÓSITO SAÍDA: -{valor:,.2f}")
+                        
+                        # 🔥 OUTROS TIPOS - Lógica genérica
+                        else:
+                            if conta_remetente == conta_numero or conta_origem == conta_numero:
+                                # SAÍDA
+                                saldo_acumulado -= valor
+                                if debug_transacao:
+                                    print(f"      💰 OUTRO TIPO SAÍDA: -{valor:,.2f}")
+                            elif conta_destinatario == conta_numero or conta_destino == conta_numero:
+                                # ENTRADA
+                                saldo_acumulado += valor
+                                if debug_transacao:
+                                    print(f"      💰 OUTRO TIPO ENTRADA: +{valor:,.2f}")
+                        
+                        transacoes_incluidas += 1
+                        if debug_transacao:
+                            print(f"      ✅ SALDO PARCIAL: {saldo_acumulado:,.2f}")
+                    else:
+                        transacoes_excluidas_data += 1
+                        if debug_transacao:
+                            print(f"   ❌ EXCLUÍDA - Fora do período:")
+                            print(f"      Data transação: {data_transacao}")
+                            print(f"      Data limite: {data_limite_ajustada}")
+                            
                 except Exception as e:
                     print(f"⚠️ Erro ao calcular saldo para transação {transf_id}: {e}")
                     continue
+            
+            # DEBUG FINAL
+            print(f"\n📊 RESUMO CÁLCULO SALDO (KIVY):")
+            print(f"   Status incluídos: 'completed', 'processing' (EXATAMENTE IGUAL KIVY)")
+            print(f"   Status excluídos: 'solicitada', 'pending', 'rejected', etc.")
+            print(f"   Transações incluídas: {transacoes_incluidas}")
+            print(f"   Transações excluídas por status: {transacoes_excluidas_status}")
+            print(f"   Transações excluídas por data: {transacoes_excluidas_data}")
+            print(f"💰💰💰 SALDO FINAL CALCULADO: {saldo_acumulado:,.2f} 💰💰💰\n")
             
             return saldo_acumulado
         
