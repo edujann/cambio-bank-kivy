@@ -2911,6 +2911,12 @@ def obter_extrato_kivy():
             transf_status = transf.get('status', 'sem_status')
             transf_valor = transf.get('valor', 0)
             
+            # 🔥 DEBUG: VERIFICAR SE 850030 PASSA PELO LOOP
+            if str(transf_id) == '850030':
+                print(f"\n🔁🔁🔁 DEBUG 850030 - PASSOU PELO LOOP PRINCIPAL 🔁🔁🔁")
+                print(f"   Contador total: {contadores['total']}")
+                print(f"   É a primeira vez? {contadores['total'] == 1}")
+            
             try:
                 data_transacao_str = transf.get('data', '')
                 
