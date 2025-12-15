@@ -3105,8 +3105,18 @@ def obter_extrato_kivy():
                         # 🔥 VERIFICAR SE É CÂMBIO DA NOVA TELA (_nt) ou usa conta_origem/conta_destino
                         if '_nt' in str(transf_id) or 'conta_origem' in transf or 'conta_destino' in transf:
                             # 🔥 CÂMBIO DA NOVA TELA - Estrutura diferente
-                            if transf.get('conta_origem') == conta_num:
-                                # Cliente é ORIGEM (pagou/saída)
+                            
+                            # 🔥🔥🔥 CORREÇÃO CRÍTICA: Se conta_origem/conta_destino são None, usar conta_remetente/conta_destinatario
+                            conta_cliente_origem = transf.get('conta_origem')
+                            conta_cliente_destino = transf.get('conta_destino')
+                            
+                            # Se campos da nova tela são None, usar campos da tela antiga
+                            if conta_cliente_origem is None or conta_cliente_destino is None:
+                                conta_cliente_origem = transf.get('conta_remetente')
+                                conta_cliente_destino = transf.get('conta_destinatario')
+                            
+                            if conta_cliente_origem == conta_num:
+                                # Cliente é ORIGEM/REMETENTE (pagou/saída)
                                 descricao_cambio = gerar_descricao_cambio_inteligente(transf, conta_num)
                                 
                                 transacoes_todas.append({
@@ -3119,12 +3129,26 @@ def obter_extrato_kivy():
                                     'moeda': transf.get('moeda_origem', moeda),
                                     'timestamp': data_transacao
                                 })
-                                print(f"💰 CÂMBIO NT SAÍDA: {descricao_cambio[:50]}...")
-                            elif transf.get('conta_destino') == conta_num:
-                                # Cliente é DESTINO (recebeu/entrada) - Esta parte será processada na seção do destinatário
-                                pass
+                                print(f"💰 CÂMBIO NT SAÍDA CORRIGIDO: {descricao_cambio[:50]}...")
+                            
+                            elif conta_cliente_destino == conta_num:
+                                # Cliente é DESTINO/DESTINATÁRIO (recebeu/entrada) - Processar aqui também!
+                                descricao_cambio = gerar_descricao_cambio_inteligente(transf, conta_num)
+                                
+                                transacoes_todas.append({
+                                    'id': transf_id,
+                                    'data': data_transacao_str,
+                                    'descricao': descricao_cambio,
+                                    'credito': transf.get('valor_destino', valor),
+                                    'debito': 0.00,
+                                    'tipo': "Câmbio",
+                                    'moeda': transf.get('moeda_destino', moeda),
+                                    'timestamp': data_transacao
+                                })
+                                print(f"💰 CÂMBIO NT ENTRADA CORRIGIDO (REMETENTE SECTION): {descricao_cambio[:50]}...")
+                            
                             else:
-                                print(f"⚠️ CÂMBIO NT não processado (conta não correspondente): conta_origem={transf.get('conta_origem')}, conta_destino={transf.get('conta_destino')}")
+                                print(f"⚠️ CÂMBIO NT não processado: conta_origem={transf.get('conta_origem')}, conta_destino={transf.get('conta_destino')}, conta_remetente={transf.get('conta_remetente')}, conta_destinatario={transf.get('conta_destinatario')}")
                         else:
                             # 🔥 CÂMBIO NORMAL (tela antiga)
                             descricao_cambio = gerar_descricao_cambio_inteligente(transf, conta_num)
@@ -3180,23 +3204,9 @@ def obter_extrato_kivy():
                     elif transf_tipo == 'cambio':
                         # 🔥 VERIFICAR SE É CÂMBIO DA NOVA TELA (_nt) ou usa conta_origem/conta_destino
                         if '_nt' in str(transf_id) or 'conta_origem' in transf or 'conta_destino' in transf:
-                            # 🔥 CÂMBIO DA NOVA TELA - Cliente é DESTINO (recebeu/entrada)
-                            if transf.get('conta_destino') == conta_num:
-                                descricao_cambio = gerar_descricao_cambio_inteligente(transf, conta_num)
-                                
-                                transacoes_todas.append({
-                                    'id': transf_id,
-                                    'data': data_transacao_str,
-                                    'descricao': descricao_cambio,
-                                    'credito': transf.get('valor_destino', valor),
-                                    'debito': 0.00,
-                                    'tipo': "Câmbio",
-                                    'moeda': transf.get('moeda_destino', moeda),
-                                    'timestamp': data_transacao
-                                })
-                                print(f"💰 CÂMBIO NT ENTRADA: {descricao_cambio[:50]}...")
-                            else:
-                                print(f"⚠️ CÂMBIO NT DESTINATÁRIO não processado: conta_destino={transf.get('conta_destino')}")
+                            # 🔥 CÂMBIO DA NOVA TELA - Já foi processado na seção do remetente
+                            # Pular para evitar duplicação
+                            print(f"🔧 CÂMBIO NT já processado na seção remetente: {transf_id}")
                         else:
                             # 🔥 CÂMBIO NORMAL (tela antiga) - Cliente recebe
                             descricao_cambio = gerar_descricao_cambio_inteligente(transf, conta_num)
