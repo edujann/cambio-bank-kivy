@@ -2957,6 +2957,19 @@ def obter_extrato_kivy():
                 
                 # Cliente é REMETENTE
                 if transf.get('conta_remetente') == conta_num or transf.get('conta_origem') == conta_num:
+
+                    # 🔥 DEBUG ESPECÍFICO PARA 850030
+                    if str(transf_id) == '850030':
+                        print(f"\n🎯🎯🎯 DEBUG 850030 - SEÇÃO REMETENTE 🎯🎯🎯")
+                        print(f"   Tipo: {transf_tipo}")
+                        print(f"   Status: {transf_status}")
+                        print(f"   Conta remetente: {transf.get('conta_remetente')}")
+                        print(f"   Conta destinatario: {transf.get('conta_destinatario')}")
+                        print(f"   Nossa conta: {conta_num}")
+                        print(f"   É remetente? {transf.get('conta_remetente') == conta_num}")
+                        print(f"   É destinatário? {transf.get('conta_destinatario') == conta_num}")
+                        print(f"   Vai entrar na seção REMETENTE? SIM")
+
                     if transf_tipo == 'deposito':
                         transacoes_todas.append({
                             'id': transf_id,
@@ -3179,6 +3192,19 @@ def obter_extrato_kivy():
                 
                 # Cliente é DESTINATÁRIO
                 elif transf.get('conta_destinatario') == conta_num or transf.get('conta_destino') == conta_num:
+
+                    # 🔥 DEBUG ESPECÍFICO PARA 850030
+                    if str(transf_id) == '850030':
+                        print(f"\n🎯🎯🎯 DEBUG 850030 - SEÇÃO DESTINATÁRIO 🎯🎯🎯")
+                        print(f"   Tipo: {transf_tipo}")
+                        print(f"   Status: {transf_status}")
+                        print(f"   Conta remetente: {transf.get('conta_remetente')}")
+                        print(f"   Conta destinatario: {transf.get('conta_destinatario')}")
+                        print(f"   Nossa conta: {conta_num}")
+                        print(f"   É remetente? {transf.get('conta_remetente') == conta_num}")
+                        print(f"   É destinatário? {transf.get('conta_destinatario') == conta_num}")
+                        print(f"   Vai entrar na seção DESTINATÁRIO? SIM")
+                
                     if transf_tipo == 'deposito':
                         transacoes_todas.append({
                             'id': transf_id,
