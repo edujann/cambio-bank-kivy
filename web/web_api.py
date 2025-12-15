@@ -2577,45 +2577,6 @@ def obter_extrato_kivy():
         
         print(f"📅 Período: {data_inicio_filtro.date()} a {data_fim_filtro.date()}")
 
-        # 🔥 DEBUG ESPECÍFICO PARA CÂMBIOS DA NOVA TELA
-        print(f"\n🎯🎯🎯 DEBUG CÂMBIOS ENCONTRADOS 🎯🎯🎯")
-        cambios_encontrados = 0
-        cambios_nt_encontrados = 0
-
-        for transf in transferencias:
-            transf_id = transf.get('id', '')
-            transf_tipo = transf.get('tipo', '')
-            
-            if transf_tipo == 'cambio':
-                cambios_encontrados += 1
-                
-                # Verificar se é da nova tela
-                is_nt = '_nt' in str(transf_id) or 'conta_origem' in transf or 'conta_destino' in transf
-                
-                if is_nt:
-                    cambios_nt_encontrados += 1
-                    
-                    conta_origem = transf.get('conta_origem', 'N/A')
-                    conta_destino = transf.get('conta_destino', 'N/A')
-                    conta_remetente = transf.get('conta_remetente', 'N/A')
-                    conta_destinatario = transf.get('conta_destinatario', 'N/A')
-                    
-                    print(f"💰 CÂMBIO NT ID: {transf_id}")
-                    print(f"   conta_origem: {conta_origem}")
-                    print(f"   conta_destino: {conta_destino}")
-                    print(f"   conta_remetente: {conta_remetente}")
-                    print(f"   conta_destinatario: {conta_destinatario}")
-                    print(f"   Nossa conta: {conta_num}")
-                    print(f"   É origem? {conta_origem == conta_num}")
-                    print(f"   É destino? {conta_destino == conta_num}")
-                    print(f"   ---")
-                else:
-                    print(f"💰 CÂMBIO NORMAL ID: {transf_id}")
-
-        print(f"\n📊 RESUMO CÂMBIOS:")
-        print(f"   Total de câmbios encontrados: {cambios_encontrados}")
-        print(f"   Câmbios da nova tela: {cambios_nt_encontrados}")
-        print(f"🎯🎯🎯 FIM DEBUG 🎯🎯🎯\n")
 
         # 🔥 3. BUSCAR TODAS AS TRANSFERÊNCIAS DO USUÁRIO
         todas_transferencias = []
@@ -2691,6 +2652,46 @@ def obter_extrato_kivy():
         for tipo, quantidade in tipos_contagem.items():
             print(f"   {tipo}: {quantidade}")
         print("="*80 + "\n")
+
+        # 🔥 DEBUG ESPECÍFICO PARA CÂMBIOS DA NOVA TELA
+        print(f"\n🎯🎯🎯 DEBUG CÂMBIOS ENCONTRADOS 🎯🎯🎯")
+        cambios_encontrados = 0
+        cambios_nt_encontrados = 0
+
+        for transf in transferencias:
+            transf_id = transf.get('id', '')
+            transf_tipo = transf.get('tipo', '')
+            
+            if transf_tipo == 'cambio':
+                cambios_encontrados += 1
+                
+                # Verificar se é da nova tela
+                is_nt = '_nt' in str(transf_id) or 'conta_origem' in transf or 'conta_destino' in transf
+                
+                if is_nt:
+                    cambios_nt_encontrados += 1
+                    
+                    conta_origem = transf.get('conta_origem', 'N/A')
+                    conta_destino = transf.get('conta_destino', 'N/A')
+                    conta_remetente = transf.get('conta_remetente', 'N/A')
+                    conta_destinatario = transf.get('conta_destinatario', 'N/A')
+                    
+                    print(f"💰 CÂMBIO NT ID: {transf_id}")
+                    print(f"   conta_origem: {conta_origem}")
+                    print(f"   conta_destino: {conta_destino}")
+                    print(f"   conta_remetente: {conta_remetente}")
+                    print(f"   conta_destinatario: {conta_destinatario}")
+                    print(f"   Nossa conta: {conta_num}")
+                    print(f"   É origem? {conta_origem == conta_num}")
+                    print(f"   É destino? {conta_destino == conta_num}")
+                    print(f"   ---")
+                else:
+                    print(f"💰 CÂMBIO NORMAL ID: {transf_id}")
+
+        print(f"\n📊 RESUMO CÂMBIOS:")
+        print(f"   Total de câmbios encontrados: {cambios_encontrados}")
+        print(f"   Câmbios da nova tela: {cambios_nt_encontrados}")
+        print(f"🎯🎯🎯 FIM DEBUG 🎯🎯🎯\n")
         
         def gerar_descricao_cambio_inteligente(dados_cambio, conta_num, sistema_supabase=None):
             """Gera descrição clara para operações de câmbio - VERSÃO WEB (igual ao Kivy)"""
