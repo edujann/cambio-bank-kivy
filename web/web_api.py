@@ -3297,6 +3297,12 @@ def obter_extrato_kivy():
                     elif transf_tipo not in ['ajuste_admin', 'deposito', 'cambio']:
                         status_normalizado = transf_status.lower() if transf_status else ''
                         
+                        # 🔥 DEBUG ESPECÍFICO PARA 850030
+                        if str(transf_id) == '850030':
+                            print(f"\n🎯🎯🎯 DEBUG 850030 - DENTRO DA CONDIÇÃO transferencias normais 🎯🎯🎯")
+                            print(f"   Vai processar transação tipo: {transf_tipo}")
+                            print(f"   Status normalizado: {status_normalizado}")
+                        
                         # Verificar se é uma transferência interna rejeitada
                         if status_normalizado == 'rejected' and transf_tipo in ['transferencia_interna', 'transferencia_interna_cliente']:
                             # 🔥 LÓGICA DO KIVY: Para transferências internas rejeitadas, criar duas transações
@@ -3339,10 +3345,20 @@ def obter_extrato_kivy():
                                         "EM PROCESSAMENTO" if status_normalizado == 'processing' else \
                                         "CONCLUÍDA" if status_normalizado == 'completed' else "RECUSADA"
                             
+                            # 🔥 DEBUG ESPECÍFICO PARA 850030
+                            if str(transf_id) == '850030':
+                                print(f"\n🎯🎯🎯 DEBUG 850030 - STATUS TEXT DEFINIDO 🎯🎯🎯")
+                                print(f"   Status text: {status_text}")
+                            
                             # Buscar nome do remetente
                             conta_remetente = transf.get('conta_remetente', '')
                             nome_remetente = obter_nome_cliente_por_conta(conta_remetente)
                             
+                            # 🔥 DEBUG ESPECÍFICO PARA 850030 - ANTES DE ADICIONAR
+                            if str(transf_id) == '850030':
+                                print(f"\n🎯🎯🎯 DEBUG 850030 - VAI ADICIONAR TRANSAÇÃO 🎯🎯🎯")
+                                print(f"   Contador atual de transações: {len(transacoes_todas)}")
+
                             transacoes_todas.append({
                                 'id': transf_id,
                                 'data': data_transacao_str,
@@ -3353,6 +3369,12 @@ def obter_extrato_kivy():
                                 'moeda': moeda,
                                 'timestamp': data_transacao
                             })
+
+                            # 🔥 DEBUG ESPECÍFICO PARA 850030 - DEPOIS DE ADICIONAR
+                            if str(transf_id) == '850030':
+                                print(f"\n🎯🎯🎯 DEBUG 850030 - TRANSAÇÃO ADICIONADA 🎯🎯🎯")
+                                print(f"   Nova contagem de transações: {len(transacoes_todas)}")
+
                         status_normalizado = transf_status.lower() if transf_status else ''
                         
                         # Verificar se é uma transferência interna rejeitada
