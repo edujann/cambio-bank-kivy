@@ -3433,10 +3433,20 @@ def obter_extrato_kivy():
         for i, detalhe in enumerate(excluidas_detalhes[:10]):
             print(f"  {i+1}. {detalhe}")
         print("="*80 + "\n")
-        
+
+        # 🔥 DEBUG: VERIFICAR SE A 850030 ESTÁ DUPLICADA NO ARRAY
+        print(f"\n🔍🔍🔍 VERIFICANDO TRANSAÇÃO 850030 NO ARRAY transacoes_todas")
+        contador_850030_array = 0
+        for transacao in transacoes_todas:
+            if str(transacao.get('id', '')) == '850030':
+                contador_850030_array += 1
+                print(f"   ENCONTRADA: ID {transacao.get('id')} | Descrição: {transacao.get('descricao', '')[:50]}...")
+
+        print(f"🔍 TOTAL DE 850030 NO ARRAY: {contador_850030_array}")
+
         # 🔥 9. ORDENAR POR DATA E CALCULAR SALDO SEQUENCIAL
         transacoes_todas.sort(key=lambda x: x.get('timestamp', datetime.min))
-        
+
         saldo_sequencial = saldo_inicial_periodo
         for transacao in transacoes_todas:
             if transacao.get('tipo') == "Saldo Inicial":
@@ -3446,14 +3456,24 @@ def obter_extrato_kivy():
             debito = transacao.get('debito', 0)
             saldo_sequencial += credito - debito
             transacao['saldo_apos'] = saldo_sequencial
-        
+
         # 🔥 10. CALCULAR TOTAIS
         total_entradas = sum(t.get('credito', 0) for t in transacoes_todas if t.get('tipo') != 'Saldo Inicial')
         total_saidas = sum(t.get('debito', 0) for t in transacoes_todas if t.get('tipo') != 'Saldo Inicial')
-        
+
         # 🔥 11. INVERTER PARA EXIBIÇÃO (mais recente primeiro)
         transacoes_exibicao = list(reversed(transacoes_todas))
-        
+
+        # 🔥 DEBUG: VERIFICAR APÓS ORDENAR E INVERTER
+        print(f"\n🔍🔍🔍 VERIFICANDO TRANSAÇÃO 850030 APÓS ORDENAÇÃO E INVERSÃO")
+        contador_850030_final = 0
+        for transacao in transacoes_exibicao:
+            if str(transacao.get('id', '')) == '850030':
+                contador_850030_final += 1
+                print(f"   ENCONTRADA NO EXTRATO: ID {transacao.get('id')} | Descrição: {transacao.get('descricao', '')[:50]}...")
+
+        print(f"🔍 TOTAL DE 850030 NO EXTRATO FINAL: {contador_850030_final}")
+
         print(f"✅ [EXTRATO KIVY] Processado: {len(transacoes_exibicao)} transações")
         
         return jsonify({
