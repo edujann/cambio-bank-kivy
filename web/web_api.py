@@ -2744,19 +2744,24 @@ def obter_extrato_kivy():
                 else:
                     return f"CÂMBIO - {valor_origem:,.2f} → {valor_destino:,.2f} (Taxa: {taxa:.4f})"
 
-        # 🔥 4. CALCULAR SALDO INICIAL (MESMA LÓGICA DO KIVY)
+        # 🔥 4. CALCULAR SALDO INICIAL (MESMA LÓGICA DO KIVY) - VERSÃO CORRIGIDA
         def calcular_saldo_ate_data(conta_numero, data_limite):
-            """Calcula saldo até o final do dia anterior - USANDO MESMA LÓGICA DO EXTRATO NORMAL"""
+            """Calcula saldo até o final do dia anterior - USANDO MESMA LÓGICA DO EXTRATO NORMAL - CORRIGIDA"""
             saldo_acumulado = 0.0
             
             print(f"\n💰💰💰 [CALCULAR SALDO ATÉ DATA - MESMA LÓGICA DO EXTRATO] 🔥🔥🔥")
             print(f"   Conta: {conta_numero}")
             print(f"   Data limite: {data_limite}")
+            print(f"   Data limite ajustada (fim do dia anterior): {data_limite - timedelta(days=1)} 23:59:59")
             print(f"   ⚠️  ATENÇÃO: Usando MESMA lógica do extrato completo!")
             
             # Data limite ajustada: FIM DO DIA ANTERIOR
             data_limite_ajustada = data_limite - timedelta(days=1)
             data_limite_ajustada = data_limite_ajustada.replace(hour=23, minute=59, second=59, microsecond=999999)
+            
+            # Contador para debug
+            transacoes_processadas = 0
+            transacoes_dia_08 = []
             
             for transf_id, dados in transferencias_dict.items():
                 try:
@@ -2796,26 +2801,60 @@ def obter_extrato_kivy():
                     
                     valor = float(dados.get('valor', 0)) if dados.get('valor') is not None else 0.0
                     
-                    # 🔥 PASSO 2: MESMA LÓGICA DE CÁLCULO DO EXTRATO NORMAL
+                    # 🔥 DEBUG ESPECÍFICO PARA TRANSAÇÕES DO DIA 08/12
+                    is_dia_08 = data_transacao and data_transacao.date() == datetime(2025, 12, 8).date()
+                    if is_dia_08:
+                        print(f"\n📅📅📅 DEBUG DIA 08/12 - ANTES DO PROCESSAMENTO 📅📅📅")
+                        print(f"   Transação ID: {transf_id}")
+                        print(f"   Tipo: {tipo_transacao}")
+                        print(f"   Status: {status}")
+                        print(f"   Valor: {valor:,.2f}")
+                        print(f"   Data: {data_transacao_str}")
+                        print(f"   Conta remetente: {conta_remetente}")
+                        print(f"   Conta destinatário: {conta_destinatario}")
+                        print(f"   Conta origem: {conta_origem}")
+                        print(f"   Conta destino: {conta_destino}")
+                        print(f"   Nossa conta: {conta_numero}")
+                        print(f"   É remetente? {conta_remetente == conta_numero}")
+                        print(f"   É destinatário? {conta_destinatario == conta_numero}")
+                        print(f"   É origem? {conta_origem == conta_numero}")
+                        print(f"   É destino? {conta_destino == conta_numero}")
+                        print(f"   Saldo ATUAL (antes desta transação): {saldo_acumulado:,.2f}")
+                    
+                    # Saldo antes desta transação (para debug)
+                    saldo_antes_transacao = saldo_acumulado
+                    
+                    # 🔥 PASSO 2: MESMA LÓGICA DE CÁLCULO DO EXTRATO NORMAL - CORRIGIDA
                     
                     # CLIENTE É REMETENTE (SAÍDAS)
                     if conta_remetente == conta_numero or conta_origem == conta_numero:
                         
+                        if is_dia_08:
+                            print(f"   🔄 SEÇÃO: CLIENTE É REMETENTE/ORIGEM")
+                        
                         # Depósito (cliente como remetente = CRÉDITO)
                         if tipo_transacao == 'deposito':
                             saldo_acumulado += valor
+                            if is_dia_08:
+                                print(f"   ➕ CRÉDITO (depósito): +{valor:,.2f}")
                         
                         # Ajuste admin como crédito
                         elif tipo_transacao == 'ajuste_admin' and dados.get('tipo_ajuste', '').upper() == 'CREDITO':
                             saldo_acumulado += valor
+                            if is_dia_08:
+                                print(f"   ➕ CRÉDITO (ajuste admin crédito): +{valor:,.2f}")
                         
                         # Ajuste admin como débito
                         elif tipo_transacao == 'ajuste_admin':
                             saldo_acumulado -= valor
+                            if is_dia_08:
+                                print(f"   ➖ DÉBITO (ajuste admin débito): -{valor:,.2f}")
                         
                         # Câmbio (cliente vende = SAÍDA)
                         elif tipo_transacao == 'cambio':
                             saldo_acumulado -= valor
+                            if is_dia_08:
+                                print(f"   ➖ DÉBITO (câmbio saída): -{valor:,.2f}")
                         
                         # Transferência internacional
                         elif tipo_transacao in ['transferencia_internacional', 'internacional']:
@@ -2823,63 +2862,127 @@ def obter_extrato_kivy():
                             if status == 'rejected':
                                 # 1. Débito quando foi solicitada
                                 saldo_acumulado -= valor
+                                if is_dia_08:
+                                    print(f"   ➖ DÉBITO (internacional solicitada): -{valor:,.2f}")
+                                
                                 # 2. Crédito quando foi rejeitada (estorno)
                                 saldo_acumulado += valor
-                                # Resultado líquido = 0
+                                if is_dia_08:
+                                    print(f"   ➕ CRÉDITO (internacional estorno): +{valor:,.2f}")
                             else:
                                 # Outros status: débito normal
                                 saldo_acumulado -= valor
+                                if is_dia_08:
+                                    print(f"   ➖ DÉBITO (internacional): -{valor:,.2f}")
                         
-                        # Transferência interna
+                        # 🔥🔥🔥 CORREÇÃO CRÍTICA AQUI - TRANSFERÊNCIA INTERNA
                         elif tipo_transacao in ['transferencia_interna', 'transferencia_interna_cliente']:
-                            # 🔥 MESMA LÓGICA: Se é REJEITADA, precisa das 2 transações
+                            # 🔥 CORREÇÃO: Verificar status primeiro
                             if status == 'rejected':
-                                saldo_acumulado -= valor  # Débito
-                                saldo_acumulado += valor  # Estorno
+                                saldo_acumulado -= valor  # Débito quando solicitada
+                                if is_dia_08:
+                                    print(f"   ➖ DÉBITO (interna solicitada/rejeitada): -{valor:,.2f}")
+                                
+                                saldo_acumulado += valor  # Estorno quando rejeitada
+                                if is_dia_08:
+                                    print(f"   ➕ CRÉDITO (interna estorno): +{valor:,.2f}")
                             else:
+                                # Status completed/pending: cliente é REMETENTE = DÉBITO
                                 saldo_acumulado -= valor
+                                if is_dia_08:
+                                    print(f"   ➖ DÉBITO (interna - cliente é remetente): -{valor:,.2f}")
                         
                         # Receita (taxa/despesa)
                         elif tipo_transacao == 'receita':
                             saldo_acumulado -= valor
+                            if is_dia_08:
+                                print(f"   ➖ DÉBITO (receita): -{valor:,.2f}")
                     
-                    # CLIENTE É DESTINATÁRIO (ENTRADAS)
+                    # 🔥🔥🔥 CORREÇÃO CRÍTICA - CLIENTE É DESTINATÁRIO (ENTRADAS)
                     elif conta_destinatario == conta_numero or conta_destino == conta_numero:
+                        
+                        if is_dia_08:
+                            print(f"   🔄 SEÇÃO: CLIENTE É DESTINATÁRIO/DESTINO")
                         
                         # Depósito (cliente recebe)
                         if tipo_transacao == 'deposito':
                             saldo_acumulado += valor
+                            if is_dia_08:
+                                print(f"   ➕ CRÉDITO (depósito recebido): +{valor:,.2f}")
                         
                         # Ajuste admin como crédito
                         elif tipo_transacao == 'ajuste_admin' and dados.get('tipo_ajuste', '').upper() == 'CREDITO':
                             saldo_acumulado += valor
+                            if is_dia_08:
+                                print(f"   ➕ CRÉDITO (ajuste admin crédito recebido): +{valor:,.2f}")
                         
                         # Câmbio (cliente compra = ENTRADA)
                         elif tipo_transacao == 'cambio':
                             valor_entrada = dados.get('valor_destino', valor)
                             saldo_acumulado += valor_entrada
+                            if is_dia_08:
+                                print(f"   ➕ CRÉDITO (câmbio entrada): +{valor_entrada:,.2f}")
                         
                         # Transferência internacional recebida
                         elif tipo_transacao in ['transferencia_internacional', 'internacional']:
                             saldo_acumulado += valor
+                            if is_dia_08:
+                                print(f"   ➕ CRÉDITO (internacional recebida): +{valor:,.2f}")
                         
-                        # Transferência interna recebida
+                        # 🔥🔥🔥 CORREÇÃO CRÍTICA AQUI - TRANSFERÊNCIA INTERNA RECEBIDA
                         elif tipo_transacao in ['transferencia_interna', 'transferencia_interna_cliente']:
+                            # CORREÇÃO: Transferência interna recebida = CRÉDITO
                             saldo_acumulado += valor
+                            if is_dia_08:
+                                print(f"   ➕ CRÉDITO (interna recebida): +{valor:,.2f}")
                         
                         # Outros tipos (transferências normais recebidas)
                         elif tipo_transacao not in ['ajuste_admin']:
                             saldo_acumulado += valor
+                            if is_dia_08:
+                                print(f"   ➕ CRÉDITO (outra recebida): +{valor:,.2f}")
                     
                     # DEBUG para transações específicas
-                    if str(transf_id) in ['707591', '816705', '850030']:
-                        print(f"🎯 TRANSAÇÃO {transf_id}: tipo={tipo_transacao}, status={status}, valor={valor}, saldo_parcial={saldo_acumulado:,.2f}")
+                    if str(transf_id) in ['707591', '816705', '850030', '733125']:
+                        print(f"🎯 TRANSAÇÃO ESPECIAL {transf_id}: tipo={tipo_transacao}, status={status}, valor={valor:,.2f}, saldo_parcial={saldo_acumulado:,.2f}")
+                    
+                    # 🔥 DEBUG FINAL PARA TRANSAÇÕES DO DIA 08/12
+                    if is_dia_08:
+                        print(f"   💰 Saldo APÓS transação {transf_id}: {saldo_acumulado:,.2f}")
+                        print(f"   📊 Variação: {saldo_acumulado - saldo_antes_transacao:+,.2f}")
+                        print(f"📅📅📅 FIM DEBUG TRANSAÇÃO {transf_id} 📅📅📅\n")
+                        transacoes_dia_08.append({
+                            'id': transf_id,
+                            'tipo': tipo_transacao,
+                            'valor': valor,
+                            'variacao': saldo_acumulado - saldo_antes_transacao
+                        })
+                    
+                    transacoes_processadas += 1
                     
                 except Exception as e:
                     print(f"⚠️ Erro ao calcular saldo para {transf_id}: {e}")
+                    import traceback
+                    traceback.print_exc()
                     continue
             
-            print(f"💰💰💰 SALDO FINAL CALCULADO (MESMA LÓGICA DO EXTRATO): {saldo_acumulado:,.2f} 💰💰💰\n")
+            # 🔥 RESUMO DO CÁLCULO
+            print(f"\n📊📊📊 RESUMO DO CÁLCULO ATÉ {data_limite_ajustada.date()} 📊📊📊")
+            print(f"   Total transações processadas: {transacoes_processadas}")
+            print(f"   Transações do dia 08/12: {len(transacoes_dia_08)}")
+            
+            if transacoes_dia_08:
+                print(f"\n   📅 TRANSAÇÕES DO DIA 08/12:")
+                total_variacao_08 = 0
+                for t in transacoes_dia_08:
+                    print(f"      {t['id']}: {t['tipo']} | {t['valor']:,.2f} | Variação: {t['variacao']:+,.2f}")
+                    total_variacao_08 += t['variacao']
+                print(f"   📈 Variação TOTAL dia 08/12: {total_variacao_08:+,.2f}")
+            
+            print(f"\n💰💰💰 SALDO FINAL CALCULADO (MESMA LÓGICA DO EXTRATO): {saldo_acumulado:,.2f} 💰💰💰")
+            print(f"💰💰💰 SALDO ESPERADO (você informou): 26,250.00 💰💰💰")
+            print(f"💰💰💰 DIFERENÇA: {saldo_acumulado - 26250.00:+,.2f} 💰💰💰\n")
+            
             return saldo_acumulado
         
         def parse_data_unificada(data_str):

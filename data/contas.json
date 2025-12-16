@@ -36,7 +36,7 @@
     },
     "438146195": {
         "moeda": "USD",
-        "saldo": 34950.0,
+        "saldo": 44950.0,
         "cliente": "londrina",
         "cliente_nome": "LONDRES LIMITED",
         "data_criacao": "2025-11-04"
@@ -139,19 +139,33 @@
         "cliente_nome": "PRADA LIMITED",
         "data_criacao": "2025-11-02"
     },
-    "607906288": {
-        "moeda": "USD",
-        "saldo": 17900.0,
-        "cliente": "pantanal",
-        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
-    },
     "759223170": {
         "moeda": "EUR",
         "saldo": 0.0,
         "cliente": "hidroamerica",
         "cliente_nome": "HIDROAMERICA LTDA",
         "data_criacao": "2025-12-04"
+    },
+    "394549984": {
+        "moeda": "USD",
+        "saldo": 11050.32,
+        "cliente": "lins",
+        "cliente_nome": "LINS CHAIR LIMITADA",
+        "data_criacao": "2025-11-18"
+    },
+    "873134916": {
+        "moeda": "BRL",
+        "saldo": 0.0,
+        "cliente": "lins",
+        "cliente_nome": "LINS CHAIR LIMITADA",
+        "data_criacao": "2025-11-18"
+    },
+    "607906288": {
+        "moeda": "USD",
+        "saldo": 26150.0,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18"
     },
     "930349314": {
         "moeda": "EUR",
@@ -179,20 +193,6 @@
         "saldo": 33048.31,
         "cliente": "pantanal",
         "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
-    },
-    "394549984": {
-        "moeda": "USD",
-        "saldo": 11050.32,
-        "cliente": "lins",
-        "cliente_nome": "LINS CHAIR LIMITADA",
-        "data_criacao": "2025-11-18"
-    },
-    "873134916": {
-        "moeda": "BRL",
-        "saldo": -12876.32,
-        "cliente": "lins",
-        "cliente_nome": "LINS CHAIR LIMITADA",
         "data_criacao": "2025-11-18"
     },
     "608201541": {
