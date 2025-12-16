@@ -2745,7 +2745,7 @@ def obter_extrato_kivy():
                     return f"CÂMBIO - {valor_origem:,.2f} → {valor_destino:,.2f} (Taxa: {taxa:.4f})"
 
         # 🔥 4. CALCULAR SALDO INICIAL (MESMA LÓGICA DO KIVY) - VERSÃO CORRIGIDA
-        def calcular_saldo_ate_data_simples(conta_numero, data_fim_periodo):
+        def calcular_saldo_ate_data(conta_numero, data_fim_periodo):
             """
             Calcula saldo até o FIM DO DIA ANTERIOR ao início do período
             Usa EXATAMENTE a mesma lógica do extrato completo
