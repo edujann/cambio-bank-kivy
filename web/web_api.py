@@ -2577,7 +2577,6 @@ def obter_extrato_kivy():
         
         print(f"📅 Período: {data_inicio_filtro.date()} a {data_fim_filtro.date()}")
 
-
         # 🔥 3. BUSCAR TODAS AS TRANSFERÊNCIAS DO USUÁRIO
         todas_transferencias = []
         
@@ -2673,82 +2672,33 @@ def obter_extrato_kivy():
 
         print(f"\n🔍 CONTAGEM DA TRANSAÇÃO 850030: {contador_850030} ocorrência(s)")
 
-        # 🔥 DEBUG ESPECÍFICO PARA CÂMBIOS DA NOVA TELA
-        print(f"\n🎯🎯🎯 DEBUG CÂMBIOS ENCONTRADOS 🎯🎯🎯")
-        cambios_encontrados = 0
-        cambios_nt_encontrados = 0
-
-        for transf in transferencias:
-            transf_id = transf.get('id', '')
-            transf_tipo = transf.get('tipo', '')
-            
-            if transf_tipo == 'cambio':
-                cambios_encontrados += 1
+        def parse_data_unificada(data_str):
+            """Parse data em múltiplos formatos"""
+            try:
+                if not data_str:
+                    return None
                 
-                # Verificar se é da nova tela
-                is_nt = '_nt' in str(transf_id) or 'conta_origem' in transf or 'conta_destino' in transf
+                if 'T' in data_str:
+                    return datetime.fromisoformat(data_str.replace('Z', '+00:00'))
+                elif ' ' in data_str:
+                    return datetime.strptime(data_str, "%Y-%m-%d %H:%M:%S")
+                elif '-' in data_str and len(data_str) == 10:
+                    return datetime.strptime(data_str, "%Y-%m-%d")
+                elif '/' in data_str:
+                    partes = data_str.split('/')
+                    if len(partes) == 3:
+                        dia, mes, ano = map(int, partes)
+                        return datetime(ano, mes, dia)
                 
-                if is_nt:
-                    cambios_nt_encontrados += 1
-                    
-                    conta_origem = transf.get('conta_origem', 'N/A')
-                    conta_destino = transf.get('conta_destino', 'N/A')
-                    conta_remetente = transf.get('conta_remetente', 'N/A')
-                    conta_destinatario = transf.get('conta_destinatario', 'N/A')
-                    
-                    print(f"💰 CÂMBIO NT ID: {transf_id}")
-                    print(f"   conta_origem: {conta_origem}")
-                    print(f"   conta_destino: {conta_destino}")
-                    print(f"   conta_remetente: {conta_remetente}")
-                    print(f"   conta_destinatario: {conta_destinatario}")
-                    print(f"   Nossa conta: {conta_num}")
-                    print(f"   É origem? {conta_origem == conta_num}")
-                    print(f"   É destino? {conta_destino == conta_num}")
-                    print(f"   ---")
-                else:
-                    print(f"💰 CÂMBIO NORMAL ID: {transf_id}")
+                return None
+            except:
+                return None
 
-        print(f"\n📊 RESUMO CÂMBIOS:")
-        print(f"   Total de câmbios encontrados: {cambios_encontrados}")
-        print(f"   Câmbios da nova tela: {cambios_nt_encontrados}")
-        print(f"🎯🎯🎯 FIM DEBUG 🎯🎯🎯\n")
-        
-        def gerar_descricao_cambio_inteligente(dados_cambio, conta_num, sistema_supabase=None):
-            """Gera descrição clara para operações de câmbio - VERSÃO WEB (igual ao Kivy)"""
-            
-            # 1. Obter informações básicas
-            operacao = dados_cambio.get('operacao', '').lower()
-            moeda_origem = dados_cambio.get('moeda_origem', 'USD')
-            moeda_destino = dados_cambio.get('moeda_destino', 'BRL')
-            valor_origem = dados_cambio.get('valor_origem', 0)
-            valor_destino = dados_cambio.get('valor_destino', 0)
-            
-            # 2. Obter taxa (cotacao)
-            taxa = dados_cambio.get('cotacao', 0)
-            if not taxa or taxa == 0:
-                # Tentar calcular com base nos valores
-                if valor_origem > 0 and valor_destino > 0:
-                    taxa = valor_destino / valor_origem
-            
-            # 3. Gerar descrição baseada na operação (versão simplificada do Kivy)
-            if operacao == 'compra':
-                return f"COMPRA {moeda_destino} - Pagou {valor_origem:,.2f} {moeda_origem} → Recebeu {valor_destino:,.2f} {moeda_destino} (Taxa: {taxa:.4f})"
-            elif operacao == 'venda':
-                return f"VENDA {moeda_origem} - Vendeu {valor_origem:,.2f} {moeda_origem} → Recebeu {valor_destino:,.2f} {moeda_destino} (Taxa: {taxa:.4f})"
-            elif operacao == 'cambio_admin':
-                return f"CÂMBIO ADMINISTRATIVO - {moeda_origem} {valor_origem:,.2f} → {moeda_destino} {valor_destino:,.2f} (Taxa: {taxa:.4f})"
-            else:
-                # Descrição padrão
-                if moeda_origem and moeda_destino:
-                    return f"CÂMBIO {moeda_origem}/{moeda_destino} - {valor_origem:,.2f} {moeda_origem} → {valor_destino:,.2f} {moeda_destino} (Taxa: {taxa:.4f})"
-                else:
-                    return f"CÂMBIO - {valor_origem:,.2f} → {valor_destino:,.2f} (Taxa: {taxa:.4f})"
-
-        # 🔥 4. CALCULAR SALDO INICIAL (MESMA LÓGICA DO KIVY) - VERSÃO CORRIGIDA
-        def calcular_saldo_ate_data(conta_numero, data_fim_periodo):
+        # 🔥 4. FUNÇÃO PARA CALCULAR SALDO ATÉ UMA DATA (USANDO DADOS JÁ CARREGADOS)
+        def calcular_saldo_ate_data(conta_numero, data_fim_periodo, transferencias_dict):
             """
             Calcula saldo até o FIM DO DIA ANTERIOR ao início do período
-            Usa EXATAMENTE a mesma lógica do extrato completo
+            Usa as transações JÁ CARREGADAS, não faz nova busca!
             """
             
             print(f"\n🔢 [SALDO SIMPLES] Calculando saldo para conta {conta_numero}")
@@ -2759,54 +2709,29 @@ def obter_extrato_kivy():
             data_limite = data_limite.replace(hour=23, minute=59, second=59, microsecond=999999)
             
             print(f"   Data limite (fim do dia anterior): {data_limite}")
+            print(f"   Total transações disponíveis: {len(transferencias_dict)}")
             
-            # PASSO 2: Buscar TODAS as transações (igual ao extrato completo)
-            todas_transferencias = []
-            
-            try:
-                # Busca EXATAMENTE como o extrato completo faz
-                transf_remetente = supabase.table('transferencias')\
-                    .select('*')\
-                    .eq('conta_remetente', conta_numero)\
-                    .execute()
-                todas_transferencias.extend(transf_remetente.data)
-                
-                transf_destinatario = supabase.table('transferencias')\
-                    .select('*')\
-                    .eq('conta_destinatario', conta_numero)\
-                    .execute()
-                todas_transferencias.extend(transf_destinatario.data)
-                
-                transf_origem = supabase.table('transferencias')\
-                    .select('*')\
-                    .eq('conta_origem', conta_numero)\
-                    .execute()
-                todas_transferencias.extend(transf_origem.data)
-                
-                transf_destino = supabase.table('transferencias')\
-                    .select('*')\
-                    .eq('conta_destino', conta_numero)\
-                    .execute()
-                todas_transferencias.extend(transf_destino.data)
-                
-            except Exception as e:
-                print(f"⚠️ Erro ao buscar transferências: {e}")
-                return 0.0
-            
-            # Remover duplicados
-            transferencias_unicas = {}
-            for transf in todas_transferencias:
-                transf_id = transf.get('id')
-                if transf_id:
-                    transferencias_unicas[transf_id] = transf
-            
-            print(f"   Total transações encontradas: {len(transferencias_unicas)}")
-            
-            # PASSO 3: Processar CADA transação (MESMA LÓGICA DO EXTRATO)
+            # PASSO 2: Processar CADA transação (MESMA LÓGICA DO EXTRATO)
             saldo_final = 0.0
             transacoes_processadas = 0
             
-            for transf_id, dados in transferencias_unicas.items():
+            # DEBUG: Contar transações até data limite
+            total_antes = 0
+            for transf_id, dados in transferencias_dict.items():
+                data_transacao_str = dados.get('data', '')
+                if not data_transacao_str:
+                    continue
+                
+                data_transacao = parse_data_unificada(data_transacao_str)
+                if not data_transacao:
+                    continue
+                
+                if data_transacao <= data_limite:
+                    total_antes += 1
+            
+            print(f"   Transações até {data_limite.date()}: {total_antes}")
+            
+            for transf_id, dados in transferencias_dict.items():
                 try:
                     # Verificar data da transação
                     data_transacao_str = dados.get('data', '')
@@ -2885,38 +2810,88 @@ def obter_extrato_kivy():
             print(f"   Saldo final calculado: {saldo_final:,.2f}")
             
             return saldo_final
-        
-        def parse_data_unificada(data_str):
-            """Parse data em múltiplos formatos"""
-            try:
-                if not data_str:
-                    return None
-                
-                if 'T' in data_str:
-                    return datetime.fromisoformat(data_str.replace('Z', '+00:00'))
-                elif ' ' in data_str:
-                    return datetime.strptime(data_str, "%Y-%m-%d %H:%M:%S")
-                elif '-' in data_str and len(data_str) == 10:
-                    return datetime.strptime(data_str, "%Y-%m-%d")
-                elif '/' in data_str:
-                    partes = data_str.split('/')
-                    if len(partes) == 3:
-                        dia, mes, ano = map(int, partes)
-                        return datetime(ano, mes, dia)
-                
-                return None
-            except:
-                return None
-        
-        # Calcular saldo inicial do período
+
+        # 🔥 5. CALCULAR SALDO INICIAL DO PERÍODO
         if periodo == '0':
             saldo_inicial_periodo = 0.0
+            print(f"💰 Saldo inicial (todo período): 0.00")
         else:
-            saldo_inicial_periodo = calcular_saldo_ate_data(conta_num, data_inicio_filtro)
+            # 🔥 CORREÇÃO CRÍTICA: Passar o dicionário de transações já carregado!
+            saldo_inicial_periodo = calcular_saldo_ate_data(conta_num, data_inicio_filtro, transferencias_dict)
+            print(f"💰 Saldo inicial do período: {saldo_inicial_periodo:,.2f}")
+
+        # 🔥 DEBUG ESPECÍFICO PARA CÂMBIOS DA NOVA TELA
+        print(f"\n🎯🎯🎯 DEBUG CÂMBIOS ENCONTRADOS 🎯🎯🎯")
+        cambios_encontrados = 0
+        cambios_nt_encontrados = 0
+
+        for transf in transferencias:
+            transf_id = transf.get('id', '')
+            transf_tipo = transf.get('tipo', '')
+            
+            if transf_tipo == 'cambio':
+                cambios_encontrados += 1
+                
+                # Verificar se é da nova tela
+                is_nt = '_nt' in str(transf_id) or 'conta_origem' in transf or 'conta_destino' in transf
+                
+                if is_nt:
+                    cambios_nt_encontrados += 1
+                    
+                    conta_origem = transf.get('conta_origem', 'N/A')
+                    conta_destino = transf.get('conta_destino', 'N/A')
+                    conta_remetente = transf.get('conta_remetente', 'N/A')
+                    conta_destinatario = transf.get('conta_destinatario', 'N/A')
+                    
+                    print(f"💰 CÂMBIO NT ID: {transf_id}")
+                    print(f"   conta_origem: {conta_origem}")
+                    print(f"   conta_destino: {conta_destino}")
+                    print(f"   conta_remetente: {conta_remetente}")
+                    print(f"   conta_destinatario: {conta_destinatario}")
+                    print(f"   Nossa conta: {conta_num}")
+                    print(f"   É origem? {conta_origem == conta_num}")
+                    print(f"   É destino? {conta_destino == conta_num}")
+                    print(f"   ---")
+                else:
+                    print(f"💰 CÂMBIO NORMAL ID: {transf_id}")
+
+        print(f"\n📊 RESUMO CÂMBIOS:")
+        print(f"   Total de câmbios encontrados: {cambios_encontrados}")
+        print(f"   Câmbios da nova tela: {cambios_nt_encontrados}")
+        print(f"🎯🎯🎯 FIM DEBUG 🎯🎯🎯\n")
         
-        print(f"💰 Saldo inicial do período: {saldo_inicial_periodo:,.2f}")
-        
-        # 🔥 5. DEBUG DETALHADO DO PROCESSAMENTO
+        def gerar_descricao_cambio_inteligente(dados_cambio, conta_num, sistema_supabase=None):
+            """Gera descrição clara para operações de câmbio - VERSÃO WEB (igual ao Kivy)"""
+            
+            # 1. Obter informações básicas
+            operacao = dados_cambio.get('operacao', '').lower()
+            moeda_origem = dados_cambio.get('moeda_origem', 'USD')
+            moeda_destino = dados_cambio.get('moeda_destino', 'BRL')
+            valor_origem = dados_cambio.get('valor_origem', 0)
+            valor_destino = dados_cambio.get('valor_destino', 0)
+            
+            # 2. Obter taxa (cotacao)
+            taxa = dados_cambio.get('cotacao', 0)
+            if not taxa or taxa == 0:
+                # Tentar calcular com base nos valores
+                if valor_origem > 0 and valor_destino > 0:
+                    taxa = valor_destino / valor_origem
+            
+            # 3. Gerar descrição baseada na operação (versão simplificada do Kivy)
+            if operacao == 'compra':
+                return f"COMPRA {moeda_destino} - Pagou {valor_origem:,.2f} {moeda_origem} → Recebeu {valor_destino:,.2f} {moeda_destino} (Taxa: {taxa:.4f})"
+            elif operacao == 'venda':
+                return f"VENDA {moeda_origem} - Vendeu {valor_origem:,.2f} {moeda_origem} → Recebeu {valor_destino:,.2f} {moeda_destino} (Taxa: {taxa:.4f})"
+            elif operacao == 'cambio_admin':
+                return f"CÂMBIO ADMINISTRATIVO - {moeda_origem} {valor_origem:,.2f} → {moeda_destino} {valor_destino:,.2f} (Taxa: {taxa:.4f})"
+            else:
+                # Descrição padrão
+                if moeda_origem and moeda_destino:
+                    return f"CÂMBIO {moeda_origem}/{moeda_destino} - {valor_origem:,.2f} {moeda_origem} → {valor_destino:,.2f} {moeda_destino} (Taxa: {taxa:.4f})"
+                else:
+                    return f"CÂMBIO - {valor_origem:,.2f} → {valor_destino:,.2f} (Taxa: {taxa:.4f})"
+
+        # 🔥 6. DEBUG DETALHADO DO PROCESSAMENTO
         print(f"\n" + "="*80)
         print("🔍 DEBUG DETALHADO - PROCESSAMENTO DE TRANSAÇÕES")
         print("="*80)
@@ -2983,7 +2958,7 @@ def obter_extrato_kivy():
 
         print("="*80 + "\n")
 
-        # 🔥 6. PROCESSAR CADA TRANSAÇÃO COM DEBUG
+        # 🔥 7. PROCESSAR CADA TRANSAÇÃO COM DEBUG
         for transf in transferencias:
             contadores['total'] += 1
             transf_id = transf.get('id', 'N/A')
@@ -3058,7 +3033,7 @@ def obter_extrato_kivy():
                 if contadores['incluidas'] <= 5:
                     print(f"🎯 SERÁ INCLUÍDA (#{contadores['incluidas']}): ID {transf_id} | {motivo}")
                 
-                # 🔥 7. PROCESSAR A TRANSAÇÃO (LÓGICA DO KIVY)
+                # 🔥 8. PROCESSAR A TRANSAÇÃO (LÓGICA DO KIVY)
                 valor = float(transf.get('valor', 0)) if transf.get('valor') is not None else 0.0
                 
                 # Cliente é REMETENTE
@@ -3467,7 +3442,7 @@ def obter_extrato_kivy():
                 contadores['excluidas_outro'] += 1
                 continue
 
-        # 🔥 8. RESUMO FINAL DO DEBUG
+        # 🔥 9. RESUMO FINAL DO DEBUG
         print(f"\n" + "="*80)
         print("📊 RESUMO DETALHADO DO PROCESSAMENTO")
         print("="*80)
@@ -3494,7 +3469,7 @@ def obter_extrato_kivy():
 
         print(f"🔍 TOTAL DE 850030 NO ARRAY: {contador_850030_array}")
 
-        # 🔥 9. ORDENAR POR DATA E CALCULAR SALDO SEQUENCIAL
+        # 🔥 10. ORDENAR POR DATA E CALCULAR SALDO SEQUENCIAL
         transacoes_todas.sort(key=lambda x: x.get('timestamp', datetime.min))
 
         saldo_sequencial = saldo_inicial_periodo
@@ -3507,11 +3482,11 @@ def obter_extrato_kivy():
             saldo_sequencial += credito - debito
             transacao['saldo_apos'] = saldo_sequencial
 
-        # 🔥 10. CALCULAR TOTAIS
+        # 🔥 11. CALCULAR TOTAIS
         total_entradas = sum(t.get('credito', 0) for t in transacoes_todas if t.get('tipo') != 'Saldo Inicial')
         total_saidas = sum(t.get('debito', 0) for t in transacoes_todas if t.get('tipo') != 'Saldo Inicial')
 
-        # 🔥 11. INVERTER PARA EXIBIÇÃO (mais recente primeiro)
+        # 🔥 12. INVERTER PARA EXIBIÇÃO (mais recente primeiro)
         transacoes_exibicao = list(reversed(transacoes_todas))
 
         # 🔥 DEBUG: VERIFICAR APÓS ORDENAR E INVERTER
