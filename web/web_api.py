@@ -2697,15 +2697,15 @@ def obter_extrato_kivy():
         # 🔥 4. FUNÇÃO PARA CALCULAR SALDO ATÉ UMA DATA (USANDO DADOS JÁ CARREGADOS)
         def calcular_saldo_ate_data(conta_numero, data_fim_periodo, transferencias_dict):
             """
-            Calcula saldo até uma data - VERIFICA TODOS OS CAMPOS POSSÍVEIS!
-            Versão completa e à prova de erros.
+            Calcula saldo até o FIM DO DIA ANTERIOR ao início do período
+            VERSÃO BULLETPROOF - diagnóstica completa!
             """
             
-            print(f"\n🛡️🛡️🛡️ [SALDO BULLETPROOF] Para conta {conta_numero}")
-            print(f"   Data limite: {data_limite.date()}")
+            print(f"\n🛡️ [SALDO BULLETPROOF] Calculando para conta {conta_numero}")
+            print(f"   Data limite recebida: {data_fim_periodo.date()}")
             
             # Data limite ajustada (FIM DO DIA ANTERIOR)
-            data_limite_ajustada = data_limite - timedelta(days=1)
+            data_limite_ajustada = data_fim_periodo - timedelta(days=1)
             data_limite_ajustada = data_limite_ajustada.replace(hour=23, minute=59, second=59, microsecond=999999)
             
             print(f"   Calculando até: {data_limite_ajustada}")
