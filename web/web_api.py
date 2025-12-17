@@ -2693,6 +2693,65 @@ def obter_extrato_kivy():
                 return None
             except:
                 return None
+            
+        def transacao_esta_no_periodo(transf, data_inicio_filtro, data_fim_filtro):
+            """
+            Verifica se uma transação deve aparecer no período
+            Considera TODAS as datas possíveis (solicitação, processamento, conclusão, estorno)
+            """
+            
+            # 1. Data principal da transação
+            data_principal_str = transf.get('data', '')
+            if data_principal_str:
+                data_principal = parse_data_unificada(data_principal_str)
+                if data_principal and data_inicio_filtro <= data_principal <= data_fim_filtro:
+                    return True
+            
+            # 2. Data de solicitação (para transações internacionais/internas)
+            data_solicitacao_str = transf.get('data_solicitacao', '')
+            if data_solicitacao_str:
+                data_solicitacao = parse_data_unificada(data_solicitacao_str)
+                if data_solicitacao and data_inicio_filtro <= data_solicitacao <= data_fim_filtro:
+                    return True
+            
+            # 3. Data de processamento
+            data_processing_str = transf.get('data_processing', '')
+            if data_processing_str:
+                data_processing = parse_data_unificada(data_processing_str)
+                if data_processing and data_inicio_filtro <= data_processing <= data_fim_filtro:
+                    return True
+            
+            # 4. Data de recusa/rejeição (para estornos)
+            data_recusa_str = transf.get('data_recusa', '')
+            if data_recusa_str:
+                data_recusa = parse_data_unificada(data_recusa_str)
+                if data_recusa and data_inicio_filtro <= data_recusa <= data_fim_filtro:
+                    return True
+            
+            # 5. Data de conclusão/completed
+            data_conclusao_str = transf.get('data_conclusao', '')
+            if data_conclusao_str:
+                data_conclusao = parse_data_unificada(data_conclusao_str)
+                if data_conclusao and data_inicio_filtro <= data_conclusao <= data_fim_filtro:
+                    return True
+            
+            # 6. Para transações rejeitadas: verificar se foram solicitadas antes mas estornadas no período
+            if transf.get('status') == 'rejected':
+                # Se foi rejeitada, precisa aparecer no período do estorno
+                # Usa data_principal como fallback
+                if data_principal_str:
+                    data_principal = parse_data_unificada(data_principal_str)
+                    if data_principal and data_inicio_filtro <= data_principal <= data_fim_filtro:
+                        return True
+            
+            # 7. Para ajustes administrativos: verificar data_ajuste se existir
+            data_ajuste_str = transf.get('data_ajuste', '')
+            if data_ajuste_str:
+                data_ajuste = parse_data_unificada(data_ajuste_str)
+                if data_ajuste and data_inicio_filtro <= data_ajuste <= data_fim_filtro:
+                    return True
+            
+            return False
 
         # 🔥 4. FUNÇÃO PARA CALCULAR SALDO ATÉ UMA DATA (USANDO DADOS JÁ CARREGADOS)
         def calcular_saldo_ate_data(conta_numero, data_fim_periodo, transferencias_dict):
@@ -2985,10 +3044,10 @@ def obter_extrato_kivy():
                     continue
                 
                 # Verificar período
-                if not (data_inicio_filtro <= data_transacao <= data_fim_filtro):
+                if not transacao_esta_no_periodo(transf, data_inicio_filtro, data_fim_filtro):
                     contadores['fora_periodo'] += 1
                     if contadores['fora_periodo'] <= 3:
-                        print(f"📅 FORA DO PERÍODO: {data_transacao.date()} | ID: {transf_id}")
+                        print(f"📅 FORA DO PERÍODO: ID {transf_id} | Data principal: {data_transacao.date() if data_transacao else 'N/A'}")
                     continue
                 
                 # Transação dentro do período
