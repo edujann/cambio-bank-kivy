@@ -494,6 +494,16 @@
         box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.3);
     }
 
+    /* CORREÇÃO DO AUTOCOMPLETE */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    input:-webkit-autofill:active {
+        -webkit-box-shadow: 0 0 0px 1000px #1a1a2e inset !important;
+        -webkit-text-fill-color: var(--cor-texto) !important;
+        transition: background-color 5000s ease-in-out 0s;
+    }
+
     .form-group.full-width {
         grid-column: 1 / -1;
     }
