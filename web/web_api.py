@@ -2829,7 +2829,7 @@ def obter_extrato_kivy():
                 conta_origem = dados.get('conta_origem')
                 conta_destino = dados.get('conta_destino')
                 
-                # 🔥🔥🔥 LÓGICA IDÊNTICA AO PERÍODO 0 🔥🔥🔥
+                # 🔥🔥🔥 LÓGICA IDÊNTICA AO PERÍODO 0 (COM DUAS LINHAS PARA REJEITADAS)
                 
                 # Cliente é REMETENTE/ORIGEM
                 if (conta_remetente == conta_numero or conta_origem == conta_numero):
@@ -2842,13 +2842,30 @@ def obter_extrato_kivy():
                     elif tipo == 'cambio':
                         saldo -= valor
                     elif tipo in ['transferencia_internacional', 'internacional']:
-                        # ⚠️ REMOVIDA A LÓGICA ESPECIAL PARA REJEITADAS
-                        # Transações rejeitadas aparecem como débito + crédito separados
-                        # Não precisamos compensar aqui
-                        saldo -= valor  # SEMPRE débito (cliente é remetente)
+                        if status == 'rejected':
+                            # ⚠️ DUAS LINHAS: Débito + Crédito
+                            saldo -= valor  # Linha 1: Débito (solicitação)
+                            # A data do estorno pode ser DIFERENTE da solicitação!
+                            # Precisamos verificar se o estorno está dentro do período
+                            data_estorno_str = dados.get('data_recusa') or dados.get('data_processing') or dados.get('data')
+                            data_estorno = parse_data_unificada(data_estorno_str) if data_estorno_str else item['data']
+                            
+                            if data_estorno <= data_limite:
+                                saldo += valor  # Linha 2: Crédito (estorno) se dentro do período
+                        else:
+                            saldo -= valor  # Transação normal (não rejeitada)
                     elif tipo in ['transferencia_interna', 'transferencia_interna_cliente']:
-                        # ⚠️ REMOVIDA A LÓGICA ESPECIAL PARA REJEITADAS
-                        saldo -= valor  # Cliente é REMETENTE = DÉBITO
+                        if status == 'rejected':
+                            # ⚠️ DUAS LINHAS: Débito + Crédito
+                            saldo -= valor
+                            # Verificar data do estorno
+                            data_estorno_str = dados.get('data_recusa') or dados.get('data_processing') or dados.get('data')
+                            data_estorno = parse_data_unificada(data_estorno_str) if data_estorno_str else item['data']
+                            
+                            if data_estorno <= data_limite:
+                                saldo += valor
+                        else:
+                            saldo -= valor  # Cliente é REMETENTE = DÉBITO
                     elif tipo == 'receita':
                         saldo -= valor
                     elif tipo not in ['deposito', 'ajuste_admin', 'cambio']:
@@ -2873,7 +2890,7 @@ def obter_extrato_kivy():
             print(f"   Saldo calculado: {saldo:,.2f}")
             
             # VERIFICAÇÃO para 7 dias
-            if data_limite.date() == datetime(2025, 12, 9).date():  # ⚠️ CORRIGIDO: 09/12, não 08/12!
+            if data_limite.date() == datetime(2025, 12, 9).date():
                 print(f"\n🎯 VERIFICAÇÃO 09/12 (dia anterior ao início do período 7 dias):")
                 print(f"   Saldo calculado: {saldo:,.2f}")
                 print(f"   Saldo esperado: 20.950,00 (baseado no extrato de 30 dias)")
