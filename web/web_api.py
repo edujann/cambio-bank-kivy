@@ -3198,39 +3198,86 @@ def obter_extrato_kivy():
                         
                         # 🔥 LÓGICA DO KIVY PARA TRANSFERÊNCIAS REJEITADAS (CRÍTICO!)
                         if status_normalizado == 'rejected':
-                            # No Kivy, cria DUAS transações para rejeitadas:
-                            # 1. Transação de débito (quando foi solicitada)
-                            # 2. Transação de crédito (estorno quando foi rejeitada)
+                            # 🔥 CORREÇÃO: Verificar datas para decidir o que mostrar
                             
-                            # 🔥 1. TRANSAÇÃO DE DÉBITO (solicitação original)
-                            data_solicitacao = transf.get('data_solicitacao') or data_transacao_str
-                            descricao_debito = f"TRANSF. INTERNACIONAL SOLICITADA - {transf.get('beneficiario', 'N/A')}"
+                            # Obter datas
+                            data_solicitacao_str = transf.get('data_solicitacao') or data_transacao_str
+                            data_estorno_str = transf.get('data_recusa') or transf.get('data_processing') or data_transacao_str
                             
-                            transacoes_todas.append({
-                                'id': f"{transf_id}_DEBITO",
-                                'data': data_solicitacao,
-                                'descricao': descricao_debito,
-                                'credito': 0.00,
-                                'debito': valor,
-                                'tipo': "Transferência Internacional",
-                                'moeda': moeda,
-                                'timestamp': parse_data_unificada(data_solicitacao) or data_transacao
-                            })
+                            data_solicitacao = parse_data_unificada(data_solicitacao_str)
+                            data_estorno = parse_data_unificada(data_estorno_str)
                             
-                            # 🔥 2. TRANSAÇÃO DE CRÉDITO (estorno)
-                            data_estorno = transf.get('data_recusa') or transf.get('data_processing') or data_transacao_str
-                            descricao_credito = f"ESTORNO TRANSF. INTERNACIONAL - {transf.get('beneficiario', 'N/A')}"
+                            # Verificar se cada data está dentro do período
+                            solicitação_dentro = (
+                                data_solicitacao and 
+                                data_inicio_filtro <= data_solicitacao <= data_fim_filtro
+                            )
+                            estorno_dentro = (
+                                data_estorno and 
+                                data_inicio_filtro <= data_estorno <= data_fim_filtro
+                            )
                             
-                            transacoes_todas.append({
-                                'id': f"{transf_id}_CREDITO",
-                                'data': data_estorno,
-                                'descricao': descricao_credito,
-                                'credito': valor,  # 🔥 CRÉDITO (estorno)
-                                'debito': 0.00,
-                                'tipo': "Estorno",
-                                'moeda': moeda,
-                                'timestamp': parse_data_unificada(data_estorno) or data_transacao
-                            })
+                            # 🔥 CASO 1: Solicitação DENTRO + Estorno DENTRO → mostrar AMBAS
+                            if solicitação_dentro and estorno_dentro:
+                                # 1. TRANSAÇÃO DE DÉBITO (solicitação)
+                                transacoes_todas.append({
+                                    'id': f"{transf_id}_DEBITO",
+                                    'data': data_solicitacao_str,
+                                    'descricao': f"TRANSF. INTERNACIONAL SOLICITADA - {transf.get('beneficiario', 'N/A')}",
+                                    'credito': 0.00,
+                                    'debito': valor,
+                                    'tipo': "Transferência Internacional",
+                                    'moeda': moeda,
+                                    'timestamp': data_solicitacao
+                                })
+                                
+                                # 2. TRANSAÇÃO DE CRÉDITO (estorno)
+                                transacoes_todas.append({
+                                    'id': f"{transf_id}_CREDITO",
+                                    'data': data_estorno_str,
+                                    'descricao': f"ESTORNO TRANSF. INTERNACIONAL - {transf.get('beneficiario', 'N/A')}",
+                                    'credito': valor,
+                                    'debito': 0.00,
+                                    'tipo': "Estorno",
+                                    'moeda': moeda,
+                                    'timestamp': data_estorno
+                                })
+                                
+                                print(f"💰 REJEITADA COMPLETA: Mostrando débito + crédito | ID: {transf_id}")
+                            
+                            # 🔥 CASO 2: Solicitação DENTRO + Estorno FORA → mostrar APENAS débito
+                            elif solicitação_dentro and not estorno_dentro:
+                                transacoes_todas.append({
+                                    'id': f"{transf_id}_DEBITO",
+                                    'data': data_solicitacao_str,
+                                    'descricao': f"TRANSF. INTERNACIONAL SOLICITADA - {transf.get('beneficiario', 'N/A')}",
+                                    'credito': 0.00,
+                                    'debito': valor,
+                                    'tipo': "Transferência Internacional",
+                                    'moeda': moeda,
+                                    'timestamp': data_solicitacao
+                                })
+                                
+                                print(f"💰 REJEITADA PARCIAL: Mostrando apenas débito | ID: {transf_id}")
+                            
+                            # 🔥 CASO 3: Solicitação FORA + Estorno DENTRO → mostrar APENAS crédito
+                            elif not solicitação_dentro and estorno_dentro:
+                                transacoes_todas.append({
+                                    'id': f"{transf_id}_CREDITO",
+                                    'data': data_estorno_str,
+                                    'descricao': f"ESTORNO TRANSF. INTERNACIONAL - {transf.get('beneficiario', 'N/A')}",
+                                    'credito': valor,
+                                    'debito': 0.00,
+                                    'tipo': "Estorno",
+                                    'moeda': moeda,
+                                    'timestamp': data_estorno
+                                })
+                                
+                                print(f"💰 REJEITADA PARCIAL: Mostrando apenas crédito (estorno) | ID: {transf_id}")
+                            
+                            # 🔥 CASO 4: Ambos FORA → não mostrar nada
+                            else:
+                                print(f"💰 REJEITADA FORA: Não mostrar nada | ID: {transf_id}")
                             
                             # DEBUG
                             print(f"💰 ESTORNO CRIADO: {descricao_credito} | +{valor:,.2f}")
