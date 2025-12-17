@@ -3655,7 +3655,16 @@ def obter_extrato_kivy():
             "success": False,
             "message": f"Erro ao buscar extrato: {str(e)}"
         }), 500
+
+@app.route('/dashboard')
+def dashboard():
+    if 'usuario' not in session:
+        return redirect('/login')
     
+    return render_template('dashboard.html',
+                         usuario=session.get('usuario'),
+                         email=session.get('email'),
+                         nome=session.get('nome'))    
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))

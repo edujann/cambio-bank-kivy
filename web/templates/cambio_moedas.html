@@ -1,0 +1,1762 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏦 Cambio Bank - Compra e Venda de Moedas</title>
+    
+    <!-- Estilos principais (mantendo seu tema escuro) -->
+    <style>
+    /* RESET E TEMA ESCURO (igual seu dashboard) */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    :root {
+        --cor-fundo: #0a0e15;
+        --cor-card: #0d1117;
+        --cor-borda: #1e232e;
+        --cor-texto: #e0e0e0;
+        --cor-texto-secundario: #8b949e;
+        --cor-primaria: #1a5fb4;
+        --cor-sucesso: #2ec27e;
+        --cor-alerta: #f39c12;
+        --cor-perigo: #e01b24;
+        --cor-compra: #2ecc71;
+        --cor-venda: #e74c3c;
+        --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.3);
+        --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.4);
+        --borda-radius: 12px;
+        --borda-radius-pequeno: 8px;
+    }
+
+    body {
+        background: var(--cor-fundo);
+        color: var(--cor-texto);
+        min-height: 100vh;
+        overflow-x: hidden;
+    }
+
+    /* Container principal - RESPONSIVO como no Kivy */
+    .app-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        width: 95%;
+    }
+
+    @media (max-width: 768px) {
+        .app-container {
+            padding: 10px;
+            width: 100%;
+        }
+    }
+
+    /* ============================================
+       HEADER - IDÊNTICO AO KIVY
+    ============================================ */
+    .cambio-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid var(--cor-borda);
+    }
+
+    .btn-voltar {
+        background: #8C5FE8;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: var(--borda-radius-pequeno);
+        cursor: pointer;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-voltar:hover {
+        background: #7a4fd3;
+        transform: translateY(-2px);
+    }
+
+    .cambio-titulo {
+        font-size: 24px;
+        font-weight: bold;
+        text-align: center;
+        flex: 1;
+        color: white;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    /* ============================================
+       SEÇÃO DE SALDOS - COM SCROLL VERTICAL
+    ============================================ */
+    .saldos-section {
+        margin-bottom: 25px;
+    }
+
+    .saldos-titulo {
+        font-size: 18px;
+        color: var(--cor-primaria);
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+
+    .saldos-grid-container {
+        max-height: 200px;
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+
+    .saldos-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+    }
+
+    @media (max-width: 1024px) {
+        .saldos-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 480px) {
+        .saldos-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .saldo-card {
+        background: #202833;
+        border-radius: 8px;
+        padding: 12px 15px;
+        min-height: 70px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .saldo-moeda {
+        font-size: 12px;
+        color: #ccd6f6;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+
+    .saldo-valor {
+        font-size: 16px;
+        font-weight: bold;
+        color: var(--cor-primaria);
+    }
+
+    .saldo-valor.negativo {
+        color: var(--cor-perigo);
+    }
+
+    /* Scrollbar customizada */
+    .saldos-grid-container::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .saldos-grid-container::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 3px;
+    }
+
+    .saldos-grid-container::-webkit-scrollbar-thumb {
+        background: var(--cor-primaria);
+        border-radius: 3px;
+    }
+
+    /* ============================================
+       SEÇÃO DE OPERAÇÃO - CONTADOR E TOGGLE
+    ============================================ */
+    .operacao-section {
+        background: #121620;
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius);
+        padding: 20px;
+        margin-bottom: 25px;
+        box-shadow: var(--sombra-suave);
+    }
+
+    .contador-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .contador-texto {
+        font-size: 14px;
+        color: var(--cor-sucesso);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .contador-texto.critico {
+        color: #ff6b6b;
+    }
+
+    .contador-texto.alerta {
+        color: #f39c12;
+    }
+
+    .btn-atualizar-agora {
+        background: var(--cor-primaria);
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-atualizar-agora:hover {
+        background: #1559a3;
+        transform: translateY(-2px);
+    }
+
+    .operacao-titulo {
+        text-align: center;
+        color: var(--cor-primaria);
+        font-size: 16px;
+        margin-bottom: 20px;
+        font-weight: 600;
+    }
+
+    /* Toggle buttons - IDÊNTICO AO KIVY */
+    .toggle-container {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 25px;
+    }
+
+    .toggle-btn {
+        flex: 1;
+        padding: 15px;
+        border: none;
+        border-radius: var(--borda-radius-pequeno);
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+
+    .toggle-btn-compra {
+        background: #333;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .toggle-btn-compra.ativo {
+        background: var(--cor-compra);
+        color: white;
+        box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+    }
+
+    .toggle-btn-venda {
+        background: #333;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .toggle-btn-venda.ativo {
+        background: var(--cor-venda);
+        color: white;
+        box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+    }
+
+    /* ============================================
+       SELEÇÃO DE MOEDAS
+    ============================================ */
+    .moedas-container {
+        margin-bottom: 25px;
+    }
+
+    .moedas-titulo {
+        font-size: 14px;
+        color: #ccd6f6;
+        margin-bottom: 10px;
+    }
+
+    .moedas-labels {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+
+    .moeda-label {
+        font-size: 16px;
+        color: var(--cor-primaria);
+        width: 45%;
+    }
+
+    .moedas-selecao {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .spinner-container {
+        flex: 1;
+    }
+
+    .spinner {
+        width: 100%;
+        padding: 12px 15px;
+        background: #202833;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--borda-radius-pequeno);
+        color: white;
+        font-size: 14px;
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 15px center;
+        background-size: 16px;
+        cursor: pointer;
+    }
+
+    .setas {
+        font-size: 20px;
+        color: var(--cor-primaria);
+        font-weight: bold;
+        margin: 0 5px;
+    }
+
+    /* ============================================
+       SEÇÃO DE CONFIRMAÇÃO - CÁLCULOS
+    ============================================ */
+    .confirmacao-section {
+        background: #121620;
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius);
+        padding: 25px;
+        box-shadow: var(--sombra-suave);
+    }
+
+    .cotacao-display {
+        text-align: center;
+        margin-bottom: 25px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: var(--borda-radius-pequeno);
+        min-height: 100px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .cotacao-texto {
+        font-size: 15px;
+        line-height: 1.6;
+        color: #ccd6f6;
+    }
+
+    .cotacao-titulo {
+        font-size: 18px;
+        margin-bottom: 10px;
+        font-weight: bold;
+    }
+
+    .cotacao-titulo.compra {
+        color: var(--cor-compra);
+    }
+
+    .cotacao-titulo.venda {
+        color: var(--cor-venda);
+    }
+
+    /* Input de valor - IGUAL À TRANSFERÊNCIA */
+    .valor-container {
+        margin-bottom: 25px;
+    }
+
+    .valor-label {
+        text-align: center;
+        font-size: 16px;
+        font-weight: bold;
+        margin-bottom: 15px;
+        color: white;
+    }
+
+    .valor-input-group {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    .valor-input {
+        flex: 1;
+        max-width: 250px;
+        padding: 14px 15px;
+        background: #202833;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--borda-radius-pequeno);
+        color: white;
+        font-size: 16px;
+        text-align: right;
+    }
+
+    .valor-input:focus {
+        outline: none;
+        border-color: var(--cor-primaria);
+        box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.3);
+    }
+
+    .moeda-label-valor {
+        font-size: 18px;
+        color: var(--cor-primaria);
+        font-weight: bold;
+        min-width: 60px;
+        text-align: center;
+    }
+
+    /* Resultado do cálculo */
+    .resultado-calculado {
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        color: var(--cor-primaria);
+        margin-bottom: 25px;
+        padding: 15px;
+        background: rgba(26, 95, 180, 0.1);
+        border-radius: var(--borda-radius-pequeno);
+    }
+
+    /* Botão confirmar */
+    .btn-confirmar {
+        width: 100%;
+        padding: 18px;
+        background: var(--cor-primaria);
+        color: white;
+        border: none;
+        border-radius: var(--borda-radius-pequeno);
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .btn-confirmar:hover:not(:disabled) {
+        background: #1559a3;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(26, 95, 180, 0.3);
+    }
+
+    .btn-confirmar:disabled {
+        background: #4a5568;
+        color: #a0aec0;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    /* ============================================
+       POPUPS - IDÊNTICOS AO KIVY
+    ============================================ */
+    .popup-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 10000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .popup-overlay.active {
+        display: flex;
+    }
+
+    .popup-content {
+        background: #1a1f2e;
+        border-radius: var(--borda-radius);
+        padding: 30px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 90vh;
+        overflow-y: auto;
+        border: 2px solid;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .popup-titulo {
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .popup-mensagem {
+        margin-bottom: 25px;
+        line-height: 1.6;
+        text-align: center;
+    }
+
+    .popup-botoes {
+        display: flex;
+        gap: 15px;
+        margin-top: 25px;
+    }
+
+    .popup-btn {
+        flex: 1;
+        padding: 14px;
+        border: none;
+        border-radius: var(--borda-radius-pequeno);
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .popup-btn-cancelar {
+        background: #e74c3c;
+        color: white;
+    }
+
+    .popup-btn-confirmar {
+        background: #2ecc71;
+        color: white;
+    }
+
+    .popup-btn-ok {
+        background: var(--cor-primaria);
+        color: white;
+    }
+
+    /* Popup de saldo negativo específico */
+    .popup-saldo-negativo .popup-content {
+        border-color: #f39c12;
+    }
+
+    .popup-saldo-negativo .popup-titulo {
+        color: #e74c3c;
+    }
+
+    .termos-negativo {
+        background: rgba(231, 76, 60, 0.1);
+        padding: 15px;
+        border-radius: var(--borda-radius-pequeno);
+        margin: 15px 0;
+        font-size: 13px;
+        color: #ffcccb;
+    }
+
+    /* ============================================
+       LOADING E ESTADOS
+    ============================================ */
+    .loading {
+        text-align: center;
+        padding: 30px;
+        color: var(--cor-texto-secundario);
+    }
+
+    .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(255, 255, 255, 0.1);
+        border-top-color: var(--cor-primaria);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .error-message {
+        color: #e74c3c;
+        text-align: center;
+        padding: 15px;
+        background: rgba(231, 76, 60, 0.1);
+        border-radius: var(--borda-radius-pequeno);
+        margin: 10px 0;
+    }
+
+    /* ============================================
+       RESPONSIVIDADE COMPLETA
+    ============================================ */
+    @media (max-width: 768px) {
+        .cambio-header {
+            flex-direction: column;
+            gap: 15px;
+            text-align: center;
+        }
+
+        .btn-voltar {
+            align-self: flex-start;
+        }
+
+        .toggle-container {
+            flex-direction: column;
+        }
+
+        .moedas-selecao {
+            flex-direction: column;
+        }
+
+        .setas {
+            transform: rotate(90deg);
+            margin: 10px 0;
+        }
+
+        .valor-input-group {
+            flex-direction: column;
+        }
+
+        .popup-content {
+            width: 95%;
+            padding: 20px;
+        }
+
+        .popup-botoes {
+            flex-direction: column;
+        }
+    }
+    </style>
+    
+    <!-- FontAwesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- CONTAINER PRINCIPAL -->
+    <div class="app-container">
+        
+        <!-- HEADER - VOLTAR + TÍTULO -->
+        <header class="cambio-header">
+            <button class="btn-voltar" onclick="voltarDashboard()">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </button>
+            <h1 class="cambio-titulo">COMPRA E VENDA DE MOEDAS</h1>
+        </header>
+
+        <!-- SEÇÃO DE SALDOS (COM SCROLL VERTICAL) -->
+        <section class="saldos-section">
+            <h2 class="saldos-titulo">
+                <i class="fas fa-wallet"></i> SEUS SALDOS
+            </h2>
+            <div class="saldos-grid-container">
+                <div class="saldos-grid" id="saldosGrid">
+                    <!-- Saldos serão carregados via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- SEÇÃO DE OPERAÇÃO -->
+        <section class="operacao-section">
+            <!-- CONTADOR DE ATUALIZAÇÃO -->
+            <div class="contador-container">
+                <div class="contador-texto" id="contadorText">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Atualização em: <span id="contadorSegundos">30</span>s</span>
+                </div>
+                <button class="btn-atualizar-agora" onclick="forcarAtualizacao()">
+                    <i class="fas fa-redo"></i> Atualizar Agora
+                </button>
+            </div>
+
+            <!-- TÍTULO -->
+            <h3 class="operacao-titulo">SELECIONE SUA OPERAÇÃO</h3>
+
+            <!-- TOGGLE COMPRA/VENDA -->
+            <div class="toggle-container">
+                <button class="toggle-btn toggle-btn-compra ativo" onclick="definirOperacao('compra')">
+                    COMPRAR MOEDA
+                </button>
+                <button class="toggle-btn toggle-btn-venda" onclick="definirOperacao('venda')">
+                    VENDER MOEDA
+                </button>
+            </div>
+
+            <!-- SELEÇÃO DE MOEDAS -->
+            <div class="moedas-container">
+                <div class="moedas-titulo">Selecione as moedas:</div>
+                <div class="moedas-labels">
+                    <div class="moeda-label">De:</div>
+                    <div class="moeda-label">Para:</div>
+                </div>
+                <div class="moedas-selecao">
+                    <div class="spinner-container">
+                        <select class="spinner" id="spinnerDe" onchange="onMoedaDeChange()">
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+                    <div class="setas">---></div>
+                    <div class="spinner-container">
+                        <select class="spinner" id="spinnerPara" onchange="onMoedaParaChange()">
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEÇÃO DE CONFIRMAÇÃO E CÁLCULOS -->
+        <section class="confirmacao-section">
+            <!-- COTAÇÃO ATUAL -->
+            <div class="cotacao-display" id="cotacaoDisplay">
+                <div class="cotacao-texto">
+                    Selecione um par de moedas para ver a cotação
+                </div>
+            </div>
+
+            <!-- INPUT DE VALOR -->
+            <div class="valor-container">
+                <div class="valor-label">Valor:</div>
+                <div class="valor-input-group">
+                    <input type="text" 
+                           class="valor-input" 
+                           id="valorInput" 
+                           placeholder="0.00"
+                           oninput="onValorChange()">
+                    <div class="moeda-label-valor" id="moedaValorLabel">USD</div>
+                </div>
+            </div>
+
+            <!-- RESULTADO CALCULADO -->
+            <div class="resultado-calculado" id="resultadoCalculado">
+                Você receberá: ---
+            </div>
+
+            <!-- BOTÃO CONFIRMAR -->
+            <button class="btn-confirmar" id="btnConfirmar" onclick="confirmarOperacao()" disabled>
+                CONFIRMAR OPERAÇÃO
+            </button>
+        </section>
+    </div>
+
+    <!-- ============================================
+       POPUPS (serão mostrados conforme necessidade)
+    ============================================ -->
+    
+    <!-- POPUP DE CONFIRMAÇÃO NORMAL -->
+    <div class="popup-overlay" id="popupConfirmacao">
+        <div class="popup-content">
+            <h2 class="popup-titulo" id="popupConfirmacaoTitulo">CONFIRMAR OPERAÇÃO</h2>
+            <div class="popup-mensagem" id="popupConfirmacaoMensagem">
+                <!-- Mensagem será preenchida via JS -->
+            </div>
+            <div class="popup-botoes">
+                <button class="popup-btn popup-btn-cancelar" onclick="fecharPopup('popupConfirmacao')">
+                    CANCELAR
+                </button>
+                <button class="popup-btn popup-btn-confirmar" onclick="executarOperacaoConfirmada()">
+                    CONFIRMAR
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- POPUP SALDO NEGATIVO -->
+    <div class="popup-overlay popup-saldo-negativo" id="popupSaldoNegativo">
+        <div class="popup-content">
+            <h2 class="popup-titulo">ATENÇÃO - SALDO INSUFICIENTE</h2>
+            <div class="popup-mensagem" id="popupSaldoNegativoMensagem">
+                <!-- Mensagem será preenchida via JS -->
+            </div>
+            <div class="termos-negativo" id="termosNegativo">
+                <!-- Termos serão preenchidos via JS -->
+            </div>
+            <div class="popup-botoes">
+                <button class="popup-btn popup-btn-cancelar" onclick="fecharPopup('popupSaldoNegativo')">
+                    CANCELAR
+                </button>
+                <button class="popup-btn popup-btn-confirmar" onclick="executarOperacaoComSaldoNegativo()">
+                    CONFIRMAR OPERAÇÃO
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- POPUP ERRO -->
+    <div class="popup-overlay" id="popupErro">
+        <div class="popup-content">
+            <h2 class="popup-titulo" style="color: #e74c3c;" id="popupErroTitulo">Erro</h2>
+            <div class="popup-mensagem" id="popupErroMensagem"></div>
+            <div class="popup-botoes">
+                <button class="popup-btn popup-btn-ok" onclick="fecharPopup('popupErro')">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- POPUP SUCESSO -->
+    <div class="popup-overlay" id="popupSucesso">
+        <div class="popup-content">
+            <h2 class="popup-titulo" style="color: #2ecc71;">OPERAÇÃO CONCLUÍDA</h2>
+            <div class="popup-mensagem" id="popupSucessoMensagem"></div>
+            <div class="popup-botoes">
+                <button class="popup-btn popup-btn-ok" onclick="fecharPopup('popupSucesso')">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOADING (para operações assíncronas) -->
+    <div class="popup-overlay" id="popupLoading">
+        <div class="popup-content">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p id="loadingText">Processando operação...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+       JAVASCRIPT - LÓGICA 100% FIEL AO KIVY
+    ============================================ -->
+    <script>
+    // ============================================
+    // VARIÁVEIS GLOBAIS (equivalente ao __init__)
+    // ============================================
+    class TelaCambioWeb {
+        constructor() {
+            this.parSelecionado = null;
+            this.tipoOperacao = 'compra';
+            this.cotacaoAtual = 0.0;
+            this.valorDigitado = 0.0;
+            this.contadorAtualizacao = 30;
+            this.intervaloContador = null;
+            this.saldosUsuario = {};
+            this.paresDisponiveis = [];
+            this.usuario = window.USER?.username || 'cliente';
+            
+            // Inicializar
+            this.iniciar();
+        }
+
+        iniciar() {
+            console.log("🏦 Iniciando tela de câmbio web...");
+            this.iniciarContadorAtualizacao();
+            this.carregarSaldos();
+            this.carregarParesDisponiveis();
+            this.configurarEventos();
+        }
+
+        // ============================================
+        // CONTADOR DE ATUALIZAÇÃO (30s)
+        // ============================================
+        iniciarContadorAtualizacao() {
+            // Parar contador anterior se existir
+            if (this.intervaloContador) {
+                clearInterval(this.intervaloContador);
+            }
+            
+            this.contadorAtualizacao = 30;
+            this.atualizarDisplayContador();
+            
+            // Iniciar novo contador
+            this.intervaloContador = setInterval(() => {
+                this.contadorAtualizacao--;
+                this.atualizarDisplayContador();
+                
+                if (this.contadorAtualizacao <= 0) {
+                    console.log("⏰ Atualização automática da cotação");
+                    this.atualizarCotacaoAutomatica();
+                    this.contadorAtualizacao = 30;
+                }
+            }, 1000);
+        }
+
+        atualizarDisplayContador() {
+            const contadorElem = document.getElementById('contadorSegundos');
+            const contadorText = document.getElementById('contadorText');
+            
+            if (contadorElem && contadorText) {
+                contadorElem.textContent = this.contadorAtualizacao;
+                
+                // Mudar cor conforme no Kivy
+                if (this.contadorAtualizacao <= 10) {
+                    contadorText.style.color = '#ff6b6b';
+                    contadorText.classList.add('critico');
+                    contadorText.classList.remove('alerta');
+                } else if (this.contadorAtualizacao <= 20) {
+                    contadorText.style.color = '#f39c12';
+                    contadorText.classList.add('alerta');
+                    contadorText.classList.remove('critico');
+                } else {
+                    contadorText.style.color = '#2ec27e';
+                    contadorText.classList.remove('critico', 'alerta');
+                }
+            }
+        }
+
+        atualizarCotacaoAutomatica() {
+            if (this.parSelecionado) {
+                console.log(`🔄 Atualização automática: ${this.parSelecionado}`);
+                this.obterCotacao();
+            }
+        }
+
+        forcarAtualizacao() {
+            console.log("🔄 Atualização forçada da cotação");
+            this.iniciarContadorAtualizacao();
+            
+            if (this.parSelecionado) {
+                this.obterCotacao();
+            } else {
+                this.mostrarErro("Selecione um par de moedas primeiro!");
+            }
+        }
+
+        // ============================================
+        // CARREGAMENTO DE DADOS
+        // ============================================
+        async carregarSaldos() {
+            try {
+                console.log("💰 Carregando saldos do usuário...");
+                
+                // 🔥 INTEGRAÇÃO COM API REAL (substitua pela sua)
+                const response = await fetch(`/api/saldos/${this.usuario}`);
+                const data = await response.json();
+                
+                this.saldosUsuario = data.saldos || {};
+                this.atualizarUI_Saldos();
+                
+            } catch (error) {
+                console.error("❌ Erro ao carregar saldos:", error);
+                // Fallback para dados de exemplo
+                this.saldosUsuario = {
+                    'USD': 1500.50,
+                    'EUR': 2200.75,
+                    'GBP': 800.25,
+                    'BRL': 15000.00
+                };
+                this.atualizarUI_Saldos();
+            }
+        }
+
+        atualizarUI_Saldos() {
+            const grid = document.getElementById('saldosGrid');
+            if (!grid) return;
+            
+            grid.innerHTML = '';
+            
+            Object.entries(this.saldosUsuario).forEach(([moeda, saldo]) => {
+                const card = document.createElement('div');
+                card.className = 'saldo-card';
+                card.innerHTML = `
+                    <div class="saldo-moeda">${moeda}</div>
+                    <div class="saldo-valor ${saldo < 0 ? 'negativo' : ''}">
+                        ${this.formatarMoeda(moeda, saldo)}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        async carregarParesDisponiveis() {
+            try {
+                console.log("🌍 Carregando pares disponíveis...");
+                
+                // 🔥 INTEGRAÇÃO COM API REAL
+                const response = await fetch(`/api/pares-disponiveis/${this.usuario}`);
+                const data = await response.json();
+                
+                this.paresDisponiveis = data.pares || [];
+                this.atualizarUI_Pares();
+                
+            } catch (error) {
+                console.error("❌ Erro ao carregar pares:", error);
+                // Fallback para pares de exemplo
+                this.paresDisponiveis = ['USD_EUR', 'EUR_USD', 'USD_BRL', 'BRL_USD'];
+                this.atualizarUI_Pares();
+            }
+        }
+
+        atualizarUI_Pares() {
+            const spinnerDe = document.getElementById('spinnerDe');
+            const spinnerPara = document.getElementById('spinnerPara');
+            
+            if (!spinnerDe || !spinnerPara) return;
+            
+            // Limpar opções
+            spinnerDe.innerHTML = '<option value="">Selecione...</option>';
+            spinnerPara.innerHTML = '<option value="">Selecione...</option>';
+            
+            // Extrair moedas únicas
+            const moedasOrigem = [...new Set(this.paresDisponiveis.map(p => p.split('_')[0]))];
+            const moedasDestino = [...new Set(this.paresDisponiveis.map(p => p.split('_')[1]))];
+            
+            // Adicionar opções
+            moedasOrigem.forEach(moeda => {
+                const option = document.createElement('option');
+                option.value = moeda;
+                option.textContent = moeda;
+                spinnerDe.appendChild(option);
+            });
+            
+            moedasDestino.forEach(moeda => {
+                const option = document.createElement('option');
+                option.value = moeda;
+                option.textContent = moeda;
+                spinnerPara.appendChild(option);
+            });
+            
+            // Selecionar primeiros valores se disponíveis
+            if (moedasOrigem.length > 0) {
+                spinnerDe.value = moedasOrigem[0];
+                this.onMoedaDeChange();
+            }
+            
+            if (moedasDestino.length > 0) {
+                spinnerPara.value = moedasDestino[0];
+            }
+        }
+
+        // ============================================
+        // SELEÇÃO DE OPERAÇÃO E MOEDAS
+        // ============================================
+        definirOperacao(operacao) {
+            console.log(`🎯 Definindo operação: ${operacao}`);
+            this.tipoOperacao = operacao;
+            
+            // Atualizar UI dos toggle buttons
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.classList.remove('ativo');
+            });
+            
+            if (operacao === 'compra') {
+                document.querySelector('.toggle-btn-compra').classList.add('ativo');
+            } else {
+                document.querySelector('.toggle-btn-venda').classList.add('ativo');
+            }
+            
+            // Atualizar moeda do valor
+            this.atualizarMoedaValor();
+            
+            // Se já tiver par selecionado, recalcular
+            if (this.parSelecionado) {
+                this.atualizarCotacao();
+            }
+        }
+
+        onMoedaDeChange() {
+            const moedaDe = document.getElementById('spinnerDe').value;
+            const moedaPara = document.getElementById('spinnerPara').value;
+            
+            console.log(`🔄 Moeda DE alterada: ${moedaDe}`);
+            
+            // Filtrar moedas PARA disponíveis
+            if (moedaDe && moedaDe !== '') {
+                const paresFiltrados = this.paresDisponiveis
+                    .filter(p => p.startsWith(moedaDe + '_'))
+                    .map(p => p.split('_')[1]);
+                
+                const spinnerPara = document.getElementById('spinnerPara');
+                spinnerPara.innerHTML = '<option value="">Selecione...</option>';
+                
+                [...new Set(paresFiltrados)].forEach(moeda => {
+                    if (moeda !== moedaDe) { // Evitar mesma moeda
+                        const option = document.createElement('option');
+                        option.value = moeda;
+                        option.textContent = moeda;
+                        spinnerPara.appendChild(option);
+                    }
+                });
+                
+                if (paresFiltrados.length > 0) {
+                    spinnerPara.value = paresFiltrados[0];
+                }
+            }
+            
+            this.verificarParSelecionado();
+        }
+
+        onMoedaParaChange() {
+            console.log("🔄 Moeda PARA alterada");
+            this.verificarParSelecionado();
+        }
+
+        verificarParSelecionado() {
+            const moedaDe = document.getElementById('spinnerDe').value;
+            const moedaPara = document.getElementById('spinnerPara').value;
+            
+            if (moedaDe && moedaPara && moedaDe !== moedaPara) {
+                this.parSelecionado = `${moedaDe}_${moedaPara}`;
+                console.log(`✅ Par selecionado: ${this.parSelecionado}`);
+                
+                this.atualizarMoedaValor();
+                this.atualizarCotacao();
+                
+                // Habilitar botão de confirmação
+                document.getElementById('btnConfirmar').disabled = false;
+                
+            } else {
+                this.parSelecionado = null;
+                document.getElementById('btnConfirmar').disabled = true;
+                
+                // Atualizar display da cotação
+                const cotacaoDisplay = document.getElementById('cotacaoDisplay');
+                cotacaoDisplay.innerHTML = `
+                    <div class="cotacao-texto">
+                        Selecione um par de moedas válido
+                    </div>
+                `;
+            }
+        }
+
+        atualizarMoedaValor() {
+            const moedaDe = document.getElementById('spinnerDe').value;
+            const moedaPara = document.getElementById('spinnerPara').value;
+            const moedaValorLabel = document.getElementById('moedaValorLabel');
+            
+            if (this.tipoOperacao === 'compra' && moedaPara) {
+                moedaValorLabel.textContent = moedaPara;
+            } else if (this.tipoOperacao === 'venda' && moedaDe) {
+                moedaValorLabel.textContent = moedaDe;
+            }
+        }
+
+        // ============================================
+        // OBTENÇÃO E CÁLCULO DE COTAÇÃO
+        // ============================================
+        async obterCotacao() {
+            if (!this.parSelecionado) return;
+            
+            try {
+                console.log(`📊 Obtendo cotação para: ${this.parSelecionado}`);
+                
+                this.mostrarLoading('Obtendo cotação...');
+                
+                // 🔥 INTEGRAÇÃO COM API REAL DE COTAÇÃO
+                const response = await fetch(`/api/cotacao`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        par: this.parSelecionado,
+                        operacao: this.tipoOperacao,
+                        usuario: this.usuario
+                    })
+                });
+                
+                const data = await response.json();
+                
+                this.fecharPopup('popupLoading');
+                
+                if (data.success) {
+                    this.cotacaoAtual = data.cotacao;
+                    this.atualizarUI_Cotacao(data.cotacao, data.spread);
+                } else {
+                    this.mostrarErro(data.message || "Erro ao obter cotação");
+                }
+                
+            } catch (error) {
+                console.error("❌ Erro ao obter cotação:", error);
+                this.fecharPopup('popupLoading');
+                this.mostrarErro("Erro de conexão com servidor de cotações");
+                
+                // Fallback para cotação de exemplo
+                this.cotacaoAtual = this.tipoOperacao === 'compra' ? 0.85 : 0.83;
+                this.atualizarUI_Cotacao(this.cotacaoAtual, 0.5);
+            }
+        }
+
+        atualizarUI_Cotacao(cotacao, spread) {
+            const moedaDe = document.getElementById('spinnerDe').value;
+            const moedaPara = document.getElementById('spinnerPara').value;
+            const cotacaoDisplay = document.getElementById('cotacaoDisplay');
+            
+            const cotacaoInversa = 1 / cotacao;
+            
+            let titulo, tituloClasse, texto;
+            
+            if (this.tipoOperacao === 'compra') {
+                titulo = `COMPRAR ${moedaPara}`;
+                tituloClasse = 'compra';
+                texto = `
+                    <div class="cotacao-titulo ${tituloClasse}">${titulo}</div>
+                    <p>1 ${moedaPara} = ${cotacao.toFixed(4)} ${moedaDe}</p>
+                    <p>1 ${moedaDe} = ${cotacaoInversa.toFixed(4)} ${moedaPara}</p>
+                    <small style="color: #8b949e;">Spread: ${spread}%</small>
+                `;
+            } else {
+                titulo = `VENDER ${moedaDe}`;
+                tituloClasse = 'venda';
+                texto = `
+                    <div class="cotacao-titulo ${tituloClasse}">${titulo}</div>
+                    <p>1 ${moedaDe} = ${cotacao.toFixed(4)} ${moedaPara}</p>
+                    <p>1 ${moedaPara} = ${cotacaoInversa.toFixed(4)} ${moedaDe}</p>
+                    <small style="color: #8b949e;">Spread: ${spread}%</small>
+                `;
+            }
+            
+            cotacaoDisplay.innerHTML = texto;
+            
+            // Se tiver valor digitado, recalcular
+            if (this.valorDigitado > 0) {
+                this.calcularValorConvertido();
+            }
+        }
+
+        // ============================================
+        // CÁLCULO DO VALOR (igual ao Kivy)
+        // ============================================
+        onValorChange() {
+            const valorInput = document.getElementById('valorInput');
+            const valorTexto = valorInput.value;
+            
+            console.log(`💰 Valor digitado: "${valorTexto}"`);
+            
+            // Extrair valor numérico (mesma lógica do Kivy)
+            this.valorDigitado = this.extrairValorNumerico(valorTexto);
+            console.log(`🔢 Valor extraído: ${this.valorDigitado}`);
+            
+            if (this.valorDigitado > 0 && this.parSelecionado && this.cotacaoAtual > 0) {
+                this.calcularValorConvertido();
+            } else {
+                document.getElementById('resultadoCalculado').textContent = 
+                    'Digite um valor para ver a conversão';
+            }
+        }
+
+        extrairValorNumerico(valorTexto) {
+            if (!valorTexto || !valorTexto.trim()) return 0.0;
+            
+            let texto = valorTexto.trim();
+            console.log(`🔍 Extraindo valor de: "${texto}"`);
+            
+            // Mapear formatos problemáticos (igual ao Kivy)
+            const formatosProblematicos = {
+                '1,000.00': 1000.0,
+                '2,000.00': 2000.0,
+                '5,000.00': 5000.0,
+                '10,000.00': 10000.0,
+                '1.000,00': 1000.0,
+                '2.000,00': 2000.0,
+                '5.000,00': 5000.0,
+                '10.000,00': 10000.0,
+            };
+            
+            if (texto in formatosProblematicos) {
+                console.log(`🎯 Formato mapeado: ${formatosProblematicos[texto]}`);
+                return formatosProblematicos[texto];
+            }
+            
+            // Lógica genérica
+            if (texto.includes(',') && texto.includes('.')) {
+                const ultimoPonto = texto.lastIndexOf('.');
+                const ultimaVirgula = texto.lastIndexOf(',');
+                
+                if (ultimoPonto > ultimaVirgula) {
+                    // Ponto é decimal: "1,000.00"
+                    texto = texto.replace(/,/g, '');
+                } else {
+                    // Vírgula é decimal: "1.000,00"
+                    texto = texto.replace(/\./g, '').replace(',', '.');
+                }
+            } else if (texto.includes(',')) {
+                const partes = texto.split(',');
+                if (partes.length === 2 && partes[1].length <= 2) {
+                    // Vírgula decimal
+                    texto = texto.replace(',', '.');
+                } else {
+                    // Vírgula de milhar
+                    texto = texto.replace(/,/g, '');
+                }
+            }
+            
+            console.log(`🔄 Texto limpo: "${texto}"`);
+            
+            try {
+                const resultado = parseFloat(texto);
+                console.log(`✅ Valor final: ${resultado.toFixed(2)}`);
+                return isNaN(resultado) ? 0.0 : resultado;
+            } catch {
+                console.log(`❌ Falha na conversão`);
+                return 0.0;
+            }
+        }
+
+        async calcularValorConvertido() {
+            if (!this.parSelecionado || this.valorDigitado <= 0) return;
+            
+            try {
+                const moedaDe = document.getElementById('spinnerDe').value;
+                const moedaPara = document.getElementById('spinnerPara').value;
+                
+                // 🔥 INTEGRAÇÃO COM API DE CÁLCULO
+                const response = await fetch('/api/calcular-cambio', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        moedaDe: moedaDe,
+                        moedaPara: moedaPara,
+                        tipoOperacao: this.tipoOperacao,
+                        valor: this.valorDigitado,
+                        usuario: this.usuario
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.resultado) {
+                    let texto;
+                    
+                    if (this.tipoOperacao === 'compra') {
+                        texto = `Você pagará: ${data.resultado.toFixed(2)} ${moedaDe}`;
+                        console.log(`💰 COMPRA: Receberá ${this.valorDigitado.toFixed(2)} ${moedaPara}, Pagará ${data.resultado.toFixed(2)} ${moedaDe}`);
+                    } else {
+                        texto = `Você receberá: ${data.resultado.toFixed(2)} ${moedaPara}`;
+                        console.log(`💰 VENDA: Pagará ${this.valorDigitado.toFixed(2)} ${moedaDe}, Receberá ${data.resultado.toFixed(2)} ${moedaPara}`);
+                    }
+                    
+                    document.getElementById('resultadoCalculado').textContent = texto;
+                    
+                } else {
+                    document.getElementById('resultadoCalculado').textContent = 'Erro no cálculo';
+                }
+                
+            } catch (error) {
+                console.error("❌ Erro ao calcular:", error);
+                
+                // Fallback com cálculo local simples
+                let resultado;
+                if (this.tipoOperacao === 'compra') {
+                    resultado = this.valorDigitado * this.cotacaoAtual;
+                    document.getElementById('resultadoCalculado').textContent = 
+                        `Você pagará: ${resultado.toFixed(2)} ${document.getElementById('spinnerDe').value}`;
+                } else {
+                    resultado = this.valorDigitado / this.cotacaoAtual;
+                    document.getElementById('resultadoCalculado').textContent = 
+                        `Você receberá: ${resultado.toFixed(2)} ${document.getElementById('spinnerPara').value}`;
+                }
+            }
+        }
+
+        // ============================================
+        // CONFIRMAÇÃO E EXECUÇÃO DA OPERAÇÃO
+        // ============================================
+        async confirmarOperacao() {
+            console.log(`🎯 Confirmar operação - Valor: ${this.valorDigitado}`);
+            
+            // 🔥 VERIFICAÇÃO DE HORÁRIO COMERCIAL
+            try {
+                const response = await fetch(`/api/verificar-horario/${this.usuario}`);
+                const data = await response.json();
+                
+                if (!data.horarioOk) {
+                    this.mostrarErroHorario(data.mensagem);
+                    return;
+                }
+            } catch (error) {
+                console.log("⚠️ Não foi possível verificar horário comercial");
+            }
+            
+            // Verificações básicas
+            if (this.valorDigitado <= 0) {
+                this.mostrarErro("Digite um valor válido!");
+                return;
+            }
+            
+            if (!this.parSelecionado) {
+                this.mostrarErro("Selecione um par de moedas válido!");
+                return;
+            }
+            
+            // 🔥 VERIFICAÇÃO DE LIMITE OPERACIONAL
+            try {
+                const response = await fetch(`/api/limite-operacional/${this.usuario}`);
+                const data = await response.json();
+                
+                if (data.limite && this.valorDigitado > data.limite) {
+                    this.mostrarErroLimite(data.limite, this.valorDigitado);
+                    return;
+                }
+            } catch (error) {
+                console.log("⚠️ Não foi possível verificar limite");
+            }
+            
+            const moedaDe = document.getElementById('spinnerDe').value;
+            const moedaPara = document.getElementById('spinnerPara').value;
+            
+            // Calcular valores para confirmação
+            let valorPagar, valorReceber;
+            
+            if (this.tipoOperacao === 'compra') {
+                valorReceber = this.valorDigitado;
+                // Obter cálculo da API
+                const calcResponse = await fetch('/api/calcular-cambio', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        moedaDe: moedaDe,
+                        moedaPara: moedaPara,
+                        tipoOperacao: 'compra',
+                        valor: valorReceber,
+                        usuario: this.usuario
+                    })
+                });
+                
+                const calcData = await calcResponse.json();
+                valorPagar = calcData.resultado;
+                
+            } else {
+                valorPagar = this.valorDigitado;
+                // Obter cálculo da API
+                const calcResponse = await fetch('/api/calcular-cambio', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        moedaDe: moedaDe,
+                        moedaPara: moedaPara,
+                        tipoOperacao: 'venda',
+                        valor: valorPagar,
+                        usuario: this.usuario
+                    })
+                });
+                
+                const calcData = await calcResponse.json();
+                valorReceber = calcData.resultado;
+            }
+            
+            if (!valorPagar || !valorReceber) {
+                this.mostrarErro("Erro ao calcular valores da operação!");
+                return;
+            }
+            
+            // 🔥 VERIFICAR SALDOS (igual ao Kivy)
+            try {
+                const saldoResponse = await fetch(`/api/verificar-saldos/${this.usuario}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        moedaPagar: this.tipoOperacao === 'compra' ? moedaDe : moedaDe,
+                        valorPagar: valorPagar,
+                        moedaReceber: this.tipoOperacao === 'compra' ? moedaPara : moedaPara
+                    })
+                });
+                
+                const saldoData = await saldoResponse.json();
+                
+                if (saldoData.saldosNegativos && saldoData.saldosNegativos.length > 0) {
+                    // Mostrar popup de saldo negativo
+                    this.mostrarPopupSaldoNegativo(
+                        valorPagar, 
+                        valorReceber, 
+                        moedaDe, 
+                        moedaPara,
+                        saldoData.saldosNegativos[0]
+                    );
+                } else {
+                    // Mostrar popup normal de confirmação
+                    const cotacaoInversa = 1 / this.cotacaoAtual;
+                    this.mostrarPopupConfirmacao(
+                        valorPagar, 
+                        valorReceber, 
+                        moedaDe, 
+                        moedaPara,
+                        this.cotacaoAtual,
+                        cotacaoInversa
+                    );
+                }
+                
+            } catch (error) {
+                console.error("❌ Erro ao verificar saldos:", error);
+                // Mostrar confirmação normal (assumindo saldo positivo)
+                const cotacaoInversa = 1 / this.cotacaoAtual;
+                this.mostrarPopupConfirmacao(
+                    valorPagar, 
+                    valorReceber, 
+                    moedaDe, 
+                    moedaPara,
+                    this.cotacaoAtual,
+                    cotacaoInversa
+                );
+            }
+        }
+
+        // ============================================
+        // POPUPS (idênticos ao Kivy)
+        // ============================================
+        mostrarPopupConfirmacao(valorPagar, valorReceber, moedaPagar, moedaReceber, cotacaoDireta, cotacaoInversa) {
+            const titulo = `CONFIRMAR OPERAÇÃO ${this.tipoOperacao.toUpperCase()}`;
+            const mensagem = `
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <strong style="color: #2ecc71; font-size: 18px;">${this.tipoOperacao.toUpperCase()} ${moedaReceber}</strong>
+                </div>
+                <p><strong>Você pagará:</strong> ${valorPagar.toFixed(2)} ${moedaPagar}</p>
+                <p><strong>Você receberá:</strong> ${valorReceber.toFixed(2)} ${moedaReceber}</p>
+                <p style="margin-top: 10px; color: #8b949e; font-size: 14px;">
+                    Cotação: 1 ${moedaPagar} = ${cotacaoDireta.toFixed(4)} ${moedaReceber}
+                </p>
+            `;
+            
+            document.getElementById('popupConfirmacaoTitulo').textContent = titulo;
+            document.getElementById('popupConfirmacaoMensagem').innerHTML = mensagem;
+            
+            // Armazenar dados para uso posterior
+            window.operacaoPendente = {
+                valorPagar,
+                valorReceber,
+                moedaPagar,
+                moedaReceber,
+                cotacaoDireta,
+                tipo: 'normal'
+            };
+            
+            this.abrirPopup('popupConfirmacao');
+        }
+
+        mostrarPopupSaldoNegativo(valorPagar, valorReceber, moedaPagar, moedaReceber, dadosNegativos) {
+            const valorDepositar = Math.abs(dadosNegativos.saldoPos);
+            const multaPotencial = valorPagar * 0.01;
+            
+            const mensagem = `
+                <p><strong>Você ficará com saldo negativo em ${dadosNegativos.moeda}!</strong></p>
+                <p>Saldo atual: ${dadosNegativos.saldoAtual.toFixed(2)} ${dadosNegativos.moeda}</p>
+                <p>Valor da operação: ${valorPagar.toFixed(2)} ${moedaPagar}</p>
+                <p><strong>Saldo após operação: <span style="color: #ff4444;">${dadosNegativos.saldoPos.toFixed(2)} ${dadosNegativos.moeda}</span></strong></p>
+                <p>Você receberá: ${valorReceber.toFixed(2)} ${moedaReceber}</p>
+            `;
+            
+            const termos = `
+                <strong>TERMOS:</strong> Você tem 24h para depositar <strong>${valorDepositar.toFixed(2)} ${dadosNegativos.moeda}</strong> para cobrir o saldo negativo. Após este prazo, a operação será estornada e cobrada multa de 1% do valor.
+            `;
+            
+            document.getElementById('popupSaldoNegativoMensagem').innerHTML = mensagem;
+            document.getElementById('termosNegativo').innerHTML = termos;
+            
+            // Armazenar dados para uso posterior
+            window.operacaoPendente = {
+                valorPagar,
+                valorReceber,
+                moedaPagar,
+                moedaReceber,
+                cotacaoDireta: this.cotacaoAtual,
+                tipo: 'saldo-negativo',
+                dadosNegativos: {
+                    ...dadosNegativos,
+                    valorDepositar,
+                    multaPotencial
+                }
+            };
+            
+            this.abrirPopup('popupSaldoNegativo');
+        }
+
+        async executarOperacaoConfirmada() {
+            const operacao = window.operacaoPendente;
+            if (!operacao) return;
+            
+            this.mostrarLoading('Processando operação...');
+            
+            try {
+                // 🔥 INTEGRAÇÃO COM API DE EXECUÇÃO
+                const response = await fetch('/api/executar-cambio', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...operacao,
+                        usuario: this.usuario,
+                        tipoOperacao: this.tipoOperacao
+                    })
+                });
+                
+                const data = await response.json();
+                
+                this.fecharPopup('popupLoading');
+                
+                if (data.success) {
+                    this.fecharPopup('popupConfirmacao');
+                    
+                    if (operacao.tipo === 'saldo-negativo') {
+                        this.mostrarSucessoComAlerta(
+                            operacao.valorReceber,
+                            operacao.moedaReceber,
+                            data.novoSaldo,
+                            operacao.moedaPagar,
+                            operacao.dadosNegativos.valorDepositar,
+                            operacao.dadosNegativos.multaPotencial,
+                            data.transacaoId,
+                            operacao.dadosNegativos.moeda
+                        );
+                    } else {
+                        this.mostrarSucesso(`Operação realizada com sucesso!<br>ID: ${data.transacaoId}`);
+                    }
+                    
+                    // Limpar campos
+                    document.getElementById('valorInput').value = '';
+                    document.getElementById('resultadoCalculado').textContent = 'Você receberá: ---';
+                    
+                    // Recarregar saldos
+                    await this.carregarSaldos();
+                    
+                } else {
+                    this.mostrarErro(data.message || "Erro ao executar operação");
+                }
+                
+            } catch (error) {
+                console.error("❌ Erro ao executar operação:", error);
+                this.fecharPopup('popupLoading');
+                this.mostrarErro("Erro de conexão com servidor");
+            }
+            
+            delete window.operacaoPendente;
+        }
+
+        executarOperacaoComSaldoNegativo() {
+            this.executarOperacaoConfirmada();
+        }
+
+        // ============================================
+        // POPUPS AUXILIARES
+        // ============================================
+        mostrarErro(mensagem) {
+            document.getElementById('popupErroMensagem').textContent = mensagem;
+            this.abrirPopup('popupErro');
+        }
+
+        mostrarErroHorario(mensagem) {
+            document.getElementById('popupErroTitulo').textContent = 'Horário Comercial';
+            document.getElementById('popupErroMensagem').textContent = mensagem;
+            this.abrirPopup('popupErro');
+        }
+
+        mostrarErroLimite(limite, valor) {
+            const mensagem = `LIMITE ULTRAPASSADO!\n\nValor da operação: R$ ${valor.toFixed(2)}\nSeu limite máximo: R$ ${limite.toFixed(2)}\n\nReduza o valor da operação.`;
+            this.mostrarErro(mensagem);
+        }
+
+        mostrarSucesso(mensagem) {
+            document.getElementById('popupSucessoMensagem').innerHTML = mensagem;
+            this.abrirPopup('popupSucesso');
+        }
+
+        mostrarSucessoComAlerta(valorReceber, moedaReceber, saldoAtual, moedaPagar, valorDepositar, multaPotencial, transacaoId, moedaNegativa) {
+            const mensagem = `
+                <p>Você recebeu: ${valorReceber.toFixed(2)} ${moedaReceber}</p>
+                <p>Saldo atual: ${saldoAtual.toFixed(2)} ${moedaPagar}</p>
+                <div style="margin: 15px 0; padding: 10px; background: rgba(243, 156, 18, 0.1); border-radius: 5px;">
+                    <strong style="color: #f39c12;">ATENÇÃO - SALDO NEGATIVO EM ${moedaNegativa}</strong>
+                    <p style="margin-top: 5px; font-size: 14px;">
+                        • Deposite ${valorDepositar.toFixed(2)} ${moedaNegativa} em 24h<br>
+                        • Multa após prazo: ${multaPotencial.toFixed(2)} ${moedaNegativa}<br>
+                        • ID: ${transacaoId}
+                    </p>
+                </div>
+            `;
+            this.mostrarSucesso(mensagem);
+        }
+
+        mostrarLoading(texto) {
+            document.getElementById('loadingText').textContent = texto;
+            this.abrirPopup('popupLoading');
+        }
+
+        abrirPopup(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        fecharPopup(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        // ============================================
+        // UTILITÁRIOS
+        // ============================================
+        formatarMoeda(moeda, valor) {
+            const formatos = {
+                'USD': `$${valor.toFixed(2)}`,
+                'EUR': `€${valor.toFixed(2)}`,
+                'GBP': `£${valor.toFixed(2)}`,
+                'BRL': `R$${valor.toFixed(2)}`
+            };
+            return formatos[moeda] || `${valor.toFixed(2)} ${moeda}`;
+        }
+
+        configurarEventos() {
+            // Enter no input de valor
+            document.getElementById('valorInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.confirmarOperacao();
+                }
+            });
+            
+            // Escape fecha popups
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    document.querySelectorAll('.popup-overlay').forEach(popup => {
+                        popup.classList.remove('active');
+                    });
+                }
+            });
+            
+            // Clicar fora fecha popup
+            document.querySelectorAll('.popup-overlay').forEach(popup => {
+                popup.addEventListener('click', (e) => {
+                    if (e.target === popup) {
+                        popup.classList.remove('active');
+                    }
+                });
+            });
+        }
+
+        // ============================================
+        // NAVEGAÇÃO
+        // ============================================
+        voltarDashboard() {
+            // Parar contador
+            if (this.intervaloContador) {
+                clearInterval(this.intervaloContador);
+                this.intervaloContador = null;
+            }
+            
+            // Redirecionar para dashboard
+            window.location.href = '/dashboard';
+        }
+    }
+
+    // ============================================
+    // INICIALIZAÇÃO
+    // ============================================
+    let telaCambio;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🏦 Inicializando tela de câmbio web...');
+        telaCambio = new TelaCambioWeb();
+    });
+
+    // Funções globais para chamadas do HTML
+    window.voltarDashboard = () => telaCambio.voltarDashboard();
+    window.forcarAtualizacao = () => telaCambio.forcarAtualizacao();
+    window.definirOperacao = (op) => telaCambio.definirOperacao(op);
+    window.onMoedaDeChange = () => telaCambio.onMoedaDeChange();
+    window.onMoedaParaChange = () => telaCambio.onMoedaParaChange();
+    window.onValorChange = () => telaCambio.onValorChange();
+    window.confirmarOperacao = () => telaCambio.confirmarOperacao();
+    window.executarOperacaoConfirmada = () => telaCambio.executarOperacaoConfirmada();
+    window.executarOperacaoComSaldoNegativo = () => telaCambio.executarOperacaoComSaldoNegativo();
+    window.fecharPopup = (id) => telaCambio.fecharPopup(id);
+    </script>
+</body>
+</html>
