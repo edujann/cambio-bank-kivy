@@ -383,7 +383,7 @@
         margin-right: 10px;
     }
 
-    /* MODAL */
+    /* MODAL DE CRIAÇÃO/EDIÇÃO */
     .modal {
         display: none;
         position: fixed;
@@ -582,6 +582,204 @@
         border-color: var(--cor-primaria);
     }
 
+    /* ============================================
+    NOVO MODAL ELEGANTE PARA "USAR BENEFICIÁRIO"
+    ============================================ */
+    .modal-elegante {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(10, 14, 21, 0.95);
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        backdrop-filter: blur(5px);
+    }
+
+    .modal-elegante-content {
+        background: var(--cor-card);
+        border-radius: var(--borda-radius);
+        width: 100%;
+        max-width: 500px;
+        border: 1px solid var(--cor-borda);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+        transform: translateY(20px);
+        opacity: 0;
+        transition: all 0.3s ease-out;
+    }
+
+    .modal-elegante.show .modal-elegante-content {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    .modal-elegante-header {
+        padding: 30px;
+        text-align: center;
+        border-bottom: 1px solid var(--cor-borda);
+        background: linear-gradient(135deg, rgba(26, 95, 180, 0.1), transparent);
+    }
+
+    .modal-elegante-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, var(--cor-sucesso), #27ae60);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        font-size: 36px;
+        color: white;
+        box-shadow: 0 8px 20px rgba(46, 204, 113, 0.3);
+    }
+
+    .modal-elegante-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--cor-texto);
+        margin-bottom: 10px;
+    }
+
+    .modal-elegante-subtitle {
+        color: var(--cor-texto-secundario);
+        font-size: 16px;
+    }
+
+    .modal-elegante-body {
+        padding: 30px;
+    }
+
+    .beneficiario-info {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: var(--borda-radius-pequeno);
+        padding: 20px;
+        margin-bottom: 25px;
+        border: 1px solid var(--cor-borda);
+    }
+
+    .beneficiario-info-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .beneficiario-info-item:last-child {
+        border-bottom: none;
+    }
+
+    .beneficiario-info-label {
+        color: var(--cor-texto-secundario);
+        font-size: 14px;
+    }
+
+    .beneficiario-info-value {
+        color: var(--cor-texto);
+        font-weight: 500;
+        text-align: right;
+        max-width: 60%;
+        word-break: break-word;
+    }
+
+    .modal-elegante-message {
+        text-align: center;
+        color: var(--cor-texto-secundario);
+        font-size: 15px;
+        line-height: 1.6;
+        margin-bottom: 25px;
+        padding: 0 10px;
+    }
+
+    .modal-elegante-actions {
+        display: flex;
+        gap: 15px;
+        margin-top: 25px;
+    }
+
+    .modal-elegante-actions button {
+        flex: 1;
+        padding: 14px;
+        border-radius: var(--borda-radius-pequeno);
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+        border: none;
+    }
+
+    .btn-modal-cancelar {
+        background: transparent;
+        color: var(--cor-texto);
+        border: 1px solid var(--cor-borda);
+    }
+
+    .btn-modal-cancelar:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: var(--cor-texto-secundario);
+    }
+
+    .btn-modal-confirmar {
+        background: linear-gradient(135deg, var(--cor-sucesso), #27ae60);
+        color: white;
+    }
+
+    .btn-modal-confirmar:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(46, 204, 113, 0.3);
+    }
+
+    .btn-modal-confirmar i {
+        animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 1s ease-in-out infinite;
+        margin-right: 8px;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* ============================================
+    MODAL DE EXCLUSÃO ELEGANTE
+    ============================================ */
+    .modal-exclusao .modal-elegante-icon {
+        background: linear-gradient(135deg, var(--cor-perigo), #c0392b);
+        box-shadow: 0 8px 20px rgba(231, 76, 60, 0.3);
+    }
+
+    .modal-exclusao .modal-elegante-title {
+        color: var(--cor-perigo);
+    }
+
+    .modal-exclusao .btn-modal-confirmar {
+        background: linear-gradient(135deg, var(--cor-perigo), #c0392b);
+        box-shadow: 0 5px 15px rgba(231, 76, 60, 0.2);
+    }
+
     /* RESPONSIVIDADE */
     @media (max-width: 768px) {
         .lista-beneficiarios {
@@ -598,6 +796,14 @@
         
         .modal-content {
             max-height: 80vh;
+        }
+        
+        .modal-elegante-content {
+            max-width: 90%;
+        }
+        
+        .modal-elegante-actions {
+            flex-direction: column;
         }
         
         .header-beneficiarios {
@@ -680,7 +886,7 @@
         
     </div>
 
-    <!-- MODAL DE CRIAÇÃO/EDIÇÃO -->
+    <!-- MODAL DE CRIAÇÃO/EDIÇÃO (EXISTENTE) -->
     <div class="modal" id="modalBeneficiario">
         <div class="modal-content">
             <div class="modal-header">
@@ -817,6 +1023,79 @@
         </div>
     </div>
 
+    <!-- ============================================
+    NOVO MODAL ELEGANTE PARA USAR BENEFICIÁRIO
+    ============================================ -->
+    <div class="modal-elegante" id="modalUsarBeneficiario">
+        <div class="modal-elegante-content">
+            <div class="modal-elegante-header">
+                <div class="modal-elegante-icon">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+                <h2 class="modal-elegante-title">Usar Beneficiário</h2>
+                <p class="modal-elegante-subtitle" id="modalBeneficiarioNome">Nome do Beneficiário</p>
+            </div>
+            
+            <div class="modal-elegante-body">
+                <div class="beneficiario-info" id="modalBeneficiarioDetalhes">
+                    <!-- Detalhes serão preenchidos via JavaScript -->
+                </div>
+                
+                <div class="modal-elegante-message">
+                    <i class="fas fa-info-circle"></i> 
+                    Este beneficiário será usado para uma nova transferência. 
+                    Todos os dados bancários serão automaticamente preenchidos.
+                </div>
+                
+                <div class="modal-elegante-actions">
+                    <button type="button" class="btn-modal-cancelar" onclick="fecharModalElegante()">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn-modal-confirmar" onclick="confirmarUsarBeneficiario()">
+                        <i class="fas fa-exchange-alt"></i> Confirmar e Ir para Transferência
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+    MODAL ELEGANTE PARA EXCLUSÃO
+    ============================================ -->
+    <div class="modal-elegante modal-exclusao" id="modalExcluirBeneficiario">
+        <div class="modal-elegante-content">
+            <div class="modal-elegante-header">
+                <div class="modal-elegante-icon">
+                    <i class="fas fa-trash-alt"></i>
+                </div>
+                <h2 class="modal-elegante-title">Excluir Beneficiário</h2>
+                <p class="modal-elegante-subtitle" id="modalExcluirNome">Nome do Beneficiário</p>
+            </div>
+            
+            <div class="modal-elegante-body">
+                <div class="modal-elegante-message">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    Tem certeza que deseja excluir permanentemente este beneficiário?
+                    <br><br>
+                    <strong>Esta ação não pode ser desfeita.</strong> Todas as informações serão permanentemente removidas do sistema.
+                </div>
+                
+                <div class="beneficiario-info" id="modalExcluirDetalhes">
+                    <!-- Detalhes serão preenchidos via JavaScript -->
+                </div>
+                
+                <div class="modal-elegante-actions">
+                    <button type="button" class="btn-modal-cancelar" onclick="fecharModalExclusao()">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn-modal-confirmar" onclick="confirmarExcluirBeneficiario()">
+                        <i class="fas fa-trash-alt"></i> Excluir Permanentemente
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
     // ============================================
     // VARIÁVEIS GLOBAIS
@@ -824,6 +1103,8 @@
     let beneficiariosData = [];
     let modoEdicao = false;
     let beneficiarioEditando = null;
+    let beneficiarioParaUsar = null;
+    let beneficiarioParaExcluir = null;
 
     // ============================================
     // FUNÇÕES PRINCIPAIS
@@ -920,7 +1201,7 @@
                     <button class="btn-editar" onclick="editarBeneficiario(${benef.id})">
                         <i class="fas fa-edit"></i> Editar
                     </button>
-                    <button class="btn-excluir" onclick="excluirBeneficiario(${benef.id}, '${benef.nome}')">
+                    <button class="btn-excluir" onclick="excluirBeneficiario(${benef.id})">
                         <i class="fas fa-trash"></i> Excluir
                     </button>
                 </div>
@@ -929,7 +1210,235 @@
     }
 
     // ============================================
-    // MODAL FUNCTIONS
+    // FUNÇÕES DOS MODAIS ELEGANTES
+    // ============================================
+
+    function usarBeneficiario(id) {
+        const beneficiario = beneficiariosData.find(b => b.id === id);
+        if (beneficiario) {
+            beneficiarioParaUsar = beneficiario;
+            
+            // Atualizar informações do modal
+            document.getElementById('modalBeneficiarioNome').textContent = beneficiario.nome;
+            
+            const detalhesHtml = `
+                <div class="beneficiario-info-item">
+                    <span class="beneficiario-info-label">Banco:</span>
+                    <span class="beneficiario-info-value">${beneficiario.banco || 'Não informado'}</span>
+                </div>
+                <div class="beneficiario-info-item">
+                    <span class="beneficiario-info-label">SWIFT/BIC:</span>
+                    <span class="beneficiario-info-value">${beneficiario.swift || 'Não informado'}</span>
+                </div>
+                ${beneficiario.iban ? `
+                <div class="beneficiario-info-item">
+                    <span class="beneficiario-info-label">IBAN/Account:</span>
+                    <span class="beneficiario-info-value">${beneficiario.iban}</span>
+                </div>
+                ` : ''}
+                ${beneficiario.pais_banco ? `
+                <div class="beneficiario-info-item">
+                    <span class="beneficiario-info-label">País do Banco:</span>
+                    <span class="beneficiario-info-value">${beneficiario.pais_banco}</span>
+                </div>
+                ` : ''}
+                ${beneficiario.aba ? `
+                <div class="beneficiario-info-item">
+                    <span class="beneficiario-info-label">ABA/Routing:</span>
+                    <span class="beneficiario-info-value">${beneficiario.aba}</span>
+                </div>
+                ` : ''}
+            `;
+            
+            document.getElementById('modalBeneficiarioDetalhes').innerHTML = detalhesHtml;
+            
+            // Mostrar modal com animação
+            const modal = document.getElementById('modalUsarBeneficiario');
+            modal.style.display = 'flex';
+            setTimeout(() => modal.classList.add('show'), 10);
+        }
+    }
+
+    function confirmarUsarBeneficiario() {
+        if (!beneficiarioParaUsar) return;
+        
+        const dadosParaTransferencia = {
+            id: beneficiarioParaUsar.id,
+            nome: beneficiarioParaUsar.nome,
+            endereco: beneficiarioParaUsar.endereco || '',
+            cidade: beneficiarioParaUsar.cidade || '',
+            pais: beneficiarioParaUsar.pais || '',
+            banco: beneficiarioParaUsar.banco || '',
+            endereco_banco: beneficiarioParaUsar.endereco_banco || '',
+            cidade_banco: beneficiarioParaUsar.cidade_banco || '',
+            pais_banco: beneficiarioParaUsar.pais_banco || '',
+            swift: beneficiarioParaUsar.swift || '',
+            iban: beneficiarioParaUsar.iban || '',
+            aba: beneficiarioParaUsar.aba || '',
+            data_selecao: new Date().toISOString()
+        };
+        
+        // Salvar no sessionStorage
+        sessionStorage.setItem('beneficiarioParaTransferencia', JSON.stringify(dadosParaTransferencia));
+        
+        // Mostrar mensagem de sucesso no modal
+        const modalBody = document.querySelector('#modalUsarBeneficiario .modal-elegante-body');
+        modalBody.innerHTML = `
+            <div style="text-align: center; padding: 40px 20px;">
+                <div class="modal-elegante-icon" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
+                    <i class="fas fa-check"></i>
+                </div>
+                <h3 style="color: var(--cor-sucesso); margin: 20px 0 10px;">Beneficiário Selecionado!</h3>
+                <p style="color: var(--cor-texto-secundario); margin-bottom: 30px;">
+                    ${beneficiarioParaUsar.nome} foi selecionado com sucesso.
+                    <br>Redirecionando para transferência...
+                </p>
+                <div class="loading-spinner"></div>
+            </div>
+        `;
+        
+        // Redirecionar após 1.5 segundos
+        setTimeout(() => {
+            window.location.href = '/transferencia';
+        }, 1500);
+    }
+
+    function excluirBeneficiario(id) {
+        const beneficiario = beneficiariosData.find(b => b.id === id);
+        if (beneficiario) {
+            beneficiarioParaExcluir = beneficiario;
+            
+            // Atualizar informações do modal
+            document.getElementById('modalExcluirNome').textContent = beneficiario.nome;
+            
+            const detalhesHtml = `
+                <div class="beneficiario-info-item">
+                    <span class="beneficiario-info-label">Banco:</span>
+                    <span class="beneficiario-info-value">${beneficiario.banco || 'Não informado'}</span>
+                </div>
+                <div class="beneficiario-info-item">
+                    <span class="beneficiario-info-label">SWIFT/BIC:</span>
+                    <span class="beneficiario-info-value">${beneficiario.swift || 'Não informado'}</span>
+                </div>
+                <div class="beneficiario-info-item">
+                    <span class="beneficiario-info-label">Data de Criação:</span>
+                    <span class="beneficiario-info-value">${new Date(beneficiario.data_criacao).toLocaleDateString('pt-BR')}</span>
+                </div>
+            `;
+            
+            document.getElementById('modalExcluirDetalhes').innerHTML = detalhesHtml;
+            
+            // Mostrar modal com animação
+            const modal = document.getElementById('modalExcluirBeneficiario');
+            modal.style.display = 'flex';
+            setTimeout(() => modal.classList.add('show'), 10);
+        }
+    }
+
+    async function confirmarExcluirBeneficiario() {
+        if (!beneficiarioParaExcluir) return;
+        
+        try {
+            // Mostrar estado de carregamento
+            const confirmBtn = document.querySelector('#modalExcluirBeneficiario .btn-modal-confirmar');
+            confirmBtn.innerHTML = '<div class="loading-spinner"></div> Excluindo...';
+            confirmBtn.disabled = true;
+            
+            const response = await fetch(`/api/beneficiarios/${beneficiarioParaExcluir.id}`, {
+                method: 'DELETE'
+            });
+            
+            const resultado = await response.json();
+            
+            if (resultado.success) {
+                // Mostrar mensagem de sucesso
+                const modalBody = document.querySelector('#modalExcluirBeneficiario .modal-elegante-body');
+                modalBody.innerHTML = `
+                    <div style="text-align: center; padding: 40px 20px;">
+                        <div class="modal-elegante-icon" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <h3 style="color: var(--cor-sucesso); margin: 20px 0 10px;">Excluído com Sucesso!</h3>
+                        <p style="color: var(--cor-texto-secundario); margin-bottom: 30px;">
+                            ${beneficiarioParaExcluir.nome} foi excluído permanentemente do sistema.
+                        </p>
+                        <button type="button" class="btn-modal-confirmar" onclick="fecharModalExclusao()">
+                            <i class="fas fa-check"></i> Fechar
+                        </button>
+                    </div>
+                `;
+                
+                // Atualizar lista de beneficiários
+                setTimeout(() => {
+                    carregarBeneficiarios();
+                }, 1000);
+            } else {
+                throw new Error(resultado.message || 'Erro ao excluir');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            
+            // Mostrar mensagem de erro
+            const modalBody = document.querySelector('#modalExcluirBeneficiario .modal-elegante-body');
+            modalBody.innerHTML = `
+                <div style="text-align: center; padding: 40px 20px;">
+                    <div class="modal-elegante-icon" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+                        <i class="fas fa-times"></i>
+                    </div>
+                    <h3 style="color: var(--cor-perigo); margin: 20px 0 10px;">Erro ao Excluir</h3>
+                    <p style="color: var(--cor-texto-secundario); margin-bottom: 30px;">
+                        ${error.message || 'Ocorreu um erro ao excluir o beneficiário.'}
+                    </p>
+                    <button type="button" class="btn-modal-confirmar" onclick="fecharModalExclusao()">
+                        <i class="fas fa-times"></i> Fechar
+                    </button>
+                </div>
+            `;
+        }
+    }
+
+    function fecharModalElegante() {
+        const modal = document.getElementById('modalUsarBeneficiario');
+        modal.classList.remove('show');
+        setTimeout(() => {
+            modal.style.display = 'none';
+            beneficiarioParaUsar = null;
+        }, 300);
+    }
+
+    function fecharModalExclusao() {
+        const modal = document.getElementById('modalExcluirBeneficiario');
+        modal.classList.remove('show');
+        setTimeout(() => {
+            modal.style.display = 'none';
+            beneficiarioParaExcluir = null;
+            // Restaurar conteúdo original do modal
+            document.querySelector('#modalExcluirBeneficiario .modal-elegante-body').innerHTML = `
+                <div class="modal-elegante-message">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    Tem certeza que deseja excluir permanentemente este beneficiário?
+                    <br><br>
+                    <strong>Esta ação não pode ser desfeita.</strong> Todas as informações serão permanentemente removidas do sistema.
+                </div>
+                
+                <div class="beneficiario-info" id="modalExcluirDetalhes">
+                    <!-- Detalhes serão preenchidos via JavaScript -->
+                </div>
+                
+                <div class="modal-elegante-actions">
+                    <button type="button" class="btn-modal-cancelar" onclick="fecharModalExclusao()">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn-modal-confirmar" onclick="confirmarExcluirBeneficiario()">
+                        <i class="fas fa-trash-alt"></i> Excluir Permanentemente
+                    </button>
+                </div>
+            `;
+        }, 300);
+    }
+
+    // ============================================
+    // MODAL FUNCTIONS (EXISTENTES)
     // ============================================
 
     function abrirModalNovo() {
@@ -986,7 +1495,7 @@
     }
 
     // ============================================
-    // CRUD OPERATIONS
+    // CRUD OPERATIONS (EXISTENTES)
     // ============================================
 
     async function salvarBeneficiario(event) {
@@ -1061,65 +1570,6 @@
         }
     }
 
-    function usarBeneficiario(id) {
-        const beneficiario = beneficiariosData.find(b => b.id === id);
-        if (beneficiario) {
-            // Salvar TODOS os dados do beneficiário
-            const dadosParaTransferencia = {
-                id: beneficiario.id,
-                nome: beneficiario.nome,
-                endereco: beneficiario.endereco || '',
-                cidade: beneficiario.cidade || '',
-                pais: beneficiario.pais || '',
-                banco: beneficiario.banco || '',
-                endereco_banco: beneficiario.endereco_banco || '',
-                cidade_banco: beneficiario.cidade_banco || '',
-                pais_banco: beneficiario.pais_banco || '',
-                swift: beneficiario.swift || '',
-                iban: beneficiario.iban || '',
-                aba: beneficiario.aba || '',
-                data_selecao: new Date().toISOString()
-            };
-            
-            console.log('💾 Salvando beneficiário para transferência:', dadosParaTransferencia.nome);
-            
-            // Salvar no sessionStorage (dura enquanto o navegador está aberto)
-            sessionStorage.setItem('beneficiarioParaTransferencia', JSON.stringify(dadosParaTransferencia));
-            
-            // Mostrar mensagem
-            alert(`✅ Beneficiário "${beneficiario.nome}" selecionado!\nRedirecionando para transferência...`);
-            
-            // Redirecionar após 0.5 segundos
-            setTimeout(() => {
-                window.location.href = '/transferencia';
-            }, 500);
-        } else {
-            alert('❌ Beneficiário não encontrado!');
-        }
-    }
-
-    async function excluirBeneficiario(id, nome) {
-        if (confirm(`Tem certeza que deseja excluir o beneficiário "${nome}"?\n\nEsta ação não pode ser desfeita.`)) {
-            try {
-                const response = await fetch(`/api/beneficiarios/${id}`, {
-                    method: 'DELETE'
-                });
-                
-                const resultado = await response.json();
-                
-                if (resultado.success) {
-                    alert(resultado.message);
-                    carregarBeneficiarios();
-                } else {
-                    alert('Erro ao excluir: ' + (resultado.message || 'Erro desconhecido'));
-                }
-            } catch (error) {
-                console.error('Erro:', error);
-                alert('Erro de conexão ao excluir beneficiário');
-            }
-        }
-    }
-
     // ============================================
     // FUNÇÕES AUXILIARES
     // ============================================
@@ -1133,7 +1583,47 @@
     }
 
     function mostrarMensagemErro(mensagem) {
-        alert(mensagem);
+        const alertDiv = document.createElement('div');
+        alertDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, var(--cor-perigo), #c0392b);
+            color: white;
+            padding: 15px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            box-shadow: var(--sombra-media);
+            z-index: 3000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s ease-out;
+        `;
+        
+        alertDiv.innerHTML = `
+            <i class="fas fa-exclamation-circle"></i>
+            <span>${mensagem}</span>
+            <button onclick="this.parentElement.remove()" style="
+                margin-left: auto;
+                background: transparent;
+                border: none;
+                color: white;
+                cursor: pointer;
+                font-size: 16px;
+            ">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        document.body.appendChild(alertDiv);
+        
+        setTimeout(() => {
+            if (alertDiv.parentElement) {
+                alertDiv.style.opacity = '0';
+                alertDiv.style.transition = 'opacity 0.5s';
+                setTimeout(() => alertDiv.remove(), 500);
+            }
+        }, 5000);
     }
 
     // ============================================
@@ -1143,15 +1633,27 @@
     document.addEventListener('DOMContentLoaded', function() {
         carregarBeneficiarios();
         
-        document.getElementById('modalBeneficiario').addEventListener('click', function(e) {
-            if (e.target === this) {
-                fecharModal();
-            }
+        // Fechar modais ao clicar fora
+        document.querySelectorAll('.modal, .modal-elegante').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    if (modal.id === 'modalBeneficiario') {
+                        fecharModal();
+                    } else if (modal.id === 'modalUsarBeneficiario') {
+                        fecharModalElegante();
+                    } else if (modal.id === 'modalExcluirBeneficiario') {
+                        fecharModalExclusao();
+                    }
+                }
+            });
         });
         
+        // Fechar com ESC
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 fecharModal();
+                fecharModalElegante();
+                fecharModalExclusao();
             }
         });
     });
