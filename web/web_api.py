@@ -2698,20 +2698,44 @@ def obter_extrato_kivy():
         def calcular_saldo_ate_data(conta_numero, data_fim_periodo, transferencias_dict):
             """
             Calcula saldo até o FIM DO DIA ANTERIOR ao início do período
-            COPIA EXATA da lógica do extrato completo (período 0)
+            VERSÃO COM DEBUG TOTAL - rastreia cada transação
             """
-            print(f"\n💰 [SALDO ATÉ DATA] Cálculo idêntico ao período 0")
+            print(f"\n" + "="*80)
+            print("💰 [SALDO ATÉ DATA] DEBUG TOTAL - INÍCIO")
+            print("="*80)
             print(f"   Conta: {conta_numero}")
-            print(f"   Data limite (fim do dia anterior): {data_fim_periodo.date()}")
+            print(f"   Data limite recebida: {data_fim_periodo.date()}")
             
             # Data limite = FIM DO DIA ANTERIOR
             data_limite = data_fim_periodo - timedelta(days=1)
             data_limite = data_limite.replace(hour=23, minute=59, second=59, microsecond=999999)
             
             print(f"   Calculando até: {data_limite}")
+            print(f"   Total transações disponíveis: {len(transferencias_dict)}")
             
-            # 🔥 PASSO 1: ORDENAR transações por data (IGUAL ao período 0)
-            transacoes_ordenadas = []
+            # 🔥 LISTAR TODAS AS TRANSAÇÕES COM DATAS
+            print(f"\n📅 LISTA COMPLETA DE TRANSAÇÕES:")
+            todas_datas = []
+            
+            for transf_id, dados in transferencias_dict.items():
+                data_str = dados.get('data', '')
+                data_obj = parse_data_unificada(data_str) if data_str else None
+                
+                if data_obj:
+                    status = "DENTRO" if data_obj <= data_limite else "FORA"
+                    todas_datas.append((data_obj.date(), transf_id, status))
+            
+            # Ordenar por data
+            todas_datas.sort(key=lambda x: x[0])
+            
+            for data, transf_id, status in todas_datas[:20]:  # Mostrar primeiras 20
+                print(f"   {data} | ID: {transf_id} | {status}")
+            
+            if len(todas_datas) > 20:
+                print(f"   ... e mais {len(todas_datas) - 20} transações")
+            
+            # 🔥 PASSO 1: FILTRAR e ORDENAR
+            transacoes_filtradas = []
             
             for transf_id, dados in transferencias_dict.items():
                 data_transacao_str = dados.get('data', '')
@@ -2721,117 +2745,165 @@ def obter_extrato_kivy():
                 data_transacao = parse_data_unificada(data_transacao_str)
                 if not data_transacao:
                     continue
-                    
-                # ⚠️ FILTRO CRÍTICO: Apenas transações ATÉ a data limite
+                
+                # Verificar se está dentro do limite
                 if data_transacao > data_limite:
-                    continue
-                    
-                transacoes_ordenadas.append({
+                    continue  # Fora do período
+                
+                transacoes_filtradas.append({
                     'id': transf_id,
                     'dados': dados,
                     'data': data_transacao,
                     'data_str': data_transacao_str
                 })
             
-            # Ordenar por data (crescente) - IGUAL ao período 0
-            transacoes_ordenadas.sort(key=lambda x: x['data'])
+            print(f"\n📊 ESTATÍSTICAS DE FILTRO:")
+            print(f"   Total transações disponíveis: {len(transferencias_dict)}")
+            print(f"   Transações após {data_limite.date()}: {len(transferencias_dict) - len(transacoes_filtradas)}")
+            print(f"   Transações para cálculo: {len(transacoes_filtradas)}")
             
-            print(f"   Transações encontradas até {data_limite.date()}: {len(transacoes_ordenadas)}")
+            # Ordenar por data (crescente)
+            transacoes_filtradas.sort(key=lambda x: x['data'])
             
-            # 🔥 PASSO 2: CÁLCULO IDÊNTICO ao período 0
+            # 🔥 PASSO 2: CÁLCULO COM DEBUG DETALHADO
             saldo = 0.0
+            contador = 0
             
-            for item in transacoes_ordenadas:
+            print(f"\n" + "="*80)
+            print("🧮 PROCESSAMENTO DETALHADO DE CADA TRANSAÇÃO:")
+            print("="*80)
+            
+            for item in transacoes_filtradas:
+                contador += 1
                 transf_id = item['id']
                 dados = item['dados']
                 data_transacao = item['data']
-                data_transacao_str = item['data_str']
                 
                 tipo = dados.get('tipo', '')
                 status = dados.get('status', '')
                 valor = float(dados.get('valor', 0)) if dados.get('valor') is not None else 0.0
                 
-                # 🔥 CAMPOS para verificação (IGUAL ao período 0)
+                # Obter todos os campos
                 conta_remetente = dados.get('conta_remetente')
                 conta_destinatario = dados.get('conta_destinatario')
                 conta_origem = dados.get('conta_origem')
                 conta_destino = dados.get('conta_destino')
+                valor_destino = dados.get('valor_destino')
                 
-                # 🔥 VERIFICAÇÃO: Cliente é REMETENTE/ORIGEM (IGUAL ao período 0)
-                cliente_remetente_origem = (
-                    (conta_remetente and conta_remetente == conta_numero) or
-                    (conta_origem and conta_origem == conta_numero)
-                )
+                print(f"\n#{contador:03d} | ID: {transf_id} | Data: {data_transacao.date()}")
+                print(f"   Tipo: {tipo:30} | Status: {status:15} | Valor: {valor:12,.2f}")
+                print(f"   conta_remetente: {conta_remetente}")
+                print(f"   conta_destinatario: {conta_destinatario}")
+                print(f"   conta_origem: {conta_origem}")
+                print(f"   conta_destino: {conta_destino}")
+                if valor_destino and valor_destino != valor:
+                    print(f"   valor_destino: {valor_destino:,.2f} (diferente!)")
                 
-                # 🔥 VERIFICAÇÃO: Cliente é DESTINATÁRIO/DESTINO (IGUAL ao período 0)
-                cliente_destinatario_destino = (
-                    (conta_destinatario and conta_destinatario == conta_numero) or
-                    (conta_destino and conta_destino == conta_numero)
-                )
+                # VERIFICAÇÕES
+                cliente_remetente = (conta_remetente == conta_numero)
+                cliente_destinatario = (conta_destinatario == conta_numero)
+                cliente_origem = (conta_origem == conta_numero)
+                cliente_destino = (conta_destino == conta_numero)
                 
-                # 🎯 LÓGICA IDÊNTICA AO PERÍODO 0
+                cliente_eh_remetente_ou_origem = cliente_remetente or cliente_origem
+                cliente_eh_destinatario_ou_destino = cliente_destinatario or cliente_destino
                 
-                # CASO A: CLIENTE ENVIA (REMETENTE/ORIGEM)
-                if cliente_remetente_origem:
+                print(f"   É remetente? {cliente_remetente} | É origem? {cliente_origem}")
+                print(f"   É destinatário? {cliente_destinatario} | É destino? {cliente_destino}")
+                
+                saldo_antes = saldo
+                
+                # LÓGICA DE CÁLCULO
+                if cliente_eh_remetente_ou_origem:
+                    print(f"   → CLIENTE É REMETENTE/ORIGEM")
+                    
                     if tipo == 'deposito':
-                        saldo += valor  # Crédito
+                        saldo += valor
+                        print(f"   → Depósito (crédito): +{valor:,.2f}")
                     elif tipo == 'ajuste_admin' and dados.get('tipo_ajuste', '').upper() == 'CREDITO':
-                        saldo += valor  # Crédito
+                        saldo += valor
+                        print(f"   → Ajuste admin crédito: +{valor:,.2f}")
                     elif tipo == 'ajuste_admin':
-                        saldo -= valor  # Débito
+                        saldo -= valor
+                        print(f"   → Ajuste admin débito: -{valor:,.2f}")
                     elif tipo == 'cambio':
+                        saldo -= valor
+                        print(f"   → Câmbio saída: -{valor:,.2f}")
+                    elif tipo in ['transferencia_internacional', 'internacional'] and status == 'rejected':
                         saldo -= valor  # Débito
+                        saldo += valor  # Estorno
+                        print(f"   → Internacional rejeitada: -{valor:,.2f} + {valor:,.2f} = 0")
                     elif tipo in ['transferencia_internacional', 'internacional']:
-                        if status == 'rejected':
-                            saldo -= valor  # Débito quando solicitada
-                            saldo += valor  # Crédito quando rejeitada
-                        else:
-                            saldo -= valor  # Débito
+                        saldo -= valor
+                        print(f"   → Internacional: -{valor:,.2f}")
+                    elif tipo in ['transferencia_interna', 'transferencia_interna_cliente'] and status == 'rejected':
+                        saldo -= valor  # Débito
+                        saldo += valor  # Estorno
+                        print(f"   → Interna rejeitada: -{valor:,.2f} + {valor:,.2f} = 0")
                     elif tipo in ['transferencia_interna', 'transferencia_interna_cliente']:
-                        if status == 'rejected':
-                            saldo -= valor  # Débito
-                            saldo += valor  # Estorno
-                        else:
-                            saldo -= valor  # Débito (cliente é remetente)
+                        saldo -= valor
+                        print(f"   → Interna (cliente é remetente): -{valor:,.2f}")
                     elif tipo == 'receita':
-                        saldo -= valor  # Débito
-                    elif tipo not in ['deposito', 'ajuste_admin', 'cambio']:
-                        saldo -= valor  # Débito padrão para remetente
+                        saldo -= valor
+                        print(f"   → Receita: -{valor:,.2f}")
+                    else:
+                        saldo -= valor
+                        print(f"   → Caso padrão remetente: -{valor:,.2f}")
                 
-                # CASO B: CLIENTE RECEBE (DESTINATÁRIO/DESTINO)
-                elif cliente_destinatario_destino:
+                elif cliente_eh_destinatario_ou_destino:
+                    print(f"   → CLIENTE É DESTINATÁRIO/DESTINO")
+                    
                     if tipo == 'deposito':
-                        saldo += valor  # Crédito
+                        saldo += valor
+                        print(f"   → Depósito recebido: +{valor:,.2f}")
                     elif tipo == 'ajuste_admin' and dados.get('tipo_ajuste', '').upper() == 'CREDITO':
-                        saldo += valor  # Crédito
+                        saldo += valor
+                        print(f"   → Ajuste admin crédito recebido: +{valor:,.2f}")
                     elif tipo == 'cambio':
-                        valor_entrada = dados.get('valor_destino', valor)
-                        saldo += valor_entrada  # Crédito
+                        valor_entrada = valor_destino if valor_destino is not None else valor
+                        saldo += valor_entrada
+                        print(f"   → Câmbio recebido: +{valor_entrada:,.2f}")
                     elif tipo in ['transferencia_internacional', 'internacional']:
-                        saldo += valor  # Crédito
+                        saldo += valor
+                        print(f"   → Internacional recebida: +{valor:,.2f}")
                     elif tipo in ['transferencia_interna', 'transferencia_interna_cliente']:
-                        saldo += valor  # Crédito (cliente é destinatário)
-                    elif tipo not in ['ajuste_admin']:
-                        saldo += valor  # Crédito padrão para destinatário
+                        saldo += valor
+                        print(f"   → Interna recebida: +{valor:,.2f}")
+                    else:
+                        saldo += valor
+                        print(f"   → Caso padrão destinatário: +{valor:,.2f}")
                 
-                # DEBUG para transações importantes
-                if str(transf_id) in ['850030', '733125', '577695']:
-                    print(f"\n🔍 [SALDO] Transação {transf_id} incluída no cálculo:")
-                    print(f"   Data: {data_transacao.date()}")
-                    print(f"   Tipo: {tipo}, Status: {status}")
-                    print(f"   Valor: {valor:,.2f}")
-                    print(f"   É remetente? {cliente_remetente_origem}")
-                    print(f"   É destinatário? {cliente_destinatario_destino}")
-                    print(f"   Saldo após: {saldo:,.2f}")
+                else:
+                    print(f"   ⚠️ TRANSAÇÃO IGNORADA - Não afeta a conta")
+                    continue
+                
+                print(f"   Saldo antes: {saldo_antes:12,.2f}")
+                print(f"   Saldo após:  {saldo:12,.2f}")
+                print(f"   {'-'*60}")
             
-            print(f"\n💰 [SALDO ATÉ DATA] Final: {saldo:,.2f}")
+            # 🔥 RESUMO FINAL
+            print(f"\n" + "="*80)
+            print("💰 [SALDO ATÉ DATA] RESUMO FINAL")
+            print("="*80)
+            print(f"   Data limite: {data_limite.date()}")
+            print(f"   Transações processadas: {contador}")
+            print(f"   Transações ignoradas: {len(transacoes_filtradas) - contador}")
+            print(f"   💰 SALDO FINAL CALCULADO: {saldo:,.2f}")
             
             # VERIFICAÇÃO ESPECIAL para 7 dias
             if data_limite.date() == datetime(2025, 12, 8).date():
-                print(f"\n🎯 VERIFICAÇÃO 08/12/2025:")
+                print(f"\n🎯🎯🎯 VERIFICAÇÃO CRÍTICA PARA 08/12/2025 🎯🎯🎯")
                 print(f"   Saldo calculado: {saldo:,.2f}")
                 print(f"   Saldo esperado: 26,250.00")
                 print(f"   Diferença: {saldo - 26250.00:+,.2f}")
+                
+                if saldo != 26250.00:
+                    print(f"\n🔍 ANÁLISE DA DIFERENÇA:")
+                    print(f"   Se diferença = +3,850.00 → Transação 850030 está sendo incluída indevidamente")
+                    print(f"   Se diferença = +5,050.00 → Transação 850030 está com valor diferente")
+                    print(f"   Se diferença = outro valor → Outras transações problemáticas")
+            
+            print("="*80 + "\n")
             
             return saldo
 
