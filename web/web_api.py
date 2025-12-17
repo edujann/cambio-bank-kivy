@@ -12,6 +12,15 @@ from flask import Flask, jsonify, request, render_template, send_from_directory,
 import os
 import hashlib
 import re
+import requests
+import datetime
+import threading
+from datetime import timezone           
+
+# 🔥 CACHE DE COTAÇÕES (igual ao Kivy)
+cotacoes_cache = {}
+ultima_atualizacao = None
+cotacao_lock = threading.Lock()
 
 # Carrega variáveis de ambiente
 load_dotenv()
@@ -3673,9 +3682,196 @@ def obter_extrato_kivy():
             "message": f"Erro ao buscar extrato: {str(e)}"
         }), 500
 
+
+
+
+# 🔥 FUNÇÕES AUXILIARES PARA CÂMBIO (IGUAL AO KIVY)
+
+def obter_cotacao_simples(par_moedas):
+    """MESMA LÓGICA DO KIVY: Retorna 1 MOEDA_ESQUERDA = X MOEDA_DIREITA"""
+    try:
+        moeda_esquerda = par_moedas[:3]  # BRL em BRL_USD
+        moeda_direita = par_moedas[4:]   # USD em BRL_USD
+        
+        # 🔥 VERIFICAR CACHE (igual ao Kivy)
+        global ultima_atualizacao
+        cache_key = f"{par_moedas}_simple"
+        
+        with cotacao_lock:
+            if (ultima_atualizacao and 
+                (datetime.datetime.now() - ultima_atualizacao).seconds < 30 and
+                cache_key in cotacoes_cache):
+                print(f"📊 Retornando cotação do cache: {cotacoes_cache[cache_key]}")
+                return cotacoes_cache[cache_key]
+            
+            # 🔥 API REAL (MESMA DO KIVY: economia.awesomeapi.com.br)
+            print(f"🌐 Buscando cotação REAL: {moeda_esquerda}-{moeda_direita}")
+            url_direto = f"https://economia.awesomeapi.com.br/json/last/{moeda_esquerda}-{moeda_direita}"
+            
+            try:
+                response = requests.get(url_direto, timeout=10)
+                
+                if response.status_code == 200:
+                    dados = response.json()
+                    chave_direta = f"{moeda_esquerda}{moeda_direita}"
+                    
+                    if chave_direta in dados:
+                        cotacao = float(dados[chave_direta]['bid'])
+                        print(f"✅ Cotação DIRETA {par_moedas}: 1 {moeda_esquerda} = {cotacao} {moeda_direita}")
+                        
+                        # Cache
+                        cotacoes_cache[cache_key] = cotacao
+                        ultima_atualizacao = datetime.datetime.now()
+                        return cotacao
+            except Exception as api_error:
+                print(f"⚠️ Erro na API direta: {api_error}")
+            
+            # 🔥 TENTAR INVERTIDO (igual ao Kivy)
+            print(f"🔄 Tentando API invertido: {moeda_direita}-{moeda_esquerda}")
+            url_invertido = f"https://economia.awesomeapi.com.br/json/last/{moeda_direita}-{moeda_esquerda}"
+            
+            try:
+                response = requests.get(url_invertido, timeout=10)
+                
+                if response.status_code == 200:
+                    dados = response.json()
+                    chave_invertida = f"{moeda_direita}{moeda_esquerda}"
+                    
+                    if chave_invertida in dados:
+                        cotacao_invertida = float(dados[chave_invertida]['bid'])
+                        cotacao = 1 / cotacao_invertida  # 🔥 INVERTEMOS MATEMATICAMENTE
+                        print(f"✅ Cotação INVERTIDA {par_moedas}: 1 {moeda_esquerda} = {cotacao} {moeda_direita}")
+                        
+                        # Cache
+                        cotacoes_cache[cache_key] = cotacao
+                        ultima_atualizacao = datetime.datetime.now()
+                        return cotacao
+            except Exception as api_error:
+                print(f"⚠️ Erro na API invertida: {api_error}")
+        
+        # Fallback: buscar do Supabase (se existir)
+        print(f"🔄 Fallback: buscando cotação no Supabase")
+        try:
+            if supabase:
+                response = supabase.table('config_cotacoes')\
+                    .select('valor_config')\
+                    .eq('tipo_config', 'cotacao')\
+                    .eq('par_moeda', par_moedas)\
+                    .order('data_atualizacao', desc=True)\
+                    .limit(1)\
+                    .execute()
+                
+                if response.data:
+                    cotacao_supabase = float(response.data[0]['valor_config'])
+                    print(f"✅ Cotação do Supabase: {cotacao_supabase}")
+                    return cotacao_supabase
+        except Exception as supabase_error:
+            print(f"⚠️ Erro ao buscar no Supabase: {supabase_error}")
+        
+        print(f"❌ Nenhuma cotação encontrada, retornando 1.0")
+        return 1.0
+        
+    except Exception as e:
+        print(f"❌ Erro crítico em obter_cotacao_simples: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1.0
+
+def obter_spread_cliente(usuario, par_moedas):
+    """Obtém spread configurado para o cliente (igual ao Kivy)"""
+    try:
+        if not supabase:
+            print("⚠️ Supabase não disponível para buscar spread")
+            return {'compra': 0.5, 'venda': 0.5}
+        
+        # 🔥 BUSCAR SPREAD NO SUPABASE
+        # Primeiro tentar buscar do cliente específico
+        response = supabase.table('config_cotacoes')\
+            .select('valor_config')\
+            .eq('tipo_config', 'spread')\
+            .eq('cliente_username', usuario)\
+            .eq('par_moeda', par_moedas)\
+            .order('data_atualizacao', desc=True)\
+            .limit(1)\
+            .execute()
+        
+        if response.data:
+            spread_valor = float(response.data[0]['valor_config'])
+            print(f"✅ Spread específico encontrado: {spread_valor}%")
+            return {'compra': spread_valor, 'venda': spread_valor}
+        
+        # 🔥 Se não encontrar, buscar spread padrão do sistema
+        response_padrao = supabase.table('config_sistema')\
+            .select('valor')\
+            .eq('chave', 'spread_padrao')\
+            .single()\
+            .execute()
+        
+        if response_padrao.data:
+            spread_padrao = float(response_padrao.data['valor'])
+            print(f"✅ Spread padrão encontrado: {spread_padrao}%")
+            return {'compra': spread_padrao, 'venda': spread_padrao}
+        
+        # 🔥 Fallback: 0.5% (igual ao Kivy)
+        print(f"⚠️ Nenhum spread encontrado, usando padrão 0.5%")
+        return {'compra': 0.5, 'venda': 0.5}
+        
+    except Exception as e:
+        print(f"⚠️ Erro ao obter spread: {e}")
+        return {'compra': 0.5, 'venda': 0.5}
+
+def verificar_horario_comercial(usuario=None):
+    """Verifica horário comercial EXATAMENTE como o Kivy"""
+    try:
+        # Obter horário atual (Brasília)
+        agora_utc = datetime.datetime.now(timezone.utc)
+        offset_brasilia = -3  # UTC-3 para Brasília
+        hora_brasilia = (agora_utc.hour + offset_brasilia) % 24
+        
+        agora_brasilia = agora_utc.replace(hour=hora_brasilia, 
+                                         minute=agora_utc.minute, 
+                                         second=agora_utc.second)
+        
+        print(f"📅 Verificação horário para {usuario}:")
+        print(f"   Hora Brasília: {agora_brasilia.strftime('%H:%M')}")
+        
+        # 🔥 BUSCAR HORÁRIO DO CLIENTE NO SUPABASE (se existir)
+        # Por enquanto usar horário padrão: Seg-Sex 09:00-18:00
+        dias_semana = [0, 1, 2, 3, 4]  # Segunda(0) a Sexta(4)
+        inicio = "09:00"
+        fim = "18:00"
+        
+        # Verificar dia da semana
+        dia_atual = agora_brasilia.weekday()  # 0=Segunda
+        
+        if dia_atual not in dias_semana:
+            print(f"   ❌ Fora do horário: dia {dia_atual} não permitido")
+            dias_nomes = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo']
+            dias_permitidos = [dias_nomes[d] for d in dias_semana]
+            return False, f"Fora do horário comercial. Disponível apenas: {', '.join(dias_permitidos)}"
+        
+        # Verificar horário
+        hora_atual = agora_brasilia.strftime('%H:%M')
+        
+        if hora_atual < inicio:
+            print(f"   ❌ Fora do horário: {hora_atual} < {inicio}")
+            return False, f"Fora do horário comercial. Disponível a partir das {inicio}"
+        elif hora_atual > fim:
+            print(f"   ❌ Fora do horário: {hora_atual} > {fim}")
+            return False, f"Fora do horário comercial. Disponível até às {fim}"
+        
+        print(f"   ✅ Dentro do horário comercial")
+        return True, "Dentro do horário comercial"
+        
+    except Exception as e:
+        print(f"⚠️ Erro ao verificar horário: {e}")
+        # Fail-open (permitir em caso de erro) - igual ao Kivy
+        return True, "Horário verificado com ressalvas"
+
+
 @app.route('/cambio-moedas')
 def cambio_moedas():
-    """Tela de compra e venda de moedas"""
+    """Tela de compra e venda de moedas - VERSÃO ATUALIZADA"""
     usuario = session.get('username')
     
     if not usuario:
@@ -3684,11 +3880,11 @@ def cambio_moedas():
     try:
         email = f'{usuario}@exemplo.com'
         nome = usuario.upper()
-        cambio_liberado = False  # Default: não liberado
-        tipo_cliente = 'cliente'  # Pega da coluna 'tipo' que já existe
+        cambio_liberado = False
+        tipo_cliente = 'cliente'
         
         if supabase:
-            # 🔥 BUSCA DAS COLUNAS QUE VOCÊ TEM NO SUPABASE
+            # 🔥 BUSCAR DADOS REAIS
             response = supabase.table('usuarios')\
                 .select('email, nome, cambio_liberado, tipo')\
                 .eq('username', usuario)\
@@ -3696,35 +3892,375 @@ def cambio_moedas():
                 .execute()
             
             if response.data:
-                # Email
                 if response.data.get('email'):
                     email = response.data['email']
-                
-                # Nome
                 if response.data.get('nome'):
                     nome = response.data['nome']
-                
-                # Cambio liberado (coluna EXISTENTE no seu Supabase!)
                 if response.data.get('cambio_liberado') is not None:
                     cambio_liberado = bool(response.data['cambio_liberado'])
-                
-                # Tipo de cliente (coluna EXISTENTE no seu Supabase!)
                 if response.data.get('tipo'):
                     tipo_cliente = response.data['tipo']
                     
     except Exception as e:
-        print(f"⚠️  Erro ao buscar usuário para câmbio: {e}")
-        # Mantém os defaults em caso de erro
+        print(f"⚠️ Erro ao buscar dados do usuário: {e}")
     
     print(f"💰 Câmbio para {usuario}: liberado={cambio_liberado}, tipo={tipo_cliente}")
     
-    # 🔥 PASSA TODOS OS DADOS PARA O TEMPLATE
+    # 🔥 PASSAR USUÁRIO CORRETO PARA O TEMPLATE
     return render_template('cambio_moedas.html',
-                          usuario=usuario,
+                          usuario=usuario,  # ← CRÍTICO: passar o nome de usuário
                           email=email,
                           nome=nome,
                           cambio_liberado=cambio_liberado,
                           tipo_cliente=tipo_cliente)
+
+# ============================================
+# APIs PARA CÂMBIO DE MOEDAS (REAIS - IGUAL AO KIVY)
+# ============================================
+
+@app.route('/api/pares-disponiveis/<usuario>')
+def api_pares_disponiveis(usuario):
+    """API REAL - Pares disponíveis baseado nas contas do usuário"""
+    if 'username' not in session:
+        return jsonify({'error': 'Não autorizado'}), 401
+    
+    print(f"🔍 Buscando pares disponíveis para: {usuario}")
+    
+    try:
+        if not supabase:
+            return jsonify({
+                'success': False,
+                'error': 'Supabase não conectado',
+                'pares': []
+            })
+        
+        # 🔥 BUSCAR CONTAS REAIS DO SUPABASE
+        response = supabase.table('contas')\
+            .select('moeda')\
+            .eq('cliente_username', usuario)\
+            .eq('ativa', True)\
+            .execute()
+        
+        if not response.data:
+            print(f"⚠️ Usuário {usuario} não tem contas ativas")
+            return jsonify({
+                'success': True,
+                'pares': [],
+                'moedas_usuario': [],
+                'mensagem': 'Usuário não tem contas ativas'
+            })
+        
+        moedas_usuario = list(set([conta['moeda'] for conta in response.data]))
+        print(f"✅ Moedas encontradas: {moedas_usuario}")
+        
+        # 🔥 GERAR PARES POSSÍVEIS (igual ao Kivy)
+        pares = []
+        for moeda1 in moedas_usuario:
+            for moeda2 in moedas_usuario:
+                if moeda1 != moeda2:
+                    pares.append(f"{moeda1}_{moeda2}")
+        
+        print(f"✅ Pares gerados: {len(pares)} combinações")
+        
+        return jsonify({
+            'success': True,
+            'pares': pares,
+            'moedas_usuario': moedas_usuario,
+            'total_contas': len(moedas_usuario)
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro em api_pares_disponiveis: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'pares': []
+        })
+
+@app.route('/api/calcular-cambio', methods=['POST'])
+def api_calcular_cambio():
+    """API REAL - Calcula operação de câmbio EXATAMENTE como o Kivy"""
+    if 'username' not in session:
+        return jsonify({'error': 'Não autorizado'}), 401
+    
+    data = request.json
+    moeda_de = data.get('moedaDe')
+    moeda_para = data.get('moedaPara')
+    tipo_operacao = data.get('tipoOperacao')
+    valor_digitado = float(data.get('valor', 0))
+    usuario = data.get('usuario')
+    
+    print(f"🧮 Calculando câmbio: {moeda_de}->{moeda_para} ({tipo_operacao})")
+    print(f"   Valor: {valor_digitado}")
+    print(f"   Usuário: {usuario}")
+    
+    if not all([moeda_de, moeda_para, tipo_operacao, usuario]):
+        return jsonify({'success': False, 'error': 'Parâmetros inválidos'})
+    
+    try:
+        # 🔥 LÓGICA IDÊNTICA AO KIVY
+        if tipo_operacao == 'compra':
+            # COMPRA: Cliente COMPRA moeda_para, PAGA moeda_de
+            # Par: MOEDA_PARA_MOEDA_DE (1 moeda_para = X moeda_de)
+            par_correto = f"{moeda_para}_{moeda_de}"
+            print(f"   PERSPECTIVA CORRIGIDA: COMPRA {moeda_para}, PAGA {moeda_de}")
+        else:
+            # VENDA: Cliente VENDE moeda_de, RECEBE moeda_para  
+            # Par: MOEDA_DE_MOEDA_PARA (1 moeda_de = X moeda_para)
+            par_correto = f"{moeda_de}_{moeda_para}"
+            print(f"   PERSPECTIVA CORRIGIDA: VENDE {moeda_de}, RECEBE {moeda_para}")
+        
+        # 🔥 OBTER COTAÇÃO REAL (AwesomeAPI)
+        cotacao_real = obter_cotacao_simples(par_correto)
+        
+        if not cotacao_real:
+            return jsonify({'success': False, 'error': 'Erro ao obter cotação'})
+        
+        print(f"   Par correto: {par_correto}")
+        print(f"   1 {par_correto[:3]} = {cotacao_real:.6f} {par_correto[4:]}")
+        
+        # 🔥 OBTER SPREAD
+        spread_info = obter_spread_cliente(usuario, par_correto)
+        spread = spread_info.get(tipo_operacao, 0.5)
+        
+        print(f"   Spread aplicado: {spread}%")
+        
+        # 🔥 APLICAR SPREAD (igual ao Kivy)
+        if tipo_operacao == 'compra':
+            # COMPRA: Cliente PAGA MAIS
+            cotacao_cliente = cotacao_real * (1 + spread/100)
+            print(f"   CLIENTE PAGA MAIS -> Spread: +{spread}%")
+        else:
+            # VENDA: Cliente RECEBE MENOS
+            cotacao_cliente = cotacao_real * (1 - spread/100)
+            print(f"   CLIENTE RECEBE MENOS -> Spread: -{spread}%")
+        
+        print(f"   Cotação para cliente: {cotacao_cliente:.6f}")
+        
+        # 🔥 CÁLCULO FINAL (igual ao Kivy)
+        if tipo_operacao == 'compra':
+            # COMPRA: Cliente RECEBE moeda_para (valor digitado), PAGA moeda_de
+            valor_receber = valor_digitado
+            valor_pagar = valor_receber * cotacao_cliente  # MULTIPLICAÇÃO
+            resultado = valor_pagar
+            print(f"   CÁLCULO COMPRA: {valor_receber:.2f} {moeda_para} x {cotacao_cliente:.6f} = {valor_pagar:.2f} {moeda_de}")
+        else:
+            # VENDA: Cliente PAGA moeda_de (valor digitado), RECEBE moeda_para
+            valor_pagar = valor_digitado
+            valor_receber = valor_pagar * cotacao_cliente  # MULTIPLICAÇÃO
+            resultado = valor_receber
+            print(f"   CÁLCULO VENDA: {valor_pagar:.2f} {moeda_de} x {cotacao_cliente:.6f} = {valor_receber:.2f} {moeda_para}")
+        
+        return jsonify({
+            'success': True,
+            'resultado': round(resultado, 2),
+            'cotacao_usada': round(cotacao_cliente, 6),
+            'moeda_de': moeda_de,
+            'moeda_para': moeda_para,
+            'valor_original': valor_digitado,
+            'tipo_operacao': tipo_operacao,
+            'spread_aplicado': spread,
+            'par_calculo': par_correto
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro em api_calcular_cambio: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+@app.route('/api/cotacao', methods=['POST'])
+def api_cotacao():
+    """API REAL - Retorna cotação com spread (para exibição na UI)"""
+    if 'username' not in session:
+        return jsonify({'error': 'Não autorizado'}), 401
+    
+    data = request.json
+    par = data.get('par')
+    operacao = data.get('operacao')
+    usuario = data.get('usuario')
+    
+    print(f"📊 Solicitando cotação: {par} ({operacao}) para {usuario}")
+    
+    if not all([par, operacao, usuario]):
+        return jsonify({'success': False, 'error': 'Parâmetros inválidos'})
+    
+    try:
+        moeda_de = par.split('_')[0]
+        moeda_para = par.split('_')[1]
+        
+        # 🔥 LÓGICA DO Kivy.calcular_cotacao_cliente()
+        if operacao == 'compra':
+            par_correto = f"{moeda_para}_{moeda_de}"  # RECEBE_PAGA
+        else:
+            par_correto = f"{moeda_de}_{moeda_para}"  # PAGA_RECEBE
+        
+        print(f"   Par para cálculo: {par_correto}")
+        
+        # Obter cotação real
+        cotacao_real = obter_cotacao_simples(par_correto)
+        
+        if not cotacao_real:
+            return jsonify({'success': False, 'error': 'Erro ao obter cotação'})
+        
+        # Obter spread
+        spread_info = obter_spread_cliente(usuario, par_correto)
+        spread = spread_info.get(operacao, 0.5)
+        
+        print(f"   Spread: {spread}%")
+        
+        # Aplicar spread
+        if operacao == 'compra':
+            cotacao_cliente = cotacao_real * (1 + spread/100)
+        else:
+            cotacao_cliente = cotacao_real * (1 - spread/100)
+        
+        print(f"   Cotação com spread: {cotacao_cliente:.6f}")
+        
+        # 🔥 CORREÇÃO APENAS PARA EXIBIÇÃO (igual ao Kivy)
+        if operacao == 'venda':
+            cotacao_exibicao = 1 / cotacao_cliente if cotacao_cliente != 0 else 0
+            cotacao_final = round(cotacao_exibicao, 4)
+            print(f"   Cotação invertida para exibição: {cotacao_final}")
+        else:
+            cotacao_final = round(cotacao_cliente, 4)
+        
+        return jsonify({
+            'success': True,
+            'cotacao': cotacao_final,
+            'cotacao_base': round(cotacao_real, 4),
+            'spread': spread,
+            'par': par,
+            'operacao': operacao,
+            'par_calculo': par_correto
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro em api_cotacao: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+@app.route('/api/verificar-horario/<usuario>')
+def api_verificar_horario(usuario):
+    """API para verificar horário comercial"""
+    if 'username' not in session:
+        return jsonify({'error': 'Não autorizado'}), 401
+    
+    print(f"⏰ Verificando horário para: {usuario}")
+    
+    horario_ok, mensagem = verificar_horario_comercial(usuario)
+    
+    return jsonify({
+        'success': True,
+        'horarioOk': horario_ok,
+        'mensagem': mensagem
+    })
+
+@app.route('/api/limite-operacional/<usuario>')
+def api_limite_operacional(usuario):
+    """API para obter limite operacional do cliente"""
+    if 'username' not in session:
+        return jsonify({'error': 'Não autorizado'}), 401
+    
+    try:
+        if supabase:
+            # 🔥 BUSCAR LIMITE NO SUPABASE
+            response = supabase.table('config_sistema')\
+                .select('valor')\
+                .eq('chave', 'limite_operacional')\
+                .single()\
+                .execute()
+            
+            if response.data:
+                limite = float(response.data['valor'])
+            else:
+                limite = 10000.00  # Default
+        else:
+            limite = 10000.00  # Default
+        
+        return jsonify({
+            'success': True,
+            'limite': limite,
+            'usuario': usuario
+        })
+        
+    except Exception as e:
+        print(f"⚠️ Erro ao buscar limite: {e}")
+        return jsonify({
+            'success': True,
+            'limite': 10000.00,  # Fallback
+            'usuario': usuario
+        })
+
+@app.route('/api/verificar-saldos/<usuario>', methods=['POST'])
+def api_verificar_saldos(usuario):
+    """API para verificar saldos antes da operação"""
+    if 'username' not in session:
+        return jsonify({'error': 'Não autorizado'}), 401
+    
+    data = request.json
+    moeda_pagar = data.get('moedaPagar')
+    valor_pagar = float(data.get('valorPagar', 0))
+    
+    print(f"💰 Verificando saldos para {usuario}: {valor_pagar} {moeda_pagar}")
+    
+    try:
+        if not supabase:
+            return jsonify({
+                'success': True,
+                'saldosNegativos': [],
+                'mensagem': 'Supabase não disponível'
+            })
+        
+        # 🔥 BUSCAR SALDO REAL NO SUPABASE
+        response = supabase.table('contas')\
+            .select('saldo')\
+            .eq('cliente_username', usuario)\
+            .eq('moeda', moeda_pagar)\
+            .eq('ativa', True)\
+            .limit(1)\
+            .execute()
+        
+        if response.data:
+            saldo_atual = float(response.data[0]['saldo'])
+            saldo_pos_operacao = saldo_atual - valor_pagar
+            
+            print(f"   Saldo atual: {saldo_atual:.2f} {moeda_pagar}")
+            print(f"   Saldo pós-operação: {saldo_pos_operacao:.2f} {moeda_pagar}")
+            
+            if saldo_pos_operacao < 0:
+                return jsonify({
+                    'success': True,
+                    'saldosNegativos': [{
+                        'moeda': moeda_pagar,
+                        'saldoAtual': saldo_atual,
+                        'saldoPos': saldo_pos_operacao,
+                        'valorOperacao': valor_pagar
+                    }]
+                })
+        
+        return jsonify({
+            'success': True,
+            'saldosNegativos': [],
+            'mensagem': 'Saldos OK'
+        })
+        
+    except Exception as e:
+        print(f"⚠️ Erro ao verificar saldos: {e}")
+        return jsonify({
+            'success': True,
+            'saldosNegativos': [],
+            'mensagem': 'Erro na verificação'
+        })
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
