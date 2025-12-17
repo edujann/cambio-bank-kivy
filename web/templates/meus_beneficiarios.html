@@ -1157,8 +1157,8 @@
             <div class="card-beneficiario" data-id="${benef.id}">
                 <div class="card-header">
                     <h3>${benef.nome}</h3>
-                    <span class="${benef.ativo ? 'status-ativo' : 'status-inativo'}">
-                        ${benef.ativo ? 'Ativo' : 'Inativo'}
+                    <span class="${(benef.ativo === false) ? 'status-inativo' : 'status-ativo'}">
+                        ${(benef.ativo === false) ? 'Inativo' : 'Ativo'}
                     </span>
                 </div>
                 
