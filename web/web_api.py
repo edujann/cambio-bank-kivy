@@ -3684,26 +3684,47 @@ def cambio_moedas():
     try:
         email = f'{usuario}@exemplo.com'
         nome = usuario.upper()
+        cambio_liberado = False  # Default: não liberado
+        tipo_cliente = 'cliente'  # Pega da coluna 'tipo' que já existe
         
         if supabase:
+            # 🔥 BUSCA DAS COLUNAS QUE VOCÊ TEM NO SUPABASE
             response = supabase.table('usuarios')\
-                .select('email, nome')\
+                .select('email, nome, cambio_liberado, tipo')\
                 .eq('username', usuario)\
                 .single()\
                 .execute()
             
             if response.data:
+                # Email
                 if response.data.get('email'):
                     email = response.data['email']
+                
+                # Nome
                 if response.data.get('nome'):
                     nome = response.data['nome']
+                
+                # Cambio liberado (coluna EXISTENTE no seu Supabase!)
+                if response.data.get('cambio_liberado') is not None:
+                    cambio_liberado = bool(response.data['cambio_liberado'])
+                
+                # Tipo de cliente (coluna EXISTENTE no seu Supabase!)
+                if response.data.get('tipo'):
+                    tipo_cliente = response.data['tipo']
+                    
     except Exception as e:
-        print(f"⚠️  Erro ao buscar usuário: {e}")
+        print(f"⚠️  Erro ao buscar usuário para câmbio: {e}")
+        # Mantém os defaults em caso de erro
     
+    print(f"💰 Câmbio para {usuario}: liberado={cambio_liberado}, tipo={tipo_cliente}")
+    
+    # 🔥 PASSA TODOS OS DADOS PARA O TEMPLATE
     return render_template('cambio_moedas.html',
-                         usuario=usuario,
-                         email=email,
-                         nome=nome)   
+                          usuario=usuario,
+                          email=email,
+                          nome=nome,
+                          cambio_liberado=cambio_liberado,
+                          tipo_cliente=tipo_cliente)
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))

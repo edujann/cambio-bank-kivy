@@ -931,25 +931,59 @@
         // ============================================
         async carregarSaldos() {
             try {
-                console.log("💰 Carregando saldos do usuário...");
+                console.log("💰 Carregando saldos REAIS do usuário...");
                 
-                // 🔥 INTEGRAÇÃO COM API REAL (substitua pela sua)
-                const response = await fetch(`/api/saldos/${this.usuario}`);
+                // 🔥 USANDO SUA API REAL QUE JÁ EXISTE!
+                const response = await fetch(`/api/dashboard/${this.usuario}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+                
                 const data = await response.json();
                 
-                this.saldosUsuario = data.saldos || {};
-                this.atualizarUI_Saldos();
+                if (data.success && data.dashboard && data.dashboard.contas) {
+                    this.saldosUsuario = {};
+                    
+                    // Processar cada conta REAL do seu Supabase
+                    data.dashboard.contas.forEach(conta => {
+                        const moeda = conta.moeda;
+                        const saldo = parseFloat(conta.saldo) || 0;
+                        this.saldosUsuario[moeda] = saldo;
+                        console.log(`✅ Saldo REAL ${moeda}: ${saldo}`);
+                    });
+                    
+                    this.atualizarUI_Saldos();
+                    console.log("✅ Saldos REAIS carregados:", this.saldosUsuario);
+                    
+                } else {
+                    throw new Error("Formato de resposta inválido da API");
+                }
                 
             } catch (error) {
-                console.error("❌ Erro ao carregar saldos:", error);
-                // Fallback para dados de exemplo
-                this.saldosUsuario = {
-                    'USD': 1500.50,
-                    'EUR': 2200.75,
-                    'GBP': 800.25,
-                    'BRL': 15000.00
-                };
+                console.error("❌ Erro CRÍTICO ao carregar saldos REAIS:", error);
+                
+                // 🔥 NENHUM DADO FAKE! Apenas mostra erro
+                this.saldosUsuario = {};
                 this.atualizarUI_Saldos();
+                
+                // Mostra erro na interface
+                const grid = document.getElementById('saldosGrid');
+                if (grid) {
+                    grid.innerHTML = `
+                        <div class="saldo-card" style="grid-column: 1 / -1; text-align: center; background: rgba(224, 32, 32, 0.1);">
+                            <div class="saldo-moeda" style="color: #ff6b6b;">
+                                <i class="fas fa-exclamation-triangle"></i> ERRO
+                            </div>
+                            <div class="saldo-valor" style="color: #ff6b6b; font-size: 14px;">
+                                Não foi possível carregar saldos
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Propaga o erro
+                throw error;
             }
         }
 
@@ -972,7 +1006,7 @@
             });
         }
 
-        async carregarParesDisponiveis() {
+        async carregarParesDisponiveis() {  
             try {
                 console.log("🌍 Carregando pares disponíveis...");
                 
