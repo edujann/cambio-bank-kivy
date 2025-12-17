@@ -2755,17 +2755,33 @@ def obter_extrato_kivy():
 
         # 🔥 4. FUNÇÃO PARA CALCULAR SALDO ATÉ UMA DATA (USANDO DADOS JÁ CARREGADOS)
         def calcular_saldo_ate_data(conta_numero, data_fim_periodo, transferencias_dict):
-            """
-            Calcula saldo até uma data usando EXATAMENTE A MESMA LÓGICA do período 0
-            COPIA IDÊNTICA do processamento do extrato completo
-            """
-            print(f"\n💰 [SALDO INICIAL] Calculando saldo até {data_fim_periodo.date()}")
+            """Calcula saldo até uma data"""
+            
+            print(f"\n🔥🔥🔥 DEBUG SALDO ATÉ DATA 🔥🔥🔥")
+            print(f"Conta: {conta_numero}")
+            print(f"Data limite: {data_fim_periodo.date()}")
+            print(f"Total transações disponíveis: {len(transferencias_dict)}")
+            
+            # Listar PRIMEIRAS 5 transações com datas
+            print(f"\nPRIMEIRAS 5 TRANSAÇÕES:")
+            contador = 0
+            for transf_id, dados in transferencias_dict.items():
+                if contador >= 5:
+                    break
+                data_str = dados.get('data', 'N/A')
+                tipo = dados.get('tipo', 'N/A')
+                valor = dados.get('valor', 0)
+                conta_remetente = dados.get('conta_remetente', 'N/A')
+                conta_destinatario = dados.get('conta_destinatario', 'N/A')
+                print(f"  {data_str} | ID: {transf_id} | {tipo} | Valor: {valor} | Rem: {conta_remetente} | Dest: {conta_destinatario}")
+                contador += 1
             
             # Data limite = FIM DO DIA ANTERIOR ao início do período
             data_limite = data_fim_periodo - timedelta(days=1)
             data_limite = data_limite.replace(hour=23, minute=59, second=59, microsecond=999999)
             
-            print(f"   Data limite: {data_limite}")
+            print(f"\n💰 [SALDO INICIAL] Calculando saldo até {data_fim_periodo.date()}")
+            print(f"   Data limite (fim do dia anterior): {data_limite}")
             
             # 🔥 PASSO 1: CRIAR LISTA DE TRANSAÇÕES (IGUAL AO PERÍODO 0)
             transacoes_para_processar = []
@@ -2790,7 +2806,8 @@ def obter_extrato_kivy():
                     'data_str': data_str
                 })
             
-            print(f"   Transações encontradas: {len(transacoes_para_processar)}")
+            print(f"   Transações para processar (até {data_limite.date()}): {len(transacoes_para_processar)}")
+    
             
             # 🔥 PASSO 2: ORDENAR POR DATA (IGUAL AO PERÍODO 0)
             transacoes_para_processar.sort(key=lambda x: x['data'])
