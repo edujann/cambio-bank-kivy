@@ -229,6 +229,58 @@
         border-color: var(--cor-primaria);
     }
 
+    /* CORREÇÃO DO DROPDOWN (SELECT) */
+    .form-group select {
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        background: rgba(255, 255, 255, 0.05) url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238b949e'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e") no-repeat right 12px center;
+        background-size: 20px;
+        padding-right: 40px !important;
+    }
+
+    /* ESTILO DAS OPÇÕES DO SELECT */
+    .form-group select option {
+        background: var(--cor-card);
+        color: var(--cor-texto);
+        padding: 12px;
+        border-bottom: 1px solid var(--cor-borda);
+    }
+
+    /* REMOVER O FUNDO BRANCO DO DROPDOWN NO CHROME */
+    select:-internal-list-box {
+        background: var(--cor-card) !important;
+        color: var(--cor-texto) !important;
+    }
+
+    /* CORREÇÃO PARA FIREFOX */
+    select option {
+        background: var(--cor-card) !important;
+        color: var(--cor-texto) !important;
+    }
+
+    /* CORREÇÃO PARA CHROME/EDGE */
+    select:focus option:checked {
+        background: var(--cor-primaria) !important;
+        color: white !important;
+    }
+
+    /* PARA TODOS OS SELECTS DO SISTEMA */
+    select {
+        background-color: var(--cor-card) !important;
+        color: var(--cor-texto) !important;
+        border: 1px solid var(--cor-borda) !important;
+    }
+
+    /* REMOVER O ESTILO PADRÃO DO AUTOCOMPLETE NOS SELECTS TAMBÉM */
+    select:-webkit-autofill,
+    select:-webkit-autofill:hover,
+    select:-webkit-autofill:focus {
+        -webkit-box-shadow: 0 0 0px 1000px var(--cor-card) inset !important;
+        -webkit-text-fill-color: var(--cor-texto) !important;
+        transition: background-color 5000s ease-in-out 0s;
+    }
+
     /* BOTÕES DE PERÍODO RÁPIDO */
     .periodos-rapidos {
         display: flex;
