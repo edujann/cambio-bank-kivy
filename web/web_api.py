@@ -223,19 +223,18 @@ def pagina_login():
 @app.route('/dashboard')
 def dashboard():
     """Página do dashboard - requer login"""
-    # ✅ Pega usuário da SESSÃO (correto!)
     usuario = session.get('username')
     
     if not usuario:
-        # Se não estiver logado, redireciona para login
         return redirect('/login')
     
     try:
-        # Busca dados básicos do usuário
         email = f'{usuario}@exemplo.com'
         nome = usuario.upper()
+        beneficiarios_count = 0  # ← INICIALIZA
         
         if supabase:
+            # 1. Buscar dados do usuário
             response = supabase.table('usuarios')\
                 .select('email, nome')\
                 .eq('username', usuario)\
@@ -247,16 +246,34 @@ def dashboard():
                     email = response.data['email']
                 if response.data.get('nome'):
                     nome = response.data['nome']
+            
+            # 2. 🔥 NOVO: Contar beneficiários ATIVOS
+            print(f"🔍 Contando beneficiários para {usuario}...")
+            benef_response = supabase.table('beneficiarios')\
+                .select('id, nome, ativo')\
+                .eq('cliente_username', usuario)\
+                .eq('ativo', True)\
+                .execute()
+            
+            if benef_response.data:
+                beneficiarios_count = len(benef_response.data)
+                print(f"✅ Encontrados {beneficiarios_count} beneficiários para {usuario}")
+            else:
+                print(f"⚠️ Nenhum beneficiário encontrado para {usuario}")
+                
     except Exception as e:
-        print(f"⚠️  Erro ao buscar usuário: {e}")
+        print(f"⚠️  Erro ao buscar dados: {e}")
+        beneficiarios_count = 0
     
     # Dados para o template
     dados = {
         'usuario': usuario,
         'email': email,
-        'nome': nome
+        'nome': nome,
+        'beneficiarios_count': beneficiarios_count  # ← ENVIADO PARA O TEMPLATE
     }
     
+    print(f"📊 Dashboard para {usuario}: {beneficiarios_count} beneficiários")
     return render_template('dashboard.html', **dados)
 
 @app.route('/static/<path:path>')
@@ -3656,15 +3673,37 @@ def obter_extrato_kivy():
             "message": f"Erro ao buscar extrato: {str(e)}"
         }), 500
 
-@app.route('/dashboard')
-def dashboard():
-    if 'usuario' not in session:
+@app.route('/cambio-moedas')
+def cambio_moedas():
+    """Tela de compra e venda de moedas"""
+    usuario = session.get('username')
+    
+    if not usuario:
         return redirect('/login')
     
-    return render_template('dashboard.html',
-                         usuario=session.get('usuario'),
-                         email=session.get('email'),
-                         nome=session.get('nome'))    
+    try:
+        email = f'{usuario}@exemplo.com'
+        nome = usuario.upper()
+        
+        if supabase:
+            response = supabase.table('usuarios')\
+                .select('email, nome')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if response.data:
+                if response.data.get('email'):
+                    email = response.data['email']
+                if response.data.get('nome'):
+                    nome = response.data['nome']
+    except Exception as e:
+        print(f"⚠️  Erro ao buscar usuário: {e}")
+    
+    return render_template('cambio_moedas.html',
+                         usuario=usuario,
+                         email=email,
+                         nome=nome)   
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
