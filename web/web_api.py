@@ -2807,7 +2807,7 @@ def obter_extrato_kivy():
                 })
             
             print(f"   Transações para processar (até {data_limite.date()}): {len(transacoes_para_processar)}")
-    
+
             
             # 🔥 PASSO 2: ORDENAR POR DATA (IGUAL AO PERÍODO 0)
             transacoes_para_processar.sort(key=lambda x: x['data'])
@@ -2842,17 +2842,13 @@ def obter_extrato_kivy():
                     elif tipo == 'cambio':
                         saldo -= valor
                     elif tipo in ['transferencia_internacional', 'internacional']:
-                        if status == 'rejected':
-                            saldo -= valor  # Débito quando solicitada
-                            saldo += valor  # Crédito quando rejeitada
-                        else:
-                            saldo -= valor
+                        # ⚠️ REMOVIDA A LÓGICA ESPECIAL PARA REJEITADAS
+                        # Transações rejeitadas aparecem como débito + crédito separados
+                        # Não precisamos compensar aqui
+                        saldo -= valor  # SEMPRE débito (cliente é remetente)
                     elif tipo in ['transferencia_interna', 'transferencia_interna_cliente']:
-                        if status == 'rejected':
-                            saldo -= valor
-                            saldo += valor
-                        else:
-                            saldo -= valor  # Cliente é REMETENTE = DÉBITO
+                        # ⚠️ REMOVIDA A LÓGICA ESPECIAL PARA REJEITADAS
+                        saldo -= valor  # Cliente é REMETENTE = DÉBITO
                     elif tipo == 'receita':
                         saldo -= valor
                     elif tipo not in ['deposito', 'ajuste_admin', 'cambio']:
@@ -2877,11 +2873,11 @@ def obter_extrato_kivy():
             print(f"   Saldo calculado: {saldo:,.2f}")
             
             # VERIFICAÇÃO para 7 dias
-            if data_limite.date() == datetime(2025, 12, 8).date():
-                print(f"\n🎯 VERIFICAÇÃO 08/12:")
+            if data_limite.date() == datetime(2025, 12, 9).date():  # ⚠️ CORRIGIDO: 09/12, não 08/12!
+                print(f"\n🎯 VERIFICAÇÃO 09/12 (dia anterior ao início do período 7 dias):")
                 print(f"   Saldo calculado: {saldo:,.2f}")
-                print(f"   Saldo esperado: 26,250.00")
-                print(f"   Diferença: {saldo - 26250.00:+,.2f}")
+                print(f"   Saldo esperado: 20.950,00 (baseado no extrato de 30 dias)")
+                print(f"   Diferença: {saldo - 20950.00:+,.2f}")
             
             return saldo
 
