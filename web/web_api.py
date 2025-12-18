@@ -2,21 +2,27 @@
 API Web para o Cambio Bank
 Versão inicial - apenas endpoints básicos
 """
-from datetime import datetime
-from flask import Flask, jsonify, request
-from flask_cors import CORS
-from dotenv import load_dotenv
-from flask import render_template, send_from_directory
-from flask import Flask, jsonify, request, render_template, send_from_directory, redirect, session  # ← ADICIONE 'session' AQUI
-
+# ============================================
+# IMPORTS PADRÃO DO PYTHON
+# ============================================
 import os
 import hashlib
 import re
-import requests
-import datetime
+import random
 import threading
-from datetime import timezone           
+from datetime import datetime, timezone  # ← CORRETO: import único
 
+# ============================================
+# IMPORTS DE TERCEIROS
+# ============================================
+import requests
+from flask import Flask, jsonify, request, render_template, send_from_directory, redirect, session
+from flask_cors import CORS
+from dotenv import load_dotenv
+
+# ============================================
+# CONFIGURAÇÕES INICIAIS
+# ============================================
 # 🔥 CACHE DE COTAÇÕES (igual ao Kivy)
 cotacoes_cache = {}
 ultima_atualizacao = None
@@ -28,9 +34,8 @@ load_dotenv()
 # ============================================
 # CONEXÃO COM SUPABASE
 # ============================================
-
 try:
-    from supabase import create_client
+    from supabase import create_client  # ← AGORA AQUI (após dotenv)
     
     supabase_url = os.getenv('SUPABASE_URL')
     supabase_key = os.getenv('SUPABASE_KEY')
@@ -51,9 +56,9 @@ try:
 except Exception as e:
     print(f"❌ Erro ao conectar ao Supabase: {e}")
     import traceback
-    traceback.print_exc()  # ← MOSTRA O ERRO COMPLETO
+    traceback.print_exc()
     supabase = None
-
+    
 # Cria app Flask
 app = Flask(__name__)
 CORS(app)  # Permite conexão do frontend
