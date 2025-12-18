@@ -833,6 +833,15 @@
        JAVASCRIPT - LÓGICA 100% FIEL AO KIVY
     ============================================ -->
     <script>
+
+    // 🔥 DADOS DO USUÁRIO (passados pelo Flask)
+    window.USER = {
+        username: "{{ usuario }}",
+        nome: "{{ nome }}",
+        email: "{{ email }}"
+    };
+    console.log('💰 Dados do usuário (Flask):', window.USER);            
+
     // ============================================
     // VARIÁVEIS GLOBAIS (equivalente ao __init__)
     // ============================================
@@ -846,7 +855,8 @@
             this.intervaloContador = null;
             this.saldosUsuario = {};
             this.paresDisponiveis = [];
-            this.usuario = window.USER?.username || 'cliente';
+            this.usuario = "{{ usuario }}";
+            console.log("👤 Usuário REAL para câmbio:", this.usuario);
             
             // Inicializar
             this.iniciar();
