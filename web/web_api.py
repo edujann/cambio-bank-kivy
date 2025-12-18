@@ -10,12 +10,13 @@ import hashlib
 import re
 import random
 import threading
-from datetime import datetime, timezone  # ← CORRETO: import único
+from datetime import datetime, timezone  # ← CORRETO: import único  
 
 # ============================================
 # IMPORTS DE TERCEIROS
 # ============================================
 import requests
+import pytz 
 from flask import Flask, jsonify, request, render_template, send_from_directory, redirect, session
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -3834,80 +3835,103 @@ def obter_spread_cliente(usuario, par_moedas):
         return {'compra': 0.5, 'venda': 0.5}
 
 def verificar_horario_comercial(usuario=None):
-    """Verifica horário comercial baseado NA SUA ESTRUTURA REAL"""
+    """Verifica horário comercial - VERSÃO SEGURA COM pytz"""
     try:
-        if not supabase:
-            # Fallback básico
-            agora = datetime.now(timezone.utc)
-            hora_brasilia = (agora.hour - 3) % 24
-            dia_semana = agora.weekday()  # 0=segunda
-            
-            if 0 <= dia_semana <= 4 and 9 <= hora_brasilia < 18:
-                return True, "Dentro do horário comercial"
-            return False, "Fora do horário comercial"
+        print(f"📅 Verificação horário SEGURA para {usuario}")
         
-        # 🔥 BUSCAR CONFIGURAÇÕES DA SUA TABELA REAL
-        configs = supabase.table('config_sistema')\
-            .select('chave_config, valor_config')\
-            .in_('chave_config', [
-                'horario_abertura', 
-                'horario_fechamento', 
-                'dias_operacao',
-                'timezone'
-            ])\
-            .execute()
+        # 🔥 1. USAR pytz PARA FUSO HORÁRIO CORRETO
+        tz_brasilia = pytz.timezone('America/Sao_Paulo')
+        agora_brasilia = datetime.now(tz_brasilia)
+        print(f"   ✅ pytz instalado - fuso horário preciso")
         
-        config_dict = {}
-        for item in configs.data:
-            config_dict[item['chave_config']] = item['valor_config']
+        # 🔥 2. BUSCAR CONFIGURAÇÕES DA SUA TABELA
+        hora_abertura = "09:00"
+        hora_fechamento = "18:00"
+        dias_operacao_nomes = ['segunda', 'terca', 'quarta', 'quinta', 'sexta']
         
-        # Valores padrão se não encontrar
-        hora_abertura = config_dict.get('horario_abertura', '09:00')
-        hora_fechamento = config_dict.get('horario_fechamento', '18:00')
-        dias_operacao = config_dict.get('dias_operacao', ['segunda', 'terca', 'quarta', 'quinta', 'sexta'])
-        tz = config_dict.get('timezone', 'America/Sao_Paulo')
+        if supabase:
+            try:
+                # Buscar configurações do seu banco
+                configs = supabase.table('config_sistema')\
+                    .select('chave_config, valor_config')\
+                    .in_('chave_config', [
+                        'horario_abertura', 
+                        'horario_fechamento', 
+                        'dias_operacao'
+                    ])\
+                    .execute()
+                
+                for config in configs.data:
+                    chave = config['chave_config']
+                    valor = config['valor_config']
+                    
+                    if chave == 'horario_abertura':
+                        hora_abertura = str(valor)
+                    elif chave == 'horario_fechamento':
+                        hora_fechamento = str(valor)
+                    elif chave == 'dias_operacao':
+                        dias_operacao_nomes = valor  # Sua lista ['segunda', 'terca', ...]
+                
+                print(f"   Configurações carregadas do seu banco")
+                
+            except Exception as e:
+                print(f"⚠️  Erro ao buscar configurações: {e}. Usando padrões.")
         
-        print(f"📅 Configurações carregadas: {hora_abertura}-{hora_fechamento}, dias: {dias_operacao}")
+        # 🔥 3. INFORMAÇÕES ATUAIS
+        hora_atual = agora_brasilia.strftime('%H:%M')
+        dia_semana_num = agora_brasilia.weekday()  # 0=segunda, 1=terça, etc.
+        nome_dia_atual = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'][dia_semana_num]
         
-        # 🔥 CONVERTER DIAS DA SEMANA (seus: 'segunda', nosso: 0)
-        dias_numeros = []
-        for dia in dias_operacao:
-            if 'segunda' in dia.lower():
-                dias_numeros.append(0)
-            elif 'terca' in dia.lower():
-                dias_numeros.append(1)
-            elif 'quarta' in dia.lower():
-                dias_numeros.append(2)
-            elif 'quinta' in dia.lower():
-                dias_numeros.append(3)
-            elif 'sexta' in dia.lower():
-                dias_numeros.append(4)
+        print(f"   Data/hora Brasil: {agora_brasilia.strftime('%d/%m/%Y %H:%M')}")
+        print(f"   Dia: {nome_dia_atual} ({dia_semana_num})")
+        print(f"   Horário config: {hora_abertura}-{hora_fechamento}")
+        print(f"   Dias config: {dias_operacao_nomes}")
         
-        # Verificar horário atual
-        agora_utc = datetime.now(timezone.utc)
+        # 🔥 4. CONVERTER SEUS NOMES DE DIAS PARA NÚMEROS
+        mapa_conversao = {
+            'segunda': 0, 'terça': 1, 'terca': 1,
+            'quarta': 2, 'quinta': 3, 'sexta': 4
+        }
         
-        # Simples conversão para Brasília (UTC-3)
-        hora_brasilia = (agora_utc.hour - 3) % 24
-        dia_atual = agora_utc.weekday()
+        dias_permitidos_numeros = []
+        for dia_nome in dias_operacao_nomes:
+            dia_lower = dia_nome.lower()
+            if dia_lower in mapa_conversao:
+                dias_permitidos_numeros.append(mapa_conversao[dia_lower])
         
-        hora_atual_str = f"{hora_brasilia:02d}:{agora_utc.minute:02d}"
+        # Se não converteu nenhum, usar padrão
+        if not dias_permitidos_numeros:
+            dias_permitidos_numeros = [0, 1, 2, 3, 4]
         
-        # Verificar
-        if dia_atual not in dias_numeros:
-            dias_nomes = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta']
-            dias_permitidos = [dias_nomes[d] for d in dias_numeros]
-            return False, f"Fora do horário comercial. Disponível: {', '.join(dias_permitidos)}"
+        # 🔥 5. VERIFICAÇÕES
+        # 5.1 Verificar dia da semana
+        if dia_semana_num not in dias_permitidos_numeros:
+            dias_nomes_pt = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta']
+            dias_permitidos_nomes = [dias_nomes_pt[i] for i in dias_permitidos_numeros]
+            mensagem = f"Fora do horário comercial. Disponível: {', '.join(dias_permitidos_nomes)}"
+            print(f"   ❌ {mensagem}")
+            return False, mensagem
         
-        if hora_atual_str < hora_abertura:
-            return False, f"Fora do horário comercial. Disponível a partir das {hora_abertura}"
-        elif hora_atual_str > hora_fechamento:
-            return False, f"Fora do horário comercial. Disponível até às {hora_fechamento}"
+        # 5.2 Verificar horário
+        if hora_atual < hora_abertura:
+            mensagem = f"Fora do horário comercial. Disponível a partir das {hora_abertura}"
+            print(f"   ❌ {mensagem}")
+            return False, mensagem
         
+        if hora_atual > hora_fechamento:
+            mensagem = f"Fora do horário comercial. Disponível até às {hora_fechamento}"
+            print(f"   ❌ {mensagem}")
+            return False, mensagem
+        
+        # 🔥 6. TUDO OK
+        print(f"   ✅ Dentro do horário comercial")
         return True, "Dentro do horário comercial"
         
     except Exception as e:
-        print(f"⚠️ Erro ao verificar horário: {e}")
-        # Fail-open: permitir em caso de erro
+        print(f"⚠️ Erro em verificar_horario_comercial: {e}")
+        import traceback
+        traceback.print_exc()
+        # EM BANCO: Fail-open (permitir se der erro)
         return True, "Horário verificado com ressalvas"
 
 
