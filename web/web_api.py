@@ -3796,42 +3796,37 @@ def obter_cotacao_simples(par_moedas):
         return 1.0
 
 def obter_spread_cliente(usuario, par_moedas):
-    """Obtém spread configurado para o cliente (igual ao Kivy)"""
+    """Obtém spread configurado para o cliente - ADAPTADO À SUA ESTRUTURA REAL"""
     try:
         if not supabase:
             print("⚠️ Supabase não disponível para buscar spread")
             return {'compra': 0.5, 'venda': 0.5}
         
-        # 🔥 BUSCAR SPREAD NO SUPABASE
-        # Primeiro tentar buscar do cliente específico
-        response = supabase.table('config_cotacoes')\
+        # 🔥 BUSCAR TAXAS DE CÂMBIO DA SUA ESTRUTURA REAL
+        response = supabase.table('config_sistema')\
             .select('valor_config')\
-            .eq('tipo_config', 'spread')\
-            .eq('cliente_username', usuario)\
-            .eq('par_moeda', par_moedas)\
-            .order('data_atualizacao', desc=True)\
-            .limit(1)\
-            .execute()
-        
-        if response.data:
-            spread_valor = float(response.data[0]['valor_config'])
-            print(f"✅ Spread específico encontrado: {spread_valor}%")
-            return {'compra': spread_valor, 'venda': spread_valor}
-        
-        # 🔥 Se não encontrar, buscar spread padrão do sistema
-        response_padrao = supabase.table('config_sistema')\
-            .select('valor')\
-            .eq('chave', 'spread_padrao')\
+            .eq('modulo', 'financeiras')\
+            .eq('chave_config', 'taxas_cambio')\
             .single()\
             .execute()
         
-        if response_padrao.data:
-            spread_padrao = float(response_padrao.data['valor'])
-            print(f"✅ Spread padrão encontrado: {spread_padrao}%")
-            return {'compra': spread_padrao, 'venda': spread_padrao}
+        if response.data:
+            taxas_cambio = response.data['valor_config']
+            
+            # Sua estrutura tem cotações BASE (sem spread)
+            # Exemplo: "BRL_USD": 0.19 significa 1 BRL = 0.19 USD (cotação BASE)
+            
+            # Verificar se o par existe nas taxas
+            if par_moedas in taxas_cambio:
+                cotacao_base = float(taxas_cambio[par_moedas])
+                print(f"✅ Cotação BASE da sua tabela para {par_moedas}: {cotacao_base}")
+                
+                # 🔥 SPREAD FIXO DE 0.5% (podemos configurar depois)
+                spread_percent = 0.5
+                return {'compra': spread_percent, 'venda': spread_percent}
         
-        # 🔥 Fallback: 0.5% (igual ao Kivy)
-        print(f"⚠️ Nenhum spread encontrado, usando padrão 0.5%")
+        # 🔥 FALLBACK: Se não encontrar na tabela, usar 0.5%
+        print(f"⚠️ Par {par_moedas} não encontrado em taxas_cambio, usando spread 0.5%")
         return {'compra': 0.5, 'venda': 0.5}
         
     except Exception as e:
@@ -3839,51 +3834,80 @@ def obter_spread_cliente(usuario, par_moedas):
         return {'compra': 0.5, 'venda': 0.5}
 
 def verificar_horario_comercial(usuario=None):
-    """Verifica horário comercial EXATAMENTE como o Kivy"""
+    """Verifica horário comercial baseado NA SUA ESTRUTURA REAL"""
     try:
-        # Obter horário atual (Brasília)
-        agora_utc = datetime.datetime.now(timezone.utc)
-        offset_brasilia = -3  # UTC-3 para Brasília
-        hora_brasilia = (agora_utc.hour + offset_brasilia) % 24
+        if not supabase:
+            # Fallback básico
+            agora = datetime.now(timezone.utc)
+            hora_brasilia = (agora.hour - 3) % 24
+            dia_semana = agora.weekday()  # 0=segunda
+            
+            if 0 <= dia_semana <= 4 and 9 <= hora_brasilia < 18:
+                return True, "Dentro do horário comercial"
+            return False, "Fora do horário comercial"
         
-        agora_brasilia = agora_utc.replace(hour=hora_brasilia, 
-                                         minute=agora_utc.minute, 
-                                         second=agora_utc.second)
+        # 🔥 BUSCAR CONFIGURAÇÕES DA SUA TABELA REAL
+        configs = supabase.table('config_sistema')\
+            .select('chave_config, valor_config')\
+            .in_('chave_config', [
+                'horario_abertura', 
+                'horario_fechamento', 
+                'dias_operacao',
+                'timezone'
+            ])\
+            .execute()
         
-        print(f"📅 Verificação horário para {usuario}:")
-        print(f"   Hora Brasília: {agora_brasilia.strftime('%H:%M')}")
+        config_dict = {}
+        for item in configs.data:
+            config_dict[item['chave_config']] = item['valor_config']
         
-        # 🔥 BUSCAR HORÁRIO DO CLIENTE NO SUPABASE (se existir)
-        # Por enquanto usar horário padrão: Seg-Sex 09:00-18:00
-        dias_semana = [0, 1, 2, 3, 4]  # Segunda(0) a Sexta(4)
-        inicio = "09:00"
-        fim = "18:00"
+        # Valores padrão se não encontrar
+        hora_abertura = config_dict.get('horario_abertura', '09:00')
+        hora_fechamento = config_dict.get('horario_fechamento', '18:00')
+        dias_operacao = config_dict.get('dias_operacao', ['segunda', 'terca', 'quarta', 'quinta', 'sexta'])
+        tz = config_dict.get('timezone', 'America/Sao_Paulo')
         
-        # Verificar dia da semana
-        dia_atual = agora_brasilia.weekday()  # 0=Segunda
+        print(f"📅 Configurações carregadas: {hora_abertura}-{hora_fechamento}, dias: {dias_operacao}")
         
-        if dia_atual not in dias_semana:
-            print(f"   ❌ Fora do horário: dia {dia_atual} não permitido")
-            dias_nomes = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo']
-            dias_permitidos = [dias_nomes[d] for d in dias_semana]
-            return False, f"Fora do horário comercial. Disponível apenas: {', '.join(dias_permitidos)}"
+        # 🔥 CONVERTER DIAS DA SEMANA (seus: 'segunda', nosso: 0)
+        dias_numeros = []
+        for dia in dias_operacao:
+            if 'segunda' in dia.lower():
+                dias_numeros.append(0)
+            elif 'terca' in dia.lower():
+                dias_numeros.append(1)
+            elif 'quarta' in dia.lower():
+                dias_numeros.append(2)
+            elif 'quinta' in dia.lower():
+                dias_numeros.append(3)
+            elif 'sexta' in dia.lower():
+                dias_numeros.append(4)
         
-        # Verificar horário
-        hora_atual = agora_brasilia.strftime('%H:%M')
+        # Verificar horário atual
+        agora_utc = datetime.now(timezone.utc)
         
-        if hora_atual < inicio:
-            print(f"   ❌ Fora do horário: {hora_atual} < {inicio}")
-            return False, f"Fora do horário comercial. Disponível a partir das {inicio}"
-        elif hora_atual > fim:
-            print(f"   ❌ Fora do horário: {hora_atual} > {fim}")
-            return False, f"Fora do horário comercial. Disponível até às {fim}"
+        # Simples conversão para Brasília (UTC-3)
+        hora_brasilia = (agora_utc.hour - 3) % 24
+        dia_atual = agora_utc.weekday()
         
-        print(f"   ✅ Dentro do horário comercial")
+        hora_atual_str = f"{hora_brasilia:02d}:{agora_utc.minute:02d}"
+        
+        # Verificar
+        if dia_atual not in dias_numeros:
+            dias_nomes = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta']
+            dias_permitidos = [dias_nomes[d] for d in dias_numeros]
+            return False, f"Fora do horário comercial. Disponível: {', '.join(dias_permitidos)}"
+        
+        if hora_atual_str < hora_abertura:
+            return False, f"Fora do horário comercial. Disponível a partir das {hora_abertura}"
+        elif hora_atual_str > hora_fechamento:
+            return False, f"Fora do horário comercial. Disponível até às {hora_fechamento}"
+        
         return True, "Dentro do horário comercial"
         
     except Exception as e:
         print(f"⚠️ Erro ao verificar horário: {e}")
-        # Fail-open (permitir em caso de erro) - igual ao Kivy
+        # Fail-open: permitir em caso de erro
         return True, "Horário verificado com ressalvas"
 
 
@@ -4185,23 +4209,25 @@ def api_verificar_horario(usuario):
 
 @app.route('/api/limite-operacional/<usuario>')
 def api_limite_operacional(usuario):
-    """API para obter limite operacional do cliente"""
+    """API para obter limite operacional - DA SUA ESTRUTURA REAL"""
     if 'username' not in session:
         return jsonify({'error': 'Não autorizado'}), 401
     
     try:
-        if supabase:
-            # 🔥 BUSCAR LIMITE NO SUPABASE
-            response = supabase.table('config_sistema')\
-                .select('valor')\
-                .eq('chave', 'limite_operacional')\
-                .single()\
-                .execute()
-            
-            if response.data:
-                limite = float(response.data['valor'])
-            else:
-                limite = 10000.00  # Default
+        if not supabase:
+            return jsonify({'success': True, 'limite': 10000.00})
+        
+        # 🔥 BUSCAR LIMITE DA SUA TABELA REAL
+        response = supabase.table('config_sistema')\
+            .select('valor_config')\
+            .eq('modulo', 'financeiras')\
+            .eq('chave_config', 'limite_transferencia_diario')\
+            .single()\
+            .execute()
+        
+        if response.data:
+            limite = float(response.data['valor_config'])
+            print(f"✅ Limite encontrado na sua tabela: {limite}")
         else:
             limite = 10000.00  # Default
         
@@ -4213,11 +4239,7 @@ def api_limite_operacional(usuario):
         
     except Exception as e:
         print(f"⚠️ Erro ao buscar limite: {e}")
-        return jsonify({
-            'success': True,
-            'limite': 10000.00,  # Fallback
-            'usuario': usuario
-        })
+        return jsonify({'success': True, 'limite': 10000.00})
 
 @app.route('/api/verificar-saldos/<usuario>', methods=['POST'])
 def api_verificar_saldos(usuario):
