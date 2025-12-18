@@ -4261,6 +4261,141 @@ def api_verificar_saldos(usuario):
             'saldosNegativos': [],
             'mensagem': 'Erro na verificação'
         })
+    
+@app.route('/api/executar-cambio', methods=['POST'])
+def api_executar_cambio():
+    """API REAL - Executa operação de câmbio e salva no Supabase"""
+    if 'username' not in session:
+        return jsonify({'error': 'Não autorizado'}), 401
+    
+    data = request.json
+    usuario = data.get('usuario')
+    tipo_operacao = data.get('tipoOperacao')
+    valor_pagar = data.get('valorPagar')
+    valor_receber = data.get('valorReceber')
+    moeda_pagar = data.get('moedaPagar')
+    moeda_receber = data.get('moedaReceber')
+    cotacao_cliente = data.get('cotacaoDireta')
+    
+    print(f"💰 Executando operação REAL de câmbio:")
+    print(f"   Usuário: {usuario}")
+    print(f"   Operação: {tipo_operacao}")
+    print(f"   Pagar: {valor_pagar} {moeda_pagar}")
+    print(f"   Receber: {valor_receber} {moeda_receber}")
+    print(f"   Cotação: {cotacao_cliente}")
+    
+    try:
+        if not supabase:
+            return jsonify({
+                'success': False,
+                'error': 'Supabase não conectado'
+            })
+        
+        # 🔥 1. BUSCAR CONTAS DO USUÁRIO
+        response_contas = supabase.table('contas')\
+            .select('id, moeda, saldo')\
+            .eq('cliente_username', usuario)\
+            .eq('ativa', True)\
+            .execute()
+        
+        if not response_contas.data:
+            return jsonify({
+                'success': False,
+                'error': 'Usuário não tem contas ativas'
+            })
+        
+        # Encontrar contas específicas
+        conta_pagar = None
+        conta_receber = None
+        
+        for conta in response_contas.data:
+            if conta['moeda'] == moeda_pagar:
+                conta_pagar = conta['id']
+                saldo_pagar_antes = float(conta['saldo'])
+            if conta['moeda'] == moeda_receber:
+                conta_receber = conta['id']
+                saldo_receber_antes = float(conta['saldo'])
+        
+        if not conta_pagar or not conta_receber:
+            return jsonify({
+                'success': False,
+                'error': f'Conta não encontrada: {moeda_pagar} ou {moeda_receber}'
+            })
+        
+        # 🔥 2. CALCULAR NOVOS SALDOS
+        saldo_pagar_depois = saldo_pagar_antes - float(valor_pagar)
+        saldo_receber_depois = saldo_receber_antes + float(valor_receber)
+        
+        print(f"   Conta pagar: {conta_pagar} ({moeda_pagar})")
+        print(f"   Saldo antes: {saldo_pagar_antes:.2f} → depois: {saldo_pagar_depois:.2f}")
+        print(f"   Conta receber: {conta_receber} ({moeda_receber})")
+        print(f"   Saldo antes: {saldo_receber_antes:.2f} → depois: {saldo_receber_depois:.2f}")
+        
+        # 🔥 3. ATUALIZAR SALDOS NO SUPABASE
+        # Conta que paga (diminui saldo)
+        supabase.table('contas')\
+            .update({'saldo': saldo_pagar_depois})\
+            .eq('id', conta_pagar)\
+            .execute()
+        
+        # Conta que recebe (aumenta saldo)
+        supabase.table('contas')\
+            .update({'saldo': saldo_receber_depois})\
+            .eq('id', conta_receber)\
+            .execute()
+        
+        # 🔥 4. REGISTRAR TRANSAÇÃO (igual ao Kivy com sufixo _nt)
+        import random
+        from datetime import datetime
+        
+        transacao_id = f"{random.randint(100000, 999999)}_nt"
+        par_moedas = f"{moeda_pagar}_{moeda_receber}"
+        
+        dados_transacao = {
+            'id': transacao_id,
+            'tipo': 'cambio',
+            'status': 'completed',
+            'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'moeda': moeda_pagar,
+            'valor': float(valor_pagar),
+            'conta_remetente': conta_pagar,
+            'conta_destinatario': conta_receber,
+            'descricao': f'CÂMBIO - {tipo_operacao.upper()} {par_moedas}',
+            'usuario': usuario,
+            'cliente': usuario,
+            'operacao': tipo_operacao,
+            'par_moedas': par_moedas,
+            'valor_origem': float(valor_pagar),
+            'valor_destino': float(valor_receber),
+            'cotacao': float(cotacao_cliente),
+            'moeda_origem': moeda_pagar,
+            'moeda_destino': moeda_receber,
+            'created_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
+        # Salvar no Supabase
+        supabase.table('transferencias')\
+            .insert(dados_transacao)\
+            .execute()
+        
+        print(f"✅ Transação REAL salva: {transacao_id}")
+        
+        return jsonify({
+            'success': True,
+            'transacaoId': transacao_id,
+            'mensagem': 'Operação realizada com sucesso!',
+            'novo_saldo_pagar': saldo_pagar_depois,
+            'novo_saldo_receber': saldo_receber_depois
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao executar câmbio: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
