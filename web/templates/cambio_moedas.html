@@ -1098,7 +1098,7 @@
             
             // Se já tiver par selecionado, recalcular
             if (this.parSelecionado) {
-                this.atualizarCotacao();
+                this.obterCotacao();
             }
         }
 
@@ -1148,7 +1148,7 @@
                 console.log(`✅ Par selecionado: ${this.parSelecionado}`);
                 
                 this.atualizarMoedaValor();
-                this.atualizarCotacao();
+                this.obterCotacao();
                 
                 // Habilitar botão de confirmação
                 document.getElementById('btnConfirmar').disabled = false;
