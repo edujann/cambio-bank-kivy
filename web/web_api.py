@@ -4410,6 +4410,45 @@ def api_executar_cambio():
     print(f"   Receber: {valor_receber} {moeda_receber}")
     print(f"   Cotação: {cotacao_cliente}")
     
+    # 🔥 🔥 🔥 ADICIONE ESTE BLOCO DE VERIFICAÇÃO AQUI 🔥 🔥 🔥
+    # VERIFICAR SE CÂMBIO ESTÁ LIBERADO PARA O CLIENTE
+    print(f"🔍 Verificando permissão para {usuario}...")
+    
+    try:
+        if supabase:
+            response = supabase.table('usuarios')\
+                .select('cambio_liberado')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if response.data:
+                cambio_liberado = bool(response.data.get('cambio_liberado', False))
+                if not cambio_liberado:
+                    print(f"🚫 BLOQUEADO: Câmbio NÃO liberado para {usuario}")
+                    return jsonify({
+                        'success': False,
+                        'error': 'Câmbio não liberado para este cliente',
+                        'codigo': 'CAMBIO_BLOQUEADO',
+                        'mensagem': 'Entre em contato com o suporte para liberar câmbio'
+                    })
+                else:
+                    print(f"✅ Câmbio LIBERADO para {usuario}")
+            else:
+                print(f"⚠️  Usuário {usuario} não encontrado")
+                return jsonify({
+                    'success': False,
+                    'error': 'Usuário não encontrado'
+                })
+    except Exception as e:
+        print(f"⚠️  Erro ao verificar permissão: {e}")
+        # Fail-safe: bloquear se não conseguir verificar
+        return jsonify({
+            'success': False,
+            'error': 'Não foi possível verificar permissão para câmbio'
+        })
+    # 🔥 🔥 🔥 FIM DO BLOCO DE VERIFICAÇÃO 🔥 🔥 🔥
+    
     try:
         if not supabase:
             return jsonify({
