@@ -3797,37 +3797,52 @@ def obter_cotacao_simples(par_moedas):
         return 1.0
 
 def obter_spread_cliente(usuario, par_moedas):
-    """Obtém spread configurado para o cliente - ADAPTADO À SUA ESTRUTURA REAL"""
+    """Busca spread do cliente - USANDO SUA TABELA config_cotacoes REAL"""
     try:
+        print(f"🔍 Buscando spread para {usuario} - par: {par_moedas}")
+        
         if not supabase:
-            print("⚠️ Supabase não disponível para buscar spread")
             return {'compra': 0.5, 'venda': 0.5}
         
-        # 🔥 BUSCAR TAXAS DE CÂMBIO DA SUA ESTRUTURA REAL
-        response = supabase.table('config_sistema')\
-            .select('valor_config')\
-            .eq('modulo', 'financeiras')\
-            .eq('chave_config', 'taxas_cambio')\
+        # 🔥 1. VERIFICAR SE CÂMBIO ESTÁ LIBERADO (tabela usuarios)
+        response_usuario = supabase.table('usuarios')\
+            .select('cambio_liberado')\
+            .eq('username', usuario)\
             .single()\
             .execute()
         
-        if response.data:
-            taxas_cambio = response.data['valor_config']
-            
-            # Sua estrutura tem cotações BASE (sem spread)
-            # Exemplo: "BRL_USD": 0.19 significa 1 BRL = 0.19 USD (cotação BASE)
-            
-            # Verificar se o par existe nas taxas
-            if par_moedas in taxas_cambio:
-                cotacao_base = float(taxas_cambio[par_moedas])
-                print(f"✅ Cotação BASE da sua tabela para {par_moedas}: {cotacao_base}")
-                
-                # 🔥 SPREAD FIXO DE 0.5% (podemos configurar depois)
-                spread_percent = 0.5
-                return {'compra': spread_percent, 'venda': spread_percent}
+        if response_usuario.data:
+            cambio_liberado = bool(response_usuario.data.get('cambio_liberado', False))
+            if not cambio_liberado:
+                print(f"🚫 Câmbio NÃO liberado para {usuario} (usuarios.cambio_liberado = false)")
+                return {'compra': 0, 'venda': 0}  # Spread zero = bloqueado
         
-        # 🔥 FALLBACK: Se não encontrar na tabela, usar 0.5%
-        print(f"⚠️ Par {par_moedas} não encontrado em taxas_cambio, usando spread 0.5%")
+        # 🔥 2. BUSCAR SPREADS DO CLIENTE (tabela config_cotacoes)
+        response = supabase.table('config_cotacoes')\
+            .select('valor_config')\
+            .eq('tipo_config', 'spreads')\
+            .eq('cliente_username', usuario)\
+            .order('data_atualizacao', desc=True)\
+            .limit(1)\
+            .execute()
+        
+        if response.data:
+            spreads_cliente = response.data[0]['valor_config']
+            print(f"✅ Spreads do cliente {usuario} encontrados")
+            
+            # Verificar se o par específico existe
+            if par_moedas in spreads_cliente:
+                spread_info = spreads_cliente[par_moedas]
+                compra = float(spread_info.get('compra', 0.5))
+                venda = float(spread_info.get('venda', 0.5))
+                
+                print(f"✅ Spread específico para {par_moedas}: compra={compra}%, venda={venda}%")
+                return {'compra': compra, 'venda': venda}
+            else:
+                print(f"⚠️  Par {par_moedas} não encontrado nos spreads do cliente")
+        
+        # 🔥 3. FALLBACK: Spread padrão
+        print(f"⚠️  Usando spread padrão: 0.5%")
         return {'compra': 0.5, 'venda': 0.5}
         
     except Exception as e:
@@ -4233,7 +4248,7 @@ def api_verificar_horario(usuario):
 
 @app.route('/api/limite-operacional/<usuario>')
 def api_limite_operacional(usuario):
-    """API para obter limite operacional - DA SUA ESTRUTURA REAL"""
+    """API para obter limite do cliente - USANDO SUA TABELA config_cotacoes"""
     if 'username' not in session:
         return jsonify({'error': 'Não autorizado'}), 401
     
@@ -4241,24 +4256,71 @@ def api_limite_operacional(usuario):
         if not supabase:
             return jsonify({'success': True, 'limite': 10000.00})
         
-        # 🔥 BUSCAR LIMITE DA SUA TABELA REAL
-        response = supabase.table('config_sistema')\
-            .select('valor_config')\
-            .eq('modulo', 'financeiras')\
-            .eq('chave_config', 'limite_transferencia_diario')\
-            .single()\
-            .execute()
+        print(f"🔍 Buscando limite para {usuario}")
         
-        if response.data:
-            limite = float(response.data['valor_config'])
-            print(f"✅ Limite encontrado na sua tabela: {limite}")
-        else:
-            limite = 10000.00  # Default
+        # 🔥 1. VERIFICAR CÂMBIO LIBERADO
+        cambio_liberado = False
+        try:
+            response_usuario = supabase.table('usuarios')\
+                .select('cambio_liberado')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if response_usuario.data:
+                cambio_liberado = bool(response_usuario.data.get('cambio_liberado', False))
+        except Exception as e:
+            print(f"⚠️  Erro ao verificar cambio_liberado: {e}")
+        
+        if not cambio_liberado:
+            print(f"🚫 Câmbio NÃO liberado para {usuario}")
+            return jsonify({
+                'success': True,
+                'limite': 0.00,
+                'usuario': usuario,
+                'cambio_liberado': False,
+                'mensagem': 'Câmbio não liberado para este cliente'
+            })
+        
+        # 🔥 2. BUSCAR LIMITE DO CLIENTE (config_cotacoes)
+        limite_encontrado = None
+        try:
+            response = supabase.table('config_cotacoes')\
+                .select('valor_config')\
+                .eq('tipo_config', 'limites')\
+                .eq('cliente_username', usuario)\
+                .order('data_atualizacao', desc=True)\
+                .limit(1)\
+                .execute()
+            
+            if response.data:
+                limite_encontrado = float(response.data[0]['valor_config'])
+                print(f"✅ Limite ESPECÍFICO do cliente: {limite_encontrado}")
+        except Exception as e:
+            print(f"⚠️  Nenhum limite específico encontrado: {e}")
+        
+        # 🔥 3. SE NÃO ENCONTRAR, USAR LIMITE GERAL (config_sistema)
+        if limite_encontrado is None:
+            try:
+                response = supabase.table('config_sistema')\
+                    .select('valor_config')\
+                    .eq('modulo', 'financeiras')\
+                    .eq('chave_config', 'limite_transferencia_diario')\
+                    .single()\
+                    .execute()
+                
+                if response.data:
+                    limite_encontrado = float(response.data['valor_config'])
+                    print(f"✅ Limite GERAL do sistema: {limite_encontrado}")
+            except Exception as e:
+                print(f"⚠️  Erro ao buscar limite geral: {e}")
+                limite_encontrado = 10000.00  # Default
         
         return jsonify({
             'success': True,
-            'limite': limite,
-            'usuario': usuario
+            'limite': limite_encontrado,
+            'usuario': usuario,
+            'cambio_liberado': cambio_liberado
         })
         
     except Exception as e:
