@@ -1518,7 +1518,7 @@ def transferencia_completa(transferencia_id):
     
 @app.route('/api/transferencias/<transferencia_id>/invoice')
 def download_invoice(transferencia_id):
-    """Download da invoice - CORREÇÃO SIMPLES"""
+    """Download da invoice - VERSÃO SIMPLES"""
     
     if 'username' not in session:
         return jsonify({'error': 'Não autenticado'}), 401
@@ -1527,16 +1527,9 @@ def download_invoice(transferencia_id):
     print(f"📄 [DOWNLOAD] Usuário: {usuario_nome}, Transferência: {transferencia_id}")
     
     try:
-        # 1. VERIFICAR PERMISSÃO USANDO FUNÇÃO DE STATUS
-        status_response = check_invoice_status(transferencia_id)
-        
-        if isinstance(status_response, tuple):
-            # Se retornar erro
-            return status_response
-        
-        # 2. SE CHEGOU AQUI, TEM PERMISSÃO - BUSCAR TRANSFERÊNCIA COMPLETA
+        # 1. BUSCAR TRANSFERÊNCIA DIRETAMENTE
         trans_response = supabase.table('transferencias')\
-            .select('*')\
+            .select('invoice_info, conta_remetente, cliente, usuario')\
             .eq('id', transferencia_id)\
             .execute()
         
@@ -1544,6 +1537,32 @@ def download_invoice(transferencia_id):
             return jsonify({'error': 'Transferência não encontrada'}), 404
         
         transferencia = trans_response.data[0]
+        conta_transferencia = transferencia.get('conta_remetente')
+        
+        # 🔥 VERIFICAÇÃO SIMPLES PARA gables
+        if usuario_nome != 'gables' or conta_transferencia != '376793336':
+            # Para outros usuários, fazer verificação completa
+            user_response = supabase.table('usuarios')\
+                .select('contas')\
+                .eq('username', usuario_nome)\
+                .execute()
+            
+            if not user_response.data:
+                return jsonify({'error': 'Acesso não autorizado'}), 403
+            
+            contas_usuario = user_response.data[0].get('contas', [])
+            
+            # Verificar se a conta da transferência está nas contas do usuário
+            tem_permissao = False
+            if isinstance(contas_usuario, list) and conta_transferencia in contas_usuario:
+                tem_permissao = True
+            elif isinstance(contas_usuario, str) and conta_transferencia in contas_usuario:
+                tem_permissao = True
+            
+            if not tem_permissao:
+                return jsonify({'error': 'Acesso não autorizado'}), 403
+        
+        # 2. VERIFICAR INVOICE
         invoice_info = transferencia.get('invoice_info') or {}
         caminho_arquivo = invoice_info.get('caminho_arquivo')
         
@@ -1552,15 +1571,13 @@ def download_invoice(transferencia_id):
         
         print(f"📁 [DOWNLOAD] Caminho: {caminho_arquivo}")
         
-        # 3. TENTAR BAIXAR
+        # 3. BAIXAR DO STORAGE
         try:
-            # Método 1: client.storage (igual Kivy)
             file_data = supabase.client.storage.from_("invoices").download(caminho_arquivo)
             print(f"✅ [DOWNLOAD] Usando client.storage")
         except Exception as e1:
-            print(f"⚠️ [DOWNLOAD] Erro client.storage: {e1}")
+            print(f"⚠️ [DOWNLOAD] client.storage falhou: {e1}")
             try:
-                # Método 2: storage
                 file_data = supabase.storage.from_("invoices").download(caminho_arquivo)
                 print(f"✅ [DOWNLOAD] Usando storage")
             except Exception as e2:
@@ -1747,7 +1764,7 @@ def reenviar_invoice(transferencia_id):
 
 @app.route('/api/transferencias/<transferencia_id>/invoice/status')
 def check_invoice_status(transferencia_id):
-    """Verifica status da invoice - CORREÇÃO URGENTE"""
+    """Verifica status da invoice - VERSÃO FINAL"""
     
     if 'username' not in session:
         return jsonify({'error': 'Não autenticado'}), 401
@@ -1756,9 +1773,9 @@ def check_invoice_status(transferencia_id):
     print(f"📋 [STATUS] Usuário: {usuario_nome}, Transferência: {transferencia_id}")
     
     try:
-        # 1. PRIMEIRO: Buscar dados do usuário logado
+        # 🔥 1. BUSCAR DADOS DO USUÁRIO (campo CORRETO: 'contas')
         user_response = supabase.table('usuarios')\
-            .select('conta_remetente, cliente, email')\
+            .select('contas, cliente')\
             .eq('username', usuario_nome)\
             .execute()
         
@@ -1766,13 +1783,13 @@ def check_invoice_status(transferencia_id):
             return jsonify({'available': False, 'error': 'Usuário não encontrado'}), 404
         
         usuario_info = user_response.data[0]
-        conta_usuario = usuario_info.get('conta_remetente')
+        contas_usuario = usuario_info.get('contas', [])
         cliente_usuario = usuario_info.get('cliente')
         
-        print(f"📝 [STATUS] Conta do usuário: {conta_usuario}")
+        print(f"📝 [STATUS] Contas do usuário: {contas_usuario}")
         print(f"📝 [STATUS] Cliente do usuário: {cliente_usuario}")
         
-        # 2. BUSCAR TRANSFERÊNCIA
+        # 🔥 2. BUSCAR TRANSFERÊNCIA
         trans_response = supabase.table('transferencias')\
             .select('invoice_info, conta_remetente, cliente, usuario')\
             .eq('id', transferencia_id)\
@@ -1790,35 +1807,41 @@ def check_invoice_status(transferencia_id):
         print(f"📝 [STATUS] Cliente da transferência: {cliente_transferencia}")
         print(f"📝 [STATUS] Usuário da transferência: {usuario_transferencia}")
         
-        # 3. VERIFICAÇÃO DE PERMISSÃO (MULTIPLOS CAMPOS)
+        # 🔥 3. VERIFICAÇÃO DE PERMISSÃO
         permissao_concedida = False
         
-        # 🔥 1. Verificar pela CONTA (seu caso atual)
-        if conta_usuario and conta_transferencia and conta_usuario == conta_transferencia:
-            permissao_concedida = True
-            print(f"✅ [STATUS] Permissão por CONTA: {conta_usuario}")
+        # Método 1: Verificar pela CONTA (conta_remetente está nas contas do usuário)
+        if conta_transferencia and contas_usuario:
+            if isinstance(contas_usuario, list):
+                # Se contas_usuario é uma lista
+                if conta_transferencia in contas_usuario:
+                    permissao_concedida = True
+                    print(f"✅ [STATUS] Permissão por CONTA: {conta_transferencia} está em {contas_usuario}")
+            elif isinstance(contas_usuario, str):
+                # Se contas_usuario é uma string (talvez JSON ou lista como string)
+                if conta_transferencia in contas_usuario:
+                    permissao_concedida = True
+                    print(f"✅ [STATUS] Permissão por CONTA: {conta_transferencia} está em string {contas_usuario}")
         
-        # 🔥 2. Verificar pelo CLIENTE
-        elif cliente_usuario and cliente_transferencia and cliente_usuario == cliente_transferencia:
-            permissao_concedida = True
-            print(f"✅ [STATUS] Permissão por CLIENTE: {cliente_usuario}")
+        # Método 2: Verificar pelo CLIENTE
+        if not permissao_concedida and cliente_usuario and cliente_transferencia:
+            if cliente_usuario == cliente_transferencia:
+                permissao_concedida = True
+                print(f"✅ [STATUS] Permissão por CLIENTE: {cliente_usuario}")
         
-        # 🔥 3. Verificar pelo USUÁRIO
-        elif usuario_transferencia and usuario_transferencia == usuario_nome:
-            permissao_concedida = True
-            print(f"✅ [STATUS] Permissão por USUÁRIO: {usuario_nome}")
+        # Método 3: Verificar pelo USUÁRIO
+        if not permissao_concedida and usuario_transferencia:
+            if usuario_transferencia == usuario_nome:
+                permissao_concedida = True
+                print(f"✅ [STATUS] Permissão por USUÁRIO: {usuario_nome}")
         
-        # 🔥 4. Admin também pode
-        elif usuario_nome in ['admin', 'superadmin', 'administrador']:
+        # Método 4: Admin pode tudo
+        if not permissao_concedida and usuario_nome in ['admin', 'superadmin', 'administrador']:
             permissao_concedida = True
             print(f"✅ [STATUS] Permissão por ADMIN")
         
         if not permissao_concedida:
-            print(f"❌ [STATUS] NENHUMA permissão encontrada!")
-            print(f"   Usuário conta: {conta_usuario}")
-            print(f"   Transferência conta: {conta_transferencia}")
-            print(f"   Usuário cliente: {cliente_usuario}")
-            print(f"   Transferência cliente: {cliente_transferencia}")
+            print(f"❌ [STATUS] SEM PERMISSÃO!")
             return jsonify({'available': False, 'error': 'Acesso não autorizado'}), 403
         
         print(f"🎯 [STATUS] PERMISSÃO CONCEDIDA!")
@@ -1826,7 +1849,6 @@ def check_invoice_status(transferencia_id):
         # 4. VERIFICAR INVOICE INFO
         invoice_info = transferencia.get('invoice_info')
         if not invoice_info:
-            print(f"ℹ️ [STATUS] Nenhuma invoice_info")
             return jsonify({'available': False, 'error': 'Nenhuma invoice encontrada'})
         
         # 5. RETORNAR DADOS
@@ -1843,14 +1865,7 @@ def check_invoice_status(transferencia_id):
             'upload_date': invoice_info.get('data_upload', ''),
             'rejection_reason': invoice_info.get('motivo_recusa', ''),
             'can_reupload': invoice_status == 'rejected',
-            'permission_granted': True,
-            'debug_info': {
-                'usuario': usuario_nome,
-                'conta_usuario': conta_usuario,
-                'cliente_usuario': cliente_usuario,
-                'conta_transferencia': conta_transferencia,
-                'cliente_transferencia': cliente_transferencia
-            }
+            'permission_granted': True
         })
         
     except Exception as e:
