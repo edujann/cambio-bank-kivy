@@ -1518,95 +1518,58 @@ def transferencia_completa(transferencia_id):
     
 @app.route('/api/transferencias/<transferencia_id>/invoice')
 def download_invoice(transferencia_id):
-    """Download da invoice do Supabase Storage - VERSÃO KIVY COMPATÍVEL"""
+    """Download da invoice - CORREÇÃO SIMPLES"""
     
     if 'username' not in session:
         return jsonify({'error': 'Não autenticado'}), 401
     
     usuario_nome = session['username']
-    print(f"📄 [INVOICE-WEB] Buscando invoice para transferência {transferencia_id}")
+    print(f"📄 [DOWNLOAD] Usuário: {usuario_nome}, Transferência: {transferencia_id}")
     
     try:
-        # 1. BUSCAR TRANSFERÊNCIA
-        response = supabase.table('transferencias')\
+        # 1. VERIFICAR PERMISSÃO USANDO FUNÇÃO DE STATUS
+        status_response = check_invoice_status(transferencia_id)
+        
+        if isinstance(status_response, tuple):
+            # Se retornar erro
+            return status_response
+        
+        # 2. SE CHEGOU AQUI, TEM PERMISSÃO - BUSCAR TRANSFERÊNCIA COMPLETA
+        trans_response = supabase.table('transferencias')\
             .select('*')\
             .eq('id', transferencia_id)\
             .execute()
         
-        if not response.data:
+        if not trans_response.data:
             return jsonify({'error': 'Transferência não encontrada'}), 404
         
-        transferencia = response.data[0]
+        transferencia = trans_response.data[0]
+        invoice_info = transferencia.get('invoice_info') or {}
+        caminho_arquivo = invoice_info.get('caminho_arquivo')
         
-        # 2. VERIFICAR PERMISSÃO (MAIS FLEXÍVEL - IGUAL KIVY)
-        conta_remetente = transferencia.get('conta_remetente')
-        cliente = transferencia.get('cliente')
-        usuario = transferencia.get('usuario')
-        
-        usuario_permitido = (
-            cliente == usuario_nome or
-            usuario == usuario_nome or
-            conta_remetente == usuario_nome or
-            usuario_nome in ['admin', 'superadmin', 'administrador']  # Admins podem ver tudo
-        )
-        
-        if not usuario_permitido:
-            print(f"❌ [WEB] Usuário {usuario_nome} não tem permissão")
-            return jsonify({'error': 'Acesso não autorizado'}), 403
-        
-        print(f"✅ [WEB] Usuário autorizado: {usuario_nome}")
-        
-        # 3. VERIFICAR SE TEM INVOICE_INFO
-        invoice_info = transferencia.get('invoice_info')
-        if not invoice_info:
-            print(f"❌ [WEB] Nenhuma invoice_info na transferência")
+        if not caminho_arquivo:
             return jsonify({'error': 'Nenhuma invoice encontrada'}), 404
         
-        # 4. OBTER CAMINHO (MESMO CAMPO DO KIVY)
-        caminho_arquivo = invoice_info.get('caminho_arquivo')
-        if not caminho_arquivo:
-            print(f"❌ [WEB] Caminho do arquivo não configurado")
-            return jsonify({'error': 'Caminho do arquivo não configurado'}), 404
+        print(f"📁 [DOWNLOAD] Caminho: {caminho_arquivo}")
         
-        print(f"📄 [WEB] Caminho encontrado: {caminho_arquivo}")
-        
-        # 🔥🔥🔥 CRÍTICO: USAR O MESMO MÉTODO DO KIVY
-        # O Kivy usa: sistema.supabase.client.storage.from_("invoices")
-        # A Web deve usar: supabase.client.storage.from_("invoices")
-        
-        # 5. TENTAR MÉTODO 1: supabase.client.storage (IGUAL KIVY)
-        print(f"⬇️ [WEB] Baixando via client.storage (método Kivy): {caminho_arquivo}")
-        
+        # 3. TENTAR BAIXAR
         try:
-            # 🔥 MÉTODO EXATO DO KIVY
-            response_storage = supabase.client.storage.from_("invoices")\
-                .download(caminho_arquivo)
-            print(f"✅ [WEB] Usando client.storage (igual Kivy)")
-            
+            # Método 1: client.storage (igual Kivy)
+            file_data = supabase.client.storage.from_("invoices").download(caminho_arquivo)
+            print(f"✅ [DOWNLOAD] Usando client.storage")
         except Exception as e1:
-            print(f"⚠️ [WEB] Erro com client.storage: {str(e1)}")
-            
-            # 6. TENTAR MÉTODO 2: supabase.storage (método web)
+            print(f"⚠️ [DOWNLOAD] Erro client.storage: {e1}")
             try:
-                print(f"🔄 [WEB] Tentando método alternativo: supabase.storage")
-                response_storage = supabase.storage.from_("invoices")\
-                    .download(caminho_arquivo)
-                print(f"✅ [WEB] Usando supabase.storage")
+                # Método 2: storage
+                file_data = supabase.storage.from_("invoices").download(caminho_arquivo)
+                print(f"✅ [DOWNLOAD] Usando storage")
             except Exception as e2:
-                print(f"❌ [WEB] Ambos os métodos falharam")
-                print(f"   Erro 1: {str(e1)}")
-                print(f"   Erro 2: {str(e2)}")
+                print(f"❌ [DOWNLOAD] Ambos falharam: {e2}")
                 return jsonify({'error': 'Arquivo não encontrado no storage'}), 404
         
-        if not response_storage:
-            print(f"❌ [WEB] Resposta do storage vazia")
-            return jsonify({'error': 'Arquivo não encontrado no storage'}), 404
-        
-        print(f"✅ [WEB] Baixado! Tamanho: {len(response_storage)} bytes")
-        
-        # 7. DETERMINAR TIPO DO ARQUIVO
-        nome_arquivo = caminho_arquivo.split('/')[-1]
-        extensao = nome_arquivo.lower().split('.')[-1] if '.' in nome_arquivo else ''
+        # 4. RETORNAR ARQUIVO
+        nome = caminho_arquivo.split('/')[-1]
+        extensao = nome.lower().split('.')[-1] if '.' in nome else ''
         
         mime_types = {
             'pdf': 'application/pdf',
@@ -1617,24 +1580,19 @@ def download_invoice(transferencia_id):
         
         content_type = mime_types.get(extensao, 'application/octet-stream')
         
-        # 8. RETORNAR ARQUIVO
         from flask import Response
         return Response(
-            response_storage,
+            file_data,
             content_type=content_type,
             headers={
-                'Content-Disposition': f'inline; filename="{nome_arquivo}"',
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0'
+                'Content-Disposition': f'inline; filename="{nome}"',
+                'Cache-Control': 'no-cache'
             }
         )
         
     except Exception as e:
-        print(f"❌ [WEB] ERRO CRÍTICO: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': f'Erro interno: {str(e)}'}), 500
+        print(f"❌ [DOWNLOAD] Erro: {e}")
+        return jsonify({'error': str(e)}), 500
 
 # ROTA ALTERNATIVA PARA VERIFICAR DISPONIBILIDADE DA INVOICE
 @app.route('/api/transferencias/<transferencia_id>/invoice/reenviar', methods=['POST'])
@@ -1788,55 +1746,117 @@ def reenviar_invoice(transferencia_id):
         return jsonify({'error': f'Erro interno: {str(e)}'}), 500
 
 @app.route('/api/transferencias/<transferencia_id>/invoice/status')
-def check_invoice_status_web(transferencia_id):
-    """Verifica status - VERSÃO KIVY COMPATÍVEL"""
+def check_invoice_status(transferencia_id):
+    """Verifica status da invoice - CORREÇÃO URGENTE"""
     
     if 'username' not in session:
         return jsonify({'error': 'Não autenticado'}), 401
     
     usuario_nome = session['username']
+    print(f"📋 [STATUS] Usuário: {usuario_nome}, Transferência: {transferencia_id}")
     
     try:
-        response = supabase.table('transferencias')\
-            .select('invoice_info, cliente, usuario, conta_remetente')\
+        # 1. PRIMEIRO: Buscar dados do usuário logado
+        user_response = supabase.table('usuarios')\
+            .select('conta_remetente, cliente, email')\
+            .eq('username', usuario_nome)\
+            .execute()
+        
+        if not user_response.data:
+            return jsonify({'available': False, 'error': 'Usuário não encontrado'}), 404
+        
+        usuario_info = user_response.data[0]
+        conta_usuario = usuario_info.get('conta_remetente')
+        cliente_usuario = usuario_info.get('cliente')
+        
+        print(f"📝 [STATUS] Conta do usuário: {conta_usuario}")
+        print(f"📝 [STATUS] Cliente do usuário: {cliente_usuario}")
+        
+        # 2. BUSCAR TRANSFERÊNCIA
+        trans_response = supabase.table('transferencias')\
+            .select('invoice_info, conta_remetente, cliente, usuario')\
             .eq('id', transferencia_id)\
             .execute()
         
-        if not response.data:
+        if not trans_response.data:
             return jsonify({'available': False, 'error': 'Transferência não encontrada'}), 404
         
-        transferencia = response.data[0]
+        transferencia = trans_response.data[0]
+        conta_transferencia = transferencia.get('conta_remetente')
+        cliente_transferencia = transferencia.get('cliente')
+        usuario_transferencia = transferencia.get('usuario')
         
-        # 🔥 PERMISSÃO IGUAL KIVY
-        conta_remetente = transferencia.get('conta_remetente')
-        cliente = transferencia.get('cliente')
-        usuario = transferencia.get('usuario')
+        print(f"📝 [STATUS] Conta da transferência: {conta_transferencia}")
+        print(f"📝 [STATUS] Cliente da transferência: {cliente_transferencia}")
+        print(f"📝 [STATUS] Usuário da transferência: {usuario_transferencia}")
         
-        usuario_permitido = (
-            cliente == usuario_nome or
-            usuario == usuario_nome or
-            conta_remetente == usuario_nome or
-            usuario_nome in ['admin', 'superadmin', 'administrador']
-        )
+        # 3. VERIFICAÇÃO DE PERMISSÃO (MULTIPLOS CAMPOS)
+        permissao_concedida = False
         
-        if not usuario_permitido:
+        # 🔥 1. Verificar pela CONTA (seu caso atual)
+        if conta_usuario and conta_transferencia and conta_usuario == conta_transferencia:
+            permissao_concedida = True
+            print(f"✅ [STATUS] Permissão por CONTA: {conta_usuario}")
+        
+        # 🔥 2. Verificar pelo CLIENTE
+        elif cliente_usuario and cliente_transferencia and cliente_usuario == cliente_transferencia:
+            permissao_concedida = True
+            print(f"✅ [STATUS] Permissão por CLIENTE: {cliente_usuario}")
+        
+        # 🔥 3. Verificar pelo USUÁRIO
+        elif usuario_transferencia and usuario_transferencia == usuario_nome:
+            permissao_concedida = True
+            print(f"✅ [STATUS] Permissão por USUÁRIO: {usuario_nome}")
+        
+        # 🔥 4. Admin também pode
+        elif usuario_nome in ['admin', 'superadmin', 'administrador']:
+            permissao_concedida = True
+            print(f"✅ [STATUS] Permissão por ADMIN")
+        
+        if not permissao_concedida:
+            print(f"❌ [STATUS] NENHUMA permissão encontrada!")
+            print(f"   Usuário conta: {conta_usuario}")
+            print(f"   Transferência conta: {conta_transferencia}")
+            print(f"   Usuário cliente: {cliente_usuario}")
+            print(f"   Transferência cliente: {cliente_transferencia}")
             return jsonify({'available': False, 'error': 'Acesso não autorizado'}), 403
         
+        print(f"🎯 [STATUS] PERMISSÃO CONCEDIDA!")
+        
+        # 4. VERIFICAR INVOICE INFO
         invoice_info = transferencia.get('invoice_info')
         if not invoice_info:
+            print(f"ℹ️ [STATUS] Nenhuma invoice_info")
             return jsonify({'available': False, 'error': 'Nenhuma invoice encontrada'})
         
-        # 🔥 PERMITIR VISUALIZAÇÃO EM QUALQUER STATUS (igual Kivy)
+        # 5. RETORNAR DADOS
+        invoice_status = invoice_info.get('status', 'pending')
+        caminho_arquivo = invoice_info.get('caminho_arquivo', '')
+        
+        print(f"📊 [STATUS] Invoice status: {invoice_status}")
+        print(f"📁 [STATUS] Caminho arquivo: {caminho_arquivo}")
+        
         return jsonify({
             'available': True,
-            'status': invoice_info.get('status', 'pending'),
-            'filename': invoice_info.get('caminho_arquivo', '').split('/')[-1] if invoice_info.get('caminho_arquivo') else '',
+            'status': invoice_status,
+            'filename': caminho_arquivo.split('/')[-1] if caminho_arquivo else '',
             'upload_date': invoice_info.get('data_upload', ''),
             'rejection_reason': invoice_info.get('motivo_recusa', ''),
-            'can_reupload': invoice_info.get('status') == 'rejected'  # Só reenviar se recusada
+            'can_reupload': invoice_status == 'rejected',
+            'permission_granted': True,
+            'debug_info': {
+                'usuario': usuario_nome,
+                'conta_usuario': conta_usuario,
+                'cliente_usuario': cliente_usuario,
+                'conta_transferencia': conta_transferencia,
+                'cliente_transferencia': cliente_transferencia
+            }
         })
         
     except Exception as e:
+        print(f"❌ [STATUS] Erro: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'available': False, 'error': str(e)}), 500
     
 @app.route('/api/test-storage-simple')
