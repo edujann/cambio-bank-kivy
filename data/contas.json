@@ -27,19 +27,19 @@
         "cliente_nome": "TITAN LIMITED",
         "data_criacao": "2025-12-06"
     },
-    "607906288": {
-        "moeda": "USD",
-        "saldo": 27000.0,
-        "cliente": "pantanal",
-        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
-    },
     "654000645": {
         "moeda": "EUR",
         "saldo": 0.0,
         "cliente": "londrina",
         "cliente_nome": "LONDRES LIMITED",
         "data_criacao": "2025-11-04"
+    },
+    "524106984": {
+        "moeda": "EUR",
+        "saldo": 0.0,
+        "cliente": "edinho",
+        "cliente_nome": "EDINHO ENTERPRISE",
+        "data_criacao": "2025-12-22"
     },
     "674587563": {
         "moeda": "GBP",
@@ -76,6 +76,20 @@
         "cliente_nome": "LONDRES LIMITED",
         "data_criacao": "2025-11-04"
     },
+    "709753063": {
+        "moeda": "GBP",
+        "saldo": 0.0,
+        "cliente": "edinho",
+        "cliente_nome": "EDINHO ENTERPRISE",
+        "data_criacao": "2025-12-22"
+    },
+    "997848133": {
+        "moeda": "USD",
+        "saldo": 0.0,
+        "cliente": "romolo",
+        "cliente_nome": "ROMOLO REMESSAS LTDA",
+        "data_criacao": "2025-12-22"
+    },
     "860559342": {
         "moeda": "EUR",
         "saldo": -1102.5,
@@ -89,6 +103,13 @@
         "cliente": "londrina",
         "cliente_nome": "LONDRES LIMITED",
         "data_criacao": "2025-11-04"
+    },
+    "918871468": {
+        "moeda": "GBP",
+        "saldo": 0.0,
+        "cliente": "romolo",
+        "cliente_nome": "ROMOLO REMESSAS LTDA",
+        "data_criacao": "2025-12-22"
     },
     "891355178": {
         "moeda": "USD",
@@ -132,12 +153,26 @@
         "cliente_nome": "MAKITA MACHINES LLC",
         "data_criacao": "2025-11-26"
     },
+    "580880428": {
+        "moeda": "EUR",
+        "saldo": 0.0,
+        "cliente": "gables",
+        "cliente_nome": "GABLES ENTERPRISE",
+        "data_criacao": "2025-12-22"
+    },
     "960934914": {
         "moeda": "BRL",
         "saldo": 5000.0,
         "cliente": "prada",
         "cliente_nome": "PRADA LIMITED",
         "data_criacao": "2025-11-02"
+    },
+    "251636005": {
+        "moeda": "GBP",
+        "saldo": 0.0,
+        "cliente": "gables",
+        "cliente_nome": "GABLES ENTERPRISE",
+        "data_criacao": "2025-12-22"
     },
     "759223170": {
         "moeda": "EUR",
@@ -146,18 +181,39 @@
         "cliente_nome": "HIDROAMERICA LTDA",
         "data_criacao": "2025-12-04"
     },
-    "394549984": {
-        "moeda": "USD",
-        "saldo": 11050.32,
-        "cliente": "lins",
-        "cliente_nome": "LINS CHAIR LIMITADA",
-        "data_criacao": "2025-11-18"
+    "637419166": {
+        "moeda": "EUR",
+        "saldo": 40.0,
+        "cliente": "romolo",
+        "cliente_nome": "ROMOLO REMESSAS LTDA",
+        "data_criacao": "2025-12-22"
     },
     "930349314": {
         "moeda": "EUR",
-        "saldo": 5000.0,
+        "saldo": 0.0,
         "cliente": "pantanal",
         "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18"
+    },
+    "817818877": {
+        "moeda": "USD",
+        "saldo": 20.0,
+        "cliente": "thierry",
+        "cliente_nome": "THIERRY IMPORTERS LTDA",
+        "data_criacao": "2025-12-19"
+    },
+    "802194129": {
+        "moeda": "BRL",
+        "saldo": 44838.6,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18"
+    },
+    "394549984": {
+        "moeda": "USD",
+        "saldo": 40.0,
+        "cliente": "lins",
+        "cliente_nome": "LINS CHAIR LIMITADA",
         "data_criacao": "2025-11-18"
     },
     "202973672": {
@@ -174,12 +230,19 @@
         "cliente_nome": "TEXACO LLC",
         "data_criacao": "2025-11-01"
     },
-    "802194129": {
-        "moeda": "BRL",
-        "saldo": 22048.31,
-        "cliente": "pantanal",
-        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
+    "565789612": {
+        "moeda": "EUR",
+        "saldo": 0.0,
+        "cliente": "thierry",
+        "cliente_nome": "THIERRY IMPORTERS LTDA",
+        "data_criacao": "2025-12-19"
+    },
+    "922195498": {
+        "moeda": "GBP",
+        "saldo": 0.0,
+        "cliente": "thierry",
+        "cliente_nome": "THIERRY IMPORTERS LTDA",
+        "data_criacao": "2025-12-19"
     },
     "438146195": {
         "moeda": "USD",
@@ -187,6 +250,13 @@
         "cliente": "londrina",
         "cliente_nome": "LONDRES LIMITED",
         "data_criacao": "2025-11-04"
+    },
+    "607906288": {
+        "moeda": "USD",
+        "saldo": 27500.0,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18"
     },
     "608201541": {
         "moeda": "BRL",
@@ -209,6 +279,13 @@
         "cliente_nome": "HIDROAMERICA LTDA",
         "data_criacao": "2025-12-04"
     },
+    "376793336": {
+        "moeda": "USD",
+        "saldo": 40.0,
+        "cliente": "gables",
+        "cliente_nome": "GABLES ENTERPRISE",
+        "data_criacao": "2025-12-22"
+    },
     "277435777": {
         "moeda": "EUR",
         "saldo": 0.0,
@@ -223,12 +300,40 @@
         "cliente_nome": "MAKITA MACHINES LLC",
         "data_criacao": "2025-11-26"
     },
+    "500635054": {
+        "moeda": "BRL",
+        "saldo": 0.0,
+        "cliente": "edinho",
+        "cliente_nome": "EDINHO ENTERPRISE",
+        "data_criacao": "2025-12-22"
+    },
+    "792916936": {
+        "moeda": "USD",
+        "saldo": 40.0,
+        "cliente": "edinho",
+        "cliente_nome": "EDINHO ENTERPRISE",
+        "data_criacao": "2025-12-22"
+    },
     "873134916": {
         "moeda": "BRL",
         "saldo": 0.0,
         "cliente": "lins",
         "cliente_nome": "LINS CHAIR LIMITADA",
         "data_criacao": "2025-11-18"
+    },
+    "755234527": {
+        "moeda": "BRL",
+        "saldo": 34.18,
+        "cliente": "gables",
+        "cliente_nome": "GABLES ENTERPRISE",
+        "data_criacao": "2025-12-22"
+    },
+    "997174979": {
+        "moeda": "BRL",
+        "saldo": 0.0,
+        "cliente": "thierry",
+        "cliente_nome": "THIERRY IMPORTERS LTDA",
+        "data_criacao": "2025-12-19"
     },
     "164914690": {
         "moeda": "USD",
@@ -257,6 +362,13 @@
         "cliente": "jbs",
         "cliente_nome": "JBS FRIBOI LTDA",
         "data_criacao": "2025-12-05"
+    },
+    "581734496": {
+        "moeda": "BRL",
+        "saldo": 0.0,
+        "cliente": "romolo",
+        "cliente_nome": "ROMOLO REMESSAS LTDA",
+        "data_criacao": "2025-12-22"
     },
     "967240582": {
         "moeda": "BRL",

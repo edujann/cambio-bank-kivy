@@ -2541,20 +2541,40 @@ class SistemaCambioPremium:
             if transferencia_id not in self.transferencias:
                 return False
             
-            # 🔥 DADOS DA INVOICE
+            print(f"🔍 ADICIONAR INVOICE INFO - Caminho recebido: {caminho_arquivo}")
+            
+            # 🔥 CORREÇÃO CRÍTICA: Verificar e converter caminho se necessário
+            caminho_final = caminho_arquivo
+            
+            # Se o caminho for local (data/invoices), extrair apenas o nome do arquivo
+            # e criar caminho do Supabase
+            if caminho_arquivo and 'data/invoices' in caminho_arquivo:
+                import os
+                # Extrair nome do arquivo do caminho local
+                nome_arquivo = os.path.basename(caminho_arquivo)
+                # Criar caminho do Supabase no formato correto
+                caminho_final = f"transferencias/{transferencia_id}/{nome_arquivo}"
+                print(f"🔄 Convertendo caminho local para Supabase: {caminho_final}")
+            
+            # 🔥 DADOS DA INVOICE (usar caminho_final corrigido)
             invoice_data = {
                 'status': 'pending',  # 🔥 SEMPRE VOLTA PARA PENDENTE NO REENVIO
-                'caminho_arquivo': caminho_arquivo,
+                'caminho_arquivo': caminho_final,  # 🔥 AGORA SEMPRE CAMINHO DO SUPABASE
                 'data_upload': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 'motivo_recusa': None,  # 🔥 LIMPAR MOTIVO DA RECUSA ANTERIOR
                 'data_recusa': None     # 🔥 LIMPAR DATA DA RECUSA ANTERIOR
             }
             
+            print(f"📊 Dados da invoice a serem salvos:")
+            print(f"   Status: {invoice_data['status']}")
+            print(f"   Caminho: {invoice_data['caminho_arquivo']}")
+            print(f"   Data Upload: {invoice_data['data_upload']}")
+            
             # 1. SALVAR LOCALMENTE
             self.transferencias[transferencia_id]['invoice_info'] = invoice_data
             self.salvar_transferencias()
             
-            # 2. 🔥 AGORA SALVAR NO SUPABASE TAMBÉM
+            # 2. 🔥 SALVAR NO SUPABASE TAMBÉM
             if hasattr(self, 'supabase') and self.supabase.conectado:
                 try:
                     response = self.supabase.client.table('transferencias')\
@@ -2562,19 +2582,55 @@ class SistemaCambioPremium:
                         .eq('id', transferencia_id)\
                         .execute()
                     
-                    if response.error:
-                        print(f"⚠️ Erro ao salvar invoice no Supabase: Dados não retornados")
-                    else:
+                    if response.data:
                         print(f"✅ Invoice salva no Supabase também!")
+                        print(f"   Caminho salvo: {invoice_data['caminho_arquivo']}")
+                    else:
+                        print(f"⚠️ Erro ao salvar invoice no Supabase: Dados não retornados")
+                        print(f"   Error: {response.error if hasattr(response, 'error') else 'N/A'}")
                 except Exception as e:
                     print(f"⚠️ Erro Supabase: {e}")
+                    import traceback
+                    traceback.print_exc()
+            else:
+                print("ℹ️ Supabase não disponível, salvando apenas localmente")
             
             print(f"✅ Nova invoice adicionada para transferência {transferencia_id}")
             return True
             
         except Exception as e:
             print(f"❌ Erro ao adicionar invoice info: {e}")
+            import traceback
+            traceback.print_exc()
             return False
+
+    def listar_arquivos_pasta(self, transferencia_id):
+        """Lista todos os arquivos na pasta da transferência (para debug)"""
+        try:
+            sistema = App.get_running_app().sistema
+            
+            if hasattr(sistema, 'supabase') and sistema.supabase.conectado:
+                # O Supabase não tem listagem direta por pasta via API Python
+                # Mas podemos usar uma abordagem alternativa:
+                
+                # 🔥 ALTERNATIVA 1: Usar o campo invoice_info no banco
+                info = sistema.obter_info_invoice(transferencia_id)
+                if info and info.get('caminho_arquivo'):
+                    print(f"📁 Arquivo na pasta {transferencia_id}:")
+                    print(f"   • {info['caminho_arquivo']} (status: {info.get('status', 'unknown')})")
+                    return [info['caminho_arquivo']]
+                
+                # 🔥 ALTERNATIVA 2: Se tiver muitos arquivos, precisaria de uma tabela de registro
+                print(f"ℹ️ Nenhum arquivo registrado para {transferencia_id}")
+                return []
+                
+            else:
+                print("⚠️ Supabase não disponível")
+                return []
+                
+        except Exception as e:
+            print(f"❌ Erro ao listar arquivos: {e}")
+            return []
 
     def aprovar_invoice(self, transferencia_id):
         """Aprova uma invoice - NÃO altera status da transferência - VERSÃO SUPABASE"""
@@ -2620,52 +2676,73 @@ class SistemaCambioPremium:
             return False
 
     def recusar_invoice(self, transferencia_id, motivo):
-        """Recusa uma invoice - VERSÃO SUPABASE (NÃO deleta arquivo do Storage)"""
+        """Recusa uma invoice e DELETA o arquivo do Storage"""
         try:
-            # 🔥 CORREÇÃO: Buscar invoice_info atual do Supabase
-            response = self.supabase.client.table('transferencias')\
+            sistema = App.get_running_app().sistema
+            
+            # 🔥 PRIMEIRO: Buscar dados atuais para guardar o caminho
+            response = sistema.supabase.client.table('transferencias')\
                 .select('invoice_info')\
                 .eq('id', transferencia_id)\
                 .execute()
             
             if not response.data:
-                print(f"❌ Transferência {transferencia_id} não encontrada no Supabase")
+                print(f"❌ Transferência {transferencia_id} não encontrada")
                 return False
             
             current_invoice_info = response.data[0].get('invoice_info', {})
+            caminho_arquivo = current_invoice_info.get('caminho_arquivo')
             
-            # 🔥 CORREÇÃO: Atualizar invoice_info no Supabase (NÃO deletar arquivo)
+            # 🔥 SEGUNDO: Deletar arquivo físico do Storage se existir
+            if caminho_arquivo and sistema.supabase.conectado:
+                print(f"🗑️ Recusa: Deletando arquivo físico: {caminho_arquivo}")
+                
+                # Extrair apenas o nome do arquivo do caminho
+                try:
+                    # Tenta deletar o arquivo
+                    delete_response = sistema.supabase.client.storage.from_("invoices")\
+                        .remove([caminho_arquivo])
+                    
+                    if delete_response:
+                        print(f"✅ Arquivo deletado do Storage: {caminho_arquivo}")
+                    else:
+                        print(f"⚠️ Arquivo não encontrado no Storage (pode já ter sido deletado)")
+                except Exception as delete_error:
+                    print(f"⚠️ Erro ao deletar arquivo (continuando): {delete_error}")
+            
+            # 🔥 TERCEIRO: Atualizar status no banco (MANTÉM caminho vazio)
             update_data = {
                 'invoice_info': {
                     'status': 'rejected',
                     'motivo_recusa': motivo,
                     'data_recusa': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    'caminho_arquivo': current_invoice_info.get('caminho_arquivo'),  # 🔥 MANTER caminho
-                    'data_upload': current_invoice_info.get('data_upload')
+                    'caminho_arquivo': None,  # 🔥 AGORA FICA None/NULL
+                    'data_upload': current_invoice_info.get('data_upload'),
+                    'caminho_antigo': caminho_arquivo  # 🔥 Guarda referência do que foi deletado
                 }
             }
             
-            response = self.supabase.client.table('transferencias')\
+            response_update = sistema.supabase.client.table('transferencias')\
                 .update(update_data)\
                 .eq('id', transferencia_id)\
                 .execute()
             
-            if response.data:
-                print(f"✅ Invoice recusada no Supabase para transferência {transferencia_id}")
+            if response_update.data:
+                print(f"✅ Invoice recusada e arquivo deletado: {transferencia_id}")
                 print(f"📝 Motivo: {motivo}")
                 
-                # 🔥 CORREÇÃO: Sincronizar dados locais
-                if transferencia_id in self.transferencias:
-                    self.transferencias[transferencia_id]['invoice_info'] = update_data['invoice_info']
-                    self.salvar_transferencias()
+                # Sincronizar dados locais
+                if transferencia_id in sistema.transferencias:
+                    sistema.transferencias[transferencia_id]['invoice_info'] = update_data['invoice_info']
+                    sistema.salvar_transferencias()
                 
                 return True
             else:
-                print(f"❌ Erro ao recusar invoice no Supabase: Dados não retornados")
+                print(f"❌ Erro ao atualizar status no banco")
                 return False
-            
+                
         except Exception as e:
-            print(f"❌ Erro ao recusar invoice: {e}")
+            print(f"❌ Erro ao recusar e deletar invoice: {e}")
             return False
 
     def obter_info_invoice(self, transferencia_id):

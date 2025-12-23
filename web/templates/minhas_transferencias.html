@@ -2213,18 +2213,17 @@
     // ============================================
 
     async function visualizarInvoice(transferenciaId) {
-        console.log(`📄 [INVOICE] Iniciando visualização para transferência: ${transferenciaId}`);
+        console.log(`📄 [INVOICE-WEB] Iniciando para: ${transferenciaId}`);
         
         try {
             showAlert('🔍 Verificando invoice...', 'info');
             
-            // 1. PRIMEIRO: Verificar status e disponibilidade
-            console.log(`🔍 Verificando status da invoice...`);
+            // 1. VERIFICAR DISPONIBILIDADE
             const statusResponse = await fetch(`/api/transferencias/${transferenciaId}/invoice/status`);
             
             if (!statusResponse.ok) {
                 const errorData = await statusResponse.json();
-                throw new Error(errorData.error || 'Erro ao verificar status da invoice');
+                throw new Error(errorData.error || 'Erro ao verificar status');
             }
             
             const statusData = await statusResponse.json();
@@ -2239,22 +2238,10 @@
             
             console.log(`✅ Invoice disponível: ${fileName}, Status: ${invoiceStatus}`);
             
-            // 2. VERIFICAR SE STATUS PERMITE VISUALIZAÇÃO
-            if (invoiceStatus === 'pending') {
-                showAlert('⏳ Invoice pendente de aprovação - aguarde a análise do administrador', 'warning');
-                return;
-            }
+            // 🔥 REMOVER BLOQUEIO DE STATUS - IGUAL KIVY
+            // Kivy permite visualizar em qualquer status!
             
-            if (invoiceStatus === 'rejected') {
-                const motivo = statusData.rejection_reason ? `Motivo: ${statusData.rejection_reason}` : '';
-                const userChoice = confirm(`⚠️ Invoice RECUSADA\n\n${motivo}\n\nDeseja visualizar mesmo assim?`);
-                
-                if (!userChoice) {
-                    return;
-                }
-            }
-            
-            // 3. MOSTRAR LOADING E BAIXAR O ARQUIVO
+            // 2. BAIXAR O ARQUIVO
             showAlert(`⬇️ Baixando ${fileName}...`, 'info');
             
             const downloadResponse = await fetch(`/api/transferencias/${transferenciaId}/invoice`);
@@ -2273,11 +2260,10 @@
                 throw new Error(errorMessage);
             }
             
-            // 4. OBTER O ARQUIVO E CRIAR URL PARA VISUALIZAÇÃO
+            // 3. PROCESSAR RESPOSTA
             const fileBlob = await downloadResponse.blob();
             const fileUrl = URL.createObjectURL(fileBlob);
             
-            // Obter nome do arquivo do header ou do response
             const contentDisposition = downloadResponse.headers.get('Content-Disposition');
             let finalFileName = fileName;
             
@@ -2288,29 +2274,25 @@
                 }
             }
             
-            console.log(`✅ Arquivo baixado: ${finalFileName}, Tamanho: ${fileBlob.size} bytes, Tipo: ${fileBlob.type}`);
+            console.log(`✅ Baixado: ${finalFileName}, ${fileBlob.size} bytes`);
             
-            // 5. VERIFICAR TIPO DE ARQUIVO PARA DECIDIR COMO ABRIR
+            // 4. ABRIR CONFORME TIPO
             const fileType = fileBlob.type;
             const isPDF = fileType === 'application/pdf';
             const isImage = fileType.startsWith('image/');
             
-            // 6. ABRIR O ARQUIVO CONFORME O TIPO
             if (isPDF) {
-                // PARA PDF: Abrir em nova aba ou usar visualizador embutido
-                abrirPDF(fileUrl, finalFileName, transferenciaId);
+                window.open(fileUrl, '_blank');
             } else if (isImage) {
-                // PARA IMAGENS: Abrir em modal
                 abrirImagem(fileUrl, finalFileName, transferenciaId);
             } else {
-                // PARA OUTROS TIPOS: Forçar download
                 forcarDownload(fileBlob, finalFileName);
             }
             
-            showAlert(`✅ Invoice "${finalFileName}" aberta com sucesso!`, 'success');
+            showAlert(`✅ Invoice "${finalFileName}" aberta!`, 'success');
             
         } catch (error) {
-            console.error(`❌ [INVOICE] Erro:`, error);
+            console.error(`❌ [INVOICE-WEB] Erro:`, error);
             showAlert(`❌ Erro: ${error.message}`, 'error');
         }
     }

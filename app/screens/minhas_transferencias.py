@@ -818,48 +818,202 @@ class TransferenciaCard(BoxLayout):
             self.mostrar_erro(f"Erro: {str(e)}")
 
     def copiar_arquivo_invoice(self, caminho_origem, transferencia_id):
-        """Copia o arquivo de invoice para o SUPABASE STORAGE - VERSÃO CORRIGIDA"""
+        """Copia o arquivo para Supabase - VERSÃO CORRIGIDA FINAL"""
         try:
             import os
-            import shutil
+            import time
+            import traceback
             
-            # 🔥 VERIFICAR SE SUPABASE ESTÁ DISPONÍVEL
             sistema = App.get_running_app().sistema
+            
+            print(f"🔄 INICIANDO REENVIO - MÉTODO CORRIGIDO")
+            print(f"   Transferência: {transferencia_id}")
+            print(f"   Arquivo: {caminho_origem}")
+            
+            if not os.path.exists(caminho_origem):
+                print(f"❌ ARQUIVO NÃO EXISTE: {caminho_origem}")
+                return None
+            
             if hasattr(sistema, 'supabase') and sistema.supabase.conectado:
-                print("📤 Enviando invoice para Supabase Storage...")
+                print("✅ Supabase conectado")
                 
-                # Gerar nome único para o arquivo no Supabase
-                nome_arquivo = os.path.basename(caminho_origem)
-                nome_base, extensao = os.path.splitext(nome_arquivo)
-                novo_nome = f"{transferencia_id}_{nome_base}{extensao}"
-                
-                # 🔥 CAMINHO NO SUPABASE STORAGE (com barras normais)
-                caminho_supabase = f"transferencias/{novo_nome}"
-                
-                # 🔥 LER ARQUIVO E ENVIAR PARA SUPABASE STORAGE
-                with open(caminho_origem, 'rb') as file:
-                    file_data = file.read()
-                
-                response = sistema.supabase.client.storage.from_("invoices")\
-                    .upload(caminho_supabase, file_data)
-                
-                if response:
-                    print(f"✅ Invoice enviada para Supabase Storage: {caminho_supabase}")
+                # 🔥 PASSO 1: Deletar arquivos antigos
+                try:
+                    print(f"🔍 Buscando arquivos antigos na pasta {transferencia_id}...")
                     
-                    # 🔥 CORREÇÃO: Retornar caminho do SUPABASE (não local)
-                    return caminho_supabase
-                else:
-                    print(f"❌ Erro ao enviar invoice para Supabase Storage")
-                    # Fallback para local (mantendo lógica original)
-                    return self._copiar_arquivo_local_fallback(caminho_origem, transferencia_id)
+                    lista_arquivos = sistema.supabase.client.storage.from_("invoices")\
+                        .list(f"transferencias/{transferencia_id}")
+                    
+                    if lista_arquivos:
+                        print(f"📁 Encontrados {len(lista_arquivos)} arquivos para deletar")
+                        
+                        for arquivo in lista_arquivos:
+                            caminho_antigo = f"transferencias/{transferencia_id}/{arquivo['name']}"
+                            print(f"🗑️ Tentando deletar: {caminho_antigo}")
+                            
+                            try:
+                                resultado = sistema.supabase.client.storage.from_("invoices")\
+                                    .remove([caminho_antigo])
+                                
+                                if resultado:
+                                    print(f"✅ Deletado: {caminho_antigo}")
+                                else:
+                                    print(f"⚠️ Não consegui deletar: {caminho_antigo}")
+                                    
+                            except Exception as delete_error:
+                                print(f"⚠️ Erro ao deletar {caminho_antigo}: {delete_error}")
+                    else:
+                        print(f"ℹ️ Nenhum arquivo antigo para deletar")
+                        
+                except Exception as list_error:
+                    print(f"⚠️ Erro ao listar arquivos antigos: {list_error}")
+                
+                # 🔥 PASSO 2: LER ARQUIVO
+                print(f"📖 Lendo arquivo...")
+                
+                try:
+                    tamanho_bytes = os.path.getsize(caminho_origem)
+                    print(f"   Tamanho: {tamanho_bytes} bytes ({tamanho_bytes/1024/1024:.2f} MB)")
+                    
+                    with open(caminho_origem, 'rb') as file:
+                        file_data = file.read()
+                    
+                    print(f"✅ Arquivo lido com sucesso: {len(file_data)} bytes")
+                    
+                except Exception as read_error:
+                    print(f"❌ Erro ao ler arquivo: {read_error}")
+                    return None
+                
+                # 🔥 PASSO 3: CRIAR NOME ÚNICO
+                nome_arquivo = os.path.basename(caminho_origem)
+                timestamp = str(int(time.time() * 1000))
+                nome_salvo = f"{timestamp}_{nome_arquivo}"
+                caminho_supabase = f"transferencias/{transferencia_id}/{nome_salvo}"
+                
+                print(f"📁 Informações do upload:")
+                print(f"   Nome original: {nome_arquivo}")
+                print(f"   Nome salvo: {nome_salvo}")
+                print(f"   Caminho no Supabase: {caminho_supabase}")
+                
+                # 🔥 PASSO 4: FAZER UPLOAD (SEM upsert=True)
+                print(f"📤 FAZENDO UPLOAD PARA SUPABASE...")
+                
+                try:
+                    # 🔥 CORREÇÃO AQUI: REMOVER upsert=True
+                    response = sistema.supabase.client.storage.from_("invoices")\
+                        .upload(caminho_supabase, file_data)  # ← SEM upsert=True!
+                    
+                    # 🔥 VERIFICAÇÃO DA RESPOSTA
+                    print(f"📊 RESPOSTA DO UPLOAD: {response}")
+                    
+                    if response:
+                        print(f"✅✅✅ UPLOAD BEM-SUCEDIDO!")
+                        print(f"   Caminho: {caminho_supabase}")
+                        print(f"   Tamanho enviado: {len(file_data)} bytes")
+                        
+                        # 🔥 VERIFICAR SE REALMENTE FOI SALVO
+                        try:
+                            download_test = sistema.supabase.client.storage.from_("invoices")\
+                                .download(caminho_supabase)
+                            
+                            if download_test:
+                                print(f"✅ CONFIRMADO: Arquivo existe no Storage!")
+                                return caminho_supabase
+                            else:
+                                print(f"⚠️ Upload parece ter funcionado, mas não consigo confirmar")
+                                return caminho_supabase
+                                
+                        except Exception as verify_error:
+                            print(f"⚠️ Não consegui verificar upload: {verify_error}")
+                            return caminho_supabase
+                            
+                    else:
+                        print(f"❌❌❌ UPLOAD FALHOU - Resposta vazia ou False")
+                        return None
+                        
+                except Exception as upload_error:
+                    print(f"❌❌❌ ERRO NO UPLOAD: {upload_error}")
+                    traceback.print_exc()
+                    return None
+                    
             else:
-                print("⚠️ Supabase não disponível, usando armazenamento local")
+                print("❌ Supabase não disponível")
                 return self._copiar_arquivo_local_fallback(caminho_origem, transferencia_id)
                 
         except Exception as e:
-            print(f"❌ Erro ao copiar invoice para Supabase: {e}")
-            # Fallback para local em caso de erro (mantendo compatibilidade)
-            return self._copiar_arquivo_local_fallback(caminho_origem, transferencia_id)
+            print(f"❌❌❌ ERRO GERAL em copiar_arquivo_invoice: {e}")
+            traceback.print_exc()
+            return None
+
+    def _copiar_arquivo_local_fallback(self, caminho_origem, transferencia_id):
+        """Fallback para salvar localmente se Supabase falhar"""
+        try:
+            import os
+            import shutil
+            import datetime
+            
+            # Criar pasta local se não existir
+            pasta_local = f"data/invoices/{transferencia_id}"
+            os.makedirs(pasta_local, exist_ok=True)
+            
+            # Gerar nome único com timestamp
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            nome_arquivo = os.path.basename(caminho_origem)
+            nome_salvo = f"{timestamp}_{nome_arquivo}"
+            caminho_destino = os.path.join(pasta_local, nome_salvo)
+            
+            # Copiar arquivo
+            shutil.copy2(caminho_origem, caminho_destino)
+            
+            print(f"⚠️ Supabase falhou, invoice salva localmente: {caminho_destino}")
+            return caminho_destino
+            
+        except Exception as e:
+            print(f"❌ Erro no fallback local: {e}")
+            return None
+
+    def deletar_invoice_pasta(self, transferencia_id, manter_pasta=True):
+        """Deleta todos os arquivos da pasta da transferência"""
+        try:
+            sistema = App.get_running_app().sistema
+            
+            if hasattr(sistema, 'supabase') and sistema.supabase.conectado:
+                print(f"🗑️ Deletando arquivos da pasta: transferencias/{transferencia_id}/")
+                
+                # Listar todos os arquivos na pasta
+                try:
+                    # O Supabase Storage não tem método direto para listar arquivos em pasta
+                    # Mas podemos deletar individualmente se soubermos os nomes
+                    # Ou manter registro dos nomes no campo invoice_info
+                    
+                    # 🔥 ALTERNATIVA: Deletar pelo caminho conhecido (se estiver salvo)
+                    info_invoice = sistema.obter_info_invoice(transferencia_id)
+                    if info_invoice and 'caminho_arquivo' in info_invoice:
+                        caminho_completo = info_invoice['caminho_arquivo']
+                        # Extrair apenas o nome do arquivo do caminho completo
+                        if caminho_completo:
+                            # Verificar se está na pasta da transferência
+                            if f"transferencias/{transferencia_id}/" in caminho_completo:
+                                response = sistema.supabase.client.storage.from_("invoices")\
+                                    .remove([caminho_completo])
+                                
+                                if response:
+                                    print(f"✅ Invoice deletada: {caminho_completo}")
+                                    return True
+                    
+                    print("ℹ️ Nenhum arquivo encontrado para deletar")
+                    return False
+                    
+                except Exception as list_error:
+                    print(f"⚠️ Erro ao listar/deletar arquivos: {list_error}")
+                    return False
+            else:
+                print("⚠️ Supabase não disponível")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Erro ao deletar invoice da pasta: {e}")
+            return False
 
     def criar_popup_detalhes(self):
         """Cria popup com detalhes completos da transferência - COM SCROLL QUANDO NECESSÁRIO"""
@@ -1154,7 +1308,7 @@ Data Aprovação: {data_aprovacao_formatada}
         return popup
 
     def visualizar_invoice(self, instance=None):
-        """Abre invoice do Supabase ou local - ÚNICA ALTERAÇÃO"""
+        """Abre invoice do Supabase ou local - VERSÃO CORRIGIDA"""
         try:
             import os
             import subprocess
@@ -1176,51 +1330,75 @@ Data Aprovação: {data_aprovacao_formatada}
                 self.mostrar_erro("Invoice aprovada mas arquivo não foi enviado para o sistema!")
                 return
             
-            # ✅ VERIFICAR SE É CAMINHO DO SUPABASE
-            if caminho_arquivo.startswith('transferencias/'):
+            # 🔥 CORREÇÃO 1: Verificar se é caminho local antigo e converter
+            if caminho_arquivo and 'data/invoices' in caminho_arquivo:
+                # Extrair apenas o nome do arquivo
+                nome_arquivo = os.path.basename(caminho_arquivo)
+                # Criar caminho do Supabase
+                caminho_arquivo = f"transferencias/{self.transferencia_id}/{nome_arquivo}"
+                print(f"🔄 Convertendo caminho local para Supabase: {caminho_arquivo}")
+            
+            # 🔥 CORREÇÃO 2: Verificar prefixo do Supabase (mais abrangente)
+            is_supabase_path = (
+                caminho_arquivo.startswith('transferencias/') or 
+                caminho_arquivo.startswith('invoices/')
+            )
+            
+            if is_supabase_path:
                 # 🔥 É DO SUPABASE - baixar e abrir
                 if not hasattr(sistema, 'supabase') or not sistema.supabase.conectado:
                     self.mostrar_erro("Conexão com Supabase não disponível")
                     return
                 
-                # ✅ CÓDIGO CORRIGIDO:
+                print(f"📥 Baixando do Supabase Storage: {caminho_arquivo}")
+                
                 try:
                     response = sistema.supabase.client.storage.from_("invoices").download(caminho_arquivo)
                     
-                    # ✅ VERIFICAÇÃO CORRIGIDA:
-                    if response is not None and isinstance(response, bytes):
-                        # ✅ Download bem-sucedido - response são os bytes do arquivo
-                        file_data = response
-                    else:
+                    # 🔥 CORREÇÃO 3: Verificação mais robusta
+                    if response is None:
                         self.mostrar_erro("Erro ao baixar invoice do Supabase - Arquivo não encontrado")
                         return
                     
-                    # Salvar temporariamente e abrir
+                    # Verificar se response é bytes
+                    if isinstance(response, bytes):
+                        file_data = response
+                    else:
+                        # Tentar converter se não for bytes
+                        try:
+                            file_data = bytes(response)
+                        except:
+                            self.mostrar_erro("Formato de resposta inválido do Supabase")
+                            return
+                    
+                    # 🔥 CORREÇÃO 4: Salvar temporariamente APENAS UMA VEZ
                     with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
                         temp_file.write(file_data)
                         temp_path = temp_file.name
                     
                     arquivo_para_abrir = temp_path
+                    print(f"✅ Arquivo baixado e salvo temporariamente: {temp_path}")
                     
                 except Exception as e:
-                    self.mostrar_erro(f"Erro ao baixar invoice: {str(e)}")
+                    self.mostrar_erro(f"Erro ao baixar invoice do Supabase: {str(e)}")
+                    print(f"❌ Erro detalhado: {e}")
                     return
-                
-                # Salvar temporariamente e abrir
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
-                    temp_file.write(response)
-                    temp_path = temp_file.name
-                
-                arquivo_para_abrir = temp_path
-                
             else:
                 # 🔥 É CAMINHO LOCAL - usar lógica atual
                 arquivo_para_abrir = caminho_arquivo
+                print(f"📄 Usando arquivo local: {caminho_arquivo}")
             
             # 🔥 MESMA LÓGICA ATUAL PARA ABRIR ARQUIVO
             sistema_operacional = platform.system()
             
             try:
+                # Verificar se arquivo existe
+                if not os.path.exists(arquivo_para_abrir):
+                    self.mostrar_erro(f"Arquivo não encontrado: {arquivo_para_abrir}")
+                    return
+                
+                print(f"🖥️ Abrindo arquivo no sistema: {arquivo_para_abrir}")
+                
                 if sistema_operacional == "Windows":
                     os.startfile(arquivo_para_abrir)
                 elif sistema_operacional == "Darwin":
@@ -1235,6 +1413,8 @@ Data Aprovação: {data_aprovacao_formatada}
             
         except Exception as e:
             self.mostrar_erro(f"Erro ao acessar invoice: {str(e)}")
+            import traceback
+            traceback.print_exc()
 
     def mostrar_popup_sucesso_pdf(self, caminho_pdf):
         """Mostra popup quando PDF é gerado com sucesso"""

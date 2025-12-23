@@ -232,6 +232,33 @@
         "codigo_verificacao": null,
         "cambio_liberado": false
     },
+    "thierry": {
+        "id": "b2ae4aaf-faad-48a2-a45e-f1bdd58289b5",
+        "username": "thierry",
+        "senha_hash": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
+        "nome": "THIERRY IMPORTERS LTDA",
+        "email": "thierry@mail.com",
+        "documento_hash": "aa23c6cac3ab4c0ebfab5605c295a9e7777fd966e744fe0ec4274164f48c7c17",
+        "telefone": "",
+        "endereco": "",
+        "cidade": "",
+        "cep": "",
+        "estado": "",
+        "pais": "",
+        "tipo": "cliente",
+        "data_cadastro": "2025-12-19T17:58:06.583917",
+        "created_at": "2025-12-19T20:58:06.980812",
+        "contas": [
+            "817818877",
+            "565789612",
+            "922195498",
+            "997174979"
+        ],
+        "status": "pendente",
+        "verificado": false,
+        "codigo_verificacao": "",
+        "cambio_liberado": false
+    },
     "hidroamerica": {
         "id": "3f89795e-6c24-4173-8aad-18da8ab27dfd",
         "username": "hidroamerica",
@@ -285,5 +312,62 @@
         "verificado": true,
         "codigo_verificacao": null,
         "cambio_liberado": false
+    },
+    "edinho": {
+        "id": "839be8d9-a74d-4000-962e-2f4e234487e7",
+        "username": "edinho",
+        "senha_hash": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
+        "nome": "EDINHO ENTERPRISE",
+        "email": "edinho@mail.com",
+        "documento_hash": "2ca73006b9ff05df5eb0a5633f7d6714c98b0f6c764e590891d55ee6cf5eb78b",
+        "telefone": "",
+        "endereco": "",
+        "cidade": "",
+        "cep": "",
+        "estado": "",
+        "pais": "",
+        "tipo": "cliente",
+        "data_cadastro": "2025-12-22T18:09:05.472932",
+        "created_at": "2025-12-22T21:09:06.753508",
+        "contas": [
+            "792916936",
+            "524106984",
+            "709753063",
+            "500635054"
+        ],
+        "status": "pendente",
+        "verificado": false,
+        "codigo_verificacao": "",
+        "cambio_liberado": false
+    },
+    "romolo": {
+        "senha": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
+        "tipo": "cliente",
+        "nome": "ROMOLO REMESSAS LTDA",
+        "email": "romolo@mail.com",
+        "documento": "12345678900",
+        "telefone": "",
+        "contas": [
+            "772868082",
+            "302552653",
+            "108107087",
+            "873294153"
+        ],
+        "data_cadastro": "2025-12-22"
+    },
+    "gables": {
+        "senha": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
+        "tipo": "cliente",
+        "nome": "GABLES ENTERPRISE",
+        "email": "gables@mail.com",
+        "documento": "32145698754",
+        "telefone": "",
+        "contas": [
+            "328944680",
+            "539554329",
+            "316358963",
+            "554707251"
+        ],
+        "data_cadastro": "2025-12-22"
     }
 }
