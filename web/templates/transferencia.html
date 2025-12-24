@@ -234,6 +234,9 @@
 
     </style>
 </head>
+
+
+
 <body>
     <!-- CABEÇALHO FIXO (IGUAL AO DASHBOARD) -->
     <header class="main-header">
@@ -708,6 +711,331 @@
         }
         
         console.log(`✅ Mensagem exibida para beneficiário: ${nomeBeneficiario}`);
+    }
+    </script>
+
+    <script>
+    // ============================================
+    // CONFIGURAÇÃO DO FORMULÁRIO
+    // ============================================
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🔄 Configurando formulário de transferência...');
+        
+        // 1. CONFIGURAR DRAG & DROP DO INVOICE (igual já existe)
+        configurarUploadInvoice();
+        
+        // 2. CONFIGURAR SUBMIT DO FORMULÁRIO
+        const form = document.getElementById('transferenciaForm');
+        
+        if (form) {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault(); // Impede envio padrão
+                
+                console.log('📤 Iniciando envio do formulário...');
+                
+                // Desabilitar botão
+                const submitBtn = document.getElementById('submitBtn');
+                const btnOriginal = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+                
+                try {
+                    // 3. COLETAR DADOS DO FORMULÁRIO
+                    const dadosTransferencia = {
+                        conta_origem: document.getElementById('conta_origem').value,
+                        valor: parseFloat(document.getElementById('valor').value),
+                        moeda: document.getElementById('moeda_label').textContent || 'USD',
+                        beneficiario: document.getElementById('beneficiario').value,
+                        endereco_beneficiario: document.getElementById('endereco').value,
+                        cidade: document.getElementById('cidade').value,
+                        pais: document.getElementById('pais').value,
+                        nome_banco: document.getElementById('banco').value,
+                        endereco_banco: document.getElementById('endereco_banco').value,
+                        cidade_banco: document.getElementById('cidade_banco').value,
+                        pais_banco: document.getElementById('pais_banco').value,
+                        codigo_swift: document.getElementById('swift').value,
+                        iban_account: document.getElementById('iban').value,
+                        aba_routing: document.getElementById('aba').value,
+                        finalidade: document.getElementById('finalidade').value,
+                        descricao: document.getElementById('descricao').value
+                    };
+                    
+                    console.log('📋 Dados da transferência:', dadosTransferencia);
+                    
+                    // 4. CRIAR TRANSFERÊNCIA (SEM INVOICE)
+                    const criarResponse = await fetch('/api/transferencias/criar', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(dadosTransferencia)
+                    });
+                    
+                    const criarResult = await criarResponse.json();
+                    
+                    if (!criarResult.success) {
+                        throw new Error(criarResult.message || 'Erro ao criar transferência');
+                    }
+                    
+                    const transferenciaId = criarResult.transferencia_id;
+                    console.log('✅ Transferência criada! ID:', transferenciaId);
+                    
+                    // 5. UPLOAD DA INVOICE (SE EXISTIR) - USANDO upload-invoice
+                    const invoiceFile = document.getElementById('invoiceFile').files[0];
+                    
+                    if (invoiceFile) {
+                        console.log('📤 Enviando invoice:', invoiceFile.name);
+                        
+                        // Validar arquivo
+                        if (invoiceFile.size > 5 * 1024 * 1024) {
+                            throw new Error('Arquivo muito grande! Máximo: 5MB');
+                        }
+                        
+                        const ext = invoiceFile.name.split('.').pop().toLowerCase();
+                        if (!['pdf', 'jpg', 'jpeg', 'png'].includes(ext)) {
+                            throw new Error('Formato não suportado! Use: PDF, JPG, PNG');
+                        }
+                        
+                        // Fazer upload usando o endpoint upload-invoice
+                        const uploadFormData = new FormData();
+                        uploadFormData.append('file', invoiceFile);
+                        
+                        const uploadResponse = await fetch(`/api/transferencias/${transferenciaId}/upload-invoice`, {
+                            method: 'POST',
+                            body: uploadFormData
+                        });
+                        
+                        const uploadResult = await uploadResponse.json();
+                        
+                        if (!uploadResult.success) {
+                            console.warn('⚠️ Invoice não enviada:', uploadResult.error);
+                            // Continua mesmo se falhar - transferência já foi criada
+                        } else {
+                            console.log('✅ Invoice enviada com sucesso!');
+                        }
+                    } else {
+                        console.log('ℹ️ Nenhuma invoice selecionada');
+                    }
+                    
+                    // 6. MOSTRAR SUCESSO
+                    mostrarModalSucesso(transferenciaId, dadosTransferencia);
+                    
+                } catch (error) {
+                    console.error('❌ Erro:', error);
+                    mostrarErro(error.message);
+                } finally {
+                    // Reabilitar botão
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = btnOriginal;
+                }
+            });
+        }
+    });
+
+    // ============================================
+    // FUNÇÕES QUE O script.js NÃO VAI MAIS EXECUTAR
+    // ============================================
+
+    // Função para carregar dados do usuário
+    async function loadUserData() {
+        try {
+            const usernameSpan = document.getElementById('username');
+            if (usernameSpan && window.USER && window.USER.nome) {
+                usernameSpan.textContent = window.USER.nome;
+            }
+        } catch (error) {
+            console.log('Erro ao carregar dados do usuário:', error);
+        }
+    }
+
+    // Função para carregar contas
+    async function loadContas() {
+        try {
+            const response = await fetch('/api/user/contas');
+            const data = await response.json();
+            
+            if (data.success && data.contas) {
+                const select = document.getElementById('conta_origem');
+                if (select) {
+                    select.innerHTML = '<option value="">Selecione sua conta...</option>';
+                    
+                    data.contas.forEach(conta => {
+                        const option = document.createElement('option');
+                        option.value = conta.id || conta.numero;
+                        const saldo = parseFloat(conta.saldo || 0).toFixed(2);
+                        option.textContent = `${conta.moeda} - Saldo: ${saldo}`;
+                        select.appendChild(option);
+                    });
+                }
+            }
+        } catch (error) {
+            console.log('Erro ao carregar contas:', error);
+        }
+    }
+
+    // Função para carregar beneficiários
+    async function loadBeneficiarios() {
+        try {
+            const response = await fetch('/api/beneficiarios');
+            const data = await response.json();
+            
+            if (data.success && data.beneficiarios) {
+                const select = document.getElementById('beneficiarios_salvos');
+                if (select) {
+                    select.innerHTML = '<option value="">Selecione um beneficiário salvo...</option>';
+                    
+                    data.beneficiarios.forEach(benef => {
+                        const option = document.createElement('option');
+                        option.value = benef.id;
+                        option.textContent = `${benef.nome} - ${benef.banco}`;
+                        select.appendChild(option);
+                    });
+                }
+            }
+        } catch (error) {
+            console.log('Erro ao carregar beneficiários:', error);
+        }
+    }
+
+    // ============================================
+    // FUNÇÃO: CONFIGURAR UPLOAD INVOICE (DRAG & DROP)
+    // ============================================
+
+    function configurarUploadInvoice() {
+        const uploadArea = document.getElementById('uploadArea');
+        const selectFileBtn = document.getElementById('selectFileBtn');
+        const invoiceFileInput = document.getElementById('invoiceFile');
+        const filePreview = document.getElementById('filePreview');
+        const fileName = document.getElementById('fileName');
+        const removeFileBtn = document.getElementById('removeFileBtn');
+        
+        if (!uploadArea || !invoiceFileInput) return;
+        
+        // Click na área ou botão
+        uploadArea.addEventListener('click', () => invoiceFileInput.click());
+        selectFileBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            invoiceFileInput.click();
+        });
+        
+        // Arquivo selecionado
+        invoiceFileInput.addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                const file = e.target.files[0];
+                
+                // Validar
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('❌ Arquivo muito grande! Máximo: 5MB');
+                    this.value = '';
+                    return;
+                }
+                
+                const ext = file.name.split('.').pop().toLowerCase();
+                if (!['pdf', 'jpg', 'jpeg', 'png'].includes(ext)) {
+                    alert('❌ Formato não suportado! Use: PDF, JPG, PNG');
+                    this.value = '';
+                    return;
+                }
+                
+                // Mostrar preview
+                if (filePreview && fileName) {
+                    fileName.textContent = file.name;
+                    filePreview.classList.remove('hidden');
+                    uploadArea.style.display = 'none';
+                }
+            }
+        });
+        
+        // Remover arquivo
+        removeFileBtn?.addEventListener('click', function() {
+            invoiceFileInput.value = '';
+            if (filePreview) filePreview.classList.add('hidden');
+            uploadArea.style.display = 'block';
+        });
+        
+        // Drag & drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#2d8fff';
+            uploadArea.style.backgroundColor = 'rgba(45, 58, 90, 0.3)';
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = '';
+            uploadArea.style.backgroundColor = '';
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '';
+            uploadArea.style.backgroundColor = '';
+            
+            if (e.dataTransfer.files.length > 0) {
+                const file = e.dataTransfer.files[0];
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                invoiceFileInput.files = dataTransfer.files;
+                invoiceFileInput.dispatchEvent(new Event('change'));
+            }
+        });
+    }
+
+    // ============================================
+    // FUNÇÃO: MOSTRAR MODAL DE SUCESSO
+    // ============================================
+
+    function mostrarModalSucesso(transferenciaId, dados) {
+        const modal = document.getElementById('successModal');
+        const modalId = document.getElementById('modalTransferId');
+        const modalValor = document.getElementById('modalValor');
+        const modalMessage = document.getElementById('modalMessage');
+        
+        if (!modal || !modalId || !modalValor) return;
+        
+        // Preencher dados
+        modalId.textContent = transferenciaId;
+        modalValor.textContent = `${dados.valor} ${dados.moeda}`;
+        modalMessage.textContent = 'Sua transferência foi registrada e está aguardando aprovação.';
+        
+        // Mostrar modal
+        modal.classList.remove('hidden');
+        
+        // Configurar botões
+        document.getElementById('closeModalBtn').onclick = () => {
+            modal.classList.add('hidden');
+        };
+        
+        document.getElementById('goToDashboardBtn').onclick = () => {
+            window.location.href = '/dashboard';
+        };
+    }
+
+    // ============================================
+    // FUNÇÃO: MOSTRAR ERRO
+    // ============================================
+
+    function mostrarErro(mensagem) {
+        const alertDiv = document.getElementById('alert');
+        if (!alertDiv) {
+            // Criar alerta se não existir
+            const newAlert = document.createElement('div');
+            newAlert.id = 'alert';
+            newAlert.className = 'alert error';
+            newAlert.textContent = mensagem;
+            newAlert.style.cssText = 'padding: 15px; background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; border-radius: 4px; margin: 15px 0;';
+            
+            const form = document.getElementById('transferenciaForm');
+            if (form) {
+                form.insertBefore(newAlert, form.firstChild);
+            }
+            return;
+        }
+        
+        alertDiv.textContent = mensagem;
+        alertDiv.className = 'alert error';
+        alertDiv.style.display = 'block';
+        
+        // Rolar para ver o erro
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     </script>
 

@@ -658,43 +658,6 @@ def criar_transferencia_cliente():
                 print(f"   cidade_banco salvo: '{saved.get('cidade_banco', 'VAZIO')}'")
                 print(f"   pais_banco salvo: '{saved.get('pais_banco', 'VAZIO')}'")
             
-            # Upload de arquivo se existir
-            if 'invoice' in request.files:
-                arquivo = request.files['invoice']
-                if arquivo and arquivo.filename:
-                    try:
-                        caminho = f"transferencias/{transferencia_id}/{arquivo.filename}"
-                        arquivo_bytes = arquivo.read()
-                        
-                        print(f"📎 Upload de invoice: {arquivo.filename}")
-                        
-                        # Upload para bucket 'documentos'
-                        supabase.storage.from_("invoices").upload(
-                            caminho,
-                            arquivo_bytes,
-                            file_options={"content-type": arquivo.content_type}
-                        )
-                        print(f"✅ Invoice salvo no Storage: {caminho}")
-                        
-                        # Atualizar transferência com info do invoice
-                        supabase.table('transferencias').update({
-                            'invoice_info': {
-                                'caminho_arquivo': caminho,
-                                'nome_arquivo': arquivo.filename,
-                                'tipo': arquivo.content_type,
-                                'tamanho': len(arquivo_bytes),
-                                'status': 'pending',
-                                'data_upload': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                'motivo_recusa': ''
-                            }
-                        }).eq('id', transferencia_id).execute()
-                        
-                    except Exception as upload_error:
-                        print(f"⚠️ Erro no upload do arquivo: {upload_error}")
-            
-            print("="*60)
-            print("🎉 TRANSFERÊNCIA FINALIZADA COM SUCESSO")
-            print("="*60 + "\n")
             
             return jsonify({
                 "success": True,
@@ -717,6 +680,125 @@ def criar_transferencia_cliente():
             "success": False,
             "message": f"Erro interno: {str(e)}"
         }), 500
+    
+@app.route('/api/transferencias/<transferencia_id>/invoice/upload', methods=['POST'])
+def upload_invoice_nova_transferencia(transferencia_id):
+    """Upload de invoice para transferência RECÉM-CRIADA (mesma lógica do reenvio)"""
+    
+    if 'username' not in session:
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    usuario_nome = session['username']
+    print(f"📤 [UPLOAD-NOVA] Iniciando upload para transferência recém-criada: {transferencia_id}")
+    
+    try:
+        # 1. VERIFICAR SE TRANSFERÊNCIA É DO USUÁRIO
+        response = supabase.table('transferencias')\
+            .select('id, cliente, usuario')\
+            .eq('id', transferencia_id)\
+            .execute()
+        
+        if not response.data:
+            return jsonify({'error': 'Transferência não encontrada'}), 404
+        
+        transferencia = response.data[0]
+        
+        # Verificar permissão
+        usuario_permitido = (
+            transferencia.get('cliente') == usuario_nome or
+            transferencia.get('usuario') == usuario_nome
+        )
+        
+        if not usuario_permitido:
+            return jsonify({'error': 'Acesso não autorizado'}), 403
+        
+        # 2. VERIFICAR ARQUIVO
+        if 'file' not in request.files:
+            return jsonify({'error': 'Nenhum arquivo enviado'}), 400
+        
+        arquivo = request.files['file']
+        
+        if arquivo.filename == '':
+            return jsonify({'error': 'Nenhum arquivo selecionado'}), 400
+        
+        # 3. VALIDAR ARQUIVO (IGUAL AO REENVIO)
+        nome_arquivo = arquivo.filename
+        extensao = nome_arquivo.lower().split('.')[-1] if '.' in nome_arquivo else ''
+        
+        extensoes_permitidas = ['pdf', 'jpg', 'jpeg', 'png']
+        if extensao not in extensoes_permitidas:
+            return jsonify({
+                'error': f'Extensão não permitida: .{extensao}',
+                'permitidas': extensoes_permitidas
+            }), 400
+        
+        # Verificar tamanho (5MB)
+        arquivo.seek(0, 2)
+        tamanho = arquivo.tell()
+        arquivo.seek(0)
+        
+        if tamanho > 5 * 1024 * 1024:
+            return jsonify({'error': 'Arquivo muito grande. Máximo: 5MB'}), 400
+        
+        print(f"📁 [UPLOAD-NOVA] Arquivo validado: {nome_arquivo} ({tamanho} bytes, .{extensao})")
+        
+        # 4. CRIAR NOVO NOME
+        import time
+        timestamp = str(int(time.time() * 1000))
+        nome_base = nome_arquivo.rsplit('.', 1)[0]
+        novo_nome = f"{timestamp}_{nome_base}.{extensao}"
+        caminho_supabase = f"transferencias/{transferencia_id}/{novo_nome}"
+        
+        print(f"📤 [UPLOAD-NOVA] Caminho: {caminho_supabase}")
+        
+        # 5. FAZER UPLOAD
+        arquivo_bytes = arquivo.read()
+        
+        print(f"🔼 [UPLOAD-NOVA] Fazendo upload de {len(arquivo_bytes)} bytes...")
+        upload_response = supabase.client.storage.from_("invoices")\
+            .upload(caminho_supabase, arquivo_bytes)
+        
+        if not upload_response:
+            return jsonify({'error': 'Erro ao fazer upload para o storage'}), 500
+        
+        print(f"✅ [UPLOAD-NOVA] Upload realizado!")
+        
+        # 6. ATUALIZAR INVOICE INFO
+        nova_invoice_info = {
+            'status': 'pending',
+            'data_upload': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'caminho_arquivo': caminho_supabase,
+            'nome_arquivo': novo_nome,
+            'tamanho': tamanho,
+            'tipo': arquivo.content_type or f'application/{extensao}'
+        }
+        
+        update_response = supabase.table('transferencias')\
+            .update({'invoice_info': nova_invoice_info})\
+            .eq('id', transferencia_id)\
+            .execute()
+        
+        if update_response.data:
+            print(f"✅ [UPLOAD-NOVA] Invoice info atualizada no banco")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Invoice enviada com sucesso!',
+                'invoice': {
+                    'caminho': caminho_supabase,
+                    'nome': novo_nome,
+                    'tamanho': tamanho,
+                    'status': 'pending'
+                }
+            })
+        else:
+            return jsonify({'error': 'Erro ao atualizar informações da invoice'}), 500
+        
+    except Exception as e:
+        print(f"❌ [UPLOAD-NOVA] Erro: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Erro interno: {str(e)}'}), 500
     
 @app.route('/api/user')
 def get_user_info():
@@ -1516,9 +1598,202 @@ def transferencia_completa(transferencia_id):
         traceback.print_exc()
         return jsonify({'error': 'Erro interno do servidor'}), 500
     
+@app.route('/api/transferencias/<transferencia_id>/invoice/verificar')
+def verificar_invoice(transferencia_id):
+    """Verifica se existe invoice e retorna informações básicas"""
+    
+    if 'username' not in session:
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    usuario_nome = session['username']
+    
+    try:
+        # Buscar invoice info
+        response = supabase.table('transferencias')\
+            .select('invoice_info')\
+            .eq('id', transferencia_id)\
+            .execute()
+        
+        if not response.data:
+            return jsonify({'available': False, 'error': 'Transferência não encontrada'})
+        
+        invoice_info = response.data[0].get('invoice_info')
+        
+        if not invoice_info or not invoice_info.get('caminho_arquivo'):
+            return jsonify({'available': False, 'error': 'Nenhuma invoice encontrada'})
+        
+        # Verificar se o arquivo existe no storage
+        caminho_arquivo = invoice_info.get('caminho_arquivo')
+        
+        try:
+            # Tentar verificar se o arquivo existe
+            supabase.client.storage.from_("invoices")\
+                .download(caminho_arquivo)
+            
+            return jsonify({
+                'available': True,
+                'status': invoice_info.get('status', 'pending'),
+                'filename': caminho_arquivo.split('/')[-1],
+                'upload_date': invoice_info.get('data_upload'),
+                'rejection_reason': invoice_info.get('motivo_recusa'),
+                'can_reupload': invoice_info.get('status') == 'rejected'
+            })
+            
+        except Exception as storage_error:
+            print(f"⚠️ [VERIFICAR] Arquivo não encontrado no storage: {storage_error}")
+            return jsonify({'available': False, 'error': 'Arquivo não encontrado no storage'})
+            
+    except Exception as e:
+        print(f"❌ [VERIFICAR] Erro: {e}")
+        return jsonify({'available': False, 'error': str(e)}), 500
+
+@app.route('/api/transferencias/<transferencia_id>/upload-invoice', methods=['POST'])
+def upload_invoice_web(transferencia_id):
+    """Upload de invoice - VERSÃO COMPATÍVEL COM KIVY"""
+    
+    if 'username' not in session:
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    usuario_nome = session['username']
+    print(f"📤 [UPLOAD-WEB] Iniciando upload para transferência {transferencia_id}")
+    
+    try:
+        # 1. VERIFICAR TRANSFERÊNCIA E PERMISSÃO
+        response = supabase.table('transferencias')\
+            .select('id, cliente, usuario, conta_remetente')\
+            .eq('id', transferencia_id)\
+            .execute()
+        
+        if not response.data:
+            return jsonify({'error': 'Transferência não encontrada'}), 404
+        
+        transferencia = response.data[0]
+        conta_transferencia = transferencia.get('conta_remetente')
+        
+        # 🔥 MESMA VERIFICAÇÃO DO KIVY
+        user_response = supabase.table('usuarios')\
+            .select('contas')\
+            .eq('username', usuario_nome)\
+            .execute()
+        
+        if not user_response.data:
+            return jsonify({'error': 'Acesso não autorizado'}), 403
+        
+        contas_usuario = user_response.data[0].get('contas', [])
+        
+        # Verificar se a conta da transferência está nas contas do usuário
+        tem_permissao = False
+        if isinstance(contas_usuario, list) and conta_transferencia in contas_usuario:
+            tem_permissao = True
+        elif isinstance(contas_usuario, str) and conta_transferencia in contas_usuario:
+            tem_permissao = True
+        
+        # Também permitir se for o cliente ou usuário
+        if transferencia.get('cliente') == usuario_nome or transferencia.get('usuario') == usuario_nome:
+            tem_permissao = True
+        
+        if not tem_permissao:
+            return jsonify({'error': 'Acesso não autorizado'}), 403
+        
+        # 2. VERIFICAR ARQUIVO ENVIADO
+        if 'file' not in request.files:
+            return jsonify({'error': 'Nenhum arquivo enviado'}), 400
+        
+        arquivo = request.files['file']
+        
+        if arquivo.filename == '':
+            return jsonify({'error': 'Nenhum arquivo selecionado'}), 400
+        
+        # 3. VALIDAR O ARQUIVO (IGUAL KIVY)
+        nome_arquivo = arquivo.filename
+        extensao = nome_arquivo.lower().split('.')[-1] if '.' in nome_arquivo else ''
+        
+        extensoes_permitidas = ['pdf', 'jpg', 'jpeg', 'png']
+        if extensao not in extensoes_permitidas:
+            return jsonify({
+                'error': f'Extensão não permitida: .{extensao}',
+                'permitidas': extensoes_permitidas
+            }), 400
+        
+        # Verificar tamanho (5MB - igual Kivy)
+        arquivo.seek(0, 2)
+        tamanho = arquivo.tell()
+        arquivo.seek(0)
+        
+        if tamanho > 5 * 1024 * 1024:
+            return jsonify({'error': 'Arquivo muito grande. Máximo: 5MB'}), 400
+        
+        print(f"📁 [UPLOAD-WEB] Arquivo validado: {nome_arquivo} ({tamanho} bytes, .{extensao})")
+        
+        # 4. GERAR NOME ÚNICO (IGUAL KIVY)
+        import time
+        timestamp = str(int(time.time() * 1000))
+        nome_base = nome_arquivo.rsplit('.', 1)[0]
+        novo_nome = f"{timestamp}_{nome_base}.{extensao}"
+        caminho_supabase = f"transferencias/{transferencia_id}/{novo_nome}"
+        
+        print(f"📤 [UPLOAD-WEB] Caminho: {caminho_supabase}")
+        
+        # 5. FAZER UPLOAD PARA O STORAGE (IGUAL KIVY)
+        arquivo_bytes = arquivo.read()
+        
+        print(f"🔼 [UPLOAD-WEB] Fazendo upload de {len(arquivo_bytes)} bytes...")
+        
+        try:
+            # 🔥 MESMA LÓGICA DO KIVY - usar client.storage
+            upload_response = supabase.client.storage.from_("invoices")\
+                .upload(caminho_supabase, arquivo_bytes)
+            
+            print(f"📊 [UPLOAD-WEB] Resposta do upload: {upload_response}")
+            
+            if not upload_response:
+                return jsonify({'error': 'Erro ao fazer upload para o storage'}), 500
+                
+        except Exception as upload_error:
+            print(f"❌ [UPLOAD-WEB] Erro no upload: {upload_error}")
+            return jsonify({'error': f'Erro no upload: {str(upload_error)}'}), 500
+        
+        print(f"✅ [UPLOAD-WEB] Upload realizado!")
+        
+        # 6. ATUALIZAR NO BANCO (IGUAL KIVY)
+        nova_invoice_info = {
+            'status': 'pending',
+            'caminho_arquivo': caminho_supabase,
+            'data_upload': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'motivo_recusa': '',  # Limpa motivo anterior
+            'data_recusa': None
+        }
+        
+        update_response = supabase.table('transferencias')\
+            .update({'invoice_info': nova_invoice_info})\
+            .eq('id', transferencia_id)\
+            .execute()
+        
+        if update_response.data:
+            print(f"✅ [UPLOAD-WEB] Invoice info atualizada no banco")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Invoice enviada com sucesso!',
+                'invoice': {
+                    'caminho': caminho_supabase,
+                    'nome': novo_nome,
+                    'tamanho': tamanho,
+                    'status': 'pending'
+                }
+            })
+        else:
+            return jsonify({'error': 'Erro ao atualizar informações da invoice'}), 500
+        
+    except Exception as e:
+        print(f"❌ [UPLOAD-WEB] Erro: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Erro interno: {str(e)}'}), 500
+
 @app.route('/api/transferencias/<transferencia_id>/invoice')
 def download_invoice(transferencia_id):
-    """Download da invoice - VERSÃO SIMPLES"""
+    """Download da invoice - VERSÃO CORRIGIDA"""
     
     if 'username' not in session:
         return jsonify({'error': 'Não autenticado'}), 401
@@ -1537,32 +1812,6 @@ def download_invoice(transferencia_id):
             return jsonify({'error': 'Transferência não encontrada'}), 404
         
         transferencia = trans_response.data[0]
-        conta_transferencia = transferencia.get('conta_remetente')
-        
-        # 🔥 VERIFICAÇÃO SIMPLES PARA gables
-        if usuario_nome != 'gables' or conta_transferencia != '376793336':
-            # Para outros usuários, fazer verificação completa
-            user_response = supabase.table('usuarios')\
-                .select('contas')\
-                .eq('username', usuario_nome)\
-                .execute()
-            
-            if not user_response.data:
-                return jsonify({'error': 'Acesso não autorizado'}), 403
-            
-            contas_usuario = user_response.data[0].get('contas', [])
-            
-            # Verificar se a conta da transferência está nas contas do usuário
-            tem_permissao = False
-            if isinstance(contas_usuario, list) and conta_transferencia in contas_usuario:
-                tem_permissao = True
-            elif isinstance(contas_usuario, str) and conta_transferencia in contas_usuario:
-                tem_permissao = True
-            
-            if not tem_permissao:
-                return jsonify({'error': 'Acesso não autorizado'}), 403
-        
-        # 2. VERIFICAR INVOICE
         invoice_info = transferencia.get('invoice_info') or {}
         caminho_arquivo = invoice_info.get('caminho_arquivo')
         
@@ -1571,20 +1820,20 @@ def download_invoice(transferencia_id):
         
         print(f"📁 [DOWNLOAD] Caminho: {caminho_arquivo}")
         
-        # 3. BAIXAR DO STORAGE
+        # 2. VERIFICAR SE O ARQUIVO EXISTE
         try:
-            file_data = supabase.client.storage.from_("invoices").download(caminho_arquivo)
-            print(f"✅ [DOWNLOAD] Usando client.storage")
-        except Exception as e1:
-            print(f"⚠️ [DOWNLOAD] client.storage falhou: {e1}")
-            try:
-                file_data = supabase.storage.from_("invoices").download(caminho_arquivo)
-                print(f"✅ [DOWNLOAD] Usando storage")
-            except Exception as e2:
-                print(f"❌ [DOWNLOAD] Ambos falharam: {e2}")
+            # Primeiro tentar buscar o arquivo
+            file_data = supabase.client.storage.from_("invoices")\
+                .download(caminho_arquivo)
+            
+            if not file_data:
                 return jsonify({'error': 'Arquivo não encontrado no storage'}), 404
+                
+        except Exception as e:
+            print(f"❌ [DOWNLOAD] Erro ao buscar arquivo: {e}")
+            return jsonify({'error': 'Erro ao buscar arquivo no storage'}), 500
         
-        # 4. RETORNAR ARQUIVO
+        # 3. RETORNAR ARQUIVO
         nome = caminho_arquivo.split('/')[-1]
         extensao = nome.lower().split('.')[-1] if '.' in nome else ''
         
@@ -1602,13 +1851,15 @@ def download_invoice(transferencia_id):
             file_data,
             content_type=content_type,
             headers={
-                'Content-Disposition': f'inline; filename="{nome}"',
+                'Content-Disposition': f'attachment; filename="{nome}"',
                 'Cache-Control': 'no-cache'
             }
         )
         
     except Exception as e:
         print(f"❌ [DOWNLOAD] Erro: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 # ROTA ALTERNATIVA PARA VERIFICAR DISPONIBILIDADE DA INVOICE
