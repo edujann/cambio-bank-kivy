@@ -464,17 +464,14 @@ def criar_transferencia_cliente():
     """Cliente cria transferência internacional - SALVA NO SUPABASE REAL"""
     try:
         print("\n" + "="*60)
-        print("🔍 DEBUG - INICIANDO CRIAÇÃO DE TRANSFERÊNCIA")
+        print("🔍 INICIANDO CRIAÇÃO DE TRANSFERÊNCIA")
         print("="*60)
         
         import json
         
-        # DEBUG 1: Verificar tipo de requisição
+        # Verificar tipo de requisição
         print(f"📨 Método: {request.method}")
         print(f"📨 Content-Type: {request.content_type}")
-        print(f"📨 Tem JSON: {request.is_json}")
-        print(f"📨 Tem Form: {request.form}")
-        print(f"📨 Tem Files: {request.files}")
         
         # Obter dados da requisição
         dados = {}
@@ -484,171 +481,121 @@ def criar_transferencia_cliente():
             print("✅ Dados recebidos como JSON")
         elif request.form:
             dados_json_str = request.form.get('dados', '{}')
-            print(f"📦 String JSON do FormData: {dados_json_str}")
-            
             dados = json.loads(dados_json_str)
             print("✅ Dados convertidos de FormData JSON")
-            
         else:
-            print("⚠️ Nenhum dado recebido ou formato desconhecido")
+            print("⚠️ Nenhum dato recebido ou formato desconhecido")
+            return jsonify({
+                "success": False,
+                "message": "Formato de requisição inválido"
+            }), 400
         
-        # DEBUG 2: Mostrar TODOS os campos recebidos
-        print("\n📋 TODOS OS CAMPOS RECEBIDOS:")
-        for campo, valor in dados.items():
-            print(f"   {campo}: '{valor}'")
-        
-        # DEBUG 3: Verificar os 3 CAMPOS PROBLEMÁTICOS
-        print("\n🎯 CAMPOS CRÍTICOS VERIFICAÇÃO:")
-        campos_criticos = ['endereco_banco', 'cidade_banco', 'pais_banco']
-        for campo in campos_criticos:
-            valor = dados.get(campo, 'NÃO ENCONTRADO')
-            print(f"   {campo}: '{valor}' {'✅' if valor != 'NÃO ENCONTRADO' else '❌'}")
-        
-        # ✅ PRIMEIRO: Verificar quem está logado (SESSÃO)
+        # ✅ Verificar quem está logado (SESSÃO)
         usuario_logado = session.get('username')
-
+        
         if not usuario_logado:
             print(f"❌ USUÁRIO NÃO AUTENTICADO NA SESSÃO")
             return jsonify({
                 "success": False,
                 "message": "Usuário não autenticado"
             }), 401
+        
+        # ✅ Validar campos obrigatórios
+        campos_obrigatorios = ['conta_origem', 'valor', 'moeda', 'beneficiario']
+        for campo in campos_obrigatorios:
+            if campo not in dados:
+                print(f"❌ CAMPO OBRIGATÓRIO FALTANDO: {campo}")
+                return jsonify({
+                    "success": False,
+                    "message": f"Campo '{campo}' é obrigatório"
+                }), 400
+        
+        # ✅ Usar usuário da sessão
+        dados['usuario'] = usuario_logado
+        print(f"✅ Usuário da transferência: {usuario_logado}")
+        
+        # ✅ DEBUG: Mostrar dados importantes
+        print(f"\n📋 DADOS PARA VALIDAÇÃO:")
+        print(f"   conta_origem: '{dados['conta_origem']}'")
+        print(f"   valor: '{dados['valor']}'")
+        print(f"   moeda: '{dados['moeda']}'")
+        
+        # ✅ Buscar conta CORRETAMENTE
+        print(f"\n🔍 Buscando conta: '{dados['conta_origem']}' para usuário: '{usuario_logado}'")
 
-        # ====== DIAGNÓSTICO 1: VERIFICAR O QUE ESTÁ SENDO ENVIADO ======
-        print("\n" + "="*80)
-        print("🔍 DIAGNÓSTICO DO PROBLEMA DO SALDO")
-        print("="*80)
-
-        # Verificar o formato exato dos dados recebidos
-        print(f"📦 Formato da requisição:")
-        print(f"   - Tem FormData? {bool(request.form)}")
-        print(f"   - Tem JSON? {request.is_json}")
-        print(f"   - Tem Files? {bool(request.files)}")
-
-        # Mostrar EXATAMENTE o que veio no campo 'dados'
-        if request.form and 'dados' in request.form:
-            dados_json_str = request.form.get('dados', '{}')
-            print(f"\n📄 String 'dados' recebida do frontend:")
-            print(f"   '{dados_json_str[:200]}...'")
-            
-            # Tentar verificar se a string JSON é válida
-            try:
-                dados_verificados = json.loads(dados_json_str)
-                print(f"✅ JSON válido! Campos encontrados: {list(dados_verificados.keys())}")
-            except Exception as e:
-                print(f"❌ JSON INVÁLIDO! Erro: {e}")
-        else:
-            print(f"❌ Campo 'dados' NÃO encontrado no FormData!")
-
-        # ====== DIAGNÓSTICO 2: VERIFICAR CAMPOS CRÍTICOS ======
-        print(f"\n🎯 CAMPOS CRÍTICOS PARA VALIDAÇÃO DE SALDO:")
-
-        # Verificar se os campos existem e seus valores
-        campos_criticos = ['conta_origem', 'valor', 'moeda']
-        for campo in campos_criticos:
-            valor = dados.get(campo, 'NÃO ENCONTRADO')
-            tipo = type(valor).__name__
-            print(f"   - {campo}: '{valor}' (tipo: {tipo})")
-
-        # ====== DIAGNÓSTICO 3: BUSCAR TODAS AS CONTAS DO USUÁRIO ======
-        print(f"\n📊 BUSCANDO CONTAS DO USUÁRIO '{usuario_logado}':")
-
-        # Buscar TODAS as contas ativas do usuário
-        todas_contas = supabase.table('conta')\
-            .select('id, saldo, moeda, cliente_username, ativa')\
+        response_conta = supabase.table('contas')\
+            .select('id, saldo, cliente_username, moeda')\
+            .eq('id', dados['conta_origem'])\
             .eq('cliente_username', usuario_logado)\
             .eq('ativa', True)\
             .execute()
 
-        print(f"✅ Encontradas {len(todas_contas.data)} contas ativas:")
-        for i, conta in enumerate(todas_contas.data):
-            print(f"   {i+1}. ID: '{conta['id']}' | Saldo: {conta['saldo']} {conta.get('moeda', 'N/A')}")
-
-        # ====== DIAGNÓSTICO 4: TENTAR ENCONTRAR A CONTA ESPECÍFICA ======
-        conta_id_procurada = dados.get('conta_origem')
-        print(f"\n🔎 PROCURANDO CONTA ESPECÍFICA: '{conta_id_procurada}'")
-
-        conta_encontrada = None
-        for conta in todas_contas.data:
-            # Comparar como strings para evitar problemas de tipo
-            if str(conta['id']) == str(conta_id_procurada):
-                conta_encontrada = conta
-                print(f"✅ CONTA ENCONTRADA!")
-                print(f"   - ID: {conta['id']}")
-                print(f"   - Saldo: {conta['saldo']}")
-                print(f"   - Moeda: {conta.get('moeda', 'N/A')}")
-                break
-
-        if not conta_encontrada:
-            print(f"❌ CONTA NÃO ENCONTRADA! IDs disponíveis:")
-            for conta in todas_contas.data:
-                print(f"   - '{conta['id']}' (tipo: {type(conta['id']).__name__})")
+        if not response_conta.data:
+            print(f"❌ Conta não encontrada ou não pertence ao usuário")
+            
+            # Listar contas disponíveis para debug
+            contas_disponiveis = supabase.table('contas')\
+                .select('id, saldo, moeda')\
+                .eq('cliente_username', usuario_logado)\
+                .eq('ativa', True)\
+                .execute()
+            
+            print(f"📊 Contas disponíveis para {usuario_logado}:")
+            for conta in contas_disponiveis.data:
+                print(f"   - ID: '{conta['id']}', Saldo: {conta['saldo']}, Moeda: {conta['moeda']}")
             
             return jsonify({
                 "success": False,
-                "message": f"Conta '{conta_id_procurada}' não encontrada. Contas disponíveis: {[c['id'] for c in todas_contas.data]}"
+                "message": f"Conta não encontrada. Contas disponíveis: {[c['id'] for c in contas_disponiveis.data]}"
             }), 400
 
-        # ====== VALIDAÇÃO DE SALDO (COM MAIS DETALHES) ======
-        print(f"\n💰 VALIDAÇÃO DE SALDO DETALHADA:")
-
-        # Converter saldo para float
+        conta = response_conta.data[0]
+        saldo_atual = float(conta['saldo']) if conta['saldo'] else 0.0
+        
+        print(f"✅ Conta encontrada: ID '{conta['id']}', Saldo: {saldo_atual}, Moeda: {conta.get('moeda', 'N/A')}")
+        
+        # ✅ Converter valor CORRETAMENTE
         try:
-            saldo_atual = float(conta_encontrada['saldo']) if conta_encontrada['saldo'] is not None else 0.0
-            print(f"   - Saldo atual da conta: {saldo_atual}")
-        except Exception as e:
-            print(f"❌ Erro ao converter saldo: {e}")
-            saldo_atual = 0.0
-
-        # Converter valor da transferência
-        try:
-            valor_str = dados.get('valor', '0')
-            valor_transferencia = float(valor_str)
-            print(f"   - Valor da transferência: {valor_transferencia}")
+            valor_transferencia = float(dados['valor'])
+            print(f"💰 Valor da transferência: {valor_transferencia}")
         except Exception as e:
             print(f"❌ Erro ao converter valor: {e}")
             return jsonify({
                 "success": False,
-                "message": f"Valor inválido: '{dados.get('valor')}'"
+                "message": f"Valor inválido: '{dados['valor']}'"
             }), 400
 
-        # Verificar saldo
-        print(f"   - Comparação: {saldo_atual} >= {valor_transferencia}? {saldo_atual >= valor_transferencia}")
-
+        # ✅ Verificar saldo suficiente
+        print(f"💰 Comparação: Saldo ({saldo_atual}) >= Valor ({valor_transferencia})? {saldo_atual >= valor_transferencia}")
+        
         if valor_transferencia > saldo_atual:
-            print(f"❌ SALDO INSUFICIENTE!")
-            print(f"   - Disponível: {saldo_atual:.2f}")
-            print(f"   - Necessário: {valor_transferencia:.2f}")
-            print(f"   - Diferença: {saldo_atual - valor_transferencia:.2f}")
-            
+            print(f"❌ Saldo insuficiente! Disponível: {saldo_atual}, Necessário: {valor_transferencia}")
             return jsonify({
                 "success": False,
-                "message": f"Saldo insuficiente! Disponível: {saldo_atual:.2f}, Necessário: {valor_transferencia:.2f}"
+                "message": f"Saldo insuficiente! Disponível: {saldo_atual:.2f}"
             }), 400
-
-        print(f"✅ SALDO SUFICIENTE! Pode prosseguir...")
-        print("="*80 + "\n")   
         
-        # Criar ID único
+        print(f"✅ Saldo suficiente! Continuando...")
+        
+        # ✅ Criar transferência
         import random
         from datetime import datetime
-        transferencia_id = f"{random.randint(100000, 999999)}"
         
-        # 🔍 DEFINIR 'agora' AQUI
+        transferencia_id = f"{random.randint(100000, 999999)}"
         agora = datetime.now()
         
-        # 8. Preparar dados para Supabase
+        # Preparar dados para Supabase
         dados_supabase = {
             'id': transferencia_id,
             'tipo': 'transferencia_internacional',
             'status': 'solicitada',
             'data': agora.strftime("%Y-%m-%d %H:%M:%S"),
             'moeda': dados['moeda'],
-            'valor': valor_transferencia,  # ← CORRIGIDO
-            'conta_remetente': dados['conta_origem'],  # ← CORRIGIDO
+            'valor': valor_transferencia,
+            'conta_remetente': dados['conta_origem'],
             'descricao': dados.get('descricao', ''),
-            'usuario': usuario_logado,  # ← CORRIGIDO
-            'cliente': usuario_logado,  # ← CORRIGIDO
+            'usuario': usuario_logado,
+            'cliente': usuario_logado,
             'beneficiario': dados['beneficiario'],
             'endereco_beneficiario': dados.get('endereco_beneficiario', ''),
             'cidade': dados.get('cidade', ''),
@@ -663,26 +610,17 @@ def criar_transferencia_cliente():
             'finalidade': dados.get('finalidade', ''),
             'created_at': agora.isoformat(),
             'data_solicitacao': agora.isoformat(),
-            'solicitado_por': usuario_logado  # ← CORRIGIDO
+            'solicitado_por': usuario_logado
         }
 
-        # 🔍 PRIMEIRO: VERIFIQUE SE CHEGA AQUI
-        print(f"\n" + "="*60)
-        print(f"🔍 ETAPA 1: CHEGOU ATÉ AQUI?")
-        print(f"   Tem dados_supabase? {bool(dados_supabase)}")
-        print(f"   Número de campos: {len(dados_supabase)}")
-        print(f"="*60)
+        # DEBUG: Verificar dados
+        print(f"\n📊 DADOS PARA SALVAR:")
+        print(f"   ID: {transferencia_id}")
+        print(f"   Conta: {dados['conta_origem']}")
+        print(f"   Valor: {valor_transferencia}")
+        print(f"   Moeda: {dados['moeda']}")
 
-        # 🔍 SEGUNDO: DEBUG COMPLETO
-        print(f"\n" + "="*60)
-        print(f"🔍 DEBUG COMPLETO - dados_supabase:")
-        print(f"="*60)
-        for chave, valor in dados_supabase.items():
-            print(f"   {chave}: {repr(valor)}")
-        
-        print(f"="*60 + "\n")
-
-        # 9. Salvar no Supabase
+        # Salvar no Supabase
         print(f"💾 Salvando transferência {transferencia_id}...")
         response = supabase.table('transferencias').insert(dados_supabase).execute()
 
@@ -705,24 +643,13 @@ def criar_transferencia_cliente():
             else:
                 print(f"⚠️ Transferência salva mas erro ao atualizar saldo")
             
-            # DEBUG 5: Verificar dados salvos
-            print(f"\n📊 VERIFICANDO DADOS SALVOS NO SUPABASE:")
-            check = supabase.table('transferencias').select('endereco_banco, cidade_banco, pais_banco').eq('id', transferencia_id).execute()
-            if check.data:
-                saved = check.data[0]
-                print(f"   endereco_banco salvo: '{saved.get('endereco_banco', 'VAZIO')}'")
-                print(f"   cidade_banco salvo: '{saved.get('cidade_banco', 'VAZIO')}'")
-                print(f"   pais_banco salvo: '{saved.get('pais_banco', 'VAZIO')}'")
-            
-            
             return jsonify({
                 "success": True,
-                "message": "Transferência solicitada com sucesso!",
+                "message": "Transferência criada com sucesso!",
                 "transferencia_id": transferencia_id
             })
         else:
             print(f"❌ ERRO: Nenhum dado retornado do Supabase")
-            print(f"❌ Response: {response}")
             return jsonify({
                 "success": False,
                 "message": "Erro ao salvar no banco de dados"
