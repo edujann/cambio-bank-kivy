@@ -755,7 +755,7 @@ def upload_invoice_nova_transferencia(transferencia_id):
         arquivo_bytes = arquivo.read()
         
         print(f"🔼 [UPLOAD-NOVA] Fazendo upload de {len(arquivo_bytes)} bytes...")
-        upload_response = supabase.client.storage.from_("invoices")\
+        upload_response = supabase.storage.from_("invoices")\
             .upload(caminho_supabase, arquivo_bytes)
         
         if not upload_response:
@@ -1627,7 +1627,7 @@ def verificar_invoice(transferencia_id):
         
         try:
             # Tentar verificar se o arquivo existe
-            supabase.client.storage.from_("invoices")\
+            supabase.storage.from_("invoices")\
                 .download(caminho_arquivo)
             
             return jsonify({
@@ -1741,7 +1741,7 @@ def upload_invoice_web(transferencia_id):
         
         try:
             # 🔥 MESMA LÓGICA DO KIVY - usar client.storage
-            upload_response = supabase.client.storage.from_("invoices")\
+            upload_response = supabase.storage.from_("invoices")\
                 .upload(caminho_supabase, arquivo_bytes)
             
             print(f"📊 [UPLOAD-WEB] Resposta do upload: {upload_response}")
@@ -1820,10 +1820,10 @@ def download_invoice(transferencia_id):
         
         print(f"📁 [DOWNLOAD] Caminho: {caminho_arquivo}")
         
-        # 2. VERIFICAR SE O ARQUIVO EXISTE
+        # 2. 🔥 CORREÇÃO CRÍTICA: Usar supabase.storage (NÃO supabase.client.storage)
         try:
-            # Primeiro tentar buscar o arquivo
-            file_data = supabase.client.storage.from_("invoices")\
+            # Use supabase.storage.from_() diretamente!
+            file_data = supabase.storage.from_("invoices")\
                 .download(caminho_arquivo)
             
             if not file_data:
@@ -1831,7 +1831,12 @@ def download_invoice(transferencia_id):
                 
         except Exception as e:
             print(f"❌ [DOWNLOAD] Erro ao buscar arquivo: {e}")
-            return jsonify({'error': 'Erro ao buscar arquivo no storage'}), 500
+            # Tentar método alternativo se o primeiro falhar
+            try:
+                file_data = supabase.storage.from_("invoices").download(caminho_arquivo)
+            except Exception as e2:
+                print(f"❌ [DOWNLOAD] Erro alternativo: {e2}")
+                return jsonify({'error': 'Erro ao buscar arquivo no storage'}), 500
         
         # 3. RETORNAR ARQUIVO
         nome = caminho_arquivo.split('/')[-1]
@@ -1941,14 +1946,14 @@ def reenviar_invoice(transferencia_id):
         print(f"🗑️ [WEB] Deletando arquivos antigos...")
         try:
             # Listar arquivos na pasta
-            lista_arquivos = supabase.client.storage.from_("invoices")\
+            lista_arquivos = supabase.storage.from_("invoices")\
                 .list(f"transferencias/{transferencia_id}")
             
             if lista_arquivos:
                 for arquivo_antigo in lista_arquivos:
                     caminho_antigo = f"transferencias/{transferencia_id}/{arquivo_antigo['name']}"
                     print(f"🗑️ [WEB] Deletando: {caminho_antigo}")
-                    supabase.client.storage.from_("invoices")\
+                    supabase.storage.from_("invoices")\
                         .remove([caminho_antigo])
         except Exception as delete_error:
             print(f"⚠️ [WEB] Não consegui deletar arquivos antigos: {delete_error}")
@@ -1967,7 +1972,7 @@ def reenviar_invoice(transferencia_id):
         arquivo_bytes = arquivo.read()
         
         print(f"🔼 [WEB] Fazendo upload de {len(arquivo_bytes)} bytes...")
-        upload_response = supabase.client.storage.from_("invoices")\
+        upload_response = supabase.storage.from_("invoices")\
             .upload(caminho_supabase, arquivo_bytes)
         
         if not upload_response:
