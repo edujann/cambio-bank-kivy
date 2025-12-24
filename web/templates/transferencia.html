@@ -730,7 +730,7 @@
         
         if (form) {
             form.addEventListener('submit', async function(e) {
-                e.preventDefault(); // Impede envio padrão
+                e.preventDefault();
                 
                 console.log('📤 Iniciando envio do formulário...');
                 
@@ -741,7 +741,7 @@
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
                 
                 try {
-                    // 3. COLETAR DADOS DO FORMULÁRIO
+                    // Coletar dados
                     const dadosTransferencia = {
                         conta_origem: document.getElementById('conta_origem').value,
                         valor: parseFloat(document.getElementById('valor').value),
@@ -761,43 +761,29 @@
                         descricao: document.getElementById('descricao').value
                     };
                     
-                    console.log('📋 Dados da transferência:', dadosTransferencia);
+                    console.log('📋 Dados:', dadosTransferencia);
                     
-                    // 4. CRIAR TRANSFERÊNCIA (SEM INVOICE)
+                    // Criar transferência
                     const formData = new FormData();
                     formData.append('dados', JSON.stringify(dadosTransferencia));
-
+                    
                     const criarResponse = await fetch('/api/transferencias/criar', {
                         method: 'POST',
-                        body: formData  // ← SEM headers! Deixa o navegador definir
+                        body: formData
                     });
                     
                     const criarResult = await criarResponse.json();
                     
                     if (!criarResult.success) {
-                        throw new Error(criarResult.message || 'Erro ao criar transferência');
+                        throw new Error(criarResult.message);
                     }
                     
                     const transferenciaId = criarResult.transferencia_id;
                     console.log('✅ Transferência criada! ID:', transferenciaId);
                     
-                    // 5. UPLOAD DA INVOICE (SE EXISTIR) - USANDO upload-invoice
+                    // Upload da invoice (se existir)
                     const invoiceFile = document.getElementById('invoiceFile').files[0];
-                    
                     if (invoiceFile) {
-                        console.log('📤 Enviando invoice:', invoiceFile.name);
-                        
-                        // Validar arquivo
-                        if (invoiceFile.size > 5 * 1024 * 1024) {
-                            throw new Error('Arquivo muito grande! Máximo: 5MB');
-                        }
-                        
-                        const ext = invoiceFile.name.split('.').pop().toLowerCase();
-                        if (!['pdf', 'jpg', 'jpeg', 'png'].includes(ext)) {
-                            throw new Error('Formato não suportado! Use: PDF, JPG, PNG');
-                        }
-                        
-                        // Fazer upload usando o endpoint upload-invoice
                         const uploadFormData = new FormData();
                         uploadFormData.append('file', invoiceFile);
                         
@@ -807,18 +793,15 @@
                         });
                         
                         const uploadResult = await uploadResponse.json();
-                        
                         if (!uploadResult.success) {
                             console.warn('⚠️ Invoice não enviada:', uploadResult.error);
-                            // Continua mesmo se falhar - transferência já foi criada
-                        } else {
-                            console.log('✅ Invoice enviada com sucesso!');
                         }
-                    } else {
-                        console.log('ℹ️ Nenhuma invoice selecionada');
                     }
                     
-                    // 6. MOSTRAR SUCESSO
+                    // 🔥 ATUALIZAR SALDO NO FRONTEND (adicione esta função no seu HTML)
+                    await atualizarSaldoConta();
+                    
+                    // 🔥 MOSTRAR MODAL DE SUCESSO
                     mostrarModalSucesso(transferenciaId, dadosTransferencia);
                     
                 } catch (error) {
@@ -1009,6 +992,42 @@
         document.getElementById('goToDashboardBtn').onclick = () => {
             window.location.href = '/dashboard';
         };
+    }
+
+    async function atualizarSaldoConta() {
+        const contaSelect = document.getElementById('conta_origem');
+        const contaId = contaSelect.value;
+        
+        if (!contaId) return;
+        
+        try {
+            const response = await fetch('/api/user/contas');
+            const data = await response.json();
+            
+            if (data.success && data.contas) {
+                const conta = data.contas.find(c => 
+                    (c.id === contaId) || (c.numero === contaId)
+                );
+                
+                if (conta) {
+                    const saldoSpan = document.getElementById('saldo_valor');
+                    const saldoDiv = document.getElementById('saldo_info');
+                    const saldo = parseFloat(conta.saldo || 0);
+                    const moeda = conta.moeda || 'USD';
+                    
+                    if (saldoSpan) {
+                        saldoSpan.textContent = `${saldo.toFixed(2)} ${moeda}`;
+                    }
+                    if (saldoDiv) {
+                        saldoDiv.style.display = 'block';
+                    }
+                    
+                    console.log(`🔄 Saldo atualizado: ${saldo.toFixed(2)} ${moeda}`);
+                }
+            }
+        } catch (error) {
+            console.log('Erro ao atualizar saldo:', error);
+        }
     }
 
     // ============================================
