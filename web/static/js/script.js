@@ -12,6 +12,10 @@ let userContas = [];
 // ============================================
 
 function garantirPopupSucesso(transferenciaId, valor, moeda) {
+    console.log('🎉🎉🎉 GARANTIRPOPUPSUCESSO CHAMADA! 🎉🎉🎉');
+    console.log('Transferencia ID:', transferenciaId);
+    console.log('Valor:', valor);
+    console.log('Moeda:', moeda);
     console.log('🎉 TRANSFERÊNCIA BEM-SUCEDIDA:', transferenciaId);
     
     // Remover qualquer popup anterior
@@ -261,12 +265,21 @@ async function loadUserData() {
 // CARREGAR CONTAS DO USUÁRIO
 async function loadContas() {
     try {
+        console.log('🔄 Carregando contas do usuário...');
         const response = await fetch('/api/user/contas');
+        
         if (response.ok) {
             const data = await response.json();
+            console.log('📊 Dados recebidos:', data);
+            
             if (data.success && data.contas) {
                 userContas = data.contas;
                 updateContasSelect();
+                
+                // CHAMAR DEBUG APÓS carregar as contas
+                console.log('🔍 Chamando debug...');
+                debugDataset();
+                
                 return true;
             }
         }
@@ -280,29 +293,78 @@ async function loadContas() {
 // ATUALIZAR SELECT DE CONTAS
 function updateContasSelect() {
     const select = document.getElementById('conta_origem');
+    if (!select) {
+        console.error('❌ Select conta_origem não encontrado!');
+        return;
+    }
+    
     select.innerHTML = '<option value="">Selecione sua conta...</option>';
     
     userContas.forEach(conta => {
         const option = document.createElement('option');
-        // CORREÇÃO: usar conta.id em vez de conta.numero
-        option.value = conta.id;
-        option.textContent = `${conta.id} | ${conta.moeda} | Saldo: ${conta.saldo ? conta.saldo.toFixed(2) : '0.00'}`;
-        option.dataset.moeda = conta.moeda;
-        option.dataset.saldo = conta.saldo || 0;
+        
+        // IMPORTANTE: Verificar qual campo sua tabela usa
+        console.log('📝 Dados da conta:', conta);
+        
+        // Tente primeiro 'id', depois 'numero'
+        const contaId = conta.id || conta.numero || 'N/A';
+        const moeda = conta.moeda || 'USD';
+        const saldo = parseFloat(conta.saldo || 0);
+        
+        console.log(`   💰 Conta: ${contaId}, Moeda: ${moeda}, Saldo: ${saldo}`);
+        
+        option.value = contaId;
+        option.textContent = `${moeda} - Saldo: ${saldo.toFixed(2)}`;
+        
+        // CORREÇÃO: Definir dataset CORRETAMENTE
+        option.setAttribute('data-moeda', moeda);
+        option.setAttribute('data-saldo', saldo);
+        
         select.appendChild(option);
     });
+    
+    console.log(`✅ ${userContas.length} contas carregadas com dataset correto`);
+}
+
+// Função especial para debug do dataset
+function debugDataset() {
+    const select = document.getElementById('conta_origem');
+    if (!select) {
+        console.error('❌ Select não encontrado para debug');
+        return;
+    }
+    
+    console.log('🔍 DEBUG DATASET - Todas as opções:');
+    console.log('Total de opções:', select.options.length);
+    
+    for (let i = 0; i < select.options.length; i++) {
+        const option = select.options[i];
+        console.log(`Opção ${i}:`, {
+            texto: option.text,
+            valor: option.value,
+            dataset: option.dataset,
+            moeda: option.dataset.moeda,
+            saldo: option.dataset.saldo,
+            // Verificar atributos diretamente
+            getAttribute_moeda: option.getAttribute('data-moeda'),
+            getAttribute_saldo: option.getAttribute('data-saldo')
+        });
+    }
 }
 
 // ATUALIZAR INFO DE SALDO
 document.getElementById('conta_origem').addEventListener('change', function() {
     const selectedOption = this.options[this.selectedIndex];
     
-    // Debug: verificar se a opção foi encontrada
+    // DEBUG: verificar tudo
     console.log('🔍 Opção selecionada:', selectedOption);
     console.log('📊 Dataset:', selectedOption.dataset);
+    console.log('📊 getAttribute data-moeda:', selectedOption.getAttribute('data-moeda'));
+    console.log('📊 getAttribute data-saldo:', selectedOption.getAttribute('data-saldo'));
     
-    const moeda = selectedOption.dataset.moeda || 'USD';
-    const saldo = parseFloat(selectedOption.dataset.saldo || 0);
+    // USAR getAttribute que é mais confiável
+    const moeda = selectedOption.getAttribute('data-moeda') || 'USD';
+    const saldo = parseFloat(selectedOption.getAttribute('data-saldo') || 0);
     
     // Atualizar exibição do saldo
     const saldoSpan = document.getElementById('saldo_valor');
