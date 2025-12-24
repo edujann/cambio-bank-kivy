@@ -506,72 +506,128 @@ def criar_transferencia_cliente():
         
         # ✅ PRIMEIRO: Verificar quem está logado (SESSÃO)
         usuario_logado = session.get('username')
-        
+
         if not usuario_logado:
             print(f"❌ USUÁRIO NÃO AUTENTICADO NA SESSÃO")
             return jsonify({
                 "success": False,
                 "message": "Usuário não autenticado"
             }), 401
-        
-        # ✅ SEGUNDO: Validar campos obrigatórios (SEM 'usuario' - pegamos da sessão!)
-        campos_obrigatorios = ['conta_origem', 'valor', 'moeda', 'beneficiario']
-        for campo in campos_obrigatorios:
-            if campo not in dados:
-                print(f"❌ CAMPO OBRIGATÓRIO FALTANDO: {campo}")
-                return jsonify({
-                    "success": False,
-                    "message": f"Campo '{campo}' é obrigatório"
-                }), 400
-        
-        # ✅ TERCEIRO: Se vier 'usuario' nos dados, IGNORAR e usar o da sessão
-        if 'usuario' in dados:
-            print(f"⚠️  Campo 'usuario' recebido nos dados: '{dados['usuario']}' - Usando da sessão: '{usuario_logado}'")
-        
-        # ✅ QUARTO: Sobrescrever com usuário da sessão (SEGURANÇA!)
-        dados['usuario'] = usuario_logado
-        print(f"✅ Usuário da transferência definido como: {usuario_logado}")
-            
-        # Buscar saldo atual da conta E verificar se pertence ao usuário
-        print(f"🔍 Buscando conta: {dados['conta_origem']} para usuário: {usuario_logado}")
 
-        response_conta = supabase.table('contas')\
-            .select('id, saldo, cliente_username, moeda')\
-            .eq('id', dados['conta_origem'])\
+        # ====== DIAGNÓSTICO 1: VERIFICAR O QUE ESTÁ SENDO ENVIADO ======
+        print("\n" + "="*80)
+        print("🔍 DIAGNÓSTICO DO PROBLEMA DO SALDO")
+        print("="*80)
+
+        # Verificar o formato exato dos dados recebidos
+        print(f"📦 Formato da requisição:")
+        print(f"   - Tem FormData? {bool(request.form)}")
+        print(f"   - Tem JSON? {request.is_json}")
+        print(f"   - Tem Files? {bool(request.files)}")
+
+        # Mostrar EXATAMENTE o que veio no campo 'dados'
+        if request.form and 'dados' in request.form:
+            dados_json_str = request.form.get('dados', '{}')
+            print(f"\n📄 String 'dados' recebida do frontend:")
+            print(f"   '{dados_json_str[:200]}...'")
+            
+            # Tentar verificar se a string JSON é válida
+            try:
+                dados_verificados = json.loads(dados_json_str)
+                print(f"✅ JSON válido! Campos encontrados: {list(dados_verificados.keys())}")
+            except Exception as e:
+                print(f"❌ JSON INVÁLIDO! Erro: {e}")
+        else:
+            print(f"❌ Campo 'dados' NÃO encontrado no FormData!")
+
+        # ====== DIAGNÓSTICO 2: VERIFICAR CAMPOS CRÍTICOS ======
+        print(f"\n🎯 CAMPOS CRÍTICOS PARA VALIDAÇÃO DE SALDO:")
+
+        # Verificar se os campos existem e seus valores
+        campos_criticos = ['conta_origem', 'valor', 'moeda']
+        for campo in campos_criticos:
+            valor = dados.get(campo, 'NÃO ENCONTRADO')
+            tipo = type(valor).__name__
+            print(f"   - {campo}: '{valor}' (tipo: {tipo})")
+
+        # ====== DIAGNÓSTICO 3: BUSCAR TODAS AS CONTAS DO USUÁRIO ======
+        print(f"\n📊 BUSCANDO CONTAS DO USUÁRIO '{usuario_logado}':")
+
+        # Buscar TODAS as contas ativas do usuário
+        todas_contas = supabase.table('conta')\
+            .select('id, saldo, moeda, cliente_username, ativa')\
             .eq('cliente_username', usuario_logado)\
             .eq('ativa', True)\
             .execute()
 
-        if not response_conta.data:
-            print(f"❌ Conta não encontrada ou não pertence ao usuário: {dados['conta_origem']}")
+        print(f"✅ Encontradas {len(todas_contas.data)} contas ativas:")
+        for i, conta in enumerate(todas_contas.data):
+            print(f"   {i+1}. ID: '{conta['id']}' | Saldo: {conta['saldo']} {conta.get('moeda', 'N/A')}")
+
+        # ====== DIAGNÓSTICO 4: TENTAR ENCONTRAR A CONTA ESPECÍFICA ======
+        conta_id_procurada = dados.get('conta_origem')
+        print(f"\n🔎 PROCURANDO CONTA ESPECÍFICA: '{conta_id_procurada}'")
+
+        conta_encontrada = None
+        for conta in todas_contas.data:
+            # Comparar como strings para evitar problemas de tipo
+            if str(conta['id']) == str(conta_id_procurada):
+                conta_encontrada = conta
+                print(f"✅ CONTA ENCONTRADA!")
+                print(f"   - ID: {conta['id']}")
+                print(f"   - Saldo: {conta['saldo']}")
+                print(f"   - Moeda: {conta.get('moeda', 'N/A')}")
+                break
+
+        if not conta_encontrada:
+            print(f"❌ CONTA NÃO ENCONTRADA! IDs disponíveis:")
+            for conta in todas_contas.data:
+                print(f"   - '{conta['id']}' (tipo: {type(conta['id']).__name__})")
+            
             return jsonify({
                 "success": False,
-                "message": "Conta de origem não encontrada ou não autorizada"
+                "message": f"Conta '{conta_id_procurada}' não encontrada. Contas disponíveis: {[c['id'] for c in todas_contas.data]}"
             }), 400
 
-        conta = response_conta.data[0]
-        saldo_atual = float(conta['saldo']) if conta['saldo'] else 0.0
-        
-        print(f"✅ Conta encontrada: ID {conta['id']}, Moeda: {conta.get('moeda', 'N/A')}, Saldo: {saldo_atual}")
-        
-        # ✅ GARANTIR que a moeda da conta bate com a moeda da transferência
-        if 'moeda' in conta and conta['moeda'] != dados['moeda']:
-            print(f"❌ Moeda da conta ({conta['moeda']}) diferente da transferência ({dados['moeda']})")
+        # ====== VALIDAÇÃO DE SALDO (COM MAIS DETALHES) ======
+        print(f"\n💰 VALIDAÇÃO DE SALDO DETALHADA:")
+
+        # Converter saldo para float
+        try:
+            saldo_atual = float(conta_encontrada['saldo']) if conta_encontrada['saldo'] is not None else 0.0
+            print(f"   - Saldo atual da conta: {saldo_atual}")
+        except Exception as e:
+            print(f"❌ Erro ao converter saldo: {e}")
+            saldo_atual = 0.0
+
+        # Converter valor da transferência
+        try:
+            valor_str = dados.get('valor', '0')
+            valor_transferencia = float(valor_str)
+            print(f"   - Valor da transferência: {valor_transferencia}")
+        except Exception as e:
+            print(f"❌ Erro ao converter valor: {e}")
             return jsonify({
                 "success": False,
-                "message": f"Moeda da conta ({conta['moeda']}) não corresponde à moeda da transferência ({dados['moeda']})"
+                "message": f"Valor inválido: '{dados.get('valor')}'"
             }), 400
-        valor_transferencia = float(dados['valor'])
 
-        print(f"💰 Saldo atual: {saldo_atual}, Valor transferência: {valor_transferencia}") 
+        # Verificar saldo
+        print(f"   - Comparação: {saldo_atual} >= {valor_transferencia}? {saldo_atual >= valor_transferencia}")
 
-        # Verificar saldo suficiente
         if valor_transferencia > saldo_atual:
-            print(f"❌ Saldo insuficiente! Disponível: {saldo_atual}, Necessário: {valor_transferencia}")
+            print(f"❌ SALDO INSUFICIENTE!")
+            print(f"   - Disponível: {saldo_atual:.2f}")
+            print(f"   - Necessário: {valor_transferencia:.2f}")
+            print(f"   - Diferença: {saldo_atual - valor_transferencia:.2f}")
+            
             return jsonify({
                 "success": False,
-                "message": f"Saldo insuficiente! Disponível: {saldo_atual:.2f}"
-            }), 400         
+                "message": f"Saldo insuficiente! Disponível: {saldo_atual:.2f}, Necessário: {valor_transferencia:.2f}"
+            }), 400
+
+        print(f"✅ SALDO SUFICIENTE! Pode prosseguir...")
+        print("="*80 + "\n")   
         
         # Criar ID único
         import random
