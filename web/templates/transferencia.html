@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -838,8 +839,6 @@
             const response = await fetch('/api/user/contas');
             const data = await response.json();
             
-            console.log('🔍 Carregando contas...', data);
-            
             if (data.success && data.contas) {
                 const select = document.getElementById('conta_origem');
                 if (select) {
@@ -847,38 +846,15 @@
                     
                     data.contas.forEach(conta => {
                         const option = document.createElement('option');
-                        
-                        // 🔥 CRÍTICO: Usar ID correto
                         option.value = conta.id || conta.numero;
-                        
-                        // 🔥 CRÍTICO: Preencher dataset
-                        option.dataset.saldo = parseFloat(conta.saldo || 0);
-                        option.dataset.moeda = conta.moeda || 'USD';
-                        
-                        const saldoFormatado = option.dataset.saldo.toFixed(2);
-                        option.textContent = `${option.dataset.moeda} - Saldo: ${saldoFormatado}`;
-                        
+                        const saldo = parseFloat(conta.saldo || 0).toFixed(2);
+                        option.textContent = `${conta.moeda} - Saldo: ${saldo}`;
                         select.appendChild(option);
-                    });
-                    
-                    // Adicionar evento para mostrar saldo
-                    select.addEventListener('change', function() {
-                        const selected = this.options[this.selectedIndex];
-                        const saldoSpan = document.getElementById('saldo_valor');
-                        const saldoDiv = document.getElementById('saldo_info');
-                        
-                        if (selected.value && selected.dataset.saldo) {
-                            saldoSpan.textContent = `${selected.dataset.saldo} ${selected.dataset.moeda}`;
-                            saldoDiv.style.display = 'block';
-                            console.log(`💰 Conta selecionada: ${selected.value}, Saldo: ${selected.dataset.saldo}`);
-                        } else {
-                            saldoDiv.style.display = 'none';
-                        }
                     });
                 }
             }
         } catch (error) {
-            console.error('❌ Erro ao carregar contas:', error);
+            console.log('Erro ao carregar contas:', error);
         }
     }
 
@@ -1020,56 +996,39 @@
     }
 
     async function atualizarSaldoConta() {
+        const contaSelect = document.getElementById('conta_origem');
+        const contaId = contaSelect.value;
+        
+        if (!contaId) return;
+        
         try {
-            console.log('🔄 Atualizando saldo...');
-            
-            // 1. Buscar saldo ATUALIZADO da API
             const response = await fetch('/api/user/contas');
             const data = await response.json();
             
             if (data.success && data.contas) {
-                // 2. Atualizar o dataset da option selecionada
-                const select = document.getElementById('conta_origem');
-                const selectedOption = select.options[select.selectedIndex];
-                const contaId = selectedOption?.value;
+                const conta = data.contas.find(c => 
+                    (c.id === contaId) || (c.numero === contaId)
+                );
                 
-                if (contaId) {
-                    const conta = data.contas.find(c => 
-                        String(c.id) === String(contaId) || 
-                        String(c.numero) === String(contaId)
-                    );
+                if (conta) {
+                    const saldoSpan = document.getElementById('saldo_valor');
+                    const saldoDiv = document.getElementById('saldo_info');
+                    const saldo = parseFloat(conta.saldo || 0);
+                    const moeda = conta.moeda || 'USD';
                     
-                    if (conta && selectedOption) {
-                        // Atualizar dataset
-                        selectedOption.dataset.saldo = parseFloat(conta.saldo || 0);
-                        selectedOption.dataset.moeda = conta.moeda || 'USD';
-                        
-                        // Atualizar texto da option
-                        selectedOption.textContent = 
-                            `${selectedOption.dataset.moeda} - Saldo: ${selectedOption.dataset.saldo.toFixed(2)}`;
-                        
-                        // Atualizar display do saldo
-                        const saldoSpan = document.getElementById('saldo_valor');
-                        const saldoDiv = document.getElementById('saldo_info');
-                        
-                        if (saldoSpan) {
-                            saldoSpan.textContent = 
-                                `${selectedOption.dataset.saldo.toFixed(2)} ${selectedOption.dataset.moeda}`;
-                        }
-                        
-                        if (saldoDiv) {
-                            saldoDiv.style.display = 'block';
-                        }
-                        
-                        console.log(`✅ Saldo atualizado: ${selectedOption.dataset.saldo} ${selectedOption.dataset.moeda}`);
-                        return selectedOption.dataset.saldo;
+                    if (saldoSpan) {
+                        saldoSpan.textContent = `${saldo.toFixed(2)} ${moeda}`;
                     }
+                    if (saldoDiv) {
+                        saldoDiv.style.display = 'block';
+                    }
+                    
+                    console.log(`🔄 Saldo atualizado: ${saldo.toFixed(2)} ${moeda}`);
                 }
             }
         } catch (error) {
-            console.error('❌ Erro ao atualizar saldo:', error);
+            console.log('Erro ao atualizar saldo:', error);
         }
-        return 0;
     }
 
     // ============================================
