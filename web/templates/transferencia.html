@@ -764,10 +764,12 @@
                     console.log('📋 Dados da transferência:', dadosTransferencia);
                     
                     // 4. CRIAR TRANSFERÊNCIA (SEM INVOICE)
+                    const formData = new FormData();
+                    formData.append('dados', JSON.stringify(dadosTransferencia));
+
                     const criarResponse = await fetch('/api/transferencias/criar', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(dadosTransferencia)
+                        body: formData  // ← SEM headers! Deixa o navegador definir
                     });
                     
                     const criarResult = await criarResponse.json();
