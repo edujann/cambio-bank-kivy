@@ -296,15 +296,22 @@ function updateContasSelect() {
 // ATUALIZAR INFO DE SALDO
 document.getElementById('conta_origem').addEventListener('change', function() {
     const selectedOption = this.options[this.selectedIndex];
-    const moeda = selectedOption.dataset.moeda;
-    const saldo = selectedOption.dataset.saldo;
     
-    if (moeda && saldo) {
-        document.getElementById('saldo_valor').textContent = `${parseFloat(saldo).toFixed(2)} ${moeda}`;
-        document.getElementById('moeda_label').textContent = moeda;
-    } else {
-        document.getElementById('saldo_valor').textContent = '--';
-        document.getElementById('moeda_label').textContent = 'USD';
+    // Debug: verificar se a opção foi encontrada
+    console.log('🔍 Opção selecionada:', selectedOption);
+    console.log('📊 Dataset:', selectedOption.dataset);
+    
+    const moeda = selectedOption.dataset.moeda || 'USD';
+    const saldo = parseFloat(selectedOption.dataset.saldo || 0);
+    
+    // Atualizar exibição do saldo
+    const saldoSpan = document.getElementById('saldo_valor');
+    const moedaLabel = document.getElementById('moeda_label');
+    
+    if (saldoSpan && moedaLabel) {
+        saldoSpan.textContent = `${saldo.toFixed(2)} ${moeda}`;
+        moedaLabel.textContent = moeda;
+        console.log(`✅ Saldo atualizado: ${saldo.toFixed(2)} ${moeda}`);
     }
 });
 
@@ -692,6 +699,12 @@ window.enviarTransferencia = async function(e) {
         if (!response.ok) throw new Error(resultado.message || `Erro ${response.status}`);
         
         if (resultado.success) {
+            console.log('🎯 TRANSFERÊNCIA BEM-SUCEDIDA - DADOS:');
+            console.log('Resultado completo:', resultado);
+            console.log('ID da transferência:', resultado.transferencia_id);
+            console.log('Valor:', dados.valor.toFixed(2));
+            console.log('Moeda:', dados.moeda);
+            
             // 🎯 1. MOSTRAR POPUP IMEDIATAMENTE (GARANTIDO!)
             garantirPopupSucesso(resultado.transferencia_id, dados.valor.toFixed(2), dados.moeda);
             
