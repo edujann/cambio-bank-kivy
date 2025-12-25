@@ -262,47 +262,95 @@ async function loadUserData() {
     return null;
 }
 
-// CARREGAR CONTAS DO USUÁRIO
-async function loadContas() {
-    console.log('🔍 PASSO 1: Entrando em loadContas()');
-    console.log('🔍 Vou chamar updateContasSelect()...');
-
-    try {
-        console.log('🔍 PASSO 2: Fazendo fetch...');
-        const response = await fetch('/api/user/contas');
-        console.log('🔍 PASSO 3: Response status:', response.status, response.ok);
-        
-        if (response.ok) {
-            console.log('🔍 PASSO 4: Convertendo para JSON...');
-            const data = await response.json();
-            console.log('📊 Dados recebidos COMPLETOS:', data);
-            
-            if (data.success && data.contas) {
-                console.log(`🔍 PASSO 5: ${data.contas.length} contas encontradas`);
-                userContas = data.contas;
-                updateContasSelect();
-                
-                console.log('🔍 PASSO 6: Chamando debug...');
-                debugDataset();
-                
-                console.log('🔍 Chamando updateContasSelect()...');
-                updateContasSelect();
-                return true;
-            } else {
-                console.warn('⚠️ Dados não no formato esperado:', data);
-            }
-        } else {
-            console.error('❌ Erro HTTP:', response.status, response.statusText);
-        }
-    } catch (error) {
-        console.error('❌ Erro catch em loadContas:', error);
-        showAlert('Erro ao carregar contas. Por favor, recarregue a página.', 'error');
+// FUNÇÃO ULTRA-SIMPLES GARANTIDA
+function configurarSelectGarantido() {
+    console.log('🎯 CONFIGURAR SELECT GARANTIDO CHAMADA!');
+    
+    const select = document.getElementById('conta_origem');
+    if (!select) {
+        console.error('❌ Select não encontrado');
+        return;
     }
     
-    console.log('🔍 PASSO 7: loadContas retornando false');
+    // 1. LIMPAR
+    select.innerHTML = '<option value="">Selecione sua conta...</option>';
     
-    console.log('🔍 Chamando updateContasSelect diretamente...');
-    updateContasSelect();
+    // 2. ADICIONAR OPÇÕES (forma simples)
+    userContas.forEach(conta => {
+        const option = document.createElement('option');
+        option.value = conta.id;
+        option.textContent = `${conta.moeda} - Saldo: ${parseFloat(conta.saldo || 0).toFixed(2)}`;
+        option.dataset.moeda = conta.moeda;
+        option.dataset.saldo = conta.saldo;
+        select.appendChild(option);
+    });
+    
+    console.log(`✅ ${userContas.length} opções adicionadas`);
+    
+    // 3. 🔥🔥🔥 CONFIGURAR EVENTO (forma GARANTIDA)
+    console.log('🎯 Configurando evento GARANTIDO...');
+    
+    // Remover TODOS os eventos anteriores
+    const newSelect = select.cloneNode(true);
+    select.parentNode.replaceChild(newSelect, select);
+    
+    // Configurar evento DIRETO e SIMPLES
+    newSelect.onchange = function() {
+        console.log('🎉🎉🎉 EVENTO ONCHANGE DISPARADO! 🎉🎉🎉');
+        
+        const option = this.options[this.selectedIndex];
+        console.log('Opção:', option.text);
+        console.log('Dataset:', option.dataset);
+        
+        if (option.value) {
+            const moeda = option.dataset.moeda || 'USD';
+            const saldo = parseFloat(option.dataset.saldo || 0);
+            
+            console.log(`💰 ${saldo} ${moeda}`);
+            
+            // Atualizar tela
+            const saldoSpan = document.getElementById('saldo_valor');
+            const moedaLabel = document.getElementById('moeda_label');
+            
+            if (saldoSpan) saldoSpan.textContent = `${saldo.toFixed(2)} ${moeda}`;
+            if (moedaLabel) moedaLabel.textContent = moeda;
+            
+            // Forçar visualização
+            saldoSpan?.style.setProperty('color', '#27ae60', 'important');
+        }
+    };
+    
+    // 4. VERIFICAR
+    console.log('✅ Evento configurado?', newSelect.onchange ? 'SIM!' : 'NÃO (CRÍTICO)');
+    
+    return newSelect;
+}
+
+// CARREGAR CONTAS DO USUÁRIO
+async function loadContas() {
+    console.log('🔍 loadContas INICIADA');
+    
+    try {
+        const response = await fetch('/api/user/contas');
+        console.log('📡 Response status:', response.status);
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log('📊 Dados recebidos:', data);
+            
+            if (data.success && data.contas) {
+                userContas = data.contas;
+                console.log(`✅ ${userContas.length} contas carregadas`);
+                
+                // 🔥 CHAMAR FUNÇÃO GARANTIDA
+                configurarSelectGarantido();
+                
+                return true;
+            }
+        }
+    } catch (error) {
+        console.error('❌ Erro em loadContas:', error);
+    }
     
     return false;
 }
@@ -1166,3 +1214,38 @@ window.addEventListener('resize', function() {
         positionDropdown(dropdown);
     }
 });
+
+// TESTE AUTOMÁTICO GARANTIDO
+setTimeout(() => {
+    console.log('🧪 TESTE AUTOMÁTICO GARANTIDO');
+    
+    const select = document.getElementById('conta_origem');
+    if (!select) {
+        console.error('❌ Select não existe!');
+        return;
+    }
+    
+    console.log('📊 Status:');
+    console.log('  - Opções:', select.options.length);
+    console.log('  - onchange:', select.onchange ? '✅ CONFIGURADO' : '❌ NÃO CONFIGURADO');
+    
+    // Se não tem evento, forçar configuração
+    if (!select.onchange && userContas && userContas.length > 0) {
+        console.log('⚠️ Evento não configurado! Forçando...');
+        configurarSelectGarantido();
+    }
+    
+    // Testar seleção automática
+    if (select.options.length > 1) {
+        console.log('🔄 Selecionando primeira conta para teste...');
+        select.selectedIndex = 1;
+        
+        // Disparar evento
+        if (select.onchange) {
+            select.onchange();
+        } else {
+            const event = new Event('change');
+            select.dispatchEvent(event);
+        }
+    }
+}, 2000);
