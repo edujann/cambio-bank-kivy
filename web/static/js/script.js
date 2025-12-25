@@ -309,23 +309,21 @@ async function loadContas() {
 
 // ATUALIZAR SELECT DE CONTAS
 function updateContasSelect() {
+    console.log('🎯 updateContasSelect CHAMADA!');
+    
     const select = document.getElementById('conta_origem');
     if (!select) {
-        console.error('❌ Select conta_origem não encontrado!');
+        console.error('❌ Select não encontrado');
         return;
     }
     
-    console.log('🔧 updateContasSelect INICIADA');
+    // 1. SALVAR o valor atual (se tiver selecionado)
+    const valorAtual = select.value;
     
-    // 1. Limpar o select completamente (incluindo eventos)
-    const oldSelect = select;
-    const newSelect = oldSelect.cloneNode(false); // Clonar sem filhos
-    oldSelect.parentNode.replaceChild(newSelect, oldSelect);
+    // 2. LIMPAR completamente
+    select.innerHTML = '<option value="">Selecione sua conta...</option>';
     
-    // 2. Adicionar opção padrão
-    newSelect.innerHTML = '<option value="">Selecione sua conta...</option>';
-    
-    // 3. Adicionar opções das contas
+    // 3. ADICIONAR opções
     userContas.forEach(conta => {
         const option = document.createElement('option');
         
@@ -336,47 +334,126 @@ function updateContasSelect() {
         option.value = contaId;
         option.textContent = `${moeda} - Saldo: ${saldo.toFixed(2)}`;
         
-        // Definir dataset
+        // Dataset
         option.dataset.moeda = moeda;
-        option.dataset.saldo = saldo.toString();
+        option.dataset.saldo = saldo;
         
-        newSelect.appendChild(option);
+        select.appendChild(option);
     });
     
-    console.log(`✅ ${userContas.length} opções criadas`);
+    console.log(`✅ ${userContas.length} opções adicionadas`);
     
-    // 4. 🔥 CORREÇÃO CRÍTICA: Adicionar evento change DE FORMA SIMPLES E DIRETA
-    console.log('🎯 Adicionando evento change...');
-    newSelect.onchange = function() {
-        console.log('🎉 EVENTO CHANGE DISPARADO! 🎉');
+    // 4. RESTAURAR seleção anterior (se existia)
+    if (valorAtual) {
+        select.value = valorAtual;
+    }
+    
+    // 5. 🔥🔥🔥 CONFIGURAR EVENTO ONCHANGE DE FORMA GARANTIDA
+    console.log('🎯 Configurando evento onchange...');
+    
+    // Remover evento anterior
+    select.onchange = null;
+    
+    // Adicionar novo evento (forma mais direta possível)
+    select.addEventListener('change', function(event) {
+        console.log('🎉🎉🎉 EVENTO CHANGE DISPARADO! 🎉🎉🎉');
+        console.log('Evento:', event);
+        console.log('Target:', event.target);
         
         const selectedOption = this.options[this.selectedIndex];
-        console.log('📦 Opção selecionada:', selectedOption.text);
-        console.log('💰 Dataset:', selectedOption.dataset);
+        console.log('Opção selecionada:', selectedOption);
         
-        if (selectedOption.value) {
+        if (selectedOption && selectedOption.value) {
             const moeda = selectedOption.dataset.moeda || 'USD';
             const saldo = parseFloat(selectedOption.dataset.saldo || 0);
             
-            console.log(`💸 Moeda: ${moeda}, Saldo: ${saldo}`);
+            console.log(`💰 Moeda: ${moeda}, Saldo: ${saldo}`);
             
-            // Atualizar display
+            // Atualizar UI
             const saldoSpan = document.getElementById('saldo_valor');
             const moedaLabel = document.getElementById('moeda_label');
             
             if (saldoSpan && moedaLabel) {
                 saldoSpan.textContent = `${saldo.toFixed(2)} ${moeda}`;
                 moedaLabel.textContent = moeda;
-                console.log(`✅ Display atualizado: ${saldo.toFixed(2)} ${moeda}`);
+                console.log(`✅ UI atualizada: ${saldo.toFixed(2)} ${moeda}`);
+                
+                // Forçar redesenho
+                saldoSpan.style.display = 'none';
+                saldoSpan.offsetHeight; // Trigger reflow
+                saldoSpan.style.display = '';
             }
         } else {
             console.log('ℹ️ Nenhuma conta selecionada');
             document.getElementById('saldo_valor').textContent = '--';
         }
-    };
+    }, true); // true = usar capture phase (mais confiável)
+    
+    // 6. VERIFICAR se o evento foi configurado
+    console.log('🔍 Evento configurado?', select.onchange ? 'SIM (onchange)' : 
+                                        select._eventListeners ? 'SIM (addEventListener)' : 'NÃO');
+    
+    // 7. TESTAR IMEDIATAMENTE
+    if (valorAtual) {
+        setTimeout(() => {
+            console.log('🧪 Testando evento com seleção atual...');
+            select.dispatchEvent(new Event('change'));
+        }, 100);
+    }
     
     console.log('✅ updateContasSelect FINALIZADA');
 }
+
+// VERIFICAÇÃO DE EMERGÊNCIA
+function verificarEventosSelect() {
+    console.log('🔍 VERIFICAÇÃO DE EMERGÊNCIA: Eventos do select');
+    
+    const select = document.getElementById('conta_origem');
+    if (!select) {
+        console.error('❌ Select não existe');
+        return;
+    }
+    
+    // Verificar eventos de 3 formas diferentes
+    console.log('1. onchange direto:', select.onchange ? 'SIM' : 'NÃO');
+    console.log('2. Event listeners:', getEventListeners(select) || 'N/A');
+    console.log('3. OuterHTML:', select.outerHTML.substring(0, 200) + '...');
+    
+    // Forçar evento se não existir
+    if (!select.onchange && (!getEventListeners || !getEventListeners(select)?.change)) {
+        console.log('⚠️ Nenhum evento encontrado! Configurando emergência...');
+        configurarEventoEmergencia();
+    }
+}
+
+function configurarEventoEmergencia() {
+    const select = document.getElementById('conta_origem');
+    
+    // Forma ULTRA simples
+    select.onchange = function() {
+        console.log('🚨 EVENTO DE EMERGÊNCIA DISPARADO!');
+        
+        const option = this.options[this.selectedIndex];
+        if (option && option.value) {
+            const moeda = option.getAttribute('data-moeda') || option.dataset.moeda || 'USD';
+            const saldo = parseFloat(option.getAttribute('data-saldo') || option.dataset.saldo || 0);
+            
+            console.log(`💰 EMERGÊNCIA: ${saldo} ${moeda}`);
+            
+            // Atualizar de qualquer jeito
+            const saldoElement = document.getElementById('saldo_valor');
+            const moedaElement = document.getElementById('moeda_label');
+            
+            if (saldoElement) saldoElement.textContent = `${saldo} ${moeda}`;
+            if (moedaElement) moedaElement.textContent = moeda;
+        }
+    };
+    
+    console.log('✅ Evento de emergência configurado!');
+}
+
+// Executar verificação
+setTimeout(verificarEventosSelect, 2000);
 
 // TESTE MANUAL DE SELEÇÃO
 function testarSelecaoConta() {
@@ -1089,23 +1166,3 @@ window.addEventListener('resize', function() {
         positionDropdown(dropdown);
     }
 });
-
-// TESTE MANUAL: Clique para ver se funciona
-function testarClickManual() {
-    console.log('🖱️ TESTE: Clique manual no select...');
-    
-    const select = document.getElementById('conta_origem');
-    if (!select) return;
-    
-    // Adicionar evento temporário
-    select.onclick = function() {
-        console.log('🎯 SELECT CLICADO!');
-        console.log('Valor atual:', this.value);
-        console.log('Texto atual:', this.options[this.selectedIndex]?.text);
-    };
-    
-    console.log('✅ Clique configurado. Clique no dropdown para testar!');
-}
-
-// Executar após 2 segundos
-setTimeout(testarClickManual, 2000);
