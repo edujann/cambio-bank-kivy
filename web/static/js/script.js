@@ -264,29 +264,39 @@ async function loadUserData() {
 
 // CARREGAR CONTAS DO USUÁRIO
 async function loadContas() {
+    console.log('🔍 PASSO 1: Entrando em loadContas()');
+    
     try {
-        console.log('🔄 Carregando contas do usuário...');
+        console.log('🔍 PASSO 2: Fazendo fetch...');
         const response = await fetch('/api/user/contas');
+        console.log('🔍 PASSO 3: Response status:', response.status, response.ok);
         
         if (response.ok) {
+            console.log('🔍 PASSO 4: Convertendo para JSON...');
             const data = await response.json();
-            console.log('📊 Dados recebidos:', data);
+            console.log('📊 Dados recebidos COMPLETOS:', data);
             
             if (data.success && data.contas) {
+                console.log(`🔍 PASSO 5: ${data.contas.length} contas encontradas`);
                 userContas = data.contas;
                 updateContasSelect();
                 
-                // CHAMAR DEBUG APÓS carregar as contas
-                console.log('🔍 Chamando debug...');
+                console.log('🔍 PASSO 6: Chamando debug...');
                 debugDataset();
                 
                 return true;
+            } else {
+                console.warn('⚠️ Dados não no formato esperado:', data);
             }
+        } else {
+            console.error('❌ Erro HTTP:', response.status, response.statusText);
         }
     } catch (error) {
-        console.error('Erro ao carregar contas:', error);
+        console.error('❌ Erro catch em loadContas:', error);
         showAlert('Erro ao carregar contas. Por favor, recarregue a página.', 'error');
     }
+    
+    console.log('🔍 PASSO 7: loadContas retornando false');
     return false;
 }
 
@@ -909,3 +919,24 @@ window.addEventListener('resize', function() {
         positionDropdown(dropdown);
     }
 });
+
+// TESTE DE EMERGÊNCIA
+console.log('🚨 TESTE DE EMERGÊNCIA: Carregando contas manualmente...');
+
+// Teste manual após 1 segundo
+setTimeout(async () => {
+    console.log('🔄 Executando teste manual de loadContas...');
+    const resultado = await loadContas();
+    console.log('📊 Resultado do teste manual:', resultado);
+    
+    // Se não carregou, criar contas fictícias
+    if (!resultado && userContas.length === 0) {
+        console.log('⚠️ Criando contas fictícias para teste...');
+        userContas = [
+            { id: '376793336', moeda: 'USD', saldo: 35.00 },
+            { id: '755234527', moeda: 'BRL', saldo: 34.18 }
+        ];
+        updateContasSelect();
+        debugDataset();
+    }
+}, 1000);
