@@ -313,22 +313,19 @@ function updateContasSelect() {
     userContas.forEach(conta => {
         const option = document.createElement('option');
         
-        // IMPORTANTE: Verificar qual campo sua tabela usa
-        console.log('📝 Dados da conta:', conta);
-        
-        // Tente primeiro 'id', depois 'numero'
-        const contaId = conta.id || conta.numero || 'N/A';
+        const contaId = conta.id;  // ID da conta
         const moeda = conta.moeda || 'USD';
         const saldo = parseFloat(conta.saldo || 0);
-        
-        console.log(`   💰 Conta: ${contaId}, Moeda: ${moeda}, Saldo: ${saldo}`);
         
         option.value = contaId;
         option.textContent = `${moeda} - Saldo: ${saldo.toFixed(2)}`;
         
-        // CORREÇÃO: Definir dataset CORRETAMENTE
-        option.setAttribute('data-moeda', moeda);
-        option.setAttribute('data-saldo', saldo);
+        // ⚠️ CORREÇÃO CRÍTICA: Usar dataset CORRETAMENTE
+        // Não usar setAttribute, usar dataset diretamente
+        option.dataset.moeda = moeda;
+        option.dataset.saldo = saldo.toString();
+        
+        console.log(`✅ Criada opção: ${contaId} | dataset:`, option.dataset);
         
         select.appendChild(option);
     });
@@ -368,13 +365,13 @@ document.getElementById('conta_origem').addEventListener('change', function() {
     
     // DEBUG: verificar tudo
     console.log('🔍 Opção selecionada:', selectedOption);
-    console.log('📊 Dataset:', selectedOption.dataset);
-    console.log('📊 getAttribute data-moeda:', selectedOption.getAttribute('data-moeda'));
-    console.log('📊 getAttribute data-saldo:', selectedOption.getAttribute('data-saldo'));
+    console.log('📊 Dataset completo:', selectedOption.dataset);
+    console.log('📊 dataset.moeda:', selectedOption.dataset.moeda);
+    console.log('📊 dataset.saldo:', selectedOption.dataset.saldo);
     
-    // USAR getAttribute que é mais confiável
-    const moeda = selectedOption.getAttribute('data-moeda') || 'USD';
-    const saldo = parseFloat(selectedOption.getAttribute('data-saldo') || 0);
+    // ⚠️ CORREÇÃO: Usar dataset em vez de getAttribute
+    const moeda = selectedOption.dataset.moeda || 'USD';
+    const saldo = parseFloat(selectedOption.dataset.saldo || 0);
     
     // Atualizar exibição do saldo
     const saldoSpan = document.getElementById('saldo_valor');
@@ -384,8 +381,28 @@ document.getElementById('conta_origem').addEventListener('change', function() {
         saldoSpan.textContent = `${saldo.toFixed(2)} ${moeda}`;
         moedaLabel.textContent = moeda;
         console.log(`✅ Saldo atualizado: ${saldo.toFixed(2)} ${moeda}`);
+    } else {
+        console.error('❌ Elementos de saldo não encontrados!');
     }
 });
+
+// Função para forçar atualização do saldo
+function forcarAtualizacaoSaldo() {
+    console.log('🔄 Forçando atualização de saldo...');
+    const select = document.getElementById('conta_origem');
+    if (select && select.value) {
+        // Disparar evento change manualmente
+        select.dispatchEvent(new Event('change'));
+    } else {
+        console.log('ℹ️ Nenhuma conta selecionada');
+    }
+}
+
+// Testar após 3 segundos
+setTimeout(() => {
+    console.log('🧪 Testando atualização automática de saldo...');
+    forcarAtualizacaoSaldo();
+}, 3000);
 
 // CARREGAR BENEFICIÁRIOS SALVOS
 async function loadBeneficiarios() {
