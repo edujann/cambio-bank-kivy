@@ -308,14 +308,17 @@ function updateContasSelect() {
         return;
     }
     
-    // 1. Limpar evento anterior (se existir)
-    select.replaceWith(select.cloneNode(true));
-    const newSelect = document.getElementById('conta_origem');
+    console.log('🔧 updateContasSelect INICIADA');
     
-    // 2. Limpar opções
+    // 1. Limpar o select completamente (incluindo eventos)
+    const oldSelect = select;
+    const newSelect = oldSelect.cloneNode(false); // Clonar sem filhos
+    oldSelect.parentNode.replaceChild(newSelect, oldSelect);
+    
+    // 2. Adicionar opção padrão
     newSelect.innerHTML = '<option value="">Selecione sua conta...</option>';
     
-    // 3. Adicionar opções
+    // 3. Adicionar opções das contas
     userContas.forEach(conta => {
         const option = document.createElement('option');
         
@@ -330,54 +333,78 @@ function updateContasSelect() {
         option.dataset.moeda = moeda;
         option.dataset.saldo = saldo.toString();
         
-        console.log(`✅ Criando opção:`, {
-            id: contaId,
-            moeda: moeda,
-            saldo: saldo,
-            dataset: option.dataset
-        });
-        
         newSelect.appendChild(option);
     });
     
-    console.log(`✅ ${userContas.length} contas carregadas`);
+    console.log(`✅ ${userContas.length} opções criadas`);
     
-    // ⚠️ CORREÇÃO CRÍTICA: Configurar evento APÓS criar as opções
-    newSelect.addEventListener('change', function() {
+    // 4. 🔥 CORREÇÃO CRÍTICA: Adicionar evento change DE FORMA SIMPLES E DIRETA
+    console.log('🎯 Adicionando evento change...');
+    newSelect.onchange = function() {
+        console.log('🎉 EVENTO CHANGE DISPARADO! 🎉');
+        
         const selectedOption = this.options[this.selectedIndex];
+        console.log('📦 Opção selecionada:', selectedOption.text);
+        console.log('💰 Dataset:', selectedOption.dataset);
         
-        console.log('🎯 EVENTO CHANGE DISPARADO!');
-        console.log('🔍 Opção selecionada:', selectedOption);
-        console.log('📊 Dataset:', selectedOption.dataset);
-        
-        const moeda = selectedOption.dataset.moeda || 'USD';
-        const saldo = parseFloat(selectedOption.dataset.saldo || 0);
-        
-        console.log(`💰 Moeda: ${moeda}, Saldo: ${saldo}`);
-        
-        // Atualizar exibição
-        const saldoSpan = document.getElementById('saldo_valor');
-        const moedaLabel = document.getElementById('moeda_label');
-        
-        if (saldoSpan && moedaLabel) {
-            saldoSpan.textContent = `${saldo.toFixed(2)} ${moeda}`;
-            moedaLabel.textContent = moeda;
-            console.log(`✅ Saldo atualizado na UI: ${saldo.toFixed(2)} ${moeda}`);
+        if (selectedOption.value) {
+            const moeda = selectedOption.dataset.moeda || 'USD';
+            const saldo = parseFloat(selectedOption.dataset.saldo || 0);
+            
+            console.log(`💸 Moeda: ${moeda}, Saldo: ${saldo}`);
+            
+            // Atualizar display
+            const saldoSpan = document.getElementById('saldo_valor');
+            const moedaLabel = document.getElementById('moeda_label');
+            
+            if (saldoSpan && moedaLabel) {
+                saldoSpan.textContent = `${saldo.toFixed(2)} ${moeda}`;
+                moedaLabel.textContent = moeda;
+                console.log(`✅ Display atualizado: ${saldo.toFixed(2)} ${moeda}`);
+            }
+        } else {
+            console.log('ℹ️ Nenhuma conta selecionada');
+            document.getElementById('saldo_valor').textContent = '--';
         }
-    });
+    };
     
-    // Testar o dataset imediatamente
-    console.log('🧪 Teste imediato do dataset:');
-    for (let i = 1; i < newSelect.options.length && i < 3; i++) {
-        const option = newSelect.options[i];
-        console.log(`Opção ${i}:`, {
-            texto: option.text,
-            dataset: option.dataset,
-            moeda: option.dataset.moeda,
-            saldo: option.dataset.saldo
-        });
+    console.log('✅ updateContasSelect FINALIZADA');
+}
+
+// TESTE MANUAL DE SELEÇÃO
+function testarSelecaoConta() {
+    console.log('🧪 TESTANDO SELEÇÃO DE CONTA...');
+    
+    const select = document.getElementById('conta_origem');
+    if (!select) {
+        console.error('❌ Select não encontrado!');
+        return;
+    }
+    
+    console.log('📊 Status do select:');
+    console.log('  - Total de opções:', select.options.length);
+    console.log('  - Event listeners:', select._eventListeners || 'Nenhum');
+    
+    // Verificar se há evento change
+    const temEventoChange = select.onchange || 
+                           (select._eventListeners && select._eventListeners.change);
+    console.log('  - Tem evento change?', temEventoChange ? 'SIM' : 'NÃO');
+    
+    // Tentar selecionar a primeira conta
+    if (select.options.length > 1) {
+        console.log('🔄 Selecionando primeira conta automaticamente...');
+        select.selectedIndex = 1;
+        
+        // Disparar evento manualmente
+        const event = new Event('change', { bubbles: true });
+        select.dispatchEvent(event);
+        
+        console.log('✅ Evento change disparado!');
     }
 }
+
+// Executar teste após 2 segundos
+setTimeout(testarSelecaoConta, 2000);
 
 // Função especial para debug do dataset
 function debugDataset() {
