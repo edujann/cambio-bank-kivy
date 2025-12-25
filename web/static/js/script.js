@@ -580,10 +580,35 @@ function setupEventListeners() {
 
 // INICIALIZAR
 document.addEventListener('DOMContentLoaded', async function() {
-    await loadUserData();
-    await loadContas();
-    await loadBeneficiarios();
-    setupEventListeners();
+    console.log('🚀 Iniciando sistema de transferência...');
+    
+    try {
+        // 1. Carregar dados do usuário (não bloqueante)
+        loadUserData().catch(error => {
+            console.warn('⚠️ Erro em loadUserData:', error);
+        });
+        
+        // 2. Carregar contas (CRÍTICO - fazer primeiro e separado)
+        console.log('🔄 Carregando contas (prioridade)...');
+        await loadContas().catch(error => {
+            console.error('❌ Erro crítico em loadContas:', error); 
+        });
+        
+        // 3. Carregar beneficiários (não bloqueante)
+        setTimeout(() => {
+            loadBeneficiarios().catch(error => {
+                console.warn('⚠️ Erro em loadBeneficiarios:', error);
+            });
+        }, 500);
+        
+        // 4. Configurar eventos
+        setupEventListeners();
+        
+        console.log('✅ Sistema inicializado com sucesso!');
+        
+    } catch (error) {
+        console.error('❌ Erro fatal na inicialização:', error);
+    }
 });
 
 // ============================================
@@ -771,40 +796,37 @@ window.enviarTransferencia = async function(e) {
         if (!response.ok) throw new Error(resultado.message || `Erro ${response.status}`);
         
         if (resultado.success) {
-            console.log('🎯 TRANSFERÊNCIA BEM-SUCEDIDA - DADOS:');
-            console.log('Resultado completo:', resultado);
-            console.log('ID da transferência:', resultado.transferencia_id);
-            console.log('Valor:', dados.valor.toFixed(2));
-            console.log('Moeda:', dados.moeda);
+            console.log('🎯🎯🎯 TRANSFERÊNCIA BEM-SUCEDIDA 🎯🎯🎯');
             
-            // 🎯 1. MOSTRAR POPUP IMEDIATAMENTE (GARANTIDO!)
-            garantirPopupSucesso(resultado.transferencia_id, dados.valor.toFixed(2), dados.moeda);
+            // 🎯 1. MOSTRAR POPUP
+            try {
+                garantirPopupSucesso(resultado.transferencia_id, dados.valor.toFixed(2), dados.moeda);
+            } catch (error) {
+                console.error('❌ Erro no popup:', error);
+                mostrarPopupSimples(resultado.transferencia_id, dados.valor.toFixed(2), dados.moeda);
+            }
             
-            // 🎯 2. SALVAR BENEFICIÁRIO EM SEGUNDO PLANO (se marcado)
+            // 🎯 2. ATUALIZAR SALDO IMEDIATAMENTE
+            setTimeout(() => {
+                atualizarSaldoAposTransferencia();
+            }, 1000);
+            
+            // 🎯 3. SALVAR BENEFICIÁRIO (opcional)
             if (document.getElementById('salvar_beneficiario')?.checked) {
-                // Executar em background - NÃO BLOQUEIA O POPUP
                 setTimeout(async () => {
                     try {
                         await salvarBeneficiario(dados);
-                        console.log('✅ Beneficiário salvo opcionalmente');
                     } catch (error) {
-                        console.warn('⚠️ Erro ao salvar beneficiário:', error.message);
-                        // NÃO FAZ NADA - NÃO AFETA O SUCESSO DA TRANSFERÊNCIA!
+                        console.warn('⚠️ Erro ao salvar beneficiário:', error);
                     }
-                }, 100); // Pequeno delay para não atrapalhar
+                }, 200);
             }
             
-            // 🎯 3. LIMPAR FORMULÁRIO
+            // 🎯 4. LIMPAR FORMULÁRIO
             document.getElementById('transferenciaForm').reset();
             selectedFile = null;
             document.getElementById('filePreview').classList.add('hidden');
             document.getElementById('saldo_valor').textContent = '--';
-            
-            // 🎯 4. RECARREGAR CONTAS
-            await window.carregarContas();
-            
-        } else {
-            throw new Error(resultado.message);
         }
         
     } catch (error) {
@@ -817,6 +839,35 @@ window.enviarTransferencia = async function(e) {
     
     return false;
 };
+
+// Função para atualizar saldo APÓS transferência
+async function atualizarSaldoAposTransferencia() {
+    console.log('🔄 Atualizando saldo após transferência...');
+    
+    try {
+        const response = await fetch('/api/user/contas');
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.contas) {
+                userContas = data.contas;
+                updateContasSelect();
+                
+                // Atualizar o display se tiver conta selecionada
+                const select = document.getElementById('conta_origem');
+                if (select.value) {
+                    const selectedOption = select.options[select.selectedIndex];
+                    const moeda = selectedOption.getAttribute('data-moeda') || 'USD';
+                    const saldo = parseFloat(selectedOption.getAttribute('data-saldo') || 0);
+                    
+                    document.getElementById('saldo_valor').textContent = `${saldo.toFixed(2)} ${moeda}`;
+                    console.log(`💰 Saldo atualizado pós-transferência: ${saldo.toFixed(2)} ${moeda}`);
+                }
+            }
+        }
+    } catch (error) {
+        console.warn('⚠️ Erro ao atualizar saldo:', error);
+    }
+}
 
 // ============================================
 // FUNÇÃO AUXILIAR: SALVAR BENEFICIÁRIO (OPCIONAL)
@@ -919,24 +970,3 @@ window.addEventListener('resize', function() {
         positionDropdown(dropdown);
     }
 });
-
-// TESTE DE EMERGÊNCIA
-console.log('🚨 TESTE DE EMERGÊNCIA: Carregando contas manualmente...');
-
-// Teste manual após 1 segundo
-setTimeout(async () => {
-    console.log('🔄 Executando teste manual de loadContas...');
-    const resultado = await loadContas();
-    console.log('📊 Resultado do teste manual:', resultado);
-    
-    // Se não carregou, criar contas fictícias
-    if (!resultado && userContas.length === 0) {
-        console.log('⚠️ Criando contas fictícias para teste...');
-        userContas = [
-            { id: '376793336', moeda: 'USD', saldo: 35.00 },
-            { id: '755234527', moeda: 'BRL', saldo: 34.18 }
-        ];
-        updateContasSelect();
-        debugDataset();
-    }
-}, 1000);
