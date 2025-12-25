@@ -265,7 +265,8 @@ async function loadUserData() {
 // CARREGAR CONTAS DO USUÁRIO
 async function loadContas() {
     console.log('🔍 PASSO 1: Entrando em loadContas()');
-    
+    console.log('🔍 Vou chamar updateContasSelect()...');
+
     try {
         console.log('🔍 PASSO 2: Fazendo fetch...');
         const response = await fetch('/api/user/contas');
@@ -284,6 +285,8 @@ async function loadContas() {
                 console.log('🔍 PASSO 6: Chamando debug...');
                 debugDataset();
                 
+                console.log('🔍 Chamando updateContasSelect()...');
+                updateContasSelect();
                 return true;
             } else {
                 console.warn('⚠️ Dados não no formato esperado:', data);
@@ -297,6 +300,10 @@ async function loadContas() {
     }
     
     console.log('🔍 PASSO 7: loadContas retornando false');
+    
+    console.log('🔍 Chamando updateContasSelect diretamente...');
+    updateContasSelect();
+    
     return false;
 }
 
@@ -702,6 +709,29 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 });
 
+// TESTE DE EMERGÊNCIA: Forçar updateContasSelect se não funcionar
+setTimeout(() => {
+    console.log('🚨 TESTE DE EMERGÊNCIA: Verificando se select foi atualizado...');
+    
+    const select = document.getElementById('conta_origem');
+    if (select && select.options.length === 1) {
+        // Só tem a opção padrão, então updateContasSelect não foi chamado
+        console.log('⚠️ Select não foi atualizado! Forçando agora...');
+        
+        if (userContas && userContas.length > 0) {
+            updateContasSelect();
+            console.log('✅ updateContasSelect forçado!');
+        } else {
+            console.log('❌ Não há contas para atualizar');
+        }
+    } else if (select && select.options.length > 1) {
+        console.log('✅ Select já foi atualizado!');
+        
+        // Verificar evento
+        console.log('🔍 Verificando evento onchange:', select.onchange ? 'SIM' : 'NÃO');
+    }
+}, 3000);    
+
 // ============================================
 // FUNÇÃO PARA MENU DO USUÁRIO
 // ============================================
@@ -1059,3 +1089,23 @@ window.addEventListener('resize', function() {
         positionDropdown(dropdown);
     }
 });
+
+// TESTE MANUAL: Clique para ver se funciona
+function testarClickManual() {
+    console.log('🖱️ TESTE: Clique manual no select...');
+    
+    const select = document.getElementById('conta_origem');
+    if (!select) return;
+    
+    // Adicionar evento temporário
+    select.onclick = function() {
+        console.log('🎯 SELECT CLICADO!');
+        console.log('Valor atual:', this.value);
+        console.log('Texto atual:', this.options[this.selectedIndex]?.text);
+    };
+    
+    console.log('✅ Clique configurado. Clique no dropdown para testar!');
+}
+
+// Executar após 2 segundos
+setTimeout(testarClickManual, 2000);
