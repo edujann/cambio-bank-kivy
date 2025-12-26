@@ -386,6 +386,55 @@ function atualizarSaldo() {
     if (moedaLabel) {
         moedaLabel.textContent = moeda;
     }
+
+    // 🔥 NOVO: Validar valor atual se estiver digitado
+    const valorInput = document.getElementById('valor');
+    if (valorInput && valorInput.value) {
+        setTimeout(() => {
+            console.log('🔄 Validando valor após mudança de conta...');
+            valorInput.dispatchEvent(new Event('input'));
+        }, 100);
+    }   
+
+}
+
+// FUNÇÃO AUXILIAR: OBTER SALDO REAL DA CONTA SELECIONADA
+function obterSaldoAtual() {
+    const select = document.getElementById('conta_origem');
+    if (!select) return 0;
+    
+    const option = select.options[select.selectedIndex];
+    if (!option || !option.value) return 0;
+    
+    // Tentar várias formas de obter o saldo
+    let saldo = 0;
+    
+    // 1. Atributo data-saldo
+    saldo = parseFloat(option.getAttribute('data-saldo') || 0);
+    
+    // 2. Dataset
+    if (saldo === 0) {
+        saldo = parseFloat(option.dataset.saldo || 0);
+    }
+    
+    // 3. Extrair do texto
+    if (saldo === 0 && option.text) {
+        const saldoMatch = option.text.match(/Saldo:\s*([\d.,]+)/);
+        if (saldoMatch) {
+            saldo = parseFloat(saldoMatch[1].replace(',', ''));
+        }
+    }
+    
+    // 4. Buscar na array userContas
+    if (saldo === 0 && window.userContas) {
+        const conta = window.userContas.find(c => c.id === option.value);
+        if (conta) {
+            saldo = parseFloat(conta.saldo || 0);
+        }
+    }
+    
+    console.log(`📊 Saldo obtido: ${saldo.toFixed(2)}`);
+    return saldo;
 }
 
 // ============================================
@@ -640,19 +689,68 @@ function showAlert(message, type = 'info') {
 
 // CONFIGURAR EVENT LISTENERS
 function setupEventListeners() {
-    // Validar valor em tempo real
+    console.log('⚙️ CONFIGURANDO EVENT LISTENERS...');
+    
+    // 1. VALIDAÇÃO EM TEMPO REAL DO VALOR
     document.getElementById('valor').addEventListener('input', function() {
-        const valor = parseFloat(this.value) || 0;
-        const contaSelect = document.getElementById('conta_origem');
-        const saldo = parseFloat(contaSelect.options[contaSelect.selectedIndex]?.dataset.saldo || 0);
+        console.log('🔍 VALIDANDO VALOR DIGITADO...');
         
-        if (valor > saldo) {
+        const valorDigitado = parseFloat(this.value) || 0;
+        console.log('Valor digitado:', valorDigitado);
+        
+        // Obter saldo ATUAL do select (não do dataset antigo)
+        const select = document.getElementById('conta_origem');
+        const option = select.options[select.selectedIndex];
+        
+        if (!option || !option.value) {
+            console.log('ℹ️ Nenhuma conta selecionada');
+            this.style.borderColor = '';
+            return;
+        }
+        
+        // 🔥 FORMA CORRETA: Obter saldo REAL
+        let saldoDisponivel = 0;
+        
+        // Tentar várias formas
+        saldoDisponivel = parseFloat(option.getAttribute('data-saldo') || 0);
+        
+        // Se não funcionou, tentar extrair do texto
+        if (saldoDisponivel === 0) {
+            const texto = option.text;
+            const saldoMatch = texto.match(/Saldo:\s*([\d.,]+)/);
+            if (saldoMatch) {
+                saldoDisponivel = parseFloat(saldoMatch[1].replace(',', ''));
+            }
+        }
+        
+        console.log(`Saldo disponível: ${saldoDisponivel.toFixed(2)}`);
+        console.log(`Valor digitado: ${valorDigitado.toFixed(2)}`);
+        
+        // Validar
+        if (valorDigitado > saldoDisponivel) {
+            console.log(`❌ VALIDAÇÃO: ${valorDigitado} > ${saldoDisponivel}`);
             this.style.borderColor = '#e74c3c';
-            showAlert(`Valor excede saldo disponível (${saldo.toFixed(2)})`, 'warning');
+            showAlert(`❌ Valor excede saldo disponível (${saldoDisponivel.toFixed(2)})`, 'warning');
+        } else if (valorDigitado > 0) {
+            console.log(`✅ VALIDAÇÃO: ${valorDigitado} ≤ ${saldoDisponivel} (OK)`);
+            this.style.borderColor = '#27ae60';
         } else {
             this.style.borderColor = '';
         }
     });
+    
+    // 2. VALIDAR AO MUDAR A CONTA
+    document.getElementById('conta_origem').addEventListener('change', function() {
+        console.log('🔄 CONTA ALTERADA - VALIDANDO VALOR ATUAL...');
+        
+        const valorInput = document.getElementById('valor');
+        if (valorInput.value) {
+            // Disparar validação manualmente
+            valorInput.dispatchEvent(new Event('input'));
+        }
+    });
+    
+    console.log('✅ Event listeners configurados');
 }
 
 // ============================================
