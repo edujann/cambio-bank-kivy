@@ -17,209 +17,252 @@ function garantirPopupSucesso(transferenciaId, valor, moeda) {
     console.log('Transferencia ID:', transferenciaId);
     console.log('Valor:', valor);
     console.log('Moeda:', moeda);
-    console.log('🎉 TRANSFERÊNCIA BEM-SUCEDIDA:', transferenciaId);
     
-    // Remover qualquer popup anterior
-    const popupAntigo = document.getElementById('elegantSuccessPopup');
-    if (popupAntigo) popupAntigo.remove();
-    document.querySelectorAll('.popup-overlay').forEach(el => el.remove());
+    // 🔥 VERIFICAÇÃO ULTRA ROBUSTA
+    if (!transferenciaId || transferenciaId === 'undefined' || transferenciaId === 'null') {
+        console.error('❌ ERRO CRÍTICO: transferenciaId inválido:', transferenciaId);
+        transferenciaId = 'SEM-ID-' + Date.now(); // Criar um ID fallback
+    }
     
-    // Criar overlay escuro
-    const overlay = document.createElement('div');
-    overlay.className = 'popup-overlay';
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.7);
-        z-index: 99998;
-        animation: fadeInOverlay 0.3s ease;
-    `;
+    if (!valor || isNaN(parseFloat(valor)) || parseFloat(valor) <= 0) {
+        console.error('❌ ERRO CRÍTICO: valor inválido:', valor);
+        valor = '0.00';
+    }
     
-    // Criar popup elegante VERDE
-    const popup = document.createElement('div');
-    popup.id = 'elegantSuccessPopup';
-    popup.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: linear-gradient(135deg, #059669 0%, #047857 100%);
-        color: white;
-        padding: 40px;
-        border-radius: 20px;
-        box-shadow: 0 25px 80px rgba(5, 150, 105, 0.4);
-        z-index: 99999;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        width: 90%;
-        max-width: 500px;
-        text-align: center;
-        animation: popupSlideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-    `;
+    if (!moeda || typeof moeda !== 'string') {
+        console.error('❌ ERRO CRÍTICO: moeda inválida:', moeda);
+        moeda = 'USD';
+    }
     
-    popup.innerHTML = `
-        <div style="
-            font-size: 70px;
-            margin-bottom: 20px;
-            animation: iconBounce 1s infinite alternate;
-            filter: drop-shadow(0 5px 10px rgba(0,0,0,0.2));
-        ">✅</div>
+    console.log('✅ Dados validados:', { transferenciaId, valor, moeda });
+    
+    try {
+        // Remover qualquer popup anterior
+        const popupAntigo = document.getElementById('elegantSuccessPopup');
+        if (popupAntigo) {
+            console.log('🗑️ Removendo popup anterior...');
+            popupAntigo.remove();
+        }
         
-        <h2 style="
-            margin: 0 0 15px 0;
-            font-size: 32px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        ">Transferência Concluída!</h2>
+        const overlays = document.querySelectorAll('.popup-overlay');
+        overlays.forEach(el => {
+            console.log('🗑️ Removendo overlay...');
+            el.remove();
+        });
         
-        <p style="
-            margin: 0 0 30px 0;
-            font-size: 17px;
-            opacity: 0.95;
-            line-height: 1.5;
-            font-weight: 400;
-        ">Sua transferência internacional foi<br>solicitada com sucesso e está em processamento.</p>
+        // Criar overlay escuro
+        const overlay = document.createElement('div');
+        overlay.className = 'popup-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 99998;
+            animation: fadeInOverlay 0.3s ease;
+        `;
         
-        <div style="
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 25px;
-            margin: 25px 0;
-            text-align: left;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        ">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 15px; align-items: center;">
-                <span style="opacity: 0.9; font-size: 15px;">ID da Transferência:</span>
-                <strong style="font-size: 20px; letter-spacing: 1px;">${transferenciaId}</strong>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="opacity: 0.9; font-size: 15px;">Valor Transferido:</span>
-                <strong style="font-size: 28px; color: #a7f3d0; font-weight: 800;">
-                    ${parseFloat(valor).toFixed(2)} ${moeda}
-                </strong>
-            </div>
-        </div>
+        // Criar popup elegante VERDE
+        const popup = document.createElement('div');
+        popup.id = 'elegantSuccessPopup';
+        popup.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 25px 80px rgba(5, 150, 105, 0.4);
+            z-index: 99999;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            animation: popupSlideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        `;
         
-        <div style="
-            display: flex;
-            gap: 15px;
-            margin-top: 30px;
-            justify-content: center;
-        ">
-            <button id="fecharPopupBtn" style="
-                background: rgba(255, 255, 255, 0.2);
-                border: 1px solid rgba(255, 255, 255, 0.3);
-                color: white;
-                padding: 15px 35px;
-                border-radius: 50px;
-                font-size: 16px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.3s;
-                flex: 1;
-                min-width: 140px;
-            ">Fechar</button>
+        // 🔥 VALOR FORMATADO CORRETAMENTE
+        const valorFormatado = parseFloat(valor).toFixed(2);
+        
+        popup.innerHTML = `
+            <div style="
+                font-size: 70px;
+                margin-bottom: 20px;
+                animation: iconBounce 1s infinite alternate;
+                filter: drop-shadow(0 5px 10px rgba(0,0,0,0.2));
+            ">✅</div>
             
-            <button id="verTransferenciaBtn" style="
-                background: white;
-                color: #059669;
-                border: none;
-                padding: 15px 35px;
-                border-radius: 50px;
-                font-size: 16px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.3s;
-                flex: 1;
-                min-width: 140px;
-                box-shadow: 0 5px 15px rgba(255, 255, 255, 0.1);
-            ">Ver Detalhes</button>
-        </div>
+            <h2 style="
+                margin: 0 0 15px 0;
+                font-size: 32px;
+                font-weight: 700;
+                letter-spacing: -0.5px;
+                text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            ">Transferência Concluída!</h2>
+            
+            <p style="
+                margin: 0 0 30px 0;
+                font-size: 17px;
+                opacity: 0.95;
+                line-height: 1.5;
+                font-weight: 400;
+            ">Sua transferência internacional foi<br>solicitada com sucesso e está em processamento.</p>
+            
+            <div style="
+                background: rgba(255, 255, 255, 0.15);
+                backdrop-filter: blur(10px);
+                border-radius: 15px;
+                padding: 25px;
+                margin: 25px 0;
+                text-align: left;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            ">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; align-items: center;">
+                    <span style="opacity: 0.9; font-size: 15px;">ID da Transferência:</span>
+                    <strong style="font-size: 20px; letter-spacing: 1px;">${transferenciaId}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="opacity: 0.9; font-size: 15px;">Valor Transferido:</span>
+                    <strong style="font-size: 28px; color: #a7f3d0; font-weight: 800;">
+                        ${valorFormatado} ${moeda}
+                    </strong>
+                </div>
+            </div>
+            
+            <div style="
+                display: flex;
+                gap: 15px;
+                margin-top: 30px;
+                justify-content: center;
+            ">
+                <button id="fecharPopupBtn" style="
+                    background: rgba(255, 255, 255, 0.2);
+                    border: 1px solid rgba(255, 255, 255, 0.3);
+                    color: white;
+                    padding: 15px 35px;
+                    border-radius: 50px;
+                    font-size: 16px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                    flex: 1;
+                    min-width: 140px;
+                ">Fechar</button>
+                
+                <button id="verTransferenciaBtn" style="
+                    background: white;
+                    color: #059669;
+                    border: none;
+                    padding: 15px 35px;
+                    border-radius: 50px;
+                    font-size: 16px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                    flex: 1;
+                    min-width: 140px;
+                    box-shadow: 0 5px 15px rgba(255, 255, 255, 0.1);
+                ">Ver Detalhes</button>
+            </div>
+            
+            <div style="
+                margin-top: 25px;
+                font-size: 14px;
+                opacity: 0.8;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+            ">
+                <span style="display: inline-block; width: 10px; height: 10px; background: #a7f3d0; border-radius: 50%; animation: pulse 2s infinite;"></span>
+                Status: <strong>Em processamento</strong>
+            </div>
+        `;
         
-        <div style="
-            margin-top: 25px;
-            font-size: 14px;
-            opacity: 0.8;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        ">
-            <span style="display: inline-block; width: 10px; height: 10px; background: #a7f3d0; border-radius: 50%; animation: pulse 2s infinite;"></span>
-            Status: <strong>Em processamento</strong>
-        </div>
-    `;
-    
-    // Adicionar estilos de animação
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes popupSlideIn {
-            0% {
-                opacity: 0;
-                transform: translate(-50%, -50%) scale(0.8) translateY(30px);
+        // Adicionar estilos de animação
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes popupSlideIn {
+                0% {
+                    opacity: 0;
+                    transform: translate(-50%, -50%) scale(0.8) translateY(30px);
+                }
+                100% {
+                    opacity: 1;
+                    transform: translate(-50%, -50%) scale(1);
+                }
             }
-            100% {
-                opacity: 1;
-                transform: translate(-50%, -50%) scale(1);
+            
+            @keyframes fadeInOverlay {
+                from { opacity: 0; }
+                to { opacity: 1; }
             }
-        }
+            
+            @keyframes iconBounce {
+                from { transform: translateY(0); }
+                to { transform: translateY(-10px); }
+            }
+            
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.5; }
+            }
+            
+            #fecharPopupBtn:hover {
+                background: rgba(255, 255, 255, 0.3) !important;
+                transform: translateY(-3px);
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            }
+            
+            #verTransferenciaBtn:hover {
+                background: #f0fdf4 !important;
+                transform: translateY(-3px);
+                box-shadow: 0 8px 20px rgba(255, 255, 255, 0.2);
+            }
+        `;
+        document.head.appendChild(style);
         
-        @keyframes fadeInOverlay {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
+        // Adicionar ao body
+        document.body.appendChild(overlay);
+        document.body.appendChild(popup);
         
-        @keyframes iconBounce {
-            from { transform: translateY(0); }
-            to { transform: translateY(-10px); }
-        }
+        console.log('✅ Popup criado e adicionado ao DOM');
         
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
+        // Event listeners para os botões
+        document.getElementById('fecharPopupBtn').onclick = function() {
+            console.log('🔄 Fechando popup...');
+            fecharPopupElegante();
+        };
         
-        #fecharPopupBtn:hover {
-            background: rgba(255, 255, 255, 0.3) !important;
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        }
+        document.getElementById('verTransferenciaBtn').onclick = function() {
+            console.log('🔗 Redirecionando para transferências...');
+            fecharPopupElegante();
+            setTimeout(() => {
+                window.location.href = '/minhas-transferencias';
+            }, 300);
+        };
         
-        #verTransferenciaBtn:hover {
-            background: #f0fdf4 !important;
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(255, 255, 255, 0.2);
-        }
-    `;
-    document.head.appendChild(style);
-    
-    // Adicionar ao body
-    document.body.appendChild(overlay);
-    document.body.appendChild(popup);
-    
-    // Event listeners para os botões
-    document.getElementById('fecharPopupBtn').onclick = function() {
-        fecharPopupElegante();
-    };
-    
-    document.getElementById('verTransferenciaBtn').onclick = function() {
-        fecharPopupElegante();
-        // Redirecionar para minhas transferências
+        // Fechar ao clicar no overlay
+        overlay.onclick = fecharPopupElegante;
+        
+        // Fechar automaticamente após 8 segundos
         setTimeout(() => {
-            window.location.href = '/minhas-transferencias';
-        }, 300);
-    };
-    
-    // Fechar ao clicar no overlay
-    overlay.onclick = fecharPopupElegante;
-    
-    // Fechar automaticamente após 8 segundos
-    setTimeout(fecharPopupElegante, 8000);
+            console.log('⏰ Fechando popup automaticamente...');
+            fecharPopupElegante();
+        }, 8000);
+        
+        console.log('🎊 POPUP ELEGANTE EXIBIDO COM SUCESSO!');
+        
+    } catch (error) {
+        console.error('❌❌❌ ERRO CATASTRÓFICO NO POPUP:', error);
+        // Não tentar mostrar fallback - já estamos no popup principal
+        alert(`✅ Transferência criada! ID: ${transferenciaId}\nValor: ${valor} ${moeda}`);
+    }
 }
 
 // ============================================
@@ -1005,7 +1048,9 @@ window.enviarTransferencia = async function(e) {
             
             // 🎯 1. MOSTRAR POPUP
             try {
+                console.log('📞 Chamando garantirPopupSucesso...'); // ⬅️ ADICIONE ESTE LOG
                 garantirPopupSucesso(resultado.transferencia_id, dados.valor.toFixed(2), dados.moeda);
+                console.log('✅ Popup exibido!'); // ⬅️ ADICIONE ESTE LOG
             } catch (error) {
                 console.error('❌ Erro no popup:', error);
                 mostrarPopupSimples(resultado.transferencia_id, dados.valor.toFixed(2), dados.moeda);
@@ -1201,6 +1246,12 @@ window.testarSistema = function() {
     console.log('  • enviarTransferencia()');
     console.log('  • carregarContas()');
     console.log('  • testarSistema()');
+};
+
+// TESTE: Forçar popup após transferência (adicione no final do arquivo)
+window.forcarPopupTransferencia = function(id, valor, moeda) {
+    console.log('🎯 FORÇANDO POPUP PARA TRANSFERÊNCIA:', id);
+    garantirPopupSucesso(id, valor, moeda);
 };
 
 console.log('✅ Sistema de transferência PRONTO!');
