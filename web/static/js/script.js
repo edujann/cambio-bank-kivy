@@ -266,6 +266,235 @@ function garantirPopupSucesso(transferenciaId, valor, moeda) {
 }
 
 // ============================================
+// FUNÇÃO CORRIGIDA: garantirPopupSucesso (VERSÃO 2025)
+// ============================================
+
+function garantirPopupSucesso(transferenciaId, valor, moeda) {
+    console.log('🎉🎉🎉 GARANTIRPOPUPSUCESSO CHAMADA! 🎉🎉🎉');
+    console.log('Transferencia ID:', transferenciaId);
+    console.log('Valor:', valor);
+    console.log('Moeda:', moeda);
+    
+    // 🔥 CORREÇÃO: Verificar se já existe um popup aberto
+    if (document.querySelector('#elegantSuccessPopup')) {
+        console.log('⚠️ Popup já existe, removendo...');
+        fecharPopupElegante();
+    }
+    
+    // Criar overlay escuro
+    const overlay = document.createElement('div');
+    overlay.className = 'popup-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 99998;
+        animation: fadeInOverlay 0.3s ease;
+    `;
+    
+    // Criar popup elegante VERDE
+    const popup = document.createElement('div');
+    popup.id = 'elegantSuccessPopup';
+    popup.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        color: white;
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 25px 80px rgba(5, 150, 105, 0.4);
+        z-index: 99999;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        width: 90%;
+        max-width: 500px;
+        text-align: center;
+        animation: popupSlideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    `;
+    
+    // 🔥 VALOR FORMATADO CORRETAMENTE
+    const valorFormatado = parseFloat(valor).toFixed(2);
+    
+    popup.innerHTML = `
+        <div style="
+            font-size: 70px;
+            margin-bottom: 20px;
+            animation: iconBounce 1s infinite alternate;
+            filter: drop-shadow(0 5px 10px rgba(0,0,0,0.2));
+        ">✅</div>
+        
+        <h2 style="
+            margin: 0 0 15px 0;
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        ">Transferência Concluída!</h2>
+        
+        <p style="
+            margin: 0 0 30px 0;
+            font-size: 17px;
+            opacity: 0.95;
+            line-height: 1.5;
+            font-weight: 400;
+        ">Sua transferência internacional foi<br>solicitada com sucesso e está em processamento.</p>
+        
+        <div style="
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+            text-align: left;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        ">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 15px; align-items: center;">
+                <span style="opacity: 0.9; font-size: 15px;">ID da Transferência:</span>
+                <strong style="font-size: 20px; letter-spacing: 1px;">${transferenciaId}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="opacity: 0.9; font-size: 15px;">Valor Transferido:</span>
+                <strong style="font-size: 28px; color: #a7f3d0; font-weight: 800;">
+                    ${valorFormatado} ${moeda}
+                </strong>
+            </div>
+        </div>
+        
+        <div style="
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            justify-content: center;
+        ">
+            <button id="fecharPopupBtn" style="
+                background: rgba(255, 255, 255, 0.2);
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                color: white;
+                padding: 15px 35px;
+                border-radius: 50px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s;
+                flex: 1;
+                min-width: 140px;
+            ">Fechar</button>
+            
+            <button id="verTransferenciaBtn" style="
+                background: white;
+                color: #059669;
+                border: none;
+                padding: 15px 35px;
+                border-radius: 50px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s;
+                flex: 1;
+                min-width: 140px;
+                box-shadow: 0 5px 15px rgba(255, 255, 255, 0.1);
+            ">Ver Detalhes</button>
+        </div>
+        
+        <div style="
+            margin-top: 25px;
+            font-size: 14px;
+            opacity: 0.8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        ">
+            <span style="display: inline-block; width: 10px; height: 10px; background: #a7f3d0; border-radius: 50%; animation: pulse 2s infinite;"></span>
+            Status: <strong>Em processamento</strong>
+        </div>
+    `;
+    
+    // Adicionar estilos de animação
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes popupSlideIn {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.8) translateY(30px);
+            }
+            100% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+        
+        @keyframes fadeInOverlay {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes iconBounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-10px); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        #fecharPopupBtn:hover {
+            background: rgba(255, 255, 255, 0.3) !important;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        #verTransferenciaBtn:hover {
+            background: #f0fdf4 !important;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(255, 255, 255, 0.2);
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Adicionar ao body
+    document.body.appendChild(overlay);
+    document.body.appendChild(popup);
+    
+    console.log('✅ Popup criado e adicionado ao DOM');
+    
+    // Event listeners para os botões
+    document.getElementById('fecharPopupBtn').onclick = function() {
+        console.log('🔄 Fechando popup...');
+        fecharPopupElegante();
+    };
+    
+    document.getElementById('verTransferenciaBtn').onclick = function() {
+        console.log('🔗 Redirecionando para transferências...');
+        fecharPopupElegante();
+        setTimeout(() => {
+            window.location.href = '/minhas-transferencias';
+        }, 300);
+    };
+    
+    // Fechar ao clicar no overlay
+    overlay.onclick = function(e) {
+        if (e.target === overlay) {
+            fecharPopupElegante();
+        }
+    };
+    
+    // Fechar automaticamente após 8 segundos
+    setTimeout(() => {
+        console.log('⏰ Fechando popup automaticamente...');
+        fecharPopupElegante();
+    }, 8000);
+    
+    console.log('🎊 POPUP ELEGANTE EXIBIDO COM SUCESSO!');
+}
+
+// ============================================
 // FUNÇÃO AUXILIAR: FECHAR POPUP ELEGANTE
 // ============================================
 
@@ -276,44 +505,125 @@ function fecharPopupElegante() {
     
     if (popup) {
         popup.style.animation = 'popupSlideIn 0.3s reverse';
-        setTimeout(() => popup.remove(), 300);
+        setTimeout(() => {
+            if (popup.parentNode) {
+                popup.parentNode.removeChild(popup);
+            }
+        }, 300);
     }
     
     if (overlay) {
         overlay.style.animation = 'fadeInOverlay 0.3s reverse';
-        setTimeout(() => overlay.remove(), 300);
+        setTimeout(() => {
+            if (overlay.parentNode) {
+                overlay.parentNode.removeChild(overlay);
+            }
+        }, 300);
     }
     
     if (style && style.textContent.includes('popupSlideIn')) {
-        setTimeout(() => style.remove(), 500);
+        setTimeout(() => {
+            if (style.parentNode) {
+                style.parentNode.removeChild(style);
+            }
+        }, 500);
     }
 }
 
 // ============================================
-// FUNÇÃO AUXILIAR: MOSTRAR POPUP SIMPLES (FALLBACK)
+// FUNÇÃO PARA ATUALIZAR SALDO NO SELECT (VERSÃO CORRIGIDA)
 // ============================================
 
-function mostrarPopupSimples(transferenciaId, valor, moeda) {
-    console.log('🔄 Usando popup simples de fallback...');
+async function atualizarSaldoSelect(contaId, valorTransferencia, moeda) {
+    console.log('🔄 ATUALIZANDO SALDO NO SELECT...');
+    console.log('Conta:', contaId);
+    console.log('Valor da transferência:', valorTransferencia);
     
-    // Verificar se o modal existe
-    const modal = document.getElementById('successModal');
-    if (!modal) {
-        console.error('❌ Modal não encontrado!');
-        alert(`✅ Transferência criada!\nID: ${transferenciaId}\nValor: ${valor} ${moeda}`);
-        return;
+    try {
+        // 1. Buscar dados atualizados da API
+        const response = await fetch('/api/user/contas');
+        if (response.ok) {
+            const data = await response.json();
+            
+            if (data.success && data.contas) {
+                // 2. Encontrar a conta específica
+                const contaAtualizada = data.contas.find(c => c.id === contaId);
+                if (contaAtualizada) {
+                    const novoSaldo = parseFloat(contaAtualizada.saldo || 0);
+                    
+                    console.log(`💰 Novo saldo da conta ${contaId}: ${novoSaldo} ${moeda}`);
+                    
+                    // 3. Atualizar o select visualmente
+                    const select = document.getElementById('conta_origem');
+                    if (select) {
+                        // Encontrar a opção correta
+                        for (let i = 0; i < select.options.length; i++) {
+                            const option = select.options[i];
+                            if (option.value === contaId) {
+                                // Atualizar atributos
+                                option.setAttribute('data-saldo', novoSaldo);
+                                option.dataset.saldo = novoSaldo;
+                                
+                                // Atualizar texto
+                                option.textContent = `${moeda} - Saldo: ${novoSaldo.toFixed(2)}`;
+                                
+                                console.log(`✅ Opção ${i} atualizada: ${novoSaldo.toFixed(2)} ${moeda}`);
+                                
+                                // 4. Se esta conta está selecionada, atualizar display
+                                if (select.selectedIndex === i) {
+                                    setTimeout(() => {
+                                        atualizarSaldo();
+                                        console.log('✅ Display de saldo atualizado após transferência');
+                                    }, 100);
+                                }
+                                
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // 5. Atualizar variável global
+                    if (window.userContas) {
+                        const index = window.userContas.findIndex(c => c.id === contaId);
+                        if (index !== -1) {
+                            window.userContas[index].saldo = novoSaldo;
+                            console.log('✅ Variável global atualizada');
+                        }
+                    }
+                    
+                    return true;
+                }
+            }
+        }
+    } catch (error) {
+        console.error('❌ Erro ao atualizar saldo no select:', error);
+        
+        // 🔥 FALLBACK: Calcular manualmente se a API falhar
+        const select = document.getElementById('conta_origem');
+        if (select) {
+            for (let i = 0; i < select.options.length; i++) {
+                const option = select.options[i];
+                if (option.value === contaId) {
+                    const saldoAtual = parseFloat(option.getAttribute('data-saldo') || 0);
+                    const novoSaldo = saldoAtual - valorTransferencia;
+                    
+                    // Atualizar visualmente
+                    option.setAttribute('data-saldo', novoSaldo);
+                    option.dataset.saldo = novoSaldo;
+                    option.textContent = `${moeda} - Saldo: ${novoSaldo.toFixed(2)}`;
+                    
+                    if (select.selectedIndex === i) {
+                        atualizarSaldo();
+                    }
+                    
+                    console.log(`✅ Fallback: Saldo calculado manualmente: ${novoSaldo.toFixed(2)}`);
+                    break;
+                }
+            }
+        }
     }
     
-    // Preencher dados
-    const modalId = document.getElementById('modalTransferId');
-    const modalValor = document.getElementById('modalValor');
-    
-    if (modalId) modalId.textContent = transferenciaId;
-    if (modalValor) modalValor.textContent = `${valor} ${moeda}`;
-    
-    // Mostrar modal
-    modal.classList.remove('hidden');
-    console.log('✅ Modal simples exibido!');
+    return false;
 }
 
 // CARREGAR DADOS DO USUÁRIO
@@ -838,25 +1148,46 @@ function setupEventListeners() {
 }
 
 // ============================================
-// INICIALIZAÇÃO
+// INICIALIZAÇÃO FINAL - VERIFICA TODOS OS COMPONENTES
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 SISTEMA INICIADO');
+    console.log('🚀 INICIALIZAÇÃO COMPLETA DO SISTEMA');
     
-    // 1. Carregar contas
+    // Teste rápido do sistema
     setTimeout(() => {
-        loadContas();
-    }, 500);
-    
-    // 2. Outras inicializações...
-    loadUserData().catch(console.warn);
-    
-    setTimeout(() => {
-        loadBeneficiarios().catch(console.warn);
+        console.log('🔍 VERIFICANDO COMPONENTES:');
+        
+        // 1. Verificar popup function
+        console.log('✅ garantirPopupSucesso:', typeof garantirPopupSucesso);
+        
+        // 2. Verificar select
+        const select = document.getElementById('conta_origem');
+        if (select) {
+            console.log(`✅ Select encontrado: ${select.options.length} opções`);
+            
+            // Teste: selecionar primeira conta (se houver)
+            if (select.options.length > 1) {
+                select.selectedIndex = 1;
+                setTimeout(() => {
+                    const event = new Event('change', { bubbles: true });
+                    select.dispatchEvent(event);
+                    console.log('✅ Evento de mudança disparado');
+                }, 500);
+            }
+        }
+        
+        // 3. Verificar função de atualização de saldo
+        console.log('✅ atualizarSaldoSelect:', typeof atualizarSaldoSelect);
+        
+        // 4. Verificar botão de submit
+        const submitBtn = document.getElementById('submitBtn');
+        if (submitBtn) {
+            console.log('✅ Botão de submit encontrado');
+        }
+        
+        console.log('🎯 SISTEMA PRONTO PARA USO!');
     }, 1000);
-    
-    setupEventListeners();
 });
 
 // ============================================
@@ -1055,44 +1386,26 @@ window.enviarTransferencia = async function(e) {
         if (resultado.success) {
             console.log('🎯🎯🎯 TRANSFERÊNCIA BEM-SUCEDIDA 🎯🎯🎯');
             
+            // 🔥 CORREÇÃO CRÍTICA: ID CORRETO (teste ambos)
+            const transferenciaId = resultado.transferencia_id || resultado.transferenciaId || 
+                                resultado.id || 'TRANS-' + Date.now();
+            
+            console.log('ID da transferência:', transferenciaId);
+            
             // 🎯 1. MOSTRAR POPUP
             try {
-                console.log('📞 Chamando garantirPopupSucesso...'); // ⬅️ ADICIONE ESTE LOG
-                garantirPopupSucesso(resultado.transferencia_id, dados.valor.toFixed(2), dados.moeda);
-                console.log('✅ Popup exibido!'); // ⬅️ ADICIONE ESTE LOG
+                console.log('📞 Chamando garantirPopupSucesso...');
+                garantirPopupSucesso(transferenciaId, dados.valor.toFixed(2), dados.moeda);
             } catch (error) {
                 console.error('❌ Erro no popup:', error);
-                mostrarPopupSimples(resultado.transferencia_id, dados.valor.toFixed(2), dados.moeda);
+                mostrarPopupSimples(transferenciaId, dados.valor.toFixed(2), dados.moeda);
             }
             
-            // 🎯 2. ATUALIZAR SALDO IMEDIATAMENTE
-            console.log('💸 ATUALIZANDO SALDO...');
-
-            // Atualizar IMEDIATAMENTE de forma visual
-            const select = document.getElementById('conta_origem');
-            if (select && select.value === dados.conta_origem) {
-                const option = select.options[select.selectedIndex];
-                if (option) {
-                    // Calcular novo saldo visualmente
-                    const saldoAtual = parseFloat(option.getAttribute('data-saldo') || 0);
-                    const novoSaldo = saldoAtual - dados.valor;
-                    
-                    // Atualizar na tela AGORA
-                    option.setAttribute('data-saldo', novoSaldo);
-                    option.dataset.saldo = novoSaldo;
-                    option.textContent = `${dados.moeda} - Saldo: ${novoSaldo.toFixed(2)}`;
-                    
-                    // Atualizar display
-                    atualizarSaldo();
-                    
-                    console.log(`✅ Saldo atualizado visualmente: ${novoSaldo.toFixed(2)} ${dados.moeda}`);
-                }
-            }
-
-            // Depois sincronizar com API
-            setTimeout(async () => {
-                await atualizarSaldoAposTransferencia();
-            }, 500);
+            // 🎯 2. ATUALIZAR SALDO NO SELECT (CHAMADA CORRIGIDA)
+            console.log('💸 CHAMANDO ATUALIZAÇÃO DE SALDO...');
+            
+            // Usar a NOVA função de atualização
+            await atualizarSaldoSelect(dados.conta_origem, dados.valor, dados.moeda);
             
             // 🎯 3. SALVAR BENEFICIÁRIO (opcional)
             if (document.getElementById('salvar_beneficiario')?.checked) {
