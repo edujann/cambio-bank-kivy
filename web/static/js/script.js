@@ -326,24 +326,175 @@ function configurarSelectGarantido() {
     return newSelect;
 }
 
+// VERIFICAÇÃO DE CHAMADA
+console.log('🔍 configurarSelectGarantido definida?', typeof configurarSelectGarantido);
+
+// Forçar chamada após loadContas
+const oldLoadContas = loadContas;
+loadContas = async function() {
+    console.log('🔍 loadContas CHAMADA!');
+    const result = await oldLoadContas.apply(this, arguments);
+    console.log('🔍 loadContas finalizou, resultado:', result);
+    return result;
+};
+
+// SOLUÇÃO ALTERNATIVA: Usar MutationObserver para detectar mudanças
+function configurarSaldoAutomatico() {
+    console.log('🎯 configurarSaldoAutomatico INICIADA');
+    
+    const select = document.getElementById('conta_origem');
+    if (!select) {
+        console.error('❌ Select não encontrado');
+        return;
+    }
+    
+    // 1. Observar mudanças no select
+    const observer = new MutationObserver(function(mutations) {
+        console.log('🔍 MutationObserver detectou mudança:', mutations);
+        
+        // Verificar se a seleção mudou
+        const option = select.options[select.selectedIndex];
+        if (option && option.value) {
+            atualizarSaldoDisplay(option);
+        }
+    });
+    
+    // Observar mudanças no selectedIndex
+    observer.observe(select, { 
+        attributes: true, 
+        attributeFilter: ['selectedIndex', 'value'] 
+    });
+    
+    // 2. Também adicionar evento tradicional (fallback)
+    select.addEventListener('change', function() {
+        console.log('🎉 Evento change via addEventListener');
+        const option = this.options[this.selectedIndex];
+        if (option && option.value) {
+            atualizarSaldoDisplay(option);
+        }
+    });
+    
+    // 3. Configurar onchange direto
+    select.onchange = function() {
+        console.log('🎉 Evento onchange direto');
+        const option = this.options[this.selectedIndex];
+        if (option && option.value) {
+            atualizarSaldoDisplay(option);
+        }
+    };
+    
+    // 4. Configurar click nas opções (fallback extra)
+    for (let i = 0; i < select.options.length; i++) {
+        select.options[i].onclick = function() {
+            console.log('🖱️ Click na opção:', this.text);
+            atualizarSaldoDisplay(this);
+        };
+    }
+    
+    console.log('✅ configurarSaldoAutomatico configurada');
+}
+
+// Função auxiliar para atualizar display
+function atualizarSaldoDisplay(optionElement) {
+    console.log('💸 atualizarSaldoDisplay chamada para:', optionElement.text);
+    
+    // Tentar várias formas de obter os dados
+    let moeda = 'USD';
+    let saldo = 0;
+    
+    // Método 1: dataset
+    if (optionElement.dataset.moeda) {
+        moeda = optionElement.dataset.moeda;
+        saldo = parseFloat(optionElement.dataset.saldo || 0);
+        console.log('📊 Via dataset:', { moeda, saldo });
+    }
+    // Método 2: Extrair do texto
+    else if (optionElement.text) {
+        const match = optionElement.text.match(/([A-Z]{3})\s*-\s*Saldo:\s*([\d.,]+)/);
+        if (match) {
+            moeda = match[1];
+            saldo = parseFloat(match[2].replace(',', ''));
+            console.log('📊 Via regex do texto:', { moeda, saldo });
+        }
+    }
+    // Método 3: Buscar na array userContas
+    else {
+        const conta = userContas.find(c => c.id === optionElement.value);
+        if (conta) {
+            moeda = conta.moeda || 'USD';
+            saldo = parseFloat(conta.saldo || 0);
+            console.log('📊 Via userContas array:', { moeda, saldo });
+        }
+    }
+    
+    console.log(`💰 Resultado final: ${saldo} ${moeda}`);
+    
+    // Atualizar UI
+    const saldoSpan = document.getElementById('saldo_valor');
+    const moedaLabel = document.getElementById('moeda_label');
+    
+    if (saldoSpan) {
+        saldoSpan.textContent = `${saldo.toFixed(2)} ${moeda}`;
+        saldoSpan.style.color = '#27ae60';
+        saldoSpan.style.fontWeight = 'bold';
+    }
+    
+    if (moedaLabel) {
+        moedaLabel.textContent = moeda;
+    }
+    
+    return { moeda, saldo };
+}
+
 // CARREGAR CONTAS DO USUÁRIO
 async function loadContas() {
-    console.log('🔍 loadContas INICIADA');
+    console.log('🎯 loadContas INICIADA (VERSÃO FINAL)');
     
     try {
         const response = await fetch('/api/user/contas');
-        console.log('📡 Response status:', response.status);
+        console.log('📡 Response:', response.status, response.ok);
         
         if (response.ok) {
             const data = await response.json();
-            console.log('📊 Dados recebidos:', data);
+            console.log('📊 Dados API:', data);
             
             if (data.success && data.contas) {
                 userContas = data.contas;
-                console.log(`✅ ${userContas.length} contas carregadas`);
+                console.log(`✅ ${userContas.length} contas recebidas`);
                 
-                // 🔥 CHAMAR FUNÇÃO GARANTIDA
-                configurarSelectGarantido();
+                // Atualizar select
+                const select = document.getElementById('conta_origem');
+                if (select) {
+                    // Limpar
+                    select.innerHTML = '<option value="">Selecione sua conta...</option>';
+                    
+                    // Adicionar opções
+                    userContas.forEach(conta => {
+                        const option = document.createElement('option');
+                        option.value = conta.id;
+                        option.textContent = `${conta.moeda} - Saldo: ${parseFloat(conta.saldo || 0).toFixed(2)}`;
+                        
+                        // Dataset
+                        option.dataset.moeda = conta.moeda;
+                        option.dataset.saldo = conta.saldo;
+                        
+                        select.appendChild(option);
+                    });
+                    
+                    console.log('✅ Select atualizado com', select.options.length, 'opções');
+                    
+                    // 🔥 CHAMAR SOLUÇÃO DEFINITIVA
+                    configurarSaldoAutomatico();
+                    
+                    // Teste automático
+                    setTimeout(() => {
+                        if (select.options.length > 1) {
+                            console.log('🧪 Teste automático: selecionando primeira conta...');
+                            select.selectedIndex = 1;
+                            select.dispatchEvent(new Event('change'));
+                        }
+                    }, 500);
+                }
                 
                 return true;
             }
@@ -352,6 +503,7 @@ async function loadContas() {
         console.error('❌ Erro em loadContas:', error);
     }
     
+    console.log('⚠️ loadContas retornando false');
     return false;
 }
 
