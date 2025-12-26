@@ -331,27 +331,88 @@ function atualizarSaldoDisplay(optionElement) {
 
 // CARREGAR CONTAS DO USUÁRIO
 async function loadContas() {
-    console.log('🎯 loadContas SIMPLES INICIADA');
+    console.log('🎯 LOAD CONTAS SIMPLIFICADA');
     
     try {
+        console.log('📡 Fazendo fetch...');
         const response = await fetch('/api/user/contas');
+        console.log('📡 Response:', response.status);
         
-        if (response.ok) {
-            const data = await response.json();
+        if (!response.ok) {
+            console.error('❌ Erro HTTP:', response.status);
+            return false;
+        }
+        
+        const data = await response.json();
+        console.log('📊 Dados API:', data);
+        
+        if (data.success && data.contas && data.contas.length > 0) {
+            // 1. Atualizar variáveis
+            userContas = data.contas;
+            window.userContas = data.contas;
             
-            if (data.success && data.contas) {
-                // 1. Atualizar userContas GLOBAL
-                userContas = data.contas;
-                window.userContas = data.contas; // ⬅️ GARANTIR que seja global
+            console.log(`✅ ${userContas.length} contas recebidas`);
+            
+            // 2. Atualizar select IMEDIATAMENTE
+            const select = document.getElementById('conta_origem');
+            if (select) {
+                // Limpar
+                select.innerHTML = '<option value="">Selecione sua conta...</option>';
                 
-                console.log(`✅ ${userContas.length} contas carregadas`);
-                console.log('📊 Contas:', userContas);
+                // Adicionar opções
+                data.contas.forEach(conta => {
+                    const option = document.createElement('option');
+                    option.value = conta.id;
+                    option.text = `${conta.moeda} - Saldo: ${parseFloat(conta.saldo || 0).toFixed(2)}`;
+                    
+                    // Dataset CORRETO
+                    option.setAttribute('data-moeda', conta.moeda || 'USD');
+                    option.setAttribute('data-saldo', parseFloat(conta.saldo || 0));
+                    
+                    select.add(option);
+                });
                 
-                // 2. Atualizar select de forma SUPER SIMPLES
-                atualizarSelectSimples();
+                console.log(`✅ Select atualizado: ${select.options.length} opções`);
                 
-                return true;
+                // 3. CONFIGURAR EVENTO ONCHANGE SIMPLES
+                select.onchange = function() {
+                    console.log('🎉 ONCHANGE DISPARADO!');
+                    
+                    const option = this.options[this.selectedIndex];
+                    if (!option || !option.value) return;
+                    
+                    // Obter dados
+                    const moeda = option.getAttribute('data-moeda') || 'USD';
+                    const saldo = parseFloat(option.getAttribute('data-saldo') || 0);
+                    
+                    console.log(`💰 ${saldo.toFixed(2)} ${moeda}`);
+                    
+                    // Atualizar UI
+                    document.getElementById('saldo_valor').textContent = `${saldo.toFixed(2)} ${moeda}`;
+                    document.getElementById('moeda_label').textContent = moeda;
+                };
+                
+                console.log('✅ Evento onchange configurado');
+                
+                // 4. Testar automaticamente
+                setTimeout(() => {
+                    if (select.options.length > 1) {
+                        // Selecionar conta USD
+                        for (let i = 0; i < select.options.length; i++) {
+                            if (select.options[i].text.includes('USD')) {
+                                select.selectedIndex = i;
+                                select.onchange();
+                                console.log(`✅ Teste automático: ${select.options[i].text}`);
+                                break;
+                            }
+                        }
+                    }
+                }, 1000);
             }
+            
+            return true;
+        } else {
+            console.warn('⚠️ API não retornou contas:', data);
         }
     } catch (error) {
         console.error('❌ Erro em loadContas:', error);
@@ -631,9 +692,6 @@ function configurarEventoEmergencia() {
     
     console.log('✅ Evento de emergência configurado!');
 }
-
-// Executar verificação
-setTimeout(verificarEventosSelect, 2000);
 
 // TESTE MANUAL DE SELEÇÃO
 function testarSelecaoConta() {
@@ -943,11 +1001,19 @@ document.addEventListener('DOMContentLoaded', async function() {
             console.warn('⚠️ Erro em loadUserData:', error);
         });
         
-        // 2. Carregar contas (CRÍTICO - fazer primeiro e separado)
-        console.log('🔄 Carregando contas (prioridade)...');
-        await loadContas().catch(error => {
-            console.error('❌ Erro crítico em loadContas:', error); 
+        // 2. 🔥 CARREGAR CONTAS COM RETRY (CRÍTICO)
+        console.log('🔍 Forçando loadContas...');
+        const contasCarregadas = await loadContas().catch(error => {
+            console.error('❌ Erro em loadContas:', error);
+            return false;
         });
+        
+        if (!contasCarregadas) {
+            console.log('⚠️ Tentando loadContas novamente...');
+            setTimeout(async () => {
+                await loadContas();
+            }, 1000);
+        }
         
         // 3. Carregar beneficiários (não bloqueante)
         setTimeout(() => {
