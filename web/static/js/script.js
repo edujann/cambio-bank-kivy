@@ -271,145 +271,198 @@ async function loadContas() {
     console.log('🎯 CARREGANDO CONTAS...');
     
     try {
-        // Buscar dados da API
         const response = await fetch('/api/user/contas');
         
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         
         const data = await response.json();
+        if (!data.success || !data.contas) throw new Error('API sem contas');
         
-        if (!data.success || !data.contas) {
-            throw new Error('API não retornou contas válidas');
-        }
-        
-        // Atualizar variáveis globais
         userContas = data.contas;
         window.userContas = data.contas;
         
-        console.log(`✅ ${userContas.length} contas recebidas`);
+        console.log(`✅ ${userContas.length} contas carregadas`);
         
-        // Atualizar o select na tela
-        atualizarSelectDeContas();
-        
+        atualizarSelectDeContas(); // ⬅️ Use esta função NOVA
         return true;
         
     } catch (error) {
-        console.error('❌ Erro ao carregar contas:', error);
-        showAlert('Erro ao carregar contas. Tente recarregar a página.', 'error');
+        console.error('❌ Erro loadContas:', error);
         return false;
     }
 }
 
 // ============================================
-// 2. FUNÇÃO - ATUALIZAR SELECT NA TELA
+// 2. FUNÇÃO - ATUALIZAR SELECT (VERSÃO NOVA)
 // ============================================
 
 function atualizarSelectDeContas() {
-    console.log('🔄 ATUALIZANDO SELECT...');
-    
     const select = document.getElementById('conta_origem');
     if (!select) {
         console.error('❌ Select não encontrado');
         return;
     }
     
-    // Limpar opções antigas
+    // Salvar seleção atual
+    const selecaoAtual = select.value;
+    
+    // Limpar
     select.innerHTML = '<option value="">Selecione sua conta...</option>';
     
-    // Adicionar novas opções
+    // Adicionar opções
     userContas.forEach(conta => {
         const option = document.createElement('option');
         option.value = conta.id;
         option.textContent = `${conta.moeda} - Saldo: ${parseFloat(conta.saldo || 0).toFixed(2)}`;
         
-        // Adicionar dados como atributos (IMPORTANTE!)
+        // 🔥 ADICIONAR ATRIBUTOS CORRETAMENTE
         option.setAttribute('data-moeda', conta.moeda || 'USD');
         option.setAttribute('data-saldo', parseFloat(conta.saldo || 0));
+        
+        // Também adicionar ao dataset
+        option.dataset.moeda = conta.moeda || 'USD';
+        option.dataset.saldo = parseFloat(conta.saldo || 0);
         
         select.appendChild(option);
     });
     
-    console.log(`✅ ${userContas.length} contas adicionadas ao select`);
+    console.log(`✅ ${userContas.length} contas adicionadas`);
     
-    // Configurar o evento de mudança
-    configurarEventoDeSaldo();
+    // Restaurar seleção
+    if (selecaoAtual) {
+        select.value = selecaoAtual;
+    }
+    
+    // 🔥 CONFIGURAR EVENTO GARANTIDO
+    configurarEventoSaldoGarantido();
 }
 
 // ============================================
-// FUNÇÃO - CONFIGURAR EVENTO DE SALDO (CORRIGIDA)
+// 3. FUNÇÃO ÚNICA PARA ATUALIZAR SALDO
 // ============================================
 
-function configurarEventoDeSaldo() {
+function atualizarSaldo() {
+    console.log('💸 ATUALIZANDO SALDO...');
+    
     const select = document.getElementById('conta_origem');
-    if (!select) {
-        console.error('❌ Select não encontrado');
+    if (!select) return;
+    
+    const option = select.options[select.selectedIndex];
+    if (!option || !option.value) {
+        document.getElementById('saldo_valor').textContent = '--';
         return;
     }
     
-    console.log('🎯 CONFIGURANDO EVENTO DE SALDO...');
+    // Obter dados (de qualquer forma possível)
+    let moeda = 'USD';
+    let saldo = 0;
     
-    // 🔥 CORREÇÃO: Usar addEventListener em vez de onchange direto
-    // Remove todos os listeners antigos primeiro
-    const novoSelect = select.cloneNode(true);
+    // Tentar getAttribute primeiro (mais confiável)
+    moeda = option.getAttribute('data-moeda') || 'USD';
+    saldo = parseFloat(option.getAttribute('data-saldo') || 0);
+    
+    // Se não tiver atributo, extrair do texto
+    if (!moeda || moeda === 'USD') {
+        const texto = option.text;
+        const partes = texto.split(' - ');
+        if (partes[0]) moeda = partes[0].trim();
+        
+        const saldoMatch = texto.match(/Saldo:\s*([\d.,]+)/);
+        if (saldoMatch) saldo = parseFloat(saldoMatch[1].replace(',', ''));
+    }
+    
+    console.log(`💰 ${saldo.toFixed(2)} ${moeda}`);
+    
+    // Atualizar interface
+    const saldoSpan = document.getElementById('saldo_valor');
+    const moedaLabel = document.getElementById('moeda_label');
+    
+    if (saldoSpan) {
+        saldoSpan.textContent = `${saldo.toFixed(2)} ${moeda}`;
+        saldoSpan.style.color = '#27ae60';
+        saldoSpan.style.fontWeight = 'bold';
+    }
+    
+    if (moedaLabel) {
+        moedaLabel.textContent = moeda;
+    }
+}
+
+// ============================================
+// 4. CONFIGURAR EVENTO DE FORMA GARANTIDA
+// ============================================
+
+function configurarEventoSaldoGarantido() {
+    console.log('🎯 CONFIGURANDO EVENTO (GARANTIDO)...');
+    
+    const select = document.getElementById('conta_origem');
+    if (!select) {
+        console.error('❌ Select não encontrado');
+        return false;
+    }
+    
+    // 🔥 REMOVER COMPLETAMENTE o select antigo
+    const novoSelect = select.cloneNode(false); // Clone vazio (sem eventos)
+    
+    // Copiar opções
+    for (let i = 0; i < select.options.length; i++) {
+        novoSelect.appendChild(select.options[i].cloneNode(true));
+    }
+    
+    // Substituir
     select.parentNode.replaceChild(novoSelect, select);
     
-    // 🔥 FORMA CORRETA: addEventListener
-    novoSelect.addEventListener('change', function() {
-        console.log('🎉🎉🎉 EVENTO CHANGE DISPARADO! 🎉🎉🎉');
-        
-        const option = this.options[this.selectedIndex];
-        
-        if (!option || !option.value) {
-            document.getElementById('saldo_valor').textContent = '--';
-            return;
-        }
-        
-        // Obter dados da conta
-        const moeda = option.getAttribute('data-moeda') || 'USD';
-        const saldo = parseFloat(option.getAttribute('data-saldo') || 0);
-        
-        console.log(`💰 Saldo encontrado: ${saldo.toFixed(2)} ${moeda}`);
-        
-        // Atualizar interface
-        const saldoSpan = document.getElementById('saldo_valor');
-        const moedaLabel = document.getElementById('moeda_label');
-        
-        if (saldoSpan) {
-            saldoSpan.textContent = `${saldo.toFixed(2)} ${moeda}`;
-            saldoSpan.style.color = '#27ae60';
-            saldoSpan.style.fontWeight = 'bold';
-        }
-        
-        if (moedaLabel) {
-            moedaLabel.textContent = moeda;
-        }
-    });
+    // 🔥 CONFIGURAR DE 3 FORMAS DIFERENTES (para garantir)
     
-    console.log('✅ Evento change configurado com addEventListener');
+    // 1. addEventListener (padrão)
+    novoSelect.addEventListener('change', atualizarSaldo);
     
-    // 🔥 TESTAR AUTOMATICAMENTE
+    // 2. onchange direto (fallback)
+    novoSelect.onchange = atualizarSaldo;
+    
+    // 3. onclick nas opções (emergência)
+    for (let i = 0; i < novoSelect.options.length; i++) {
+        novoSelect.options[i].onclick = function() {
+            novoSelect.selectedIndex = i;
+            atualizarSaldo();
+        };
+    }
+    
+    console.log('✅ Evento configurado de 3 formas diferentes');
+    
+    // Testar automaticamente
     if (novoSelect.options.length > 1) {
         setTimeout(() => {
-            console.log('🧪 Teste automático...');
-            
             // Encontrar conta USD
             for (let i = 0; i < novoSelect.options.length; i++) {
                 if (novoSelect.options[i].text.includes('USD')) {
                     novoSelect.selectedIndex = i;
-                    
-                    // 🔥 FORMA CORRETA de disparar evento
-                    const event = new Event('change', { bubbles: true });
-                    novoSelect.dispatchEvent(event);
-                    
-                    console.log(`✅ Testado: ${novoSelect.options[i].text}`);
+                    atualizarSaldo();
+                    console.log(`✅ Teste automático: ${novoSelect.options[i].text}`);
                     break;
                 }
             }
-        }, 500);
+        }, 800);
     }
+    
+    return true;
 }
+
+// ============================================
+// 5. VERIFICAÇÃO DE EMERGÊNCIA (OPCIONAL)
+// ============================================
+
+setInterval(() => {
+    const select = document.getElementById('conta_origem');
+    if (select && select.options.length > 1) {
+        // Se não tem evento configurado, configurar
+        if (!select.onchange && !select._eventListeners) {
+            console.warn('⚠️ Evento perdido! Reconfigurando...');
+            configurarEventoSaldoGarantido();
+        }
+    }
+}, 5000); // Verificar a cada 5 segundos
+
 
 // CARREGAR BENEFICIÁRIOS SALVOS
 async function loadBeneficiarios() {
@@ -603,13 +656,13 @@ function setupEventListeners() {
 }
 
 // ============================================
-// INICIALIZAÇÃO SIMPLES
+// INICIALIZAÇÃO
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 SISTEMA INICIADO');
     
-    // 1. Carregar contas (IMPORTANTE!)
+    // 1. Carregar contas
     setTimeout(() => {
         loadContas();
     }, 500);
@@ -622,7 +675,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 1000);
     
     setupEventListeners();
-}); 
+});
 
 // ============================================
 // FUNÇÃO PARA MENU DO USUÁRIO
