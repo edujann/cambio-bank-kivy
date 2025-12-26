@@ -6,6 +6,9 @@
 let selectedFile = null;
 let userContas = [];
 
+// GARANTIR que userContas seja global
+window.userContas = window.userContas || [];
+
 // ============================================
 // FUNÇÃO: POPUP DE SUCESSO VERDE FINANCEIRO
 // Substitua a função atual "garantirPopupSucesso"
@@ -475,8 +478,8 @@ async function loadContas() {
                         option.textContent = `${conta.moeda} - Saldo: ${parseFloat(conta.saldo || 0).toFixed(2)}`;
                         
                         // Dataset
-                        option.dataset.moeda = conta.moeda;
-                        option.dataset.saldo = conta.saldo;
+                        option.setAttribute('data-moeda', conta.moeda || 'USD');
+                        option.setAttribute('data-saldo', parseFloat(conta.saldo || 0));
                         
                         select.appendChild(option);
                     });
@@ -496,6 +499,9 @@ async function loadContas() {
                     }, 500);
                 }
                 
+                // 🔥 CHAMAR SOLUÇÃO DEFINITIVA
+                setTimeout(solucaoDefinitiva, 100);    
+
                 return true;
             }
         }
@@ -506,6 +512,55 @@ async function loadContas() {
     console.log('⚠️ loadContas retornando false');
     return false;
 }
+
+// SOLUÇÃO SUPER SIMPLES QUE FUNCIONA
+function solucaoDefinitiva() {
+    console.log('🎯 SOLUÇÃO DEFINITIVA INICIADA');
+    
+    const select = document.getElementById('conta_origem');
+    if (!select) {
+        console.error('❌ Select não encontrado');
+        return;
+    }
+    
+    // 1. Configurar evento change de forma ULTRA SIMPLES
+    select.onchange = function() {
+        console.log('🎉 EVENTO ONCHANGE DISPARADO!');
+        
+        const option = this.options[this.selectedIndex];
+        if (!option || !option.value) {
+            document.getElementById('saldo_valor').textContent = '--';
+            return;
+        }
+        
+        // Obter dados
+        const moeda = option.getAttribute('data-moeda') || 'USD';
+        const saldo = parseFloat(option.getAttribute('data-saldo') || 0);
+        
+        console.log(`💰 ${saldo.toFixed(2)} ${moeda}`);
+        
+        // Atualizar UI
+        document.getElementById('saldo_valor').textContent = `${saldo.toFixed(2)} ${moeda}`;
+        document.getElementById('moeda_label').textContent = moeda;
+    };
+    
+    // 2. Configurar também addEventListener (backup)
+    select.addEventListener('change', select.onchange);
+    
+    // 3. Verificar
+    console.log('✅ Evento configurado?', select.onchange ? 'SIM!' : 'NÃO');
+    
+    // 4. Testar automaticamente
+    if (select.options.length > 1) {
+        setTimeout(() => {
+            select.selectedIndex = 1;
+            select.onchange();
+        }, 1000);
+    }
+}
+
+// Chamar após loadContas
+window.solucaoDefinitiva = solucaoDefinitiva;
 
 // ATUALIZAR SELECT DE CONTAS
 function updateContasSelect() {
