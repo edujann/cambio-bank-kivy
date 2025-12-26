@@ -338,20 +338,26 @@ function atualizarSelectDeContas() {
 }
 
 // ============================================
-// 3. FUNÇÃO - CONFIGURAR EVENTO DE SALDO
+// FUNÇÃO - CONFIGURAR EVENTO DE SALDO (CORRIGIDA)
 // ============================================
 
 function configurarEventoDeSaldo() {
     const select = document.getElementById('conta_origem');
-    if (!select) return;
+    if (!select) {
+        console.error('❌ Select não encontrado');
+        return;
+    }
     
-    // Remover eventos antigos
+    console.log('🎯 CONFIGURANDO EVENTO DE SALDO...');
+    
+    // 🔥 CORREÇÃO: Usar addEventListener em vez de onchange direto
+    // Remove todos os listeners antigos primeiro
     const novoSelect = select.cloneNode(true);
     select.parentNode.replaceChild(novoSelect, select);
     
-    // Adicionar novo evento (forma simples e direta)
-    novoSelect.onchange = function() {
-        console.log('🎉 CONTA SELECIONADA!');
+    // 🔥 FORMA CORRETA: addEventListener
+    novoSelect.addEventListener('change', function() {
+        console.log('🎉🎉🎉 EVENTO CHANGE DISPARADO! 🎉🎉🎉');
         
         const option = this.options[this.selectedIndex];
         
@@ -360,18 +366,49 @@ function configurarEventoDeSaldo() {
             return;
         }
         
-        // Obter dados da conta selecionada
+        // Obter dados da conta
         const moeda = option.getAttribute('data-moeda') || 'USD';
         const saldo = parseFloat(option.getAttribute('data-saldo') || 0);
         
-        console.log(`💰 Saldo: ${saldo.toFixed(2)} ${moeda}`);
+        console.log(`💰 Saldo encontrado: ${saldo.toFixed(2)} ${moeda}`);
         
-        // Atualizar a tela
-        document.getElementById('saldo_valor').textContent = `${saldo.toFixed(2)} ${moeda}`;
-        document.getElementById('moeda_label').textContent = moeda;
-    };
+        // Atualizar interface
+        const saldoSpan = document.getElementById('saldo_valor');
+        const moedaLabel = document.getElementById('moeda_label');
+        
+        if (saldoSpan) {
+            saldoSpan.textContent = `${saldo.toFixed(2)} ${moeda}`;
+            saldoSpan.style.color = '#27ae60';
+            saldoSpan.style.fontWeight = 'bold';
+        }
+        
+        if (moedaLabel) {
+            moedaLabel.textContent = moeda;
+        }
+    });
     
-    console.log('✅ Evento de saldo configurado');
+    console.log('✅ Evento change configurado com addEventListener');
+    
+    // 🔥 TESTAR AUTOMATICAMENTE
+    if (novoSelect.options.length > 1) {
+        setTimeout(() => {
+            console.log('🧪 Teste automático...');
+            
+            // Encontrar conta USD
+            for (let i = 0; i < novoSelect.options.length; i++) {
+                if (novoSelect.options[i].text.includes('USD')) {
+                    novoSelect.selectedIndex = i;
+                    
+                    // 🔥 FORMA CORRETA de disparar evento
+                    const event = new Event('change', { bubbles: true });
+                    novoSelect.dispatchEvent(event);
+                    
+                    console.log(`✅ Testado: ${novoSelect.options[i].text}`);
+                    break;
+                }
+            }
+        }, 500);
+    }
 }
 
 // CARREGAR BENEFICIÁRIOS SALVOS
@@ -945,37 +982,56 @@ window.addEventListener('resize', function() {
     }
 });
 
-// TESTE AUTOMÁTICO GARANTIDO
+// Teste rápido CORRIGIDO
+function testeRapido() {
+    console.log('🧪 TESTE RÁPIDO CORRIGIDO');
+    
+    // Executar loadContas
+    loadContas().then(resultado => {
+        console.log('Resultado loadContas:', resultado);
+        
+        // Esperar 1 segundo e testar
+        setTimeout(() => {
+            const select = document.getElementById('conta_origem');
+            if (select && select.options.length > 1) {
+                console.log('🔍 Encontrando conta USD...');
+                
+                // Selecionar conta USD
+                for (let i = 0; i < select.options.length; i++) {
+                    if (select.options[i].text.includes('USD')) {
+                        select.selectedIndex = i;
+                        
+                        // 🔥 CORREÇÃO: Usar dispatchEvent em vez de onchange()
+                        const event = new Event('change', { bubbles: true });
+                        select.dispatchEvent(event);
+                        
+                        console.log('✅ Evento disparado corretamente');
+                        break;
+                    }
+                }
+            }
+        }, 1000);
+    });
+}
+
+// VERIFICAÇÃO FINAL
 setTimeout(() => {
-    console.log('🧪 TESTE AUTOMÁTICO GARANTIDO');
+    console.log('🔍 VERIFICAÇÃO FINAL:');
     
     const select = document.getElementById('conta_origem');
-    if (!select) {
-        console.error('❌ Select não existe!');
-        return;
-    }
-    
-    console.log('📊 Status:');
-    console.log('  - Opções:', select.options.length);
-    console.log('  - onchange:', select.onchange ? '✅ CONFIGURADO' : '❌ NÃO CONFIGURADO');
-    
-    // Se não tem evento, forçar configuração
-    if (!select.onchange && userContas && userContas.length > 0) {
-        console.log('⚠️ Evento não configurado! Forçando...');
-        configurarSelectGarantido();
-    }
-    
-    // Testar seleção automática
-    if (select.options.length > 1) {
-        console.log('🔄 Selecionando primeira conta para teste...');
-        select.selectedIndex = 1;
+    if (select) {
+        console.log(`- Opções: ${select.options.length}`);
+        console.log(`- Event listeners:`, select._eventListeners || 'N/A');
         
-        // Disparar evento
-        if (select.onchange) {
-            select.onchange();
-        } else {
-            const event = new Event('change');
-            select.dispatchEvent(event);
+        // Verificar se tem eventos de forma correta
+        const hasListeners = select._eventListeners || 
+                            select.onchange || 
+                            select.onclick;
+        console.log(`- Tem eventos? ${hasListeners ? '✅ SIM' : '❌ NÃO'}`);
+        
+        // Teste manual
+        if (select.options.length > 1) {
+            console.log('🖱️ Clique no dropdown e selecione uma conta para testar');
         }
     }
-}, 2000);
+}, 3000);
