@@ -246,6 +246,33 @@ function fecharPopupElegante() {
     }
 }
 
+// ============================================
+// FUNÇÃO AUXILIAR: MOSTRAR POPUP SIMPLES (FALLBACK)
+// ============================================
+
+function mostrarPopupSimples(transferenciaId, valor, moeda) {
+    console.log('🔄 Usando popup simples de fallback...');
+    
+    // Verificar se o modal existe
+    const modal = document.getElementById('successModal');
+    if (!modal) {
+        console.error('❌ Modal não encontrado!');
+        alert(`✅ Transferência criada!\nID: ${transferenciaId}\nValor: ${valor} ${moeda}`);
+        return;
+    }
+    
+    // Preencher dados
+    const modalId = document.getElementById('modalTransferId');
+    const modalValor = document.getElementById('modalValor');
+    
+    if (modalId) modalId.textContent = transferenciaId;
+    if (modalValor) modalValor.textContent = `${valor} ${moeda}`;
+    
+    // Mostrar modal
+    modal.classList.remove('hidden');
+    console.log('✅ Modal simples exibido!');
+}
+
 // CARREGAR DADOS DO USUÁRIO
 async function loadUserData() {
     try {
@@ -293,10 +320,12 @@ async function loadContas() {
 }
 
 // ============================================
-// 2. FUNÇÃO - ATUALIZAR SELECT (VERSÃO NOVA)
+// 2. FUNÇÃO - ATUALIZAR SELECT (VERSÃO MELHORADA)
 // ============================================
 
 function atualizarSelectDeContas() {
+    console.log('🔄 ATUALIZANDO SELECT DE CONTAS...');
+    
     const select = document.getElementById('conta_origem');
     if (!select) {
         console.error('❌ Select não encontrado');
@@ -305,6 +334,8 @@ function atualizarSelectDeContas() {
     
     // Salvar seleção atual
     const selecaoAtual = select.value;
+    const contaSelecionada = selecaoAtual ? 
+        userContas.find(c => c.id === selecaoAtual) : null;
     
     // Limpar
     select.innerHTML = '<option value="">Selecione sua conta...</option>';
@@ -313,27 +344,37 @@ function atualizarSelectDeContas() {
     userContas.forEach(conta => {
         const option = document.createElement('option');
         option.value = conta.id;
-        option.textContent = `${conta.moeda} - Saldo: ${parseFloat(conta.saldo || 0).toFixed(2)}`;
         
-        // 🔥 ADICIONAR ATRIBUTOS CORRETAMENTE
+        // Formatar saldo com 2 casas decimais
+        const saldoFormatado = parseFloat(conta.saldo || 0).toFixed(2);
+        option.textContent = `${conta.moeda} - Saldo: ${saldoFormatado}`;
+        
+        // Adicionar atributos
         option.setAttribute('data-moeda', conta.moeda || 'USD');
         option.setAttribute('data-saldo', parseFloat(conta.saldo || 0));
         
-        // Também adicionar ao dataset
+        // Dataset também
         option.dataset.moeda = conta.moeda || 'USD';
         option.dataset.saldo = parseFloat(conta.saldo || 0);
         
         select.appendChild(option);
     });
     
-    console.log(`✅ ${userContas.length} contas adicionadas`);
+    console.log(`✅ ${userContas.length} contas adicionadas ao select`);
     
     // Restaurar seleção
     if (selecaoAtual) {
         select.value = selecaoAtual;
+        
+        // Se a conta ainda existe, atualizar display
+        if (contaSelecionada) {
+            setTimeout(() => {
+                atualizarSaldo();
+            }, 100);
+        }
     }
     
-    // 🔥 CONFIGURAR EVENTO GARANTIDO
+    // Configurar evento
     configurarEventoSaldoGarantido();
 }
 
@@ -970,10 +1011,28 @@ window.enviarTransferencia = async function(e) {
                 mostrarPopupSimples(resultado.transferencia_id, dados.valor.toFixed(2), dados.moeda);
             }
             
-            // 🎯 2. ATUALIZAR SALDO IMEDIATAMENTE
-            setTimeout(() => {
-                atualizarSaldoAposTransferencia();
-            }, 1000);
+            // 🎯 2. ATUALIZAR SALDO IMEDIATAMENTE (MELHORADA)
+            setTimeout(async () => {
+                console.log('💸 Atualizando saldo após transferência...');
+                
+                // Atualizar o saldo da conta usada IMEDIATAMENTE
+                const select = document.getElementById('conta_origem');
+                if (select && select.value === dados.conta_origem) {
+                    const option = select.options[select.selectedIndex];
+                    if (option) {
+                        // Calcular novo saldo
+                        const saldoAtual = parseFloat(option.getAttribute('data-saldo') || 0);
+                        const novoSaldo = saldoAtual - dados.valor;
+                        
+                        // Atualizar localmente
+                        atualizarSaldoConta(dados.conta_origem, novoSaldo, dados.moeda);
+                    }
+                }
+                
+                // Depois atualizar tudo da API
+                await atualizarSaldoAposTransferencia();
+                
+            }, 300);
             
             // 🎯 3. SALVAR BENEFICIÁRIO (opcional)
             if (document.getElementById('salvar_beneficiario')?.checked) {
@@ -1004,31 +1063,74 @@ window.enviarTransferencia = async function(e) {
     return false;
 };
 
-// Função para atualizar saldo APÓS transferência
+// ============================================
+// FUNÇÃO: ATUALIZAR SALDO APÓS TRANSFERÊNCIA (CORRIGIDA)
+// ============================================
+
 async function atualizarSaldoAposTransferencia() {
     console.log('🔄 Atualizando saldo após transferência...');
     
     try {
+        // 1. Recarregar contas da API
         const response = await fetch('/api/user/contas');
         if (response.ok) {
             const data = await response.json();
             if (data.success && data.contas) {
                 userContas = data.contas;
+                window.userContas = data.contas;
                 
-                // ⚠️ IMPORTANTE: Atualizar o select
-                updateContasSelect();
+                // 2. Atualizar select com a função CORRETA
+                atualizarSelectDeContas(); // ⬅️ CORREÇÃO AQUI
                 
-                // Manter a seleção atual
+                // 3. Atualizar display do saldo
                 const select = document.getElementById('conta_origem');
-                if (select.value) {
-                    // Disparar evento para atualizar display
-                    select.dispatchEvent(new Event('change'));
+                if (select && select.value) {
+                    // Forçar atualização do display
+                    atualizarSaldo();
+                    
+                    console.log('✅ Saldo atualizado após transferência');
                 }
             }
         }
     } catch (error) {
         console.warn('⚠️ Erro ao atualizar saldo:', error);
     }
+}
+
+// ============================================
+// FUNÇÃO: ATUALIZAR SALDO DE CONTA ESPECÍFICA
+// ============================================
+
+function atualizarSaldoConta(contaId, novoSaldo, moeda) {
+    console.log(`💸 Atualizando conta ${contaId} para ${novoSaldo} ${moeda}`);
+    
+    const select = document.getElementById('conta_origem');
+    if (!select) return false;
+    
+    // Encontrar a opção da conta
+    for (let i = 0; i < select.options.length; i++) {
+        const option = select.options[i];
+        if (option.value === contaId) {
+            // Atualizar atributos
+            option.setAttribute('data-saldo', novoSaldo);
+            option.dataset.saldo = novoSaldo;
+            
+            // Atualizar texto
+            option.textContent = `${moeda} - Saldo: ${parseFloat(novoSaldo).toFixed(2)}`;
+            
+            console.log(`✅ Conta ${contaId} atualizada: ${novoSaldo} ${moeda}`);
+            
+            // Se esta conta está selecionada, atualizar display
+            if (select.selectedIndex === i) {
+                atualizarSaldo();
+            }
+            
+            return true;
+        }
+    }
+    
+    console.warn(`⚠️ Conta ${contaId} não encontrada no select`);
+    return false;
 }
 
 // ============================================
