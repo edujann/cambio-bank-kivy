@@ -717,104 +717,24 @@
 
     <script>
     // ============================================
-    // CONFIGURAÇÃO DO FORMULÁRIO
+    // CONFIGURAÇÃO DO FORMULÁRIO - SIMPLIFICADA
     // ============================================
 
     document.addEventListener('DOMContentLoaded', function() {
         console.log('🔄 Configurando formulário de transferência...');
         
-        // 1. CONFIGURAR DRAG & DROP DO INVOICE (igual já existe)
+        // 1. CONFIGURAR DRAG & DROP DO INVOICE
         configurarUploadInvoice();
         
-        // 2. CONFIGURAR SUBMIT DO FORMULÁRIO
-        const form = document.getElementById('transferenciaForm');
+        // 2. Deixe o script.js cuidar do submit automaticamente
+        // O script.js já configura: document.getElementById('transferenciaForm').addEventListener('submit', ...
+        console.log('✅ Formulário configurado para usar função global do script.js');
         
-        if (form) {
-            form.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                console.log('📤 Iniciando envio do formulário...');
-                
-                // Desabilitar botão
-                const submitBtn = document.getElementById('submitBtn');
-                const btnOriginal = submitBtn.innerHTML;
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
-                
-                try {
-                    // Coletar dados
-                    const dadosTransferencia = {
-                        conta_origem: document.getElementById('conta_origem').value,
-                        valor: parseFloat(document.getElementById('valor').value),
-                        moeda: document.getElementById('moeda_label').textContent || 'USD',
-                        beneficiario: document.getElementById('beneficiario').value,
-                        endereco_beneficiario: document.getElementById('endereco').value,
-                        cidade: document.getElementById('cidade').value,
-                        pais: document.getElementById('pais').value,
-                        nome_banco: document.getElementById('banco').value,
-                        endereco_banco: document.getElementById('endereco_banco').value,
-                        cidade_banco: document.getElementById('cidade_banco').value,
-                        pais_banco: document.getElementById('pais_banco').value,
-                        codigo_swift: document.getElementById('swift').value,
-                        iban_account: document.getElementById('iban').value,
-                        aba_routing: document.getElementById('aba').value,
-                        finalidade: document.getElementById('finalidade').value,
-                        descricao: document.getElementById('descricao').value
-                    };
-                    
-                    console.log('📋 Dados:', dadosTransferencia);
-                    
-                    // Criar transferência
-                    const formData = new FormData();
-                    formData.append('dados', JSON.stringify(dadosTransferencia));
-                    
-                    const criarResponse = await fetch('/api/transferencias/criar', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    const criarResult = await criarResponse.json();
-                    
-                    if (!criarResult.success) {
-                        throw new Error(criarResult.message);
-                    }
-                    
-                    const transferenciaId = criarResult.transferencia_id;
-                    console.log('✅ Transferência criada! ID:', transferenciaId);
-                    
-                    // Upload da invoice (se existir)
-                    const invoiceFile = document.getElementById('invoiceFile').files[0];
-                    if (invoiceFile) {
-                        const uploadFormData = new FormData();
-                        uploadFormData.append('file', invoiceFile);
-                        
-                        const uploadResponse = await fetch(`/api/transferencias/${transferenciaId}/upload-invoice`, {
-                            method: 'POST',
-                            body: uploadFormData
-                        });
-                        
-                        const uploadResult = await uploadResponse.json();
-                        if (!uploadResult.success) {
-                            console.warn('⚠️ Invoice não enviada:', uploadResult.error);
-                        }
-                    }
-                    
-                    // 🔥 ATUALIZAR SALDO NO FRONTEND (adicione esta função no seu HTML)
-                    await atualizarSaldoConta();
-                    
-                    // 🔥 MOSTRAR MODAL DE SUCESSO
-                    mostrarModalSucesso(transferenciaId, dadosTransferencia);
-                    
-                } catch (error) {
-                    console.error('❌ Erro:', error);
-                    mostrarErro(error.message);
-                } finally {
-                    // Reabilitar botão
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = btnOriginal;
-                }
-            });
-        }
+        // 3. Carregar dados iniciais (se necessário)
+        loadUserData();
+        loadContas();
+        loadBeneficiarios();
+        setupEventListeners();
     });
 
     // ============================================
