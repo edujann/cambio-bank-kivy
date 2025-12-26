@@ -931,6 +931,10 @@ function positionDropdown(dropdown) {
 window.enviarTransferencia = async function(e) {
     if (e) e.preventDefault();
     
+    console.log('🚀🚀🚀 ENVIARTRANSFERENCIA INICIADA 🚀🚀🚀');
+    console.log('📅 Hora:', new Date().toLocaleTimeString());
+    
+    
     console.log('🚀 enviarTransferencia() - VERSÃO CORRIGIDA');
     
     // 1. COLETAR DADOS (COM NOMES EXATOS DA TABELA)
@@ -1043,6 +1047,11 @@ window.enviarTransferencia = async function(e) {
         
         if (!response.ok) throw new Error(resultado.message || `Erro ${response.status}`);
         
+        console.log('📊 RESULTADO DA API COMPLETO:', resultado);
+        console.log('✅ resultado.success?', resultado.success);
+        console.log('✅ resultado.transferencia_id?', resultado.transferencia_id);
+        console.log('✅ resultado.transferenciaId?', resultado.transferenciaId); // Talvez esteja com nome diferente
+
         if (resultado.success) {
             console.log('🎯🎯🎯 TRANSFERÊNCIA BEM-SUCEDIDA 🎯🎯🎯');
             
@@ -1056,28 +1065,34 @@ window.enviarTransferencia = async function(e) {
                 mostrarPopupSimples(resultado.transferencia_id, dados.valor.toFixed(2), dados.moeda);
             }
             
-            // 🎯 2. ATUALIZAR SALDO IMEDIATAMENTE (MELHORADA)
-            setTimeout(async () => {
-                console.log('💸 Atualizando saldo após transferência...');
-                
-                // Atualizar o saldo da conta usada IMEDIATAMENTE
-                const select = document.getElementById('conta_origem');
-                if (select && select.value === dados.conta_origem) {
-                    const option = select.options[select.selectedIndex];
-                    if (option) {
-                        // Calcular novo saldo
-                        const saldoAtual = parseFloat(option.getAttribute('data-saldo') || 0);
-                        const novoSaldo = saldoAtual - dados.valor;
-                        
-                        // Atualizar localmente
-                        atualizarSaldoConta(dados.conta_origem, novoSaldo, dados.moeda);
-                    }
+            // 🎯 2. ATUALIZAR SALDO IMEDIATAMENTE
+            console.log('💸 ATUALIZANDO SALDO...');
+
+            // Atualizar IMEDIATAMENTE de forma visual
+            const select = document.getElementById('conta_origem');
+            if (select && select.value === dados.conta_origem) {
+                const option = select.options[select.selectedIndex];
+                if (option) {
+                    // Calcular novo saldo visualmente
+                    const saldoAtual = parseFloat(option.getAttribute('data-saldo') || 0);
+                    const novoSaldo = saldoAtual - dados.valor;
+                    
+                    // Atualizar na tela AGORA
+                    option.setAttribute('data-saldo', novoSaldo);
+                    option.dataset.saldo = novoSaldo;
+                    option.textContent = `${dados.moeda} - Saldo: ${novoSaldo.toFixed(2)}`;
+                    
+                    // Atualizar display
+                    atualizarSaldo();
+                    
+                    console.log(`✅ Saldo atualizado visualmente: ${novoSaldo.toFixed(2)} ${dados.moeda}`);
                 }
-                
-                // Depois atualizar tudo da API
+            }
+
+            // Depois sincronizar com API
+            setTimeout(async () => {
                 await atualizarSaldoAposTransferencia();
-                
-            }, 300);
+            }, 500);
             
             // 🎯 3. SALVAR BENEFICIÁRIO (opcional)
             if (document.getElementById('salvar_beneficiario')?.checked) {
@@ -1109,36 +1124,68 @@ window.enviarTransferencia = async function(e) {
 };
 
 // ============================================
-// FUNÇÃO: ATUALIZAR SALDO APÓS TRANSFERÊNCIA (CORRIGIDA)
+// FUNÇÃO: ATUALIZAR SALDO APÓS TRANSFERÊNCIA (VERSÃO DEFINITIVA)
 // ============================================
 
 async function atualizarSaldoAposTransferencia() {
-    console.log('🔄 Atualizando saldo após transferência...');
+    console.log('🔄 ATUALIZANDO SALDO APÓS TRANSFERÊNCIA...');
     
     try {
         // 1. Recarregar contas da API
+        console.log('📡 Buscando contas atualizadas...');
         const response = await fetch('/api/user/contas');
+        
         if (response.ok) {
             const data = await response.json();
+            console.log('📊 Dados atualizados:', data);
+            
             if (data.success && data.contas) {
+                // Atualizar variáveis
                 userContas = data.contas;
                 window.userContas = data.contas;
                 
-                // 2. Atualizar select com a função CORRETA
-                atualizarSelectDeContas(); // ⬅️ CORREÇÃO AQUI
+                console.log(`✅ ${userContas.length} contas recebidas`);
                 
-                // 3. Atualizar display do saldo
+                // 2. ATUALIZAR SELECT VISUALMENTE
                 const select = document.getElementById('conta_origem');
-                if (select && select.value) {
-                    // Forçar atualização do display
-                    atualizarSaldo();
+                if (select) {
+                    // Salvar seleção atual
+                    const contaSelecionada = select.value;
                     
-                    console.log('✅ Saldo atualizado após transferência');
+                    // Atualizar cada opção
+                    for (let i = 0; i < select.options.length; i++) {
+                        const option = select.options[i];
+                        if (option.value) {
+                            // Encontrar a conta correspondente
+                            const contaAtualizada = data.contas.find(c => c.id === option.value);
+                            if (contaAtualizada) {
+                                // Atualizar texto
+                                option.textContent = `${contaAtualizada.moeda} - Saldo: ${parseFloat(contaAtualizada.saldo || 0).toFixed(2)}`;
+                                
+                                // Atualizar atributos
+                                option.setAttribute('data-saldo', parseFloat(contaAtualizada.saldo || 0));
+                                option.dataset.saldo = parseFloat(contaAtualizada.saldo || 0);
+                                
+                                console.log(`📝 Conta ${option.value} atualizada: ${contaAtualizada.saldo} ${contaAtualizada.moeda}`);
+                            }
+                        }
+                    }
+                    
+                    // Restaurar seleção
+                    select.value = contaSelecionada;
+                    
+                    // 3. ATUALIZAR DISPLAY DO SALDO
+                    if (contaSelecionada) {
+                        setTimeout(() => {
+                            atualizarSaldo();
+                            console.log('✅ Display de saldo atualizado');
+                        }, 100);
+                    }
                 }
             }
         }
     } catch (error) {
-        console.warn('⚠️ Erro ao atualizar saldo:', error);
+        console.error('❌ Erro ao atualizar saldo:', error);
     }
 }
 
