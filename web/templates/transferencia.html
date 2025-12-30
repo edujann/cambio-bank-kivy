@@ -566,6 +566,56 @@
     <!-- SCRIPTS -->
     <script src="/static/js/script.js"></script>
     <script>
+   
+    // ============================================
+    // FUNÇÃO PARA ATUALIZAR NOME DO USUÁRIO
+    // ============================================
+
+    function atualizarNomeUsuario() {
+        console.log('👤 Atualizando nome do usuário...');
+        
+        // 1. Verificar se o elemento existe
+        const usernameElement = document.getElementById('username');
+        if (!usernameElement) {
+            console.error('❌ Elemento #username não encontrado no HTML');
+            return;
+        }
+        
+        // 2. Verificar se temos os dados do usuário
+        if (window.USER && window.USER.nome) {
+            console.log('✅ Dados do usuário encontrados:', window.USER.nome);
+            usernameElement.textContent = window.USER.nome;
+            usernameElement.style.fontWeight = 'bold';
+            usernameElement.style.color = 'var(--cor-texto)';
+        } else if (window.USER && window.USER.username) {
+            console.log('✅ Usando username como fallback:', window.USER.username);
+            usernameElement.textContent = window.USER.username.toUpperCase();
+        } else {
+            console.warn('⚠️ Dados do usuário não encontrados em window.USER');
+            // Tentar carregar da API
+            carregarUsuarioDaAPI();
+        }
+    }
+
+    // Função para carregar usuário da API se necessário
+    async function carregarUsuarioDaAPI() {
+        try {
+            const response = await fetch('/api/user');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.user) {
+                    const usernameElement = document.getElementById('username');
+                    if (usernameElement) {
+                        usernameElement.textContent = data.user.nome || data.user.username || 'Usuário';
+                    }
+                    console.log('✅ Usuário carregado da API');
+                }
+            }
+        } catch (error) {
+            console.error('❌ Erro ao carregar usuário da API:', error);
+        }
+    }    
+    
     // ============================================
     // CÓDIGO SIMPLES QUE FUNCIONA
     // Mantém upload de invoice + usa funções do script.js
@@ -879,6 +929,9 @@
     document.addEventListener('DOMContentLoaded', function() {
         console.log('🏦 Página de transferência carregada');
         
+        // ATUALIZAR NOME DO USUÁRIO IMEDIATAMENTE
+        atualizarNomeUsuario();
+
         // Apenas configurar o upload
         configurarUploadInvoice();
         
