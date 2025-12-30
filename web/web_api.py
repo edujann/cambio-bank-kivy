@@ -643,6 +643,92 @@ def criar_transferencia_cliente():
             else:
                 print(f"⚠️ Transferência salva mas erro ao atualizar saldo")
             
+            # 🔥 🔥 🔥 NOVO: PROCESSAR UPLOAD DA INVOICE SE EXISTIR 🔥 🔥 🔥
+            try:
+                # Verificar se há arquivo na requisição
+                if 'file' in request.files:
+                    arquivo = request.files['file']
+                    
+                    if arquivo and arquivo.filename != '':
+                        print(f"\n📁 📁 📁 PROCESSANDO UPLOAD DE INVOICE NA CRIAÇÃO 📁 📁 📁")
+                        print(f"   Nome do arquivo: {arquivo.filename}")
+                        print(f"   Tipo: {arquivo.content_type}")
+                        print(f"   Tamanho: {arquivo.content_length} bytes")
+                        
+                        # Validar arquivo
+                        nome_arquivo = arquivo.filename
+                        extensao = nome_arquivo.lower().split('.')[-1] if '.' in nome_arquivo else ''
+                        
+                        extensoes_permitidas = ['pdf', 'jpg', 'jpeg', 'png']
+                        if extensao not in extensoes_permitidas:
+                            print(f"⚠️  Extensão não permitida: .{extensao}")
+                        elif arquivo.content_length > 5 * 1024 * 1024:
+                            print(f"⚠️  Arquivo muito grande: {arquivo.content_length} bytes")
+                        else:
+                            # Criar nome único
+                            import time
+                            timestamp = str(int(time.time() * 1000))
+                            nome_base = nome_arquivo.rsplit('.', 1)[0]
+                            novo_nome = f"{timestamp}_{nome_base}.{extensao}"
+                            caminho_supabase = f"transferencias/{transferencia_id}/{novo_nome}"
+                            
+                            print(f"📤 Caminho no storage: {caminho_supabase}")
+                            
+                            # Ler bytes do arquivo
+                            arquivo.seek(0)  # Garantir que estamos no início
+                            arquivo_bytes = arquivo.read()
+                            
+                            print(f"🔼 Fazendo upload de {len(arquivo_bytes)} bytes...")
+                            
+                            # Fazer upload para o Supabase Storage
+                            upload_response = supabase.storage.from_("invoices")\
+                                .upload(caminho_supabase, arquivo_bytes)
+                            
+                            if upload_response:
+                                print(f"✅✅✅ UPLOAD DA INVOICE REALIZADO COM SUCESSO!")
+                                
+                                # Atualizar invoice_info na transferência
+                                nova_invoice_info = {
+                                    'status': 'pending',
+                                    'data_upload': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                    'caminho_arquivo': caminho_supabase,
+                                    'nome_arquivo': novo_nome,
+                                    'tamanho': arquivo.content_length,
+                                    'tipo': arquivo.content_type or f'application/{extensao}'
+                                }
+                                
+                                print(f"📝 Invoice info para salvar: {nova_invoice_info}")
+                                
+                                update_invoice_response = supabase.table('transferencias')\
+                                    .update({'invoice_info': nova_invoice_info})\
+                                    .eq('id', transferencia_id)\
+                                    .execute()
+                                
+                                if update_invoice_response.data:
+                                    print(f"✅✅✅ INVOICE INFO SALVA NO BANCO DE DADOS!")
+                                else:
+                                    print(f"⚠️  Invoice salva no storage mas erro ao atualizar banco")
+                            else:
+                                print(f"❌ Erro ao fazer upload da invoice para o storage")
+                    else:
+                        print(f"ℹ️  Nenhum arquivo enviado ou nome vazio")
+                else:
+                    print(f"ℹ️  Nenhum arquivo 'file' na requisição")
+                    
+            except Exception as upload_error:
+                print(f"⚠️  Erro ao processar upload da invoice: {upload_error}")
+                import traceback
+                traceback.print_exc()
+                # NÃO LANÇAR ERRO - A TRANSFERÊNCIA JÁ FOI CRIADA!
+                print(f"⚠️  Continuando sem invoice...")
+            
+            print(f"\n🎉🎉🎉 PROCESSO DE CRIAÇÃO COMPLETO CONCLUÍDO! 🎉🎉🎉")
+            print(f"📊 Transferência ID: {transferencia_id}")
+            print(f"💰 Valor: {valor_transferencia} {dados['moeda']}")
+            print(f"👤 Usuário: {usuario_logado}")
+            
+            # 🔥 🔥 🔥 FIM DO PROCESSAMENTO DA INVOICE 🔥 🔥 🔥
+            
             return jsonify({
                 "success": True,
                 "message": "Transferência criada com sucesso!",
@@ -660,8 +746,8 @@ def criar_transferencia_cliente():
         import traceback
         traceback.print_exc()
         return jsonify({
-            "success": False,
-            "message": f"Erro interno: {str(e)}"
+                "success": False,
+                "message": f"Erro interno: {str(e)}"
         }), 500
     
 @app.route('/api/transferencias/<transferencia_id>/invoice/upload', methods=['POST'])
