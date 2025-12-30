@@ -842,6 +842,85 @@
         return false;
     }
 
+    // ============================================
+    // FUNÇÕES PARA CARREGAR BENEFICIÁRIOS
+    // ============================================
+
+    async function loadBeneficiarios() {
+        try {
+            const response = await fetch('/api/beneficiarios');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.beneficiarios) {
+                    updateBeneficiariosSelect(data.beneficiarios);
+                    return true;
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao carregar beneficiários:', error);
+        }
+        return false;
+    }
+
+    function updateBeneficiariosSelect(beneficiarios) {
+        const select = document.getElementById('beneficiarios_salvos');
+        if (!select) return;
+        
+        select.innerHTML = '<option value="">Selecione um beneficiário salvo...</option>';
+        
+        beneficiarios.forEach(benef => {
+            const option = document.createElement('option');
+            option.value = benef.id;
+            option.textContent = `${benef.nome} | ${benef.banco} | ${benef.pais}`;
+            select.appendChild(option);
+        });
+    }
+
+    // ============================================
+    // PREENCHER BENEFICIÁRIO AUTOMATICAMENTE
+    // ============================================
+
+    function configurarPreenchimentoBeneficiario() {
+        const select = document.getElementById('beneficiarios_salvos');
+        if (!select) return;
+        
+        select.addEventListener('change', async function() {
+            if (!this.value) return;
+            
+            try {
+                console.log(`🔄 Buscando beneficiário ID: ${this.value}`);
+                const response = await fetch(`/api/beneficiarios/${this.value}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.success && data.beneficiario) {
+                        const benef = data.beneficiario;
+                        console.log(`✅ Preenchendo dados de: ${benef.nome}`);
+                        
+                        // PREENCHER CAMPOS
+                        document.getElementById('beneficiario').value = benef.nome || '';
+                        document.getElementById('endereco').value = benef.endereco || '';
+                        document.getElementById('cidade').value = benef.cidade || '';
+                        document.getElementById('pais').value = benef.pais || '';
+                        document.getElementById('banco').value = benef.banco || '';
+                        document.getElementById('endereco_banco').value = benef.endereco_banco || '';
+                        document.getElementById('cidade_banco').value = benef.cidade_banco || '';
+                        document.getElementById('pais_banco').value = benef.pais_banco || '';
+                        document.getElementById('swift').value = benef.swift || '';
+                        document.getElementById('iban').value = benef.iban || '';
+                        document.getElementById('aba').value = benef.aba || '';
+                        
+                        showAlert(`Beneficiário "${benef.nome}" selecionado!`, 'success');
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Erro ao carregar beneficiário:', error);
+                showAlert('Erro de conexão. Tente novamente.', 'error');
+            }
+        });
+    }
+
     function updateContasSelect() {
         const select = document.getElementById('conta_origem');
         if (!select) return;
@@ -1212,9 +1291,11 @@
         // Carregar dados iniciais
         await loadUserData();
         await loadContas();
+        await loadBeneficiarios();
         
-        // Configurar upload
+        // Configurar funcionalidades
         configurarUploadInvoice();
+        configurarPreenchimentoBeneficiario();
         
         // Configurar validação em tempo real do valor
         document.getElementById('valor').addEventListener('input', function() {
