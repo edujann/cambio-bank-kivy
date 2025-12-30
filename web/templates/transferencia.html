@@ -576,7 +576,7 @@
 
     // 1. CONFIGURAR UPLOAD DE ARQUIVO (ÚNICA COISA QUE PRECISA)
     function configurarUploadInvoice() {
-        console.log('⚙️ Configurando upload de invoice...');
+        console.log('⚙️ Configurando upload de invoice COMPLETO...');
         
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('invoiceFile');
@@ -591,196 +591,288 @@
         // Click para selecionar arquivo
         uploadArea.addEventListener('click', () => fileInput.click());
         
-        // Arquivo selecionado
+        // Arquivo selecionado - GUARDAR NA VARIÁVEL GLOBAL
         fileInput.addEventListener('change', function(e) {
             if (this.files.length > 0) {
                 const file = this.files[0];
+                console.log('📁 Arquivo selecionado:', file.name, 'Tamanho:', file.size, 'bytes');
                 
-                // Validações básicas
+                // Validações
                 if (file.size > 5 * 1024 * 1024) {
-                    alert('Arquivo muito grande! Máximo: 5MB');
+                    alert('❌ Arquivo muito grande! Máximo: 5MB');
                     this.value = '';
                     return;
                 }
                 
                 const ext = file.name.split('.').pop().toLowerCase();
                 if (!['pdf', 'jpg', 'jpeg', 'png'].includes(ext)) {
-                    alert('Formato não suportado! Use: PDF, JPG, PNG');
+                    alert('❌ Formato não suportado! Use: PDF, JPG, PNG');
                     this.value = '';
                     return;
                 }
                 
-                // Salvar arquivo
+                // 🔥 SALVAR EM VARIÁVEL GLOBAL
                 window.invoiceFile = file;
+                console.log('💾 Arquivo salvo em window.invoiceFile');
                 
                 // Mostrar preview
                 if (filePreview) {
-                    document.getElementById('fileName').textContent = file.name;
+                    const fileName = document.getElementById('fileName');
+                    if (fileName) fileName.textContent = file.name;
+                    
+                    // Mudar ícone baseado no tipo
+                    const icon = filePreview.querySelector('i');
+                    if (icon) {
+                        if (ext === 'pdf') {
+                            icon.className = 'fas fa-file-pdf';
+                            icon.style.color = '#e74c3c';
+                        } else {
+                            icon.className = 'fas fa-file-image';
+                            icon.style.color = '#3498db';
+                        }
+                    }
+                    
                     filePreview.classList.remove('hidden');
                     uploadArea.style.display = 'none';
                 }
-                
-                console.log('✅ Arquivo selecionado:', file.name);
             }
         });
         
         // Remover arquivo
         if (removeBtn) {
             removeBtn.addEventListener('click', () => {
+                console.log('🗑️ Removendo arquivo...');
                 window.invoiceFile = null;
                 fileInput.value = '';
                 if (filePreview) {
                     filePreview.classList.add('hidden');
                     uploadArea.style.display = 'block';
                 }
-                console.log('🗑️ Arquivo removido');
             });
         }
         
-        // Drag & drop básico
+        // ============================================
+        // DRAG & DROP COMPLETO (ADICIONADO DE VOLTA)
+        // ============================================
+        
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadArea.style.borderColor = '#2d8fff';
+            uploadArea.style.backgroundColor = 'rgba(45, 143, 255, 0.1)';
         });
         
         uploadArea.addEventListener('dragleave', () => {
             uploadArea.style.borderColor = '';
+            uploadArea.style.backgroundColor = '';
         });
         
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadArea.style.borderColor = '';
+            uploadArea.style.backgroundColor = '';
             
             if (e.dataTransfer.files.length > 0) {
+                const file = e.dataTransfer.files[0];
+                console.log('📁 Arquivo solto via drag & drop:', file.name);
+                
+                // Validações para drag & drop também
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('❌ Arquivo muito grande! Máximo: 5MB');
+                    return;
+                }
+                
+                const ext = file.name.split('.').pop().toLowerCase();
+                if (!['pdf', 'jpg', 'jpeg', 'png'].includes(ext)) {
+                    alert('❌ Formato não suportado! Use: PDF, JPG, PNG');
+                    return;
+                }
+                
+                // Criar DataTransfer para simular seleção via input
                 const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(e.dataTransfer.files[0]);
+                dataTransfer.items.add(file);
                 fileInput.files = dataTransfer.files;
+                
+                // Disparar evento de change para processar o arquivo
                 fileInput.dispatchEvent(new Event('change'));
+                
+                console.log('✅ Arquivo processado via drag & drop');
             }
         });
         
-        console.log('✅ Upload configurado');
+        console.log('✅ Upload configurado COMPLETO com drag & drop');
     }
 
     // 2. MODIFICAR A FUNÇÃO enviarTransferencia DO script.js PARA USAR NOSSO UPLOAD
     function patchEnviarTransferencia() {
-        console.log('🔧 Aplicando patch para upload de invoice...');
+        console.log('🔧 Aplicando patch CORRIGIDO para upload de invoice...');
         
-        // Salvar a função original
-        const originalEnviarTransferencia = window.enviarTransferencia;
-        
-        // Sobrescrever com versão que inclui o arquivo
+        // Sobrescrever a função original
         window.enviarTransferencia = async function(e) {
             if (e) e.preventDefault();
             
-            console.log('🚀 enviarTransferencia PATCHED - Com upload de invoice');
+            console.log('🚀 ENVIAR TRANSFERÊNCIA COM INVOICE - VERSÃO CORRIGIDA');
             
-            // Usar a função original do script.js
-            if (originalEnviarTransferencia) {
-                // Pegar o botão de submit
-                const btn = document.getElementById('submitBtn');
-                const originalText = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
-                btn.disabled = true;
+            // Pegar o botão de submit
+            const btn = document.getElementById('submitBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+            btn.disabled = true;
+            
+            try {
+                // 1. VALIDAR CAMPOS OBRIGATÓRIOS
+                const camposObrigatorios = [
+                    { id: 'conta_origem', nome: 'Conta de origem' },
+                    { id: 'valor', nome: 'Valor' },
+                    { id: 'beneficiario', nome: 'Beneficiário' },
+                    { id: 'endereco', nome: 'Endereço' },
+                    { id: 'cidade', nome: 'Cidade' },
+                    { id: 'pais', nome: 'País' },
+                    { id: 'banco', nome: 'Banco' },
+                    { id: 'swift', nome: 'SWIFT' },
+                    { id: 'iban', nome: 'IBAN' }
+                ];
                 
-                try {
-                    // 1. Coletar dados do formulário
-                    const formData = new FormData();
-                    const dados = {
-                        conta_origem: document.getElementById('conta_origem').value,
-                        valor: parseFloat(document.getElementById('valor').value) || 0,
-                        moeda: document.getElementById('conta_origem').options[
-                            document.getElementById('conta_origem').selectedIndex
-                        ]?.dataset.moeda || 'USD',
-                        beneficiario: document.getElementById('beneficiario').value.trim(),
-                        endereco_beneficiario: document.getElementById('endereco').value.trim(),
-                        cidade: document.getElementById('cidade').value.trim(),
-                        pais: document.getElementById('pais').value.trim(),
-                        nome_banco: document.getElementById('banco').value.trim(),
-                        endereco_banco: document.getElementById('endereco_banco').value.trim(),
-                        cidade_banco: document.getElementById('cidade_banco').value.trim(),
-                        pais_banco: document.getElementById('pais_banco').value.trim(),
-                        codigo_swift: document.getElementById('swift').value.trim(),
-                        iban_account: document.getElementById('iban').value.trim(),
-                        aba_routing: document.getElementById('aba').value.trim() || '',
-                        finalidade: document.getElementById('finalidade').value || 'Pagamento de Serviços',
-                        descricao: document.getElementById('descricao').value || '',
-                        cliente: window.USER?.username || 'pantanal',
-                        usuario: window.USER?.username || 'pantanal',
-                        solicitado_por: window.USER?.username || 'pantanal',
-                        tipo: 'transferencia_internacional',
-                        status: 'solicitada'
-                    };
-                    
-                    // 2. Adicionar dados JSON
-                    formData.append('dados', JSON.stringify(dados));
-                    
-                    // 3. Adicionar arquivo se existir (NOSSA MELHORIA)
-                    if (window.invoiceFile) {
-                        formData.append('invoice', window.invoiceFile);
-                        console.log('📎 Adicionando invoice ao envio:', window.invoiceFile.name);
+                for (const { id, nome } of camposObrigatorios) {
+                    const campo = document.getElementById(id);
+                    if (!campo || !campo.value.trim()) {
+                        alert(`❌ ${nome} é obrigatório`);
+                        campo?.focus();
+                        throw new Error(`${nome} é obrigatório`);
                     }
-                    
-                    // 4. Enviar via fetch (igual ao web_api.py espera)
-                    const response = await fetch('/api/transferencias/criar', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    const resultado = await response.json();
-                    console.log('📦 Resposta API:', resultado);
-                    
-                    if (!response.ok) {
-                        throw new Error(resultado.message || `Erro ${response.status}`);
-                    }
-                    
-                    if (resultado.success) {
-                        // 5. Usar a função de popup do script.js
-                        if (window.garantirPopupSucesso) {
-                            window.garantirPopupSucesso(
-                                resultado.transferencia_id, 
-                                dados.valor.toFixed(2), 
-                                dados.moeda
-                            );
-                        } else {
-                            alert(`✅ Transferência criada! ID: ${resultado.transferencia_id}`);
-                        }
-                        
-                        // 6. Limpar formulário
-                        document.getElementById('transferenciaForm').reset();
-                        window.invoiceFile = null;
-                        const filePreview = document.getElementById('filePreview');
-                        if (filePreview) filePreview.classList.add('hidden');
-                        const uploadArea = document.getElementById('uploadArea');
-                        if (uploadArea) uploadArea.style.display = 'block';
-                        
-                        // 7. Recarregar contas (usar função do script.js se existir)
-                        if (window.carregarContas) {
-                            await window.carregarContas();
-                        } else if (window.loadContas) {
-                            await window.loadContas();
-                        }
-                        
-                    } else {
-                        throw new Error(resultado.message);
-                    }
-                    
-                } catch (error) {
-                    console.error('❌ Erro:', error);
-                    alert(`❌ Erro: ${error.message}`);
-                } finally {
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
                 }
-            } else {
-                console.error('❌ Função original enviarTransferencia não encontrada!');
-                alert('❌ Erro: Sistema não carregado corretamente');
+                
+                // 2. COLETAR DADOS DO FORMULÁRIO
+                const dados = {
+                    conta_origem: document.getElementById('conta_origem').value,
+                    valor: parseFloat(document.getElementById('valor').value),
+                    moeda: document.getElementById('conta_origem').options[
+                        document.getElementById('conta_origem').selectedIndex
+                    ]?.dataset.moeda || 'USD',
+                    beneficiario: document.getElementById('beneficiario').value.trim(),
+                    endereco_beneficiario: document.getElementById('endereco').value.trim(),
+                    cidade: document.getElementById('cidade').value.trim(),
+                    pais: document.getElementById('pais').value.trim(),
+                    nome_banco: document.getElementById('banco').value.trim(),
+                    endereco_banco: document.getElementById('endereco_banco').value.trim(),
+                    cidade_banco: document.getElementById('cidade_banco').value.trim(),
+                    pais_banco: document.getElementById('pais_banco').value.trim(),
+                    codigo_swift: document.getElementById('swift').value.trim(),
+                    iban_account: document.getElementById('iban').value.trim(),
+                    aba_routing: document.getElementById('aba').value.trim() || '',
+                    finalidade: document.getElementById('finalidade').value,
+                    descricao: document.getElementById('descricao').value || '',
+                    cliente: window.USER?.username || 'pantanal',
+                    usuario: window.USER?.username || 'pantanal',
+                    solicitado_por: window.USER?.username || 'pantanal',
+                    tipo: 'transferencia_internacional',
+                    status: 'solicitada'
+                };
+                
+                console.log('📦 Dados coletados:', dados);
+                
+                // 3. VALIDAR SALDO
+                const contaSelect = document.getElementById('conta_origem');
+                const saldo = parseFloat(contaSelect.options[contaSelect.selectedIndex]?.dataset.saldo || 0);
+                
+                if (dados.valor > saldo) {
+                    throw new Error(`Saldo insuficiente! Disponível: ${saldo.toFixed(2)} ${dados.moeda}`);
+                }
+                
+                // 4. PREPARAR FORMDATA (CRÍTICO PARA UPLOAD)
+                const formData = new FormData();
+                
+                // Adicionar dados como JSON
+                formData.append('dados', JSON.stringify(dados));
+                
+                // 🔥 CORREÇÃO CRÍTICA: Adicionar arquivo CORRETAMENTE
+                if (window.invoiceFile) {
+                    console.log('📎 Adicionando invoice ao FormData:', window.invoiceFile.name);
+                    
+                    // Verificar se o arquivo é válido
+                    if (window.invoiceFile.size > 5 * 1024 * 1024) {
+                        throw new Error('Arquivo muito grande! Máximo: 5MB');
+                    }
+                    
+                    const ext = window.invoiceFile.name.split('.').pop().toLowerCase();
+                    if (!['pdf', 'jpg', 'jpeg', 'png'].includes(ext)) {
+                        throw new Error('Formato não suportado! Use: PDF, JPG, PNG');
+                    }
+                    
+                    // 🔥 ADICIONAR CORRETAMENTE - usar 'file' como chave (igual ao web_api.py espera)
+                    formData.append('file', window.invoiceFile);
+                    console.log('✅ Arquivo adicionado ao FormData com chave "file"');
+                } else {
+                    console.log('ℹ️ Nenhum arquivo selecionado para upload');
+                }
+                
+                // 5. ENVIAR PARA API (MOSTRAR DETALHES)
+                console.log('📤 Enviando para /api/transferencias/criar...');
+                console.log('📊 FormData entries:');
+                for (let pair of formData.entries()) {
+                    console.log(`  ${pair[0]}:`, pair[0] === 'file' ? `[Arquivo: ${pair[1].name}]` : pair[1]);
+                }
+                
+                const response = await fetch('/api/transferencias/criar', {
+                    method: 'POST',
+                    body: formData
+                    // NÃO adicionar headers - o FormData define automaticamente
+                });
+                
+                console.log('📥 Resposta recebida. Status:', response.status);
+                
+                const resultado = await response.json();
+                console.log('📦 Resposta JSON:', resultado);
+                
+                if (!response.ok) {
+                    throw new Error(resultado.message || `Erro ${response.status}`);
+                }
+                
+                if (resultado.success) {
+                    // 6. MOSTRAR POPUP DE SUCESSO
+                    console.log('🎉 Transferência criada com sucesso! ID:', resultado.transferencia_id);
+                    
+                    if (window.garantirPopupSucesso) {
+                        window.garantirPopupSucesso(
+                            resultado.transferencia_id, 
+                            dados.valor.toFixed(2), 
+                            dados.moeda
+                        );
+                    } else {
+                        alert(`✅ Transferência criada! ID: ${resultado.transferencia_id}\nValor: ${dados.valor} ${dados.moeda}`);
+                    }
+                    
+                    // 7. LIMPAR FORMULÁRIO
+                    document.getElementById('transferenciaForm').reset();
+                    window.invoiceFile = null;
+                    const filePreview = document.getElementById('filePreview');
+                    if (filePreview) filePreview.classList.add('hidden');
+                    const uploadArea = document.getElementById('uploadArea');
+                    if (uploadArea) uploadArea.style.display = 'block';
+                    
+                    // 8. RECARREGAR CONTAS
+                    if (window.carregarContasDireto) {
+                        await window.carregarContasDireto();
+                    }
+                    
+                    console.log('✅ Processo completo concluído com sucesso!');
+                    
+                } else {
+                    throw new Error(resultado.message || 'Erro ao criar transferência');
+                }
+                
+            } catch (error) {
+                console.error('❌ ERRO DETALHADO:', error);
+                console.error('Stack:', error.stack);
+                alert(`❌ Erro: ${error.message}`);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             }
             
             return false;
         };
         
-        console.log('✅ Patch aplicado - upload de invoice integrado');
+        console.log('✅ Patch CORRIGIDO aplicado');
     }
 
     // 3. INICIALIZAÇÃO SIMPLES
