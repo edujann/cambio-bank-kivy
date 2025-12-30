@@ -3326,62 +3326,54 @@
     document.head.appendChild(style);
     
 // ============================================
-// REENVIAR INVOICE (VERSÃO COMPLETA - WEB)
+// REENVIAR INVOICE (VERSÃO CORRIGIDA)
 // ============================================
 
 async function reenviarInvoice(transferenciaId) {
     console.log(`🔄 Reenviar invoice para transferência: ${transferenciaId}`);
     
     try {
-        // 1. VERIFICAR SE PODE REENVIAR (AGORA EXISTE O ENDPOINT!)
-        const statusResponse = await fetch(`/api/transferencias/${transferenciaId}/invoice/verificar`);
+        // 1. VERIFICAR SE A TRANSFERÊNCIA TEM INVOICE RECUSADA
+        // Buscar todas as transferências para verificar
+        const response = await fetch('/api/transferencias-internacionais');
         
-        if (!statusResponse.ok) {
-            throw new Error('Erro ao verificar status');
+        if (!response.ok) {
+            throw new Error('Erro ao buscar transferências');
         }
         
-        const statusData = await statusResponse.json();
+        const todasTransferencias = await response.json();
         
-        if (!statusData.available) {
-            showAlert(`❌ ${statusData.error || 'Invoice não disponível'}`, 'error');
+        // Encontrar a transferência específica
+        const transferencia = todasTransferencias.find(t => 
+            t.id === transferenciaId || 
+            t.id.toString() === transferenciaId.toString()
+        );
+        
+        if (!transferencia) {
+            showAlert(`❌ Transferência #${transferenciaId} não encontrada`, 'error');
             return;
         }
         
-        // 2. VERIFICAR SE STATUS É "rejected" (só pode reenviar se recusada)
-        if (statusData.status !== 'rejected') {
+        // Verificar status da invoice
+        const invoiceInfo = transferencia.invoice_info || {};
+        const invoiceStatus = invoiceInfo.status || 'pending';
+        const invoiceRecusada = transferencia.invoice_recusada || false;
+        
+        console.log(`📄 Status da invoice: ${invoiceStatus}, Recusada: ${invoiceRecusada}`);
+        
+        // Só pode reenviar se foi recusada
+        if (invoiceStatus !== 'rejected' && !invoiceRecusada) {
             showAlert(`ℹ️ Apenas invoices recusadas podem ser reenviadas`, 'warning');
             return;
         }
         
-        const motivoRecusa = statusData.rejection_reason || 'Motivo não especificado';
+        const motivoRecusa = invoiceInfo.motivo_recusa || 'Motivo não especificado pelo administrador';
         
-        console.log(`✅ Invoice recusada encontrada, motivo: ${motivoRecusa}`);
-        
-        // 3. CRIAR INPUT DE ARQUIVO
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.pdf,.jpg,.jpeg,.png';
-        input.style.display = 'none';
-        
-        input.onchange = async (e) => {
-            if (e.target.files.length === 0) return;
-            
-            const arquivo = e.target.files[0];
-            
-            // Validar arquivo
-            if (!validarArquivoUpload(arquivo)) {
-                return;
-            }
-            
-            // Fazer upload
-            await fazerUploadInvoice(transferenciaId, arquivo, motivoRecusa);
-        };
-        
-        document.body.appendChild(input);
-        input.click();
+        // 2. ABRIR MODAL PARA NOVO UPLOAD
+        criarModalReenviarInvoice(transferenciaId, motivoRecusa);
         
     } catch (error) {
-        console.error(`❌ Erro ao reenviar invoice:`, error);
+        console.error(`❌ Erro ao verificar invoice:`, error);
         showAlert(`❌ Erro: ${error.message}`, 'error');
     }
 }
@@ -3406,43 +3398,6 @@ function validarArquivoUpload(arquivo) {
     }
     
     return true;
-}
-
-async function fazerUploadInvoice(transferenciaId, arquivo, motivoRecusaAnterior) {
-    try {
-        showAlert('📤 Enviando nova invoice...', 'info');
-        
-        // Criar FormData para upload
-        const formData = new FormData();
-        formData.append('file', arquivo);
-        
-        // 🔥 CORREÇÃO: Usar endpoint correto
-        // Em vez de '/api/transferencias/${transferenciaId}/upload-invoice'
-        // Usar endpoint que já existe no seu web_api.py:
-        const response = await fetch(`/api/transferencias/${transferenciaId}/invoice/reenviar`, {
-            method: 'POST',
-            body: formData
-        });
-        
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Erro ao enviar invoice');
-        }
-        
-        const result = await response.json();
-        
-        // Mostrar mensagem de sucesso
-        showAlert(`✅ ${result.message}\n\nStatus: Pendente de análise`, 'success');
-        
-        // Recarregar a lista de transferências
-        setTimeout(() => {
-            carregarTransferencias();
-        }, 2000);
-        
-    } catch (error) {
-        console.error('❌ Erro ao enviar invoice:', error);
-        showAlert(`❌ Erro: ${error.message}`, 'error');
-    }
 }
 
 // ============================================
@@ -3839,8 +3794,12 @@ function criarModalReenviarInvoice(transferenciaId, motivoRecusa) {
             const formData = new FormData();
             formData.append('file', arquivoSelecionado);
             
-            // Fazer upload para a API
-            const response = await fetch(`/api/transferencias/${transferenciaId}/invoice/reenviar`, {
+            // 🔥🔥🔥 CORREÇÃO CRÍTICA AQUI 🔥🔥🔥
+            // Usar o endpoint que JÁ EXISTE no seu web_api.py
+            // Em vez de: /api/transferencias/${transferenciaId}/invoice/reenviar
+            // Usar: /api/transferencias/${transferenciaId}/upload-invoice
+            
+            const response = await fetch(`/api/transferencias/${transferenciaId}/upload-invoice`, {
                 method: 'POST',
                 body: formData
             });
@@ -3856,7 +3815,7 @@ function criarModalReenviarInvoice(transferenciaId, motivoRecusa) {
             document.body.removeChild(modalOverlay);
             
             // Mostrar mensagem de sucesso
-            showAlert(`✅ ${result.message}\n\nStatus: Pendente de análise\nAguarde a revisão do administrador.`, 'success');
+            showAlert(`✅ ${result.message || 'Invoice enviada com sucesso!'}\n\nStatus: Pendente de análise\nAguarde a revisão do administrador.`, 'success');
             
             // Recarregar a lista de transferências para atualizar o status
             setTimeout(() => {
