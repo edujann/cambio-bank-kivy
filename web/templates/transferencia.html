@@ -815,10 +815,13 @@
                     usuario: window.USER?.username || 'pantanal',
                     solicitado_por: window.USER?.username || 'pantanal',
                     tipo: 'transferencia_internacional',
-                    status: 'solicitada'
+                    status: 'solicitada',
+                     salvar_beneficiario: document.getElementById('salvar_beneficiario').checked
                 };
                 
                 console.log('📦 Dados coletados:', dados);
+                console.log('🔍 Checkbox salvar_beneficiario:', document.getElementById('salvar_beneficiario').checked);
+                console.log('🔍 Dados com checkbox:', dados);
                 
                 // 3. VALIDAR SALDO
                 const contaSelect = document.getElementById('conta_origem');
