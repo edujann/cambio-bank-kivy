@@ -4211,52 +4211,39 @@ def obter_cotacao_simples(par_moedas):
         return 1.0
 
 def obter_spread_cliente(usuario, par_moedas):
-    """Busca spread do cliente - USANDO SUA TABELA config_cotacoes REAL"""
+    """
+    NOVA VERSÃO SEGURA - Busca spread com verificação de segurança máxima
+    """
     try:
-        print(f"🔍 Buscando spread para {usuario} - par: {par_moedas}")
+        print(f"💰 Buscando spread para {usuario} - par: {par_moedas}")
         
-        if not supabase:
-            return {'compra': 0.5, 'venda': 0.5}
+        # 1. VERIFICAÇÃO DE SEGURANÇA PRIMEIRO
+        if not verificar_permissao_cambio_seguro(usuario):
+            print(f"🚫 Cliente {usuario} SEM PERMISSÃO - spread zero")
+            return {'compra': 0, 'venda': 0}  # Cliente bloqueado = spread zero
         
-        # 🔥 1. VERIFICAR SE CÂMBIO ESTÁ LIBERADO (tabela usuarios)
-        response_usuario = supabase.table('usuarios')\
-            .select('cambio_liberado')\
-            .eq('username', usuario)\
-            .single()\
-            .execute()
+        # 2. Busca configuração de spreads
+        spreads = obter_config_cliente('spreads', usuario)
         
-        if response_usuario.data:
-            cambio_liberado = bool(response_usuario.data.get('cambio_liberado', False))
-            if not cambio_liberado:
-                print(f"🚫 Câmbio NÃO liberado para {usuario} (usuarios.cambio_liberado = false)")
-                return {'compra': 0, 'venda': 0}  # Spread zero = bloqueado
+        # 3. Verifica se o par específico existe
+        if spreads and isinstance(spreads, dict) and par_moedas in spreads:
+            spread_info = spreads[par_moedas]
+            compra = float(spread_info.get('compra', 0.5))
+            venda = float(spread_info.get('venda', 0.5))
+            print(f"✅ Spread específico: compra={compra}%, venda={venda}%")
+            return {'compra': compra, 'venda': venda}
         
-        # 🔥 2. BUSCAR SPREADS DO CLIENTE (tabela config_cotacoes)
-        response = supabase.table('config_cotacoes')\
-            .select('valor_config')\
-            .eq('tipo_config', 'spreads')\
-            .eq('cliente_username', usuario)\
-            .order('data_atualizacao', desc=True)\
-            .limit(1)\
-            .execute()
+        # 4. Se não encontrou específico, busca spread padrão do sistema
+        spreads_sistema = obter_config_sistema('spreads')
+        if spreads_sistema and isinstance(spreads_sistema, dict) and par_moedas in spreads_sistema:
+            spread_info = spreads_sistema[par_moedas]
+            compra = float(spread_info.get('compra', 0.5))
+            venda = float(spread_info.get('venda', 0.5))
+            print(f"⚠️ Spread do sistema: compra={compra}%, venda={venda}%")
+            return {'compra': compra, 'venda': venda}
         
-        if response.data:
-            spreads_cliente = response.data[0]['valor_config']
-            print(f"✅ Spreads do cliente {usuario} encontrados")
-            
-            # Verificar se o par específico existe
-            if par_moedas in spreads_cliente:
-                spread_info = spreads_cliente[par_moedas]
-                compra = float(spread_info.get('compra', 0.5))
-                venda = float(spread_info.get('venda', 0.5))
-                
-                print(f"✅ Spread específico para {par_moedas}: compra={compra}%, venda={venda}%")
-                return {'compra': compra, 'venda': venda}
-            else:
-                print(f"⚠️  Par {par_moedas} não encontrado nos spreads do cliente")
-        
-        # 🔥 3. FALLBACK: Spread padrão
-        print(f"⚠️  Usando spread padrão: 0.5%")
+        # 5. Spread padrão final
+        print(f"ℹ️ Spread padrão: 0.5%")
         return {'compra': 0.5, 'venda': 0.5}
         
     except Exception as e:
@@ -4264,104 +4251,13 @@ def obter_spread_cliente(usuario, par_moedas):
         return {'compra': 0.5, 'venda': 0.5}
 
 def verificar_horario_comercial(usuario=None):
-    """Verifica horário comercial - VERSÃO SEGURA COM pytz"""
-    try:
-        print(f"📅 Verificação horário SEGURA para {usuario}")
-        
-        # 🔥 1. USAR pytz PARA FUSO HORÁRIO CORRETO
-        tz_brasilia = pytz.timezone('America/Sao_Paulo')
-        agora_brasilia = datetime.now(tz_brasilia)
-        print(f"   ✅ pytz instalado - fuso horário preciso")
-        
-        # 🔥 2. BUSCAR CONFIGURAÇÕES DA SUA TABELA
-        hora_abertura = "09:00"
-        hora_fechamento = "18:00"
-        dias_operacao_nomes = ['segunda', 'terca', 'quarta', 'quinta', 'sexta']
-        
-        if supabase:
-            try:
-                # Buscar configurações do seu banco
-                configs = supabase.table('config_sistema')\
-                    .select('chave_config, valor_config')\
-                    .in_('chave_config', [
-                        'horario_abertura', 
-                        'horario_fechamento', 
-                        'dias_operacao'
-                    ])\
-                    .execute()
-                
-                for config in configs.data:
-                    chave = config['chave_config']
-                    valor = config['valor_config']
-                    
-                    if chave == 'horario_abertura':
-                        hora_abertura = str(valor)
-                    elif chave == 'horario_fechamento':
-                        hora_fechamento = str(valor)
-                    elif chave == 'dias_operacao':
-                        dias_operacao_nomes = valor  # Sua lista ['segunda', 'terca', ...]
-                
-                print(f"   Configurações carregadas do seu banco")
-                
-            except Exception as e:
-                print(f"⚠️  Erro ao buscar configurações: {e}. Usando padrões.")
-        
-        # 🔥 3. INFORMAÇÕES ATUAIS
-        hora_atual = agora_brasilia.strftime('%H:%M')
-        dia_semana_num = agora_brasilia.weekday()  # 0=segunda, 1=terça, etc.
-        nome_dia_atual = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'][dia_semana_num]
-        
-        print(f"   Data/hora Brasil: {agora_brasilia.strftime('%d/%m/%Y %H:%M')}")
-        print(f"   Dia: {nome_dia_atual} ({dia_semana_num})")
-        print(f"   Horário config: {hora_abertura}-{hora_fechamento}")
-        print(f"   Dias config: {dias_operacao_nomes}")
-        
-        # 🔥 4. CONVERTER SEUS NOMES DE DIAS PARA NÚMEROS
-        mapa_conversao = {
-            'segunda': 0, 'terça': 1, 'terca': 1,
-            'quarta': 2, 'quinta': 3, 'sexta': 4
-        }
-        
-        dias_permitidos_numeros = []
-        for dia_nome in dias_operacao_nomes:
-            dia_lower = dia_nome.lower()
-            if dia_lower in mapa_conversao:
-                dias_permitidos_numeros.append(mapa_conversao[dia_lower])
-        
-        # Se não converteu nenhum, usar padrão
-        if not dias_permitidos_numeros:
-            dias_permitidos_numeros = [0, 1, 2, 3, 4]
-        
-        # 🔥 5. VERIFICAÇÕES
-        # 5.1 Verificar dia da semana
-        if dia_semana_num not in dias_permitidos_numeros:
-            dias_nomes_pt = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta']
-            dias_permitidos_nomes = [dias_nomes_pt[i] for i in dias_permitidos_numeros]
-            mensagem = f"Fora do horário comercial. Disponível: {', '.join(dias_permitidos_nomes)}"
-            print(f"   ❌ {mensagem}")
-            return False, mensagem
-        
-        # 5.2 Verificar horário
-        if hora_atual < hora_abertura:
-            mensagem = f"Fora do horário comercial. Disponível a partir das {hora_abertura}"
-            print(f"   ❌ {mensagem}")
-            return False, mensagem
-        
-        if hora_atual > hora_fechamento:
-            mensagem = f"Fora do horário comercial. Disponível até às {hora_fechamento}"
-            print(f"   ❌ {mensagem}")
-            return False, mensagem
-        
-        # 🔥 6. TUDO OK
-        print(f"   ✅ Dentro do horário comercial")
-        return True, "Dentro do horário comercial"
-        
-    except Exception as e:
-        print(f"⚠️ Erro em verificar_horario_comercial: {e}")
-        import traceback
-        traceback.print_exc()
-        # EM BANCO: Fail-open (permitir se der erro)
-        return True, "Horário verificado com ressalvas"
+    """
+    NOVA VERSÃO - Usa config_cotacoes em vez de config_sistema
+    Mantém compatibilidade com código existente
+    """
+    # Simplesmente chama a nova função, mas mantém o mesmo formato de retorno
+    horario_ok, mensagem = verificar_horario_cliente(usuario)
+    return horario_ok, mensagem
 
 
 @app.route('/cambio-moedas')
@@ -4412,6 +4308,95 @@ def cambio_moedas():
 # ============================================
 # APIs PARA CÂMBIO DE MOEDAS (REAIS - IGUAL AO KIVY)
 # ============================================
+
+# ============================================
+# ENDPOINTS PARA SEGURANÇA MÁXIMA
+# (ADICIONAR ANTES de /api/pares-disponiveis/)
+# ============================================
+
+@app.route('/api/cambio/verificar-permissao/<cliente_username>')
+def api_verificar_permissao_segura(cliente_username):
+    """
+    Endpoint específico para verificação de permissão (frontend)
+    """
+    pode_operar = verificar_permissao_cambio_seguro(cliente_username)
+    
+    if pode_operar:
+        horario_ok, mensagem_horario = verificar_horario_cliente(cliente_username)
+        pode_operar = horario_ok
+        mensagem = mensagem_horario if not horario_ok else "Cliente autorizado"
+        codigo = "FORA_HORARIO" if not horario_ok else None
+    else:
+        mensagem = "Cliente não autorizado para operações de câmbio"
+        codigo = "PERMISSAO_NEGADA"
+    
+    return jsonify({
+        'success': True,
+        'pode_operar': pode_operar,
+        'mensagem': mensagem,
+        'codigo_erro': codigo,
+        'cliente': cliente_username
+    })
+
+@app.route('/api/cambio/configuracao-completa/<cliente_username>')
+def api_configuracao_completa(cliente_username):
+    """
+    Retorna TODAS as configurações do cliente
+    """
+    try:
+        print(f"📋 Obtendo configurações completas para: {cliente_username}")
+        
+        # Verifica se pode operar
+        pode_operar = verificar_permissao_cambio_seguro(cliente_username)
+        horario_ok, mensagem_horario = verificar_horario_cliente(cliente_username)
+        
+        # Obtém outras configurações
+        spreads = obter_config_cliente('spreads', cliente_username)
+        limite = obter_config_cliente('limites', cliente_username)
+        horario_config = obter_config_cliente('horarios', cliente_username)
+        
+        # Verifica se tem configuração específica
+        tem_config_especifica = obter_config_cliente('permissoes', cliente_username) is not None
+        
+        # Configuração padrão do sistema
+        horario_padrao = obter_config_sistema('horario_padrao')
+        spreads_sistema = obter_config_sistema('spreads')
+        
+        return jsonify({
+            'success': True,
+            'configs': {
+                'pode_operar': pode_operar and horario_ok,
+                'mensagem': "Autorizado" if (pode_operar and horario_ok) else mensagem_horario,
+                'codigo_erro': None if (pode_operar and horario_ok) else ("PERMISSAO_NEGADA" if not pode_operar else "FORA_HORARIO"),
+                'limite': float(limite) if limite else 10000.00,
+                'tem_config_especifica': tem_config_especifica,
+                'horario_config': horario_config,
+                'horario_padrao': horario_padrao,
+                'spreads': spreads,
+                'spreads_sistema': spreads_sistema
+            },
+            'cliente': cliente_username
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao obter configurações: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+@app.route('/api/cambio/verificar-horario/<cliente_username>')
+def api_verificar_horario_cliente(cliente_username):
+    """
+    Verifica apenas horário do cliente
+    """
+    horario_ok, mensagem = verificar_horario_cliente(cliente_username)
+    
+    return jsonify({
+        'success': True,
+        'horario_ok': horario_ok,
+        'mensagem': mensagem
+    })
 
 @app.route('/api/pares-disponiveis/<usuario>')
 def api_pares_disponiveis(usuario):
@@ -4824,44 +4809,59 @@ def api_executar_cambio():
     print(f"   Receber: {valor_receber} {moeda_receber}")
     print(f"   Cotação: {cotacao_cliente}")
     
-    # 🔥 🔥 🔥 ADICIONE ESTE BLOCO DE VERIFICAÇÃO AQUI 🔥 🔥 🔥
-    # VERIFICAR SE CÂMBIO ESTÁ LIBERADO PARA O CLIENTE
-    print(f"🔍 Verificando permissão para {usuario}...")
+    # 🔥 🔥 🔥 NOVA VERIFICAÇÃO DE SEGURANÇA MÁXIMA 🔥 🔥 🔥
+    print(f"🔐 Verificação SEGURANÇA MÁXIMA para: {usuario}")
     
-    try:
-        if supabase:
-            response = supabase.table('usuarios')\
-                .select('cambio_liberado')\
-                .eq('username', usuario)\
-                .single()\
-                .execute()
-            
-            if response.data:
-                cambio_liberado = bool(response.data.get('cambio_liberado', False))
-                if not cambio_liberado:
-                    print(f"🚫 BLOQUEADO: Câmbio NÃO liberado para {usuario}")
-                    return jsonify({
-                        'success': False,
-                        'error': 'Câmbio não liberado para este cliente',
-                        'codigo': 'CAMBIO_BLOQUEADO',
-                        'mensagem': 'Entre em contato com o suporte para liberar câmbio'
-                    })
-                else:
-                    print(f"✅ Câmbio LIBERADO para {usuario}")
-            else:
-                print(f"⚠️  Usuário {usuario} não encontrado")
-                return jsonify({
-                    'success': False,
-                    'error': 'Usuário não encontrado'
-                })
-    except Exception as e:
-        print(f"⚠️  Erro ao verificar permissão: {e}")
-        # Fail-safe: bloquear se não conseguir verificar
+    # 1. VERIFICAR PERMISSÃO (SEGURANÇA MÁXIMA)
+    if not verificar_permissao_cambio_seguro(usuario):
+        print(f"🚫 BLOQUEADO: Cliente {usuario} NÃO TEM PERMISSÃO")
         return jsonify({
             'success': False,
-            'error': 'Não foi possível verificar permissão para câmbio'
+            'error': 'Cliente não autorizado para operações de câmbio',
+            'codigo': 'PERMISSAO_NEGADA',
+            'mensagem': 'Entre em contato com o suporte para liberar câmbio'
         })
-    # 🔥 🔥 🔥 FIM DO BLOCO DE VERIFICAÇÃO 🔥 🔥 🔥
+    
+    # 2. VERIFICAR HORÁRIO
+    horario_ok, mensagem_horario = verificar_horario_cliente(usuario)
+    if not horario_ok:
+        print(f"🚫 FORA DO HORÁRIO: {mensagem_horario}")
+        return jsonify({
+            'success': False,
+            'error': mensagem_horario,
+            'codigo': 'FORA_HORARIO',
+            'mensagem': mensagem_horario
+        })
+    
+    print(f"✅ Cliente {usuario} AUTORIZADO para operar")
+    # 🔥 🔥 🔥 FIM DA VERIFICAÇÃO DE SEGURANÇA 🔥 🔥 🔥
+    
+    # 3. VERIFICAR LIMITE DO CLIENTE (OPCIONAL MAS RECOMENDADO)
+    try:
+        # Buscar limite do cliente
+        limite_config = obter_config_cliente('limites', usuario)
+        
+        if limite_config is not None:
+            limite_cliente = float(limite_config)
+            print(f"🔍 Limite do cliente: {limite_cliente}")
+            
+            # Converter valor da operação para float
+            valor_operacao = float(valor_pagar) if tipo_operacao == 'venda' else float(valor_receber)
+            
+            if valor_operacao > limite_cliente:
+                print(f"🚫 LIMITE EXCEDIDO: {valor_operacao} > {limite_cliente}")
+                return jsonify({
+                    'success': False,
+                    'error': f'Limite de transação excedido. Máximo permitido: {limite_cliente:.2f}',
+                    'codigo': 'LIMITE_EXCEDIDO',
+                    'mensagem': f'Reduza o valor da operação. Seu limite: {limite_cliente:.2f}'
+                })
+    except Exception as e:
+        print(f"⚠️ Erro ao verificar limite (continuando): {e}")
+        # Continua mesmo se der erro na verificação de limite
+    
+    print(f"✅ Cliente {usuario} AUTORIZADO para operar")
+    # 🔥 🔥 🔥 FIM DA VERIFICAÇÃO DE SEGURANÇA 🔥 🔥 🔥
     
     try:
         if not supabase:
@@ -5007,6 +5007,190 @@ def obter_cotacao_exchangerate(moeda_origem, moeda_destino):
     except Exception as e:
         print(f"⚠️  Erro ExchangeRate-API: {e}")
         return None
+    
+# ============================================
+# FUNÇÕES DE SEGURANÇA MÁXIMA - BLOQUEIO POR PADRÃO
+# (ADICIONAR ESTA SEÇÃO NO SEU web_api.py)
+# ============================================
+
+def obter_config_cliente(tipo_config, cliente_username, par_moeda=None):
+    """
+    Busca configuração ESPECÍFICA de um cliente
+    Retorna None se não encontrar configuração para este cliente
+    """
+    try:
+        print(f"🔍 Buscando {tipo_config} para cliente: {cliente_username}")
+        
+        if not supabase:
+            return None
+        
+        query = supabase.table('config_cotacoes')\
+            .select('valor_config, data_atualizacao')\
+            .eq('tipo_config', tipo_config)\
+            .eq('cliente_username', cliente_username)
+        
+        if par_moeda:
+            query = query.eq('par_moeda', par_moeda)
+        
+        response = query.order('data_atualizacao', desc=True)\
+                       .limit(1)\
+                       .execute()
+        
+        if response.data and response.data[0]['valor_config'] is not None:
+            print(f"✅ Configuração específica encontrada para {cliente_username}")
+            return response.data[0]['valor_config']
+        
+        print(f"ℹ️ Nenhuma configuração específica para {cliente_username}")
+        return None
+        
+    except Exception as e:
+        print(f"⚠️ Erro ao buscar {tipo_config} para {cliente_username}: {e}")
+        return None
+
+def obter_config_sistema(tipo_config):
+    """
+    Busca configuração PADRÃO do sistema (cliente_username = 'sistema')
+    """
+    try:
+        print(f"🔍 Buscando {tipo_config} do sistema")
+        
+        response = supabase.table('config_cotacoes')\
+            .select('valor_config')\
+            .eq('tipo_config', tipo_config)\
+            .eq('cliente_username', 'sistema')\
+            .order('data_atualizacao', desc=True)\
+            .limit(1)\
+            .execute()
+        
+        if response.data and response.data[0]['valor_config'] is not None:
+            print(f"✅ Configuração do sistema encontrada")
+            return response.data[0]['valor_config']
+        
+        print(f"ℹ️ Nenhuma configuração do sistema para {tipo_config}")
+        return None
+        
+    except Exception as e:
+        print(f"⚠️ Erro ao buscar configuração do sistema: {e}")
+        return None
+
+def verificar_permissao_cambio_seguro(cliente_username):
+    """
+    VERIFICAÇÃO SEGURA - BLOQUEIA se não houver configuração explícita
+    ORDEM: 1. Cliente específico → 2. Sistema → 3. BLOQUEADO
+    """
+    try:
+        print(f"🔐 Verificação SEGURA para: {cliente_username}")
+        
+        # 1. BUSCA CONFIGURAÇÃO ESPECÍFICA DO CLIENTE
+        config_cliente = obter_config_cliente('permissoes', cliente_username)
+        
+        if config_cliente is not None:
+            # Cliente TEM configuração específica
+            if isinstance(config_cliente, str):
+                config_cliente = config_cliente.lower() in ['true', 't', '1', 'yes', 'y', 'verdadeiro']
+            
+            permissao = bool(config_cliente)
+            status = "LIBERADO" if permissao else "BLOQUEADO"
+            print(f"✅ Configuração ESPECÍFICA: {status}")
+            return permissao
+        
+        # 2. BUSCA CONFIGURAÇÃO PADRÃO DO SISTEMA
+        config_sistema = obter_config_sistema('permissoes')
+        
+        if config_sistema is not None:
+            # Sistema TEM configuração padrão
+            if isinstance(config_sistema, str):
+                config_sistema = config_sistema.lower() in ['true', 't', '1', 'yes', 'y', 'verdadeiro']
+            
+            permissao = bool(config_sistema)
+            status = "LIBERADO" if permissao else "BLOQUEADO"
+            print(f"⚠️ Configuração do SISTEMA: {status}")
+            return permissao
+        
+        # 3. SE NÃO TEM NENHUMA CONFIGURAÇÃO → BLOQUEADO POR PADRÃO 🔥
+        print(f"🚫 SEM configuração → BLOQUEADO POR PADRÃO (segurança máxima)")
+        return False
+        
+    except Exception as e:
+        print(f"⚠️ Erro na verificação segura: {e}")
+        return False  # Em caso de erro, BLOQUEIA por segurança
+    
+def verificar_horario_cliente(cliente_username):
+    """
+    Verifica se QUALQUER cliente está dentro do horário permitido
+    Usa config_cotacoes em vez de config_sistema
+    """
+    try:
+        from datetime import datetime
+        import pytz
+        
+        print(f"⏰ Verificando horário para {cliente_username}")
+        
+        # 1. Busca horário do cliente (se tiver)
+        horario_cliente = obter_config_cliente('horarios', cliente_username)
+        
+        # 2. Se cliente não tem horário, usa horário padrão do sistema
+        if horario_cliente is None:
+            horario_cliente = obter_config_sistema('horario_padrao')
+            if horario_cliente:
+                print(f"   Usando horário padrão do sistema")
+        
+        # 3. Se não tiver nenhum, usar valores padrão de segurança
+        if not horario_cliente:
+            horario_cliente = {
+                'inicio': '10:00',
+                'fim': '15:00',
+                'dias_semana': [0, 1, 2, 3, 4],
+                'fuso_horario': 'America/Sao_Paulo'
+            }
+            print(f"   Usando valores padrão de segurança")
+        
+        # 4. Extrair configurações
+        inicio = horario_cliente.get('inicio', '10:00')
+        fim = horario_cliente.get('fim', '15:00')
+        dias_semana = horario_cliente.get('dias_semana', [0, 1, 2, 3, 4])
+        fuso_horario = horario_cliente.get('fuso_horario', 'America/Sao_Paulo')
+        
+        print(f"   Config: {inicio}-{fim}, dias: {dias_semana}, fuso: {fuso_horario}")
+        
+        # 5. Obtém hora atual no fuso correto
+        try:
+            tz = pytz.timezone(fuso_horario)
+            agora = datetime.now(tz)
+        except:
+            tz = pytz.timezone('America/Sao_Paulo')
+            agora = datetime.now(tz)
+        
+        hora_atual = agora.strftime('%H:%M')
+        dia_semana_num = agora.weekday()
+        
+        print(f"   Hora atual: {hora_atual} (dia {dia_semana_num})")
+        
+        # 6. Verifica dia da semana
+        if dia_semana_num not in dias_semana:
+            nomes_dias = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo']
+            dias_permitidos_nomes = [nomes_dias[i] for i in dias_semana if i < 7]
+            mensagem = f"Fora do horário comercial. Dias permitidos: {', '.join(dias_permitidos_nomes)}"
+            print(f"   ❌ {mensagem}")
+            return False, mensagem
+        
+        # 7. Verifica horário
+        if hora_atual < inicio:
+            mensagem = f"Fora do horário. Disponível a partir das {inicio}"
+            print(f"   ❌ {mensagem}")
+            return False, mensagem
+        
+        if hora_atual > fim:
+            mensagem = f"Fora do horário. Disponível até às {fim}"
+            print(f"   ❌ {mensagem}")
+            return False, mensagem
+        
+        print(f"   ✅ Dentro do horário permitido")
+        return True, "Dentro do horário comercial"
+        
+    except Exception as e:
+        print(f"⚠️ Erro ao verificar horário: {e}")
+        return True, "Erro na verificação - permitido por segurança"
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
