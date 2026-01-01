@@ -1970,6 +1970,7 @@
                 
                 if (data.success) {
                     this.fecharPopup('popupConfirmacao');
+                    this.fecharPopup('popupSaldoNegativo');  // 🔥 NOVA LINHA!
                     
                     if (operacao.tipo === 'saldo-negativo') {
                         // 🔥 CORREÇÃO: Usar o campo correto da resposta
