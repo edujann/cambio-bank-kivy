@@ -899,7 +899,7 @@
                 <button class="popup-btn popup-btn-cancelar" onclick="fecharPopup('popupSolicitarLiberacao')">
                     <i class="fas fa-times"></i> CANCELAR
                 </button>
-                <button class="popup-btn popup-btn-confirmar" onclick="enviarSolicitacaoLiberacao()">
+                <button class="popup-btn popup-btn-confirmar" onclick="window.enviarSolicitacaoLiberacao()">
                     <i class="fas fa-paper-plane"></i> ENVIAR SOLICITAÇÃO
                 </button>
             </div>
@@ -2259,12 +2259,123 @@
     window.executarOperacaoComSaldoNegativo = () => telaCambio.executarOperacaoComSaldoNegativo();
     window.fecharPopup = (id) => telaCambio.fecharPopup(id);
     
-    // 🔥 NOVA função para solicitação de liberação
+    // 🔥 FUNÇÃO GLOBAL PARA SOLICITAÇÃO DE LIBERAÇÃO
     window.solicitarLiberacao = () => {
-        if (window.telaCambio && typeof telaCambio.solicitarLiberacao === 'function') {
-            telaCambio.solicitarLiberacao();
-        } else {
-            alert("Sistema não inicializado. Recarregue a página.");
+        const usuario = "{{ usuario }}";  // Pega do template Flask
+        
+        console.log("📋 Solicitando liberação para:", usuario);
+        
+        // Preencher informações no popup
+        document.getElementById('clienteUsernameLiberacao').textContent = usuario;
+        
+        // Data e hora atual
+        const agora = new Date();
+        const dataHora = agora.toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        document.getElementById('dataHoraLiberacao').textContent = dataHora;
+        
+        // Mensagem personalizada
+        const mensagem = `
+            <p>Você está solicitando liberação para operações de câmbio.</p>
+            
+            <div style="margin: 15px 0; padding: 12px; background: #f8f9fa; border-radius: 6px;">
+                <strong><i class="fas fa-clock"></i> Processo:</strong>
+                <ol style="margin: 8px 0 0 20px; font-size: 14px;">
+                    <li>Sua solicitação será registrada</li>
+                    <li>Administrador será notificado</li>
+                    <li>Aprovação em até 24h úteis</li>
+                    <li>Você receberá um email de confirmação</li>
+                </ol>
+            </div>
+            
+            <p style="color: #7f8c8d; font-size: 14px;">
+                <i class="fas fa-shield-alt"></i> 
+                Sua segurança é nossa prioridade. Todas as solicitações passam por análise.
+            </p>
+        `;
+        
+        document.getElementById('popupSolicitarMensagem').innerHTML = mensagem;
+        
+        // Abrir popup
+        document.getElementById('popupSolicitarLiberacao').classList.add('active');
+    };
+
+    // Função para enviar a solicitação
+    window.enviarSolicitacaoLiberacao = async () => {
+        const usuario = "{{ usuario }}";
+        console.log("📤 Enviando solicitação de liberação para:", usuario);
+        
+        // Mostrar loading
+        const loadingPopup = document.getElementById('popupLoading');
+        if (loadingPopup) {
+            loadingPopup.classList.add('active');
+            document.getElementById('loadingText').textContent = 'Enviando solicitação...';
+        }
+        
+        try {
+            // Simulação de envio
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Fechar popups
+            document.getElementById('popupLoading').classList.remove('active');
+            document.getElementById('popupSolicitarLiberacao').classList.remove('active');
+            
+            // Mostrar popup de confirmação
+            const agora = new Date();
+            const dataEstimada = new Date(agora);
+            dataEstimada.setDate(dataEstimada.getDate() + 1);
+            
+            const popupHTML = `
+                <div class="popup-overlay active popup-solicitacao-enviada" id="popupSolicitacaoEnviada">
+                    <div class="popup-content">
+                        <h2 class="popup-titulo" style="color: #2ecc71;">
+                            <i class="fas fa-check-circle"></i> SOLICITAÇÃO REGISTRADA
+                        </h2>
+                        <div class="popup-mensagem">
+                            <div style="text-align: center;">
+                                <div style="font-size: 50px; color: #2ecc71; margin-bottom: 15px;" class="icon-animated">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <p><strong>Solicitação enviada com sucesso!</strong></p>
+                                
+                                <div style="margin: 20px 0; padding: 15px; background: rgba(46, 204, 113, 0.1); border-radius: 8px;">
+                                    <p><strong>Nº da Solicitação:</strong> LIB-${Date.now().toString().slice(-6)}</p>
+                                    <p><strong>Cliente:</strong> ${usuario}</p>
+                                    <p><strong>Data estimada:</strong> ${dataEstimada.toLocaleDateString('pt-BR')}</p>
+                                </div>
+                                
+                                <p style="color: #7f8c8d; font-size: 14px;">
+                                    <i class="fas fa-envelope"></i> 
+                                    Você receberá um email quando sua liberação for aprovada.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="popup-botoes">
+                            <button class="popup-btn popup-btn-ok" onclick="window.location.href='/dashboard'">
+                                <i class="fas fa-home"></i> VOLTAR AO DASHBOARD
+                            </button>
+                            <button class="popup-btn" onclick="document.getElementById('popupSolicitacaoEnviada').remove(); location.reload()" 
+                                    style="background: #95a5a6; color: white;">
+                                <i class="fas fa-redo"></i> ATUALIZAR STATUS
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const div = document.createElement('div');
+            div.innerHTML = popupHTML;
+            document.body.appendChild(div.firstElementChild);
+            
+        } catch (error) {
+            console.error("❌ Erro ao enviar solicitação:", error);
+            document.getElementById('popupLoading').classList.remove('active');
+            alert("Erro ao enviar solicitação. Tente novamente.");
         }
     };
     </script>
