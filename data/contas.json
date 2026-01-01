@@ -174,12 +174,12 @@
         "cliente_nome": "GABLES ENTERPRISE",
         "data_criacao": "2025-12-22"
     },
-    "376793336": {
+    "667276348": {
         "moeda": "USD",
-        "saldo": 0.0,
-        "cliente": "gables",
-        "cliente_nome": "GABLES ENTERPRISE",
-        "data_criacao": "2025-12-22"
+        "saldo": 17000.0,
+        "cliente": "neosoro",
+        "cliente_nome": "NEOSORO LIMITADA",
+        "data_criacao": "2026-01-01"
     },
     "759223170": {
         "moeda": "EUR",
@@ -209,12 +209,12 @@
         "cliente_nome": "THIERRY IMPORTERS LTDA",
         "data_criacao": "2025-12-19"
     },
-    "802194129": {
-        "moeda": "BRL",
-        "saldo": 44838.6,
-        "cliente": "pantanal",
-        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
+    "376793336": {
+        "moeda": "USD",
+        "saldo": 0.0,
+        "cliente": "gables",
+        "cliente_nome": "GABLES ENTERPRISE",
+        "data_criacao": "2025-12-22"
     },
     "394549984": {
         "moeda": "USD",
@@ -258,13 +258,6 @@
         "cliente_nome": "LONDRES LIMITED",
         "data_criacao": "2025-11-04"
     },
-    "607906288": {
-        "moeda": "USD",
-        "saldo": 27500.0,
-        "cliente": "pantanal",
-        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
-    },
     "608201541": {
         "moeda": "BRL",
         "saldo": 0.0,
@@ -285,6 +278,13 @@
         "cliente": "hidroamerica",
         "cliente_nome": "HIDROAMERICA LTDA",
         "data_criacao": "2025-12-04"
+    },
+    "802194129": {
+        "moeda": "BRL",
+        "saldo": 44233.02,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18"
     },
     "277435777": {
         "moeda": "EUR",
@@ -307,12 +307,26 @@
         "cliente_nome": "EDINHO ENTERPRISE",
         "data_criacao": "2025-12-22"
     },
+    "607906288": {
+        "moeda": "USD",
+        "saldo": 27110.0,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18"
+    },
     "792916936": {
         "moeda": "USD",
         "saldo": 40.0,
         "cliente": "edinho",
         "cliente_nome": "EDINHO ENTERPRISE",
         "data_criacao": "2025-12-22"
+    },
+    "163569885": {
+        "moeda": "EUR",
+        "saldo": 0.0,
+        "cliente": "neosoro",
+        "cliente_nome": "NEOSORO LIMITADA",
+        "data_criacao": "2026-01-01"
     },
     "873134916": {
         "moeda": "BRL",
@@ -334,6 +348,13 @@
         "cliente": "thierry",
         "cliente_nome": "THIERRY IMPORTERS LTDA",
         "data_criacao": "2025-12-19"
+    },
+    "500363800": {
+        "moeda": "GBP",
+        "saldo": 0.0,
+        "cliente": "neosoro",
+        "cliente_nome": "NEOSORO LIMITADA",
+        "data_criacao": "2026-01-01"
     },
     "164914690": {
         "moeda": "USD",
@@ -369,6 +390,13 @@
         "cliente": "romolo",
         "cliente_nome": "ROMOLO REMESSAS LTDA",
         "data_criacao": "2025-12-22"
+    },
+    "823239205": {
+        "moeda": "BRL",
+        "saldo": 106410.07,
+        "cliente": "neosoro",
+        "cliente_nome": "NEOSORO LIMITADA",
+        "data_criacao": "2026-01-01"
     },
     "967240582": {
         "moeda": "BRL",

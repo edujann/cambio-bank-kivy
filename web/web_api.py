@@ -643,6 +643,56 @@ def criar_transferencia_cliente():
             else:
                 print(f"⚠️ Transferência salva mas erro ao atualizar saldo")
             
+            # 🔥 🔥 🔥 NOVO: SALVAR BENEFICIÁRIO SE CHECKBOX MARCADO 🔥 🔥 🔥
+            try:
+                # Verificar se o checkbox 'salvar_beneficiario' foi marcado
+                # Pode vir como boolean (True/False) ou string ("true"/"false")
+                salvar_beneficiario = dados.get('salvar_beneficiario', False)
+                
+                # Converter para boolean se for string
+                if isinstance(salvar_beneficiario, str):
+                    salvar_beneficiario = salvar_beneficiario.lower() in ['true', '1', 'yes', 'on']
+                
+                print(f"📝 Checkbox 'salvar beneficiário': {salvar_beneficiario}")
+                
+                if salvar_beneficiario:
+                    print(f"💾 Salvando beneficiário para {usuario_logado}...")
+                    
+                    # Preparar dados do beneficiário
+                    dados_beneficiario = {
+                        'nome': dados.get('beneficiario', '').strip(),
+                        'endereco': dados.get('endereco_beneficiario', '').strip(),
+                        'cidade': dados.get('cidade', '').strip(),
+                        'pais': dados.get('pais', '').strip(),
+                        'banco': dados.get('nome_banco', '').strip(),
+                        'endereco_banco': dados.get('endereco_banco', '').strip(),
+                        'cidade_banco': dados.get('cidade_banco', '').strip(),
+                        'pais_banco': dados.get('pais_banco', '').strip(),
+                        'swift': dados.get('codigo_swift', '').strip(),
+                        'iban': dados.get('iban_account', '').strip(),
+                        'aba': dados.get('aba_routing', '').strip(),
+                        'cliente_username': usuario_logado,
+                        'ativo': True
+                    }
+                    
+                    # Verificar campos mínimos
+                    if dados_beneficiario['nome'] and dados_beneficiario['banco'] and dados_beneficiario['swift']:
+                        response_benef = supabase.table('beneficiarios').insert(dados_beneficiario).execute()
+                        
+                        if response_benef.data:
+                            print(f"✅✅✅ BENEFICIÁRIO SALVO COM SUCESSO!")
+                            print(f"✅ ID: {response_benef.data[0]['id']}")
+                            print(f"✅ Nome: {dados_beneficiario['nome']}")
+                        else:
+                            print(f"⚠️ Erro ao salvar beneficiário")
+                    else:
+                        print(f"⚠️ Campos insuficientes para salvar beneficiário")
+                        
+            except Exception as benef_error:
+                print(f"⚠️ Erro ao salvar beneficiário: {benef_error}")
+                # Não interrompe o fluxo principal
+                print(f"⚠️ Continuando sem salvar beneficiário...")
+            
             # 🔥 🔥 🔥 NOVO: PROCESSAR UPLOAD DA INVOICE SE EXISTIR 🔥 🔥 🔥
             try:
                 # Verificar se há arquivo na requisição
