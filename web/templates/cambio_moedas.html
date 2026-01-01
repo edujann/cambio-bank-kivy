@@ -638,6 +638,58 @@
             flex-direction: column;
         }
     }
+
+    /* ============================================
+       ESTILOS ADICIONAIS PARA POPUPS DE LIBERAÇÃO
+    ============================================ */
+    
+    /* Estilo para o popup de liberação */
+    .popup-solicitacao .popup-content {
+        border: 2px solid #3498db;
+        box-shadow: 0 10px 30px rgba(52, 152, 219, 0.2);
+    }
+
+    .popup-solicitacao-enviada .popup-content {
+        border: 2px solid #2ecc71;
+        box-shadow: 0 10px 30px rgba(46, 204, 113, 0.2);
+    }
+
+    /* Badge de status */
+    .status-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+        margin-left: 8px;
+    }
+
+    .status-pendente {
+        background: #f39c12;
+        color: white;
+    }
+
+    .status-aprovado {
+        background: #2ecc71;
+        color: white;
+    }
+
+    .status-recusado {
+        background: #e74c3c;
+        color: white;
+    }
+
+    /* Ícones animados */
+    .icon-animated {
+        animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-5px); }
+        100% { transform: translateY(0px); }
+    }
+
     </style>
     
     <!-- FontAwesome para ícones -->
@@ -814,6 +866,41 @@
             <div class="popup-botoes">
                 <button class="popup-btn popup-btn-ok" onclick="fecharPopup('popupSucesso')">
                     OK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- POPUP SOLICITAR LIBERAÇÃO -->
+    <div class="popup-overlay" id="popupSolicitarLiberacao">
+        <div class="popup-content">
+            <h2 class="popup-titulo" style="color: #3498db;">
+                <i class="fas fa-user-check"></i> SOLICITAR LIBERAÇÃO
+            </h2>
+            <div class="popup-mensagem" id="popupSolicitarMensagem">
+                <!-- Será preenchido via JS -->
+            </div>
+            
+            <div style="margin: 20px 0; padding: 15px; background: rgba(52, 152, 219, 0.1); border-radius: 8px;">
+                <h4 style="margin-bottom: 10px; color: #2c3e50;">
+                    <i class="fas fa-info-circle"></i> Informações do Cliente
+                </h4>
+                <div style="font-family: monospace; font-size: 14px;">
+                    <strong>Username:</strong> <span id="clienteUsernameLiberacao">{{ usuario }}</span><br>
+                    <strong>Data/Hora:</strong> <span id="dataHoraLiberacao"></span><br>
+                    <strong>Status:</strong> 
+                    <span class="status-badge status-pendente" id="statusLiberacao">
+                        <i class="fas fa-clock"></i> PENDENTE
+                    </span>
+                </div>
+            </div>
+            
+            <div class="popup-botoes">
+                <button class="popup-btn popup-btn-cancelar" onclick="fecharPopup('popupSolicitarLiberacao')">
+                    <i class="fas fa-times"></i> CANCELAR
+                </button>
+                <button class="popup-btn popup-btn-confirmar" onclick="enviarSolicitacaoLiberacao()">
+                    <i class="fas fa-paper-plane"></i> ENVIAR SOLICITAÇÃO
                 </button>
             </div>
         </div>
@@ -1231,7 +1318,7 @@
                         </button>
                         
                         ${isPermissaoNegada ? `
-                        <button onclick="window.open('/suporte', '_blank')" 
+                        <button onclick="solicitarLiberacao()" 
                                 style="
                                     background: #2ecc71; 
                                     color: white; 
@@ -2024,6 +2111,130 @@
             // Redirecionar para dashboard
             window.location.href = '/dashboard';
         }
+
+        // ============================================
+        // SOLICITAÇÃO DE LIBERAÇÃO
+        // ============================================
+        solicitarLiberacao() {
+            console.log("📋 Solicitando liberação para:", this.usuario);
+            
+            // Preencher informações no popup
+            document.getElementById('clienteUsernameLiberacao').textContent = this.usuario;
+            
+            // Data e hora atual
+            const agora = new Date();
+            const dataHora = agora.toLocaleString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            document.getElementById('dataHoraLiberacao').textContent = dataHora;
+            
+            // Mensagem personalizada
+            const mensagem = `
+                <p>Você está solicitando liberação para operações de câmbio.</p>
+                
+                <div style="margin: 15px 0; padding: 12px; background: #f8f9fa; border-radius: 6px;">
+                    <strong><i class="fas fa-clock"></i> Processo:</strong>
+                    <ol style="margin: 8px 0 0 20px; font-size: 14px;">
+                        <li>Sua solicitação será registrada</li>
+                        <li>Administrador será notificado</li>
+                        <li>Aprovação em até 24h úteis</li>
+                        <li>Você receberá um email de confirmação</li>
+                    </ol>
+                </div>
+                
+                <p style="color: #7f8c8d; font-size: 14px;">
+                    <i class="fas fa-shield-alt"></i> 
+                    Sua segurança é nossa prioridade. Todas as solicitações passam por análise.
+                </p>
+            `;
+            
+            document.getElementById('popupSolicitarMensagem').innerHTML = mensagem;
+            this.abrirPopup('popupSolicitarLiberacao');
+        }
+
+        async enviarSolicitacaoLiberacao() {
+            console.log("📤 Enviando solicitação de liberação para:", this.usuario);
+            
+            this.mostrarLoading('Enviando solicitação...');
+            
+            try {
+                // 🔥 AQUI VOCÊ PODE INTEGRAR COM SEU SISTEMA
+                // Por exemplo, salvar no Supabase, enviar email, etc.
+                
+                // Simulação de envio (substituir por código real)
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                this.fecharPopup('popupLoading');
+                this.fecharPopup('popupSolicitarLiberacao');
+                
+                // Mostrar popup de confirmação
+                this.mostrarPopupSolicitacaoEnviada();
+                
+            } catch (error) {
+                console.error("❌ Erro ao enviar solicitação:", error);
+                this.fecharPopup('popupLoading');
+                this.mostrarErro("Erro ao enviar solicitação. Tente novamente.");
+            }
+        }
+
+        mostrarPopupSolicitacaoEnviada() {
+            const agora = new Date();
+            const dataEstimada = new Date(agora);
+            dataEstimada.setDate(dataEstimada.getDate() + 1); // +1 dia
+            
+            const mensagem = `
+                <div style="text-align: center;">
+                    <div style="font-size: 50px; color: #2ecc71; margin-bottom: 15px;" class="icon-animated">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <p><strong>Solicitação enviada com sucesso!</strong></p>
+                    
+                    <div style="margin: 20px 0; padding: 15px; background: rgba(46, 204, 113, 0.1); border-radius: 8px;">
+                        <p><strong>Nº da Solicitação:</strong> LIB-${Date.now().toString().slice(-6)}</p>
+                        <p><strong>Cliente:</strong> ${this.usuario}</p>
+                        <p><strong>Data estimada:</strong> ${dataEstimada.toLocaleDateString('pt-BR')}</p>
+                    </div>
+                    
+                    <p style="color: #7f8c8d; font-size: 14px;">
+                        <i class="fas fa-envelope"></i> 
+                        Você receberá um email quando sua liberação for aprovada.
+                    </p>
+                </div>
+            `;
+            
+            // Criar popup temporário
+            const popupHTML = `
+                <div class="popup-overlay active popup-solicitacao-enviada" id="popupSolicitacaoEnviada">
+                    <div class="popup-content">
+                        <h2 class="popup-titulo" style="color: #2ecc71;">
+                            <i class="fas fa-check-circle"></i> SOLICITAÇÃO REGISTRADA
+                        </h2>
+                        <div class="popup-mensagem">
+                            ${mensagem}
+                        </div>
+                        <div class="popup-botoes">
+                            <button class="popup-btn popup-btn-ok" onclick="window.location.href='/dashboard'">
+                                <i class="fas fa-home"></i> VOLTAR AO DASHBOARD
+                            </button>
+                            <button class="popup-btn" onclick="fecharPopup('popupSolicitacaoEnviada'); location.reload()" 
+                                    style="background: #95a5a6; color: white;">
+                                <i class="fas fa-redo"></i> ATUALIZAR STATUS
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Adicionar ao body
+            const div = document.createElement('div');
+            div.innerHTML = popupHTML;
+            document.body.appendChild(div.firstElementChild);
+        }    
+    
     }
 
     // ============================================
@@ -2047,6 +2258,15 @@
     window.executarOperacaoConfirmada = () => telaCambio.executarOperacaoConfirmada();
     window.executarOperacaoComSaldoNegativo = () => telaCambio.executarOperacaoComSaldoNegativo();
     window.fecharPopup = (id) => telaCambio.fecharPopup(id);
+    
+    // 🔥 NOVA função para solicitação de liberação
+    window.solicitarLiberacao = () => {
+        if (window.telaCambio && typeof telaCambio.solicitarLiberacao === 'function') {
+            telaCambio.solicitarLiberacao();
+        } else {
+            alert("Sistema não inicializado. Recarregue a página.");
+        }
+    };
     </script>
 </body>
 </html>
