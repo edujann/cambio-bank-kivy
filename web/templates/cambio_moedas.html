@@ -1959,6 +1959,11 @@
                     })
                 });
                 
+                // 🔥 VERIFICAR STATUS HTTP PRIMEIRO
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
                 
                 this.fecharPopup('popupLoading');
@@ -1967,10 +1972,11 @@
                     this.fecharPopup('popupConfirmacao');
                     
                     if (operacao.tipo === 'saldo-negativo') {
+                        // 🔥 CORREÇÃO: Usar o campo correto da resposta
                         this.mostrarSucessoComAlerta(
                             operacao.valorReceber,
                             operacao.moedaReceber,
-                            data.novoSaldo,
+                            data.novo_saldo_pagar || 0,  // ⚠️ MUDOU AQUI!
                             operacao.moedaPagar,
                             operacao.dadosNegativos.valorDepositar,
                             operacao.dadosNegativos.multaPotencial,
@@ -1989,20 +1995,22 @@
                     await this.carregarSaldos();
                     
                 } else {
-                    this.mostrarErro(data.message || "Erro ao executar operação");
+                    this.mostrarErro(data.error || data.message || "Erro ao executar operação");
                 }
                 
             } catch (error) {
                 console.error("❌ Erro ao executar operação:", error);
                 this.fecharPopup('popupLoading');
-                this.mostrarErro("Erro de conexão com servidor");
+                
+                // 🔥 MENSAGEM MAIS ESPECÍFICA
+                if (error.message.includes('HTTP')) {
+                    this.mostrarErro(`Erro no servidor: ${error.message}`);
+                } else {
+                    this.mostrarErro("Erro de conexão com servidor");
+                }
             }
             
             delete window.operacaoPendente;
-        }
-
-        executarOperacaoComSaldoNegativo() {
-            this.executarOperacaoConfirmada();
         }
 
         // ============================================

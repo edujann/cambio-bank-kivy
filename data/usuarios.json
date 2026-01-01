@@ -21,6 +21,33 @@
         "codigo_verificacao": null,
         "cambio_liberado": false
     },
+    "gables": {
+        "id": "3d87ebc4-e469-40cd-86df-5eb78cb2dc9d",
+        "username": "gables",
+        "senha_hash": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
+        "nome": "GABLES ENTERPRISE",
+        "email": "gables@mail.com",
+        "documento_hash": "3540e54932c0ee8d2bd26167ae4133eca41e6c7e579e8a7e478ad58e8482d3f3",
+        "telefone": "",
+        "endereco": "",
+        "cidade": "",
+        "cep": "",
+        "estado": "",
+        "pais": "",
+        "tipo": "cliente",
+        "data_cadastro": "2025-12-22T18:41:03.728514",
+        "created_at": "2025-12-22T21:41:04.944862",
+        "contas": [
+            "376793336",
+            "580880428",
+            "251636005",
+            "755234527"
+        ],
+        "status": "pendente",
+        "verificado": false,
+        "codigo_verificacao": "",
+        "cambio_liberado": false
+    },
     "excluido_20251206_143857_google": {
         "id": "bd9571c6-817e-4df0-bc37-ab31f0c39c0c",
         "username": "excluido_20251206_143857_google",
@@ -341,33 +368,45 @@
         "cambio_liberado": false
     },
     "romolo": {
-        "senha": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
-        "tipo": "cliente",
+        "id": "e71a2094-5849-4a0a-903a-016fb9f70b91",
+        "username": "romolo",
+        "senha_hash": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
         "nome": "ROMOLO REMESSAS LTDA",
         "email": "romolo@mail.com",
-        "documento": "12345678900",
+        "documento_hash": "a8476735b37a541a38402a2e7037c79e2d217fe9780e5e34347156ef61eff42b",
         "telefone": "",
+        "endereco": "",
+        "cidade": "",
+        "cep": "",
+        "estado": "",
+        "pais": "",
+        "tipo": "cliente",
+        "data_cadastro": "2025-12-22T18:26:22.749217",
+        "created_at": "2025-12-22T21:26:23.960077",
         "contas": [
-            "772868082",
-            "302552653",
-            "108107087",
-            "873294153"
+            "997848133",
+            "637419166",
+            "918871468",
+            "581734496"
         ],
-        "data_cadastro": "2025-12-22"
+        "status": "pendente",
+        "verificado": false,
+        "codigo_verificacao": "",
+        "cambio_liberado": false
     },
-    "gables": {
+    "neosoro": {
         "senha": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
         "tipo": "cliente",
-        "nome": "GABLES ENTERPRISE",
-        "email": "gables@mail.com",
-        "documento": "32145698754",
+        "nome": "NEOSORO LIMITADA",
+        "email": "neosoro@mail.com",
+        "documento": "123456000125",
         "telefone": "",
         "contas": [
-            "328944680",
-            "539554329",
-            "316358963",
-            "554707251"
+            "793151188",
+            "361460227",
+            "396611901",
+            "839945712"
         ],
-        "data_cadastro": "2025-12-22"
+        "data_cadastro": "2026-01-01"
     }
 }
