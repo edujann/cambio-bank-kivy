@@ -2921,7 +2921,7 @@ def processar_transacao_kivy(dados, conta_num, moeda):
 
 @app.route('/api/extrato/exportar-pdf', methods=['POST'])
 def exportar_extrato_pdf():
-    """Exporta extrato para PDF usando o mesmo sistema do Kivy"""
+    """Exporta extrato para PDF completo"""
     try:
         usuario = session.get('username')
         if not usuario:
@@ -2930,26 +2930,18 @@ def exportar_extrato_pdf():
         dados = request.get_json()
         
         print(f"📊 [PDF] Gerando extrato para {usuario}")
-        print(f"📋 [PDF] Dados recebidos: {len(dados.get('transacoes', []))} transações")
+        print(f"📋 [PDF] {len(dados.get('transacoes', []))} transações recebidas")
         
-        if not dados:
-            return jsonify({"success": False, "message": "Dados não fornecidos"}), 400
-        
-        # 🔥 IMPLEMENTAÇÃO REAL - USANDO O MESMO PDFGenerator DO KIVY
-        from pdf_generator import PDFGenerator
-        
-        # Criar instância do gerador
-        pdf_generator = PDFGenerator()
-        
-        # 🔥 PREPARAR DADOS NO FORMATO QUE O PDFGenerator ESPERA
+        # Preparar dados
         conta_numero = dados.get('conta')
+        transacoes = dados.get('transacoes', [])
+        periodo = dados.get('periodo', 'N/A')
+        resumo = dados.get('resumo', {})
         
-        if not conta_numero:
-            return jsonify({"success": False, "message": "Número da conta não fornecido"}), 400
+        if not conta_numero or not transacoes:
+            return jsonify({"success": False, "message": "Dados insuficientes"}), 400
         
-        # 1. BUSCAR DADOS REAIS DA CONTA DO SUPABASE
-        print(f"🔍 [PDF] Buscando conta {conta_numero} para {usuario}")
-        
+        # Buscar dados da conta
         response_conta = supabase.table('contas')\
             .select('id, cliente_nome, moeda, saldo')\
             .eq('id', conta_numero)\
@@ -2958,117 +2950,174 @@ def exportar_extrato_pdf():
             .execute()
         
         if not response_conta.data:
-            print(f"❌ [PDF] Conta {conta_numero} não encontrada para {usuario}")
             return jsonify({"success": False, "message": "Conta não encontrada"}), 404
         
         conta_data = response_conta.data[0]
-        print(f"✅ [PDF] Conta encontrada: {conta_data}")
         
-        # 2. PREPARAR DADOS DA CONTA (formato esperado pelo PDFGenerator)
-        dados_conta = {
-            'numero': str(conta_numero),  # Número da conta
-            'titular': conta_data.get('cliente_nome', usuario.upper()),  # Nome do titular
-            'moeda': conta_data.get('moeda', 'USD'),  # Moeda da conta
-            'saldo': float(conta_data.get('saldo', 0))  # Saldo atual
-        }
-        
-        # 3. PREPARAR DADOS DO RESUMO
-        resumo = dados.get('resumo', {})
-        dados_resumo = {
-            'saldo_final': float(resumo.get('saldo_final', 0)),
-            'entradas': float(resumo.get('total_entradas', 0)),
-            'saidas': float(resumo.get('total_saidas', 0)),
-            'total_transacoes': resumo.get('total_transacoes', 0),
-            'periodo': dados.get('periodo', 'N/A'),
-            'moeda': resumo.get('moeda', 'USD')
-        }
-        
-        print(f"📊 [PDF] Dados da conta preparados: {dados_conta}")
-        print(f"📊 [PDF] Dados do resumo: {dados_resumo}")
-        
-        # 4. PREPARAR TRANSAÇÕES (formato esperado pelo PDFGenerator)
-        transacoes_frontend = dados.get('transacoes', [])
-        transacoes_formatadas = []
-        
-        for i, t in enumerate(transacoes_frontend):
-            transacao_formatada = {
-                'data': t.get('data', ''),
-                'descricao': t.get('descricao', ''),
-                'credito': float(t.get('credito', 0)),
-                'debito': float(t.get('debito', 0)),
-                'saldo_apos': float(t.get('saldo_apos', 0))
-            }
-            transacoes_formatadas.append(transacao_formatada)
-            
-            if i < 3:  # Log das primeiras 3 transações
-                print(f"📝 [PDF] Transação {i}: {transacao_formatada}")
-        
-        print(f"✅ [PDF] Total de transações formatadas: {len(transacoes_formatadas)}")
-        
-        # 5. GERAR PDF USANDO O MESMO MÉTODO DO KIVY
-        print("🔄 [PDF] Chamando pdf_generator.gerar_extrato()...")
-        
-        try:
-            caminho_pdf = pdf_generator.gerar_extrato(
-                transacoes=transacoes_formatadas,
-                dados_conta=dados_conta,
-                dados_resumo=dados_resumo
-            )
-            
-            if not caminho_pdf:
-                raise Exception("PDF não foi gerado - retorno None")
-            
-            print(f"✅✅✅ [PDF] PDF GERADO COM SUCESSO!")
-            print(f"📍 [PDF] Caminho: {caminho_pdf}")
-            
-            # Verificar se arquivo existe
-            import os
-            if os.path.exists(caminho_pdf):
-                tamanho = os.path.getsize(caminho_pdf)
-                print(f"📏 [PDF] Tamanho do arquivo: {tamanho} bytes")
-            else:
-                print(f"❌ [PDF] Arquivo não encontrado no caminho: {caminho_pdf}")
-                raise Exception("Arquivo PDF não foi criado")
-            
-        except Exception as pdf_error:
-            print(f"❌ [PDF] Erro ao gerar PDF: {pdf_error}")
-            import traceback
-            traceback.print_exc()
-            return jsonify({
-                "success": False,
-                "message": f"Erro ao gerar PDF: {str(pdf_error)}"
-            }), 500
-        
-        # 6. CRIAR URL ACESSÍVEL VIA WEB
-        # Extrair apenas o nome do arquivo
+        # 🔥 GERAR PDF COMPLETO
+        from datetime import datetime
         import os
-        nome_arquivo = os.path.basename(caminho_pdf)
+        from reportlab.lib.pagesizes import letter, A4
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib import colors
+        from reportlab.lib.units import inch, cm
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+        from reportlab.pdfgen import canvas
         
-        # Criar pasta para extratos se não existir
-        pasta_extratos = os.path.join(os.path.dirname(__file__), 'static', 'extratos')
+        # Criar nome do arquivo
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        nome_arquivo = f"extrato_{conta_numero}_{timestamp}.pdf"
+        
+        # Criar pasta estática
+        pasta_atual = os.path.dirname(os.path.abspath(__file__))
+        pasta_extratos = os.path.join(pasta_atual, 'static', 'extratos')
         os.makedirs(pasta_extratos, exist_ok=True)
         
-        # Copiar arquivo para a pasta estática
-        import shutil
-        caminho_destino = os.path.join(pasta_extratos, nome_arquivo)
-        shutil.copy2(caminho_pdf, caminho_destino)
+        caminho_pdf = os.path.join(pasta_extratos, nome_arquivo)
         
-        print(f"📁 [PDF] Arquivo copiado para: {caminho_destino}")
+        # Criar documento
+        doc = SimpleDocTemplate(
+            caminho_pdf,
+            pagesize=letter,
+            topMargin=50,
+            bottomMargin=50,
+            leftMargin=30,
+            rightMargin=30
+        )
         
-        # Criar URL relativa
+        story = []
+        styles = getSampleStyleSheet()
+        
+        # 1. CABEÇALHO
+        title_style = ParagraphStyle(
+            'Title',
+            parent=styles['Heading1'],
+            fontSize=18,
+            alignment=TA_CENTER,
+            spaceAfter=12,
+            textColor=colors.HexColor("#1a5fb4"),
+            fontName='Helvetica-Bold'
+        )
+        
+        title = Paragraph("CÂMBIO BANK - BANK STATEMENT", title_style)
+        story.append(title)
+        
+        # 2. INFORMAÇÕES DA CONTA
+        info_style = ParagraphStyle(
+            'Info',
+            parent=styles['Normal'],
+            fontSize=10,
+            alignment=TA_CENTER,
+            spaceAfter=20,
+            textColor=colors.gray
+        )
+        
+        info_text = f"""
+        Account: {conta_numero} | Client: {conta_data.get('cliente_nome', usuario)} | 
+        Currency: {conta_data.get('moeda', 'USD')} | Period: {periodo}
+        """
+        info = Paragraph(info_text, info_style)
+        story.append(info)
+        
+        # 3. RESUMO EM TABELA
+        summary_data = [
+            ['Description', 'Value', 'Currency'],
+            ['Current Balance', f"{float(conta_data.get('saldo', 0)):,.2f}", conta_data.get('moeda', 'USD')],
+            ['Final Balance', f"{resumo.get('saldo_final', 0):,.2f}", resumo.get('moeda', 'USD')],
+            ['Total Credits', f"{resumo.get('total_entradas', 0):,.2f}", resumo.get('moeda', 'USD')],
+            ['Total Debits', f"{resumo.get('total_saidas', 0):,.2f}", resumo.get('moeda', 'USD')],
+            ['Number of Transactions', str(resumo.get('total_transacoes', 0)), '']
+        ]
+        
+        summary_table = Table(summary_data, colWidths=[200, 100, 80])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#1a5fb4")),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),
+        ]))
+        
+        story.append(summary_table)
+        story.append(Spacer(1, 30))
+        
+        # 4. TABELA DE TRANSAÇÕES
+        if transacoes:
+            # Cabeçalho
+            header = ['Date', 'Description', 'Credit', 'Debit', 'Balance']
+            data = [header]
+            
+            # Adicionar transações
+            for t in transacoes:
+                data_str = t.get('data', '')[:10]  # Apenas data
+                desc = (t.get('descricao', '')[:40] + '...') if len(t.get('descricao', '')) > 40 else t.get('descricao', '')
+                credito = f"{t.get('credito', 0):,.2f}" if t.get('credito', 0) > 0 else ""
+                debito = f"{t.get('debito', 0):,.2f}" if t.get('debito', 0) > 0 else ""
+                saldo = f"{t.get('saldo_apos', 0):,.2f}"
+                
+                data.append([data_str, desc, credito, debito, saldo])
+            
+            # Criar tabela
+            trans_table = Table(data, colWidths=[60, 250, 70, 70, 70])
+            trans_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#2c3e50")),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 9),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('ALIGN', (2, 1), (-1, -1), 'RIGHT'),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor("#f9f9f9")]),
+            ]))
+            
+            story.append(trans_table)
+            story.append(Spacer(1, 20))
+        
+        # 5. RODAPÉ
+        footer_style = ParagraphStyle(
+            'Footer',
+            parent=styles['Normal'],
+            fontSize=8,
+            alignment=TA_CENTER,
+            textColor=colors.gray,
+            spaceBefore=20
+        )
+        
+        footer_text = f"""
+        Cambio Bank - International Banking System<br/>
+        Document generated on {datetime.now().strftime('%d/%m/%Y at %H:%M:%S')}<br/>
+        This is an official bank statement - Page 1 of 1
+        """
+        
+        footer = Paragraph(footer_text, footer_style)
+        story.append(footer)
+        
+        # Gerar PDF
+        doc.build(story)
+        
+        print(f"✅✅✅ [PDF] PDF COMPLETO gerado: {caminho_pdf}")
+        
+        # Retornar URL
         pdf_url = f"/static/extratos/{nome_arquivo}"
-        print(f"🔗 [PDF] URL para download: {pdf_url}")
         
         return jsonify({
             "success": True,
             "pdf_url": pdf_url,
             "message": "PDF gerado com sucesso!",
-            "filename": nome_arquivo,
-            "download_path": caminho_pdf
+            "filename": nome_arquivo
         })
         
     except Exception as e:
-        print(f"❌❌❌ [PDF] ERRO CRÍTICO em exportar_extrato_pdf: {e}")
+        print(f"❌ [PDF] Erro ao gerar PDF completo: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({

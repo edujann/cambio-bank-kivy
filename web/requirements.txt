@@ -5,3 +5,4 @@ supabase==1.1.1
 gunicorn==21.2.0
 requests
 pytz==2024.1
+reportlab==4.0.4
