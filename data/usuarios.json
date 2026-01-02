@@ -97,6 +97,33 @@
         "codigo_verificacao": null,
         "cambio_liberado": false
     },
+    "neosoro": {
+        "id": "5edeadc6-4c09-4575-b497-c69a936fcca5",
+        "username": "neosoro",
+        "senha_hash": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
+        "nome": "NEOSORO LIMITADA",
+        "email": "neosoro@mail.com",
+        "documento_hash": "819534969c5fd3730b120a33853f21752a7d0a7fc2c2a61d6b08e8f7e7361149",
+        "telefone": "",
+        "endereco": "",
+        "cidade": "",
+        "cep": "",
+        "estado": "",
+        "pais": "",
+        "tipo": "cliente",
+        "data_cadastro": "2026-01-01T17:36:13.489101",
+        "created_at": "2026-01-01T20:36:13.486586",
+        "contas": [
+            "667276348",
+            "163569885",
+            "500363800",
+            "823239205"
+        ],
+        "status": "pendente",
+        "verificado": false,
+        "codigo_verificacao": "",
+        "cambio_liberado": false
+    },
     "titan": {
         "id": "021b82f7-daf6-42ac-8948-004ec6ae324b",
         "username": "titan",
@@ -394,19 +421,19 @@
         "codigo_verificacao": "",
         "cambio_liberado": false
     },
-    "neosoro": {
+    "aligator": {
         "senha": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
         "tipo": "cliente",
-        "nome": "NEOSORO LIMITADA",
-        "email": "neosoro@mail.com",
-        "documento": "123456000125",
+        "nome": "ALIGATOR ENTERPRISE",
+        "email": "aligator@mail.com",
+        "documento": "12365478900",
         "telefone": "",
         "contas": [
-            "793151188",
-            "361460227",
-            "396611901",
-            "839945712"
+            "614135261",
+            "756499128",
+            "862370552",
+            "549087763"
         ],
-        "data_cadastro": "2026-01-01"
+        "data_cadastro": "2026-01-02"
     }
 }

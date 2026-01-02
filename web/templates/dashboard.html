@@ -1289,6 +1289,197 @@
         }
     }
 
+    /* ============================================
+    POPUP DE "EM DESENVOLVIMENTO"
+    ============================================ */
+
+    .popup-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 999999;
+        backdrop-filter: blur(3px);
+        animation: fadeIn 0.3s ease;
+    }
+
+    .popup-container {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.9);
+        background: var(--cor-card);
+        border: 1px solid var(--cor-primaria);
+        border-radius: var(--borda-radius);
+        box-shadow: var(--sombra-forte);
+        width: 90%;
+        max-width: 450px;
+        z-index: 9999999;
+        opacity: 0;
+        animation: popupShow 0.4s ease forwards;
+        overflow: hidden;
+    }
+
+    .popup-header {
+        background: linear-gradient(135deg, var(--cor-primaria), #2d8fff);
+        padding: 25px 30px;
+        text-align: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .popup-icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+        color: white;
+        animation: pulse 2s infinite;
+    }
+
+    .popup-title {
+        color: white;
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .popup-subtitle {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 14px;
+    }
+
+    .popup-body {
+        padding: 30px;
+        text-align: center;
+    }
+
+    .popup-message {
+        font-size: 16px;
+        line-height: 1.6;
+        color: var(--cor-texto);
+        margin-bottom: 25px;
+    }
+
+    .popup-progress {
+        margin: 25px 0;
+    }
+
+    .progress-bar {
+        height: 6px;
+        background: rgba(26, 95, 180, 0.1);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 10px;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--cor-primaria), var(--cor-sucesso));
+        border-radius: 3px;
+        width: 65%;
+        animation: progressAnimation 2s ease-in-out infinite;
+    }
+
+    .progress-text {
+        font-size: 12px;
+        color: var(--cor-texto-secundario);
+        text-align: center;
+    }
+
+    .popup-estimate {
+        font-size: 13px;
+        color: var(--cor-texto-secundario);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 20px;
+        padding: 10px;
+        background: rgba(26, 95, 180, 0.05);
+        border-radius: var(--borda-radius-pequeno);
+    }
+
+    .popup-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 25px;
+    }
+
+    .popup-btn {
+        padding: 12px 24px;
+        border-radius: var(--borda-radius-pequeno);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: none;
+        font-size: 14px;
+        min-width: 120px;
+    }
+
+    .popup-btn-ok {
+        background: var(--cor-primaria);
+        color: white;
+    }
+
+    .popup-btn-ok:hover {
+        background: #2d8fff;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(26, 95, 180, 0.3);
+    }
+
+    .popup-btn-cancel {
+        background: transparent;
+        border: 1px solid var(--cor-borda);
+        color: var(--cor-texto);
+    }
+
+    .popup-btn-cancel:hover {
+        border-color: var(--cor-primaria);
+        color: var(--cor-primaria);
+    }
+
+    /* Animações */
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes popupShow {
+        to {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+
+    @keyframes progressAnimation {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(300%); }
+    }
+
+    /* Versão para mobile */
+    @media (max-width: 768px) {
+        .popup-container {
+            width: 95%;
+            max-width: 95%;
+        }
+        
+        .popup-buttons {
+            flex-direction: column;
+        }
+        
+        .popup-btn {
+            width: 100%;
+        }
+    }
+
     </style>
     
     <!-- Ícones FontAwesome -->
@@ -1462,7 +1653,7 @@ function abrirTransferencia() {
                         <h3 class="card-title">Meus Beneficiários</h3>
                         <p class="card-desc">Gerencie seus contatos</p>
                         <div class="card-badge" id="badgeBeneficiarios2">
-                            {{ beneficiarios_count if beneficiarios_count else '0' }} cadastrados
+                            {{ beneficiarios_count if beneficiarios_count else '0   ' }} cadastrados
                         </div>
                     </div>
 
@@ -1817,6 +2008,142 @@ function abrirTransferencia() {
         
         console.log('🎉 Menu dropdown pronto!');
     });
+
+    // ============================================
+    // SISTEMA DE POPUP PARA FUNÇÕES EM DESENVOLVIMENTO
+    // ============================================
+
+    // Função para mostrar popup
+    function mostrarPopupEmDesenvolvimento() {
+        const popup = document.getElementById('devPopupOverlay');
+        if (popup) {
+            popup.style.display = 'block';
+            
+            // Fechar com ESC
+            document.addEventListener('keydown', function fecharComESC(e) {
+                if (e.key === 'Escape') {
+                    fecharPopupDev();
+                    document.removeEventListener('keydown', fecharComESC);
+                }
+            });
+            
+            // Fechar ao clicar fora
+            popup.addEventListener('click', function fecharFora(e) {
+                if (e.target === popup) {
+                    fecharPopupDev();
+                }
+            });
+            
+            // Impedir rolagem da página
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    // Função para fechar popup
+    function fecharPopupDev() {
+        const popup = document.getElementById('devPopupOverlay');
+        if (popup) {
+            popup.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    }
+
+    // Modificar os links do dropdown que não funcionam
+    document.addEventListener('DOMContentLoaded', function() {
+        // Aguardar um pouco para garantir que o dropdown foi criado
+        setTimeout(() => {
+            const dropdown = document.getElementById('userDropdown');
+            if (dropdown) {
+                // Encontrar links de perfil e configurações
+                const perfilLink = dropdown.querySelector('a[href="/perfil"]');
+                const configLink = dropdown.querySelector('a[href="/configuracoes"]');
+                
+                // Substituir comportamento
+                if (perfilLink) {
+                    perfilLink.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        mostrarPopupEmDesenvolvimento();
+                        // Fechar dropdown também
+                        if (window.menuVisivel) {
+                            window.toggleMenu();
+                        }
+                    });
+                }
+                
+                if (configLink) {
+                    configLink.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        mostrarPopupEmDesenvolvimento();
+                        // Fechar dropdown também
+                        if (window.menuVisivel) {
+                            window.toggleMenu();
+                        }
+                    });
+                }
+            }
+        }, 1000);
+        
+        // Também proteger qualquer link que leve para essas rotas
+        document.querySelectorAll('a[href="/perfil"], a[href="/configuracoes"]').forEach(link => {
+            if (!link.hasAttribute('data-handled')) {
+                link.setAttribute('data-handled', 'true');
+                link.addEventListener('click', function(e) {
+                    // Se não for um link válido (404), mostrar popup
+                    if (this.getAttribute('href') && !this.classList.contains('active')) {
+                        e.preventDefault();
+                        mostrarPopupEmDesenvolvimento();
+                    }
+                });
+            }
+        });
+    });
+
+    // Testar imediatamente (opcional - remova depois)
+    // mostrarPopupEmDesenvolvimento();
+
     </script>
+
+    <!-- POPUP EM DESENVOLVIMENTO -->
+    <div class="popup-overlay" id="devPopupOverlay">
+        <div class="popup-container">
+            <div class="popup-header">
+                <div class="popup-icon">
+                    <i class="fas fa-tools"></i>
+                </div>
+                <h2 class="popup-title">EM DESENVOLVIMENTO</h2>
+                <div class="popup-subtitle">Funcionalidade em construção</div>
+            </div>
+            
+            <div class="popup-body">
+                <div class="popup-message">
+                    Esta funcionalidade está sendo desenvolvida com cuidado e atenção aos detalhes. 
+                    Em breve estará disponível para você!
+                </div>
+                
+                <div class="popup-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                    <div class="progress-text">Desenvolvimento em andamento: 65%</div>
+                </div>
+                
+                <div class="popup-estimate">
+                    <i class="fas fa-clock"></i> Previsão de lançamento: 2 semanas
+                </div>
+            </div>
+            
+            <div class="popup-buttons">
+                <button class="popup-btn popup-btn-ok" onclick="fecharPopupDev()">
+                    <i class="fas fa-check"></i> Entendi
+                </button>
+                <button class="popup-btn popup-btn-cancel" onclick="fecharPopupDev()">
+                    <i class="fas fa-times"></i> Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
