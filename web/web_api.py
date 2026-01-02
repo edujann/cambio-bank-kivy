@@ -2921,7 +2921,7 @@ def processar_transacao_kivy(dados, conta_num, moeda):
 
 @app.route('/api/extrato/exportar-pdf', methods=['POST'])
 def exportar_extrato_pdf():
-    """Exporta extrato para PDF completo"""
+    """Exporta extrato para PDF completo - VERSÃO OTIMIZADA"""
     try:
         usuario = session.get('username')
         if not usuario:
@@ -2941,9 +2941,7 @@ def exportar_extrato_pdf():
         if not conta_numero or not transacoes:
             return jsonify({"success": False, "message": "Dados insuficientes"}), 400
         
-        # Buscar dados da conta - CORREÇÃO AQUI!
-        print(f"🔍 [PDF] Buscando conta {conta_numero} para {usuario}")
-        
+        # Buscar dados da conta
         response_conta = supabase.table('contas')\
             .select('id, cliente_nome, moeda, saldo')\
             .eq('id', conta_numero)\
@@ -2951,33 +2949,19 @@ def exportar_extrato_pdf():
             .single()\
             .execute()
         
-        print(f"📊 [PDF] Resposta Supabase: {response_conta}")
-        print(f"📊 [PDF] Dados: {response_conta.data}")
-        print(f"📊 [PDF] Tipo: {type(response_conta.data)}")
-        
         if not response_conta.data:
-            print(f"❌ [PDF] Nenhum dado retornado para conta {conta_numero}")
             return jsonify({"success": False, "message": "Conta não encontrada"}), 404
         
-        # 🔥 CORREÇÃO: .single() retorna dicionário, não lista
-        conta_data = response_conta.data  # REMOVA O [0]!
+        conta_data = response_conta.data
         
-        print(f"✅ [PDF] Dados da conta obtidos:")
-        print(f"   ID: {conta_data.get('id')}")
-        print(f"   Nome: {conta_data.get('cliente_nome')}")
-        print(f"   Moeda: {conta_data.get('moeda')}")
-        print(f"   Saldo: {conta_data.get('saldo')}")
-        
-        # 🔥 GERAR PDF COMPLETO
+        # 🔥 GERAR PDF COMPLETO OTIMIZADO
         from datetime import datetime
         import os
-        from reportlab.lib.pagesizes import letter, A4
+        from reportlab.lib.pagesizes import letter
         from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib import colors
-        from reportlab.lib.units import inch, cm
         from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-        from reportlab.pdfgen import canvas
         
         # Criar nome do arquivo
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -2990,28 +2974,28 @@ def exportar_extrato_pdf():
         
         caminho_pdf = os.path.join(pasta_extratos, nome_arquivo)
         
-        print(f"📄 [PDF] Criando PDF em: {caminho_pdf}")
+        print(f"📄 [PDF] Criando PDF otimizado em: {caminho_pdf}")
         
-        # Criar documento
+        # 🔥 MARGENS OTIMIZADAS PARA MAIS ESPAÇO
         doc = SimpleDocTemplate(
             caminho_pdf,
             pagesize=letter,
-            topMargin=50,
-            bottomMargin=50,
-            leftMargin=30,
-            rightMargin=30
+            topMargin=40,      # 🔥 Reduzido
+            bottomMargin=40,   # 🔥 Reduzido
+            leftMargin=20,     # 🔥 Reduzido
+            rightMargin=20     # 🔥 Reduzido
         )
         
         story = []
         styles = getSampleStyleSheet()
         
-        # 1. CABEÇALHO
+        # 1. CABEÇALHO - FONTE UM POUCO MENOR
         title_style = ParagraphStyle(
             'Title',
             parent=styles['Heading1'],
-            fontSize=18,
+            fontSize=16,        # 🔥 16pt (antes 18)
             alignment=TA_CENTER,
-            spaceAfter=12,
+            spaceAfter=8,       # 🔥 Menos espaço
             textColor=colors.HexColor("#1a5fb4"),
             fontName='Helvetica-Bold'
         )
@@ -3019,13 +3003,13 @@ def exportar_extrato_pdf():
         title = Paragraph("CÂMBIO BANK - BANK STATEMENT", title_style)
         story.append(title)
         
-        # 2. INFORMAÇÕES DA CONTA
+        # 2. INFORMAÇÕES DA CONTA - FONTE MENOR
         info_style = ParagraphStyle(
             'Info',
             parent=styles['Normal'],
-            fontSize=10,
+            fontSize=9,         # 🔥 9pt (antes 10)
             alignment=TA_CENTER,
-            spaceAfter=20,
+            spaceAfter=15,      # 🔥 Menos espaço
             textColor=colors.gray
         )
         
@@ -3036,7 +3020,7 @@ def exportar_extrato_pdf():
         info = Paragraph(info_text, info_style)
         story.append(info)
         
-        # 3. RESUMO EM TABELA
+        # 3. RESUMO EM TABELA - COMPACTA
         saldo_atual = float(conta_data.get('saldo', 0))
         saldo_final = float(resumo.get('saldo_final', 0))
         total_entradas = float(resumo.get('total_entradas', 0))
@@ -3050,92 +3034,155 @@ def exportar_extrato_pdf():
             ['Final Balance', f"{saldo_final:,.2f}", moeda],
             ['Total Credits', f"{total_entradas:,.2f}", moeda],
             ['Total Debits', f"{total_saidas:,.2f}", moeda],
-            ['Number of Transactions', str(total_transacoes), '']
+            ['Transactions', str(total_transacoes), '']
         ]
         
-        summary_table = Table(summary_data, colWidths=[200, 100, 80])
+        # 🔥 TABELA DE RESUMO MAIS COMPACTA
+        summary_table = Table(summary_data, colWidths=[180, 90, 70])
         summary_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#1a5fb4")),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),      # 🔥 9pt
             ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
             ('BACKGROUND', (0, 1), (-1, -1), colors.white),
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),     # 🔥 8pt
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
             ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),   # 🔥 Padding reduzido
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
         ]))
         
         story.append(summary_table)
-        story.append(Spacer(1, 30))
+        story.append(Spacer(1, 20))  # 🔥 Menos espaço
         
-        # 4. TABELA DE TRANSAÇÕES
+        # 4. TABELA DE TRANSAÇÕES - OTIMIZADA
         if transacoes:
+            # Função para formatar data compacta
+            def formatar_data_compacta(data_str):
+                try:
+                    if not data_str:
+                        return ""
+                    
+                    # Formato ISO: 2025-12-18T22:04:44 → 18-12-25
+                    if 'T' in data_str:
+                        data_obj = datetime.fromisoformat(data_str.replace('Z', '+00:00'))
+                        return data_obj.strftime('%d-%m-%y')
+                    
+                    # Formato com barras: 18/12/2025 → 18-12-25
+                    if '/' in data_str:
+                        partes = data_str.split('/')
+                        if len(partes) >= 3:
+                            dia = partes[0].zfill(2)
+                            mes = partes[1].zfill(2)
+                            ano = partes[2][-2:] if len(partes[2]) >= 4 else partes[2]
+                            return f"{dia}-{mes}-{ano}"
+                    
+                    # Formato com hífens: 2025-12-18 → 18-12-25
+                    if '-' in data_str and len(data_str) >= 10:
+                        partes = data_str.split('-')
+                        if len(partes) >= 3:
+                            ano = partes[0][-2:] if len(partes[0]) == 4 else partes[0]
+                            mes = partes[1].zfill(2)
+                            dia = partes[2][:2].zfill(2)
+                            return f"{dia}-{mes}-{ano}"
+                    
+                    return data_str[:8]
+                    
+                except:
+                    return data_str[:8] if len(data_str) >= 8 else data_str
+            
             # Cabeçalho
             header = ['Date', 'Description', 'Credit', 'Debit', 'Balance']
             data = [header]
             
             # Adicionar transações
             for t in transacoes:
-                data_str = t.get('data', '')[:10]  # Apenas data
-                desc = (t.get('descricao', '')[:40] + '...') if len(t.get('descricao', '')) > 40 else t.get('descricao', '')
+                # 🔥 DATA COMPACTA: DD-MM-YY
+                data_formatada = formatar_data_compacta(t.get('data', ''))
+                
+                # 🔥 DESCRIÇÃO MAIS LONGA: 65 caracteres
+                desc_original = t.get('descricao', '')
+                if len(desc_original) > 65:
+                    desc = desc_original[:62] + '...'
+                else:
+                    desc = desc_original
+                
+                # Valores formatados
                 credito = f"{t.get('credito', 0):,.2f}" if t.get('credito', 0) > 0 else ""
                 debito = f"{t.get('debito', 0):,.2f}" if t.get('debito', 0) > 0 else ""
                 saldo = f"{t.get('saldo_apos', 0):,.2f}"
                 
-                data.append([data_str, desc, credito, debito, saldo])
+                data.append([data_formatada, desc, credito, debito, saldo])
+            
+            # 🔥 LARGURAS OTIMIZADAS: Data menor, Descrição maior
+            # Total: 40 + 330 + 60 + 60 + 70 = 560px (cabe confortavelmente)
+            col_widths = [40, 330, 60, 60, 70]
             
             # Criar tabela
-            trans_table = Table(data, colWidths=[60, 250, 70, 70, 70])
+            trans_table = Table(data, colWidths=col_widths)
             trans_table.setStyle(TableStyle([
+                # CABEÇALHO - COMPACTO
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#2c3e50")),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 9),
+                ('FONTSIZE', (0, 0), (-1, 0), 8),          # 🔥 8pt
                 ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                
+                # DADOS - COMPACTOS
                 ('BACKGROUND', (0, 1), (-1, -1), colors.white),
                 ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 1), (-1, -1), 8),
+                ('FONTSIZE', (0, 1), (-1, -1), 7.5),       # 🔥 7.5pt
                 ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
                 ('ALIGN', (2, 1), (-1, -1), 'RIGHT'),
+                ('ALIGN', (0, 1), (0, -1), 'CENTER'),      # Data centralizada
+                
+                # 🔥 PADDING MÍNIMO PARA ECONOMIZAR ESPAÇO
+                ('LEFTPADDING', (0, 0), (-1, -1), 2),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+                ('TOPPADDING', (0, 0), (-1, -1), 1),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+                
+                # 🔥 QUEBRA DE TEXTO AUTOMÁTICA NA DESCRIÇÃO
+                ('WORDWRAP', (1, 1), (1, -1), True),
+                
+                # 🔥 LINHAS ALTERNADAS SUAVES
                 ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor("#f9f9f9")]),
             ]))
             
             story.append(trans_table)
-            story.append(Spacer(1, 20))
+            story.append(Spacer(1, 15))
         
-        # 5. RODAPÉ
+        # 5. RODAPÉ - COMPACTO
         footer_style = ParagraphStyle(
             'Footer',
             parent=styles['Normal'],
-            fontSize=8,
+            fontSize=7,         # 🔥 7pt
             alignment=TA_CENTER,
             textColor=colors.gray,
-            spaceBefore=20
+            spaceBefore=15      # 🔥 Menos espaço
         )
         
         footer_text = f"""
         Cambio Bank - International Banking System<br/>
-        Document generated on {datetime.now().strftime('%d/%m/%Y at %H:%M:%S')}<br/>
-        This is an official bank statement - Page 1 of 1
+        Generated on {datetime.now().strftime('%d/%m/%Y %H:%M')} - Page 1 of 1
         """
         
         footer = Paragraph(footer_text, footer_style)
         story.append(footer)
         
         # Gerar PDF
-        print("🔄 [PDF] Gerando documento...")
+        print("🔄 [PDF] Gerando documento otimizado...")
         doc.build(story)
         
-        print(f"✅✅✅ [PDF] PDF COMPLETO gerado: {caminho_pdf}")
+        print(f"✅✅✅ [PDF] PDF OTIMIZADO gerado: {caminho_pdf}")
         
-        # Verificar se arquivo foi criado
+        # Verificar arquivo
         if os.path.exists(caminho_pdf):
             tamanho = os.path.getsize(caminho_pdf)
-            print(f"📏 [PDF] Tamanho do arquivo: {tamanho} bytes")
+            print(f"📏 [PDF] Tamanho: {tamanho} bytes | Layout otimizado ✓")
         else:
-            print(f"❌ [PDF] Arquivo não encontrado após geração!")
             raise Exception("PDF não foi criado")
         
         # Retornar URL
@@ -3149,7 +3196,7 @@ def exportar_extrato_pdf():
         })
         
     except Exception as e:
-        print(f"❌ [PDF] Erro ao gerar PDF completo: {e}")
+        print(f"❌ [PDF] Erro ao gerar PDF otimizado: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({
