@@ -2941,7 +2941,9 @@ def exportar_extrato_pdf():
         if not conta_numero or not transacoes:
             return jsonify({"success": False, "message": "Dados insuficientes"}), 400
         
-        # Buscar dados da conta
+        # Buscar dados da conta - CORREÇÃO AQUI!
+        print(f"🔍 [PDF] Buscando conta {conta_numero} para {usuario}")
+        
         response_conta = supabase.table('contas')\
             .select('id, cliente_nome, moeda, saldo')\
             .eq('id', conta_numero)\
@@ -2949,10 +2951,22 @@ def exportar_extrato_pdf():
             .single()\
             .execute()
         
+        print(f"📊 [PDF] Resposta Supabase: {response_conta}")
+        print(f"📊 [PDF] Dados: {response_conta.data}")
+        print(f"📊 [PDF] Tipo: {type(response_conta.data)}")
+        
         if not response_conta.data:
+            print(f"❌ [PDF] Nenhum dado retornado para conta {conta_numero}")
             return jsonify({"success": False, "message": "Conta não encontrada"}), 404
         
-        conta_data = response_conta.data[0]
+        # 🔥 CORREÇÃO: .single() retorna dicionário, não lista
+        conta_data = response_conta.data  # REMOVA O [0]!
+        
+        print(f"✅ [PDF] Dados da conta obtidos:")
+        print(f"   ID: {conta_data.get('id')}")
+        print(f"   Nome: {conta_data.get('cliente_nome')}")
+        print(f"   Moeda: {conta_data.get('moeda')}")
+        print(f"   Saldo: {conta_data.get('saldo')}")
         
         # 🔥 GERAR PDF COMPLETO
         from datetime import datetime
@@ -2975,6 +2989,8 @@ def exportar_extrato_pdf():
         os.makedirs(pasta_extratos, exist_ok=True)
         
         caminho_pdf = os.path.join(pasta_extratos, nome_arquivo)
+        
+        print(f"📄 [PDF] Criando PDF em: {caminho_pdf}")
         
         # Criar documento
         doc = SimpleDocTemplate(
@@ -3021,13 +3037,20 @@ def exportar_extrato_pdf():
         story.append(info)
         
         # 3. RESUMO EM TABELA
+        saldo_atual = float(conta_data.get('saldo', 0))
+        saldo_final = float(resumo.get('saldo_final', 0))
+        total_entradas = float(resumo.get('total_entradas', 0))
+        total_saidas = float(resumo.get('total_saidas', 0))
+        total_transacoes = resumo.get('total_transacoes', 0)
+        moeda = resumo.get('moeda', conta_data.get('moeda', 'USD'))
+        
         summary_data = [
             ['Description', 'Value', 'Currency'],
-            ['Current Balance', f"{float(conta_data.get('saldo', 0)):,.2f}", conta_data.get('moeda', 'USD')],
-            ['Final Balance', f"{resumo.get('saldo_final', 0):,.2f}", resumo.get('moeda', 'USD')],
-            ['Total Credits', f"{resumo.get('total_entradas', 0):,.2f}", resumo.get('moeda', 'USD')],
-            ['Total Debits', f"{resumo.get('total_saidas', 0):,.2f}", resumo.get('moeda', 'USD')],
-            ['Number of Transactions', str(resumo.get('total_transacoes', 0)), '']
+            ['Current Balance', f"{saldo_atual:,.2f}", moeda],
+            ['Final Balance', f"{saldo_final:,.2f}", moeda],
+            ['Total Credits', f"{total_entradas:,.2f}", moeda],
+            ['Total Debits', f"{total_saidas:,.2f}", moeda],
+            ['Number of Transactions', str(total_transacoes), '']
         ]
         
         summary_table = Table(summary_data, colWidths=[200, 100, 80])
@@ -3102,9 +3125,18 @@ def exportar_extrato_pdf():
         story.append(footer)
         
         # Gerar PDF
+        print("🔄 [PDF] Gerando documento...")
         doc.build(story)
         
         print(f"✅✅✅ [PDF] PDF COMPLETO gerado: {caminho_pdf}")
+        
+        # Verificar se arquivo foi criado
+        if os.path.exists(caminho_pdf):
+            tamanho = os.path.getsize(caminho_pdf)
+            print(f"📏 [PDF] Tamanho do arquivo: {tamanho} bytes")
+        else:
+            print(f"❌ [PDF] Arquivo não encontrado após geração!")
+            raise Exception("PDF não foi criado")
         
         # Retornar URL
         pdf_url = f"/static/extratos/{nome_arquivo}"
