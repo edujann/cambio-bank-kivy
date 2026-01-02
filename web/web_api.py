@@ -2921,7 +2921,7 @@ def processar_transacao_kivy(dados, conta_num, moeda):
 
 @app.route('/api/extrato/exportar-pdf', methods=['POST'])
 def exportar_extrato_pdf():
-    """Exporta extrato para PDF (mesma lógica do Kivy)"""
+    """Exporta extrato para PDF usando o mesmo sistema do Kivy"""
     try:
         usuario = session.get('username')
         if not usuario:
@@ -2929,21 +2929,152 @@ def exportar_extrato_pdf():
         
         dados = request.get_json()
         
-        # 🔥 IMPLEMENTAR GERAÇÃO DE PDF AQUI
-        # Você pode usar a mesma biblioteca PDF do Kivy ou outra
+        print(f"📊 [PDF] Gerando extrato para {usuario}")
+        print(f"📋 [PDF] Dados recebidos: {len(dados.get('transacoes', []))} transações")
         
-        # Por enquanto, retornar URL fictícia
-        pdf_url = "/static/extratos/extrato_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".pdf"
+        if not dados:
+            return jsonify({"success": False, "message": "Dados não fornecidos"}), 400
+        
+        # 🔥 IMPLEMENTAÇÃO REAL - USANDO O MESMO PDFGenerator DO KIVY
+        from pdf_generator import PDFGenerator
+        
+        # Criar instância do gerador
+        pdf_generator = PDFGenerator()
+        
+        # 🔥 PREPARAR DADOS NO FORMATO QUE O PDFGenerator ESPERA
+        conta_numero = dados.get('conta')
+        
+        if not conta_numero:
+            return jsonify({"success": False, "message": "Número da conta não fornecido"}), 400
+        
+        # 1. BUSCAR DADOS REAIS DA CONTA DO SUPABASE
+        print(f"🔍 [PDF] Buscando conta {conta_numero} para {usuario}")
+        
+        response_conta = supabase.table('contas')\
+            .select('id, cliente_nome, moeda, saldo')\
+            .eq('id', conta_numero)\
+            .eq('cliente_username', usuario)\
+            .single()\
+            .execute()
+        
+        if not response_conta.data:
+            print(f"❌ [PDF] Conta {conta_numero} não encontrada para {usuario}")
+            return jsonify({"success": False, "message": "Conta não encontrada"}), 404
+        
+        conta_data = response_conta.data[0]
+        print(f"✅ [PDF] Conta encontrada: {conta_data}")
+        
+        # 2. PREPARAR DADOS DA CONTA (formato esperado pelo PDFGenerator)
+        dados_conta = {
+            'numero': str(conta_numero),  # Número da conta
+            'titular': conta_data.get('cliente_nome', usuario.upper()),  # Nome do titular
+            'moeda': conta_data.get('moeda', 'USD'),  # Moeda da conta
+            'saldo': float(conta_data.get('saldo', 0))  # Saldo atual
+        }
+        
+        # 3. PREPARAR DADOS DO RESUMO
+        resumo = dados.get('resumo', {})
+        dados_resumo = {
+            'saldo_final': float(resumo.get('saldo_final', 0)),
+            'entradas': float(resumo.get('total_entradas', 0)),
+            'saidas': float(resumo.get('total_saidas', 0)),
+            'total_transacoes': resumo.get('total_transacoes', 0),
+            'periodo': dados.get('periodo', 'N/A'),
+            'moeda': resumo.get('moeda', 'USD')
+        }
+        
+        print(f"📊 [PDF] Dados da conta preparados: {dados_conta}")
+        print(f"📊 [PDF] Dados do resumo: {dados_resumo}")
+        
+        # 4. PREPARAR TRANSAÇÕES (formato esperado pelo PDFGenerator)
+        transacoes_frontend = dados.get('transacoes', [])
+        transacoes_formatadas = []
+        
+        for i, t in enumerate(transacoes_frontend):
+            transacao_formatada = {
+                'data': t.get('data', ''),
+                'descricao': t.get('descricao', ''),
+                'credito': float(t.get('credito', 0)),
+                'debito': float(t.get('debito', 0)),
+                'saldo_apos': float(t.get('saldo_apos', 0))
+            }
+            transacoes_formatadas.append(transacao_formatada)
+            
+            if i < 3:  # Log das primeiras 3 transações
+                print(f"📝 [PDF] Transação {i}: {transacao_formatada}")
+        
+        print(f"✅ [PDF] Total de transações formatadas: {len(transacoes_formatadas)}")
+        
+        # 5. GERAR PDF USANDO O MESMO MÉTODO DO KIVY
+        print("🔄 [PDF] Chamando pdf_generator.gerar_extrato()...")
+        
+        try:
+            caminho_pdf = pdf_generator.gerar_extrato(
+                transacoes=transacoes_formatadas,
+                dados_conta=dados_conta,
+                dados_resumo=dados_resumo
+            )
+            
+            if not caminho_pdf:
+                raise Exception("PDF não foi gerado - retorno None")
+            
+            print(f"✅✅✅ [PDF] PDF GERADO COM SUCESSO!")
+            print(f"📍 [PDF] Caminho: {caminho_pdf}")
+            
+            # Verificar se arquivo existe
+            import os
+            if os.path.exists(caminho_pdf):
+                tamanho = os.path.getsize(caminho_pdf)
+                print(f"📏 [PDF] Tamanho do arquivo: {tamanho} bytes")
+            else:
+                print(f"❌ [PDF] Arquivo não encontrado no caminho: {caminho_pdf}")
+                raise Exception("Arquivo PDF não foi criado")
+            
+        except Exception as pdf_error:
+            print(f"❌ [PDF] Erro ao gerar PDF: {pdf_error}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({
+                "success": False,
+                "message": f"Erro ao gerar PDF: {str(pdf_error)}"
+            }), 500
+        
+        # 6. CRIAR URL ACESSÍVEL VIA WEB
+        # Extrair apenas o nome do arquivo
+        import os
+        nome_arquivo = os.path.basename(caminho_pdf)
+        
+        # Criar pasta para extratos se não existir
+        pasta_extratos = os.path.join(os.path.dirname(__file__), 'static', 'extratos')
+        os.makedirs(pasta_extratos, exist_ok=True)
+        
+        # Copiar arquivo para a pasta estática
+        import shutil
+        caminho_destino = os.path.join(pasta_extratos, nome_arquivo)
+        shutil.copy2(caminho_pdf, caminho_destino)
+        
+        print(f"📁 [PDF] Arquivo copiado para: {caminho_destino}")
+        
+        # Criar URL relativa
+        pdf_url = f"/static/extratos/{nome_arquivo}"
+        print(f"🔗 [PDF] URL para download: {pdf_url}")
         
         return jsonify({
             "success": True,
             "pdf_url": pdf_url,
-            "message": "PDF gerado com sucesso"
+            "message": "PDF gerado com sucesso!",
+            "filename": nome_arquivo,
+            "download_path": caminho_pdf
         })
         
     except Exception as e:
-        print(f"❌ Erro em exportar_extrato_pdf: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        print(f"❌❌❌ [PDF] ERRO CRÍTICO em exportar_extrato_pdf: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "message": f"Erro ao gerar PDF: {str(e)}"
+        }), 500
 
 @app.route('/api/debug/contas')
 def debug_contas():
