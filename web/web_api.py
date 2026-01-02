@@ -2921,7 +2921,7 @@ def processar_transacao_kivy(dados, conta_num, moeda):
 
 @app.route('/api/extrato/exportar-pdf', methods=['POST'])
 def exportar_extrato_pdf():
-    """Exporta extrato para PDF completo - VERSÃO MELHORADA"""
+    """Exporta extrato para PDF completo - VERSÃO FINAL CORRIGIDA"""
     try:
         usuario = session.get('username')
         if not usuario:
@@ -2954,7 +2954,7 @@ def exportar_extrato_pdf():
         
         conta_data = response_conta.data
         
-        # 🔥 GERAR PDF COM TODAS AS MELHORIAS
+        # 🔥 GERAR PDF COM CORREÇÕES
         from datetime import datetime
         import os
         from reportlab.lib.pagesizes import letter
@@ -2975,7 +2975,7 @@ def exportar_extrato_pdf():
         
         caminho_pdf = os.path.join(pasta_extratos, nome_arquivo)
         
-        print(f"📄 [PDF] Criando PDF melhorado em: {caminho_pdf}")
+        print(f"📄 [PDF] Criando PDF final em: {caminho_pdf}")
         
         # 🔥 FUNÇÃO PARA FORMATAR DATA COMPACTA
         def formatar_data_compacta(data_str):
@@ -2989,7 +2989,6 @@ def exportar_extrato_pdf():
                         data_obj = datetime.fromisoformat(data_str.replace('Z', '+00:00'))
                         return data_obj.strftime('%d-%m-%y')
                     except:
-                        # Tenta formato sem timezone
                         data_obj = datetime.strptime(data_str.split('T')[0], '%Y-%m-%d')
                         return data_obj.strftime('%d-%m-%y')
                 
@@ -3016,11 +3015,10 @@ def exportar_extrato_pdf():
             except:
                 return data_str[:8] if len(data_str) >= 8 else data_str
         
-        # 🔥 1. INVERTER ORDEM: Mais antigas primeiro, mais recentes por último
-        print(f"🔄 Invertendo ordem das transações...")
+        # 🔥 1. INVERTER ORDEM: Mais antigas primeiro
         transacoes_ordenadas = sorted(transacoes, key=lambda x: x.get('data', ''))
         
-        # 🔥 2. PREPARAR DADOS PARA TABELA
+        # 🔥 2. PREPARAR DADOS
         saldo_atual = float(conta_data.get('saldo', 0))
         saldo_final = float(resumo.get('saldo_final', 0))
         total_entradas = float(resumo.get('total_entradas', 0))
@@ -3028,40 +3026,31 @@ def exportar_extrato_pdf():
         total_transacoes = resumo.get('total_transacoes', 0)
         moeda = resumo.get('moeda', conta_data.get('moeda', 'USD'))
         
-        # 🔥 FUNÇÃO PARA CRIAR RODAPÉ EM TODAS AS PÁGINAS
+        # 🔥 FUNÇÃO PARA CRIAR RODAPÉ
         def add_footer(canvas, doc):
-            """Adiciona rodapé em todas as páginas com numeração"""
             canvas.saveState()
-            
-            # Configurações do rodapé
             canvas.setFont('Helvetica', 7)
             canvas.setFillColor(colors.gray)
             
-            # Texto do rodapé
-            footer_left = f"Cambio Bank - Extrato bancário oficial"
+            footer_left = "Cambio Bank - Extrato bancário oficial"
             footer_center = f"Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
-            footer_right = f"Página {doc.page} de {len(doc.pageTemplates)}"
+            footer_right = f"Página {doc.page} de {doc.page}"
             
-            # Posições
             page_width = letter[0]
-            page_height = letter[1]
             
-            # Esquerda
             canvas.drawString(30, 25, footer_left)
-            # Centro
             text_width = canvas.stringWidth(footer_center, 'Helvetica', 7)
             canvas.drawString((page_width - text_width) / 2, 25, footer_center)
-            # Direita
             canvas.drawString(page_width - 80, 25, footer_right)
             
             canvas.restoreState()
         
-        # 🔥 3. CRIAR DOCUMENTO COM MULTIPÁGINAS
+        # CRIAR DOCUMENTO
         doc = SimpleDocTemplate(
             caminho_pdf,
             pagesize=letter,
             topMargin=40,
-            bottomMargin=50,  # 🔥 Espaço extra para rodapé
+            bottomMargin=50,
             leftMargin=20,
             rightMargin=20
         )
@@ -3069,7 +3058,7 @@ def exportar_extrato_pdf():
         story = []
         styles = getSampleStyleSheet()
         
-        # CABEÇALHO PRINCIPAL
+        # CABEÇALHO
         title_style = ParagraphStyle(
             'Title',
             parent=styles['Heading1'],
@@ -3083,7 +3072,7 @@ def exportar_extrato_pdf():
         title = Paragraph("CÂMBIO BANK - BANK STATEMENT", title_style)
         story.append(title)
         
-        # INFORMAÇÕES DA CONTA
+        # INFORMAÇÕES
         info_style = ParagraphStyle(
             'Info',
             parent=styles['Normal'],
@@ -3100,7 +3089,7 @@ def exportar_extrato_pdf():
         info = Paragraph(info_text, info_style)
         story.append(info)
         
-        # RESUMO EM TABELA
+        # RESUMO
         summary_data = [
             ['Description', 'Value', 'Currency'],
             ['Current Balance', f"{saldo_atual:,.2f}", moeda],
@@ -3129,50 +3118,33 @@ def exportar_extrato_pdf():
         story.append(summary_table)
         story.append(Spacer(1, 20))
         
-        # 🔥 4. TABELA DE TRANSAÇÕES COM TODAS AS MELHORIAS
+        # 🔥 3. TABELA DE TRANSAÇÕES - CORREÇÃO CRÍTICA
         if transacoes_ordenadas:
             # Cabeçalho
             header = ['Date', 'Description', 'Credit', 'Debit', 'Balance']
             data = [header]
             
-            # 🔥 ADICIONAR TRANSAÇÕES (MAIS ANTIGAS PRIMEIRO)
+            # 🔥 CORREÇÃO: ADICIONAR TRANSAÇÕES SEM HTML
             for t in transacoes_ordenadas:
-                # Data compacta
+                # Data
                 data_formatada = formatar_data_compacta(t.get('data', ''))
                 
-                # 🔥 DESCRIÇÃO COM QUEBRA DE LINHA OTIMIZADA
+                # 🔥 CORREÇÃO: DESCRIÇÃO SIMPLES, SEM HTML
                 desc_original = t.get('descricao', '')
-                # Aproveita mais espaço (75 caracteres antes de quebrar)
-                if len(desc_original) > 75:
-                    # Quebra em palavras para melhor layout
-                    words = desc_original.split()
-                    lines = []
-                    current_line = ""
-                    
-                    for word in words:
-                        if len(current_line) + len(word) + 1 <= 75:
-                            if current_line:
-                                current_line += " " + word
-                            else:
-                                current_line = word
-                        else:
-                            lines.append(current_line)
-                            current_line = word
-                    
-                    if current_line:
-                        lines.append(current_line)
-                    
-                    # Se mais de 2 linhas, corta
-                    if len(lines) > 2:
-                        desc = lines[0] + " " + lines[1][:30] + "..."
-                    elif len(lines) == 2:
-                        desc = lines[0] + "<br/>" + lines[1]
+                
+                # Se descrição muito longa, corta sem quebrar linha
+                if len(desc_original) > 68:
+                    # Corta no último espaço antes do limite
+                    desc_cortada = desc_original[:65]
+                    ultimo_espaco = desc_cortada.rfind(' ')
+                    if ultimo_espaco > 50:  # Se encontrar espaço razoável
+                        desc = desc_cortada[:ultimo_espaco] + '...'
                     else:
-                        desc = lines[0]
+                        desc = desc_cortada + '...'
                 else:
                     desc = desc_original
                 
-                # Valores formatados
+                # Valores
                 credito_valor = float(t.get('credito', 0))
                 debito_valor = float(t.get('debito', 0))
                 saldo_valor = float(t.get('saldo_apos', 0))
@@ -3183,23 +3155,24 @@ def exportar_extrato_pdf():
                 
                 data.append([data_formatada, desc, credito, debito, saldo])
             
-            # 🔥 ADICIONAR LINHA FINAL COM CURRENT BALANCE
+            # 🔥 CORREÇÃO: ÚLTIMA LINHA SEM TAGS HTML
+            # Usamos strings normais, o estilo aplicará o negrito
             current_balance_row = [
-                "",
-                "<b>CURRENT BALANCE</b>",
-                "",
-                "",
-                f"<b>{saldo_atual:,.2f}</b>"
+                "",  # Data vazia
+                "CURRENT BALANCE",  # Texto normal
+                "",  # Crédito vazio
+                "",  # Débito vazio
+                f"{saldo_atual:,.2f}"  # Valor normal
             ]
             data.append(current_balance_row)
             
-            # Larguras otimizadas
-            col_widths = [40, 340, 60, 60, 70]  # Description com máximo espaço
+            # Larguras ajustadas
+            col_widths = [40, 340, 60, 60, 70]
             
             # Criar tabela
             trans_table = Table(data, colWidths=col_widths, repeatRows=1)
             
-            # 🔥 5. ESTILO DA TABELA COM CORES DINÂMICAS
+            # 🔥 ESTILO CORRIGIDO
             estilo_tabela = TableStyle([
                 # CABEÇALHO
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#2c3e50")),
@@ -3208,7 +3181,7 @@ def exportar_extrato_pdf():
                 ('FONTSIZE', (0, 0), (-1, 0), 8),
                 ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
                 
-                # DADOS (exceto última linha)
+                # DADOS (transações normais)
                 ('BACKGROUND', (0, 1), (-1, -2), colors.white),
                 ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
                 ('FONTSIZE', (0, 1), (-1, -2), 7.5),
@@ -3216,33 +3189,46 @@ def exportar_extrato_pdf():
                 ('ALIGN', (2, 1), (-1, -2), 'RIGHT'),
                 ('ALIGN', (0, 1), (0, -2), 'CENTER'),
                 
-                # 🔥 CORES DINÂMICAS PARA CRÉDITOS, DÉBITOS E SALDOS
+                # PADDING
+                ('LEFTPADDING', (0, 0), (-1, -1), 2),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+                ('TOPPADDING', (0, 0), (-1, -1), 1),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+                
+                # QUEBRA DE TEXTO (apenas para descrição)
+                ('WORDWRAP', (1, 1), (1, -2), True),
             ])
             
-            # 🔥 APLICAR CORES DINÂMICAS PARA CADA LINHA
-            for i in range(1, len(data) - 1):  # Exceto cabeçalho e última linha
+            # 🔥 APLICAR CORES DINÂMICAS PARA TRANSAÇÕES
+            for i in range(1, len(data) - 1):
                 credito_valor = float(transacoes_ordenadas[i-1].get('credito', 0))
                 debito_valor = float(transacoes_ordenadas[i-1].get('debito', 0))
                 saldo_valor = float(transacoes_ordenadas[i-1].get('saldo_apos', 0))
                 
-                # Crédito em AZUL
+                # Crédito AZUL
                 if credito_valor > 0:
                     estilo_tabela.add('TEXTCOLOR', (2, i), (2, i), colors.HexColor("#1a5fb4"))
                     estilo_tabela.add('FONTNAME', (2, i), (2, i), 'Helvetica-Bold')
                 
-                # Débito em VERMELHO
+                # Débito VERMELHO
                 if debito_valor > 0:
                     estilo_tabela.add('TEXTCOLOR', (3, i), (3, i), colors.red)
                     estilo_tabela.add('FONTNAME', (3, i), (3, i), 'Helvetica-Bold')
                 
-                # Saldo em AZUL se positivo, VERMELHO se negativo
+                # Saldo AZUL ou VERMELHO
                 if saldo_valor >= 0:
                     estilo_tabela.add('TEXTCOLOR', (4, i), (4, i), colors.HexColor("#1a5fb4"))
                 else:
                     estilo_tabela.add('TEXTCOLOR', (4, i), (4, i), colors.red)
                 estilo_tabela.add('FONTNAME', (4, i), (4, i), 'Helvetica-Bold')
             
-            # 🔥 ESTILO PARA ÚLTIMA LINHA (CURRENT BALANCE)
+            # 🔥 ESTILO PARA LINHAS ALTERNADAS
+            for i in range(1, len(data) - 1):
+                if i % 2 == 0:
+                    estilo_tabela.add('BACKGROUND', (0, i), (-1, i), colors.HexColor("#f9f9f9"))
+            
+            # 🔥 CORREÇÃO: ESTILO PARA ÚLTIMA LINHA (CURRENT BALANCE)
+            # Aplica negrito e cores via estilo, não HTML
             estilo_tabela.add('BACKGROUND', (0, -1), (-1, -1), colors.HexColor("#e8f4f8"))
             estilo_tabela.add('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold')
             estilo_tabela.add('FONTSIZE', (0, -1), (-1, -1), 8)
@@ -3256,46 +3242,39 @@ def exportar_extrato_pdf():
             else:
                 estilo_tabela.add('TEXTCOLOR', (4, -1), (4, -1), colors.red)
             
-            # 🔥 BORDA ESPECIAL PARA ÚLTIMA LINHA
+            # Borda especial
             estilo_tabela.add('LINEABOVE', (0, -1), (-1, -1), 1.5, colors.HexColor("#1a5fb4"))
             estilo_tabela.add('LINEBELOW', (0, -1), (-1, -1), 1.5, colors.HexColor("#1a5fb4"))
             
-            # Configurações gerais
-            estilo_tabela.add('LEFTPADDING', (0, 0), (-1, -1), 2)
-            estilo_tabela.add('RIGHTPADDING', (0, 0), (-1, -1), 2)
-            estilo_tabela.add('TOPPADDING', (0, 0), (-1, -1), 1)
-            estilo_tabela.add('BOTTOMPADDING', (0, 0), (-1, -1), 1)
-            
-            # 🔥 QUEBRA DE TEXTO E ALTURA DINÂMICA
-            estilo_tabela.add('WORDWRAP', (1, 1), (1, -2), True)
-            
-            # Linhas alternadas
-            for i in range(1, len(data) - 1):
-                if i % 2 == 0:
-                    estilo_tabela.add('BACKGROUND', (0, i), (-1, i), colors.HexColor("#f9f9f9"))
+            # 🔥 IMPORTANTE: REMOVER GRADE DA ÚLTIMA LINHA
+            estilo_tabela.add('GRID', (0, 0), (-1, -2), 0.5, colors.grey)  # Até penúltima
+            estilo_tabela.add('GRID', (0, -1), (-1, -1), 0, colors.white)  # Última sem grade
             
             trans_table.setStyle(estilo_tabela)
             story.append(trans_table)
         
-        # Gerar PDF com rodapé em todas as páginas
-        print("🔄 [PDF] Gerando documento com múltiplas páginas...")
+        # Gerar PDF
+        print("🔄 [PDF] Gerando documento final...")
         
-        # 🔥 6. GERAR PDF COM RODAPÉ EM TODAS AS PÁGINAS
+        # Função simples de rodapé
+        def simple_footer(canvas, doc):
+            canvas.saveState()
+            canvas.setFont('Helvetica', 7)
+            canvas.setFillColor(colors.gray)
+            canvas.drawString(30, 25, "Cambio Bank - Extrato oficial")
+            canvas.drawString(500, 25, f"Página {doc.page}")
+            canvas.restoreState()
+        
         try:
-            doc.build(story, onFirstPage=add_footer, onLaterPages=add_footer)
-        except Exception as build_error:
-            print(f"⚠️ Erro no build, tentando sem rodapé: {build_error}")
-            # Fallback: gerar sem rodapé personalizado
+            doc.build(story, onFirstPage=simple_footer, onLaterPages=simple_footer)
+        except:
             doc.build(story)
         
-        print(f"✅✅✅ [PDF] PDF MELHORADO gerado: {caminho_pdf}")
+        print(f"✅✅✅ [PDF] PDF FINAL gerado: {caminho_pdf}")
         
-        # Verificar arquivo
         if os.path.exists(caminho_pdf):
             tamanho = os.path.getsize(caminho_pdf)
-            print(f"📏 [PDF] Tamanho: {tamanho} bytes | Páginas: {len(doc.pageTemplates)}")
-        else:
-            raise Exception("PDF não foi criado")
+            print(f"📏 [PDF] Tamanho: {tamanho} bytes")
         
         # Retornar URL
         pdf_url = f"/static/extratos/{nome_arquivo}"
@@ -3304,12 +3283,11 @@ def exportar_extrato_pdf():
             "success": True,
             "pdf_url": pdf_url,
             "message": "PDF gerado com sucesso!",
-            "filename": nome_arquivo,
-            "features": "cores_dinamicas|ordem_cronologica|current_balance|multipaginas"
+            "filename": nome_arquivo
         })
         
     except Exception as e:
-        print(f"❌ [PDF] Erro ao gerar PDF melhorado: {e}")
+        print(f"❌ [PDF] Erro: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({
