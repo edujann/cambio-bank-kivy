@@ -2011,9 +2011,21 @@ function abrirTransferencia() {
 
     // ============================================
     // SISTEMA DE POPUP PARA FUNÇÕES EM DESENVOLVIMENTO
+    // (VERSÃO INTELIGENTE - só bloqueia rotas que não existem)
     // ============================================
 
-    // Função para mostrar popup
+    // Lista de rotas que NÃO existem (dão 404)
+    const rotasEmDesenvolvimento = [
+        '/configuracoes'
+        // '/perfil' ← REMOVEMOS daqui porque agora existe!
+    ];
+
+    // Função para verificar se uma rota está em desenvolvimento
+    function rotaEmDesenvolvimento(href) {
+        return rotasEmDesenvolvimento.some(rota => href === rota || href.startsWith(rota + '/'));
+    }
+
+    // Função principal para mostrar popup
     function mostrarPopupEmDesenvolvimento() {
         const popup = document.getElementById('devPopupOverlay');
         if (popup) {
@@ -2048,60 +2060,54 @@ function abrirTransferencia() {
         }
     }
 
-    // Modificar os links do dropdown que não funcionam
+    // Configurar interceptação de cliques (versão inteligente)
     document.addEventListener('DOMContentLoaded', function() {
-        // Aguardar um pouco para garantir que o dropdown foi criado
+        // Aguardar para garantir que o dropdown foi criado
         setTimeout(() => {
             const dropdown = document.getElementById('userDropdown');
             if (dropdown) {
-                // Encontrar links de perfil e configurações
+                // Só interceptar rotas que estão na lista de "em desenvolvimento"
                 const perfilLink = dropdown.querySelector('a[href="/perfil"]');
                 const configLink = dropdown.querySelector('a[href="/configuracoes"]');
                 
-                // Substituir comportamento
-                if (perfilLink) {
-                    perfilLink.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        mostrarPopupEmDesenvolvimento();
-                        // Fechar dropdown também
-                        if (window.menuVisivel) {
-                            window.toggleMenu();
-                        }
-                    });
-                }
-                
+                // Configurações ainda não existe → popup
                 if (configLink) {
                     configLink.addEventListener('click', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
                         mostrarPopupEmDesenvolvimento();
-                        // Fechar dropdown também
+                        // Fechar dropdown
                         if (window.menuVisivel) {
                             window.toggleMenu();
                         }
                     });
                 }
+                
+                // Perfil AGORA EXISTE → deixar funcionar normalmente
+                // (remover event listener se existir)
+                if (perfilLink) {
+                    // Clonar o link para remover todos os event listeners
+                    const novoLink = perfilLink.cloneNode(true);
+                    perfilLink.parentNode.replaceChild(novoLink, perfilLink);
+                }
             }
         }, 1000);
         
-        // Também proteger qualquer link que leve para essas rotas
-        document.querySelectorAll('a[href="/perfil"], a[href="/configuracoes"]').forEach(link => {
-            if (!link.hasAttribute('data-handled')) {
-                link.setAttribute('data-handled', 'true');
-                link.addEventListener('click', function(e) {
-                    // Se não for um link válido (404), mostrar popup
-                    if (this.getAttribute('href') && !this.classList.contains('active')) {
+        // Interceptar outros links que estão em desenvolvimento
+        document.querySelectorAll('a').forEach(link => {
+            const href = link.getAttribute('href');
+            
+            if (href && rotaEmDesenvolvimento(href)) {
+                if (!link.hasAttribute('data-popup-handled')) {
+                    link.setAttribute('data-popup-handled', 'true');
+                    link.addEventListener('click', function(e) {
                         e.preventDefault();
                         mostrarPopupEmDesenvolvimento();
-                    }
-                });
+                    });
+                }
             }
         });
     });
-
-    // Testar imediatamente (opcional - remova depois)
-    // mostrarPopupEmDesenvolvimento();
 
     </script>
 
