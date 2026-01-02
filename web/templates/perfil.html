@@ -582,7 +582,11 @@
                         <span class="meta-label">Membro desde</span>
                         <span class="meta-value">
                             {% if dados.data_cadastro %}
-                                {{ dados.data_cadastro.strftime('%d/%m/%Y') if dados.data_cadastro is string else '' }}
+                                {% if dados.data_cadastro %}
+                                    {{ dados.data_cadastro[:10] if dados.data_cadastro|length > 10 else dados.data_cadastro }}
+                                {% else %}
+                                    Recente
+                                {% endif %}
                             {% else %}
                                 Recente
                             {% endif %}
@@ -761,7 +765,11 @@
                             <div class="info-label">Última Atualização</div>
                             <div class="info-value">
                                 {% if dados.created_at %}
-                                    {{ dados.created_at.strftime('%d/%m/%Y %H:%M') if dados.created_at is string else '' }}
+                                    {% if dados.created_at %}
+                                        {{ dados.created_at[:16] if dados.created_at|length > 16 else dados.created_at }}
+                                    {% else %}
+                                        Recente
+                                    {% endif %}
                                 {% else %}
                                     Recente
                                 {% endif %}
@@ -795,47 +803,6 @@
         </footer>
 
     </div>
-
-    <!-- POPUP EM DESENVOLVIMENTO (MESMO DO DASHBOARD) -->
-    <div class="popup-overlay" id="devPopupOverlay">
-        <div class="popup-container">
-            <div class="popup-header">
-                <div class="popup-icon">
-                    <i class="fas fa-tools"></i>
-                </div>
-                <h2 class="popup-title">EM DESENVOLVIMENTO</h2>
-                <div class="popup-subtitle">Funcionalidade em construção</div>
-            </div>
-            
-            <div class="popup-body">
-                <div class="popup-message">
-                    Esta funcionalidade está sendo desenvolvida com cuidado e atenção aos detalhes. 
-                    Em breve estará disponível para você!
-                </div>
-                
-                <div class="popup-progress">
-                    <div class="progress-bar">
-                        <div class="progress-fill"></div>
-                    </div>
-                    <div class="progress-text">Desenvolvimento em andamento: 65%</div>
-                </div>
-                
-                <div class="popup-estimate">
-                    <i class="fas fa-clock"></i> Previsão de lançamento: 2 semanas
-                </div>
-            </div>
-            
-            <div class="popup-buttons">
-                <button class="popup-btn popup-btn-ok" onclick="fecharPopupDev()">
-                    <i class="fas fa-check"></i> Entendi
-                </button>
-                <button class="popup-btn popup-btn-cancel" onclick="fecharPopupDev()">
-                    <i class="fas fa-times"></i> Fechar
-                </button>
-            </div>
-        </div>
-    </div>
-
     <script>
     // ============================================
     // FUNÇÕES DO POPUP (MESMAS DO DASHBOARD)
