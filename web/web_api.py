@@ -5592,6 +5592,96 @@ def verificar_horario_cliente(cliente_username):
         print(f"⚠️ Erro ao verificar horário: {e}")
         return True, "Erro na verificação - permitido por segurança"
 
+@app.route('/perfil')
+def perfil():
+    """Tela completa do perfil do usuário"""
+    usuario = session.get('username')
+    
+    if not usuario:
+        return redirect('/login')
+    
+    try:
+        # 1. Buscar dados do usuário
+        user_response = supabase.table('usuarios')\
+            .select('*')\
+            .eq('username', usuario)\
+            .single()\
+            .execute()
+        
+        user_data = user_response.data if user_response.data else {}
+        
+        # 2. Buscar contas do usuário
+        contas_response = supabase.table('contas')\
+            .select('id, moeda, saldo, ativa, data_criacao')\
+            .eq('cliente_username', usuario)\
+            .eq('ativa', True)\
+            .order('data_criacao', desc=True)\
+            .execute()
+        
+        contas = contas_response.data if contas_response.data else []
+        
+        # 3. Calcular estatísticas
+        total_contas = len(contas)
+        status_conta = user_data.get('status', 'pendente')
+        verificado = user_data.get('verificado', False)
+        cambio_liberado = user_data.get('cambio_liberado', False)
+        
+        # 4. Formatar dados para exibição
+        dados_formatados = {
+            # Informações básicas
+            'username': user_data.get('username', usuario),
+            'nome': user_data.get('nome', usuario.upper()),
+            'email': user_data.get('email', f'{usuario}@email.com'),
+            'telefone': user_data.get('telefone', 'Não informado'),
+            'tipo': user_data.get('tipo', 'cliente').title(),
+            
+            # Endereço
+            'endereco': user_data.get('endereco', 'Não informado'),
+            'cidade': user_data.get('cidade', 'Não informado'),
+            'estado': user_data.get('estado', 'Não informado'),
+            'pais': user_data.get('pais', 'Não informado'),
+            'cep': user_data.get('cep', 'Não informado'),
+            
+            # Datas
+            'data_cadastro': user_data.get('data_cadastro', ''),
+            'created_at': user_data.get('created_at', ''),
+            
+            # Status
+            'status': status_conta,
+            'verificado': verificado,
+            'cambio_liberado': cambio_liberado,
+            'codigo_verificacao': user_data.get('codigo_verificacao', '')
+        }
+        
+        # 5. Preparar contas por moeda
+        contas_por_moeda = {}
+        for conta in contas:
+            moeda = conta['moeda']
+            if moeda not in contas_por_moeda:
+                contas_por_moeda[moeda] = []
+            contas_por_moeda[moeda].append(conta)
+        
+        return render_template('perfil.html',
+                             usuario=usuario,
+                             dados=dados_formatados,
+                             contas=contas,
+                             contas_por_moeda=contas_por_moeda,
+                             total_contas=total_contas,
+                             tem_contas=total_contas > 0)
+        
+    except Exception as e:
+        print(f"❌ Erro ao carregar perfil: {e}")
+        import traceback
+        traceback.print_exc()
+        # Fallback seguro
+        return render_template('perfil.html',
+                             usuario=usuario,
+                             dados={'username': usuario, 'nome': usuario.upper()},
+                             contas=[],
+                             contas_por_moeda={},
+                             total_contas=0,
+                             tem_contas=False)
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
