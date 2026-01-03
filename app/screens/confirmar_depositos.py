@@ -591,24 +591,26 @@ class TelaConfirmarDepositos(Screen):
         return True
     
     def confirmar_deposito(self):
-        """Confirma o depósito - VERSÃO SUPABASE-FIRST"""
+        """Confirma o depósito - VERSÃO SUPABASE-FIRST - MODIFICADA PARA MANTER CLIENTE/CONTAS"""
         if not self.validar_dados():
             return
         
         try:
             sistema = App.get_running_app().sistema
             
-            # Extrair dados
-            cliente_selecionado = self.ids.spinner_cliente.text
-            username = cliente_selecionado.split('(')[-1].replace(')', '')
+            # 🔥 GUARDAR AS SELEÇÕES ATUAIS ANTES DE PROCESSAR
+            cliente_selecionado_texto = self.ids.spinner_cliente.text
+            conta_cliente_selecionada_texto = self.ids.spinner_conta_cliente.text
+            conta_empresa_selecionada_texto = self.ids.spinner_conta_empresa.text
             
-            conta_cliente_selecionada = self.ids.spinner_conta_cliente.text
-            numero_conta_cliente = conta_cliente_selecionada.split(' - ')[0]
-            moeda = conta_cliente_selecionada.split(' - ')[1].split(' ')[0]
+            # Extrair dados para processamento
+            username = cliente_selecionado_texto.split('(')[-1].replace(')', '')
             
-            conta_empresa_selecionada = self.ids.spinner_conta_empresa.text
-            if ' - ' in conta_empresa_selecionada:
-                numero_conta_empresa = conta_empresa_selecionada.split(' - ')[0]
+            numero_conta_cliente = conta_cliente_selecionada_texto.split(' - ')[0]
+            moeda = conta_cliente_selecionada_texto.split(' - ')[1].split(' ')[0]
+            
+            if ' - ' in conta_empresa_selecionada_texto:
+                numero_conta_empresa = conta_empresa_selecionada_texto.split(' - ')[0]
             else:
                 self.mostrar_erro("Conta da empresa inválida!")
                 return
@@ -718,7 +720,7 @@ class TelaConfirmarDepositos(Screen):
                     import traceback
                     traceback.print_exc()
             
-            # 🔥 ATUALIZAR CACHE LOCAL APENAS SE SUPABASE SUCESSO
+            # 🔥 ATUALIZAR CACHE LOCAL
             if supabase_sucesso:
                 # Atualizar saldos locais
                 sistema.contas[numero_conta_cliente]['saldo'] += valor
@@ -790,17 +792,140 @@ class TelaConfirmarDepositos(Screen):
                 f"{status_supabase}"
             )
             
-            # LIMPAR CAMPOS
-            self.limpar_campos()
+            # 🔥🔥🔥 MODIFICAÇÃO PRINCIPAL: ATUALIZAR SPINNERS COM NOVOS SALDOS
+            # Pequeno delay para garantir que o popup não interfira
+            from kivy.clock import Clock
+            Clock.schedule_once(lambda dt: self.atualizar_spinners_apos_deposito(
+                cliente_selecionado_texto,
+                conta_cliente_selecionada_texto,
+                conta_empresa_selecionada_texto,
+                saldo_cliente_depois,
+                saldo_empresa_depois
+            ), 0.2)
+            
+            # Limpar campos do depósito atual
+            Clock.schedule_once(lambda dt: self.limpar_campos_parcial(), 0.3)
             
         except Exception as e:
             print(f"❌ Erro ao confirmar depósito: {e}")
             import traceback
             traceback.print_exc()
             self.mostrar_erro(f"Erro ao processar depósito: {str(e)}")
-    
+
+
+    def atualizar_spinners_apos_deposito(self, cliente_texto, conta_cliente_texto, 
+                                        conta_empresa_texto, novo_saldo_cliente, novo_saldo_empresa):
+        """Atualiza os spinners com os novos saldos após o depósito"""
+        print("🔄 Atualizando spinners com novos saldos...")
+        
+        if not hasattr(self, 'ids'):
+            return
+        
+        # 1. ATUALIZAR CONTA DO CLIENTE
+        if conta_cliente_texto and ' - ' in conta_cliente_texto:
+            partes = conta_cliente_texto.split(' - ')
+            if len(partes) >= 2:
+                # Extrair número da conta e moeda
+                numero_conta = partes[0]
+                moeda = partes[1].split(' ')[0]
+                
+                # Criar novo texto com saldo atualizado
+                novo_texto_conta_cliente = f"{numero_conta} - {moeda} (Saldo: {novo_saldo_cliente:,.2f})"
+                
+                # Atualizar o texto do spinner
+                self.ids.spinner_conta_cliente.text = novo_texto_conta_cliente
+                
+                # Atualizar também nos values para manter consistência
+                if self.ids.spinner_conta_cliente.values:
+                    # Encontrar e substituir o item nos values
+                    novos_values = []
+                    for value in self.ids.spinner_conta_cliente.values:
+                        if value.startswith(f"{numero_conta} -"):
+                            novos_values.append(novo_texto_conta_cliente)
+                        else:
+                            novos_values.append(value)
+                    
+                    self.ids.spinner_conta_cliente.values = novos_values
+                
+                print(f"✅ Conta cliente atualizada: {novo_texto_conta_cliente}")
+        
+        # 2. ATUALIZAR CONTA DA EMPRESA
+        if conta_empresa_texto and ' - ' in conta_empresa_texto:
+            partes = conta_empresa_texto.split(' - ')
+            if len(partes) >= 3:
+                # Extrair número da conta, banco e moeda
+                numero_conta = partes[0]
+                banco = partes[1]
+                moeda = partes[2].split(' ')[0]
+                
+                # Criar novo texto com saldo atualizado
+                novo_texto_conta_empresa = f"{numero_conta} - {banco} - {moeda} (Saldo: {novo_saldo_empresa:,.2f})"
+                
+                # Atualizar o texto do spinner
+                self.ids.spinner_conta_empresa.text = novo_texto_conta_empresa
+                
+                # Atualizar também nos values
+                if self.ids.spinner_conta_empresa.values:
+                    # Encontrar e substituir o item nos values
+                    novos_values = []
+                    for value in self.ids.spinner_conta_empresa.values:
+                        if value.startswith(f"{numero_conta} -"):
+                            novos_values.append(novo_texto_conta_empresa)
+                        else:
+                            novos_values.append(value)
+                    
+                    self.ids.spinner_conta_empresa.values = novos_values
+                
+                print(f"✅ Conta empresa atualizada: {novo_texto_conta_empresa}")
+        
+        print("✅ Spinners atualizados com sucesso!")
+
+
+    def limpar_campos_parcial(self):
+        """Limpa apenas os campos do depósito atual, mantendo cliente e contas"""
+        if hasattr(self, 'ids'):
+            # 🔥 MANTÉM: spinner_cliente, spinner_conta_cliente, spinner_conta_empresa
+            
+            # 🔥 LIMPA APENAS:
+            # Banco de origem
+            if self.spinner_banco_origem:
+                self.spinner_banco_origem.text = "Outro Banco"
+                
+            # Remetente
+            self.ids.entry_remetente.text = ""
+            
+            # Valor
+            self.ids.entry_valor.text = "0.00"
+            
+            # Campo "Outro Banco" se existir
+            if self.campo_outro_banco:
+                if self.campo_outro_banco.parent:
+                    self.ids.layout_banco.remove_widget(self.campo_outro_banco)
+                self.campo_outro_banco = None
+            
+            # Resetar altura do layout do banco
+            if 'layout_banco' in self.ids:
+                self.ids.layout_banco.height = dp(80)
+            
+            # 🔥 FOCAR NO PRÓXIMO CAMPO QUE SERÁ PREENCHIDO (BANCO DE ORIGEM)
+            # Pequeno delay para garantir que a tela está pronta
+            from kivy.clock import Clock
+            Clock.schedule_once(lambda dt: self.focar_banco_origem(), 0.1)
+
+
+    def focar_banco_origem(self):
+        """Foca no campo de banco de origem para o próximo depósito"""
+        if self.spinner_banco_origem:
+            try:
+                self.spinner_banco_origem.focus = True
+                print("✅ Foco movido para banco de origem")
+            except:
+                print("⚠️ Não foi possível focar no spinner de banco")
+
+
+    # Mantenha o método limpar_campos original para quando precisar limpar tudo
     def limpar_campos(self):
-        """Limpa todos os campos do formulário"""
+        """Limpa TODOS os campos do formulário (para uso quando necessário)"""
         if hasattr(self, 'ids'):
             self.ids.spinner_cliente.text = "Selecione o cliente"
             self.ids.spinner_conta_cliente.values = []

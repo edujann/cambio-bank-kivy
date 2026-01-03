@@ -209,19 +209,19 @@
         "cliente_nome": "THIERRY IMPORTERS LTDA",
         "data_criacao": "2025-12-19"
     },
+    "802194129": {
+        "moeda": "BRL",
+        "saldo": 95000.0,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18"
+    },
     "376793336": {
         "moeda": "USD",
         "saldo": 0.0,
         "cliente": "gables",
         "cliente_nome": "GABLES ENTERPRISE",
         "data_criacao": "2025-12-22"
-    },
-    "802194129": {
-        "moeda": "BRL",
-        "saldo": 50000.0,
-        "cliente": "pantanal",
-        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
     },
     "394549984": {
         "moeda": "USD",
