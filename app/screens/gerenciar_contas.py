@@ -567,6 +567,7 @@ class TelaGerenciarContas(Screen):
         
         # 🔥 BINDINGS SIMPLES E DIRETOS
         if hasattr(self, 'ids'):
+            # === DESPESAS ===
             # 1. Quando muda categoria → atualizar contas contábeis
             if 'combo_categoria_despesa' in self.ids:
                 self.ids.combo_categoria_despesa.bind(
@@ -574,19 +575,41 @@ class TelaGerenciarContas(Screen):
                 )
                 print("✅ Binding: categoria_despesa → atualizar_contas_despesa")
             
-            # 2. Quando muda conta bancária → atualizar contas contábeis (filtro por moeda)
+            # 2. Quando muda conta bancária → atualizar contas contábeis
             if 'combo_conta_bancaria_despesa' in self.ids:
                 self.ids.combo_conta_bancaria_despesa.bind(
                     text=lambda instance, value: self.atualizar_contas_despesa()
                 )
                 print("✅ Binding: conta_bancaria_despesa → atualizar_contas_despesa")
             
-            # 3. Quando muda conta contábil → atualizar contas bancárias (filtro por moeda)
-            if 'combo_conta_despesa' in self.ids:
-                self.ids.combo_conta_despesa.bind(
-                    text=lambda instance, value: self.atualizar_contas_bancarias_despesa()
+            # === RECEITAS ===
+            # 3. Quando muda cliente → atualizar contas receita
+            if 'combo_cliente_receita' in self.ids:
+                self.ids.combo_cliente_receita.bind(
+                    text=lambda instance, value: self.atualizar_contas_receita()
                 )
-                print("✅ Binding: conta_despesa → atualizar_contas_bancarias_despesa")
+                print("✅ Binding: cliente_receita → atualizar_contas_receita")
+            
+            # 4. Quando muda categoria receita → atualizar contas receita
+            if 'combo_categoria_receita' in self.ids:
+                self.ids.combo_categoria_receita.bind(
+                    text=lambda instance, value: self.atualizar_contas_receita()
+                )
+                print("✅ Binding: categoria_receita → atualizar_contas_receita")
+            
+            # 🔥 IMPORTANTE: NÃO ADICIONE ESTE BINDING (causa deadlock):
+            # if 'combo_conta_receita' in self.ids:
+            #     self.ids.combo_conta_receita.bind(
+            #         text=lambda instance, value: self.atualizar_contas_cliente_receita()
+            #     )
+            #     print("✅ Binding: conta_receita → atualizar_contas_cliente_receita")
+            
+            # 🔥 MAS ADICIONE ESTE: Quando muda conta cliente → atualizar contas receita
+            if 'combo_conta_cliente_receita' in self.ids:
+                self.ids.combo_conta_cliente_receita.bind(
+                    text=lambda instance, value: self.atualizar_contas_receita()
+                )
+                print("✅ Binding: conta_cliente_receita → atualizar_contas_receita")
         
         print("✅ Todos os bindings configurados (baseados em dados reais do Supabase)")
         
@@ -881,19 +904,75 @@ class TelaGerenciarContas(Screen):
 
 
     def atualizar_contas_despesa(self):
-        """Atualiza as contas de despesa quando selecionar categoria - COM FILTRO DE MOEDA BIDIRECIONAL"""
-        print("🎯 atualizar_contas_despesa() CHAMADO")
-        
-        sistema = App.get_running_app().sistema
-        
+        """Atualiza as contas de despesa - FILTRADAS pela moeda da conta bancária"""
         if not hasattr(self, 'ids') or not self.ids.combo_categoria_despesa.text:
             return
         
-        categoria_selecionada = self.ids.combo_categoria_despesa.text
-        print(f"🔍 Categoria despesa selecionada: {categoria_selecionada}")
+        sistema = App.get_running_app().sistema
+        categoria = self.ids.combo_categoria_despesa.text
         
-        # 🔥 SIMPLESMENTE CHAMAR O MÉTODO DE FILTRO QUE JÁ TEMOS
-        self._filtrar_contas_despesa_por_moeda_bancaria()
+        print(f"🔍 Atualizando contas despesa para categoria: {categoria}")
+        
+        # 🔥 1. Obter moeda da conta bancária selecionada (se houver)
+        moeda_filtro = None
+        if self.ids.combo_conta_bancaria_despesa.text and ' - ' in self.ids.combo_conta_bancaria_despesa.text:
+            numero_conta = self.ids.combo_conta_bancaria_despesa.text.split(' - ')[0]
+            moeda_filtro = self.obter_moeda_conta_bancaria_real(numero_conta)
+            print(f"🎯 Filtrando contas contábeis por moeda: {moeda_filtro}")
+        
+        # 🔥 2. Carregar contas contábeis COM FILTRO (ou todas se não houver seleção)
+        try:
+            # Construir query base
+            query = sistema.supabase.client.table('contas_contabeis')\
+                .select('nome, moeda, saldo')\
+                .eq('categoria', categoria)\
+                .eq('tipo', 'despesa')
+            
+            # Aplicar filtro de moeda se existir
+            if moeda_filtro:
+                query = query.eq('moeda', moeda_filtro)
+            
+            response = query.execute()
+            
+            contas_formatadas = []
+            for conta in response.data:
+                texto = f"{conta['nome']} ({conta['moeda']})"
+                contas_formatadas.append({
+                    'texto': texto,
+                    'nome': conta['nome'],
+                    'moeda': conta['moeda'],
+                    'saldo': float(conta['saldo'])
+                })
+            
+            print(f"✅ {len(contas_formatadas)} contas contábeis carregadas (filtro: {moeda_filtro})")
+            
+            # 🔥 3. Atualizar spinner
+            if contas_formatadas and 'combo_conta_despesa' in self.ids:
+                textos = [conta['texto'] for conta in contas_formatadas]
+                self.ids.combo_conta_despesa.values = textos
+                
+                # 🔥 LÓGICA INTELIGENTE: Se não tem seleção OU seleção não está nas opções
+                selecao_atual = self.ids.combo_conta_despesa.text
+                
+                if not selecao_atual or selecao_atual not in textos:
+                    # Tentar manter conta com mesmo nome (se existir)
+                    if selecao_atual and ' (' in selecao_atual:
+                        nome_atual = selecao_atual.split(' (')[0]
+                        for texto in textos:
+                            if texto.startswith(nome_atual + ' ('):
+                                self.ids.combo_conta_despesa.text = texto
+                                print(f"✅ Mantida conta similar: {texto}")
+                                return
+                    
+                    # Se não encontrou, selecionar primeira
+                    if textos:
+                        self.ids.combo_conta_despesa.text = textos[0]
+                        print(f"✅ Nova seleção: {textos[0]}")
+                else:
+                    print(f"✅ Seleção mantida: {selecao_atual}")
+                    
+        except Exception as e:
+            print(f"❌ Erro ao carregar contas contábeis: {e}")
 
     def atualizar_contas_cambio(self):
         """Atualiza as contas quando selecionar cliente na aba de câmbio"""
@@ -4120,54 +4199,36 @@ class TelaGerenciarContas(Screen):
         popup.open()
 
     def atualizar_contas_cliente_receita(self):
-        """Atualiza as contas do cliente quando selecionar cliente - COM DADOS EM TEMPO REAL"""
+        """Atualiza as contas do cliente quando selecionar cliente - SEM FILTRO (todas moedas)"""
         sistema = App.get_running_app().sistema
         
         if not hasattr(self, 'ids') or not self.ids.combo_cliente_receita.text:
             return
         
         username = self.ids.combo_cliente_receita.text.split(' - ')[0]
-        print(f"🔍 Atualizando contas para: {username} (em tempo real)")
+        print(f"🔍 Atualizando contas cliente: {username} (TODAS as moedas)")
         
-        # 🔥 FORÇAR SINCRONIZAÇÃO ANTES DE MOSTRAR
-        sistema.sincronizar_todos_saldos_com_supabase()
+        # 🔥 REMOVA a sincronização forçada se não for crítica
+        # sistema.sincronizar_todos_saldos_com_supabase()
         
-        # 🔥 OBTER MOEDA DA CONTA CONTÁBIL SELECIONADA
-        moeda_alvo = None
-        if 'combo_conta_receita' in self.ids and self.ids.combo_conta_receita.text:
-            moeda_alvo = self._extrair_moeda_conta(self.ids.combo_conta_receita.text)
-            print(f"💰 Moeda alvo (conta receita): {moeda_alvo}")
+        # 🔥 REMOVA o filtro por moeda da conta receita
+        # moeda_alvo = None  # ❌ REMOVER
         
-        # Buscar contas do cliente COM DADOS ATUALIZADOS
+        # Buscar TODAS as contas do cliente (sem filtro)
         contas_cliente = []
         for conta_id, conta_info in sistema.contas.items():
-            # Verificar se a conta pertence ao cliente
             if (isinstance(conta_info, dict) and 
                 conta_info.get('cliente') == username):
                 
-                # 🔥 BUSCAR SALDO EM TEMPO REAL DO SUPABASE
-                saldo_real = sistema.supabase.obter_saldo_conta(conta_id)
-                if saldo_real is None:
-                    saldo_real = conta_info.get('saldo', 0)
+                saldo = conta_info.get('saldo', 0)
+                moeda = conta_info.get('moeda', 'USD')
                 
-                # Atualizar cache local
-                sistema.contas[conta_id]['saldo'] = saldo_real
-                
-                if saldo_real > 0:  # Apenas mostrar contas com saldo positivo
-                    moeda = conta_info.get('moeda', 'USD')
-                    contas_cliente.append(f"{conta_id} - {saldo_real:,.2f} {moeda}")
+                # 🔥 Mostrar TODAS as contas, independente do saldo
+                # (ou mantenha > 0 se preferir)
+                if saldo >= 0:  # Mude para >= 0 para mostrar todas, mesmo com saldo zero
+                    contas_cliente.append(f"{conta_id} - {saldo:,.2f} {moeda}")
         
-        # 🔥 APLICAR FILTRO POR MOEDA
-        if moeda_alvo:
-            contas_filtradas = []
-            for conta in contas_cliente:
-                moeda_conta = self._extrair_moeda_conta(conta)
-                if moeda_conta == moeda_alvo:
-                    contas_filtradas.append(conta)
-            contas_cliente = contas_filtradas
-            print(f"✅ Filtro aplicado: mostrando apenas contas em {moeda_alvo}")
-        
-        print(f"✅ Contas atualizadas em tempo real: {len(contas_cliente)} opções")
+        print(f"✅ {len(contas_cliente)} contas cliente carregadas (TODAS as moedas)")
         
         if 'combo_conta_cliente_receita' in self.ids:
             self.ids.combo_conta_cliente_receita.values = contas_cliente
@@ -4185,10 +4246,8 @@ class TelaGerenciarContas(Screen):
                 
                 # Se não tem seleção ou não encontrou a conta anterior
                 self.ids.combo_conta_cliente_receita.text = contas_cliente[0]
-                print(f"✅ Nova seleção: {contas_cliente[0]}")
             else:
                 self.ids.combo_conta_cliente_receita.text = ""
-                print(f"⚠️ Nenhuma conta encontrada para o cliente {username}")
 
     def carregar_combos_contabeis(self):
         """Carrega todos os combos das abas contábeis - VERSÃO ATUALIZADA (DADOS REAIS)"""
@@ -4409,6 +4468,43 @@ class TelaGerenciarContas(Screen):
             print(f"Opções disponíveis: {self.ids.combo_conta_despesa.values}")
             print("=== 🎯 FIM DEBUG ===")
 
+    def limpar_filtro_despesa(self):
+        """Limpa filtro de moeda e recarrega todas as opções"""
+        print("🔄 Limpando filtro de moeda...")
+        
+        if not hasattr(self, 'ids'):
+            return
+        
+        # 1. Recarregar TODAS as contas bancárias
+        self.atualizar_contas_bancarias_despesa()
+        
+        # 2. Recarregar TODAS as contas contábeis (sem filtro)
+        if self.ids.combo_categoria_despesa.text:
+            # Forçar recarga sem filtro
+            sistema = App.get_running_app().sistema
+            categoria = self.ids.combo_categoria_despesa.text
+            
+            try:
+                response = sistema.supabase.client.table('contas_contabeis')\
+                    .select('nome, moeda, saldo')\
+                    .eq('categoria', categoria)\
+                    .eq('tipo', 'despesa')\
+                    .execute()
+                
+                contas_formatadas = []
+                for conta in response.data:
+                    texto = f"{conta['nome']} ({conta['moeda']})"
+                    contas_formatadas.append(texto)
+                
+                if 'combo_conta_despesa' in self.ids:
+                    self.ids.combo_conta_despesa.values = contas_formatadas
+                    if contas_formatadas:
+                        self.ids.combo_conta_despesa.text = contas_formatadas[0]
+                
+                print(f"✅ Filtro limpo: {len(contas_formatadas)} contas contábeis (TODAS as moedas)")
+                
+            except Exception as e:
+                print(f"❌ Erro ao limpar filtro: {e}")
 
     def atualizar_saldo_conta_bancaria_spinner(self, conta_numero):
         """Atualiza o saldo de uma conta bancária específica no spinner"""
@@ -4560,47 +4656,57 @@ class TelaGerenciarContas(Screen):
                     self.ids.combo_conta_despesa.text = textos[0]
 
     def atualizar_contas_bancarias_despesa(self):
-        """Atualiza as contas bancárias para despesa - VERSÃO CORRIGIDA COM DADOS REAIS"""
+        """Atualiza as contas bancárias para despesa - SEM FILTRO (sempre todas as moedas)"""
         if not hasattr(self, 'ids'):
             return
         
-        print("🔍 Atualizando contas bancárias para despesa")
+        print("🔍 Atualizando contas bancárias (TODAS as moedas)")
         
-        # 🔥 1. Obter moeda da conta contábil selecionada (se houver)
-        moeda_filtro = None
-        if self.ids.combo_conta_despesa.text and ' (' in self.ids.combo_conta_despesa.text:
-            # Extrair moeda do formato "Nome (MOEDA)"
-            try:
-                moeda_filtro = self.ids.combo_conta_despesa.text.split(' (')[1].replace(')', '').strip()
-            except:
-                moeda_filtro = None
+        sistema = App.get_running_app().sistema
         
-        # 🔥 2. Carregar contas bancárias COM FILTRO
-        contas = self.carregar_contas_bancarias_com_filtro(moeda_filtro)
-        
-        # 🔥 3. Atualizar spinner
-        if contas and 'combo_conta_bancaria_despesa' in self.ids:
-            textos = [conta['texto'] for conta in contas]
-            self.ids.combo_conta_bancaria_despesa.values = textos
+        try:
+            # 🔥 BUSCAR TODAS AS CONTAS BANCÁRIAS (SEM FILTRO DE MOEDA)
+            response = sistema.supabase.client.table('contas_bancarias_empresa')\
+                .select('numero, banco, moeda, saldo')\
+                .gt('saldo', 0)\
+                .order('moeda')  # Ordenar por moeda para ficar organizado
             
-            # Manter seleção atual ou selecionar primeira
-            if textos:
-                # Verificar se a seleção atual ainda existe
-                selecao_atual = self.ids.combo_conta_bancaria_despesa.text
-                if selecao_atual and selecao_atual in textos:
-                    # Mantém a mesma
-                    pass
-                elif selecao_atual and ' - ' in selecao_atual:
-                    # Tentar manter pelo número da conta
-                    numero_atual = selecao_atual.split(' - ')[0]
+            contas_formatadas = []
+            for conta in response.data:
+                texto = f"{conta['numero']} - {conta['banco']} - {conta['moeda']} - Saldo: {float(conta['saldo']):,.2f}"
+                contas_formatadas.append({
+                    'texto': texto,
+                    'numero': conta['numero'],
+                    'moeda': conta['moeda'],
+                    'saldo': float(conta['saldo'])
+                })
+            
+            print(f"✅ {len(contas_formatadas)} contas bancárias carregadas (TODAS as moedas)")
+            
+            # Atualizar spinner
+            if contas_formatadas and 'combo_conta_bancaria_despesa' in self.ids:
+                textos = [conta['texto'] for conta in contas_formatadas]
+                self.ids.combo_conta_bancaria_despesa.values = textos
+                
+                # Manter seleção atual se possível
+                if self.ids.combo_conta_bancaria_despesa.text:
+                    selecao_atual = self.ids.combo_conta_bancaria_despesa.text
+                    conta_atual_numero = selecao_atual.split(' - ')[0] if ' - ' in selecao_atual else ""
+                    
+                    # Verificar se a conta atual ainda existe
                     for texto in textos:
-                        if texto.startswith(numero_atual):
+                        if texto.startswith(conta_atual_numero):
                             self.ids.combo_conta_bancaria_despesa.text = texto
                             break
                     else:
-                        self.ids.combo_conta_bancaria_despesa.text = textos[0]
-                else:
+                        # Se não encontrou, manter a primeira
+                        if textos:
+                            self.ids.combo_conta_bancaria_despesa.text = textos[0]
+                elif textos:
                     self.ids.combo_conta_bancaria_despesa.text = textos[0]
+                    
+        except Exception as e:
+            print(f"❌ Erro ao carregar contas bancárias: {e}")
 
 
 

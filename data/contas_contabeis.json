@@ -2,13 +2,13 @@
     "receitas": {
         "RECEITAS OPERACIONAIS": {
             "Comissões de Câmbio": {
-                "USD": 400.0,
+                "USD": 0.0,
                 "EUR": 0.0,
                 "GBP": 0.0,
                 "BRL": 0.0
             },
             "Wire Fee": {
-                "USD": 0.0,
+                "USD": 30.0,
                 "EUR": 0.0,
                 "GBP": 0.0,
                 "BRL": 0.0
