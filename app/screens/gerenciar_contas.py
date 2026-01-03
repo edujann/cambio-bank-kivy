@@ -557,22 +557,81 @@ class TelaGerenciarContas(Screen):
             return data_string.split(' ')[0] if ' ' in data_string else data_string
 
     def on_enter(self):
-        """Chamado quando a tela é carregada - GARANTIR POSIÇÃO"""
+        """Chamado quando a tela é carregada - VERSÃO DEFINITIVA"""
         from kivy.core.window import Window
         
-        # 🔥 GARANTIR que está na posição correta
         Window.left = 300
         Window.top = 70
-
-        # 🔥 CONFIGURAR BINDINGS (sem debug)
-        self.configurar_bindings_taxas()  # ✅ Cálculo entre taxas
-        self.configurar_binds_taxas()     # ✅ Cálculo de conversão
         
-        # 🔥 NOVO: Configurar bindings dos spinners contábeis
-        self.configurar_bindings_spinners()
+        print("🎯 Configurando bindings definitivos...")
+        
+        # 🔥 BINDINGS SIMPLES E DIRETOS
+        if hasattr(self, 'ids'):
+            # 1. Quando muda categoria → atualizar contas contábeis
+            if 'combo_categoria_despesa' in self.ids:
+                self.ids.combo_categoria_despesa.bind(
+                    text=lambda instance, value: self.atualizar_contas_despesa()
+                )
+                print("✅ Binding: categoria_despesa → atualizar_contas_despesa")
+            
+            # 2. Quando muda conta bancária → atualizar contas contábeis (filtro por moeda)
+            if 'combo_conta_bancaria_despesa' in self.ids:
+                self.ids.combo_conta_bancaria_despesa.bind(
+                    text=lambda instance, value: self.atualizar_contas_despesa()
+                )
+                print("✅ Binding: conta_bancaria_despesa → atualizar_contas_despesa")
+            
+            # 3. Quando muda conta contábil → atualizar contas bancárias (filtro por moeda)
+            if 'combo_conta_despesa' in self.ids:
+                self.ids.combo_conta_despesa.bind(
+                    text=lambda instance, value: self.atualizar_contas_bancarias_despesa()
+                )
+                print("✅ Binding: conta_despesa → atualizar_contas_bancarias_despesa")
+        
+        print("✅ Todos os bindings configurados (baseados em dados reais do Supabase)")
+        
+        # 🔥 CARREGAMENTO INICIAL
+        from kivy.clock import Clock
+        Clock.schedule_once(lambda dt: self.carregar_dados_iniciais_despesa(), 0.5)
 
-        print("🏦 Tela Gerenciar Contas carregada (posicionada à esquerda)")
-    
+    def carregar_dados_iniciais_despesa(self):
+        """Carrega dados iniciais para a aba despesa"""
+        print("🎯 Carregando dados iniciais despesa...")
+        
+        if not hasattr(self, 'ids'):
+            return
+        
+        sistema = App.get_running_app().sistema
+        
+        try:
+            # 1. Carregar categorias de despesa
+            categorias = set()
+            response = sistema.supabase.client.table('contas_contabeis')\
+                .select('categoria')\
+                .eq('tipo', 'despesa')\
+                .execute()
+            
+            for item in response.data:
+                categorias.add(item['categoria'])
+            
+            if 'combo_categoria_despesa' in self.ids:
+                self.ids.combo_categoria_despesa.values = list(categorias)
+                if categorias:
+                    self.ids.combo_categoria_despesa.text = list(categorias)[0]
+            
+            # 2. Carregar contas bancárias iniciais (sem filtro)
+            contas_bancarias = self.carregar_contas_bancarias_com_filtro()
+            if contas_bancarias and 'combo_conta_bancaria_despesa' in self.ids:
+                textos = [conta['texto'] for conta in contas_bancarias]
+                self.ids.combo_conta_bancaria_despesa.values = textos
+                if textos:
+                    self.ids.combo_conta_bancaria_despesa.text = textos[0]
+            
+            print("✅ Dados iniciais carregados com sucesso!")
+            
+        except Exception as e:
+            print(f"❌ Erro ao carregar dados iniciais: {e}")
+
     def carregar_dados_iniciais(self):
         """Carrega todos os dados iniciais da tela - VERSÃO COMPLETA COM FILTRO MOEDA"""
         print("🎯 carregar_dados_iniciais COMPLETO")
@@ -820,8 +879,11 @@ class TelaGerenciarContas(Screen):
             if opcoes_contas:
                 self.ids.combo_conta_ajuste.text = opcoes_contas[0]
 
+
     def atualizar_contas_despesa(self):
-        """Atualiza as contas de despesa quando selecionar categoria - COM FILTRO DE MOEDA"""
+        """Atualiza as contas de despesa quando selecionar categoria - COM FILTRO DE MOEDA BIDIRECIONAL"""
+        print("🎯 atualizar_contas_despesa() CHAMADO")
+        
         sistema = App.get_running_app().sistema
         
         if not hasattr(self, 'ids') or not self.ids.combo_categoria_despesa.text:
@@ -830,31 +892,8 @@ class TelaGerenciarContas(Screen):
         categoria_selecionada = self.ids.combo_categoria_despesa.text
         print(f"🔍 Categoria despesa selecionada: {categoria_selecionada}")
         
-        # 🔥 OBTER MOEDA DA CONTA BANCÁRIA SELECIONADA
-        moeda_alvo = None
-        if self.ids.combo_conta_bancaria_despesa.text:
-            moeda_alvo = self._extrair_moeda_conta(self.ids.combo_conta_bancaria_despesa.text)
-            print(f"💰 Moeda alvo (conta bancária): {moeda_alvo}")
-        
-        if categoria_selecionada in sistema.contas_contabeis['despesas']:
-            # 🔥 AGORA COM MOEDA: "Internet e Telefonia (USD)", etc.
-            contas_com_moeda = []
-            for conta_nome, moedas in sistema.contas_contabeis['despesas'][categoria_selecionada].items():
-                for moeda in moedas.keys():
-                    contas_com_moeda.append(f"{conta_nome} ({moeda})")
-            
-            # 🔥 APLICAR FILTRO POR MOEDA
-            if moeda_alvo:
-                contas_com_moeda = self._filtrar_contas_por_moeda(contas_com_moeda, moeda_alvo)
-            
-            print(f"✅ Contas despesa atualizadas: {len(contas_com_moeda)} opções COM MOEDA (filtro: {moeda_alvo})")
-            
-            if 'combo_conta_despesa' in self.ids:
-                self.ids.combo_conta_despesa.values = contas_com_moeda
-                if contas_com_moeda and not self.ids.combo_conta_despesa.text:
-                    self.ids.combo_conta_despesa.text = contas_com_moeda[0]
-        else:
-            print(f"⚠️ Categoria '{categoria_selecionada}' não encontrada nas despesas")
+        # 🔥 SIMPLESMENTE CHAMAR O MÉTODO DE FILTRO QUE JÁ TEMOS
+        self._filtrar_contas_despesa_por_moeda_bancaria()
 
     def atualizar_contas_cambio(self):
         """Atualiza as contas quando selecionar cliente na aba de câmbio"""
@@ -3314,23 +3353,6 @@ class TelaGerenciarContas(Screen):
         except Exception as e:
             print(f"❌ Erro ao atualizar saldos nos spinners: {e}")
 
-    def atualizar_combos_apos_operacao(self):
-        """Atualiza todos os combos após operações que alteram saldos"""
-        try:
-            sistema = App.get_running_app().sistema
-            
-            # 🔥 ATUALIZAR SALDOS NOS SPINNERS DO EXTRATO
-            self.atualizar_saldos_spinners_extrato()
-            
-            # 🔥 ATUALIZAR OUTROS COMBOS TAMBÉM
-            self.atualizar_contas_ajuste()
-            self.atualizar_contas_cambio()
-            self.atualizar_contas_cliente_receita()
-            
-            print("✅ Combos atualizados após operação")
-            
-        except Exception as e:
-            print(f"❌ Erro ao atualizar combos: {e}")
 
     def abrir_gerenciamento_cliente(self, instance):
         """Abre a tela de gerenciamento detalhado do cliente - VERSÃO ULTRA-ROBUSTA"""
@@ -3617,20 +3639,6 @@ class TelaGerenciarContas(Screen):
         
         print(f"⚠️ Não foi possível extrair moeda de: {texto_conta}")
         return None
-
-    def _filtrar_contas_por_moeda(self, contas_com_moeda, moeda_alvo):
-        """Filtra lista de contas para mostrar apenas as da moeda especificada"""
-        if not moeda_alvo:
-            return contas_com_moeda
-        
-        contas_filtradas = []
-        for conta in contas_com_moeda:
-            moeda_conta = self._extrair_moeda_conta(conta)
-            if moeda_conta == moeda_alvo:
-                contas_filtradas.append(conta)
-        
-        print(f"🔍 Filtro moeda '{moeda_alvo}': {len(contas_com_moeda)} → {len(contas_filtradas)} contas")
-        return contas_filtradas
 
 
     def atualizar_contas_receita(self):
@@ -4112,34 +4120,42 @@ class TelaGerenciarContas(Screen):
         popup.open()
 
     def atualizar_contas_cliente_receita(self):
-        """Atualiza as contas do cliente quando selecionar cliente - COM FILTRO DE MOEDA"""
+        """Atualiza as contas do cliente quando selecionar cliente - COM DADOS EM TEMPO REAL"""
         sistema = App.get_running_app().sistema
         
         if not hasattr(self, 'ids') or not self.ids.combo_cliente_receita.text:
             return
         
         username = self.ids.combo_cliente_receita.text.split(' - ')[0]
-        print(f"🔍 Cliente selecionado para receita: {username}")
+        print(f"🔍 Atualizando contas para: {username} (em tempo real)")
+        
+        # 🔥 FORÇAR SINCRONIZAÇÃO ANTES DE MOSTRAR
+        sistema.sincronizar_todos_saldos_com_supabase()
         
         # 🔥 OBTER MOEDA DA CONTA CONTÁBIL SELECIONADA
         moeda_alvo = None
-        if self.ids.combo_conta_receita.text:
+        if 'combo_conta_receita' in self.ids and self.ids.combo_conta_receita.text:
             moeda_alvo = self._extrair_moeda_conta(self.ids.combo_conta_receita.text)
             print(f"💰 Moeda alvo (conta receita): {moeda_alvo}")
         
-        # Buscar contas do cliente - USANDO A CHAVE CORRETA 'cliente'
+        # Buscar contas do cliente COM DADOS ATUALIZADOS
         contas_cliente = []
         for conta_id, conta_info in sistema.contas.items():
-            # 🔥 CORREÇÃO: Usar 'cliente' em vez de 'username'
+            # Verificar se a conta pertence ao cliente
             if (isinstance(conta_info, dict) and 
-                'cliente' in conta_info and 
-                'saldo' in conta_info and 
-                'moeda' in conta_info):
+                conta_info.get('cliente') == username):
                 
-                if conta_info['cliente'] == username and conta_info['saldo'] > 0:
-                    contas_cliente.append(f"{conta_id} - {conta_info['saldo']:,.2f} {conta_info['moeda']}")
-            else:
-                print(f"⚠️ Estrutura inválida na conta {conta_id}: {conta_info}")
+                # 🔥 BUSCAR SALDO EM TEMPO REAL DO SUPABASE
+                saldo_real = sistema.supabase.obter_saldo_conta(conta_id)
+                if saldo_real is None:
+                    saldo_real = conta_info.get('saldo', 0)
+                
+                # Atualizar cache local
+                sistema.contas[conta_id]['saldo'] = saldo_real
+                
+                if saldo_real > 0:  # Apenas mostrar contas com saldo positivo
+                    moeda = conta_info.get('moeda', 'USD')
+                    contas_cliente.append(f"{conta_id} - {saldo_real:,.2f} {moeda}")
         
         # 🔥 APLICAR FILTRO POR MOEDA
         if moeda_alvo:
@@ -4149,51 +4165,82 @@ class TelaGerenciarContas(Screen):
                 if moeda_conta == moeda_alvo:
                     contas_filtradas.append(conta)
             contas_cliente = contas_filtradas
+            print(f"✅ Filtro aplicado: mostrando apenas contas em {moeda_alvo}")
         
-        print(f"✅ Contas cliente receita atualizadas: {len(contas_cliente)} opções (filtro: {moeda_alvo})")
+        print(f"✅ Contas atualizadas em tempo real: {len(contas_cliente)} opções")
         
         if 'combo_conta_cliente_receita' in self.ids:
             self.ids.combo_conta_cliente_receita.values = contas_cliente
-            if contas_cliente and not self.ids.combo_conta_cliente_receita.text:
+            
+            # 🔥 LÓGICA MELHORADA PARA MANTER SELEÇÃO
+            if contas_cliente:
+                # Se já tem uma conta selecionada, tentar mantê-la
+                if self.ids.combo_conta_cliente_receita.text:
+                    conta_selecionada_id = self.ids.combo_conta_cliente_receita.text.split(' - ')[0]
+                    for conta in contas_cliente:
+                        if conta.startswith(conta_selecionada_id):
+                            self.ids.combo_conta_cliente_receita.text = conta
+                            print(f"✅ Mantida seleção: {conta}")
+                            return
+                
+                # Se não tem seleção ou não encontrou a conta anterior
                 self.ids.combo_conta_cliente_receita.text = contas_cliente[0]
-            elif not contas_cliente:
+                print(f"✅ Nova seleção: {contas_cliente[0]}")
+            else:
                 self.ids.combo_conta_cliente_receita.text = ""
                 print(f"⚠️ Nenhuma conta encontrada para o cliente {username}")
 
     def carregar_combos_contabeis(self):
-        """Carrega todos os combos das abas contábeis - VERSÃO MULTI-MOEDA"""
+        """Carrega todos os combos das abas contábeis - VERSÃO ATUALIZADA (DADOS REAIS)"""
         sistema = App.get_running_app().sistema
         
-        # Verificar se os IDs estão disponíveis
         if not hasattr(self, 'ids'):
-            print("⚠️ IDs não disponíveis ainda em carregar_combos_contabeis")
+            print("⚠️ IDs não disponíveis ainda")
             return
         
-        # 🔥 CARREGAR CATEGORIAS DE DESPESA
-        categorias_despesa = list(sistema.contas_contabeis['despesas'].keys())
-        if 'combo_categoria_despesa' in self.ids:
-            self.ids.combo_categoria_despesa.values = categorias_despesa
-            if categorias_despesa:
-                self.ids.combo_categoria_despesa.text = categorias_despesa[0]
-            print(f"✅ Categorias despesa carregadas: {len(categorias_despesa)}")
-        
-        # 🔥 CARREGAR CONTAS DE DESPESA COM MOEDA (quando categoria for selecionada)
-        if categorias_despesa and 'combo_conta_despesa' in self.ids:
-            categoria_selecionada = self.ids.combo_categoria_despesa.text
-            if categoria_selecionada in sistema.contas_contabeis['despesas']:
-                # 🔥 AGORA COM MOEDA: "Salários (USD)", "Salários (EUR)", etc.
-                contas_com_moeda = []
-                for conta_nome, moedas in sistema.contas_contabeis['despesas'][categoria_selecionada].items():
-                    for moeda in moedas.keys():
-                        contas_com_moeda.append(f"{conta_nome} ({moeda})")
+        # 🔥 DESPESAS: Carregar categorias do SUPABASE
+        try:
+            # Buscar categorias ÚNICAS de despesa do Supabase
+            response = sistema.supabase.client.table('contas_contabeis')\
+                .select('categoria')\
+                .eq('tipo', 'despesa')\
+                .execute()
+            
+            categorias_despesa = list(set([item['categoria'] for item in response.data]))
+            
+            if 'combo_categoria_despesa' in self.ids:
+                self.ids.combo_categoria_despesa.values = categorias_despesa
+                if categorias_despesa and not self.ids.combo_categoria_despesa.text:
+                    self.ids.combo_categoria_despesa.text = categorias_despesa[0]
+                print(f"✅ {len(categorias_despesa)} categorias de despesa carregadas do Supabase")
                 
-                self.ids.combo_conta_despesa.values = contas_com_moeda
-                if contas_com_moeda and not self.ids.combo_conta_despesa.text:
-                    self.ids.combo_conta_despesa.text = contas_com_moeda[0]
-                print(f"✅ Contas despesa carregadas: {len(contas_com_moeda)} opções COM MOEDA")
+                # 🔥 AGORA O BINDING VAI CHAMAR atualizar_contas_despesa() AUTOMATICAMENTE
+                # Não precisamos carregar contas aqui, o binding cuida disso
+                
+        except Exception as e:
+            print(f"❌ Erro ao carregar categorias despesa: {e}")
         
-        # 🔥 NOVO: Carregar contas bancárias para despesas
-        self.carregar_contas_bancarias_despesa()
+        # 🔥 RECEITAS: Carregar categorias do SUPABASE
+        try:
+            # Buscar categorias ÚNICAS de receita do Supabase
+            response = sistema.supabase.client.table('contas_contabeis')\
+                .select('categoria')\
+                .eq('tipo', 'receita')\
+                .execute()
+            
+            categorias_receita = list(set([item['categoria'] for item in response.data]))
+            
+            if 'combo_categoria_receita' in self.ids:
+                self.ids.combo_categoria_receita.values = categorias_receita
+                if categorias_receita and not self.ids.combo_categoria_receita.text:
+                    self.ids.combo_categoria_receita.text = categorias_receita[0]
+                print(f"✅ {len(categorias_receita)} categorias de receita carregadas do Supabase")
+                
+        except Exception as e:
+            print(f"❌ Erro ao carregar categorias receita: {e}")
+        
+        # 🔥 CONTAS BANCÁRIAS: Carregar do Supabase (sem filtro inicial)
+        self.atualizar_contas_bancarias_despesa()
 
     def carregar_combos_receita(self):
         """Carrega especificamente os combos da aba receitas - VERSÃO MULTI-MOEDA CORRIGIDA"""
@@ -4306,9 +4353,45 @@ class TelaGerenciarContas(Screen):
                 # Limpar campos
                 self.ids.entry_valor_despesa.text = ""
                 self.ids.entry_descricao_despesa.text = ""
-                # Atualizar combo para mostrar novo saldo
-                self.carregar_contas_bancarias_despesa()
+                
+                # 🔥 🔥 🔥 ATUALIZAÇÕES IMPORTANTES AQUI:
+                # 1. Forçar sincronização dos saldos
+                sistema.sincronizar_todos_saldos_com_supabase()
+                
+                # 2. Recarregar contas bancárias ATUALIZADAS
+                sistema.carregar_contas_bancarias()
+                
+                # 3. Atualizar o spinner da conta bancária COM SALDO ATUAL
+                if self.ids.combo_conta_bancaria_despesa.text:
+                    conta_bancaria = self.ids.combo_conta_bancaria_despesa.text.split(' - ')[0]
+                    
+                    # Buscar saldo ATUALIZADO
+                    if conta_bancaria in sistema.contas_bancarias_empresa:
+                        conta_info = sistema.contas_bancarias_empresa[conta_bancaria]
+                        saldo_atual = conta_info['saldo']
+                        moeda = conta_info['moeda']
+                        banco = conta_info.get('banco', 'Banco Principal')
+                        
+                        # 🔥 Atualizar texto do spinner com novo saldo
+                        novo_texto = f"{conta_bancaria} - {banco} - {moeda} - Saldo: {saldo_atual:,.2f}"
+                        
+                        # Salvar seleção atual
+                        selecao_anterior = self.ids.combo_conta_bancaria_despesa.text
+                        
+                        # Atualizar valores do spinner
+                        self.atualizar_contas_bancarias_despesa()  # 🔥 CORREÇÃO: Usar o novo método
+                        
+                        # Restaurar seleção (com saldo atualizado)
+                        self.ids.combo_conta_bancaria_despesa.text = novo_texto
+                        print(f"✅ Saldo atualizado: {novo_texto}")
+                
+                # 4. Atualizar filtro de moeda nas contas de despesa
+                self.atualizar_contas_despesa()
+                
+                # 5. Atualizar todos os combos
                 self.atualizar_combos_apos_operacao()
+                
+                print("✅ Despesa lançada e spinners atualizados!")
             else:
                 self.mostrar_erro(mensagem)
             
@@ -4325,6 +4408,204 @@ class TelaGerenciarContas(Screen):
             print(f"Texto atual: {self.ids.combo_conta_despesa.text}")
             print(f"Opções disponíveis: {self.ids.combo_conta_despesa.values}")
             print("=== 🎯 FIM DEBUG ===")
+
+
+    def atualizar_saldo_conta_bancaria_spinner(self, conta_numero):
+        """Atualiza o saldo de uma conta bancária específica no spinner"""
+        sistema = App.get_running_app().sistema
+        
+        if conta_numero not in sistema.contas_bancarias_empresa:
+            return
+        
+        conta_info = sistema.contas_bancarias_empresa[conta_numero]
+        
+        # Buscar saldo ATUAL do Supabase
+        saldo_atual = sistema.supabase.obter_saldo_conta_bancaria_empresa(conta_numero)
+        if saldo_atual is None:
+            saldo_atual = conta_info['saldo']
+        
+        # Atualizar cache local
+        sistema.contas_bancarias_empresa[conta_numero]['saldo'] = saldo_atual
+        
+        # Criar novo texto para o spinner
+        novo_texto = f"{conta_numero} - {conta_info.get('banco', 'Banco')} - {conta_info['moeda']} - Saldo: {saldo_atual:,.2f}"
+        
+        # Atualizar o spinner se esta conta estiver selecionada
+        if (hasattr(self, 'ids') and 'combo_conta_bancaria_despesa' in self.ids and
+            self.ids.combo_conta_bancaria_despesa.text.startswith(conta_numero)):
+            
+            self.ids.combo_conta_bancaria_despesa.text = novo_texto
+            print(f"✅ Spinner atualizado: {novo_texto}")
+        
+        return saldo_atual
+
+
+
+    def obter_moeda_conta_bancaria_real(self, numero_conta):
+        """Obtém a moeda REAL de uma conta bancária direto do Supabase"""
+        sistema = App.get_running_app().sistema
+        
+        try:
+            response = sistema.supabase.client.table('contas_bancarias_empresa')\
+                .select('moeda')\
+                .eq('numero', numero_conta)\
+                .execute()
+            
+            if response.data and len(response.data) > 0:
+                moeda = response.data[0]['moeda']
+                print(f"✅ Moeda REAL da conta {numero_conta}: {moeda}")
+                return moeda
+            else:
+                print(f"⚠️ Conta bancária {numero_conta} não encontrada")
+                return None
+                
+        except Exception as e:
+            print(f"❌ Erro ao buscar moeda da conta {numero_conta}: {e}")
+            return None
+
+    def carregar_contas_bancarias_com_filtro(self, moeda_filtro=None):
+        """Carrega contas bancárias filtrando por moeda se especificado"""
+        sistema = App.get_running_app().sistema
+        
+        try:
+            # Construir query base
+            query = sistema.supabase.client.table('contas_bancarias_empresa')\
+                .select('numero, banco, moeda, saldo')\
+                .gt('saldo', 0)  # Apenas contas com saldo > 0
+            
+            # Aplicar filtro de moeda se existir
+            if moeda_filtro:
+                query = query.eq('moeda', moeda_filtro)
+            
+            response = query.execute()
+            
+            contas_formatadas = []
+            for conta in response.data:
+                texto = f"{conta['numero']} - {conta['banco']} - {conta['moeda']} - Saldo: {float(conta['saldo']):,.2f}"
+                contas_formatadas.append({
+                    'texto': texto,
+                    'numero': conta['numero'],
+                    'moeda': conta['moeda'],
+                    'saldo': float(conta['saldo'])
+                })
+            
+            print(f"✅ {len(contas_formatadas)} contas bancárias carregadas (filtro: {moeda_filtro})")
+            return contas_formatadas
+            
+        except Exception as e:
+            print(f"❌ Erro ao carregar contas bancárias: {e}")
+            return []
+
+    def carregar_contas_contabeis_com_filtro(self, categoria, moeda_filtro=None, tipo='despesa'):
+        """Carrega contas contábeis filtrando por moeda se especificado"""
+        sistema = App.get_running_app().sistema
+        
+        try:
+            # Construir query base
+            query = sistema.supabase.client.table('contas_contabeis')\
+                .select('nome, moeda, saldo')\
+                .eq('categoria', categoria)\
+                .eq('tipo', tipo)
+            
+            # Aplicar filtro de moeda se existir
+            if moeda_filtro:
+                query = query.eq('moeda', moeda_filtro)
+            
+            response = query.execute()
+            
+            contas_formatadas = []
+            for conta in response.data:
+                texto = f"{conta['nome']} ({conta['moeda']})"
+                contas_formatadas.append({
+                    'texto': texto,
+                    'nome': conta['nome'],
+                    'moeda': conta['moeda'],
+                    'saldo': float(conta['saldo'])
+                })
+            
+            print(f"✅ {len(contas_formatadas)} contas contábeis carregadas (categoria: {categoria}, filtro: {moeda_filtro})")
+            return contas_formatadas
+            
+        except Exception as e:
+            print(f"❌ Erro ao carregar contas contábeis: {e}")
+            return []
+
+    def atualizar_contas_despesa(self):
+        """Atualiza as contas de despesa - VERSÃO CORRIGIDA COM DADOS REAIS"""
+        if not hasattr(self, 'ids') or not self.ids.combo_categoria_despesa.text:
+            return
+        
+        sistema = App.get_running_app().sistema
+        categoria = self.ids.combo_categoria_despesa.text
+        
+        print(f"🔍 Atualizando contas despesa para categoria: {categoria}")
+        
+        # 🔥 1. Obter moeda da conta bancária selecionada (se houver)
+        moeda_filtro = None
+        if self.ids.combo_conta_bancaria_despesa.text and ' - ' in self.ids.combo_conta_bancaria_despesa.text:
+            numero_conta = self.ids.combo_conta_bancaria_despesa.text.split(' - ')[0]
+            moeda_filtro = self.obter_moeda_conta_bancaria_real(numero_conta)
+        
+        # 🔥 2. Carregar contas contábeis COM FILTRO
+        contas = self.carregar_contas_contabeis_com_filtro(categoria, moeda_filtro, 'despesa')
+        
+        # 🔥 3. Atualizar spinner
+        if contas and 'combo_conta_despesa' in self.ids:
+            textos = [conta['texto'] for conta in contas]
+            self.ids.combo_conta_despesa.values = textos
+            
+            # Manter seleção atual ou selecionar primeira
+            if textos:
+                if not self.ids.combo_conta_despesa.text or self.ids.combo_conta_despesa.text not in textos:
+                    self.ids.combo_conta_despesa.text = textos[0]
+
+    def atualizar_contas_bancarias_despesa(self):
+        """Atualiza as contas bancárias para despesa - VERSÃO CORRIGIDA COM DADOS REAIS"""
+        if not hasattr(self, 'ids'):
+            return
+        
+        print("🔍 Atualizando contas bancárias para despesa")
+        
+        # 🔥 1. Obter moeda da conta contábil selecionada (se houver)
+        moeda_filtro = None
+        if self.ids.combo_conta_despesa.text and ' (' in self.ids.combo_conta_despesa.text:
+            # Extrair moeda do formato "Nome (MOEDA)"
+            try:
+                moeda_filtro = self.ids.combo_conta_despesa.text.split(' (')[1].replace(')', '').strip()
+            except:
+                moeda_filtro = None
+        
+        # 🔥 2. Carregar contas bancárias COM FILTRO
+        contas = self.carregar_contas_bancarias_com_filtro(moeda_filtro)
+        
+        # 🔥 3. Atualizar spinner
+        if contas and 'combo_conta_bancaria_despesa' in self.ids:
+            textos = [conta['texto'] for conta in contas]
+            self.ids.combo_conta_bancaria_despesa.values = textos
+            
+            # Manter seleção atual ou selecionar primeira
+            if textos:
+                # Verificar se a seleção atual ainda existe
+                selecao_atual = self.ids.combo_conta_bancaria_despesa.text
+                if selecao_atual and selecao_atual in textos:
+                    # Mantém a mesma
+                    pass
+                elif selecao_atual and ' - ' in selecao_atual:
+                    # Tentar manter pelo número da conta
+                    numero_atual = selecao_atual.split(' - ')[0]
+                    for texto in textos:
+                        if texto.startswith(numero_atual):
+                            self.ids.combo_conta_bancaria_despesa.text = texto
+                            break
+                    else:
+                        self.ids.combo_conta_bancaria_despesa.text = textos[0]
+                else:
+                    self.ids.combo_conta_bancaria_despesa.text = textos[0]
+
+
+
+
+
 
     def lancar_receita_ui(self):
         """Método simplificado para ser chamado do KV - VERSÃO MULTI-MOEDA"""
@@ -4396,9 +4677,17 @@ class TelaGerenciarContas(Screen):
                 self.ids.entry_valor_receita.text = ""
                 self.ids.entry_descricao_receita.text = ""
                 
-                # Atualizar combo para mostrar novo saldo
-                self.atualizar_contas_cliente_receita()
+                # 🔥 ADICIONAR ESTAS LINHAS:
+                # Atualizar combo para mostrar novo saldo EM TEMPO REAL
                 self.atualizar_combos_apos_operacao()
+                
+                # 🔥 FORÇAR SINCRONIZAÇÃO DO CACHE LOCAL
+                sistema.sincronizar_todos_saldos_com_supabase()
+                
+                # 🔥 RECARREGAR AS CONTAS DO CLIENTE
+                if self.ids.combo_cliente_receita.text:
+                    username = self.ids.combo_cliente_receita.text.split(' - ')[0]
+                    self.atualizar_contas_cliente_receita()
             else:
                 self.mostrar_erro(mensagem)
             
@@ -4407,6 +4696,61 @@ class TelaGerenciarContas(Screen):
             import traceback
             traceback.print_exc()
             self.mostrar_erro(f"Erro ao lançar receita: {str(e)}")
+
+    def atualizar_combos_apos_operacao(self):
+        """Atualiza todos os combos/spinners após uma operação de lançamento"""
+        sistema = App.get_running_app().sistema
+        
+        print("🔄 Atualizando combos após operação...")
+        
+        # 🔥 ATUALIZAR OS DADOS DO SUPABASE EM TEMPO REAL
+        sistema.carregar_contas_background()  # Forçar recarga das contas
+        
+        # 🔥 ABA RECEITA
+        if hasattr(self, 'ids'):
+            # 1. Atualizar conta do cliente selecionado
+            if self.ids.combo_cliente_receita.text:
+                username = self.ids.combo_cliente_receita.text.split(' - ')[0]
+                
+                # Buscar contas atualizadas do Supabase
+                contas_atualizadas = []
+                for conta_id, conta_info in sistema.contas.items():
+                    if (conta_info.get('cliente') == username and 
+                        conta_info.get('saldo', 0) > 0):
+                        
+                        # Buscar saldo REAL do Supabase
+                        saldo_real = sistema.supabase.obter_saldo_conta(conta_id)
+                        if saldo_real is None:
+                            saldo_real = conta_info.get('saldo', 0)
+                        
+                        contas_atualizadas.append(
+                            f"{conta_id} - {saldo_real:,.2f} {conta_info.get('moeda', 'USD')}"
+                        )
+                
+                # Atualizar o spinner
+                self.ids.combo_conta_cliente_receita.values = contas_atualizadas
+                
+                # Manter a seleção atual ou selecionar a primeira
+                if contas_atualizadas:
+                    if self.ids.combo_conta_cliente_receita.text:
+                        # Tentar manter a mesma conta selecionada
+                        conta_atual = self.ids.combo_conta_cliente_receita.text.split(' - ')[0]
+                        conta_encontrada = False
+                        
+                        for conta in contas_atualizadas:
+                            if conta.startswith(conta_atual):
+                                self.ids.combo_conta_cliente_receita.text = conta
+                                conta_encontrada = True
+                                break
+                        
+                        if not conta_encontrada and contas_atualizadas:
+                            self.ids.combo_conta_cliente_receita.text = contas_atualizadas[0]
+                    else:
+                        self.ids.combo_conta_cliente_receita.text = contas_atualizadas[0]
+                else:
+                    self.ids.combo_conta_cliente_receita.text = ""
+            
+            print("✅ Combos atualizados após operação!")
 
     def atualizar_campos_transferencia(self):
         """Atualiza os campos dinâmicos baseado no tipo de transferência selecionado - VERSÃO CORRIGIDA"""
@@ -6921,39 +7265,6 @@ class TelaGerenciarContas(Screen):
         # TODO: Implementar lógica completa
         self.mostrar_sucesso("Transferência Internacional - Em desenvolvimento")
 
-
-    def carregar_contas_bancarias_despesa(self):
-        """Carrega as contas bancárias para despesa - COM FILTRO DE MOEDA"""
-        sistema = App.get_running_app().sistema
-        
-        print("🔍 Carregando contas bancárias para despesa...")
-        
-        # 🔥 OBTER MOEDA DA CONTA CONTÁBIL SELECIONADA
-        moeda_alvo = None
-        if hasattr(self, 'ids') and 'combo_conta_despesa' in self.ids and self.ids.combo_conta_despesa.text:
-            moeda_alvo = self._extrair_moeda_conta(self.ids.combo_conta_despesa.text)
-            print(f"💰 Moeda alvo (conta despesa): {moeda_alvo}")
-        
-        contas_bancarias = []
-        for conta_numero, conta_info in sistema.contas_bancarias_empresa.items():
-            if conta_info['saldo'] > 0:  # Só mostrar contas com saldo
-                contas_bancarias.append(f"{conta_numero} - {conta_info['saldo']:,.2f} {conta_info['moeda']}")
-        
-        # 🔥 APLICAR FILTRO POR MOEDA
-        if moeda_alvo:
-            contas_filtradas = []
-            for conta in contas_bancarias:
-                moeda_conta = self._extrair_moeda_conta(conta)
-                if moeda_conta == moeda_alvo:
-                    contas_filtradas.append(conta)
-            contas_bancarias = contas_filtradas
-        
-        print(f"✅ Contas bancárias despesa carregadas: {len(contas_bancarias)} opções (filtro: {moeda_alvo})")
-        
-        if hasattr(self, 'ids') and 'combo_conta_bancaria_despesa' in self.ids:
-            self.ids.combo_conta_bancaria_despesa.values = contas_bancarias
-            if contas_bancarias and not self.ids.combo_conta_bancaria_despesa.text:
-                self.ids.combo_conta_bancaria_despesa.text = contas_bancarias[0]
     
 
     def configurar_bindings_taxas(self):
@@ -7274,7 +7585,7 @@ class TelaGerenciarContas(Screen):
     def _on_conta_despesa_change(self, instance, value):
         """Quando conta despesa mudar, filtrar contas bancárias"""
         print(f"🔄 Conta despesa alterada: {value}")
-        self.carregar_contas_bancarias_despesa()
+        self.atualizar_contas_bancarias_despesa()
 
     def _on_conta_receita_change(self, instance, value):
         """Quando conta receita mudar, filtrar contas cliente"""

@@ -64,7 +64,7 @@
         "banco": "Banco Principal",
         "agencia": null,
         "moeda": "BRL",
-        "saldo": 3681830.51,
+        "saldo": 3688698.55,
         "tipo": "empresa",
         "data_criacao": null,
         "saldo_inicial": 0.0
@@ -74,7 +74,7 @@
         "banco": "Banco Principal",
         "agencia": null,
         "moeda": "USD",
-        "saldo": 887528.13,
+        "saldo": 879900.0,
         "tipo": "empresa",
         "data_criacao": null,
         "saldo_inicial": 0.0

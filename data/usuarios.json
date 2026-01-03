@@ -21,33 +21,6 @@
         "codigo_verificacao": null,
         "cambio_liberado": false
     },
-    "gables": {
-        "id": "3d87ebc4-e469-40cd-86df-5eb78cb2dc9d",
-        "username": "gables",
-        "senha_hash": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
-        "nome": "GABLES ENTERPRISE",
-        "email": "gables@mail.com",
-        "documento_hash": "3540e54932c0ee8d2bd26167ae4133eca41e6c7e579e8a7e478ad58e8482d3f3",
-        "telefone": "",
-        "endereco": "",
-        "cidade": "",
-        "cep": "",
-        "estado": "",
-        "pais": "",
-        "tipo": "cliente",
-        "data_cadastro": "2025-12-22T18:41:03.728514",
-        "created_at": "2025-12-22T21:41:04.944862",
-        "contas": [
-            "376793336",
-            "580880428",
-            "251636005",
-            "755234527"
-        ],
-        "status": "pendente",
-        "verificado": false,
-        "codigo_verificacao": "",
-        "cambio_liberado": false
-    },
     "excluido_20251206_143857_google": {
         "id": "bd9571c6-817e-4df0-bc37-ab31f0c39c0c",
         "username": "excluido_20251206_143857_google",
@@ -394,6 +367,33 @@
         "codigo_verificacao": "",
         "cambio_liberado": false
     },
+    "aligator": {
+        "id": "f79e3f40-6fa7-47e1-823f-30f3756a3a4f",
+        "username": "aligator",
+        "senha_hash": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
+        "nome": "ALIGATOR ENTERPRISE",
+        "email": "aligator@mail.com",
+        "documento_hash": "4fd1d16d5c114d200c6bce868f268363cdb59bb267b64da2457fde3ac1485558",
+        "telefone": "",
+        "endereco": "",
+        "cidade": "",
+        "cep": "",
+        "estado": "",
+        "pais": "",
+        "tipo": "cliente",
+        "data_cadastro": "2026-01-02T11:38:32.249692",
+        "created_at": "2026-01-02T14:38:32.317715",
+        "contas": [
+            "654913407",
+            "421200543",
+            "567667095",
+            "801496623"
+        ],
+        "status": "pendente",
+        "verificado": false,
+        "codigo_verificacao": "",
+        "cambio_liberado": false
+    },
     "romolo": {
         "id": "e71a2094-5849-4a0a-903a-016fb9f70b91",
         "username": "romolo",
@@ -421,19 +421,25 @@
         "codigo_verificacao": "",
         "cambio_liberado": false
     },
-    "aligator": {
-        "senha": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
+    "gables": {
+        "username": "gables",
+        "nome": "GABLES ENTERPRISE",
+        "email": "gables@mail.com",
+        "senha_hash": "09a31a7001e261ab1e056182a71d3cf57f582ca9a29cff5eb83be0f0549730a9",
         "tipo": "cliente",
-        "nome": "ALIGATOR ENTERPRISE",
-        "email": "aligator@mail.com",
-        "documento": "12365478900",
-        "telefone": "",
+        "verificado": true,
+        "status": "pendente",
         "contas": [
-            "614135261",
-            "756499128",
-            "862370552",
-            "549087763"
+            "376793336",
+            "580880428",
+            "251636005",
+            "755234527"
         ],
-        "data_cadastro": "2026-01-02"
+        "telefone": "11 9989 5529",
+        "endereco": "AVENIDA PAULISTA, 1298",
+        "cidade": "SÃO PAULO",
+        "cep": "29.450-011",
+        "estado": "SP",
+        "pais": "BRASIL"
     }
 }

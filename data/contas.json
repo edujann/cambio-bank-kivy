@@ -209,6 +209,13 @@
         "cliente_nome": "GABLES ENTERPRISE",
         "data_criacao": "2025-12-22"
     },
+    "802194129": {
+        "moeda": "BRL",
+        "saldo": 50000.0,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18"
+    },
     "394549984": {
         "moeda": "USD",
         "saldo": 40.0,
@@ -272,13 +279,6 @@
         "cliente_nome": "HIDROAMERICA LTDA",
         "data_criacao": "2025-12-04"
     },
-    "802194129": {
-        "moeda": "BRL",
-        "saldo": 44233.02,
-        "cliente": "pantanal",
-        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
-    },
     "277435777": {
         "moeda": "EUR",
         "saldo": 0.0,
@@ -302,17 +302,10 @@
     },
     "607906288": {
         "moeda": "USD",
-        "saldo": 27110.0,
+        "saldo": 25950.0,
         "cliente": "pantanal",
         "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
         "data_criacao": "2025-11-18"
-    },
-    "792916936": {
-        "moeda": "USD",
-        "saldo": 0.0,
-        "cliente": "edinho",
-        "cliente_nome": "EDINHO ENTERPRISE",
-        "data_criacao": "2025-12-22"
     },
     "163569885": {
         "moeda": "EUR",
@@ -393,10 +386,24 @@
     },
     "667276348": {
         "moeda": "USD",
-        "saldo": 18400.0,
+        "saldo": 18000.0,
         "cliente": "neosoro",
         "cliente_nome": "NEOSORO LIMITADA",
         "data_criacao": "2026-01-01"
+    },
+    "792916936": {
+        "moeda": "USD",
+        "saldo": 0.0,
+        "cliente": "edinho",
+        "cliente_nome": "EDINHO ENTERPRISE",
+        "data_criacao": "2025-12-22"
+    },
+    "654913407": {
+        "moeda": "USD",
+        "saldo": 0.0,
+        "cliente": "aligator",
+        "cliente_nome": "ALIGATOR ENTERPRISE",
+        "data_criacao": "2026-01-02"
     },
     "967240582": {
         "moeda": "BRL",
@@ -411,6 +418,27 @@
         "cliente": "pantanal",
         "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
         "data_criacao": "2025-11-18"
+    },
+    "421200543": {
+        "moeda": "EUR",
+        "saldo": 0.0,
+        "cliente": "aligator",
+        "cliente_nome": "ALIGATOR ENTERPRISE",
+        "data_criacao": "2026-01-02"
+    },
+    "567667095": {
+        "moeda": "GBP",
+        "saldo": 0.0,
+        "cliente": "aligator",
+        "cliente_nome": "ALIGATOR ENTERPRISE",
+        "data_criacao": "2026-01-02"
+    },
+    "801496623": {
+        "moeda": "BRL",
+        "saldo": 0.0,
+        "cliente": "aligator",
+        "cliente_nome": "ALIGATOR ENTERPRISE",
+        "data_criacao": "2026-01-02"
     },
     "366470532": {
         "moeda": "GBP",
