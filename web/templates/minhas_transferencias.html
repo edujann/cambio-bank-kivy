@@ -2601,6 +2601,7 @@
             doc.line(10, 30, width - 10, 30);
         }
         
+        // CORRIGIDO - NOVO (trecho com a correção):
         _adicionarDadosTransferenciaKivy(doc, width, dados) {
             let yPos = 36;
             
@@ -2667,9 +2668,18 @@
                 }
             };
             
-            const dataFormatada = formatarData(dados.data || dados.created_at);
+            // 🔥🔴🔴🔴🔴 CORREÇÃO CRÍTICA AQUI 🔴🔴🔴🔴
+            // SEPARAR CLARAMENTE AS DATAS
             
-            // Coluna 1
+            // 1. REQUEST DATE (data da solicitação)
+            const requestDate = dados.data || dados.created_at || dados.data_solicitacao;
+            const requestDateFormatted = formatarData(requestDate);
+            
+            // 2. COMPLETED DATE (data da conclusão - somente se status for completed)
+            const completedDate = dados.data_conclusao;
+            const completedDateFormatted = completedDate ? formatarData(completedDate) : 'N/A';
+            
+            // Coluna 1 - REQUEST DATE (SEMPRE MOSTRA)
             doc.setTextColor(100, 100, 100);
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(8);
@@ -2678,7 +2688,7 @@
             doc.setTextColor(20, 46, 82);
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(8);
-            doc.text(dataFormatada, col1X, yPos + 4.5);
+            doc.text(requestDateFormatted, col1X, yPos + 4.5);
             
             doc.setTextColor(100, 100, 100);
             doc.setFont('helvetica', 'normal');
@@ -2689,7 +2699,7 @@
             doc.setFont('helvetica', 'bold');
             doc.text(tipoTexto, col1X, yPos + 14.5);
             
-            // Coluna 2
+            // Coluna 2 - PURPOSE
             doc.setTextColor(100, 100, 100);
             doc.setFont('helvetica', 'normal');
             doc.text('Purpose:', col2X, yPos);
@@ -2723,28 +2733,24 @@
                 doc.text(finalidade, col2X, yPos + 4.5);
             }
             
-            // 🔥 AJUSTE CRÍTICO: SEMPRE RETORNAR A MESMA POSIÇÃO
-            const posicaoFinalFixa = 85; // Posição fixa onde deve começar o Beneficiary
-            
-            if (status === 'COMPLETED' && dados.data_conclusao) {
+            // 🔥🔴🔴🔴🔴 CORREÇÃO: MOSTRAR "Completed Date" APENAS SE STATUS FOR COMPLETED
+            if (status === 'COMPLETED' && completedDate) {
                 doc.setTextColor(100, 100, 100);
                 doc.setFont('helvetica', 'normal');
                 doc.text('Completed Date:', col2X, yPos + 10);
                 
-                const dataConclusaoFormatada = formatarData(dados.data_conclusao);
                 doc.setTextColor(20, 46, 82);
                 doc.setFont('helvetica', 'bold');
-                doc.text(dataConclusaoFormatada, col2X, yPos + 14.5);
-                
-                // Se for COMPLETED, já está na posição certa
-                return posicaoFinalFixa;
+                doc.text(completedDateFormatted, col2X, yPos + 14.5);
             } else {
-                // Para outros status, adicionar espaço extra para igualar altura
-                const espacoExtra = 8; // Mesmo espaço que "Completed Date" ocuparia
-                doc.text('', col2X, yPos + 10); // Texto invisível para ocupar espaço
-                doc.text('', col2X, yPos + 14.5); // Texto invisível para ocupar espaço
-                return posicaoFinalFixa;
+                // Para outros status, manter espaço igual
+                doc.text('', col2X, yPos + 10);
+                doc.text('', col2X, yPos + 14.5);
             }
+            
+            // 🔥 AJUSTE: Posição final fixa
+            const posicaoFinalFixa = 85;
+            return posicaoFinalFixa;
         }
 
         _adicionarBeneficiarioCompacto(doc, width, yPos, dados) {

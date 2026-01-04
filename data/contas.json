@@ -174,13 +174,6 @@
         "cliente_nome": "GABLES ENTERPRISE",
         "data_criacao": "2025-12-22"
     },
-    "607906288": {
-        "moeda": "USD",
-        "saldo": 24970.0,
-        "cliente": "pantanal",
-        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
-    },
     "759223170": {
         "moeda": "EUR",
         "saldo": 0.0,
@@ -208,13 +201,6 @@
         "cliente": "thierry",
         "cliente_nome": "THIERRY IMPORTERS LTDA",
         "data_criacao": "2025-12-19"
-    },
-    "802194129": {
-        "moeda": "BRL",
-        "saldo": 95000.0,
-        "cliente": "pantanal",
-        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
     },
     "376793336": {
         "moeda": "USD",
@@ -251,6 +237,13 @@
         "cliente_nome": "THIERRY IMPORTERS LTDA",
         "data_criacao": "2025-12-19"
     },
+    "802194129": {
+        "moeda": "BRL",
+        "saldo": 95000.0,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18"
+    },
     "922195498": {
         "moeda": "GBP",
         "saldo": 0.0,
@@ -286,6 +279,13 @@
         "cliente_nome": "HIDROAMERICA LTDA",
         "data_criacao": "2025-12-04"
     },
+    "755234527": {
+        "moeda": "BRL",
+        "saldo": 12000.0,
+        "cliente": "gables",
+        "cliente_nome": "GABLES ENTERPRISE",
+        "data_criacao": "2025-12-22"
+    },
     "277435777": {
         "moeda": "EUR",
         "saldo": 0.0,
@@ -307,6 +307,13 @@
         "cliente_nome": "EDINHO ENTERPRISE",
         "data_criacao": "2025-12-22"
     },
+    "607906288": {
+        "moeda": "USD",
+        "saldo": 24900.0,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18"
+    },
     "163569885": {
         "moeda": "EUR",
         "saldo": 0.0,
@@ -320,13 +327,6 @@
         "cliente": "lins",
         "cliente_nome": "LINS CHAIR LIMITADA",
         "data_criacao": "2025-11-18"
-    },
-    "755234527": {
-        "moeda": "BRL",
-        "saldo": 34.18,
-        "cliente": "gables",
-        "cliente_nome": "GABLES ENTERPRISE",
-        "data_criacao": "2025-12-22"
     },
     "997174979": {
         "moeda": "BRL",
