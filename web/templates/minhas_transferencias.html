@@ -2603,6 +2603,21 @@
         
         // CORRIGIDO - NOVO (trecho com a correção):
         _adicionarDadosTransferenciaKivy(doc, width, dados) {
+            // 🔥🔥🔥 ADICIONE ESTAS LINHAS NO COMEÇO 🔥🔥🔥
+            console.log('======= PDF DEBUG - DADOS COMPLETOS =======');
+            console.log('Transferência ID:', dados.id);
+            console.log('Status:', dados.status);
+            console.log('--- DATAS ---');
+            console.log('1. data:', dados.data);
+            console.log('2. created_at:', dados.created_at);
+            console.log('3. data_solicitacao:', dados.data_solicitacao);
+            console.log('4. data_conclusao:', dados.data_conclusao);
+            console.log('--- CÁLCULOS ---');
+            console.log('Request Date (usado):', dados.data || dados.created_at || dados.data_solicitacao);
+            console.log('Completed Date (usado):', dados.data_conclusao);
+            console.log('São iguais?', (dados.data || dados.created_at || dados.data_solicitacao) === dados.data_conclusao);
+            console.log('==========================================');
+            
             let yPos = 36;
             
             // STATUS (mantém igual)
