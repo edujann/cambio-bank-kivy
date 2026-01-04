@@ -2683,13 +2683,22 @@
                 }
             };
             
-            // 🔥🔴🔴🔴🔴 CORREÇÃO CRÍTICA AQUI 🔴🔴🔴🔴
+            // 🔥🔴🔴🔴🔴 CORREÇÃO DEFINITIVA AQUI 🔴🔴🔴🔴
             // SEPARAR CLARAMENTE AS DATAS
-            
-            // 1. REQUEST DATE (data da solicitação)
-            const requestDate = dados.data || dados.created_at || dados.data_solicitacao;
+
+            // 1. REQUEST DATE (data da solicitação) - LOGICA INTELIGENTE
+            let requestDate;
+            if (dados.created_at && dados.data_conclusao && dados.data === dados.data_conclusao) {
+                // 🔥 SE data foi sobrescrito pela data de conclusão
+                // 🔥 USA created_at (data real da solicitação)
+                requestDate = dados.created_at;
+                console.log('📅 CORREÇÃO APLICADA: usando created_at porque data = data_conclusao');
+            } else {
+                // Caso normal
+                requestDate = dados.created_at || dados.data || dados.data_solicitacao;
+            }
             const requestDateFormatted = formatarData(requestDate);
-            
+
             // 2. COMPLETED DATE (data da conclusão - somente se status for completed)
             const completedDate = dados.data_conclusao;
             const completedDateFormatted = completedDate ? formatarData(completedDate) : 'N/A';
