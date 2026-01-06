@@ -959,8 +959,8 @@ class PDFGenerator:
             cabecalho_dados = [
                 'Date',
                 'Description', 
-                'Credit',
                 'Debit',
+                'Credit',
                 'Balance'
             ]
             
@@ -1064,7 +1064,34 @@ class PDFGenerator:
                 # Quebra de texto automática
                 ('WORDWRAP', (1, 1), (1, -1), True),
             ])
-            
+
+            # 🔥 ADICIONE ESTAS 3 LINHAS AQUI:
+            # 1. Credit (coluna 2) - VERMELHO para todas as linhas de dados
+            estilo_tabela.add('TEXTCOLOR', (2, 1), (2, -2), colors.red)
+
+            # 2. Debit (coluna 3) - AZUL para todas as linhas de dados  
+            estilo_tabela.add('TEXTCOLOR', (3, 1), (3, -2), colors.blue)
+
+            # 3. Balance (coluna 4) - LÓGICA CONDICIONAL (azul para positivo/zero, vermelho para negativo)
+            for i in range(1, len(dados_tabela) - 1):  # Pula cabeçalho (0) e última linha (TOTAL)
+                try:
+                    # Pega o valor do saldo da transação original
+                    saldo_valor = transacoes[i-1].get('saldo_apos', 0)
+                    if saldo_valor < 0:
+                        estilo_tabela.add('TEXTCOLOR', (4, i), (4, i), colors.red)
+                    else:
+                        estilo_tabela.add('TEXTCOLOR', (4, i), (4, i), colors.blue)
+                except:
+                    pass
+
+            # 🔥 COR DA FONTA DO TOTAL CONDICIONAL (VERMELHO APENAS SE NEGATIVO)
+            if transacoes:
+                ultimo_saldo = transacoes[-1].get('saldo_apos', 0)
+                if ultimo_saldo < 0:
+                    estilo_tabela.add('TEXTCOLOR', (4, -1), (4, -1), colors.red)  # 🔥 VERMELHO SE NEGATIVO
+                else:
+                    estilo_tabela.add('TEXTCOLOR', (4, -1), (4, -1), colors.HexColor("#1E3A8A"))  # 🔥 AZUL SE POSITIVO
+
             # 🔥 COR DA FONTA DO TOTAL CONDICIONAL (VERMELHO APENAS SE NEGATIVO)
             if transacoes:
                 ultimo_saldo = transacoes[-1].get('saldo_apos', 0)
@@ -1257,20 +1284,31 @@ class PDFGenerator:
             return descricao
         
     def _formatar_data_para_pdf(self, data_iso):
-        """Formata data para o formato DD/MM/YYYY no PDF (mantido para consistência)"""
+        """Formata data para o formato DD/MM/YY no PDF - APENAS DATA, SEM HORA"""
         try:
             if not data_iso:
                 return ""
             
-            # Extrair apenas a parte da data (YYYY-MM-DD)
-            data_parte = data_iso.split(' ')[0] if ' ' in data_iso else data_iso
+            # 🔥 EXTRAIR APENAS A PARTE DA DATA (ignorar hora)
+            # Pode vir como: "2025-12-22T19:14:34" ou "2025-12-22 19:14:34"
+            data_limpa = data_iso
             
-            # Converter de YYYY-MM-DD para DD/MM/YYYY (formato internacional)
-            partes = data_parte.split('-')
+            # Remover 'T' se existir
+            if 'T' in data_limpa:
+                data_limpa = data_limpa.split('T')[0]
+            # Remover hora se tiver espaço
+            elif ' ' in data_limpa:
+                data_limpa = data_limpa.split(' ')[0]
+            
+            # 🔥 CONVERTER DE YYYY-MM-DD PARA DD/MM/YY
+            partes = data_limpa.split('-')
             if len(partes) == 3:
-                return f"{partes[2]}/{partes[1]}/{partes[0]}"
+                ano = partes[0][2:]  # Últimos 2 dígitos do ano (YY)
+                mes = partes[1]
+                dia = partes[2]
+                return f"{dia}/{mes}/{ano}"  # 🔥 FORMATO DD/MM/YY
             else:
-                return data_parte
+                return data_limpa
                 
         except:
             return data_iso

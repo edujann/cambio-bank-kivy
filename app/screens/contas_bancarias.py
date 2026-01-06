@@ -20,6 +20,9 @@ import datetime
 import os
 import random
 
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+from pdf_generator import PDFGenerator
 
 class TextInputTaxaCambio(TextInput):
     """TextInput customizado para taxa de câmbio com MUITAS casas decimais"""
@@ -3726,8 +3729,229 @@ class TelaExtratoContaBancaria(Screen):
         print(f"  Saídas: {total_saidas:,.2f} {moeda}")
 
     def exportar_extrato_pdf(self):
-        """Exporta o extrato para PDF"""
-        self.mostrar_sucesso("Funcionalidade de PDF em desenvolvimento!")
+        """Exporta o extrato da conta bancária para PDF"""
+        try:
+            # Verificar se há transações para exportar
+            if not hasattr(self, 'transacoes_filtradas') or not self.transacoes_filtradas:
+                self.mostrar_erro("Não há transações para exportar!")
+                return
+            
+            print("📊 Iniciando exportação de extrato para PDF...")
+            
+            # Obter sistema e conta atual
+            sistema = App.get_running_app().sistema
+            
+            if not self.conta_bancaria_numero:
+                self.mostrar_erro("Nenhuma conta configurada!")
+                return
+            
+            # Verificar se a conta existe
+            if self.conta_bancaria_numero not in sistema.contas_bancarias_empresa:
+                self.mostrar_erro("Conta bancária não encontrada!")
+                return
+            
+            conta_info = sistema.contas_bancarias_empresa[self.conta_bancaria_numero]
+            
+            # 1. DADOS DA CONTA
+            dados_conta = {
+                'numero': conta_info['numero'],
+                'banco': conta_info['banco'],
+                'agencia': conta_info.get('agencia', 'N/A'),
+                'titular': 'EMPRESA - Câmbio Bank',
+                'moeda': conta_info['moeda'],
+                'saldo': conta_info['saldo'],
+                'tipo': conta_info.get('tipo', 'empresa')
+            }
+            
+            # 2. DADOS DO RESUMO
+            dados_resumo = {
+                'saldo_final': getattr(self, 'saldo_final', 0.0),
+                'entradas': getattr(self, 'total_entradas', 0.0),
+                'saidas': getattr(self, 'total_saidas', 0.0),
+                'total_transacoes': len(self.transacoes_filtradas),
+                'periodo': self.ids.lbl_periodo.text if hasattr(self, 'ids') and 'lbl_periodo' in self.ids else 'N/A'
+            }
+            
+            print(f"📋 Dados para PDF:")
+            print(f"   Conta: {dados_conta['numero']}")
+            print(f"   Banco: {dados_conta['banco']}")
+            print(f"   Moeda: {dados_conta['moeda']}")
+            print(f"   Saldo: {dados_conta['saldo']:,.2f}")
+            print(f"   Transações: {dados_resumo['total_transacoes']}")
+            print(f"   Período: {dados_resumo['periodo']}")
+            
+            # 🔥 CORREÇÃO: Criar PDFGenerator aqui mesmo
+            pdf_generator = PDFGenerator()
+            
+            # Mostrar popup de carregamento
+            self.mostrar_popup_carregando("Gerando PDF...")
+            
+            from kivy.clock import Clock
+            
+            def gerar_pdf_thread(dt):
+                """Função para gerar PDF em background"""
+                try:
+                    # Ordenar transações do mais antigo para o mais novo (para PDF)
+                    transacoes_ordenadas = sorted(
+                        self.transacoes_filtradas, 
+                        key=lambda x: x.get('timestamp', datetime.datetime.min)
+                    )
+                    
+                    print("🔍 DEBUG - Primeiras transações no PDF:")
+                    for i, t in enumerate(transacoes_ordenadas[:3]):
+                        data = t.get('data', '')[:10]
+                        descricao = t.get('descricao', '')[:30]
+                        print(f"   {i+1}. {data} | {descricao}...")
+                    
+                    # Gerar o PDF
+                    caminho_pdf = pdf_generator.gerar_extrato(
+                        transacoes=transacoes_ordenadas,
+                        dados_conta=dados_conta,
+                        dados_resumo=dados_resumo
+                    )
+                    
+                    # Fechar popup de carregamento
+                    Clock.schedule_once(lambda dt: self.fechar_popup_carregando(), 0.1)
+                    
+                    if caminho_pdf:
+                        # Mostrar sucesso
+                        Clock.schedule_once(lambda dt: self.mostrar_sucesso_pdf(caminho_pdf), 0.2)
+                    else:
+                        Clock.schedule_once(lambda dt: self.mostrar_erro("Falha ao gerar PDF!"), 0.2)
+                        
+                except Exception as e:
+                    print(f"❌ Erro ao gerar PDF: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    Clock.schedule_once(lambda dt: self.fechar_popup_carregando(), 0.1)
+                    Clock.schedule_once(lambda dt: self.mostrar_erro(f"Erro: {str(e)[:50]}..."), 0.2)
+            
+            # Executar em background
+            Clock.schedule_once(gerar_pdf_thread, 0.5)
+            
+        except Exception as e:
+            print(f"❌ Erro no exportar_extrato_pdf: {e}")
+            self.mostrar_erro(f"Erro ao exportar PDF: {str(e)[:50]}...")
+
+    def mostrar_popup_carregando(self, mensagem="Processando..."):
+        """Mostra popup de carregamento"""
+        from kivy.uix.popup import Popup
+        from kivy.uix.boxlayout import BoxLayout
+        from kivy.uix.label import Label
+        
+        content = BoxLayout(orientation='vertical', padding=20, spacing=15)
+        
+        lbl_carregando = Label(
+            text=mensagem,
+            font_size='14sp',
+            color=(0.8, 0.8, 0.8, 1),
+            text_size=(300, None),
+            halign='center'
+        )
+        
+        content.add_widget(lbl_carregando)
+        
+        self.popup_carregando = Popup(
+            title='Gerando PDF',
+            content=content,
+            size_hint=(None, None),
+            size=(350, 150),
+            background_color=(0.12, 0.16, 0.23, 1),
+            auto_dismiss=False
+        )
+        
+        self.popup_carregando.open()
+
+    def fechar_popup_carregando(self):
+        """Fecha o popup de carregamento"""
+        if hasattr(self, 'popup_carregando'):
+            self.popup_carregando.dismiss()
+
+    def mostrar_sucesso_pdf(self, caminho_pdf):
+        """Mostra popup de sucesso com opção para abrir o PDF"""
+        from kivy.uix.popup import Popup
+        from kivy.uix.boxlayout import BoxLayout
+        from kivy.uix.label import Label
+        from kivy.uix.button import Button
+        import os
+        
+        content = BoxLayout(orientation='vertical', padding=15, spacing=10)
+        
+        # Mensagem de sucesso
+        lbl_sucesso = Label(
+            text="✅ PDF gerado com sucesso!",
+            font_size='16sp',
+            bold=True,
+            color=(0.1, 0.8, 0.1, 1),
+            text_size=(350, None),
+            halign='center'
+        )
+        
+        lbl_caminho = Label(
+            text=f"Arquivo salvo em:\n{os.path.basename(caminho_pdf)}",
+            font_size='12sp',
+            color=(0.8, 0.8, 0.8, 1),
+            text_size=(350, None),
+            halign='center'
+        )
+        
+        # Botões
+        botoes_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50, spacing=10)
+        
+        btn_fechar = Button(
+            text='FECHAR',
+            background_color=(0.55, 0.36, 0.96, 1),
+            color=(1, 1, 1, 1)
+        )
+        
+        btn_abrir = Button(
+            text='ABRIR PDF',
+            background_color=(0.23, 0.51, 0.96, 1),
+            color=(1, 1, 1, 1)
+        )
+        
+        botoes_layout.add_widget(btn_fechar)
+        botoes_layout.add_widget(btn_abrir)
+        
+        content.add_widget(lbl_sucesso)
+        content.add_widget(lbl_caminho)
+        content.add_widget(botoes_layout)
+        
+        popup = Popup(
+            title='PDF Gerado',
+            content=content,
+            size_hint=(None, None),
+            size=(400, 250),
+            background_color=(0.12, 0.16, 0.23, 1)
+        )
+        
+        def abrir_pdf(instance):
+            """Abre o PDF no visualizador padrão do sistema"""
+            try:
+                import platform
+                import subprocess
+                import os
+                
+                sistema_operacional = platform.system()
+                
+                if sistema_operacional == 'Windows':
+                    os.startfile(caminho_pdf)
+                elif sistema_operacional == 'Darwin':  # macOS
+                    subprocess.call(['open', caminho_pdf])
+                else:  # Linux
+                    subprocess.call(['xdg-open', caminho_pdf])
+                
+                popup.dismiss()
+                
+            except Exception as e:
+                print(f"❌ Erro ao abrir PDF: {e}")
+                self.mostrar_erro("Não foi possível abrir o PDF automaticamente.")
+                popup.dismiss()
+        
+        btn_abrir.bind(on_press=abrir_pdf)
+        btn_fechar.bind(on_press=popup.dismiss)
+        
+        popup.open()
     
     def voltar_contas_bancarias(self):
         """Volta para a tela de contas bancárias"""
