@@ -564,7 +564,10 @@ class TelaGerenciarContas(Screen):
         Window.top = 70
         
         print("🎯 Configurando bindings definitivos...")
-        
+
+        self.configurar_bindings_taxas()  # ✅ Cálculo entre taxas direta/inversa
+        self.configurar_binds_taxas()     # ✅ Cálculo de conversão valor
+
         # 🔥 BINDINGS SIMPLES E DIRETOS
         if hasattr(self, 'ids'):
             # === DESPESAS ===
