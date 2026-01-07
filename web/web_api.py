@@ -4508,101 +4508,159 @@ def obter_extrato_kivy():
 # 🔥 FUNÇÕES AUXILIARES PARA CÂMBIO (IGUAL AO KIVY)
 
 def obter_cotacao_simples(par_moedas):
-    """MESMA LÓGICA DO KIVY: Retorna 1 MOEDA_ESQUERDA = X MOEDA_DIREITA"""
+    """RETORNA: 1 MOEDA_ESQUERDA = X MOEDA_DIREITA"""
     try:
-        moeda_esquerda = par_moedas[:3]  # BRL em BRL_USD
-        moeda_direita = par_moedas[4:]   # USD em BRL_USD
+        moeda_esquerda = par_moedas[:3]  # Ex: BRL em BRL_USD
+        moeda_direita = par_moedas[4:]   # Ex: USD em BRL_USD
         
-        # 🔥 VERIFICAR CACHE (igual ao Kivy)
-        global ultima_atualizacao
-        cache_key = f"{par_moedas}_simple"
+        print(f"🌐 Buscando: 1 {moeda_esquerda} = X {moeda_direita}")
         
-        with cotacao_lock:
-            if (ultima_atualizacao and 
-                (datetime.now() - ultima_atualizacao).seconds < 30 and
-                cache_key in cotacoes_cache):
-                print(f"📊 Retornando cotação do cache: {cotacoes_cache[cache_key]}")
-                return cotacoes_cache[cache_key]
+        # =================================================
+        # 🔥 CASO 1: SE ENVOLVER BRL → USAR BCB (CONFIÁVEL)
+        # =================================================
+        if moeda_esquerda == 'BRL' or moeda_direita == 'BRL':
+            print(f"🔷 ENVOLVE BRL - Usando BCB/AwesomeAPI")
             
-            # 🔥 🔥 🔥 PRIMEIRO: EXCHANGERATE-API (SUA API NOVA)
-            print(f"🌐 ExchangeRate-API: {moeda_esquerda}→{moeda_direita}")
-            cotacao = obter_cotacao_exchangerate(moeda_esquerda, moeda_direita)
+            # Para BRL_USD ou USD_BRL
+            if 'USD' in [moeda_esquerda, moeda_direita]:
+                try:
+                    # AwesomeAPI tem dados do BCB para USD-BRL
+                    url = "https://economia.awesomeapi.com.br/json/last/USD-BRL"
+                    response = requests.get(url, timeout=5)
+                    
+                    if response.status_code == 200:
+                        dados = response.json()
+                        cotacao_usd_brl = float(dados['USDBRL']['bid'])  # Taxa compra
+                        
+                        if par_moedas == 'BRL_USD':
+                            # 1 BRL = ? USD → 1 / cotação
+                            cotacao = 1 / cotacao_usd_brl
+                            print(f"✅ BCB AwesomeAPI: 1 BRL = {cotacao:.6f} USD")
+                        else:  # USD_BRL
+                            cotacao = cotacao_usd_brl
+                            print(f"✅ BCB AwesomeAPI: 1 USD = {cotacao:.4f} BRL")
+                        
+                        return cotacao
+                except Exception as e:
+                    print(f"⚠️ Erro AwesomeAPI BRL: {e}")
             
-            if cotacao:
-                print(f"✅ ExchangeRate-API {par_moedas}: 1 {moeda_esquerda} = {cotacao} {moeda_direita}")
+            # Para BRL_EUR
+            elif 'EUR' in [moeda_esquerda, moeda_direita]:
+                try:
+                    # EUR-BRL do AwesomeAPI (também usa BCB)
+                    url = "https://economia.awesomeapi.com.br/json/last/EUR-BRL"
+                    response = requests.get(url, timeout=5)
+                    
+                    if response.status_code == 200:
+                        dados = response.json()
+                        cotacao_eur_brl = float(dados['EURBRL']['bid'])
+                        
+                        if par_moedas == 'BRL_EUR':
+                            cotacao = 1 / cotacao_eur_brl
+                            print(f"✅ BCB AwesomeAPI: 1 BRL = {cotacao:.6f} EUR")
+                        else:  # EUR_BRL
+                            cotacao = cotacao_eur_brl
+                            print(f"✅ BCB AwesomeAPI: 1 EUR = {cotacao:.4f} BRL")
+                        
+                        return cotacao
+                except Exception as e:
+                    print(f"⚠️ Erro AwesomeAPI EUR-BRL: {e}")
+            
+            # Para outras moedas com BRL
+            else:
+                # Usar ExchangeRate-API como fallback
+                try:
+                    api_key = os.getenv('EXCHANGERATE_API_KEY')
+                    if api_key:
+                        url = f"https://v6.exchangerate-api.com/v6/{api_key}/pair/{moeda_esquerda}/{moeda_direita}"
+                        response = requests.get(url, timeout=5)
+                        
+                        if response.status_code == 200:
+                            dados = response.json()
+                            if dados.get('result') == 'success':
+                                cotacao = float(dados['conversion_rate'])
+                                print(f"✅ ExchangeRate-API BRL: 1 {moeda_esquerda} = {cotacao:.6f} {moeda_direita}")
+                                return cotacao
+                except:
+                    pass
+        
+        # =================================================
+        # 🔥 CASO 2: OUTRAS MOEDAS (EUR_USD, USD_EUR, etc.)
+        # =================================================
+        print(f"🔷 OUTRAS MOEDAS - Usando ExchangeRate-API")
+        
+        try:
+            # PRIMEIRO: Sua API ExchangeRate-API
+            api_key = os.getenv('EXCHANGERATE_API_KEY')
+            if api_key:
+                url = f"https://v6.exchangerate-api.com/v6/{api_key}/pair/{moeda_esquerda}/{moeda_direita}"
+                response = requests.get(url, timeout=10)
                 
-                # Cache
-                cotacoes_cache[cache_key] = cotacao
-                ultima_atualizacao = datetime.now()
-                return cotacao
-            
-            # 🔥 SEGUNDO: AWESOMEAPI (fallback)
-            print(f"🔄 Fallback AwesomeAPI: {moeda_esquerda}-{moeda_direita}")
+                if response.status_code == 200:
+                    dados = response.json()
+                    if dados.get('result') == 'success':
+                        cotacao = float(dados['conversion_rate'])
+                        print(f"✅ ExchangeRate-API: 1 {moeda_esquerda} = {cotacao:.6f} {moeda_direita}")
+                        return cotacao
+        except Exception as e:
+            print(f"⚠️ Erro ExchangeRate-API: {e}")
+        
+        # SEGUNDO: AwesomeAPI para pares não-BRL
+        try:
+            # Tenta direto primeiro
             url_direto = f"https://economia.awesomeapi.com.br/json/last/{moeda_esquerda}-{moeda_direita}"
+            response = requests.get(url_direto, timeout=5)
             
+            if response.status_code == 200:
+                dados = response.json()
+                chave = f"{moeda_esquerda}{moeda_direita}"
+                
+                if chave in dados:
+                    cotacao = float(dados[chave]['bid'])
+                    print(f"✅ AwesomeAPI direto: 1 {moeda_esquerda} = {cotacao:.6f} {moeda_direita}")
+                    return cotacao
+        except:
             try:
-                response = requests.get(url_direto, timeout=10)
+                # Tenta invertido
+                url_invertido = f"https://economia.awesomeapi.com.br/json/last/{moeda_direita}-{moeda_esquerda}"
+                response = requests.get(url_invertido, timeout=5)
                 
                 if response.status_code == 200:
                     dados = response.json()
-                    chave_direta = f"{moeda_esquerda}{moeda_direita}"
+                    chave = f"{moeda_direita}{moeda_esquerda}"
                     
-                    if chave_direta in dados:
-                        cotacao = float(dados[chave_direta]['bid'])
-                        print(f"⚠️  AwesomeAPI fallback {par_moedas}: 1 {moeda_esquerda} = {cotacao} {moeda_direita}")
-                        
-                        # Cache
-                        cotacoes_cache[cache_key] = cotacao
-                        ultima_atualizacao = datetime.now()
+                    if chave in dados:
+                        cotacao_invertida = float(dados[chave]['bid'])
+                        cotacao = 1 / cotacao_invertida
+                        print(f"✅ AwesomeAPI invertido: 1 {moeda_esquerda} = {cotacao:.6f} {moeda_direita}")
                         return cotacao
-            except Exception as api_error:
-                print(f"⚠️  Erro AwesomeAPI direta: {api_error}")
-            
-            # 🔥 TERCEIRO: AWESOMEAPI INVERTIDO
-            print(f"🔄 Fallback AwesomeAPI invertido: {moeda_direita}-{moeda_esquerda}")
-            url_invertido = f"https://economia.awesomeapi.com.br/json/last/{moeda_direita}-{moeda_esquerda}"
-            
-            try:
-                response = requests.get(url_invertido, timeout=10)
-                
-                if response.status_code == 200:
-                    dados = response.json()
-                    chave_invertida = f"{moeda_direita}{moeda_esquerda}"
-                    
-                    if chave_invertida in dados:
-                        cotacao_invertida = float(dados[chave_invertida]['bid'])
-                        cotacao = 1 / cotacao_invertida  # 🔥 INVERTEMOS MATEMATICAMENTE
-                        print(f"⚠️  AwesomeAPI invertido fallback {par_moedas}: 1 {moeda_esquerda} = {cotacao} {moeda_direita}")
-                        
-                        # Cache
-                        cotacoes_cache[cache_key] = cotacao
-                        ultima_atualizacao = datetime.now()
-                        return cotacao
-            except Exception as api_error:
-                print(f"⚠️  Erro AwesomeAPI invertida: {api_error}")
-            
-            # 🔥 QUARTO: SUPABASE (último fallback)
-            print(f"🔄 Fallback Supabase")
-            try:
-                if supabase:
-                    response = supabase.table('config_cotacoes')\
-                        .select('valor_config')\
-                        .eq('tipo_config', 'cotacao')\
-                        .eq('par_moeda', par_moedas)\
-                        .order('data_atualizacao', desc=True)\
-                        .limit(1)\
-                        .execute()
-                    
-                    if response.data:
-                        cotacao_supabase = float(response.data[0]['valor_config'])
-                        print(f"⚠️  Supabase fallback: {cotacao_supabase}")
-                        return cotacao_supabase
-            except Exception as supabase_error:
-                print(f"⚠️  Erro ao buscar no Supabase: {supabase_error}")
-            
-            # ❌ ULTIMO RECURSO
-            print(f"🚨 CRÍTICO: NENHUMA COTAÇÃO encontrada para {par_moedas}")
-            return 1.0
+            except:
+                pass
+        
+        # ÚLTIMO RECURSO: Valores fixos de fallback
+        print(f"⚠️ Usando fallback fixo para {par_moedas}")
+        
+        cotacoes_fallback = {
+            'USD_BRL': 5.20,    # 1 USD = 5.20 BRL
+            'BRL_USD': 0.1923,  # 1 BRL = 0.1923 USD (1/5.20)
+            'EUR_BRL': 5.65,    # 1 EUR = 5.65 BRL
+            'BRL_EUR': 0.1770,  # 1 BRL = 0.1770 EUR
+            'GBP_BRL': 6.70,    # 1 GBP = 6.70 BRL
+            'BRL_GBP': 0.1493,  # 1 BRL = 0.1493 GBP
+            'USD_EUR': 0.92,    # 1 USD = 0.92 EUR
+            'EUR_USD': 1.087,   # 1 EUR = 1.087 USD
+            'USD_GBP': 0.78,    # 1 USD = 0.78 GBP
+            'GBP_USD': 1.282,   # 1 GBP = 1.282 USD
+        }
+        
+        if par_moedas in cotacoes_fallback:
+            cotacao = cotacoes_fallback[par_moedas]
+            print(f"📌 Fallback fixo: 1 {moeda_esquerda} = {cotacao} {moeda_direita}")
+            return cotacao
+        
+        # Fallback genérico
+        print(f"🚨 NENHUMA COTAÇÃO encontrada - usando 1.0")
+        return 1.0
         
     except Exception as e:
         print(f"❌ Erro crítico em obter_cotacao_simples: {e}")
