@@ -1027,11 +1027,11 @@
     let todasTransacoesPeriodo = []; // Todas as transações carregadas
     let transacoesExibidas = []; // Transações que estão sendo exibidas (30 em 30 dias)
     let carregandoMais = false; // Controla se está carregando mais dados
-    
+
     // ============================================
     // FUNÇÕES DE FORMATO (IGUAIS AO KIVY)
     // ============================================
-    
+
     // 🔥 FUNÇÃO CRÍTICA: formatarDataApenasDiaMesAno (MESMO DO KIVY)
     function formatarDataApenasDiaMesAno(dataString) {
         // 🔥 CORREÇÃO: Se data é None ou vazia, retornar string vazia
@@ -1086,7 +1086,7 @@
             return dataString;
         }
     }
-    
+
     // 🔥 FUNÇÃO: Separar data em dia e mês/ano (para exibição no card)
     function separarDataParaCard(dataFormatada) {
         if (!dataFormatada || !dataFormatada.includes('/')) {
@@ -1103,7 +1103,7 @@
         
         return { dia: dataFormatada, mesAno: '' };
     }
-    
+
     // 🔥 FUNÇÃO: Formatar número com separadores (MESMA LÓGICA DO KIVY)
     function formatarNumero(numero, decimais = 2) {
         if (numero === null || numero === undefined) return '0,00';
@@ -1113,7 +1113,7 @@
             maximumFractionDigits: decimais
         });
     }
-    
+
     // 🔥 FUNÇÃO: Formatar data no input (DD/MM/AAAA)
     function formatarData(input) {
         let value = input.value.replace(/\D/g, '');
@@ -1130,7 +1130,7 @@
         
         input.value = value;
     }
-    
+
     // 🔥 FUNÇÃO: Validar data no formato BR
     function validarDataBR(dataStr) {
         if (!dataStr || dataStr.length !== 10) return false;
@@ -1153,11 +1153,88 @@
         
         return true;
     }
-    
+
+    // ============================================
+    // FUNÇÕES AUXILIARES PARA PAGINAÇÃO (NOVAS)
+    // ============================================
+
+    // 🔥 FUNÇÃO: Parsear data para ordenação
+    function parseDataParaOrdenacao(dataStr) {
+        try {
+            // Tentar múltiplos formatos (igual ao Kivy)
+            if (dataStr.includes('T')) {
+                // Formato ISO
+                return new Date(dataStr);
+            } else if (dataStr.includes('/')) {
+                // Formato DD/MM/AAAA ou DD/MM/AAAA HH:MM:SS
+                const [dataParte, horaParte] = dataStr.split(' ');
+                const [dia, mes, ano] = dataParte.split('/').map(Number);
+                
+                if (horaParte) {
+                    const [hora, minuto, segundo] = horaParte.split(':').map(Number);
+                    return new Date(ano, mes - 1, dia, hora, minuto, segundo);
+                } else {
+                    return new Date(ano, mes - 1, dia);
+                }
+            } else if (dataStr.includes('-')) {
+                // Formato AAAA-MM-DD
+                return new Date(dataStr);
+            }
+            
+            // Fallback
+            return new Date();
+        } catch (e) {
+            console.warn('Erro ao parsear data:', dataStr, e);
+            return new Date();
+        }
+    }
+
+    // 🔥 FUNÇÃO: Filtrar transações por quantidade de dias
+    function filtrarTransacoesPorDias(quantidadeDias) {
+        if (!todasTransacoesPeriodo || todasTransacoesPeriodo.length === 0) {
+            transacoesExibidas = [];
+            diasCarregados = quantidadeDias;
+            return;
+        }
+        
+        // Calcular data limite (quantidadeDias atrás)
+        const hoje = new Date();
+        const dataLimite = new Date(hoje);
+        dataLimite.setDate(hoje.getDate() - quantidadeDias);
+        
+        console.log(`📅 Filtrando transações: ${quantidadeDias} dias (até ${dataLimite.toLocaleDateString()})`);
+        
+        // Filtrar transações mais recentes que a data limite
+        transacoesExibidas = todasTransacoesPeriodo.filter(transacao => {
+            const dataTransacao = parseDataParaOrdenacao(transacao.data);
+            return dataTransacao >= dataLimite;
+        });
+        
+        diasCarregados = quantidadeDias;
+        
+        console.log(`📊 Transações totais: ${todasTransacoesPeriodo.length}`);
+        console.log(`📊 Transações exibidas: ${transacoesExibidas.length}`);
+    }
+
+    // 🔥 FUNÇÃO: Atualizar contador de dias na interface
+    function atualizarContadorDias() {
+        const contadorElement = document.getElementById('contadorDias');
+        const totalTransacoes = todasTransacoesPeriodo.length;
+        const exibidas = transacoesExibidas.length;
+        
+        if (contadorElement) {
+            if (exibidas >= totalTransacoes) {
+                contadorElement.textContent = `Mostrando todo o período (${totalTransacoes} transações)`;
+            } else {
+                contadorElement.textContent = `Mostrando últimos ${diasCarregados} dias (${exibidas} de ${totalTransacoes} transações)`;
+            }
+        }
+    }
+
     // ============================================
     // FUNÇÕES DE CARREGAMENTO DE DADOS
     // ============================================
-    
+
     // 🔥 FUNÇÃO: Carregar contas do usuário
     async function carregarContas() {
         try {
@@ -1180,7 +1257,7 @@
                     selectConta.value = data.contas[0].numero;
                     moedaAtual = data.contas[0].moeda;
                     // Carregar extrato automaticamente
-                    carregarExtrato();
+                    carregarExtrato(true);
                 }
             }
         } catch (error) {
@@ -1188,7 +1265,7 @@
             mostrarMensagem('Erro ao carregar contas', 'erro');
         }
     }
-    
+
     // 🔥 FUNÇÃO PRINCIPAL: Carregar extrato COM PAGINAÇÃO (30 em 30 dias)
     async function carregarExtrato(resetarPaginacao = true) {
         const contaSelecionada = document.getElementById('selectConta').value;
@@ -1219,7 +1296,6 @@
         
         try {
             // 🔥 SEMPRE BUSCAR TODO O PERÍODO PARA CÁLCULOS CORRETOS
-            // Mas vamos usar parâmetros para controlar a exibição
             const params = new URLSearchParams();
             params.append('conta', contaSelecionada);
             
@@ -1303,7 +1379,7 @@
             document.getElementById('botoesCarregarMais').style.display = 'none';
         }
     }
-    
+
     // 🔥 FUNÇÃO: Carregar mais 30 dias
     async function carregarMaisDias() {
         if (carregandoMais) return; // Evitar múltiplos cliques
@@ -1316,10 +1392,10 @@
         btnCarregarMais.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando...';
         btnCarregarMais.disabled = true;
         
-        // Aumentar dias carregados
-        const novosDiasCarregados = diasCarregados + 30;
-        
         try {
+            // Aumentar dias carregados
+            const novosDiasCarregados = diasCarregados + 30;
+            
             // Filtrar para mostrar mais dias
             filtrarTransacoesPorDias(novosDiasCarregados);
             
@@ -1344,76 +1420,17 @@
         }
     }
 
-    // 🔥 FUNÇÃO: Atualizar contador de dias na interface
-    function atualizarContadorDias() {
-        const contadorElement = document.getElementById('contadorDias');
-        const totalTransacoes = todasTransacoesPeriodo.length;
-        const exibidas = transacoesExibidas.length;
-        
-        if (contadorElement) {
-            if (exibidas >= totalTransacoes) {
-                contadorElement.textContent = `Mostrando todo o período (${totalTransacoes} transações)`;
-            } else {
-                contadorElement.textContent = `Mostrando últimos ${diasCarregados} dias (${exibidas} de ${totalTransacoes} transações)`;
-            }
-        }
-    }
-
     // 🔥 FUNÇÃO: Processar dados do extrato (LÓGICA SIMPLIFICADA)
     function processarDadosExtrato(data) {
         // 🔥 AGORA ESTA FUNÇÃO É CHAMADA DENTRO DE carregarExtrato()
         // A lógica foi movida para lá
         console.log('📊 Dados processados:', data.transacoes?.length || 0, 'transações');
     }
-    
-    // 🔥 FUNÇÃO: Aplicar filtros (MESMA LÓGICA DO KIVY)
-    function aplicarFiltros() {
-        transacoesFiltradas = [...extratoData];
-        
-        // 🔥 ORDENAR POR DATA (mais recente primeiro para exibição)
-        transacoesFiltradas.sort((a, b) => {
-            // Converter datas para objetos Date para comparação
-            const dataA = parseDataParaOrdenacao(a.data);
-            const dataB = parseDataParaOrdenacao(b.data);
-            return dataB - dataA; // Ordem decrescente (mais recente primeiro)
-        });
-    }
-    
-    // 🔥 FUNÇÃO AUXILIAR: Parsear data para ordenação
-    function parseDataParaOrdenacao(dataStr) {
-        try {
-            // Tentar múltiplos formatos (igual ao Kivy)
-            if (dataStr.includes('T')) {
-                // Formato ISO
-                return new Date(dataStr);
-            } else if (dataStr.includes('/')) {
-                // Formato DD/MM/AAAA ou DD/MM/AAAA HH:MM:SS
-                const [dataParte, horaParte] = dataStr.split(' ');
-                const [dia, mes, ano] = dataParte.split('/').map(Number);
-                
-                if (horaParte) {
-                    const [hora, minuto, segundo] = horaParte.split(':').map(Number);
-                    return new Date(ano, mes - 1, dia, hora, minuto, segundo);
-                } else {
-                    return new Date(ano, mes - 1, dia);
-                }
-            } else if (dataStr.includes('-')) {
-                // Formato AAAA-MM-DD
-                return new Date(dataStr);
-            }
-            
-            // Fallback
-            return new Date();
-        } catch (e) {
-            console.warn('Erro ao parsear data:', dataStr, e);
-            return new Date();
-        }
-    }
-    
+
     // ============================================
     // FUNÇÕES DE ATUALIZAÇÃO DA INTERFACE
     // ============================================
-    
+
     // 🔥 FUNÇÃO: Atualizar interface do extrato
     function atualizarInterfaceExtrato() {
         const container = document.getElementById('listaTransacoes');
@@ -1477,7 +1494,7 @@
         
         container.innerHTML = html;
     }
-    
+
     // 🔥 FUNÇÃO: Atualizar painel de resumo
     function atualizarPainelResumo() {
         document.getElementById('resumoSaldo').textContent = 
@@ -1490,13 +1507,13 @@
             `${formatarNumero(totalSaidas)} ${moedaAtual}`;
         
         document.getElementById('resumoTransacoes').textContent = 
-            transacoesFiltradas.length;
+            todasTransacoesPeriodo.length; // Mostrar total do período completo
     }
-    
+
     // ============================================
     // FUNÇÕES DE CONTROLE DE PERÍODO
     // ============================================
-    
+
     // 🔥 FUNÇÃO: Mudar período (APENAS TODO PERÍODO E PERSONALIZADO)
     function mudarPeriodo(periodo) {
         periodoAtivo = periodo;
@@ -1519,7 +1536,7 @@
             carregarExtrato(true);
         }
     }
-    
+
     // 🔥 FUNÇÃO: Usar período personalizado
     function usarPeriodoPersonalizado() {
         const dataInicio = document.getElementById('dataInicio').value;
@@ -1541,17 +1558,21 @@
         
         mostrarMensagem(`Período personalizado definido: ${dataInicio} a ${dataFim}`, 'sucesso');
         
+        // 🔥 Para período personalizado, resetar paginação
+        diasCarregados = 30;
+        offsetDias = 0;
+        
         // Carregar extrato com período personalizado
-        carregarExtrato();
+        carregarExtrato(true);
     }
-    
+
     // ============================================
     // FUNÇÕES DE MODAL DE DETALHES
     // ============================================
-    
+
     // 🔥 FUNÇÃO: Mostrar detalhes da transação (MESMO DO KIVY)
     function mostrarDetalhesTransacao(index) {
-        const transacao = transacoesFiltradas[index];
+        const transacao = transacoesExibidas[index];
         
         if (!transacao) {
             mostrarMensagem('Transação não encontrada', 'erro');
@@ -1575,7 +1596,7 @@
         document.getElementById('modalDetalhesBody').innerHTML = html;
         document.getElementById('modalDetalhes').style.display = 'flex';
     }
-    
+
     // 🔥 FUNÇÃO: Formatar detalhes da transação (MESMO DO KIVY)
     function formatarDetalhesTransacao(transacao) {
         const detalhes = {
@@ -1605,7 +1626,7 @@
         
         return detalhes;
     }
-    
+
     // 🔥 FUNÇÃO: Extrair status da descrição (MESMO DO KIVY)
     function extrairStatusDaDescricao(descricao) {
         if (!descricao) return 'Status Desconhecido';
@@ -1618,21 +1639,21 @@
         
         return 'Status Desconhecido';
     }
-    
+
     // 🔥 FUNÇÃO: Fechar modal de detalhes
     function fecharModalDetalhes() {
         document.getElementById('modalDetalhes').style.display = 'none';
     }
-    
+
     // ============================================
     // FUNÇÕES DE EXPORTAÇÃO
     // ============================================
-    
+
     // 🔥 FUNÇÃO: Exportar extrato para PDF
     async function exportarExtratoPDF() {
         const contaSelecionada = document.getElementById('selectConta').value;
         
-        if (!contaSelecionada || transacoesFiltradas.length === 0) {
+        if (!contaSelecionada || todasTransacoesPeriodo.length === 0) {
             mostrarMensagem('Nenhuma transação para exportar', 'erro');
             return;
         }
@@ -1645,8 +1666,8 @@
                 conta: contaSelecionada,
                 periodo: periodoAtivo === 'personalizado' ? 
                     `${document.getElementById('dataInicio').value} a ${document.getElementById('dataFim').value}` :
-                    `Últimos ${periodoAtivo === '0' ? 'todo período' : periodoAtivo + ' dias'}`,
-                transacoes: transacoesFiltradas.map(t => ({
+                    `Todo período (${todasTransacoesPeriodo.length} transações)`,
+                transacoes: todasTransacoesPeriodo.map(t => ({
                     ...t,
                     data_formatada: formatarDataApenasDiaMesAno(t.data)
                 })),
@@ -1654,7 +1675,7 @@
                     saldo_final: saldoFinal,
                     total_entradas: totalEntradas,
                     total_saidas: totalSaidas,
-                    total_transacoes: transacoesFiltradas.length,
+                    total_transacoes: todasTransacoesPeriodo.length,
                     moeda: moedaAtual
                 }
             };
@@ -1683,11 +1704,11 @@
             mostrarMensagem('Erro ao gerar PDF: ' + error.message, 'erro');
         }
     }
-    
+
     // ============================================
     // FUNÇÕES AUXILIARES
     // ============================================
-    
+
     // 🔥 FUNÇÃO: Mostrar mensagem
     function mostrarMensagem(mensagem, tipo = 'info') {
         // Criar elemento de mensagem
@@ -1725,14 +1746,14 @@
             setTimeout(() => mensagemDiv.remove(), 300);
         }, 5000);
     }
-    
+
     // 🔥 FUNÇÃO: Configurar eventos
     function configurarEventos() {
         // Evento de mudança de conta
         document.getElementById('selectConta').addEventListener('change', function() {
             const contaSelecionada = this.options[this.selectedIndex];
             moedaAtual = contaSelecionada.textContent.split(' - ')[1]?.split(' ')[0] || 'USD';
-            carregarExtrato();
+            carregarExtrato(true); // 🔥 Sempre resetar paginação ao mudar conta
         });
         
         // Evento de mudança de período
@@ -1740,12 +1761,7 @@
             mudarPeriodo(this.value);
         });
         
-        // Eventos dos botões de período rápido
-        //document.querySelectorAll('.btn-periodo').forEach(btn => {
-        //    btn.addEventListener('click', function() {
-        //        mudarPeriodo(this.dataset.periodo);
-        //    });
-        //});
+        // NÃO MAIS USAR botões de período rápido - REMOVER ESTE BLOCO
         
         // Evento de clique fora do modal para fechar
         document.getElementById('modalDetalhes').addEventListener('click', function(e) {
@@ -1772,11 +1788,11 @@
         const dataTrintaDiasAtras = trintaDiasAtras.toLocaleDateString('pt-BR');
         document.getElementById('dataInicio').value = dataTrintaDiasAtras;
     }
-    
+
     // ============================================
     // INICIALIZAÇÃO
     // ============================================
-    
+
     document.addEventListener('DOMContentLoaded', function() {
         // Carregar contas do usuário
         carregarContas();
