@@ -1226,6 +1226,178 @@ class SupabaseManager:
             print(f"❌ Erro ao buscar transferências do cliente: {e}")
             return []
 
+    # Adicione estes métodos na classe SupabaseManager:
+
+    def verificar_invoice_transferencia(self, transferencia_id):
+        """Verifica se existe invoice para uma transferência - VERSÃO ADAPTADA À ESTRUTURA REAL"""
+        try:
+            if not self.client:
+                print(f"❌ Cliente Supabase não conectado")
+                return False
+            
+            # 🔍 PRIMEIRO: Verificar se existe a pasta da transferência
+            prefix = f"transferencias/{transferencia_id}/"
+            
+            try:
+                # Listar arquivos na pasta da transferência
+                files = self.client.storage.from_("invoices").list(prefix)
+                
+                if files:
+                    print(f"✅ Pasta encontrada para {transferencia_id}: {len(files)} arquivo(s)")
+                    for file in files:
+                        print(f"   - {file['name']}")
+                    return True
+                else:
+                    print(f"❌ Nenhum arquivo na pasta {transferencia_id}")
+                    
+            except Exception as e:
+                print(f"⚠️ Erro ao listar arquivos: {e}")
+            
+            # 🔍 SEGUNDO: Tentar encontrar arquivos com ID no nome (caso a pasta não exista)
+            print(f"🔍 Buscando arquivos que contenham ID {transferencia_id}...")
+            all_files = self.client.storage.from_("invoices").list("transferencias/")
+            
+            for file in all_files:
+                if transferencia_id in file['name']:
+                    print(f"✅ Arquivo encontrado: {file['name']}")
+                    return True
+            
+            # 🔍 TERCEIRO: Verificar IDs com problemas de nomenclatura
+            # Alguns IDs estão incorretos: "108684_INVOICE - GAYUR INTERNATIONAL.pdf"
+            # Extrair o ID real (antes do primeiro underscore)
+            if '_' in transferencia_id:
+                id_base = transferencia_id.split('_')[0]
+                if id_base.isdigit():
+                    print(f"🔍 Tentando ID base: {id_base}")
+                    return self.verificar_invoice_transferencia(id_base)
+            
+            print(f"❌ Nenhum arquivo encontrado para transferência {transferencia_id}")
+            return False
+            
+        except Exception as e:
+            print(f"❌ Erro ao verificar invoice: {e}")
+            return False
+
+    def baixar_invoice_transferencia(self, transferencia_id, local_dir="data/invoices"):
+        """Baixa invoice de uma transferência - VERSÃO ADAPTADA"""
+        try:
+            import os
+            
+            if not self.client:
+                return None
+            
+            # 🔍 1. Tentar listar arquivos na pasta da transferência
+            prefix = f"transferencias/{transferencia_id}/"
+            
+            try:
+                files = self.client.storage.from_("invoices").list(prefix)
+                
+                if files:
+                    # Baixar o primeiro arquivo (ou poderia mostrar opção)
+                    first_file = files[0]['name']
+                    print(f"📥 Baixando: {first_file}")
+                    
+                    response = self.client.storage.from_("invoices").download(first_file)
+                    
+                    if response:
+                        # Criar diretório local
+                        os.makedirs(local_dir, exist_ok=True)
+                        
+                        # Salvar arquivo
+                        nome_arquivo = os.path.basename(first_file)
+                        local_path = os.path.join(local_dir, nome_arquivo)
+                        
+                        with open(local_path, 'wb') as f:
+                            f.write(response)
+                        
+                        print(f"✅ Invoice baixada: {local_path}")
+                        return local_path
+            
+            except Exception as e:
+                print(f"⚠️ Erro ao listar pasta: {e}")
+            
+            # 🔍 2. Buscar arquivos que contenham o ID no nome
+            print(f"🔍 Buscando arquivos com ID {transferencia_id} no nome...")
+            all_files = self.client.storage.from_("invoices").list("transferencias/")
+            
+            arquivos_encontrados = []
+            for file in all_files:
+                if transferencia_id in file['name']:
+                    arquivos_encontrados.append(file['name'])
+            
+            if arquivos_encontrados:
+                print(f"✅ {len(arquivos_encontrados)} arquivo(s) encontrado(s):")
+                for arquivo in arquivos_encontrados:
+                    print(f"   - {arquivo}")
+                
+                # Baixar o primeiro arquivo encontrado
+                first_file = arquivos_encontrados[0]
+                response = self.client.storage.from_("invoices").download(first_file)
+                
+                if response:
+                    os.makedirs(local_dir, exist_ok=True)
+                    nome_arquivo = os.path.basename(first_file)
+                    local_path = os.path.join(local_dir, nome_arquivo)
+                    
+                    with open(local_path, 'wb') as f:
+                        f.write(response)
+                    
+                    print(f"✅ Invoice baixada: {local_path}")
+                    return local_path
+            
+            # 🔍 3. Tentar IDs com problemas de nomenclatura
+            if '_' in transferencia_id:
+                id_base = transferencia_id.split('_')[0]
+                if id_base.isdigit():
+                    print(f"🔍 Tentando ID base: {id_base}")
+                    return self.baixar_invoice_transferencia(id_base, local_dir)
+            
+            print(f"❌ Nenhum arquivo encontrado para baixar")
+            return None
+            
+        except Exception as e:
+            print(f"❌ Erro ao baixar invoice: {e}")
+            return None
+
+    def listar_invoices_transferencia(self, transferencia_id):
+        """Lista todas as invoices disponíveis para uma transferência"""
+        try:
+            if not self.client:
+                return []
+            
+            invoices = []
+            
+            # 🔍 Buscar na pasta da transferência
+            prefix = f"transferencias/{transferencia_id}/"
+            
+            try:
+                files = self.client.storage.from_("invoices").list(prefix)
+                for file in files:
+                    invoices.append({
+                        'caminho': file['name'],
+                        'nome': os.path.basename(file['name']),
+                        'tamanho': file.get('metadata', {}).get('size', 0)
+                    })
+            except:
+                pass
+            
+            # 🔍 Buscar arquivos com ID no nome
+            all_files = self.client.storage.from_("invoices").list("transferencias/")
+            
+            for file in all_files:
+                if transferencia_id in file['name'] and file['name'] not in [i['caminho'] for i in invoices]:
+                    invoices.append({
+                        'caminho': file['name'],
+                        'nome': os.path.basename(file['name']),
+                        'tamanho': file.get('metadata', {}).get('size', 0)
+                    })
+            
+            print(f"📄 {len(invoices)} invoice(s) encontrada(s) para {transferencia_id}")
+            return invoices
+            
+        except Exception as e:
+            print(f"❌ Erro ao listar invoices: {e}")
+            return []
 
 # Teste rápido
 if __name__ == "__main__":

@@ -37,10 +37,10 @@ class ModalDetalhesTransferencia(Popup):
         
         # 🔥 BOTÃO PARA ACESSAR INVOICE - VERIFICAR SE EXISTE
         btn_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50, spacing=10)
-        
+
         # Verificar se existe invoice para esta transferência
         tem_invoice = self.verificar_invoice_existe(transferencia)
-        
+
         if tem_invoice:
             btn_invoice = Button(
                 text='Abrir Invoice',
@@ -51,10 +51,10 @@ class ModalDetalhesTransferencia(Popup):
             btn_invoice.bind(on_press=self.abrir_invoice)
         else:
             btn_invoice = Button(
-                text='Invoice Não Encontrada',
+                text='Sem Invoice Disponível',  # 🔥 TEXTO MAIS DESCRITIVO
                 size_hint_x=0.5,
-                background_color=(0.7, 0.7, 0.7, 1),  # Cinza
-                color=(0.5, 0.5, 0.5, 1),
+                background_color=(0.5, 0.5, 0.5, 0.8),  # Cinza mais visível
+                color=(0.9, 0.9, 0.9, 1),  # Texto cinza claro
                 disabled=True
             )
         
@@ -73,48 +73,30 @@ class ModalDetalhesTransferencia(Popup):
         self.content = content
     
     def verificar_invoice_existe(self, transferencia):
-        """Verifica se existe um arquivo de invoice para esta transferência"""
+        """Verifica se existe invoice para esta transferência - VERSÃO CORRIGIDA"""
         try:
-            import os
-            
-            # Obter o ID da transferência
             transferencia_id = transferencia.get('id', '')
             if not transferencia_id:
+                print("❌ ID da transferência não encontrado no modal")
                 return False
             
-            # 🔥 CAMINHO CORRETO: data/invoices
-            pasta_invoices = "data/invoices"
+            sistema = App.get_running_app().sistema
             
-            # Verificar se a pasta existe
-            if not os.path.exists(pasta_invoices):
-                print(f"⚠️ Pasta '{pasta_invoices}' não encontrada")
+            if not hasattr(sistema, 'supabase_manager') or not sistema.supabase_manager:
+                print("❌ SupabaseManager não configurado no modal")
                 return False
             
-            # 🔥 PROCURAR POR QUALQUER ARQUIVO QUE CONTENHA O ID DA TRANSFERÊNCIA
-            # Isso é mais flexível para diferentes padrões de nomeação
-            arquivos_encontrados = []
-            
-            for nome_arquivo in os.listdir(pasta_invoices):
-                if transferencia_id in nome_arquivo:
-                    caminho_completo = os.path.join(pasta_invoices, nome_arquivo)
-                    if os.path.isfile(caminho_completo):
-                        arquivos_encontrados.append(caminho_completo)
-            
-            if arquivos_encontrados:
-                print(f"✅ Invoice(s) encontrada(s) para transferência {transferencia_id}:")
-                for arquivo in arquivos_encontrados:
-                    print(f"   - {os.path.basename(arquivo)}")
-                return True
-            else:
-                print(f"❌ Nenhuma invoice encontrada para transferência {transferencia_id}")
-                return False
+            # 🔥 USAR O MÉTODO DO SUPABASE MANAGER
+            resultado = sistema.supabase_manager.verificar_invoice_transferencia(transferencia_id)
+            print(f"📄 Modal: Invoice para {transferencia_id} = {resultado}")
+            return resultado
             
         except Exception as e:
-            print(f"❌ Erro ao verificar invoice: {e}")
+            print(f"❌ Erro ao verificar invoice no modal: {e}")
             return False
     
     def abrir_invoice(self, instance):
-        """Abre o arquivo de invoice da transferência"""
+        """Abre o arquivo de invoice da transferência - VERSÃO CORRIGIDA"""
         try:
             import os
             import subprocess
@@ -125,58 +107,45 @@ class ModalDetalhesTransferencia(Popup):
                 self.mostrar_erro("ID da transferência não encontrado")
                 return
             
-            # 🔥 PROCURAR NA PASTA CORRETA: data/invoices
-            pasta_invoices = "data/invoices"
-            arquivos_encontrados = []
+            sistema = App.get_running_app().sistema
             
-            # Listar todos os arquivos que contêm o ID da transferência
-            for nome_arquivo in os.listdir(pasta_invoices):
-                if transferencia_id in nome_arquivo:
-                    caminho_completo = os.path.join(pasta_invoices, nome_arquivo)
-                    if os.path.isfile(caminho_completo):
-                        arquivos_encontrados.append(caminho_completo)
-            
-            if not arquivos_encontrados:
-                self.mostrar_erro(f"Invoice não encontrada para a transferência {transferencia_id}")
+            if not hasattr(sistema, 'supabase_manager') or not sistema.supabase_manager.client:
+                self.mostrar_erro("Sistema não configurado para acessar invoices")
                 return
             
-            # 🔥 SE HOUVER MÚLTIPLOS ARQUIVOS, ABRIR O PRIMEIRO
-            # (Você pode modificar para mostrar uma lista se quiser escolher)
-            arquivo_para_abrir = arquivos_encontrados[0]
+            # 🔥 USAR O NOVO MÉTODO DE DOWNLOAD ADAPTADO
+            local_path = sistema.supabase_manager.baixar_invoice_transferencia(transferencia_id)
             
-            # 🔥 ABRIR O ARQUIVO COM O PROGRAMA PADRÃO DO SISTEMA
-            sistema_operacional = platform.system()
+            if not local_path or not os.path.exists(local_path):
+                self.mostrar_erro(f"Invoice não encontrada para transferência {transferencia_id}")
+                return
             
+            # 🔥 ABRIR O ARQUIVO
             try:
-                if sistema_operacional == "Windows":
-                    os.startfile(arquivo_para_abrir)
-                elif sistema_operacional == "Darwin":  # macOS
-                    subprocess.run(["open", arquivo_para_abrir])
-                else:  # Linux e outros
-                    subprocess.run(["xdg-open", arquivo_para_abrir])
+                sistema_operacional = platform.system()
                 
-                self.mostrar_sucesso(f"Invoice aberta: {os.path.basename(arquivo_para_abrir)}")
+                if sistema_operacional == "Windows":
+                    os.startfile(local_path)
+                    print(f"📂 Invoice aberta no Windows: {local_path}")
+                elif sistema_operacional == "Darwin":  # macOS
+                    subprocess.run(["open", local_path])
+                    print(f"📂 Invoice aberta no macOS: {local_path}")
+                else:  # Linux
+                    subprocess.run(["xdg-open", local_path])
+                    print(f"📂 Invoice aberta no Linux: {local_path}")
+                
+                self.mostrar_sucesso("Invoice aberta com sucesso!")
                 
             except Exception as e:
-                self.mostrar_erro(f"Erro ao abrir arquivo: {str(e)}")
-                # Tentar abrir o diretório como fallback
-                try:
-                    if sistema_operacional == "Windows":
-                        os.startfile(pasta_invoices)
-                    elif sistema_operacional == "Darwin":
-                        subprocess.run(["open", pasta_invoices])
-                    else:
-                        subprocess.run(["xdg-open", pasta_invoices])
-                    
-                    self.mostrar_sucesso(f"Pasta invoices aberta. Arquivo: {os.path.basename(arquivo_para_abrir)}")
-                except:
-                    self.mostrar_erro(f"Arquivo encontrado mas não foi possível abrir: {arquivo_para_abrir}")
+                # Se não conseguir abrir, mostrar onde está salvo
+                print(f"⚠️ Não foi possível abrir o arquivo automaticamente: {e}")
+                self.mostrar_sucesso(f"Invoice baixada para: {local_path}")
             
-            # Fechar o modal após abrir a invoice
+            # Fechar o modal
             self.dismiss()
-            
+                
         except Exception as e:
-            self.mostrar_erro(f"Erro ao acessar invoice: {str(e)}")
+            self.mostrar_erro(f"Erro ao abrir invoice: {str(e)}")
     
     def mostrar_sucesso(self, mensagem):
         """Mostra popup de sucesso"""
@@ -260,8 +229,13 @@ class ModalDetalhesTransferencia(Popup):
         data_original = self.obter_data_transferencia(transferencia)
         data_formatada = self.formatar_data_br(data_original)
         
+        # 🔥 CORREÇÃO: Garantir que os valores numéricos não sejam None
+        valor = transferencia.get('valor', 0) or 0
+        taxa = transferencia.get('taxa', 0) or 0
+        total = valor + taxa
+        
         # ID e Status
-        self.adicionar_secao(container, 'Informações Gerais', [  # 🔥 REMOVER ÍCONE
+        self.adicionar_secao(container, 'Informações Gerais', [
             f"ID: {transferencia.get('id', 'N/A')}",
             f"Status: {self.formatar_status(transferencia.get('status', ''))}",
             f"Tipo: {transferencia.get('tipo', 'N/A')}",
@@ -269,21 +243,21 @@ class ModalDetalhesTransferencia(Popup):
         ])
         
         # Valor e Moeda
-        self.adicionar_secao(container, 'Valores', [  # 🔥 REMOVER ÍCONE
-            f"Valor: {transferencia.get('valor', 0):,.2f} {transferencia.get('moeda', '')}",
-            f"Taxa: {transferencia.get('taxa', 0):,.2f}",
-            f"Total: {(transferencia.get('valor', 0) + transferencia.get('taxa', 0)):,.2f} {transferencia.get('moeda', '')}"
+        self.adicionar_secao(container, 'Valores', [
+            f"Valor: {valor:,.2f} {transferencia.get('moeda', '')}",
+            f"Taxa: {taxa:,.2f}",
+            f"Total: {total:,.2f} {transferencia.get('moeda', '')}"
         ])
         
         # Remetente
-        self.adicionar_secao(container, 'Remetente', [  # 🔥 REMOVER ÍCONE
+        self.adicionar_secao(container, 'Remetente', [
             f"Conta: {transferencia.get('conta_remetente', 'N/A')}",
             f"Cliente: {transferencia.get('solicitado_por', transferencia.get('cliente_afetado', 'N/A'))}"
         ])
         
         # Destinatário/Beneficiário (se houver)
         if transferencia.get('conta_destinatario') or transferencia.get('beneficiario'):
-            self.adicionar_secao(container, 'Destinatário', [  # 🔥 REMOVER ÍCONE
+            self.adicionar_secao(container, 'Destinatário', [
                 f"Conta: {transferencia.get('conta_destinatario', 'N/A')}",
                 f"Beneficiário: {transferencia.get('beneficiario', 'N/A')}",
                 f"Banco: {transferencia.get('nome_banco', 'N/A')}",
@@ -293,7 +267,7 @@ class ModalDetalhesTransferencia(Popup):
         
         # Informações adicionais
         if transferencia.get('finalidade'):
-            self.adicionar_secao(container, 'Informações Adicionais', [  # 🔥 REMOVER ÍCONE
+            self.adicionar_secao(container, 'Informações Adicionais', [
                 f"Finalidade: {transferencia.get('finalidade', 'N/A')}",
                 f"Descrição: {transferencia.get('descricao', 'N/A')}"
             ])
@@ -453,6 +427,10 @@ class CardTransferencia(BoxLayout):
     def criar_conteudo(self, transferencia):
         """Cria o conteúdo do card usando a MESMA LÓGICA DO EXTRATO"""
         
+        # 🔥 CORREÇÃO: Garantir que valor não seja None
+        valor = transferencia.get('valor', 0) or 0
+        moeda = transferencia.get('moeda', '')
+        
         # 🔥 USAR A MESMA LÓGICA DO EXTRATO PARA OBTER A DATA
         data_original = self.obter_data_transferencia(transferencia)
         
@@ -524,8 +502,6 @@ class CardTransferencia(BoxLayout):
         
         # Coluna 4: Valor (20%)
         col_valor = BoxLayout(orientation='vertical', size_hint_x=0.2)
-        valor = transferencia.get('valor', 0)
-        moeda = transferencia.get('moeda', '')
         lbl_valor = Label(
             text=f"{valor:,.2f} {moeda}",
             font_size='11sp',
@@ -539,6 +515,7 @@ class CardTransferencia(BoxLayout):
         # Coluna 5: Ações (25% - aumentada para 3 botões)
         col_acoes = BoxLayout(orientation='horizontal', size_hint_x=0.25, spacing=3)
         
+        # 🔥 CORREÇÃO: BOTÃO DETALHES (SEMPRE VISÍVEL)
         btn_detalhes = Button(
             text='Detalhes',  # Ícone para detalhes
             font_size='10sp',
@@ -548,30 +525,31 @@ class CardTransferencia(BoxLayout):
         )
         btn_detalhes.bind(on_press=self.mostrar_detalhes)
         
-        # 🔥 BOTÃO PARA INVOICE - VERIFICAR SE EXISTE
+        # 🔥 CORREÇÃO: BOTÃO INVOICE - MOSTRAR SEMPRE, MAS DESABILITADO SE NÃO EXISTIR
         tem_invoice = self.verificar_invoice_existe(transferencia)
         
+        btn_invoice = Button(
+            text='Invoice',
+            font_size='10sp',
+            size_hint_x=0.33,
+            color=(1, 1, 1, 1) if tem_invoice else (0.7, 0.7, 0.7, 1)
+        )
+        
         if tem_invoice:
-            btn_invoice = Button(
-                text='Invoice',  # Ícone para invoice
-                font_size='10sp',
-                size_hint_x=0.33,
-                background_color=(0.2, 0.7, 0.3, 1),  # Verde
-                color=(1, 1, 1, 1)
-            )
+            btn_invoice.background_color = (0.2, 0.7, 0.3, 1)  # Verde
             btn_invoice.bind(on_press=self.abrir_invoice_direto)
         else:
-            btn_invoice = Button(
-                text='Invoice',  # Ícone para invoice
-                font_size='10sp',
-                size_hint_x=0.33,
-                background_color=(0.5, 0.5, 0.5, 0.5),  # Cinza transparente
-                color=(0.7, 0.7, 0.7, 1),
-                disabled=True
-            )
+            btn_invoice.background_color = (0.5, 0.5, 0.5, 0.5)  # Cinza transparente
+            btn_invoice.disabled = True  # 🔥 DESABILITAR MAS MOSTRAR
         
+        # Adicionar botões à coluna de ações
         col_acoes.add_widget(btn_detalhes)
         col_acoes.add_widget(btn_invoice)
+        
+        # 🔥 ADICIONAR ESPAÇO VAZIO PARA COMPLETAR O LAYOUT (opcional)
+        # Isso mantém o layout consistente mesmo sem o terceiro botão
+        espaco_vazio = BoxLayout(size_hint_x=0.33)  # 🔥 ESPAÇO VAZIO
+        col_acoes.add_widget(espaco_vazio)
         
         # Adicionar todas as colunas
         self.add_widget(col_data)
@@ -579,36 +557,30 @@ class CardTransferencia(BoxLayout):
         self.add_widget(col_descricao)
         self.add_widget(col_valor)
         self.add_widget(col_acoes)
-    
+        
     def verificar_invoice_existe(self, transferencia):
-        """Verifica se existe invoice na pasta data/invoices"""
+        """Verifica se existe invoice para esta transferência - VERSÃO CORRIGIDA"""
         try:
-            import os
-            
             transferencia_id = transferencia.get('id', '')
             if not transferencia_id:
+                print("❌ ID da transferência não encontrado no card")
                 return False
             
-            # 🔥 CAMINHO CORRETO: data/invoices
-            pasta_invoices = "data/invoices"
+            sistema = App.get_running_app().sistema
             
-            if not os.path.exists(pasta_invoices):
+            if not hasattr(sistema, 'supabase_manager') or not sistema.supabase_manager:
+                print("❌ SupabaseManager não configurado no card")
                 return False
             
-            # 🔥 PROCURAR QUALQUER ARQUIVO QUE CONTENHA O ID
-            for nome_arquivo in os.listdir(pasta_invoices):
-                if transferencia_id in nome_arquivo:
-                    caminho_completo = os.path.join(pasta_invoices, nome_arquivo)
-                    if os.path.isfile(caminho_completo):
-                        return True
+            # 🔥 USAR O MÉTODO DO SUPABASE MANAGER
+            return sistema.supabase_manager.verificar_invoice_transferencia(transferencia_id)
             
+        except Exception as e:
+            print(f"❌ Erro ao verificar invoice no card: {e}")
             return False
-            
-        except:
-            return False
-    
+
     def abrir_invoice_direto(self, instance):
-        """Abre a invoice diretamente do card (sem abrir modal)"""
+        """Abre a invoice diretamente do card"""
         try:
             import os
             import subprocess
@@ -618,40 +590,39 @@ class CardTransferencia(BoxLayout):
             if not transferencia_id:
                 return
             
-            # 🔥 PROCURAR NA PASTA CORRETA: data/invoices
-            pasta_invoices = "data/invoices"
-            arquivos_encontrados = []
+            sistema = App.get_running_app().sistema
             
-            # Listar arquivos que contêm o ID
-            for nome_arquivo in os.listdir(pasta_invoices):
-                if transferencia_id in nome_arquivo:
-                    caminho_completo = os.path.join(pasta_invoices, nome_arquivo)
-                    if os.path.isfile(caminho_completo):
-                        arquivos_encontrados.append(caminho_completo)
-            
-            if not arquivos_encontrados:
-                self.mostrar_erro("Invoice não encontrada")
+            if not hasattr(sistema, 'supabase_manager') or not sistema.supabase_manager.client:
+                self.mostrar_erro("Sistema não configurado para acessar invoices")
                 return
             
-            # Abrir o primeiro arquivo encontrado
-            arquivo_para_abrir = arquivos_encontrados[0]
+            # 🔥 USAR O MÉTODO DE DOWNLOAD ADAPTADO
+            local_path = sistema.supabase_manager.baixar_invoice_transferencia(transferencia_id)
+            
+            if not local_path or not os.path.exists(local_path):
+                self.mostrar_erro("Invoice não encontrada")
+                return
             
             # Abrir arquivo
             sistema_operacional = platform.system()
             
             try:
                 if sistema_operacional == "Windows":
-                    os.startfile(arquivo_para_abrir)
+                    os.startfile(local_path)
                 elif sistema_operacional == "Darwin":
-                    subprocess.run(["open", arquivo_para_abrir])
+                    subprocess.run(["open", local_path])
                 else:
-                    subprocess.run(["xdg-open", arquivo_para_abrir])
+                    subprocess.run(["xdg-open", local_path])
                     
+                print(f"✅ Invoice aberta: {os.path.basename(local_path)}")
+                
             except Exception as e:
                 print(f"Erro ao abrir invoice: {e}")
-                
+                self.mostrar_erro(f"Arquivo baixado: {local_path}")
+                    
         except Exception as e:
             print(f"Erro ao acessar invoice do card: {e}")
+            self.mostrar_erro(f"Erro: {str(e)}")
     
     def mostrar_erro(self, mensagem):
         """Mostra erro simples"""

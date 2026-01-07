@@ -886,20 +886,14 @@
                             <label><i class="fas fa-calendar-alt"></i> Período</label>
                             <select id="selectPeriodo" class="form-control">
                                 <option value="30">Últimos 30 dias</option>
-                                <option value="15">Últimos 15 dias</option>
-                                <option value="7">Últimos 7 dias</option>
-                                <option value="0">Todo período</option>
-                                <option value="personalizado">Personalizado</option>
+                                <option value="personalizado">Período personalizado</option>
                             </select>
                         </div>
                     </div>
 
-                    <!-- PERÍODOS RÁPIDOS -->
-                    <div class="periodos-rapidos">
-                        <button class="btn-periodo ativo" data-periodo="30">30 dias</button>
-                        <button class="btn-periodo" data-periodo="15">15 dias</button>
-                        <button class="btn-periodo" data-periodo="7">7 dias</button>
-                        <button class="btn-periodo" data-periodo="0">Todo período</button>
+                    <!-- BOTÃO TODO PERÍODO (único) -->
+                    <div class="periodos-rapidos" style="display: none;">
+                        <!-- Este div está oculto, pois não vamos usar mais botões rápidos -->
                     </div>
 
                     <!-- PERÍODO PERSONALIZADO (oculto por padrão) -->
@@ -964,6 +958,16 @@
                     </div>
                 </div>
 
+                <!-- BOTÃO CARREGAR MAIS (NOVO) -->
+                <div class="botoes-carregar-mais" id="botoesCarregarMais" style="display: none; margin-top: 20px; text-align: center;">
+                    <button class="btn-periodo" onclick="carregarMaisDias()" style="padding: 12px 30px; font-size: 14px;">
+                        <i class="fas fa-plus-circle"></i> Carregar mais 30 dias
+                    </button>
+                    <div style="margin-top: 8px; color: var(--cor-texto-secundario); font-size: 12px;">
+                        <span id="contadorDias">Mostrando últimos 30 dias</span>
+                    </div>
+                </div>
+
                 <!-- BOTÕES PRINCIPAIS -->
                 <div class="botoes-principais">
                     <button class="btn-exportar" onclick="exportarExtratoPDF()">
@@ -1008,14 +1012,21 @@
     // ============================================
     // VARIÁVEIS GLOBAIS E INICIALIZAÇÃO
     // ============================================
-    
+
     let extratoData = [];
     let transacoesFiltradas = [];
-    let periodoAtivo = "30";
+    let periodoAtivo = "30"; // Sempre começa com 30 dias
     let saldoFinal = 0;
     let totalEntradas = 0;
     let totalSaidas = 0;
     let moedaAtual = "USD";
+
+    // 🔥 NOVAS VARIÁVEIS PARA CONTROLE DE PAGINAÇÃO
+    let diasCarregados = 30; // Inicia com 30 dias
+    let offsetDias = 0; // Quantos dias "pular" (para carregar períodos anteriores)
+    let todasTransacoesPeriodo = []; // Todas as transações carregadas
+    let transacoesExibidas = []; // Transações que estão sendo exibidas (30 em 30 dias)
+    let carregandoMais = false; // Controla se está carregando mais dados
     
     // ============================================
     // FUNÇÕES DE FORMATO (IGUAIS AO KIVY)
@@ -1178,8 +1189,8 @@
         }
     }
     
-    // 🔥 FUNÇÃO PRINCIPAL: Carregar extrato (MESMA LÓGICA DO KIVY)
-    async function carregarExtrato() {
+    // 🔥 FUNÇÃO PRINCIPAL: Carregar extrato COM PAGINAÇÃO (30 em 30 dias)
+    async function carregarExtrato(resetarPaginacao = true) {
         const contaSelecionada = document.getElementById('selectConta').value;
         
         if (!contaSelecionada) {
@@ -1187,66 +1198,87 @@
             return;
         }
         
+        // 🔥 RESETAR PAGINAÇÃO SE FOR UMA NOVA CONSULTA
+        if (resetarPaginacao) {
+            diasCarregados = 30;
+            offsetDias = 0;
+            todasTransacoesPeriodo = [];
+            transacoesExibidas = [];
+            carregandoMais = false;
+        }
+        
         // Mostrar loading
         document.getElementById('listaTransacoes').innerHTML = `
             <div class="loading">
-                <i class="fas fa-spinner"></i> Carregando extrato (modo Kivy)...
+                <i class="fas fa-spinner"></i> ${resetarPaginacao ? 'Carregando extrato...' : 'Carregando mais transações...'}
             </div>
         `;
         
+        // Ocultar botão "Carregar mais" enquanto carrega
+        document.getElementById('botoesCarregarMais').style.display = 'none';
+        
         try {
-            // 🔥 MONTAR PARÂMETROS EXATAMENTE IGUAL AO KIVY
+            // 🔥 SEMPRE BUSCAR TODO O PERÍODO PARA CÁLCULOS CORRETOS
+            // Mas vamos usar parâmetros para controlar a exibição
             const params = new URLSearchParams();
             params.append('conta', contaSelecionada);
-            params.append('periodo', periodoAtivo);
             
-            // 🔥 SE FOR PERSONALIZADO, ENVIAR DATAS NO FORMATO BR
-            if (periodoAtivo === 'personalizado') {
-                const dataInicio = document.getElementById('dataInicio').value;
-                const dataFim = document.getElementById('dataFim').value;
-                
-                if (!validarDataBR(dataInicio) || !validarDataBR(dataFim)) {
-                    mostrarMensagem('Datas inválidas! Use DD/MM/AAAA', 'erro');
-                    return;
-                }
-                
-                params.append('data_inicio', dataInicio);
-                params.append('data_fim', dataFim);
-                
-                console.log(`🔍 [WEB] Período personalizado: ${dataInicio} a ${dataFim}`);
-            } else {
-                console.log(`🔍 [WEB] Período rápido: ${periodoAtivo} dias`);
-            }
+            // SEMPRE usar "Todo período" (0) para cálculos completos
+            params.append('periodo', '0');
+            
+            console.log(`🔍 [WEB] Carregando extrato completo para cálculos`);
             
             // 🔥 CHAMAR API KIVY
             const url = `/api/extrato_kivy?${params.toString()}`;
-            console.log(`🔍 [WEB] Chamando API: ${url}`);
-            
             const response = await fetch(url);
             const data = await response.json();
             
-            console.log(`🔍 [WEB] Resposta da API:`, data);
+            console.log(`🔍 [WEB] Resposta da API: ${data.transacoes?.length || 0} transações`);
             
             if (data.success) {
-                // 🔥 FORMATAR DATAS IGUAL AO KIVY ANTES DE PROCESSAR
+                // 🔥 FORMATAR DATAS
                 if (data.transacoes) {
                     data.transacoes.forEach(transacao => {
-                        // Garantir formato de data igual ao Kivy
                         transacao.data_formatada = formatarDataApenasDiaMesAno(transacao.data);
                     });
                 }
                 
-                processarDadosExtrato(data);
+                // 🔥 ARMAZENAR TODAS AS TRANSAÇÕES DO PERÍODO
+                todasTransacoesPeriodo = data.transacoes || [];
                 
-                // 🔥 ATUALIZAR RESUMO
+                // 🔥 ORDENAR POR DATA (mais recente primeiro)
+                todasTransacoesPeriodo.sort((a, b) => {
+                    const dataA = parseDataParaOrdenacao(a.data);
+                    const dataB = parseDataParaOrdenacao(b.data);
+                    return dataB - dataA; // Mais recente primeiro
+                });
+                
+                // 🔥 FILTRAR APENAS OS PRIMEIROS X DIAS PARA EXIBIÇÃO
+                if (resetarPaginacao) {
+                    // Nova consulta: mostrar últimos 30 dias
+                    filtrarTransacoesPorDias(30);
+                } else {
+                    // Carregar mais: adicionar mais 30 dias
+                    filtrarTransacoesPorDias(diasCarregados + 30);
+                }
+                
+                // 🔥 ATUALIZAR RESUMO (com todas as transações do período)
+                saldoFinal = data.saldo_final || 0;
+                totalEntradas = data.total_entradas || 0;
+                totalSaidas = data.total_saidas || 0;
+                moedaAtual = data.moeda || 'USD';
+                
                 atualizarPainelResumo();
+                atualizarContadorDias();
                 
-                // 🔥 DEBUG: Mostrar algumas transações no console
-                if (data.transacoes && data.transacoes.length > 0) {
-                    console.log('🔍 Primeiras 3 transações:');
-                    data.transacoes.slice(0, 3).forEach((t, i) => {
-                        console.log(`  ${i+1}. ${t.data} | ${t.descricao} | Crédito: ${t.credito} | Débito: ${t.debito} | Saldo: ${t.saldo_apos}`);
-                    });
+                // 🔥 ATUALIZAR INTERFACE COM TRANSAÇÕES FILTRADAS
+                atualizarInterfaceExtrato();
+                
+                // 🔥 MOSTRAR BOTÃO "CARREGAR MAIS" se houver mais transações
+                if (todasTransacoesPeriodo.length > transacoesExibidas.length) {
+                    document.getElementById('botoesCarregarMais').style.display = 'block';
+                } else {
+                    document.getElementById('botoesCarregarMais').style.display = 'none';
                 }
                 
             } else {
@@ -1262,34 +1294,76 @@
                     <i class="fas fa-exclamation-circle"></i>
                     <h3>Erro ao carregar extrato</h3>
                     <p>${error.message}</p>
-                    <button onclick="carregarExtrato()" class="btn-acao" style="margin-top: 15px;">
+                    <button onclick="carregarExtrato(true)" class="btn-acao" style="margin-top: 15px;">
                         <i class="fas fa-redo"></i> Tentar novamente
                     </button>
                 </div>
             `;
+            
+            document.getElementById('botoesCarregarMais').style.display = 'none';
         }
     }
     
-    // 🔥 FUNÇÃO: Processar dados do extrato (LÓGICA IDÊNTICA AO KIVY)
+    // 🔥 FUNÇÃO: Carregar mais 30 dias
+    async function carregarMaisDias() {
+        if (carregandoMais) return; // Evitar múltiplos cliques
+        
+        carregandoMais = true;
+        
+        // Mostrar loading no botão
+        const btnCarregarMais = document.querySelector('#botoesCarregarMais button');
+        const btnOriginalHTML = btnCarregarMais.innerHTML;
+        btnCarregarMais.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando...';
+        btnCarregarMais.disabled = true;
+        
+        // Aumentar dias carregados
+        const novosDiasCarregados = diasCarregados + 30;
+        
+        try {
+            // Filtrar para mostrar mais dias
+            filtrarTransacoesPorDias(novosDiasCarregados);
+            
+            // Atualizar interface
+            atualizarInterfaceExtrato();
+            atualizarContadorDias();
+            
+            // Verificar se ainda há mais transações para carregar
+            if (todasTransacoesPeriodo.length <= transacoesExibidas.length) {
+                document.getElementById('botoesCarregarMais').style.display = 'none';
+                mostrarMensagem('Todas as transações já foram carregadas', 'info');
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro ao carregar mais dias:', error);
+            mostrarMensagem('Erro ao carregar mais transações: ' + error.message, 'erro');
+        } finally {
+            // Restaurar botão
+            carregandoMais = false;
+            btnCarregarMais.innerHTML = btnOriginalHTML;
+            btnCarregarMais.disabled = false;
+        }
+    }
+
+    // 🔥 FUNÇÃO: Atualizar contador de dias na interface
+    function atualizarContadorDias() {
+        const contadorElement = document.getElementById('contadorDias');
+        const totalTransacoes = todasTransacoesPeriodo.length;
+        const exibidas = transacoesExibidas.length;
+        
+        if (contadorElement) {
+            if (exibidas >= totalTransacoes) {
+                contadorElement.textContent = `Mostrando todo o período (${totalTransacoes} transações)`;
+            } else {
+                contadorElement.textContent = `Mostrando últimos ${diasCarregados} dias (${exibidas} de ${totalTransacoes} transações)`;
+            }
+        }
+    }
+
+    // 🔥 FUNÇÃO: Processar dados do extrato (LÓGICA SIMPLIFICADA)
     function processarDadosExtrato(data) {
-        extratoData = data.transacoes || [];
-        saldoFinal = data.saldo_final || 0;
-        totalEntradas = data.total_entradas || 0;
-        totalSaidas = data.total_saidas || 0;
-        moedaAtual = data.moeda || 'USD';
-        
-        // 🔥 APLICAR FILTROS (MESMA LÓGICA DO KIVY)
-        aplicarFiltros();
-        
-        // 🔥 ATUALIZAR INTERFACE
-        atualizarInterfaceExtrato();
-        
-        // 🔥 ATUALIZAR RESUMO
-        atualizarPainelResumo();
-        
-        // Atualizar hora da última atualização
-        document.getElementById('ultimaAtualizacao').textContent = 
-            new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        // 🔥 AGORA ESTA FUNÇÃO É CHAMADA DENTRO DE carregarExtrato()
+        // A lógica foi movida para lá
+        console.log('📊 Dados processados:', data.transacoes?.length || 0, 'transações');
     }
     
     // 🔥 FUNÇÃO: Aplicar filtros (MESMA LÓGICA DO KIVY)
@@ -1344,7 +1418,8 @@
     function atualizarInterfaceExtrato() {
         const container = document.getElementById('listaTransacoes');
         
-        if (transacoesFiltradas.length === 0) {
+        // 🔥 USAR transacoesExibidas em vez de transacoesFiltradas
+        if (transacoesExibidas.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
                     <i class="fas fa-receipt"></i>
@@ -1358,7 +1433,8 @@
         // 🔥 CRIAR HTML DAS TRANSAÇÕES (ESTILO IDÊNTICO AO KIVY)
         let html = '';
         
-        transacoesFiltradas.forEach((transacao, index) => {
+        // 🔥 USAR transacoesExibidas
+        transacoesExibidas.forEach((transacao, index) => {
             // 🔥 FORMATAR DATA (MESMO DO KIVY)
             const dataFormatada = formatarDataApenasDiaMesAno(transacao.data);
             const dataSeparada = separarDataParaCard(dataFormatada);
@@ -1421,20 +1497,12 @@
     // FUNÇÕES DE CONTROLE DE PERÍODO
     // ============================================
     
-    // 🔥 FUNÇÃO: Mudar período (MESMA LÓGICA DO KIVY)
+    // 🔥 FUNÇÃO: Mudar período (APENAS TODO PERÍODO E PERSONALIZADO)
     function mudarPeriodo(periodo) {
         periodoAtivo = periodo;
         
         // Atualizar select
         document.getElementById('selectPeriodo').value = periodo;
-        
-        // Atualizar botões ativos
-        document.querySelectorAll('.btn-periodo').forEach(btn => {
-            btn.classList.remove('ativo');
-            if (btn.dataset.periodo === periodo) {
-                btn.classList.add('ativo');
-            }
-        });
         
         // Mostrar/ocultar período personalizado
         const periodoPersonalizado = document.getElementById('periodoPersonalizado');
@@ -1443,8 +1511,12 @@
         } else {
             periodoPersonalizado.style.display = 'none';
             
-            // Se não for personalizado, carregar extrato automaticamente
-            carregarExtrato();
+            // 🔥 SEMPRE começar com 30 dias
+            diasCarregados = 30;
+            offsetDias = 0;
+            
+            // Carregar extrato
+            carregarExtrato(true);
         }
     }
     
@@ -1669,11 +1741,11 @@
         });
         
         // Eventos dos botões de período rápido
-        document.querySelectorAll('.btn-periodo').forEach(btn => {
-            btn.addEventListener('click', function() {
-                mudarPeriodo(this.dataset.periodo);
-            });
-        });
+        //document.querySelectorAll('.btn-periodo').forEach(btn => {
+        //    btn.addEventListener('click', function() {
+        //        mudarPeriodo(this.dataset.periodo);
+        //    });
+        //});
         
         // Evento de clique fora do modal para fechar
         document.getElementById('modalDetalhes').addEventListener('click', function(e) {
