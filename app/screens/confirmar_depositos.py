@@ -17,14 +17,28 @@ class TelaConfirmarDepositos(Screen):
         self.spinner_banco_origem = None  # 🔥 CORREÇÃO: Guardar referência separada
 
     def on_pre_enter(self):
-        """Chamado antes da tela ser mostrada"""
+        """Chamado antes da tela ser mostrada - VERSÃO COMPLETA"""
         print("🎬 TelaConfirmarDepositos.on_pre_enter()")
+        
+        # 🔥 DEBUG: Verificar saldos atuais
+        self.debug_saldos_contas()
+        
+        # 🔥 CRÍTICO: ATUALIZAR SALDOS DO SUPABASE ANTES DE CARREGAR DADOS
+        sistema = App.get_running_app().sistema
+        
+        # Forçar atualização dos saldos do Supabase
+        sistema.atualizar_saldos_contas_em_tempo_real()
+        
+        # 🔥 ATUALIZAR DADOS SEMPRE QUE ENTRAR NA TELA
         self.carregar_dados()
         
         # Tentativa alternativa: usar on_key_down
         from kivy.core.window import Window
         Window.unbind(on_key_down=self.on_key_down_alt)
         Window.bind(on_key_down=self.on_key_down_alt)
+        
+        # 🔥 FORÇAR ATUALIZAÇÃO INICIAL
+        Clock.schedule_once(lambda dt: self.atualizar_dados_em_tempo_real(), 0.1)
 
     def on_enter(self):
         """Chamado quando a tela é carregada"""
@@ -104,6 +118,12 @@ class TelaConfirmarDepositos(Screen):
         
         print(f"❌ Tecla {key} não tratada")
         return False
+
+    def on_focus_banco_origem(self, instance, focused):
+        """Quando o campo banco ganha foco, atualiza dados"""
+        if focused:
+            # Pequeno delay para evitar muitos updates
+            Clock.schedule_once(lambda dt: self.atualizar_dados_em_tempo_real(), 0.2)
 
     def proximo_campo(self):
         """Navega para o próximo campo de forma simples e direta"""
@@ -268,14 +288,21 @@ class TelaConfirmarDepositos(Screen):
                 return 0.0
     
     def carregar_dados(self):
-        """Carrega clientes e contas - VERSÃO PADRONIZADA COM SUPABASE"""
+        """Carrega clientes e contas - VERSÃO COM SALDOS ATUALIZADOS DO SUPABASE"""
         sistema = App.get_running_app().sistema
+        
+        # 🔥 CRÍTICO: PRIMEIRO atualizar saldos do Supabase
+        print("🔄 ATUALIZANDO SALDOS DO SUPABASE ANTES DE CARREGAR...")
+        sistema.atualizar_saldos_contas_em_tempo_real()
         
         # 🔥 PADRÃO: Carregar clientes do Supabase primeiro
         self.clientes = self.carregar_clientes_hibrido(sistema)
         
-        # 🔥 PADRÃO: Carregar contas da empresa do Supabase primeiro  
-        self.contas_empresa = self.carregar_contas_empresa_hibrido(sistema)
+        # 🔥 PADRÃO: Carregar contas da empresa ATUALIZADAS do Supabase  
+        self.contas_empresa = self.carregar_contas_empresa_atualizadas(sistema)
+        
+        # 🔥 ATUALIZAR CONTAS DOS CLIENTES COM SALDOS REAIS
+        self.atualizar_contas_clientes_com_saldos_reais(sistema)
         
         # Resto do código permanece igual
         if hasattr(self, 'ids'):
@@ -286,6 +313,24 @@ class TelaConfirmarDepositos(Screen):
             
         if self.spinner_banco_origem:
             self.on_banco_selecionado(None, "Outro Banco")
+
+    def atualizar_contas_clientes_com_saldos_reais(self, sistema):
+        """Atualiza as contas dos clientes com saldos reais do sistema"""
+        print("🔄 Atualizando contas dos clientes com saldos reais...")
+        
+        for cliente in self.clientes:
+            username = cliente.get('username')
+            if username and username in sistema.usuarios:
+                # Atualizar lista de contas do cliente
+                cliente['contas'] = sistema.usuarios[username].get('contas', [])
+                
+                # Debug: mostrar contas e saldos
+                print(f"👤 Cliente {username}: {len(cliente['contas'])} contas")
+                for conta_num in cliente['contas']:
+                    if conta_num in sistema.contas:
+                        saldo = sistema.contas[conta_num].get('saldo', 0)
+                        moeda = sistema.contas[conta_num].get('moeda', 'USD')
+                        print(f"   💳 {conta_num}: {moeda} {saldo:,.2f}")
 
     def carregar_clientes_hibrido(self, sistema):
         """Carrega clientes - SUPABASE FIRST, igual outras telas"""
@@ -317,6 +362,22 @@ class TelaConfirmarDepositos(Screen):
         print("🔄 Carregando contas empresa do JSON (fallback)")
         return sistema.contas_bancarias_empresa
   
+    def carregar_contas_empresa_atualizadas(self, sistema):
+        """Carrega contas da empresa COM SALDOS ATUAIS do sistema"""
+        contas_atualizadas = {}
+        
+        # Buscar direto do sistema (que já está atualizado)
+        for conta_num, conta_info in sistema.contas_bancarias_empresa.items():
+            contas_atualizadas[conta_num] = {
+                'numero': conta_num,
+                'banco': conta_info['banco'],
+                'moeda': conta_info['moeda'],
+                'saldo': conta_info['saldo']  # 🔥 SALDO ATUALIZADO
+            }
+        
+        print(f"✅ {len(contas_atualizadas)} contas empresa carregadas com saldos atuais")
+        return contas_atualizadas
+
     def on_campo_valor_focado(self, instance, focused):
         """Quando o campo valor ganha foco, coloca cursor no final"""
         if focused:
@@ -476,7 +537,7 @@ class TelaConfirmarDepositos(Screen):
             self.ids.layout_banco.height = dp(80)
     
     def on_cliente_selecionado(self, cliente_selecionado):
-        """Quando um cliente é selecionado, carrega suas contas"""
+        """Quando um cliente é selecionado, carrega suas contas ATUALIZADAS"""
         if not cliente_selecionado or cliente_selecionado == "Selecione o cliente":
             return
         
@@ -484,30 +545,166 @@ class TelaConfirmarDepositos(Screen):
         username = cliente_selecionado.split('(')[-1].replace(')', '')
         
         sistema = App.get_running_app().sistema
-        cliente_info = sistema.usuarios.get(username)
         
-        if not cliente_info:
+        print(f"🔍 Buscando contas atualizadas para cliente: {username}")
+        
+        # 🔥 CRÍTICO: Buscar cliente ATUALIZADO do sistema
+        cliente_atualizado = None
+        for cliente in self.clientes:
+            if cliente.get('username') == username:
+                cliente_atualizado = cliente
+                break
+        
+        if not cliente_atualizado:
+            # Fallback: buscar do sistema
+            cliente_atualizado = sistema.usuarios.get(username)
+        
+        if not cliente_atualizado:
+            print(f"❌ Cliente {username} não encontrado")
             return
         
-        # Carregar contas do cliente
-        contas_cliente = []
-        for conta_num in cliente_info.get('contas', []):
+        # 🔥 ATUALIZAR: Carregar contas do cliente COM SALDOS ATUAIS DO SISTEMA
+        contas_cliente_atualizadas = []
+        for conta_num in cliente_atualizado.get('contas', []):
             if conta_num in sistema.contas:
                 conta_info = sistema.contas[conta_num]
-                contas_cliente.append({
+                # 🔥 Buscar saldo ATUALIZADO direto do sistema
+                saldo_atual = sistema.contas[conta_num]['saldo']
+                
+                contas_cliente_atualizadas.append({
                     'numero': conta_num,
                     'moeda': conta_info['moeda'],
-                    'saldo': conta_info['saldo']
+                    'saldo': saldo_atual  # 🔥 SALDO ATUALIZADO
                 })
+                print(f"  ✅ Conta {conta_num}: R$ {saldo_atual:,.2f}")
         
         # Atualizar spinner de contas do cliente
         if hasattr(self, 'ids') and 'spinner_conta_cliente' in self.ids:
-            opcoes_contas_cliente = [f"{conta['numero']} - {conta['moeda']} (Saldo: {conta['saldo']:,.2f})" 
-                                   for conta in contas_cliente]
-            self.ids.spinner_conta_cliente.values = opcoes_contas_cliente
-            if opcoes_contas_cliente:
-                self.ids.spinner_conta_cliente.text = opcoes_contas_cliente[0]
-    
+            if contas_cliente_atualizadas:
+                opcoes_contas_cliente = [
+                    f"{conta['numero']} - {conta['moeda']} (Saldo: {conta['saldo']:,.2f})" 
+                    for conta in contas_cliente_atualizadas
+                ]
+                self.ids.spinner_conta_cliente.values = opcoes_contas_cliente
+                
+                # Manter seleção atual se possível
+                conta_atual = self.ids.spinner_conta_cliente.text
+                if conta_atual and any(conta_atual.startswith(c['numero']) for c in contas_cliente_atualizadas):
+                    # Encontrar a conta correspondente
+                    for conta in contas_cliente_atualizadas:
+                        if conta_atual.startswith(conta['numero']):
+                            nova_opcao = f"{conta['numero']} - {conta['moeda']} (Saldo: {conta['saldo']:,.2f})"
+                            self.ids.spinner_conta_cliente.text = nova_opcao
+                            break
+                else:
+                    self.ids.spinner_conta_cliente.text = opcoes_contas_cliente[0]
+                
+                # 🔥 FORÇAR ATUALIZAÇÃO DAS CONTAS DA EMPRESA
+                self.on_conta_cliente_selecionada(self.ids.spinner_conta_cliente.text)
+            else:
+                self.ids.spinner_conta_cliente.values = []
+                self.ids.spinner_conta_cliente.text = "Nenhuma conta disponível"
+                print(f"⚠️ Cliente {username} não tem contas")
+
+    def atualizar_dados_em_tempo_real(self):
+        """Atualiza todos os dados com informações em tempo real"""
+        sistema = App.get_running_app().sistema
+        
+        print("🔄 Atualizando dados em tempo real...")
+        
+        try:
+            # 1. Buscar dados atualizados do sistema
+            self.clientes = self.carregar_clientes_hibrido(sistema)
+            
+            # 2. Buscar contas da empresa atualizadas
+            self.contas_empresa = {}
+            if hasattr(sistema, 'contas_bancarias_empresa'):
+                for conta_num, conta_info in sistema.contas_bancarias_empresa.items():
+                    self.contas_empresa[conta_num] = {
+                        'numero': conta_num,
+                        'banco': conta_info.get('banco', ''),
+                        'moeda': conta_info.get('moeda', 'BRL'),
+                        'saldo': conta_info.get('saldo', 0.0)
+                    }
+            
+            # 3. Atualizar spinners visuais
+            self.atualizar_spinners_com_dados_reais()
+            
+            print(f"✅ Dados atualizados: {len(self.clientes)} clientes, {len(self.contas_empresa)} contas empresa")
+            
+        except Exception as e:
+            print(f"❌ Erro ao atualizar dados em tempo real: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def atualizar_spinners_com_dados_reais(self):
+        """Atualiza os spinners com dados ATUAIS do sistema - VERSÃO CORRIGIDA"""
+        if not hasattr(self, 'ids') or 'spinner_cliente' not in self.ids:
+            return
+        
+        sistema = App.get_running_app().sistema
+        
+        print("🔄 Atualizando spinners com dados reais...")
+        
+        # 🔥 ATUALIZAR: Spinner de clientes
+        cliente_selecionado_atual = self.ids.spinner_cliente.text
+        
+        # Reconstruir opções com dados atualizados
+        opcoes_clientes = [
+            f"{cliente['nome']} ({cliente['username']})" 
+            for cliente in self.clientes
+        ]
+        
+        self.ids.spinner_cliente.values = opcoes_clientes
+        
+        # Manter seleção atual ou selecionar primeiro
+        if cliente_selecionado_atual in opcoes_clientes:
+            # 🔥 MANTER seleção atual mas FORÇAR atualização das contas
+            self.ids.spinner_cliente.text = cliente_selecionado_atual
+            self.on_cliente_selecionado(cliente_selecionado_atual)
+        elif opcoes_clientes:
+            self.ids.spinner_cliente.text = opcoes_clientes[0]
+            self.on_cliente_selecionado(opcoes_clientes[0])
+        else:
+            self.ids.spinner_cliente.text = "Nenhum cliente disponível"
+        
+        print("✅ Spinners atualizados com dados reais")
+
+    def forcar_atualizacao_completa(self):
+        """Força uma atualização completa de todos os dados - VERSÃO SIMPLIFICADA"""
+        print("🔧 FORÇANDO ATUALIZAÇÃO COMPLETA...")
+        
+        sistema = App.get_running_app().sistema
+        
+        # 1. Atualizar dados do sistema (se necessário)
+        if hasattr(sistema, 'atualizar_dados'):
+            sistema.atualizar_dados()
+        elif hasattr(sistema, 'carregar_dados'):
+            sistema.carregar_dados()
+        
+        # 2. Atualizar listas locais
+        print("  🔄 Atualizando lista de clientes...")
+        self.clientes = self.carregar_clientes_hibrido(sistema)
+        
+        print("  🔄 Atualizando contas da empresa...")
+        self.contas_empresa = self.carregar_contas_empresa_atualizadas(sistema)
+        
+        # 3. Mostrar status atual
+        print(f"  📊 Status atual:")
+        print(f"    • Clientes: {len(self.clientes)}")
+        print(f"    • Contas empresa: {len(self.contas_empresa)}")
+        
+        if hasattr(sistema, 'contas'):
+            print(f"    • Contas no sistema: {len(sistema.contas)}")
+            # Mostrar algumas contas como exemplo
+            for i, (conta_num, conta_info) in enumerate(list(sistema.contas.items())[:3]):
+                print(f"      - {conta_num}: R$ {conta_info.get('saldo', 0):,.2f}")
+        
+        # 4. Atualizar spinners
+        self.atualizar_spinners_com_dados_reais()
+        
+        print("✅ Atualização completa concluída")
+
     def on_conta_cliente_selecionada(self, conta_cliente_selecionada):
         """Quando uma conta do cliente é selecionada, filtra contas da empresa pela mesma moeda"""
         if not conta_cliente_selecionada or conta_cliente_selecionada == "Selecione a conta do cliente":
@@ -556,10 +753,13 @@ class TelaConfirmarDepositos(Screen):
         return banco_selecionado
     
     def validar_dados(self):
-        """Valida os dados - ATUALIZADO PARA CAMPO VALOR EXISTENTE"""
+        """Valida os dados - COM ATUALIZAÇÃO EM TEMPO REAL"""
         if not hasattr(self, 'ids'):
             return False
-            
+        
+        # 🔥 CRÍTICO: ATUALIZAR DADOS ANTES DE VALIDAR
+        self.atualizar_dados_em_tempo_real()
+        
         # Validar banco de origem
         banco_origem = self.obter_banco_origem()
         if not banco_origem or banco_origem == "Outro Banco":
@@ -580,7 +780,7 @@ class TelaConfirmarDepositos(Screen):
         
         # 🔥 VALIDAR VALOR USANDO MÉTODO DO CAMPO EXISTENTE
         try:
-            valor = self.get_valor_numerico()  # 🔥 Já usa get_float_value
+            valor = self.get_valor_numerico()
             if valor <= 0:
                 self.mostrar_erro("O valor deve ser maior que zero")
                 return False
@@ -591,7 +791,22 @@ class TelaConfirmarDepositos(Screen):
         return True
     
     def confirmar_deposito(self):
-        """Confirma o depósito - VERSÃO SUPABASE-FIRST - MODIFICADA PARA MANTER CLIENTE/CONTAS"""
+        """Confirma o depósito - COM VERIFICAÇÃO DE SALDO ATUAL"""
+        # 🔥 VERIFICAÇÃO FINAL: Atualizar dados ANTES de validar
+        print("🔍 VERIFICAÇÃO FINAL: Atualizando dados antes do depósito...")
+        
+        # Versão mais simples e segura:
+        self.atualizar_dados_em_tempo_real()
+        
+        # Pequeno delay para garantir que os dados foram atualizados
+        from kivy.clock import Clock
+        Clock.schedule_once(lambda dt: self.processar_confirmacao_deposito(), 0.1)
+
+    def processar_confirmacao_deposito(self):
+        """Processa a confirmação do depósito após atualizar dados"""
+        if not self.validar_dados():
+            return
+        
         if not self.validar_dados():
             return
         
@@ -1004,3 +1219,24 @@ class TelaConfirmarDepositos(Screen):
     def voltar_dashboard(self):
         """Volta para o dashboard"""
         self.manager.current = 'dashboard'
+
+    def debug_saldos_contas(self):
+        """Debug para verificar saldos das contas"""
+        sistema = App.get_running_app().sistema
+        
+        print("=== 🔍 DEBUG SALDOS DE CONTAS ===")
+        
+        # Verificar contas da empresa
+        print("🏦 CONTAS DA EMPRESA:")
+        for conta_num, conta_info in sistema.contas_bancarias_empresa.items():
+            print(f"  💼 {conta_num}: {conta_info.get('moeda', '')} {conta_info.get('saldo', 0):,.2f}")
+        
+        # Verificar algumas contas de clientes
+        print("👤 CONTAS DE CLIENTES (amostra):")
+        contas_amostra = 0
+        for conta_num, conta_info in sistema.contas.items():
+            if contas_amostra < 5:  # Mostrar apenas 5 para não poluir
+                print(f"  👤 {conta_num}: {conta_info.get('cliente', '')} - {conta_info.get('moeda', '')} {conta_info.get('saldo', 0):,.2f}")
+                contas_amostra += 1
+        
+        print("=== 🎯 FIM DEBUG ===")

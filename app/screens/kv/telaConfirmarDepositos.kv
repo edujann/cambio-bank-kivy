@@ -68,6 +68,7 @@
                         size_hint_y: 0.6
                         on_text: root.on_cliente_selecionado(self.text)
                         on_is_open: if not self.is_open: root.proximo_campo()  # 🔥 NOVO
+                      
 
                 # Conta do Cliente
                 BoxLayout:
@@ -90,7 +91,7 @@
                         size_hint_y: 0.6
                         on_text: root.on_conta_cliente_selecionada(self.text)
                         on_is_open: if not self.is_open: root.proximo_campo()  # 🔥 NOVO
-
+                        
                 # Conta da Empresa
                 BoxLayout:
                     orientation: 'vertical'
@@ -111,7 +112,7 @@
                         color: 1, 1, 1, 1
                         size_hint_y: 0.6
                         on_is_open: if not self.is_open: root.proximo_campo()  # 🔥 NOVO
-
+                      
                 # Banco de Origem com layout dinâmico
                 BoxLayout:
                     id: layout_banco

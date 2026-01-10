@@ -401,6 +401,68 @@ class SistemaCambioPremium:
             print(f"❌ Erro ao atualizar saldo no Supabase: {e}")
             return False
 
+    def atualizar_saldos_contas_em_tempo_real(self):
+        """Atualiza TODOS os saldos das contas buscando do Supabase em tempo real - VERSÃO CORRIGIDA"""
+        try:
+            print("🔄 ATUALIZANDO SALDOS EM TEMPO REAL DO SUPABASE...")
+            
+            if not hasattr(self, 'supabase') or not self.supabase.conectado:
+                print("⚠️ Supabase não disponível, usando cache local")
+                return False
+            
+            # 1. Atualizar contas bancárias da empresa
+            response_empresa = self.supabase.client.table('contas_bancarias_empresa')\
+                .select('numero, saldo')\
+                .execute()
+            
+            if response_empresa.data:
+                for conta in response_empresa.data:
+                    conta_num = conta['numero']
+                    saldo_atual = float(conta['saldo'])
+                    
+                    if conta_num in self.contas_bancarias_empresa:
+                        # Atualizar saldo no cache local
+                        self.contas_bancarias_empresa[conta_num]['saldo'] = saldo_atual
+                        print(f"   💼 Conta empresa {conta_num}: {saldo_atual:,.2f}")
+            
+            # 2. Atualizar contas dos clientes
+            response_clientes = self.supabase.client.table('contas')\
+                .select('id, saldo')\
+                .execute()
+            
+            if response_clientes.data:
+                contas_atualizadas = 0
+                for conta in response_clientes.data:
+                    conta_num = conta['id']
+                    saldo_atual = float(conta['saldo'])
+                    
+                    if conta_num in self.contas:
+                        # Atualizar saldo no cache local
+                        self.contas[conta_num]['saldo'] = saldo_atual
+                        contas_atualizadas += 1
+                        
+                        # Debug: mostrar algumas contas
+                        if contas_atualizadas <= 5:
+                            print(f"   👤 Conta cliente {conta_num}: {saldo_atual:,.2f}")
+                
+                print(f"✅ {contas_atualizadas} contas de clientes atualizadas")
+            
+            # 3. Atualizar contas dos usuários no cache
+            self.atualizar_contas_usuarios()
+            
+            # 4. Salvar cache local para backup
+            self.salvar_contas()
+            self.salvar_contas_bancarias()
+            
+            print("✅ Todos os saldos atualizados em tempo real do Supabase!")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Erro ao atualizar saldos em tempo real: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
     def verificar_sincronizacao_saldos(self, conta_numero):
         """Verifica se o saldo local está sincronizado com o Supabase"""
         try:

@@ -244,13 +244,6 @@
         "cliente_nome": "THIERRY IMPORTERS LTDA",
         "data_criacao": "2025-12-19"
     },
-    "802194129": {
-        "moeda": "BRL",
-        "saldo": 89500.0,
-        "cliente": "pantanal",
-        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
-    },
     "922195498": {
         "moeda": "GBP",
         "saldo": 0.0,
@@ -313,13 +306,6 @@
         "cliente": "edinho",
         "cliente_nome": "EDINHO ENTERPRISE",
         "data_criacao": "2025-12-22"
-    },
-    "607906288": {
-        "moeda": "USD",
-        "saldo": 25000.0,
-        "cliente": "pantanal",
-        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
     },
     "163569885": {
         "moeda": "EUR",
@@ -398,6 +384,13 @@
         "cliente_nome": "NEOSORO LIMITADA",
         "data_criacao": "2026-01-01"
     },
+    "802194129": {
+        "moeda": "BRL",
+        "saldo": -55500.0,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18"
+    },
     "792916936": {
         "moeda": "USD",
         "saldo": 0.0,
@@ -411,6 +404,13 @@
         "cliente": "aligator",
         "cliente_nome": "ALIGATOR ENTERPRISE",
         "data_criacao": "2026-01-02"
+    },
+    "607906288": {
+        "moeda": "USD",
+        "saldo": 96500.0,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18"
     },
     "967240582": {
         "moeda": "BRL",
