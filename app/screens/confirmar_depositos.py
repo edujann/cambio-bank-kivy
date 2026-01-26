@@ -13,32 +13,22 @@ import datetime
 class TelaConfirmarDepositos(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.campo_outro_banco = None
         self.spinner_banco_origem = None  # 🔥 CORREÇÃO: Guardar referência separada
 
     def on_pre_enter(self):
-        """Chamado antes da tela ser mostrada - VERSÃO COMPLETA"""
-        print("🎬 TelaConfirmarDepositos.on_pre_enter()")
+        """Chamado antes da tela ser mostrada - VERSÃO ATUALIZADA"""
+        print("🎬 TelaConfirmarDepositos.on_pre_enter() - FORÇANDO RECARGA")
         
-        # 🔥 DEBUG: Verificar saldos atuais
+        # 🔥 FORÇAR RECARGA COMPLETA (CARREGA NOVAS CONTAS DO SUPABASE)
+        self.forcar_recarga_tela()
+        
+        # 🔥 MANTER O DEBUG DOS SALDOS (OPCIONAL, MAS ÚTIL)
         self.debug_saldos_contas()
         
-        # 🔥 CRÍTICO: ATUALIZAR SALDOS DO SUPABASE ANTES DE CARREGAR DADOS
-        sistema = App.get_running_app().sistema
-        
-        # Forçar atualização dos saldos do Supabase
-        sistema.atualizar_saldos_contas_em_tempo_real()
-        
-        # 🔥 ATUALIZAR DADOS SEMPRE QUE ENTRAR NA TELA
-        self.carregar_dados()
-        
-        # Tentativa alternativa: usar on_key_down
+        # 🔥 MANTEM O KEYBOARD HANDLING
         from kivy.core.window import Window
         Window.unbind(on_key_down=self.on_key_down_alt)
         Window.bind(on_key_down=self.on_key_down_alt)
-        
-        # 🔥 FORÇAR ATUALIZAÇÃO INICIAL
-        Clock.schedule_once(lambda dt: self.atualizar_dados_em_tempo_real(), 0.1)
 
     def on_enter(self):
         """Chamado quando a tela é carregada"""
@@ -126,31 +116,25 @@ class TelaConfirmarDepositos(Screen):
             Clock.schedule_once(lambda dt: self.atualizar_dados_em_tempo_real(), 0.2)
 
     def proximo_campo(self):
-        """Navega para o próximo campo de forma simples e direta"""
+        """Navega para o próximo campo de forma simples e direta - VERSÃO CORRIGIDA"""
         print("🔄 proximo_campo chamado!")
         
         if not hasattr(self, 'ids'):
             print("❌ IDs não disponíveis")
             return
         
-        # Ordem dos campos
+        # Ordem dos campos - 🔥 REMOVER 'campo_outro_banco' da lista
         campos = [
             'spinner_cliente',
             'spinner_conta_cliente', 
             'spinner_conta_empresa',
             'spinner_banco_origem',
+            'campo_outro_banco',  # 🔥 AGORA É UM ID DIRETO NOS self.ids
             'entry_remetente',
             'entry_valor'
         ]
         
         print(f"📋 Campos na ordem: {campos}")
-        
-        # Incluir campo "Outro Banco" se existir
-        if self.campo_outro_banco and self.campo_outro_banco.parent:
-            print("✅ Campo 'Outro Banco' encontrado, incluindo na navegação")
-            # Inserir após spinner_banco_origem
-            index_banco = campos.index('spinner_banco_origem')
-            campos.insert(index_banco + 1, 'campo_outro_banco')
         
         # Encontrar campo atual com foco
         campo_atual = None
@@ -179,10 +163,17 @@ class TelaConfirmarDepositos(Screen):
             if proximo_campo:
                 print(f"➡️ Navegando de {campo_atual} para {proximo_campo_id}")
                 
-                # 🔥 CORREÇÃO: Pequeno delay para evitar conflito de foco
+                # 🔥 CORREÇÃO: Verificar se o campo está habilitado
+                if hasattr(proximo_campo, 'disabled') and proximo_campo.disabled:
+                    # Pular para o próximo campo
+                    print(f"⏭️ Campo {proximo_campo_id} desabilitado, pulando...")
+                    self.proximo_campo()  # Recursão para pular
+                    return
+                    
+                # Pequeno delay para evitar conflito de foco
                 from kivy.clock import Clock
                 Clock.schedule_once(lambda dt: self.mudar_foco_seguro(proximo_campo), 0.05)
-                    
+                        
             else:
                 print(f"❌ Próximo campo {proximo_campo_id} não encontrado")
 
@@ -255,12 +246,9 @@ class TelaConfirmarDepositos(Screen):
             spinner.focus = True
 
     def get_campo_por_id(self, campo_id):
-        """Retorna o campo pelo ID, tratando casos especiais"""
-        if campo_id == 'campo_outro_banco':
-            return self.campo_outro_banco
-        elif campo_id == 'spinner_banco_origem' and self.spinner_banco_origem:  # 🔥 CORREÇÃO
-            return self.spinner_banco_origem
-        elif hasattr(self, 'ids') and campo_id in self.ids:
+        """Retorna o campo pelo ID - VERSÃO CORRIGIDA"""
+        # 🔥 AGORA 'campo_outro_banco' está em self.ids, não em self.campo_outro_banco
+        if hasattr(self, 'ids') and campo_id in self.ids:
             return self.ids[campo_id]
         return None
 
@@ -288,23 +276,34 @@ class TelaConfirmarDepositos(Screen):
                 return 0.0
     
     def carregar_dados(self):
-        """Carrega clientes e contas - VERSÃO COM SALDOS ATUALIZADOS DO SUPABASE"""
+        """Carrega clientes e contas - VERSÃO ATUALIZADA"""
         sistema = App.get_running_app().sistema
         
-        # 🔥 CRÍTICO: PRIMEIRO atualizar saldos do Supabase
-        print("🔄 ATUALIZANDO SALDOS DO SUPABASE ANTES DE CARREGAR...")
-        sistema.atualizar_saldos_contas_em_tempo_real()
+        print("🔄 CARREGANDO DADOS PARA TELA CONFIRMAR DEPÓSITO...")
         
-        # 🔥 PADRÃO: Carregar clientes do Supabase primeiro
+        # 🔥 CRÍTICO: FORÇAR ATUALIZAÇÃO DIRETA DO SUPABASE
+        self.atualizar_dados_diretamente_do_supabase(sistema)
+        
+        # 🔥 AGORA CARREGAR DOS DADOS ATUALIZADOS DO SISTEMA
         self.clientes = self.carregar_clientes_hibrido(sistema)
         
-        # 🔥 PADRÃO: Carregar contas da empresa ATUALIZADAS do Supabase  
-        self.contas_empresa = self.carregar_contas_empresa_atualizadas(sistema)
+        # 🔥 IMPORTANTE: Usar contas direto do sistema (que já foram atualizadas)
+        self.contas_empresa = {}
+        for conta_num, conta_info in sistema.contas_bancarias_empresa.items():
+            self.contas_empresa[conta_num] = {
+                'numero': conta_num,
+                'banco': conta_info.get('banco', ''),
+                'moeda': conta_info.get('moeda', 'BRL'),
+                'saldo': conta_info.get('saldo', 0.0)
+            }
         
-        # 🔥 ATUALIZAR CONTAS DOS CLIENTES COM SALDOS REAIS
-        self.atualizar_contas_clientes_com_saldos_reais(sistema)
+        print(f"✅ Dados carregados: {len(self.clientes)} clientes, {len(self.contas_empresa)} contas empresa")
         
-        # Resto do código permanece igual
+        # 🔥 DEBUG: Verificar contas carregadas
+        print("📋 Contas empresa carregadas:")
+        for conta_num, conta_info in self.contas_empresa.items():
+            print(f"   📄 {conta_num}: {conta_info['banco']} - {conta_info['moeda']} - {conta_info['saldo']:,.2f}")
+        
         if hasattr(self, 'ids'):
             self.atualizar_spinners()
         
@@ -313,6 +312,78 @@ class TelaConfirmarDepositos(Screen):
             
         if self.spinner_banco_origem:
             self.on_banco_selecionado(None, "Outro Banco")
+
+    def atualizar_dados_diretamente_do_supabase(self, sistema):
+        """Atualiza dados diretamente do Supabase - FORÇADO"""
+        try:
+            print("🔥 ATUALIZAÇÃO DIRETA DO SUPABASE...")
+            
+            if not hasattr(sistema, 'supabase') or not sistema.supabase.conectado:
+                print("⚠️ Supabase não disponível")
+                return
+            
+            # 1. ATUALIZAR CONTAS BANCÁRIAS DA EMPRESA DIRETAMENTE
+            print("📡 Buscando contas bancárias da empresa no Supabase...")
+            response = sistema.supabase.client.table('contas_bancarias_empresa')\
+                .select('*')\
+                .execute()
+            
+            if response.data:
+                print(f"📊 {len(response.data)} contas encontradas no Supabase")
+                
+                # 🔥 LIMPAR E RECARREGAR CACHE LOCAL DO SISTEMA
+                sistema.contas_bancarias_empresa.clear()
+                
+                for conta in response.data:
+                    conta_num = conta['numero']  # 🔥 IMPORTANTE: usar 'numero' não 'id'
+                    sistema.contas_bancarias_empresa[conta_num] = {
+                        'numero': conta_num,
+                        'banco': conta['banco'],
+                        'moeda': conta['moeda'],
+                        'saldo': float(conta['saldo']),
+                        'tipo': conta.get('tipo', 'empresa'),
+                        'agencia': conta.get('agencia', ''),
+                        'data_criacao': conta.get('data_criacao', ''),
+                        'saldo_inicial': float(conta.get('saldo_inicial', 0.0))
+                    }
+                
+                print(f"✅ {len(response.data)} contas bancárias atualizadas do Supabase")
+                
+                # 🔥 DEBUG: Mostrar todas as contas carregadas
+                for conta_num, conta_info in sistema.contas_bancarias_empresa.items():
+                    print(f"   🆕 {conta_num}: {conta_info['banco']} - {conta_info['moeda']} - {conta_info['saldo']:,.2f}")
+            
+            # 2. ATUALIZAR CONTAS DOS CLIENTES
+            print("📡 Buscando contas dos clientes no Supabase...")
+            response_contas = sistema.supabase.client.table('contas')\
+                .select('*')\
+                .execute()
+            
+            if response_contas.data:
+                contas_atualizadas = 0
+                for conta in response_contas.data:
+                    conta_num = conta['id']  # 🔥 IMPORTANTE: usar 'id' aqui
+                    if conta_num not in sistema.contas:
+                        contas_atualizadas += 1
+                    
+                    sistema.contas[conta_num] = {
+                        'moeda': conta['moeda'],
+                        'saldo': float(conta['saldo']),
+                        'cliente': conta['cliente_username'],
+                        'cliente_nome': conta.get('cliente_nome', ''),
+                        'data_criacao': conta.get('data_criacao', ''),
+                        'ativa': conta.get('ativa', True)
+                    }
+                
+                if contas_atualizadas > 0:
+                    print(f"✅ {contas_atualizadas} novas contas de clientes carregadas")
+            
+            print("🎯 Atualização direta do Supabase concluída!")
+            
+        except Exception as e:
+            print(f"❌ Erro na atualização direta do Supabase: {e}")
+            import traceback
+            traceback.print_exc()
 
     def atualizar_contas_clientes_com_saldos_reais(self, sistema):
         """Atualiza as contas dos clientes com saldos reais do sistema"""
@@ -453,20 +524,23 @@ class TelaConfirmarDepositos(Screen):
         print(f"🔧 Formatação: '{text}' -> '{valor_formatado}'")
 
     def atualizar_spinners(self):
-        """Atualiza os spinners com dados carregados"""
+        """Atualiza os spinners com dados carregados - VERSÃO SIMPLIFICADA"""
         if not hasattr(self, 'ids') or 'spinner_cliente' not in self.ids:
-            return  # Aguardar o KV carregar
-            
+            return
+        
+        print("🔄 Atualizando spinners...")
+        
         # Spinner de clientes
         opcoes_clientes = [f"{cliente['nome']} ({cliente['username']})" for cliente in self.clientes]
         self.ids.spinner_cliente.values = opcoes_clientes
         if opcoes_clientes:
             self.ids.spinner_cliente.text = opcoes_clientes[0]
-            self.on_cliente_selecionado(opcoes_clientes[0])
+            from kivy.clock import Clock
+            Clock.schedule_once(lambda dt: self.on_cliente_selecionado(opcoes_clientes[0]), 0.1)
         
-        # 🔥 CORREÇÃO: Usar referência direta para o spinner de banco
+        # 🔥 CONFIGURAR SPINNER DE BANCO (SIMPLES)
         bancos = [
-            "Outro Banco",  # Primeira opção
+            "Outro Banco",
             "BANCO DO BRASIL",
             "ITAÚ", 
             "HSBC",
@@ -481,60 +555,37 @@ class TelaConfirmarDepositos(Screen):
             "BANCO INTER"
         ]
         
-        # 🔥 CORREÇÃO: Buscar o spinner de banco de forma segura
         if hasattr(self, 'ids') and 'spinner_banco_origem' in self.ids:
-            self.spinner_banco_origem = self.ids.spinner_banco_origem  # 🔥 Guardar referência
+            self.spinner_banco_origem = self.ids.spinner_banco_origem
             self.spinner_banco_origem.values = bancos
-            self.spinner_banco_origem.text = "Outro Banco"  # Valor padrão
-            # Vincular evento de seleção
+            self.spinner_banco_origem.text = "Outro Banco"
             self.spinner_banco_origem.bind(text=self.on_banco_selecionado)
-            print("✅ Spinner de banco configurado com sucesso")
-        else:
-            print("⚠️ spinner_banco_origem não encontrado nos ids")
+            print("✅ Spinner de banco configurado")
     
     def on_banco_selecionado(self, spinner, texto):
-        """Quando um banco é selecionado, mostra campo para digitar se for 'Outro Banco'"""
-        if not hasattr(self, 'ids') or 'layout_banco' not in self.ids:
-            print("⚠️ layout_banco não encontrado nos ids")
+        """Controla visibilidade do campo 'Outro Banco' - VERSÃO SIMPLIFICADA"""
+        if not hasattr(self, 'ids') or 'campo_outro_banco' not in self.ids:
+            print("⚠️ Campo 'Outro Banco' não encontrado nos ids")
             return
         
         print(f"🔧 Banco selecionado: {texto}")
         
-        # Remover campo anterior se existir
-        if self.campo_outro_banco and self.campo_outro_banco.parent:
-            self.ids.layout_banco.remove_widget(self.campo_outro_banco)
-            self.campo_outro_banco = None
-        
-        # Se selecionou "Outro Banco", mostrar campo para digitar
         if texto == "Outro Banco":
-            print("🔧 Criando campo para 'Outro Banco'")
-            self.campo_outro_banco = TextInput(
-                hint_text="Digite o nome do banco...",
-                multiline=False,
-                size_hint_y=None,
-                height=dp(40),
-                background_color=(0.2, 0.25, 0.33, 1),
-                foreground_color=(1, 1, 1, 1),
-                padding=dp(10),
-                hint_text_color=(0.7, 0.7, 0.7, 1),
-                halign='center'
-            )
-            # Inserir após o spinner de banco
-            try:
-                # Adicionar o campo abaixo do spinner
-                self.ids.layout_banco.add_widget(self.campo_outro_banco)
-                
-                # Ajustar a altura do layout para acomodar o novo campo
-                self.ids.layout_banco.height = dp(120)  # Aumenta a altura do layout
-                
-                print("✅ Campo 'Outro Banco' adicionado com sucesso")
-                
-            except Exception as e:
-                print(f"❌ Erro ao adicionar campo: {e}")
+            # Mostrar e habilitar campo
+            self.ids.campo_outro_banco.opacity = 1
+            self.ids.campo_outro_banco.disabled = False
+            self.ids.layout_banco.height = dp(120)
+            print("✅ Campo 'Outro Banco' visível e habilitado")
+            
+            # 🔥 OPÇÃO: Focar automaticamente no campo
+            from kivy.clock import Clock
+            Clock.schedule_once(lambda dt: setattr(self.ids.campo_outro_banco, 'focus', True), 0.1)
         else:
-            print("🔧 Banco da lista selecionado, removendo campo extra se existir")
-            # Ajustar a altura do layout de volta ao normal
+            # Ocultar e desabilitar campo
+            self.ids.campo_outro_banco.opacity = 0
+            self.ids.campo_outro_banco.disabled = True
             self.ids.layout_banco.height = dp(80)
+            print("❌ Campo 'Outro Banco' oculto e desabilitado")
     
     def on_cliente_selecionado(self, cliente_selecionado):
         """Quando um cliente é selecionado, carrega suas contas ATUALIZADAS"""
@@ -711,7 +762,20 @@ class TelaConfirmarDepositos(Screen):
             return
         
         # Extrair moeda da conta do cliente
-        moeda_cliente = conta_cliente_selecionada.split(' - ')[1].split(' ')[0]
+        try:
+            partes = conta_cliente_selecionada.split(' - ')
+            if len(partes) >= 2:
+                moeda_cliente = partes[1].split(' ')[0]
+            else:
+                print(f"⚠️ Formato inválido da conta: {conta_cliente_selecionada}")
+                return
+        except Exception as e:
+            print(f"❌ Erro ao extrair moeda: {e}")
+            return
+        
+        # 🔥 ATUALIZAR: Verificar contas da empresa disponíveis
+        print(f"🔍 Filtrando contas empresa pela moeda: {moeda_cliente}")
+        print(f"   Total de contas empresa disponíveis: {len(self.contas_empresa)}")
         
         # Filtrar contas da empresa pela mesma moeda
         contas_empresa_filtradas = []
@@ -723,32 +787,77 @@ class TelaConfirmarDepositos(Screen):
                     'moeda': conta_info['moeda'],
                     'saldo': conta_info['saldo']
                 })
+                print(f"   ✅ {conta_num} - {conta_info['banco']} - {moeda_cliente}")
+        
+        print(f"   🎯 {len(contas_empresa_filtradas)} contas empresa na moeda {moeda_cliente}")
         
         # Atualizar spinner de contas da empresa
         if hasattr(self, 'ids') and 'spinner_conta_empresa' in self.ids:
-            opcoes_contas_empresa = [f"{conta['numero']} - {conta['banco']} - {conta['moeda']} (Saldo: {conta['saldo']:,.2f})" 
-                                   for conta in contas_empresa_filtradas]
-            self.ids.spinner_conta_empresa.values = opcoes_contas_empresa
-            if opcoes_contas_empresa:
-                self.ids.spinner_conta_empresa.text = opcoes_contas_empresa[0]
+            if contas_empresa_filtradas:
+                opcoes_contas_empresa = [f"{conta['numero']} - {conta['banco']} - {conta['moeda']} (Saldo: {conta['saldo']:,.2f})" 
+                                    for conta in contas_empresa_filtradas]
+                self.ids.spinner_conta_empresa.values = opcoes_contas_empresa
+                
+                # Tentar manter seleção anterior se possível
+                conta_atual = self.ids.spinner_conta_empresa.text
+                if conta_atual and any(conta_atual.startswith(str(c['numero'])) for c in contas_empresa_filtradas):
+                    # Encontrar a conta correspondente
+                    for conta in contas_empresa_filtradas:
+                        if conta_atual.startswith(str(conta['numero'])):
+                            nova_opcao = f"{conta['numero']} - {conta['banco']} - {conta['moeda']} (Saldo: {conta['saldo']:,.2f})"
+                            self.ids.spinner_conta_empresa.text = nova_opcao
+                            break
+                else:
+                    self.ids.spinner_conta_empresa.text = opcoes_contas_empresa[0]
             else:
-                self.ids.spinner_conta_empresa.text = "Nenhuma conta disponível"
+                self.ids.spinner_conta_empresa.values = []
+                self.ids.spinner_conta_empresa.text = f"Nenhuma conta empresa em {moeda_cliente}"
+                print(f"⚠️ Nenhuma conta empresa encontrada na moeda {moeda_cliente}")
     
+    def forcar_recarga_tela(self):
+        """Força a recarga completa da tela"""
+        print("🔄 FORÇANDO RECARGA COMPLETA DA TELA...")
+        
+        sistema = App.get_running_app().sistema
+        
+        # 🔥 ATUALIZAR DIRETAMENTE DO SUPABASE
+        self.atualizar_dados_diretamente_do_supabase(sistema)
+        
+        # 🔥 RECARREGAR CLIENTES
+        self.clientes = self.carregar_clientes_hibrido(sistema)
+        
+        # 🔥 RECARREGAR CONTAS DA EMPRESA
+        self.contas_empresa = {}
+        for conta_num, conta_info in sistema.contas_bancarias_empresa.items():
+            self.contas_empresa[conta_num] = {
+                'numero': conta_num,
+                'banco': conta_info.get('banco', ''),
+                'moeda': conta_info.get('moeda', 'BRL'),
+                'saldo': conta_info.get('saldo', 0.0)
+            }
+        
+        # 🔥 ATUALIZAR SPINNERS
+        if hasattr(self, 'ids'):
+            self.atualizar_spinners()
+        
+        print(f"✅ Tela recarregada: {len(self.contas_empresa)} contas empresa disponíveis")
+        
+        # 🔥 Mostrar mensagem de sucesso
+        self.mostrar_sucesso(f"Dados atualizados!\n{len(self.contas_empresa)} contas empresa carregadas.")
+
     def obter_banco_origem(self):
-        """Obtém o nome do banco de origem, seja do spinner ou do campo 'Outro Banco'"""
-        # 🔥 CORREÇÃO: Usar referência direta em vez de self.ids
+        """Obtém o nome do banco de origem - VERSÃO CORRIGIDA"""
         if not self.spinner_banco_origem:
             return ""
         
         banco_selecionado = self.spinner_banco_origem.text
         
-        # Se selecionou "Outro Banco" e tem campo para digitar
-        if banco_selecionado == "Outro Banco" and self.campo_outro_banco:
-            outro_banco = self.campo_outro_banco.text.strip()
-            if outro_banco:
-                return outro_banco
-            else:
-                return "Outro Banco"  # Fallback se não digitou nada
+        # Se selecionou "Outro Banco", pegar do campo de texto
+        if banco_selecionado == "Outro Banco":
+            if hasattr(self, 'ids') and 'campo_outro_banco' in self.ids:
+                outro_banco = self.ids.campo_outro_banco.text.strip()
+                if outro_banco:
+                    return outro_banco
         
         return banco_selecionado
     
@@ -760,12 +869,22 @@ class TelaConfirmarDepositos(Screen):
         # 🔥 CRÍTICO: ATUALIZAR DADOS ANTES DE VALIDAR
         self.atualizar_dados_em_tempo_real()
         
-        # Validar banco de origem
+        # Validar banco de origem - 🔥 AGORA usa obter_banco_origem()
         banco_origem = self.obter_banco_origem()
-        if not banco_origem or banco_origem == "Outro Banco":
+        if not banco_origem:
             self.mostrar_erro("Informe o banco de origem")
             return False
         
+        # 🔥 CORREÇÃO: Se for "Outro Banco", verificar se foi digitado algo
+        if banco_origem == "Outro Banco":
+            # Agora verifica se tem conteúdo no campo
+            if hasattr(self, 'ids') and 'campo_outro_banco' in self.ids:
+                outro_banco = self.ids.campo_outro_banco.text.strip()
+                if not outro_banco:
+                    self.mostrar_erro("Digite o nome do 'Outro Banco'")
+                    return False
+        
+        # Resto da validação permanece igual
         campos_obrigatorios = [
             (self.ids.spinner_cliente.text, "Selecione o cliente"),
             (self.ids.spinner_conta_cliente.text, "Selecione a conta do cliente"),
@@ -778,7 +897,7 @@ class TelaConfirmarDepositos(Screen):
                 self.mostrar_erro(mensagem)
                 return False
         
-        # 🔥 VALIDAR VALOR USANDO MÉTODO DO CAMPO EXISTENTE
+        # Validar valor
         try:
             valor = self.get_valor_numerico()
             if valor <= 0:
@@ -791,7 +910,14 @@ class TelaConfirmarDepositos(Screen):
         return True
     
     def confirmar_deposito(self):
-        """Confirma o depósito - COM VERIFICAÇÃO DE SALDO ATUAL"""
+        """Confirma o depósito - VERSÃO CORRIGIDA"""
+        print("🔍 Iniciando confirmação de depósito...")
+        
+        # 🔥 CORREÇÃO: REMOVER esta verificação antiga
+        # if self.campo_outro_banco and not self.campo_outro_banco.parent:  # ❌ REMOVER!
+        #    print("⚠️ Campo 'Outro Banco' inválido - resetando")
+        #    self.campo_outro_banco = None
+        
         # 🔥 VERIFICAÇÃO FINAL: Atualizar dados ANTES de validar
         print("🔍 VERIFICAÇÃO FINAL: Atualizando dados antes do depósito...")
         
@@ -804,6 +930,7 @@ class TelaConfirmarDepositos(Screen):
 
     def processar_confirmacao_deposito(self):
         """Processa a confirmação do depósito após atualizar dados"""
+        # 🔥 VERIFICAÇÃO SIMPLES: usar apenas self.validar_dados()
         if not self.validar_dados():
             return
         
@@ -1097,35 +1224,29 @@ class TelaConfirmarDepositos(Screen):
 
 
     def limpar_campos_parcial(self):
-        """Limpa apenas os campos do depósito atual, mantendo cliente e contas"""
-        if hasattr(self, 'ids'):
-            # 🔥 MANTÉM: spinner_cliente, spinner_conta_cliente, spinner_conta_empresa
-            
-            # 🔥 LIMPA APENAS:
-            # Banco de origem
-            if self.spinner_banco_origem:
-                self.spinner_banco_origem.text = "Outro Banco"
-                
-            # Remetente
-            self.ids.entry_remetente.text = ""
-            
-            # Valor
-            self.ids.entry_valor.text = "0.00"
-            
-            # Campo "Outro Banco" se existir
-            if self.campo_outro_banco:
-                if self.campo_outro_banco.parent:
-                    self.ids.layout_banco.remove_widget(self.campo_outro_banco)
-                self.campo_outro_banco = None
-            
-            # Resetar altura do layout do banco
-            if 'layout_banco' in self.ids:
-                self.ids.layout_banco.height = dp(80)
-            
-            # 🔥 FOCAR NO PRÓXIMO CAMPO QUE SERÁ PREENCHIDO (BANCO DE ORIGEM)
-            # Pequeno delay para garantir que a tela está pronta
-            from kivy.clock import Clock
-            Clock.schedule_once(lambda dt: self.focar_banco_origem(), 0.1)
+        """Limpa apenas os campos do depósito atual - VERSÃO FINAL"""
+        if not hasattr(self, 'ids'):
+            return
+        
+        print("🧹 Limpando campos parciais...")
+        
+        # 🔥 RESETAR SPINNER DE BANCO
+        if self.spinner_banco_origem:
+            self.spinner_banco_origem.text = "Outro Banco"
+        
+        # 🔥 LIMPAR O TEXTO DO CAMPO "OUTRO BANCO" (agora em self.ids)
+        if 'campo_outro_banco' in self.ids:
+            self.ids.campo_outro_banco.text = ""
+        
+        # Limpar outros campos
+        self.ids.entry_remetente.text = ""
+        self.ids.entry_valor.text = "0.00"
+        
+        print("✅ Campos limpos")
+        
+        # Focar no banco de origem
+        from kivy.clock import Clock
+        Clock.schedule_once(lambda dt: self.focar_banco_origem(), 0.1)
 
 
     def focar_banco_origem(self):
@@ -1140,30 +1261,46 @@ class TelaConfirmarDepositos(Screen):
 
     # Mantenha o método limpar_campos original para quando precisar limpar tudo
     def limpar_campos(self):
-        """Limpa TODOS os campos do formulário (para uso quando necessário)"""
-        if hasattr(self, 'ids'):
-            self.ids.spinner_cliente.text = "Selecione o cliente"
-            self.ids.spinner_conta_cliente.values = []
-            self.ids.spinner_conta_cliente.text = "Selecione a conta do cliente"
-            self.ids.spinner_conta_empresa.values = []
-            self.ids.spinner_conta_empresa.text = "Selecione a conta da empresa"
-            
-            # 🔥 CORREÇÃO: Usar referência direta
-            if self.spinner_banco_origem:
-                self.spinner_banco_origem.text = "Outro Banco"
-                
-            self.ids.entry_remetente.text = ""
-            self.ids.entry_valor.text = ""
-            
-            # Limpar campo "Outro Banco" se existir
-            if self.campo_outro_banco:
-                if self.campo_outro_banco.parent:
-                    self.ids.layout_banco.remove_widget(self.campo_outro_banco)
-                self.campo_outro_banco = None
-            
-            # Resetar altura do layout do banco
-            if 'layout_banco' in self.ids:
-                self.ids.layout_banco.height = dp(80)
+        """Limpa TODOS os campos do formulário - VERSÃO ATUALIZADA (opção #6)"""
+        if not hasattr(self, 'ids'):
+            return
+        
+        print("🧹🧹🧹 LIMPANDO TODOS OS CAMPOS...")
+        
+        # Resetar spinner de cliente
+        self.ids.spinner_cliente.text = "Selecione o cliente"
+        self.ids.spinner_cliente.values = []
+        
+        # Resetar conta do cliente
+        self.ids.spinner_conta_cliente.values = []
+        self.ids.spinner_conta_cliente.text = "Selecione a conta do cliente"
+        
+        # Resetar conta da empresa
+        self.ids.spinner_conta_empresa.values = []
+        self.ids.spinner_conta_empresa.text = "Selecione a conta da empresa"
+        
+        # 🔥 CORREÇÃO: Resetar spinner de banco
+        if self.spinner_banco_origem:
+            self.spinner_banco_origem.text = "Outro Banco"
+            # O evento on_banco_selecionado será chamado automaticamente
+            # e garantirá que o campo "Outro Banco" esteja visível
+        
+        # 🔥 CORREÇÃO: Limpar campo "Outro Banco" (agora em self.ids)
+        if 'campo_outro_banco' in self.ids:
+            self.ids.campo_outro_banco.text = ""
+            # Garantir que está visível (porque "Outro Banco" é selecionado)
+            self.ids.campo_outro_banco.opacity = 1
+            self.ids.campo_outro_banco.disabled = False
+        
+        # 🔥 CORREÇÃO: Limpar outros campos
+        self.ids.entry_remetente.text = ""
+        self.ids.entry_valor.text = "0.00"
+        
+        # 🔥 CORREÇÃO: Ajustar altura do layout (120 quando "Outro Banco" está visível)
+        if 'layout_banco' in self.ids:
+            self.ids.layout_banco.height = dp(120)
+        
+        print("✅✅✅ TODOS os campos limpos e resetados")
     
     def mostrar_erro(self, mensagem):
         """Mostra popup de erro"""

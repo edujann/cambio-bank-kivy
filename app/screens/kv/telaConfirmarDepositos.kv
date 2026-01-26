@@ -30,12 +30,12 @@
                 bold: True
                 color: 1, 1, 1, 1
                 halign: 'center'
-                size_hint_x: 0.6  # 🔥 CORREÇÃO: 0.6 para o título
+                size_hint_x: 0.6
                 
             # Espaço vazio da direita para compensar o botão
             Widget:
                 size_hint_x: 0.2
-                opacity: 0  # Invisível
+                opacity: 0
         
         ScrollView:
             do_scroll_x: False
@@ -47,6 +47,16 @@
                 spacing: dp(15)
                 padding: [10, 10, 10, 10]
                 
+                # Botão de Atualização
+                Button:
+                    text: "ATUALIZAR DADOS DAS CONTAS"
+                    size_hint_y: None
+                    height: dp(40)
+                    background_color: 0.2, 0.6, 0.9, 1
+                    color: 1, 1, 1, 1
+                    bold: True
+                    on_press: root.forcar_recarga_tela()
+
                 # Cliente
                 BoxLayout:
                     orientation: 'vertical'
@@ -67,8 +77,7 @@
                         color: 1, 1, 1, 1
                         size_hint_y: 0.6
                         on_text: root.on_cliente_selecionado(self.text)
-                        on_is_open: if not self.is_open: root.proximo_campo()  # 🔥 NOVO
-                      
+                        on_is_open: if not self.is_open: root.proximo_campo()
 
                 # Conta do Cliente
                 BoxLayout:
@@ -90,7 +99,7 @@
                         color: 1, 1, 1, 1
                         size_hint_y: 0.6
                         on_text: root.on_conta_cliente_selecionada(self.text)
-                        on_is_open: if not self.is_open: root.proximo_campo()  # 🔥 NOVO
+                        on_is_open: if not self.is_open: root.proximo_campo()
                         
                 # Conta da Empresa
                 BoxLayout:
@@ -111,31 +120,46 @@
                         background_color: 0.2, 0.25, 0.33, 1
                         color: 1, 1, 1, 1
                         size_hint_y: 0.6
-                        on_is_open: if not self.is_open: root.proximo_campo()  # 🔥 NOVO
+                        on_is_open: if not self.is_open: root.proximo_campo()
                       
-                # Banco de Origem com layout dinâmico
+                # Banco de Origem com layout dinâmico - 🔥 INDENTAÇÃO CORRIGIDA
                 BoxLayout:
                     id: layout_banco
                     orientation: 'vertical'
                     size_hint_y: None
-                    height: dp(80)
+                    height: dp(120)  # 🔥 ALTURA INICIAL FIXA
                     spacing: dp(5)
-                    
+    
                     Label:
                         text: 'Banco de Origem:'
                         color: 0.7, 0.8, 1, 1
                         font_size: '14sp'
-                        size_hint_y: 0.4
+                        size_hint_y: 0.25
                         halign: 'left'
-                    
+    
                     Spinner:
                         id: spinner_banco_origem
                         text: 'Outro Banco'
                         background_color: 0.2, 0.25, 0.33, 1
                         color: 1, 1, 1, 1
-                        size_hint_y: 0.6
-                        on_is_open: if not self.is_open: root.proximo_campo()  # 🔥 NOVO
-                        # O evento on_text é vinculado no Python
+                        size_hint_y: 0.25
+                        on_is_open: if not self.is_open: root.proximo_campo()
+                        on_text: root.on_banco_selecionado(self, self.text)
+    
+                    # 🔥 CAMPO "OUTRO BANCO"
+                    TextInput:
+                        id: campo_outro_banco
+                        hint_text: "Digite o nome do banco (se selecionou 'Outro Banco')..."
+                        multiline: False
+                        size_hint_y: None
+                        height: dp(40)
+                        background_color: 0.2, 0.25, 0.33, 1
+                        foreground_color: 1, 1, 1, 1
+                        padding: dp(10)
+                        hint_text_color: 0.7, 0.7, 0.7, 1
+                        halign: 'center'
+                        opacity: 1
+                        disabled: False
                         
                 # Nome do Remetente
                 BoxLayout:
@@ -157,10 +181,10 @@
                         foreground_color: 1, 1, 1, 1
                         size_hint_y: 0.6
                         padding: [10, 10]
-                        halign: 'center'  # 🔥 NOVO: Centralizar texto
+                        halign: 'center'
                         on_focus: root.proximo_campo() if not self.focus else None
                 
-                # Valor do Depósito - AGORA EM 3 COLUNAS
+                # Valor do Depósito
                 BoxLayout:
                     orientation: 'vertical'
                     size_hint_y: None
@@ -173,17 +197,14 @@
                         size_hint_y: 0.4
                         halign: 'left'
                     
-                    # Container com 3 colunas (4:2:4)
                     BoxLayout:
                         orientation: 'horizontal'
                         size_hint_y: 0.6
                         spacing: dp(5)
                         
-                        # Coluna esquerda vazia (4 partes)
                         BoxLayout:
                             size_hint_x: 4
                         
-                        # Campo valor (2 partes)
                         CampoValor:
                             id: entry_valor
                             multiline: False
@@ -198,9 +219,8 @@
                             on_text: root.formatar_valor_deposito(self, self.text)
                             on_text_validate: root.confirmar_deposito()
                             on_focus: root.proximo_campo() if not self.focus else None
-                            on_text_validate: root.proximo_campo()  # 🔥 NOVO: Enter também avança
+                            on_text_validate: root.proximo_campo()
 
-                        # Coluna direita vazia (4 partes)
                         BoxLayout:
                             size_hint_x: 4
                 

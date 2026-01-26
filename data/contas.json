@@ -4,461 +4,559 @@
         "saldo": 0.0,
         "cliente": "titan",
         "cliente_nome": "TITAN LIMITED",
-        "data_criacao": "2025-12-06"
+        "data_criacao": "2025-12-06",
+        "ativa": true
     },
     "501703684": {
         "moeda": "GBP",
         "saldo": 10000.0,
         "cliente": "texaco",
         "cliente_nome": "TEXACO LLC",
-        "data_criacao": "2025-11-01"
+        "data_criacao": "2025-11-01",
+        "ativa": true
     },
     "364559635": {
         "moeda": "GBP",
         "saldo": 0.0,
         "cliente": "titan",
         "cliente_nome": "TITAN LIMITED",
-        "data_criacao": "2025-12-06"
+        "data_criacao": "2025-12-06",
+        "ativa": true
     },
     "900519236": {
         "moeda": "BRL",
         "saldo": 0.0,
         "cliente": "titan",
         "cliente_nome": "TITAN LIMITED",
-        "data_criacao": "2025-12-06"
+        "data_criacao": "2025-12-06",
+        "ativa": true
     },
     "654000645": {
         "moeda": "EUR",
         "saldo": 0.0,
         "cliente": "londrina",
         "cliente_nome": "LONDRES LIMITED",
-        "data_criacao": "2025-11-04"
+        "data_criacao": "2025-11-04",
+        "ativa": true
     },
     "524106984": {
         "moeda": "EUR",
         "saldo": 0.0,
         "cliente": "edinho",
         "cliente_nome": "EDINHO ENTERPRISE",
-        "data_criacao": "2025-12-22"
+        "data_criacao": "2025-12-22",
+        "ativa": true
     },
     "674587563": {
         "moeda": "GBP",
         "saldo": 0.0,
         "cliente": "interpress",
         "cliente_nome": "INTERPRESS LIMITADA",
-        "data_criacao": "2025-11-20"
+        "data_criacao": "2025-11-20",
+        "ativa": true
     },
     "691581249": {
         "moeda": "BRL",
         "saldo": 0.0,
         "cliente": "interpress",
         "cliente_nome": "INTERPRESS LIMITADA",
-        "data_criacao": "2025-11-20"
+        "data_criacao": "2025-11-20",
+        "ativa": true
     },
     "732926229": {
         "moeda": "EUR",
         "saldo": 0.0,
         "cliente": "lins",
         "cliente_nome": "LINS CHAIR LIMITADA",
-        "data_criacao": "2025-11-18"
+        "data_criacao": "2025-11-18",
+        "ativa": true
     },
     "735520593": {
         "moeda": "EUR",
         "saldo": 0.0,
         "cliente": "interpress",
         "cliente_nome": "INTERPRESS LIMITADA",
-        "data_criacao": "2025-11-20"
+        "data_criacao": "2025-11-20",
+        "ativa": true
     },
     "783643563": {
         "moeda": "GBP",
         "saldo": 0.0,
         "cliente": "londrina",
         "cliente_nome": "LONDRES LIMITED",
-        "data_criacao": "2025-11-04"
+        "data_criacao": "2025-11-04",
+        "ativa": true
     },
     "709753063": {
         "moeda": "GBP",
         "saldo": 0.0,
         "cliente": "edinho",
         "cliente_nome": "EDINHO ENTERPRISE",
-        "data_criacao": "2025-12-22"
+        "data_criacao": "2025-12-22",
+        "ativa": true
     },
     "997848133": {
         "moeda": "USD",
         "saldo": 0.0,
         "cliente": "romolo",
         "cliente_nome": "ROMOLO REMESSAS LTDA",
-        "data_criacao": "2025-12-22"
+        "data_criacao": "2025-12-22",
+        "ativa": true
     },
     "860559342": {
         "moeda": "EUR",
         "saldo": -1102.5,
         "cliente": "texaco",
         "cliente_nome": "TEXACO LLC",
-        "data_criacao": "2025-11-01"
+        "data_criacao": "2025-11-01",
+        "ativa": true
     },
     "878657222": {
         "moeda": "BRL",
         "saldo": 0.0,
         "cliente": "londrina",
         "cliente_nome": "LONDRES LIMITED",
-        "data_criacao": "2025-11-04"
+        "data_criacao": "2025-11-04",
+        "ativa": true
     },
     "918871468": {
         "moeda": "GBP",
         "saldo": 0.0,
         "cliente": "romolo",
         "cliente_nome": "ROMOLO REMESSAS LTDA",
-        "data_criacao": "2025-12-22"
+        "data_criacao": "2025-12-22",
+        "ativa": true
     },
     "891355178": {
         "moeda": "USD",
         "saldo": 0.0,
         "cliente": "adidas",
         "cliente_nome": "ADIDAS LIMITED",
-        "data_criacao": "2025-10-29"
+        "data_criacao": "2025-10-29",
+        "ativa": true
     },
     "927934635": {
         "moeda": "EUR",
         "saldo": 10000.0,
         "cliente": "prada",
         "cliente_nome": "PRADA LIMITED",
-        "data_criacao": "2025-11-02"
+        "data_criacao": "2025-11-02",
+        "ativa": true
     },
     "949381419": {
         "moeda": "USD",
         "saldo": 0.0,
         "cliente": "interpress",
         "cliente_nome": "INTERPRESS LIMITADA",
-        "data_criacao": "2025-11-20"
+        "data_criacao": "2025-11-20",
+        "ativa": true
     },
     "960532724": {
         "moeda": "USD",
         "saldo": 7500.0,
         "cliente": "titan",
         "cliente_nome": "TITAN LIMITED",
-        "data_criacao": "2025-11-03"
+        "data_criacao": "2025-11-03",
+        "ativa": true
     },
     "224565364": {
         "moeda": "BRL",
         "saldo": -54062.97,
         "cliente": "makita",
         "cliente_nome": "MAKITA MACHINES LLC",
-        "data_criacao": "2025-11-26"
+        "data_criacao": "2025-11-26",
+        "ativa": true
     },
     "382984608": {
         "moeda": "USD",
         "saldo": 825.0,
         "cliente": "makita",
         "cliente_nome": "MAKITA MACHINES LLC",
-        "data_criacao": "2025-11-26"
+        "data_criacao": "2025-11-26",
+        "ativa": true
     },
     "580880428": {
         "moeda": "EUR",
         "saldo": 0.0,
         "cliente": "gables",
         "cliente_nome": "GABLES ENTERPRISE",
-        "data_criacao": "2025-12-22"
+        "data_criacao": "2025-12-22",
+        "ativa": true
     },
     "960934914": {
         "moeda": "BRL",
         "saldo": 5000.0,
         "cliente": "prada",
         "cliente_nome": "PRADA LIMITED",
-        "data_criacao": "2025-11-02"
+        "data_criacao": "2025-11-02",
+        "ativa": true
     },
     "251636005": {
         "moeda": "GBP",
         "saldo": 0.0,
         "cliente": "gables",
         "cliente_nome": "GABLES ENTERPRISE",
-        "data_criacao": "2025-12-22"
+        "data_criacao": "2025-12-22",
+        "ativa": true
     },
     "759223170": {
         "moeda": "EUR",
         "saldo": 0.0,
         "cliente": "hidroamerica",
         "cliente_nome": "HIDROAMERICA LTDA",
-        "data_criacao": "2025-12-04"
+        "data_criacao": "2025-12-04",
+        "ativa": true
     },
     "637419166": {
         "moeda": "EUR",
         "saldo": 40.0,
         "cliente": "romolo",
         "cliente_nome": "ROMOLO REMESSAS LTDA",
-        "data_criacao": "2025-12-22"
+        "data_criacao": "2025-12-22",
+        "ativa": true
     },
     "930349314": {
         "moeda": "EUR",
         "saldo": 0.0,
         "cliente": "pantanal",
         "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
+        "data_criacao": "2025-11-18",
+        "ativa": true
     },
-    "817818877": {
-        "moeda": "USD",
-        "saldo": 20.0,
-        "cliente": "thierry",
-        "cliente_nome": "THIERRY IMPORTERS LTDA",
-        "data_criacao": "2025-12-19"
+    "220141720": {
+        "moeda": "EUR",
+        "saldo": 0.0,
+        "cliente": "mascambio",
+        "cliente_nome": "MAS CAMBIO S.A.",
+        "data_criacao": "2026-01-20",
+        "ativa": true
     },
     "654913407": {
         "moeda": "USD",
         "saldo": 50000.0,
         "cliente": "aligator",
         "cliente_nome": "ALIGATOR ENTERPRISE",
-        "data_criacao": "2026-01-02"
+        "data_criacao": "2026-01-02",
+        "ativa": true
+    },
+    "493735143": {
+        "moeda": "GBP",
+        "saldo": 0.0,
+        "cliente": "mascambio",
+        "cliente_nome": "MAS CAMBIO S.A.",
+        "data_criacao": "2026-01-20",
+        "ativa": true
     },
     "376793336": {
         "moeda": "USD",
         "saldo": 0.0,
         "cliente": "gables",
         "cliente_nome": "GABLES ENTERPRISE",
-        "data_criacao": "2025-12-22"
+        "data_criacao": "2025-12-22",
+        "ativa": true
+    },
+    "802194129": {
+        "moeda": "BRL",
+        "saldo": 310683.91,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18",
+        "ativa": true
     },
     "394549984": {
         "moeda": "USD",
         "saldo": 40.0,
         "cliente": "lins",
         "cliente_nome": "LINS CHAIR LIMITADA",
-        "data_criacao": "2025-11-18"
+        "data_criacao": "2025-11-18",
+        "ativa": true
     },
     "202973672": {
         "moeda": "BRL",
         "saldo": 104000.0,
         "cliente": "texaco",
         "cliente_nome": "TEXACO LLC",
-        "data_criacao": "2025-11-01"
+        "data_criacao": "2025-11-01",
+        "ativa": true
     },
     "713651820": {
         "moeda": "USD",
         "saldo": 42500.0,
         "cliente": "texaco",
         "cliente_nome": "TEXACO LLC",
-        "data_criacao": "2025-11-01"
+        "data_criacao": "2025-11-01",
+        "ativa": true
     },
     "565789612": {
         "moeda": "EUR",
         "saldo": 0.0,
         "cliente": "thierry",
         "cliente_nome": "THIERRY IMPORTERS LTDA",
-        "data_criacao": "2025-12-19"
+        "data_criacao": "2025-12-19",
+        "ativa": true
+    },
+    "817818877": {
+        "moeda": "USD",
+        "saldo": 0.0,
+        "cliente": "thierry",
+        "cliente_nome": "THIERRY IMPORTERS LTDA",
+        "data_criacao": "2025-12-19",
+        "ativa": true
     },
     "922195498": {
         "moeda": "GBP",
         "saldo": 0.0,
         "cliente": "thierry",
         "cliente_nome": "THIERRY IMPORTERS LTDA",
-        "data_criacao": "2025-12-19"
+        "data_criacao": "2025-12-19",
+        "ativa": true
     },
     "438146195": {
         "moeda": "USD",
         "saldo": 44950.0,
         "cliente": "londrina",
         "cliente_nome": "LONDRES LIMITED",
-        "data_criacao": "2025-11-04"
+        "data_criacao": "2025-11-04",
+        "ativa": true
     },
     "608201541": {
         "moeda": "BRL",
         "saldo": 0.0,
         "cliente": "hidroamerica",
         "cliente_nome": "HIDROAMERICA LTDA",
-        "data_criacao": "2025-12-04"
+        "data_criacao": "2025-12-04",
+        "ativa": true
     },
     "418825678": {
         "moeda": "GBP",
         "saldo": 0.0,
         "cliente": "hidroamerica",
         "cliente_nome": "HIDROAMERICA LTDA",
-        "data_criacao": "2025-12-04"
+        "data_criacao": "2025-12-04",
+        "ativa": true
     },
     "402886768": {
         "moeda": "USD",
         "saldo": 0.0,
         "cliente": "hidroamerica",
         "cliente_nome": "HIDROAMERICA LTDA",
-        "data_criacao": "2025-12-04"
+        "data_criacao": "2025-12-04",
+        "ativa": true
     },
     "755234527": {
         "moeda": "BRL",
-        "saldo": 12000.0,
+        "saldo": 112000.0,
         "cliente": "gables",
         "cliente_nome": "GABLES ENTERPRISE",
-        "data_criacao": "2025-12-22"
+        "data_criacao": "2025-12-22",
+        "ativa": true
     },
     "277435777": {
         "moeda": "EUR",
         "saldo": 0.0,
         "cliente": "makita",
         "cliente_nome": "MAKITA MACHINES LLC",
-        "data_criacao": "2025-11-26"
+        "data_criacao": "2025-11-26",
+        "ativa": true
     },
     "846873177": {
         "moeda": "GBP",
         "saldo": 0.0,
         "cliente": "makita",
         "cliente_nome": "MAKITA MACHINES LLC",
-        "data_criacao": "2025-11-26"
+        "data_criacao": "2025-11-26",
+        "ativa": true
     },
-    "500635054": {
-        "moeda": "BRL",
+    "193318275": {
+        "moeda": "USD",
         "saldo": 0.0,
-        "cliente": "edinho",
-        "cliente_nome": "EDINHO ENTERPRISE",
-        "data_criacao": "2025-12-22"
+        "cliente": "mascambio",
+        "cliente_nome": "MAS CAMBIO S.A.",
+        "data_criacao": "2026-01-20",
+        "ativa": true
+    },
+    "607906288": {
+        "moeda": "USD",
+        "saldo": 72000.0,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18",
+        "ativa": true
     },
     "163569885": {
         "moeda": "EUR",
         "saldo": 0.0,
         "cliente": "neosoro",
         "cliente_nome": "NEOSORO LIMITADA",
-        "data_criacao": "2026-01-01"
+        "data_criacao": "2026-01-01",
+        "ativa": true
     },
     "873134916": {
         "moeda": "BRL",
         "saldo": 0.0,
         "cliente": "lins",
         "cliente_nome": "LINS CHAIR LIMITADA",
-        "data_criacao": "2025-11-18"
+        "data_criacao": "2025-11-18",
+        "ativa": true
     },
-    "997174979": {
+    "500635054": {
         "moeda": "BRL",
-        "saldo": 0.0,
-        "cliente": "thierry",
-        "cliente_nome": "THIERRY IMPORTERS LTDA",
-        "data_criacao": "2025-12-19"
+        "saldo": -41777.36,
+        "cliente": "edinho",
+        "cliente_nome": "EDINHO ENTERPRISE",
+        "data_criacao": "2025-12-22",
+        "ativa": true
     },
     "500363800": {
         "moeda": "GBP",
         "saldo": 0.0,
         "cliente": "neosoro",
         "cliente_nome": "NEOSORO LIMITADA",
-        "data_criacao": "2026-01-01"
+        "data_criacao": "2026-01-01",
+        "ativa": true
     },
     "164914690": {
         "moeda": "USD",
         "saldo": 0.0,
         "cliente": "jbs",
         "cliente_nome": "JBS FRIBOI LTDA",
-        "data_criacao": "2025-12-05"
+        "data_criacao": "2025-12-05",
+        "ativa": true
     },
     "512168503": {
         "moeda": "EUR",
         "saldo": 0.0,
         "cliente": "jbs",
         "cliente_nome": "JBS FRIBOI LTDA",
-        "data_criacao": "2025-12-05"
+        "data_criacao": "2025-12-05",
+        "ativa": true
     },
     "584914760": {
         "moeda": "BRL",
         "saldo": 0.0,
         "cliente": "jbs",
         "cliente_nome": "JBS FRIBOI LTDA",
-        "data_criacao": "2025-12-05"
+        "data_criacao": "2025-12-05",
+        "ativa": true
     },
     "878377843": {
         "moeda": "GBP",
         "saldo": 0.0,
         "cliente": "jbs",
         "cliente_nome": "JBS FRIBOI LTDA",
-        "data_criacao": "2025-12-05"
+        "data_criacao": "2025-12-05",
+        "ativa": true
     },
     "581734496": {
         "moeda": "BRL",
         "saldo": 0.0,
         "cliente": "romolo",
         "cliente_nome": "ROMOLO REMESSAS LTDA",
-        "data_criacao": "2025-12-22"
+        "data_criacao": "2025-12-22",
+        "ativa": true
     },
     "823239205": {
         "moeda": "BRL",
         "saldo": 59615.11,
         "cliente": "neosoro",
         "cliente_nome": "NEOSORO LIMITADA",
-        "data_criacao": "2026-01-01"
+        "data_criacao": "2026-01-01",
+        "ativa": true
     },
     "667276348": {
         "moeda": "USD",
         "saldo": 18000.0,
         "cliente": "neosoro",
         "cliente_nome": "NEOSORO LIMITADA",
-        "data_criacao": "2026-01-01"
-    },
-    "802194129": {
-        "moeda": "BRL",
-        "saldo": -55500.0,
-        "cliente": "pantanal",
-        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
-    },
-    "792916936": {
-        "moeda": "USD",
-        "saldo": 0.0,
-        "cliente": "edinho",
-        "cliente_nome": "EDINHO ENTERPRISE",
-        "data_criacao": "2025-12-22"
+        "data_criacao": "2026-01-01",
+        "ativa": true
     },
     "801496623": {
         "moeda": "BRL",
         "saldo": 100000.0,
         "cliente": "aligator",
         "cliente_nome": "ALIGATOR ENTERPRISE",
-        "data_criacao": "2026-01-02"
+        "data_criacao": "2026-01-02",
+        "ativa": true
     },
-    "607906288": {
-        "moeda": "USD",
-        "saldo": 96500.0,
-        "cliente": "pantanal",
-        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
+    "997174979": {
+        "moeda": "BRL",
+        "saldo": 0.0,
+        "cliente": "thierry",
+        "cliente_nome": "THIERRY IMPORTERS LTDA",
+        "data_criacao": "2025-12-19",
+        "ativa": true
     },
     "967240582": {
         "moeda": "BRL",
         "saldo": 0.0,
         "cliente": "google",
         "cliente_nome": "[EXCLUÍDO] GOOGLE LLC",
-        "data_criacao": "2025-12-06"
+        "data_criacao": "2025-12-06",
+        "ativa": false
     },
     "464754825": {
         "moeda": "GBP",
         "saldo": 0.0,
         "cliente": "pantanal",
         "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
+        "data_criacao": "2025-11-18",
+        "ativa": true
     },
     "421200543": {
         "moeda": "EUR",
         "saldo": 0.0,
         "cliente": "aligator",
         "cliente_nome": "ALIGATOR ENTERPRISE",
-        "data_criacao": "2026-01-02"
+        "data_criacao": "2026-01-02",
+        "ativa": true
     },
     "567667095": {
         "moeda": "GBP",
         "saldo": 0.0,
         "cliente": "aligator",
         "cliente_nome": "ALIGATOR ENTERPRISE",
-        "data_criacao": "2026-01-02"
+        "data_criacao": "2026-01-02",
+        "ativa": true
+    },
+    "792916936": {
+        "moeda": "USD",
+        "saldo": 0.0,
+        "cliente": "edinho",
+        "cliente_nome": "EDINHO ENTERPRISE",
+        "data_criacao": "2025-12-22",
+        "ativa": true
+    },
+    "649623031": {
+        "moeda": "BRL",
+        "saldo": 0.0,
+        "cliente": "mascambio",
+        "cliente_nome": "MAS CAMBIO S.A.",
+        "data_criacao": "2026-01-20",
+        "ativa": true
     },
     "366470532": {
         "moeda": "GBP",
         "saldo": 0.0,
         "cliente": "lins",
         "cliente_nome": "LINS CHAIR LIMITADA",
-        "data_criacao": "2025-11-18"
+        "data_criacao": "2025-11-18",
+        "ativa": true
     },
     "663542729": {
         "moeda": "USD",
         "saldo": 49960.0,
         "cliente": "google",
         "cliente_nome": "[EXCLUÍDO] GOOGLE LLC",
-        "data_criacao": "2025-12-06"
+        "data_criacao": "2025-12-06",
+        "ativa": false
     },
     "645912045": {
         "moeda": "GBP",
         "saldo": 0.0,
         "cliente": "google",
         "cliente_nome": "[EXCLUÍDO] GOOGLE LLC",
-        "data_criacao": "2025-12-06"
+        "data_criacao": "2025-12-06",
+        "ativa": false
     }
 }
