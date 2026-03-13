@@ -1102,7 +1102,7 @@ class TelaGerenciarContas(Screen):
             self.mostrar_erro("Falha ao executar operação!")
 
     def executar_ajuste_saldo(self):
-        """Executa o ajuste de saldo - PERMITE SALDO NEGATIVO APENAS PARA DÉBITOS ADMINISTRATIVOS"""
+        """Executa o ajuste de saldo - PERMITE SALDO NEGATIVO SEM RESTRIÇÕES"""
         sistema = App.get_running_app().sistema
         
         print("💰 Executando ajuste de saldo...")
@@ -1127,7 +1127,7 @@ class TelaGerenciarContas(Screen):
             
             print(f"🔍 DEBUG executar_ajuste_saldo: valor_str = '{valor_str}'")
             
-            # 🔥 CORREÇÃO: Converter valor corretamente
+            # Converter valor corretamente
             try:
                 valor = self._parse_valor_br(valor_str)
                 
@@ -1147,39 +1147,30 @@ class TelaGerenciarContas(Screen):
                 self.mostrar_erro("Conta não encontrada!")
                 return
             
-            # 🔥🔥🔥 CORREÇÃO CRÍTICA: PERMITIR SALDO NEGATIVO APENAS PARA DÉBITOS ADMINISTRATIVOS
+            # 🔥🔥🔥 CORREÇÃO: REMOVER TODAS AS RESTRIÇÕES - PERMITIR SEMPRE
+            # Mostrar confirmação com aviso de saldo negativo (se aplicável)
+            tipo_operacao = "CRÉDITO" if operacao == "credito" else "DÉBITO"
+            
             if operacao == "debito":
                 saldo_atual = sistema.contas[conta_num]['saldo']
+                saldo_futuro = saldo_atual - valor
                 
-                # 🔥 DIFERENCIAR ENTRE DÉBITO NORMAL E DÉBITO ADMINISTRATIVO (ESTORNO)
-                descricao_lower = descricao.lower()
-                eh_estorno_ou_ajuste = any(palavra in descricao_lower for palavra in [
-                    'estorno', 'reembolso', 'correção', 'ajuste', 'correcao', 'devolução'
-                ])
-                
-                if saldo_atual < valor and not eh_estorno_ou_ajuste:
-                    # 🔥 BLOQUEAR para débitos normais (sem palavras-chave de estorno)
-                    self.mostrar_erro(f"Saldo insuficiente! Saldo atual: {saldo_atual:,.2f}")
-                    return
-                elif saldo_atual < valor and eh_estorno_ou_ajuste:
-                    # 🔥 PERMITIR para débitos administrativos (estornos/correções)
-                    saldo_futuro = saldo_atual - valor
+                if saldo_futuro < 0:
+                    # 🔥 AVISO, MAS PERMITE CONTINUAR
                     self.mostrar_confirmacao(
-                        "ATENÇÃO: Saldo Negativo em Débito Administrativo",
+                        f"ATENÇÃO: {tipo_operacao} deixará a conta NEGATIVA",
                         f"Cliente: {username}\n"
                         f"Conta: {conta_num}\n"
                         f"Operação: {descricao}\n"
-                        f"Débito: {valor:,.2f} {sistema.contas[conta_num]['moeda']}\n"
+                        f"Valor: {valor:,.2f} {sistema.contas[conta_num]['moeda']}\n"
                         f"Saldo atual: {saldo_atual:,.2f}\n"
                         f"Saldo futuro: {saldo_futuro:,.2f}\n\n"
-                        f"Esta operação deixará a conta NEGATIVA.\n"
-                        f"Permitido apenas para estornos/correções administrativas.",
+                        f"Deseja continuar mesmo assim?",
                         lambda: self._processar_ajuste_saldo(conta_num, valor, operacao, descricao, username)
                     )
                     return
             
-            # Mostrar confirmação normal para outras situações
-            tipo_operacao = "CRÉDITO" if operacao == "credito" else "DÉBITO"
+            # Confirmação normal para outras situações
             self.mostrar_confirmacao(
                 f"Confirmar {tipo_operacao}?",
                 f"Cliente: {username}\n"
