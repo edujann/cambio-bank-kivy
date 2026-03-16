@@ -255,6 +255,14 @@
         "data_criacao": "2025-11-18",
         "ativa": true
     },
+    "873134916": {
+        "moeda": "BRL",
+        "saldo": 0.0,
+        "cliente": "lins",
+        "cliente_nome": "LINS CHAIR LIMITADA",
+        "data_criacao": "2025-11-18",
+        "ativa": true
+    },
     "202973672": {
         "moeda": "BRL",
         "saldo": 104000.0,
@@ -279,14 +287,6 @@
         "data_criacao": "2025-12-19",
         "ativa": true
     },
-    "649623031": {
-        "moeda": "BRL",
-        "saldo": 0.0,
-        "cliente": "mascambio",
-        "cliente_nome": "MAS CAMBIO S.A.",
-        "data_criacao": "2026-01-20",
-        "ativa": true
-    },
     "922195498": {
         "moeda": "GBP",
         "saldo": 0.0,
@@ -301,14 +301,6 @@
         "cliente": "londrina",
         "cliente_nome": "LONDRES LIMITED",
         "data_criacao": "2025-11-04",
-        "ativa": true
-    },
-    "193318275": {
-        "moeda": "USD",
-        "saldo": 32110.67,
-        "cliente": "mascambio",
-        "cliente_nome": "MAS CAMBIO S.A.",
-        "data_criacao": "2026-01-20",
         "ativa": true
     },
     "608201541": {
@@ -359,6 +351,14 @@
         "data_criacao": "2025-11-26",
         "ativa": true
     },
+    "394549984": {
+        "moeda": "USD",
+        "saldo": 40.0,
+        "cliente": "lins",
+        "cliente_nome": "LINS CHAIR LIMITADA",
+        "data_criacao": "2025-11-18",
+        "ativa": true
+    },
     "607906288": {
         "moeda": "USD",
         "saldo": 72000.0,
@@ -383,20 +383,20 @@
         "data_criacao": "2026-01-01",
         "ativa": true
     },
+    "755234527": {
+        "moeda": "BRL",
+        "saldo": 1209944.89,
+        "cliente": "gables",
+        "cliente_nome": "GABLES ENTERPRISE",
+        "data_criacao": "2025-12-22",
+        "ativa": true
+    },
     "817818877": {
         "moeda": "USD",
         "saldo": 0.0,
         "cliente": "thierry",
         "cliente_nome": "THIERRY IMPORTERS LTDA",
         "data_criacao": "2025-12-19",
-        "ativa": true
-    },
-    "873134916": {
-        "moeda": "BRL",
-        "saldo": 0.0,
-        "cliente": "lins",
-        "cliente_nome": "LINS CHAIR LIMITADA",
-        "data_criacao": "2025-11-18",
         "ativa": true
     },
     "500363800": {
@@ -471,14 +471,6 @@
         "data_criacao": "2025-11-20",
         "ativa": true
     },
-    "394549984": {
-        "moeda": "USD",
-        "saldo": 22060.64,
-        "cliente": "lins",
-        "cliente_nome": "LINS CHAIR LIMITADA",
-        "data_criacao": "2025-11-18",
-        "ativa": true
-    },
     "997174979": {
         "moeda": "BRL",
         "saldo": 0.0,
@@ -493,6 +485,14 @@
         "cliente": "aligator",
         "cliente_nome": "ALIGATOR ENTERPRISE",
         "data_criacao": "2026-01-02",
+        "ativa": true
+    },
+    "193318275": {
+        "moeda": "USD",
+        "saldo": -24571.97,
+        "cliente": "mascambio",
+        "cliente_nome": "MAS CAMBIO S.A.",
+        "data_criacao": "2026-01-20",
         "ativa": true
     },
     "967240582": {
@@ -527,12 +527,12 @@
         "data_criacao": "2026-01-02",
         "ativa": true
     },
-    "755234527": {
+    "649623031": {
         "moeda": "BRL",
-        "saldo": 155720.31,
-        "cliente": "gables",
-        "cliente_nome": "GABLES ENTERPRISE",
-        "data_criacao": "2025-12-22",
+        "saldo": 100000.05,
+        "cliente": "mascambio",
+        "cliente_nome": "MAS CAMBIO S.A.",
+        "data_criacao": "2026-01-20",
         "ativa": true
     },
     "366470532": {

@@ -1083,35 +1083,67 @@ class TelaContasBancarias(Screen):
                 self.ids.btn_debito_ajuste.background_color = (0.96, 0.36, 0.36, 1)    # Vermelho
 
     def carregar_contas_para_ajuste(self):
-        """Carrega as contas bancárias nos combos das novas abas"""
+        """Carrega as contas bancárias nos combos das novas abas - COM DADOS ATUALIZADOS"""
         sistema = App.get_running_app().sistema
         
         if not hasattr(self, 'ids'):
             return
         
+        # 🔥 DEBUG: Verificar contas disponíveis
+        print(f"📊 Carregando {len(sistema.contas_bancarias_empresa)} contas para os spinners:")
+        for chave in sistema.contas_bancarias_empresa.keys():
+            print(f"   - '{chave}' - Saldo: {sistema.contas_bancarias_empresa[chave]['saldo']:,.2f}")
+        
         # Carregar contas para ajuste de saldo
         opcoes_contas = []
         for conta_num, dados_conta in sistema.contas_bancarias_empresa.items():
+            # 🔥 GARANTIR que o número da conta seja a PRIMEIRA parte do texto
             opcoes_contas.append(f"{conta_num} - {dados_conta['banco']} - {dados_conta['moeda']} - Saldo: {dados_conta['saldo']:,.2f}")
         
         if 'combo_conta_ajuste' in self.ids:
+            # Salvar a seleção atual antes de atualizar
+            selecao_atual = self.ids.combo_conta_ajuste.text
+            
             self.ids.combo_conta_ajuste.values = opcoes_contas
-            if opcoes_contas and not self.ids.combo_conta_ajuste.text:
+            
+            # Tentar restaurar a seleção anterior
+            if selecao_atual and selecao_atual in opcoes_contas:
+                self.ids.combo_conta_ajuste.text = selecao_atual
+            elif opcoes_contas:
                 self.ids.combo_conta_ajuste.text = opcoes_contas[0]
+                
+            print(f"✅ combo_conta_ajuste carregado com {len(opcoes_contas)} opções")
         
-        # Carregar contas para câmbio (origem e destino)
+        # Carregar contas para câmbio (origem)
         if 'combo_conta_origem_cambio' in self.ids:
+            selecao_atual = self.ids.combo_conta_origem_cambio.text
+            
             self.ids.combo_conta_origem_cambio.values = opcoes_contas
-            if opcoes_contas and not self.ids.combo_conta_origem_cambio.text:
+            
+            if selecao_atual and selecao_atual in opcoes_contas:
+                self.ids.combo_conta_origem_cambio.text = selecao_atual
+            elif opcoes_contas:
                 self.ids.combo_conta_origem_cambio.text = opcoes_contas[0]
+                
+            print(f"✅ combo_conta_origem_cambio carregado")
         
+        # Carregar contas para câmbio (destino)
         if 'combo_conta_destino_cambio' in self.ids:
+            selecao_atual = self.ids.combo_conta_destino_cambio.text
+            
             self.ids.combo_conta_destino_cambio.values = opcoes_contas
-            if opcoes_contas and len(opcoes_contas) > 1 and not self.ids.combo_conta_destino_cambio.text:
+            
+            if selecao_atual and selecao_atual in opcoes_contas:
+                self.ids.combo_conta_destino_cambio.text = selecao_atual
+            elif opcoes_contas and len(opcoes_contas) > 1:
                 self.ids.combo_conta_destino_cambio.text = opcoes_contas[1]
+            elif opcoes_contas:
+                self.ids.combo_conta_destino_cambio.text = opcoes_contas[0]
+                
+            print(f"✅ combo_conta_destino_cambio carregado")
 
     def executar_ajuste_saldo_empresa(self):
-        """Executa ajuste de saldo em conta bancária da empresa - LÓGICA INVERTIDA"""
+        """Executa ajuste de saldo em conta bancária da empresa - VERSÃO CORRIGIDA"""
         sistema = App.get_running_app().sistema
         
         print("💰 Executando ajuste de saldo empresa...")
@@ -1126,8 +1158,23 @@ class TelaContasBancarias(Screen):
             return
         
         try:
-            # Obter dados
-            conta_num = self.ids.combo_conta_ajuste.text.split(' - ')[0]
+            # Obter texto do spinner
+            texto_conta = self.ids.combo_conta_ajuste.text
+            print(f"🔍 DEBUG - Texto conta: '{texto_conta}'")
+            
+            # 🔥🔥🔥 CORREÇÃO: Encontrar a conta pelo texto completo
+            conta_num = None
+            for chave in sistema.contas_bancarias_empresa.keys():
+                if texto_conta.startswith(chave) or chave in texto_conta:
+                    conta_num = chave
+                    print(f"✅ Conta encontrada: '{conta_num}'")
+                    break
+            
+            if not conta_num:
+                self.mostrar_erro(f"Conta não encontrada! Texto: '{texto_conta}'")
+                print(f"❌ Chaves disponíveis: {list(sistema.contas_bancarias_empresa.keys())}")
+                return
+            
             valor_str = self.ids.entry_valor_ajuste.text.strip()
             descricao = self.ids.entry_descricao_ajuste.text.strip()
             operacao = getattr(self, 'operacao_ajuste_atual', 'credito')
@@ -1137,11 +1184,6 @@ class TelaContasBancarias(Screen):
             
             if valor <= 0:
                 self.mostrar_erro("Valor deve ser positivo!")
-                return
-            
-            # Verificar se conta existe
-            if conta_num not in sistema.contas_bancarias_empresa:
-                self.mostrar_erro("Conta bancária não encontrada!")
                 return
             
             # 🔥 LÓGICA INVERTIDA PARA CONTAS BANCÁRIAS DA EMPRESA
@@ -1178,102 +1220,397 @@ class TelaContasBancarias(Screen):
             )
             
         except Exception as e:
-            self.mostrar_erro(f"Erro ao executar ajuste: {str(e)}")
+            print(f"❌ Erro ao executar ajuste: {str(e)}")
+            import traceback
+            traceback.print_exc()
+
+    def salvar_ajuste_supabase(self, transacao_id, conta_num, valor, operacao, descricao, username, tipo_registro):
+        """Salva o ajuste na tabela transferencias do Supabase - USANDO TODAS AS COLUNAS"""
+        try:
+            from datetime import datetime
+            
+            sistema = App.get_running_app().sistema
+            
+            if not hasattr(sistema, 'supabase') or not sistema.supabase.conectado:
+                print("❌ Supabase não disponível para salvar ajuste")
+                return False
+            
+            moeda = sistema.contas_bancarias_empresa[conta_num]['moeda']
+            
+            # Determinar o tipo de operação para campos adicionais
+            if operacao == "credito":
+                tipo_interface = "CRÉDITO"  # O que o usuário clicou
+                operacao_real = "entrada"    # Efeito real no saldo
+            else:
+                tipo_interface = "DÉBITO"    # O que o usuário clicou
+                operacao_real = "saida"       # Efeito real no saldo
+            
+            # 🔥🔥🔥 AGORA USANDO TODAS AS COLUNAS DISPONÍVEIS
+            dados_supabase = {
+                'id': transacao_id,
+                'tipo': 'ajuste_saldo_empresa',
+                'status': 'completed',
+                'data': datetime.now().isoformat(),
+                'moeda': moeda,
+                'valor': valor,
+                'conta_remetente': conta_num,
+                'descricao': descricao,              # Campo genérico
+                'executado_por': self._safe_usuario_logado(),
+                
+                # 🔥 CAMPOS ESPECÍFICOS PARA AJUSTE (TODOS EXISTEM!)
+                'tipo_ajuste': tipo_registro,        # DÉBITO/CRÉDITO (para o extrato)
+                'tipo_interface': tipo_interface,     # O que o usuário clicou
+                'descricao_ajuste': descricao,        # Descrição específica do ajuste
+                
+                # 🔥 CAMPOS ADICIONAIS PARA REFERÊNCIA
+                'operacao': operacao_real,            # 'entrada' ou 'saida'
+                'created_at': datetime.now().isoformat()
+            }
+            
+            print(f"📦 Salvando ajuste no Supabase: {transacao_id}")
+            print(f"   tipo_ajuste: {tipo_registro} (como aparece no extrato)")
+            print(f"   tipo_interface: {tipo_interface} (como o usuário clicou)")
+            print(f"   operacao: {operacao_real} (efeito real)")
+            
+            response = sistema.supabase.client.table('transferencias')\
+                .insert(dados_supabase)\
+                .execute()
+            
+            if response.data:
+                print(f"✅✅✅ AJUSTE {transacao_id} SALVO NO SUPABASE!")
+                print(f"   Campos preenchidos: id, tipo, tipo_ajuste, tipo_interface, operacao, ...")
+                return True
+            else:
+                print(f"❌ Erro ao salvar ajuste no Supabase: {response.error if hasattr(response, 'error') else 'Resposta vazia'}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Erro ao salvar ajuste no Supabase: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
 
     def _processar_ajuste_saldo_empresa(self, conta_num, valor, operacao, descricao):
-        """Processa o ajuste de saldo após confirmação - LÓGICA INVERTIDA"""
+        """Processa o ajuste de saldo após confirmação - COM ATUALIZAÇÃO DOS SPINNERS"""
         sistema = App.get_running_app().sistema
         
+        print("\n" + "="*50)
+        print("🔍 DEBUG - PROCESSANDO AJUSTE DE SALDO")
+        print("="*50)
+        print(f"📌 conta_num: '{conta_num}'")
+        print(f"📌 valor: {valor}")
+        print(f"📌 operacao: {operacao}")
+        print(f"📌 descricao: '{descricao}'")
+        
+        # Verificar se a conta existe
+        if conta_num not in sistema.contas_bancarias_empresa:
+            print(f"❌ ERRO: Conta '{conta_num}' não encontrada em sistema.contas_bancarias_empresa!")
+            print(f"📊 Contas disponíveis: {list(sistema.contas_bancarias_empresa.keys())}")
+            self.mostrar_erro(f"Conta '{conta_num}' não encontrada!")
+            return
+        
         # Executar operação
-        if self.executar_ajuste_saldo_sistema_empresa(conta_num, valor, operacao, descricao):
+        sucesso = self.executar_ajuste_saldo_sistema_empresa(conta_num, valor, operacao, descricao)
+        
+        if sucesso:
+            # 🔥🔥🔥 FORÇAR RECARGA DO SUPABASE PARA OBTER SALDO ATUALIZADO
+            if hasattr(sistema, 'supabase') and sistema.supabase.conectado:
+                try:
+                    print("🔄 Recarregando contas do Supabase...")
+                    response = sistema.supabase.client.table('contas_bancarias_empresa')\
+                        .select('*')\
+                        .execute()
+                    
+                    if response.data:
+                        # Atualizar o dicionário local com os dados mais recentes do Supabase
+                        sistema.contas_bancarias_empresa.clear()
+                        for conta in response.data:
+                            conta_num_supabase = conta['numero']
+                            sistema.contas_bancarias_empresa[conta_num_supabase] = {
+                                'numero': conta['numero'],
+                                'banco': conta['banco'],
+                                'agencia': conta.get('agencia', ''),
+                                'moeda': conta['moeda'],
+                                'saldo': float(conta['saldo']),
+                                'tipo': conta.get('tipo', 'empresa'),
+                                'data_criacao': conta.get('data_criacao', ''),
+                                'saldo_inicial': float(conta.get('saldo_inicial', conta['saldo']))
+                            }
+                        print(f"✅ {len(response.data)} contas recarregadas do Supabase")
+                except Exception as e:
+                    print(f"⚠️ Erro ao recarregar do Supabase: {e}")
+            
             novo_saldo = sistema.contas_bancarias_empresa[conta_num]['saldo']
+            moeda = sistema.contas_bancarias_empresa[conta_num]['moeda']
             tipo_operacao = "CRÉDITO" if operacao == 'credito' else "DÉBITO"
+            
+            print(f"✅ AJUSTE REALIZADO COM SUCESSO!")
+            print(f"   Novo saldo: {novo_saldo:,.2f} {moeda}")
             
             self.mostrar_sucesso(
                 f"✅ {tipo_operacao} realizado com sucesso!\n\n"
-                f"Novo saldo: {novo_saldo:,.2f} {sistema.contas_bancarias_empresa[conta_num]['moeda']}"
+                f"Novo saldo: {novo_saldo:,.2f} {moeda}"
             )
             
             # Limpar campos
             self.ids.entry_valor_ajuste.text = ""
             self.ids.entry_descricao_ajuste.text = ""
             
-            # Atualizar a tela
+            # 🔥🔥🔥 ATUALIZAR A LISTA PRINCIPAL DE CONTAS (CARDS)
             self.carregar_contas_bancarias()
+            
+            # 🔥🔥🔥 ATUALIZAR OS SPINNERS DA ABA AJUSTE
             self.carregar_contas_para_ajuste()
+            
+            # 🔥🔥🔥 FORÇAR ATUALIZAÇÃO DO TEXTO DO SPINNER COM O NOVO SALDO
+            if 'combo_conta_ajuste' in self.ids:
+                # Encontrar a opção atualizada para esta conta
+                for opcao in self.ids.combo_conta_ajuste.values:
+                    if opcao.startswith(conta_num):
+                        self.ids.combo_conta_ajuste.text = opcao
+                        print(f"✅ Spinner ajuste atualizado: {opcao}")
+                        break
+            
+            # 🔥🔥🔥 ATUALIZAR OS SPINNERS DA ABA CÂMBIO (origem e destino)
+            if 'combo_conta_origem_cambio' in self.ids:
+                # Atualizar valores do spinner origem
+                opcoes_contas = []
+                for c_num, c_dados in sistema.contas_bancarias_empresa.items():
+                    opcoes_contas.append(f"{c_num} - {c_dados['banco']} - {c_dados['moeda']} - Saldo: {c_dados['saldo']:,.2f}")
+                
+                self.ids.combo_conta_origem_cambio.values = opcoes_contas
+                
+                # Manter a seleção atual se possível
+                if self.ids.combo_conta_origem_cambio.text:
+                    texto_atual = self.ids.combo_conta_origem_cambio.text
+                    for opcao in opcoes_contas:
+                        if opcao.startswith(texto_atual.split(' - ')[0]):
+                            self.ids.combo_conta_origem_cambio.text = opcao
+                            break
+            
+            if 'combo_conta_destino_cambio' in self.ids:
+                # Atualizar valores do spinner destino
+                opcoes_contas = []
+                for c_num, c_dados in sistema.contas_bancarias_empresa.items():
+                    opcoes_contas.append(f"{c_num} - {c_dados['banco']} - {c_dados['moeda']} - Saldo: {c_dados['saldo']:,.2f}")
+                
+                self.ids.combo_conta_destino_cambio.values = opcoes_contas
+                
+                # Manter a seleção atual se possível
+                if self.ids.combo_conta_destino_cambio.text:
+                    texto_atual = self.ids.combo_conta_destino_cambio.text
+                    for opcao in opcoes_contas:
+                        if opcao.startswith(texto_atual.split(' - ')[0]):
+                            self.ids.combo_conta_destino_cambio.text = opcao
+                            break
+            
+            print("✅ Todos os spinners atualizados com os novos saldos!")
         else:
+            print("❌ FALHA: executar_ajuste_saldo_sistema_empresa retornou False")
             self.mostrar_erro("Falha ao executar operação!")
 
     def executar_ajuste_saldo_sistema_empresa(self, conta_num, valor, operacao, descricao):
+        """Executa o ajuste de saldo no sistema - COM SUPABASE COMPLETO"""
         sistema = App.get_running_app().sistema
         
+        print("\n🔧 DENTRO DE executar_ajuste_saldo_sistema_empresa")
+        print(f"   conta_num: '{conta_num}'")
+        print(f"   tipo(conta_num): {type(conta_num)}")
+        print(f"   valor: {valor}")
+        print(f"   operacao: {operacao}")
+        print(f"   descricao: '{descricao}'")
+        
         try:
-            # 🔥🔥🔥 DEBUG: VERIFICAR O QUE ESTÁ CHEGANDO
-            print(f"🔍 DEBUG REGISTRO AJUSTE:")
-            print(f"   - Operação recebida: {operacao}")
-            print(f"   - Conta: {conta_num}")
-            print(f"   - Valor: {valor}")
-            print(f"   - Descrição: {descricao}")  # ✅ CORRIGIDO: descricao sem ç
+            # 🔥 VERIFICAR SE A CONTA EXISTE
+            if conta_num not in sistema.contas_bancarias_empresa:
+                print(f"   ❌ ERRO: Conta '{conta_num}' não encontrada!")
+                return False
             
-# 🔥🔥🔥 CORREÇÃO: LÓGICA SIMPLES E DIRETA
+            # Salvar saldo antes
+            saldo_antes = sistema.contas_bancarias_empresa[conta_num]['saldo']
+            moeda = sistema.contas_bancarias_empresa[conta_num]['moeda']
+            
+            print(f"   💰 Saldo antes: {saldo_antes:,.2f} {moeda}")
+            
+            # 🔥🔥🔥 LÓGICA SIMPLES E DIRETA
             if operacao == "credito":
                 # CRÉDITO = AUMENTA SALDO (Entrada)
                 sistema.contas_bancarias_empresa[conta_num]['saldo'] += valor
                 tipo_registro = "DÉBITO"  # Aparece na coluna DÉBITO do extrato
-                print(f"💰 SISTEMA: CRÉDITO -> Aumenta saldo (+{valor}) -> DÉBITO no extrato")
+                print(f"   💰 SISTEMA: CRÉDITO -> Aumenta saldo (+{valor}) -> DÉBITO no extrato")
             else:
                 # DÉBITO = DIMINUI SALDO (Saída)
                 sistema.contas_bancarias_empresa[conta_num]['saldo'] -= valor
                 tipo_registro = "CRÉDITO"  # Aparece na coluna CRÉDITO do extrato
-                print(f"💰 SISTEMA: DÉBITO -> Diminui saldo (-{valor}) -> CRÉDITO no extrato")
+                print(f"   💰 SISTEMA: DÉBITO -> Diminui saldo (-{valor}) -> CRÉDITO no extrato")
             
-            # Registrar a transação
+            # Saldo depois
+            saldo_depois = sistema.contas_bancarias_empresa[conta_num]['saldo']
+            print(f"   💰 Saldo depois: {saldo_depois:,.2f} {moeda}")
+            
+            # 🔥 GERAR ID DA TRANSAÇÃO
+            import random
+            import datetime
+            
             transacao_id = str(random.randint(100000, 999999)) + "_aj"
             
+            # 🔥🔥🔥 PRIMEIRO: ATUALIZAR SALDO NO SUPABASE
+            sucesso_saldo = False
+            sucesso_transacao = False
+            
+            if hasattr(sistema, 'supabase') and sistema.supabase.conectado:
+                try:
+                    print("   📡 Atualizando saldo no Supabase...")
+                    
+                    # Atualizar saldo no Supabase
+                    response_saldo = sistema.supabase.client.table('contas_bancarias_empresa')\
+                        .update({'saldo': saldo_depois})\
+                        .eq('numero', conta_num)\
+                        .execute()
+                    
+                    if response_saldo.data:
+                        print(f"   ✅ Saldo atualizado no Supabase: {saldo_depois:,.2f}")
+                        sucesso_saldo = True
+                    else:
+                        print(f"   ❌ Erro ao atualizar saldo no Supabase")
+                        
+                except Exception as e:
+                    print(f"   ❌ Exceção ao atualizar saldo: {e}")
+            
+            # 🔥🔥🔥 SEGUNDO: SALVAR TRANSAÇÃO NO SUPABASE
+            if sucesso_saldo or True:  # Tenta salvar transação mesmo se saldo falhou
+                sucesso_transacao = self.salvar_ajuste_supabase(
+                    transacao_id, conta_num, valor, operacao, descricao, 'EMPRESA', tipo_registro
+                )
+            
+            # 🔥 REGISTRAR LOCALMENTE (sempre, como backup)
             sistema.transferencias[transacao_id] = {
                 'id': transacao_id,
                 'conta_remetente': conta_num,
                 'valor': valor,
-                'moeda': sistema.contas_bancarias_empresa[conta_num]['moeda'],
+                'moeda': moeda,
                 'tipo': 'ajuste_saldo_empresa',
-                'tipo_ajuste': tipo_registro,  # 🔥 Tipo real do registro (invertido)
-                'tipo_interface': 'CRÉDITO' if operacao == 'credito' else 'DÉBITO',  # 🔥 Tipo na interface
+                'tipo_ajuste': tipo_registro,
+                'tipo_interface': 'CRÉDITO' if operacao == 'credito' else 'DÉBITO',
                 'descricao_ajuste': descricao,
                 'status': 'completed',
                 'data': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 'executado_por': self._safe_usuario_logado()
             }
             
-            # 🔥🔥🔥 DEBUG: VERIFICAR O QUE FOI REGISTRADO
-            print(f"📝 REGISTRO CRIADO:")
-            print(f"   - ID: {transacao_id}")
-            print(f"   - tipo_ajuste: {tipo_registro}")
-            print(f"   - tipo_interface: {'CRÉDITO' if operacao == 'credito' else 'DÉBITO'}")
+            print(f"   📝 Registro local criado: {transacao_id}")
             
-            # Salvar dados
+            # 🔥 SALVAR DADOS LOCAIS
             sistema.salvar_contas_bancarias()
             sistema.salvar_transferencias()
+            print(f"   ✅ Dados salvos localmente")
             
-            print(f"✅ Ajuste de saldo empresa: {operacao} de {valor} na conta {conta_num}")
-            # DEBUG TEMPORÁRIO
-            print(f"🎯 DEBUG: Ajuste registrado - ID: {transacao_id}")
-            print(f"   Conta: {conta_num}")
-            print(f"   Tipo: {tipo_registro}")
-            print(f"   Valor: {valor}")
-            print(f"   Descrição: {descricao}")
-
-            # Chame o debug geral
-            self.debug_ajustes_saldo()            
+            # 🔥 RESUMO FINAL
+            print("\n" + "="*40)
+            print("📊 RESUMO DA OPERAÇÃO:")
+            print(f"   Saldo no Supabase: {'✅' if sucesso_saldo else '❌'}")
+            print(f"   Transação no Supabase: {'✅' if sucesso_transacao else '❌'}")
+            print(f"   Dados locais: ✅")
+            print("="*40)
+            
+            if sucesso_saldo and sucesso_transacao:
+                print(f"   🎉🎉🎉 OPERAÇÃO COMPLETA: Local + Supabase (saldo + transação)!")
+            elif sucesso_saldo:
+                print(f"   ⚠️ Saldo atualizado no Supabase, mas transação NÃO foi salva!")
+            elif sucesso_transacao:
+                print(f"   ⚠️ Transação salva no Supabase, mas saldo NÃO foi atualizado!")
+            else:
+                print(f"   ⚠️ Operação salva apenas LOCALMENTE!")
+            
             return True
             
         except Exception as e:
-            print(f"❌ Erro ao ajustar saldo empresa: {e}")
+            print(f"   ❌ Erro ao ajustar saldo empresa: {e}")
+            import traceback
+            traceback.print_exc()
             return False
+
+    def _safe_usuario_logado(self):
+        """Retorna o usuário logado de forma segura"""
+        sistema = App.get_running_app().sistema
+        usuario = sistema.usuario_logado
+        
+        if isinstance(usuario, dict):
+            return usuario.get('username', 'sistema')
+        elif isinstance(usuario, str):
+            return usuario
+        else:
+            return 'sistema'
         
 # 🔥 MÉTODOS CAMBIO ENTRE CONTAS BANCÁRIAS
 
+    def debug_verificar_contas_cambio(self):
+        """Método de debug para verificar o estado das contas e spinners"""
+        sistema = App.get_running_app().sistema
+        
+        print("\n" + "="*50)
+        print("🔍 DEBUG COMPLETO - VERIFICAÇÃO DE CONTAS PARA CÂMBIO")
+        print("="*50)
+        
+        # 1. Verificar contas no sistema
+        print(f"\n📊 CONTAS NO SISTEMA ({len(sistema.contas_bancarias_empresa)}):")
+        for num, dados in sistema.contas_bancarias_empresa.items():
+            print(f"   - '{num}': {dados['banco']} - {dados['moeda']} - Saldo: {dados['saldo']:,.2f}")
+        
+        # 2. Verificar spinners
+        if hasattr(self, 'ids'):
+            print("\n🎯 SPINNER ORIGEM:")
+            if 'combo_conta_origem_cambio' in self.ids:
+                spinner_origem = self.ids.combo_conta_origem_cambio
+                print(f"   Texto selecionado: '{spinner_origem.text}'")
+                print(f"   Valores disponíveis ({len(spinner_origem.values)}):")
+                for i, valor in enumerate(spinner_origem.values):
+                    print(f"      {i+1}. '{valor}'")
+            else:
+                print("   ❌ spinner NÃO encontrado!")
+            
+            print("\n🎯 SPINNER DESTINO:")
+            if 'combo_conta_destino_cambio' in self.ids:
+                spinner_destino = self.ids.combo_conta_destino_cambio
+                print(f"   Texto selecionado: '{spinner_destino.text}'")
+                print(f"   Valores disponíveis ({len(spinner_destino.values)}):")
+                for i, valor in enumerate(spinner_destino.values):
+                    print(f"      {i+1}. '{valor}'")
+            else:
+                print("   ❌ spinner NÃO encontrado!")
+        
+        # 3. Verificar extração do número da conta
+        print("\n🔧 TESTE DE EXTRAÇÃO:")
+        if hasattr(self, 'ids') and 'combo_conta_origem_cambio' in self.ids:
+            texto_teste = self.ids.combo_conta_origem_cambio.text
+            if texto_teste:
+                # Tentar diferentes métodos de extração
+                print(f"   Texto original: '{texto_teste}'")
+                
+                # Método 1: split simples
+                num1 = texto_teste.split(' - ')[0].strip()
+                print(f"   Método 1 (split ' - '): '{num1}'")
+                
+                # Método 2: pegar primeira palavra
+                num2 = texto_teste.split()[0].strip() if texto_teste.split() else ''
+                print(f"   Método 2 (primeira palavra): '{num2}'")
+                
+                # Método 3: remover tudo após espaço
+                num3 = texto_teste.split(' ')[0].strip()
+                print(f"   Método 3 (split espaço): '{num3}'")
+                
+                # Verificar se algum método encontra a conta
+                for metodo, num in [('1', num1), ('2', num2), ('3', num3)]:
+                    if num in sistema.contas_bancarias_empresa:
+                        print(f"   ✅ Método {metodo} ENCONTROU a conta!")
+                    else:
+                        print(f"   ❌ Método {metodo} NÃO encontrou a conta")
+        
+        print("="*50 + "\n")
+
     def executar_cambio_contas_empresa(self):
-        """Executa câmbio entre contas bancárias da empresa - COM TAXAS BIDIRECIONAIS"""
+        """Executa câmbio entre contas bancárias da empresa - VERSÃO CORRIGIDA"""
+        
         sistema = App.get_running_app().sistema
         
         print("💱 Executando câmbio entre contas empresa...")
@@ -1287,7 +1624,7 @@ class TelaContasBancarias(Screen):
             self.mostrar_erro("Preencha todos os campos obrigatórios!")
             return
         
-        # 🔥 VALIDAR PELO MENOS UMA TAXA PREENCHIDA
+        # Validar taxas
         taxa_principal = self.ids.entry_taxa_principal_cambio.text.strip() if 'entry_taxa_principal_cambio' in self.ids else ""
         taxa_inversa = self.ids.entry_taxa_inversa_cambio.text.strip() if 'entry_taxa_inversa_cambio' in self.ids else ""
         
@@ -1296,10 +1633,42 @@ class TelaContasBancarias(Screen):
             return
         
         try:
-            # Obter dados
-            conta_origem = self.ids.combo_conta_origem_cambio.text.split(' - ')[0]
-            conta_destino = self.ids.combo_conta_destino_cambio.text.split(' - ')[0]
-            valor_str = self.ids.entry_valor_cambio.text.strip()
+            # Obter dados dos spinners
+            texto_origem = self.ids.combo_conta_origem_cambio.text
+            texto_destino = self.ids.combo_conta_destino_cambio.text
+            
+            print(f"🔍 DEBUG - Texto origem: '{texto_origem}'")
+            print(f"🔍 DEBUG - Texto destino: '{texto_destino}'")
+            
+            # 🔥🔥🔥 CORREÇÃO DEFINITIVA: Encontrar a conta pelo texto completo
+            conta_origem = None
+            conta_destino = None
+            
+            # Percorrer todas as contas e encontrar qual corresponde ao texto selecionado
+            for chave in sistema.contas_bancarias_empresa.keys():
+                if texto_origem.startswith(chave) or chave in texto_origem:
+                    conta_origem = chave
+                    print(f"✅ Conta origem encontrada: '{conta_origem}'")
+                    break
+            
+            for chave in sistema.contas_bancarias_empresa.keys():
+                if texto_destino.startswith(chave) or chave in texto_destino:
+                    conta_destino = chave
+                    print(f"✅ Conta destino encontrada: '{conta_destino}'")
+                    break
+            
+            if not conta_origem:
+                self.mostrar_erro(f"Conta origem não encontrada! Texto: '{texto_origem}'")
+                print(f"❌ Chaves disponíveis: {list(sistema.contas_bancarias_empresa.keys())}")
+                return
+            
+            if not conta_destino:
+                self.mostrar_erro(f"Conta destino não encontrada! Texto: '{texto_destino}'")
+                print(f"❌ Chaves disponíveis: {list(sistema.contas_bancarias_empresa.keys())}")
+                return
+            
+            print(f"🔍 Conta origem final: '{conta_origem}'")
+            print(f"🔍 Conta destino final: '{conta_destino}'")
             
             # Validar contas diferentes
             if conta_origem == conta_destino:
@@ -1307,13 +1676,14 @@ class TelaContasBancarias(Screen):
                 return
             
             # Converter valor
+            valor_str = self.ids.entry_valor_cambio.text.strip()
             valor = self._parse_valor_br(valor_str)
             
             if valor <= 0:
                 self.mostrar_erro("Valor deve ser positivo!")
                 return
             
-            # 🔥 DETERMINAR TAXA E TIPO
+            # Determinar taxa
             taxa = None
             tipo_taxa = None
             
@@ -1328,32 +1698,20 @@ class TelaContasBancarias(Screen):
                 self.mostrar_erro("Taxa de câmbio inválida!")
                 return
             
-            # Verificar se contas existem
-            if conta_origem not in sistema.contas_bancarias_empresa:
-                self.mostrar_erro("Conta origem não encontrada!")
-                return
-            
-            if conta_destino not in sistema.contas_bancarias_empresa:
-                self.mostrar_erro("Conta destino não encontrada!")
-                return
-            
-            # 🔥 LÓGICA INVERTIDA PARA CONTAS BANCÁRIAS
-            # Origem: CRÉDITO (diminui saldo)
-            # Destino: DÉBITO (aumenta saldo)
-            
-            saldo_origem = sistema.contas_bancarias_empresa[conta_origem]['saldo']
+            # Obter dados das contas
             moeda_origem = sistema.contas_bancarias_empresa[conta_origem]['moeda']
             moeda_destino = sistema.contas_bancarias_empresa[conta_destino]['moeda']
+            saldo_origem = sistema.contas_bancarias_empresa[conta_origem]['saldo']
             
             # Calcular valor destino
             if tipo_taxa == 'principal':
                 valor_destino = valor * taxa
-            else:  # inversa
+            else:
                 valor_destino = valor / taxa
             
-            # Verificar saldo origem
+            # Verificar saldo
             if valor > saldo_origem:
-                self.mostrar_erro(f"Saldo insuficiente na conta origem! Disponível: {saldo_origem:,.2f} {moeda_origem}")
+                self.mostrar_erro(f"Saldo insuficiente! Disponível: {saldo_origem:,.2f} {moeda_origem}")
                 return
             
             # Mostrar confirmação
@@ -1365,16 +1723,16 @@ class TelaContasBancarias(Screen):
                 f"Destino: {conta_destino} ({moeda_destino})\n"
                 f"Valor: {valor:,.2f} {moeda_origem}\n"
                 f"Taxa {tipo_taxa_texto}: {taxa:.6f}\n"
-                f"Receberá: {valor_destino:,.2f} {moeda_destino}\n\n"
-                f"Operação:\n"
-                f"• Origem: CRÉDITO (-{valor:,.2f})\n"
-                f"• Destino: DÉBITO (+{valor_destino:,.2f})",
+                f"Receberá: {valor_destino:,.2f} {moeda_destino}",
                 lambda: self._processar_cambio_contas_empresa(
                     conta_origem, conta_destino, valor, taxa, valor_destino, tipo_taxa
                 )
             )
             
         except Exception as e:
+            print(f"❌ Erro ao executar câmbio: {e}")
+            import traceback
+            traceback.print_exc()
             self.mostrar_erro(f"Erro ao executar câmbio: {str(e)}")
 
     def _processar_cambio_contas_empresa(self, conta_origem, conta_destino, valor, taxa, valor_destino, tipo_taxa):
@@ -1745,7 +2103,7 @@ class TelaContasBancarias(Screen):
             print(f"❌ Erro ao trocar taxas: {e}")
 
     def atualizar_calculo_conversao_cambio(self):
-        """Atualiza o cálculo de conversão baseado nos valores atuais - MELHORADO"""
+        """Atualiza o cálculo de conversão baseado nos valores atuais - VERSÃO CORRIGIDA"""
         try:
             if not hasattr(self, 'ids'):
                 return
@@ -1753,8 +2111,8 @@ class TelaContasBancarias(Screen):
             # Resetar label se não tiver dados suficientes
             if ('label_info_conversao_cambio' in self.ids and 
                 (not self.ids.entry_valor_cambio.text or 
-                 not self.ids.combo_conta_origem_cambio.text or
-                 not self.ids.combo_conta_destino_cambio.text)):
+                not self.ids.combo_conta_origem_cambio.text or
+                not self.ids.combo_conta_destino_cambio.text)):
                 
                 self.ids.label_info_conversao_cambio.text = 'Digite o valor e selecione as contas para ver a conversão'
                 return
@@ -1766,7 +2124,7 @@ class TelaContasBancarias(Screen):
                     try:
                         valor = float(valor_str.replace(',', '.'))
                         
-                        # Obter moedas das contas selecionadas
+                        # 🔥 USAR A VERSÃO CORRIGIDA PARA OBTER AS MOEDAS
                         moeda_origem, moeda_destino = self.obter_moedas_contas_cambio()
                         
                         if not moeda_origem or not moeda_destino:
@@ -1784,7 +2142,7 @@ class TelaContasBancarias(Screen):
                             
                         # Se não tiver taxa principal, usar inversa
                         elif ('entry_taxa_inversa_cambio' in self.ids and 
-                              self.ids.entry_taxa_inversa_cambio.text):
+                            self.ids.entry_taxa_inversa_cambio.text):
                             
                             taxa_str = self.ids.entry_taxa_inversa_cambio.text.replace(',', '.')
                             taxa = float(taxa_str)
@@ -1818,33 +2176,44 @@ class TelaContasBancarias(Screen):
             print(f"❌ Erro em atualizar_calculo_conversao_cambio: {e}")
 
     def obter_moedas_contas_cambio(self):
-        """Obtém as moedas das contas origem e destino selecionadas"""
+        """Obtém as moedas das contas origem e destino selecionadas - VERSÃO CORRIGIDA"""
         sistema = App.get_running_app().sistema
         
         moeda_origem = None
         moeda_destino = None
         
         try:
-            # Obter conta origem
+            # Obter textos dos spinners
+            texto_origem = None
+            texto_destino = None
+            
             if ('combo_conta_origem_cambio' in self.ids and 
                 self.ids.combo_conta_origem_cambio.text and
                 'Selecione' not in self.ids.combo_conta_origem_cambio.text):
-                
-                conta_origem = self.ids.combo_conta_origem_cambio.text.split(' - ')[0]
-                if conta_origem in sistema.contas_bancarias_empresa:
-                    moeda_origem = sistema.contas_bancarias_empresa[conta_origem]['moeda']
+                texto_origem = self.ids.combo_conta_origem_cambio.text
             
-            # Obter conta destino
             if ('combo_conta_destino_cambio' in self.ids and 
                 self.ids.combo_conta_destino_cambio.text and
                 'Selecione' not in self.ids.combo_conta_destino_cambio.text):
-                
-                conta_destino = self.ids.combo_conta_destino_cambio.text.split(' - ')[0]
-                if conta_destino in sistema.contas_bancarias_empresa:
-                    moeda_destino = sistema.contas_bancarias_empresa[conta_destino]['moeda']
-        
-        except:
-            pass
+                texto_destino = self.ids.combo_conta_destino_cambio.text
+            
+            # 🔥🔥🔥 CORREÇÃO: Encontrar a conta pelo texto completo
+            if texto_origem:
+                for chave in sistema.contas_bancarias_empresa.keys():
+                    if texto_origem.startswith(chave) or chave in texto_origem:
+                        moeda_origem = sistema.contas_bancarias_empresa[chave]['moeda']
+                        print(f"✅ Moeda origem encontrada: {moeda_origem} para conta '{chave}'")
+                        break
+            
+            if texto_destino:
+                for chave in sistema.contas_bancarias_empresa.keys():
+                    if texto_destino.startswith(chave) or chave in texto_destino:
+                        moeda_destino = sistema.contas_bancarias_empresa[chave]['moeda']
+                        print(f"✅ Moeda destino encontrada: {moeda_destino} para conta '{chave}'")
+                        break
+            
+        except Exception as e:
+            print(f"❌ Erro ao obter moedas: {e}")
         
         return moeda_origem, moeda_destino
 
@@ -2796,47 +3165,57 @@ class TelaExtratoContaBancaria(Screen):
                 continue
             
             # 🔥🔥🔥 CORREÇÃO CRÍTICA: PROCESSAR AJUSTES DE SALDO IMEDIATAMENTE
+            # PROCESSAR AJUSTES DE SALDO - VERSÃO CORRETA USANDO OS CAMPOS DISPONÍVEIS
             if tipo == 'ajuste_saldo_empresa':
-                # Verificar se envolve nossa conta bancária
                 if dados.get('conta_remetente') != self.conta_bancaria_numero:
                     continue
                 
                 data_ajuste = dados.get('data', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-                tipo_ajuste_real = dados.get('tipo_ajuste', 'DÉBITO')
-                descricao_ajuste = dados.get('descricao_ajuste', 'Ajuste de saldo')
                 
-                print(f"🎯 PROCESSANDO AJUSTE: {transferencia_id} - {tipo_ajuste_real} - {dados['valor']}")
+                # 🔥 USAR O CAMPO CORRETO PARA EXIBIÇÃO
+                tipo_ajuste_real = dados.get('tipo_ajuste', 'DÉBITO')  # Como deve aparecer no extrato
+                tipo_interface = dados.get('tipo_interface', 'DESCONHECIDO')  # Como foi clicado
+                operacao_real = dados.get('operacao', 'desconhecida')  # Efeito real
                 
-                # 🔥🔥🔥 LÓGICA SIMPLES E DIRETA
+                descricao_ajuste = dados.get('descricao_ajuste', dados.get('descricao', 'Ajuste de saldo'))
+                valor = dados['valor']
+                
+                print(f"🎯 PROCESSANDO AJUSTE: {transferencia_id}")
+                print(f"   tipo_ajuste (exibição): {tipo_ajuste_real}")
+                print(f"   tipo_interface (clique): {tipo_interface}")
+                print(f"   operacao_real: {operacao_real}")
+                
                 if tipo_ajuste_real == 'DÉBITO':
-                    # DÉBITO = ENTRADA (aumenta saldo) - aparece na coluna DÉBITO
-                    descricao = f"AJUSTE - CRÉDITO - {descricao_ajuste}"
+                    # DÉBITO na coluna = ENTRADA (aumenta saldo)
+                    descricao = f"AJUSTE - ENTRADA - {descricao_ajuste}"
                     nova_transacao = {
                         'data': data_ajuste,
                         'descricao': descricao,
-                        'credito': 0.00,           # ZERO no crédito
-                        'debito': dados['valor'],   # VALOR no débito
+                        'credito': 0.00,
+                        'debito': valor,
                         'tipo': "Ajuste de Saldo",
                         'moeda': dados['moeda'],
                         'timestamp': parse_data(data_ajuste),
-                        'id': transferencia_id
+                        'id': transferencia_id,
+                        'detalhes': f"Clique: {tipo_interface} | Efeito: {operacao_real}"
                     }
-                    print(f"💰 EXTRATO: AJUSTE CRÉDITO -> DÉBITO: {dados['valor']:,.2f}")
+                    print(f"💰 ENTRADA: +{valor} (DÉBITO na coluna)")
                     
                 else:  # 'CRÉDITO'
-                    # CRÉDITO = SAÍDA (diminui saldo) - aparece na coluna CRÉDITO
-                    descricao = f"AJUSTE - DÉBITO - {descricao_ajuste}"
+                    # CRÉDITO na coluna = SAÍDA (diminui saldo)
+                    descricao = f"AJUSTE - SAÍDA - {descricao_ajuste}"
                     nova_transacao = {
                         'data': data_ajuste,
                         'descricao': descricao,
-                        'credito': dados['valor'],  # VALOR no crédito
-                        'debito': 0.00,             # ZERO no débito
+                        'credito': valor,
+                        'debito': 0.00,
                         'tipo': "Ajuste de Saldo",
                         'moeda': dados['moeda'],
                         'timestamp': parse_data(data_ajuste),
-                        'id': transferencia_id
+                        'id': transferencia_id,
+                        'detalhes': f"Clique: {tipo_interface} | Efeito: {operacao_real}"
                     }
-                    print(f"💰 EXTRATO: AJUSTE DÉBITO -> CRÉDITO: {dados['valor']:,.2f}")
+                    print(f"💰 SAÍDA: -{valor} (CRÉDITO na coluna)")
                 
                 transacoes_todas.append(nova_transacao)
                 transacoes_ids_utilizados.add(transferencia_id)
@@ -2859,6 +3238,11 @@ class TelaExtratoContaBancaria(Screen):
 
             # NOSSA CONTA É REMETENTE (SAÍDA DE DINHEIRO) = CRÉDITO (diminui saldo)
             if dados.get('conta_remetente') == self.conta_bancaria_numero:
+                
+                # 🔥 NOVA LINHA: PULAR CÂMBIOS ENTRE CONTAS (já processados no bloco específico)
+                if tipo == 'cambio_contas_empresa':
+                    print(f"   ⏭️ Câmbio já processado no bloco específico, pulando...")
+                    continue
 
                 # 🔥 DEBUG: Verificar qual tipo está sendo processado
                 print(f"🎯 PROCESSANDO TRANSAÇÃO {transferencia_id}: tipo='{tipo}' (NOSSA CONTA É REMETENTE)")
@@ -2891,27 +3275,6 @@ class TelaExtratoContaBancaria(Screen):
                         'id': transferencia_id
                     }
 
-                elif tipo == 'cambio_contas_empresa':
-                    print(f"🔍🔍🔍 ENTRANDO NO PROCESSAMENTO DO CÂMBIO (REMETENTE): {transferencia_id}")
-                    # 🔥 CÂMBIO ENTRE CONTAS DA EMPRESA (ORIGEM)
-                    conta_origem = dados.get('conta_origem')
-                    conta_destino = dados.get('conta_destino')
-                    print(f"🔍🔍🔍 conta_origem: {conta_origem}, conta_destino: {conta_destino}, nossa_conta: {self.conta_bancaria_numero}")
-                    
-                    if conta_origem == self.conta_bancaria_numero:
-                        # NOSSA CONTA É ORIGEM - SAÍDA (CRÉDITO)
-                        descricao = sistema.gerar_descricao_cambio_inteligente(dados, self.conta_bancaria_numero)
-                        nova_transacao = {
-                            'data': data_transacao,
-                            'descricao': descricao,
-                            'credito': dados['valor_origem'],  # 🔥 CRÉDITO = SAÍDA
-                            'debito': 0.00,
-                            'tipo': "Câmbio entre Contas",
-                            'moeda': dados['moeda_origem'],
-                            'timestamp': self.parse_data_simples(dados.get('data', '')),
-                            'id': transferencia_id
-                        }
-                        print(f"💰💰💰 CÂMBIO ORIGEM ADICIONADO AO EXTRATO: {dados['valor_origem']:,.2f} {dados['moeda_origem']}")
                 
                 else:
                     # Outras saídas
@@ -2933,6 +3296,11 @@ class TelaExtratoContaBancaria(Screen):
             # NOSSA CONTA É DESTINATÁRIO (ENTRADA DE DINHEIRO) = DÉBITO (aumenta saldo)
             elif dados.get('conta_destinatario') == self.conta_bancaria_numero:
                 
+                # 🔥 ADICIONAR ESTA LINHA AQUI (igual ao bloco REMETENTE)
+                if tipo == 'cambio_contas_empresa':
+                    print(f"   ⏭️ Câmbio já processado no bloco específico, pulando...")
+                    continue
+                                
                 if tipo == 'deposito' or tipo == 'deposito_confirmado':
                     # 🔥🔥🔥 SOLUÇÃO SIMPLES: USAR A DESCRIÇÃO QUE JÁ EXISTE NO SUPABASE!
                     
@@ -2992,28 +3360,6 @@ class TelaExtratoContaBancaria(Screen):
                         'id': transferencia_id
                     }
 
-                elif tipo == 'cambio_contas_empresa':
-                    print(f"🔍🔍🔍 ENTRANDO NO PROCESSAMENTO DO CÂMBIO (DESTINATÁRIO): {transferencia_id}")
-                    # 🔥 CÂMBIO ENTRE CONTAS DA EMPRESA (DESTINO)
-                    conta_destino = dados.get('conta_destino')
-                    conta_origem = dados.get('conta_origem')
-                    print(f"🔍🔍🔍 conta_origem: {conta_origem}, conta_destino: {conta_destino}, nossa_conta: {self.conta_bancaria_numero}")
-                    
-                    if conta_destino == self.conta_bancaria_numero:
-                        print(f"🔍🔍🔍 CONTA DESTINO É NOSSA CONTA! VAI ADICIONAR AO EXTRATO")
-                        # NOSSA CONTA É DESTINO - ENTRADA (DÉBITO)
-                        descricao = sistema.gerar_descricao_cambio_inteligente(dados, self.conta_bancaria_numero)
-                        nova_transacao = {
-                            'data': data_transacao,
-                            'descricao': descricao,
-                            'credito': 0.00,
-                            'debito': dados['valor_destino'],  # 🔥 DÉBITO = ENTRADA
-                            'tipo': "Câmbio entre Contas",
-                            'moeda': dados['moeda_destino'],
-                            'timestamp': self.parse_data_simples(dados.get('data', '')),
-                            'id': transferencia_id
-                        }
-                        print(f"💰💰💰 CÂMBIO DESTINO ADICIONADO AO EXTRATO: {dados['valor_destino']:,.2f} {dados['moeda_destino']}")
 
                 # 🔥 🔥 🔥 NOVO: PROCESSAR AJUSTE DE SALDO DA EMPRESA - LÓGICA CORRIGIDA
                 elif tipo == 'ajuste_saldo_empresa':
@@ -3082,52 +3428,71 @@ class TelaExtratoContaBancaria(Screen):
                 transacoes_todas.append(nova_transacao)
                 transacoes_ids_utilizados.add(transferencia_id)
 
-            # 🔥🔥🔥 NOVO BLOCO: CÂMBIO ENTRE CONTAS (conta_origem/conta_destino)
-            elif (dados.get('conta_origem') == self.conta_bancaria_numero or 
-                dados.get('conta_destino') == self.conta_bancaria_numero):
+            # ===== CÂMBIO ENTRE CONTAS DA EMPRESA =====
+            elif tipo == 'cambio_contas_empresa':
+                print(f"\n🔍 PROCESSANDO CÂMBIO ENTRE CONTAS: {transferencia_id}")
                 
-                # 🔥 DEBUG: Verificar qual tipo está sendo processado
-                print(f"🎯 PROCESSANDO TRANSAÇÃO {transferencia_id}: tipo='{tipo}' (NOSSA CONTA É ORIGEM/DESTINO)")
+                conta_origem = dados.get('conta_origem')
+                conta_destino = dados.get('conta_destino')
+                valor_origem = dados.get('valor_origem', 0)
+                valor_destino = dados.get('valor_destino', 0)
+                moeda_origem = dados.get('moeda_origem', '')
+                moeda_destino = dados.get('moeda_destino', '')
+                data_transacao = dados.get('data', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                timestamp = parse_data(data_transacao)
                 
-                if tipo == 'cambio_contas_empresa':
-                    print(f"🔍🔍🔍 ENTRANDO NO PROCESSAMENTO DO CÂMBIO (ORIGEM/DESTINO): {transferencia_id}")
-                    conta_origem = dados.get('conta_origem')
-                    conta_destino = dados.get('conta_destino')
-                    print(f"🔍🔍🔍 conta_origem: {conta_origem}, conta_destino: {conta_destino}, nossa_conta: {self.conta_bancaria_numero}")
+                print(f"   Origem: {conta_origem} | Valor: {valor_origem:,.2f} {moeda_origem}")
+                print(f"   Destino: {conta_destino} | Valor: {valor_destino:,.2f} {moeda_destino}")
+                print(f"   Nossa conta: {self.conta_bancaria_numero}")
+                
+                # 🔥 CASO 1: NOSSA CONTA É A ORIGEM (está perdendo dinheiro)
+                if conta_origem == self.conta_bancaria_numero:
+                    print(f"   ✅ Nossa conta é ORIGEM - SAÍDA de dinheiro")
                     
-                    if conta_origem == self.conta_bancaria_numero:
-                        # NOSSA CONTA É ORIGEM - SAÍDA (CRÉDITO)
-                        descricao = sistema.gerar_descricao_cambio_inteligente(dados, self.conta_bancaria_numero)
-                        nova_transacao = {
-                            'data': data_transacao,
-                            'descricao': descricao,
-                            'credito': dados['valor_origem'],  # 🔥 CRÉDITO = SAÍDA
-                            'debito': 0.00,
-                            'tipo': "Câmbio entre Contas",
-                            'moeda': dados['moeda_origem'],
-                            'timestamp': self.parse_data_simples(dados.get('data', '')),
-                            'id': transferencia_id
-                        }
-                        print(f"💰💰💰 CÂMBIO ORIGEM ADICIONADO AO EXTRATO: {dados['valor_origem']:,.2f} {dados['moeda_origem']}")
+                    # SAÍDA = CRÉDITO na coluna (diminui saldo)
+                    descricao = f"CÂMBIO - SAÍDA - {moeda_origem} {valor_origem:,.2f} → {moeda_destino} {valor_destino:,.2f}"
                     
-                    elif conta_destino == self.conta_bancaria_numero:
-                        print(f"🔍🔍🔍 CONTA DESTINO É NOSSA CONTA! VAI ADICIONAR AO EXTRATO")
-                        # NOSSA CONTA É DESTINO - ENTRADA (DÉBITO)
-                        descricao = sistema.gerar_descricao_cambio_inteligente(dados, self.conta_bancaria_numero)
-                        nova_transacao = {
-                            'data': data_transacao,
-                            'descricao': descricao,
-                            'credito': 0.00,
-                            'debito': dados['valor_destino'],  # 🔥 DÉBITO = ENTRADA
-                            'tipo': "Câmbio entre Contas",
-                            'moeda': dados['moeda_destino'],
-                            'timestamp': self.parse_data_simples(dados.get('data', '')),
-                            'id': transferencia_id
-                        }
-                        print(f"💰💰💰 CÂMBIO DESTINO ADICIONADO AO EXTRATO: {dados['valor_destino']:,.2f} {dados['moeda_destino']}")
+                    nova_transacao = {
+                        'data': data_transacao,
+                        'descricao': descricao,
+                        'credito': valor_origem,      # 🔥 CRÉDITO = SAÍDA
+                        'debito': 0.00,
+                        'tipo': "Câmbio entre Contas",
+                        'moeda': moeda_origem,
+                        'timestamp': timestamp,
+                        'id': transferencia_id,
+                        '_tipo_operacao': 'SAÍDA (origem)'
+                    }
                     
                     transacoes_todas.append(nova_transacao)
                     transacoes_ids_utilizados.add(transferencia_id)
+                    print(f"   💰 ADICIONADO: SAÍDA de {valor_origem:,.2f} {moeda_origem} (CRÉDITO)")
+                
+                # 🔥 CASO 2: NOSSA CONTA É O DESTINO (está ganhando dinheiro)
+                elif conta_destino == self.conta_bancaria_numero:
+                    print(f"   ✅ Nossa conta é DESTINO - ENTRADA de dinheiro")
+                    
+                    # ENTRADA = DÉBITO na coluna (aumenta saldo)
+                    descricao = f"CÂMBIO - ENTRADA - {moeda_origem} {valor_origem:,.2f} → {moeda_destino} {valor_destino:,.2f}"
+                    
+                    nova_transacao = {
+                        'data': data_transacao,
+                        'descricao': descricao,
+                        'credito': 0.00,
+                        'debito': valor_destino,      # 🔥 DÉBITO = ENTRADA
+                        'tipo': "Câmbio entre Contas",
+                        'moeda': moeda_destino,
+                        'timestamp': timestamp,
+                        'id': transferencia_id,
+                        '_tipo_operacao': 'ENTRADA (destino)'
+                    }
+                    
+                    transacoes_todas.append(nova_transacao)
+                    transacoes_ids_utilizados.add(transferencia_id)
+                    print(f"   💰 ADICIONADO: ENTRADA de {valor_destino:,.2f} {moeda_destino} (DÉBITO)")
+                
+                else:
+                    print(f"   ⏭️ Câmbio não envolve nossa conta")
         
         # Aplicar filtro de data nas transações
         transacoes_filtradas = []
