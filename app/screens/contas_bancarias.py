@@ -3438,19 +3438,25 @@ class TelaExtratoContaBancaria(Screen):
                 valor_destino = dados.get('valor_destino', 0)
                 moeda_origem = dados.get('moeda_origem', '')
                 moeda_destino = dados.get('moeda_destino', '')
+                
+                # 🔥 NOVO: Obter a taxa do câmbio
+                taxa = dados.get('taxa_principal_registro') or dados.get('taxa_cambio') or 0
+                tipo_taxa = dados.get('tipo_taxa_usada', 'principal')
+                
                 data_transacao = dados.get('data', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                 timestamp = parse_data(data_transacao)
                 
                 print(f"   Origem: {conta_origem} | Valor: {valor_origem:,.2f} {moeda_origem}")
                 print(f"   Destino: {conta_destino} | Valor: {valor_destino:,.2f} {moeda_destino}")
+                print(f"   Taxa: {taxa:.6f} ({tipo_taxa})")
                 print(f"   Nossa conta: {self.conta_bancaria_numero}")
                 
                 # 🔥 CASO 1: NOSSA CONTA É A ORIGEM (está perdendo dinheiro)
                 if conta_origem == self.conta_bancaria_numero:
                     print(f"   ✅ Nossa conta é ORIGEM - SAÍDA de dinheiro")
                     
-                    # SAÍDA = CRÉDITO na coluna (diminui saldo)
-                    descricao = f"CÂMBIO - SAÍDA - {moeda_origem} {valor_origem:,.2f} → {moeda_destino} {valor_destino:,.2f}"
+                    # 🔥 DESCRIÇÃO NO FORMATO ANTERIOR COM TAXA
+                    descricao = f"CÂMBIO ENTRE CONTAS - {moeda_origem} {valor_origem:,.2f} --> {moeda_destino} {valor_destino:,.2f} (Taxa: {taxa:.6f})"
                     
                     nova_transacao = {
                         'data': data_transacao,
@@ -3461,19 +3467,22 @@ class TelaExtratoContaBancaria(Screen):
                         'moeda': moeda_origem,
                         'timestamp': timestamp,
                         'id': transferencia_id,
-                        '_tipo_operacao': 'SAÍDA (origem)'
+                        '_tipo_operacao': 'SAÍDA (origem)',
+                        '_taxa': taxa,
+                        '_tipo_taxa': tipo_taxa
                     }
                     
                     transacoes_todas.append(nova_transacao)
                     transacoes_ids_utilizados.add(transferencia_id)
                     print(f"   💰 ADICIONADO: SAÍDA de {valor_origem:,.2f} {moeda_origem} (CRÉDITO)")
+                    print(f"   📝 Descrição: {descricao}")
                 
                 # 🔥 CASO 2: NOSSA CONTA É O DESTINO (está ganhando dinheiro)
                 elif conta_destino == self.conta_bancaria_numero:
                     print(f"   ✅ Nossa conta é DESTINO - ENTRADA de dinheiro")
                     
-                    # ENTRADA = DÉBITO na coluna (aumenta saldo)
-                    descricao = f"CÂMBIO - ENTRADA - {moeda_origem} {valor_origem:,.2f} → {moeda_destino} {valor_destino:,.2f}"
+                    # 🔥 DESCRIÇÃO NO FORMATO ANTERIOR COM TAXA
+                    descricao = f"CÂMBIO ENTRE CONTAS - {moeda_origem} {valor_origem:,.2f} --> {moeda_destino} {valor_destino:,.2f} (Taxa: {taxa:.6f})"
                     
                     nova_transacao = {
                         'data': data_transacao,
@@ -3484,12 +3493,15 @@ class TelaExtratoContaBancaria(Screen):
                         'moeda': moeda_destino,
                         'timestamp': timestamp,
                         'id': transferencia_id,
-                        '_tipo_operacao': 'ENTRADA (destino)'
+                        '_tipo_operacao': 'ENTRADA (destino)',
+                        '_taxa': taxa,
+                        '_tipo_taxa': tipo_taxa
                     }
                     
                     transacoes_todas.append(nova_transacao)
                     transacoes_ids_utilizados.add(transferencia_id)
                     print(f"   💰 ADICIONADO: ENTRADA de {valor_destino:,.2f} {moeda_destino} (DÉBITO)")
+                    print(f"   📝 Descrição: {descricao}")
                 
                 else:
                     print(f"   ⏭️ Câmbio não envolve nossa conta")

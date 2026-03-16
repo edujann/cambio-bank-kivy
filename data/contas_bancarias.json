@@ -53,6 +53,15 @@
         "agencia": "0001",
         "saldo_inicial": 0.0
     },
+    "BANK_EUR_001": {
+        "numero": "BANK_EUR_001",
+        "banco": "Banco Principal",
+        "moeda": "EUR",
+        "saldo": 2500000.0,
+        "tipo": "empresa",
+        "agencia": null,
+        "saldo_inicial": 0.0
+    },
     "PELUSO BANK_BRL_001": {
         "numero": "PELUSO BANK_BRL_001",
         "banco": "PELUSO BANK",
@@ -69,15 +78,6 @@
         "saldo": 8566.09,
         "tipo": "empresa",
         "agencia": "0001",
-        "saldo_inicial": 0.0
-    },
-    "BANK_EUR_001": {
-        "numero": "BANK_EUR_001",
-        "banco": "Banco Principal",
-        "moeda": "EUR",
-        "saldo": 2500000.0,
-        "tipo": "empresa",
-        "agencia": null,
         "saldo_inicial": 0.0
     },
     "JACKS_BRL_001": {

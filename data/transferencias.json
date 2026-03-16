@@ -14879,8 +14879,8 @@
         "taxa_principal_registro": 0.0,
         "taxa_cambio": 0.0
     },
-    "953411_cb": {
-        "id": "953411_cb",
+    "651707_cb": {
+        "id": "651707_cb",
         "conta_remetente": "PELUSO BANK_BRL_001",
         "conta_destinatario": "COFRE ESCRITÓRIO - GBP",
         "valor": 50000.0,
@@ -14894,7 +14894,7 @@
         "operacao_origem": "CRÉDITO",
         "operacao_destino": "DÉBITO",
         "status": "completed",
-        "data": "2026-03-16 18:24:58",
+        "data": "2026-03-16 18:33:34",
         "executado_por": "admin"
     }
 }
