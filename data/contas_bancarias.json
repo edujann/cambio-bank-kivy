@@ -1,4 +1,13 @@
 {
+    "JACKS_BRL_001": {
+        "numero": "JACKS_BRL_001",
+        "banco": "JACKS BANK",
+        "moeda": "BRL",
+        "saldo": 0.0,
+        "tipo": "empresa",
+        "agencia": "0001",
+        "saldo_inicial": 0.0
+    },
     "BANK_USDT_001, 148473287": {
         "numero": "BANK_USDT_001, 148473287",
         "banco": "BANK OF AMERICA",
@@ -15,6 +24,15 @@
         "saldo": 667689.39,
         "tipo": "empresa",
         "agencia": null,
+        "saldo_inicial": 0.0
+    },
+    "JACKS_USD_001": {
+        "numero": "JACKS_USD_001",
+        "banco": "JACKS BANK",
+        "moeda": "USD",
+        "saldo": 2605.97,
+        "tipo": "empresa",
+        "agencia": "0001",
         "saldo_inicial": 0.0
     },
     "BANK_GBP_001": {
@@ -39,15 +57,15 @@
         "numero": "GABLES_BRL_001",
         "banco": "GABLES BANK",
         "moeda": "BRL",
-        "saldo": 2000000.05,
+        "saldo": 2122044.26,
         "tipo": "empresa",
         "agencia": "0001",
         "saldo_inicial": 0.0
     },
-    "JACKS_USD_001": {
-        "numero": "JACKS_USD_001",
-        "banco": "JACKS BANK",
-        "moeda": "USD",
+    "PELUSO BANK_BRL_001": {
+        "numero": "PELUSO BANK_BRL_001",
+        "banco": "PELUSO BANK",
+        "moeda": "BRL",
         "saldo": 0.0,
         "tipo": "empresa",
         "agencia": "0001",
@@ -62,29 +80,11 @@
         "agencia": null,
         "saldo_inicial": 0.0
     },
-    "PELUSO BANK_BRL_001": {
-        "numero": "PELUSO BANK_BRL_001",
-        "banco": "PELUSO BANK",
-        "moeda": "BRL",
-        "saldo": 0.0,
-        "tipo": "empresa",
-        "agencia": "0001",
-        "saldo_inicial": 0.0
-    },
     "COFRE ESCRITÓRIO - GBP": {
         "numero": "COFRE ESCRITÓRIO - GBP",
         "banco": "ESCRITÓRIO CENTRAL",
         "moeda": "GBP",
-        "saldo": 8566.09,
-        "tipo": "empresa",
-        "agencia": "0001",
-        "saldo_inicial": 0.0
-    },
-    "JACKS_BRL_001": {
-        "numero": "JACKS_BRL_001",
-        "banco": "JACKS BANK",
-        "moeda": "BRL",
-        "saldo": 0.0,
+        "saldo": 36087.95,
         "tipo": "empresa",
         "agencia": "0001",
         "saldo_inicial": 0.0
