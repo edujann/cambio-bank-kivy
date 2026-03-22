@@ -2383,43 +2383,50 @@ class TelaContasBancarias(Screen):
         self.manager.current = 'dashboard'
 
 class TelaExtratoContaBancaria(Screen):
-    """Tela de extrato para contas bancárias da empresa - LÓGICA INVERTIDA"""
+    """Tela de extrato para contas bancárias da empresa - VERSÃO COM FILTRO POR PERÍODO"""
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.conta_bancaria_numero = None
-        self.transacoes_carregadas = []
-        self.periodo_var = "30"
+        self.transacoes_completas = []  # 🔥 Todas as transações desde 01/01/2024
+        self.transacoes_filtradas = []
+        self.periodo_var = "7"  # 🔥 ALTERADO: padrão agora é 7 dias
         self.saldo_final = 0
         self.total_entradas = 0
         self.total_saidas = 0
-        self.transacoes_filtradas = []
     
     def on_pre_enter(self):
         """Chamado antes da tela ser mostrada"""
         from kivy.core.window import Window
         Window.size = (1400, 1000)
-
-        # 🔥 MOVER PARA ESQUERDA - VERSÃO SIMPLES
-        Window.left = 300    # 300 pixels da borda esquerda
-        Window.top = 40    # 70 pixels do topo
+        Window.left = 300
+        Window.top = 40
         
     def on_enter(self):
         """Chamado quando a tela é carregada"""
-        from kivy.core.window import Window  # 🔥 ADICIONAR ESTA LINHA
+        from kivy.core.window import Window
+        from kivy.clock import Clock
         
         print("🏦 Tela Extrato Conta Bancária carregada")
-
-        # 🔥 GARANTIR que está na posição correta
+        
         Window.left = 300
         Window.top = 40
         
         if self.conta_bancaria_numero:
-            # Carregar dados iniciais
+            # 🔥 PASSO 1: Carregar dados iniciais da interface
             self.carregar_dados_iniciais()
-            # Carregar extrato com delay
-            from kivy.clock import Clock
-            Clock.schedule_once(lambda dt: self.carregar_extrato(), 0.8)
+            
+            # 🔥 PASSO 2: Carregar dados completos das transações (TODO PERÍODO)
+            self.carregar_dados_completos()
+            
+            # 🔥 PASSO 3: Configurar período padrão (7 dias)
+            self.periodo_var = "7"
+            
+            # 🔥 PASSO 4: Atualizar estado dos botões no KV
+            Clock.schedule_once(lambda dt: self.atualizar_botoes_periodo(), 0.3)
+            
+            # 🔥 PASSO 5: Carregar extrato com o período padrão
+            Clock.schedule_once(lambda dt: self.carregar_extrato(), 0.5)
             Clock.schedule_once(lambda dt: self.scroll_para_topo(), 1.0)
     
     def configurar_conta(self, conta_numero):
@@ -2428,7 +2435,7 @@ class TelaExtratoContaBancaria(Screen):
         print(f"🔧 Configurando extrato para conta: {conta_numero}")
     
     def carregar_dados_iniciais(self):
-        """Carrega dados iniciais da tela"""
+        """Carrega dados iniciais da interface (campos de data, etc)"""
         sistema = App.get_running_app().sistema
         
         if not self.conta_bancaria_numero:
@@ -2440,270 +2447,34 @@ class TelaExtratoContaBancaria(Screen):
             self.mostrar_erro("Conta bancária não encontrada!")
             return
         
-        # Configurar período padrão
+        # Configurar campos de data
         if hasattr(self, 'ids'):
-            self.periodo_var = "30"  # 30 dias padrão
-            
-            # Configurar data atual
+            # Configurar data atual para campos personalizados
             data_atual = datetime.datetime.now().strftime("%d/%m/%Y")
-            self.ids.entry_data_fim.text = data_atual
-            self.ids.entry_data_inicio.text = "01/01/2024"
+            if 'entry_data_fim' in self.ids:
+                self.ids.entry_data_fim.text = data_atual
+            if 'entry_data_inicio' in self.ids:
+                self.ids.entry_data_inicio.text = "01/01/2024"
             
             # Configurar máscaras de data
-            self.ids.entry_data_inicio.bind(text=self.aplicar_mascara_data)
-            self.ids.entry_data_fim.bind(text=self.aplicar_mascara_data)
+            if hasattr(self, 'aplicar_mascara_data'):
+                if 'entry_data_inicio' in self.ids:
+                    self.ids.entry_data_inicio.bind(text=self.aplicar_mascara_data)
+                if 'entry_data_fim' in self.ids:
+                    self.ids.entry_data_fim.bind(text=self.aplicar_mascara_data)
             
             # Configurar eventos de foco
-            self.ids.entry_data_inicio.bind(focus=self.on_focus_data_inicio)
-            self.ids.entry_data_fim.bind(focus=self.on_focus_data_fim)
+            if hasattr(self, 'on_focus_data_inicio') and 'entry_data_inicio' in self.ids:
+                self.ids.entry_data_inicio.bind(focus=self.on_focus_data_inicio)
+            if hasattr(self, 'on_focus_data_fim') and 'entry_data_fim' in self.ids:
+                self.ids.entry_data_fim.bind(focus=self.on_focus_data_fim)
             
             # Atualizar saldo na parte superior
             self.atualizar_saldo_superior()
     
-    def aplicar_mascara_data(self, instance, value):
-        """Aplica máscara de data DD/MM/AAAA"""
-        if getattr(instance, '_processing', False):
-            return
-            
-        instance._processing = True
-        
-        try:
-            texto_limpo = ''.join(c for c in value if c.isdigit())
-            
-            if len(texto_limpo) > 8:
-                texto_limpo = texto_limpo[:8]
-            
-            texto_formatado = ""
-            if len(texto_limpo) > 0:
-                texto_formatado = texto_limpo[0:2]
-            if len(texto_limpo) > 2:
-                texto_formatado += '/' + texto_limpo[2:4]
-            if len(texto_limpo) > 4:
-                texto_formatado += '/' + texto_limpo[4:8]
-            
-            if texto_formatado != instance.text:
-                instance.unbind(text=self.aplicar_mascara_data)
-                instance.text = texto_formatado
-                instance.bind(text=self.aplicar_mascara_data)
-                
-                from kivy.clock import Clock
-                Clock.schedule_once(lambda dt: setattr(instance, 'cursor', (len(texto_formatado), 0)), 0.01)
-                
-        finally:
-            instance._processing = False
-    
-    def validar_data_br(self, data_br):
-        """Valida se a data no formato BR é válida"""
-        try:
-            partes = data_br.split('/')
-            if len(partes) != 3:
-                return False
-                
-            dia, mes, ano = partes
-            if len(dia) != 2 or len(mes) != 2 or len(ano) != 4:
-                return False
-                
-            dia_int, mes_int, ano_int = int(dia), int(mes), int(ano)
-            
-            if mes_int < 1 or mes_int > 12:
-                return False
-            if dia_int < 1 or dia_int > 31:
-                return False
-            if ano_int < 1900 or ano_int > 2100:
-                return False
-                
-            return True
-        except:
-            return False
-    
-    def atualizar_saldo_superior(self):
-        """Atualiza o saldo mostrado na parte superior da tela"""
-        sistema = App.get_running_app().sistema
-        
-        if not self.conta_bancaria_numero:
-            return
-            
-        try:
-            conta_info = sistema.contas_bancarias_empresa[self.conta_bancaria_numero]
-            saldo = conta_info['saldo']
-            moeda = conta_info['moeda']
-            
-            # Atualizar labels
-            self.ids.lbl_saldo_total.text = f"{saldo:,.2f} {moeda}"
-            self.ids.lbl_total_entradas.text = f"0.00 {moeda}"
-            self.ids.lbl_total_saidas.text = f"0.00 {moeda}"
-            self.ids.lbl_total_transacoes.text = "0"
-            self.ids.lbl_periodo.text = "Últimos 30 dias"
-            
-            # Atualizar título com informações da conta
-            self.ids.lbl_titulo_extrato.text = f"EXTRATO - {self.conta_bancaria_numero} - {conta_info['banco']} - {moeda}"
-            
-            print(f"✅ Saldo superior atualizado: {saldo:,.2f} {moeda}")
-            
-        except Exception as e:
-            print(f"Erro ao atualizar saldo superior: {e}")
-    
-    def definir_periodo(self, periodo):
-        """Define o período selecionado"""
-        self.periodo_var = periodo
-        print(f"🔧 Período definido para: {periodo}")
-    
-    def usar_periodo_personalizado(self, forcar_validacao=False):
-        """Define o período como personalizado"""
-        print("🔧 Usando período personalizado...")
-        
-        self.definir_periodo("personalizado")
-        
-        if forcar_validacao:
-            data_inicio_br = self.ids.entry_data_inicio.text
-            data_fim_br = self.ids.entry_data_fim.text
-            
-            print(f"🔧 Datas: {data_inicio_br} até {data_fim_br}")
-            
-            if not self.validar_data_br(data_inicio_br):
-                self.mostrar_erro("Data inicial inválida! Use DD/MM/AAAA")
-                return
-                
-            if not self.validar_data_br(data_fim_br):
-                self.mostrar_erro("Data final inválida! Use DD/MM/AAAA")
-                return
-            
-            self.mostrar_sucesso(f"Período personalizado definido: {data_inicio_br} a {data_fim_br}")
-            
-            from kivy.clock import Clock
-            Clock.schedule_once(lambda dt: self.carregar_extrato(), 0.5)
-    
-    def on_focus_data_inicio(self, instance, value):
-        """Manipula o foco no campo data início"""
-        if value:
-            print("🔧 Foco no campo data início")
-            self.definir_periodo("personalizado")
-    
-    def on_focus_data_fim(self, instance, value):
-        """Manipula o foco no campo data fim"""
-        if value:
-            print("🔧 Foco no campo data fim")
-            self.definir_periodo("personalizado")
-
-    def obter_nome_cliente_por_conta(self, sistema, conta_numero):
-        """Obtém o nome do cliente por número da conta"""
-        if conta_numero in sistema.contas:
-            return sistema.contas[conta_numero].get('cliente_nome', 'Cliente')
-        return 'Conta Externa'
-    
-    def obter_banco_por_conta(self, sistema, conta_numero):
-        """Obtém o nome do banco por número da conta"""
-        if conta_numero in sistema.contas:
-            return sistema.contas[conta_numero].get('banco', 'Banco não informado')
-        return 'Banco não informado'
-    
-    def obter_cliente_por_remetente(self, sistema, remetente_conta):
-        """Busca o nome do cliente pelo número do remetente"""
-        print(f"🔍 BUSCANDO CLIENTE PELO REMETENTE: {remetente_conta}")
-        
-        # 🔥 BUSCAR NAS CONTAS DO SISTEMA
-        if remetente_conta in sistema.contas:
-            cliente_nome = sistema.contas[remetente_conta].get('cliente_nome', '')
-            if cliente_nome:
-                print(f"   ✅ CLIENTE ENCONTRADO: {cliente_nome}")
-                return cliente_nome
-        
-        # 🔥 BUSCAR NOS USUÁRIOS
-        for username, user_data in sistema.usuarios.items():
-            if 'contas' in user_data and remetente_conta in user_data['contas']:
-                cliente_nome = user_data.get('empresa', user_data.get('nome', ''))
-                if cliente_nome:
-                    print(f"   ✅ CLIENTE ENCONTRADO EM USUÁRIO: {cliente_nome}")
-                    return cliente_nome
-        
-        # 🔥 MAPEAMENTO DIRETO (fallback)
-        clientes_mapeamento = {
-            "202973672": "TEXACO LLC",
-            "802194129": "PANTANAL COMERCIO IMP LTDA", 
-            "873134916": "JACKS DISTRIBUIDORA"
-        }
-        
-        if remetente_conta in clientes_mapeamento:
-            cliente_nome = clientes_mapeamento[remetente_conta]
-            print(f"   ✅ CLIENTE ENCONTRADO NO MAPEAMENTO: {cliente_nome}")
-            return cliente_nome
-        
-        print(f"   ❌ CLIENTE NÃO ENCONTRADO")
-        return "Cliente não informado"
-
-    def inferir_banco_por_conta(self, conta_numero):
-        """Infere o banco pelos primeiros dígitos da conta"""
-        print(f"🔍 INFERINDO BANCO PELA CONTA: {conta_numero}")
-        
-        prefixos_bancos = {
-            "202": "Banco do Brasil",
-            "802": "Itaú Unibanco", 
-            "873": "Bradesco",
-            "001": "Banco do Brasil",
-            "341": "Itaú",
-            "237": "Bradesco",
-            "104": "Caixa Econômica",
-            "033": "Santander"
-        }
-        
-        for prefixo, banco in prefixos_bancos.items():
-            if conta_numero.startswith(prefixo):
-                print(f"   ✅ BANCO INFERIDO: {banco}")
-                return banco
-        
-        print(f"   ❌ BANCO NÃO IDENTIFICADO")
-        return "Banco não informado"
-
-    def obter_nome_remetente_por_conta(self, conta_numero):
-        """Obtém o nome REAL do remetente por número da conta"""
-        print(f"🔍 BUSCANDO NOME REAL DO REMETENTE PARA CONTA: {conta_numero}")
-        
-        remetentes_conhecidos = {
-            "202973672": "OLD PARR LTDA",
-            "802194129": "ATLAS IMEC LIMITADA", 
-            "873134916": "SYMAS TURBO TDA"
-        }
-        
-        if conta_numero in remetentes_conhecidos:
-            nome_correto = remetentes_conhecidos[conta_numero]
-            print(f"   ✅ REMETENTE ENCONTRADO: {nome_correto}")
-            return nome_correto
-        
-        print(f"   ❌ REMETENTE NÃO ENCONTRADO PARA CONTA: {conta_numero}")
-        return conta_numero
-
-    def limpar_extrato(self):
-        """Limpa a visualização do extrato"""
-        if hasattr(self, 'ids'):
-            container = self.ids.lista_transacoes
-            container.clear_widgets()
-            
-            from kivy.uix.label import Label
-            from kivy.metrics import dp
-            
-            lbl_carregando = Label(
-                text="Carregando extrato...",
-                font_size='14sp',
-                color=(0.8, 0.8, 0.8, 1),
-                size_hint_y=None,
-                height=dp(40)
-            )
-            container.add_widget(lbl_carregando)
-    
-    def _safe_float(self, value, default=0.0):
-        """Converte valor para float de forma segura, tratando None e strings vazias"""
-        if value is None:
-            return default
-        try:
-            return float(value)
-        except (ValueError, TypeError):
-            return default
-
-    def carregar_extrato(self):
-        """Carrega o extrato da conta bancária - VERSÃO CORRIGIDA (TODO PERÍODO + SALDO CORRETO)"""
-        print("🔄 INICIANDO carregar_extrato CONTA BANCÁRIA - VERSÃO CORRIGIDA...")
-        
-        self.limpar_extrato()
+    def carregar_dados_completos(self):
+        """Carrega TODAS as transações desde 01/01/2024 (sem filtro de exibição)"""
+        print("🔄 Carregando dados completos desde 01/01/2024...")
         
         sistema = App.get_running_app().sistema
         
@@ -2711,7 +2482,7 @@ class TelaExtratoContaBancaria(Screen):
             self.mostrar_erro("Nenhuma conta configurada!")
             return
         
-        # 🔥 CARREGAR CONTAS DO SUPABASE (mesmo código)
+        # 🔥 CARREGAR CONTAS DO SUPABASE
         if hasattr(sistema, 'supabase') and sistema.supabase.conectado:
             try:
                 print("📡 Buscando contas bancárias no Supabase...")
@@ -2743,11 +2514,7 @@ class TelaExtratoContaBancaria(Screen):
             return
         
         conta_info = sistema.contas_bancarias_empresa[self.conta_bancaria_numero]
-        moeda = conta_info['moeda']
-        saldo_atual = conta_info['saldo']
         
-        print(f"🔍 Processando conta: {self.conta_bancaria_numero} - Saldo: {saldo_atual:,.2f} {moeda}")
-
         # 🔥 CARREGAR TRANSFERÊNCIAS DO SUPABASE
         if hasattr(sistema, 'supabase') and sistema.supabase.conectado:
             try:
@@ -2805,46 +2572,26 @@ class TelaExtratoContaBancaria(Screen):
                 print(f"⚠️ Erro ao carregar transferências do Supabase: {e}")
                 import traceback
                 traceback.print_exc()
-
-        # 🔥🔥🔥 CORREÇÃO 1: REMOVER FILTRO DE PERÍODO - SEMPRE TODO PERÍODO
+        
+        # 🔥 COLETAR TODAS AS TRANSAÇÕES
+        self.transacoes_completas = self.coletar_todas_transacoes(sistema, conta_info)
+        
+        print(f"📊 TOTAL DE TRANSAÇÕES COLETADAS: {len(self.transacoes_completas)}")
+    
+    def coletar_todas_transacoes(self, sistema, conta_info):
+        """Coleta todas as transações desde 01/01/2024 e calcula saldos"""
+        
+        moeda = conta_info['moeda']
+        saldo_inicial_real = conta_info.get('saldo_inicial', 0.0)
+        
         # Definir data de início fixa (01/01/2024)
         data_inicio_filtro = datetime.datetime(2024, 1, 1, 0, 0, 0)
         data_fim_filtro = datetime.datetime.now()
         
-        print(f"🔧 PERÍODO CONFIGURADO (TODO PERÍODO):")
-        print(f"   Data início: {data_inicio_filtro.strftime('%d/%m/%Y')}")
-        print(f"   Data fim: {data_fim_filtro.strftime('%d/%m/%Y')}")
-        
-        # 🔥 OBTER SALDO INICIAL REAL DA CONTA
-        saldo_inicial_real = conta_info.get('saldo_inicial', 0.0)
-        print(f"💰 SALDO INICIAL REAL DA CONTA: {saldo_inicial_real:,.2f}")
-        
-        # Função auxiliar para parse de datas
-        def parse_data(data_str):
-            if not data_str:
-                return datetime.datetime.now()
-                
-            try:
-                if 'T' in data_str:
-                    data_limpa = data_str.split('+')[0].split('Z')[0]
-                    if '.' in data_limpa:
-                        data_limpa = data_limpa.split('.')[0]
-                    return datetime.datetime.fromisoformat(data_limpa)
-                elif ' ' in data_str and ':' in data_str:
-                    return datetime.datetime.strptime(data_str, "%Y-%m-%d %H:%M:%S")
-                elif ' ' in data_str:
-                    return datetime.datetime.strptime(data_str.split(' ')[0], "%Y-%m-%d")
-                else:
-                    return datetime.datetime.strptime(data_str, "%Y-%m-%d")
-            except Exception as e:
-                print(f"⚠️ Erro ao converter data '{data_str}': {e}")
-                return datetime.datetime.now()
-        
-        # 🔥 COLETAR TODAS AS TRANSAÇÕES (SEM FILTRO DE PERÍODO NA COLETA)
-        transacoes_todas = []
+        transacoes = []
         transacoes_ids_utilizados = set()
         
-        # 🔥 ADICIONAR SALDO INICIAL COMO PRIMEIRA TRANSAÇÃO (data mais antiga)
+        # ADICIONAR SALDO INICIAL
         transacao_saldo_inicial = {
             'data': '2024-01-01 00:00:00',
             'descricao': "SALDO INICIAL DA CONTA",
@@ -2855,9 +2602,9 @@ class TelaExtratoContaBancaria(Screen):
             'timestamp': datetime.datetime(2024, 1, 1, 0, 0, 0),
             'id': 'SALDO_INICIAL'
         }
-        transacoes_todas.append(transacao_saldo_inicial)
+        transacoes.append(transacao_saldo_inicial)
         
-        # 🔥 PROCESSAR TODAS AS TRANSAÇÕES (sem filtro de período)
+        # PROCESSAR TODAS AS TRANSAÇÕES
         for transferencia_id, dados in sistema.transferencias.items():
             
             if not dados or not isinstance(dados, dict):
@@ -2877,22 +2624,19 @@ class TelaExtratoContaBancaria(Screen):
             if not conta_envolvida:
                 continue
             
-            # Incluir apenas transações concluídas
             if status not in ['completed', 'processing']:
                 continue
             
             data_transacao = dados.get('data', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             timestamp = self.parse_data_simples(data_transacao)
             
-            # 🔥 FILTRO DE PERÍODO APLICADO AQUI - GARANTIR QUE ESTÁ DENTRO DO PERÍODO
-            # 🔥 CORREÇÃO: Verificar se a transação está dentro do período (01/01/2024 até hoje)
+            # Filtrar apenas transações desde 01/01/2024
             if timestamp < data_inicio_filtro or timestamp > data_fim_filtro:
-                print(f"   ⏭️ Transação fora do período: {timestamp.date()} | ID: {transferencia_id}")
                 continue
             
             tipo = dados.get('tipo', '')
             
-            # 🔥 PROCESSAR CÂMBIOS ENTRE CONTAS
+            # PROCESSAR CÂMBIOS ENTRE CONTAS
             if tipo == 'cambio_contas_empresa':
                 conta_origem = dados.get('conta_origem')
                 conta_destino = dados.get('conta_destino')
@@ -2903,9 +2647,8 @@ class TelaExtratoContaBancaria(Screen):
                 taxa = dados.get('taxa_principal_registro') or dados.get('taxa_cambio') or 0
                 
                 if conta_origem == self.conta_bancaria_numero:
-                    # SAÍDA de dinheiro
                     descricao = f"CÂMBIO ENTRE CONTAS - {moeda_origem} {valor_origem:,.2f} --> {moeda_destino} {valor_destino:,.2f} (Taxa: {taxa:.6f})"
-                    nova_transacao = {
+                    transacoes.append({
                         'data': data_transacao,
                         'descricao': descricao,
                         'credito': valor_origem,
@@ -2914,14 +2657,10 @@ class TelaExtratoContaBancaria(Screen):
                         'moeda': moeda_origem,
                         'timestamp': timestamp,
                         'id': transferencia_id
-                    }
-                    transacoes_todas.append(nova_transacao)
-                    transacoes_ids_utilizados.add(transferencia_id)
-                    
+                    })
                 elif conta_destino == self.conta_bancaria_numero:
-                    # ENTRADA de dinheiro
                     descricao = f"CÂMBIO ENTRE CONTAS - {moeda_origem} {valor_origem:,.2f} --> {moeda_destino} {valor_destino:,.2f} (Taxa: {taxa:.6f})"
-                    nova_transacao = {
+                    transacoes.append({
                         'data': data_transacao,
                         'descricao': descricao,
                         'credito': 0.00,
@@ -2930,11 +2669,9 @@ class TelaExtratoContaBancaria(Screen):
                         'moeda': moeda_destino,
                         'timestamp': timestamp,
                         'id': transferencia_id
-                    }
-                    transacoes_todas.append(nova_transacao)
-                    transacoes_ids_utilizados.add(transferencia_id)
+                    })
             
-            # 🔥 PROCESSAR AJUSTES DE SALDO
+            # PROCESSAR AJUSTES DE SALDO
             elif tipo == 'ajuste_saldo_empresa':
                 if dados.get('conta_remetente') != self.conta_bancaria_numero:
                     continue
@@ -2944,9 +2681,8 @@ class TelaExtratoContaBancaria(Screen):
                 valor = dados['valor']
                 
                 if tipo_ajuste_real == 'DÉBITO':
-                    # DÉBITO = ENTRADA (aumenta saldo)
                     descricao = f"AJUSTE - ENTRADA - {descricao_ajuste}"
-                    nova_transacao = {
+                    transacoes.append({
                         'data': data_transacao,
                         'descricao': descricao,
                         'credito': 0.00,
@@ -2955,11 +2691,10 @@ class TelaExtratoContaBancaria(Screen):
                         'moeda': dados['moeda'],
                         'timestamp': timestamp,
                         'id': transferencia_id
-                    }
-                else:  # 'CRÉDITO'
-                    # CRÉDITO = SAÍDA (diminui saldo)
+                    })
+                else:
                     descricao = f"AJUSTE - SAÍDA - {descricao_ajuste}"
-                    nova_transacao = {
+                    transacoes.append({
                         'data': data_transacao,
                         'descricao': descricao,
                         'credito': valor,
@@ -2968,16 +2703,13 @@ class TelaExtratoContaBancaria(Screen):
                         'moeda': dados['moeda'],
                         'timestamp': timestamp,
                         'id': transferencia_id
-                    }
-                
-                transacoes_todas.append(nova_transacao)
-                transacoes_ids_utilizados.add(transferencia_id)
+                    })
             
-            # 🔥 PROCESSAR DEPÓSITOS
+            # PROCESSAR DEPÓSITOS
             elif tipo == 'deposito' or tipo == 'deposito_confirmado':
                 if dados.get('conta_destinatario') == self.conta_bancaria_numero:
                     descricao = dados.get('descricao', f"DEPÓSITO - {dados.get('banco_origem', 'Banco')}")
-                    nova_transacao = {
+                    transacoes.append({
                         'data': data_transacao,
                         'descricao': descricao,
                         'credito': 0.00,
@@ -2986,15 +2718,13 @@ class TelaExtratoContaBancaria(Screen):
                         'moeda': dados['moeda'],
                         'timestamp': timestamp,
                         'id': transferencia_id
-                    }
-                    transacoes_todas.append(nova_transacao)
-                    transacoes_ids_utilizados.add(transferencia_id)
+                    })
             
-            # 🔥 PROCESSAR DESPESAS
+            # PROCESSAR DESPESAS
             elif tipo == 'despesa':
                 if dados.get('conta_remetente') == self.conta_bancaria_numero:
                     descricao = f"PAGAMENTO - {dados.get('descricao_despesa', 'Despesa')}"
-                    nova_transacao = {
+                    transacoes.append({
                         'data': data_transacao,
                         'descricao': descricao,
                         'credito': dados['valor'],
@@ -3003,15 +2733,13 @@ class TelaExtratoContaBancaria(Screen):
                         'moeda': dados['moeda'],
                         'timestamp': timestamp,
                         'id': transferencia_id
-                    }
-                    transacoes_todas.append(nova_transacao)
-                    transacoes_ids_utilizados.add(transferencia_id)
+                    })
             
-            # 🔥 PROCESSAR RECEITAS
+            # PROCESSAR RECEITAS
             elif tipo == 'receita':
                 if dados.get('conta_destinatario') == self.conta_bancaria_numero:
                     descricao = f"RECEITA - {dados.get('descricao_receita', 'Receita')}"
-                    nova_transacao = {
+                    transacoes.append({
                         'data': data_transacao,
                         'descricao': descricao,
                         'credito': 0.00,
@@ -3020,20 +2748,17 @@ class TelaExtratoContaBancaria(Screen):
                         'moeda': dados['moeda'],
                         'timestamp': timestamp,
                         'id': transferencia_id
-                    }
-                    transacoes_todas.append(nova_transacao)
-                    transacoes_ids_utilizados.add(transferencia_id)
+                    })
             
-            # 🔥 PROCESSAR OUTROS TIPOS (internacional, etc)
+            # PROCESSAR OUTROS TIPOS (internacional, etc)
             elif dados.get('conta_bancaria_credito') == self.conta_bancaria_numero:
-                # Transação onde nossa conta foi debitada (pagamento concluído)
                 if dados.get('tipo') == 'internacional':
                     descricao = f"PAGAMENTO INTERNACIONAL - {dados.get('beneficiario', 'Destinatário')}"
                 else:
                     destinatario_nome = self.obter_nome_cliente_por_conta(sistema, dados.get('conta_destinatario', 'N/A'))
                     descricao = f"PAGAMENTO TRANSFERÊNCIA - {destinatario_nome}"
                 
-                nova_transacao = {
+                transacoes.append({
                     'data': data_transacao,
                     'descricao': descricao,
                     'credito': dados['valor'],
@@ -3042,304 +2767,277 @@ class TelaExtratoContaBancaria(Screen):
                     'moeda': dados['moeda'],
                     'timestamp': timestamp,
                     'id': f"{transferencia_id}_PAGAMENTO"
-                }
-                transacoes_todas.append(nova_transacao)
-                transacoes_ids_utilizados.add(f"{transferencia_id}_PAGAMENTO")
+                })
         
-        print(f"📊 TOTAL DE TRANSAÇÕES COLETADAS: {len(transacoes_todas)}")
+        # CALCULAR SALDOS NA ORDEM CRONOLÓGICA
+        transacoes_ordenadas = sorted(transacoes, key=lambda x: x['timestamp'])
         
-        # 🔥🔥🔥 CORREÇÃO 2: CALCULAR SALDOS NA ORDEM CORRETA (CRONOLÓGICA)
-        # Ordenar transações do MAIS ANTIGO para o MAIS NOVO para calcular saldos
-        transacoes_ordenadas_calculo = sorted(transacoes_todas, key=lambda x: x['timestamp'])
-        
-        print(f"\n🔧 CALCULANDO SALDOS NA ORDEM CRONOLÓGICA:")
-        
-        # Calcular saldo sequencial
         saldo_sequencial = saldo_inicial_real
-        for i, transacao in enumerate(transacoes_ordenadas_calculo):
+        for transacao in transacoes_ordenadas:
             if transacao['tipo'] == "Saldo Inicial":
                 transacao['saldo_apos'] = saldo_sequencial
-                print(f"   {i+1}. SALDO INICIAL: {transacao['descricao']} | Saldo: {saldo_sequencial:,.2f}")
             else:
-                saldo_anterior = saldo_sequencial
-                # Débito aumenta saldo, Crédito diminui saldo
                 saldo_sequencial += transacao['debito'] - transacao['credito']
                 transacao['saldo_apos'] = saldo_sequencial
-                print(f"   {i+1}. {transacao['timestamp'].strftime('%d/%m/%Y')} | Débito: {transacao['debito']:,.2f} | Crédito: {transacao['credito']:,.2f} | Saldo: {saldo_sequencial:,.2f}")
         
-        # 🔥🔥🔥 CORREÇÃO 3: PARA EXIBIÇÃO, ORDENAR DO MAIS NOVO PARA O MAIS ANTIGO
-        # Mas MANTENDO O SALDO_APOS CORRETO (já calculado na ordem cronológica)
-        transacoes_exibicao = sorted(transacoes_ordenadas_calculo, key=lambda x: x['timestamp'], reverse=True)
+        return transacoes_ordenadas
+    
+    def carregar_extrato(self):
+        """Carrega o extrato baseado no período selecionado"""
+        print(f"🔄 Carregando extrato com período: {self.periodo_var}")
+        
+        if not self.transacoes_completas:
+            print("⚠️ Nenhuma transação completa carregada. Carregando...")
+            self.carregar_dados_completos()
+            if not self.transacoes_completas:
+                self.mostrar_erro("Erro ao carregar transações!")
+                return
+        
+        sistema = App.get_running_app().sistema
+        conta_info = sistema.contas_bancarias_empresa.get(self.conta_bancaria_numero)
+        
+        if not conta_info:
+            return
+        
+        moeda = conta_info['moeda']
+        data_atual = datetime.datetime.now()
+        
+        # LIMPAR E MOSTRAR CARREGANDO
+        self.limpar_extrato()
+        
+        # DEFINIR DATA DE INÍCIO BASEADA NO PERÍODO SELECIONADO
+        if self.periodo_var == "0":
+            # Todo período: desde 01/01/2024
+            data_inicio = datetime.datetime(2024, 1, 1, 0, 0, 0)
+            periodo_texto = "Todo período"
+        elif self.periodo_var == "personalizado":
+            # Período personalizado: usar datas dos campos
+            try:
+                data_inicio_br = self.ids.entry_data_inicio.text
+                data_fim_br = self.ids.entry_data_fim.text
+                
+                if not self.validar_data_br(data_inicio_br) or not self.validar_data_br(data_fim_br):
+                    self.mostrar_erro("Datas inválidas! Use DD/MM/AAAA")
+                    return
+                
+                data_inicio_iso = self.formatar_data_para_iso(data_inicio_br)
+                data_fim_iso = self.formatar_data_para_iso(data_fim_br)
+                
+                data_inicio = datetime.datetime.strptime(data_inicio_iso, "%Y-%m-%d")
+                data_fim = datetime.datetime.strptime(data_fim_iso, "%Y-%m-%d")
+                data_fim = data_fim.replace(hour=23, minute=59, second=59)
+                
+                periodo_texto = f"{data_inicio_br} a {data_fim_br}"
+            except Exception as e:
+                self.mostrar_erro(f"Erro nas datas: {e}")
+                return
+        else:
+            # Período rápido: últimos X dias
+            dias = int(self.periodo_var)
+            data_inicio = data_atual - datetime.timedelta(days=dias)
+            data_fim = data_atual
+            periodo_texto = f"Últimos {dias} dias"
+        
+        print(f"🔧 Aplicando filtro: {periodo_texto}")
+        
+        # FILTRAR TRANSAÇÕES PELO PERÍODO
+        transacoes_filtradas = []
+        saldo_inicial_periodo = None
+        
+        # Encontrar o saldo inicial do período (saldo APÓS a última transação antes do período)
+        for transacao in self.transacoes_completas:
+            if transacao['timestamp'] < data_inicio:
+                saldo_inicial_periodo = transacao['saldo_apos']
+            elif transacao['timestamp'] >= data_inicio:
+                if self.periodo_var == "personalizado":
+                    if transacao['timestamp'] <= data_fim:
+                        transacoes_filtradas.append(transacao.copy())
+                else:
+                    transacoes_filtradas.append(transacao.copy())
+        
+        # Se não encontrou saldo inicial, usar o saldo inicial da conta
+        if saldo_inicial_periodo is None:
+            saldo_inicial_periodo = conta_info.get('saldo_inicial', 0.0)
+        
+        # RECALCULAR SALDOS APENAS PARA O PERÍODO FILTRADO
+        transacoes_filtradas_ordenadas = sorted(transacoes_filtradas, key=lambda x: x['timestamp'])
+        
+        saldo_atual = saldo_inicial_periodo
+        for transacao in transacoes_filtradas_ordenadas:
+            if transacao['tipo'] == "Saldo Inicial":
+                transacao['saldo_apos'] = saldo_atual
+            else:
+                saldo_atual += transacao['debito'] - transacao['credito']
+                transacao['saldo_apos'] = saldo_atual
+        
+        # Ordenar para exibição (mais recente primeiro)
+        transacoes_exibicao = sorted(transacoes_filtradas_ordenadas, key=lambda x: x['timestamp'], reverse=True)
         
         # Calcular totais
-        total_entradas = sum(t['debito'] for t in transacoes_ordenadas_calculo if t['tipo'] != "Saldo Inicial")
-        total_saidas = sum(t['credito'] for t in transacoes_ordenadas_calculo if t['tipo'] != "Saldo Inicial")
-        
-        print(f"\n💰 TOTAIS CALCULADOS:")
-        print(f"   Total Entradas (Débito): {total_entradas:,.2f} {moeda}")
-        print(f"   Total Saídas (Crédito): {total_saidas:,.2f} {moeda}")
-        print(f"   Saldo Final: {saldo_sequencial:,.2f} {moeda}")
+        total_entradas = sum(t['debito'] for t in transacoes_filtradas_ordenadas if t['tipo'] != "Saldo Inicial")
+        total_saidas = sum(t['credito'] for t in transacoes_filtradas_ordenadas if t['tipo'] != "Saldo Inicial")
         
         # Atualizar interface
         self.atualizar_interface_extrato(
-            transacoes_exibicao, 
-            saldo_sequencial, 
-            total_entradas, 
-            total_saidas, 
-            moeda, 
-            "0"  # Período "Todo período"
+            transacoes_exibicao,
+            saldo_atual,
+            total_entradas,
+            total_saidas,
+            moeda,
+            self.periodo_var
         )
         
-        print("✅ Extrato conta bancária carregado com sucesso (TODO PERÍODO + SALDO CORRETO)!")
+        print(f"✅ Extrato carregado: {len(transacoes_exibicao)} transações exibidas")
     
-    def calcular_saldo_ate_data_empresa(self, data_limite):
-        """Calcula o saldo da conta bancária até uma data específica - LÓGICA NORMAL"""
+    def atualizar_botoes_periodo(self):
+        """Atualiza o estado visual dos botões de período"""
+        if not hasattr(self, 'ids'):
+            return
+        
+        # Procurar os ToggleButton no layout
+        for widget in self.walk():
+            if hasattr(widget, 'text') and isinstance(widget, ToggleButton):
+                if widget.text == '7 dias' and self.periodo_var == '7':
+                    widget.state = 'down'
+                elif widget.text == '30 dias' and self.periodo_var == '30':
+                    widget.state = 'down'
+                elif widget.text == '90 dias' and self.periodo_var == '90':
+                    widget.state = 'down'
+                elif widget.text == 'Todo período' and self.periodo_var == '0':
+                    widget.state = 'down'
+                elif widget.text == 'Personalizado' and self.periodo_var == 'personalizado':
+                    widget.state = 'down'
+    
+    def definir_periodo(self, periodo):
+        """Define o período selecionado (chamado pelos botões do KV)"""
+        print(f"🔧 Período definido: {periodo}")
+        
+        self.periodo_var = periodo
+        
+        # Atualizar estado dos botões
+        self.atualizar_botoes_periodo()
+        
+        # Se não for personalizado, carregar extrato
+        if periodo != "personalizado":
+            self.carregar_extrato()
+    
+    def usar_periodo_personalizado(self, forcar_validacao=False):
+        """Usa período personalizado (chamado pelo botão 'Usar')"""
+        print("🔧 Usando período personalizado...")
+        
+        self.definir_periodo("personalizado")
+        
+        if forcar_validacao:
+            data_inicio_br = self.ids.entry_data_inicio.text
+            data_fim_br = self.ids.entry_data_fim.text
+            
+            print(f"🔧 Datas: {data_inicio_br} até {data_fim_br}")
+            
+            if not self.validar_data_br(data_inicio_br):
+                self.mostrar_erro("Data inicial inválida! Use DD/MM/AAAA")
+                return
+                
+            if not self.validar_data_br(data_fim_br):
+                self.mostrar_erro("Data final inválida! Use DD/MM/AAAA")
+                return
+            
+            self.mostrar_sucesso(f"Período personalizado definido: {data_inicio_br} a {data_fim_br}")
+            self.carregar_extrato()
+    
+    def atualizar_saldo_superior(self):
+        """Atualiza o saldo mostrado na parte superior da tela"""
         sistema = App.get_running_app().sistema
         
         if not self.conta_bancaria_numero:
-            return 0.0
-        
-        saldo_acumulado = 0.0
-        
-        # Coletar TODAS as transações da conta bancária
-        todas_transacoes = []
-        
-        # Adicionar saldo inicial zero
-        todas_transacoes.append({
-            'data': '2024-01-01 00:00:00',
-            'credito': 0.00,
-            'debito': 0.00,
-            'timestamp': datetime.datetime(2024, 1, 1)
-        })
-        
-        # Coletar transações de transferências
-        for transferencia_id, dados in sistema.transferencias.items():
-            if not dados or not isinstance(dados, dict):
-                continue
-                
-            # 🔥 🔥 🔥 CORREÇÃO COMPLETA: PROCESSAR TODOS OS TIPOS DE TRANSAÇÕES
-            conta_envolvida = False
-            tipo_transacao = dados.get('tipo')
-            
-            # 1. VERIFICAR SE NOSSA CONTA ESTÁ ENVOLVIDA - CORREÇÃO: INCLUIR conta_bancaria_credito
-            if tipo_transacao == 'cambio_contas_empresa':
-                # Câmbios entre contas da empresa
-                conta_origem = dados.get('conta_origem')
-                conta_destino = dados.get('conta_destino')
-                conta_envolvida = (
-                    conta_origem == self.conta_bancaria_numero or 
-                    conta_destino == self.conta_bancaria_numero
-                )
-                
-            elif tipo_transacao in ['deposito', 'despesa', 'receita', 'ajuste_admin', 
-                                    'internacional', 'transferencia_interancional', 'cambio', 
-                                    'transferencia_interna_cliente', 'saque']:
-                # Outros tipos de transações - CORREÇÃO: INCLUIR conta_bancaria_credito
-                conta_envolvida = (
-                    dados.get('conta_remetente') == self.conta_bancaria_numero or 
-                    dados.get('conta_destinatario') == self.conta_bancaria_numero or
-                    dados.get('conta_origem') == self.conta_bancaria_numero or
-                    dados.get('conta_destino') == self.conta_bancaria_numero or
-                    dados.get('conta_bancaria_credito') == self.conta_bancaria_numero  # 🔥 NOVA VERIFICAÇÃO
-                )
-            else:
-                # Tipos não identificados - verificar campos genéricos
-                conta_envolvida = (
-                    dados.get('conta_remetente') == self.conta_bancaria_numero or 
-                    dados.get('conta_destinatario') == self.conta_bancaria_numero or
-                    dados.get('conta_origem') == self.conta_bancaria_numero or
-                    dados.get('conta_destino') == self.conta_bancaria_numero or
-                    dados.get('conta_bancaria_credito') == self.conta_bancaria_numero  # 🔥 NOVA VERIFICAÇÃO
-                )
-            
-            if not conta_envolvida:
-                continue
-            
-            if dados['status'] not in ['completed', 'processing']:
-                continue
-            
-            data_transacao = dados.get('data', '2024-01-01 00:00:00')
-            timestamp = self.parse_data_simples(data_transacao)
-            valor = dados.get('valor', 0)
-            
-            # 🔥 DEBUG
-            print(f"🎯 TRANSAÇÃO ENCONTRADA: {transferencia_id} | Tipo: {tipo_transacao}")
-            
-            # 2. PROCESSAR CADA TIPO DE TRANSAÇÃO
-            if tipo_transacao == 'cambio_contas_empresa':
-                # 🔥 CÂMBIO ENTRE CONTAS
-                conta_origem = dados.get('conta_origem')
-                conta_destino = dados.get('conta_destino')
-                valor_origem = dados.get('valor_origem', 0)
-                valor_destino = dados.get('valor_destino', 0)
-                
-                if conta_origem == self.conta_bancaria_numero:
-                    # Nossa conta é ORIGEM → SAÍDA
-                    todas_transacoes.append({
-                        'data': data_transacao,
-                        'credito': valor_origem,  # Diminui saldo
-                        'debito': 0.00,
-                        'timestamp': timestamp
-                    })
-                    print(f"💰 CÂMBIO ORIGEM: -{valor_origem:,.2f}")
-                
-                elif conta_destino == self.conta_bancaria_numero:
-                    # Nossa conta é DESTINO → ENTRADA
-                    todas_transacoes.append({
-                        'data': data_transacao,
-                        'credito': 0.00,
-                        'debito': valor_destino,  # Aumenta saldo
-                        'timestamp': timestamp
-                    })
-                    print(f"💰 CÂMBIO DESTINO: +{valor_destino:,.2f}")
-            
-            elif tipo_transacao == 'deposito':
-                # 🔥 DEPÓSITO - Nossa conta é DESTINATÁRIO → ENTRADA
-                if dados.get('conta_destinatario') == self.conta_bancaria_numero:
-                    todas_transacoes.append({
-                        'data': data_transacao,
-                        'credito': 0.00,
-                        'debito': valor,  # Aumenta saldo
-                        'timestamp': timestamp
-                    })
-                    print(f"💰 DEPÓSITO: +{valor:,.2f}")
-            
-            elif tipo_transacao == 'despesa':
-                # 🔥 DESPESA - Nossa conta é REMETENTE → SAÍDA
-                if dados.get('conta_remetente') == self.conta_bancaria_numero:
-                    todas_transacoes.append({
-                        'data': data_transacao,
-                        'credito': valor,  # Diminui saldo
-                        'debito': 0.00,
-                        'timestamp': timestamp
-                    })
-                    print(f"💰 DESPESA: -{valor:,.2f}")
-            
-            elif tipo_transacao == 'receita':
-                # 🔥 RECEITA - Nossa conta é DESTINATÁRIO → ENTRADA
-                if dados.get('conta_destinatario') == self.conta_bancaria_numero:
-                    todas_transacoes.append({
-                        'data': data_transacao,
-                        'credito': 0.00,
-                        'debito': valor,  # Aumenta saldo
-                        'timestamp': timestamp
-                    })
-                    print(f"💰 RECEITA: +{valor:,.2f}")
-            
-            elif tipo_transacao == 'ajuste_admin':
-                # 🔥 AJUSTE - Verificar se nossa conta foi creditada/debitada
-                conta_credito = dados.get('conta_bancaria_credito')
-                if conta_credito == self.conta_bancaria_numero:
-                    # AJUSTE POSITIVO → ENTRADA
-                    todas_transacoes.append({
-                        'data': data_transacao,
-                        'credito': 0.00,
-                        'debito': valor,  # Aumenta saldo
-                        'timestamp': timestamp
-                    })
-                    print(f"💰 AJUSTE POSITIVO: +{valor:,.2f}")
-                elif dados.get('conta_remetente') == self.conta_bancaria_numero:
-                    # AJUSTE NEGATIVO → SAÍDA
-                    todas_transacoes.append({
-                        'data': data_transacao,
-                        'credito': valor,  # Diminui saldo
-                        'debito': 0.00,
-                        'timestamp': timestamp
-                    })
-                    print(f"💰 AJUSTE NEGATIVO: -{valor:,.2f}")
-            
-            elif tipo_transacao in ['internacional', 'transferencia_interancional', 'cambio', 'transferencia_interna_cliente', 'saque']:
-                # 🔥 TRANSAÇÕES INTERNACIONAIS/CÂMBIO/INTERNAS/SAQUES - Lógica padrão
-                # CORREÇÃO: VERIFICAR TAMBÉM conta_bancaria_credito PARA SAÍDAS
-                if (dados.get('conta_remetente') == self.conta_bancaria_numero or 
-                    dados.get('conta_bancaria_credito') == self.conta_bancaria_numero):
-                    # Nossa conta é REMETENTE ou CONTA_CREDITO → SAÍDA
-                    todas_transacoes.append({
-                        'data': data_transacao,
-                        'credito': valor,  # Diminui saldo
-                        'debito': 0.00,
-                        'timestamp': timestamp
-                    })
-                    print(f"💰 {tipo_transacao.upper()} SAÍDA: -{valor:,.2f}")
-                
-                elif dados.get('conta_destinatario') == self.conta_bancaria_numero:
-                    # Nossa conta é DESTINATÁRIO → ENTRADA
-                    todas_transacoes.append({
-                        'data': data_transacao,
-                        'credito': 0.00,
-                        'debito': valor,  # Aumenta saldo
-                        'timestamp': timestamp
-                    })
-                    print(f"💰 {tipo_transacao.upper()} ENTRADA: +{valor:,.2f}")
-            
-            else:
-                # 🔥 TIPO NÃO IDENTIFICADO - Tentar lógica genérica
-                print(f"⚠️ TIPO NÃO MAPEADO: {tipo_transacao}")
-                if (dados.get('conta_remetente') == self.conta_bancaria_numero or 
-                    dados.get('conta_bancaria_credito') == self.conta_bancaria_numero):
-                    todas_transacoes.append({
-                        'data': data_transacao,
-                        'credito': valor,
-                        'debito': 0.00,
-                        'timestamp': timestamp
-                    })
-                elif dados.get('conta_destinatario') == self.conta_bancaria_numero:
-                    todas_transacoes.append({
-                        'data': data_transacao,
-                        'credito': 0.00,
-                        'debito': valor,
-                        'timestamp': timestamp
-                    })
-        
-        # Ordenar transações
-        todas_transacoes_ordenadas = sorted(todas_transacoes, key=lambda x: x['timestamp'])
-        
-        # Calcular até o final do dia anterior
-        data_fim_calculo = data_limite.replace(hour=23, minute=59, second=59, microsecond=999999)
-        
-        print(f"🔧 CALCULANDO SALDO EMPRESA ATÉ: {data_fim_calculo}")
-        
-        # 🔥 LÓGICA NORMAL: Débito aumenta, Crédito diminui
-        for transacao in todas_transacoes_ordenadas:
-            if transacao['timestamp'] <= data_fim_calculo:
-                saldo_acumulado += transacao['debito'] - transacao['credito']
-                print(f"  ✅ INCLUÍDA: {transacao['timestamp']} | Crédito: {transacao['credito']:,.2f} | Débito: {transacao['debito']:,.2f} | Saldo: {saldo_acumulado:,.2f}")
-            else:
-                break
-        
-        print(f"💰 SALDO FINAL CALCULADO EMPRESA: {saldo_acumulado:,.2f}")
-        
-        return saldo_acumulado
-    
-    def parse_data_simples(self, data_str):
-        """Versão CORRIGIDA do parse_data - trata formato ISO com T"""
-        if not data_str:
-            return datetime.datetime.now()
+            return
             
         try:
-            # 1. Tentar formato ISO com T (2025-11-28T10:04:24.541064)
-            if 'T' in data_str:
-                # Remover timezone e microssegundos se existirem
-                data_limpa = data_str.split('+')[0].split('Z')[0]
-                if '.' in data_limpa:
-                    data_limpa = data_limpa.split('.')[0]  # Remover microssegundos
-                return datetime.datetime.fromisoformat(data_limpa)
+            conta_info = sistema.contas_bancarias_empresa[self.conta_bancaria_numero]
+            saldo = conta_info['saldo']
+            moeda = conta_info['moeda']
             
-            # 2. Tentar formato com espaço (2025-11-28 10:04:24)
-            elif ' ' in data_str and ':' in data_str:
-                return datetime.datetime.strptime(data_str, "%Y-%m-%d %H:%M:%S")
+            # Atualizar labels
+            self.ids.lbl_saldo_total.text = f"{saldo:,.2f} {moeda}"
+            self.ids.lbl_total_entradas.text = f"0.00 {moeda}"
+            self.ids.lbl_total_saidas.text = f"0.00 {moeda}"
+            self.ids.lbl_total_transacoes.text = "0"
+            self.ids.lbl_periodo.text = "Últimos 7 dias"
             
-            # 3. Tentar apenas data (2025-11-28)
-            elif ' ' in data_str:
-                return datetime.datetime.strptime(data_str.split(' ')[0], "%Y-%m-%d")
+            # Atualizar título com informações da conta
+            self.ids.lbl_titulo_extrato.text = f"EXTRATO - {self.conta_bancaria_numero} - {conta_info['banco']} - {moeda}"
             
-            # 4. Tentar formato básico
-            else:
-                return datetime.datetime.strptime(data_str, "%Y-%m-%d")
-                
+            print(f"✅ Saldo superior atualizado: {saldo:,.2f} {moeda}")
+            
         except Exception as e:
-            print(f"⚠️ Erro ao converter data '{data_str}': {e}")
-            return datetime.datetime.now()
+            print(f"Erro ao atualizar saldo superior: {e}")
+    
+    def aplicar_mascara_data(self, instance, value):
+        """Aplica máscara de data DD/MM/AAAA"""
+        if getattr(instance, '_processing', False):
+            return
+            
+        instance._processing = True
+        
+        try:
+            texto_limpo = ''.join(c for c in value if c.isdigit())
+            
+            if len(texto_limpo) > 8:
+                texto_limpo = texto_limpo[:8]
+            
+            texto_formatado = ""
+            if len(texto_limpo) > 0:
+                texto_formatado = texto_limpo[0:2]
+            if len(texto_limpo) > 2:
+                texto_formatado += '/' + texto_limpo[2:4]
+            if len(texto_limpo) > 4:
+                texto_formatado += '/' + texto_limpo[4:8]
+            
+            if texto_formatado != instance.text:
+                instance.unbind(text=self.aplicar_mascara_data)
+                instance.text = texto_formatado
+                instance.bind(text=self.aplicar_mascara_data)
+                
+                from kivy.clock import Clock
+                Clock.schedule_once(lambda dt: setattr(instance, 'cursor', (len(texto_formatado), 0)), 0.01)
+                
+        finally:
+            instance._processing = False
+    
+    def on_focus_data_inicio(self, instance, value):
+        """Manipula o foco no campo data início"""
+        if value:
+            print("🔧 Foco no campo data início")
+            self.definir_periodo("personalizado")
+    
+    def on_focus_data_fim(self, instance, value):
+        """Manipula o foco no campo data fim"""
+        if value:
+            print("🔧 Foco no campo data fim")
+            self.definir_periodo("personalizado")
+    
+    def validar_data_br(self, data_br):
+        """Valida se a data no formato BR é válida"""
+        try:
+            partes = data_br.split('/')
+            if len(partes) != 3:
+                return False
+                
+            dia, mes, ano = partes
+            if len(dia) != 2 or len(mes) != 2 or len(ano) != 4:
+                return False
+                
+            dia_int, mes_int, ano_int = int(dia), int(mes), int(ano)
+            
+            if mes_int < 1 or mes_int > 12:
+                return False
+            if dia_int < 1 or dia_int > 31:
+                return False
+            if ano_int < 1900 or ano_int > 2100:
+                return False
+                
+            return True
+        except:
+            return False
     
     def formatar_data_para_iso(self, data_br):
         """Converte data de DD/MM/AAAA para AAAA-MM-DD"""
@@ -3351,25 +3049,51 @@ class TelaExtratoContaBancaria(Screen):
             pass
         return data_br
     
-    def formatar_data_curta(self, data_string):
-        """Formata data curta para exibição: DD/MM/AAAA"""
-        try:
-            # Extrair apenas a parte da data
-            if 'T' in data_string:
-                data = data_string.split('T')[0]
-            elif ' ' in data_string:
-                data = data_string.split(' ')[0]
-            else:
-                data = data_string
+    def obter_nome_cliente_por_conta(self, sistema, conta_numero):
+        """Obtém o nome do cliente por número da conta"""
+        if conta_numero in sistema.contas:
+            return sistema.contas[conta_numero].get('cliente_nome', 'Cliente')
+        return 'Conta Externa'
+    
+    def limpar_extrato(self):
+        """Limpa a visualização do extrato"""
+        if hasattr(self, 'ids'):
+            container = self.ids.lista_transacoes
+            container.clear_widgets()
             
-            # Formatar DD/MM/AAAA
-            if '-' in data:
-                ano, mes, dia = data.split('-')
-                return f"{dia}/{mes}/{ano}"
-            return data
-        except:
-            return data_string
-
+            from kivy.uix.label import Label
+            from kivy.metrics import dp
+            
+            lbl_carregando = Label(
+                text="Carregando extrato...",
+                font_size='14sp',
+                color=(0.8, 0.8, 0.8, 1),
+                size_hint_y=None,
+                height=dp(40)
+            )
+            container.add_widget(lbl_carregando)
+    
+    def parse_data_simples(self, data_str):
+        """Versão CORRIGIDA do parse_data - trata formato ISO com T"""
+        if not data_str:
+            return datetime.datetime.now()
+            
+        try:
+            if 'T' in data_str:
+                data_limpa = data_str.split('+')[0].split('Z')[0]
+                if '.' in data_limpa:
+                    data_limpa = data_limpa.split('.')[0]
+                return datetime.datetime.fromisoformat(data_limpa)
+            elif ' ' in data_str and ':' in data_str:
+                return datetime.datetime.strptime(data_str, "%Y-%m-%d %H:%M:%S")
+            elif ' ' in data_str:
+                return datetime.datetime.strptime(data_str.split(' ')[0], "%Y-%m-%d")
+            else:
+                return datetime.datetime.strptime(data_str, "%Y-%m-%d")
+        except Exception as e:
+            print(f"⚠️ Erro ao converter data '{data_str}': {e}")
+            return datetime.datetime.now()
+    
     def scroll_para_topo(self):
         """Rola automaticamente para o topo"""
         if hasattr(self, 'ids') and hasattr(self.ids, 'scroll_extrato'):
@@ -3377,13 +3101,13 @@ class TelaExtratoContaBancaria(Screen):
             Clock.schedule_once(lambda dt: setattr(self.ids.scroll_extrato, 'scroll_y', 1), 0.1)
     
     def atualizar_interface_extrato(self, transacoes, saldo_atual, total_entradas, total_saidas, moeda, periodo):
-        """Atualiza a interface com os dados do extrato - VERSÃO CORRIGIDA"""
+        """Atualiza a interface com os dados do extrato"""
         if not hasattr(self, 'ids'):
             return
         
         # Salvar dados para possível exportação
         self.transacoes_filtradas = transacoes
-        self.saldo_final = saldo_atual  # 🔥 SALVAR O SALDO ATUAL
+        self.saldo_final = saldo_atual
         self.total_entradas = total_entradas
         self.total_saidas = total_saidas
         
@@ -3400,8 +3124,7 @@ class TelaExtratoContaBancaria(Screen):
             card = CardTransacaoExtrato(transacao)
             container.add_widget(card)
         
-        # 🔥 CORREÇÃO: Usar SEMPRE o saldo_atual passado como parâmetro
-        # NÃO tentar recalcular a partir das transações
+        # Atualizar resumo
         self.atualizar_resumo(saldo_atual, total_entradas, total_saidas, len(transacoes), moeda, periodo)
         
         self.scroll_para_topo()
@@ -3430,14 +3153,13 @@ class TelaExtratoContaBancaria(Screen):
             )
         header.bind(pos=self._atualizar_header_rect, size=self._atualizar_header_rect)
         
-        # 🔥 ALTERADO: Ajuste das larguras das colunas
         colunas = [
-            ('Data', 0.08),        # 🔥 ALTERADO: era 0.15
-            ('Descrição', 0.51),   # 🔥 ALTERADO: era 0.35  
-            ('Crédito', 0.08),     # 🔥 ALTERADO: era 0.125
-            ('Débito', 0.08),      # 🔥 ALTERADO: era 0.125
-            ('Saldo', 0.13),       # 🔥 ALTERADO: era 0.15
-            ('Detalhes', 0.1)      # 🔥 MANTIDO: 0.1
+            ('Data', 0.08),
+            ('Descrição', 0.51),
+            ('Crédito', 0.08),
+            ('Débito', 0.08),
+            ('Saldo', 0.13),
+            ('Detalhes', 0.1)
         ]
         
         for texto, largura in colunas:
@@ -3462,7 +3184,7 @@ class TelaExtratoContaBancaria(Screen):
             instance.rect.size = instance.size
     
     def atualizar_resumo(self, saldo_atual, total_entradas, total_saidas, total_transacoes, moeda, periodo):
-        """Atualiza o painel de resumo - VERSÃO CORRIGIDA"""
+        """Atualiza o painel de resumo"""
         if not hasattr(self, 'ids'):
             return
         
@@ -3472,8 +3194,6 @@ class TelaExtratoContaBancaria(Screen):
         print(f"  Total saídas: {total_saidas:,.2f}")
         print(f"  Total transações: {total_transacoes}")
         
-        # 🔥 CORREÇÃO CRÍTICA: Usar o saldo_atual que foi passado como parâmetro
-        # NÃO recalcular ou usar outro valor
         saldo_final = saldo_atual
         
         self.ids.lbl_saldo_total.text = f"{saldo_final:,.2f} {moeda}"
@@ -3496,32 +3216,41 @@ class TelaExtratoContaBancaria(Screen):
         print(f"  Saldo: {saldo_final:,.2f} {moeda}")
         print(f"  Entradas: {total_entradas:,.2f} {moeda}")
         print(f"  Saídas: {total_saidas:,.2f} {moeda}")
-
+    
+    def _safe_float(self, value, default=0.0):
+        """Converte valor para float de forma segura"""
+        if value is None:
+            return default
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return default
+    
+    def voltar_contas_bancarias(self):
+        """Volta para a tela de contas bancárias"""
+        self.manager.current = 'contas_bancarias'
+    
     def exportar_extrato_pdf(self):
         """Exporta o extrato da conta bancária para PDF"""
         try:
-            # Verificar se há transações para exportar
             if not hasattr(self, 'transacoes_filtradas') or not self.transacoes_filtradas:
                 self.mostrar_erro("Não há transações para exportar!")
                 return
             
             print("📊 Iniciando exportação de extrato para PDF...")
             
-            # Obter sistema e conta atual
             sistema = App.get_running_app().sistema
             
             if not self.conta_bancaria_numero:
                 self.mostrar_erro("Nenhuma conta configurada!")
                 return
             
-            # Verificar se a conta existe
             if self.conta_bancaria_numero not in sistema.contas_bancarias_empresa:
                 self.mostrar_erro("Conta bancária não encontrada!")
                 return
             
             conta_info = sistema.contas_bancarias_empresa[self.conta_bancaria_numero]
             
-            # 1. DADOS DA CONTA
             dados_conta = {
                 'numero': conta_info['numero'],
                 'banco': conta_info['banco'],
@@ -3532,7 +3261,6 @@ class TelaExtratoContaBancaria(Screen):
                 'tipo': conta_info.get('tipo', 'empresa')
             }
             
-            # 2. DADOS DO RESUMO
             dados_resumo = {
                 'saldo_final': getattr(self, 'saldo_final', 0.0),
                 'entradas': getattr(self, 'total_entradas', 0.0),
@@ -3541,49 +3269,28 @@ class TelaExtratoContaBancaria(Screen):
                 'periodo': self.ids.lbl_periodo.text if hasattr(self, 'ids') and 'lbl_periodo' in self.ids else 'N/A'
             }
             
-            print(f"📋 Dados para PDF:")
-            print(f"   Conta: {dados_conta['numero']}")
-            print(f"   Banco: {dados_conta['banco']}")
-            print(f"   Moeda: {dados_conta['moeda']}")
-            print(f"   Saldo: {dados_conta['saldo']:,.2f}")
-            print(f"   Transações: {dados_resumo['total_transacoes']}")
-            print(f"   Período: {dados_resumo['periodo']}")
-            
-            # 🔥 CORREÇÃO: Criar PDFGenerator aqui mesmo
             pdf_generator = PDFGenerator()
             
-            # Mostrar popup de carregamento
             self.mostrar_popup_carregando("Gerando PDF...")
             
             from kivy.clock import Clock
             
             def gerar_pdf_thread(dt):
-                """Função para gerar PDF em background"""
                 try:
-                    # Ordenar transações do mais antigo para o mais novo (para PDF)
                     transacoes_ordenadas = sorted(
                         self.transacoes_filtradas, 
                         key=lambda x: x.get('timestamp', datetime.datetime.min)
                     )
                     
-                    print("🔍 DEBUG - Primeiras transações no PDF:")
-                    for i, t in enumerate(transacoes_ordenadas[:3]):
-                        data = t.get('data', '')[:10]
-                        descricao = t.get('descricao', '')[:30]
-                        print(f"   {i+1}. {data} | {descricao}...")
-                    
-                    # Gerar o PDF
                     caminho_pdf = pdf_generator.gerar_extrato(
                         transacoes=transacoes_ordenadas,
                         dados_conta=dados_conta,
                         dados_resumo=dados_resumo
                     )
                     
-                    # Fechar popup de carregamento
                     Clock.schedule_once(lambda dt: self.fechar_popup_carregando(), 0.1)
                     
                     if caminho_pdf:
-                        # Mostrar sucesso
                         Clock.schedule_once(lambda dt: self.mostrar_sucesso_pdf(caminho_pdf), 0.2)
                     else:
                         Clock.schedule_once(lambda dt: self.mostrar_erro("Falha ao gerar PDF!"), 0.2)
@@ -3595,13 +3302,12 @@ class TelaExtratoContaBancaria(Screen):
                     Clock.schedule_once(lambda dt: self.fechar_popup_carregando(), 0.1)
                     Clock.schedule_once(lambda dt: self.mostrar_erro(f"Erro: {str(e)[:50]}..."), 0.2)
             
-            # Executar em background
             Clock.schedule_once(gerar_pdf_thread, 0.5)
             
         except Exception as e:
             print(f"❌ Erro no exportar_extrato_pdf: {e}")
             self.mostrar_erro(f"Erro ao exportar PDF: {str(e)[:50]}...")
-
+    
     def mostrar_popup_carregando(self, mensagem="Processando..."):
         """Mostra popup de carregamento"""
         from kivy.uix.popup import Popup
@@ -3630,12 +3336,12 @@ class TelaExtratoContaBancaria(Screen):
         )
         
         self.popup_carregando.open()
-
+    
     def fechar_popup_carregando(self):
         """Fecha o popup de carregamento"""
         if hasattr(self, 'popup_carregando'):
             self.popup_carregando.dismiss()
-
+    
     def mostrar_sucesso_pdf(self, caminho_pdf):
         """Mostra popup de sucesso com opção para abrir o PDF"""
         from kivy.uix.popup import Popup
@@ -3646,7 +3352,6 @@ class TelaExtratoContaBancaria(Screen):
         
         content = BoxLayout(orientation='vertical', padding=15, spacing=10)
         
-        # Mensagem de sucesso
         lbl_sucesso = Label(
             text="✅ PDF gerado com sucesso!",
             font_size='16sp',
@@ -3664,7 +3369,6 @@ class TelaExtratoContaBancaria(Screen):
             halign='center'
         )
         
-        # Botões
         botoes_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50, spacing=10)
         
         btn_fechar = Button(
@@ -3695,19 +3399,17 @@ class TelaExtratoContaBancaria(Screen):
         )
         
         def abrir_pdf(instance):
-            """Abre o PDF no visualizador padrão do sistema"""
             try:
                 import platform
                 import subprocess
-                import os
                 
                 sistema_operacional = platform.system()
                 
                 if sistema_operacional == 'Windows':
                     os.startfile(caminho_pdf)
-                elif sistema_operacional == 'Darwin':  # macOS
+                elif sistema_operacional == 'Darwin':
                     subprocess.call(['open', caminho_pdf])
-                else:  # Linux
+                else:
                     subprocess.call(['xdg-open', caminho_pdf])
                 
                 popup.dismiss()
@@ -3721,10 +3423,6 @@ class TelaExtratoContaBancaria(Screen):
         btn_fechar.bind(on_press=popup.dismiss)
         
         popup.open()
-    
-    def voltar_contas_bancarias(self):
-        """Volta para a tela de contas bancárias"""
-        self.manager.current = 'contas_bancarias'
     
     def mostrar_erro(self, mensagem):
         """Mostra popup de erro"""
@@ -3806,6 +3504,7 @@ class TelaExtratoContaBancaria(Screen):
         btn_ok.bind(on_press=popup.dismiss)
         popup.open()
 
+
 class CardTransacaoExtrato(BoxLayout):
     """Card para exibir uma transação no extrato da conta bancária"""
     
@@ -3819,7 +3518,6 @@ class CardTransacaoExtrato(BoxLayout):
         self.padding = [10, 5, 10, 5]
         self.spacing = dp(5)
         
-        # Background do card
         with self.canvas.before:
             Color(0.15, 0.20, 0.27, 1)
             self.rect = RoundedRectangle(
@@ -3830,41 +3528,31 @@ class CardTransacaoExtrato(BoxLayout):
         
         self.bind(pos=self._atualizar_rect, size=self._atualizar_rect)
         
-        # Criar os widgets do card
         self.criar_widgets()
     
     def _atualizar_rect(self, instance, value):
-        """Atualiza o retângulo de background"""
         if hasattr(self, 'rect'):
             self.rect.pos = instance.pos
             self.rect.size = instance.size
     
     def formatar_data_para_exibicao(self, data_string):
-        """Formata data para exibição amigável: 2025-11-28 10:04"""
         try:
-            # Remover microssegundos e timezone se existir
             if 'T' in data_string:
-                # Formato ISO: 2025-11-28T10:04:24.541064
                 data_str_limpa = data_string.split('T')[0] + ' ' + data_string.split('T')[1].split('.')[0]
             else:
-                # Formato normal: 2025-11-28 10:04:24
                 data_str_limpa = data_string.split('.')[0] if '.' in data_string else data_string
             
-            # Converter para datetime
             if 'T' in data_str_limpa:
-                # Ainda tem T? Remover
                 data_str_limpa = data_str_limpa.replace('T', ' ')
             
-            # Formatar para datetime
             try:
                 data_obj = datetime.datetime.strptime(data_str_limpa, "%Y-%m-%d %H:%M:%S")
             except:
                 try:
                     data_obj = datetime.datetime.strptime(data_str_limpa, "%Y-%m-%d")
                 except:
-                    return data_string.split(' ')[0]  # Fallback
+                    return data_string.split(' ')[0]
             
-            # Formatar para exibição: DD/MM/AAAA HH:MM
             return data_obj.strftime("%d/%m/%Y %H:%M")
             
         except Exception as e:
@@ -3872,23 +3560,21 @@ class CardTransacaoExtrato(BoxLayout):
             return data_string.split(' ')[0] if ' ' in data_string else data_string
 
     def criar_widgets(self):
-        """Cria os widgets do card de transação"""
         transacao = self.transacao
         
-        # Data - REDUZIDA
+        # Data
         data_str = self.formatar_data_para_exibicao(transacao['data'])
         lbl_data = Label(
             text=data_str,
             font_size='11sp',
             color=(0.8, 0.8, 0.8, 1),
-            size_hint_x=0.08,  # 🔥 ALTERADO: era 0.15
-            text_size=(None, None),
+            size_hint_x=0.08,
             halign='center',
             valign='middle'
         )
         self.add_widget(lbl_data)
         
-        # Descrição - AUMENTADA
+        # Descrição
         descricao = transacao['descricao']
         lbl_descricao = Label(
             text=descricao,
@@ -3900,60 +3586,56 @@ class CardTransacaoExtrato(BoxLayout):
             valign='middle',
             shorten=False
         )
-        # Atualiza a text_size quando o widget for redimensionado
         lbl_descricao.bind(width=self._atualizar_texto_descricao)
         self.add_widget(lbl_descricao)
         
-        # Crédito (Saída) - REDUZIDA
+        # Crédito (Saída)
         credito = transacao['credito']
         cor_credito = (0.8, 0.2, 0.2, 1) if credito > 0 else (0.5, 0.5, 0.5, 1)
         lbl_credito = Label(
             text=f"{credito:,.2f}" if credito > 0 else "",
             font_size='11sp',
             color=cor_credito,
-            size_hint_x=0.08,  # 🔥 ALTERADO: era 0.125
-            text_size=(None, None),
+            size_hint_x=0.08,
             halign='right',
             valign='middle',
             bold=True
         )
         self.add_widget(lbl_credito)
         
-        # Débito (Entrada) - REDUZIDA
+        # Débito (Entrada)
         debito = transacao['debito']
         cor_debito = (0.1, 0.6, 0.1, 1) if debito > 0 else (0.5, 0.5, 0.5, 1)
         lbl_debito = Label(
             text=f"{debito:,.2f}" if debito > 0 else "",
             font_size='11sp',
             color=cor_debito,
-            size_hint_x=0.08,  # 🔥 ALTERADO: era 0.125
-            text_size=(None, None),
+            size_hint_x=0.08,
             halign='right',
             valign='middle',
             bold=True
         )
         self.add_widget(lbl_debito)
         
-        # Saldo - REDUZIDA
+        # Saldo
         saldo = transacao.get('saldo_apos', 0)
         cor_saldo = (0.8, 0.2, 0.2, 1) if saldo < 0 else (0.23, 0.51, 0.96, 1)
         lbl_saldo = Label(
             text=f"{saldo:,.2f}",
             font_size='11sp',
             color=cor_saldo,
-            size_hint_x=0.13,  # 🔥 ALTERADO: era 0.15
-            text_size=(None, None),
+            size_hint_x=0.13,
             halign='right',
             valign='middle',
             bold=True
         )
         self.add_widget(lbl_saldo)
         
-        # Detalhes (botão) - MANTIDO IGUAL
+        # Detalhes
         btn_detalhes = Button(
             text='Detalhes',
             font_size='12sp',
-            size_hint_x=0.1,  # 🔥 MANTIDO: 0.1
+            size_hint_x=0.1,
             background_color=(0.23, 0.51, 0.96, 1),
             color=(1, 1, 1, 1)
         )
@@ -3961,12 +3643,10 @@ class CardTransacaoExtrato(BoxLayout):
         self.add_widget(btn_detalhes)
     
     def _atualizar_texto_descricao(self, instance, value):
-        """Atualiza o text_size da descrição quando o tamanho muda"""
         if hasattr(instance, 'text_size'):
             instance.text_size = (instance.width, None)
 
     def mostrar_detalhes(self, instance):
-        """Mostra detalhes da transação"""
         from kivy.uix.popup import Popup
         from kivy.uix.boxlayout import BoxLayout
         from kivy.uix.label import Label
@@ -3976,7 +3656,6 @@ class CardTransacaoExtrato(BoxLayout):
         
         content = BoxLayout(orientation='vertical', padding=15, spacing=10)
         
-        # Título
         content.add_widget(Label(
             text='DETALHES DA TRANSAÇÃO',
             font_size='16sp',
@@ -3986,7 +3665,6 @@ class CardTransacaoExtrato(BoxLayout):
             height=30
         ))
         
-        # Informações
         info_layout = BoxLayout(orientation='vertical', spacing=5)
         
         info_items = [
@@ -4010,7 +3688,6 @@ class CardTransacaoExtrato(BoxLayout):
         
         content.add_widget(info_layout)
         
-        # Botão Fechar
         btn_fechar = Button(
             text='FECHAR',
             size_hint_y=None,
