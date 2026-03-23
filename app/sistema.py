@@ -29,9 +29,7 @@ class SistemaCambioPremium:
         self.contas = {}
         self.transferencias = {}
         self.beneficiarios = {}
-        self.cache_contas_empresa = set()
-        self.atualizar_cache_contas()
-
+        
         # 🔥 PRIMEIRO: Inicializar taxas_cambio
         self.taxas_cambio = {
             'USD_BRL': 5.20,
@@ -3587,17 +3585,12 @@ class SistemaCambioPremium:
             return False, f"Erro ao criar conta: {str(e)}"
 
     def confirmar_criacao_conta(self, instance):
-        """Confirma e cria a nova conta bancária - VERSÃO COM ATUALIZAÇÃO GARANTIDA"""
+        """Confirma e cria a nova conta bancária"""
         try:
             banco = self.entry_banco.text.strip()
             agencia = self.entry_agencia.text.strip()
             numero_conta = self.entry_numero_conta.text.strip()
-            
-            # Determinar moeda baseado na seleção
-            if self.toggle_moeda_principal.state == 'down':
-                moeda = self.spinner_moeda.text
-            else:
-                moeda = self.entry_moeda_manual.text.strip().upper()
+            moeda = self.spinner_moeda.text
             
             # Validar campos obrigatórios
             if not banco:
@@ -3612,14 +3605,8 @@ class SistemaCambioPremium:
                 self.mostrar_erro("Informe o número da conta!")
                 return
             
-            # Validação da moeda
-            if not moeda:
-                self.mostrar_erro("Informe a moeda!")
-                return
-                
-            if len(moeda) != 3 or not moeda.isalpha():
-                self.mostrar_erro("A moeda deve ter exatamente 3 letras!\nEx: USD, EUR, JPY, CAD, etc.")
-                return
+            # 🔥 SEMPRE SALDO ZERO - não pedir saldo inicial
+            saldo_inicial = 0.00
             
             sistema = App.get_running_app().sistema
             
@@ -3628,6 +3615,7 @@ class SistemaCambioPremium:
             print(f"  Agência: {agencia}")
             print(f"  Número: {numero_conta}")
             print(f"  Moeda: {moeda}")
+            print(f"  Saldo: {saldo_inicial:,.2f} (SEMPRE ZERO)")
             
             # Chamar método do sistema
             sucesso, mensagem = sistema.criar_conta_bancaria_empresa(
@@ -3638,101 +3626,16 @@ class SistemaCambioPremium:
                 self.popup_nova_conta.dismiss()
                 self.mostrar_sucesso(mensagem)
                 
-                # 🔥🔥🔥 CORREÇÃO CRÍTICA: ATUALIZAR TUDO PARA GARANTIR QUE A NOVA CONTA SEJA RECONHECIDA
-                print("🔄 ATUALIZANDO SISTEMA PARA RECONHECER A NOVA CONTA...")
-                
-                # 1. Forçar recarga das contas bancárias
+                # 🔥 FORÇAR RECARGA DAS CONTAS BANCÁRIAS
                 sistema.carregar_contas_bancarias()
                 
-                # 2. 🔥 ATUALIZAR CACHE DE CONTAS DA EMPRESA (se existir)
-                if hasattr(sistema, 'atualizar_cache_contas'):
-                    sistema.atualizar_cache_contas()
-                
-                # 3. 🔥 GARANTIR QUE A NOVA CONTA ESTEJA NO DICIONÁRIO
-                # (Forçar a inclusão manual caso algo tenha falhado)
-                if numero_conta not in sistema.contas_bancarias_empresa:
-                    sistema.contas_bancarias_empresa[numero_conta] = {
-                        'numero': numero_conta,
-                        'banco': banco,
-                        'agencia': agencia,
-                        'moeda': moeda,
-                        'saldo': 0.0,
-                        'tipo': 'empresa',
-                        'data_criacao': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                    }
-                    print(f"✅ Conta {numero_conta} inserida manualmente no cache local")
-                
-                # 4. Atualizar a tela
+                # Atualizar a tela
                 self.carregar_contas_bancarias()
-                self.carregar_contas_para_ajuste()
-                
-                print(f"✅✅✅ NOVA CONTA {numero_conta} PRONTA PARA USO!")
             else:
                 self.mostrar_erro(mensagem)
                 
         except Exception as e:
             self.mostrar_erro(f"Erro ao criar conta: {str(e)}")
-
-    def verificar_conta_empresa(self, conta_numero):
-        """
-        Verifica se uma conta é da empresa, buscando no Supabase se necessário.
-        Este método GARANTE que contas novas sejam reconhecidas imediatamente.
-        """
-        # 1. Verificar no cache local
-        if hasattr(self, 'contas_bancarias_empresa') and conta_numero in self.contas_bancarias_empresa:
-            return True
-        
-        # 2. Se não está no cache, buscar no Supabase
-        try:
-            if hasattr(self, 'supabase') and self.supabase.conectado:
-                print(f"🔍 Buscando conta {conta_numero} no Supabase...")
-                response = self.supabase.client.table('contas_bancarias_empresa')\
-                    .select('*')\
-                    .eq('numero', conta_numero)\
-                    .execute()
-                
-                if response.data and len(response.data) > 0:
-                    conta_data = response.data[0]
-                    
-                    # Adicionar ao cache local
-                    if not hasattr(self, 'contas_bancarias_empresa'):
-                        self.contas_bancarias_empresa = {}
-                    
-                    self.contas_bancarias_empresa[conta_numero] = {
-                        'numero': conta_data['numero'],
-                        'banco': conta_data['banco'],
-                        'agencia': conta_data.get('agencia', ''),
-                        'moeda': conta_data['moeda'],
-                        'saldo': float(conta_data['saldo']),
-                        'tipo': conta_data.get('tipo', 'empresa')
-                    }
-                    
-                    print(f"✅ Conta {conta_numero} adicionada ao cache local")
-                    return True
-        except Exception as e:
-            print(f"⚠️ Erro ao buscar conta no Supabase: {e}")
-        
-        return False
-
-    def atualizar_cache_contas(self):
-        """Atualiza o cache de contas bancárias da empresa - ÚTIL PARA CONTAS NOVAS"""
-        try:
-            # Recarregar contas bancárias do Supabase para garantir que temos as mais recentes
-            if hasattr(self, 'supabase') and self.supabase.conectado:
-                print("🔄 Atualizando cache de contas bancárias da empresa...")
-                response = self.supabase.client.table('contas_bancarias_empresa')\
-                    .select('numero')\
-                    .execute()
-                
-                if response.data:
-                    # Atualizar um conjunto de contas para busca rápida
-                    self.cache_contas_empresa = set(conta['numero'] for conta in response.data)
-                    print(f"✅ Cache atualizado: {len(self.cache_contas_empresa)} contas da empresa")
-        except Exception as e:
-            print(f"⚠️ Erro ao atualizar cache: {e}")
-            # Fallback: usar o dicionário existente
-            if hasattr(self, 'contas_bancarias_empresa'):
-                self.cache_contas_empresa = set(self.contas_bancarias_empresa.keys())
 
     def debitar_conta_bancaria_empresa(self, moeda, valor):
         """Debita (diminui saldo) de conta bancária da empresa - VERSÃO SUPABASE COM ARREDONDAMENTO"""
@@ -4972,10 +4875,8 @@ class SistemaCambioPremium:
     def gerar_descricao_cambio_inteligente(self, dados_cambio, conta_num):
         """Gera descrição clara para operações de câmbio - VERSÃO CORRIGIDA"""
         
-        # 🔥 CORREÇÃO: Usar a nova função de identificação
+        # 1. Identificar tipo de câmbio automaticamente
         tipo_cambio = self.identificar_tipo_cambio(dados_cambio, conta_num)
-        
-        print(f"📝 GERANDO DESCRIÇÃO PARA TIPO: {tipo_cambio}")
         
         # 2. Obter informações básicas
         operacao = dados_cambio.get('operacao', '')
@@ -4998,140 +4899,53 @@ class SistemaCambioPremium:
             return self._descricao_cambio_padrao(dados_cambio, conta_num, taxa)
 
     def identificar_tipo_cambio(self, dados_cambio, conta_num):
-        """Identifica automaticamente o tipo de operação de câmbio - VERSÃO UNIVERSAL"""
+        """Identifica automaticamente o tipo de operação de câmbio - VERSÃO INTELIGENTE"""
         
         id_transacao = dados_cambio.get('id', '')
         conta_remetente = dados_cambio.get('conta_remetente', '') or ''
         conta_origem = dados_cambio.get('conta_origem', '') or ''
         conta_destino = dados_cambio.get('conta_destino', '') or ''
-        conta_destinatario = dados_cambio.get('conta_destinatario', '') or ''
-        conta_bancaria_credito = dados_cambio.get('conta_bancaria_credito', '') or ''
         executado_por = dados_cambio.get('executado_por', '')
         usuario = dados_cambio.get('usuario', '')
         tipo = dados_cambio.get('tipo', '')
         
-        print(f"🔍 DEBUG IDENTIFICAÇÃO: id={id_transacao}, tipo={tipo}")
+        print(f"🔍 DEBUG IDENTIFICAÇÃO: id={id_transacao}, tipo={tipo}, conta_origem={conta_origem}, conta_destino={conta_destino}")
         
-        # 🔥 CORREÇÃO: Obter o sistema de forma segura
-        try:
-            from kivy.app import App
-            sistema = App.get_running_app().sistema
-        except:
-            sistema = self
+        # 1. CÂMBIO ENTRE CONTAS DA EMPRESA (PRIORIDADE MÁXIMA)
+        # Verifica se as contas envolvidas são contas bancárias da empresa
+        sistema = App.get_running_app().sistema
         
-        # 🔥 FUNÇÃO MELHORADA: Verificar se é conta da empresa (BUSCA ATIVA NO SUPABASE)
         def is_conta_empresa(conta):
             if not conta:
                 return False
-            
-            # 1. PRIMEIRO: Verificar no cache local (rápido)
-            if hasattr(sistema, 'contas_bancarias_empresa'):
-                if conta in sistema.contas_bancarias_empresa:
-                    return True
-            
-            # 2. SEGUNDO: Se não encontrou no cache, BUSCAR ATIVAMENTE NO SUPABASE
-            try:
-                if hasattr(sistema, 'supabase') and sistema.supabase.conectado:
-                    print(f"🔍 Buscando conta {conta} no Supabase...")
-                    response = sistema.supabase.client.table('contas_bancarias_empresa')\
-                        .select('numero')\
-                        .eq('numero', conta)\
-                        .execute()
-                    
-                    if response.data and len(response.data) > 0:
-                        print(f"✅ Conta {conta} encontrada no Supabase!")
-                        
-                        # 🔥 ATUALIZAR O CACHE LOCAL AUTOMATICAMENTE
-                        if hasattr(sistema, 'contas_bancarias_empresa') and conta not in sistema.contas_bancarias_empresa:
-                            # Buscar dados completos da conta
-                            dados_completos = sistema.supabase.client.table('contas_bancarias_empresa')\
-                                .select('*')\
-                                .eq('numero', conta)\
-                                .execute()
-                            
-                            if dados_completos.data:
-                                conta_data = dados_completos.data[0]
-                                sistema.contas_bancarias_empresa[conta] = {
-                                    'numero': conta_data['numero'],
-                                    'banco': conta_data['banco'],
-                                    'agencia': conta_data.get('agencia', ''),
-                                    'moeda': conta_data['moeda'],
-                                    'saldo': float(conta_data['saldo']),
-                                    'tipo': conta_data.get('tipo', 'empresa')
-                                }
-                                print(f"✅ Cache local atualizado com a nova conta {conta}")
-                        
-                        return True
-            except Exception as e:
-                print(f"⚠️ Erro ao buscar conta no Supabase: {e}")
-            
-            return False
+            # Verifica se a conta existe na lista de contas bancárias da empresa
+            return conta in sistema.contas_bancarias_empresa
         
-        # 🔥 FUNÇÃO: Verificar se é conta de cliente (BUSCA ATIVA NO SUPABASE)
-        def is_conta_cliente(conta):
-            if not conta:
-                return False
-            
-            # 1. Verificar no cache local
-            if hasattr(sistema, 'contas'):
-                if conta in sistema.contas:
-                    return True
-            
-            # 2. Buscar ativamente no Supabase
-            try:
-                if hasattr(sistema, 'supabase') and sistema.supabase.conectado:
-                    response = sistema.supabase.client.table('contas')\
-                        .select('id')\
-                        .eq('id', conta)\
-                        .execute()
-                    
-                    if response.data and len(response.data) > 0:
-                        return True
-            except:
-                pass
-            
-            return False
+        # Verifica se PELO MENOS UMA das contas envolvidas é da empresa
+        contas_envolvidas = [conta_origem, conta_destino, conta_remetente, dados_cambio.get('conta_destinatario', '')]
+        tem_conta_empresa = any(is_conta_empresa(conta) for conta in contas_envolvidas if conta)
         
-        # Coletar TODAS as contas envolvidas
-        contas_envolvidas = [
-            conta_origem, 
-            conta_destino, 
-            conta_remetente, 
-            conta_destinatario,
-            conta_bancaria_credito
-        ]
-        contas_envolvidas = [c for c in contas_envolvidas if c]  # Remover vazios
-        
-        print(f"🔍 Contas envolvidas: {contas_envolvidas}")
-        
-        # 🔥 1. VERIFICAR CÂMBIO ENTRE CONTAS DA EMPRESA
-        contas_empresa = []
-        for conta in contas_envolvidas:
-            if is_conta_empresa(conta):
-                contas_empresa.append(conta)
-        
-        # Se encontrar PELO MENOS UMA conta da empresa, classificar como admin_contas_bancarias
-        if len(contas_empresa) >= 1:
-            print(f"✅ IDENTIFICADO: admin_contas_bancarias - Contas da empresa: {contas_empresa}")
+        if tem_conta_empresa:
+            print(f"✅ IDENTIFICADO: admin_contas_bancarias - Conta da empresa detectada")
             return 'admin_contas_bancarias'
         
         # 2. CÂMBIO ENTRE CONTAS DA EMPRESA pelo tipo específico
         elif tipo == 'cambio_contas_empresa':
-            print(f"✅ IDENTIFICADO: admin_contas_bancarias - Tipo específico")
+            print(f"✅ IDENTIFICADO: admin_contas_bancarias - Tipo específico detectado")
             return 'admin_contas_bancarias'
         
-        # 3. CÂMBIO CLIENTE
-        elif is_conta_cliente(conta_origem) or is_conta_cliente(conta_destino) or '_nt' in id_transacao:
+        # 3. CÂMBIO CLIENTE (Nova tela)
+        elif '_nt' in id_transacao or 'conta_origem' in dados_cambio:
             print(f"✅ IDENTIFICADO: cliente")
             return 'cliente'
         
-        # 4. CÂMBIO ADMIN GERAL
+        # 4. CÂMBIO ADMIN GERAL (Gerenciar Contas)
         elif (executado_por == 'admin' or usuario == 'admin' or 
-            'taxa_principal_exibicao' in dados_cambio):
+              'taxa_principal_exibicao' in dados_cambio):
             print(f"✅ IDENTIFICADO: admin_geral")
             return 'admin_geral'
         
-        # 5. PADRÃO
+        # 5. PADRÃO (fallback)
         else:
             print(f"✅ IDENTIFICADO: cliente (padrão)")
             return 'cliente'

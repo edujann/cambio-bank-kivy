@@ -1441,52 +1441,37 @@
     function formatarDescricaoCompleta(transacao) {
         // Verificar se é depósito
         if (transacao.tipo === "Depósito") {
-            console.log('=== DEBUG DEPÓSITO ===');
-            console.log('Descrição original:', transacao.descricao);
-
-            let descOriginal = transacao.descricao || '';
-            let banco = '';
-            let remetente = '';
+            // 🔥 USAR OS CAMPOS QUE O BACKEND JÁ ENVIA
+            let banco = transacao.banco_origem || '';
+            let remetente = transacao.remetente || '';
             
-            // Método 1: Extrair usando regex
-            // Extrair banco: "Banco: ONLY UP"
-            const bancoMatch = descOriginal.match(/Banco:\s*([^-]+?)(?:\s*-|$)/);
-            if (bancoMatch && bancoMatch[1]) {
-                banco = bancoMatch[1].trim();
-            }
+            console.log('=== FRONTEND DEPÓSITO ===');
+            console.log('banco_origem recebido:', banco);
+            console.log('remetente recebido:', remetente);
+            console.log('descricao original:', transacao.descricao);
             
-            // Extrair remetente: "Remetente: NOVANEX GESTAO..."
-            const remetenteMatch = descOriginal.match(/Remetente:\s*(.+)$/);
-            if (remetenteMatch && remetenteMatch[1]) {
-                remetente = remetenteMatch[1].trim();
-            }
-            
-            // Método 2: Se regex falhou, tentar extrair manualmente
-            if (!banco || !remetente) {
-                // Encontrar posição de "Banco:"
-                let idxBanco = descOriginal.indexOf('Banco:');
-                if (idxBanco !== -1) {
-                    let inicioBanco = idxBanco + 6;
-                    let fimBanco = descOriginal.indexOf(' -', inicioBanco);
-                    if (fimBanco === -1) fimBanco = descOriginal.indexOf('Remetente:', inicioBanco);
-                    if (fimBanco === -1) fimBanco = descOriginal.length;
-                    banco = descOriginal.substring(inicioBanco, fimBanco).trim();
+            // Se os campos vierem vazios, tentar extrair da descrição
+            if (!banco && !remetente && transacao.descricao) {
+                const descOriginal = transacao.descricao;
+                
+                // Extrair banco
+                const bancoMatch = descOriginal.match(/Banco:\s*([^-]+?)(?:\s*-|$)/);
+                if (bancoMatch && bancoMatch[1]) {
+                    banco = bancoMatch[1].trim();
                 }
                 
-                // Encontrar posição de "Remetente:"
-                let idxRemetente = descOriginal.indexOf('Remetente:');
-                if (idxRemetente !== -1) {
-                    let inicioRemetente = idxRemetente + 9;
-                    remetente = descOriginal.substring(inicioRemetente).trim();
+                // Extrair remetente
+                const remetenteMatch = descOriginal.match(/Remetente:\s*(.+)$/);
+                if (remetenteMatch && remetenteMatch[1]) {
+                    remetente = remetenteMatch[1].trim();
                 }
             }
-
-            // 🔥 LOGS - AQUI É ONDE VOCÊ COLOCA 🔥
-            console.log('Banco encontrado:', banco);
-            console.log('Remetente encontrado:', remetente);
-            console.log('=====================');            
             
-            // Construir a descrição final (sem ícone duplicado)
+            console.log('Banco final:', banco);
+            console.log('Remetente final:', remetente);
+            console.log('=======================');
+            
+            // Construir descrição
             if (banco && remetente) {
                 return `Depósito de: ${banco} - ${remetente}`;
             } else if (banco) {
@@ -1494,11 +1479,6 @@
             } else if (remetente) {
                 return `Depósito de: ${remetente}`;
             } else {
-                // Fallback: mostrar apenas a primeira parte
-                let primeiroTraco = descOriginal.indexOf(' - ');
-                if (primeiroTraco !== -1) {
-                    return descOriginal.substring(0, primeiroTraco);
-                }
                 return 'Depósito';
             }
         }
