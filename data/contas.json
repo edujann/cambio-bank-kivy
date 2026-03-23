@@ -258,6 +258,13 @@
         "cliente_nome": "LONDRES LIMITED",
         "data_criacao": "2025-11-04"
     },
+    "755234527": {
+        "moeda": "BRL",
+        "saldo": 1422703.25,
+        "cliente": "gables",
+        "cliente_nome": "GABLES ENTERPRISE",
+        "data_criacao": "2025-12-22"
+    },
     "608201541": {
         "moeda": "BRL",
         "saldo": 0.0,
@@ -279,6 +286,13 @@
         "cliente_nome": "HIDROAMERICA LTDA",
         "data_criacao": "2025-12-04"
     },
+    "802194129": {
+        "moeda": "BRL",
+        "saldo": 40683.91,
+        "cliente": "pantanal",
+        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
+        "data_criacao": "2025-11-18"
+    },
     "277435777": {
         "moeda": "EUR",
         "saldo": 0.0,
@@ -293,19 +307,19 @@
         "cliente_nome": "MAKITA MACHINES LLC",
         "data_criacao": "2025-11-26"
     },
+    "792916936": {
+        "moeda": "USD",
+        "saldo": 0.0,
+        "cliente": "edinho",
+        "cliente_nome": "EDINHO ENTERPRISE",
+        "data_criacao": "2025-12-22"
+    },
     "163569885": {
         "moeda": "EUR",
         "saldo": 0.0,
         "cliente": "neosoro",
         "cliente_nome": "NEOSORO LIMITADA",
         "data_criacao": "2026-01-01"
-    },
-    "792916936": {
-        "moeda": "USD",
-        "saldo": 12040.0,
-        "cliente": "edinho",
-        "cliente_nome": "EDINHO ENTERPRISE",
-        "data_criacao": "2025-12-22"
     },
     "817818877": {
         "moeda": "USD",
@@ -440,13 +454,6 @@
         "cliente_nome": "ALIGATOR ENTERPRISE",
         "data_criacao": "2026-01-02"
     },
-    "755234527": {
-        "moeda": "BRL",
-        "saldo": 1422703.25,
-        "cliente": "gables",
-        "cliente_nome": "GABLES ENTERPRISE",
-        "data_criacao": "2025-12-22"
-    },
     "649623031": {
         "moeda": "BRL",
         "saldo": 0.0,
@@ -460,13 +467,6 @@
         "cliente": "mascambio",
         "cliente_nome": "MAS CAMBIO S.A.",
         "data_criacao": "2026-01-20"
-    },
-    "802194129": {
-        "moeda": "BRL",
-        "saldo": 40683.91,
-        "cliente": "pantanal",
-        "cliente_nome": "PANTANAL COMERCIO IMP LTDA",
-        "data_criacao": "2025-11-18"
     },
     "366470532": {
         "moeda": "GBP",

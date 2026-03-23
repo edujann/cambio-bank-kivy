@@ -1310,7 +1310,17 @@
             const data = await response.json();
             
             console.log(`🔍 [WEB] Resposta da API: ${data.transacoes?.length || 0} transações`);
-            
+
+            // Diagnóstico - ver o que está chegando
+            if (data.transacoes && data.transacoes.length > 0) {
+                console.log('=== DIAGNÓSTICO ===');
+                console.log('Tipo:', data.transacoes[0].tipo);
+                console.log('Banco origem:', data.transacoes[0].banco_origem);
+                console.log('Remetente:', data.transacoes[0].remetente);
+                console.log('Descrição original:', data.transacoes[0].descricao);
+                console.log('==================');
+            }
+
             if (data.success) {
                 // 🔥 FORMATAR DATAS
                 if (data.transacoes) {
