@@ -3968,10 +3968,10 @@ def obter_extrato_kivy():
                 
                 # 🔥 8. PROCESSAR A TRANSAÇÃO (LÓGICA DO KIVY)
                 valor = float(transf.get('valor', 0)) if transf.get('valor') is not None else 0.0
-                
+
                 # Cliente é REMETENTE
                 if transf.get('conta_remetente') == conta_num or transf.get('conta_origem') == conta_num:
-
+                    
                     # 🔥 DEBUG ESPECÍFICO PARA 850030
                     if str(transf_id) == '850030':
                         print(f"\n🎯🎯🎯 DEBUG 850030 - SEÇÃO REMETENTE 🎯🎯🎯")
@@ -3983,18 +3983,50 @@ def obter_extrato_kivy():
                         print(f"   É remetente? {transf.get('conta_remetente') == conta_num}")
                         print(f"   É destinatário? {transf.get('conta_destinatario') == conta_num}")
                         print(f"   Vai entrar na seção REMETENTE? SIM")
-
+                    
                     if transf_tipo == 'deposito':
+                        # 🔥 Extrair campos
+                        banco_origem = transf.get('banco_origem', '')
+                        remetente_nome = transf.get('remetente', '')
+                        
+                        # 🔥 Se os campos estiverem vazios, extrair da descrição
+                        if not banco_origem or not remetente_nome:
+                            descricao_original = transf.get('descricao', '')
+                            
+                            # Extrair banco
+                            import re
+                            banco_match = re.search(r'Banco:\s*([^-]+)', descricao_original)
+                            if banco_match and not banco_origem:
+                                banco_origem = banco_match.group(1).strip()
+                            
+                            # Extrair remetente
+                            remetente_match = re.search(r'Remetente:\s*(.+)$', descricao_original)
+                            if remetente_match and not remetente_nome:
+                                remetente_nome = remetente_match.group(1).strip()
+                        
+                        # 🔥 Construir descrição simplificada
+                        if banco_origem and remetente_nome:
+                            descricao_final = f"💰 Depósito de: {banco_origem} - {remetente_nome}"
+                        elif banco_origem:
+                            descricao_final = f"💰 Depósito do banco: {banco_origem}"
+                        elif remetente_nome:
+                            descricao_final = f"💰 Depósito de: {remetente_nome}"
+                        else:
+                            descricao_final = "💰 Depósito"
+                        
                         transacoes_todas.append({
                             'id': transf_id,
                             'data': data_transacao_str,
-                            'descricao': f"DEPÓSITO CONFIRMADO - {transf.get('banco_origem', 'Banco')}",
+                            'descricao': descricao_final,
                             'credito': valor,
                             'debito': 0.00,
                             'tipo': "Depósito",
                             'moeda': moeda,
-                            'timestamp': data_transacao
+                            'timestamp': data_transacao,
+                            'banco_origem': banco_origem,
+                            'remetente': remetente_nome
                         })
+                    
                     elif transf_tipo == 'ajuste_admin':
                         tipo_ajuste = transf.get('tipo_ajuste', 'DÉBITO')
                         if tipo_ajuste and tipo_ajuste.upper() == 'CREDITO':
@@ -4019,7 +4051,7 @@ def obter_extrato_kivy():
                                 'moeda': moeda,
                                 'timestamp': data_transacao
                             })
-
+                    
                     # 🔥 CORREÇÃO CRÍTICA: TRANSFERÊNCIA INTERNA CLIENTE (TIPO ESPECIAL)
                     elif transf_tipo == 'transferencia_interna_cliente':
                         status_normalizado = transf_status.lower() if transf_status else ''
@@ -4084,7 +4116,7 @@ def obter_extrato_kivy():
                             data_estorno = parse_data_unificada(data_estorno_str)
                             
                             # Verificar se cada data está dentro do período
-                            solicitação_dentro = (
+                            solicitacao_dentro = (
                                 data_solicitacao and 
                                 data_inicio_filtro <= data_solicitacao <= data_fim_filtro
                             )
@@ -4094,7 +4126,7 @@ def obter_extrato_kivy():
                             )
                             
                             # 🔥 CASO 1: Solicitação DENTRO + Estorno DENTRO → mostrar AMBAS
-                            if solicitação_dentro and estorno_dentro:
+                            if solicitacao_dentro and estorno_dentro:
                                 # 1. TRANSAÇÃO DE DÉBITO (solicitação)
                                 transacoes_todas.append({
                                     'id': f"{transf_id}_DEBITO",
@@ -4122,7 +4154,7 @@ def obter_extrato_kivy():
                                 print(f"💰 REJEITADA COMPLETA: Mostrando débito + crédito | ID: {transf_id}")
                             
                             # 🔥 CASO 2: Solicitação DENTRO + Estorno FORA → mostrar APENAS débito
-                            elif solicitação_dentro and not estorno_dentro:
+                            elif solicitacao_dentro and not estorno_dentro:
                                 transacoes_todas.append({
                                     'id': f"{transf_id}_DEBITO",
                                     'data': data_solicitacao_str,
@@ -4137,7 +4169,7 @@ def obter_extrato_kivy():
                                 print(f"💰 REJEITADA PARCIAL: Mostrando apenas débito | ID: {transf_id}")
                             
                             # 🔥 CASO 3: Solicitação FORA + Estorno DENTRO → mostrar APENAS crédito
-                            elif not solicitação_dentro and estorno_dentro:
+                            elif not solicitacao_dentro and estorno_dentro:
                                 transacoes_todas.append({
                                     'id': f"{transf_id}_CREDITO",
                                     'data': data_estorno_str,
@@ -4154,10 +4186,7 @@ def obter_extrato_kivy():
                             # 🔥 CASO 4: Ambos FORA → não mostrar nada
                             else:
                                 print(f"💰 REJEITADA FORA: Não mostrar nada | ID: {transf_id}")
-                            
-                            # DEBUG
-                            print(f"💰 ESTORNO CRIADO: {descricao_credito} | +{valor:,.2f}")
-                            
+                        
                         else:
                             # Para outros status: SOLICITADA, EM PROCESSAMENTO, CONCLUÍDA
                             status_text = "SOLICITADA" if status_normalizado in ['pending', 'solicitada'] else \
