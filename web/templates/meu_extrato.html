@@ -1427,6 +1427,79 @@
         console.log('📊 Dados processados:', data.transacoes?.length || 0, 'transações');
     }
 
+    // 🔥 FUNÇÃO: Formatar descrição simplificada
+    function formatarDescricaoCompleta(transacao) {
+        // Verificar se é um depósito
+        if (transacao.tipo && transacao.tipo.toLowerCase() === 'deposito') {
+            let banco = '';
+            let remetente = '';
+            
+            // Extrair nome do banco
+            if (transacao.banco_origem) {
+                banco = transacao.banco_origem;
+            } else if (transacao.descricao && transacao.descricao.includes('Banco:')) {
+                const matchBanco = transacao.descricao.match(/Banco:\s*([^-]+)/);
+                if (matchBanco && matchBanco[1]) {
+                    banco = matchBanco[1].trim();
+                }
+            }
+            
+            // Extrair nome do remetente
+            if (transacao.remetente) {
+                remetente = transacao.remetente;
+            } else if (transacao.descricao && transacao.descricao.includes('Remetente:')) {
+                const matchRemetente = transacao.descricao.match(/Remetente:\s*([^-\n]+)/);
+                if (matchRemetente && matchRemetente[1]) {
+                    remetente = matchRemetente[1].trim();
+                }
+            }
+            
+            // Construir a descrição simplificada
+            if (banco && remetente) {
+                return `💰 Depósito de: ${banco} - ${remetente}`;
+            } else if (banco) {
+                return `💰 Depósito do banco: ${banco}`;
+            } else if (remetente) {
+                return `💰 Depósito de: ${remetente}`;
+            } else {
+                return '💰 Depósito';
+            }
+        }
+        
+        // Verificar se é uma transferência
+        else if (transacao.tipo && transacao.tipo.toLowerCase().includes('transferencia')) {
+            // Para transferências enviadas (saída)
+            if (transacao.conta_destinatario || transacao.beneficiario) {
+                const destinatario = transacao.beneficiario || transacao.conta_destinatario;
+                return `📤 Transferência para: ${destinatario}`;
+            }
+            // Para transferências recebidas (entrada)
+            else if (transacao.remetente) {
+                return `📥 Transferência de: ${transacao.remetente}`;
+            }
+        }
+        
+        // Verificar se é câmbio
+        else if (transacao.tipo && transacao.tipo.toLowerCase().includes('cambio')) {
+            if (transacao.cliente) {
+                return `💱 Câmbio - ${transacao.cliente}`;
+            } else if (transacao.remetente) {
+                return `💱 Câmbio - ${transacao.remetente}`;
+            }
+        }
+        
+        // Verificar se é saque
+        else if (transacao.tipo && transacao.tipo.toLowerCase().includes('saque')) {
+            if (transacao.beneficiario) {
+                return `🏧 Saque para: ${transacao.beneficiario}`;
+            }
+        }
+        
+        // Fallback: usar descrição original para outros tipos
+        return transacao.descricao || transacao.tipo || 'Transação';
+    }
+
+
     // ============================================
     // FUNÇÕES DE ATUALIZAÇÃO DA INTERFACE
     // ============================================
@@ -1468,7 +1541,7 @@
                     </div>
                     
                     <div class="col-descricao">
-                        ${transacao.descricao || transacao.tipo || 'Transação'}
+                        ${formatarDescricaoCompleta(transacao)}
                     </div>
                     
                     <div class="col-valor credito">
