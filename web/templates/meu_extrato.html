@@ -1441,6 +1441,9 @@
     function formatarDescricaoCompleta(transacao) {
         // Verificar se é depósito
         if (transacao.tipo === "Depósito") {
+            console.log('=== DEBUG DEPÓSITO ===');
+            console.log('Descrição original:', transacao.descricao);
+
             let descOriginal = transacao.descricao || '';
             let banco = '';
             let remetente = '';
@@ -1477,6 +1480,11 @@
                     remetente = descOriginal.substring(inicioRemetente).trim();
                 }
             }
+
+            // 🔥 LOGS - AQUI É ONDE VOCÊ COLOCA 🔥
+            console.log('Banco encontrado:', banco);
+            console.log('Remetente encontrado:', remetente);
+            console.log('=====================');            
             
             // Construir a descrição final (sem ícone duplicado)
             if (banco && remetente) {
