@@ -1441,52 +1441,57 @@
     function formatarDescricaoCompleta(transacao) {
         // Verificar se é depósito
         if (transacao.tipo === "Depósito") {
+            let descOriginal = transacao.descricao || '';
             let banco = '';
             let remetente = '';
             
-            // Pegar a descrição original
-            let descOriginal = transacao.descricao || '';
-            
-            // Método 1: Extrair banco e remetente da descrição
-            // Procura por "Banco: XXX - Remetente: YYY"
+            // Método 1: Extrair usando regex
+            // Extrair banco: "Banco: ONLY UP"
             const bancoMatch = descOriginal.match(/Banco:\s*([^-]+?)(?:\s*-|$)/);
             if (bancoMatch && bancoMatch[1]) {
                 banco = bancoMatch[1].trim();
             }
             
+            // Extrair remetente: "Remetente: NOVANEX GESTAO..."
             const remetenteMatch = descOriginal.match(/Remetente:\s*(.+)$/);
             if (remetenteMatch && remetenteMatch[1]) {
                 remetente = remetenteMatch[1].trim();
             }
             
-            // Método 2: Se não encontrou, tentar formato alternativo
-            if (!banco && !remetente && descOriginal.includes(' - ')) {
-                const partes = descOriginal.split(' - ');
-                // Formato: "DEPÓSITO CONFIRMADO - Banco: ONLY UP - Remetente: NOVANEX..."
-                for (let i = 0; i < partes.length; i++) {
-                    if (partes[i].includes('Banco:')) {
-                        banco = partes[i].replace('Banco:', '').trim();
-                    }
-                    if (partes[i].includes('Remetente:')) {
-                        remetente = partes[i].replace('Remetente:', '').trim();
-                    }
+            // Método 2: Se regex falhou, tentar extrair manualmente
+            if (!banco || !remetente) {
+                // Encontrar posição de "Banco:"
+                let idxBanco = descOriginal.indexOf('Banco:');
+                if (idxBanco !== -1) {
+                    let inicioBanco = idxBanco + 6;
+                    let fimBanco = descOriginal.indexOf(' -', inicioBanco);
+                    if (fimBanco === -1) fimBanco = descOriginal.indexOf('Remetente:', inicioBanco);
+                    if (fimBanco === -1) fimBanco = descOriginal.length;
+                    banco = descOriginal.substring(inicioBanco, fimBanco).trim();
+                }
+                
+                // Encontrar posição de "Remetente:"
+                let idxRemetente = descOriginal.indexOf('Remetente:');
+                if (idxRemetente !== -1) {
+                    let inicioRemetente = idxRemetente + 9;
+                    remetente = descOriginal.substring(inicioRemetente).trim();
                 }
             }
             
-            // Construir a nova descrição
+            // Construir a descrição final (sem ícone duplicado)
             if (banco && remetente) {
-                return `💰 Depósito de: ${banco} - ${remetente}`;
+                return `Depósito de: ${banco} - ${remetente}`;
             } else if (banco) {
-                return `💰 Depósito do banco: ${banco}`;
+                return `Depósito do banco: ${banco}`;
             } else if (remetente) {
-                return `💰 Depósito de: ${remetente}`;
+                return `Depósito de: ${remetente}`;
             } else {
-                // Fallback: tentar mostrar algo mais simples
-                const partes = descOriginal.split(' - ');
-                if (partes.length >= 2) {
-                    return `💰 ${partes[0]}`;
+                // Fallback: mostrar apenas a primeira parte
+                let primeiroTraco = descOriginal.indexOf(' - ');
+                if (primeiroTraco !== -1) {
+                    return descOriginal.substring(0, primeiroTraco);
                 }
-                return '💰 Depósito';
+                return 'Depósito';
             }
         }
         
