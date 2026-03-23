@@ -1440,26 +1440,40 @@
     // 🔥 FUNÇÃO: Formatar descrição simplificada
     function formatarDescricaoCompleta(transacao) {
         // Verificar se é depósito
-        if (transacao.tipo && transacao.tipo.toLowerCase() === 'depósito') {
+        if (transacao.tipo === "Depósito") {
             let banco = '';
             let remetente = '';
             
-            // Extrair da descrição original
-            if (transacao.descricao) {
-                // Extrair banco: "Banco: ONLY UP"
-                const bancoMatch = transacao.descricao.match(/Banco:\s*([^-]+)/);
-                if (bancoMatch && bancoMatch[1]) {
-                    banco = bancoMatch[1].trim();
-                }
-                
-                // Extrair remetente: "Remetente: NOVANEX GESTAO..."
-                const remetenteMatch = transacao.descricao.match(/Remetente:\s*(.+)$/);
-                if (remetenteMatch && remetenteMatch[1]) {
-                    remetente = remetenteMatch[1].trim();
+            // Pegar a descrição original
+            let descOriginal = transacao.descricao || '';
+            
+            // Método 1: Extrair banco e remetente da descrição
+            // Procura por "Banco: XXX - Remetente: YYY"
+            const bancoMatch = descOriginal.match(/Banco:\s*([^-]+?)(?:\s*-|$)/);
+            if (bancoMatch && bancoMatch[1]) {
+                banco = bancoMatch[1].trim();
+            }
+            
+            const remetenteMatch = descOriginal.match(/Remetente:\s*(.+)$/);
+            if (remetenteMatch && remetenteMatch[1]) {
+                remetente = remetenteMatch[1].trim();
+            }
+            
+            // Método 2: Se não encontrou, tentar formato alternativo
+            if (!banco && !remetente && descOriginal.includes(' - ')) {
+                const partes = descOriginal.split(' - ');
+                // Formato: "DEPÓSITO CONFIRMADO - Banco: ONLY UP - Remetente: NOVANEX..."
+                for (let i = 0; i < partes.length; i++) {
+                    if (partes[i].includes('Banco:')) {
+                        banco = partes[i].replace('Banco:', '').trim();
+                    }
+                    if (partes[i].includes('Remetente:')) {
+                        remetente = partes[i].replace('Remetente:', '').trim();
+                    }
                 }
             }
             
-            // Se conseguiu extrair banco e remetente
+            // Construir a nova descrição
             if (banco && remetente) {
                 return `💰 Depósito de: ${banco} - ${remetente}`;
             } else if (banco) {
@@ -1467,11 +1481,16 @@
             } else if (remetente) {
                 return `💰 Depósito de: ${remetente}`;
             } else {
+                // Fallback: tentar mostrar algo mais simples
+                const partes = descOriginal.split(' - ');
+                if (partes.length >= 2) {
+                    return `💰 ${partes[0]}`;
+                }
                 return '💰 Depósito';
             }
         }
         
-        // Para outros tipos, manter original
+        // Para outros tipos de transação
         return transacao.descricao || transacao.tipo || 'Transação';
     }
 
