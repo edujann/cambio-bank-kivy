@@ -3985,6 +3985,14 @@ def obter_extrato_kivy():
                         print(f"   Vai entrar na seção REMETENTE? SIM")
                     
                     if transf_tipo == 'deposito':
+                        # 🔥 LOG DE DIAGNÓSTICO NO BACKEND
+                        print(f"\n{'='*60}")
+                        print(f"🔍 [BACKEND] Depósito encontrado - ID: {transf_id}")
+                        print(f"   banco_origem: '{transf.get('banco_origem', 'N/A')}'")
+                        print(f"   remetente: '{transf.get('remetente', 'N/A')}'")
+                        print(f"   descricao original: '{transf.get('descricao', 'N/A')}'")
+                        print(f"   Todas as chaves: {list(transf.keys())}")
+                        print(f"{'='*60}\n")
                         # 🔥 Extrair campos
                         banco_origem = transf.get('banco_origem', '')
                         remetente_nome = transf.get('remetente', '')
