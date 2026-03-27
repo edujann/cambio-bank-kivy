@@ -104,6 +104,7 @@
                 background_color: 0.12, 0.16, 0.23, 1
                 border: [0, 0, 0, 0]
                 
+                # ========== ABA 1: APROVAR PENDENTES ==========
                 TabbedPanelItem:
                     id: aba_pendentes
                     text: 'APROVAR PENDENTES'
@@ -150,7 +151,7 @@
                                 height: self.minimum_height
                                 padding: 5
                         
-                        # Botões de ação
+                        # Botões de ação da aba pendentes
                         BoxLayout:
                             orientation: 'horizontal'
                             size_hint_y: 0.12
@@ -193,10 +194,11 @@
                                 text: 'ATUALIZAR'
                                 font_size: '12sp'
                                 bold: True
-                                background_color: 0.5, 0.7, 1.0, 1  # Azul celeste claro
+                                background_color: 0.5, 0.7, 1.0, 1
                                 color: 1, 1, 1, 1
                                 on_press: root.carregar_dados()
                 
+                # ========== ABA 2: CONCLUIR PROCESSAMENTO (COM BOTÃO RECUSAR) ==========
                 TabbedPanelItem:
                     id: aba_processamento
                     text: 'CONCLUIR PROCESSAMENTO'
@@ -243,7 +245,7 @@
                                 height: self.minimum_height
                                 padding: 5
                         
-                        # Botões de ação
+                        # Botões de ação da aba processamento (COM RECUSAR ADICIONADO)
                         BoxLayout:
                             orientation: 'horizontal'
                             size_hint_y: 0.12
@@ -257,6 +259,15 @@
                                 background_color: 0.23, 0.51, 0.96, 1
                                 color: 1, 1, 1, 1
                                 on_press: root.concluir_selecionado()
+                            
+                            # 🔥 NOVO BOTÃO: RECUSAR SELECIONADO na aba de processamento
+                            Button:
+                                text: 'RECUSAR SELECIONADO'
+                                font_size: '12sp'
+                                bold: True
+                                background_color: 0.96, 0.51, 0.23, 1
+                                color: 1, 1, 1, 1
+                                on_press: root.recusar_selecionado()
                             
                             Button:
                                 text: 'ATUALIZAR LISTA'

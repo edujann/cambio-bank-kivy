@@ -4287,6 +4287,49 @@ def obter_extrato_kivy():
                             'moeda': moeda,
                             'timestamp': data_transacao
                         })
+
+                    elif transf_tipo == 'transferencia_cliente_empresa':
+                        status_normalizado = transf_status.lower() if transf_status else ''
+                        
+                        # Processar transferência cliente → empresa
+                        status_text = "SOLICITADA" if status_normalizado in ['pending', 'solicitada'] else \
+                                    "EM PROCESSAMENTO" if status_normalizado == 'processing' else \
+                                    "CONCLUÍDA" if status_normalizado == 'completed' else "RECUSADA"
+                        
+                        # Buscar nome da empresa destino
+                        conta_destinatario = transf.get('conta_destinatario', '')
+                        nome_destinatario = "CAMBIO BANK"
+                        
+                        # Se tiver beneficiário, usar nome do beneficiário
+                        if transf.get('beneficiario'):
+                            nome_destinatario = transf.get('beneficiario')
+                        elif transf.get('nome_destinatario'):
+                            nome_destinatario = transf.get('nome_destinatario')
+                        
+                        # Descrição personalizada
+                        descricao_base = f"TRANSFERÊNCIA {status_text} PARA EMPRESA - {nome_destinatario}"
+                        
+                        # Se tiver descrição original, adicionar
+                        if transf.get('descricao') and transf.get('descricao') != 'teste':
+                            descricao_final = f"{descricao_base} ({transf.get('descricao')})"
+                        else:
+                            descricao_final = descricao_base
+                        
+                        transacoes_todas.append({
+                            'id': transf_id,
+                            'data': data_transacao_str,
+                            'descricao': descricao_final,
+                            'credito': 0.00,
+                            'debito': valor,
+                            'tipo': "Transferência para Empresa",
+                            'moeda': moeda,
+                            'timestamp': data_transacao,
+                            'conta_destino': conta_destinatario,
+                            'beneficiario': transf.get('beneficiario', ''),
+                            'descricao_original': transf.get('descricao', '')
+                        })
+                        
+                        print(f"💰 TRANSFERÊNCIA CLIENTE → EMPRESA: -{valor:,.2f} {moeda} para {nome_destinatario} | ID: {transf_id}")                        
                 
                 # Cliente é DESTINATÁRIO
                 elif transf.get('conta_destinatario') == conta_num or transf.get('conta_destino') == conta_num:
