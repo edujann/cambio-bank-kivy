@@ -3972,18 +3972,6 @@ def obter_extrato_kivy():
                 # Cliente é REMETENTE
                 if transf.get('conta_remetente') == conta_num or transf.get('conta_origem') == conta_num:
                     
-                    # 🔥 DEBUG ESPECÍFICO PARA 850030
-                    if str(transf_id) == '850030':
-                        print(f"\n🎯🎯🎯 DEBUG 850030 - SEÇÃO REMETENTE 🎯🎯🎯")
-                        print(f"   Tipo: {transf_tipo}")
-                        print(f"   Status: {transf_status}")
-                        print(f"   Conta remetente: {transf.get('conta_remetente')}")
-                        print(f"   Conta destinatario: {transf.get('conta_destinatario')}")
-                        print(f"   Nossa conta: {conta_num}")
-                        print(f"   É remetente? {transf.get('conta_remetente') == conta_num}")
-                        print(f"   É destinatário? {transf.get('conta_destinatario') == conta_num}")
-                        print(f"   Vai entrar na seção REMETENTE? SIM")
-                    
                     if transf_tipo == 'deposito':
                         # 🔥 LOG DE DIAGNÓSTICO NO BACKEND
                         print(f"\n{'='*60}")
@@ -4060,7 +4048,6 @@ def obter_extrato_kivy():
                                 'timestamp': data_transacao
                             })
                     
-                    # 🔥 CORREÇÃO CRÍTICA: TRANSFERÊNCIA INTERNA CLIENTE (TIPO ESPECIAL)
                     elif transf_tipo == 'transferencia_interna_cliente':
                         status_normalizado = transf_status.lower() if transf_status else ''
                         
@@ -4287,11 +4274,12 @@ def obter_extrato_kivy():
                             'moeda': moeda,
                             'timestamp': data_transacao
                         })
-
+                    
+                    # 🔥 BLOCO TRANSFERÊNCIA CLIENTE → EMPRESA (AGORA COMO CRÉDITO)
                     elif transf_tipo == 'transferencia_cliente_empresa':
                         status_normalizado = transf_status.lower() if transf_status else ''
                         
-                        # Processar transferência cliente → empresa
+                        # Processar transferência cliente → empresa (AGORA COMO CRÉDITO)
                         status_text = "SOLICITADA" if status_normalizado in ['pending', 'solicitada'] else \
                                     "EM PROCESSAMENTO" if status_normalizado == 'processing' else \
                                     "CONCLUÍDA" if status_normalizado == 'completed' else "RECUSADA"
@@ -4319,8 +4307,8 @@ def obter_extrato_kivy():
                             'id': transf_id,
                             'data': data_transacao_str,
                             'descricao': descricao_final,
-                            'credito': 0.00,
-                            'debito': valor,
+                            'credito': valor,           # 🔥 ALTERADO: CRÉDITO (antes era débito)
+                            'debito': 0.00,             # 🔥 ALTERADO: ZERO
                             'tipo': "Transferência para Empresa",
                             'moeda': moeda,
                             'timestamp': data_transacao,
@@ -4329,7 +4317,20 @@ def obter_extrato_kivy():
                             'descricao_original': transf.get('descricao', '')
                         })
                         
-                        print(f"💰 TRANSFERÊNCIA CLIENTE → EMPRESA: -{valor:,.2f} {moeda} para {nome_destinatario} | ID: {transf_id}")                        
+                        print(f"💰 TRANSFERÊNCIA CLIENTE → EMPRESA (CRÉDITO): +{valor:,.2f} {moeda} para {nome_destinatario} | ID: {transf_id}")
+                    
+                    else:
+                        # Para outros tipos de transação (fallback)
+                        transacoes_todas.append({
+                            'id': transf_id,
+                            'data': data_transacao_str,
+                            'descricao': f"{transf_tipo.upper()} - {transf.get('descricao', '')}",
+                            'credito': 0.00,
+                            'debito': valor,
+                            'tipo': transf_tipo,
+                            'moeda': moeda,
+                            'timestamp': data_transacao
+                        })                  
                 
                 # Cliente é DESTINATÁRIO
                 elif transf.get('conta_destinatario') == conta_num or transf.get('conta_destino') == conta_num:
@@ -4345,7 +4346,7 @@ def obter_extrato_kivy():
                         print(f"   É remetente? {transf.get('conta_remetente') == conta_num}")
                         print(f"   É destinatário? {transf.get('conta_destinatario') == conta_num}")
                         print(f"   Vai entrar na seção DESTINATÁRIO? SIM")
-                
+                    
                     if transf_tipo == 'deposito':
                         transacoes_todas.append({
                             'id': transf_id,
@@ -4414,8 +4415,46 @@ def obter_extrato_kivy():
                             })
                             print(f"💰 CÂMBIO NORMAL RECEBIDO: {descricao_cambio[:50]}...")
                     
+                    # 🔥 NOVO BLOCO PARA TRANSFERÊNCIA EMPRESA → CLIENTE (AGORA COMO DÉBITO)
+                    elif transf_tipo == 'transferencia_empresa_cliente':
+                        status_normalizado = transf_status.lower() if transf_status else ''
+                        
+                        # Processar transferência empresa → cliente (AGORA COMO DÉBITO)
+                        status_text = "SOLICITADA" if status_normalizado in ['pending', 'solicitada'] else \
+                                    "EM PROCESSAMENTO" if status_normalizado == 'processing' else \
+                                    "CONCLUÍDA" if status_normalizado == 'completed' else "RECUSADA"
+                        
+                        # Buscar nome do remetente (quem enviou)
+                        conta_remetente = transf.get('conta_remetente', '')
+                        nome_remetente = obter_nome_cliente_por_conta(conta_remetente)
+                        
+                        # Descrição personalizada
+                        descricao_base = f"TRANSFERÊNCIA {status_text} RECEBIDA DA EMPRESA - {nome_remetente}"
+                        
+                        # Se tiver descrição original, adicionar
+                        if transf.get('descricao') and transf.get('descricao') != 'teste':
+                            descricao_final = f"{descricao_base} ({transf.get('descricao')})"
+                        else:
+                            descricao_final = descricao_base
+                        
+                        transacoes_todas.append({
+                            'id': transf_id,
+                            'data': data_transacao_str,
+                            'descricao': descricao_final,
+                            'credito': 0.00,              # 🔥 ALTERADO: ZERO
+                            'debito': valor,              # 🔥 ALTERADO: DÉBITO (antes era crédito)
+                            'tipo': "Transferência da Empresa",
+                            'moeda': moeda,
+                            'timestamp': data_transacao,
+                            'conta_remetente': conta_remetente,
+                            'remetente': nome_remetente,
+                            'descricao_original': transf.get('descricao', '')
+                        })
+                        
+                        print(f"💰 TRANSFERÊNCIA EMPRESA → CLIENTE (DÉBITO): -{valor:,.2f} {moeda} de {nome_remetente} | ID: {transf_id}")
+                    
                     # 🔥 OUTROS TIPOS DE TRANSAÇÕES (quando cliente é destinatário em transferências normais)
-                    elif transf_tipo not in ['ajuste_admin', 'deposito', 'cambio']:
+                    elif transf_tipo not in ['ajuste_admin', 'deposito', 'cambio', 'transferencia_empresa_cliente']:
                         status_normalizado = transf_status.lower() if transf_status else ''
                         
                         # 🔥 DEBUG ESPECÍFICO PARA 850030
