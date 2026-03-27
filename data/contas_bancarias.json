@@ -8,6 +8,15 @@
         "agencia": "0001",
         "saldo_inicial": 0.0
     },
+    "BANK_USD_001": {
+        "numero": "BANK_USD_001",
+        "banco": "Banco Principal",
+        "moeda": "USD",
+        "saldo": 655000.0,
+        "tipo": "empresa",
+        "agencia": null,
+        "saldo_inicial": 0.0
+    },
     "BANK_USDT_001, 148473287": {
         "numero": "BANK_USDT_001, 148473287",
         "banco": "BANK OF AMERICA",
@@ -96,15 +105,6 @@
         "saldo": 0.0,
         "tipo": "empresa",
         "agencia": "0001",
-        "saldo_inicial": 0.0
-    },
-    "BANK_USD_001": {
-        "numero": "BANK_USD_001",
-        "banco": "Banco Principal",
-        "moeda": "USD",
-        "saldo": 662689.39,
-        "tipo": "empresa",
-        "agencia": null,
         "saldo_inicial": 0.0
     }
 }

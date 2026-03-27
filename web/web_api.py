@@ -4279,45 +4279,27 @@ def obter_extrato_kivy():
                     elif transf_tipo == 'transferencia_cliente_empresa':
                         status_normalizado = transf_status.lower() if transf_status else ''
                         
-                        # Processar transferência cliente → empresa (AGORA COMO CRÉDITO)
-                        status_text = "SOLICITADA" if status_normalizado in ['pending', 'solicitada'] else \
-                                    "EM PROCESSAMENTO" if status_normalizado == 'processing' else \
-                                    "CONCLUÍDA" if status_normalizado == 'completed' else "RECUSADA"
+                        # 🔥 PEGAR APENAS A DESCRIÇÃO ORIGINAL QUE FOI INSERIDA
+                        descricao_original = transf.get('descricao', '').strip()
                         
-                        # Buscar nome da empresa destino
-                        conta_destinatario = transf.get('conta_destinatario', '')
-                        nome_destinatario = "CAMBIO BANK"
-                        
-                        # Se tiver beneficiário, usar nome do beneficiário
-                        if transf.get('beneficiario'):
-                            nome_destinatario = transf.get('beneficiario')
-                        elif transf.get('nome_destinatario'):
-                            nome_destinatario = transf.get('nome_destinatario')
-                        
-                        # Descrição personalizada
-                        descricao_base = f"TRANSFERÊNCIA {status_text} PARA EMPRESA - {nome_destinatario}"
-                        
-                        # Se tiver descrição original, adicionar
-                        if transf.get('descricao') and transf.get('descricao') != 'teste':
-                            descricao_final = f"{descricao_base} ({transf.get('descricao')})"
-                        else:
-                            descricao_final = descricao_base
+                        # Se não tiver descrição, usar padrão
+                        if not descricao_original:
+                            descricao_original = "Transferência para empresa"
                         
                         transacoes_todas.append({
                             'id': transf_id,
                             'data': data_transacao_str,
-                            'descricao': descricao_final,
-                            'credito': valor,           # 🔥 ALTERADO: CRÉDITO (antes era débito)
-                            'debito': 0.00,             # 🔥 ALTERADO: ZERO
+                            'descricao': descricao_original,  # 🔥 APENAS A DESCRIÇÃO ORIGINAL
+                            'credito': valor,           # CRÉDITO (saldo aumenta)
+                            'debito': 0.00,
                             'tipo': "Transferência para Empresa",
                             'moeda': moeda,
                             'timestamp': data_transacao,
-                            'conta_destino': conta_destinatario,
-                            'beneficiario': transf.get('beneficiario', ''),
-                            'descricao_original': transf.get('descricao', '')
+                            'conta_destino': transf.get('conta_destinatario', ''),
+                            'descricao_original': descricao_original
                         })
                         
-                        print(f"💰 TRANSFERÊNCIA CLIENTE → EMPRESA (CRÉDITO): +{valor:,.2f} {moeda} para {nome_destinatario} | ID: {transf_id}")
+                        print(f"💰 TRANSFERÊNCIA CLIENTE → EMPRESA (CRÉDITO): +{valor:,.2f} {moeda} | Desc: {descricao_original}")
                     
                     else:
                         # Para outros tipos de transação (fallback)
@@ -4419,39 +4401,27 @@ def obter_extrato_kivy():
                     elif transf_tipo == 'transferencia_empresa_cliente':
                         status_normalizado = transf_status.lower() if transf_status else ''
                         
-                        # Processar transferência empresa → cliente (AGORA COMO DÉBITO)
-                        status_text = "SOLICITADA" if status_normalizado in ['pending', 'solicitada'] else \
-                                    "EM PROCESSAMENTO" if status_normalizado == 'processing' else \
-                                    "CONCLUÍDA" if status_normalizado == 'completed' else "RECUSADA"
+                        # 🔥 PEGAR APENAS A DESCRIÇÃO ORIGINAL QUE FOI INSERIDA
+                        descricao_original = transf.get('descricao', '').strip()
                         
-                        # Buscar nome do remetente (quem enviou)
-                        conta_remetente = transf.get('conta_remetente', '')
-                        nome_remetente = obter_nome_cliente_por_conta(conta_remetente)
-                        
-                        # Descrição personalizada
-                        descricao_base = f"TRANSFERÊNCIA {status_text} RECEBIDA DA EMPRESA - {nome_remetente}"
-                        
-                        # Se tiver descrição original, adicionar
-                        if transf.get('descricao') and transf.get('descricao') != 'teste':
-                            descricao_final = f"{descricao_base} ({transf.get('descricao')})"
-                        else:
-                            descricao_final = descricao_base
+                        # Se não tiver descrição, usar padrão
+                        if not descricao_original:
+                            descricao_original = "Transferência da empresa"
                         
                         transacoes_todas.append({
                             'id': transf_id,
                             'data': data_transacao_str,
-                            'descricao': descricao_final,
-                            'credito': 0.00,              # 🔥 ALTERADO: ZERO
-                            'debito': valor,              # 🔥 ALTERADO: DÉBITO (antes era crédito)
+                            'descricao': descricao_original,  # 🔥 APENAS A DESCRIÇÃO ORIGINAL
+                            'credito': 0.00,              # DÉBITO (saldo diminui)
+                            'debito': valor,
                             'tipo': "Transferência da Empresa",
                             'moeda': moeda,
                             'timestamp': data_transacao,
-                            'conta_remetente': conta_remetente,
-                            'remetente': nome_remetente,
-                            'descricao_original': transf.get('descricao', '')
+                            'conta_remetente': transf.get('conta_remetente', ''),
+                            'descricao_original': descricao_original
                         })
                         
-                        print(f"💰 TRANSFERÊNCIA EMPRESA → CLIENTE (DÉBITO): -{valor:,.2f} {moeda} de {nome_remetente} | ID: {transf_id}")
+                        print(f"💰 TRANSFERÊNCIA EMPRESA → CLIENTE (DÉBITO): -{valor:,.2f} {moeda} | Desc: {descricao_original}")
                     
                     # 🔥 OUTROS TIPOS DE TRANSAÇÕES (quando cliente é destinatário em transferências normais)
                     elif transf_tipo not in ['ajuste_admin', 'deposito', 'cambio', 'transferencia_empresa_cliente']:

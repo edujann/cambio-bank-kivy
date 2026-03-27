@@ -195,6 +195,13 @@
         "cliente_nome": "MAS CAMBIO S.A.",
         "data_criacao": "2026-01-20"
     },
+    "376793336": {
+        "moeda": "USD",
+        "saldo": 10000.0,
+        "cliente": "gables",
+        "cliente_nome": "GABLES ENTERPRISE",
+        "data_criacao": "2025-12-22"
+    },
     "501703684": {
         "moeda": "GBP",
         "saldo": 0.0,
@@ -205,6 +212,13 @@
     "860559342": {
         "moeda": "EUR",
         "saldo": 0.0,
+        "cliente": "texaco",
+        "cliente_nome": "TEXACO LLC",
+        "data_criacao": "2025-11-01"
+    },
+    "713651820": {
+        "moeda": "USD",
+        "saldo": 2310.61,
         "cliente": "texaco",
         "cliente_nome": "TEXACO LLC",
         "data_criacao": "2025-11-01"
@@ -384,13 +398,6 @@
         "cliente_nome": "INTERPRESS LIMITADA",
         "data_criacao": "2025-11-20"
     },
-    "713651820": {
-        "moeda": "USD",
-        "saldo": 1000.0,
-        "cliente": "texaco",
-        "cliente_nome": "TEXACO LLC",
-        "data_criacao": "2025-11-01"
-    },
     "997174979": {
         "moeda": "BRL",
         "saldo": 0.0,
@@ -481,12 +488,5 @@
         "cliente": "google",
         "cliente_nome": "[EXCLUÍDO] GOOGLE LLC",
         "data_criacao": "2025-12-06"
-    },
-    "376793336": {
-        "moeda": "USD",
-        "saldo": 4000.0,
-        "cliente": "gables",
-        "cliente_nome": "GABLES ENTERPRISE",
-        "data_criacao": "2025-12-22"
     }
 }

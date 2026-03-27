@@ -7213,22 +7213,65 @@ class TelaGerenciarContas(Screen):
             except ValueError as e:
                 self.mostrar_erro(f"Valor inválido! {str(e)}")
                 return
-            
-            # 🔥 VALIDAÇÃO DE SALDO
-            if valor > saldo_origem:
-                self.mostrar_erro(f"Saldo insuficiente! Disponível: {saldo_origem:,.2f} {moeda_origem}")
-                return
-            
-            # 🔥 MOSTRAR CONFIRMAÇÃO
-            self.mostrar_confirmacao(
-                "Confirmar Transferência Interna?",
-                f"Origem: {conta_origem_num} ({moeda_origem})\n"
-                f"Destino: {conta_destino_num} ({moeda_destino})\n"
-                f"Valor: {valor:,.2f} {moeda_origem}\n"
-                f"Descrição: {descricao_text}\n\n"
-                f"Moedas compatíveis:",
-                lambda: self._processar_transferencia_interna(conta_origem_num, conta_destino_num, valor, moeda_origem, descricao_text)
-            )
+
+            # 🔥 DETERMINAR TIPO DE TRANSFERÊNCIA PARA CALCULAR SALDO CORRETO
+            origem_empresa = conta_origem_num in sistema.contas_bancarias_empresa
+            destino_empresa = conta_destino_num in sistema.contas_bancarias_empresa
+            origem_cliente = conta_origem_num in sistema.contas
+            destino_cliente = conta_destino_num in sistema.contas
+
+            # 🔥 CALCULAR SALDO APÓS OPERAÇÃO COM A LÓGICA INVERTIDA
+            if origem_cliente and destino_empresa:
+                # Cliente → Empresa: Cliente GANHA dinheiro (CRÉDITO)
+                saldo_apos_operacao = saldo_origem + valor
+                tipo_operacao = "CRÉDITO (cliente ganha)"
+                efeito = "+"
+                
+            elif origem_empresa and destino_cliente:
+                # Empresa → Cliente: Cliente PERDE dinheiro (DÉBITO)
+                saldo_apos_operacao = saldo_origem - valor
+                tipo_operacao = "DÉBITO (cliente perde)"
+                efeito = "-"
+                
+            else:
+                # Outras combinações (empresa→empresa, cliente→cliente) - sem inversão
+                saldo_apos_operacao = saldo_origem - valor
+                tipo_operacao = "DÉBITO (padrão)"
+                efeito = "-"
+
+            # 🔥 VERIFICAR SE FICARÁ NEGATIVO (APENAS PARA CLIENTE ORIGEM)
+            ficara_negativo = (origem_cliente and saldo_apos_operacao < 0)
+
+            # 🔥 VALIDAÇÃO DE SALDO (MODIFICADA PARA PERMITIR NEGATIVO COM ALERTA)
+            if ficara_negativo:
+                # Cliente ficará com saldo negativo - mostra alerta especial
+                self.mostrar_confirmacao_saldo_negativo(
+                    f"⚠️ ATENÇÃO: CONTA DO CLIENTE FICARÁ NEGATIVA!\n\n"
+                    f"Conta: {conta_origem_num}\n"
+                    f"Tipo: {'Cliente' if origem_cliente else 'Empresa'} → {'Empresa' if destino_empresa else 'Cliente'}\n"
+                    f"Efeito no saldo: {tipo_operacao}\n"
+                    f"Saldo atual: {saldo_origem:,.2f} {moeda_origem}\n"
+                    f"Valor da transferência: {valor:,.2f} {moeda_origem}\n"
+                    f"Saldo após operação: {saldo_apos_operacao:,.2f} {moeda_origem} {efeito}{valor:,.2f}\n\n"
+                    f"⚠️ O saldo ficará NEGATIVO em {abs(saldo_apos_operacao):,.2f} {moeda_origem}!\n"
+                    f"Deseja continuar mesmo assim?",
+                    lambda: self._processar_transferencia_interna(conta_origem_num, conta_destino_num, valor, moeda_origem, descricao_text)
+                )
+            else:
+                # Saldo suficiente ou não afeta cliente - mostra confirmação normal
+                self.mostrar_confirmacao(
+                    "Confirmar Transferência Interna?",
+                    f"Origem: {conta_origem_num} ({'Cliente' if origem_cliente else 'Empresa'})\n"
+                    f"Destino: {conta_destino_num} ({'Cliente' if destino_cliente else 'Empresa'})\n"
+                    f"Valor: {valor:,.2f} {moeda_origem}\n"
+                    f"Descrição: {descricao_text}\n\n"
+                    f"📊 INFORMAÇÕES DA OPERAÇÃO:\n"
+                    f"Tipo: {tipo_operacao}\n"
+                    f"Saldo atual: {saldo_origem:,.2f} {moeda_origem}\n"
+                    f"Saldo após: {saldo_apos_operacao:,.2f} {moeda_origem} ({efeito}{valor:,.2f})\n\n"
+                    f"✅ Saldo ficará {'POSITIVO' if saldo_apos_operacao >= 0 else 'NEGATIVO, MAS AUTORIZADO'}",
+                    lambda: self._processar_transferencia_interna(conta_origem_num, conta_destino_num, valor, moeda_origem, descricao_text)
+                )
             
         except Exception as e:
             print(f"❌ Erro na transferência interna: {e}")
@@ -7250,7 +7293,7 @@ class TelaGerenciarContas(Screen):
             origem_cliente = conta_origem in sistema.contas
             destino_cliente = conta_destino in sistema.contas
             
-            # 🔥 EXECUTAR TRANSFERÊNCIA LOCAL
+            # 🔥 EXECUTAR TRANSFERÊNCIA LOCAL - VERSÃO INVERTIDA
             if origem_empresa and destino_empresa:
                 # Entre contas da empresa
                 sistema.contas_bancarias_empresa[conta_origem]['saldo'] -= valor
@@ -7258,19 +7301,19 @@ class TelaGerenciarContas(Screen):
                 print(f"✅ Transferência entre contas empresa: -{valor} {moeda} em {conta_origem}, +{valor} {moeda} em {conta_destino}")
                 
             elif origem_empresa and destino_cliente:
-                # Da empresa para cliente
-                sistema.contas_bancarias_empresa[conta_origem]['saldo'] -= valor
-                sistema.contas[conta_destino]['saldo'] += valor
-                print(f"✅ Transferência empresa->cliente: -{valor} {moeda} em {conta_origem}, +{valor} {moeda} em {conta_destino}")
+                # 🔥 INVERTIDO: Da empresa para cliente - AGORA CLIENTE PERDE DINHEIRO (DÉBITO)
+                sistema.contas_bancarias_empresa[conta_origem]['saldo'] -= valor  # Empresa perde (ok)
+                sistema.contas[conta_destino]['saldo'] -= valor  # 🔥 ALTERADO: Cliente PERDE dinheiro (antes era +=)
+                print(f"✅ Transferência empresa->cliente (INVERTIDA): -{valor} {moeda} em {conta_origem}, -{valor} {moeda} em {conta_destino}")
                 
             elif origem_cliente and destino_empresa:
-                # Do cliente para empresa
-                sistema.contas[conta_origem]['saldo'] -= valor
+                # 🔥 INVERTIDO: Cliente → Empresa - AMBOS GANHAM (crédito para ambos)
+                sistema.contas[conta_origem]['saldo'] += valor
                 sistema.contas_bancarias_empresa[conta_destino]['saldo'] += valor
-                print(f"✅ Transferência cliente->empresa: -{valor} {moeda} em {conta_origem}, +{valor} {moeda} em {conta_destino}")
+                print(f"✅ Transferência cliente->empresa: Cliente +{valor}, Empresa +{valor}")
                 
             elif origem_cliente and destino_cliente:
-                # Entre clientes
+                # Entre clientes (mantém igual)
                 sistema.contas[conta_origem]['saldo'] -= valor
                 sistema.contas[conta_destino]['saldo'] += valor
                 print(f"✅ Transferência entre clientes: -{valor} {moeda} em {conta_origem}, +{valor} {moeda} em {conta_destino}")
@@ -7360,6 +7403,91 @@ class TelaGerenciarContas(Screen):
             import traceback
             traceback.print_exc()
             self.mostrar_erro(f"Erro ao processar transferência: {str(e)}")
+
+    def mostrar_confirmacao_saldo_negativo(self, mensagem, callback):
+        """Mostra popup de confirmação para saldo negativo"""
+        from kivy.uix.popup import Popup
+        from kivy.uix.boxlayout import BoxLayout
+        from kivy.uix.label import Label
+        from kivy.uix.button import Button
+        
+        # Criar conteúdo do popup
+        content = BoxLayout(orientation='vertical', spacing=20, padding=25)
+        
+        # Título com ícone de alerta
+        lbl_titulo = Label(
+            text='⚠️ ALERTA DE SALDO NEGATIVO ⚠️',
+            font_size='18sp',
+            bold=True,
+            color=(1, 0.8, 0.2, 1),  # Amarelo
+            size_hint_y=None,
+            height=50,
+            text_size=(500, None),
+            halign='center'
+        )
+        
+        # Mensagem
+        lbl_mensagem = Label(
+            text=mensagem,
+            font_size='14sp',
+            color=(1, 1, 1, 1),
+            size_hint_y=None,
+            height=150,
+            text_size=(500, None),
+            halign='left',
+            valign='top'
+        )
+        
+        # Botões
+        botoes_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50, spacing=15)
+        
+        btn_cancelar = Button(
+            text='CANCELAR',
+            background_color=(0.55, 0.36, 0.96, 1),
+            color=(1, 1, 1, 1),
+            font_size='14sp'
+        )
+        
+        btn_continuar = Button(
+            text='CONTINUAR MESMO ASSIM',
+            background_color=(1, 0.5, 0, 1),  # Laranja para chamar atenção
+            color=(1, 1, 1, 1),
+            font_size='14sp',
+            bold=True
+        )
+        
+        botoes_layout.add_widget(btn_cancelar)
+        botoes_layout.add_widget(btn_continuar)
+        
+        # Adicionar tudo ao conteúdo
+        content.add_widget(lbl_titulo)
+        content.add_widget(lbl_mensagem)
+        content.add_widget(botoes_layout)
+        
+        # Ajustar altura dinâmica
+        content.bind(minimum_height=content.setter('height'))
+        
+        # Criar popup
+        popup = Popup(
+            title='',
+            content=content,
+            size_hint=(0.85, None),
+            height=350,
+            background_color=(0.12, 0.16, 0.23, 1),
+            auto_dismiss=False
+        )
+        
+        def continuar(instance):
+            popup.dismiss()
+            callback()
+        
+        def cancelar(instance):
+            popup.dismiss()
+        
+        btn_continuar.bind(on_press=continuar)
+        btn_cancelar.bind(on_press=cancelar)
+        
+        popup.open()
 
     def executar_transferencia_internacional_admin(self):
         """Executa transferência internacional como admin"""
