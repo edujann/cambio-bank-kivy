@@ -2284,7 +2284,12 @@ class TelaGerenciarContas(Screen):
                         if not data_solicitacao:
                             data_solicitacao = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         
+                        # 🔥 CORREÇÃO: Garantir que o timestamp seja calculado corretamente
                         timestamp_debito = parse_data(data_solicitacao)
+                        
+                        # Se não conseguir parse, usar data_solicitacao como string
+                        if timestamp_debito is None:
+                            timestamp_debito = datetime.datetime.strptime(data_solicitacao, "%Y-%m-%d %H:%M:%S")
                         
                         transacao_debito = {
                             'data': data_solicitacao,
@@ -2293,20 +2298,40 @@ class TelaGerenciarContas(Screen):
                             'debito': dados['valor'],
                             'tipo': "Transferência Internacional",
                             'moeda': dados['moeda'],
-                            'timestamp': timestamp_debito,
+                            'timestamp': timestamp_debito,  # 🔥 Timestamp correto da solicitação
                             'id': f"{transferencia_id}_DEBITO"
                         }
                         
-                        # 2. Transação de crédito (estorno quando foi rejeitada)
-                        data_estorno = dados.get('data_recusa', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                        # 2. Transação de crédito (estorno) - USAR DATA DE RECUSA
+                        data_estorno = dados.get('data_recusa')
+                        
+                        # 🔥 CRÍTICO: Se data_recusa não existir, usar data da solicitação + 1 segundo
+                        if not data_estorno:
+                            # Calcular data de recusa como 1 segundo após a solicitação
+                            timestamp_recusa = timestamp_debito + datetime.timedelta(seconds=1)
+                            data_estorno = timestamp_recusa.strftime("%Y-%m-%d %H:%M:%S")
+                            print(f"🔧 RECUSA SEM DATA - Criada artificialmente: {data_estorno}")
+                        
+                        # 🔥 CORREÇÃO: Calcular timestamp da recusa corretamente
+                        timestamp_recusa = parse_data(data_estorno)
+                        if timestamp_recusa is None:
+                            # Tentar parse manual
+                            try:
+                                if 'T' in data_estorno:
+                                    # Formato ISO
+                                    data_estorno = data_estorno.replace('T', ' ').split('.')[0]
+                                timestamp_recusa = datetime.datetime.strptime(data_estorno, "%Y-%m-%d %H:%M:%S")
+                            except:
+                                timestamp_recusa = timestamp_debito + datetime.timedelta(seconds=1)
+                        
                         transacao_credito = {
-                            'data': data_estorno,
+                            'data': data_estorno,  # 🔥 DATA REAL DO ESTORNO
                             'descricao': f"ESTORNO TRANSF. INTERNACIONAL - {dados.get('beneficiario', 'N/A')}",
                             'credito': dados['valor'],
                             'debito': 0.00,
                             'tipo': "Estorno",
                             'moeda': dados['moeda'],
-                            'timestamp': parse_data(data_estorno),
+                            'timestamp': timestamp_recusa,  # 🔥 Timestamp correto da recusa
                             'id': f"{transferencia_id}_CREDITO"
                         }
                         
@@ -2316,7 +2341,7 @@ class TelaGerenciarContas(Screen):
                         transacoes_ids_utilizados.add(f"{transferencia_id}_DEBITO")
                         transacoes_ids_utilizados.add(f"{transferencia_id}_CREDITO")
                         
-                        print(f"  -> CRIADAS DUAS TRANSAÇÕES: Débito + Estorno para transferência {transferencia_id}")
+                        print(f"  -> CRIADAS DUAS TRANSAÇÕES: Débito em {data_solicitacao} + Estorno em {data_estorno}")
                     
                     else:
                         # Para outros status: criar UMA transação com status apropriado
@@ -2389,7 +2414,10 @@ class TelaGerenciarContas(Screen):
                         if not data_solicitacao:
                             data_solicitacao = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         
+                        # 🔥 CORREÇÃO: Calcular timestamp corretamente
                         timestamp_debito = parse_data(data_solicitacao)
+                        if timestamp_debito is None:
+                            timestamp_debito = datetime.datetime.strptime(data_solicitacao, "%Y-%m-%d %H:%M:%S")
                         
                         transacao_debito = {
                             'data': data_solicitacao,
@@ -2402,8 +2430,18 @@ class TelaGerenciarContas(Screen):
                             'id': f"{transferencia_id}_DEBITO"
                         }
                         
-                        # 2. Transação de crédito (estorno quando foi rejeitada)
-                        data_estorno = dados.get('data_recusa', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                        # 2. Transação de crédito (estorno)
+                        data_estorno = dados.get('data_recusa')
+                        
+                        # 🔥 Se não tem data_recusa, criar artificialmente
+                        if not data_estorno:
+                            timestamp_recusa = timestamp_debito + datetime.timedelta(seconds=1)
+                            data_estorno = timestamp_recusa.strftime("%Y-%m-%d %H:%M:%S")
+                        else:
+                            timestamp_recusa = parse_data(data_estorno)
+                            if timestamp_recusa is None:
+                                timestamp_recusa = timestamp_debito + datetime.timedelta(seconds=1)
+                        
                         transacao_credito = {
                             'data': data_estorno,
                             'descricao': f"ESTORNO TRANSFERÊNCIA - {self.obter_nome_cliente_por_conta(sistema, dados.get('conta_destinatario', 'N/A'))}",
@@ -2411,7 +2449,7 @@ class TelaGerenciarContas(Screen):
                             'debito': 0.00,
                             'tipo': "Estorno",
                             'moeda': dados['moeda'],
-                            'timestamp': parse_data(data_estorno),
+                            'timestamp': timestamp_recusa,
                             'id': f"{transferencia_id}_CREDITO"
                         }
                         
@@ -2421,7 +2459,7 @@ class TelaGerenciarContas(Screen):
                         transacoes_ids_utilizados.add(f"{transferencia_id}_DEBITO")
                         transacoes_ids_utilizados.add(f"{transferencia_id}_CREDITO")
                         
-                        print(f"  -> CRIADAS DUAS TRANSAÇÕES: Débito + Estorno para transferência {transferencia_id}")
+                        print(f"  -> CRIADAS DUAS TRANSAÇÕES: Débito em {data_solicitacao} + Estorno em {data_estorno}")
                     
                     else:
                         # Para outros status: criar UMA transação com status apropriado
@@ -2712,7 +2750,34 @@ class TelaGerenciarContas(Screen):
         
         # 🔥 DEFINIR transacoes FINALMENTE
         transacoes = transacoes_finais
-        
+
+
+        # Garantir que todas as transações tenham timestamp válido
+        for transacao in transacoes:
+            if 'timestamp' not in transacao or transacao['timestamp'] is None:
+                data_str = transacao.get('data')
+                transacao['timestamp'] = self.parse_data_robusta(data_str)
+                
+                # Se ainda não tiver timestamp, criar um artificial
+                if transacao['timestamp'] is None:
+                    print(f"⚠️ Transação sem timestamp válido: {transacao.get('id')}")
+                    transacao['timestamp'] = datetime.datetime(2024, 1, 1)
+
+        # Ordenar por timestamp para cálculo
+        transacoes_ordenadas_calculo = sorted(
+            transacoes, 
+            key=lambda x: x.get('timestamp') or datetime.datetime(2024, 1, 1)
+        )
+
+        # Para exibição, reverter para mostrar mais recentes primeiro
+        transacoes_exibicao = list(reversed(transacoes_ordenadas_calculo))
+
+        # Agora use transacoes_ordenadas_calculo para o cálculo de saldo
+        # e transacoes_exibicao para mostrar na interface
+        # ========== FIM DO NOVO CÓDIGO ==========
+
+
+
         # 🔥 DEBUG CRÍTICO DA ORDENAÇÃO
         print("=== 🚨 DEBUG CRÍTICO DA ORDENAÇÃO ADMIN ===")
         for i, trans in enumerate(transacoes[:10]):  # Mostrar primeiras 10
@@ -3189,6 +3254,39 @@ class TelaGerenciarContas(Screen):
             print(f"❌ Erro crítico ao analisar data ADMIN {data_str}: {e}")
             return datetime.datetime(2024, 1, 1)  # 🔥 SEMPRE DATA FIXA
     
+    def parse_data_robusta(self, data_str):
+        """Versão robusta de parse de data para extrato admin"""
+        if not data_str:
+            return None
+        
+        try:
+            # Tenta múltiplos formatos
+            formatos = [
+                '%Y-%m-%d %H:%M:%S',      # 2026-03-25 16:34:44
+                '%Y-%m-%dT%H:%M:%S',      # 2026-03-25T16:34:44
+                '%Y-%m-%dT%H:%M:%S.%f',   # 2026-03-25T16:34:44.316855
+                '%Y-%m-%d',               # 2026-03-25
+                '%d/%m/%Y %H:%M:%S',      # 25/03/2026 16:34:44
+                '%d/%m/%Y',               # 25/03/2026
+            ]
+            
+            for formato in formatos:
+                try:
+                    return datetime.datetime.strptime(data_str, formato)
+                except ValueError:
+                    continue
+            
+            # Se nenhum formato funcionar, tenta remover microssegundos e T
+            if 'T' in data_str:
+                data_limpa = data_str.replace('T', ' ').split('.')[0]
+                return datetime.datetime.strptime(data_limpa, '%Y-%m-%d %H:%M:%S')
+            
+            return None
+            
+        except Exception as e:
+            print(f"⚠️ Erro ao parsear data '{data_str}': {e}")
+            return None
+
     def exportar_extrato_pdf(self):
         """Exporta extrato em PDF"""
         if not self.ids.combo_cliente_extrato.text or not self.ids.combo_conta_extrato.text:
