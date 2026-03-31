@@ -3684,10 +3684,19 @@ class SistemaCambioPremium:
                         .select('*')\
                         .execute()
                     
+                    print(f"🔍 DEBUG: {len(response.data)} contas encontradas no Supabase")
+                    
+                    # 🔥 DEBUG: Mostrar todas as contas encontradas
+                    print("📋 CONTAS ENCONTRADAS:")
+                    for idx, conta in enumerate(response.data):
+                        print(f"  {idx+1}. Número: '{conta.get('numero')}' | Banco: {conta.get('banco')} | Moeda: {conta.get('moeda')} | Saldo: {conta.get('saldo')}")
+                    
                     if response.data:
                         self.contas_bancarias_empresa.clear()
                         for conta in response.data:
                             conta_num = conta['numero']
+                            
+                            print(f"  ➕ Adicionando ao dicionário: chave = '{conta_num}'")
                             
                             # 🔥 ARREDONDAR SALDO AO CARREGAR DO SUPABASE
                             saldo_arredondado = self.arredondar_valor(float(conta['saldo']))
@@ -3697,29 +3706,47 @@ class SistemaCambioPremium:
                                 'banco': conta['banco'],
                                 'agencia': conta.get('agencia', ''),
                                 'moeda': conta['moeda'],
-                                'saldo': saldo_arredondado,  # 🔥 ARREDONDADO
+                                'saldo': saldo_arredondado,
                                 'tipo': conta.get('tipo', 'empresa'),
                                 'data_criacao': conta.get('data_criacao', ''),
-                                'saldo_inicial': self.arredondar_valor(float(conta.get('saldo_inicial', conta['saldo'])))  # 🔥 ARREDONDADO
+                                'saldo_inicial': self.arredondar_valor(float(conta.get('saldo_inicial', conta['saldo'])))
                             }
                         
-                        print(f"✅ {len(response.data)} contas bancárias carregadas do Supabase (valores arredondados)")
+                        print(f"✅ {len(response.data)} contas bancárias carregadas do Supabase")
+                        print(f"🔍 CHAVES NO DICIONÁRIO: {list(self.contas_bancarias_empresa.keys())}")
                         
-                        # 🔥 SALVAR LOCALMENTE PARA BACKUP (já arredondado)
+                        # 🔥 VERIFICAR ESPECIFICAMENTE A CONTA 'COFRE ESCRITÓRIO - GBP'
+                        conta_procurada = 'COFRE ESCRITÓRIO - GBP'
+                        if conta_procurada in self.contas_bancarias_empresa:
+                            print(f"🎯 CONTA '{conta_procurada}' ENCONTRADA NO DICIONÁRIO!")
+                            print(f"   Dados: {self.contas_bancarias_empresa[conta_procurada]}")
+                        else:
+                            print(f"⚠️ CONTA '{conta_procurada}' NÃO ENCONTRADA NO DICIONÁRIO!")
+                        
+                        # 🔥 SALVAR LOCALMENTE PARA BACKUP
                         self.salvar_contas_bancarias()
                         return
-                        
+                    else:
+                        print("⚠️ Nenhuma conta encontrada no Supabase")
+                            
                 except Exception as e:
                     print(f"⚠️ Erro ao carregar contas do Supabase: {e}")
+                    import traceback
+                    traceback.print_exc()
             
-            # 🔥 FALLBACK: CARREGAR DO ARQUIVO LOCAL (já vem arredondado)
+            # 🔥 FALLBACK: CARREGAR DO ARQUIVO LOCAL
             if os.path.exists('data/contas_bancarias.json'):
                 with open('data/contas_bancarias.json', 'r', encoding='utf-8') as f:
                     self.contas_bancarias_empresa = json.load(f)
-                print(f"🔄 DASHBOARD: {len(self.contas_bancarias_empresa)} contas bancárias RECARREGADAS")
-                
+                print(f"🔄 DASHBOARD: {len(self.contas_bancarias_empresa)} contas bancárias RECARREGADAS DO ARQUIVO LOCAL")
+                print(f"🔍 CHAVES NO ARQUIVO LOCAL: {list(self.contas_bancarias_empresa.keys())}")
+            else:
+                print("⚠️ Arquivo local 'data/contas_bancarias.json' não encontrado")
+                    
         except Exception as e:
             print(f"❌ Erro ao carregar contas bancárias: {e}")
+            import traceback
+            traceback.print_exc()
 
     def testar_despesa(self):
         """Método temporário para testar despesa"""

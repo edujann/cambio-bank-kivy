@@ -4350,8 +4350,18 @@ class TelaGerenciarContas(Screen):
                 self.mostrar_erro("Preencha todos os campos!")
                 return
             
-            # Obter dados
-            conta_bancaria = self.ids.combo_conta_bancaria_despesa.text.split(' - ')[0]
+            # 🔥 CORREÇÃO: Usar método genérico para extrair número da conta
+            conta_bancaria_texto = self.ids.combo_conta_bancaria_despesa.text
+            conta_bancaria = self.extrair_numero_conta_spinner(conta_bancaria_texto)
+            
+            print(f"🔍 [DEBUG] Texto do spinner despesa: '{conta_bancaria_texto}'")
+            print(f"🔍 [DEBUG] Conta bancária extraída: '{conta_bancaria}'")
+            
+            # Verificar se a conta foi encontrada
+            if not conta_bancaria:
+                self.mostrar_erro("Conta bancária não identificada!")
+                return
+            
             categoria_despesa = self.ids.combo_categoria_despesa.text
             
             # 🔥 CORREÇÃO: Se não tem moeda no nome, usar moeda da conta bancária
@@ -4367,9 +4377,14 @@ class TelaGerenciarContas(Screen):
                 # 🔥 CORREÇÃO: Usar moeda da conta bancária selecionada
                 conta_despesa = conta_despesa_completa
                 # Obter moeda da conta bancária
-                if self.ids.combo_conta_bancaria_despesa.text:
-                    moeda_despesa = self._extrair_moeda_conta(self.ids.combo_conta_bancaria_despesa.text)
-                    print(f"✅ Usando moeda da conta bancária: '{conta_despesa}' com moeda '{moeda_despesa}'")
+                if conta_bancaria:
+                    # Buscar a moeda da conta bancária extraída
+                    if conta_bancaria in sistema.contas_bancarias_empresa:
+                        moeda_despesa = sistema.contas_bancarias_empresa[conta_bancaria]['moeda']
+                        print(f"✅ Usando moeda da conta bancária: '{conta_despesa}' com moeda '{moeda_despesa}'")
+                    else:
+                        self.mostrar_erro(f"Conta bancária não encontrada! ID: {conta_bancaria}")
+                        return
                 else:
                     self.mostrar_erro("Selecione uma conta bancária primeiro!")
                     return
@@ -4399,7 +4414,7 @@ class TelaGerenciarContas(Screen):
                 conta_despesa=conta_despesa,
                 categoria_despesa=categoria_despesa,
                 descricao=descricao,
-                moeda_despesa=moeda_despesa  # 🔥 NOVO PARÂMETRO
+                moeda_despesa=moeda_despesa
             )
             
             if sucesso:
@@ -4416,9 +4431,7 @@ class TelaGerenciarContas(Screen):
                 sistema.carregar_contas_bancarias()
                 
                 # 3. Atualizar o spinner da conta bancária COM SALDO ATUAL
-                if self.ids.combo_conta_bancaria_despesa.text:
-                    conta_bancaria = self.ids.combo_conta_bancaria_despesa.text.split(' - ')[0]
-                    
+                if conta_bancaria:
                     # Buscar saldo ATUALIZADO
                     if conta_bancaria in sistema.contas_bancarias_empresa:
                         conta_info = sistema.contas_bancarias_empresa[conta_bancaria]
@@ -4429,11 +4442,8 @@ class TelaGerenciarContas(Screen):
                         # 🔥 Atualizar texto do spinner com novo saldo
                         novo_texto = f"{conta_bancaria} - {banco} - {moeda} - Saldo: {saldo_atual:,.2f}"
                         
-                        # Salvar seleção atual
-                        selecao_anterior = self.ids.combo_conta_bancaria_despesa.text
-                        
                         # Atualizar valores do spinner
-                        self.atualizar_contas_bancarias_despesa()  # 🔥 CORREÇÃO: Usar o novo método
+                        self.atualizar_contas_bancarias_despesa()
                         
                         # Restaurar seleção (com saldo atualizado)
                         self.ids.combo_conta_bancaria_despesa.text = novo_texto
@@ -4536,6 +4546,8 @@ class TelaGerenciarContas(Screen):
         """Obtém a moeda REAL de uma conta bancária direto do Supabase"""
         sistema = App.get_running_app().sistema
         
+        print(f"🔍 [DEBUG] Buscando moeda para conta: '{numero_conta}'")
+        
         try:
             response = sistema.supabase.client.table('contas_bancarias_empresa')\
                 .select('moeda')\
@@ -4547,9 +4559,10 @@ class TelaGerenciarContas(Screen):
                 print(f"✅ Moeda REAL da conta {numero_conta}: {moeda}")
                 return moeda
             else:
-                print(f"⚠️ Conta bancária {numero_conta} não encontrada")
+                print(f"⚠️ Conta bancária '{numero_conta}' não encontrada no Supabase")
+                print(f"   Contas disponíveis: {[c.get('numero') for c in sistema.contas_bancarias_empresa.values()]}")
                 return None
-                
+                    
         except Exception as e:
             print(f"❌ Erro ao buscar moeda da conta {numero_conta}: {e}")
             return None
@@ -4634,8 +4647,15 @@ class TelaGerenciarContas(Screen):
         # 🔥 1. Obter moeda da conta bancária selecionada (se houver)
         moeda_filtro = None
         if self.ids.combo_conta_bancaria_despesa.text and ' - ' in self.ids.combo_conta_bancaria_despesa.text:
-            numero_conta = self.ids.combo_conta_bancaria_despesa.text.split(' - ')[0]
-            moeda_filtro = self.obter_moeda_conta_bancaria_real(numero_conta)
+            # 🔥 CORREÇÃO: Usar método genérico para extrair o número da conta
+            numero_conta = self.extrair_numero_conta_spinner(self.ids.combo_conta_bancaria_despesa.text)
+            
+            if numero_conta:
+                print(f"🔍 [DEBUG] Conta bancária extraída: '{numero_conta}'")
+                moeda_filtro = self.obter_moeda_conta_bancaria_real(numero_conta)
+                print(f"🔍 [DEBUG] Moeda encontrada: '{moeda_filtro}'")
+            else:
+                print(f"⚠️ [DEBUG] Não foi possível extrair o número da conta")
         
         # 🔥 2. Carregar contas contábeis COM FILTRO
         contas = self.carregar_contas_contabeis_com_filtro(categoria, moeda_filtro, 'despesa')
@@ -6867,6 +6887,54 @@ class TelaGerenciarContas(Screen):
             if opcoes_contas:
                 self.spinner_conta_empresa_destino.text = opcoes_contas[0]
 
+    def extrair_numero_conta_spinner(self, texto_spinner):
+        """
+        Extrai o número da conta do texto do spinner de forma genérica.
+        Tenta extrair de duas formas:
+        1. Primeiro tenta até o SEGUNDO " - " (para contas com hífen no nome)
+        2. Se não encontrar, tenta até o PRIMEIRO " - " (para contas simples)
+        """
+        print(f"🔍 [DEBUG] extrair_numero_conta_spinner recebeu: '{texto_spinner}'")
+        
+        if not texto_spinner or texto_spinner == 'Selecione a conta' or 'Selecione' in texto_spinner:
+            print(f"⚠️ [DEBUG] Texto inválido ou seleção padrão")
+            return None
+        
+        sistema = App.get_running_app().sistema
+        
+        # Encontrar a posição do primeiro " - "
+        primeira_pos = texto_spinner.find(' - ')
+        if primeira_pos == -1:
+            print(f"⚠️ [DEBUG] Separador não encontrado")
+            return texto_spinner.strip()
+        
+        # Tentativa 1: extrair até o SEGUNDO " - " (para contas com hífen)
+        segunda_pos = texto_spinner.find(' - ', primeira_pos + 3)
+        
+        if segunda_pos != -1:
+            numero_candidato = texto_spinner[:segunda_pos].strip()
+            print(f"🔍 [DEBUG] Tentando formato com 2 separadores: '{numero_candidato}'")
+            
+            # Verificar se existe no dicionário de contas da empresa OU de clientes
+            if (hasattr(sistema, 'contas_bancarias_empresa') and numero_candidato in sistema.contas_bancarias_empresa) or \
+            (hasattr(sistema, 'contas') and numero_candidato in sistema.contas):
+                print(f"✅ [DEBUG] Encontrado no dicionário: '{numero_candidato}'")
+                return numero_candidato
+        
+        # Tentativa 2: extrair até o PRIMEIRO " - " (para contas simples)
+        numero_candidato = texto_spinner[:primeira_pos].strip()
+        print(f"🔍 [DEBUG] Tentando formato com 1 separador: '{numero_candidato}'")
+        
+        # Verificar se existe no dicionário
+        if (hasattr(sistema, 'contas_bancarias_empresa') and numero_candidato in sistema.contas_bancarias_empresa) or \
+        (hasattr(sistema, 'contas') and numero_candidato in sistema.contas):
+            print(f"✅ [DEBUG] Encontrado no dicionário: '{numero_candidato}'")
+            return numero_candidato
+        
+        # Se nenhum funcionar, retorna o primeiro formato (fallback)
+        print(f"⚠️ [DEBUG] Nenhum formato encontrado no dicionário, usando primeiro: '{numero_candidato}'")
+        return numero_candidato
+
     def carregar_clientes_transferencia_interna_origem(self):
         """Carrega clientes para origem da transferência interna - VERSÃO CORRIGIDA"""
         sistema = App.get_running_app().sistema
@@ -6938,7 +7006,7 @@ class TelaGerenciarContas(Screen):
             hasattr(self, 'spinner_conta_empresa_origem') and
             'Selecione' not in self.spinner_conta_empresa_origem.text):
             
-            conta_origem_num = self.spinner_conta_empresa_origem.text.split(' - ')[0]
+            conta_origem_num = self.extrair_numero_conta_spinner(self.spinner_conta_empresa_origem.text)
             if conta_origem_num in sistema.contas_bancarias_empresa:
                 moeda_origem = sistema.contas_bancarias_empresa[conta_origem_num]['moeda']
         
@@ -6948,7 +7016,7 @@ class TelaGerenciarContas(Screen):
               hasattr(self, 'spinner_conta_interna_origem') and
               'Selecione' not in self.spinner_conta_interna_origem.text):
             
-            conta_origem_num = self.spinner_conta_interna_origem.text.split(' - ')[0]
+            conta_origem_num = self.extrair_numero_conta_spinner(self.spinner_conta_interna_origem.text)
             if conta_origem_num in sistema.contas:
                 moeda_origem = sistema.contas[conta_origem_num]['moeda']
         
@@ -7038,7 +7106,7 @@ class TelaGerenciarContas(Screen):
             hasattr(self, 'spinner_conta_empresa_origem') and
             'Selecione' not in self.spinner_conta_empresa_origem.text):
             
-            conta_origem_num = self.spinner_conta_empresa_origem.text.split(' - ')[0]
+            conta_origem_num = self.extrair_numero_conta_spinner(self.spinner_conta_empresa_origem.text)
             if conta_origem_num in sistema.contas_bancarias_empresa:
                 return sistema.contas_bancarias_empresa[conta_origem_num]['moeda']
         
@@ -7048,7 +7116,7 @@ class TelaGerenciarContas(Screen):
               hasattr(self, 'spinner_conta_interna_origem') and
               'Selecione' not in self.spinner_conta_interna_origem.text):
             
-            conta_origem_num = self.spinner_conta_interna_origem.text.split(' - ')[0]
+            conta_origem_num = self.extrair_numero_conta_spinner(self.spinner_conta_interna_origem.text)
             if conta_origem_num in sistema.contas:
                 return sistema.contas[conta_origem_num]['moeda']
         
@@ -7116,12 +7184,20 @@ class TelaGerenciarContas(Screen):
                     self.mostrar_erro("Selecione uma conta de origem!")
                     return
                 
-                conta_origem_num = self.spinner_conta_empresa_origem.text.split(' - ')[0]
+                print(f"🔍 [DEBUG] Texto do spinner origem: '{self.spinner_conta_empresa_origem.text}'")
+                
+                conta_origem_num = self.extrair_numero_conta_spinner(self.spinner_conta_empresa_origem.text)
+                
+                print(f"🔍 [DEBUG] Conta origem extraída: '{conta_origem_num}'")
+                print(f"🔍 [DEBUG] Contas disponíveis no dicionário: {list(sistema.contas_bancarias_empresa.keys())}")
+                
                 if conta_origem_num in sistema.contas_bancarias_empresa:
                     moeda_origem = sistema.contas_bancarias_empresa[conta_origem_num]['moeda']
                     saldo_origem = sistema.contas_bancarias_empresa[conta_origem_num]['saldo']
+                    print(f"✅ [DEBUG] Conta encontrada! Moeda: {moeda_origem}, Saldo: {saldo_origem}")
                 else:
-                    self.mostrar_erro("Conta de origem não encontrada!")
+                    print(f"❌ [DEBUG] Conta '{conta_origem_num}' NÃO encontrada no dicionário!")
+                    self.mostrar_erro(f"Conta de origem não encontrada! ID: {conta_origem_num}")
                     return
                     
             else:  # Conta de Cliente
@@ -7129,7 +7205,7 @@ class TelaGerenciarContas(Screen):
                     self.mostrar_erro("Selecione uma conta de origem!")
                     return
                 
-                conta_origem_num = self.spinner_conta_interna_origem.text.split(' - ')[0]
+                conta_origem_num = self.extrair_numero_conta_spinner(self.spinner_conta_interna_origem.text)
                 if conta_origem_num in sistema.contas:
                     moeda_origem = sistema.contas[conta_origem_num]['moeda']
                     saldo_origem = sistema.contas[conta_origem_num]['saldo']
@@ -7143,7 +7219,7 @@ class TelaGerenciarContas(Screen):
                     self.mostrar_erro("Selecione uma conta de destino!")
                     return
                 
-                conta_destino_num = self.spinner_conta_empresa_destino.text.split(' - ')[0]
+                conta_destino_num = self.extrair_numero_conta_spinner(self.spinner_conta_empresa_destino.text)
                 if conta_destino_num in sistema.contas_bancarias_empresa:
                     moeda_destino = sistema.contas_bancarias_empresa[conta_destino_num]['moeda']
                 else:
@@ -7155,7 +7231,7 @@ class TelaGerenciarContas(Screen):
                     self.mostrar_erro("Selecione uma conta de destino!")
                     return
                 
-                conta_destino_num = self.spinner_conta_interna_destino.text.split(' - ')[0]
+                conta_destino_num = self.extrair_numero_conta_spinner(self.spinner_conta_interna_destino.text)
                 if conta_destino_num in sistema.contas:
                     moeda_destino = sistema.contas[conta_destino_num]['moeda']
                 else:

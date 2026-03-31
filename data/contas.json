@@ -13,13 +13,6 @@
         "cliente_nome": "TITAN LIMITED",
         "data_criacao": "2025-12-06"
     },
-    "900519236": {
-        "moeda": "BRL",
-        "saldo": 0.0,
-        "cliente": "titan",
-        "cliente_nome": "TITAN LIMITED",
-        "data_criacao": "2025-12-06"
-    },
     "654000645": {
         "moeda": "EUR",
         "saldo": 0.0,
@@ -104,13 +97,6 @@
         "cliente_nome": "PRADA LIMITED",
         "data_criacao": "2025-11-02"
     },
-    "960532724": {
-        "moeda": "USD",
-        "saldo": 7500.0,
-        "cliente": "titan",
-        "cliente_nome": "TITAN LIMITED",
-        "data_criacao": "2025-11-03"
-    },
     "224565364": {
         "moeda": "BRL",
         "saldo": -54062.97,
@@ -124,13 +110,6 @@
         "cliente": "makita",
         "cliente_nome": "MAKITA MACHINES LLC",
         "data_criacao": "2025-11-26"
-    },
-    "580880428": {
-        "moeda": "EUR",
-        "saldo": 0.0,
-        "cliente": "gables",
-        "cliente_nome": "GABLES ENTERPRISE",
-        "data_criacao": "2025-12-22"
     },
     "960934914": {
         "moeda": "BRL",
@@ -195,12 +174,12 @@
         "cliente_nome": "MAS CAMBIO S.A.",
         "data_criacao": "2026-01-20"
     },
-    "376793336": {
-        "moeda": "USD",
-        "saldo": 10000.0,
-        "cliente": "gables",
-        "cliente_nome": "GABLES ENTERPRISE",
-        "data_criacao": "2025-12-22"
+    "900519236": {
+        "moeda": "BRL",
+        "saldo": 4350.0,
+        "cliente": "titan",
+        "cliente_nome": "TITAN LIMITED",
+        "data_criacao": "2025-12-06"
     },
     "501703684": {
         "moeda": "GBP",
@@ -216,12 +195,12 @@
         "cliente_nome": "TEXACO LLC",
         "data_criacao": "2025-11-01"
     },
-    "713651820": {
+    "376793336": {
         "moeda": "USD",
-        "saldo": 2310.61,
-        "cliente": "texaco",
-        "cliente_nome": "TEXACO LLC",
-        "data_criacao": "2025-11-01"
+        "saldo": 16000.0,
+        "cliente": "gables",
+        "cliente_nome": "GABLES ENTERPRISE",
+        "data_criacao": "2025-12-22"
     },
     "500635054": {
         "moeda": "BRL",
@@ -250,6 +229,13 @@
         "cliente": "thierry",
         "cliente_nome": "THIERRY IMPORTERS LTDA",
         "data_criacao": "2025-12-19"
+    },
+    "960532724": {
+        "moeda": "USD",
+        "saldo": 298.57,
+        "cliente": "titan",
+        "cliente_nome": "TITAN LIMITED",
+        "data_criacao": "2025-11-03"
     },
     "608201541": {
         "moeda": "BRL",
@@ -305,6 +291,13 @@
         "saldo": 0.0,
         "cliente": "edinho",
         "cliente_nome": "EDINHO ENTERPRISE",
+        "data_criacao": "2025-12-22"
+    },
+    "580880428": {
+        "moeda": "EUR",
+        "saldo": 0.0,
+        "cliente": "gables",
+        "cliente_nome": "GABLES ENTERPRISE",
         "data_criacao": "2025-12-22"
     },
     "163569885": {
@@ -377,19 +370,12 @@
         "cliente_nome": "ROMOLO REMESSAS LTDA",
         "data_criacao": "2025-12-22"
     },
-    "823239205": {
+    "649623031": {
         "moeda": "BRL",
-        "saldo": 59615.11,
-        "cliente": "neosoro",
-        "cliente_nome": "NEOSORO LIMITADA",
-        "data_criacao": "2026-01-01"
-    },
-    "667276348": {
-        "moeda": "USD",
-        "saldo": 18000.0,
-        "cliente": "neosoro",
-        "cliente_nome": "NEOSORO LIMITADA",
-        "data_criacao": "2026-01-01"
+        "saldo": 0.0,
+        "cliente": "mascambio",
+        "cliente_nome": "MAS CAMBIO S.A.",
+        "data_criacao": "2026-01-20"
     },
     "949381419": {
         "moeda": "USD",
@@ -397,6 +383,13 @@
         "cliente": "interpress",
         "cliente_nome": "INTERPRESS LIMITADA",
         "data_criacao": "2025-11-20"
+    },
+    "713651820": {
+        "moeda": "USD",
+        "saldo": 2310.61,
+        "cliente": "texaco",
+        "cliente_nome": "TEXACO LLC",
+        "data_criacao": "2025-11-01"
     },
     "997174979": {
         "moeda": "BRL",
@@ -454,19 +447,26 @@
         "cliente_nome": "TEXACO LLC",
         "data_criacao": "2025-11-01"
     },
-    "649623031": {
-        "moeda": "BRL",
-        "saldo": 0.0,
-        "cliente": "mascambio",
-        "cliente_nome": "MAS CAMBIO S.A.",
-        "data_criacao": "2026-01-20"
-    },
     "755234527": {
         "moeda": "BRL",
-        "saldo": 1435001.25,
+        "saldo": 1391795.05,
         "cliente": "gables",
         "cliente_nome": "GABLES ENTERPRISE",
         "data_criacao": "2025-12-22"
+    },
+    "667276348": {
+        "moeda": "USD",
+        "saldo": 0.0,
+        "cliente": "neosoro",
+        "cliente_nome": "NEOSORO LIMITADA",
+        "data_criacao": "2026-01-01"
+    },
+    "823239205": {
+        "moeda": "BRL",
+        "saldo": 0.0,
+        "cliente": "neosoro",
+        "cliente_nome": "NEOSORO LIMITADA",
+        "data_criacao": "2026-01-01"
     },
     "366470532": {
         "moeda": "GBP",
