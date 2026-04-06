@@ -5234,3 +5234,454 @@ class SistemaCambioPremium:
         except Exception as e:
             print(f"❌ Erro na conexão: {e}")
             return False
+        
+    def buscar_relatorio_mensal(self, ano, mes, tipo, moeda):
+        """
+        Busca dados para relatório mensal usando created_at
+        """
+        try:
+            import calendar
+            from datetime import datetime, timedelta
+            
+            print(f"🔍 Buscando relatório: {tipo} - {mes}/{ano} - Moeda: {moeda}")
+            
+            # Calcular primeiro e último dia do mês
+            data_inicio = f"{ano}-{mes:02d}-01"
+            ultimo_dia = calendar.monthrange(ano, mes)[1]
+            data_fim = f"{ano}-{mes:02d}-{ultimo_dia}"
+            
+            print(f"📅 Período: {data_inicio} até {data_fim}")
+            
+            # 🔥 USAR created_at EM VEZ DE data
+            query = self.supabase.client.table('transferencias')\
+                .select('*')\
+                .eq('tipo', tipo)\
+                .gte('created_at', f"{data_inicio} 00:00:00")\
+                .lte('created_at', f"{data_fim} 23:59:59")
+            
+            # Filtrar por moeda se não for TODAS
+            if moeda != 'TODAS':
+                query = query.eq('moeda', moeda)
+            
+            response = query.execute()
+            
+            if not response.data:
+                print(f"ℹ️ Nenhum dado encontrado para {tipo}")
+                return None
+            
+            print(f"✅ {len(response.data)} registros encontrados")
+            
+            # Processar dados
+            dados_processados = self.processar_dados_relatorio(response.data, tipo, moeda)
+            
+            return dados_processados
+            
+        except Exception as e:
+            print(f"❌ Erro ao buscar relatório: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+    
+    def processar_dados_relatorio(self, dados, tipo, moeda_filtro):
+        """Processa os dados do relatório, agrupando por categoria e conta específica"""
+        try:
+            from collections import defaultdict
+            
+            # Estruturas de dados
+            categorias = {}
+            transacoes = []
+            total_geral = 0
+            total_por_moeda = {}
+            
+            print(f"📊 PROCESSANDO {len(dados)} registros para relatório")
+            
+            for item in dados:
+                # Extrair campos
+                data = item.get('data', '')
+                if data:
+                    data_str = str(data)
+                    data_formatada = data_str[:10] if len(data_str) >= 10 else data_str
+                else:
+                    data_formatada = ''
+                
+                valor = float(item.get('valor', 0))
+                moeda = item.get('moeda', 'USD') or 'USD'
+                descricao = ''
+                categoria = ''
+                conta_especifica = ''
+                
+                if tipo == 'receita':
+                    categoria = item.get('categoria_receita', 'SEM CATEGORIA')
+                    if not categoria or categoria == 'None':
+                        categoria = 'SEM CATEGORIA'
+                    
+                    conta_especifica = item.get('conta_destinatario', 'Outras')
+                    if not conta_especifica or conta_especifica == 'None':
+                        conta_especifica = 'Outras'
+                    
+                    descricao = item.get('descricao_receita', '')
+                    if not descricao or descricao == 'None':
+                        descricao = f"{tipo.upper()} - {conta_especifica}"
+                        
+                else:  # despesa
+                    categoria = item.get('categoria_despesa', 'SEM CATEGORIA')
+                    if not categoria or categoria == 'None':
+                        categoria = 'SEM CATEGORIA'
+                    
+                    # Extrair conta específica do campo conta_destinatario
+                    conta_dest = item.get('conta_destinatario', '')
+                    print(f"  DEBUG DESPESA: ID={item.get('id')} | conta_destinatario='{conta_dest}'")
+                    
+                    if conta_dest and '_' in conta_dest:
+                        partes = conta_dest.split('_')
+                        if len(partes) >= 3:
+                            conta_especifica = partes[2]
+                        else:
+                            conta_especifica = partes[-1] if partes else 'Outras'
+                    else:
+                        conta_especifica = conta_dest if conta_dest else 'Outras'
+                    
+                    descricao = item.get('descricao_despesa', '')
+                    if not descricao or descricao == 'None':
+                        descricao = f"{tipo.upper()} - {conta_especifica}"
+                
+                print(f"  ID={item.get('id')} | Categoria={categoria} | Conta={conta_especifica} | Valor={valor} {moeda}")
+                
+                # Somar por moeda
+                if moeda_filtro == 'TODAS':
+                    total_geral += valor
+                    if moeda not in total_por_moeda:
+                        total_por_moeda[moeda] = 0
+                    total_por_moeda[moeda] += valor
+                else:
+                    total_geral += valor
+                
+                # Agrupar por categoria
+                if categoria not in categorias:
+                    categorias[categoria] = {
+                        'total': 0,
+                        'contas': {}
+                    }
+                
+                categorias[categoria]['total'] += valor
+                
+                # Agrupar por conta específica
+                if conta_especifica not in categorias[categoria]['contas']:
+                    categorias[categoria]['contas'][conta_especifica] = {
+                        'total': 0,
+                        'quantidade': 0
+                    }
+                
+                categorias[categoria]['contas'][conta_especifica]['total'] += valor
+                categorias[categoria]['contas'][conta_especifica]['quantidade'] += 1
+                
+                # Adicionar à lista de transações
+                transacoes.append({
+                    'data': data_formatada,
+                    'descricao': descricao,
+                    'categoria': categoria,
+                    'conta_especifica': conta_especifica,
+                    'valor': valor,
+                    'moeda': moeda
+                })
+            
+            # Ordenar
+            transacoes.sort(key=lambda x: x['data'], reverse=True)
+            categorias_ordenadas = dict(sorted(categorias.items(), key=lambda x: x[1]['total'], reverse=True))
+            
+            for cat in categorias_ordenadas:
+                categorias_ordenadas[cat]['contas'] = dict(sorted(
+                    categorias_ordenadas[cat]['contas'].items(),
+                    key=lambda x: x[1]['total'],
+                    reverse=True
+                ))
+            
+            print(f"📊 RESULTADO: Total geral={total_geral}, Moedas={total_por_moeda}")
+            
+            return {
+                'categorias': categorias_ordenadas,
+                'transacoes': transacoes,
+                'total_geral': total_geral,
+                'total_por_moeda': total_por_moeda,
+                'quantidade_transacoes': len(transacoes),
+                'moeda_padrao': moeda_filtro
+            }
+            
+        except Exception as e:
+            print(f"❌ Erro ao processar dados: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+        
+    def buscar_comparativo_mensal(self, ano_ref, mes_ref, ano_comp, mes_comp, tipo, moeda):
+        """Busca dados para comparativo mensal"""
+        try:
+            import calendar
+            
+            # Período 1
+            data_inicio_ref = f"{ano_ref}-{mes_ref:02d}-01"
+            ultimo_dia_ref = calendar.monthrange(ano_ref, mes_ref)[1]
+            data_fim_ref = f"{ano_ref}-{mes_ref:02d}-{ultimo_dia_ref}"
+            
+            # Período 2
+            data_inicio_comp = f"{ano_comp}-{mes_comp:02d}-01"
+            ultimo_dia_comp = calendar.monthrange(ano_comp, mes_comp)[1]
+            data_fim_comp = f"{ano_comp}-{mes_comp:02d}-{ultimo_dia_comp}"
+            
+            # Buscar dados
+            dados_ref = self._buscar_dados_periodo(data_inicio_ref, data_fim_ref, tipo, moeda)
+            dados_comp = self._buscar_dados_periodo(data_inicio_comp, data_fim_comp, tipo, moeda)
+            
+            # Processar comparativo
+            return self._processar_comparativo(dados_ref, dados_comp, tipo, moeda)
+            
+        except Exception as e:
+            print(f"❌ Erro buscar comparativo: {e}")
+            return None
+
+    def _buscar_dados_periodo(self, data_inicio, data_fim, tipo, moeda):
+        """Busca dados para um período específico"""
+        try:
+            query = self.supabase.client.table('transferencias')\
+                .select('*')\
+                .eq('tipo', tipo)\
+                .gte('data', data_inicio)\
+                .lte('data', data_fim)
+            
+            if moeda != 'TODAS':
+                query = query.eq('moeda', moeda)
+            
+            response = query.execute()
+            return response.data if response.data else []
+            
+        except Exception as e:
+            print(f"❌ Erro buscar dados período: {e}")
+            return []
+
+    def _processar_comparativo(self, dados_ref, dados_comp, tipo, moeda):
+        """Processa dados comparativos"""
+        try:
+            from collections import defaultdict
+            
+            # Estruturas
+            categorias_ref = defaultdict(lambda: {'total': 0, 'contas': defaultdict(float)})
+            categorias_comp = defaultdict(lambda: {'total': 0, 'contas': defaultdict(float)})
+            
+            # Processar dados de referência
+            for item in dados_ref:
+                valor = float(item.get('valor', 0))
+                if tipo == 'receita':
+                    categoria = item.get('categoria_receita', 'SEM CATEGORIA')
+                    conta = item.get('conta_destinatario', 'Outras')
+                else:
+                    categoria = item.get('categoria_despesa', 'SEM CATEGORIA')
+                    conta_dest = item.get('conta_destinatario', '')
+                    if conta_dest and '_' in conta_dest:
+                        partes = conta_dest.split('_')
+                        conta = partes[2] if len(partes) >= 3 else partes[-1]
+                    else:
+                        conta = 'Outras'
+                
+                categorias_ref[categoria]['total'] += valor
+                categorias_ref[categoria]['contas'][conta] += valor
+            
+            # Processar dados de comparação
+            for item in dados_comp:
+                valor = float(item.get('valor', 0))
+                if tipo == 'receita':
+                    categoria = item.get('categoria_receita', 'SEM CATEGORIA')
+                    conta = item.get('conta_destinatario', 'Outras')
+                else:
+                    categoria = item.get('categoria_despesa', 'SEM CATEGORIA')
+                    conta_dest = item.get('conta_destinatario', '')
+                    if conta_dest and '_' in conta_dest:
+                        partes = conta_dest.split('_')
+                        conta = partes[2] if len(partes) >= 3 else partes[-1]
+                    else:
+                        conta = 'Outras'
+                
+                categorias_comp[categoria]['total'] += valor
+                categorias_comp[categoria]['contas'][conta] += valor
+            
+            # Combinar categorias
+            categorias_combinadas = {}
+            todas_categorias = set(categorias_ref.keys()) | set(categorias_comp.keys())
+            
+            total_ref = sum(c['total'] for c in categorias_ref.values())
+            total_comp = sum(c['total'] for c in categorias_comp.values())
+            
+            for categoria in todas_categorias:
+                cat_ref = categorias_ref.get(categoria, {'total': 0, 'contas': {}})
+                cat_comp = categorias_comp.get(categoria, {'total': 0, 'contas': {}})
+                
+                # Combinar contas
+                contas_combinadas = {}
+                todas_contas = set(cat_ref['contas'].keys()) | set(cat_comp['contas'].keys())
+                
+                for conta in todas_contas:
+                    val_ref = cat_ref['contas'].get(conta, 0)
+                    val_comp = cat_comp['contas'].get(conta, 0)
+                    contas_combinadas[conta] = {
+                        'valor_ref': val_ref,
+                        'valor_comp': val_comp,
+                        'variacao': val_ref - val_comp,
+                        'variacao_percentual': ((val_ref - val_comp) / val_comp * 100) if val_comp > 0 else (100 if val_ref > 0 else 0)
+                    }
+                
+                categorias_combinadas[categoria] = {
+                    'total_ref': cat_ref['total'],
+                    'total_comp': cat_comp['total'],
+                    'variacao': cat_ref['total'] - cat_comp['total'],
+                    'variacao_percentual': ((cat_ref['total'] - cat_comp['total']) / cat_comp['total'] * 100) if cat_comp['total'] > 0 else (100 if cat_ref['total'] > 0 else 0),
+                    'contas': contas_combinadas
+                }
+            
+            return {
+                'categorias': categorias_combinadas,
+                'totais': {
+                    'referencia': total_ref,
+                    'comparacao': total_comp,
+                    'variacao': total_ref - total_comp,
+                    'variacao_percentual': ((total_ref - total_comp) / total_comp * 100) if total_comp > 0 else (100 if total_ref > 0 else 0)
+                },
+                'tipo': tipo,
+                'moeda': moeda
+            }
+            
+        except Exception as e:
+            print(f"❌ Erro processar comparativo: {e}")
+            return None
+
+    def buscar_evolucao_anual(self, ano, tipo, moeda):
+        """Busca evolução anual"""
+        try:
+            import calendar
+            
+            meses_data = []
+            total_ano = 0
+            mes_anterior = 0
+            
+            meses_nomes = {
+                1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril',
+                5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto',
+                9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
+            }
+            
+            for mes in range(1, 13):
+                data_inicio = f"{ano}-{mes:02d}-01"
+                ultimo_dia = calendar.monthrange(ano, mes)[1]
+                data_fim = f"{ano}-{mes:02d}-{ultimo_dia}"
+                
+                dados = self._buscar_dados_periodo(data_inicio, data_fim, tipo, moeda)
+                valor_mes = sum(float(item.get('valor', 0)) for item in dados)
+                
+                total_ano += valor_mes
+                
+                variacao = ((valor_mes - mes_anterior) / mes_anterior * 100) if mes_anterior > 0 else 0
+                
+                meses_data.append({
+                    'mes': meses_nomes[mes],
+                    'valor': valor_mes,
+                    'variacao_mensal': variacao,
+                    'acumulado': total_ano
+                })
+                
+                mes_anterior = valor_mes
+            
+            # Encontrar melhor e pior mês
+            melhor_mes = max(meses_data, key=lambda x: x['valor']) if meses_data else {'mes': '', 'valor': 0}
+            pior_mes = min(meses_data, key=lambda x: x['valor']) if meses_data else {'mes': '', 'valor': 0}
+            
+            return {
+                'meses': meses_data,
+                'totais': {
+                    'total_ano': total_ano,
+                    'media_mensal': total_ano / 12 if meses_data else 0,
+                    'melhor_mes': {'mes': melhor_mes['mes'], 'valor': melhor_mes['valor']},
+                    'pior_mes': {'mes': pior_mes['mes'], 'valor': pior_mes['valor']}
+                }
+            }
+            
+        except Exception as e:
+            print(f"❌ Erro buscar evolução anual: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
+    def _get_nome_mes(self, mes_numero):
+        """Retorna nome do mês em português"""
+        meses = {
+            1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril',
+            5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto',
+            9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
+        }
+        return meses.get(mes_numero, '')       
+
+    def buscar_relatorio_mensal_filtrado(self, ano, mes, tipo, moeda, categoria='TODAS', conta='TODAS'):
+        """Busca dados para relatório mensal com filtros de categoria e conta"""
+        try:
+            import calendar
+            from datetime import datetime
+            
+            data_inicio = f"{ano}-{mes:02d}-01"
+            ultimo_dia = calendar.monthrange(ano, mes)[1]
+            data_fim = f"{ano}-{mes:02d}-{ultimo_dia}"
+            
+            print(f"📅 Período: {data_inicio} até {data_fim}")
+            
+            # Buscar TODOS os dados (sem filtro de data na query)
+            query = self.supabase.client.table('transferencias').select('*')
+            
+            # Filtrar por moeda se necessário
+            if moeda != 'TODAS':
+                query = query.eq('moeda', moeda)
+            
+            response = query.execute()
+            todos_dados = response.data if response.data else []
+            
+            print(f"📊 TOTAL DE REGISTROS NA TABELA: {len(todos_dados)}")
+            
+            # 🔥 FILTRAR POR DATA MANUALMENTE
+            dados_por_data = []
+            for item in todos_dados:
+                data_str = item.get('data', '')
+                if data_str:
+                    try:
+                        # Comparar a data completa
+                        if data_inicio <= data_str[:10] <= data_fim:
+                            dados_por_data.append(item)
+                    except Exception as e:
+                        print(f"  Erro ao processar data {data_str}: {e}")
+            
+            print(f"📊 REGISTROS NO PERÍODO: {len(dados_por_data)}")
+            
+            # 🔥 FILTRAR POR TIPO (despesa/receita)
+            dados_por_tipo = []
+            for item in dados_por_data:
+                item_tipo = item.get('tipo', '')
+                if tipo == 'despesa':
+                    if item_tipo == 'despesa':
+                        dados_por_tipo.append(item)
+                else:  # receita
+                    if item_tipo == 'receita':
+                        dados_por_tipo.append(item)
+            
+            print(f"📊 REGISTROS DO TIPO '{tipo}': {len(dados_por_tipo)}")
+            
+            # Mostrar os primeiros IDs para debug
+            for i, item in enumerate(dados_por_tipo[:10]):
+                print(f"  {i+1}. ID: {item.get('id')} | Data: {item.get('data')} | Valor: {item.get('valor')}")
+            
+            if not dados_por_tipo:
+                return None
+            
+            # Processar dados
+            dados_processados = self.processar_dados_relatorio(dados_por_tipo, tipo, moeda)
+            
+            return dados_processados
+            
+        except Exception as e:
+            print(f"❌ Erro ao buscar relatório filtrado: {e}")
+            import traceback
+            traceback.print_exc()
+            return None

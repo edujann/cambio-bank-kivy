@@ -1782,6 +1782,21 @@ class TelaGerenciarContas(Screen):
         moeda = dados_conta['moeda']
         saldo_atual = dados_conta['saldo']
 
+        # 🔥🔥🔥 ADICIONE AQUI 🔥🔥🔥
+        print("\n" + "="*60)
+        print("🔍 VERIFICANDO SE 165340 EXISTE NO SISTEMA:")
+        if "165340" in sistema.transferencias:
+            dados_165340 = sistema.transferencias["165340"]
+            print("✅ 165340 EXISTE!")
+            print(f"   Dados completos: {dados_165340}")
+            print(f"   Tipo: {dados_165340.get('tipo')}")
+            print(f"   Remetente: {dados_165340.get('conta_remetente')}")
+            print(f"   Destinatario: {dados_165340.get('conta_destinatario')}")
+            print(f"   Status: {dados_165340.get('status')}")
+        else:
+            print("❌ 165340 NÃO EXISTE no sistema.transferencias!")
+        print("="*60)
+
         # ========== 🔥 🔥 🔥 DEBUG CRÍTICO - VERIFICAR SE O AJUSTE ESTÁ SENDO PROCESSADO ==========
         print("=== 🔍 DEBUG PROCESSAMENTO DO AJUSTE ADMIN ===")
         ajuste_encontrado = False
@@ -1877,9 +1892,45 @@ class TelaGerenciarContas(Screen):
             todas_transferencias = sistema.transferencias
             print(f"📊 Total de transferências no sistema: {len(todas_transferencias)}")
             
-            # Filtrar transferências da conta selecionada
-            contador_filtradas = 0
-            for transferencia_id, dados in todas_transferencias.items():
+        # Filtrar transferências da conta selecionada
+        contador_filtradas = 0
+        for transferencia_id, dados in todas_transferencias.items():
+            
+            # 🔍 DEBUG ESPECÍFICO PARA TRANSFERÊNCIAS IMPORTANTES
+            if transferencia_id in ["520676", "975457"]:
+                print(f"🔍 DEBUG {transferencia_id}: Data='{dados.get('data')}' | Tipo='{dados.get('tipo')}' | Status='{dados.get('status')}'")
+                print(f"🔍 DEBUG {transferencia_id}: Estrutura completa: {dados}")
+            
+            # 🔥 ADICIONE ESTE DEBUG PARA 165340 AQUI
+            if transferencia_id == "165340":
+                print(f"\n🎯🎯🎯 165340 DENTRO DO LOOP!")
+                print(f"   dados.get('conta_remetente'): {dados.get('conta_remetente')}")
+                print(f"   dados.get('conta_destinatario'): {dados.get('conta_destinatario')}")
+                print(f"   conta_num: {conta_num}")
+                print(f"   remetente == conta_num? {dados.get('conta_remetente') == conta_num}")
+                print(f"   destinatario == conta_num? {dados.get('conta_destinatario') == conta_num}")
+                
+                # 🔥 ADICIONE ESTE DEBUG DE TIPOS AQUI
+                print(f"   Tipo de conta_num: {type(conta_num)}")
+                print(f"   Tipo de conta_remetente: {type(dados.get('conta_remetente'))}")
+                print(f"   Comparação como string: {str(dados.get('conta_remetente')) == str(conta_num)}")
+            
+            # ✅ FILTRO RIGOROSO - Apenas transações que REALMENTE afetam a conta
+            # 🔥 SUBSTITUA O FILTRO ANTIGO POR ESTE:
+            conta_principal = (
+                str(dados.get('conta_remetente', '')) == str(conta_num) or 
+                str(dados.get('conta_destinatario', '')) == str(conta_num) or
+                str(dados.get('conta_origem', '')) == str(conta_num) or
+                str(dados.get('conta_destino', '')) == str(conta_num)
+            )
+            
+            # 🔥 ADICIONE ESTE DEBUG PARA VER SE PASSOU NO FILTRO
+            if transferencia_id == "165340":
+                print(f"   conta_principal: {conta_principal}")
+                if not conta_principal:
+                    print(f"❌ 165340 NÃO PASSOU NO FILTRO DE CONTA!")
+                else:
+                    print(f"✅ 165340 PASSOU NO FILTRO DE CONTA!")
                 
                 # 🔍 DEBUG ESPECÍFICO PARA TRANSFERÊNCIAS IMPORTANTES
                 if transferencia_id in ["520676", "975457"]:
@@ -2383,7 +2434,25 @@ class TelaGerenciarContas(Screen):
 
                         transacoes_todas.append(nova_transacao)
                         transacoes_ids_utilizados.add(transferencia_id)
-                
+
+                # 🔥🔥🔥 NOVO: TRANSFERÊNCIA CLIENTE → EMPRESA (CRÉDITO NO CLIENTE) 🔥🔥🔥
+                elif tipo == 'transferencia_cliente_empresa':
+                    # Cliente é remetente (enviou dinheiro para empresa) → CRÉDITO
+                    nova_transacao = {
+                        'data': dados['data'],
+                        'descricao': f"DEPÓSITO REALIZADO - {dados.get('descricao', 'Depósito')}",
+                        'credito': dados['valor'],  # ✅ CRÉDITO
+                        'debito': 0.00,
+                        'tipo': "Depósito",
+                        'moeda': dados['moeda'],
+                        'timestamp': parse_data(dados['data']),
+                        'id': transferencia_id
+                    }
+                    transacoes_todas.append(nova_transacao)
+                    transacoes_ids_utilizados.add(transferencia_id)
+                    print(f"💰 TRANSFERÊNCIA CLIENTE→EMPRESA (CRÉDITO): +{dados['valor']} {dados['moeda']}")
+                    continue  # Pular o resto
+
                 # CÂMBIO (quando cliente vende moeda)
                 elif tipo == 'cambio':
                     data_cambio = dados.get('data', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
@@ -2549,6 +2618,74 @@ class TelaGerenciarContas(Screen):
                     transacoes_todas.append(nova_transacao)
                     transacoes_ids_utilizados.add(transferencia_id)
                 
+                # 🔥🔥🔥 NOVO: TRANSFERÊNCIA EMPRESA → CLIENTE (DÉBITO NO CLIENTE) 🔥🔥🔥
+                elif tipo == 'transferencia_empresa_cliente':
+                    # Verificar se a conta do cliente é a destinatária
+                    if dados.get('conta_destinatario') == conta_num:
+                        nova_transacao = {
+                            'data': dados['data'],
+                            'descricao': f"TRANSFERÊNCIA ENVIADA - {dados.get('descricao', 'Transferência')}",
+                            'credito': 0.00,
+                            'debito': dados['valor'],  # ✅ DÉBITO no extrato do cliente
+                            'tipo': "Transferência",
+                            'moeda': dados['moeda'],
+                            'timestamp': parse_data(dados['data']),
+                            'id': transferencia_id
+                        }
+                        transacoes_todas.append(nova_transacao)
+                        transacoes_ids_utilizados.add(transferencia_id)
+                        print(f"💰 TRANSFERÊNCIA EMPRESA→CLIENTE (DÉBITO): -{dados['valor']} {dados['moeda']}")
+
+                # Se por acaso o cliente for remetente (raro)
+                elif dados.get('conta_remetente') == conta_num:
+                    nova_transacao = {
+                        'data': dados['data'],
+                        'descricao': f"DEPÓSITO RECEBIDO - {dados.get('descricao', 'Depósito')}",
+                        'credito': dados['valor'],  # ✅ CRÉDITO
+                        'debito': 0.00,
+                        'tipo': "Depósito",
+                        'moeda': dados['moeda'],
+                        'timestamp': parse_data(dados['data']),
+                        'id': transferencia_id
+                    }
+                    transacoes_todas.append(nova_transacao)
+                    transacoes_ids_utilizados.add(transferencia_id)
+                    print(f"💰 TRANSFERÊNCIA CLIENTE→EMPRESA (CRÉDITO): +{dados['valor']} {dados['moeda']}")                        
+
+                # 🔥🔥🔥 NOVO: TRANSFERÊNCIA CLIENTE → EMPRESA (CRÉDITO NO CLIENTE) 🔥🔥🔥
+                elif tipo == 'transferencia_cliente_empresa':
+                    # Cliente é remetente (enviou dinheiro para empresa) → CRÉDITO
+                    if dados.get('conta_remetente') == conta_num:
+                        nova_transacao = {
+                            'data': dados['data'],
+                            'descricao': f"DEPÓSITO REALIZADO - {dados.get('descricao', 'Depósito')}",
+                            'credito': dados['valor'],  # ✅ CRÉDITO
+                            'debito': 0.00,
+                            'tipo': "Depósito",
+                            'moeda': dados['moeda'],
+                            'timestamp': parse_data(dados['data']),
+                            'id': transferencia_id
+                        }
+                        transacoes_todas.append(nova_transacao)
+                        transacoes_ids_utilizados.add(transferencia_id)
+                        print(f"💰 TRANSFERÊNCIA CLIENTE→EMPRESA (CRÉDITO): +{dados['valor']} {dados['moeda']}")
+                    
+                    # Cliente é destinatário (recebeu da empresa - raro) → DÉBITO
+                    elif dados.get('conta_destinatario') == conta_num:
+                        nova_transacao = {
+                            'data': dados['data'],
+                            'descricao': f"TRANSFERÊNCIA ENVIADA - {dados.get('descricao', 'Transferência')}",
+                            'credito': 0.00,
+                            'debito': dados['valor'],  # ✅ DÉBITO
+                            'tipo': "Transferência",
+                            'moeda': dados['moeda'],
+                            'timestamp': parse_data(dados['data']),
+                            'id': transferencia_id
+                        }
+                        transacoes_todas.append(nova_transacao)
+                        transacoes_ids_utilizados.add(transferencia_id)
+                        print(f"💰 TRANSFERÊNCIA EMPRESA→CLIENTE (DÉBITO): -{dados['valor']} {dados['moeda']}")
+
                 # CÂMBIO (quando cliente compra moeda)
                 elif tipo == 'cambio':
                     # 🔥 MUDANÇA: Usar descrição_destino se disponível, senão criar
@@ -2870,6 +3007,13 @@ class TelaGerenciarContas(Screen):
         for transferencia_id, dados in sistema.transferencias.items():
             total_transacoes += 1
             
+            # 🔥 ADICIONE ESTE DEBUG AQUI
+            if transferencia_id == "165340":
+                print(f"\n🎯 ENCONTREI 165340!")
+                print(f"   Tipo: {dados.get('tipo')}")
+                print(f"   Remetente: {dados.get('conta_remetente')} | Destinatario: {dados.get('conta_destinatario')}")
+                print(f"   Conta selecionada: {conta_num}")
+            
             # 🔥 CORREÇÃO: Verificar se a transferência tem a estrutura básica necessária
             if not dados or not isinstance(dados, dict):
                 continue
@@ -3021,7 +3165,7 @@ class TelaGerenciarContas(Screen):
                         'id': transferencia_id
                     })
                     print(f"   💰 DESPESA ADMIN: -{valor:,.2f}")
-            
+
             # 6. DEPÓSITOS
             elif tipo_transacao == 'deposito':
                 if dados.get('conta_destinatario') == conta_num:
@@ -3034,11 +3178,10 @@ class TelaGerenciarContas(Screen):
                         'id': transferencia_id
                     })
                     print(f"   💰 DEPÓSITO ADMIN: +{valor:,.2f}")
-            
-            # 7. TRANSFERÊNCIAS INTERNAS (NOVO)
+
+            # 7. TRANSFERÊNCIAS INTERNAS
             elif tipo_transacao in ['transferencia_interna', 'transferencia_interna_cliente']:
                 if dados.get('conta_remetente') == conta_num:
-                    # Conta fez transferência → SAÍDA
                     todas_transacoes.append({
                         'data': data_transacao,
                         'credito': 0.00,
@@ -3049,7 +3192,6 @@ class TelaGerenciarContas(Screen):
                     })
                     print(f"   💰 TRANSFERÊNCIA INTERNA ADMIN SAÍDA: -{valor:,.2f}")
                 elif dados.get('conta_destinatario') == conta_num:
-                    # Conta recebeu transferência → ENTRADA
                     todas_transacoes.append({
                         'data': data_transacao,
                         'credito': valor,
@@ -3059,12 +3201,63 @@ class TelaGerenciarContas(Screen):
                         'id': transferencia_id
                     })
                     print(f"   💰 TRANSFERÊNCIA INTERNA ADMIN ENTRADA: +{valor:,.2f}")
-            
+
+            # 🔥 CORREÇÃO: TRANSFERÊNCIA EMPRESA → CLIENTE (PARA CÁLCULO DE SALDO)
+            elif tipo_transacao == 'transferencia_empresa_cliente':
+                # Cliente é destinatário → DÉBITO (perde saldo virtual)
+                if dados.get('conta_destinatario') == conta_num:
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': 0.00,
+                        'debito': valor,  # ✅ DÉBITO
+                        'timestamp': timestamp,
+                        'tipo': 'transferencia_empresa_cliente',
+                        'id': transferencia_id
+                    })
+                    print(f"   💰 TRANSFERÊNCIA EMPRESA→CLIENTE (DÉBITO): -{valor:,.2f}")
+                
+                # Cliente é remetente → CRÉDITO (ganha saldo virtual)
+                elif dados.get('conta_remetente') == conta_num:
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': valor,  # ✅ CRÉDITO
+                        'debito': 0.00,
+                        'timestamp': timestamp,
+                        'tipo': 'transferencia_empresa_cliente',
+                        'id': transferencia_id
+                    })
+                    print(f"   💰 TRANSFERÊNCIA CLIENTE→EMPRESA (CRÉDITO): +{valor:,.2f}")
+
+            # 🔥 TRANSFERÊNCIA CLIENTE → EMPRESA (PARA CÁLCULO DE SALDO)
+            elif tipo_transacao == 'transferencia_cliente_empresa':
+                # Cliente é remetente → CRÉDITO (ganha saldo virtual)
+                if dados.get('conta_remetente') == conta_num:
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': valor,  # ✅ CRÉDITO
+                        'debito': 0.00,
+                        'timestamp': timestamp,
+                        'tipo': 'transferencia_cliente_empresa',
+                        'id': transferencia_id
+                    })
+                    print(f"   💰 TRANSFERÊNCIA CLIENTE→EMPRESA (CRÉDITO): +{valor:,.2f}")
+                
+                # Cliente é destinatário → DÉBITO (perde saldo virtual)
+                elif dados.get('conta_destinatario') == conta_num:
+                    todas_transacoes.append({
+                        'data': data_transacao,
+                        'credito': 0.00,
+                        'debito': valor,  # ✅ DÉBITO
+                        'timestamp': timestamp,
+                        'tipo': 'transferencia_cliente_empresa',
+                        'id': transferencia_id
+                    })
+                    print(f"   💰 TRANSFERÊNCIA EMPRESA→CLIENTE (DÉBITO): -{valor:,.2f}")
+
             # 8. OUTROS TIPOS - LÓGICA GENÉRICA
             else:
                 print(f"   ⚠️ TIPO ADMIN NÃO MAPEADO: {tipo_transacao}")
                 if dados.get('conta_remetente') == conta_num:
-                    # SAÍDA
                     todas_transacoes.append({
                         'data': data_transacao,
                         'credito': 0.00,
@@ -3075,7 +3268,6 @@ class TelaGerenciarContas(Screen):
                     })
                     print(f"   💰 SAÍDA GENÉRICA ADMIN: -{valor:,.2f}")
                 elif dados.get('conta_destinatario') == conta_num:
-                    # ENTRADA
                     todas_transacoes.append({
                         'data': data_transacao,
                         'credito': valor,
@@ -4670,10 +4862,9 @@ class TelaGerenciarContas(Screen):
         sistema = App.get_running_app().sistema
         
         try:
-            # Construir query base
+            # 🔥 REMOVIDO O FILTRO .gt('saldo', 0) - AGORA MOSTRA TODAS AS CONTAS
             query = sistema.supabase.client.table('contas_bancarias_empresa')\
-                .select('numero, banco, moeda, saldo')\
-                .gt('saldo', 0)  # Apenas contas com saldo > 0
+                .select('numero, banco, moeda, saldo')
             
             # Aplicar filtro de moeda se existir
             if moeda_filtro:
@@ -4691,7 +4882,7 @@ class TelaGerenciarContas(Screen):
                     'saldo': float(conta['saldo'])
                 })
             
-            print(f"✅ {len(contas_formatadas)} contas bancárias carregadas (filtro: {moeda_filtro})")
+            print(f"✅ {len(contas_formatadas)} contas bancárias carregadas (filtro moeda: {moeda_filtro})")
             return contas_formatadas
             
         except Exception as e:

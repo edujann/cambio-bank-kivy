@@ -1349,3 +1349,265 @@ class PDFGenerator:
         except Exception as e:
             print(f"❌ Erro ao adicionar rodapé: {str(e)}")
             return []
+        
+    def gerar_relatorio_financeiro(self, dados, tipo, ano, mes, moeda, nome_arquivo):
+        """
+        Gera relatório financeiro de receitas/despesas
+        dados: dicionário com transacoes, categorias, totais
+        tipo: 'receita' ou 'despesa'
+        """
+        try:
+            from reportlab.lib import colors
+            from reportlab.lib.pagesizes import A4
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.units import cm
+            from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+            from datetime import datetime
+            
+            caminho_completo = os.path.join(self.caminho_downloads, nome_arquivo)
+            print(f"🔍 PDFGenerator: Gerando relatório financeiro: {caminho_completo}")
+            
+            # Configurar documento
+            doc = SimpleDocTemplate(
+                caminho_completo,
+                pagesize=A4,
+                topMargin=2*cm,
+                bottomMargin=2*cm,
+                leftMargin=2*cm,
+                rightMargin=2*cm
+            )
+            
+            # Estilos
+            styles = getSampleStyleSheet()
+            
+            titulo_style = ParagraphStyle(
+                'Titulo',
+                parent=styles['Heading1'],
+                fontSize=16,
+                alignment=TA_CENTER,
+                spaceAfter=10,
+                textColor=colors.HexColor('#1E3A8A')
+            )
+            
+            subtitulo_style = ParagraphStyle(
+                'Subtitulo',
+                parent=styles['Normal'],
+                fontSize=12,
+                alignment=TA_CENTER,
+                spaceAfter=20,
+                textColor=colors.HexColor('#4B5563')
+            )
+            
+            secao_style = ParagraphStyle(
+                'Secao',
+                parent=styles['Heading2'],
+                fontSize=14,
+                spaceAfter=10,
+                textColor=colors.HexColor('#1E3A8A')
+            )
+            
+            subsecao_style = ParagraphStyle(
+                'Subsecao',
+                parent=styles['Heading3'],
+                fontSize=11,
+                spaceAfter=8,
+                textColor=colors.HexColor('#3B82F6')
+            )
+            
+            normal_style = ParagraphStyle(
+                'Normal',
+                parent=styles['Normal'],
+                fontSize=9,
+                spaceAfter=4
+            )
+            
+            # Conteúdo
+            elementos = []
+            
+            # 1. TÍTULO
+            tipo_texto = "RECEITAS" if tipo == 'receita' else "DESPESAS"
+            titulo = f"RELATÓRIO DE {tipo_texto}"
+            elementos.append(Paragraph(titulo, titulo_style))
+            
+            # 2. PERÍODO
+            meses = {
+                1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril',
+                5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto',
+                9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
+            }
+            mes_nome = meses[mes]
+            subtitulo = f"{mes_nome}/{ano}"
+            if moeda != 'TODAS':
+                subtitulo += f" - Moeda: {moeda}"
+            elementos.append(Paragraph(subtitulo, subtitulo_style))
+            
+            # 3. CARDS DE RESUMO
+            total_geral = dados.get('total_geral', 0)
+            quantidade = dados.get('quantidade_transacoes', 0)
+            media = total_geral / quantidade if quantidade > 0 else 0
+            
+            resumo_data = [
+                ['TOTAL', 'TRANSAÇÕES', 'MÉDIA'],
+                [
+                    self._formatar_valor_relatorio(total_geral, moeda),
+                    str(quantidade),
+                    self._formatar_valor_relatorio(media, moeda)
+                ]
+            ]
+            
+            resumo_table = Table(resumo_data, colWidths=[5*cm, 5*cm, 5*cm])
+            resumo_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E3A8A')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F3F4F6')),
+                ('FONTSIZE', (0, 1), (-1, -1), 10),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#D1D5DB')),
+            ]))
+            elementos.append(resumo_table)
+            elementos.append(Spacer(1, 0.5*cm))
+            
+            # 4. BREAKDOWN POR MOEDA (se TODAS)
+            if moeda == 'TODAS' and dados.get('total_por_moeda'):
+                elementos.append(Paragraph("DETALHAMENTO POR MOEDA", secao_style))
+                elementos.append(Spacer(1, 0.3*cm))
+                
+                moedas_data = [['MOEDA', 'VALOR TOTAL', 'PERCENTUAL']]
+                for moeda_nome, valor in dados['total_por_moeda'].items():
+                    percentual = (valor / total_geral * 100) if total_geral > 0 else 0
+                    moedas_data.append([
+                        moeda_nome,
+                        self._formatar_valor_relatorio(valor, moeda_nome),
+                        f"{percentual:.1f}%"
+                    ])
+                
+                moedas_table = Table(moedas_data, colWidths=[4*cm, 5*cm, 4*cm])
+                moedas_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3B82F6')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F9FAFB')),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E5E7EB')),
+                ]))
+                elementos.append(moedas_table)
+                elementos.append(Spacer(1, 0.5*cm))
+            
+            # 5. DETALHAMENTO POR CATEGORIA
+            elementos.append(Paragraph("DETALHAMENTO POR CATEGORIA", secao_style))
+            elementos.append(Spacer(1, 0.3*cm))
+            
+            categorias = dados.get('categorias', {})
+            for categoria, cat_dados in categorias.items():
+                cat_total = cat_dados.get('total', 0)
+                cat_text = f"<b>{categoria}</b> - Total: {self._formatar_valor_relatorio(cat_total, moeda)}"
+                elementos.append(Paragraph(cat_text, subsecao_style))
+                
+                # Contas da categoria
+                contas_data = [['CONTA ESPECÍFICA', 'VALOR', 'QUANTIDADE']]
+                for conta, conta_dados in cat_dados['contas'].items():
+                    contas_data.append([
+                        conta,
+                        self._formatar_valor_relatorio(conta_dados['total'], moeda),
+                        str(conta_dados['quantidade'])
+                    ])
+                
+                if len(contas_data) > 1:
+                    contas_table = Table(contas_data, colWidths=[8*cm, 4*cm, 3*cm])
+                    contas_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#6B7280')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (-1, 0), 8),
+                        ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#FFFFFF')),
+                        ('FONTSIZE', (0, 1), (-1, -1), 8),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E5E7EB')),
+                    ]))
+                    elementos.append(contas_table)
+                    elementos.append(Spacer(1, 0.2*cm))
+            
+            elementos.append(PageBreak())
+            
+            # 6. LISTA DE TRANSAÇÕES
+            elementos.append(Paragraph("LISTA DE TRANSAÇÕES", secao_style))
+            elementos.append(Spacer(1, 0.3*cm))
+            
+            transacoes_data = [['DATA', 'DESCRIÇÃO', 'CATEGORIA', 'VALOR']]
+            
+            for trans in dados.get('transacoes', []):
+                data = trans.get('data', '')[:10]
+                descricao = trans.get('descricao', '')[:60]
+                categoria = trans.get('categoria', '')[:35]
+                valor = self._formatar_valor_relatorio(trans.get('valor', 0), trans.get('moeda', 'USD'))
+                
+                transacoes_data.append([data, descricao, categoria, valor])
+            
+            # Ajustar larguras
+            transacoes_table = Table(transacoes_data, colWidths=[2.5*cm, 7.5*cm, 4*cm, 3*cm])
+            transacoes_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E3A8A')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('ALIGN', (3, 0), (3, -1), 'RIGHT'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 8),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F9FAFB')),
+                ('FONTSIZE', (0, 1), (-1, -1), 7),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E5E7EB')),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ]))
+            
+            elementos.append(transacoes_table)
+            
+            # 7. RODAPÉ COM TOTAL
+            elementos.append(Spacer(1, 0.5*cm))
+            total_text = f"<b>TOTAL GERAL: {self._formatar_valor_relatorio(total_geral, moeda if moeda != 'TODAS' else 'USD')}</b>"
+            total_style = ParagraphStyle(
+                'Total',
+                parent=normal_style,
+                fontSize=10,
+                alignment=TA_RIGHT,
+                textColor=colors.HexColor('#1E3A8A')
+            )
+            elementos.append(Paragraph(total_text, total_style))
+            
+            # 8. DATA DE GERAÇÃO
+            elementos.append(Spacer(1, 0.5*cm))
+            data_geracao = datetime.now().strftime('%d/%m/%Y %H:%M')
+            rodape_style = ParagraphStyle(
+                'Rodape',
+                parent=normal_style,
+                fontSize=8,
+                alignment=TA_CENTER,
+                textColor=colors.HexColor('#9CA3AF')
+            )
+            elementos.append(Paragraph(f"Documento gerado em {data_geracao}", rodape_style))
+            
+            # Gerar PDF
+            doc.build(elementos)
+            
+            print(f"✅ PDF gerado com sucesso: {caminho_completo}")
+            return caminho_completo
+            
+        except Exception as e:
+            print(f"❌ Erro ao gerar relatório PDF: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
+    def _formatar_valor_relatorio(self, valor, moeda):
+        """Formata valor para exibição no relatório"""
+        if moeda == 'USD':
+            return f"${valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+        elif moeda == 'EUR':
+            return f"€{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+        elif moeda == 'GBP':
+            return f"£{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+        elif moeda == 'BRL':
+            return f"R$ {valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+        else:
+            return f"{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')        

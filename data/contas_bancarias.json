@@ -1,34 +1,4 @@
 {
-    "JACKS_USD_001": {
-        "numero": "JACKS_USD_001",
-        "banco": "JACKS BANK",
-        "agencia": "0001",
-        "moeda": "USD",
-        "saldo": 7545.37,
-        "tipo": "empresa",
-        "data_criacao": "2025-11-27T14:11:07",
-        "saldo_inicial": 0.0
-    },
-    "COFRE ESCRITÓRIO - GBP": {
-        "numero": "COFRE ESCRITÓRIO - GBP",
-        "banco": "ESCRITÓRIO CENTRAL",
-        "agencia": "0001",
-        "moeda": "GBP",
-        "saldo": 5713.74,
-        "tipo": "empresa",
-        "data_criacao": "2026-02-18T16:18:07",
-        "saldo_inicial": 0.0
-    },
-    "PELUSO BANK_BRL_001": {
-        "numero": "PELUSO BANK_BRL_001",
-        "banco": "PELUSO BANK",
-        "agencia": "0001",
-        "moeda": "BRL",
-        "saldo": 0.0,
-        "tipo": "empresa",
-        "data_criacao": "2026-01-23T17:17:03",
-        "saldo_inicial": 0.0
-    },
     "BANK_USD_001": {
         "numero": "BANK_USD_001",
         "banco": "Banco Principal",
@@ -39,6 +9,16 @@
         "data_criacao": null,
         "saldo_inicial": 0.0
     },
+    "JACKS_USD_001": {
+        "numero": "JACKS_USD_001",
+        "banco": "JACKS BANK",
+        "agencia": "0001",
+        "moeda": "USD",
+        "saldo": 4230.6,
+        "tipo": "empresa",
+        "data_criacao": "2025-11-27T14:11:07",
+        "saldo_inicial": 0.0
+    },
     "BANK_USDT_001, 148473287": {
         "numero": "BANK_USDT_001, 148473287",
         "banco": "BANK OF AMERICA",
@@ -47,6 +27,26 @@
         "saldo": 720000.0,
         "tipo": "empresa",
         "data_criacao": null,
+        "saldo_inicial": 0.0
+    },
+    "JACKS_GBP_001": {
+        "numero": "JACKS_GBP_001",
+        "banco": "JACKS BANK",
+        "agencia": "0001",
+        "moeda": "GBP",
+        "saldo": 0.0,
+        "tipo": "empresa",
+        "data_criacao": "2026-03-24T13:50:49",
+        "saldo_inicial": 0.0
+    },
+    "JACKS_EUR_001": {
+        "numero": "JACKS_EUR_001",
+        "banco": "JACKS BANK",
+        "agencia": "0001",
+        "moeda": "EUR",
+        "saldo": 22801.43,
+        "tipo": "empresa",
+        "data_criacao": "2025-12-05T10:48:42",
         "saldo_inicial": 0.0
     },
     "BANK_GBP_001": {
@@ -64,29 +64,29 @@
         "banco": "GABLES BANK",
         "agencia": "0001",
         "moeda": "BRL",
-        "saldo": 3104236.42,
+        "saldo": 3141656.42,
         "tipo": "empresa",
         "data_criacao": "2026-01-28T15:58:04",
         "saldo_inicial": 0.0
     },
-    "JACKS_EUR_001": {
-        "numero": "JACKS_EUR_001",
-        "banco": "JACKS BANK",
+    "PELUSO BANK_BRL_001": {
+        "numero": "PELUSO BANK_BRL_001",
+        "banco": "PELUSO BANK",
         "agencia": "0001",
-        "moeda": "EUR",
+        "moeda": "BRL",
         "saldo": 0.0,
         "tipo": "empresa",
-        "data_criacao": "2025-12-05T10:48:42",
+        "data_criacao": "2026-01-23T17:17:03",
         "saldo_inicial": 0.0
     },
-    "JACKS_GBP_001": {
-        "numero": "JACKS_GBP_001",
-        "banco": "JACKS BANK",
+    "COFRE ESCRITÓRIO - GBP": {
+        "numero": "COFRE ESCRITÓRIO - GBP",
+        "banco": "ESCRITÓRIO CENTRAL",
         "agencia": "0001",
         "moeda": "GBP",
-        "saldo": 20000.0,
+        "saldo": 10929.43,
         "tipo": "empresa",
-        "data_criacao": "2026-03-24T13:50:49",
+        "data_criacao": "2026-02-18T16:18:07",
         "saldo_inicial": 0.0
     },
     "BANK_BRL_001": {

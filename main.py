@@ -96,6 +96,7 @@ from screens.cambio_moedas import TelaCambioMoedas
 from screens.cotacoes_admin import TelaCotacoesAdmin  
 from temas import GerenciadorTemas
 from screens.verificacao_email import TelaVerificacaoEmail
+from screens.tela_relatorios_completa import TelaRelatoriosCompleta
 
 class CambioBankApp(App):
     def __init__(self, **kwargs):
@@ -170,7 +171,8 @@ class CambioBankApp(App):
         sm.add_widget(TelaCambioMoedas(name='cambio_moedas'))
         sm.add_widget(TelaCotacoesAdmin(name='cotacoes_admin'))
         sm.add_widget(TelaVerificacaoEmail(name='verificacao_email'))
-        
+        sm.add_widget(TelaRelatoriosCompleta(name='relatorios'))
+
         print(f" {len(sm.screens)} telas registradas")
 
         # 🔥 FORÇAR CARREGAMENTO COMPLETO ANTES DE MOSTRAR

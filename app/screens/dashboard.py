@@ -595,7 +595,7 @@ class TelaDashboard(Screen):
                 
                 botoes = [
                     ("Cadastrar Cliente", self.cadastrar_cliente),
-                    ("Listar Clientes", self.listar_clientes),  # 👀 TEM TYPO AQUI - MAS NÃO MEXO!
+                    ("Relatórios", self.abrir_relatorios),  # 🔥 NOVO BOTÃO
                     ("Gerenciar Contas", self.gerenciar_contas),
                     ("Gerenciar Transferências", self.gerenciar_transferencias),
                     ("Aprovar Operações", self.aprovar_operacoes, num_pendentes, num_processando),  # 🔥 CONTADORES - NÃO MEXER
@@ -854,7 +854,7 @@ class TelaDashboard(Screen):
             if usuario['tipo'] == 'admin':
                 botoes = [
                     ("Cadastrar Cliente", self.cadastrar_cliente),
-                    ("Listar Clientes", self.listar_clientes),
+                    ("Relatórios", self.abrir_relatorios),  # 🔥 NOVO BOTÃO
                     ("Gerenciar Contas", self.gerenciar_contas),
                     ("Gerenciar Transferências", self.gerenciar_transferencias),
                     ("Aprovar Operações", self.aprovar_operacoes),
@@ -924,10 +924,15 @@ class TelaDashboard(Screen):
         if sistema.tipo_usuario_logado != 'admin':
             self.mostrar_erro("Esta função é apenas para administradores!")
             return
-        
+
         print("📋 Abrindo listar clientes...")
         self.manager.current = 'listar_clientes'  # 🔥 NAVEGA PARA A TELA
     
+    def abrir_relatorios(self, instance=None):
+        """Abre a tela de relatórios"""
+        print("📊 Abrindo relatórios...")
+        self.manager.current = 'relatorios'
+
     def gerenciar_contas(self):
         """Abre a tela de gerenciar contas"""
         sistema = App.get_running_app().sistema
