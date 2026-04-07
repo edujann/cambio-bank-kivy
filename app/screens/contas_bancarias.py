@@ -2154,14 +2154,13 @@ class TelaContasBancarias(Screen):
             print(f"❌ Erro em atualizar_calculo_conversao_cambio: {e}")
 
     def obter_moedas_contas_cambio(self):
-        """Obtém as moedas das contas origem e destino selecionadas - VERSÃO CORRIGIDA"""
+        """Obtém as moedas das contas origem e destino selecionadas - VERSÃO DEFINITIVAMENTE CORRIGIDA"""
         sistema = App.get_running_app().sistema
         
         moeda_origem = None
         moeda_destino = None
         
         try:
-            # Obter textos dos spinners
             texto_origem = None
             texto_destino = None
             
@@ -2175,23 +2174,23 @@ class TelaContasBancarias(Screen):
                 'Selecione' not in self.ids.combo_conta_destino_cambio.text):
                 texto_destino = self.ids.combo_conta_destino_cambio.text
             
-            # 🔥🔥🔥 CORREÇÃO: Encontrar a conta pelo texto completo
+            # 🔥 CORREÇÃO: Usar o mesmo método de extração de ID
             if texto_origem:
-                for chave in sistema.contas_bancarias_empresa.keys():
-                    if texto_origem.startswith(chave) or chave in texto_origem:
-                        moeda_origem = sistema.contas_bancarias_empresa[chave]['moeda']
-                        print(f"✅ Moeda origem encontrada: {moeda_origem} para conta '{chave}'")
-                        break
+                conta_id = self._obter_id_conta_do_spinner(texto_origem)
+                if conta_id and conta_id in sistema.contas_bancarias_empresa:
+                    moeda_origem = sistema.contas_bancarias_empresa[conta_id]['moeda']
+                    print(f"✅ Moeda origem encontrada: {moeda_origem} para conta '{conta_id}'")
             
             if texto_destino:
-                for chave in sistema.contas_bancarias_empresa.keys():
-                    if texto_destino.startswith(chave) or chave in texto_destino:
-                        moeda_destino = sistema.contas_bancarias_empresa[chave]['moeda']
-                        print(f"✅ Moeda destino encontrada: {moeda_destino} para conta '{chave}'")
-                        break
+                conta_id = self._obter_id_conta_do_spinner(texto_destino)
+                if conta_id and conta_id in sistema.contas_bancarias_empresa:
+                    moeda_destino = sistema.contas_bancarias_empresa[conta_id]['moeda']
+                    print(f"✅ Moeda destino encontrada: {moeda_destino} para conta '{conta_id}'")
             
         except Exception as e:
             print(f"❌ Erro ao obter moedas: {e}")
+            import traceback
+            traceback.print_exc()
         
         return moeda_origem, moeda_destino
 
