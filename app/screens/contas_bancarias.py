@@ -1083,54 +1083,49 @@ class TelaContasBancarias(Screen):
                 self.ids.btn_debito_ajuste.background_color = (0.96, 0.36, 0.36, 1)    # Vermelho
 
     def carregar_contas_para_ajuste(self):
-        """Carrega as contas bancárias nos combos das novas abas - COM DADOS ATUALIZADOS"""
+        """Carrega as contas bancárias nos combos das novas abas - VERSÃO CORRIGIDA COM ID"""
         sistema = App.get_running_app().sistema
         
         if not hasattr(self, 'ids'):
             return
         
-        # 🔥 DEBUG: Verificar contas disponíveis
-        print(f"📊 Carregando {len(sistema.contas_bancarias_empresa)} contas para os spinners:")
-        for chave in sistema.contas_bancarias_empresa.keys():
-            print(f"   - '{chave}' - Saldo: {sistema.contas_bancarias_empresa[chave]['saldo']:,.2f}")
+        # Criar dicionário de mapeamento
+        self.mapeamento_texto_para_id = {}
+        opcoes_contas = []
+        
+        for conta_id, dados_conta in sistema.contas_bancarias_empresa.items():
+            # conta_id é a string única do Supabase (ex: "PELUSO BANK_BRL_001")
+            texto_opcao = f"{conta_id} | {dados_conta['banco']} - {dados_conta['moeda']} - Saldo: {dados_conta['saldo']:,.2f}"
+            opcoes_contas.append(texto_opcao)
+            self.mapeamento_texto_para_id[texto_opcao] = conta_id
         
         # Carregar contas para ajuste de saldo
-        opcoes_contas = []
-        for conta_num, dados_conta in sistema.contas_bancarias_empresa.items():
-            # 🔥 GARANTIR que o número da conta seja a PRIMEIRA parte do texto
-            opcoes_contas.append(f"{conta_num} - {dados_conta['banco']} - {dados_conta['moeda']} - Saldo: {dados_conta['saldo']:,.2f}")
-        
         if 'combo_conta_ajuste' in self.ids:
-            # Salvar a seleção atual antes de atualizar
             selecao_atual = self.ids.combo_conta_ajuste.text
-            
             self.ids.combo_conta_ajuste.values = opcoes_contas
             
-            # Tentar restaurar a seleção anterior
             if selecao_atual and selecao_atual in opcoes_contas:
                 self.ids.combo_conta_ajuste.text = selecao_atual
             elif opcoes_contas:
                 self.ids.combo_conta_ajuste.text = opcoes_contas[0]
-                
+            
             print(f"✅ combo_conta_ajuste carregado com {len(opcoes_contas)} opções")
         
         # Carregar contas para câmbio (origem)
         if 'combo_conta_origem_cambio' in self.ids:
             selecao_atual = self.ids.combo_conta_origem_cambio.text
-            
             self.ids.combo_conta_origem_cambio.values = opcoes_contas
             
             if selecao_atual and selecao_atual in opcoes_contas:
                 self.ids.combo_conta_origem_cambio.text = selecao_atual
             elif opcoes_contas:
                 self.ids.combo_conta_origem_cambio.text = opcoes_contas[0]
-                
+            
             print(f"✅ combo_conta_origem_cambio carregado")
         
         # Carregar contas para câmbio (destino)
         if 'combo_conta_destino_cambio' in self.ids:
             selecao_atual = self.ids.combo_conta_destino_cambio.text
-            
             self.ids.combo_conta_destino_cambio.values = opcoes_contas
             
             if selecao_atual and selecao_atual in opcoes_contas:
@@ -1139,11 +1134,17 @@ class TelaContasBancarias(Screen):
                 self.ids.combo_conta_destino_cambio.text = opcoes_contas[1]
             elif opcoes_contas:
                 self.ids.combo_conta_destino_cambio.text = opcoes_contas[0]
-                
+            
             print(f"✅ combo_conta_destino_cambio carregado")
 
+    def _obter_id_conta_do_spinner(self, texto_spinner):
+        """Extrai o ID real da conta do texto do spinner"""
+        if not texto_spinner or '|' not in texto_spinner:
+            return None
+        return texto_spinner.split('|')[0].strip()
+
     def executar_ajuste_saldo_empresa(self):
-        """Executa ajuste de saldo em conta bancária da empresa - VERSÃO QUE PERMITE SALDO NEGATIVO"""
+        """Executa ajuste de saldo em conta bancária da empresa - VERSÃO CORRIGIDA"""
         sistema = App.get_running_app().sistema
         
         print("💰 Executando ajuste de saldo empresa...")
@@ -1158,21 +1159,19 @@ class TelaContasBancarias(Screen):
             return
         
         try:
-            # Obter texto do spinner
+            # 🔥 EXTRAIR ID EXATO DO SPINNER
             texto_conta = self.ids.combo_conta_ajuste.text
-            print(f"🔍 DEBUG - Texto conta: '{texto_conta}'")
-            
-            # Encontrar a conta pelo texto completo
-            conta_num = None
-            for chave in sistema.contas_bancarias_empresa.keys():
-                if texto_conta.startswith(chave) or chave in texto_conta:
-                    conta_num = chave
-                    print(f"✅ Conta encontrada: '{conta_num}'")
-                    break
+            conta_num = self._obter_id_conta_do_spinner(texto_conta)
             
             if not conta_num:
                 self.mostrar_erro(f"Conta não encontrada! Texto: '{texto_conta}'")
-                print(f"❌ Chaves disponíveis: {list(sistema.contas_bancarias_empresa.keys())}")
+                print(f"❌ Texto recebido: '{texto_conta}'")
+                return
+            
+            # Verificar se a conta existe (comparação EXATA)
+            if conta_num not in sistema.contas_bancarias_empresa:
+                self.mostrar_erro(f"Conta '{conta_num}' não encontrada no sistema!")
+                print(f"❌ Contas disponíveis: {list(sistema.contas_bancarias_empresa.keys())}")
                 return
             
             valor_str = self.ids.entry_valor_ajuste.text.strip()
@@ -1186,28 +1185,18 @@ class TelaContasBancarias(Screen):
                 self.mostrar_erro("Valor deve ser positivo!")
                 return
             
-            # 🔥 LÓGICA INVERTIDA PARA CONTAS BANCÁRIAS DA EMPRESA
-            # Crédito (verde) = AUMENTA saldo (gera débito)
-            # Débito (vermelho) = DIMINUI saldo (gera crédito)
-            
+            # LÓGICA INVERTIDA PARA CONTAS BANCÁRIAS DA EMPRESA
             saldo_atual = sistema.contas_bancarias_empresa[conta_num]['saldo']
             moeda = sistema.contas_bancarias_empresa[conta_num]['moeda']
             
             if operacao == 'credito':
-                # AUMENTAR saldo (Crédito na interface = Débito na conta)
                 saldo_futuro = saldo_atual + valor
                 tipo_operacao = "CRÉDITO"
                 tipo_registro = "DÉBITO"
             else:
-                # DIMINUIR saldo (Débito na interface = Crédito na conta)
                 saldo_futuro = saldo_atual - valor
                 tipo_operacao = "DÉBITO"
                 tipo_registro = "CRÉDITO"
-            
-            # 🔥 NOVA LÓGICA: Verificar se vai ficar negativo e preparar aviso
-            mensagem_aviso = ""
-            if saldo_futuro < 0:
-                mensagem_aviso = f"\n⚠️ ATENÇÃO: Esta operação deixará a conta com saldo NEGATIVO!\nSaldo futuro: {saldo_futuro:,.2f} {moeda}\n"
             
             # Montar mensagem de confirmação
             mensagem_confirmacao = (
@@ -1220,11 +1209,10 @@ class TelaContasBancarias(Screen):
                 f"Tipo registro: {tipo_registro}"
             )
             
-            # Adicionar aviso se necessário
-            if mensagem_aviso:
-                mensagem_confirmacao = mensagem_aviso + mensagem_confirmacao
+            # Adicionar aviso se ficar negativo
+            if saldo_futuro < 0:
+                mensagem_confirmacao = f"⚠️ ATENÇÃO: Esta operação deixará a conta com saldo NEGATIVO!\nSaldo futuro: {saldo_futuro:,.2f} {moeda}\n\n" + mensagem_confirmacao
             
-            # Mostrar confirmação (com aviso se for negativo)
             self.mostrar_confirmacao(
                 "Confirmar Ajuste de Saldo",
                 mensagem_confirmacao,
@@ -1647,42 +1635,18 @@ class TelaContasBancarias(Screen):
             return
         
         try:
-            # Obter dados dos spinners
+            # 🔥 EXTRAIR IDs EXATOS DOS SPINNERS
             texto_origem = self.ids.combo_conta_origem_cambio.text
             texto_destino = self.ids.combo_conta_destino_cambio.text
             
-            print(f"🔍 DEBUG - Texto origem: '{texto_origem}'")
-            print(f"🔍 DEBUG - Texto destino: '{texto_destino}'")
+            conta_origem = self._obter_id_conta_do_spinner(texto_origem)
+            conta_destino = self._obter_id_conta_do_spinner(texto_destino)
             
-            # 🔥🔥🔥 CORREÇÃO DEFINITIVA: Encontrar a conta pelo texto completo
-            conta_origem = None
-            conta_destino = None
-            
-            # Percorrer todas as contas e encontrar qual corresponde ao texto selecionado
-            for chave in sistema.contas_bancarias_empresa.keys():
-                if texto_origem.startswith(chave) or chave in texto_origem:
-                    conta_origem = chave
-                    print(f"✅ Conta origem encontrada: '{conta_origem}'")
-                    break
-            
-            for chave in sistema.contas_bancarias_empresa.keys():
-                if texto_destino.startswith(chave) or chave in texto_destino:
-                    conta_destino = chave
-                    print(f"✅ Conta destino encontrada: '{conta_destino}'")
-                    break
-            
-            if not conta_origem:
-                self.mostrar_erro(f"Conta origem não encontrada! Texto: '{texto_origem}'")
-                print(f"❌ Chaves disponíveis: {list(sistema.contas_bancarias_empresa.keys())}")
+            if not conta_origem or not conta_destino:
+                self.mostrar_erro(f"Erro ao identificar contas!\nOrigem: '{texto_origem}'\nDestino: '{texto_destino}'")
                 return
             
-            if not conta_destino:
-                self.mostrar_erro(f"Conta destino não encontrada! Texto: '{texto_destino}'")
-                print(f"❌ Chaves disponíveis: {list(sistema.contas_bancarias_empresa.keys())}")
-                return
-            
-            print(f"🔍 Conta origem final: '{conta_origem}'")
-            print(f"🔍 Conta destino final: '{conta_destino}'")
+            print(f"✅ IDs extraídos: Origem='{conta_origem}', Destino='{conta_destino}'")
             
             # Validar contas diferentes
             if conta_origem == conta_destino:
