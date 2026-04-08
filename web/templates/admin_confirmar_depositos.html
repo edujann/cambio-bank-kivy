@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏦 Cambio Bank - Confirmar Depósitos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --cor-fundo: #0a0e15;
+            --cor-card: #0d1117;
+            --cor-borda: #1e232e;
+            --cor-texto: #e0e0e0;
+            --cor-texto-secundario: #8b949e;
+            --cor-primaria: #1a5fb4;
+            --cor-admin: #1a5fb4;
+            --cor-sucesso: #2ec27e;
+            --cor-alerta: #f39c12;
+            --cor-perigo: #e01b24;
+            --borda-radius: 12px;
+            --borda-radius-pequeno: 8px;
+        }
+
+        body {
+            background: var(--cor-fundo);
+            color: var(--cor-texto);
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* HEADER */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--cor-borda);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .logo i {
+            color: var(--cor-admin);
+            font-size: 28px;
+        }
+
+        .logo-text {
+            background: linear-gradient(90deg, var(--cor-admin), #2d8fff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .badge-admin {
+            background: var(--cor-admin);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .btn-voltar {
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            padding: 10px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-voltar:hover {
+            border-color: var(--cor-admin);
+            color: var(--cor-admin);
+            transform: translateY(-2px);
+        }
+
+        /* FORMULÁRIO */
+        .form-container {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 30px;
+        }
+
+        .form-row {
+            margin-bottom: 25px;
+        }
+
+        .form-row label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--cor-texto-secundario);
+        }
+
+        .form-row label i {
+            margin-right: 8px;
+            color: var(--cor-admin);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            color: var(--cor-texto);
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--cor-admin);
+            box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2);
+        }
+
+        select.form-control {
+            cursor: pointer;
+        }
+
+        /* Campo de valor */
+        .valor-input {
+            font-size: 18px;
+            font-weight: bold;
+            text-align: right;
+        }
+
+        /* Banco de origem */
+        .banco-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .outro-banco-input {
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .outro-banco-input.hidden {
+            display: none;
+        }
+
+        /* Botões */
+        .btn-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn-submit {
+            flex: 1;
+            background: var(--cor-sucesso);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: var(--borda-radius-pequeno);
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-submit:hover {
+            background: #239b56;
+            transform: translateY(-2px);
+            box-shadow: var(--sombra-suave);
+        }
+
+        .btn-clear {
+            flex: 1;
+            background: var(--cor-alerta);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: var(--borda-radius-pequeno);
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-clear:hover {
+            background: #e67e22;
+            transform: translateY(-2px);
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--cor-texto-secundario);
+        }
+
+        .loading i {
+            font-size: 24px;
+            margin-bottom: 10px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--cor-borda);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            color: var(--cor-admin);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--cor-texto-secundario);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .modal-close:hover {
+            color: var(--cor-perigo);
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid var(--cor-borda);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn-modal {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+        }
+
+        .btn-modal-primary {
+            background: var(--cor-admin);
+            color: white;
+        }
+
+        .btn-modal-secondary {
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+        }
+
+        /* Info card */
+        .info-card {
+            background: rgba(26, 95, 180, 0.1);
+            border: 1px solid var(--cor-admin);
+            border-radius: var(--borda-radius-pequeno);
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .info-card i {
+            color: var(--cor-admin);
+            margin-right: 8px;
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .btn-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fas fa-university"></i>
+                <span class="logo-text">CAMBIO BANK</span>
+                <span class="badge-admin">ADMIN</span>
+            </div>
+            
+            <h1 class="page-title">CONFIRMAR DEPÓSITOS</h1>
+            
+            <button class="btn-voltar" onclick="window.location.href='/admin/dashboard'">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </button>
+        </header>
+
+        <!-- FORMULÁRIO -->
+        <div class="form-container">
+            <div class="info-card">
+                <i class="fas fa-info-circle"></i> Preencha os dados do depósito para creditar na conta do cliente
+            </div>
+
+            <!-- Cliente -->
+            <div class="form-row">
+                <label><i class="fas fa-user"></i> Cliente</label>
+                <select id="clienteSelect" class="form-control">
+                    <option value="">Selecione o cliente...</option>
+                </select>
+            </div>
+
+            <!-- Conta do Cliente -->
+            <div class="form-row">
+                <label><i class="fas fa-wallet"></i> Conta do Cliente</label>
+                <select id="contaClienteSelect" class="form-control" disabled>
+                    <option value="">Selecione primeiro um cliente...</option>
+                </select>
+            </div>
+
+            <!-- Conta da Empresa -->
+            <div class="form-row">
+                <label><i class="fas fa-building"></i> Conta da Empresa (Crédito)</label>
+                <select id="contaEmpresaSelect" class="form-control" disabled>
+                    <option value="">Selecione primeiro uma conta do cliente...</option>
+                </select>
+            </div>
+
+            <!-- Banco de Origem -->
+            <div class="form-row">
+                <label><i class="fas fa-university"></i> Banco de Origem</label>
+                <div class="banco-group">
+                    <select id="bancoOrigemSelect" class="form-control">
+                        <option value="Outro Banco">Outro Banco</option>
+                        <option value="BANCO DO BRASIL">BANCO DO BRASIL</option>
+                        <option value="ITAÚ">ITAÚ</option>
+                        <option value="HSBC">HSBC</option>
+                        <option value="SANTANDER">SANTANDER</option>
+                        <option value="BRADESCO">BRADESCO</option>
+                        <option value="CAIXA ECONÔMICA FEDERAL">CAIXA ECONÔMICA FEDERAL</option>
+                        <option value="SICREDI">SICREDI</option>
+                        <option value="SICOOB">SICOOB</option>
+                        <option value="C6 BANK">C6 BANK</option>
+                        <option value="NUBANK">NUBANK</option>
+                        <option value="PAGBANK">PAGBANK</option>
+                        <option value="BANCO INTER">BANCO INTER</option>
+                    </select>
+                    <input type="text" id="outroBancoInput" class="form-control outro-banco-input hidden" placeholder="Digite o nome do banco...">
+                </div>
+            </div>
+
+            <!-- Remetente -->
+            <div class="form-row">
+                <label><i class="fas fa-user-check"></i> Nome do Remetente</label>
+                <input type="text" id="remetenteInput" class="form-control" placeholder="Nome completo do remetente">
+            </div>
+
+            <!-- Valor -->
+            <div class="form-row">
+                <label><i class="fas fa-dollar-sign"></i> Valor do Depósito</label>
+                <input type="text" id="valorInput" class="form-control valor-input" placeholder="0,00" value="0,00">
+            </div>
+
+            <!-- Botões -->
+            <div class="btn-actions">
+                <button class="btn-submit" onclick="confirmarDeposito()">
+                    <i class="fas fa-check-circle"></i> Confirmar Depósito
+                </button>
+                <button class="btn-clear" onclick="limparCampos()">
+                    <i class="fas fa-eraser"></i> Limpar Campos
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL SUCESSO -->
+    <div id="modalSucesso" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-check-circle"></i> Depósito Confirmado</h3>
+                <button class="modal-close" onclick="fecharModalSucesso()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalSucessoBody">
+                <!-- Conteúdo dinâmico -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal btn-modal-primary" onclick="fecharModalSucesso()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ERRO -->
+    <div id="modalErro" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-times-circle"></i> Erro</h3>
+                <button class="modal-close" onclick="fecharModalErro()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalErroBody">
+                <!-- Conteúdo dinâmico -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal btn-modal-primary" onclick="fecharModalErro()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CONFIRMAÇÃO -->
+    <div id="modalConfirmacao" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-question-circle"></i> Confirmar Depósito</h3>
+                <button class="modal-close" onclick="fecharModalConfirmacao()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalConfirmacaoBody">
+                <!-- Conteúdo dinâmico -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal btn-modal-secondary" onclick="fecharModalConfirmacao()">Cancelar</button>
+                <button class="btn-modal btn-modal-primary" onclick="executarDeposito()">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // VARIÁVEIS GLOBAIS
+        // ============================================
+        let clientes = [];
+        let contasEmpresa = [];
+        let dadosConfirmacao = null;
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Tela Confirmar Depósitos carregada');
+            carregarClientes();
+            carregarContasEmpresa();
+            
+            // Configurar evento do campo valor
+            const valorInput = document.getElementById('valorInput');
+            valorInput.addEventListener('input', formatarValor);
+            valorInput.addEventListener('focus', function() { this.select(); });
+            
+            // Configurar evento do banco de origem
+            const bancoSelect = document.getElementById('bancoOrigemSelect');
+            bancoSelect.addEventListener('change', onBancoOrigemChange);
+            
+            // Configurar eventos de navegação por teclado
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    proximoCampo();
+                } else if (e.key === 'Enter') {
+                    const activeElement = document.activeElement;
+                    if (activeElement && activeElement.id === 'valorInput') {
+                        confirmarDeposito();
+                    } else {
+                        proximoCampo();
+                    }
+                }
+            });
+        });
+
+        // ============================================
+        // CARREGAR DADOS
+        // ============================================
+        async function carregarClientes() {
+            try {
+                const response = await fetch('/api/admin/clientes');
+                const data = await response.json();
+                
+                if (data.success) {
+                    clientes = data.clientes;
+                    const select = document.getElementById('clienteSelect');
+                    select.innerHTML = '<option value="">Selecione o cliente...</option>';
+                    
+                    clientes.forEach(cliente => {
+                        const option = document.createElement('option');
+                        option.value = cliente.username;
+                        option.textContent = `${cliente.nome} (${cliente.username})`;
+                        select.appendChild(option);
+                    });
+                    
+                    console.log(`✅ ${clientes.length} clientes carregados`);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar clientes:', error);
+                mostrarErro('Erro ao carregar lista de clientes!');
+            }
+        }
+
+        async function carregarContasEmpresa() {
+            try {
+                const response = await fetch('/api/admin/contas-bancarias');
+                const data = await response.json();
+                
+                if (data.success) {
+                    contasEmpresa = data.contas;
+                    console.log(`✅ ${contasEmpresa.length} contas empresa carregadas`);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar contas empresa:', error);
+            }
+        }
+
+        // ============================================
+        // EVENTOS
+        // ============================================
+        document.getElementById('clienteSelect').addEventListener('change', async (e) => {
+            const username = e.target.value;
+            if (username) {
+                await carregarContasCliente(username);
+            } else {
+                const contaClienteSelect = document.getElementById('contaClienteSelect');
+                contaClienteSelect.innerHTML = '<option value="">Selecione primeiro um cliente...</option>';
+                contaClienteSelect.disabled = true;
+                
+                const contaEmpresaSelect = document.getElementById('contaEmpresaSelect');
+                contaEmpresaSelect.innerHTML = '<option value="">Selecione primeiro uma conta do cliente...</option>';
+                contaEmpresaSelect.disabled = true;
+            }
+        });
+
+        document.getElementById('contaClienteSelect').addEventListener('change', (e) => {
+            const contaSelecionada = e.target.value;
+            if (contaSelecionada) {
+                filtrarContasEmpresaPorMoeda(contaSelecionada);
+            }
+        });
+
+        async function carregarContasCliente(username) {
+            try {
+                const response = await fetch(`/api/admin/clientes/${username}/contas`);
+                const data = await response.json();
+                
+                if (data.success && data.contas.length > 0) {
+                    const select = document.getElementById('contaClienteSelect');
+                    select.innerHTML = '<option value="">Selecione a conta...</option>';
+                    
+                    data.contas.forEach(conta => {
+                        const option = document.createElement('option');
+                        option.value = JSON.stringify({ numero: conta.numero, moeda: conta.moeda, saldo: conta.saldo });
+                        option.textContent = `${conta.numero} - ${conta.moeda} (Saldo: ${formatarValorMonetario(conta.saldo)})`;
+                        select.appendChild(option);
+                    });
+                    
+                    select.disabled = false;
+                    console.log(`✅ ${data.contas.length} contas do cliente carregadas`);
+                } else {
+                    const select = document.getElementById('contaClienteSelect');
+                    select.innerHTML = '<option value="">Cliente não possui contas</option>';
+                    select.disabled = true;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar contas do cliente:', error);
+                mostrarErro('Erro ao carregar contas do cliente!');
+            }
+        }
+
+        function filtrarContasEmpresaPorMoeda(contaClienteJson) {
+            try {
+                const contaCliente = JSON.parse(contaClienteJson);
+                const moedaCliente = contaCliente.moeda;
+                
+                const contasFiltradas = contasEmpresa.filter(conta => conta.moeda === moedaCliente);
+                
+                const select = document.getElementById('contaEmpresaSelect');
+                
+                if (contasFiltradas.length > 0) {
+                    select.innerHTML = '<option value="">Selecione a conta da empresa...</option>';
+                    
+                    contasFiltradas.forEach(conta => {
+                        const option = document.createElement('option');
+                        option.value = conta.numero;
+                        option.textContent = `${conta.numero} - ${conta.banco} - ${conta.moeda} (Saldo: ${formatarValorMonetario(conta.saldo)})`;
+                        select.appendChild(option);
+                    });
+                    
+                    select.disabled = false;
+                    console.log(`✅ ${contasFiltradas.length} contas empresa na moeda ${moedaCliente}`);
+                } else {
+                    select.innerHTML = `<option value="">Nenhuma conta empresa em ${moedaCliente}</option>`;
+                    select.disabled = true;
+                }
+            } catch (error) {
+                console.error('Erro ao filtrar contas empresa:', error);
+            }
+        }
+
+        function onBancoOrigemChange() {
+            const select = document.getElementById('bancoOrigemSelect');
+            const outroBancoInput = document.getElementById('outroBancoInput');
+            
+            if (select.value === 'Outro Banco') {
+                outroBancoInput.classList.remove('hidden');
+            } else {
+                outroBancoInput.classList.add('hidden');
+                outroBancoInput.value = '';
+            }
+        }
+
+        // ============================================
+        // FORMATAÇÃO DE VALOR
+        // ============================================
+        function formatarValor(e) {
+            let valor = e.target.value;
+            
+            // Remover tudo que não é número
+            let numeros = valor.replace(/[^\d]/g, '');
+            
+            if (numeros === '') {
+                e.target.value = '0,00';
+                return;
+            }
+            
+            // Limitar a 11 dígitos
+            if (numeros.length > 11) {
+                numeros = numeros.slice(-11);
+            }
+            
+            // Garantir pelo menos 3 dígitos
+            while (numeros.length < 3) {
+                numeros = '0' + numeros;
+            }
+            
+            // Separar parte inteira e decimal
+            let parteInteira = numeros.slice(0, -2);
+            let parteDecimal = numeros.slice(-2);
+            
+            // Remover zeros à esquerda da parte inteira
+            if (parteInteira) {
+                parteInteira = parseInt(parteInteira).toString();
+            } else {
+                parteInteira = '0';
+            }
+            
+            // Formatar parte inteira com separador de milhar
+            parteInteira = parteInteira.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            
+            e.target.value = `${parteInteira},${parteDecimal}`;
+        }
+
+        function getValorNumerico() {
+            const valorStr = document.getElementById('valorInput').value;
+            return parseFloat(valorStr.replace(/\./g, '').replace(',', '.'));
+        }
+
+        function formatarValorMonetario(valor) {
+            return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // ============================================
+        // NAVEGAÇÃO POR TECLADO
+        // ============================================
+        const camposOrdem = [
+            'clienteSelect',
+            'contaClienteSelect',
+            'contaEmpresaSelect',
+            'bancoOrigemSelect',
+            'outroBancoInput',
+            'remetenteInput',
+            'valorInput'
+        ];
+
+        function proximoCampo() {
+            const activeElement = document.activeElement;
+            let indexAtual = -1;
+            
+            for (let i = 0; i < camposOrdem.length; i++) {
+                const campo = document.getElementById(camposOrdem[i]);
+                if (campo === activeElement || (campo.contains && campo.contains(activeElement))) {
+                    indexAtual = i;
+                    break;
+                }
+            }
+            
+            let proximoIndex = (indexAtual + 1) % camposOrdem.length;
+            let proximoCampo = document.getElementById(camposOrdem[proximoIndex]);
+            
+            // Pular campos desabilitados ou ocultos
+            while (proximoCampo && (proximoCampo.disabled || (proximoCampo.classList && proximoCampo.classList.contains('hidden')))) {
+                proximoIndex = (proximoIndex + 1) % camposOrdem.length;
+                proximoCampo = document.getElementById(camposOrdem[proximoIndex]);
+            }
+            
+            if (proximoCampo) {
+                if (proximoCampo.tagName === 'SELECT') {
+                    proximoCampo.focus();
+                    // Abrir dropdown do select (simular clique)
+                    if (proximoCampo.size <= 1) {
+                        const event = new MouseEvent('mousedown', { view: window, bubbles: true, cancelable: true });
+                        proximoCampo.dispatchEvent(event);
+                    }
+                } else {
+                    proximoCampo.focus();
+                    if (proximoCampo.select) proximoCampo.select();
+                }
+            }
+        }
+
+        // ============================================
+        // VALIDAÇÃO
+        // ============================================
+        function validarCampos() {
+            const cliente = document.getElementById('clienteSelect').value;
+            const contaCliente = document.getElementById('contaClienteSelect').value;
+            const contaEmpresa = document.getElementById('contaEmpresaSelect').value;
+            const remetente = document.getElementById('remetenteInput').value.trim();
+            const valor = getValorNumerico();
+            
+            if (!cliente) {
+                mostrarErro('Selecione o cliente!');
+                return false;
+            }
+            
+            if (!contaCliente) {
+                mostrarErro('Selecione a conta do cliente!');
+                return false;
+            }
+            
+            if (!contaEmpresa) {
+                mostrarErro('Selecione a conta da empresa!');
+                return false;
+            }
+            
+            if (!remetente) {
+                mostrarErro('Informe o nome do remetente!');
+                return false;
+            }
+            
+            if (isNaN(valor) || valor <= 0) {
+                mostrarErro('Valor inválido! O valor deve ser maior que zero.');
+                return false;
+            }
+            
+            return true;
+        }
+
+        function getBancoOrigem() {
+            const select = document.getElementById('bancoOrigemSelect');
+            if (select.value === 'Outro Banco') {
+                const outroBanco = document.getElementById('outroBancoInput').value.trim();
+                if (!outroBanco) {
+                    mostrarErro('Digite o nome do banco!');
+                    return null;
+                }
+                return outroBanco;
+            }
+            return select.value;
+        }
+
+        // ============================================
+        // CONFIRMAÇÃO
+        // ============================================
+        function confirmarDeposito() {
+            if (!validarCampos()) return;
+            
+            const bancoOrigem = getBancoOrigem();
+            if (!bancoOrigem) return;
+            
+            const clienteSelect = document.getElementById('clienteSelect');
+            const clienteTexto = clienteSelect.options[clienteSelect.selectedIndex]?.text || '';
+            const username = clienteSelect.value;
+            
+            const contaClienteJson = document.getElementById('contaClienteSelect').value;
+            const contaCliente = JSON.parse(contaClienteJson);
+            
+            const contaEmpresa = document.getElementById('contaEmpresaSelect').value;
+            const contaEmpresaTexto = document.getElementById('contaEmpresaSelect').options[document.getElementById('contaEmpresaSelect').selectedIndex]?.text || '';
+            
+            const remetente = document.getElementById('remetenteInput').value.trim();
+            const valor = getValorNumerico();
+            
+            dadosConfirmacao = {
+                username,
+                clienteTexto,
+                contaClienteNumero: contaCliente.numero,
+                contaClienteMoeda: contaCliente.moeda,
+                contaClienteSaldo: contaCliente.saldo,
+                contaEmpresa,
+                contaEmpresaTexto,
+                bancoOrigem,
+                remetente,
+                valor
+            };
+            
+            const modalBody = document.getElementById('modalConfirmacaoBody');
+            modalBody.innerHTML = `
+                <div class="info-card" style="margin-bottom: 10px;">
+                    <strong>Confirmar Depósito</strong>
+                </div>
+                <p><strong>Cliente:</strong> ${escapeHtml(clienteTexto)}</p>
+                <p><strong>Conta do Cliente:</strong> ${contaCliente.numero} (${contaCliente.moeda})</p>
+                <p><strong>Saldo Atual:</strong> ${formatarValorMonetario(contaCliente.saldo)} ${contaCliente.moeda}</p>
+                <p><strong>Conta da Empresa:</strong> ${contaEmpresaTexto}</p>
+                <p><strong>Banco de Origem:</strong> ${bancoOrigem}</p>
+                <p><strong>Remetente:</strong> ${escapeHtml(remetente)}</p>
+                <p><strong>Valor:</strong> ${formatarValorMonetario(valor)} ${contaCliente.moeda}</p>
+                <p><strong>Novo Saldo:</strong> ${formatarValorMonetario(contaCliente.saldo + valor)} ${contaCliente.moeda}</p>
+            `;
+            
+            document.getElementById('modalConfirmacao').classList.add('active');
+        }
+
+        // ============================================
+        // EXECUTAR DEPÓSITO
+        // ============================================
+        async function executarDeposito() {
+            if (!dadosConfirmacao) return;
+            
+            fecharModalConfirmacao();
+            
+            try {
+                const response = await fetch('/api/admin/confirmar-deposito', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: dadosConfirmacao.username,
+                        conta_cliente: dadosConfirmacao.contaClienteNumero,
+                        conta_empresa: dadosConfirmacao.contaEmpresa,
+                        banco_origem: dadosConfirmacao.bancoOrigem,
+                        remetente: dadosConfirmacao.remetente,
+                        valor: dadosConfirmacao.valor,
+                        moeda: dadosConfirmacao.contaClienteMoeda
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const novoSaldo = dadosConfirmacao.contaClienteSaldo + dadosConfirmacao.valor;
+                    
+                    const modalBody = document.getElementById('modalSucessoBody');
+                    modalBody.innerHTML = `
+                        <div class="info-card" style="background: rgba(46, 194, 126, 0.1); border-color: var(--cor-sucesso);">
+                            <i class="fas fa-check-circle"></i> Depósito confirmado com sucesso!
+                        </div>
+                        <p><strong>Valor:</strong> ${formatarValorMonetario(dadosConfirmacao.valor)} ${dadosConfirmacao.contaClienteMoeda}</p>
+                        <p><strong>Cliente:</strong> ${escapeHtml(dadosConfirmacao.clienteTexto)}</p>
+                        <p><strong>Conta:</strong> ${dadosConfirmacao.contaClienteNumero}</p>
+                        <p><strong>Banco:</strong> ${dadosConfirmacao.bancoOrigem}</p>
+                        <p><strong>Saldo anterior:</strong> ${formatarValorMonetario(dadosConfirmacao.contaClienteSaldo)} ${dadosConfirmacao.contaClienteMoeda}</p>
+                        <p><strong>Novo saldo:</strong> ${formatarValorMonetario(novoSaldo)} ${dadosConfirmacao.contaClienteMoeda}</p>
+                        <p style="color: var(--cor-sucesso);"><strong>${data.status_supabase || '✅ Sincronizado com Supabase'}</strong></p>
+                    `;
+                    
+                    document.getElementById('modalSucesso').classList.add('active');
+                    
+                    // Atualizar os selects com os novos saldos
+                    await carregarContasCliente(dadosConfirmacao.username);
+                    
+                    // Limpar campos
+                    limparCampos();
+                    
+                    // Focar no banco de origem
+                    document.getElementById('bancoOrigemSelect').focus();
+                } else {
+                    mostrarErro(data.message || 'Erro ao processar depósito!');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                mostrarErro('Erro ao processar depósito!');
+            }
+            
+            dadosConfirmacao = null;
+        }
+
+        // ============================================
+        // LIMPAR CAMPOS
+        // ============================================
+        function limparCampos() {
+            document.getElementById('clienteSelect').value = '';
+            document.getElementById('contaClienteSelect').innerHTML = '<option value="">Selecione primeiro um cliente...</option>';
+            document.getElementById('contaClienteSelect').disabled = true;
+            document.getElementById('contaEmpresaSelect').innerHTML = '<option value="">Selecione primeiro uma conta do cliente...</option>';
+            document.getElementById('contaEmpresaSelect').disabled = true;
+            document.getElementById('bancoOrigemSelect').value = 'Outro Banco';
+            document.getElementById('outroBancoInput').value = '';
+            document.getElementById('outroBancoInput').classList.remove('hidden');
+            document.getElementById('remetenteInput').value = '';
+            document.getElementById('valorInput').value = '0,00';
+        }
+
+        // ============================================
+        // MODAIS
+        // ============================================
+        function fecharModalConfirmacao() {
+            document.getElementById('modalConfirmacao').classList.remove('active');
+            dadosConfirmacao = null;
+        }
+
+        function fecharModalSucesso() {
+            document.getElementById('modalSucesso').classList.remove('active');
+        }
+
+        function fecharModalErro() {
+            document.getElementById('modalErro').classList.remove('active');
+        }
+
+        function mostrarErro(mensagem) {
+            const modalBody = document.getElementById('modalErroBody');
+            modalBody.innerHTML = `<div class="info-card" style="background: rgba(224, 27, 36, 0.1); border-color: var(--cor-perigo);">${escapeHtml(mensagem)}</div>`;
+            document.getElementById('modalErro').classList.add('active');
+        }
+
+        // ============================================
+        // FUNÇÕES AUXILIARES
+        // ============================================
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
