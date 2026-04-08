@@ -485,9 +485,12 @@
         // ============================================
         let clientes = [];
         let contasEmpresa = [];
-        
-        // Variável para armazenar dados da confirmação
         let pendingDeposit = null;
+        
+        // Variáveis para manter seleções após depósito
+        let lastClienteSelecionado = null;
+        let lastContaClienteSelecionada = null;
+        let lastContaEmpresaSelecionada = null;
 
         // ============================================
         // INICIALIZAÇÃO
@@ -512,7 +515,6 @@
             
             // Configurar eventos de navegação por teclado
             document.addEventListener('keydown', (e) => {
-                // Evitar conflito com modais abertos
                 if (document.querySelector('.modal.active')) return;
                 
                 if (e.key === 'Tab') {
@@ -523,12 +525,53 @@
                     if (activeElement && activeElement.id === 'valorInput') {
                         confirmarDeposito();
                     } else if (activeElement && activeElement.tagName === 'BUTTON') {
-                        // Se for botão, não fazer nada
+                        // não fazer nada
                     } else {
                         proximoCampo();
                     }
                 }
             });
+            
+            // Estilizar autocomplete (manter fundo escuro)
+            const style = document.createElement('style');
+            style.textContent = `
+                input:-webkit-autofill,
+                input:-webkit-autofill:hover,
+                input:-webkit-autofill:focus,
+                input:-webkit-autofill:active,
+                select:-webkit-autofill,
+                select:-webkit-autofill:hover,
+                select:-webkit-autofill:focus {
+                    -webkit-box-shadow: 0 0 0 1000px #0a0e15 inset !important;
+                    -webkit-text-fill-color: #e0e0e0 !important;
+                    caret-color: #e0e0e0 !important;
+                    transition: background-color 5000s ease-in-out 0s !important;
+                }
+                
+                /* Estilo para opções do select/datalist */
+                option {
+                    background-color: #0d1117 !important;
+                    color: #e0e0e0 !important;
+                }
+                
+                /* Estilo para datalist */
+                datalist {
+                    background-color: #0d1117 !important;
+                    color: #e0e0e0 !important;
+                }
+                
+                /* Estilo para remetente com nomes salvos */
+                #remetenteInput {
+                    background-color: #0a0e15 !important;
+                    color: #e0e0e0 !important;
+                }
+                
+                #remetenteInput:focus {
+                    background-color: #0a0e15 !important;
+                    color: #e0e0e0 !important;
+                }
+            `;
+            document.head.appendChild(style);
         });
 
         // ============================================
@@ -551,6 +594,14 @@
                             option.textContent = `${cliente.nome} (${cliente.username})`;
                             select.appendChild(option);
                         });
+                        
+                        // Restaurar seleção anterior se existir
+                        if (lastClienteSelecionado) {
+                            select.value = lastClienteSelecionado;
+                            if (select.value) {
+                                await carregarContasCliente(lastClienteSelecionado, true);
+                            }
+                        }
                         
                         console.log(`✅ ${clientes.length} clientes carregados`);
                     }
@@ -582,8 +633,9 @@
         if (clienteSelect) {
             clienteSelect.addEventListener('change', async (e) => {
                 const username = e.target.value;
+                lastClienteSelecionado = username;
                 if (username) {
-                    await carregarContasCliente(username);
+                    await carregarContasCliente(username, false);
                 } else {
                     const contaClienteSelect = document.getElementById('contaClienteSelect');
                     if (contaClienteSelect) {
@@ -604,13 +656,14 @@
         if (contaClienteSelect) {
             contaClienteSelect.addEventListener('change', (e) => {
                 const contaSelecionada = e.target.value;
+                lastContaClienteSelecionada = contaSelecionada;
                 if (contaSelecionada) {
                     filtrarContasEmpresaPorMoeda(contaSelecionada);
                 }
             });
         }
 
-        async function carregarContasCliente(username) {
+        async function carregarContasCliente(username, restaurarSelecao = false) {
             try {
                 const response = await fetch(`/api/admin/clientes/${username}/contas`);
                 const data = await response.json();
@@ -629,6 +682,23 @@
                     });
                     
                     select.disabled = false;
+                    
+                    // Restaurar seleção anterior se solicitado
+                    if (restaurarSelecao && lastContaClienteSelecionada) {
+                        // Verificar se a conta ainda existe (pode ter mudado o saldo)
+                        let contaEncontrada = false;
+                        for (let i = 0; i < select.options.length; i++) {
+                            if (select.options[i].value === lastContaClienteSelecionada) {
+                                select.value = lastContaClienteSelecionada;
+                                contaEncontrada = true;
+                                break;
+                            }
+                        }
+                        if (contaEncontrada && lastContaClienteSelecionada) {
+                            filtrarContasEmpresaPorMoeda(lastContaClienteSelecionada);
+                        }
+                    }
+                    
                     console.log(`✅ ${data.contas.length} contas do cliente carregadas`);
                 } else {
                     select.innerHTML = '<option value="">Cliente não possui contas</option>';
@@ -661,6 +731,26 @@
                     });
                     
                     select.disabled = false;
+                    
+                    // Restaurar seleção anterior da conta empresa
+                    if (lastContaEmpresaSelecionada) {
+                        let contaEncontrada = false;
+                        for (let i = 0; i < select.options.length; i++) {
+                            if (select.options[i].value === lastContaEmpresaSelecionada) {
+                                select.value = lastContaEmpresaSelecionada;
+                                contaEncontrada = true;
+                                break;
+                            }
+                        }
+                        if (!contaEncontrada && select.options.length > 1) {
+                            select.selectedIndex = 1;
+                            lastContaEmpresaSelecionada = select.value;
+                        }
+                    } else if (select.options.length > 1) {
+                        select.selectedIndex = 1;
+                        lastContaEmpresaSelecionada = select.value;
+                    }
+                    
                     console.log(`✅ ${contasFiltradas.length} contas empresa na moeda ${moedaCliente}`);
                 } else {
                     select.innerHTML = `<option value="">Nenhuma conta empresa em ${moedaCliente}</option>`;
@@ -686,11 +776,78 @@
         }
 
         // ============================================
+        // ATUALIZAR SALDO DA CONTA EMPRESA
+        // ============================================
+        async function atualizarSaldoContaEmpresa(contaNumero, novoSaldo) {
+            // Atualizar no array local
+            const contaIndex = contasEmpresa.findIndex(c => c.numero === contaNumero);
+            if (contaIndex !== -1) {
+                contasEmpresa[contaIndex].saldo = novoSaldo;
+            }
+            
+            // Atualizar o texto da opção selecionada no select
+            const select = document.getElementById('contaEmpresaSelect');
+            if (select && select.value === contaNumero) {
+                const conta = contasEmpresa.find(c => c.numero === contaNumero);
+                if (conta) {
+                    const option = select.options[select.selectedIndex];
+                    if (option) {
+                        option.textContent = `${conta.numero} - ${conta.banco} - ${conta.moeda} (Saldo: ${formatarValorMonetario(conta.saldo)})`;
+                    }
+                }
+            }
+            
+            // Atualizar também nas opções do select
+            for (let i = 0; i < select.options.length; i++) {
+                const opt = select.options[i];
+                if (opt.value === contaNumero) {
+                    const conta = contasEmpresa.find(c => c.numero === contaNumero);
+                    if (conta) {
+                        opt.textContent = `${conta.numero} - ${conta.banco} - ${conta.moeda} (Saldo: ${formatarValorMonetario(conta.saldo)})`;
+                    }
+                    break;
+                }
+            }
+            
+            console.log(`✅ Saldo da conta empresa ${contaNumero} atualizado para ${formatarValorMonetario(novoSaldo)}`);
+        }
+
+        // ============================================
+        // ATUALIZAR SALDO DA CONTA CLIENTE
+        // ============================================
+        async function atualizarSaldoContaCliente(contaJson, novoSaldo) {
+            try {
+                const contaCliente = JSON.parse(contaJson);
+                contaCliente.saldo = novoSaldo;
+                const novoJson = JSON.stringify(contaCliente);
+                
+                // Atualizar no select
+                const select = document.getElementById('contaClienteSelect');
+                if (select && select.value === contaJson) {
+                    const option = select.options[select.selectedIndex];
+                    if (option) {
+                        option.value = novoJson;
+                        option.textContent = `${contaCliente.numero} - ${contaCliente.moeda} (Saldo: ${formatarValorMonetario(novoSaldo)})`;
+                        select.value = novoJson;
+                        
+                        // Atualizar lastContaClienteSelecionada
+                        lastContaClienteSelecionada = novoJson;
+                    }
+                }
+                
+                console.log(`✅ Saldo da conta cliente ${contaCliente.numero} atualizado para ${formatarValorMonetario(novoSaldo)}`);
+                return novoJson;
+            } catch (error) {
+                console.error('Erro ao atualizar saldo da conta cliente:', error);
+                return contaJson;
+            }
+        }
+
+        // ============================================
         // FORMATAÇÃO DE VALOR
         // ============================================
         function formatarValor(e) {
             let valor = e.target.value;
-            
             let numeros = valor.replace(/[^\d]/g, '');
             
             if (numeros === '') {
@@ -716,7 +873,6 @@
             }
             
             parteInteira = parteInteira.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-            
             e.target.value = `${parteInteira},${parteDecimal}`;
         }
 
@@ -860,13 +1016,13 @@
             const remetente = document.getElementById('remetenteInput').value.trim();
             const valor = getValorNumerico();
             
-            // Salvar dados na variável global
             pendingDeposit = {
                 username: username,
                 clienteTexto: clienteTexto,
                 contaClienteNumero: contaCliente.numero,
                 contaClienteMoeda: contaCliente.moeda,
                 contaClienteSaldo: contaCliente.saldo,
+                contaClienteJson: contaClienteJson,
                 contaEmpresa: contaEmpresa,
                 contaEmpresaTexto: contaEmpresaTexto,
                 bancoOrigem: bancoOrigem,
@@ -876,7 +1032,6 @@
             
             console.log('📦 pendingDeposit salvo:', pendingDeposit);
             
-            // Preencher modal de confirmação
             const modalBody = document.getElementById('modalConfirmacaoBody');
             if (modalBody) {
                 modalBody.innerHTML = `
@@ -894,7 +1049,6 @@
                 `;
             }
             
-            // Abrir modal
             document.getElementById('modalConfirmacao').classList.add('active');
         }
 
@@ -903,9 +1057,7 @@
         // ============================================
         async function executarDeposito() {
             console.log('🔍 executarDeposito() chamado');
-            console.log('pendingDeposit:', pendingDeposit);
             
-            // Verificar se pendingDeposit existe
             if (!pendingDeposit) {
                 console.error('❌ pendingDeposit é null!');
                 mostrarErro('Erro: Dados de confirmação não encontrados. Tente novamente.');
@@ -913,7 +1065,6 @@
                 return;
             }
             
-            // Verificar se username existe
             if (!pendingDeposit.username) {
                 console.error('❌ pendingDeposit.username é null!');
                 mostrarErro('Erro: Usuário não identificado. Tente novamente.');
@@ -923,7 +1074,6 @@
             
             console.log('✅ Dados válidos, processando depósito para:', pendingDeposit.username);
             
-            // Fechar modal de confirmação
             fecharModalConfirmacao();
             
             try {
@@ -945,7 +1095,17 @@
                 console.log('📥 Resposta do servidor:', data);
                 
                 if (data.success) {
-                    const novoSaldo = pendingDeposit.contaClienteSaldo + pendingDeposit.valor;
+                    const novoSaldoCliente = pendingDeposit.contaClienteSaldo + pendingDeposit.valor;
+                    const novoSaldoEmpresa = (data.novo_saldo_empresa) ? data.novo_saldo_empresa : 0;
+                    
+                    // Atualizar saldo da conta cliente no select
+                    const novaContaClienteJson = await atualizarSaldoContaCliente(
+                        pendingDeposit.contaClienteJson, 
+                        novoSaldoCliente
+                    );
+                    
+                    // Atualizar saldo da conta empresa
+                    await atualizarSaldoContaEmpresa(pendingDeposit.contaEmpresa, novoSaldoEmpresa);
                     
                     const modalBody = document.getElementById('modalSucessoBody');
                     if (modalBody) {
@@ -958,42 +1118,24 @@
                             <p><strong>Conta:</strong> ${pendingDeposit.contaClienteNumero}</p>
                             <p><strong>Banco:</strong> ${escapeHtml(pendingDeposit.bancoOrigem)}</p>
                             <p><strong>Saldo anterior:</strong> ${formatarValorMonetario(pendingDeposit.contaClienteSaldo)} ${pendingDeposit.contaClienteMoeda}</p>
-                            <p><strong>Novo saldo:</strong> ${formatarValorMonetario(novoSaldo)} ${pendingDeposit.contaClienteMoeda}</p>
+                            <p><strong>Novo saldo:</strong> ${formatarValorMonetario(novoSaldoCliente)} ${pendingDeposit.contaClienteMoeda}</p>
                             <p style="color: var(--cor-sucesso);"><strong>${data.status_supabase || '✅ Sincronizado com Supabase'}</strong></p>
                         `;
                     }
                     
                     document.getElementById('modalSucesso').classList.add('active');
                     
-                    // Recarregar contas do cliente para atualizar o saldo nos selects
-                    await carregarContasCliente(pendingDeposit.username);
+                    // Atualizar a variável de seleção da conta cliente com o novo JSON
+                    lastContaClienteSelecionada = novaContaClienteJson;
                     
-                    // Limpar campos (manter cliente selecionado)
-                    const contaClienteSelect = document.getElementById('contaClienteSelect');
-                    if (contaClienteSelect) contaClienteSelect.value = '';
+                    // Limpar apenas os campos de entrada, manter seleções
+                    document.getElementById('bancoOrigemSelect').value = 'Outro Banco';
+                    document.getElementById('outroBancoInput').value = '';
+                    document.getElementById('outroBancoInput').classList.remove('hidden');
+                    document.getElementById('remetenteInput').value = '';
+                    document.getElementById('valorInput').value = '0,00';
                     
-                    const contaEmpresaSelect = document.getElementById('contaEmpresaSelect');
-                    if (contaEmpresaSelect) {
-                        contaEmpresaSelect.innerHTML = '<option value="">Selecione primeiro uma conta do cliente...</option>';
-                        contaEmpresaSelect.disabled = true;
-                    }
-                    
-                    const bancoSelect = document.getElementById('bancoOrigemSelect');
-                    if (bancoSelect) bancoSelect.value = 'Outro Banco';
-                    
-                    const outroBancoInput = document.getElementById('outroBancoInput');
-                    if (outroBancoInput) {
-                        outroBancoInput.value = '';
-                        outroBancoInput.classList.remove('hidden');
-                    }
-                    
-                    const remetenteInput = document.getElementById('remetenteInput');
-                    if (remetenteInput) remetenteInput.value = '';
-                    
-                    const valorInput = document.getElementById('valorInput');
-                    if (valorInput) valorInput.value = '0,00';
-                    
-                    // Focar no banco de origem
+                    // Focar no banco de origem para o próximo depósito
                     document.getElementById('bancoOrigemSelect').focus();
                 } else {
                     mostrarErro(data.message || 'Erro ao processar depósito!');
@@ -1003,15 +1145,18 @@
                 mostrarErro('Erro ao processar depósito: ' + error.message);
             }
             
-            // Limpar pendingDeposit
             pendingDeposit = null;
         }
 
         // ============================================
-        // LIMPAR CAMPOS
+        // LIMPAR CAMPOS (reset completo)
         // ============================================
         function limparCampos() {
-            console.log('🧹 Limpando campos...');
+            console.log('🧹 Limpando todos os campos...');
+            
+            lastClienteSelecionado = null;
+            lastContaClienteSelecionada = null;
+            lastContaEmpresaSelecionada = null;
             
             const clienteSelect = document.getElementById('clienteSelect');
             if (clienteSelect) clienteSelect.value = '';
@@ -1043,7 +1188,7 @@
             const valorInput = document.getElementById('valorInput');
             if (valorInput) valorInput.value = '0,00';
             
-            console.log('✅ Campos limpos');
+            console.log('✅ Todos os campos limpos');
         }
 
         // ============================================
@@ -1051,7 +1196,6 @@
         // ============================================
         function fecharModalConfirmacao() {
             document.getElementById('modalConfirmacao').classList.remove('active');
-            // Não limpar pendingDeposit aqui para permitir reabrir se necessário
         }
 
         function fecharModalSucesso() {
