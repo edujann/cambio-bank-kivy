@@ -20,7 +20,7 @@
             --cor-texto: #e0e0e0;
             --cor-texto-secundario: #8b949e;
             --cor-primaria: #1a5fb4;
-            --cor-admin: #9b59b6;
+            --cor-admin: #1a5fb4;  /* 🔥 MUDOU DE #9b59b6 para #1a5fb4 */
             --cor-sucesso: #2ec27e;
             --cor-alerta: #f39c12;
             --cor-perigo: #e01b24;
@@ -70,7 +70,7 @@
         }
 
         .logo-text {
-            background: linear-gradient(90deg, var(--cor-admin), #c39bd3);
+            background: linear-gradient(90deg, var(--cor-admin), #2d8fff);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
@@ -90,18 +90,6 @@
             font-size: 12px;
             font-weight: bold;
             margin-left: 10px;
-        }
-
-        .user-menu {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 16px;
-            background: var(--cor-card);
-            border-radius: var(--borda-radius-pequeno);
-            border: 1px solid var(--cor-borda);
-            cursor: pointer;
-            transition: all 0.3s ease;
         }
 
         .user-menu:hover {
@@ -212,8 +200,6 @@
 
         .admin-card:hover {
             border-color: var(--cor-admin);
-            transform: translateY(-5px);
-            box-shadow: var(--sombra-media);
         }
 
         .admin-card::before {
@@ -243,7 +229,7 @@
             font-size: 24px;
         }
 
-        .card-icon.clientes { background: rgba(155, 89, 182, 0.15); color: #9b59b6; }
+        .card-icon.clientes { background: rgba(26, 95, 180, 0.15); color: #1a5fb4; }
         .card-icon.relatorios { background: rgba(46, 194, 126, 0.15); color: #2ec27e; }
         .card-icon.contas { background: rgba(26, 95, 180, 0.15); color: #1a5fb4; }
         .card-icon.transferencias { background: rgba(243, 156, 18, 0.15); color: #f39c12; }
@@ -411,8 +397,53 @@
         }
 
         .dropdown-item:hover {
-            background: rgba(155, 89, 182, 0.15);
+            background: rgba(26, 95, 180, 0.15);
         }
+
+        .tab-btn.active {
+            color: var(--cor-admin);
+            border-bottom: 2px solid var(--cor-admin);
+        }
+
+        .tab-btn:hover {
+            color: var(--cor-texto);
+            background: rgba(26, 95, 180, 0.1);
+        }
+
+        .btn-nova-conta {
+            background: var(--cor-admin);
+        }
+
+        .btn-nova-conta:hover {
+            background: #2d8fff;
+        }
+
+        .btn-submit {
+            background: var(--cor-admin);
+        }
+
+        .btn-submit:hover {
+            background: #2d8fff;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--cor-admin);
+            color: var(--cor-admin);
+        }
+
+        .toggle-btn.active {
+            background: var(--cor-admin);
+            border-color: var(--cor-admin);
+        }
+
+        .info-conversao {
+            background: rgba(26, 95, 180, 0.1);
+            border: 1px solid var(--cor-admin);
+        }
+
+        .form-control:focus {
+            border-color: var(--cor-admin);
+        }        
 
         .dropdown-item i {
             width: 20px;
