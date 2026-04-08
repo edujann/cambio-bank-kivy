@@ -212,11 +212,15 @@ def login():
         session['nome'] = usuario_data.get('nome', usuario_data['username'])
         session['email'] = usuario_data.get('email', f"{usuario_data['username']}@exemplo.com")
         session['user_id'] = usuario_data['id']
+        session['tipo'] = usuario_data.get('tipo', 'cliente')  # 🔥 ADICIONE ESTA LINHA!
+        
+        print(f"✅ Login: {usuario} - Tipo: {session['tipo']}")  # 🔥 ADICIONE ESTA LINHA (DEBUG)
         
         return jsonify({
             "success": True,
             "message": "Login realizado com sucesso",
-            "usuario": usuario_data
+            "usuario": usuario_data,
+            "tipo": usuario_data.get('tipo', 'cliente')  # 🔥 ADICIONE ESTA LINHA!
         })
         
     except Exception as e:
