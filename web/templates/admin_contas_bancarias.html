@@ -20,10 +20,13 @@
             --cor-texto: #e0e0e0;
             --cor-texto-secundario: #8b949e;
             --cor-primaria: #1a5fb4;
-            --cor-admin: #9b59b6;
+            --cor-admin: #1a5fb4;
             --cor-sucesso: #2ec27e;
             --cor-alerta: #f39c12;
             --cor-perigo: #e01b24;
+            --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.4);
+            --sombra-forte: 0 12px 24px rgba(0, 0, 0, 0.5);
             --borda-radius: 12px;
             --borda-radius-pequeno: 8px;
         }
@@ -66,7 +69,7 @@
         }
 
         .logo-text {
-            background: linear-gradient(90deg, var(--cor-admin), #c39bd3);
+            background: linear-gradient(90deg, var(--cor-admin), #2d8fff);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
@@ -100,6 +103,62 @@
         .btn-voltar:hover {
             border-color: var(--cor-admin);
             color: var(--cor-admin);
+            transform: translateY(-2px);
+        }
+
+        /* TOTAIS POR MOEDA */
+        .totais-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .total-card {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 15px 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .total-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--cor-admin);
+            box-shadow: var(--sombra-media);
+        }
+
+        .total-label {
+            font-size: 12px;
+            color: var(--cor-texto-secundario);
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .total-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--cor-primaria);
+        }
+
+        /* BOTÃO NOVA CONTA */
+        .btn-nova-conta {
+            background: var(--cor-admin);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: var(--borda-radius-pequeno);
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-nova-conta:hover {
+            background: #2d8fff;
+            transform: translateY(-2px);
+            box-shadow: var(--sombra-suave);
         }
 
         /* TABS */
@@ -128,7 +187,8 @@
 
         .tab-btn:hover {
             color: var(--cor-texto);
-            background: rgba(155, 89, 182, 0.1);
+            background: rgba(26, 95, 180, 0.1);
+            transform: translateY(-2px);
         }
 
         .tab-btn.active {
@@ -144,36 +204,7 @@
             display: block;
         }
 
-        /* CARDS DE SALDOS TOTAIS */
-        .totais-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-
-        .total-card {
-            background: var(--cor-card);
-            border: 1px solid var(--cor-borda);
-            border-radius: var(--borda-radius);
-            padding: 15px 20px;
-            text-align: center;
-        }
-
-        .total-label {
-            font-size: 12px;
-            color: var(--cor-texto-secundario);
-            text-transform: uppercase;
-            margin-bottom: 5px;
-        }
-
-        .total-value {
-            font-size: 24px;
-            font-weight: bold;
-            color: var(--cor-primaria);
-        }
-
-        /* CARDS DE CONTAS BANCÁRIAS */
+        /* CARDS DE CONTAS */
         .contas-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -187,11 +218,30 @@
             border-radius: var(--borda-radius);
             padding: 20px;
             transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .conta-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--cor-admin), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
 
         .conta-card:hover {
             border-color: var(--cor-admin);
-            transform: translateY(-3px);
+            transform: translateY(-5px);
+            box-shadow: var(--sombra-media);
+        }
+
+        .conta-card:hover::before {
+            opacity: 1;
         }
 
         .conta-header {
@@ -209,7 +259,7 @@
         }
 
         .conta-moeda {
-            background: rgba(155, 89, 182, 0.2);
+            background: rgba(26, 95, 180, 0.2);
             color: var(--cor-admin);
             padding: 4px 10px;
             border-radius: 20px;
@@ -251,6 +301,7 @@
             color: var(--cor-sucesso);
         }
 
+        /* BOTÕES DA CONTA */
         .conta-botoes {
             display: flex;
             gap: 10px;
@@ -274,6 +325,7 @@
         .btn-deposito:hover {
             background: var(--cor-sucesso);
             color: white;
+            transform: translateY(-2px);
         }
 
         .btn-saque {
@@ -284,6 +336,7 @@
         .btn-saque:hover {
             background: var(--cor-perigo);
             color: white;
+            transform: translateY(-2px);
         }
 
         .btn-extrato {
@@ -294,27 +347,10 @@
         .btn-extrato:hover {
             background: var(--cor-primaria);
             color: white;
-        }
-
-        /* BOTÃO NOVA CONTA */
-        .btn-nova-conta {
-            background: var(--cor-admin);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: var(--borda-radius-pequeno);
-            font-weight: 600;
-            cursor: pointer;
-            margin-bottom: 20px;
-            transition: all 0.3s ease;
-        }
-
-        .btn-nova-conta:hover {
-            background: #8e44ad;
             transform: translateY(-2px);
         }
 
-        /* FORMULÁRIOS DAS ABAS */
+        /* FORMULÁRIOS */
         .form-card {
             background: var(--cor-card);
             border: 1px solid var(--cor-borda);
@@ -348,11 +384,13 @@
             border-radius: var(--borda-radius-pequeno);
             color: var(--cor-texto);
             font-size: 14px;
+            transition: all 0.3s ease;
         }
 
         .form-control:focus {
             outline: none;
             border-color: var(--cor-admin);
+            box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2);
         }
 
         .form-row {
@@ -361,6 +399,7 @@
             gap: 15px;
         }
 
+        /* BOTÕES */
         .btn-submit {
             background: var(--cor-admin);
             color: white;
@@ -374,7 +413,9 @@
         }
 
         .btn-submit:hover {
-            background: #8e44ad;
+            background: #2d8fff;
+            transform: translateY(-2px);
+            box-shadow: var(--sombra-suave);
         }
 
         .btn-group {
@@ -390,11 +431,13 @@
             padding: 12px 24px;
             border-radius: var(--borda-radius-pequeno);
             cursor: pointer;
+            transition: all 0.3s ease;
         }
 
         .btn-secondary:hover {
             border-color: var(--cor-admin);
             color: var(--cor-admin);
+            transform: translateY(-2px);
         }
 
         /* TOGGLE BUTTONS */
@@ -416,6 +459,11 @@
             transition: all 0.3s ease;
         }
 
+        .toggle-btn:hover {
+            border-color: var(--cor-admin);
+            transform: translateY(-2px);
+        }
+
         .toggle-btn.active {
             background: var(--cor-admin);
             border-color: var(--cor-admin);
@@ -424,13 +472,19 @@
 
         /* INFO CONVERSÃO */
         .info-conversao {
-            background: rgba(155, 89, 182, 0.1);
+            background: rgba(26, 95, 180, 0.1);
             border: 1px solid var(--cor-admin);
             border-radius: var(--borda-radius-pequeno);
             padding: 15px;
             margin-top: 15px;
             text-align: center;
             font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .info-conversao:hover {
+            background: rgba(26, 95, 180, 0.15);
+            transform: translateY(-2px);
         }
 
         /* MODAL */
@@ -479,6 +533,12 @@
             color: var(--cor-texto-secundario);
             font-size: 24px;
             cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            color: var(--cor-perigo);
+            transform: scale(1.1);
         }
 
         .modal-body {
@@ -503,6 +563,12 @@
         .loading i {
             font-size: 32px;
             margin-bottom: 10px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
 
         /* RESPONSIVIDADE */
