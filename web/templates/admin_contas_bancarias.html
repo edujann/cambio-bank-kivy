@@ -793,6 +793,7 @@
         // INICIALIZAÇÃO
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Página carregada, iniciando...');
             carregarContas();
             
             // TABS
@@ -802,6 +803,7 @@
                     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                     btn.classList.add('active');
                     document.getElementById(btn.dataset.tab).classList.add('active');
+                    console.log(`📑 Aba ativada: ${btn.dataset.tab}`);
                 });
             });
         });
@@ -810,47 +812,74 @@
         // CARREGAR CONTAS
         // ============================================
         async function carregarContas() {
+            console.log('🔄 carregarContas() iniciado...');
+            
             try {
                 const response = await fetch('/api/admin/contas-bancarias');
+                console.log('📡 Resposta da API:', response.status);
+                
                 const data = await response.json();
+                console.log('📊 Dados recebidos:', data);
                 
                 if (data.success) {
                     contas = data.contas;
+                    console.log(`✅ ${contas.length} contas carregadas`);
+                    
+                    // Mostrar primeiras contas para debug
+                    if (contas.length > 0) {
+                        console.log('📋 Primeira conta:', contas[0]);
+                    }
+                    
                     atualizarTotais(data.totais);
                     renderizarContas();
                     atualizarSelectsContas();
                 } else {
-                    console.error('Erro ao carregar contas:', data.message);
+                    console.error('❌ Erro da API:', data.message);
+                    document.getElementById('contasGrid').innerHTML = `<div class="loading"><p>❌ ${data.message}</p></div>`;
                 }
             } catch (error) {
-                console.error('Erro na requisição:', error);
+                console.error('❌ Erro na requisição:', error);
+                document.getElementById('contasGrid').innerHTML = `<div class="loading"><p>❌ Erro ao carregar contas: ${error.message}</p></div>`;
             }
         }
 
         function atualizarTotais(totais) {
+            console.log('💰 Atualizando totais:', totais);
+            
             const simbolos = { USD: '$', EUR: '€', GBP: '£', BRL: 'R$' };
+            
             for (const [moeda, valor] of Object.entries(totais)) {
                 const el = document.getElementById(`total${moeda}`);
                 if (el) {
-                    el.textContent = `${simbolos[moeda] || ''} ${formatarValor(valor)}`;
+                    const simbolo = simbolos[moeda] || moeda;
+                    el.innerHTML = `${simbolo} ${formatarValor(valor)}`;
+                    console.log(`   ${moeda}: ${simbolo} ${formatarValor(valor)}`);
                 }
             }
         }
 
         function renderizarContas() {
             const grid = document.getElementById('contasGrid');
+            console.log('🎨 renderizarContas() - iniciando renderização');
             
             if (!contas || contas.length === 0) {
-                grid.innerHTML = '<div class="loading"><p>Nenhuma conta cadastrada</p><button class="btn-nova-conta" onclick="abrirModalNovaConta()" style="margin-top: 15px;">Criar primeira conta</button></div>';
+                console.log('⚠️ Nenhuma conta para renderizar');
+                grid.innerHTML = '<div class="loading"><p>📭 Nenhuma conta cadastrada</p><button class="btn-nova-conta" onclick="abrirModalNovaConta()" style="margin-top: 15px;">➕ Criar primeira conta</button></div>';
                 return;
             }
             
             grid.innerHTML = '';
             
-            for (const conta of contas) {
+            for (let i = 0; i < contas.length; i++) {
+                const conta = contas[i];
+                console.log(`   Renderizando conta ${i+1}: ${conta.numero} - ${conta.banco}`);
+                
                 const saldoClass = conta.saldo < 0 ? 'negativo' : 'positivo';
                 const saldoFormatado = formatarValor(conta.saldo);
                 const simbolo = obterSimboloMoeda(conta.moeda);
+                
+                // Escapar o número da conta para uso em onclick
+                const contaNumeroEscapado = conta.numero.replace(/'/g, "\\'");
                 
                 const card = document.createElement('div');
                 card.className = 'conta-card';
@@ -873,39 +902,55 @@
                         ${simbolo} ${saldoFormatado}
                     </div>
                     <div class="conta-botoes">
-                        <button class="btn-conta btn-deposito" onclick="abrirModalDeposito('${conta.numero}')">
+                        <button class="btn-conta btn-deposito" onclick="abrirModalDeposito('${contaNumeroEscapado}')">
                             <i class="fas fa-plus"></i> Depósito
                         </button>
-                        <button class="btn-conta btn-saque" onclick="abrirModalSaque('${conta.numero}')">
+                        <button class="btn-conta btn-saque" onclick="abrirModalSaque('${contaNumeroEscapado}')">
                             <i class="fas fa-minus"></i> Saque
                         </button>
-                        <button class="btn-conta btn-extrato" onclick="abrirExtrato('${conta.numero}')">
+                        <button class="btn-conta btn-extrato" onclick="abrirExtrato('${contaNumeroEscapado}')">
                             <i class="fas fa-file-invoice"></i> Extrato
                         </button>
                     </div>
                 `;
                 grid.appendChild(card);
             }
+            
+            console.log(`✅ ${contas.length} contas renderizadas`);
         }
 
         function atualizarSelectsContas() {
+            console.log('🔄 atualizarSelectsContas() - atualizando selects');
+            
             const selectAjuste = document.getElementById('ajusteConta');
             const selectOrigem = document.getElementById('cambioContaOrigem');
             const selectDestino = document.getElementById('cambioContaDestino');
             
-            const options = contas.map(conta => 
-                `<option value="${conta.numero}">${conta.numero} | ${conta.banco} | ${conta.moeda} | Saldo: ${obterSimboloMoeda(conta.moeda)} ${formatarValor(conta.saldo)}</option>`
-            ).join('');
+            if (!selectAjuste || !selectOrigem || !selectDestino) {
+                console.error('❌ Selects não encontrados no DOM');
+                return;
+            }
             
-            if (selectAjuste) selectAjuste.innerHTML = '<option value="">Selecione uma conta...</option>' + options;
-            if (selectOrigem) selectOrigem.innerHTML = '<option value="">Selecione a conta origem...</option>' + options;
-            if (selectDestino) selectDestino.innerHTML = '<option value="">Selecione a conta destino...</option>' + options;
+            let optionsHtml = '<option value="">Selecione uma conta...</option>';
+            
+            for (const conta of contas) {
+                const simbolo = obterSimboloMoeda(conta.moeda);
+                const saldoFormatado = formatarValor(conta.saldo);
+                optionsHtml += `<option value="${escapeHtml(conta.numero)}">${escapeHtml(conta.numero)} | ${escapeHtml(conta.banco)} | ${conta.moeda} | Saldo: ${simbolo} ${saldoFormatado}</option>`;
+            }
+            
+            selectAjuste.innerHTML = optionsHtml;
+            selectOrigem.innerHTML = optionsHtml;
+            selectDestino.innerHTML = optionsHtml;
+            
+            console.log(`✅ Selects atualizados com ${contas.length} opções`);
         }
 
         // ============================================
         // NOVA CONTA
         // ============================================
         function setTipoMoeda(tipo) {
+            console.log(`🔄 setTipoMoeda: ${tipo}`);
             tipoMoedaSelecionado = tipo;
             
             const btnPrincipal = document.getElementById('btnMoedaPrincipal');
@@ -927,19 +972,29 @@
         }
 
         function abrirModalNovaConta() {
+            console.log('📂 abrirModalNovaConta()');
+            
+            // Limpar campos
             document.getElementById('novaContaBanco').value = '';
             document.getElementById('novaContaAgencia').value = '';
             document.getElementById('novaContaNumero').value = '';
             document.getElementById('novaContaMoedaManual').value = '';
+            
             setTipoMoeda('principal');
-            document.getElementById('modalNovaConta').classList.add('active');
+            
+            const modal = document.getElementById('modalNovaConta');
+            modal.classList.add('active');
+            console.log('✅ Modal nova conta aberto');
         }
 
         function fecharModalNovaConta() {
+            console.log('📂 fecharModalNovaConta()');
             document.getElementById('modalNovaConta').classList.remove('active');
         }
 
         async function criarNovaConta() {
+            console.log('➕ criarNovaConta()');
+            
             const banco = document.getElementById('novaContaBanco').value.trim();
             const agencia = document.getElementById('novaContaAgencia').value.trim();
             const numero = document.getElementById('novaContaNumero').value.trim();
@@ -950,15 +1005,17 @@
             } else {
                 moeda = document.getElementById('novaContaMoedaManual').value.trim().toUpperCase();
                 if (moeda.length !== 3 || !/^[A-Z]{3}$/.test(moeda)) {
-                    alert('Moeda inválida! Use exatamente 3 letras (Ex: JPY, CAD)');
+                    alert('❌ Moeda inválida! Use exatamente 3 letras (Ex: JPY, CAD, AUD)');
                     return;
                 }
             }
             
             if (!banco || !agencia || !numero) {
-                alert('Preencha todos os campos!');
+                alert('❌ Preencha todos os campos!');
                 return;
             }
+            
+            console.log('📤 Enviando dados:', { banco, agencia, numero, moeda });
             
             try {
                 const response = await fetch('/api/admin/contas-bancarias', {
@@ -968,17 +1025,18 @@
                 });
                 
                 const data = await response.json();
+                console.log('📥 Resposta:', data);
                 
                 if (data.success) {
                     alert('✅ Conta criada com sucesso!');
                     fecharModalNovaConta();
-                    carregarContas();
+                    carregarContas(); // Recarregar lista
                 } else {
                     alert('❌ ' + data.message);
                 }
             } catch (error) {
-                console.error('Erro:', error);
-                alert('Erro ao criar conta!');
+                console.error('❌ Erro:', error);
+                alert('❌ Erro ao criar conta!');
             }
         }
 
@@ -986,6 +1044,7 @@
         // DEPÓSITO / SAQUE
         // ============================================
         function abrirModalDeposito(contaNumero) {
+            console.log(`💰 abrirModalDeposito: ${contaNumero}`);
             contaSelecionada = contaNumero;
             document.getElementById('depositoValor').value = '';
             document.getElementById('depositoDescricao').value = 'Depósito em conta';
@@ -1001,9 +1060,11 @@
             const descricao = document.getElementById('depositoDescricao').value.trim();
             
             if (isNaN(valor) || valor <= 0) {
-                alert('Valor inválido!');
+                alert('❌ Valor inválido!');
                 return;
             }
+            
+            console.log(`💰 Confirmando depósito: ${contaSelecionada} - ${valor}`);
             
             try {
                 const response = await fetch('/api/admin/contas-bancarias/deposito', {
@@ -1022,12 +1083,13 @@
                     alert('❌ ' + data.message);
                 }
             } catch (error) {
-                console.error('Erro:', error);
-                alert('Erro ao realizar depósito!');
+                console.error('❌ Erro:', error);
+                alert('❌ Erro ao realizar depósito!');
             }
         }
 
         function abrirModalSaque(contaNumero) {
+            console.log(`💸 abrirModalSaque: ${contaNumero}`);
             contaSelecionada = contaNumero;
             document.getElementById('saqueValor').value = '';
             document.getElementById('saqueDescricao').value = 'Saque da conta';
@@ -1043,7 +1105,7 @@
             const descricao = document.getElementById('saqueDescricao').value.trim();
             
             if (isNaN(valor) || valor <= 0) {
-                alert('Valor inválido!');
+                alert('❌ Valor inválido!');
                 return;
             }
             
@@ -1054,10 +1116,12 @@
                 }
             }
             
+            console.log(`💸 Confirmando saque: ${contaSelecionada} - ${valor}`);
+            
             try {
                 const response = await fetch('/api/admin/contas-bancarias/saque', {
                     method: 'POST',
-                    headers: { 'Content-Type':application/json' },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ conta_numero: contaSelecionada, valor, descricao })
                 });
                 
@@ -1071,8 +1135,8 @@
                     alert('❌ ' + data.message);
                 }
             } catch (error) {
-                console.error('Erro:', error);
-                alert('Erro ao realizar saque!');
+                console.error('❌ Erro:', error);
+                alert('❌ Erro ao realizar saque!');
             }
         }
 
@@ -1080,6 +1144,7 @@
         // AJUSTE DE SALDO
         // ============================================
         function setOperacaoAjuste(operacao) {
+            console.log(`🔄 setOperacaoAjuste: ${operacao}`);
             operacaoAjusteAtual = operacao;
             
             const btnCredito = document.getElementById('btnCredito');
@@ -1101,17 +1166,17 @@
             const descricao = document.getElementById('ajusteDescricao').value.trim();
             
             if (!contaNumero) {
-                alert('Selecione uma conta!');
+                alert('❌ Selecione uma conta!');
                 return;
             }
             
             if (isNaN(valor) || valor <= 0) {
-                alert('Valor inválido!');
+                alert('❌ Valor inválido!');
                 return;
             }
             
             if (!descricao) {
-                alert('Informe uma descrição!');
+                alert('❌ Informe uma descrição!');
                 return;
             }
             
@@ -1122,6 +1187,8 @@
             if (!confirm(`Confirmar ${tipoOperacao}?\n\nConta: ${contaNumero}\nValor: ${obterSimboloMoeda(conta.moeda)} ${formatarValor(valor)}\nDescrição: ${descricao}\nSaldo atual: ${obterSimboloMoeda(conta.moeda)} ${formatarValor(conta.saldo)}\nSaldo futuro: ${obterSimboloMoeda(conta.moeda)} ${formatarValor(novoSaldo)}`)) {
                 return;
             }
+            
+            console.log(`💰 Executando ajuste: ${contaNumero} - ${operacaoAjusteAtual} - ${valor}`);
             
             try {
                 const response = await fetch('/api/admin/contas-bancarias/ajuste', {
@@ -1146,24 +1213,19 @@
                     alert('❌ ' + data.message);
                 }
             } catch (error) {
-                console.error('Erro:', error);
-                alert('Erro ao executar ajuste!');
+                console.error('❌ Erro:', error);
+                alert('❌ Erro ao executar ajuste!');
             }
         }
 
         // ============================================
         // CÂMBIO ENTRE CONTAS
         // ============================================
-        let taxaPrincipalAtual = '';
-        let taxaInversaAtual = '';
-
         function calcularTaxaInversa() {
             const taxaPrincipal = parseFloat(document.getElementById('taxaPrincipal').value.replace(',', '.'));
             if (!isNaN(taxaPrincipal) && taxaPrincipal > 0) {
                 const taxaInversa = 1 / taxaPrincipal;
-                const inputInversa = document.getElementById('taxaInversa');
-                inputInversa.value = taxaInversa.toFixed(10);
-                taxaInversaAtual = inputInversa.value;
+                document.getElementById('taxaInversa').value = taxaInversa.toFixed(10);
             }
             calcularConversao();
         }
@@ -1172,9 +1234,7 @@
             const taxaInversa = parseFloat(document.getElementById('taxaInversa').value.replace(',', '.'));
             if (!isNaN(taxaInversa) && taxaInversa > 0) {
                 const taxaPrincipal = 1 / taxaInversa;
-                const inputPrincipal = document.getElementById('taxaPrincipal');
-                inputPrincipal.value = taxaPrincipal.toFixed(10);
-                taxaPrincipalAtual = inputPrincipal.value;
+                document.getElementById('taxaPrincipal').value = taxaPrincipal.toFixed(10);
             }
             calcularConversao();
         }
@@ -1196,7 +1256,7 @@
             const infoDiv = document.getElementById('infoConversao');
             
             if (!contaOrigem || !contaDestino || isNaN(valor) || valor <= 0 || isNaN(taxaPrincipal) || taxaPrincipal <= 0) {
-                infoDiv.innerHTML = 'Preencha os campos para ver a conversão';
+                infoDiv.innerHTML = '📝 Preencha os campos para ver a conversão';
                 return;
             }
             
@@ -1204,7 +1264,7 @@
             const contaDestinoObj = contas.find(c => c.numero === contaDestino);
             
             if (!contaOrigemObj || !contaDestinoObj) {
-                infoDiv.innerHTML = 'Selecione contas válidas';
+                infoDiv.innerHTML = '⚠️ Selecione contas válidas';
                 return;
             }
             
@@ -1222,34 +1282,36 @@
             const contaDestino = document.getElementById('cambioContaDestino').value;
             const valor = parseFloat(document.getElementById('cambioValor').value.replace(',', '.'));
             const taxaPrincipal = parseFloat(document.getElementById('taxaPrincipal').value.replace(',', '.'));
-            const taxaInversa = parseFloat(document.getElementById('taxaInversa').value.replace(',', '.'));
             
             if (!contaOrigem || !contaDestino) {
-                alert('Selecione conta origem e destino!');
+                alert('❌ Selecione conta origem e destino!');
                 return;
             }
             
             if (contaOrigem === contaDestino) {
-                alert('Conta origem e destino devem ser diferentes!');
+                alert('❌ Conta origem e destino devem ser diferentes!');
                 return;
             }
             
             if (isNaN(valor) || valor <= 0) {
-                alert('Valor inválido!');
+                alert('❌ Valor inválido!');
                 return;
             }
             
-            if ((isNaN(taxaPrincipal) || taxaPrincipal <= 0) && (isNaN(taxaInversa) || taxaInversa <= 0)) {
-                alert('Informe uma taxa de câmbio válida!');
+            if (isNaN(taxaPrincipal) || taxaPrincipal <= 0) {
+                alert('❌ Informe uma taxa de câmbio válida!');
                 return;
             }
             
             const contaOrigemObj = contas.find(c => c.numero === contaOrigem);
+            const contaDestinoObj = contas.find(c => c.numero === contaDestino);
             const valorDestino = valor * taxaPrincipal;
             
-            if (!confirm(`Confirmar câmbio?\n\nOrigem: ${contaOrigem} (${contaOrigemObj.moeda})\nDestino: ${contaDestino}\nValor: ${obterSimboloMoeda(contaOrigemObj.moeda)} ${formatarValor(valor)}\nReceberá: ${obterSimboloMoeda(contaDestino)} ${formatarValor(valorDestino)}\nTaxa: ${taxaPrincipal.toFixed(6)}`)) {
+            if (!confirm(`Confirmar câmbio?\n\nOrigem: ${contaOrigem} (${contaOrigemObj.moeda})\nDestino: ${contaDestino}\nValor: ${obterSimboloMoeda(contaOrigemObj.moeda)} ${formatarValor(valor)}\nReceberá: ${obterSimboloMoeda(contaDestinoObj.moeda)} ${formatarValor(valorDestino)}\nTaxa: ${taxaPrincipal.toFixed(6)}`)) {
                 return;
             }
+            
+            console.log(`💱 Executando câmbio: ${contaOrigem} → ${contaDestino} - ${valor} ${contaOrigemObj.moeda}`);
             
             try {
                 const response = await fetch('/api/admin/contas-bancarias/cambio', {
@@ -1259,23 +1321,22 @@
                         conta_origem: contaOrigem, 
                         conta_destino: contaDestino, 
                         valor, 
-                        taxa_principal: taxaPrincipal,
-                        taxa_inversa: taxaInversa
+                        taxa_principal: taxaPrincipal
                     })
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    alert(`✅ Câmbio realizado com sucesso!`);
+                    alert(`✅ Câmbio realizado com sucesso!\n${formatarValor(valor)} ${contaOrigemObj.moeda} → ${formatarValor(valorDestino)} ${contaDestinoObj.moeda}`);
                     document.getElementById('cambioValor').value = '';
                     carregarContas();
                 } else {
                     alert('❌ ' + data.message);
                 }
             } catch (error) {
-                console.error('Erro:', error);
-                alert('Erro ao executar câmbio!');
+                console.error('❌ Erro:', error);
+                alert('❌ Erro ao executar câmbio!');
             }
         }
 
@@ -1283,13 +1344,15 @@
         // EXTRATO
         // ============================================
         function abrirExtrato(contaNumero) {
-            window.location.href = `/admin/extrato-conta?conta=${contaNumero}`;
+            console.log(`📊 abrirExtrato: ${contaNumero}`);
+            window.location.href = `/admin/extrato-conta?conta=${encodeURIComponent(contaNumero)}`;
         }
 
         // ============================================
         // FUNÇÕES AUXILIARES
         // ============================================
         function formatarValor(valor) {
+            if (valor === undefined || valor === null) return '0,00';
             return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
