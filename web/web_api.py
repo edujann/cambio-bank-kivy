@@ -7288,7 +7288,7 @@ def api_admin_extrato_conta():
         return jsonify({"success": False, "message": str(e)}), 500
 
 # ============================================
-# ADMIN - APROVAR OPERAÇÕES
+# ADMIN - APROVAR OPERAÇÕES (VERSÃO SÍNCRONA)
 # ============================================
 
 @app.route('/admin/aprovar-operacoes')
@@ -7338,7 +7338,7 @@ def admin_aprovar_operacoes():
 
 @app.route('/api/admin/aprovar-operacoes', methods=['GET'])
 def api_admin_aprovar_operacoes():
-    """Retorna transferências pendentes e em processamento"""
+    """Retorna transferências pendentes e em processamento - VERSÃO SÍNCRONA"""
     try:
         usuario = session.get('username')
         
@@ -7356,6 +7356,8 @@ def api_admin_aprovar_operacoes():
             if not user_check.data or user_check.data.get('tipo') != 'admin':
                 return jsonify({"success": False, "message": "Acesso negado"}), 403
         
+        print(f"🔍 Buscando operações para admin: {usuario}")
+        
         # Buscar transferências pendentes (solicitada)
         pendentes_response = supabase.table('transferencias')\
             .select('*')\
@@ -7370,15 +7372,17 @@ def api_admin_aprovar_operacoes():
             .order('created_at', desc=True)\
             .execute()
         
+        print(f"📊 Encontrados: {len(pendentes_response.data)} pendentes, {len(processando_response.data)} processando")
+        
         # Processar pendentes
         pendentes = []
         for t in (pendentes_response.data or []):
-            pendentes.append(await_processar_transferencia(t))
+            pendentes.append(processar_transferencia_sync(t))
         
-        # Processar processamento
+        # Processar processando
         processando = []
         for t in (processando_response.data or []):
-            processando.append(await_processar_transferencia(t))
+            processando.append(processar_transferencia_sync(t))
         
         return jsonify({
             "success": True,
@@ -7393,8 +7397,8 @@ def api_admin_aprovar_operacoes():
         return jsonify({"success": False, "message": str(e)}), 500
 
 
-async def await_processar_transferencia(transf):
-    """Processa os dados de uma transferência para exibição"""
+def processar_transferencia_sync(transf):
+    """Processa os dados de uma transferência para exibição (versão síncrona)"""
     try:
         # Obter nome do cliente
         cliente_nome = None
@@ -8114,6 +8118,7 @@ def api_admin_invoice_recusar():
             invoice_info = {}
         
         # Atualizar status da invoice
+        from datetime import datetime
         invoice_info['status'] = 'rejected'
         invoice_info['motivo_recusa'] = motivo
         invoice_info['data_recusa'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -8147,7 +8152,7 @@ def api_admin_invoice_recusar():
         print(f"❌ Erro ao recusar invoice: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
     
-    
+
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
