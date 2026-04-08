@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏦 Cambio Bank - Admin Dashboard</title>
+    <style>
+        /* RESET E CONFIGURAÇÕES GERAIS */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --cor-fundo: #0a0e15;
+            --cor-card: #0d1117;
+            --cor-borda: #1e232e;
+            --cor-texto: #e0e0e0;
+            --cor-texto-secundario: #8b949e;
+            --cor-primaria: #1a5fb4;
+            --cor-admin: #9b59b6;
+            --cor-sucesso: #2ec27e;
+            --cor-alerta: #f39c12;
+            --cor-perigo: #e01b24;
+            --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.4);
+            --sombra-forte: 0 12px 24px rgba(0, 0, 0, 0.5);
+            --borda-radius: 12px;
+            --borda-radius-pequeno: 8px;
+        }
+
+        body {
+            background: var(--cor-fundo);
+            color: var(--cor-texto);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* HEADER */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--cor-borda);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .logo i {
+            color: var(--cor-admin);
+            font-size: 28px;
+        }
+
+        .logo-text {
+            background: linear-gradient(90deg, var(--cor-admin), #c39bd3);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .badge-admin {
+            background: var(--cor-admin);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            background: var(--cor-card);
+            border-radius: var(--borda-radius-pequeno);
+            border: 1px solid var(--cor-borda);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .user-menu:hover {
+            border-color: var(--cor-admin);
+            transform: translateY(-2px);
+        }
+
+        .user-avatar {
+            font-size: 24px;
+            color: var(--cor-admin);
+        }
+
+        /* CARDS DE ESTATÍSTICAS */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--cor-admin), transparent);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--cor-admin);
+        }
+
+        .stat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .stat-title {
+            font-size: 14px;
+            color: var(--cor-texto-secundario);
+            text-transform: uppercase;
+        }
+
+        .stat-icon {
+            font-size: 24px;
+            color: var(--cor-admin);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-change {
+            font-size: 12px;
+            color: var(--cor-sucesso);
+        }
+
+        /* SEÇÃO DE AÇÕES ADMIN */
+        .admin-actions {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 22px;
+            margin-bottom: 25px;
+        }
+
+        .section-title i {
+            color: var(--cor-admin);
+        }
+
+        .admin-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .admin-card {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .admin-card:hover {
+            border-color: var(--cor-admin);
+            transform: translateY(-5px);
+            box-shadow: var(--sombra-media);
+        }
+
+        .admin-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--cor-admin), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .admin-card:hover::before {
+            opacity: 1;
+        }
+
+        .card-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .card-icon.clientes { background: rgba(155, 89, 182, 0.15); color: #9b59b6; }
+        .card-icon.relatorios { background: rgba(46, 194, 126, 0.15); color: #2ec27e; }
+        .card-icon.contas { background: rgba(26, 95, 180, 0.15); color: #1a5fb4; }
+        .card-icon.transferencias { background: rgba(243, 156, 18, 0.15); color: #f39c12; }
+        .card-icon.aprovar { background: rgba(231, 76, 60, 0.15); color: #e74c3c; }
+        .card-icon.cotacoes { background: rgba(52, 152, 219, 0.15); color: #3498db; }
+        .card-icon.bancarias { background: rgba(26, 188, 156, 0.15); color: #1abc9c; }
+        .card-icon.depositos { background: rgba(241, 196, 15, 0.15); color: #f1c40f; }
+        .card-icon.config { background: rgba(149, 165, 166, 0.15); color: #95a5a6; }
+
+        .card-title {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .card-desc {
+            color: var(--cor-texto-secundario);
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+
+        .card-badge {
+            font-size: 12px;
+            color: var(--cor-alerta);
+            font-weight: 600;
+        }
+
+        /* TRANSAÇÕES RECENTES */
+        .transacoes-recentes {
+            margin-bottom: 40px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .btn-ver-tudo {
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            padding: 10px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+        }
+
+        .transacoes-lista {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            overflow: hidden;
+        }
+
+        .transacao-item {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+
+        .transacao-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .transacao-icon.pendente { background: rgba(243, 156, 18, 0.15); color: #f39c12; }
+        .transacao-icon.processando { background: rgba(52, 152, 219, 0.15); color: #3498db; }
+        .transacao-icon.concluida { background: rgba(46, 194, 126, 0.15); color: #2ec27e; }
+        .transacao-icon.recusada { background: rgba(231, 76, 60, 0.15); color: #e74c3c; }
+
+        .transacao-detalhes {
+            flex: 1;
+        }
+
+        .transacao-titulo {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .transacao-desc {
+            color: var(--cor-texto-secundario);
+            font-size: 14px;
+        }
+
+        .transacao-info {
+            text-align: right;
+        }
+
+        .transacao-valor {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+
+        .transacao-data {
+            color: var(--cor-texto-secundario);
+            font-size: 12px;
+        }
+
+        /* FOOTER */
+        .app-footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--cor-borda);
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--cor-texto-secundario);
+            font-size: 14px;
+        }
+
+        .status-online {
+            color: var(--cor-sucesso);
+            font-weight: 600;
+        }
+
+        /* DROPDOWN MENU */
+        .dropdown-menu-user {
+            display: none;
+            position: fixed;
+            z-index: 99999;
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            min-width: 250px;
+            box-shadow: var(--sombra-media);
+            padding: 10px 0;
+        }
+
+        .dropdown-header {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--cor-borda);
+            margin-bottom: 8px;
+        }
+
+        .dropdown-username {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .dropdown-email {
+            font-size: 12px;
+            color: var(--cor-texto-secundario);
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            color: var(--cor-texto);
+            text-decoration: none;
+            transition: background 0.3s ease;
+            cursor: pointer;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(155, 89, 182, 0.15);
+        }
+
+        .dropdown-item i {
+            width: 20px;
+            color: var(--cor-texto-secundario);
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: var(--cor-borda);
+            margin: 10px 0;
+        }
+
+        .logout-item {
+            color: #ff6b6b !important;
+        }
+
+        .logout-item:hover {
+            background: rgba(255, 107, 107, 0.1) !important;
+        }
+
+        /* RESPONSIVIDADE */
+        @media (max-width: 1200px) {
+            .stats-grid, .admin-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid, .admin-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .app-header {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+
+        /* LOADING */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--cor-texto-secundario);
+        }
+
+        .loading i {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fas fa-university"></i>
+                <span class="logo-text">CAMBIO BANK</span>
+                <span class="badge-admin">ADMIN</span>
+            </div>
+            
+            <h1 class="page-title">PAINEL ADMINISTRATIVO</h1>
+            
+            <div class="user-menu" id="userMenu">
+                <div class="user-avatar">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <span class="user-name" id="userName">{{ usuario if usuario else 'admin' }}</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+        </header>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main>
+            <!-- CARDS DE ESTATÍSTICAS -->
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Total Clientes</span>
+                        <i class="fas fa-users stat-icon"></i>
+                    </div>
+                    <div class="stat-value" id="statClientes">--</div>
+                    <div class="stat-change">Ativos</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Transferências</span>
+                        <i class="fas fa-exchange-alt stat-icon"></i>
+                    </div>
+                    <div class="stat-value" id="statTransferencias">--</div>
+                    <div class="stat-change">Totais</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Pendentes</span>
+                        <i class="fas fa-clock stat-icon"></i>
+                    </div>
+                    <div class="stat-value" id="statPendentes">--</div>
+                    <div class="stat-change">Aguardando aprovação</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">Processando</span>
+                        <i class="fas fa-spinner stat-icon"></i>
+                    </div>
+                    <div class="stat-value" id="statProcessando">--</div>
+                    <div class="stat-change">Em análise</div>
+                </div>
+            </div>
+
+            <!-- AÇÕES ADMINISTRATIVAS -->
+            <section class="admin-actions">
+                <h2 class="section-title">
+                    <i class="fas fa-tools"></i>
+                    GERENCIAMENTO
+                </h2>
+                
+                <div class="admin-grid">
+                    <!-- CADASTRAR CLIENTE -->
+                    <div class="admin-card" onclick="window.location.href='/admin/cadastrar-cliente'">
+                        <div class="card-icon clientes">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <h3 class="card-title">Cadastrar Cliente</h3>
+                        <p class="card-desc">Adicionar novo cliente ao sistema</p>
+                    </div>
+
+                    <!-- LISTAR CLIENTES -->
+                    <div class="admin-card" onclick="window.location.href='/admin/clientes'">
+                        <div class="card-icon clientes">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h3 class="card-title">Listar Clientes</h3>
+                        <p class="card-desc">Gerenciar clientes cadastrados</p>
+                    </div>
+
+                    <!-- RELATÓRIOS -->
+                    <div class="admin-card" onclick="window.location.href='/admin/relatorios'">
+                        <div class="card-icon relatorios">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h3 class="card-title">Relatórios</h3>
+                        <p class="card-desc">Financeiros e gerenciais</p>
+                    </div>
+
+                    <!-- GERENCIAR CONTAS -->
+                    <div class="admin-card" onclick="window.location.href='/admin/contas'">
+                        <div class="card-icon contas">
+                            <i class="fas fa-coins"></i>
+                        </div>
+                        <h3 class="card-title">Gerenciar Contas</h3>
+                        <p class="card-desc">Contas dos clientes</p>
+                    </div>
+
+                    <!-- GERENCIAR TRANSFERÊNCIAS -->
+                    <div class="admin-card" onclick="window.location.href='/admin/transferencias'">
+                        <div class="card-icon transferencias">
+                            <i class="fas fa-globe"></i>
+                        </div>
+                        <h3 class="card-title">Transferências</h3>
+                        <p class="card-desc">Todas as transferências</p>
+                    </div>
+
+                    <!-- APROVAR OPERAÇÕES -->
+                    <div class="admin-card" onclick="window.location.href='/admin/aprovar'">
+                        <div class="card-icon aprovar">
+                            <i class="fas fa-check-double"></i>
+                        </div>
+                        <h3 class="card-title">Aprovar Operações</h3>
+                        <p class="card-desc">Pendentes e processando</p>
+                        <div class="card-badge" id="badgeAprovar">-- pendentes</div>
+                    </div>
+
+                    <!-- COTAÇÕES MOEDAS -->
+                    <div class="admin-card" onclick="window.location.href='/admin/cotacoes'">
+                        <div class="card-icon cotacoes">
+                            <i class="fas fa-chart-simple"></i>
+                        </div>
+                        <h3 class="card-title">Cotações Moedas</h3>
+                        <p class="card-desc">Spreads, limites, horários</p>
+                    </div>
+
+                    <!-- CONTAS BANCÁRIAS -->
+                    <div class="admin-card" onclick="window.location.href='/admin/contas-bancarias'">
+                        <div class="card-icon bancarias">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <h3 class="card-title">Contas Bancárias</h3>
+                        <p class="card-desc">Contas da empresa</p>
+                    </div>
+
+                    <!-- CONFIRMAR DEPÓSITOS -->
+                    <div class="admin-card" onclick="window.location.href='/admin/depositos'">
+                        <div class="card-icon depositos">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <h3 class="card-title">Confirmar Depósitos</h3>
+                        <p class="card-desc">Depósitos pendentes</p>
+                    </div>
+
+                    <!-- CONFIGURAÇÕES -->
+                    <div class="admin-card" onclick="window.location.href='/admin/configuracoes'">
+                        <div class="card-icon config">
+                            <i class="fas fa-cog"></i>
+                        </div>
+                        <h3 class="card-title">Configurações</h3>
+                        <p class="card-desc">Sistema e parâmetros</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ÚLTIMAS TRANSAÇÕES -->
+            <section class="transacoes-recentes">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-history"></i>
+                        ÚLTIMAS TRANSAÇÕES
+                    </h2>
+                    <button class="btn-ver-tudo" onclick="window.location.href='/admin/transferencias'">
+                        Ver tudo <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+                
+                <div class="transacoes-lista" id="transacoesLista">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Carregando transações...</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="app-footer">
+            <div class="footer-content">
+                <div class="footer-copyright">
+                    © 2024 Cambio Bank • Sistema de Câmbio Internacional
+                </div>
+                <div class="footer-version">
+                    v2.1.0 • <span class="status-online">● Online</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- DROPDOWN MENU -->
+    <div class="dropdown-menu-user" id="userDropdown">
+        <div class="dropdown-header">
+            <div class="dropdown-username" id="dropdownUserName">{{ usuario if usuario else 'admin' }}</div>
+            <div class="dropdown-email" id="dropdownUserEmail">{{ email if email else 'admin@cambiobank.com' }}</div>
+        </div>
+        <a href="/perfil" class="dropdown-item">
+            <i class="fas fa-user"></i> Meu Perfil
+        </a>
+        <div class="dropdown-divider"></div>
+        <a href="/logout" class="dropdown-item logout-item">
+            <i class="fas fa-sign-out-alt"></i> Sair
+        </a>
+    </div>
+
+    <script>
+        // Dados do usuário
+        window.USER = {
+            username: "{{ usuario if usuario else 'admin' }}",
+            nome: "{{ nome if nome else 'Administrador' }}",
+            email: "{{ email if email else 'admin@cambiobank.com' }}"
+        };
+
+        // ============================================
+        // CARREGAR DADOS DO DASHBOARD ADMIN
+        // ============================================
+        
+        async function carregarDashboardAdmin() {
+            try {
+                const response = await fetch('/api/admin/dashboard');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Atualizar estatísticas
+                    document.getElementById('statClientes').textContent = data.stats.total_clientes || 0;
+                    document.getElementById('statTransferencias').textContent = data.stats.total_transferencias || 0;
+                    document.getElementById('statPendentes').textContent = data.stats.pendentes || 0;
+                    document.getElementById('statProcessando').textContent = data.stats.processando || 0;
+                    document.getElementById('badgeAprovar').innerHTML = `${data.stats.pendentes || 0} pendentes | ${data.stats.processando || 0} processando`;
+                    
+                    // Carregar últimas transações
+                    carregarUltimasTransacoes(data.ultimas_transacoes);
+                } else {
+                    console.error('Erro ao carregar dashboard:', data.message);
+                }
+            } catch (error) {
+                console.error('Erro na requisição:', error);
+            }
+        }
+        
+        function carregarUltimasTransacoes(transacoes) {
+            const container = document.getElementById('transacoesLista');
+            
+            if (!transacoes || transacoes.length === 0) {
+                container.innerHTML = '<div class="loading"><p>Nenhuma transação encontrada</p></div>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            transacoes.forEach(trans => {
+                const statusClass = getStatusClass(trans.status);
+                const statusIcon = getStatusIcon(trans.status);
+                const valorFormatado = formatarValor(trans.valor, trans.moeda);
+                const dataFormatada = formatarData(trans.data);
+                
+                const item = document.createElement('div');
+                item.className = 'transacao-item';
+                item.innerHTML = `
+                    <div class="transacao-icon ${statusClass}">
+                        <i class="${statusIcon}"></i>
+                    </div>
+                    <div class="transacao-detalhes">
+                        <div class="transacao-titulo">${trans.tipo || 'Transferência'}</div>
+                        <div class="transacao-desc">${trans.beneficiario || trans.descricao || ''}</div>
+                    </div>
+                    <div class="transacao-info">
+                        <div class="transacao-valor ${trans.valor > 0 ? 'positivo' : 'negativo'}">${valorFormatado}</div>
+                        <div class="transacao-data">${dataFormatada}</div>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+        
+        function getStatusClass(status) {
+            const statusMap = {
+                'pending': 'pendente',
+                'solicitada': 'pendente',
+                'processing': 'processando',
+                'completed': 'concluida',
+                'rejected': 'recusada'
+            };
+            return statusMap[status?.toLowerCase()] || 'pendente';
+        }
+        
+        function getStatusIcon(status) {
+            const iconMap = {
+                'pending': 'fas fa-clock',
+                'solicitada': 'fas fa-clock',
+                'processing': 'fas fa-spinner fa-pulse',
+                'completed': 'fas fa-check-circle',
+                'rejected': 'fas fa-times-circle'
+            };
+            return iconMap[status?.toLowerCase()] || 'fas fa-exchange-alt';
+        }
+        
+        function formatarValor(valor, moeda) {
+            const simbolos = { 'USD': '$', 'EUR': '€', 'GBP': '£', 'BRL': 'R$' };
+            const simbolo = simbolos[moeda] || moeda || '$';
+            return `${simbolo} ${parseFloat(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+        }
+        
+        function formatarData(dataStr) {
+            if (!dataStr) return '';
+            try {
+                const data = new Date(dataStr);
+                return data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            } catch {
+                return dataStr;
+            }
+        }
+        
+        // ============================================
+        // MENU DROPDOWN
+        // ============================================
+        
+        let menuVisivel = false;
+        
+        function toggleMenu() {
+            const dropdown = document.getElementById('userDropdown');
+            const botao = document.getElementById('userMenu');
+            
+            if (!botao) return;
+            
+            menuVisivel = !menuVisivel;
+            
+            if (menuVisivel) {
+                const rect = botao.getBoundingClientRect();
+                const top = rect.bottom + window.scrollY + 5;
+                const right = window.innerWidth - rect.right;
+                
+                dropdown.style.cssText = `
+                    display: block !important;
+                    position: fixed !important;
+                    top: ${top}px !important;
+                    right: ${right}px !important;
+                    z-index: 99999 !important;
+                `;
+                
+                // Atualizar informações
+                document.getElementById('dropdownUserName').textContent = window.USER.nome || window.USER.username;
+                document.getElementById('dropdownUserEmail').textContent = window.USER.email;
+                
+                // Fechar ao clicar fora
+                setTimeout(() => {
+                    document.addEventListener('click', function fecharFora(e) {
+                        if (!dropdown.contains(e.target) && !botao.contains(e.target)) {
+                            dropdown.style.display = 'none';
+                            menuVisivel = false;
+                            document.removeEventListener('click', fecharFora);
+                        }
+                    });
+                }, 100);
+            } else {
+                dropdown.style.display = 'none';
+            }
+        }
+        
+        document.getElementById('userMenu')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleMenu();
+        });
+        
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarDashboardAdmin();
+            
+            // Recarregar a cada 30 segundos
+            setInterval(carregarDashboardAdmin, 30000);
+        });
+    </script>
+</body>
+</html>

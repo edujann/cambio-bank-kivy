@@ -5843,3 +5843,289 @@ if __name__ == '__main__':
     print("=" * 50)
     
     app.run(debug=debug, port=port)
+
+
+
+
+# ============================================
+# ENDPOINTS ADMIN (DASHBOARD)
+# ============================================
+
+@app.route('/admin/dashboard')
+def admin_dashboard():
+    """Dashboard administrativo"""
+    usuario = session.get('username')
+    
+    if not usuario:
+        return redirect('/login')
+    
+    # Verificar se é admin
+    try:
+        response = supabase.table('usuarios')\
+            .select('tipo')\
+            .eq('username', usuario)\
+            .single()\
+            .execute()
+        
+        if response.data.get('tipo') != 'admin':
+            return redirect('/dashboard')
+    except:
+        return redirect('/dashboard')
+    
+    # Buscar dados do usuário
+    nome = usuario.upper()
+    email = f'{usuario}@exemplo.com'
+    
+    try:
+        user_response = supabase.table('usuarios')\
+            .select('nome, email')\
+            .eq('username', usuario)\
+            .single()\
+            .execute()
+        
+        if user_response.data:
+            if user_response.data.get('nome'):
+                nome = user_response.data['nome']
+            if user_response.data.get('email'):
+                email = user_response.data['email']
+    except:
+        pass
+    
+    return render_template('admin_dashboard.html',
+                          usuario=usuario,
+                          nome=nome,
+                          email=email)
+
+@app.route('/api/admin/dashboard')
+def api_admin_dashboard():
+    """API para dados do dashboard admin"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Verificar se é admin
+        user_check = supabase.table('usuarios')\
+            .select('tipo')\
+            .eq('username', usuario)\
+            .single()\
+            .execute()
+        
+        if not user_check.data or user_check.data.get('tipo') != 'admin':
+            return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        # 1. Estatísticas
+        # Total de clientes
+        clientes_response = supabase.table('usuarios')\
+            .select('username', count='exact')\
+            .eq('tipo', 'cliente')\
+            .execute()
+        total_clientes = clientes_response.count if clientes_response.count else 0
+        
+        # Total de transferências
+        transf_response = supabase.table('transferencias')\
+            .select('id', count='exact')\
+            .execute()
+        total_transferencias = transf_response.count if transf_response.count else 0
+        
+        # Pendentes (solicitada)
+        pendentes_response = supabase.table('transferencias')\
+            .select('id', count='exact')\
+            .eq('status', 'solicitada')\
+            .execute()
+        pendentes = pendentes_response.count if pendentes_response.count else 0
+        
+        # Processando
+        processando_response = supabase.table('transferencias')\
+            .select('id', count='exact')\
+            .eq('status', 'processing')\
+            .execute()
+        processando = processando_response.count if processando_response.count else 0
+        
+        # 2. Últimas 10 transações
+        ultimas_transf = supabase.table('transferencias')\
+            .select('*')\
+            .order('created_at', desc=True)\
+            .limit(10)\
+            .execute()
+        
+        transacoes_formatadas = []
+        for t in (ultimas_transf.data or []):
+            transacoes_formatadas.append({
+                'id': t.get('id'),
+                'tipo': t.get('tipo'),
+                'status': t.get('status'),
+                'valor': t.get('valor', 0),
+                'moeda': t.get('moeda', 'USD'),
+                'beneficiario': t.get('beneficiario', ''),
+                'descricao': t.get('descricao', ''),
+                'data': t.get('created_at') or t.get('data'),
+                'cliente': t.get('cliente') or t.get('usuario')
+            })
+        
+        return jsonify({
+            "success": True,
+            "stats": {
+                "total_clientes": total_clientes,
+                "total_transferencias": total_transferencias,
+                "pendentes": pendentes,
+                "processando": processando
+            },
+            "ultimas_transacoes": transacoes_formatadas
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro no admin dashboard: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+# ============================================
+# ENDPOINTS ADMIN - CLIENTES
+# ============================================
+
+@app.route('/admin/clientes')
+def admin_clientes():
+    """Lista de clientes para admin"""
+    usuario = session.get('username')
+    
+    if not usuario:
+        return redirect('/login')
+    
+    # Verificar admin
+    user_check = supabase.table('usuarios')\
+        .select('tipo')\
+        .eq('username', usuario)\
+        .single()\
+        .execute()
+    
+    if not user_check.data or user_check.data.get('tipo') != 'admin':
+        return redirect('/dashboard')
+    
+    return render_template('admin_clientes.html',
+                          usuario=usuario,
+                          nome="Administrador")
+
+@app.route('/api/admin/clientes')
+def api_admin_clientes():
+    """API para listar todos os clientes"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Verificar admin
+        user_check = supabase.table('usuarios')\
+            .select('tipo')\
+            .eq('username', usuario)\
+            .single()\
+            .execute()
+        
+        if not user_check.data or user_check.data.get('tipo') != 'admin':
+            return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        # Buscar todos os clientes
+        clientes_response = supabase.table('usuarios')\
+            .select('username, nome, email, telefone, tipo, status, verificado, cambio_liberado, data_cadastro')\
+            .eq('tipo', 'cliente')\
+            .order('data_cadastro', desc=True)\
+            .execute()
+        
+        clientes = []
+        for c in (clientes_response.data or []):
+            # Buscar contas do cliente
+            contas_response = supabase.table('contas')\
+                .select('id, moeda, saldo')\
+                .eq('cliente_username', c['username'])\
+                .eq('ativa', True)\
+                .execute()
+            
+            saldo_total = sum(float(conta.get('saldo', 0)) for conta in (contas_response.data or []))
+            
+            clientes.append({
+                'username': c.get('username'),
+                'nome': c.get('nome', c.get('username')),
+                'email': c.get('email', ''),
+                'telefone': c.get('telefone', ''),
+                'status': c.get('status', 'ativo'),
+                'verificado': c.get('verificado', False),
+                'cambio_liberado': c.get('cambio_liberado', False),
+                'data_cadastro': c.get('data_cadastro', ''),
+                'total_contas': len(contas_response.data or []),
+                'saldo_total': saldo_total
+            })
+        
+        return jsonify({
+            "success": True,
+            "clientes": clientes
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao listar clientes: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/clientes/<username>/toggle-cambio', methods=['POST'])
+def api_admin_toggle_cambio(username):
+    """Ativa/desativa câmbio para um cliente"""
+    try:
+        admin_user = session.get('username')
+        
+        if not admin_user:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Verificar admin
+        user_check = supabase.table('usuarios')\
+            .select('tipo')\
+            .eq('username', admin_user)\
+            .single()\
+            .execute()
+        
+        if not user_check.data or user_check.data.get('tipo') != 'admin':
+            return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        data = request.get_json()
+        liberado = data.get('cambio_liberado', False)
+        
+        # Atualizar usuário
+        update_response = supabase.table('usuarios')\
+            .update({'cambio_liberado': liberado})\
+            .eq('username', username)\
+            .execute()
+        
+        # Também atualizar config_cotacoes
+        config_data = {
+            'tipo_config': 'permissoes',
+            'cliente_username': username,
+            'valor_config': liberado,
+            'data_atualizacao': datetime.now().isoformat()
+        }
+        
+        # Verificar se já existe
+        check = supabase.table('config_cotacoes')\
+            .select('id')\
+            .eq('tipo_config', 'permissoes')\
+            .eq('cliente_username', username)\
+            .execute()
+        
+        if check.data:
+            supabase.table('config_cotacoes')\
+                .update(config_data)\
+                .eq('id', check.data[0]['id'])\
+                .execute()
+        else:
+            supabase.table('config_cotacoes')\
+                .insert(config_data)\
+                .execute()
+        
+        return jsonify({
+            "success": True,
+            "message": f"Câmbio {'liberado' if liberado else 'bloqueado'} para {username}"
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao alterar permissão de câmbio: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
