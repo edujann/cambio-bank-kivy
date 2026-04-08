@@ -5829,20 +5829,6 @@ def perfil():
                              total_contas=0,
                              tem_contas=False)
 
-if __name__ == '__main__':
-    port = int(os.getenv('PORT', 5000))
-    debug = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
-    
-    print("=" * 50)
-    print("🚀 INICIANDO API FLASK DO CAMBIO BANK")
-    print("=" * 50)
-    print(f"📡 URL: http://localhost:{port}")
-    print(f"🏠 Home: http://localhost:{port}/")
-    print(f"📊 Status: http://localhost:{port}/api/status")
-    print(f"🔗 Supabase: http://localhost:{port}/api/test-supabase")
-    print("=" * 50)
-    
-    app.run(debug=debug, port=port)
 
 
 
@@ -6129,3 +6115,20 @@ def api_admin_toggle_cambio(username):
     except Exception as e:
         print(f"❌ Erro ao alterar permissão de câmbio: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
+    
+
+
+if __name__ == '__main__':
+    port = int(os.getenv('PORT', 5000))
+    debug = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
+    
+    print("=" * 50)
+    print("🚀 INICIANDO API FLASK DO CAMBIO BANK")
+    print("=" * 50)
+    print(f"📡 URL: http://localhost:{port}")
+    print(f"🏠 Home: http://localhost:{port}/")
+    print(f"📊 Status: http://localhost:{port}/api/status")
+    print(f"🔗 Supabase: http://localhost:{port}/api/test-supabase")
+    print("=" * 50)
+    
+    app.run(debug=debug, port=port)
