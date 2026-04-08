@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏦 Cambio Bank - Contas Bancárias</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --cor-fundo: #0a0e15;
+            --cor-card: #0d1117;
+            --cor-borda: #1e232e;
+            --cor-texto: #e0e0e0;
+            --cor-texto-secundario: #8b949e;
+            --cor-primaria: #1a5fb4;
+            --cor-admin: #9b59b6;
+            --cor-sucesso: #2ec27e;
+            --cor-alerta: #f39c12;
+            --cor-perigo: #e01b24;
+            --borda-radius: 12px;
+            --borda-radius-pequeno: 8px;
+        }
+
+        body {
+            background: var(--cor-fundo);
+            color: var(--cor-texto);
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* HEADER */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--cor-borda);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .logo i {
+            color: var(--cor-admin);
+            font-size: 28px;
+        }
+
+        .logo-text {
+            background: linear-gradient(90deg, var(--cor-admin), #c39bd3);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .badge-admin {
+            background: var(--cor-admin);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .btn-voltar {
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            padding: 10px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-voltar:hover {
+            border-color: var(--cor-admin);
+            color: var(--cor-admin);
+        }
+
+        /* TABS */
+        .tabs-container {
+            margin-bottom: 30px;
+        }
+
+        .tabs-header {
+            display: flex;
+            gap: 5px;
+            border-bottom: 1px solid var(--cor-borda);
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--cor-texto-secundario);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .tab-btn:hover {
+            color: var(--cor-texto);
+            background: rgba(155, 89, 182, 0.1);
+        }
+
+        .tab-btn.active {
+            color: var(--cor-admin);
+            border-bottom: 2px solid var(--cor-admin);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* CARDS DE SALDOS TOTAIS */
+        .totais-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .total-card {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 15px 20px;
+            text-align: center;
+        }
+
+        .total-label {
+            font-size: 12px;
+            color: var(--cor-texto-secundario);
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .total-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--cor-primaria);
+        }
+
+        /* CARDS DE CONTAS BANCÁRIAS */
+        .contas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .conta-card {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .conta-card:hover {
+            border-color: var(--cor-admin);
+            transform: translateY(-3px);
+        }
+
+        .conta-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+
+        .conta-banco {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .conta-moeda {
+            background: rgba(155, 89, 182, 0.2);
+            color: var(--cor-admin);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .conta-detalhes {
+            margin-bottom: 15px;
+        }
+
+        .conta-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .conta-label {
+            color: var(--cor-texto-secundario);
+        }
+
+        .conta-valor {
+            font-weight: 600;
+        }
+
+        .conta-saldo {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .conta-saldo.negativo {
+            color: var(--cor-perigo);
+        }
+
+        .conta-saldo.positivo {
+            color: var(--cor-sucesso);
+        }
+
+        .conta-botoes {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-conta {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: var(--borda-radius-pequeno);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-deposito {
+            background: rgba(46, 194, 126, 0.2);
+            color: var(--cor-sucesso);
+        }
+
+        .btn-deposito:hover {
+            background: var(--cor-sucesso);
+            color: white;
+        }
+
+        .btn-saque {
+            background: rgba(224, 27, 36, 0.2);
+            color: var(--cor-perigo);
+        }
+
+        .btn-saque:hover {
+            background: var(--cor-perigo);
+            color: white;
+        }
+
+        .btn-extrato {
+            background: rgba(26, 95, 180, 0.2);
+            color: var(--cor-primaria);
+        }
+
+        .btn-extrato:hover {
+            background: var(--cor-primaria);
+            color: white;
+        }
+
+        /* BOTÃO NOVA CONTA */
+        .btn-nova-conta {
+            background: var(--cor-admin);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: var(--borda-radius-pequeno);
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-nova-conta:hover {
+            background: #8e44ad;
+            transform: translateY(-2px);
+        }
+
+        /* FORMULÁRIOS DAS ABAS */
+        .form-card {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .form-title {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: var(--cor-admin);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: var(--cor-texto-secundario);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            color: var(--cor-texto);
+            font-size: 14px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--cor-admin);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .btn-submit {
+            background: var(--cor-admin);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: var(--borda-radius-pequeno);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .btn-submit:hover {
+            background: #8e44ad;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            padding: 12px 24px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--cor-admin);
+            color: var(--cor-admin);
+        }
+
+        /* TOGGLE BUTTONS */
+        .toggle-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 10px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-btn.active {
+            background: var(--cor-admin);
+            border-color: var(--cor-admin);
+            color: white;
+        }
+
+        /* INFO CONVERSÃO */
+        .info-conversao {
+            background: rgba(155, 89, 182, 0.1);
+            border: 1px solid var(--cor-admin);
+            border-radius: var(--borda-radius-pequeno);
+            padding: 15px;
+            margin-top: 15px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--cor-borda);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            color: var(--cor-admin);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--cor-texto-secundario);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid var(--cor-borda);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* LOADING */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--cor-texto-secundario);
+        }
+
+        .loading i {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        /* RESPONSIVIDADE */
+        @media (max-width: 768px) {
+            .totais-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .contas-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .tabs-header {
+                flex-wrap: wrap;
+            }
+            
+            .tab-btn {
+                flex: 1;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fas fa-university"></i>
+                <span class="logo-text">CAMBIO BANK</span>
+                <span class="badge-admin">ADMIN</span>
+            </div>
+            
+            <h1 class="page-title">CONTAS BANCÁRIAS</h1>
+            
+            <button class="btn-voltar" onclick="window.location.href='/admin/dashboard'">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </button>
+        </header>
+
+        <!-- TOTAIS POR MOEDA -->
+        <div class="totais-grid">
+            <div class="total-card">
+                <div class="total-label">USD</div>
+                <div class="total-value" id="totalUSD">$ 0,00</div>
+            </div>
+            <div class="total-card">
+                <div class="total-label">EUR</div>
+                <div class="total-value" id="totalEUR">€ 0,00</div>
+            </div>
+            <div class="total-card">
+                <div class="total-label">GBP</div>
+                <div class="total-value" id="totalGBP">£ 0,00</div>
+            </div>
+            <div class="total-card">
+                <div class="total-label">BRL</div>
+                <div class="total-value" id="totalBRL">R$ 0,00</div>
+            </div>
+        </div>
+
+        <!-- BOTÃO NOVA CONTA -->
+        <button class="btn-nova-conta" onclick="abrirModalNovaConta()">
+            <i class="fas fa-plus"></i> Nova Conta Bancária
+        </button>
+
+        <!-- TABS -->
+        <div class="tabs-container">
+            <div class="tabs-header">
+                <button class="tab-btn active" data-tab="tab-contas">📋 Minhas Contas</button>
+                <button class="tab-btn" data-tab="tab-ajuste">💰 Ajuste de Saldo</button>
+                <button class="tab-btn" data-tab="tab-cambio">💱 Câmbio entre Contas</button>
+            </div>
+
+            <!-- TAB 1: MINHAS CONTAS -->
+            <div id="tab-contas" class="tab-content active">
+                <div class="contas-grid" id="contasGrid">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Carregando contas...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: AJUSTE DE SALDO -->
+            <div id="tab-ajuste" class="tab-content">
+                <div class="form-card">
+                    <h3 class="form-title">Ajuste de Saldo em Conta Bancária</h3>
+                    
+                    <div class="form-group">
+                        <label>Selecione a Conta</label>
+                        <select id="ajusteConta" class="form-control">
+                            <option value="">Selecione uma conta...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="toggle-group">
+                        <button id="btnCredito" class="toggle-btn active" onclick="setOperacaoAjuste('credito')">
+                            <i class="fas fa-plus-circle"></i> CRÉDITO (Aumenta Saldo)
+                        </button>
+                        <button id="btnDebito" class="toggle-btn" onclick="setOperacaoAjuste('debito')">
+                            <i class="fas fa-minus-circle"></i> DÉBITO (Diminui Saldo)
+                        </button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Valor</label>
+                        <input type="text" id="ajusteValor" class="form-control" placeholder="0,00">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Descrição</label>
+                        <input type="text" id="ajusteDescricao" class="form-control" placeholder="Ex: Ajuste administrativo">
+                    </div>
+                    
+                    <button class="btn-submit" onclick="executarAjusteSaldo()">
+                        <i class="fas fa-check"></i> Executar Ajuste
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 3: CÂMBIO ENTRE CONTAS -->
+            <div id="tab-cambio" class="tab-content">
+                <div class="form-card">
+                    <h3 class="form-title">Câmbio entre Contas Bancárias</h3>
+                    
+                    <div class="form-group">
+                        <label>Conta Origem</label>
+                        <select id="cambioContaOrigem" class="form-control">
+                            <option value="">Selecione a conta origem...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Conta Destino</label>
+                        <select id="cambioContaDestino" class="form-control">
+                            <option value="">Selecione a conta destino...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Taxa Principal (1 ORIGEM = X DESTINO)</label>
+                            <input type="text" id="taxaPrincipal" class="form-control" placeholder="Ex: 5.20" oninput="calcularTaxaInversa()">
+                        </div>
+                        <div class="form-group">
+                            <label>Taxa Inversa (1 DESTINO = X ORIGEM)</label>
+                            <input type="text" id="taxaInversa" class="form-control" placeholder="Ex: 0.1923" oninput="calcularTaxaPrincipal()">
+                        </div>
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button class="btn-secondary" onclick="trocarTaxas()">
+                            <i class="fas fa-exchange-alt"></i> Trocar Taxas
+                        </button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Valor a Converter (na moeda de ORIGEM)</label>
+                        <input type="text" id="cambioValor" class="form-control" placeholder="0,00" oninput="calcularConversao()">
+                    </div>
+                    
+                    <div class="info-conversao" id="infoConversao">
+                        Preencha os campos para ver a conversão
+                    </div>
+                    
+                    <button class="btn-submit" onclick="executarCambioContas()">
+                        <i class="fas fa-exchange-alt"></i> Executar Câmbio
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL NOVA CONTA -->
+    <div id="modalNovaConta" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus-circle"></i> Nova Conta Bancária</h3>
+                <button class="modal-close" onclick="fecharModalNovaConta()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Nome do Banco</label>
+                    <input type="text" id="novaContaBanco" class="form-control" placeholder="Ex: Banco Principal">
+                </div>
+                <div class="form-group">
+                    <label>Agência</label>
+                    <input type="text" id="novaContaAgencia" class="form-control" placeholder="Ex: 0001">
+                </div>
+                <div class="form-group">
+                    <label>Número da Conta</label>
+                    <input type="text" id="novaContaNumero" class="form-control" placeholder="Ex: BANK_USD_002">
+                </div>
+                <div class="toggle-group">
+                    <button id="btnMoedaPrincipal" class="toggle-btn active" onclick="setTipoMoeda('principal')">
+                        Moeda Principal
+                    </button>
+                    <button id="btnMoedaManual" class="toggle-btn" onclick="setTipoMoeda('manual')">
+                        Outra Moeda
+                    </button>
+                </div>
+                <div id="moedaPrincipalGroup" class="form-group">
+                    <label>Moeda</label>
+                    <select id="novaContaMoedaSelect" class="form-control">
+                        <option value="USD">USD - Dólar Americano</option>
+                        <option value="EUR">EUR - Euro</option>
+                        <option value="GBP">GBP - Libra Esterlina</option>
+                        <option value="BRL">BRL - Real Brasileiro</option>
+                    </select>
+                </div>
+                <div id="moedaManualGroup" class="form-group" style="display: none;">
+                    <label>Sigla da Moeda (3 letras)</label>
+                    <input type="text" id="novaContaMoedaManual" class="form-control" placeholder="Ex: JPY, CAD, AUD" maxlength="3">
+                </div>
+                <div class="info-conversao" style="margin-top: 15px;">
+                    <i class="fas fa-info-circle"></i> A nova conta será criada com saldo ZERO. Use "Depósito" para adicionar fundos depois.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="fecharModalNovaConta()">Cancelar</button>
+                <button class="btn-submit" onclick="criarNovaConta()">Criar Conta</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DEPÓSITO -->
+    <div id="modalDeposito" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-money-bill-wave"></i> Depósito</h3>
+                <button class="modal-close" onclick="fecharModalDeposito()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Valor</label>
+                    <input type="text" id="depositoValor" class="form-control" placeholder="0,00">
+                </div>
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <input type="text" id="depositoDescricao" class="form-control" placeholder="Ex: Depósito em conta">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="fecharModalDeposito()">Cancelar</button>
+                <button class="btn-submit" onclick="confirmarDeposito()">Confirmar Depósito</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL SAQUE -->
+    <div id="modalSaque" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-money-bill-wave"></i> Saque</h3>
+                <button class="modal-close" onclick="fecharModalSaque()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Valor</label>
+                    <input type="text" id="saqueValor" class="form-control" placeholder="0,00">
+                </div>
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <input type="text" id="saqueDescricao" class="form-control" placeholder="Ex: Saque da conta">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="fecharModalSaque()">Cancelar</button>
+                <button class="btn-submit" onclick="confirmarSaque()">Confirmar Saque</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // VARIÁVEIS GLOBAIS
+        // ============================================
+        let contas = [];
+        let operacaoAjusteAtual = 'credito';
+        let tipoMoedaSelecionado = 'principal';
+        let contaSelecionada = null;
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarContas();
+            
+            // TABS
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.getElementById(btn.dataset.tab).classList.add('active');
+                });
+            });
+        });
+
+        // ============================================
+        // CARREGAR CONTAS
+        // ============================================
+        async function carregarContas() {
+            try {
+                const response = await fetch('/api/admin/contas-bancarias');
+                const data = await response.json();
+                
+                if (data.success) {
+                    contas = data.contas;
+                    atualizarTotais(data.totais);
+                    renderizarContas();
+                    atualizarSelectsContas();
+                } else {
+                    console.error('Erro ao carregar contas:', data.message);
+                }
+            } catch (error) {
+                console.error('Erro na requisição:', error);
+            }
+        }
+
+        function atualizarTotais(totais) {
+            const simbolos = { USD: '$', EUR: '€', GBP: '£', BRL: 'R$' };
+            for (const [moeda, valor] of Object.entries(totais)) {
+                const el = document.getElementById(`total${moeda}`);
+                if (el) {
+                    el.textContent = `${simbolos[moeda] || ''} ${formatarValor(valor)}`;
+                }
+            }
+        }
+
+        function renderizarContas() {
+            const grid = document.getElementById('contasGrid');
+            
+            if (!contas || contas.length === 0) {
+                grid.innerHTML = '<div class="loading"><p>Nenhuma conta cadastrada</p><button class="btn-nova-conta" onclick="abrirModalNovaConta()" style="margin-top: 15px;">Criar primeira conta</button></div>';
+                return;
+            }
+            
+            grid.innerHTML = '';
+            
+            for (const conta of contas) {
+                const saldoClass = conta.saldo < 0 ? 'negativo' : 'positivo';
+                const saldoFormatado = formatarValor(conta.saldo);
+                const simbolo = obterSimboloMoeda(conta.moeda);
+                
+                const card = document.createElement('div');
+                card.className = 'conta-card';
+                card.innerHTML = `
+                    <div class="conta-header">
+                        <div class="conta-banco">${escapeHtml(conta.banco)}</div>
+                        <div class="conta-moeda">${conta.moeda}</div>
+                    </div>
+                    <div class="conta-detalhes">
+                        <div class="conta-info">
+                            <span class="conta-label">Agência:</span>
+                            <span class="conta-valor">${escapeHtml(conta.agencia || '-')}</span>
+                        </div>
+                        <div class="conta-info">
+                            <span class="conta-label">Número:</span>
+                            <span class="conta-valor">${escapeHtml(conta.numero)}</span>
+                        </div>
+                    </div>
+                    <div class="conta-saldo ${saldoClass}">
+                        ${simbolo} ${saldoFormatado}
+                    </div>
+                    <div class="conta-botoes">
+                        <button class="btn-conta btn-deposito" onclick="abrirModalDeposito('${conta.numero}')">
+                            <i class="fas fa-plus"></i> Depósito
+                        </button>
+                        <button class="btn-conta btn-saque" onclick="abrirModalSaque('${conta.numero}')">
+                            <i class="fas fa-minus"></i> Saque
+                        </button>
+                        <button class="btn-conta btn-extrato" onclick="abrirExtrato('${conta.numero}')">
+                            <i class="fas fa-file-invoice"></i> Extrato
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            }
+        }
+
+        function atualizarSelectsContas() {
+            const selectAjuste = document.getElementById('ajusteConta');
+            const selectOrigem = document.getElementById('cambioContaOrigem');
+            const selectDestino = document.getElementById('cambioContaDestino');
+            
+            const options = contas.map(conta => 
+                `<option value="${conta.numero}">${conta.numero} | ${conta.banco} | ${conta.moeda} | Saldo: ${obterSimboloMoeda(conta.moeda)} ${formatarValor(conta.saldo)}</option>`
+            ).join('');
+            
+            if (selectAjuste) selectAjuste.innerHTML = '<option value="">Selecione uma conta...</option>' + options;
+            if (selectOrigem) selectOrigem.innerHTML = '<option value="">Selecione a conta origem...</option>' + options;
+            if (selectDestino) selectDestino.innerHTML = '<option value="">Selecione a conta destino...</option>' + options;
+        }
+
+        // ============================================
+        // NOVA CONTA
+        // ============================================
+        function setTipoMoeda(tipo) {
+            tipoMoedaSelecionado = tipo;
+            
+            const btnPrincipal = document.getElementById('btnMoedaPrincipal');
+            const btnManual = document.getElementById('btnMoedaManual');
+            const divPrincipal = document.getElementById('moedaPrincipalGroup');
+            const divManual = document.getElementById('moedaManualGroup');
+            
+            if (tipo === 'principal') {
+                btnPrincipal.classList.add('active');
+                btnManual.classList.remove('active');
+                divPrincipal.style.display = 'block';
+                divManual.style.display = 'none';
+            } else {
+                btnPrincipal.classList.remove('active');
+                btnManual.classList.add('active');
+                divPrincipal.style.display = 'none';
+                divManual.style.display = 'block';
+            }
+        }
+
+        function abrirModalNovaConta() {
+            document.getElementById('novaContaBanco').value = '';
+            document.getElementById('novaContaAgencia').value = '';
+            document.getElementById('novaContaNumero').value = '';
+            document.getElementById('novaContaMoedaManual').value = '';
+            setTipoMoeda('principal');
+            document.getElementById('modalNovaConta').classList.add('active');
+        }
+
+        function fecharModalNovaConta() {
+            document.getElementById('modalNovaConta').classList.remove('active');
+        }
+
+        async function criarNovaConta() {
+            const banco = document.getElementById('novaContaBanco').value.trim();
+            const agencia = document.getElementById('novaContaAgencia').value.trim();
+            const numero = document.getElementById('novaContaNumero').value.trim();
+            
+            let moeda;
+            if (tipoMoedaSelecionado === 'principal') {
+                moeda = document.getElementById('novaContaMoedaSelect').value;
+            } else {
+                moeda = document.getElementById('novaContaMoedaManual').value.trim().toUpperCase();
+                if (moeda.length !== 3 || !/^[A-Z]{3}$/.test(moeda)) {
+                    alert('Moeda inválida! Use exatamente 3 letras (Ex: JPY, CAD)');
+                    return;
+                }
+            }
+            
+            if (!banco || !agencia || !numero) {
+                alert('Preencha todos os campos!');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/contas-bancarias', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ banco, agencia, numero, moeda })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('✅ Conta criada com sucesso!');
+                    fecharModalNovaConta();
+                    carregarContas();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao criar conta!');
+            }
+        }
+
+        // ============================================
+        // DEPÓSITO / SAQUE
+        // ============================================
+        function abrirModalDeposito(contaNumero) {
+            contaSelecionada = contaNumero;
+            document.getElementById('depositoValor').value = '';
+            document.getElementById('depositoDescricao').value = 'Depósito em conta';
+            document.getElementById('modalDeposito').classList.add('active');
+        }
+
+        function fecharModalDeposito() {
+            document.getElementById('modalDeposito').classList.remove('active');
+        }
+
+        async function confirmarDeposito() {
+            const valor = parseFloat(document.getElementById('depositoValor').value.replace(',', '.'));
+            const descricao = document.getElementById('depositoDescricao').value.trim();
+            
+            if (isNaN(valor) || valor <= 0) {
+                alert('Valor inválido!');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/contas-bancarias/deposito', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ conta_numero: contaSelecionada, valor, descricao })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Depósito de ${formatarValor(valor)} realizado com sucesso!`);
+                    fecharModalDeposito();
+                    carregarContas();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao realizar depósito!');
+            }
+        }
+
+        function abrirModalSaque(contaNumero) {
+            contaSelecionada = contaNumero;
+            document.getElementById('saqueValor').value = '';
+            document.getElementById('saqueDescricao').value = 'Saque da conta';
+            document.getElementById('modalSaque').classList.add('active');
+        }
+
+        function fecharModalSaque() {
+            document.getElementById('modalSaque').classList.remove('active');
+        }
+
+        async function confirmarSaque() {
+            const valor = parseFloat(document.getElementById('saqueValor').value.replace(',', '.'));
+            const descricao = document.getElementById('saqueDescricao').value.trim();
+            
+            if (isNaN(valor) || valor <= 0) {
+                alert('Valor inválido!');
+                return;
+            }
+            
+            const conta = contas.find(c => c.numero === contaSelecionada);
+            if (conta && valor > conta.saldo) {
+                if (!confirm(`⚠️ Saldo insuficiente! Saldo atual: ${obterSimboloMoeda(conta.moeda)} ${formatarValor(conta.saldo)}\nDeseja continuar mesmo assim?`)) {
+                    return;
+                }
+            }
+            
+            try {
+                const response = await fetch('/api/admin/contas-bancarias/saque', {
+                    method: 'POST',
+                    headers: { 'Content-Type':application/json' },
+                    body: JSON.stringify({ conta_numero: contaSelecionada, valor, descricao })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Saque de ${formatarValor(valor)} realizado com sucesso!`);
+                    fecharModalSaque();
+                    carregarContas();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao realizar saque!');
+            }
+        }
+
+        // ============================================
+        // AJUSTE DE SALDO
+        // ============================================
+        function setOperacaoAjuste(operacao) {
+            operacaoAjusteAtual = operacao;
+            
+            const btnCredito = document.getElementById('btnCredito');
+            const btnDebito = document.getElementById('btnDebito');
+            
+            if (operacao === 'credito') {
+                btnCredito.classList.add('active');
+                btnDebito.classList.remove('active');
+            } else {
+                btnCredito.classList.remove('active');
+                btnDebito.classList.add('active');
+            }
+        }
+
+        async function executarAjusteSaldo() {
+            const selectConta = document.getElementById('ajusteConta');
+            const contaNumero = selectConta.value;
+            const valor = parseFloat(document.getElementById('ajusteValor').value.replace(',', '.'));
+            const descricao = document.getElementById('ajusteDescricao').value.trim();
+            
+            if (!contaNumero) {
+                alert('Selecione uma conta!');
+                return;
+            }
+            
+            if (isNaN(valor) || valor <= 0) {
+                alert('Valor inválido!');
+                return;
+            }
+            
+            if (!descricao) {
+                alert('Informe uma descrição!');
+                return;
+            }
+            
+            const conta = contas.find(c => c.numero === contaNumero);
+            const novoSaldo = operacaoAjusteAtual === 'credito' ? conta.saldo + valor : conta.saldo - valor;
+            const tipoOperacao = operacaoAjusteAtual === 'credito' ? 'CRÉDITO (entrada)' : 'DÉBITO (saída)';
+            
+            if (!confirm(`Confirmar ${tipoOperacao}?\n\nConta: ${contaNumero}\nValor: ${obterSimboloMoeda(conta.moeda)} ${formatarValor(valor)}\nDescrição: ${descricao}\nSaldo atual: ${obterSimboloMoeda(conta.moeda)} ${formatarValor(conta.saldo)}\nSaldo futuro: ${obterSimboloMoeda(conta.moeda)} ${formatarValor(novoSaldo)}`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/contas-bancarias/ajuste', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        conta_numero: contaNumero, 
+                        valor, 
+                        operacao: operacaoAjusteAtual, 
+                        descricao 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Ajuste realizado com sucesso!\nNovo saldo: ${obterSimboloMoeda(conta.moeda)} ${formatarValor(novoSaldo)}`);
+                    document.getElementById('ajusteValor').value = '';
+                    document.getElementById('ajusteDescricao').value = '';
+                    carregarContas();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao executar ajuste!');
+            }
+        }
+
+        // ============================================
+        // CÂMBIO ENTRE CONTAS
+        // ============================================
+        let taxaPrincipalAtual = '';
+        let taxaInversaAtual = '';
+
+        function calcularTaxaInversa() {
+            const taxaPrincipal = parseFloat(document.getElementById('taxaPrincipal').value.replace(',', '.'));
+            if (!isNaN(taxaPrincipal) && taxaPrincipal > 0) {
+                const taxaInversa = 1 / taxaPrincipal;
+                const inputInversa = document.getElementById('taxaInversa');
+                inputInversa.value = taxaInversa.toFixed(10);
+                taxaInversaAtual = inputInversa.value;
+            }
+            calcularConversao();
+        }
+
+        function calcularTaxaPrincipal() {
+            const taxaInversa = parseFloat(document.getElementById('taxaInversa').value.replace(',', '.'));
+            if (!isNaN(taxaInversa) && taxaInversa > 0) {
+                const taxaPrincipal = 1 / taxaInversa;
+                const inputPrincipal = document.getElementById('taxaPrincipal');
+                inputPrincipal.value = taxaPrincipal.toFixed(10);
+                taxaPrincipalAtual = inputPrincipal.value;
+            }
+            calcularConversao();
+        }
+
+        function trocarTaxas() {
+            const principal = document.getElementById('taxaPrincipal').value;
+            const inversa = document.getElementById('taxaInversa').value;
+            document.getElementById('taxaPrincipal').value = inversa;
+            document.getElementById('taxaInversa').value = principal;
+            calcularConversao();
+        }
+
+        function calcularConversao() {
+            const contaOrigem = document.getElementById('cambioContaOrigem').value;
+            const contaDestino = document.getElementById('cambioContaDestino').value;
+            const valor = parseFloat(document.getElementById('cambioValor').value.replace(',', '.'));
+            const taxaPrincipal = parseFloat(document.getElementById('taxaPrincipal').value.replace(',', '.'));
+            
+            const infoDiv = document.getElementById('infoConversao');
+            
+            if (!contaOrigem || !contaDestino || isNaN(valor) || valor <= 0 || isNaN(taxaPrincipal) || taxaPrincipal <= 0) {
+                infoDiv.innerHTML = 'Preencha os campos para ver a conversão';
+                return;
+            }
+            
+            const contaOrigemObj = contas.find(c => c.numero === contaOrigem);
+            const contaDestinoObj = contas.find(c => c.numero === contaDestino);
+            
+            if (!contaOrigemObj || !contaDestinoObj) {
+                infoDiv.innerHTML = 'Selecione contas válidas';
+                return;
+            }
+            
+            const valorDestino = valor * taxaPrincipal;
+            
+            infoDiv.innerHTML = `
+                <i class="fas fa-calculator"></i> 
+                ${formatarValor(valor)} ${contaOrigemObj.moeda} → ${formatarValor(valorDestino)} ${contaDestinoObj.moeda}
+                <br><small>Taxa: 1 ${contaOrigemObj.moeda} = ${taxaPrincipal.toFixed(6)} ${contaDestinoObj.moeda}</small>
+            `;
+        }
+
+        async function executarCambioContas() {
+            const contaOrigem = document.getElementById('cambioContaOrigem').value;
+            const contaDestino = document.getElementById('cambioContaDestino').value;
+            const valor = parseFloat(document.getElementById('cambioValor').value.replace(',', '.'));
+            const taxaPrincipal = parseFloat(document.getElementById('taxaPrincipal').value.replace(',', '.'));
+            const taxaInversa = parseFloat(document.getElementById('taxaInversa').value.replace(',', '.'));
+            
+            if (!contaOrigem || !contaDestino) {
+                alert('Selecione conta origem e destino!');
+                return;
+            }
+            
+            if (contaOrigem === contaDestino) {
+                alert('Conta origem e destino devem ser diferentes!');
+                return;
+            }
+            
+            if (isNaN(valor) || valor <= 0) {
+                alert('Valor inválido!');
+                return;
+            }
+            
+            if ((isNaN(taxaPrincipal) || taxaPrincipal <= 0) && (isNaN(taxaInversa) || taxaInversa <= 0)) {
+                alert('Informe uma taxa de câmbio válida!');
+                return;
+            }
+            
+            const contaOrigemObj = contas.find(c => c.numero === contaOrigem);
+            const valorDestino = valor * taxaPrincipal;
+            
+            if (!confirm(`Confirmar câmbio?\n\nOrigem: ${contaOrigem} (${contaOrigemObj.moeda})\nDestino: ${contaDestino}\nValor: ${obterSimboloMoeda(contaOrigemObj.moeda)} ${formatarValor(valor)}\nReceberá: ${obterSimboloMoeda(contaDestino)} ${formatarValor(valorDestino)}\nTaxa: ${taxaPrincipal.toFixed(6)}`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/contas-bancarias/cambio', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        conta_origem: contaOrigem, 
+                        conta_destino: contaDestino, 
+                        valor, 
+                        taxa_principal: taxaPrincipal,
+                        taxa_inversa: taxaInversa
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Câmbio realizado com sucesso!`);
+                    document.getElementById('cambioValor').value = '';
+                    carregarContas();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao executar câmbio!');
+            }
+        }
+
+        // ============================================
+        // EXTRATO
+        // ============================================
+        function abrirExtrato(contaNumero) {
+            window.location.href = `/admin/extrato-conta?conta=${contaNumero}`;
+        }
+
+        // ============================================
+        // FUNÇÕES AUXILIARES
+        // ============================================
+        function formatarValor(valor) {
+            return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function obterSimboloMoeda(moeda) {
+            const simbolos = { USD: '$', EUR: '€', GBP: '£', BRL: 'R$' };
+            return simbolos[moeda] || moeda;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

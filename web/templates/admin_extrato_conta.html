@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏦 Cambio Bank - Extrato da Conta</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --cor-fundo: #0a0e15;
+            --cor-card: #0d1117;
+            --cor-borda: #1e232e;
+            --cor-texto: #e0e0e0;
+            --cor-texto-secundario: #8b949e;
+            --cor-primaria: #1a5fb4;
+            --cor-admin: #9b59b6;
+            --cor-sucesso: #2ec27e;
+            --cor-alerta: #f39c12;
+            --cor-perigo: #e01b24;
+            --borda-radius: 12px;
+            --borda-radius-pequeno: 8px;
+        }
+
+        body {
+            background: var(--cor-fundo);
+            color: var(--cor-texto);
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--cor-borda);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .logo i {
+            color: var(--cor-admin);
+        }
+
+        .btn-voltar {
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            padding: 10px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+        }
+
+        /* FILTROS */
+        .filtros-container {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .filtros-header {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .filtro-btn {
+            padding: 10px 20px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto-secundario);
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filtro-btn.active {
+            background: var(--cor-admin);
+            border-color: var(--cor-admin);
+            color: white;
+        }
+
+        .filtro-personalizado {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .filtro-personalizado .form-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 15px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            color: var(--cor-texto);
+        }
+
+        /* RESUMO */
+        .resumo-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .resumo-card {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 20px;
+            text-align: center;
+        }
+
+        .resumo-label {
+            font-size: 12px;
+            color: var(--cor-texto-secundario);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .resumo-valor {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .resumo-valor.positivo {
+            color: var(--cor-sucesso);
+        }
+
+        .resumo-valor.negativo {
+            color: var(--cor-perigo);
+        }
+
+        /* TABELA */
+        .tabela-container {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+
+        th {
+            background: rgba(155, 89, 182, 0.1);
+            color: var(--cor-admin);
+            font-weight: 600;
+        }
+
+        .credito {
+            color: var(--cor-perigo);
+        }
+
+        .debito {
+            color: var(--cor-sucesso);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--cor-texto-secundario);
+        }
+
+        /* BOTÕES */
+        .btn-exportar {
+            background: var(--cor-sucesso);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            margin-left: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="logo">
+                <i class="fas fa-university"></i>
+                <span>CAMBIO BANK</span>
+            </div>
+            <h1>EXTRATO - <span id="contaTitulo">{{ conta_numero }}</span></h1>
+            <button class="btn-voltar" onclick="window.location.href='/admin/contas-bancarias'">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </button>
+        </header>
+
+        <!-- FILTROS -->
+        <div class="filtros-container">
+            <div class="filtros-header">
+                <button class="filtro-btn" data-periodo="7">7 dias</button>
+                <button class="filtro-btn" data-periodo="30">30 dias</button>
+                <button class="filtro-btn" data-periodo="90">90 dias</button>
+                <button class="filtro-btn" data-periodo="0">Todo período</button>
+                <button class="filtro-btn" data-periodo="personalizado">Personalizado</button>
+            </div>
+            
+            <div id="personalizadoGroup" style="display: none;">
+                <div class="filtro-personalizado">
+                    <div class="form-group">
+                        <label>Data Início</label>
+                        <input type="text" id="dataInicio" class="form-control" placeholder="DD/MM/AAAA">
+                    </div>
+                    <div class="form-group">
+                        <label>Data Fim</label>
+                        <input type="text" id="dataFim" class="form-control" placeholder="DD/MM/AAAA">
+                    </div>
+                    <button class="btn-exportar" onclick="aplicarFiltroPersonalizado()" style="margin-left: 0;">
+                        <i class="fas fa-search"></i> Aplicar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESUMO -->
+        <div class="resumo-grid">
+            <div class="resumo-card">
+                <div class="resumo-label">Saldo Atual</div>
+                <div class="resumo-valor" id="saldoAtual">R$ 0,00</div>
+            </div>
+            <div class="resumo-card">
+                <div class="resumo-label">Total Entradas</div>
+                <div class="resumo-valor positivo" id="totalEntradas">R$ 0,00</div>
+            </div>
+            <div class="resumo-card">
+                <div class="resumo-label">Total Saídas</div>
+                <div class="resumo-valor negativo" id="totalSaidas">R$ 0,00</div>
+            </div>
+            <div class="resumo-card">
+                <div class="resumo-label">Transações</div>
+                <div class="resumo-valor" id="totalTransacoes">0</div>
+            </div>
+        </div>
+
+        <!-- TABELA -->
+        <div class="tabela-container">
+            <table id="tabelaExtrato">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Descrição</th>
+                        <th>Crédito (Saída)</th>
+                        <th>Débito (Entrada)</th>
+                        <th>Saldo</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="extratoBody">
+                    <tr>
+                        <td colspan="6" class="loading">
+                            <i class="fas fa-spinner fa-spin"></i> Carregando...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let periodoAtual = '30';
+        let contaNumero = '{{ conta_numero }}';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Configurar filtros
+            document.querySelectorAll('.filtro-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    const periodo = btn.dataset.periodo;
+                    periodoAtual = periodo;
+                    
+                    if (periodo === 'personalizado') {
+                        document.getElementById('personalizadoGroup').style.display = 'block';
+                    } else {
+                        document.getElementById('personalizadoGroup').style.display = 'none';
+                        carregarExtrato();
+                    }
+                });
+            });
+            
+            // Ativar período padrão (30 dias)
+            const btn30 = document.querySelector('.filtro-btn[data-periodo="30"]');
+            if (btn30) btn30.classList.add('active');
+            
+            carregarExtrato();
+        });
+
+        async function carregarExtrato() {
+            const tbody = document.getElementById('extratoBody');
+            tbody.innerHTML = '<tr><td colspan="6" class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</td></tr>';
+            
+            try {
+                const response = await fetch('/api/admin/extrato-conta', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        conta_numero: contaNumero,
+                        periodo: periodoAtual
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    atualizarResumo(data);
+                    renderizarTabela(data.transacoes);
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="6" class="loading">❌ ${data.message}</td></tr>`;
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                tbody.innerHTML = '<tr><td colspan="6" class="loading">❌ Erro ao carregar extrato</td></tr>';
+            }
+        }
+
+        async function aplicarFiltroPersonalizado() {
+            const dataInicio = document.getElementById('dataInicio').value;
+            const dataFim = document.getElementById('dataFim').value;
+            
+            if (!dataInicio || !dataFim) {
+                alert('Preencha as datas de início e fim!');
+                return;
+            }
+            
+            const tbody = document.getElementById('extratoBody');
+            tbody.innerHTML = '<tr><td colspan="6" class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</td></tr>';
+            
+            try {
+                const response = await fetch('/api/admin/extrato-conta', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        conta_numero: contaNumero,
+                        periodo: 'personalizado',
+                        data_inicio: dataInicio,
+                        data_fim: dataFim
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    atualizarResumo(data);
+                    renderizarTabela(data.transacoes);
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="6" class="loading">❌ ${data.message}</td></tr>`;
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                tbody.innerHTML = '<tr><td colspan="6" class="loading">❌ Erro ao carregar extrato</td></tr>';
+            }
+        }
+
+        function atualizarResumo(data) {
+            const simbolo = obterSimboloMoeda(data.transacoes[0]?.moeda || 'USD');
+            
+            document.getElementById('saldoAtual').innerHTML = `${simbolo} ${formatarValor(data.saldo_final)}`;
+            document.getElementById('totalEntradas').innerHTML = `${simbolo} ${formatarValor(data.total_entradas)}`;
+            document.getElementById('totalSaidas').innerHTML = `${simbolo} ${formatarValor(data.total_saidas)}`;
+            document.getElementById('totalTransacoes').innerHTML = data.quantidade;
+            
+            if (data.saldo_final < 0) {
+                document.getElementById('saldoAtual').classList.add('negativo');
+                document.getElementById('saldoAtual').classList.remove('positivo');
+            } else {
+                document.getElementById('saldoAtual').classList.add('positivo');
+                document.getElementById('saldoAtual').classList.remove('negativo');
+            }
+        }
+
+        function renderizarTabela(transacoes) {
+            const tbody = document.getElementById('extratoBody');
+            
+            if (!transacoes || transacoes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="loading">Nenhuma transação encontrada</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = '';
+            
+            for (const t of transacoes) {
+                const row = tbody.insertRow();
+                
+                // Data
+                row.insertCell(0).textContent = formatarData(t.data);
+                
+                // Descrição
+                row.insertCell(1).textContent = t.descricao || t.tipo || '-';
+                
+                // Crédito (Saída)
+                const creditoCell = row.insertCell(2);
+                creditoCell.textContent = t.credito > 0 ? formatarValor(t.credito) : '';
+                creditoCell.className = 'credito';
+                
+                // Débito (Entrada)
+                const debitoCell = row.insertCell(3);
+                debitoCell.textContent = t.debito > 0 ? formatarValor(t.debito) : '';
+                debitoCell.className = 'debito';
+                
+                // Saldo
+                const saldoCell = row.insertCell(4);
+                saldoCell.textContent = formatarValor(t.saldo_apos);
+                saldoCell.className = t.saldo_apos < 0 ? 'negativo' : 'positivo';
+                
+                // Status
+                const statusCell = row.insertCell(5);
+                statusCell.textContent = t.status || 'completed';
+                if (t.status === 'rejected') statusCell.style.color = 'var(--cor-perigo)';
+                else if (t.status === 'pending') statusCell.style.color = 'var(--cor-alerta)';
+                else statusCell.style.color = 'var(--cor-sucesso)';
+            }
+        }
+
+        function formatarValor(valor) {
+            return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function formatarData(dataStr) {
+            if (!dataStr) return '';
+            try {
+                if (dataStr.includes('T')) {
+                    const data = new Date(dataStr);
+                    return data.toLocaleDateString('pt-BR') + ' ' + data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                }
+                return dataStr.split(' ')[0].split('-').reverse().join('/');
+            } catch {
+                return dataStr;
+            }
+        }
+
+        function obterSimboloMoeda(moeda) {
+            const simbolos = { USD: '$', EUR: '€', GBP: '£', BRL: 'R$' };
+            return simbolos[moeda] || moeda;
+        }
+    </script>
+</body>
+</html>
