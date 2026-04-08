@@ -6810,16 +6810,55 @@ def api_admin_extrato_conta():
             data_inicio_obj = datetime.now() - timedelta(days=dias)
             data_fim_obj = datetime.now()
         
-        # Buscar transações da conta
+        print(f"📅 Período: {data_inicio_obj} a {data_fim_obj}")
+        
+        # 🔥 CORREÇÃO: Buscar transações sem usar or_ (buscar separadamente)
         transacoes = []
         
-        # Buscar transferências onde a conta é remetente ou destinatário
-        response = supabase.table('transferencias')\
+        # Buscar transferências onde a conta é remetente (conta_remetente)
+        response1 = supabase.table('transferencias')\
             .select('*')\
-            .or_(f'conta_remetente.eq.{conta_numero},conta_destinatario.eq.{conta_numero},conta_origem.eq.{conta_numero},conta_destino.eq.{conta_numero}')\
+            .eq('conta_remetente', conta_numero)\
             .execute()
         
-        for transf in (response.data or []):
+        # Buscar transferências onde a conta é destinatário (conta_destinatario)
+        response2 = supabase.table('transferencias')\
+            .select('*')\
+            .eq('conta_destinatario', conta_numero)\
+            .execute()
+        
+        # Buscar transferências onde a conta é origem (conta_origem)
+        response3 = supabase.table('transferencias')\
+            .select('*')\
+            .eq('conta_origem', conta_numero)\
+            .execute()
+        
+        # Buscar transferências onde a conta é destino (conta_destino)
+        response4 = supabase.table('transferencias')\
+            .select('*')\
+            .eq('conta_destino', conta_numero)\
+            .execute()
+        
+        # Combinar todos os resultados
+        todas_transacoes = []
+        todas_transacoes.extend(response1.data or [])
+        todas_transacoes.extend(response2.data or [])
+        todas_transacoes.extend(response3.data or [])
+        todas_transacoes.extend(response4.data or [])
+        
+        # Remover duplicatas (usando id como chave)
+        transacoes_dict = {}
+        for t in todas_transacoes:
+            transacoes_dict[t['id']] = t
+        
+        transacoes = list(transacoes_dict.values())
+        
+        print(f"📊 Total de transações encontradas: {len(transacoes)}")
+        
+        # Processar transações
+        transacoes_processadas = []
+        
+        for transf in transacoes:
             # Filtrar por data
             data_transf = transf.get('created_at') or transf.get('data')
             if data_transf:
@@ -6831,21 +6870,24 @@ def api_admin_extrato_conta():
                     
                     if not (data_inicio_obj <= data_transf_obj <= data_fim_obj):
                         continue
-                except:
-                    pass
+                except Exception as e:
+                    print(f"⚠️ Erro ao processar data {data_transf}: {e}")
+                    continue
             
             tipo = transf.get('tipo', '')
             valor = float(transf.get('valor', 0))
             moeda = transf.get('moeda', 'USD')
             descricao = transf.get('descricao', '')
-            status = transf.get('status', '')
+            status = transf.get('status', 'completed')
             
             # Determinar se é entrada ou saída
             is_entrada = False
             is_saida = False
             
+            # Verificar se a conta é destinatário/destino (entrada de dinheiro)
             if transf.get('conta_destinatario') == conta_numero or transf.get('conta_destino') == conta_numero:
                 is_entrada = True
+            # Verificar se a conta é remetente/origem (saída de dinheiro)
             elif transf.get('conta_remetente') == conta_numero or transf.get('conta_origem') == conta_numero:
                 is_saida = True
             
@@ -6854,10 +6896,22 @@ def api_admin_extrato_conta():
                 tipo_ajuste = transf.get('tipo_ajuste', '')
                 if tipo_ajuste == 'DÉBITO':
                     is_entrada = True
-                else:
+                    is_saida = False
+                elif tipo_ajuste == 'CRÉDITO':
+                    is_entrada = False
                     is_saida = True
             
-            transacoes.append({
+            # Para depósitos
+            if tipo == 'deposito':
+                is_entrada = True
+                is_saida = False
+            
+            # Para saques
+            if tipo == 'saque':
+                is_entrada = False
+                is_saida = True
+            
+            transacoes_processadas.append({
                 'id': transf.get('id'),
                 'data': data_transf,
                 'descricao': descricao or f"{tipo.upper()}",
@@ -6868,29 +6922,31 @@ def api_admin_extrato_conta():
                 'status': status
             })
         
-        # Ordenar por data (mais recente primeiro)
-        transacoes.sort(key=lambda x: x.get('data', ''), reverse=True)
+        # Ordenar por data (mais antiga primeiro para calcular saldo)
+        transacoes_processadas.sort(key=lambda x: x.get('data', ''))
         
         # Calcular saldo sequencial
         saldo_atual = 0
-        for t in reversed(transacoes):
+        for t in transacoes_processadas:
             saldo_atual += t['debito'] - t['credito']
             t['saldo_apos'] = saldo_atual
         
         # Reverter para exibição (mais recente primeiro)
-        transacoes.reverse()
+        transacoes_processadas.reverse()
         
         # Calcular totais
-        total_entradas = sum(t['debito'] for t in transacoes)
-        total_saidas = sum(t['credito'] for t in transacoes)
+        total_entradas = sum(t['debito'] for t in transacoes_processadas)
+        total_saidas = sum(t['credito'] for t in transacoes_processadas)
+        
+        print(f"✅ Extrato processado: {len(transacoes_processadas)} transações")
         
         return jsonify({
             "success": True,
-            "transacoes": transacoes,
+            "transacoes": transacoes_processadas,
             "total_entradas": total_entradas,
             "total_saidas": total_saidas,
             "saldo_final": saldo_atual,
-            "quantidade": len(transacoes)
+            "quantidade": len(transacoes_processadas)
         })
         
     except Exception as e:

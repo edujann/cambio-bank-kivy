@@ -20,10 +20,12 @@
             --cor-texto: #e0e0e0;
             --cor-texto-secundario: #8b949e;
             --cor-primaria: #1a5fb4;
-            --cor-admin: #9b59b6;
+            --cor-admin: #1a5fb4;
             --cor-sucesso: #2ec27e;
             --cor-alerta: #f39c12;
             --cor-perigo: #e01b24;
+            --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.4);
             --borda-radius: 12px;
             --borda-radius-pequeno: 8px;
         }
@@ -40,6 +42,7 @@
             padding: 20px;
         }
 
+        /* HEADER */
         .app-header {
             display: flex;
             justify-content: space-between;
@@ -61,6 +64,19 @@
 
         .logo i {
             color: var(--cor-admin);
+            font-size: 28px;
+        }
+
+        .logo-text {
+            background: linear-gradient(90deg, var(--cor-admin), #2d8fff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: bold;
         }
 
         .btn-voltar {
@@ -70,6 +86,13 @@
             padding: 10px 20px;
             border-radius: var(--borda-radius-pequeno);
             cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-voltar:hover {
+            border-color: var(--cor-admin);
+            color: var(--cor-admin);
+            transform: translateY(-2px);
         }
 
         /* FILTROS */
@@ -98,6 +121,12 @@
             transition: all 0.3s ease;
         }
 
+        .filtro-btn:hover {
+            border-color: var(--cor-admin);
+            color: var(--cor-admin);
+            transform: translateY(-2px);
+        }
+
         .filtro-btn.active {
             background: var(--cor-admin);
             border-color: var(--cor-admin);
@@ -123,6 +152,13 @@
             border: 1px solid var(--cor-borda);
             border-radius: var(--borda-radius-pequeno);
             color: var(--cor-texto);
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--cor-admin);
+            box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2);
         }
 
         /* RESUMO */
@@ -139,6 +175,13 @@
             border-radius: var(--borda-radius);
             padding: 20px;
             text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .resumo-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--cor-admin);
+            box-shadow: var(--sombra-media);
         }
 
         .resumo-label {
@@ -181,17 +224,41 @@
         }
 
         th {
-            background: rgba(155, 89, 182, 0.1);
+            background: rgba(26, 95, 180, 0.1);
             color: var(--cor-admin);
             font-weight: 600;
         }
 
+        tr:hover {
+            background: rgba(26, 95, 180, 0.05);
+        }
+
         .credito {
             color: var(--cor-perigo);
+            font-weight: 600;
         }
 
         .debito {
             color: var(--cor-sucesso);
+            font-weight: 600;
+        }
+
+        /* BOTÕES */
+        .btn-exportar {
+            background: var(--cor-admin);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            margin-left: auto;
+            transition: all 0.3s ease;
+        }
+
+        .btn-exportar:hover {
+            background: #2d8fff;
+            transform: translateY(-2px);
+            box-shadow: var(--sombra-suave);
         }
 
         .loading {
@@ -200,15 +267,35 @@
             color: var(--cor-texto-secundario);
         }
 
-        /* BOTÕES */
-        .btn-exportar {
-            background: var(--cor-sucesso);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: var(--borda-radius-pequeno);
-            cursor: pointer;
-            margin-left: auto;
+        .loading i {
+            font-size: 32px;
+            margin-bottom: 10px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* RESPONSIVIDADE */
+        @media (max-width: 768px) {
+            .resumo-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .filtros-header {
+                justify-content: center;
+            }
+            
+            .filtro-personalizado {
+                flex-direction: column;
+            }
+            
+            .btn-exportar {
+                margin-left: 0;
+                width: 100%;
+            }
         }
     </style>
 </head>

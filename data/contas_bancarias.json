@@ -62,22 +62,22 @@
         "agencia": null,
         "saldo_inicial": 0.0
     },
-    "BANK_USD_001": {
-        "numero": "BANK_USD_001",
-        "banco": "Banco Principal",
-        "moeda": "USD",
-        "saldo": 660000.0,
-        "tipo": "empresa",
-        "agencia": null,
-        "saldo_inicial": 0.0
-    },
     "GABLES_BRL_001": {
         "numero": "GABLES_BRL_001",
         "banco": "GABLES BANK",
         "moeda": "BRL",
-        "saldo": 3063241.62,
+        "saldo": 3011241.62,
         "tipo": "empresa",
         "agencia": "0001",
+        "saldo_inicial": 0.0
+    },
+    "BANK_USD_001": {
+        "numero": "BANK_USD_001",
+        "banco": "Banco Principal",
+        "moeda": "USD",
+        "saldo": 670000.0,
+        "tipo": "empresa",
+        "agencia": null,
         "saldo_inicial": 0.0
     },
     "BANK_EUR_001": {
