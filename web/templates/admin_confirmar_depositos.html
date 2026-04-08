@@ -485,8 +485,9 @@
         // ============================================
         let clientes = [];
         let contasEmpresa = [];
-        let dadosConfirmacao = null;
-        let modalConfirmacaoAberto = false;
+        
+        // Variável para armazenar dados da confirmação
+        let pendingDeposit = null;
 
         // ============================================
         // INICIALIZAÇÃO
@@ -522,7 +523,7 @@
                     if (activeElement && activeElement.id === 'valorInput') {
                         confirmarDeposito();
                     } else if (activeElement && activeElement.tagName === 'BUTTON') {
-                        // Se for botão, não fazer nada (deixar o clique normal)
+                        // Se for botão, não fazer nada
                     } else {
                         proximoCampo();
                     }
@@ -575,7 +576,7 @@
         }
 
         // ============================================
-        // EVENTOS
+        // EVENTOS DOS SELECTS
         // ============================================
         const clienteSelect = document.getElementById('clienteSelect');
         if (clienteSelect) {
@@ -690,7 +691,6 @@
         function formatarValor(e) {
             let valor = e.target.value;
             
-            // Remover tudo que não é número
             let numeros = valor.replace(/[^\d]/g, '');
             
             if (numeros === '') {
@@ -698,28 +698,23 @@
                 return;
             }
             
-            // Limitar a 11 dígitos
             if (numeros.length > 11) {
                 numeros = numeros.slice(-11);
             }
             
-            // Garantir pelo menos 3 dígitos
             while (numeros.length < 3) {
                 numeros = '0' + numeros;
             }
             
-            // Separar parte inteira e decimal
             let parteInteira = numeros.slice(0, -2);
             let parteDecimal = numeros.slice(-2);
             
-            // Remover zeros à esquerda da parte inteira
             if (parteInteira) {
                 parteInteira = parseInt(parteInteira).toString();
             } else {
                 parteInteira = '0';
             }
             
-            // Formatar parte inteira com separador de milhar
             parteInteira = parteInteira.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
             
             e.target.value = `${parteInteira},${parteDecimal}`;
@@ -762,7 +757,6 @@
             }
             
             if (indexAtual === -1) {
-                // Se nenhum campo está focado, focar no primeiro
                 const primeiroCampo = document.getElementById(camposOrdem[0]);
                 if (primeiroCampo) primeiroCampo.focus();
                 return;
@@ -772,7 +766,6 @@
             let contador = 0;
             let proximoCampo = document.getElementById(camposOrdem[proximoIndex]);
             
-            // Pular campos desabilitados ou ocultos (com limite para evitar loop infinito)
             while (proximoCampo && (proximoCampo.disabled || (proximoCampo.classList && proximoCampo.classList.contains('hidden'))) && contador < camposOrdem.length) {
                 proximoIndex = (proximoIndex + 1) % camposOrdem.length;
                 proximoCampo = document.getElementById(camposOrdem[proximoIndex]);
@@ -837,9 +830,11 @@
         }
 
         // ============================================
-        // CONFIRMAÇÃO
+        // CONFIRMAR DEPÓSITO (abre modal)
         // ============================================
         function confirmarDeposito() {
+            console.log('🔍 confirmarDeposito() chamado');
+            
             if (!validarCampos()) return;
             
             const bancoOrigem = getBancoOrigem();
@@ -865,8 +860,8 @@
             const remetente = document.getElementById('remetenteInput').value.trim();
             const valor = getValorNumerico();
             
-            // Salvar dados para confirmação
-            dadosConfirmacao = {
+            // Salvar dados na variável global
+            pendingDeposit = {
                 username: username,
                 clienteTexto: clienteTexto,
                 contaClienteNumero: contaCliente.numero,
@@ -879,8 +874,9 @@
                 valor: valor
             };
             
-            console.log('📦 Dados de confirmação salvos:', dadosConfirmacao);
+            console.log('📦 pendingDeposit salvo:', pendingDeposit);
             
+            // Preencher modal de confirmação
             const modalBody = document.getElementById('modalConfirmacaoBody');
             if (modalBody) {
                 modalBody.innerHTML = `
@@ -898,35 +894,36 @@
                 `;
             }
             
+            // Abrir modal
             document.getElementById('modalConfirmacao').classList.add('active');
-            modalConfirmacaoAberto = true;
         }
 
         // ============================================
-        // EXECUTAR DEPÓSITO
+        // EXECUTAR DEPÓSITO (chamado do modal)
         // ============================================
         async function executarDeposito() {
-            console.log('🔍 executarDeposito chamado');
-            console.log('dadosConfirmacao:', dadosConfirmacao);
+            console.log('🔍 executarDeposito() chamado');
+            console.log('pendingDeposit:', pendingDeposit);
             
-            // Verificar se dadosConfirmacao existe
-            if (!dadosConfirmacao) {
-                console.error('❌ dadosConfirmacao é null!');
+            // Verificar se pendingDeposit existe
+            if (!pendingDeposit) {
+                console.error('❌ pendingDeposit é null!');
                 mostrarErro('Erro: Dados de confirmação não encontrados. Tente novamente.');
                 fecharModalConfirmacao();
                 return;
             }
             
             // Verificar se username existe
-            if (!dadosConfirmacao.username) {
-                console.error('❌ dadosConfirmacao.username é null!');
+            if (!pendingDeposit.username) {
+                console.error('❌ pendingDeposit.username é null!');
                 mostrarErro('Erro: Usuário não identificado. Tente novamente.');
                 fecharModalConfirmacao();
                 return;
             }
             
-            console.log('✅ Dados válidos, processando depósito...');
+            console.log('✅ Dados válidos, processando depósito para:', pendingDeposit.username);
             
+            // Fechar modal de confirmação
             fecharModalConfirmacao();
             
             try {
@@ -934,13 +931,13 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        username: dadosConfirmacao.username,
-                        conta_cliente: dadosConfirmacao.contaClienteNumero,
-                        conta_empresa: dadosConfirmacao.contaEmpresa,
-                        banco_origem: dadosConfirmacao.bancoOrigem,
-                        remetente: dadosConfirmacao.remetente,
-                        valor: dadosConfirmacao.valor,
-                        moeda: dadosConfirmacao.contaClienteMoeda
+                        username: pendingDeposit.username,
+                        conta_cliente: pendingDeposit.contaClienteNumero,
+                        conta_empresa: pendingDeposit.contaEmpresa,
+                        banco_origem: pendingDeposit.bancoOrigem,
+                        remetente: pendingDeposit.remetente,
+                        valor: pendingDeposit.valor,
+                        moeda: pendingDeposit.contaClienteMoeda
                     })
                 });
                 
@@ -948,7 +945,7 @@
                 console.log('📥 Resposta do servidor:', data);
                 
                 if (data.success) {
-                    const novoSaldo = dadosConfirmacao.contaClienteSaldo + dadosConfirmacao.valor;
+                    const novoSaldo = pendingDeposit.contaClienteSaldo + pendingDeposit.valor;
                     
                     const modalBody = document.getElementById('modalSucessoBody');
                     if (modalBody) {
@@ -956,12 +953,12 @@
                             <div class="info-card" style="background: rgba(46, 194, 126, 0.1); border-color: var(--cor-sucesso);">
                                 <i class="fas fa-check-circle"></i> Depósito confirmado com sucesso!
                             </div>
-                            <p><strong>Valor:</strong> ${formatarValorMonetario(dadosConfirmacao.valor)} ${dadosConfirmacao.contaClienteMoeda}</p>
-                            <p><strong>Cliente:</strong> ${escapeHtml(dadosConfirmacao.clienteTexto)}</p>
-                            <p><strong>Conta:</strong> ${dadosConfirmacao.contaClienteNumero}</p>
-                            <p><strong>Banco:</strong> ${escapeHtml(dadosConfirmacao.bancoOrigem)}</p>
-                            <p><strong>Saldo anterior:</strong> ${formatarValorMonetario(dadosConfirmacao.contaClienteSaldo)} ${dadosConfirmacao.contaClienteMoeda}</p>
-                            <p><strong>Novo saldo:</strong> ${formatarValorMonetario(novoSaldo)} ${dadosConfirmacao.contaClienteMoeda}</p>
+                            <p><strong>Valor:</strong> ${formatarValorMonetario(pendingDeposit.valor)} ${pendingDeposit.contaClienteMoeda}</p>
+                            <p><strong>Cliente:</strong> ${escapeHtml(pendingDeposit.clienteTexto)}</p>
+                            <p><strong>Conta:</strong> ${pendingDeposit.contaClienteNumero}</p>
+                            <p><strong>Banco:</strong> ${escapeHtml(pendingDeposit.bancoOrigem)}</p>
+                            <p><strong>Saldo anterior:</strong> ${formatarValorMonetario(pendingDeposit.contaClienteSaldo)} ${pendingDeposit.contaClienteMoeda}</p>
+                            <p><strong>Novo saldo:</strong> ${formatarValorMonetario(novoSaldo)} ${pendingDeposit.contaClienteMoeda}</p>
                             <p style="color: var(--cor-sucesso);"><strong>${data.status_supabase || '✅ Sincronizado com Supabase'}</strong></p>
                         `;
                     }
@@ -969,17 +966,32 @@
                     document.getElementById('modalSucesso').classList.add('active');
                     
                     // Recarregar contas do cliente para atualizar o saldo nos selects
-                    await carregarContasCliente(dadosConfirmacao.username);
+                    await carregarContasCliente(pendingDeposit.username);
                     
                     // Limpar campos (manter cliente selecionado)
-                    document.getElementById('contaClienteSelect').value = '';
-                    document.getElementById('contaEmpresaSelect').innerHTML = '<option value="">Selecione primeiro uma conta do cliente...</option>';
-                    document.getElementById('contaEmpresaSelect').disabled = true;
-                    document.getElementById('bancoOrigemSelect').value = 'Outro Banco';
-                    document.getElementById('outroBancoInput').value = '';
-                    document.getElementById('outroBancoInput').classList.remove('hidden');
-                    document.getElementById('remetenteInput').value = '';
-                    document.getElementById('valorInput').value = '0,00';
+                    const contaClienteSelect = document.getElementById('contaClienteSelect');
+                    if (contaClienteSelect) contaClienteSelect.value = '';
+                    
+                    const contaEmpresaSelect = document.getElementById('contaEmpresaSelect');
+                    if (contaEmpresaSelect) {
+                        contaEmpresaSelect.innerHTML = '<option value="">Selecione primeiro uma conta do cliente...</option>';
+                        contaEmpresaSelect.disabled = true;
+                    }
+                    
+                    const bancoSelect = document.getElementById('bancoOrigemSelect');
+                    if (bancoSelect) bancoSelect.value = 'Outro Banco';
+                    
+                    const outroBancoInput = document.getElementById('outroBancoInput');
+                    if (outroBancoInput) {
+                        outroBancoInput.value = '';
+                        outroBancoInput.classList.remove('hidden');
+                    }
+                    
+                    const remetenteInput = document.getElementById('remetenteInput');
+                    if (remetenteInput) remetenteInput.value = '';
+                    
+                    const valorInput = document.getElementById('valorInput');
+                    if (valorInput) valorInput.value = '0,00';
                     
                     // Focar no banco de origem
                     document.getElementById('bancoOrigemSelect').focus();
@@ -991,8 +1003,8 @@
                 mostrarErro('Erro ao processar depósito: ' + error.message);
             }
             
-            // Limpar dados de confirmação
-            dadosConfirmacao = null;
+            // Limpar pendingDeposit
+            pendingDeposit = null;
         }
 
         // ============================================
@@ -1039,8 +1051,7 @@
         // ============================================
         function fecharModalConfirmacao() {
             document.getElementById('modalConfirmacao').classList.remove('active');
-            modalConfirmacaoAberto = false;
-            dadosConfirmacao = null;
+            // Não limpar pendingDeposit aqui para permitir reabrir se necessário
         }
 
         function fecharModalSucesso() {

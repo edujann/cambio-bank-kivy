@@ -230,6 +230,13 @@
         "cliente_nome": "THIERRY IMPORTERS LTDA",
         "data_criacao": "2025-12-19"
     },
+    "713651820": {
+        "moeda": "USD",
+        "saldo": 2000.0,
+        "cliente": "texaco",
+        "cliente_nome": "TEXACO LLC",
+        "data_criacao": "2025-11-01"
+    },
     "608201541": {
         "moeda": "BRL",
         "saldo": 0.0,
@@ -363,13 +370,6 @@
         "cliente_nome": "INTERPRESS LIMITADA",
         "data_criacao": "2025-11-20"
     },
-    "713651820": {
-        "moeda": "USD",
-        "saldo": 2310.61,
-        "cliente": "texaco",
-        "cliente_nome": "TEXACO LLC",
-        "data_criacao": "2025-11-01"
-    },
     "997174979": {
         "moeda": "BRL",
         "saldo": 0.0,
@@ -484,7 +484,7 @@
     },
     "792916936": {
         "moeda": "USD",
-        "saldo": 9301.0,
+        "saldo": 80.0,
         "cliente": "edinho",
         "cliente_nome": "EDINHO ENTERPRISE",
         "data_criacao": "2025-12-22"

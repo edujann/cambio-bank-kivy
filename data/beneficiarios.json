@@ -35,8 +35,8 @@
             "cidade": "SHANDONG",
             "pais": "CHINA",
             "endereco_banco": "CHARTER HOUSE, 8 CONNAUGHT ROAD",
-            "cidade_banco": null,
-            "pais_banco": null,
+            "cidade_banco": "BEIJIN",
+            "pais_banco": "CHINA",
             "aba": ""
         }
     ],
@@ -275,19 +275,6 @@
             "aba": ""
         },
         {
-            "nome": "HUIZHOU MAITONG OPTOELECTRONIC TECHNOLOGY CO., LTD",
-            "banco": "THE AGRICULTURAL BANK OF CHINA",
-            "swift": "ABOCCNBJ190",
-            "iban": "4424391404000086",
-            "endereco": "FLOORS 4 AND 5, BUIDING C, ANTON INDUSTRIAL PARK, LONXI STREET",
-            "cidade": "HUIZHOU CITY",
-            "pais": "CHINA",
-            "endereco_banco": "96 LUOYANG 1 ROAD",
-            "cidade_banco": "HUIZHOU ",
-            "pais_banco": "CHINA",
-            "aba": ""
-        },
-        {
             "nome": "JBL INTERNATIONAL LIMITED",
             "banco": "HSBC HONG KONG",
             "swift": "HSBCHKHH",
@@ -325,6 +312,45 @@
             "cidade_banco": null,
             "pais_banco": null,
             "aba": ""
+        },
+        {
+            "nome": "HK NAGA IMPORT & EXPORT LIMITED",
+            "banco": "China CITIC Bank, yiwu Branch",
+            "swift": "CIBKCNBJ322",
+            "iban": "NRA8110814013702481753",
+            "endereco": "SHOP F28,1/F CATHAY PACIFIC 88 MALLS NO 125 WANCHAI RD",
+            "cidade": "HONG KONG",
+            "pais": "CHINA",
+            "endereco_banco": "floor 12 yiwu international business center no.399 yinhai road",
+            "cidade_banco": "YIWU",
+            "pais_banco": "CHINA",
+            "aba": ""
+        },
+        {
+            "nome": "HUIZHOU MAITONG OPTOELECTRONIC TECHNOLOGY CO., LTD",
+            "banco": "THE AGRICULTURAL BANK OF CHINA",
+            "swift": "ABOCCNBJ190",
+            "iban": "44243914040000860",
+            "endereco": "FLOORS 4 AND 5, BUIDING C, ANTON INDUSTRIAL PARK, LONXI STREET",
+            "cidade": "HUIZHOU CITY",
+            "pais": "CHINA",
+            "endereco_banco": "96 LUOYANG 1 ROAD",
+            "cidade_banco": "HUIZHOU ",
+            "pais_banco": "CHINA",
+            "aba": ""
+        },
+        {
+            "nome": "HANGZHOU JIANYE CABLE CO., LTD",
+            "banco": "Shanghai Pudong Development Bank",
+            "swift": "SPDBCNSH336",
+            "iban": "95080078814100002153",
+            "endereco": "1,Xujiatou,Gaoyuan Village,Linglong Street",
+            "cidade": "HANGZHOU",
+            "pais": "CHINA",
+            "endereco_banco": "417 QIANWANG STREET",
+            "cidade_banco": "HANGZHOU",
+            "pais_banco": "CHINA",
+            "aba": ""
         }
     ],
     "thierry": [
@@ -338,6 +364,19 @@
             "pais": "CHINA",
             "endereco_banco": "NO.37 NORTH YOUYI ROAD",
             "cidade_banco": "TIANJIN",
+            "pais_banco": "CHINA",
+            "aba": ""
+        },
+        {
+            "nome": "Tianjin ZYX Bicycle Co., Ltd.",
+            "banco": "CITIBANK, N.A., HONG KONG",
+            "swift": "CITIHKHX",
+            "iban": "3996000861583",
+            "endereco": "Qijie Village,Wangqingtuo Town",
+            "cidade": "TIANJIN",
+            "pais": "CHINA",
+            "endereco_banco": "Champion Tower, Three Garden Road",
+            "cidade_banco": "HONG KONG",
             "pais_banco": "CHINA",
             "aba": ""
         }
@@ -354,21 +393,6 @@
             "endereco_banco": "PLAZA DE BARCELONA 5",
             "cidade_banco": "ALMERIA",
             "pais_banco": "SPAIN",
-            "aba": ""
-        }
-    ],
-    "edinho": [
-        {
-            "nome": "ZHEJIANG TODO HARDWARE MANUFACTURE CO.,LTD",
-            "banco": "BANK OF TAIZHOU",
-            "swift": "TZBKCNBT",
-            "iban": "530224135500032",
-            "endereco": "31TH FLOOR, JINMAO BUILDING,CBD CENTER",
-            "cidade": "ZHEJIANG",
-            "pais": "CHINA",
-            "endereco_banco": "699, SHIFU AVENUE",
-            "cidade_banco": "ZHEJIANG",
-            "pais_banco": "CHINA",
             "aba": ""
         }
     ],
@@ -405,15 +429,195 @@
     "romolo": [
         {
             "nome": "GIULIANA ROMOLI",
+            "banco": "CAIXABANK, S.A.",
+            "swift": "CAIXESBB",
+            "iban": "ES1521002020470700116142",
             "endereco": "CL MAYOR 33 PI.03 PTA.IZ",
             "cidade": "ALICANTE",
             "pais": "SPAIN",
-            "banco": "CAIXABANK, S.A.",
             "endereco_banco": "CALLE PINTOR SOROLLA 2-4",
             "cidade_banco": "VALENCIA",
             "pais_banco": "SPAIN",
-            "swift": "CAIXESBB",
-            "iban": "ES1521002020470700116142",
+            "aba": ""
+        }
+    ],
+    "aligator": [
+        {
+            "nome": "CHENG FENG LIMITED",
+            "banco": "HSBC HONG KONG",
+            "swift": "HSBCHKHHH",
+            "iban": "9654654654654",
+            "endereco": "232 PING PONG STREET",
+            "cidade": "SHANGAI",
+            "pais": "CHINA",
+            "endereco_banco": "1 CENTRAL ROAD",
+            "cidade_banco": "HONG KONG",
+            "pais_banco": "CHINA",
+            "aba": ""
+        }
+    ],
+    "edinho": [
+        {
+            "nome": "ZHEJIANG STABLE TECHNOLOGY CO., LTD",
+            "banco": "ZHEJIANG CHOUZHOU COMMERCIAL BANK",
+            "swift": "CZCBCN2X",
+            "iban": "NRA15602142010500009711",
+            "endereco": "No. 1 Jinfei road",
+            "cidade": "RUIAN WENZHOU",
+            "pais": "CHINA",
+            "endereco_banco": "East side of Yiwu Park Jiangbin Road,",
+            "cidade_banco": "YIWU",
+            "pais_banco": "CHINA",
+            "aba": ""
+        },
+        {
+            "nome": "Huizhou Boshijie Technology Co.,Ltd",
+            "banco": "BANK OF CHINA HUIZHOU ZHONGKAI SUB-BRANCH",
+            "swift": "BKCHCNBJ47A",
+            "iban": "669170871602",
+            "endereco": "Boshijie industrial park, No.1 xisan road",
+            "cidade": "Huizhou",
+            "pais": "China",
+            "endereco_banco": "NO.34district,Headquarter Building",
+            "cidade_banco": "HUIZHOU",
+            "pais_banco": "CHINA",
+            "aba": ""
+        },
+        {
+            "nome": "ZHEJIANG TODO HARDWARE MANUFACTURE CO.,LTD",
+            "banco": "BANK OF NINGBO JINHUA BRANCH",
+            "swift": "BKNBCN2NJIN",
+            "iban": "79012025000111152",
+            "endereco": "31TH FLOOR, JINMAO BUILDING,CBD CENTER",
+            "cidade": "ZHEJIANG",
+            "pais": "CHINA",
+            "endereco_banco": "NO.1028 SOUTH SHUANGLONG ROAD, WUCHENG",
+            "cidade_banco": "JINHUA",
+            "pais_banco": "CHINA",
+            "aba": ""
+        },
+        {
+            "nome": "YUNHUI HK INDUSTRY LIMITED",
+            "banco": "THE HONGKONG AND SHANGHAI BANKING CORPORATION LIMITED",
+            "swift": "HSBCHKHHHKH",
+            "iban": "521149435838",
+            "endereco": "604,6/F,EASEY COMMERCIAL BUILDING,253-261 HENNESSY ROAD",
+            "cidade": "HONG KONG",
+            "pais": "CHINA",
+            "endereco_banco": "1 QUEEN'S ROAD CENTRAL",
+            "cidade_banco": "HONG KONG",
+            "pais_banco": "CHINA",
+            "aba": ""
+        },
+        {
+            "nome": "ZHEJIANG DUOKAIRONG INDUSTRY AND TRADE CO.,LTD",
+            "banco": "ZHEJIANG RURAL CREDIT COOPERATIVE UNION",
+            "swift": "ZJRCCN2N",
+            "iban": "201000200602319",
+            "endereco": "NO.9 JINYANSHAN INDUSTRIAL ZONE QUANXI TOW",
+            "cidade": "WUYI",
+            "pais": "CHINA",
+            "endereco_banco": "No.660 Qiutao Road",
+            "cidade_banco": "Hangzhou",
+            "pais_banco": "CHINA",
+            "aba": ""
+        },
+        {
+            "nome": "JINGMEI TECHNOLOGY(HK) INDUSTRY LIMITED",
+            "endereco": "3rd Floor, Flat D, Waylee Ind. Center",
+            "cidade": "Hong Kong",
+            "pais": "China",
+            "banco": "HSBC Hong Kong",
+            "endereco_banco": "1 Queen's Road Central",
+            "cidade_banco": "Hong Kong",
+            "pais_banco": "China",
+            "swift": "HSBCHKHHHKH",
+            "iban": "801108283838",
+            "aba": "",
+            "data_cadastro": "2026-04-08 15:15:44"
+        }
+    ],
+    "mascambio": [
+        {
+            "nome": "NEW PRO AV COMMERCE AND SERVICES LLC",
+            "banco": "BANK OF AMERICA",
+            "swift": "BOFAUS3N",
+            "iban": "898136973598",
+            "endereco": "1199 W FLAGLER ST STE 8",
+            "cidade": "MIAMI",
+            "pais": "USA",
+            "endereco_banco": "3025 NW 87th Ave Miami",
+            "cidade_banco": "MIAMI",
+            "pais_banco": "USA",
+            "aba": ""
+        },
+        {
+            "nome": "RUITONG HONG KONG LIMITED",
+            "banco": "BANK OF TAIZHOU CO., LTD",
+            "swift": "TZBKCNBTXXX",
+            "iban": "NRA550865079500017",
+            "endereco": "4/F LLADRO CENTRE 72 HOI YUEN ROAD",
+            "cidade": "HONG KONG",
+            "pais": "CHINA",
+            "endereco_banco": "No 699, SHIFU DADAO, TAIZHOU",
+            "cidade_banco": "ZHEJIANG",
+            "pais_banco": "CHINA",
+            "aba": ""
+        }
+    ],
+    "interpress": [
+        {
+            "nome": "A S BHARAT OVERSEAS",
+            "banco": "AXIS BANK LTD",
+            "swift": "AXISINBB644",
+            "iban": "923020044230111",
+            "endereco": "V-13/143, V-5, GALI NO. 1, ARVIND NAGAR, BRAHAMPURI",
+            "cidade": "DELHI",
+            "pais": "INDIA",
+            "endereco_banco": "E-9, NARAIINA VIHAR",
+            "cidade_banco": "DELHI",
+            "pais_banco": "INDIA",
+            "aba": ""
+        },
+        {
+            "nome": "PARI FASHION",
+            "banco": "INDUSIND BANK LIMITED",
+            "swift": "INDBINBBNDH",
+            "iban": "259315998922",
+            "endereco": "25ª/18 LANE NO.16 BHOLA NATH NAGAR",
+            "cidade": "DELHI",
+            "pais": "INDIA",
+            "endereco_banco": "BARAKHAMBA",
+            "cidade_banco": "NEW DELHI",
+            "pais_banco": "INDIA",
+            "aba": ""
+        }
+    ],
+    "neosoro": [
+        {
+            "nome": "JING SENG DONG LIMITED",
+            "banco": "HSBC HONG KONG",
+            "swift": "HSBCHKHHH",
+            "iban": "6546543213241212",
+            "endereco": "65 FING FENG STREET",
+            "cidade": "SHANGAI",
+            "pais": "CHINA",
+            "endereco_banco": "CHINA",
+            "cidade_banco": "HONG KONG",
+            "pais_banco": "CHINA",
+            "aba": ""
+        },
+        {
+            "nome": "Nanjing Cellnuo Biopharmaceutical Co.,Ltd",
+            "banco": "Agricultural Bank of China",
+            "swift": "ABOCCNBJ100",
+            "iban": "10122014040004131",
+            "endereco": "First Floor, Building 5, Phase II, Zijin Fangshan, No. 199Wenfang Road,",
+            "cidade": "Nanjing",
+            "pais": "China",
+            "endereco_banco": "NO.11 WENDE EAST ROAD, JIANGPU STREET",
+            "cidade_banco": "NANJING",
+            "pais_banco": "CHINA",
             "aba": ""
         }
     ]
