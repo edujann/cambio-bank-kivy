@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏦 Cambio Bank - Aprovar Operações</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --cor-fundo: #0a0e15;
+            --cor-card: #0d1117;
+            --cor-borda: #1e232e;
+            --cor-texto: #e0e0e0;
+            --cor-texto-secundario: #8b949e;
+            --cor-primaria: #1a5fb4;
+            --cor-admin: #1a5fb4;
+            --cor-sucesso: #2ec27e;
+            --cor-alerta: #f39c12;
+            --cor-perigo: #e01b24;
+            --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.4);
+            --borda-radius: 12px;
+            --borda-radius-pequeno: 8px;
+        }
+
+        body {
+            background: var(--cor-fundo);
+            color: var(--cor-texto);
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* HEADER */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--cor-borda);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .logo i {
+            color: var(--cor-admin);
+            font-size: 28px;
+        }
+
+        .logo-text {
+            background: linear-gradient(90deg, var(--cor-admin), #2d8fff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .badge-admin {
+            background: var(--cor-admin);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .btn-voltar {
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            padding: 10px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-voltar:hover {
+            border-color: var(--cor-admin);
+            color: var(--cor-admin);
+            transform: translateY(-2px);
+        }
+
+        /* BOTÕES PRINCIPAIS */
+        .botoes-principais {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn-acao {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: var(--borda-radius);
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .btn-acao i {
+            font-size: 20px;
+            margin-right: 10px;
+        }
+
+        .btn-aprovar {
+            background: rgba(46, 194, 126, 0.2);
+            color: var(--cor-sucesso);
+            border: 1px solid var(--cor-sucesso);
+        }
+
+        .btn-aprovar:hover {
+            background: var(--cor-sucesso);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .btn-recusar {
+            background: rgba(224, 27, 36, 0.2);
+            color: var(--cor-perigo);
+            border: 1px solid var(--cor-perigo);
+        }
+
+        .btn-recusar:hover {
+            background: var(--cor-perigo);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .btn-concluir {
+            background: rgba(26, 95, 180, 0.2);
+            color: var(--cor-primaria);
+            border: 1px solid var(--cor-primaria);
+        }
+
+        .btn-concluir:hover {
+            background: var(--cor-primaria);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .btn-detalhes {
+            background: rgba(155, 89, 182, 0.2);
+            color: #9b59b6;
+            border: 1px solid #9b59b6;
+        }
+
+        .btn-detalhes:hover {
+            background: #9b59b6;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .btn-invoice {
+            background: rgba(241, 196, 15, 0.2);
+            color: #f1c40f;
+            border: 1px solid #f1c40f;
+        }
+
+        .btn-invoice:hover {
+            background: #f1c40f;
+            color: black;
+            transform: translateY(-2px);
+        }
+
+        /* TABS */
+        .tabs-container {
+            margin-bottom: 30px;
+        }
+
+        .tabs-header {
+            display: flex;
+            gap: 5px;
+            border-bottom: 1px solid var(--cor-borda);
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--cor-texto-secundario);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .tab-btn:hover {
+            color: var(--cor-texto);
+            background: rgba(26, 95, 180, 0.1);
+        }
+
+        .tab-btn.active {
+            color: var(--cor-admin);
+            border-bottom: 2px solid var(--cor-admin);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* ESTATÍSTICAS */
+        .stats-bar {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .stats-info {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--cor-texto-secundario);
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .stat-value.pendente {
+            color: var(--cor-alerta);
+        }
+
+        .stat-value.processando {
+            color: var(--cor-primaria);
+        }
+
+        /* LISTA DE TRANSFERÊNCIAS */
+        .transferencias-lista {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            overflow: hidden;
+        }
+
+        .transferencia-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--cor-borda);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .transferencia-item:hover {
+            background: rgba(26, 95, 180, 0.05);
+        }
+
+        .transferencia-item.selected {
+            background: rgba(26, 95, 180, 0.15);
+            border-left: 3px solid var(--cor-admin);
+        }
+
+        .transferencia-info {
+            flex: 1;
+        }
+
+        .transferencia-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .transferencia-id {
+            font-weight: bold;
+            font-size: 14px;
+            color: var(--cor-admin);
+        }
+
+        .transferencia-tipo {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .tipo-internacional {
+            background: rgba(26, 95, 180, 0.2);
+            color: var(--cor-primaria);
+        }
+
+        .tipo-interna {
+            background: rgba(46, 194, 126, 0.2);
+            color: var(--cor-sucesso);
+        }
+
+        .invoice-status {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .invoice-aprovada {
+            background: rgba(46, 194, 126, 0.2);
+            color: var(--cor-sucesso);
+        }
+
+        .invoice-pendente {
+            background: rgba(243, 156, 18, 0.2);
+            color: var(--cor-alerta);
+        }
+
+        .invoice-recusada {
+            background: rgba(224, 27, 36, 0.2);
+            color: var(--cor-perigo);
+        }
+
+        .invoice-sem {
+            background: rgba(139, 148, 158, 0.2);
+            color: var(--cor-texto-secundario);
+        }
+
+        .transferencia-detalhes {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            color: var(--cor-texto-secundario);
+            flex-wrap: wrap;
+        }
+
+        .transferencia-cliente {
+            color: var(--cor-texto);
+        }
+
+        .transferencia-valor {
+            font-weight: bold;
+        }
+
+        .transferencia-valor.positivo {
+            color: var(--cor-sucesso);
+        }
+
+        .transferencia-valor.negativo {
+            color: var(--cor-perigo);
+        }
+
+        .transferencia-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-item {
+            padding: 8px 15px;
+            border: none;
+            border-radius: var(--borda-radius-pequeno);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-item-aprovar {
+            background: var(--cor-sucesso);
+            color: white;
+        }
+
+        .btn-item-aprovar:hover {
+            background: #239b56;
+            transform: translateY(-2px);
+        }
+
+        .btn-item-recusar {
+            background: var(--cor-perigo);
+            color: white;
+        }
+
+        .btn-item-recusar:hover {
+            background: #b91c1c;
+            transform: translateY(-2px);
+        }
+
+        .btn-item-concluir {
+            background: var(--cor-primaria);
+            color: white;
+        }
+
+        .btn-item-concluir:hover {
+            background: #2d8fff;
+            transform: translateY(-2px);
+        }
+
+        .btn-item-detalhes {
+            background: #9b59b6;
+            color: white;
+        }
+
+        .btn-item-detalhes:hover {
+            background: #8e44ad;
+            transform: translateY(-2px);
+        }
+
+        .btn-item-invoice {
+            background: #f1c40f;
+            color: black;
+        }
+
+        .btn-item-invoice:hover {
+            background: #e67e22;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* LOADING */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--cor-texto-secundario);
+        }
+
+        .loading i {
+            font-size: 32px;
+            margin-bottom: 10px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .sem-dados {
+            text-align: center;
+            padding: 40px;
+            color: var(--cor-texto-secundario);
+        }
+
+        /* RESPONSIVIDADE */
+        @media (max-width: 768px) {
+            .transferencia-item {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .transferencia-actions {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .botoes-principais {
+                flex-direction: column;
+            }
+            
+            .tabs-header {
+                flex-wrap: wrap;
+            }
+            
+            .tab-btn {
+                flex: 1;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fas fa-university"></i>
+                <span class="logo-text">CAMBIO BANK</span>
+                <span class="badge-admin">ADMIN</span>
+            </div>
+            
+            <h1 class="page-title">APROVAR OPERAÇÕES</h1>
+            
+            <button class="btn-voltar" onclick="window.location.href='/admin/dashboard'">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </button>
+        </header>
+
+        <!-- BOTÕES PRINCIPAIS -->
+        <div class="botoes-principais">
+            <button class="btn-acao btn-aprovar" id="btnAprovar" onclick="aprovarSelecionado()">
+                <i class="fas fa-check-circle"></i> APROVAR
+            </button>
+            <button class="btn-acao btn-recusar" id="btnRecusar" onclick="recusarSelecionado()">
+                <i class="fas fa-times-circle"></i> RECUSAR
+            </button>
+            <button class="btn-acao btn-concluir" id="btnConcluir" onclick="concluirSelecionado()">
+                <i class="fas fa-check-double"></i> CONCLUIR
+            </button>
+            <button class="btn-acao btn-detalhes" id="btnDetalhes" onclick="verDetalhes()">
+                <i class="fas fa-info-circle"></i> DETALHES
+            </button>
+            <button class="btn-acao btn-invoice" id="btnInvoice" onclick="analisarInvoice()">
+                <i class="fas fa-file-invoice"></i> ANALISAR INVOICE
+            </button>
+        </div>
+
+        <!-- TABS -->
+        <div class="tabs-container">
+            <div class="tabs-header">
+                <button class="tab-btn active" data-tab="tab-pendentes">
+                    <i class="fas fa-clock"></i> PENDENTES
+                </button>
+                <button class="tab-btn" data-tab="tab-processamento">
+                    <i class="fas fa-spinner"></i> EM PROCESSAMENTO
+                </button>
+            </div>
+
+            <!-- TAB PENDENTES -->
+            <div id="tab-pendentes" class="tab-content active">
+                <div class="stats-bar">
+                    <div class="stats-info">
+                        <div class="stat-item">
+                            <span class="stat-label">Operações Pendentes:</span>
+                            <span class="stat-value pendente" id="totalPendentes">0</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="transferencias-lista" id="listaPendentes">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Carregando transferências pendentes...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB PROCESSAMENTO -->
+            <div id="tab-processamento" class="tab-content">
+                <div class="stats-bar">
+                    <div class="stats-info">
+                        <div class="stat-item">
+                            <span class="stat-label">Em Processamento:</span>
+                            <span class="stat-value processando" id="totalProcessando">0</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="transferencias-lista" id="listaProcessamento">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Carregando transferências em processamento...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DETALHES -->
+    <div id="modalDetalhes" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-info-circle"></i> Detalhes da Transferência</h3>
+                <button class="modal-close" onclick="fecharModalDetalhes()">&times;</button>
+            </div>
+            <div class="modal-body" id="detalhesBody">
+                <!-- Conteúdo dinâmico -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="fecharModalDetalhes()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL MOTIVO RECUSA -->
+    <div id="modalRecusa" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-times-circle"></i> Motivo da Recusa</h3>
+                <button class="modal-close" onclick="fecharModalRecusa()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Motivo da Recusa:</label>
+                    <textarea id="motivoRecusa" class="form-control" rows="4" placeholder="Digite o motivo da recusa..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="fecharModalRecusa()">Cancelar</button>
+                <button class="btn-submit" onclick="confirmarRecusa()">Confirmar Recusa</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CONTA BANCÁRIA (para conclusão) -->
+    <div id="modalContaBancaria" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-building"></i> Selecionar Conta Bancária</h3>
+                <button class="modal-close" onclick="fecharModalContaBancaria()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Conta Bancária para Crédito:</label>
+                    <select id="selectContaBancaria" class="form-control">
+                        <option value="">Selecione uma conta...</option>
+                    </select>
+                </div>
+                <div class="info-conversao" id="infoContaBancaria" style="margin-top: 15px;">
+                    <i class="fas fa-info-circle"></i> Selecione a conta bancária da empresa para creditar o valor
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="fecharModalContaBancaria()">Cancelar</button>
+                <button class="btn-submit" onclick="confirmarConclusao()">Confirmar Conclusão</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL SWIFT (para internacionais) -->
+    <div id="modalSwift" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-globe"></i> Dados SWIFT do Pagamento</h3>
+                <button class="modal-close" onclick="fecharModalSwift()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Conta Bancária para Crédito:</label>
+                    <select id="selectContaBancariaSwift" class="form-control">
+                        <option value="">Selecione uma conta...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>LINHA 1: UETR#</label>
+                    <input type="text" id="swift_uetr" class="form-control" placeholder="Digite o UETR...">
+                </div>
+                <div class="form-group">
+                    <label>LINHA 2: :20:</label>
+                    <input type="text" id="swift_20" class="form-control" placeholder="Digite o campo :20:...">
+                </div>
+                <div class="form-group">
+                    <label>LINHA 3: :32A:</label>
+                    <input type="text" id="swift_32a" class="form-control" placeholder="Digite o campo :32A:...">
+                </div>
+                <div class="form-group">
+                    <label>LINHA 4: :50K:</label>
+                    <input type="text" id="swift_50k" class="form-control" placeholder="Digite o campo :50K:...">
+                </div>
+                <div class="form-group">
+                    <label>LINHA 5: :57A:</label>
+                    <input type="text" id="swift_57a" class="form-control" placeholder="Digite o campo :57A:...">
+                </div>
+                <div class="form-group">
+                    <label>LINHA 6: :59:</label>
+                    <input type="text" id="swift_59" class="form-control" placeholder="Digite o campo :59:...">
+                </div>
+                <div class="form-group">
+                    <label>LINHA 7: Beneficiário</label>
+                    <input type="text" id="swift_beneficiario" class="form-control" placeholder="Nome do beneficiário...">
+                </div>
+                <div class="form-group">
+                    <label>LINHA 8: :70:</label>
+                    <input type="text" id="swift_70" class="form-control" placeholder="Digite o campo :70:...">
+                </div>
+                <div class="form-group">
+                    <label>LINHA 9: :71A:</label>
+                    <input type="text" id="swift_71a" class="form-control" placeholder="Digite o campo :71A:...">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="fecharModalSwift()">Cancelar</button>
+                <button class="btn-submit" onclick="confirmarSwift()">Confirmar Conclusão</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ANÁLISE INVOICE -->
+    <div id="modalInvoice" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-file-invoice"></i> Análise de Invoice</h3>
+                <button class="modal-close" onclick="fecharModalInvoice()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Status da Invoice:</label>
+                    <div id="invoiceStatus" class="info-conversao" style="margin-top: 0;">Carregando...</div>
+                </div>
+                <div class="form-group">
+                    <label>Motivo da Recusa (se houver):</label>
+                    <div id="invoiceMotivo" class="info-conversao" style="margin-top: 0; background: rgba(224, 27, 36, 0.1);">Nenhum</div>
+                </div>
+                <div class="form-group" id="motivoRecusaInvoiceGroup" style="display: none;">
+                    <label>Motivo da Recusa:</label>
+                    <textarea id="motivoRecusaInvoice" class="form-control" rows="3" placeholder="Digite o motivo da recusa..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="visualizarInvoice()">
+                    <i class="fas fa-eye"></i> Visualizar
+                </button>
+                <button class="btn-submit" id="btnAprovarInvoice" onclick="aprovarInvoice()" style="background: var(--cor-sucesso);">
+                    <i class="fas fa-check"></i> Aprovar
+                </button>
+                <button class="btn-submit" id="btnRecusarInvoice" onclick="ativarModoRecusaInvoice()" style="background: var(--cor-perigo);">
+                    <i class="fas fa-times"></i> Recusar
+                </button>
+                <button class="btn-secondary" onclick="fecharModalInvoice()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--cor-borda);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h3 {
+            color: var(--cor-admin);
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--cor-texto-secundario);
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .modal-close:hover {
+            color: var(--cor-perigo);
+        }
+        .modal-body {
+            padding: 20px;
+        }
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid var(--cor-borda);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: var(--cor-texto-secundario);
+        }
+        .form-control {
+            width: 100%;
+            padding: 10px 15px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            color: var(--cor-texto);
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--cor-admin);
+        }
+        textarea.form-control {
+            resize: vertical;
+        }
+        .btn-submit {
+            background: var(--cor-admin);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+        }
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            padding: 10px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+        }
+        .btn-secondary:hover {
+            border-color: var(--cor-admin);
+            color: var(--cor-admin);
+        }
+        .info-conversao {
+            background: rgba(26, 95, 180, 0.1);
+            border: 1px solid var(--cor-admin);
+            border-radius: var(--borda-radius-pequeno);
+            padding: 10px;
+            font-size: 13px;
+        }
+    </style>
+
+    <script>
+        // ============================================
+        // VARIÁVEIS GLOBAIS
+        // ============================================
+        let transferenciasPendentes = [];
+        let transferenciasProcessando = [];
+        let transferenciaSelecionada = null;
+        let abaAtual = 'pendentes';
+        let transferenciaIdSelecionado = null;
+        let invoiceInfo = null;
+        let modoRecusaAtivo = false;
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Página Aprovar Operações carregada');
+            
+            // Configurar TABS
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.getElementById(btn.dataset.tab).classList.add('active');
+                    abaAtual = btn.dataset.tab === 'tab-pendentes' ? 'pendentes' : 'processando';
+                    limparSelecao();
+                    carregarDados();
+                });
+            });
+            
+            carregarDados();
+        });
+
+        // ============================================
+        // CARREGAR DADOS
+        // ============================================
+        async function carregarDados() {
+            console.log('🔄 Carregando dados...');
+            
+            try {
+                const response = await fetch('/api/admin/aprovar-operacoes');
+                const data = await response.json();
+                
+                if (data.success) {
+                    transferenciasPendentes = data.pendentes || [];
+                    transferenciasProcessando = data.processando || [];
+                    
+                    document.getElementById('totalPendentes').textContent = transferenciasPendentes.length;
+                    document.getElementById('totalProcessando').textContent = transferenciasProcessando.length;
+                    
+                    renderizarListaPendentes();
+                    renderizarListaProcessamento();
+                } else {
+                    console.error('Erro:', data.message);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+            }
+        }
+
+        // ============================================
+        // RENDERIZAR LISTAS
+        // ============================================
+        function renderizarListaPendentes() {
+            const container = document.getElementById('listaPendentes');
+            
+            if (!transferenciasPendentes || transferenciasPendentes.length === 0) {
+                container.innerHTML = '<div class="sem-dados"><i class="fas fa-inbox"></i><p>Nenhuma transferência pendente</p></div>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            transferenciasPendentes.forEach(transf => {
+                const item = criarItemTransferencia(transf, 'pendente');
+                container.appendChild(item);
+            });
+        }
+
+        function renderizarListaProcessamento() {
+            const container = document.getElementById('listaProcessamento');
+            
+            if (!transferenciasProcessando || transferenciasProcessando.length === 0) {
+                container.innerHTML = '<div class="sem-dados"><i class="fas fa-inbox"></i><p>Nenhuma transferência em processamento</p></div>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            transferenciasProcessando.forEach(transf => {
+                const item = criarItemTransferencia(transf, 'processando');
+                container.appendChild(item);
+            });
+        }
+
+        function criarItemTransferencia(transf, tipo) {
+            const div = document.createElement('div');
+            div.className = 'transferencia-item';
+            div.dataset.id = transf.id;
+            div.onclick = (e) => {
+                if (e.target.tagName !== 'BUTTON') {
+                    selecionarTransferencia(transf.id, tipo);
+                }
+            };
+            
+            const isInternacional = transf.tipo === 'transferencia_internacional' || transf.tipo === 'internacional';
+            const tipoClass = isInternacional ? 'tipo-internacional' : 'tipo-interna';
+            const tipoText = isInternacional ? 'INTERNACIONAL' : 'INTERNA';
+            
+            // Status da invoice
+            let invoiceClass = 'invoice-sem';
+            let invoiceText = 'Sem Invoice';
+            if (transf.invoice_info) {
+                if (transf.invoice_info.status === 'approved') {
+                    invoiceClass = 'invoice-aprovada';
+                    invoiceText = 'Invoice Aprovada';
+                } else if (transf.invoice_info.status === 'pending') {
+                    invoiceClass = 'invoice-pendente';
+                    invoiceText = 'Invoice Pendente';
+                } else if (transf.invoice_info.status === 'rejected') {
+                    invoiceClass = 'invoice-recusada';
+                    invoiceText = 'Invoice Recusada';
+                }
+            } else if (isInternacional) {
+                invoiceClass = 'invoice-pendente';
+                invoiceText = 'Invoice Obrigatória';
+            }
+            
+            const valorFormatado = formatarValor(transf.valor);
+            const dataFormatada = formatarData(transf.data);
+            
+            div.innerHTML = `
+                <div class="transferencia-info">
+                    <div class="transferencia-header">
+                        <span class="transferencia-id">ID: ${transf.id}</span>
+                        <span class="transferencia-tipo ${tipoClass}">${tipoText}</span>
+                        <span class="invoice-status ${invoiceClass}">${invoiceText}</span>
+                    </div>
+                    <div class="transferencia-detalhes">
+                        <span class="transferencia-cliente"><i class="fas fa-user"></i> ${escapeHtml(transf.cliente_nome || transf.cliente || 'Cliente')}</span>
+                        <span class="transferencia-valor ${transf.valor >= 0 ? 'positivo' : 'negativo'}">
+                            <i class="fas fa-dollar-sign"></i> ${valorFormatado} ${transf.moeda || 'USD'}
+                        </span>
+                        <span><i class="fas fa-calendar"></i> ${dataFormatada}</span>
+                    </div>
+                </div>
+                <div class="transferencia-actions">
+                    ${tipo === 'pendente' ? `
+                        <button class="btn-item btn-item-aprovar" onclick="event.stopPropagation(); aprovarTransferencia('${transf.id}')">
+                            <i class="fas fa-check"></i> Aprovar
+                        </button>
+                        <button class="btn-item btn-item-recusar" onclick="event.stopPropagation(); abrirModalRecusa('${transf.id}')">
+                            <i class="fas fa-times"></i> Recusar
+                        </button>
+                    ` : `
+                        <button class="btn-item btn-item-concluir" onclick="event.stopPropagation(); concluirTransferencia('${transf.id}')">
+                            <i class="fas fa-check-double"></i> Concluir
+                        </button>
+                    `}
+                    <button class="btn-item btn-item-detalhes" onclick="event.stopPropagation(); verDetalhesTransferencia('${transf.id}')">
+                        <i class="fas fa-info-circle"></i> Detalhes
+                    </button>
+                    <button class="btn-item btn-item-invoice" onclick="event.stopPropagation(); analisarInvoiceTransferencia('${transf.id}')">
+                        <i class="fas fa-file-invoice"></i> Invoice
+                    </button>
+                </div>
+            `;
+            
+            return div;
+        }
+
+        // ============================================
+        // SELEÇÃO
+        // ============================================
+        function selecionarTransferencia(id, tipo) {
+            transferenciaIdSelecionado = id;
+            
+            // Remover seleção anterior
+            document.querySelectorAll('.transferencia-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // Adicionar seleção ao item clicado
+            document.querySelectorAll('.transferencia-item').forEach(item => {
+                if (item.dataset.id === id) {
+                    item.classList.add('selected');
+                }
+            });
+        }
+
+        function limparSelecao() {
+            transferenciaIdSelecionado = null;
+            document.querySelectorAll('.transferencia-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+        }
+
+        function obterTransferenciaSelecionada() {
+            if (!transferenciaIdSelecionado) return null;
+            
+            const lista = abaAtual === 'pendentes' ? transferenciasPendentes : transferenciasProcessando;
+            return lista.find(t => t.id === transferenciaIdSelecionado);
+        }
+
+        // ============================================
+        // AÇÕES DOS BOTÕES PRINCIPAIS
+        // ============================================
+        function aprovarSelecionado() {
+            const transf = obterTransferenciaSelecionada();
+            if (!transf) {
+                alert('Selecione uma transferência para aprovar!');
+                return;
+            }
+            aprovarTransferencia(transf.id);
+        }
+
+        function recusarSelecionado() {
+            const transf = obterTransferenciaSelecionada();
+            if (!transf) {
+                alert('Selecione uma transferência para recusar!');
+                return;
+            }
+            abrirModalRecusa(transf.id);
+        }
+
+        function concluirSelecionado() {
+            const transf = obterTransferenciaSelecionada();
+            if (!transf) {
+                alert('Selecione uma transferência para concluir!');
+                return;
+            }
+            concluirTransferencia(transf.id);
+        }
+
+        function verDetalhes() {
+            const transf = obterTransferenciaSelecionada();
+            if (!transf) {
+                alert('Selecione uma transferência para ver detalhes!');
+                return;
+            }
+            verDetalhesTransferencia(transf.id);
+        }
+
+        function analisarInvoice() {
+            const transf = obterTransferenciaSelecionada();
+            if (!transf) {
+                alert('Selecione uma transferência para analisar invoice!');
+                return;
+            }
+            analisarInvoiceTransferencia(transf.id);
+        }
+
+        // ============================================
+        // APROVAR TRANSFERÊNCIA
+        // ============================================
+        async function aprovarTransferencia(id) {
+            // Buscar transferência para verificar invoice
+            const transf = [...transferenciasPendentes, ...transferenciasProcessando].find(t => t.id === id);
+            
+            if (transf && (transf.tipo === 'transferencia_internacional' || transf.tipo === 'internacional')) {
+                // Verificar invoice
+                if (!transf.invoice_info || transf.invoice_info.status !== 'approved') {
+                    const statusText = !transf.invoice_info ? 'ausente' : transf.invoice_info.status;
+                    alert(`❌ IMPOSSÍVEL APROVAR TRANSFERÊNCIA\n\nInvoice está ${statusText.toUpperCase()}!`);
+                    return;
+                }
+            }
+            
+            if (!confirm(`Confirmar aprovação da transferência ${id}?`)) return;
+            
+            try {
+                const response = await fetch('/api/admin/aprovar-operacoes/aprovar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ transferencia_id: id })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Transferência ${id} aprovada com sucesso!`);
+                    carregarDados();
+                    limparSelecao();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao aprovar transferência!');
+            }
+        }
+
+        // ============================================
+        // RECUSAR TRANSFERÊNCIA
+        // ============================================
+        let recusaId = null;
+        
+        function abrirModalRecusa(id) {
+            recusaId = id;
+            document.getElementById('motivoRecusa').value = '';
+            document.getElementById('modalRecusa').style.display = 'flex';
+        }
+
+        function fecharModalRecusa() {
+            document.getElementById('modalRecusa').style.display = 'none';
+            recusaId = null;
+        }
+
+        async function confirmarRecusa() {
+            const motivo = document.getElementById('motivoRecusa').value.trim();
+            
+            if (!motivo) {
+                alert('Informe o motivo da recusa!');
+                return;
+            }
+            
+            if (!confirm(`Confirmar recusa da transferência ${recusaId}?`)) return;
+            
+            try {
+                const response = await fetch('/api/admin/aprovar-operacoes/recusar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ transferencia_id: recusaId, motivo })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Transferência ${recusaId} recusada com sucesso!`);
+                    fecharModalRecusa();
+                    carregarDados();
+                    limparSelecao();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao recusar transferência!');
+            }
+        }
+
+        // ============================================
+        // CONCLUIR TRANSFERÊNCIA
+        // ============================================
+        async function concluirTransferencia(id) {
+            const transf = [...transferenciasPendentes, ...transferenciasProcessando].find(t => t.id === id);
+            
+            if (!transf) {
+                alert('Transferência não encontrada!');
+                return;
+            }
+            
+            const isInternacional = transf.tipo === 'transferencia_internacional' || transf.tipo === 'internacional';
+            
+            if (isInternacional) {
+                // Abrir modal SWIFT
+                await carregarContasBancarias('selectContaBancariaSwift');
+                document.getElementById('modalSwift').style.display = 'flex';
+                window.swiftId = id;
+            } else {
+                // Abrir modal seleção de conta bancária
+                await carregarContasBancarias('selectContaBancaria');
+                document.getElementById('modalContaBancaria').style.display = 'flex';
+                window.contaId = id;
+            }
+        }
+
+        async function carregarContasBancarias(selectId) {
+            try {
+                const response = await fetch('/api/admin/contas-bancarias');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const select = document.getElementById(selectId);
+                    select.innerHTML = '<option value="">Selecione uma conta...</option>';
+                    
+                    data.contas.forEach(conta => {
+                        const option = document.createElement('option');
+                        option.value = conta.numero;
+                        option.textContent = `${conta.numero} | ${conta.banco} | ${conta.moeda} | Saldo: ${formatarValor(conta.saldo)}`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar contas:', error);
+            }
+        }
+
+        function fecharModalContaBancaria() {
+            document.getElementById('modalContaBancaria').style.display = 'none';
+        }
+
+        async function confirmarConclusao() {
+            const select = document.getElementById('selectContaBancaria');
+            const contaNumero = select.value;
+            
+            if (!contaNumero) {
+                alert('Selecione uma conta bancária!');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/aprovar-operacoes/concluir', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        transferencia_id: window.contaId, 
+                        conta_bancaria: contaNumero 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Transferência ${window.contaId} concluída com sucesso!`);
+                    fecharModalContaBancaria();
+                    carregarDados();
+                    limparSelecao();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao concluir transferência!');
+            }
+        }
+
+        function fecharModalSwift() {
+            document.getElementById('modalSwift').style.display = 'none';
+            // Limpar campos
+            document.getElementById('swift_uetr').value = '';
+            document.getElementById('swift_20').value = '';
+            document.getElementById('swift_32a').value = '';
+            document.getElementById('swift_50k').value = '';
+            document.getElementById('swift_57a').value = '';
+            document.getElementById('swift_59').value = '';
+            document.getElementById('swift_beneficiario').value = '';
+            document.getElementById('swift_70').value = '';
+            document.getElementById('swift_71a').value = '';
+        }
+
+        async function confirmarSwift() {
+            const contaNumero = document.getElementById('selectContaBancariaSwift').value;
+            
+            if (!contaNumero) {
+                alert('Selecione uma conta bancária!');
+                return;
+            }
+            
+            // Validar campos obrigatórios
+            const camposObrigatorios = [
+                'swift_uetr', 'swift_20', 'swift_32a', 'swift_50k', 'swift_57a', 'swift_59'
+            ];
+            
+            for (const campo of camposObrigatorios) {
+                const valor = document.getElementById(campo).value.trim();
+                if (!valor) {
+                    alert(`Campo ${campo.replace('swift_', 'LINHA ')} é obrigatório!`);
+                    return;
+                }
+            }
+            
+            const dadosSwift = {
+                linha1_uetr: document.getElementById('swift_uetr').value.trim(),
+                linha2_20: document.getElementById('swift_20').value.trim(),
+                linha3_32a: document.getElementById('swift_32a').value.trim(),
+                linha4_50k: document.getElementById('swift_50k').value.trim(),
+                linha5_57a: document.getElementById('swift_57a').value.trim(),
+                linha6_59: document.getElementById('swift_59').value.trim(),
+                linha7_beneficiario: document.getElementById('swift_beneficiario').value.trim(),
+                linha8_70: document.getElementById('swift_70').value.trim(),
+                linha9_71a: document.getElementById('swift_71a').value.trim()
+            };
+            
+            try {
+                const response = await fetch('/api/admin/aprovar-operacoes/concluir-swift', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        transferencia_id: window.swiftId, 
+                        conta_bancaria: contaNumero,
+                        dados_swift: dadosSwift
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Transferência ${window.swiftId} concluída com sucesso!`);
+                    fecharModalSwift();
+                    carregarDados();
+                    limparSelecao();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao concluir transferência!');
+            }
+        }
+
+        // ============================================
+        // DETALHES
+        // ============================================
+        function fecharModalDetalhes() {
+            document.getElementById('modalDetalhes').style.display = 'none';
+        }
+
+        async function verDetalhesTransferencia(id) {
+            try {
+                const response = await fetch(`/api/admin/aprovar-operacoes/detalhes/${id}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const t = data.transferencia;
+                    const isInternacional = t.tipo === 'transferencia_internacional' || t.tipo === 'internacional';
+                    
+                    let html = `
+                        <div class="info-conversao" style="margin-bottom: 15px;">
+                            <strong>ID:</strong> ${t.id}<br>
+                            <strong>Status:</strong> <span style="color: ${t.status === 'completed' ? '#2ec27e' : t.status === 'rejected' ? '#e01b24' : '#f39c12'}">${t.status?.toUpperCase() || 'N/A'}</span><br>
+                            <strong>Tipo:</strong> ${isInternacional ? 'INTERNACIONAL' : 'INTERNA'}<br>
+                            <strong>Valor:</strong> ${formatarValor(t.valor)} ${t.moeda || 'USD'}<br>
+                            <strong>Data Solicitação:</strong> ${formatarData(t.data_solicitacao || t.data)}
+                        </div>
+                        <div class="info-conversao" style="margin-bottom: 15px;">
+                            <strong>CLIENTE REMETENTE:</strong><br>
+                            Nome: ${escapeHtml(t.cliente_nome || t.cliente || 'N/A')}<br>
+                            Conta Origem: ${t.conta_remetente || 'N/A'}
+                        </div>
+                    `;
+                    
+                    if (isInternacional) {
+                        html += `
+                            <div class="info-conversao" style="margin-bottom: 15px;">
+                                <strong>BENEFICIÁRIO:</strong><br>
+                                Nome: ${escapeHtml(t.beneficiario || 'N/A')}<br>
+                                Banco: ${escapeHtml(t.nome_banco || 'N/A')}<br>
+                                SWIFT: ${t.codigo_swift || 'N/A'}<br>
+                                IBAN: ${t.iban_account || 'N/A'}
+                            </div>
+                        `;
+                    } else {
+                        html += `
+                            <div class="info-conversao" style="margin-bottom: 15px;">
+                                <strong>DESTINATÁRIO:</strong><br>
+                                Conta Destino: ${t.conta_destinatario || 'N/A'}
+                            </div>
+                        `;
+                    }
+                    
+                    if (t.finalidade || t.descricao) {
+                        html += `
+                            <div class="info-conversao" style="margin-bottom: 15px;">
+                                <strong>DESCRIÇÃO/FINALIDADE:</strong><br>
+                                ${escapeHtml(t.finalidade || t.descricao || 'N/A')}
+                            </div>
+                        `;
+                    }
+                    
+                    if (t.motivo_recusa) {
+                        html += `
+                            <div class="info-conversao" style="background: rgba(224, 27, 36, 0.1);">
+                                <strong>MOTIVO DA RECUSA:</strong><br>
+                                ${escapeHtml(t.motivo_recusa)}
+                            </div>
+                        `;
+                    }
+                    
+                    document.getElementById('detalhesBody').innerHTML = html;
+                    document.getElementById('modalDetalhes').style.display = 'flex';
+                } else {
+                    alert('Erro ao carregar detalhes!');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao carregar detalhes!');
+            }
+        }
+
+        // ============================================
+        // INVOICE
+        // ============================================
+        let invoiceId = null;
+        
+        function fecharModalInvoice() {
+            document.getElementById('modalInvoice').style.display = 'none';
+            modoRecusaAtivo = false;
+            document.getElementById('motivoRecusaInvoiceGroup').style.display = 'none';
+            document.getElementById('motivoRecusaInvoice').value = '';
+            document.getElementById('btnAprovarInvoice').disabled = false;
+            document.getElementById('btnRecusarInvoice').disabled = false;
+        }
+
+        async function analisarInvoiceTransferencia(id) {
+            invoiceId = id;
+            
+            try {
+                const response = await fetch(`/api/admin/aprovar-operacoes/invoice/${id}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    invoiceInfo = data.invoice_info;
+                    
+                    let statusHtml = '';
+                    let statusClass = '';
+                    let statusText = '';
+                    
+                    if (!invoiceInfo || !invoiceInfo.caminho_arquivo) {
+                        statusText = 'SEM INVOICE';
+                        statusClass = 'invoice-sem';
+                        statusHtml = `<span class="invoice-status ${statusClass}">${statusText}</span><br>Transferência internacional exige invoice obrigatória!`;
+                    } else {
+                        if (invoiceInfo.status === 'approved') {
+                            statusText = 'APROVADA';
+                            statusClass = 'invoice-aprovada';
+                        } else if (invoiceInfo.status === 'pending') {
+                            statusText = 'PENDENTE';
+                            statusClass = 'invoice-pendente';
+                        } else if (invoiceInfo.status === 'rejected') {
+                            statusText = 'RECUSADA';
+                            statusClass = 'invoice-recusada';
+                        }
+                        statusHtml = `<span class="invoice-status ${statusClass}">${statusText}</span>`;
+                        if (invoiceInfo.data_upload) {
+                            statusHtml += `<br><small>Upload: ${formatarData(invoiceInfo.data_upload)}</small>`;
+                        }
+                    }
+                    
+                    document.getElementById('invoiceStatus').innerHTML = statusHtml;
+                    document.getElementById('invoiceMotivo').innerHTML = invoiceInfo?.motivo_recusa || 'Nenhum';
+                    
+                    document.getElementById('modalInvoice').style.display = 'flex';
+                } else {
+                    alert('Erro ao carregar informações da invoice!');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao carregar invoice!');
+            }
+        }
+
+        async function visualizarInvoice() {
+            if (!invoiceId) return;
+            
+            try {
+                const response = await fetch(`/api/admin/aprovar-operacoes/invoice/${invoiceId}/download`);
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                    URL.revokeObjectURL(url);
+                } else {
+                    alert('Erro ao baixar invoice!');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao visualizar invoice!');
+            }
+        }
+
+        async function aprovarInvoice() {
+            if (!invoiceId) return;
+            
+            if (!confirm(`Confirmar aprovação da invoice da transferência ${invoiceId}?`)) return;
+            
+            try {
+                const response = await fetch('/api/admin/aprovar-operacoes/invoice/aprovar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ transferencia_id: invoiceId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Invoice da transferência ${invoiceId} aprovada!`);
+                    fecharModalInvoice();
+                    carregarDados();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao aprovar invoice!');
+            }
+        }
+
+        function ativarModoRecusaInvoice() {
+            modoRecusaAtivo = true;
+            document.getElementById('motivoRecusaInvoiceGroup').style.display = 'block';
+            document.getElementById('btnAprovarInvoice').disabled = true;
+            document.getElementById('btnRecusarInvoice').innerHTML = '<i class="fas fa-check"></i> Confirmar Recusa';
+            document.getElementById('btnRecusarInvoice').onclick = confirmarRecusaInvoice;
+        }
+
+        async function confirmarRecusaInvoice() {
+            const motivo = document.getElementById('motivoRecusaInvoice').value.trim();
+            
+            if (!motivo) {
+                alert('Informe o motivo da recusa!');
+                return;
+            }
+            
+            if (!confirm(`Confirmar recusa da invoice da transferência ${invoiceId}?\nMotivo: ${motivo}`)) return;
+            
+            try {
+                const response = await fetch('/api/admin/aprovar-operacoes/invoice/recusar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ transferencia_id: invoiceId, motivo })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Invoice da transferência ${invoiceId} recusada!`);
+                    fecharModalInvoice();
+                    carregarDados();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao recusar invoice!');
+            }
+        }
+
+        // ============================================
+        // FUNÇÕES AUXILIARES
+        // ============================================
+        function formatarValor(valor) {
+            if (valor === undefined || valor === null) return '0,00';
+            return parseFloat(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function formatarData(dataStr) {
+            if (!dataStr) return '';
+            try {
+                if (dataStr.includes('T')) {
+                    const data = new Date(dataStr);
+                    return data.toLocaleDateString('pt-BR') + ' ' + data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                }
+                return dataStr.split(' ')[0].split('-').reverse().join('/');
+            } catch {
+                return dataStr;
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

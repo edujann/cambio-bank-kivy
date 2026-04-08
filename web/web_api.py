@@ -7287,7 +7287,867 @@ def api_admin_extrato_conta():
         traceback.print_exc()
         return jsonify({"success": False, "message": str(e)}), 500
 
+# ============================================
+# ADMIN - APROVAR OPERAÇÕES
+# ============================================
 
+@app.route('/admin/aprovar-operacoes')
+def admin_aprovar_operacoes():
+    """Tela de aprovar operações"""
+    usuario = session.get('username')
+    
+    if not usuario:
+        return redirect('/login')
+    
+    # Verificar se é admin
+    if supabase:
+        user_check = supabase.table('usuarios')\
+            .select('tipo')\
+            .eq('username', usuario)\
+            .single()\
+            .execute()
+        
+        if not user_check.data or user_check.data.get('tipo') != 'admin':
+            return redirect('/dashboard')
+    
+    # Buscar dados do usuário
+    nome = usuario.upper()
+    email = f'{usuario}@exemplo.com'
+    
+    try:
+        if supabase:
+            user_response = supabase.table('usuarios')\
+                .select('nome, email')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if user_response.data:
+                if user_response.data.get('nome'):
+                    nome = user_response.data['nome']
+                if user_response.data.get('email'):
+                    email = user_response.data['email']
+    except:
+        pass
+    
+    return render_template('admin_aprovar_operacoes.html',
+                          usuario=usuario,
+                          nome=nome,
+                          email=email)
+
+
+@app.route('/api/admin/aprovar-operacoes', methods=['GET'])
+def api_admin_aprovar_operacoes():
+    """Retorna transferências pendentes e em processamento"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Verificar se é admin
+        if supabase:
+            user_check = supabase.table('usuarios')\
+                .select('tipo')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if not user_check.data or user_check.data.get('tipo') != 'admin':
+                return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        # Buscar transferências pendentes (solicitada)
+        pendentes_response = supabase.table('transferencias')\
+            .select('*')\
+            .eq('status', 'solicitada')\
+            .order('created_at', desc=True)\
+            .execute()
+        
+        # Buscar transferências em processamento
+        processando_response = supabase.table('transferencias')\
+            .select('*')\
+            .eq('status', 'processing')\
+            .order('created_at', desc=True)\
+            .execute()
+        
+        # Processar pendentes
+        pendentes = []
+        for t in (pendentes_response.data or []):
+            pendentes.append(await_processar_transferencia(t))
+        
+        # Processar processamento
+        processando = []
+        for t in (processando_response.data or []):
+            processando.append(await_processar_transferencia(t))
+        
+        return jsonify({
+            "success": True,
+            "pendentes": pendentes,
+            "processando": processando
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar operações: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+async def await_processar_transferencia(transf):
+    """Processa os dados de uma transferência para exibição"""
+    try:
+        # Obter nome do cliente
+        cliente_nome = None
+        conta_remetente = transf.get('conta_remetente')
+        
+        if conta_remetente and supabase:
+            response = supabase.table('contas')\
+                .select('cliente_nome, cliente_username')\
+                .eq('id', conta_remetente)\
+                .execute()
+            
+            if response.data:
+                cliente_nome = response.data[0].get('cliente_nome') or response.data[0].get('cliente_username')
+        
+        # Obter informações da invoice
+        invoice_info = transf.get('invoice_info')
+        if invoice_info and isinstance(invoice_info, str):
+            try:
+                import json
+                invoice_info = json.loads(invoice_info)
+            except:
+                invoice_info = None
+        
+        return {
+            'id': transf.get('id'),
+            'tipo': transf.get('tipo'),
+            'status': transf.get('status'),
+            'valor': float(transf.get('valor', 0)),
+            'moeda': transf.get('moeda', 'USD'),
+            'data': transf.get('created_at') or transf.get('data'),
+            'cliente': transf.get('cliente') or transf.get('usuario'),
+            'cliente_nome': cliente_nome,
+            'conta_remetente': conta_remetente,
+            'conta_destinatario': transf.get('conta_destinatario'),
+            'beneficiario': transf.get('beneficiario'),
+            'finalidade': transf.get('finalidade'),
+            'descricao': transf.get('descricao'),
+            'invoice_info': invoice_info,
+            'motivo_recusa': transf.get('motivo_recusa')
+        }
+    except Exception as e:
+        print(f"⚠️ Erro ao processar transferência {transf.get('id')}: {e}")
+        return {
+            'id': transf.get('id'),
+            'tipo': transf.get('tipo'),
+            'status': transf.get('status'),
+            'valor': float(transf.get('valor', 0)),
+            'moeda': transf.get('moeda', 'USD'),
+            'data': transf.get('created_at') or transf.get('data'),
+            'cliente_nome': None
+        }
+
+
+@app.route('/api/admin/aprovar-operacoes/aprovar', methods=['POST'])
+def api_admin_aprovar_transferencia():
+    """Aprova uma transferência pendente"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Verificar se é admin
+        if supabase:
+            user_check = supabase.table('usuarios')\
+                .select('tipo')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if not user_check.data or user_check.data.get('tipo') != 'admin':
+                return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        dados = request.get_json()
+        transferencia_id = dados.get('transferencia_id')
+        
+        if not transferencia_id:
+            return jsonify({"success": False, "message": "ID da transferência não informado"}), 400
+        
+        # Buscar transferência
+        response = supabase.table('transferencias')\
+            .select('*')\
+            .eq('id', transferencia_id)\
+            .execute()
+        
+        if not response.data:
+            return jsonify({"success": False, "message": "Transferência não encontrada"}), 404
+        
+        transf = response.data[0]
+        
+        # Verificar se é internacional e se invoice está aprovada
+        if transf.get('tipo') == 'transferencia_internacional':
+            invoice_info = transf.get('invoice_info')
+            if isinstance(invoice_info, str):
+                try:
+                    import json
+                    invoice_info = json.loads(invoice_info)
+                except:
+                    invoice_info = None
+            
+            if not invoice_info or invoice_info.get('status') != 'approved':
+                return jsonify({"success": False, "message": "Invoice não aprovada! Não é possível aprovar a transferência."}), 400
+        
+        # Atualizar status para 'processing'
+        from datetime import datetime
+        data_aprovacao = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        update_data = {
+            'status': 'processing',
+            'executado_por': usuario,
+            'data_aprovacao': data_aprovacao,
+            'data_processing': data_aprovacao
+        }
+        
+        update_response = supabase.table('transferencias')\
+            .update(update_data)\
+            .eq('id', transferencia_id)\
+            .execute()
+        
+        if update_response.data:
+            print(f"✅ Transferência {transferencia_id} aprovada por {usuario}")
+            return jsonify({
+                "success": True,
+                "message": f"Transferência {transferencia_id} aprovada com sucesso!"
+            })
+        else:
+            return jsonify({"success": False, "message": "Erro ao aprovar transferência"}), 500
+        
+    except Exception as e:
+        print(f"❌ Erro ao aprovar transferência: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/aprovar-operacoes/recusar', methods=['POST'])
+def api_admin_recusar_transferencia():
+    """Recusa uma transferência pendente e estorna o valor"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Verificar se é admin
+        if supabase:
+            user_check = supabase.table('usuarios')\
+                .select('tipo')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if not user_check.data or user_check.data.get('tipo') != 'admin':
+                return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        dados = request.get_json()
+        transferencia_id = dados.get('transferencia_id')
+        motivo = dados.get('motivo', '')
+        
+        if not transferencia_id:
+            return jsonify({"success": False, "message": "ID da transferência não informado"}), 400
+        
+        if not motivo:
+            return jsonify({"success": False, "message": "Motivo da recusa é obrigatório"}), 400
+        
+        # Buscar transferência
+        response = supabase.table('transferencias')\
+            .select('*')\
+            .eq('id', transferencia_id)\
+            .execute()
+        
+        if not response.data:
+            return jsonify({"success": False, "message": "Transferência não encontrada"}), 404
+        
+        transf = response.data[0]
+        
+        # Estornar valor para a conta do cliente
+        conta_remetente = transf.get('conta_remetente')
+        valor = float(transf.get('valor', 0))
+        
+        if conta_remetente and valor > 0:
+            # Buscar saldo atual da conta
+            conta_response = supabase.table('contas')\
+                .select('saldo')\
+                .eq('id', conta_remetente)\
+                .execute()
+            
+            if conta_response.data:
+                saldo_atual = float(conta_response.data[0]['saldo'])
+                novo_saldo = saldo_atual + valor
+                
+                # Atualizar saldo
+                supabase.table('contas')\
+                    .update({'saldo': novo_saldo})\
+                    .eq('id', conta_remetente)\
+                    .execute()
+                
+                print(f"💰 Estorno de {valor:.2f} para conta {conta_remetente}")
+        
+        # Atualizar status para 'rejected'
+        from datetime import datetime
+        data_recusa = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        update_data = {
+            'status': 'rejected',
+            'executado_por': usuario,
+            'data_recusa': data_recusa,
+            'motivo_recusa': motivo
+        }
+        
+        update_response = supabase.table('transferencias')\
+            .update(update_data)\
+            .eq('id', transferencia_id)\
+            .execute()
+        
+        if update_response.data:
+            print(f"✅ Transferência {transferencia_id} recusada por {usuario}. Motivo: {motivo}")
+            return jsonify({
+                "success": True,
+                "message": f"Transferência {transferencia_id} recusada com sucesso!"
+            })
+        else:
+            return jsonify({"success": False, "message": "Erro ao recusar transferência"}), 500
+        
+    except Exception as e:
+        print(f"❌ Erro ao recusar transferência: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/aprovar-operacoes/concluir', methods=['POST'])
+def api_admin_concluir_transferencia():
+    """Conclui uma transferência em processamento (interna)"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Verificar se é admin
+        if supabase:
+            user_check = supabase.table('usuarios')\
+                .select('tipo')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if not user_check.data or user_check.data.get('tipo') != 'admin':
+                return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        dados = request.get_json()
+        transferencia_id = dados.get('transferencia_id')
+        conta_bancaria = dados.get('conta_bancaria')
+        
+        if not transferencia_id:
+            return jsonify({"success": False, "message": "ID da transferência não informado"}), 400
+        
+        if not conta_bancaria:
+            return jsonify({"success": False, "message": "Conta bancária não informada"}), 400
+        
+        # Buscar transferência
+        response = supabase.table('transferencias')\
+            .select('*')\
+            .eq('id', transferencia_id)\
+            .execute()
+        
+        if not response.data:
+            return jsonify({"success": False, "message": "Transferência não encontrada"}), 404
+        
+        transf = response.data[0]
+        valor = float(transf.get('valor', 0))
+        moeda = transf.get('moeda', 'USD')
+        
+        # Buscar conta bancária
+        conta_response = supabase.table('contas_bancarias_empresa')\
+            .select('*')\
+            .eq('numero', conta_bancaria)\
+            .execute()
+        
+        if not conta_response.data:
+            return jsonify({"success": False, "message": "Conta bancária não encontrada"}), 404
+        
+        conta_info = conta_response.data[0]
+        
+        # Verificar moeda
+        if conta_info.get('moeda') != moeda:
+            return jsonify({"success": False, "message": f"Moeda da conta ({conta_info.get('moeda')}) não corresponde à transferência ({moeda})"}), 400
+        
+        # Verificar saldo
+        saldo_atual = float(conta_info.get('saldo', 0))
+        if saldo_atual < valor:
+            return jsonify({"success": False, "message": f"Saldo insuficiente na conta {conta_bancaria}. Disponível: {saldo_atual:.2f} {moeda}"}), 400
+        
+        # Debitar da conta bancária (CRÉDITO = SAÍDA)
+        novo_saldo = saldo_atual - valor
+        
+        supabase.table('contas_bancarias_empresa')\
+            .update({'saldo': novo_saldo})\
+            .eq('numero', conta_bancaria)\
+            .execute()
+        
+        # Atualizar transferência
+        from datetime import datetime
+        data_conclusao = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        update_data = {
+            'status': 'completed',
+            'data_conclusao': data_conclusao,
+            'concluido_por': usuario,
+            'conta_bancaria_credito': conta_bancaria,
+            'data': data_conclusao
+        }
+        
+        update_response = supabase.table('transferencias')\
+            .update(update_data)\
+            .eq('id', transferencia_id)\
+            .execute()
+        
+        if update_response.data:
+            print(f"✅ Transferência {transferencia_id} concluída por {usuario}. Conta: {conta_bancaria}")
+            return jsonify({
+                "success": True,
+                "message": f"Transferência {transferencia_id} concluída com sucesso!"
+            })
+        else:
+            return jsonify({"success": False, "message": "Erro ao concluir transferência"}), 500
+        
+    except Exception as e:
+        print(f"❌ Erro ao concluir transferência: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/aprovar-operacoes/concluir-swift', methods=['POST'])
+def api_admin_concluir_transferencia_swift():
+    """Conclui uma transferência internacional com dados SWIFT"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Verificar se é admin
+        if supabase:
+            user_check = supabase.table('usuarios')\
+                .select('tipo')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if not user_check.data or user_check.data.get('tipo') != 'admin':
+                return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        dados = request.get_json()
+        transferencia_id = dados.get('transferencia_id')
+        conta_bancaria = dados.get('conta_bancaria')
+        dados_swift = dados.get('dados_swift', {})
+        
+        if not transferencia_id:
+            return jsonify({"success": False, "message": "ID da transferência não informado"}), 400
+        
+        if not conta_bancaria:
+            return jsonify({"success": False, "message": "Conta bancária não informada"}), 400
+        
+        # Buscar transferência
+        response = supabase.table('transferencias')\
+            .select('*')\
+            .eq('id', transferencia_id)\
+            .execute()
+        
+        if not response.data:
+            return jsonify({"success": False, "message": "Transferência não encontrada"}), 404
+        
+        transf = response.data[0]
+        valor = float(transf.get('valor', 0))
+        moeda = transf.get('moeda', 'USD')
+        
+        # Buscar conta bancária
+        conta_response = supabase.table('contas_bancarias_empresa')\
+            .select('*')\
+            .eq('numero', conta_bancaria)\
+            .execute()
+        
+        if not conta_response.data:
+            return jsonify({"success": False, "message": "Conta bancária não encontrada"}), 404
+        
+        conta_info = conta_response.data[0]
+        
+        # Verificar moeda
+        if conta_info.get('moeda') != moeda:
+            return jsonify({"success": False, "message": f"Moeda da conta ({conta_info.get('moeda')}) não corresponde à transferência ({moeda})"}), 400
+        
+        # Verificar saldo
+        saldo_atual = float(conta_info.get('saldo', 0))
+        if saldo_atual < valor:
+            return jsonify({"success": False, "message": f"Saldo insuficiente na conta {conta_bancaria}. Disponível: {saldo_atual:.2f} {moeda}"}), 400
+        
+        # Debitar da conta bancária (CRÉDITO = SAÍDA)
+        novo_saldo = saldo_atual - valor
+        
+        supabase.table('contas_bancarias_empresa')\
+            .update({'saldo': novo_saldo})\
+            .eq('numero', conta_bancaria)\
+            .execute()
+        
+        # Atualizar transferência com dados SWIFT
+        from datetime import datetime
+        data_conclusao = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        update_data = {
+            'status': 'completed',
+            'data_conclusao': data_conclusao,
+            'concluido_por': usuario,
+            'conta_bancaria_credito': conta_bancaria,
+            'dados_swift_pagamento': dados_swift,
+            'data': data_conclusao
+        }
+        
+        update_response = supabase.table('transferencias')\
+            .update(update_data)\
+            .eq('id', transferencia_id)\
+            .execute()
+        
+        if update_response.data:
+            print(f"✅ Transferência internacional {transferencia_id} concluída por {usuario}. Conta: {conta_bancaria}")
+            return jsonify({
+                "success": True,
+                "message": f"Transferência {transferencia_id} concluída com sucesso!"
+            })
+        else:
+            return jsonify({"success": False, "message": "Erro ao concluir transferência"}), 500
+        
+    except Exception as e:
+        print(f"❌ Erro ao concluir transferência internacional: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/aprovar-operacoes/detalhes/<transferencia_id>', methods=['GET'])
+def api_admin_detalhes_transferencia(transferencia_id):
+    """Retorna detalhes completos de uma transferência"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Buscar transferência
+        response = supabase.table('transferencias')\
+            .select('*')\
+            .eq('id', transferencia_id)\
+            .execute()
+        
+        if not response.data:
+            return jsonify({"success": False, "message": "Transferência não encontrada"}), 404
+        
+        transf = response.data[0]
+        
+        # Obter nome do cliente
+        cliente_nome = None
+        conta_remetente = transf.get('conta_remetente')
+        
+        if conta_remetente:
+            conta_response = supabase.table('contas')\
+                .select('cliente_nome, cliente_username')\
+                .eq('id', conta_remetente)\
+                .execute()
+            
+            if conta_response.data:
+                cliente_nome = conta_response.data[0].get('cliente_nome') or conta_response.data[0].get('cliente_username')
+        
+        # Processar invoice_info
+        invoice_info = transf.get('invoice_info')
+        if invoice_info and isinstance(invoice_info, str):
+            try:
+                import json
+                invoice_info = json.loads(invoice_info)
+            except:
+                invoice_info = None
+        
+        return jsonify({
+            "success": True,
+            "transferencia": {
+                'id': transf.get('id'),
+                'tipo': transf.get('tipo'),
+                'status': transf.get('status'),
+                'valor': float(transf.get('valor', 0)),
+                'moeda': transf.get('moeda', 'USD'),
+                'data': transf.get('created_at') or transf.get('data'),
+                'data_solicitacao': transf.get('data_solicitacao'),
+                'data_aprovacao': transf.get('data_aprovacao'),
+                'data_conclusao': transf.get('data_conclusao'),
+                'cliente_nome': cliente_nome,
+                'cliente': transf.get('cliente') or transf.get('usuario'),
+                'conta_remetente': conta_remetente,
+                'conta_destinatario': transf.get('conta_destinatario'),
+                'beneficiario': transf.get('beneficiario'),
+                'endereco_beneficiario': transf.get('endereco_beneficiario'),
+                'cidade': transf.get('cidade'),
+                'pais': transf.get('pais'),
+                'nome_banco': transf.get('nome_banco'),
+                'codigo_swift': transf.get('codigo_swift'),
+                'iban_account': transf.get('iban_account'),
+                'finalidade': transf.get('finalidade'),
+                'descricao': transf.get('descricao'),
+                'motivo_recusa': transf.get('motivo_recusa'),
+                'executado_por': transf.get('executado_por'),
+                'concluido_por': transf.get('concluido_por'),
+                'conta_bancaria_credito': transf.get('conta_bancaria_credito'),
+                'dados_swift_pagamento': transf.get('dados_swift_pagamento'),
+                'invoice_info': invoice_info
+            }
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar detalhes: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/aprovar-operacoes/invoice/<transferencia_id>', methods=['GET'])
+def api_admin_invoice_info(transferencia_id):
+    """Retorna informações da invoice de uma transferência"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Buscar transferência
+        response = supabase.table('transferencias')\
+            .select('invoice_info')\
+            .eq('id', transferencia_id)\
+            .execute()
+        
+        if not response.data:
+            return jsonify({"success": False, "message": "Transferência não encontrada"}), 404
+        
+        invoice_info = response.data[0].get('invoice_info')
+        
+        if invoice_info and isinstance(invoice_info, str):
+            try:
+                import json
+                invoice_info = json.loads(invoice_info)
+            except:
+                invoice_info = None
+        
+        return jsonify({
+            "success": True,
+            "invoice_info": invoice_info
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar invoice: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/aprovar-operacoes/invoice/<transferencia_id>/download', methods=['GET'])
+def api_admin_invoice_download(transferencia_id):
+    """Download do arquivo da invoice"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"error": "Não autenticado"}), 401
+        
+        # Buscar transferência
+        response = supabase.table('transferencias')\
+            .select('invoice_info')\
+            .eq('id', transferencia_id)\
+            .execute()
+        
+        if not response.data:
+            return jsonify({"error": "Transferência não encontrada"}), 404
+        
+        invoice_info = response.data[0].get('invoice_info')
+        
+        if isinstance(invoice_info, str):
+            try:
+                import json
+                invoice_info = json.loads(invoice_info)
+            except:
+                invoice_info = None
+        
+        if not invoice_info or not invoice_info.get('caminho_arquivo'):
+            return jsonify({"error": "Invoice não encontrada"}), 404
+        
+        caminho_arquivo = invoice_info['caminho_arquivo']
+        
+        # Buscar arquivo no storage
+        file_data = supabase.storage.from_("invoices").download(caminho_arquivo)
+        
+        if not file_data:
+            return jsonify({"error": "Arquivo não encontrado no storage"}), 404
+        
+        # Determinar content type
+        nome_arquivo = caminho_arquivo.split('/')[-1]
+        extensao = nome_arquivo.lower().split('.')[-1] if '.' in nome_arquivo else ''
+        
+        mime_types = {
+            'pdf': 'application/pdf',
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'png': 'image/png'
+        }
+        
+        content_type = mime_types.get(extensao, 'application/octet-stream')
+        
+        from flask import Response
+        return Response(
+            file_data,
+            content_type=content_type,
+            headers={
+                'Content-Disposition': f'inline; filename="{nome_arquivo}"',
+                'Cache-Control': 'no-cache'
+            }
+        )
+        
+    except Exception as e:
+        print(f"❌ Erro ao baixar invoice: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/admin/aprovar-operacoes/invoice/aprovar', methods=['POST'])
+def api_admin_invoice_aprovar():
+    """Aprova a invoice de uma transferência"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        dados = request.get_json()
+        transferencia_id = dados.get('transferencia_id')
+        
+        if not transferencia_id:
+            return jsonify({"success": False, "message": "ID da transferência não informado"}), 400
+        
+        # Buscar transferência
+        response = supabase.table('transferencias')\
+            .select('invoice_info')\
+            .eq('id', transferencia_id)\
+            .execute()
+        
+        if not response.data:
+            return jsonify({"success": False, "message": "Transferência não encontrada"}), 404
+        
+        invoice_info = response.data[0].get('invoice_info')
+        
+        if isinstance(invoice_info, str):
+            try:
+                import json
+                invoice_info = json.loads(invoice_info)
+            except:
+                invoice_info = {}
+        
+        if not invoice_info:
+            invoice_info = {}
+        
+        # Atualizar status da invoice
+        invoice_info['status'] = 'approved'
+        if 'motivo_recusa' in invoice_info:
+            del invoice_info['motivo_recusa']
+        
+        # Salvar no Supabase
+        update_response = supabase.table('transferencias')\
+            .update({'invoice_info': invoice_info})\
+            .eq('id', transferencia_id)\
+            .execute()
+        
+        if update_response.data:
+            print(f"✅ Invoice da transferência {transferencia_id} aprovada por {usuario}")
+            return jsonify({
+                "success": True,
+                "message": "Invoice aprovada com sucesso!"
+            })
+        else:
+            return jsonify({"success": False, "message": "Erro ao aprovar invoice"}), 500
+        
+    except Exception as e:
+        print(f"❌ Erro ao aprovar invoice: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/aprovar-operacoes/invoice/recusar', methods=['POST'])
+def api_admin_invoice_recusar():
+    """Recusa a invoice de uma transferência"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        dados = request.get_json()
+        transferencia_id = dados.get('transferencia_id')
+        motivo = dados.get('motivo', '')
+        
+        if not transferencia_id:
+            return jsonify({"success": False, "message": "ID da transferência não informado"}), 400
+        
+        if not motivo:
+            return jsonify({"success": False, "message": "Motivo da recusa é obrigatório"}), 400
+        
+        # Buscar transferência
+        response = supabase.table('transferencias')\
+            .select('invoice_info')\
+            .eq('id', transferencia_id)\
+            .execute()
+        
+        if not response.data:
+            return jsonify({"success": False, "message": "Transferência não encontrada"}), 404
+        
+        invoice_info = response.data[0].get('invoice_info')
+        
+        if isinstance(invoice_info, str):
+            try:
+                import json
+                invoice_info = json.loads(invoice_info)
+            except:
+                invoice_info = {}
+        
+        if not invoice_info:
+            invoice_info = {}
+        
+        # Atualizar status da invoice
+        invoice_info['status'] = 'rejected'
+        invoice_info['motivo_recusa'] = motivo
+        invoice_info['data_recusa'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Opcional: deletar arquivo do storage
+        caminho_arquivo = invoice_info.get('caminho_arquivo')
+        if caminho_arquivo:
+            try:
+                supabase.storage.from_("invoices").remove([caminho_arquivo])
+                print(f"🗑️ Arquivo {caminho_arquivo} deletado do storage")
+                invoice_info['caminho_arquivo'] = None
+            except Exception as e:
+                print(f"⚠️ Erro ao deletar arquivo: {e}")
+        
+        # Salvar no Supabase
+        update_response = supabase.table('transferencias')\
+            .update({'invoice_info': invoice_info})\
+            .eq('id', transferencia_id)\
+            .execute()
+        
+        if update_response.data:
+            print(f"✅ Invoice da transferência {transferencia_id} recusada por {usuario}. Motivo: {motivo}")
+            return jsonify({
+                "success": True,
+                "message": "Invoice recusada com sucesso!"
+            })
+        else:
+            return jsonify({"success": False, "message": "Erro ao recusar invoice"}), 500
+        
+    except Exception as e:
+        print(f"❌ Erro ao recusar invoice: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+    
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
