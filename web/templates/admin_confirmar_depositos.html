@@ -486,6 +486,7 @@
         let clientes = [];
         let contasEmpresa = [];
         let dadosConfirmacao = null;
+        let modalConfirmacaoAberto = false;
 
         // ============================================
         // INICIALIZAÇÃO
@@ -497,15 +498,22 @@
             
             // Configurar evento do campo valor
             const valorInput = document.getElementById('valorInput');
-            valorInput.addEventListener('input', formatarValor);
-            valorInput.addEventListener('focus', function() { this.select(); });
+            if (valorInput) {
+                valorInput.addEventListener('input', formatarValor);
+                valorInput.addEventListener('focus', function() { this.select(); });
+            }
             
             // Configurar evento do banco de origem
             const bancoSelect = document.getElementById('bancoOrigemSelect');
-            bancoSelect.addEventListener('change', onBancoOrigemChange);
+            if (bancoSelect) {
+                bancoSelect.addEventListener('change', onBancoOrigemChange);
+            }
             
             // Configurar eventos de navegação por teclado
             document.addEventListener('keydown', (e) => {
+                // Evitar conflito com modais abertos
+                if (document.querySelector('.modal.active')) return;
+                
                 if (e.key === 'Tab') {
                     e.preventDefault();
                     proximoCampo();
@@ -513,6 +521,8 @@
                     const activeElement = document.activeElement;
                     if (activeElement && activeElement.id === 'valorInput') {
                         confirmarDeposito();
+                    } else if (activeElement && activeElement.tagName === 'BUTTON') {
+                        // Se for botão, não fazer nada (deixar o clique normal)
                     } else {
                         proximoCampo();
                     }
@@ -531,16 +541,18 @@
                 if (data.success) {
                     clientes = data.clientes;
                     const select = document.getElementById('clienteSelect');
-                    select.innerHTML = '<option value="">Selecione o cliente...</option>';
-                    
-                    clientes.forEach(cliente => {
-                        const option = document.createElement('option');
-                        option.value = cliente.username;
-                        option.textContent = `${cliente.nome} (${cliente.username})`;
-                        select.appendChild(option);
-                    });
-                    
-                    console.log(`✅ ${clientes.length} clientes carregados`);
+                    if (select) {
+                        select.innerHTML = '<option value="">Selecione o cliente...</option>';
+                        
+                        clientes.forEach(cliente => {
+                            const option = document.createElement('option');
+                            option.value = cliente.username;
+                            option.textContent = `${cliente.nome} (${cliente.username})`;
+                            select.appendChild(option);
+                        });
+                        
+                        console.log(`✅ ${clientes.length} clientes carregados`);
+                    }
                 }
             } catch (error) {
                 console.error('Erro ao carregar clientes:', error);
@@ -565,35 +577,47 @@
         // ============================================
         // EVENTOS
         // ============================================
-        document.getElementById('clienteSelect').addEventListener('change', async (e) => {
-            const username = e.target.value;
-            if (username) {
-                await carregarContasCliente(username);
-            } else {
-                const contaClienteSelect = document.getElementById('contaClienteSelect');
-                contaClienteSelect.innerHTML = '<option value="">Selecione primeiro um cliente...</option>';
-                contaClienteSelect.disabled = true;
-                
-                const contaEmpresaSelect = document.getElementById('contaEmpresaSelect');
-                contaEmpresaSelect.innerHTML = '<option value="">Selecione primeiro uma conta do cliente...</option>';
-                contaEmpresaSelect.disabled = true;
-            }
-        });
+        const clienteSelect = document.getElementById('clienteSelect');
+        if (clienteSelect) {
+            clienteSelect.addEventListener('change', async (e) => {
+                const username = e.target.value;
+                if (username) {
+                    await carregarContasCliente(username);
+                } else {
+                    const contaClienteSelect = document.getElementById('contaClienteSelect');
+                    if (contaClienteSelect) {
+                        contaClienteSelect.innerHTML = '<option value="">Selecione primeiro um cliente...</option>';
+                        contaClienteSelect.disabled = true;
+                    }
+                    
+                    const contaEmpresaSelect = document.getElementById('contaEmpresaSelect');
+                    if (contaEmpresaSelect) {
+                        contaEmpresaSelect.innerHTML = '<option value="">Selecione primeiro uma conta do cliente...</option>';
+                        contaEmpresaSelect.disabled = true;
+                    }
+                }
+            });
+        }
 
-        document.getElementById('contaClienteSelect').addEventListener('change', (e) => {
-            const contaSelecionada = e.target.value;
-            if (contaSelecionada) {
-                filtrarContasEmpresaPorMoeda(contaSelecionada);
-            }
-        });
+        const contaClienteSelect = document.getElementById('contaClienteSelect');
+        if (contaClienteSelect) {
+            contaClienteSelect.addEventListener('change', (e) => {
+                const contaSelecionada = e.target.value;
+                if (contaSelecionada) {
+                    filtrarContasEmpresaPorMoeda(contaSelecionada);
+                }
+            });
+        }
 
         async function carregarContasCliente(username) {
             try {
                 const response = await fetch(`/api/admin/clientes/${username}/contas`);
                 const data = await response.json();
                 
+                const select = document.getElementById('contaClienteSelect');
+                if (!select) return;
+                
                 if (data.success && data.contas.length > 0) {
-                    const select = document.getElementById('contaClienteSelect');
                     select.innerHTML = '<option value="">Selecione a conta...</option>';
                     
                     data.contas.forEach(conta => {
@@ -606,7 +630,6 @@
                     select.disabled = false;
                     console.log(`✅ ${data.contas.length} contas do cliente carregadas`);
                 } else {
-                    const select = document.getElementById('contaClienteSelect');
                     select.innerHTML = '<option value="">Cliente não possui contas</option>';
                     select.disabled = true;
                 }
@@ -624,6 +647,7 @@
                 const contasFiltradas = contasEmpresa.filter(conta => conta.moeda === moedaCliente);
                 
                 const select = document.getElementById('contaEmpresaSelect');
+                if (!select) return;
                 
                 if (contasFiltradas.length > 0) {
                     select.innerHTML = '<option value="">Selecione a conta da empresa...</option>';
@@ -649,6 +673,8 @@
         function onBancoOrigemChange() {
             const select = document.getElementById('bancoOrigemSelect');
             const outroBancoInput = document.getElementById('outroBancoInput');
+            
+            if (!select || !outroBancoInput) return;
             
             if (select.value === 'Outro Banco') {
                 outroBancoInput.classList.remove('hidden');
@@ -701,10 +727,12 @@
 
         function getValorNumerico() {
             const valorStr = document.getElementById('valorInput').value;
+            if (!valorStr) return 0;
             return parseFloat(valorStr.replace(/\./g, '').replace(',', '.'));
         }
 
         function formatarValorMonetario(valor) {
+            if (valor === undefined || valor === null) return '0,00';
             return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
@@ -727,33 +755,33 @@
             
             for (let i = 0; i < camposOrdem.length; i++) {
                 const campo = document.getElementById(camposOrdem[i]);
-                if (campo === activeElement || (campo.contains && campo.contains(activeElement))) {
+                if (campo && campo === activeElement) {
                     indexAtual = i;
                     break;
                 }
             }
             
-            let proximoIndex = (indexAtual + 1) % camposOrdem.length;
-            let proximoCampo = document.getElementById(camposOrdem[proximoIndex]);
-            
-            // Pular campos desabilitados ou ocultos
-            while (proximoCampo && (proximoCampo.disabled || (proximoCampo.classList && proximoCampo.classList.contains('hidden')))) {
-                proximoIndex = (proximoIndex + 1) % camposOrdem.length;
-                proximoCampo = document.getElementById(camposOrdem[proximoIndex]);
+            if (indexAtual === -1) {
+                // Se nenhum campo está focado, focar no primeiro
+                const primeiroCampo = document.getElementById(camposOrdem[0]);
+                if (primeiroCampo) primeiroCampo.focus();
+                return;
             }
             
-            if (proximoCampo) {
-                if (proximoCampo.tagName === 'SELECT') {
-                    proximoCampo.focus();
-                    // Abrir dropdown do select (simular clique)
-                    if (proximoCampo.size <= 1) {
-                        const event = new MouseEvent('mousedown', { view: window, bubbles: true, cancelable: true });
-                        proximoCampo.dispatchEvent(event);
-                    }
-                } else {
-                    proximoCampo.focus();
-                    if (proximoCampo.select) proximoCampo.select();
-                }
+            let proximoIndex = (indexAtual + 1) % camposOrdem.length;
+            let contador = 0;
+            let proximoCampo = document.getElementById(camposOrdem[proximoIndex]);
+            
+            // Pular campos desabilitados ou ocultos (com limite para evitar loop infinito)
+            while (proximoCampo && (proximoCampo.disabled || (proximoCampo.classList && proximoCampo.classList.contains('hidden'))) && contador < camposOrdem.length) {
+                proximoIndex = (proximoIndex + 1) % camposOrdem.length;
+                proximoCampo = document.getElementById(camposOrdem[proximoIndex]);
+                contador++;
+            }
+            
+            if (proximoCampo && !proximoCampo.disabled) {
+                proximoCampo.focus();
+                if (proximoCampo.select) proximoCampo.select();
             }
         }
 
@@ -822,50 +850,82 @@
             const username = clienteSelect.value;
             
             const contaClienteJson = document.getElementById('contaClienteSelect').value;
-            const contaCliente = JSON.parse(contaClienteJson);
+            let contaCliente;
+            try {
+                contaCliente = JSON.parse(contaClienteJson);
+            } catch (e) {
+                mostrarErro('Erro ao processar conta do cliente!');
+                return;
+            }
             
             const contaEmpresa = document.getElementById('contaEmpresaSelect').value;
-            const contaEmpresaTexto = document.getElementById('contaEmpresaSelect').options[document.getElementById('contaEmpresaSelect').selectedIndex]?.text || '';
+            const contaEmpresaSelect = document.getElementById('contaEmpresaSelect');
+            const contaEmpresaTexto = contaEmpresaSelect.options[contaEmpresaSelect.selectedIndex]?.text || '';
             
             const remetente = document.getElementById('remetenteInput').value.trim();
             const valor = getValorNumerico();
             
+            // Salvar dados para confirmação
             dadosConfirmacao = {
-                username,
-                clienteTexto,
+                username: username,
+                clienteTexto: clienteTexto,
                 contaClienteNumero: contaCliente.numero,
                 contaClienteMoeda: contaCliente.moeda,
                 contaClienteSaldo: contaCliente.saldo,
-                contaEmpresa,
-                contaEmpresaTexto,
-                bancoOrigem,
-                remetente,
-                valor
+                contaEmpresa: contaEmpresa,
+                contaEmpresaTexto: contaEmpresaTexto,
+                bancoOrigem: bancoOrigem,
+                remetente: remetente,
+                valor: valor
             };
             
+            console.log('📦 Dados de confirmação salvos:', dadosConfirmacao);
+            
             const modalBody = document.getElementById('modalConfirmacaoBody');
-            modalBody.innerHTML = `
-                <div class="info-card" style="margin-bottom: 10px;">
-                    <strong>Confirmar Depósito</strong>
-                </div>
-                <p><strong>Cliente:</strong> ${escapeHtml(clienteTexto)}</p>
-                <p><strong>Conta do Cliente:</strong> ${contaCliente.numero} (${contaCliente.moeda})</p>
-                <p><strong>Saldo Atual:</strong> ${formatarValorMonetario(contaCliente.saldo)} ${contaCliente.moeda}</p>
-                <p><strong>Conta da Empresa:</strong> ${contaEmpresaTexto}</p>
-                <p><strong>Banco de Origem:</strong> ${bancoOrigem}</p>
-                <p><strong>Remetente:</strong> ${escapeHtml(remetente)}</p>
-                <p><strong>Valor:</strong> ${formatarValorMonetario(valor)} ${contaCliente.moeda}</p>
-                <p><strong>Novo Saldo:</strong> ${formatarValorMonetario(contaCliente.saldo + valor)} ${contaCliente.moeda}</p>
-            `;
+            if (modalBody) {
+                modalBody.innerHTML = `
+                    <div class="info-card" style="margin-bottom: 10px;">
+                        <strong>Confirmar Depósito</strong>
+                    </div>
+                    <p><strong>Cliente:</strong> ${escapeHtml(clienteTexto)}</p>
+                    <p><strong>Conta do Cliente:</strong> ${contaCliente.numero} (${contaCliente.moeda})</p>
+                    <p><strong>Saldo Atual:</strong> ${formatarValorMonetario(contaCliente.saldo)} ${contaCliente.moeda}</p>
+                    <p><strong>Conta da Empresa:</strong> ${escapeHtml(contaEmpresaTexto)}</p>
+                    <p><strong>Banco de Origem:</strong> ${escapeHtml(bancoOrigem)}</p>
+                    <p><strong>Remetente:</strong> ${escapeHtml(remetente)}</p>
+                    <p><strong>Valor:</strong> ${formatarValorMonetario(valor)} ${contaCliente.moeda}</p>
+                    <p><strong>Novo Saldo:</strong> ${formatarValorMonetario(contaCliente.saldo + valor)} ${contaCliente.moeda}</p>
+                `;
+            }
             
             document.getElementById('modalConfirmacao').classList.add('active');
+            modalConfirmacaoAberto = true;
         }
 
         // ============================================
         // EXECUTAR DEPÓSITO
         // ============================================
         async function executarDeposito() {
-            if (!dadosConfirmacao) return;
+            console.log('🔍 executarDeposito chamado');
+            console.log('dadosConfirmacao:', dadosConfirmacao);
+            
+            // Verificar se dadosConfirmacao existe
+            if (!dadosConfirmacao) {
+                console.error('❌ dadosConfirmacao é null!');
+                mostrarErro('Erro: Dados de confirmação não encontrados. Tente novamente.');
+                fecharModalConfirmacao();
+                return;
+            }
+            
+            // Verificar se username existe
+            if (!dadosConfirmacao.username) {
+                console.error('❌ dadosConfirmacao.username é null!');
+                mostrarErro('Erro: Usuário não identificado. Tente novamente.');
+                fecharModalConfirmacao();
+                return;
+            }
+            
+            console.log('✅ Dados válidos, processando depósito...');
             
             fecharModalConfirmacao();
             
@@ -885,31 +945,41 @@
                 });
                 
                 const data = await response.json();
+                console.log('📥 Resposta do servidor:', data);
                 
                 if (data.success) {
                     const novoSaldo = dadosConfirmacao.contaClienteSaldo + dadosConfirmacao.valor;
                     
                     const modalBody = document.getElementById('modalSucessoBody');
-                    modalBody.innerHTML = `
-                        <div class="info-card" style="background: rgba(46, 194, 126, 0.1); border-color: var(--cor-sucesso);">
-                            <i class="fas fa-check-circle"></i> Depósito confirmado com sucesso!
-                        </div>
-                        <p><strong>Valor:</strong> ${formatarValorMonetario(dadosConfirmacao.valor)} ${dadosConfirmacao.contaClienteMoeda}</p>
-                        <p><strong>Cliente:</strong> ${escapeHtml(dadosConfirmacao.clienteTexto)}</p>
-                        <p><strong>Conta:</strong> ${dadosConfirmacao.contaClienteNumero}</p>
-                        <p><strong>Banco:</strong> ${dadosConfirmacao.bancoOrigem}</p>
-                        <p><strong>Saldo anterior:</strong> ${formatarValorMonetario(dadosConfirmacao.contaClienteSaldo)} ${dadosConfirmacao.contaClienteMoeda}</p>
-                        <p><strong>Novo saldo:</strong> ${formatarValorMonetario(novoSaldo)} ${dadosConfirmacao.contaClienteMoeda}</p>
-                        <p style="color: var(--cor-sucesso);"><strong>${data.status_supabase || '✅ Sincronizado com Supabase'}</strong></p>
-                    `;
+                    if (modalBody) {
+                        modalBody.innerHTML = `
+                            <div class="info-card" style="background: rgba(46, 194, 126, 0.1); border-color: var(--cor-sucesso);">
+                                <i class="fas fa-check-circle"></i> Depósito confirmado com sucesso!
+                            </div>
+                            <p><strong>Valor:</strong> ${formatarValorMonetario(dadosConfirmacao.valor)} ${dadosConfirmacao.contaClienteMoeda}</p>
+                            <p><strong>Cliente:</strong> ${escapeHtml(dadosConfirmacao.clienteTexto)}</p>
+                            <p><strong>Conta:</strong> ${dadosConfirmacao.contaClienteNumero}</p>
+                            <p><strong>Banco:</strong> ${escapeHtml(dadosConfirmacao.bancoOrigem)}</p>
+                            <p><strong>Saldo anterior:</strong> ${formatarValorMonetario(dadosConfirmacao.contaClienteSaldo)} ${dadosConfirmacao.contaClienteMoeda}</p>
+                            <p><strong>Novo saldo:</strong> ${formatarValorMonetario(novoSaldo)} ${dadosConfirmacao.contaClienteMoeda}</p>
+                            <p style="color: var(--cor-sucesso);"><strong>${data.status_supabase || '✅ Sincronizado com Supabase'}</strong></p>
+                        `;
+                    }
                     
                     document.getElementById('modalSucesso').classList.add('active');
                     
-                    // Atualizar os selects com os novos saldos
+                    // Recarregar contas do cliente para atualizar o saldo nos selects
                     await carregarContasCliente(dadosConfirmacao.username);
                     
-                    // Limpar campos
-                    limparCampos();
+                    // Limpar campos (manter cliente selecionado)
+                    document.getElementById('contaClienteSelect').value = '';
+                    document.getElementById('contaEmpresaSelect').innerHTML = '<option value="">Selecione primeiro uma conta do cliente...</option>';
+                    document.getElementById('contaEmpresaSelect').disabled = true;
+                    document.getElementById('bancoOrigemSelect').value = 'Outro Banco';
+                    document.getElementById('outroBancoInput').value = '';
+                    document.getElementById('outroBancoInput').classList.remove('hidden');
+                    document.getElementById('remetenteInput').value = '';
+                    document.getElementById('valorInput').value = '0,00';
                     
                     // Focar no banco de origem
                     document.getElementById('bancoOrigemSelect').focus();
@@ -917,10 +987,11 @@
                     mostrarErro(data.message || 'Erro ao processar depósito!');
                 }
             } catch (error) {
-                console.error('Erro:', error);
-                mostrarErro('Erro ao processar depósito!');
+                console.error('❌ Erro na requisição:', error);
+                mostrarErro('Erro ao processar depósito: ' + error.message);
             }
             
+            // Limpar dados de confirmação
             dadosConfirmacao = null;
         }
 
@@ -928,16 +999,39 @@
         // LIMPAR CAMPOS
         // ============================================
         function limparCampos() {
-            document.getElementById('clienteSelect').value = '';
-            document.getElementById('contaClienteSelect').innerHTML = '<option value="">Selecione primeiro um cliente...</option>';
-            document.getElementById('contaClienteSelect').disabled = true;
-            document.getElementById('contaEmpresaSelect').innerHTML = '<option value="">Selecione primeiro uma conta do cliente...</option>';
-            document.getElementById('contaEmpresaSelect').disabled = true;
-            document.getElementById('bancoOrigemSelect').value = 'Outro Banco';
-            document.getElementById('outroBancoInput').value = '';
-            document.getElementById('outroBancoInput').classList.remove('hidden');
-            document.getElementById('remetenteInput').value = '';
-            document.getElementById('valorInput').value = '0,00';
+            console.log('🧹 Limpando campos...');
+            
+            const clienteSelect = document.getElementById('clienteSelect');
+            if (clienteSelect) clienteSelect.value = '';
+            
+            const contaClienteSelect = document.getElementById('contaClienteSelect');
+            if (contaClienteSelect) {
+                contaClienteSelect.innerHTML = '<option value="">Selecione primeiro um cliente...</option>';
+                contaClienteSelect.disabled = true;
+            }
+            
+            const contaEmpresaSelect = document.getElementById('contaEmpresaSelect');
+            if (contaEmpresaSelect) {
+                contaEmpresaSelect.innerHTML = '<option value="">Selecione primeiro uma conta do cliente...</option>';
+                contaEmpresaSelect.disabled = true;
+            }
+            
+            const bancoSelect = document.getElementById('bancoOrigemSelect');
+            if (bancoSelect) bancoSelect.value = 'Outro Banco';
+            
+            const outroBancoInput = document.getElementById('outroBancoInput');
+            if (outroBancoInput) {
+                outroBancoInput.value = '';
+                outroBancoInput.classList.remove('hidden');
+            }
+            
+            const remetenteInput = document.getElementById('remetenteInput');
+            if (remetenteInput) remetenteInput.value = '';
+            
+            const valorInput = document.getElementById('valorInput');
+            if (valorInput) valorInput.value = '0,00';
+            
+            console.log('✅ Campos limpos');
         }
 
         // ============================================
@@ -945,6 +1039,7 @@
         // ============================================
         function fecharModalConfirmacao() {
             document.getElementById('modalConfirmacao').classList.remove('active');
+            modalConfirmacaoAberto = false;
             dadosConfirmacao = null;
         }
 
@@ -958,7 +1053,9 @@
 
         function mostrarErro(mensagem) {
             const modalBody = document.getElementById('modalErroBody');
-            modalBody.innerHTML = `<div class="info-card" style="background: rgba(224, 27, 36, 0.1); border-color: var(--cor-perigo);">${escapeHtml(mensagem)}</div>`;
+            if (modalBody) {
+                modalBody.innerHTML = `<div class="info-card" style="background: rgba(224, 27, 36, 0.1); border-color: var(--cor-perigo);">${escapeHtml(mensagem)}</div>`;
+            }
             document.getElementById('modalErro').classList.add('active');
         }
 
