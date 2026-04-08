@@ -8440,6 +8440,839 @@ def api_admin_confirmar_deposito():
         return jsonify({"success": False, "message": str(e)}), 500
     
 
+# ============================================
+# ADMIN - GERENCIAR CONTAS
+# ============================================
+
+@app.route('/admin/gerenciar-contas')
+def admin_gerenciar_contas():
+    """Tela de gerenciar contas"""
+    usuario = session.get('username')
+    
+    if not usuario:
+        return redirect('/login')
+    
+    # Verificar se é admin
+    if supabase:
+        user_check = supabase.table('usuarios')\
+            .select('tipo')\
+            .eq('username', usuario)\
+            .single()\
+            .execute()
+        
+        if not user_check.data or user_check.data.get('tipo') != 'admin':
+            return redirect('/dashboard')
+    
+    # Buscar dados do usuário
+    nome = usuario.upper()
+    email = f'{usuario}@exemplo.com'
+    
+    try:
+        if supabase:
+            user_response = supabase.table('usuarios')\
+                .select('nome, email')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if user_response.data:
+                if user_response.data.get('nome'):
+                    nome = user_response.data['nome']
+                if user_response.data.get('email'):
+                    email = user_response.data['email']
+    except:
+        pass
+    
+    return render_template('admin_gerenciar_contas.html',
+                          usuario=usuario,
+                          nome=nome,
+                          email=email)
+
+
+@app.route('/api/admin/clientes/<username>/detalhes', methods=['GET'])
+def api_admin_cliente_detalhes(username):
+    """Retorna detalhes completos de um cliente"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Buscar dados do cliente
+        cliente_response = supabase.table('usuarios')\
+            .select('*')\
+            .eq('username', username)\
+            .single()\
+            .execute()
+        
+        if not cliente_response.data:
+            return jsonify({"success": False, "message": "Cliente não encontrado"}), 404
+        
+        cliente = cliente_response.data
+        
+        # Buscar contas do cliente
+        contas_response = supabase.table('contas')\
+            .select('*')\
+            .eq('cliente_username', username)\
+            .execute()
+        
+        contas = []
+        for conta in (contas_response.data or []):
+            contas.append({
+                'numero': conta.get('id'),
+                'moeda': conta.get('moeda'),
+                'saldo': float(conta.get('saldo', 0)),
+                'ativa': conta.get('ativa', True),
+                'data_criacao': conta.get('data_criacao')
+            })
+        
+        return jsonify({
+            "success": True,
+            "cliente": {
+                'username': cliente.get('username'),
+                'nome': cliente.get('nome'),
+                'email': cliente.get('email'),
+                'telefone': cliente.get('telefone'),
+                'status': cliente.get('status'),
+                'verificado': cliente.get('verificado', False),
+                'cambio_liberado': cliente.get('cambio_liberado', False),
+                'data_cadastro': cliente.get('data_cadastro')
+            },
+            "contas": contas
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar detalhes do cliente: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/contas-contabeis', methods=['GET'])
+def api_admin_contas_contabeis():
+    """Retorna todas as contas contábeis organizadas por categoria"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Buscar contas contábeis
+        response = supabase.table('contas_contabeis')\
+            .select('*')\
+            .execute()
+        
+        receitas = {}
+        despesas = {}
+        
+        for conta in (response.data or []):
+            tipo = conta.get('tipo')
+            categoria = conta.get('categoria')
+            nome = conta.get('nome')
+            moeda = conta.get('moeda')
+            
+            if tipo == 'receita':
+                if categoria not in receitas:
+                    receitas[categoria] = {}
+                if nome not in receitas[categoria]:
+                    receitas[categoria][nome] = {}
+                receitas[categoria][nome][moeda] = float(conta.get('saldo', 0))
+            elif tipo == 'despesa':
+                if categoria not in despesas:
+                    despesas[categoria] = {}
+                if nome not in despesas[categoria]:
+                    despesas[categoria][nome] = {}
+                despesas[categoria][nome][moeda] = float(conta.get('saldo', 0))
+        
+        return jsonify({
+            "success": True,
+            "receitas": receitas,
+            "despesas": despesas
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar contas contábeis: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/gerenciar-contas/ajuste', methods=['POST'])
+def api_admin_gerenciar_ajuste():
+    """Realiza ajuste de saldo na conta do cliente"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Verificar se é admin
+        if supabase:
+            user_check = supabase.table('usuarios')\
+                .select('tipo')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if not user_check.data or user_check.data.get('tipo') != 'admin':
+                return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        dados = request.get_json()
+        
+        username = dados.get('username')
+        conta_numero = dados.get('conta_numero')
+        valor = float(dados.get('valor', 0))
+        operacao = dados.get('operacao')  # 'credito' ou 'debito'
+        descricao = dados.get('descricao', 'Ajuste administrativo')
+        
+        if not username or not conta_numero:
+            return jsonify({"success": False, "message": "Dados incompletos"}), 400
+        
+        if valor <= 0:
+            return jsonify({"success": False, "message": "Valor deve ser maior que zero"}), 400
+        
+        # Buscar conta do cliente
+        conta_response = supabase.table('contas')\
+            .select('saldo, moeda')\
+            .eq('id', conta_numero)\
+            .eq('cliente_username', username)\
+            .single()\
+            .execute()
+        
+        if not conta_response.data:
+            return jsonify({"success": False, "message": "Conta não encontrada"}), 404
+        
+        saldo_atual = float(conta_response.data['saldo'])
+        moeda = conta_response.data['moeda']
+        
+        if operacao == 'credito':
+            novo_saldo = saldo_atual + valor
+            tipo_ajuste = "CRÉDITO"
+        else:
+            novo_saldo = saldo_atual - valor
+            tipo_ajuste = "DÉBITO"
+        
+        # Atualizar saldo
+        update_response = supabase.table('contas')\
+            .update({'saldo': novo_saldo})\
+            .eq('id', conta_numero)\
+            .execute()
+        
+        if not update_response.data:
+            return jsonify({"success": False, "message": "Erro ao atualizar saldo"}), 500
+        
+        # Registrar transação
+        from datetime import datetime
+        import random
+        
+        transacao_id = f"{random.randint(100000, 999999)}_aj"
+        
+        transacao_data = {
+            'id': transacao_id,
+            'tipo': 'ajuste_admin',
+            'status': 'completed',
+            'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'moeda': moeda,
+            'valor': valor,
+            'conta_remetente': conta_numero,
+            'descricao': descricao,
+            'tipo_ajuste': tipo_ajuste,
+            'descricao_ajuste': descricao,
+            'usuario': usuario,
+            'cliente': username,
+            'executado_por': usuario,
+            'created_at': datetime.now().isoformat()
+        }
+        
+        supabase.table('transferencias').insert(transacao_data).execute()
+        
+        print(f"💰 Ajuste {tipo_ajuste} de {valor:.2f} {moeda} na conta {conta_numero} do cliente {username}")
+        
+        return jsonify({
+            "success": True,
+            "message": f"Ajuste realizado com sucesso!",
+            "novo_saldo": novo_saldo
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao realizar ajuste: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/gerenciar-contas/cambio', methods=['POST'])
+def api_admin_gerenciar_cambio():
+    """Realiza operação de câmbio entre contas do cliente"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Verificar se é admin
+        if supabase:
+            user_check = supabase.table('usuarios')\
+                .select('tipo')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if not user_check.data or user_check.data.get('tipo') != 'admin':
+                return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        dados = request.get_json()
+        
+        username = dados.get('username')
+        conta_origem = dados.get('conta_origem')
+        conta_destino = dados.get('conta_destino')
+        valor = float(dados.get('valor', 0))
+        taxa_principal = float(dados.get('taxa_principal', 0))
+        
+        if not username or not conta_origem or not conta_destino:
+            return jsonify({"success": False, "message": "Dados incompletos"}), 400
+        
+        if valor <= 0:
+            return jsonify({"success": False, "message": "Valor deve ser maior que zero"}), 400
+        
+        if taxa_principal <= 0:
+            return jsonify({"success": False, "message": "Taxa de câmbio inválida"}), 400
+        
+        # Buscar contas
+        conta_origem_response = supabase.table('contas')\
+            .select('saldo, moeda')\
+            .eq('id', conta_origem)\
+            .eq('cliente_username', username)\
+            .single()\
+            .execute()
+        
+        conta_destino_response = supabase.table('contas')\
+            .select('saldo, moeda')\
+            .eq('id', conta_destino)\
+            .eq('cliente_username', username)\
+            .single()\
+            .execute()
+        
+        if not conta_origem_response.data:
+            return jsonify({"success": False, "message": "Conta origem não encontrada"}), 404
+        
+        if not conta_destino_response.data:
+            return jsonify({"success": False, "message": "Conta destino não encontrada"}), 404
+        
+        saldo_origem = float(conta_origem_response.data['saldo'])
+        moeda_origem = conta_origem_response.data['moeda']
+        moeda_destino = conta_destino_response.data['moeda']
+        
+        valor_destino = valor * taxa_principal
+        novo_saldo_origem = saldo_origem - valor
+        novo_saldo_destino = float(conta_destino_response.data['saldo']) + valor_destino
+        
+        # Atualizar saldos
+        supabase.table('contas')\
+            .update({'saldo': novo_saldo_origem})\
+            .eq('id', conta_origem)\
+            .execute()
+        
+        supabase.table('contas')\
+            .update({'saldo': novo_saldo_destino})\
+            .eq('id', conta_destino)\
+            .execute()
+        
+        # Registrar transação
+        from datetime import datetime
+        import random
+        
+        transacao_id = f"{random.randint(100000, 999999)}_cb"
+        
+        transacao_data = {
+            'id': transacao_id,
+            'tipo': 'cambio',
+            'status': 'completed',
+            'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'moeda_origem': moeda_origem,
+            'moeda_destino': moeda_destino,
+            'valor_origem': valor,
+            'valor_destino': valor_destino,
+            'taxa_cambio': taxa_principal,
+            'conta_origem': conta_origem,
+            'conta_destino': conta_destino,
+            'usuario': usuario,
+            'cliente': username,
+            'executado_por': usuario,
+            'created_at': datetime.now().isoformat()
+        }
+        
+        supabase.table('transferencias').insert(transacao_data).execute()
+        
+        print(f"💱 Câmbio realizado: {valor:.2f} {moeda_origem} → {valor_destino:.2f} {moeda_destino}")
+        
+        return jsonify({
+            "success": True,
+            "message": f"Câmbio realizado com sucesso!"
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao realizar câmbio: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/gerenciar-contas/extrato', methods=['POST'])
+def api_admin_gerenciar_extrato():
+    """Retorna extrato da conta do cliente com filtro de período"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        dados = request.get_json()
+        
+        username = dados.get('username')
+        conta_numero = dados.get('conta_numero')
+        periodo = dados.get('periodo', '30')
+        
+        if not username or not conta_numero:
+            return jsonify({"success": False, "message": "Dados incompletos"}), 400
+        
+        from datetime import datetime, timedelta
+        
+        # Definir período
+        if periodo == '0':
+            data_inicio = datetime(2024, 1, 1)
+        else:
+            dias = int(periodo)
+            data_inicio = datetime.now() - timedelta(days=dias)
+        
+        data_fim = datetime.now()
+        
+        # Buscar transações da conta
+        response = supabase.table('transferencias')\
+            .select('*')\
+            .or_(f'conta_remetente.eq.{conta_numero},conta_destinatario.eq.{conta_numero}')\
+            .execute()
+        
+        transacoes = []
+        for t in (response.data or []):
+            data_transf = t.get('created_at') or t.get('data')
+            if data_transf:
+                try:
+                    if 'T' in data_transf:
+                        data_transf_obj = datetime.fromisoformat(data_transf.replace('Z', '+00:00'))
+                    else:
+                        data_transf_obj = datetime.strptime(data_transf, "%Y-%m-%d %H:%M:%S")
+                    
+                    if data_transf_obj < data_inicio or data_transf_obj > data_fim:
+                        continue
+                except:
+                    pass
+            
+            valor = float(t.get('valor', 0))
+            moeda = t.get('moeda', 'USD')
+            tipo = t.get('tipo', '')
+            status = t.get('status', '')
+            
+            is_entrada = False
+            is_saida = False
+            
+            if t.get('conta_destinatario') == conta_numero:
+                is_entrada = True
+            elif t.get('conta_remetente') == conta_numero:
+                is_saida = True
+            
+            # Para ajustes de saldo
+            if tipo == 'ajuste_admin':
+                tipo_ajuste = t.get('tipo_ajuste', '')
+                if tipo_ajuste == 'DÉBITO':
+                    is_entrada = True
+                elif tipo_ajuste == 'CRÉDITO':
+                    is_saida = True
+            
+            transacoes.append({
+                'id': t.get('id'),
+                'data': data_transf,
+                'descricao': t.get('descricao', f"{tipo.upper()}"),
+                'credito': valor if is_saida else 0,
+                'debito': valor if is_entrada else 0,
+                'tipo': tipo,
+                'moeda': moeda,
+                'status': status
+            })
+        
+        # Ordenar por data
+        transacoes.sort(key=lambda x: x.get('data', ''))
+        
+        # Calcular saldo sequencial
+        saldo_atual = 0
+        for t in transacoes:
+            saldo_atual += t['debito'] - t['credito']
+            t['saldo_apos'] = saldo_atual
+        
+        # Reverter para exibição (mais recente primeiro)
+        transacoes.reverse()
+        
+        # Calcular totais
+        total_entradas = sum(t['debito'] for t in transacoes)
+        total_saidas = sum(t['credito'] for t in transacoes)
+        
+        return jsonify({
+            "success": True,
+            "transacoes": transacoes,
+            "total_entradas": total_entradas,
+            "total_saidas": total_saidas,
+            "saldo_final": saldo_atual,
+            "quantidade": len(transacoes)
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar extrato: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/gerenciar-contas/despesa', methods=['POST'])
+def api_admin_gerenciar_despesa():
+    """Lança uma despesa na conta bancária da empresa"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Verificar se é admin
+        if supabase:
+            user_check = supabase.table('usuarios')\
+                .select('tipo')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if not user_check.data or user_check.data.get('tipo') != 'admin':
+                return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        dados = request.get_json()
+        
+        conta_bancaria = dados.get('conta_bancaria')
+        categoria = dados.get('categoria')
+        conta_despesa = dados.get('conta_despesa')
+        valor = float(dados.get('valor', 0))
+        descricao = dados.get('descricao', '')
+        
+        if not conta_bancaria or not categoria or not conta_despesa:
+            return jsonify({"success": False, "message": "Dados incompletos"}), 400
+        
+        if valor <= 0:
+            return jsonify({"success": False, "message": "Valor deve ser maior que zero"}), 400
+        
+        # Buscar conta bancária
+        conta_response = supabase.table('contas_bancarias_empresa')\
+            .select('saldo, moeda')\
+            .eq('numero', conta_bancaria)\
+            .single()\
+            .execute()
+        
+        if not conta_response.data:
+            return jsonify({"success": False, "message": "Conta bancária não encontrada"}), 404
+        
+        saldo_atual = float(conta_response.data['saldo'])
+        moeda = conta_response.data['moeda']
+        
+        if saldo_atual < valor:
+            return jsonify({"success": False, "message": f"Saldo insuficiente! Disponível: {saldo_atual:.2f} {moeda}"}), 400
+        
+        novo_saldo = saldo_atual - valor
+        
+        # Atualizar saldo
+        supabase.table('contas_bancarias_empresa')\
+            .update({'saldo': novo_saldo})\
+            .eq('numero', conta_bancaria)\
+            .execute()
+        
+        # Registrar transação
+        from datetime import datetime
+        import random
+        
+        transacao_id = f"{random.randint(100000, 999999)}_desp"
+        
+        transacao_data = {
+            'id': transacao_id,
+            'tipo': 'despesa',
+            'status': 'completed',
+            'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'moeda': moeda,
+            'valor': valor,
+            'conta_remetente': conta_bancaria,
+            'descricao': descricao,
+            'categoria_despesa': categoria,
+            'descricao_despesa': descricao,
+            'conta_despesa': conta_despesa,
+            'usuario': usuario,
+            'executado_por': usuario,
+            'created_at': datetime.now().isoformat()
+        }
+        
+        supabase.table('transferencias').insert(transacao_data).execute()
+        
+        print(f"📉 Despesa lançada: {valor:.2f} {moeda} - {descricao}")
+        
+        return jsonify({
+            "success": True,
+            "message": f"Despesa lançada com sucesso!"
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao lançar despesa: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/gerenciar-contas/receita', methods=['POST'])
+def api_admin_gerenciar_receita():
+    """Lança uma receita na conta do cliente"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Verificar se é admin
+        if supabase:
+            user_check = supabase.table('usuarios')\
+                .select('tipo')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if not user_check.data or user_check.data.get('tipo') != 'admin':
+                return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        dados = request.get_json()
+        
+        username = dados.get('username')
+        conta_cliente = dados.get('conta_cliente')
+        categoria = dados.get('categoria')
+        conta_receita = dados.get('conta_receita')
+        valor = float(dados.get('valor', 0))
+        descricao = dados.get('descricao', '')
+        
+        if not username or not conta_cliente or not categoria or not conta_receita:
+            return jsonify({"success": False, "message": "Dados incompletos"}), 400
+        
+        if valor <= 0:
+            return jsonify({"success": False, "message": "Valor deve ser maior que zero"}), 400
+        
+        # Buscar conta do cliente
+        conta_response = supabase.table('contas')\
+            .select('saldo, moeda')\
+            .eq('id', conta_cliente)\
+            .eq('cliente_username', username)\
+            .single()\
+            .execute()
+        
+        if not conta_response.data:
+            return jsonify({"success": False, "message": "Conta do cliente não encontrada"}), 404
+        
+        saldo_atual = float(conta_response.data['saldo'])
+        moeda = conta_response.data['moeda']
+        novo_saldo = saldo_atual + valor
+        
+        # Atualizar saldo
+        supabase.table('contas')\
+            .update({'saldo': novo_saldo})\
+            .eq('id', conta_cliente)\
+            .execute()
+        
+        # Registrar transação
+        from datetime import datetime
+        import random
+        
+        transacao_id = f"{random.randint(100000, 999999)}_rec"
+        
+        transacao_data = {
+            'id': transacao_id,
+            'tipo': 'receita',
+            'status': 'completed',
+            'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'moeda': moeda,
+            'valor': valor,
+            'conta_destinatario': conta_cliente,
+            'descricao': descricao,
+            'categoria_receita': categoria,
+            'descricao_receita': descricao,
+            'conta_receita': conta_receita,
+            'usuario': usuario,
+            'cliente': username,
+            'executado_por': usuario,
+            'created_at': datetime.now().isoformat()
+        }
+        
+        supabase.table('transferencias').insert(transacao_data).execute()
+        
+        print(f"📈 Receita lançada: {valor:.2f} {moeda} - {descricao}")
+        
+        return jsonify({
+            "success": True,
+            "message": f"Receita lançada com sucesso!"
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao lançar receita: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/gerenciar-contas/transferencia', methods=['POST'])
+def api_admin_gerenciar_transferencia():
+    """Realiza transferência entre contas (admin)"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Verificar se é admin
+        if supabase:
+            user_check = supabase.table('usuarios')\
+                .select('tipo')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if not user_check.data or user_check.data.get('tipo') != 'admin':
+                return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        dados = request.get_json()
+        
+        conta_origem = dados.get('conta_origem')
+        conta_destino = dados.get('conta_destino')
+        valor = float(dados.get('valor', 0))
+        descricao = dados.get('descricao', '')
+        tipo_origem = dados.get('tipo_origem')  # 'empresa' ou 'cliente'
+        tipo_destino = dados.get('tipo_destino')  # 'empresa' ou 'cliente'
+        
+        if not conta_origem or not conta_destino:
+            return jsonify({"success": False, "message": "Contas não informadas"}), 400
+        
+        if valor <= 0:
+            return jsonify({"success": False, "message": "Valor deve ser maior que zero"}), 400
+        
+        from datetime import datetime
+        import random
+        
+        # Determinar moeda e atualizar saldos baseado nos tipos
+        moeda = None
+        
+        # Processar conta origem
+        if tipo_origem == 'empresa':
+            # Conta da empresa
+            conta_response = supabase.table('contas_bancarias_empresa')\
+                .select('saldo, moeda')\
+                .eq('numero', conta_origem)\
+                .single()\
+                .execute()
+            
+            if not conta_response.data:
+                return jsonify({"success": False, "message": "Conta origem não encontrada"}), 404
+            
+            saldo_origem = float(conta_response.data['saldo'])
+            moeda = conta_response.data['moeda']
+            
+            if saldo_origem < valor:
+                return jsonify({"success": False, "message": f"Saldo insuficiente na conta origem"}), 400
+            
+            novo_saldo_origem = saldo_origem - valor
+            
+            supabase.table('contas_bancarias_empresa')\
+                .update({'saldo': novo_saldo_origem})\
+                .eq('numero', conta_origem)\
+                .execute()
+                
+        else:
+            # Conta de cliente
+            conta_response = supabase.table('contas')\
+                .select('saldo, moeda')\
+                .eq('id', conta_origem)\
+                .single()\
+                .execute()
+            
+            if not conta_response.data:
+                return jsonify({"success": False, "message": "Conta origem não encontrada"}), 404
+            
+            saldo_origem = float(conta_response.data['saldo'])
+            moeda = conta_response.data['moeda']
+            
+            if saldo_origem < valor:
+                return jsonify({"success": False, "message": f"Saldo insuficiente na conta origem"}), 400
+            
+            novo_saldo_origem = saldo_origem - valor
+            
+            supabase.table('contas')\
+                .update({'saldo': novo_saldo_origem})\
+                .eq('id', conta_origem)\
+                .execute()
+        
+        # Processar conta destino
+        if tipo_destino == 'empresa':
+            # Conta da empresa
+            conta_response = supabase.table('contas_bancarias_empresa')\
+                .select('saldo')\
+                .eq('numero', conta_destino)\
+                .single()\
+                .execute()
+            
+            if not conta_response.data:
+                return jsonify({"success": False, "message": "Conta destino não encontrada"}), 404
+            
+            saldo_destino = float(conta_response.data['saldo'])
+            novo_saldo_destino = saldo_destino + valor
+            
+            supabase.table('contas_bancarias_empresa')\
+                .update({'saldo': novo_saldo_destino})\
+                .eq('numero', conta_destino)\
+                .execute()
+                
+        else:
+            # Conta de cliente
+            conta_response = supabase.table('contas')\
+                .select('saldo')\
+                .eq('id', conta_destino)\
+                .single()\
+                .execute()
+            
+            if not conta_response.data:
+                return jsonify({"success": False, "message": "Conta destino não encontrada"}), 404
+            
+            saldo_destino = float(conta_response.data['saldo'])
+            novo_saldo_destino = saldo_destino + valor
+            
+            supabase.table('contas')\
+                .update({'saldo': novo_saldo_destino})\
+                .eq('id', conta_destino)\
+                .execute()
+        
+        # Registrar transação
+        transacao_id = f"{random.randint(100000, 999999)}_transf"
+        
+        transacao_data = {
+            'id': transacao_id,
+            'tipo': 'transferencia_interna',
+            'status': 'completed',
+            'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'moeda': moeda,
+            'valor': valor,
+            'conta_remetente': conta_origem,
+            'conta_destinatario': conta_destino,
+            'descricao': descricao,
+            'usuario': usuario,
+            'executado_por': usuario,
+            'tipo_origem': tipo_origem,
+            'tipo_destino': tipo_destino,
+            'created_at': datetime.now().isoformat()
+        }
+        
+        supabase.table('transferencias').insert(transacao_data).execute()
+        
+        print(f"🔄 Transferência realizada: {valor:.2f} {moeda} de {conta_origem} para {conta_destino}")
+        
+        return jsonify({
+            "success": True,
+            "message": f"Transferência realizada com sucesso!"
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao realizar transferência: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))

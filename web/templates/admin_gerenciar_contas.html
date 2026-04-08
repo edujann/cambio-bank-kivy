@@ -1,0 +1,1975 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏦 Cambio Bank - Gerenciar Contas</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --cor-fundo: #0a0e15;
+            --cor-card: #0d1117;
+            --cor-borda: #1e232e;
+            --cor-texto: #e0e0e0;
+            --cor-texto-secundario: #8b949e;
+            --cor-primaria: #1a5fb4;
+            --cor-admin: #1a5fb4;
+            --cor-sucesso: #2ec27e;
+            --cor-alerta: #f39c12;
+            --cor-perigo: #e01b24;
+            --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.4);
+            --borda-radius: 12px;
+            --borda-radius-pequeno: 8px;
+        }
+
+        body {
+            background: var(--cor-fundo);
+            color: var(--cor-texto);
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* HEADER */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--cor-borda);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .logo i {
+            color: var(--cor-admin);
+            font-size: 28px;
+        }
+
+        .logo-text {
+            background: linear-gradient(90deg, var(--cor-admin), #2d8fff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .badge-admin {
+            background: var(--cor-admin);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .btn-voltar {
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            padding: 10px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-voltar:hover {
+            border-color: var(--cor-admin);
+            color: var(--cor-admin);
+            transform: translateY(-2px);
+        }
+
+        /* TABS */
+        .tabs-container {
+            margin-bottom: 30px;
+        }
+
+        .tabs-header {
+            display: flex;
+            gap: 5px;
+            border-bottom: 1px solid var(--cor-borda);
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            padding: 12px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--cor-texto-secundario);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .tab-btn:hover {
+            color: var(--cor-texto);
+            background: rgba(26, 95, 180, 0.1);
+        }
+
+        .tab-btn.active {
+            color: var(--cor-admin);
+            border-bottom: 2px solid var(--cor-admin);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* ============================================
+           ABA 1: LISTA DE CLIENTES
+           ============================================ */
+        .busca-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .busca-input {
+            flex: 1;
+            padding: 12px 15px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            color: var(--cor-texto);
+            font-size: 14px;
+        }
+
+        .busca-input:focus {
+            outline: none;
+            border-color: var(--cor-admin);
+        }
+
+        .btn-limpar {
+            background: var(--cor-alerta);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+        }
+
+        .clientes-grid {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            overflow: hidden;
+        }
+
+        .cliente-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--cor-borda);
+            transition: all 0.3s ease;
+        }
+
+        .cliente-card:hover {
+            background: rgba(26, 95, 180, 0.05);
+        }
+
+        .cliente-info {
+            flex: 1;
+        }
+
+        .cliente-nome {
+            font-weight: bold;
+            font-size: 15px;
+            margin-bottom: 5px;
+        }
+
+        .cliente-username {
+            font-size: 12px;
+            color: var(--cor-texto-secundario);
+        }
+
+        .cliente-moedas {
+            font-size: 12px;
+            color: var(--cor-primaria);
+            margin-top: 5px;
+        }
+
+        .cliente-saldo {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 0 20px;
+        }
+
+        .btn-gerenciar {
+            background: var(--cor-admin);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-gerenciar:hover {
+            background: #2d8fff;
+            transform: translateY(-2px);
+        }
+
+        /* ============================================
+           FORMULÁRIOS PADRÃO
+           ============================================ */
+        .form-card {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .form-title {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: var(--cor-admin);
+            border-left: 3px solid var(--cor-admin);
+            padding-left: 15px;
+        }
+
+        .form-row {
+            margin-bottom: 20px;
+        }
+
+        .form-row label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: var(--cor-texto-secundario);
+            font-weight: 600;
+        }
+
+        .form-row label i {
+            margin-right: 8px;
+            color: var(--cor-admin);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            color: var(--cor-texto);
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--cor-admin);
+            box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2);
+        }
+
+        select.form-control {
+            cursor: pointer;
+        }
+
+        .form-row-duas-colunas {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        /* TOGGLE BUTTONS */
+        .toggle-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 12px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            text-align: center;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-btn:hover {
+            border-color: var(--cor-admin);
+        }
+
+        .toggle-btn.active {
+            background: var(--cor-admin);
+            border-color: var(--cor-admin);
+            color: white;
+        }
+
+        /* INFO CONVERSÃO */
+        .info-conversao {
+            background: rgba(26, 95, 180, 0.1);
+            border: 1px solid var(--cor-admin);
+            border-radius: var(--borda-radius-pequeno);
+            padding: 15px;
+            margin: 15px 0;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        /* BOTÕES */
+        .btn-submit {
+            background: var(--cor-admin);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: var(--borda-radius-pequeno);
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn-submit:hover {
+            background: #2d8fff;
+            transform: translateY(-2px);
+            box-shadow: var(--sombra-suave);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            padding: 12px 24px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--cor-admin);
+            color: var(--cor-admin);
+        }
+
+        /* EXTRATO */
+        .extrato-container {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            overflow-x: auto;
+        }
+
+        .extrato-tabela {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .extrato-tabela th,
+        .extrato-tabela td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+
+        .extrato-tabela th {
+            background: rgba(26, 95, 180, 0.1);
+            color: var(--cor-admin);
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .extrato-tabela tr:hover {
+            background: rgba(26, 95, 180, 0.05);
+        }
+
+        .credito {
+            color: var(--cor-perigo);
+        }
+
+        .debito {
+            color: var(--cor-sucesso);
+        }
+
+        /* TAXAS CÂMBIO */
+        .taxas-container {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+        }
+
+        .taxa-field {
+            flex: 1;
+        }
+
+        .btn-trocar-taxas {
+            background: var(--cor-admin);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            height: 46px;
+        }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--cor-borda);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            color: var(--cor-admin);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--cor-texto-secundario);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .modal-close:hover {
+            color: var(--cor-perigo);
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid var(--cor-borda);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* LOADING */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--cor-texto-secundario);
+        }
+
+        .loading i {
+            font-size: 32px;
+            margin-bottom: 10px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* RESPONSIVIDADE */
+        @media (max-width: 768px) {
+            .form-row-duas-colunas {
+                grid-template-columns: 1fr;
+            }
+            
+            .tabs-header {
+                flex-direction: column;
+            }
+            
+            .tab-btn {
+                text-align: center;
+            }
+            
+            .cliente-card {
+                flex-direction: column;
+                text-align: center;
+                gap: 10px;
+            }
+            
+            .cliente-saldo {
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fas fa-university"></i>
+                <span class="logo-text">CAMBIO BANK</span>
+                <span class="badge-admin">ADMIN</span>
+            </div>
+            
+            <h1 class="page-title">GERENCIAR CONTAS</h1>
+            
+            <button class="btn-voltar" onclick="window.location.href='/admin/dashboard'">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </button>
+        </header>
+
+        <!-- TABS -->
+        <div class="tabs-container">
+            <div class="tabs-header">
+                <button class="tab-btn active" data-tab="tab-clientes">👥 Lista de Clientes</button>
+                <button class="tab-btn" data-tab="tab-ajuste">💰 Ajustar Saldos</button>
+                <button class="tab-btn" data-tab="tab-cambio">💱 Câmbio entre Moedas</button>
+                <button class="tab-btn" data-tab="tab-extrato">📊 Extratos</button>
+                <button class="tab-btn" data-tab="tab-despesas">📉 Despesas</button>
+                <button class="tab-btn" data-tab="tab-receitas">📈 Receitas</button>
+                <button class="tab-btn" data-tab="tab-transferencias">🔄 Transferências</button>
+            </div>
+
+            <!-- ============================================
+                 ABA 1: LISTA DE CLIENTES
+                 ============================================ -->
+            <div id="tab-clientes" class="tab-content active">
+                <div class="busca-container">
+                    <input type="text" id="buscaClientes" class="busca-input" placeholder="🔍 Buscar por nome, usuário ou número da conta...">
+                    <button class="btn-limpar" onclick="limparBuscaClientes()">
+                        <i class="fas fa-eraser"></i> Limpar
+                    </button>
+                </div>
+                <div class="clientes-grid" id="clientesGrid">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Carregando clientes...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 ABA 2: AJUSTAR SALDOS
+                 ============================================ -->
+            <div id="tab-ajuste" class="tab-content">
+                <div class="form-card">
+                    <h3 class="form-title"><i class="fas fa-coins"></i> Ajuste de Saldo</h3>
+                    
+                    <div class="form-row">
+                        <label><i class="fas fa-user"></i> Cliente</label>
+                        <select id="ajusteCliente" class="form-control">
+                            <option value="">Selecione o cliente...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label><i class="fas fa-wallet"></i> Conta do Cliente</label>
+                        <select id="ajusteConta" class="form-control" disabled>
+                            <option value="">Selecione primeiro um cliente...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="toggle-group">
+                        <button id="btnCreditoAjuste" class="toggle-btn active" onclick="setOperacaoAjuste('credito')">
+                            <i class="fas fa-plus-circle"></i> CRÉDITO (Aumenta Saldo)
+                        </button>
+                        <button id="btnDebitoAjuste" class="toggle-btn" onclick="setOperacaoAjuste('debito')">
+                            <i class="fas fa-minus-circle"></i> DÉBITO (Diminui Saldo)
+                        </button>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label><i class="fas fa-dollar-sign"></i> Valor</label>
+                        <input type="text" id="ajusteValor" class="form-control" placeholder="0,00">
+                    </div>
+                    
+                    <div class="form-row">
+                        <label><i class="fas fa-pencil-alt"></i> Descrição</label>
+                        <input type="text" id="ajusteDescricao" class="form-control" placeholder="Ex: Ajuste administrativo">
+                    </div>
+                    
+                    <button class="btn-submit" onclick="executarAjusteSaldo()">
+                        <i class="fas fa-check"></i> Executar Ajuste
+                    </button>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 ABA 3: CÂMBIO ENTRE MOEDAS
+                 ============================================ -->
+            <div id="tab-cambio" class="tab-content">
+                <div class="form-card">
+                    <h3 class="form-title"><i class="fas fa-exchange-alt"></i> Câmbio entre Moedas</h3>
+                    
+                    <div class="form-row">
+                        <label><i class="fas fa-user"></i> Cliente</label>
+                        <select id="cambioCliente" class="form-control">
+                            <option value="">Selecione o cliente...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-row-duas-colunas">
+                        <div class="form-row">
+                            <label><i class="fas fa-arrow-right"></i> Conta Origem</label>
+                            <select id="cambioContaOrigem" class="form-control" disabled>
+                                <option value="">Selecione primeiro um cliente...</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label><i class="fas fa-arrow-left"></i> Conta Destino</label>
+                            <select id="cambioContaDestino" class="form-control" disabled>
+                                <option value="">Selecione primeiro um cliente...</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="taxas-container">
+                        <div class="taxa-field">
+                            <label>Taxa Principal</label>
+                            <input type="text" id="taxaPrincipal" class="form-control" placeholder="1 ORIGEM = X DESTINO" oninput="calcularTaxaInversa()">
+                        </div>
+                        <button class="btn-trocar-taxas" onclick="trocarTaxas()">
+                            <i class="fas fa-exchange-alt"></i>
+                        </button>
+                        <div class="taxa-field">
+                            <label>Taxa Inversa</label>
+                            <input type="text" id="taxaInversa" class="form-control" placeholder="1 DESTINO = X ORIGEM" oninput="calcularTaxaPrincipal()">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label><i class="fas fa-dollar-sign"></i> Valor (na moeda de ORIGEM)</label>
+                        <input type="text" id="cambioValor" class="form-control" placeholder="0,00" oninput="calcularConversaoCambio()">
+                    </div>
+                    
+                    <div class="info-conversao" id="infoConversaoCambio">
+                        Preencha os campos para ver a conversão
+                    </div>
+                    
+                    <button class="btn-submit" onclick="executarCambio()">
+                        <i class="fas fa-exchange-alt"></i> Executar Câmbio
+                    </button>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 ABA 4: EXTRATOS
+                 ============================================ -->
+            <div id="tab-extrato" class="tab-content">
+                <div class="form-card">
+                    <h3 class="form-title"><i class="fas fa-file-invoice"></i> Extrato da Conta</h3>
+                    
+                    <div class="form-row-duas-colunas">
+                        <div class="form-row">
+                            <label><i class="fas fa-user"></i> Cliente</label>
+                            <select id="extratoCliente" class="form-control">
+                                <option value="">Selecione o cliente...</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label><i class="fas fa-wallet"></i> Conta</label>
+                            <select id="extratoConta" class="form-control" disabled>
+                                <option value="">Selecione primeiro um cliente...</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="toggle-group">
+                        <button class="toggle-btn" data-periodo="7">7 dias</button>
+                        <button class="toggle-btn active" data-periodo="30">30 dias</button>
+                        <button class="toggle-btn" data-periodo="90">90 dias</button>
+                        <button class="toggle-btn" data-periodo="0">Todo período</button>
+                    </div>
+                    
+                    <div class="info-conversao" id="infoExtrato" style="margin-top: 0;">
+                        Selecione um cliente e uma conta para ver o extrato
+                    </div>
+                    
+                    <div class="extrato-container" style="margin-top: 20px;">
+                        <table class="extrato-tabela">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Descrição</th>
+                                    <th>Crédito (Saída)</th>
+                                    <th>Débito (Entrada)</th>
+                                    <th>Saldo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="extratoBody">
+                                <tr>
+                                    <td colspan="5" class="loading">Nenhum dado</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 ABA 5: DESPESAS
+                 ============================================ -->
+            <div id="tab-despesas" class="tab-content">
+                <div class="form-card">
+                    <h3 class="form-title"><i class="fas fa-chart-line"></i> Lançar Despesa</h3>
+                    
+                    <div class="form-row">
+                        <label><i class="fas fa-building"></i> Conta Bancária</label>
+                        <select id="despesaContaBancaria" class="form-control">
+                            <option value="">Selecione a conta bancária...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-row-duas-colunas">
+                        <div class="form-row">
+                            <label><i class="fas fa-tags"></i> Categoria</label>
+                            <select id="despesaCategoria" class="form-control">
+                                <option value="">Selecione a categoria...</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label><i class="fas fa-receipt"></i> Conta de Despesa</label>
+                            <select id="despesaConta" class="form-control" disabled>
+                                <option value="">Selecione primeiro uma categoria...</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label><i class="fas fa-dollar-sign"></i> Valor</label>
+                        <input type="text" id="despesaValor" class="form-control" placeholder="0,00">
+                    </div>
+                    
+                    <div class="form-row">
+                        <label><i class="fas fa-pencil-alt"></i> Descrição</label>
+                        <input type="text" id="despesaDescricao" class="form-control" placeholder="Ex: Pagamento de aluguel">
+                    </div>
+                    
+                    <button class="btn-submit" onclick="lancarDespesa()">
+                        <i class="fas fa-check"></i> Lançar Despesa
+                    </button>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 ABA 6: RECEITAS
+                 ============================================ -->
+            <div id="tab-receitas" class="tab-content">
+                <div class="form-card">
+                    <h3 class="form-title"><i class="fas fa-chart-line"></i> Lançar Receita</h3>
+                    
+                    <div class="form-row-duas-colunas">
+                        <div class="form-row">
+                            <label><i class="fas fa-user"></i> Cliente</label>
+                            <select id="receitaCliente" class="form-control">
+                                <option value="">Selecione o cliente...</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label><i class="fas fa-wallet"></i> Conta do Cliente</label>
+                            <select id="receitaContaCliente" class="form-control" disabled>
+                                <option value="">Selecione primeiro um cliente...</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row-duas-colunas">
+                        <div class="form-row">
+                            <label><i class="fas fa-tags"></i> Categoria</label>
+                            <select id="receitaCategoria" class="form-control">
+                                <option value="">Selecione a categoria...</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label><i class="fas fa-receipt"></i> Conta de Receita</label>
+                            <select id="receitaConta" class="form-control" disabled>
+                                <option value="">Selecione primeiro uma categoria...</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label><i class="fas fa-dollar-sign"></i> Valor</label>
+                        <input type="text" id="receitaValor" class="form-control" placeholder="0,00">
+                    </div>
+                    
+                    <div class="form-row">
+                        <label><i class="fas fa-pencil-alt"></i> Descrição</label>
+                        <input type="text" id="receitaDescricao" class="form-control" placeholder="Ex: Comissão recebida">
+                    </div>
+                    
+                    <button class="btn-submit" onclick="lancarReceita()">
+                        <i class="fas fa-check"></i> Lançar Receita
+                    </button>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 ABA 7: TRANSFERÊNCIAS
+                 ============================================ -->
+            <div id="tab-transferencias" class="tab-content">
+                <div class="form-card">
+                    <h3 class="form-title"><i class="fas fa-exchange-alt"></i> Transferência Interna</h3>
+                    
+                    <div class="form-row-duas-colunas">
+                        <div class="form-row">
+                            <label><i class="fas fa-arrow-right"></i> Tipo de Origem</label>
+                            <select id="transferenciaTipoOrigem" class="form-control">
+                                <option value="">Selecione...</option>
+                                <option value="empresa">Conta Bancária da Empresa</option>
+                                <option value="cliente">Conta de Cliente</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label><i class="fas fa-arrow-left"></i> Tipo de Destino</label>
+                            <select id="transferenciaTipoDestino" class="form-control">
+                                <option value="">Selecione...</option>
+                                <option value="cliente">Conta de Cliente</option>
+                                <option value="empresa">Conta Bancária da Empresa</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="transferenciaOrigemDinamica"></div>
+                    <div id="transferenciaDestinoDinamica"></div>
+                    
+                    <div class="form-row">
+                        <label><i class="fas fa-dollar-sign"></i> Valor</label>
+                        <input type="text" id="transferenciaValor" class="form-control" placeholder="0,00">
+                    </div>
+                    
+                    <div class="form-row">
+                        <label><i class="fas fa-pencil-alt"></i> Descrição</label>
+                        <input type="text" id="transferenciaDescricao" class="form-control" placeholder="Motivo da transferência">
+                    </div>
+                    
+                    <button class="btn-submit" onclick="executarTransferenciaInterna()">
+                        <i class="fas fa-exchange-alt"></i> Executar Transferência
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DETALHES DO CLIENTE -->
+    <div id="modalClienteDetalhes" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-circle"></i> Detalhes do Cliente</h3>
+                <button class="modal-close" onclick="fecharModalClienteDetalhes()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalClienteBody">
+                <!-- Conteúdo dinâmico -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="fecharModalClienteDetalhes()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // VARIÁVEIS GLOBAIS
+        // ============================================
+        let clientes = [];
+        let contasEmpresa = [];
+        let contasContabeis = { receitas: {}, despesas: {} };
+        let operacaoAjusteAtual = 'credito';
+        let filtroClientes = '';
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Tela Gerenciar Contas carregada');
+            
+            // Configurar TABS
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.getElementById(btn.dataset.tab).classList.add('active');
+                    
+                    // Recarregar dados quando mudar de aba
+                    const tabId = btn.dataset.tab;
+                    if (tabId === 'tab-extrato') carregarExtrato();
+                    if (tabId === 'tab-despesas') carregarDespesas();
+                    if (tabId === 'tab-receitas') carregarReceitas();
+                });
+            });
+            
+            // Configurar busca de clientes
+            const buscaInput = document.getElementById('buscaClientes');
+            if (buscaInput) {
+                buscaInput.addEventListener('input', (e) => {
+                    filtroClientes = e.target.value;
+                    carregarListaClientes();
+                });
+            }
+            
+            // Configurar período do extrato
+            document.querySelectorAll('#tab-extrato .toggle-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('#tab-extrato .toggle-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    carregarExtrato();
+                });
+            });
+            
+            // Carregar dados iniciais
+            carregarClientes();
+            carregarContasEmpresa();
+            carregarContasContabeis();
+            carregarListaClientes();
+        });
+
+        // ============================================
+        // CARREGAR DADOS
+        // ============================================
+        async function carregarClientes() {
+            try {
+                const response = await fetch('/api/admin/clientes');
+                const data = await response.json();
+                
+                if (data.success) {
+                    clientes = data.clientes;
+                    
+                    // Atualizar selects de cliente
+                    const selects = ['ajusteCliente', 'cambioCliente', 'extratoCliente', 'receitaCliente'];
+                    selects.forEach(selectId => {
+                        const select = document.getElementById(selectId);
+                        if (select) {
+                            select.innerHTML = '<option value="">Selecione o cliente...</option>';
+                            clientes.forEach(cliente => {
+                                const option = document.createElement('option');
+                                option.value = cliente.username;
+                                option.textContent = `${cliente.nome} (${cliente.username})`;
+                                select.appendChild(option);
+                            });
+                        }
+                    });
+                    
+                    console.log(`✅ ${clientes.length} clientes carregados`);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar clientes:', error);
+            }
+        }
+
+        async function carregarContasEmpresa() {
+            try {
+                const response = await fetch('/api/admin/contas-bancarias');
+                const data = await response.json();
+                
+                if (data.success) {
+                    contasEmpresa = data.contas;
+                    console.log(`✅ ${contasEmpresa.length} contas empresa carregadas`);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar contas empresa:', error);
+            }
+        }
+
+        async function carregarContasContabeis() {
+            try {
+                const response = await fetch('/api/admin/contas-contabeis');
+                const data = await response.json();
+                
+                if (data.success) {
+                    contasContabeis = data;
+                    console.log(`✅ Contas contábeis carregadas: ${Object.keys(contasContabeis.receitas).length} receitas, ${Object.keys(contasContabeis.despesas).length} despesas`);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar contas contábeis:', error);
+            }
+        }
+
+        // ============================================
+        // ABA 1: LISTA DE CLIENTES
+        // ============================================
+        async function carregarListaClientes() {
+            const grid = document.getElementById('clientesGrid');
+            grid.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><p>Carregando clientes...</p></div>';
+            
+            try {
+                const response = await fetch('/api/admin/clientes');
+                const data = await response.json();
+                
+                if (data.success) {
+                    let clientesFiltrados = data.clientes;
+                    
+                    if (filtroClientes) {
+                        const filtroLower = filtroClientes.toLowerCase();
+                        clientesFiltrados = clientesFiltrados.filter(c => 
+                            c.nome.toLowerCase().includes(filtroLower) ||
+                            c.username.toLowerCase().includes(filtroLower)
+                        );
+                    }
+                    
+                    if (clientesFiltrados.length === 0) {
+                        grid.innerHTML = '<div class="loading"><p>📭 Nenhum cliente encontrado</p></div>';
+                        return;
+                    }
+                    
+                    grid.innerHTML = '';
+                    
+                    for (const cliente of clientesFiltrados) {
+                        // Buscar contas do cliente
+                        const contasResponse = await fetch(`/api/admin/clientes/${cliente.username}/contas`);
+                        const contasData = await contasResponse.json();
+                        
+                        const contas = contasData.contas || [];
+                        const saldoTotal = contas.reduce((sum, c) => sum + (c.saldo || 0), 0);
+                        const moedas = [...new Set(contas.map(c => c.moeda))].join(', ');
+                        
+                        const card = document.createElement('div');
+                        card.className = 'cliente-card';
+                        card.innerHTML = `
+                            <div class="cliente-info">
+                                <div class="cliente-nome">${escapeHtml(cliente.nome)}</div>
+                                <div class="cliente-username">@${escapeHtml(cliente.username)}</div>
+                                <div class="cliente-moedas"><i class="fas fa-coins"></i> ${moedas || 'Sem contas'}</div>
+                            </div>
+                            <div class="cliente-saldo">
+                                ${obterSimboloMoeda('USD')} ${formatarValor(saldoTotal)}
+                            </div>
+                            <button class="btn-gerenciar" onclick="abrirDetalhesCliente('${cliente.username}')">
+                                <i class="fas fa-cog"></i> GERENCIAR
+                            </button>
+                        `;
+                        grid.appendChild(card);
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao carregar lista de clientes:', error);
+                grid.innerHTML = '<div class="loading"><p>❌ Erro ao carregar clientes</p></div>';
+            }
+        }
+
+        function limparBuscaClientes() {
+            document.getElementById('buscaClientes').value = '';
+            filtroClientes = '';
+            carregarListaClientes();
+        }
+
+        async function abrirDetalhesCliente(username) {
+            try {
+                const response = await fetch(`/api/admin/clientes/${username}/detalhes`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const cliente = data.cliente;
+                    const contas = data.contas || [];
+                    
+                    let contasHtml = '';
+                    contas.forEach(conta => {
+                        contasHtml += `
+                            <div class="info-conversao" style="margin-bottom: 10px;">
+                                <strong>${conta.numero}</strong><br>
+                                Moeda: ${conta.moeda}<br>
+                                Saldo: ${obterSimboloMoeda(conta.moeda)} ${formatarValor(conta.saldo)}<br>
+                                Status: ${conta.ativa ? 'Ativa' : 'Inativa'}
+                            </div>
+                        `;
+                    });
+                    
+                    const modalBody = document.getElementById('modalClienteBody');
+                    modalBody.innerHTML = `
+                        <div class="info-conversao" style="margin-bottom: 15px;">
+                            <strong><i class="fas fa-user"></i> Informações Pessoais</strong><br>
+                            Nome: ${escapeHtml(cliente.nome)}<br>
+                            Usuário: ${escapeHtml(cliente.username)}<br>
+                            Email: ${escapeHtml(cliente.email || 'N/A')}<br>
+                            Telefone: ${escapeHtml(cliente.telefone || 'N/A')}<br>
+                            Status: ${cliente.status || 'Ativo'}<br>
+                            Verificado: ${cliente.verificado ? '✅ Sim' : '❌ Não'}<br>
+                            Câmbio Liberado: ${cliente.cambio_liberado ? '✅ Sim' : '❌ Não'}
+                        </div>
+                        <div class="info-conversao" style="margin-bottom: 15px;">
+                            <strong><i class="fas fa-wallet"></i> Contas Bancárias</strong><br>
+                            ${contasHtml || 'Nenhuma conta cadastrada'}
+                        </div>
+                    `;
+                    
+                    document.getElementById('modalClienteDetalhes').classList.add('active');
+                }
+            } catch (error) {
+                console.error('Erro ao carregar detalhes do cliente:', error);
+                alert('Erro ao carregar detalhes do cliente!');
+            }
+        }
+
+        function fecharModalClienteDetalhes() {
+            document.getElementById('modalClienteDetalhes').classList.remove('active');
+        }
+
+        // ============================================
+        // ABA 2: AJUSTAR SALDOS
+        // ============================================
+        document.getElementById('ajusteCliente')?.addEventListener('change', async (e) => {
+            const username = e.target.value;
+            if (username) {
+                await carregarContasClienteAjuste(username);
+            } else {
+                const select = document.getElementById('ajusteConta');
+                select.innerHTML = '<option value="">Selecione primeiro um cliente...</option>';
+                select.disabled = true;
+            }
+        });
+
+        async function carregarContasClienteAjuste(username) {
+            try {
+                const response = await fetch(`/api/admin/clientes/${username}/contas`);
+                const data = await response.json();
+                
+                const select = document.getElementById('ajusteConta');
+                if (data.success && data.contas.length > 0) {
+                    select.innerHTML = '<option value="">Selecione a conta...</option>';
+                    data.contas.forEach(conta => {
+                        const option = document.createElement('option');
+                        option.value = JSON.stringify({ numero: conta.numero, moeda: conta.moeda, saldo: conta.saldo });
+                        option.textContent = `${conta.numero} - ${conta.moeda} (Saldo: ${formatarValor(conta.saldo)})`;
+                        select.appendChild(option);
+                    });
+                    select.disabled = false;
+                } else {
+                    select.innerHTML = '<option value="">Cliente não possui contas</option>';
+                    select.disabled = true;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar contas:', error);
+            }
+        }
+
+        function setOperacaoAjuste(operacao) {
+            operacaoAjusteAtual = operacao;
+            
+            const btnCredito = document.getElementById('btnCreditoAjuste');
+            const btnDebito = document.getElementById('btnDebitoAjuste');
+            
+            if (operacao === 'credito') {
+                btnCredito.classList.add('active');
+                btnDebito.classList.remove('active');
+            } else {
+                btnCredito.classList.remove('active');
+                btnDebito.classList.add('active');
+            }
+        }
+
+        async function executarAjusteSaldo() {
+            const clienteSelect = document.getElementById('ajusteCliente');
+            const contaSelect = document.getElementById('ajusteConta');
+            const valor = parseFloat(document.getElementById('ajusteValor').value.replace(',', '.'));
+            const descricao = document.getElementById('ajusteDescricao').value.trim();
+            
+            if (!clienteSelect.value) {
+                alert('Selecione um cliente!');
+                return;
+            }
+            
+            if (!contaSelect.value) {
+                alert('Selecione uma conta!');
+                return;
+            }
+            
+            if (isNaN(valor) || valor <= 0) {
+                alert('Valor inválido!');
+                return;
+            }
+            
+            if (!descricao) {
+                alert('Informe uma descrição!');
+                return;
+            }
+            
+            const contaCliente = JSON.parse(contaSelect.value);
+            const novoSaldo = operacaoAjusteAtual === 'credito' ? contaCliente.saldo + valor : contaCliente.saldo - valor;
+            
+            if (!confirm(`Confirmar ${operacaoAjusteAtual.toUpperCase()}?\n\nCliente: ${clienteSelect.options[clienteSelect.selectedIndex]?.text}\nConta: ${contaCliente.numero} (${contaCliente.moeda})\nValor: ${obterSimboloMoeda(contaCliente.moeda)} ${formatarValor(valor)}\nSaldo atual: ${obterSimboloMoeda(contaCliente.moeda)} ${formatarValor(contaCliente.saldo)}\nSaldo futuro: ${obterSimboloMoeda(contaCliente.moeda)} ${formatarValor(novoSaldo)}`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/gerenciar-contas/ajuste', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: clienteSelect.value,
+                        conta_numero: contaCliente.numero,
+                        valor: valor,
+                        operacao: operacaoAjusteAtual,
+                        descricao: descricao
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Ajuste realizado com sucesso!\nNovo saldo: ${obterSimboloMoeda(contaCliente.moeda)} ${formatarValor(novoSaldo)}`);
+                    document.getElementById('ajusteValor').value = '';
+                    document.getElementById('ajusteDescricao').value = '';
+                    
+                    // Recarregar contas do cliente para atualizar o select
+                    await carregarContasClienteAjuste(clienteSelect.value);
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao executar ajuste!');
+            }
+        }
+
+        // ============================================
+        // ABA 3: CÂMBIO ENTRE MOEDAS
+        // ============================================
+        document.getElementById('cambioCliente')?.addEventListener('change', async (e) => {
+            const username = e.target.value;
+            if (username) {
+                await carregarContasClienteCambio(username);
+            } else {
+                const selectOrigem = document.getElementById('cambioContaOrigem');
+                const selectDestino = document.getElementById('cambioContaDestino');
+                selectOrigem.innerHTML = '<option value="">Selecione primeiro um cliente...</option>';
+                selectOrigem.disabled = true;
+                selectDestino.innerHTML = '<option value="">Selecione primeiro um cliente...</option>';
+                selectDestino.disabled = true;
+            }
+        });
+
+        async function carregarContasClienteCambio(username) {
+            try {
+                const response = await fetch(`/api/admin/clientes/${username}/contas`);
+                const data = await response.json();
+                
+                const selectOrigem = document.getElementById('cambioContaOrigem');
+                const selectDestino = document.getElementById('cambioContaDestino');
+                
+                if (data.success && data.contas.length > 0) {
+                    const options = '<option value="">Selecione a conta...</option>' + 
+                        data.contas.map(conta => `<option value="${conta.numero}">${conta.numero} - ${conta.moeda} (Saldo: ${formatarValor(conta.saldo)})</option>`).join('');
+                    
+                    selectOrigem.innerHTML = options;
+                    selectDestino.innerHTML = options;
+                    selectOrigem.disabled = false;
+                    selectDestino.disabled = false;
+                } else {
+                    selectOrigem.innerHTML = '<option value="">Cliente não possui contas</option>';
+                    selectOrigem.disabled = true;
+                    selectDestino.innerHTML = '<option value="">Cliente não possui contas</option>';
+                    selectDestino.disabled = true;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar contas:', error);
+            }
+        }
+
+        function calcularTaxaInversa() {
+            const taxaPrincipal = parseFloat(document.getElementById('taxaPrincipal').value.replace(',', '.'));
+            if (!isNaN(taxaPrincipal) && taxaPrincipal > 0) {
+                const taxaInversa = 1 / taxaPrincipal;
+                document.getElementById('taxaInversa').value = taxaInversa.toFixed(10);
+            }
+            calcularConversaoCambio();
+        }
+
+        function calcularTaxaPrincipal() {
+            const taxaInversa = parseFloat(document.getElementById('taxaInversa').value.replace(',', '.'));
+            if (!isNaN(taxaInversa) && taxaInversa > 0) {
+                const taxaPrincipal = 1 / taxaInversa;
+                document.getElementById('taxaPrincipal').value = taxaPrincipal.toFixed(10);
+            }
+            calcularConversaoCambio();
+        }
+
+        function trocarTaxas() {
+            const principal = document.getElementById('taxaPrincipal').value;
+            const inversa = document.getElementById('taxaInversa').value;
+            document.getElementById('taxaPrincipal').value = inversa;
+            document.getElementById('taxaInversa').value = principal;
+            calcularConversaoCambio();
+        }
+
+        function calcularConversaoCambio() {
+            const contaOrigem = document.getElementById('cambioContaOrigem').value;
+            const contaDestino = document.getElementById('cambioContaDestino').value;
+            const valor = parseFloat(document.getElementById('cambioValor').value.replace(',', '.'));
+            const taxaPrincipal = parseFloat(document.getElementById('taxaPrincipal').value.replace(',', '.'));
+            
+            const infoDiv = document.getElementById('infoConversaoCambio');
+            
+            if (!contaOrigem || !contaDestino || isNaN(valor) || valor <= 0 || isNaN(taxaPrincipal) || taxaPrincipal <= 0) {
+                infoDiv.innerHTML = 'Preencha os campos para ver a conversão';
+                return;
+            }
+            
+            const valorDestino = valor * taxaPrincipal;
+            infoDiv.innerHTML = `
+                <i class="fas fa-calculator"></i> 
+                ${formatarValor(valor)} → ${formatarValor(valorDestino)}<br>
+                <small>Taxa: 1 = ${taxaPrincipal.toFixed(6)}</small>
+            `;
+        }
+
+        async function executarCambio() {
+            const clienteSelect = document.getElementById('cambioCliente');
+            const contaOrigem = document.getElementById('cambioContaOrigem').value;
+            const contaDestino = document.getElementById('cambioContaDestino').value;
+            const valor = parseFloat(document.getElementById('cambioValor').value.replace(',', '.'));
+            const taxaPrincipal = parseFloat(document.getElementById('taxaPrincipal').value.replace(',', '.'));
+            
+            if (!clienteSelect.value) {
+                alert('Selecione um cliente!');
+                return;
+            }
+            
+            if (!contaOrigem || !contaDestino) {
+                alert('Selecione conta origem e destino!');
+                return;
+            }
+            
+            if (contaOrigem === contaDestino) {
+                alert('Conta origem e destino devem ser diferentes!');
+                return;
+            }
+            
+            if (isNaN(valor) || valor <= 0) {
+                alert('Valor inválido!');
+                return;
+            }
+            
+            if (isNaN(taxaPrincipal) || taxaPrincipal <= 0) {
+                alert('Informe uma taxa de câmbio válida!');
+                return;
+            }
+            
+            const valorDestino = valor * taxaPrincipal;
+            
+            if (!confirm(`Confirmar câmbio?\n\nCliente: ${clienteSelect.options[clienteSelect.selectedIndex]?.text}\nOrigem: ${contaOrigem}\nDestino: ${contaDestino}\nValor: ${formatarValor(valor)}\nReceberá: ${formatarValor(valorDestino)}\nTaxa: ${taxaPrincipal.toFixed(6)}`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/gerenciar-contas/cambio', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: clienteSelect.value,
+                        conta_origem: contaOrigem,
+                        conta_destino: contaDestino,
+                        valor: valor,
+                        taxa_principal: taxaPrincipal
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Câmbio realizado com sucesso!`);
+                    document.getElementById('cambioValor').value = '';
+                    await carregarContasClienteCambio(clienteSelect.value);
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao executar câmbio!');
+            }
+        }
+
+        // ============================================
+        // ABA 4: EXTRATOS
+        // ============================================
+        document.getElementById('extratoCliente')?.addEventListener('change', async (e) => {
+            const username = e.target.value;
+            if (username) {
+                await carregarContasClienteExtrato(username);
+            } else {
+                const select = document.getElementById('extratoConta');
+                select.innerHTML = '<option value="">Selecione primeiro um cliente...</option>';
+                select.disabled = true;
+            }
+        });
+
+        async function carregarContasClienteExtrato(username) {
+            try {
+                const response = await fetch(`/api/admin/clientes/${username}/contas`);
+                const data = await response.json();
+                
+                const select = document.getElementById('extratoConta');
+                if (data.success && data.contas.length > 0) {
+                    select.innerHTML = '<option value="">Selecione a conta...</option>';
+                    data.contas.forEach(conta => {
+                        const option = document.createElement('option');
+                        option.value = conta.numero;
+                        option.textContent = `${conta.numero} - ${conta.moeda} (Saldo: ${formatarValor(conta.saldo)})`;
+                        select.appendChild(option);
+                    });
+                    select.disabled = false;
+                } else {
+                    select.innerHTML = '<option value="">Cliente não possui contas</option>';
+                    select.disabled = true;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar contas:', error);
+            }
+        }
+
+        async function carregarExtrato() {
+            const clienteSelect = document.getElementById('extratoCliente');
+            const contaSelect = document.getElementById('extratoConta');
+            const periodoBtn = document.querySelector('#tab-extrato .toggle-btn.active');
+            const periodo = periodoBtn ? periodoBtn.dataset.periodo : '30';
+            
+            if (!clienteSelect.value || !contaSelect.value) {
+                document.getElementById('infoExtrato').innerHTML = 'Selecione um cliente e uma conta para ver o extrato';
+                document.getElementById('extratoBody').innerHTML = '<tr><td colspan="5" class="loading">Nenhum dado</td></tr>';
+                return;
+            }
+            
+            document.getElementById('extratoBody').innerHTML = '<tr><td colspan="5" class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</td></tr>';
+            
+            try {
+                const response = await fetch('/api/admin/gerenciar-contas/extrato', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: clienteSelect.value,
+                        conta_numero: contaSelect.value,
+                        periodo: periodo
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const transacoes = data.transacoes || [];
+                    const saldoFinal = data.saldo_final || 0;
+                    const totalEntradas = data.total_entradas || 0;
+                    const totalSaidas = data.total_saidas || 0;
+                    
+                    document.getElementById('infoExtrato').innerHTML = `
+                        <strong>Resumo:</strong> Saldo: ${obterSimboloMoeda('USD')} ${formatarValor(saldoFinal)} | 
+                        Entradas: +${formatarValor(totalEntradas)} | 
+                        Saídas: -${formatarValor(totalSaidas)}
+                    `;
+                    
+                    const tbody = document.getElementById('extratoBody');
+                    
+                    if (transacoes.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="loading">Nenhuma transação encontrada</td></tr>';
+                        return;
+                    }
+                    
+                    tbody.innerHTML = '';
+                    transacoes.forEach(t => {
+                        const row = tbody.insertRow();
+                        row.insertCell(0).textContent = formatarData(t.data);
+                        row.insertCell(1).textContent = t.descricao || '-';
+                        row.insertCell(2).innerHTML = t.credito > 0 ? `<span class="credito">${formatarValor(t.credito)}</span>` : '';
+                        row.insertCell(3).innerHTML = t.debito > 0 ? `<span class="debito">${formatarValor(t.debito)}</span>` : '';
+                        row.insertCell(4).textContent = formatarValor(t.saldo_apos);
+                    });
+                } else {
+                    document.getElementById('extratoBody').innerHTML = `<tr><td colspan="5" class="loading">❌ ${data.message}</td></tr>`;
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                document.getElementById('extratoBody').innerHTML = '<tr><td colspan="5" class="loading">❌ Erro ao carregar extrato</td></tr>';
+            }
+        }
+
+        // ============================================
+        // ABA 5: DESPESAS
+        // ============================================
+        async function carregarDespesas() {
+            const selectConta = document.getElementById('despesaContaBancaria');
+            const selectCategoria = document.getElementById('despesaCategoria');
+            
+            // Carregar contas bancárias
+            const responseContas = await fetch('/api/admin/contas-bancarias');
+            const contasData = await responseContas.json();
+            if (contasData.success) {
+                selectConta.innerHTML = '<option value="">Selecione a conta bancária...</option>';
+                contasData.contas.forEach(conta => {
+                    const option = document.createElement('option');
+                    option.value = conta.numero;
+                    option.textContent = `${conta.numero} - ${conta.banco} - ${conta.moeda} (Saldo: ${formatarValor(conta.saldo)})`;
+                    selectConta.appendChild(option);
+                });
+            }
+            
+            // Carregar categorias de despesa
+            const categorias = Object.keys(contasContabeis.despesas || {});
+            selectCategoria.innerHTML = '<option value="">Selecione a categoria...</option>';
+            categorias.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                selectCategoria.appendChild(option);
+            });
+        }
+
+        document.getElementById('despesaCategoria')?.addEventListener('change', () => {
+            const categoria = document.getElementById('despesaCategoria').value;
+            const selectConta = document.getElementById('despesaConta');
+            
+            if (categoria && contasContabeis.despesas[categoria]) {
+                const contas = Object.keys(contasContabeis.despesas[categoria]);
+                selectConta.innerHTML = '<option value="">Selecione a conta...</option>';
+                contas.forEach(conta => {
+                    const option = document.createElement('option');
+                    option.value = conta;
+                    option.textContent = conta;
+                    selectConta.appendChild(option);
+                });
+                selectConta.disabled = false;
+            } else {
+                selectConta.innerHTML = '<option value="">Selecione primeiro uma categoria...</option>';
+                selectConta.disabled = true;
+            }
+        });
+
+        async function lancarDespesa() {
+            const contaBancaria = document.getElementById('despesaContaBancaria').value;
+            const categoria = document.getElementById('despesaCategoria').value;
+            const contaDespesa = document.getElementById('despesaConta').value;
+            const valor = parseFloat(document.getElementById('despesaValor').value.replace(',', '.'));
+            const descricao = document.getElementById('despesaDescricao').value.trim();
+            
+            if (!contaBancaria || !categoria || !contaDespesa) {
+                alert('Preencha todos os campos!');
+                return;
+            }
+            
+            if (isNaN(valor) || valor <= 0) {
+                alert('Valor inválido!');
+                return;
+            }
+            
+            if (!descricao) {
+                alert('Informe uma descrição!');
+                return;
+            }
+            
+            if (!confirm(`Confirmar lançamento de despesa?\n\nConta: ${contaBancaria}\nCategoria: ${categoria}\nConta Despesa: ${contaDespesa}\nValor: ${formatarValor(valor)}\nDescrição: ${descricao}`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/gerenciar-contas/despesa', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        conta_bancaria: contaBancaria,
+                        categoria: categoria,
+                        conta_despesa: contaDespesa,
+                        valor: valor,
+                        descricao: descricao
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Despesa lançada com sucesso!`);
+                    document.getElementById('despesaValor').value = '';
+                    document.getElementById('despesaDescricao').value = '';
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao lançar despesa!');
+            }
+        }
+
+        // ============================================
+        // ABA 6: RECEITAS
+        // ============================================
+        async function carregarReceitas() {
+            // Carregar categorias de receita
+            const selectCategoria = document.getElementById('receitaCategoria');
+            const categorias = Object.keys(contasContabeis.receitas || {});
+            selectCategoria.innerHTML = '<option value="">Selecione a categoria...</option>';
+            categorias.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                selectCategoria.appendChild(option);
+            });
+        }
+
+        document.getElementById('receitaCliente')?.addEventListener('change', async (e) => {
+            const username = e.target.value;
+            if (username) {
+                await carregarContasClienteReceita(username);
+            } else {
+                const select = document.getElementById('receitaContaCliente');
+                select.innerHTML = '<option value="">Selecione primeiro um cliente...</option>';
+                select.disabled = true;
+            }
+        });
+
+        async function carregarContasClienteReceita(username) {
+            try {
+                const response = await fetch(`/api/admin/clientes/${username}/contas`);
+                const data = await response.json();
+                
+                const select = document.getElementById('receitaContaCliente');
+                if (data.success && data.contas.length > 0) {
+                    select.innerHTML = '<option value="">Selecione a conta...</option>';
+                    data.contas.forEach(conta => {
+                        const option = document.createElement('option');
+                        option.value = conta.numero;
+                        option.textContent = `${conta.numero} - ${conta.moeda} (Saldo: ${formatarValor(conta.saldo)})`;
+                        select.appendChild(option);
+                    });
+                    select.disabled = false;
+                } else {
+                    select.innerHTML = '<option value="">Cliente não possui contas</option>';
+                    select.disabled = true;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar contas:', error);
+            }
+        }
+
+        document.getElementById('receitaCategoria')?.addEventListener('change', () => {
+            const categoria = document.getElementById('receitaCategoria').value;
+            const selectConta = document.getElementById('receitaConta');
+            
+            if (categoria && contasContabeis.receitas[categoria]) {
+                const contas = Object.keys(contasContabeis.receitas[categoria]);
+                selectConta.innerHTML = '<option value="">Selecione a conta...</option>';
+                contas.forEach(conta => {
+                    const option = document.createElement('option');
+                    option.value = conta;
+                    option.textContent = conta;
+                    selectConta.appendChild(option);
+                });
+                selectConta.disabled = false;
+            } else {
+                selectConta.innerHTML = '<option value="">Selecione primeiro uma categoria...</option>';
+                selectConta.disabled = true;
+            }
+        });
+
+        async function lancarReceita() {
+            const cliente = document.getElementById('receitaCliente').value;
+            const contaCliente = document.getElementById('receitaContaCliente').value;
+            const categoria = document.getElementById('receitaCategoria').value;
+            const contaReceita = document.getElementById('receitaConta').value;
+            const valor = parseFloat(document.getElementById('receitaValor').value.replace(',', '.'));
+            const descricao = document.getElementById('receitaDescricao').value.trim();
+            
+            if (!cliente || !contaCliente || !categoria || !contaReceita) {
+                alert('Preencha todos os campos!');
+                return;
+            }
+            
+            if (isNaN(valor) || valor <= 0) {
+                alert('Valor inválido!');
+                return;
+            }
+            
+            if (!descricao) {
+                alert('Informe uma descrição!');
+                return;
+            }
+            
+            if (!confirm(`Confirmar lançamento de receita?\n\nCliente: ${cliente}\nConta: ${contaCliente}\nCategoria: ${categoria}\nConta Receita: ${contaReceita}\nValor: ${formatarValor(valor)}\nDescrição: ${descricao}`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/gerenciar-contas/receita', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: cliente,
+                        conta_cliente: contaCliente,
+                        categoria: categoria,
+                        conta_receita: contaReceita,
+                        valor: valor,
+                        descricao: descricao
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Receita lançada com sucesso!`);
+                    document.getElementById('receitaValor').value = '';
+                    document.getElementById('receitaDescricao').value = '';
+                    await carregarContasClienteReceita(cliente);
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao lançar receita!');
+            }
+        }
+
+        // ============================================
+        // ABA 7: TRANSFERÊNCIAS
+        // ============================================
+        document.getElementById('transferenciaTipoOrigem')?.addEventListener('change', atualizarCamposTransferencia);
+        document.getElementById('transferenciaTipoDestino')?.addEventListener('change', atualizarCamposTransferencia);
+
+        function atualizarCamposTransferencia() {
+            const tipoOrigem = document.getElementById('transferenciaTipoOrigem').value;
+            const tipoDestino = document.getElementById('transferenciaTipoDestino').value;
+            
+            const divOrigem = document.getElementById('transferenciaOrigemDinamica');
+            const divDestino = document.getElementById('transferenciaDestinoDinamica');
+            
+            divOrigem.innerHTML = '';
+            divDestino.innerHTML = '';
+            
+            if (tipoOrigem === 'empresa') {
+                divOrigem.innerHTML = `
+                    <div class="form-row">
+                        <label><i class="fas fa-building"></i> Conta Bancária Origem</label>
+                        <select id="transferenciaContaOrigem" class="form-control">
+                            <option value="">Selecione a conta...</option>
+                            ${contasEmpresa.map(c => `<option value="${c.numero}">${c.numero} - ${c.banco} - ${c.moeda} (Saldo: ${formatarValor(c.saldo)})</option>`).join('')}
+                        </select>
+                    </div>
+                `;
+            } else if (tipoOrigem === 'cliente') {
+                divOrigem.innerHTML = `
+                    <div class="form-row">
+                        <label><i class="fas fa-user"></i> Cliente Origem</label>
+                        <select id="transferenciaClienteOrigem" class="form-control">
+                            <option value="">Selecione o cliente...</option>
+                            ${clientes.map(c => `<option value="${c.username}">${c.nome} (${c.username})</option>`).join('')}
+                        </select>
+                    </div>
+                    <div id="transferenciaContaOrigemCliente"></div>
+                `;
+                
+                document.getElementById('transferenciaClienteOrigem')?.addEventListener('change', async (e) => {
+                    const username = e.target.value;
+                    if (username) {
+                        const response = await fetch(`/api/admin/clientes/${username}/contas`);
+                        const data = await response.json();
+                        const div = document.getElementById('transferenciaContaOrigemCliente');
+                        if (data.success && data.contas.length > 0) {
+                            div.innerHTML = `
+                                <div class="form-row">
+                                    <label><i class="fas fa-wallet"></i> Conta do Cliente</label>
+                                    <select id="transferenciaContaOrigemValor" class="form-control">
+                                        <option value="">Selecione a conta...</option>
+                                        ${data.contas.map(c => `<option value="${c.numero}">${c.numero} - ${c.moeda} (Saldo: ${formatarValor(c.saldo)})</option>`).join('')}
+                                    </select>
+                                </div>
+                            `;
+                        } else {
+                            div.innerHTML = '<div class="info-conversao">Cliente não possui contas</div>';
+                        }
+                    }
+                });
+            }
+            
+            if (tipoDestino === 'empresa') {
+                divDestino.innerHTML = `
+                    <div class="form-row">
+                        <label><i class="fas fa-building"></i> Conta Bancária Destino</label>
+                        <select id="transferenciaContaDestino" class="form-control">
+                            <option value="">Selecione a conta...</option>
+                            ${contasEmpresa.map(c => `<option value="${c.numero}">${c.numero} - ${c.banco} - ${c.moeda} (Saldo: ${formatarValor(c.saldo)})</option>`).join('')}
+                        </select>
+                    </div>
+                `;
+            } else if (tipoDestino === 'cliente') {
+                divDestino.innerHTML = `
+                    <div class="form-row">
+                        <label><i class="fas fa-user"></i> Cliente Destino</label>
+                        <select id="transferenciaClienteDestino" class="form-control">
+                            <option value="">Selecione o cliente...</option>
+                            ${clientes.map(c => `<option value="${c.username}">${c.nome} (${c.username})</option>`).join('')}
+                        </select>
+                    </div>
+                    <div id="transferenciaContaDestinoCliente"></div>
+                `;
+                
+                document.getElementById('transferenciaClienteDestino')?.addEventListener('change', async (e) => {
+                    const username = e.target.value;
+                    if (username) {
+                        const response = await fetch(`/api/admin/clientes/${username}/contas`);
+                        const data = await response.json();
+                        const div = document.getElementById('transferenciaContaDestinoCliente');
+                        if (data.success && data.contas.length > 0) {
+                            div.innerHTML = `
+                                <div class="form-row">
+                                    <label><i class="fas fa-wallet"></i> Conta do Cliente</label>
+                                    <select id="transferenciaContaDestinoValor" class="form-control">
+                                        <option value="">Selecione a conta...</option>
+                                        ${data.contas.map(c => `<option value="${c.numero}">${c.numero} - ${c.moeda} (Saldo: ${formatarValor(c.saldo)})</option>`).join('')}
+                                    </select>
+                                </div>
+                            `;
+                        } else {
+                            div.innerHTML = '<div class="info-conversao">Cliente não possui contas</div>';
+                        }
+                    }
+                });
+            }
+        }
+
+        async function executarTransferenciaInterna() {
+            const tipoOrigem = document.getElementById('transferenciaTipoOrigem').value;
+            const tipoDestino = document.getElementById('transferenciaTipoDestino').value;
+            const valor = parseFloat(document.getElementById('transferenciaValor').value.replace(',', '.'));
+            const descricao = document.getElementById('transferenciaDescricao').value.trim();
+            
+            let contaOrigem = null;
+            let contaDestino = null;
+            
+            if (tipoOrigem === 'empresa') {
+                contaOrigem = document.getElementById('transferenciaContaOrigem')?.value;
+            } else if (tipoOrigem === 'cliente') {
+                contaOrigem = document.getElementById('transferenciaContaOrigemValor')?.value;
+            }
+            
+            if (tipoDestino === 'empresa') {
+                contaDestino = document.getElementById('transferenciaContaDestino')?.value;
+            } else if (tipoDestino === 'cliente') {
+                contaDestino = document.getElementById('transferenciaContaDestinoValor')?.value;
+            }
+            
+            if (!tipoOrigem || !tipoDestino || !contaOrigem || !contaDestino) {
+                alert('Preencha todos os campos!');
+                return;
+            }
+            
+            if (isNaN(valor) || valor <= 0) {
+                alert('Valor inválido!');
+                return;
+            }
+            
+            if (!descricao) {
+                alert('Informe uma descrição!');
+                return;
+            }
+            
+            if (!confirm(`Confirmar transferência?\n\nOrigem: ${contaOrigem}\nDestino: ${contaDestino}\nValor: ${formatarValor(valor)}\nDescrição: ${descricao}`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/gerenciar-contas/transferencia', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        conta_origem: contaOrigem,
+                        conta_destino: contaDestino,
+                        valor: valor,
+                        descricao: descricao,
+                        tipo_origem: tipoOrigem,
+                        tipo_destino: tipoDestino
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Transferência realizada com sucesso!`);
+                    document.getElementById('transferenciaValor').value = '';
+                    document.getElementById('transferenciaDescricao').value = '';
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao executar transferência!');
+            }
+        }
+
+        // ============================================
+        // FUNÇÕES AUXILIARES
+        // ============================================
+        function formatarValor(valor) {
+            if (valor === undefined || valor === null) return '0,00';
+            return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function formatarData(dataStr) {
+            if (!dataStr) return '';
+            try {
+                if (dataStr.includes('T')) {
+                    const data = new Date(dataStr);
+                    return data.toLocaleDateString('pt-BR');
+                }
+                return dataStr.split(' ')[0].split('-').reverse().join('/');
+            } catch {
+                return dataStr;
+            }
+        }
+
+        function obterSimboloMoeda(moeda) {
+            const simbolos = { USD: '$', EUR: '€', GBP: '£', BRL: 'R$' };
+            return simbolos[moeda] || moeda;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
