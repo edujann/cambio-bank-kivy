@@ -6928,8 +6928,8 @@ def api_admin_extrato_conta():
                         'id': transf.get('id'),
                         'data': data_transf,
                         'descricao': descricao,
-                        'credito': valor,  # SAÍDA = CRÉDITO
-                        'debito': 0,
+                        'credito': 0,
+                        'debito': valor,  # SAÍDA = CRÉDITO
                         'tipo': 'Transferência Internacional',
                         'moeda': moeda,
                         'status': status_transf
@@ -6943,8 +6943,8 @@ def api_admin_extrato_conta():
                         'id': transf.get('id'),
                         'data': data_transf,
                         'descricao': descricao,
-                        'credito': 0,
-                        'debito': valor,  # ENTRADA = DÉBITO
+                        'credito': valor,  # ENTRADA = DÉBITO
+                        'debito': 0,
                         'tipo': 'Transferência Internacional',
                         'moeda': moeda,
                         'status': status_transf
