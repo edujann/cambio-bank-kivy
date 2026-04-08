@@ -115,9 +115,15 @@
                 if (data.success) {
                     mostrarStatus('Login realizado com sucesso!', 'success');
                     
-                    // Redireciona para dashboard com usuário
+                    // 🔥 REDIRECIONAMENTO CORRETO
                     setTimeout(() => {
-                        window.location.href = `/dashboard?usuario=${encodeURIComponent(username)}`;
+                        if (data.tipo === 'admin') {
+                            // Admin vai para dashboard admin
+                            window.location.href = '/admin/dashboard';
+                        } else {
+                            // Cliente vai para dashboard normal
+                            window.location.href = `/dashboard?usuario=${encodeURIComponent(username)}`;
+                        }
                     }, 1000);
                     
                 } else {
