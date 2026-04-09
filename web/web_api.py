@@ -6765,527 +6765,614 @@ def admin_extrato_conta():
                           conta_info=conta_info)
 
 
-@app.route('/api/admin/extrato-conta', methods=['POST'])
-def api_admin_extrato_conta():
-    """Retorna extrato da conta bancária com filtro de período"""
+@app.route('/api/admin/gerenciar-contas/extrato-kivy', methods=['POST'])
+def api_admin_extrato_kivy():
+    """Extrato administrativo usando a MESMA lógica do extrato do cliente"""
     try:
         usuario = session.get('username')
-        
         if not usuario:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
-        # Verificar se é admin
-        if supabase:
-            user_check = supabase.table('usuarios')\
-                .select('tipo')\
-                .eq('username', usuario)\
-                .single()\
-                .execute()
-            
-            if not user_check.data or user_check.data.get('tipo') != 'admin':
-                return jsonify({"success": False, "message": "Acesso negado"}), 403
-        
         dados = request.get_json()
         
-        conta_numero = dados.get('conta_numero')
-        periodo = dados.get('periodo', '30')
-        data_inicio = dados.get('data_inicio')
-        data_fim = dados.get('data_fim')
+        username = dados.get('username')
+        conta_num = dados.get('conta_numero')
+        periodo = dados.get('periodo', '0')
+        data_inicio_br = dados.get('data_inicio', '')
+        data_fim_br = dados.get('data_fim', '')
         
-        if not conta_numero:
-            return jsonify({"success": False, "message": "Conta não informada"}), 400
+        if not username or not conta_num:
+            return jsonify({"success": False, "message": "Dados incompletos"}), 400
         
+        print(f"📊 [EXTRATO ADMIN] Usuário admin: {usuario}, Cliente: {username}, Conta: {conta_num}, Período: {periodo}")
+        
+        # 🔥 FUNÇÃO AUXILIAR PARA BUSCAR NOMES (IGUAL AO KIVY)
+        def obter_nome_cliente_por_conta(conta_numero):
+            """Busca nome do cliente pelo número da conta (igual ao Kivy)"""
+            if not conta_numero:
+                return f"Conta N/A"
+            
+            try:
+                response = supabase.table('contas')\
+                    .select('cliente_nome')\
+                    .eq('id', conta_numero)\
+                    .execute()
+                
+                if response.data and response.data[0].get('cliente_nome'):
+                    nome = response.data[0]['cliente_nome']
+                    if nome and nome != 'None':
+                        return nome
+                
+                return f"Conta {conta_numero}"
+            except Exception as e:
+                print(f"⚠️ Erro ao buscar nome para conta {conta_numero}: {e}")
+                return f"Conta {conta_numero}"
+        
+        # 🔥 1. VERIFICAR CONTA (admin pode ver qualquer conta)
+        conta_response = supabase.table('contas')\
+            .select('*')\
+            .eq('id', conta_num)\
+            .execute()
+        
+        if not conta_response.data:
+            return jsonify({
+                "success": False, 
+                "message": "Conta não encontrada"
+            }), 404
+        
+        conta = conta_response.data[0]
+        moeda = conta.get('moeda', 'USD')
+        saldo_atual = float(conta.get('saldo', 0)) if conta.get('saldo') is not None else 0.0
+        
+        # 🔥 2. CONFIGURAR PERÍODO (MESMA LÓGICA DO KIVY)
         from datetime import datetime, timedelta
         
-        # Definir período
-        if periodo == 'personalizado' and data_inicio and data_fim:
-            data_inicio_obj = datetime.strptime(data_inicio, "%d/%m/%Y")
-            data_fim_obj = datetime.strptime(data_fim, "%d/%m/%Y").replace(hour=23, minute=59, second=59)
+        data_fim_filtro = datetime.now()
+        
+        if periodo == 'personalizado':
+            if not data_inicio_br or not data_fim_br:
+                return jsonify({"success": False, "message": "Datas não fornecidas"}), 400
+            
+            # Validar formato BR
+            def validar_data_br(data_str):
+                try:
+                    partes = data_str.split('/')
+                    if len(partes) != 3:
+                        return False
+                    dia, mes, ano = int(partes[0]), int(partes[1]), int(partes[2])
+                    if mes < 1 or mes > 12:
+                        return False
+                    if dia < 1 or dia > 31:
+                        return False
+                    return True
+                except:
+                    return False
+            
+            if not validar_data_br(data_inicio_br) or not validar_data_br(data_fim_br):
+                return jsonify({"success": False, "message": "Formato de data inválido. Use DD/MM/AAAA"}), 400
+            
+            # Converter para ISO
+            def formatar_para_iso(data_br):
+                partes = data_br.split('/')
+                return f"{partes[2]}-{partes[1]}-{partes[0]}"
+            
+            data_inicio_filtro = datetime.strptime(formatar_para_iso(data_inicio_br), "%Y-%m-%d")
+            data_fim_filtro = datetime.strptime(formatar_para_iso(data_fim_br), "%Y-%m-%d")\
+                .replace(hour=23, minute=59, second=59, microsecond=999999)
+                
         elif periodo == '0':
-            data_inicio_obj = datetime(2024, 1, 1)
-            data_fim_obj = datetime.now()
+            data_inicio_filtro = datetime(2024, 1, 1)
         else:
             dias = int(periodo)
-            data_inicio_obj = datetime.now() - timedelta(days=dias)
-            data_fim_obj = datetime.now()
+            data_inicio_filtro = data_fim_filtro - timedelta(days=dias)
         
-        print(f"📅 Período: {data_inicio_obj} a {data_fim_obj}")
-        print(f"🔍 Buscando transações para conta: {conta_numero}")
-        
-        # ============================================
-        # BUSCAR TODAS AS TRANSAÇÕES QUE ENVOLVEM A CONTA
-        # ============================================
-        
-        # Buscar onde a conta é remetente
-        response1 = supabase.table('transferencias')\
-            .select('*')\
-            .eq('conta_remetente', conta_numero)\
-            .execute()
-        
-        # Buscar onde a conta é destinatário
-        response2 = supabase.table('transferencias')\
-            .select('*')\
-            .eq('conta_destinatario', conta_numero)\
-            .execute()
-        
-        # Buscar onde a conta é origem (para câmbio)
-        response3 = supabase.table('transferencias')\
-            .select('*')\
-            .eq('conta_origem', conta_numero)\
-            .execute()
-        
-        # Buscar onde a conta é destino (para câmbio)
-        response4 = supabase.table('transferencias')\
-            .select('*')\
-            .eq('conta_destino', conta_numero)\
-            .execute()
-        
-        # Buscar onde a conta está no campo conta_bancaria_credito (transferências internacionais)
-        response5 = supabase.table('transferencias')\
-            .select('*')\
-            .eq('conta_bancaria_credito', conta_numero)\
-            .execute()
-        
-        # Combinar todos os resultados
-        todas_transacoes = []
-        todas_transacoes.extend(response1.data or [])
-        todas_transacoes.extend(response2.data or [])
-        todas_transacoes.extend(response3.data or [])
-        todas_transacoes.extend(response4.data or [])
-        todas_transacoes.extend(response5.data or [])
-        
-        # Remover duplicatas
-        transacoes_dict = {}
-        for t in todas_transacoes:
-            transacoes_dict[t['id']] = t
-        
-        transacoes = list(transacoes_dict.values())
-        
-        print(f"\n📊 DETALHAMENTO DAS BUSCAS:")
-        print(f"   conta_remetente: {len(response1.data)}")
-        print(f"   conta_destinatario: {len(response2.data)}")
-        print(f"   conta_origem: {len(response3.data)}")
-        print(f"   conta_destino: {len(response4.data)}")
-        print(f"   conta_bancaria_credito: {len(response5.data)}")
-        print(f"   Total únicas: {len(transacoes)}")
-        
-        # Processar transações
-        transacoes_processadas = []
-        
-        for transf in transacoes:
-            # Filtrar por data
-            data_transf = transf.get('created_at') or transf.get('data')
-            if data_transf:
-                try:
-                    if 'T' in data_transf:
-                        data_transf_obj = datetime.fromisoformat(data_transf.replace('Z', '+00:00'))
-                    else:
-                        data_transf_obj = datetime.strptime(data_transf, "%Y-%m-%d %H:%M:%S")
-                    
-                    if not (data_inicio_obj <= data_transf_obj <= data_fim_obj):
-                        continue
-                except Exception as e:
-                    print(f"⚠️ Erro ao processar data {data_transf}: {e}")
-                    continue
-            
-            tipo = transf.get('tipo', '')
-            status = transf.get('status', 'completed')
-            
-            # Pular transações não concluídas (exceto internacionais pendentes)
-            if status not in ['completed', 'processing', 'solicitada', 'pending']:
-                continue
-            
-            # ============================================
-            # PROCESSAR TRANSFERÊNCIAS INTERNACIONAIS
-            # ============================================
-            if tipo == 'transferencia_internacional' or tipo == 'internacional':
-                conta_remetente = transf.get('conta_remetente', '')
-                conta_bancaria_credito = transf.get('conta_bancaria_credito', '')
-                valor = float(transf.get('valor', 0))
-                moeda = transf.get('moeda', 'USD')
-                beneficiario = transf.get('beneficiario', 'Destinatário')
-                status_transf = transf.get('status', 'solicitada')
-                
-                print(f"\n🌍 Transferência Internacional: {transf.get('id')}")
-                print(f"   conta_remetente: {conta_remetente}")
-                print(f"   conta_bancaria_credito: {conta_bancaria_credito}")
-                print(f"   Nossa conta: {conta_numero}")
-                print(f"   Status: {status_transf}")
-                
-                # Mapear status para texto amigável
-                status_text = {
-                    'solicitada': 'SOLICITADA',
-                    'pending': 'PENDENTE',
-                    'processing': 'PROCESSANDO',
-                    'completed': 'CONCLUÍDA',
-                    'rejected': 'RECUSADA'
-                }.get(status_transf, status_transf.upper())
-                
-                # CASO 1: Nossa conta é a REMETENTE (SAÍDA de dinheiro)
-                if conta_remetente == conta_numero:
-                    descricao = f"TRANSFERÊNCIA INTERNACIONAL {status_text} - Enviada para: {beneficiario}"
-                    transacoes_processadas.append({
-                        'id': transf.get('id'),
-                        'data': data_transf,
-                        'descricao': descricao,
-                        'credito': 0,
-                        'debito': valor,  # SAÍDA = CRÉDITO
-                        'tipo': 'Transferência Internacional',
-                        'moeda': moeda,
-                        'status': status_transf
-                    })
-                    print(f"   ✅ SAÍDA: -{valor:.2f} {moeda} (CRÉDITO)")
-                
-                # CASO 2: Nossa conta é a CREDORA (ENTRADA de dinheiro)
-                elif conta_bancaria_credito == conta_numero:
-                    descricao = f"TRANSFERÊNCIA INTERNACIONAL {status_text} - Recebida de: {beneficiario}"
-                    transacoes_processadas.append({
-                        'id': transf.get('id'),
-                        'data': data_transf,
-                        'descricao': descricao,
-                        'credito': valor,  # ENTRADA = DÉBITO
-                        'debito': 0,
-                        'tipo': 'Transferência Internacional',
-                        'moeda': moeda,
-                        'status': status_transf
-                    })
-                    print(f"   ✅ ENTRADA: +{valor:.2f} {moeda} (DÉBITO)")
-                else:
-                    print(f"   ⏭️ Conta não envolvida - ignorando")
-            
-            # ============================================
-            # PROCESSAR CÂMBIO ENTRE CONTAS
-            # ============================================
-            elif tipo == 'cambio_contas_empresa':
-                conta_origem = transf.get('conta_origem', '')
-                conta_destino = transf.get('conta_destino', '')
-                valor_origem = float(transf.get('valor_origem', 0))
-                valor_destino = float(transf.get('valor_destino', 0))
-                moeda_origem = transf.get('moeda_origem', '')
-                moeda_destino = transf.get('moeda_destino', '')
-                taxa = transf.get('taxa_cambio', 0) or transf.get('taxa_principal_registro', 0)
-                
-                print(f"\n💱 Câmbio: {transf.get('id')}")
-                print(f"   conta_origem: {conta_origem}")
-                print(f"   conta_destino: {conta_destino}")
-                print(f"   Nossa conta: {conta_numero}")
-                
-                if conta_origem == conta_numero:
-                    descricao = f"CÂMBIO - Enviado: {valor_origem:.2f} {moeda_origem} → {valor_destino:.2f} {moeda_destino} (Taxa: {taxa:.6f})"
-                    transacoes_processadas.append({
-                        'id': transf.get('id'),
-                        'data': data_transf,
-                        'descricao': descricao,
-                        'credito': valor_origem,  # SAÍDA = CRÉDITO
-                        'debito': 0,
-                        'tipo': 'Câmbio entre Contas',
-                        'moeda': moeda_origem,
-                        'status': status
-                    })
-                    print(f"   ✅ SAÍDA: -{valor_origem:.2f} {moeda_origem}")
-                
-                elif conta_destino == conta_numero:
-                    descricao = f"CÂMBIO - Recebido: {valor_origem:.2f} {moeda_origem} → {valor_destino:.2f} {moeda_destino} (Taxa: {taxa:.6f})"
-                    transacoes_processadas.append({
-                        'id': transf.get('id'),
-                        'data': data_transf,
-                        'descricao': descricao,
-                        'credito': 0,
-                        'debito': valor_destino,  # ENTRADA = DÉBITO
-                        'tipo': 'Câmbio entre Contas',
-                        'moeda': moeda_destino,
-                        'status': status
-                    })
-                    print(f"   ✅ ENTRADA: +{valor_destino:.2f} {moeda_destino}")
-            
-            # ============================================
-            # PROCESSAR AJUSTES DE SALDO
-            # ============================================
-            elif tipo == 'ajuste_saldo_empresa':
-                if transf.get('conta_remetente') != conta_numero:
-                    continue
-                
-                tipo_ajuste = transf.get('tipo_ajuste', '')
-                descricao_ajuste = transf.get('descricao_ajuste', 'Ajuste de saldo')
-                valor = float(transf.get('valor', 0))
-                moeda = transf.get('moeda', 'USD')
-                
-                print(f"\n💰 Ajuste: {transf.get('id')} - {tipo_ajuste}")
-                
-                if tipo_ajuste == 'DÉBITO':
-                    # DÉBITO = ENTRADA de dinheiro
-                    descricao = f"AJUSTE - ENTRADA: {descricao_ajuste}"
-                    transacoes_processadas.append({
-                        'id': transf.get('id'),
-                        'data': data_transf,
-                        'descricao': descricao,
-                        'credito': 0,
-                        'debito': valor,
-                        'tipo': 'Ajuste de Saldo',
-                        'moeda': moeda,
-                        'status': status
-                    })
-                    print(f"   ✅ ENTRADA: +{valor:.2f} {moeda}")
-                else:
-                    # CRÉDITO = SAÍDA de dinheiro
-                    descricao = f"AJUSTE - SAÍDA: {descricao_ajuste}"
-                    transacoes_processadas.append({
-                        'id': transf.get('id'),
-                        'data': data_transf,
-                        'descricao': descricao,
-                        'credito': valor,
-                        'debito': 0,
-                        'tipo': 'Ajuste de Saldo',
-                        'moeda': moeda,
-                        'status': status
-                    })
-                    print(f"   ✅ SAÍDA: -{valor:.2f} {moeda}")
-            
-            # ============================================
-            # PROCESSAR DEPÓSITOS
-            # ============================================
-            elif tipo == 'deposito':
-                if transf.get('conta_destinatario') == conta_numero or transf.get('conta_destino') == conta_numero:
-                    valor = float(transf.get('valor', 0))
-                    moeda = transf.get('moeda', 'USD')
-                    descricao = transf.get('descricao', f"DEPÓSITO - {transf.get('banco_origem', 'Banco')}")
-                    
-                    print(f"\n💰 Depósito: {transf.get('id')}")
-                    
-                    transacoes_processadas.append({
-                        'id': transf.get('id'),
-                        'data': data_transf,
-                        'descricao': descricao,
-                        'credito': 0,
-                        'debito': valor,  # DEPÓSITO = ENTRADA = DÉBITO
-                        'tipo': 'Depósito',
-                        'moeda': moeda,
-                        'status': status
-                    })
-                    print(f"   ✅ ENTRADA: +{valor:.2f} {moeda}")
-            
-            # ============================================
-            # PROCESSAR SAQUES
-            # ============================================
-            elif tipo == 'saque':
-                if transf.get('conta_remetente') == conta_numero or transf.get('conta_origem') == conta_numero:
-                    valor = float(transf.get('valor', 0))
-                    moeda = transf.get('moeda', 'USD')
-                    descricao = transf.get('descricao', 'SAQUE')
-                    
-                    print(f"\n💸 Saque: {transf.get('id')}")
-                    
-                    transacoes_processadas.append({
-                        'id': transf.get('id'),
-                        'data': data_transf,
-                        'descricao': descricao,
-                        'credito': valor,  # SAQUE = SAÍDA = CRÉDITO
-                        'debito': 0,
-                        'tipo': 'Saque',
-                        'moeda': moeda,
-                        'status': status
-                    })
-                    print(f"   ✅ SAÍDA: -{valor:.2f} {moeda}")
-            
-            # ============================================
-            # PROCESSAR TRANSFERÊNCIAS INTERNAS EMPRESA
-            # ============================================
-            elif tipo == 'transferencia_interna_empresa':
-                conta_origem = transf.get('conta_remetente', '')
-                conta_destino = transf.get('conta_destinatario', '')
-                valor = float(transf.get('valor', 0))
-                moeda = transf.get('moeda', 'USD')
-                descricao_transf = transf.get('descricao', 'Transferência Interna')
-                
-                print(f"\n🏦 Transferência Interna: {transf.get('id')}")
-                print(f"   Origem: {conta_origem}")
-                print(f"   Destino: {conta_destino}")
-                
-                if conta_origem == conta_numero:
-                    descricao = f"TRANSFERÊNCIA ENVIADA - {descricao_transf} - Para: {conta_destino}"
-                    transacoes_processadas.append({
-                        'id': transf.get('id'),
-                        'data': data_transf,
-                        'descricao': descricao,
-                        'credito': valor,  # SAÍDA = CRÉDITO
-                        'debito': 0,
-                        'tipo': 'Transferência Interna',
-                        'moeda': moeda,
-                        'status': status
-                    })
-                    print(f"   ✅ SAÍDA: -{valor:.2f} {moeda}")
-                elif conta_destino == conta_numero:
-                    descricao = f"TRANSFERÊNCIA RECEBIDA - {descricao_transf} - De: {conta_origem}"
-                    transacoes_processadas.append({
-                        'id': transf.get('id'),
-                        'data': data_transf,
-                        'descricao': descricao,
-                        'credito': 0,
-                        'debito': valor,  # ENTRADA = DÉBITO
-                        'tipo': 'Transferência Interna',
-                        'moeda': moeda,
-                        'status': status
-                    })
-                    print(f"   ✅ ENTRADA: +{valor:.2f} {moeda}")
-            
-            # ============================================
-            # PROCESSAR TRANSFERÊNCIA CLIENTE → EMPRESA
-            # ============================================
-            elif tipo == 'transferencia_cliente_empresa':
-                conta_destino = transf.get('conta_destinatario', '')
-                valor = float(transf.get('valor', 0))
-                moeda = transf.get('moeda', 'USD')
-                descricao_transf = transf.get('descricao', 'Transferência de cliente')
-                cliente_nome = transf.get('cliente_nome', 'Cliente')
-                
-                print(f"\n🏦 Transferência Cliente→Empresa: {transf.get('id')}")
-                print(f"   Destino: {conta_destino}")
-                
-                if conta_destino == conta_numero:
-                    descricao = f"TRANSFERÊNCIA DE CLIENTE - {descricao_transf} - Cliente: {cliente_nome}"
-                    transacoes_processadas.append({
-                        'id': transf.get('id'),
-                        'data': data_transf,
-                        'descricao': descricao,
-                        'credito': 0,
-                        'debito': valor,  # ENTRADA = DÉBITO
-                        'tipo': 'Transferência de Cliente',
-                        'moeda': moeda,
-                        'status': status
-                    })
-                    print(f"   ✅ ENTRADA: +{valor:.2f} {moeda}")
+        print(f"📅 Período: {data_inicio_filtro.date()} a {data_fim_filtro.date()}")
 
-            # ============================================
-            # PROCESSAR TRANSFERÊNCIA EMPRESA → CLIENTE
-            # ============================================
-            elif tipo == 'transferencia_empresa_cliente':
-                conta_remetente = transf.get('conta_remetente', '')
-                valor = float(transf.get('valor', 0))
-                moeda = transf.get('moeda', 'USD')
-                descricao_transf = transf.get('descricao', 'Transferência para cliente')
-                cliente_nome = transf.get('cliente_nome', 'Cliente')
-                
-                print(f"\n🏦 Transferência Empresa→Cliente: {transf.get('id')}")
-                print(f"   Remetente: {conta_remetente}")
-                
-                if conta_remetente == conta_numero:
-                    descricao = f"TRANSFERÊNCIA PARA CLIENTE - {descricao_transf} - Cliente: {cliente_nome}"
-                    transacoes_processadas.append({
-                        'id': transf.get('id'),
-                        'data': data_transf,
-                        'descricao': descricao,
-                        'credito': valor,  # SAÍDA = CRÉDITO
-                        'debito': 0,
-                        'tipo': 'Transferência para Cliente',
-                        'moeda': moeda,
-                        'status': status
-                    })
-                    print(f"   ✅ SAÍDA: -{valor:.2f} {moeda}")
+        # 🔥 3. BUSCAR TODAS AS TRANSFERÊNCIAS DA CONTA (sem filtro de usuário)
+        todas_transferencias = []
+        
+        try:
+            # Buscar como remetente
+            transf_remetente = supabase.table('transferencias')\
+                .select('*')\
+                .eq('conta_remetente', conta_num)\
+                .execute()
+            todas_transferencias.extend(transf_remetente.data)
+            
+            # Buscar como destinatário
+            transf_destinatario = supabase.table('transferencias')\
+                .select('*')\
+                .eq('conta_destinatario', conta_num)\
+                .execute()
+            todas_transferencias.extend(transf_destinatario.data)
+            
+            # Buscar em conta_origem (para câmbio nova tela)
+            transf_origem = supabase.table('transferencias')\
+                .select('*')\
+                .eq('conta_origem', conta_num)\
+                .execute()
+            todas_transferencias.extend(transf_origem.data)
+            
+            # Buscar em conta_destino (para câmbio nova tela)
+            transf_destino = supabase.table('transferencias')\
+                .select('*')\
+                .eq('conta_destino', conta_num)\
+                .execute()
+            todas_transferencias.extend(transf_destino.data)
+            
+        except Exception as e:
+            print(f"⚠️ Erro ao buscar transferências: {e}")
+        
+        # Remover duplicados pelo ID
+        transferencias_dict = {}
+        for transf in todas_transferencias:
+            transf_id = transf.get('id')
+            if transf_id:
+                transferencias_dict[transf_id] = transf
+        
+        transferencias = list(transferencias_dict.values())
+        print(f"📊 Total de transferências únicas: {len(transferencias)}")
 
-            # ============================================
-            # PROCESSAR DESPESAS ADMINISTRATIVAS
-            # ============================================
-            elif tipo == 'despesa':
-                conta_remetente = transf.get('conta_remetente', '')
-                valor = float(transf.get('valor', 0))
-                moeda = transf.get('moeda', 'USD')
-                descricao_despesa = transf.get('descricao_despesa', 'Despesa administrativa')
-                categoria_despesa = transf.get('categoria_despesa', '')
+        # 🔥 FUNÇÃO PARSE DATA (MESMA DO KIVY)
+        def parse_data_unificada(data_str):
+            try:
+                if not data_str:
+                    return None
                 
-                print(f"\n📉 Despesa: {transf.get('id')}")
-                print(f"   Remetente: {conta_remetente}")
+                if 'T' in data_str:
+                    return datetime.fromisoformat(data_str.replace('Z', '+00:00'))
+                elif ' ' in data_str:
+                    return datetime.strptime(data_str, "%Y-%m-%d %H:%M:%S")
+                elif '-' in data_str and len(data_str) == 10:
+                    return datetime.strptime(data_str, "%Y-%m-%d")
+                elif '/' in data_str:
+                    partes = data_str.split('/')
+                    if len(partes) == 3:
+                        dia, mes, ano = map(int, partes)
+                        return datetime(ano, mes, dia)
                 
-                if conta_remetente == conta_numero:
-                    descricao = f"DESPESA - {descricao_despesa}"
-                    if categoria_despesa:
-                        descricao += f" ({categoria_despesa})"
-                    
-                    transacoes_processadas.append({
-                        'id': transf.get('id'),
-                        'data': data_transf,
-                        'descricao': descricao,
-                        'credito': valor,  # SAÍDA = CRÉDITO
-                        'debito': 0,
-                        'tipo': 'Despesa',
-                        'moeda': moeda,
-                        'status': status
-                    })
-                    print(f"   ✅ SAÍDA: -{valor:.2f} {moeda}")
+                return None
+            except:
+                return None
+            
+        # 🔥 FUNÇÃO PARA VERIFICAR SE TRANSAÇÃO ESTÁ NO PERÍODO
+        def transacao_esta_no_periodo(transf, data_inicio_filtro, data_fim_filtro):
+            data_principal_str = transf.get('data', '')
+            if data_principal_str:
+                data_principal = parse_data_unificada(data_principal_str)
+                if data_principal and data_inicio_filtro <= data_principal <= data_fim_filtro:
+                    return True
+            
+            data_solicitacao_str = transf.get('data_solicitacao', '')
+            if data_solicitacao_str:
+                data_solicitacao = parse_data_unificada(data_solicitacao_str)
+                if data_solicitacao and data_inicio_filtro <= data_solicitacao <= data_fim_filtro:
+                    return True
+            
+            data_processing_str = transf.get('data_processing', '')
+            if data_processing_str:
+                data_processing = parse_data_unificada(data_processing_str)
+                if data_processing and data_inicio_filtro <= data_processing <= data_fim_filtro:
+                    return True
+            
+            data_recusa_str = transf.get('data_recusa', '')
+            if data_recusa_str:
+                data_recusa = parse_data_unificada(data_recusa_str)
+                if data_recusa and data_inicio_filtro <= data_recusa <= data_fim_filtro:
+                    return True
+            
+            data_conclusao_str = transf.get('data_conclusao', '')
+            if data_conclusao_str:
+                data_conclusao = parse_data_unificada(data_conclusao_str)
+                if data_conclusao and data_inicio_filtro <= data_conclusao <= data_fim_filtro:
+                    return True
+            
+            if transf.get('status') == 'rejected':
+                if data_principal_str:
+                    data_principal = parse_data_unificada(data_principal_str)
+                    if data_principal and data_inicio_filtro <= data_principal <= data_fim_filtro:
+                        return True
+            
+            return False
 
-            # ============================================
-            # FALLBACK para outros tipos
-            # ============================================
+        # 🔥 FUNÇÃO PARA GERAR DESCRIÇÃO DE CÂMBIO
+        def gerar_descricao_cambio_inteligente(dados_cambio, conta_num):
+            operacao = dados_cambio.get('operacao', '').lower()
+            moeda_origem = dados_cambio.get('moeda_origem', 'USD')
+            moeda_destino = dados_cambio.get('moeda_destino', 'BRL')
+            valor_origem = dados_cambio.get('valor_origem', 0)
+            valor_destino = dados_cambio.get('valor_destino', 0)
+            
+            taxa = dados_cambio.get('cotacao', 0)
+            if not taxa or taxa == 0:
+                if valor_origem > 0 and valor_destino > 0:
+                    taxa = valor_destino / valor_origem
+            
+            if operacao == 'compra':
+                return f"COMPRA {moeda_destino} - Pagou {valor_origem:,.2f} {moeda_origem} → Recebeu {valor_destino:,.2f} {moeda_destino} (Taxa: {taxa:.4f})"
+            elif operacao == 'venda':
+                return f"VENDA {moeda_origem} - Vendeu {valor_origem:,.2f} {moeda_origem} → Recebeu {valor_destino:,.2f} {moeda_destino} (Taxa: {taxa:.4f})"
+            elif operacao == 'cambio_admin':
+                return f"CÂMBIO ADMINISTRATIVO - {moeda_origem} {valor_origem:,.2f} → {moeda_destino} {valor_destino:,.2f} (Taxa: {taxa:.4f})"
             else:
-                if transf.get('conta_remetente') == conta_numero or transf.get('conta_origem') == conta_numero:
-                    valor = float(transf.get('valor', 0))
-                    moeda = transf.get('moeda', 'USD')
-                    descricao = transf.get('descricao', f"{tipo.upper()}")
-                    
-                    transacoes_processadas.append({
-                        'id': transf.get('id'),
-                        'data': data_transf,
-                        'descricao': f"{descricao} - SAÍDA",
-                        'credito': valor,
-                        'debito': 0,
-                        'tipo': tipo,
-                        'moeda': moeda,
-                        'status': status
-                    })
-                    print(f"   ✅ FALLBACK SAÍDA: -{valor:.2f} {moeda}")
+                if moeda_origem and moeda_destino:
+                    return f"CÂMBIO {moeda_origem}/{moeda_destino} - {valor_origem:,.2f} {moeda_origem} → {valor_destino:,.2f} {moeda_destino} (Taxa: {taxa:.4f})"
+                else:
+                    return f"CÂMBIO - {valor_origem:,.2f} → {valor_destino:,.2f} (Taxa: {taxa:.4f})"
+
+        # 🔥 PROCESSAR TRANSAÇÕES (MESMA LÓGICA DO KIVY)
+        transacoes_todas = []
+        
+        # Adicionar saldo inicial
+        transacoes_todas.append({
+            'data': data_inicio_filtro.strftime("%Y-%m-%d 00:00:00"),
+            'descricao': "SALDO INICIAL DO PERÍODO",
+            'credito': 0.00,
+            'debito': 0.00,
+            'saldo_apos': 0.0,  # Será calculado depois
+            'tipo': "Saldo Inicial",
+            'moeda': moeda,
+            'timestamp': data_inicio_filtro.replace(hour=0, minute=0, second=0),
+            'id': 'SALDO_INICIAL'
+        })
+
+        for transf in transferencias:
+            try:
+                data_transacao_str = transf.get('data', '')
+                if not data_transacao_str:
+                    continue
                 
-                elif transf.get('conta_destinatario') == conta_numero or transf.get('conta_destino') == conta_numero:
-                    valor = float(transf.get('valor', 0))
-                    moeda = transf.get('moeda', 'USD')
-                    descricao = transf.get('descricao', f"{tipo.upper()}")
+                data_transacao = parse_data_unificada(data_transacao_str)
+                if not data_transacao:
+                    continue
+                
+                # Verificar período
+                if not transacao_esta_no_periodo(transf, data_inicio_filtro, data_fim_filtro):
+                    continue
+                
+                transf_tipo = transf.get('tipo', '')
+                transf_status = transf.get('status', '')
+                valor = float(transf.get('valor', 0)) if transf.get('valor') is not None else 0.0
+                transf_id = transf.get('id', 'N/A')
+                
+                # LÓGICA DE DECISÃO (MESMA DO KIVY)
+                deve_incluir = False
+                status_normalizado = transf_status.lower() if transf_status else ''
+
+                if transf_tipo in ['ajuste_admin', 'cambio']:
+                    deve_incluir = True
+                elif status_normalizado in ['pending', 'solicitada']:
+                    deve_incluir = True
+                elif status_normalizado == 'rejected':
+                    deve_incluir = True
+                elif status_normalizado in ['processing', 'completed']:
+                    deve_incluir = True
+                else:
+                    deve_incluir = False
+
+                if not deve_incluir:
+                    continue
+
+                # Cliente é REMETENTE
+                if transf.get('conta_remetente') == conta_num or transf.get('conta_origem') == conta_num:
                     
-                    transacoes_processadas.append({
-                        'id': transf.get('id'),
-                        'data': data_transf,
-                        'descricao': f"{descricao} - ENTRADA",
-                        'credito': 0,
-                        'debito': valor,
-                        'tipo': tipo,
-                        'moeda': moeda,
-                        'status': status
-                    })
-                    print(f"   ✅ FALLBACK ENTRADA: +{valor:.2f} {moeda}")
+                    if transf_tipo == 'deposito':
+                        banco_origem = transf.get('banco_origem', '')
+                        remetente_nome = transf.get('remetente', '')
+                        
+                        if banco_origem and remetente_nome:
+                            descricao_final = f"💰 Depósito de: {banco_origem} - {remetente_nome}"
+                        elif banco_origem:
+                            descricao_final = f"💰 Depósito do banco: {banco_origem}"
+                        elif remetente_nome:
+                            descricao_final = f"💰 Depósito de: {remetente_nome}"
+                        else:
+                            descricao_final = "💰 Depósito"
+                        
+                        transacoes_todas.append({
+                            'id': transf_id,
+                            'data': data_transacao_str,
+                            'descricao': descricao_final,
+                            'credito': valor,
+                            'debito': 0.00,
+                            'tipo': "Depósito",
+                            'moeda': moeda,
+                            'timestamp': data_transacao
+                        })
+                    
+                    elif transf_tipo == 'ajuste_admin':
+                        tipo_ajuste = transf.get('tipo_ajuste', 'DÉBITO')
+                        if tipo_ajuste and tipo_ajuste.upper() == 'CREDITO':
+                            transacoes_todas.append({
+                                'id': transf_id,
+                                'data': data_transacao_str,
+                                'descricao': f"CRÉDITO ADMINISTRATIVO - {transf.get('descricao_ajuste', '')}",
+                                'credito': valor,
+                                'debito': 0.00,
+                                'tipo': "Crédito Admin",
+                                'moeda': moeda,
+                                'timestamp': data_transacao
+                            })
+                        else:
+                            transacoes_todas.append({
+                                'id': transf_id,
+                                'data': data_transacao_str,
+                                'descricao': f"DÉBITO ADMINISTRATIVO - {transf.get('descricao_ajuste', '')}",
+                                'credito': 0.00,
+                                'debito': valor,
+                                'tipo': "Débito Admin",
+                                'moeda': moeda,
+                                'timestamp': data_transacao
+                            })
+                    
+                    elif transf_tipo in ['internacional', 'transferencia_internacional']:
+                        status_normalizado = transf_status.lower() if transf_status else ''
+                        
+                        if status_normalizado == 'rejected':
+                            data_solicitacao_str = transf.get('data_solicitacao') or data_transacao_str
+                            data_estorno_str = transf.get('data_recusa') or transf.get('data_processing') or data_transacao_str
+                            
+                            data_solicitacao = parse_data_unificada(data_solicitacao_str)
+                            data_estorno = parse_data_unificada(data_estorno_str)
+                            
+                            solicitacao_dentro = (data_solicitacao and data_inicio_filtro <= data_solicitacao <= data_fim_filtro)
+                            estorno_dentro = (data_estorno and data_inicio_filtro <= data_estorno <= data_fim_filtro)
+                            
+                            if solicitacao_dentro and estorno_dentro:
+                                transacoes_todas.append({
+                                    'id': f"{transf_id}_DEBITO",
+                                    'data': data_solicitacao_str,
+                                    'descricao': f"TRANSF. INTERNACIONAL SOLICITADA - {transf.get('beneficiario', 'N/A')}",
+                                    'credito': 0.00,
+                                    'debito': valor,
+                                    'tipo': "Transferência Internacional",
+                                    'moeda': moeda,
+                                    'timestamp': data_solicitacao
+                                })
+                                transacoes_todas.append({
+                                    'id': f"{transf_id}_CREDITO",
+                                    'data': data_estorno_str,
+                                    'descricao': f"ESTORNO TRANSF. INTERNACIONAL - {transf.get('beneficiario', 'N/A')}",
+                                    'credito': valor,
+                                    'debito': 0.00,
+                                    'tipo': "Estorno",
+                                    'moeda': moeda,
+                                    'timestamp': data_estorno
+                                })
+                            elif solicitacao_dentro and not estorno_dentro:
+                                transacoes_todas.append({
+                                    'id': f"{transf_id}_DEBITO",
+                                    'data': data_solicitacao_str,
+                                    'descricao': f"TRANSF. INTERNACIONAL SOLICITADA - {transf.get('beneficiario', 'N/A')}",
+                                    'credito': 0.00,
+                                    'debito': valor,
+                                    'tipo': "Transferência Internacional",
+                                    'moeda': moeda,
+                                    'timestamp': data_solicitacao
+                                })
+                            elif not solicitacao_dentro and estorno_dentro:
+                                transacoes_todas.append({
+                                    'id': f"{transf_id}_CREDITO",
+                                    'data': data_estorno_str,
+                                    'descricao': f"ESTORNO TRANSF. INTERNACIONAL - {transf.get('beneficiario', 'N/A')}",
+                                    'credito': valor,
+                                    'debito': 0.00,
+                                    'tipo': "Estorno",
+                                    'moeda': moeda,
+                                    'timestamp': data_estorno
+                                })
+                        else:
+                            status_text = "SOLICITADA" if status_normalizado in ['pending', 'solicitada'] else \
+                                        "EM PROCESSAMENTO" if status_normalizado == 'processing' else \
+                                        "CONCLUÍDA" if status_normalizado == 'completed' else "STATUS DESCONHECIDO"
+                            
+                            transacoes_todas.append({
+                                'id': transf_id,
+                                'data': data_transacao_str,
+                                'descricao': f"TRANSF. INTERNACIONAL {status_text} - {transf.get('beneficiario', 'N/A')}",
+                                'credito': 0.00,
+                                'debito': valor,
+                                'tipo': "Transferência Internacional",
+                                'moeda': moeda,
+                                'timestamp': data_transacao
+                            })
+                    
+                    elif transf_tipo == 'cambio':
+                        descricao_cambio = gerar_descricao_cambio_inteligente(transf, conta_num)
+                        transacoes_todas.append({
+                            'id': transf_id,
+                            'data': data_transacao_str,
+                            'descricao': descricao_cambio,
+                            'credito': 0.00,
+                            'debito': valor,
+                            'tipo': "Câmbio",
+                            'moeda': moeda,
+                            'timestamp': data_transacao
+                        })
+                    
+                    elif transf_tipo == 'transferencia_cliente_empresa':
+                        descricao_original = transf.get('descricao', '').strip()
+                        if not descricao_original:
+                            descricao_original = "Transferência para empresa"
+                        
+                        transacoes_todas.append({
+                            'id': transf_id,
+                            'data': data_transacao_str,
+                            'descricao': descricao_original,
+                            'credito': valor,
+                            'debito': 0.00,
+                            'tipo': "Transferência para Empresa",
+                            'moeda': moeda,
+                            'timestamp': data_transacao
+                        })
+                    
+                    elif transf_tipo == 'transferencia_empresa_cliente':
+                        descricao_original = transf.get('descricao', '').strip()
+                        if not descricao_original:
+                            descricao_original = "Transferência da empresa"
+                        
+                        transacoes_todas.append({
+                            'id': transf_id,
+                            'data': data_transacao_str,
+                            'descricao': descricao_original,
+                            'credito': 0.00,
+                            'debito': valor,
+                            'tipo': "Transferência da Empresa",
+                            'moeda': moeda,
+                            'timestamp': data_transacao
+                        })
+                    
+                    else:
+                        transacoes_todas.append({
+                            'id': transf_id,
+                            'data': data_transacao_str,
+                            'descricao': f"{transf_tipo.upper()} - {transf.get('descricao', '')}",
+                            'credito': 0.00,
+                            'debito': valor,
+                            'tipo': transf_tipo,
+                            'moeda': moeda,
+                            'timestamp': data_transacao
+                        })
+                
+                # Cliente é DESTINATÁRIO
+                elif transf.get('conta_destinatario') == conta_num or transf.get('conta_destino') == conta_num:
+                    
+                    if transf_tipo == 'deposito':
+                        transacoes_todas.append({
+                            'id': transf_id,
+                            'data': data_transacao_str,
+                            'descricao': f"DEPÓSITO CONFIRMADO - {transf.get('banco_origem', 'Banco')}",
+                            'credito': valor,
+                            'debito': 0.00,
+                            'tipo': "Depósito",
+                            'moeda': moeda,
+                            'timestamp': data_transacao
+                        })
+                    
+                    elif transf_tipo == 'ajuste_admin' and transf.get('tipo_ajuste') == 'CREDITO':
+                        transacoes_todas.append({
+                            'id': transf_id,
+                            'data': data_transacao_str,
+                            'descricao': f"CRÉDITO ADMINISTRATIVO - {transf.get('descricao_ajuste', '')}",
+                            'credito': valor,
+                            'debito': 0.00,
+                            'tipo': "Crédito Admin",
+                            'moeda': moeda,
+                            'timestamp': data_transacao
+                        })
+                    
+                    elif transf_tipo == 'cambio':
+                        descricao_cambio = gerar_descricao_cambio_inteligente(transf, conta_num)
+                        transacoes_todas.append({
+                            'id': transf_id,
+                            'data': data_transacao_str,
+                            'descricao': descricao_cambio,
+                            'credito': transf.get('valor_destino', valor),
+                            'debito': 0.00,
+                            'tipo': "Câmbio",
+                            'moeda': moeda,
+                            'timestamp': data_transacao
+                        })
+                    
+                    elif transf_tipo == 'transferencia_cliente_empresa':
+                        descricao_original = transf.get('descricao', '').strip()
+                        if not descricao_original:
+                            descricao_original = "Transferência da empresa"
+                        
+                        transacoes_todas.append({
+                            'id': transf_id,
+                            'data': data_transacao_str,
+                            'descricao': descricao_original,
+                            'credito': 0.00,
+                            'debito': valor,
+                            'tipo': "Transferência da Empresa",
+                            'moeda': moeda,
+                            'timestamp': data_transacao
+                        })
+                    
+                    elif transf_tipo == 'transferencia_empresa_cliente':
+                        descricao_original = transf.get('descricao', '').strip()
+                        if not descricao_original:
+                            descricao_original = "Transferência da empresa"
+                        
+                        transacoes_todas.append({
+                            'id': transf_id,
+                            'data': data_transacao_str,
+                            'descricao': descricao_original,
+                            'credito': 0.00,
+                            'debito': valor,
+                            'tipo': "Transferência da Empresa",
+                            'moeda': moeda,
+                            'timestamp': data_transacao
+                        })
+                    
+                    elif transf_tipo not in ['ajuste_admin']:
+                        status_normalizado = transf_status.lower() if transf_status else ''
+                        status_text = "SOLICITADA" if status_normalizado in ['pending', 'solicitada'] else \
+                                    "EM PROCESSAMENTO" if status_normalizado == 'processing' else \
+                                    "CONCLUÍDA" if status_normalizado == 'completed' else "RECUSADA"
+                        
+                        conta_remetente = transf.get('conta_remetente', '')
+                        nome_remetente = obter_nome_cliente_por_conta(conta_remetente)
+                        
+                        transacoes_todas.append({
+                            'id': transf_id,
+                            'data': data_transacao_str,
+                            'descricao': f"TRANSFERÊNCIA {status_text} RECEBIDA - {nome_remetente}",
+                            'credito': valor,
+                            'debito': 0.00,
+                            'tipo': "Transferência",
+                            'moeda': moeda,
+                            'timestamp': data_transacao
+                        })
+                        
+            except Exception as e:
+                print(f"⚠️ Erro ao processar transação: {e}")
+                continue
+
+        # 🔥 ORDENAR POR DATA E CALCULAR SALDO SEQUENCIAL
+        transacoes_todas.sort(key=lambda x: x.get('timestamp', datetime.min))
         
-        # Ordenar por data (mais antiga primeiro para calcular saldo)
-        transacoes_processadas.sort(key=lambda x: x.get('data', ''))
-        
-        # Calcular saldo sequencial
-        saldo_atual = 0
-        for t in transacoes_processadas:
-            saldo_atual += t['debito'] - t['credito']
-            t['saldo_apos'] = saldo_atual
-        
-        # Reverter para exibição (mais recente primeiro)
-        transacoes_processadas.reverse()
-        
-        # Calcular totais
-        total_entradas = sum(t['debito'] for t in transacoes_processadas)
-        total_saidas = sum(t['credito'] for t in transacoes_processadas)
-        
-        print(f"\n✅ EXTRATO PROCESSADO COM SUCESSO!")
-        print(f"   Total transações: {len(transacoes_processadas)}")
-        print(f"   Total entradas (DÉBITO): {total_entradas:.2f}")
-        print(f"   Total saídas (CRÉDITO): {total_saidas:.2f}")
-        print(f"   Saldo final: {saldo_atual:.2f}")
+        saldo_sequencial = 0.0
+        for transacao in transacoes_todas:
+            if transacao.get('tipo') == "Saldo Inicial":
+                transacao['saldo_apos'] = saldo_sequencial
+                continue
+                
+            credito = transacao.get('credito', 0)
+            debito = transacao.get('debito', 0)
+            saldo_sequencial += credito - debito
+            transacao['saldo_apos'] = saldo_sequencial
+
+        # 🔥 CALCULAR TOTAIS
+        total_entradas = sum(t.get('credito', 0) for t in transacoes_todas if t.get('tipo') != 'Saldo Inicial')
+        total_saidas = sum(t.get('debito', 0) for t in transacoes_todas if t.get('tipo') != 'Saldo Inicial')
+
+        # 🔥 INVERTER PARA EXIBIÇÃO (mais recente primeiro)
+        transacoes_exibicao = list(reversed(transacoes_todas))
+
+        print(f"✅ [EXTRATO ADMIN KIVY] Processado: {len(transacoes_exibicao)} transações")
         
         return jsonify({
             "success": True,
-            "transacoes": transacoes_processadas,
+            "transacoes": transacoes_exibicao,
+            "saldo_final": saldo_sequencial,
             "total_entradas": total_entradas,
             "total_saidas": total_saidas,
-            "saldo_final": saldo_atual,
-            "quantidade": len(transacoes_processadas)
+            "moeda": moeda,
+            "periodo": periodo,
+            "conta": conta_num,
+            "cliente": username
         })
         
     except Exception as e:
-        print(f"❌ Erro ao buscar extrato: {e}")
+        print(f"❌ [EXTRATO ADMIN KIVY] ERRO: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({
+            "success": False,
+            "message": f"Erro ao buscar extrato: {str(e)}"
+        }), 500
 
 # ============================================
 # ADMIN - APROVAR OPERAÇÕES (VERSÃO SÍNCRONA)

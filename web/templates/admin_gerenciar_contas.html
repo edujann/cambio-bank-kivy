@@ -1596,14 +1596,14 @@
             document.getElementById('infoExtrato').innerHTML = 'Carregando extrato...';
             
             try {
-                // 🔥 Usar período "0" para TODO PERÍODO
-                const response = await fetch('/api/admin/gerenciar-contas/extrato', {
+                // 🔥 Usar o novo endpoint com a lógica do Kivy
+                const response = await fetch('/api/admin/gerenciar-contas/extrato-kivy', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         username: clienteSelect.value,
                         conta_numero: contaSelect.value,
-                        periodo: '0'  // 🔥 "0" = Todo período
+                        periodo: '0'  // "0" = Todo período
                     })
                 });
                 
@@ -1615,12 +1615,7 @@
                     const saldoFinal = data.saldo_final || 0;
                     const totalEntradas = data.total_entradas || 0;
                     const totalSaidas = data.total_saidas || 0;
-                    
-                    // Obter a moeda da primeira transação ou da conta
-                    let moeda = 'USD';
-                    if (transacoes.length > 0 && transacoes[0].moeda) {
-                        moeda = transacoes[0].moeda;
-                    }
+                    const moeda = data.moeda || 'USD';
                     
                     document.getElementById('infoExtrato').innerHTML = `
                         <strong>Resumo:</strong> Saldo: ${obterSimboloMoeda(moeda)} ${formatarValor(saldoFinal)} | 
