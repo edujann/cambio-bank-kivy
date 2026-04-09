@@ -9261,7 +9261,7 @@ def api_admin_gerenciar_transferencia():
         # PROCESSAR CONTA ORIGEM
         # ============================================
         if tipo_origem == 'empresa':
-            # Conta da empresa
+            # Conta da empresa (continua igual - verifica saldo)
             conta_response = supabase.table('contas_bancarias_empresa')\
                 .select('saldo, moeda')\
                 .eq('numero', conta_origem)\
@@ -9277,7 +9277,6 @@ def api_admin_gerenciar_transferencia():
             if saldo_origem < valor:
                 return jsonify({"success": False, "message": f"Saldo insuficiente na conta origem"}), 400
             
-            # 🔥 EMPRESA ORIGEM SEMPRE DIMINUI
             novo_saldo_origem = saldo_origem - valor
             
             supabase.table('contas_bancarias_empresa')\
@@ -9299,14 +9298,17 @@ def api_admin_gerenciar_transferencia():
             saldo_origem = float(conta_response.data['saldo'])
             moeda = conta_response.data['moeda']
             
-            if saldo_origem < valor:
-                return jsonify({"success": False, "message": f"Saldo insuficiente na conta origem"}), 400
+            # 🔥 CORREÇÃO: Só verifica saldo se NÃO for cliente_empresa
+            # Para cliente_empresa, cliente RECEBE dinheiro (não precisa verificar saldo)
+            if tipo_transferencia != 'transferencia_cliente_empresa':
+                if saldo_origem < valor:
+                    return jsonify({"success": False, "message": f"Saldo insuficiente na conta origem"}), 400
             
             # 🔥 CLIENTE ORIGEM: verifica se é cliente_empresa (AUMENTA) ou interna_cliente (DIMINUI)
             if tipo_transferencia == 'transferencia_cliente_empresa':
                 # Cliente → Empresa: CLIENTE AUMENTA (ganha dinheiro)
                 novo_saldo_origem = saldo_origem + valor
-                print(f"   Cliente origem AUMENTA: {saldo_origem} → {novo_saldo_origem}")
+                print(f"   Cliente origem AUMENTA (sem verificação de saldo): {saldo_origem} → {novo_saldo_origem}")
             else:
                 # Cliente → Cliente (interna): CLIENTE DIMINUI
                 novo_saldo_origem = saldo_origem - valor
