@@ -1596,14 +1596,13 @@
             document.getElementById('infoExtrato').innerHTML = 'Carregando extrato...';
             
             try {
-                // 🔥 Usar o novo endpoint com a lógica do Kivy
                 const response = await fetch('/api/admin/gerenciar-contas/extrato-kivy', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         username: clienteSelect.value,
                         conta_numero: contaSelect.value,
-                        periodo: '0'  // "0" = Todo período
+                        periodo: '0'
                     })
                 });
                 
@@ -1636,8 +1635,11 @@
                         const row = tbody.insertRow();
                         row.insertCell(0).textContent = formatarData(t.data);
                         row.insertCell(1).textContent = t.descricao || '-';
-                        row.insertCell(2).innerHTML = t.credito > 0 ? `<span class="credito">${formatarValor(t.credito)}</span>` : '';
-                        row.insertCell(3).innerHTML = t.debito > 0 ? `<span class="debito">${formatarValor(t.debito)}</span>` : '';
+                        
+                        // 🔥 INVERTIDO: debito vai para coluna CRÉDITO, credito vai para coluna DÉBITO
+                        row.insertCell(2).innerHTML = t.debito > 0 ? `<span class="credito">${formatarValor(t.debito)}</span>` : '';
+                        row.insertCell(3).innerHTML = t.credito > 0 ? `<span class="debito">${formatarValor(t.credito)}</span>` : '';
+                        
                         row.insertCell(4).textContent = formatarValor(t.saldo_apos);
                     });
                     
