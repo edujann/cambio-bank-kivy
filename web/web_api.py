@@ -4268,10 +4268,17 @@ def obter_extrato_kivy():
                             print(f"💰 CÂMBIO NORMAL: {descricao_cambio[:50]}...")
                     
                     elif transf_tipo == 'receita':
-                        # 🔥 CORREÇÃO: Buscar a descrição correta da receita
+                        # 🔥 Buscar a descrição da receita diretamente do campo correto
                         descricao_receita = transf.get('descricao_receita', '')
+                        
+                        # Se não tiver descricao_receita, tentar outros campos
                         if not descricao_receita:
-                            descricao_receita = transf.get('descricao', 'Lançamento de receita')
+                            descricao_receita = transf.get('descricao', '')
+                        if not descricao_receita:
+                            descricao_receita = transf.get('categoria_receita', 'Receita')
+                        
+                        print(f"💰 RECEITA PROCESSADA - ID: {transf_id}")
+                        print(f"   descricao_receita: '{descricao_receita}'")
                         
                         transacoes_todas.append({
                             'id': transf_id,
