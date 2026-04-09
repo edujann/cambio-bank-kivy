@@ -8877,7 +8877,9 @@ def api_admin_gerenciar_extrato():
         
         username = dados.get('username')
         conta_numero = dados.get('conta_numero')
-        periodo = dados.get('periodo', '30')
+        periodo = dados.get('periodo', '0')  # 🔥 Padrão '0' = todo período
+        
+        print(f"📊 Buscando extrato para: {username} - Conta: {conta_numero} - Período: {periodo}")
         
         if not username or not conta_numero:
             return jsonify({"success": False, "message": "Dados incompletos"}), 400
@@ -8886,18 +8888,22 @@ def api_admin_gerenciar_extrato():
         
         # Definir período
         if periodo == '0':
-            data_inicio = datetime(2024, 1, 1)
+            data_inicio = datetime(2024, 1, 1)  # Data bem antiga
         else:
             dias = int(periodo)
             data_inicio = datetime.now() - timedelta(days=dias)
         
         data_fim = datetime.now()
         
+        print(f"📅 Período: {data_inicio} até {data_fim}")
+        
         # Buscar transações da conta
         response = supabase.table('transferencias')\
             .select('*')\
             .or_(f'conta_remetente.eq.{conta_numero},conta_destinatario.eq.{conta_numero}')\
             .execute()
+        
+        print(f"📊 Total de transações encontradas: {len(response.data) if response.data else 0}")
         
         transacoes = []
         for t in (response.data or []):
@@ -8911,8 +8917,9 @@ def api_admin_gerenciar_extrato():
                     
                     if data_transf_obj < data_inicio or data_transf_obj > data_fim:
                         continue
-                except:
-                    pass
+                except Exception as e:
+                    print(f"⚠️ Erro ao processar data {data_transf}: {e}")
+                    continue
             
             valor = float(t.get('valor', 0))
             moeda = t.get('moeda', 'USD')
@@ -8946,7 +8953,7 @@ def api_admin_gerenciar_extrato():
                 'status': status
             })
         
-        # Ordenar por data
+        # Ordenar por data (mais antiga primeiro para calcular saldo)
         transacoes.sort(key=lambda x: x.get('data', ''))
         
         # Calcular saldo sequencial
@@ -8962,6 +8969,9 @@ def api_admin_gerenciar_extrato():
         total_entradas = sum(t['debito'] for t in transacoes)
         total_saidas = sum(t['credito'] for t in transacoes)
         
+        print(f"✅ Extrato processado: {len(transacoes)} transações")
+        print(f"   Saldo final: {saldo_atual:.2f}")
+        
         return jsonify({
             "success": True,
             "transacoes": transacoes,
@@ -8973,6 +8983,8 @@ def api_admin_gerenciar_extrato():
         
     except Exception as e:
         print(f"❌ Erro ao buscar extrato: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"success": False, "message": str(e)}), 500
 
 

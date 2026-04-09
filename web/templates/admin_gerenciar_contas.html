@@ -732,8 +732,8 @@
             </div>
 
             <!-- ============================================
-                 ABA 4: EXTRATOS
-                 ============================================ -->
+                ABA 4: EXTRATOS
+                ============================================ -->
             <div id="tab-extrato" class="tab-content">
                 <div class="form-card">
                     <h3 class="form-title"><i class="fas fa-file-invoice"></i> Extrato da Conta</h3>
@@ -753,12 +753,8 @@
                         </div>
                     </div>
                     
-                    <div class="toggle-group">
-                        <button class="toggle-btn" data-periodo="7">7 dias</button>
-                        <button class="toggle-btn active" data-periodo="30">30 dias</button>
-                        <button class="toggle-btn" data-periodo="90">90 dias</button>
-                        <button class="toggle-btn" data-periodo="0">Todo período</button>
-                    </div>
+                    <!-- 🔥 REMOVIDOS OS BOTÕES DE PERÍODO RÁPIDO -->
+                    <!-- Apenas o período "Todo período" será usado -->
                     
                     <div class="info-conversao" id="infoExtrato" style="margin-top: 0;">
                         Selecione um cliente e uma conta para ver o extrato
@@ -1528,21 +1524,33 @@
         }
 
         // ============================================
-        // ABA 4: EXTRATOS
+        // ABA 4: EXTRATOS (VERSÃO SIMPLIFICADA)
         // ============================================
+
+        // Evento para quando o cliente é selecionado
         document.getElementById('extratoCliente')?.addEventListener('change', async (e) => {
             const username = e.target.value;
+            console.log('🔍 Cliente selecionado:', username);
             if (username) {
                 await carregarContasClienteExtrato(username);
             } else {
                 const select = document.getElementById('extratoConta');
                 select.innerHTML = '<option value="">Selecione primeiro um cliente...</option>';
                 select.disabled = true;
+                document.getElementById('extratoBody').innerHTML = '<tr><td colspan="5" class="loading">Nenhum dado</td></tr>';
+                document.getElementById('infoExtrato').innerHTML = 'Selecione um cliente e uma conta para ver o extrato';
             }
+        });
+
+        // Evento para quando a conta é selecionada
+        document.getElementById('extratoConta')?.addEventListener('change', () => {
+            console.log('🔍 Conta selecionada');
+            carregarExtrato();
         });
 
         async function carregarContasClienteExtrato(username) {
             try {
+                console.log('📡 Buscando contas do cliente:', username);
                 const response = await fetch(`/api/admin/clientes/${username}/contas`);
                 const data = await response.json();
                 
@@ -1556,20 +1564,26 @@
                         select.appendChild(option);
                     });
                     select.disabled = false;
+                    console.log(`✅ ${data.contas.length} contas carregadas`);
                 } else {
                     select.innerHTML = '<option value="">Cliente não possui contas</option>';
                     select.disabled = true;
+                    document.getElementById('extratoBody').innerHTML = '<tr><td colspan="5" class="loading">Cliente não possui contas</td></tr>';
+                    document.getElementById('infoExtrato').innerHTML = 'Cliente não possui contas cadastradas';
                 }
             } catch (error) {
                 console.error('Erro ao carregar contas:', error);
+                document.getElementById('extratoBody').innerHTML = '<tr><td colspan="5" class="loading">❌ Erro ao carregar contas</td></tr>';
             }
         }
 
         async function carregarExtrato() {
             const clienteSelect = document.getElementById('extratoCliente');
             const contaSelect = document.getElementById('extratoConta');
-            const periodoBtn = document.querySelector('#tab-extrato .toggle-btn.active');
-            const periodo = periodoBtn ? periodoBtn.dataset.periodo : '30';
+            
+            console.log('🔄 carregarExtrato() chamado');
+            console.log('   Cliente:', clienteSelect?.value);
+            console.log('   Conta:', contaSelect?.value);
             
             if (!clienteSelect.value || !contaSelect.value) {
                 document.getElementById('infoExtrato').innerHTML = 'Selecione um cliente e uma conta para ver o extrato';
@@ -1577,20 +1591,24 @@
                 return;
             }
             
-            document.getElementById('extratoBody').innerHTML = '<tr><td colspan="5" class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</td></tr>';
+            // Mostrar loading
+            document.getElementById('extratoBody').innerHTML = '<tr><td colspan="5" class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando extrato...</td></tr>';
+            document.getElementById('infoExtrato').innerHTML = 'Carregando extrato...';
             
             try {
+                // 🔥 Usar período "0" para TODO PERÍODO
                 const response = await fetch('/api/admin/gerenciar-contas/extrato', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         username: clienteSelect.value,
                         conta_numero: contaSelect.value,
-                        periodo: periodo
+                        periodo: '0'  // 🔥 "0" = Todo período
                     })
                 });
                 
                 const data = await response.json();
+                console.log('📥 Resposta do extrato:', data);
                 
                 if (data.success) {
                     const transacoes = data.transacoes || [];
@@ -1598,10 +1616,17 @@
                     const totalEntradas = data.total_entradas || 0;
                     const totalSaidas = data.total_saidas || 0;
                     
+                    // Obter a moeda da primeira transação ou da conta
+                    let moeda = 'USD';
+                    if (transacoes.length > 0 && transacoes[0].moeda) {
+                        moeda = transacoes[0].moeda;
+                    }
+                    
                     document.getElementById('infoExtrato').innerHTML = `
-                        <strong>Resumo:</strong> Saldo: ${obterSimboloMoeda('USD')} ${formatarValor(saldoFinal)} | 
+                        <strong>Resumo:</strong> Saldo: ${obterSimboloMoeda(moeda)} ${formatarValor(saldoFinal)} | 
                         Entradas: +${formatarValor(totalEntradas)} | 
-                        Saídas: -${formatarValor(totalSaidas)}
+                        Saídas: -${formatarValor(totalSaidas)} | 
+                        Total de transações: ${transacoes.length}
                     `;
                     
                     const tbody = document.getElementById('extratoBody');
@@ -1620,12 +1645,17 @@
                         row.insertCell(3).innerHTML = t.debito > 0 ? `<span class="debito">${formatarValor(t.debito)}</span>` : '';
                         row.insertCell(4).textContent = formatarValor(t.saldo_apos);
                     });
+                    
+                    console.log(`✅ Extrato carregado: ${transacoes.length} transações`);
                 } else {
+                    console.error('Erro da API:', data.message);
                     document.getElementById('extratoBody').innerHTML = `<tr><td colspan="5" class="loading">❌ ${data.message}</td></tr>`;
+                    document.getElementById('infoExtrato').innerHTML = `❌ Erro: ${data.message}`;
                 }
             } catch (error) {
-                console.error('Erro:', error);
+                console.error('Erro ao carregar extrato:', error);
                 document.getElementById('extratoBody').innerHTML = '<tr><td colspan="5" class="loading">❌ Erro ao carregar extrato</td></tr>';
+                document.getElementById('infoExtrato').innerHTML = '❌ Erro ao conectar com o servidor';
             }
         }
 
