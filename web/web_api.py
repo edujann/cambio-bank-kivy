@@ -9230,10 +9230,35 @@ def api_admin_gerenciar_transferencia():
         from datetime import datetime
         import random
         
-        # Determinar moeda e atualizar saldos baseado nos tipos
+        # Gerar ID numérico
+        transacao_id = str(random.randint(100000, 999999))
+        while True:
+            check = supabase.table('transferencias').select('id').eq('id', transacao_id).execute()
+            if not check.data:
+                break
+            transacao_id = str(random.randint(100000, 999999))
+        
         moeda = None
         
-        # Processar conta origem
+        # ============================================
+        # DETERMINAR O TIPO DA TRANSFERÊNCIA
+        # ============================================
+        if tipo_origem == 'empresa' and tipo_destino == 'empresa':
+            tipo_transferencia = 'transferencia_interna_empresa'
+        elif tipo_origem == 'empresa' and tipo_destino == 'cliente':
+            tipo_transferencia = 'transferencia_empresa_cliente'
+        elif tipo_origem == 'cliente' and tipo_destino == 'empresa':
+            tipo_transferencia = 'transferencia_cliente_empresa'
+        else:  # cliente -> cliente
+            tipo_transferencia = 'transferencia_interna_cliente'
+        
+        print(f"🔄 Transferência do tipo: {tipo_transferencia}")
+        print(f"   Origem: {conta_origem} ({tipo_origem})")
+        print(f"   Destino: {conta_destino} ({tipo_destino})")
+        
+        # ============================================
+        # PROCESSAR CONTA ORIGEM
+        # ============================================
         if tipo_origem == 'empresa':
             # Conta da empresa
             conta_response = supabase.table('contas_bancarias_empresa')\
@@ -9258,7 +9283,7 @@ def api_admin_gerenciar_transferencia():
                 .eq('numero', conta_origem)\
                 .execute()
                 
-        else:
+        else:  # cliente
             # Conta de cliente
             conta_response = supabase.table('contas')\
                 .select('saldo, moeda')\
@@ -9282,7 +9307,9 @@ def api_admin_gerenciar_transferencia():
                 .eq('id', conta_origem)\
                 .execute()
         
-        # Processar conta destino
+        # ============================================
+        # PROCESSAR CONTA DESTINO
+        # ============================================
         if tipo_destino == 'empresa':
             # Conta da empresa
             conta_response = supabase.table('contas_bancarias_empresa')\
@@ -9302,7 +9329,7 @@ def api_admin_gerenciar_transferencia():
                 .eq('numero', conta_destino)\
                 .execute()
                 
-        else:
+        else:  # cliente
             # Conta de cliente
             conta_response = supabase.table('contas')\
                 .select('saldo')\
@@ -9321,37 +9348,44 @@ def api_admin_gerenciar_transferencia():
                 .eq('id', conta_destino)\
                 .execute()
         
-        # Registrar transação
-        transacao_id = f"{random.randint(100000, 999999)}_transf"
-        
+        # ============================================
+        # REGISTRAR TRANSAÇÃO
+        # ============================================
         transacao_data = {
             'id': transacao_id,
-            'tipo': 'transferencia_interna',
+            'tipo': tipo_transferencia,
             'status': 'completed',
-            'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3],  # Formato com milissegundos
             'moeda': moeda,
             'valor': valor,
             'conta_remetente': conta_origem,
             'conta_destinatario': conta_destino,
             'descricao': descricao,
-            'usuario': usuario,
             'executado_por': usuario,
-            'tipo_origem': tipo_origem,
-            'tipo_destino': tipo_destino,
+            'finalidade': 'Transferência Interna',
+            'usuario': usuario,
             'created_at': datetime.now().isoformat()
         }
         
-        supabase.table('transferencias').insert(transacao_data).execute()
+        result = supabase.table('transferencias').insert(transacao_data).execute()
+        
+        if not result.data:
+            return jsonify({"success": False, "message": "Erro ao registrar transferência"}), 500
         
         print(f"🔄 Transferência realizada: {valor:.2f} {moeda} de {conta_origem} para {conta_destino}")
+        print(f"   Tipo: {tipo_transferencia} | ID: {transacao_id}")
         
         return jsonify({
             "success": True,
-            "message": f"Transferência realizada com sucesso!"
+            "message": f"Transferência realizada com sucesso!",
+            "transacao_id": transacao_id,
+            "tipo": tipo_transferencia
         })
         
     except Exception as e:
         print(f"❌ Erro ao realizar transferência: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"success": False, "message": str(e)}), 500
 
 
