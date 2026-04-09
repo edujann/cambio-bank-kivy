@@ -9029,8 +9029,18 @@ def api_admin_gerenciar_despesa():
         from datetime import datetime
         import random
         
-        transacao_id = f"{random.randint(100000, 999999)}_desp"
+        # Gerar ID numérico
+        transacao_id = str(random.randint(100000, 999999))
+        while True:
+            check = supabase.table('transferencias').select('id').eq('id', transacao_id).execute()
+            if not check.data:
+                break
+            transacao_id = str(random.randint(100000, 999999))
         
+        # 🔥 CORREÇÃO: Formatar conta_destinatario no padrão "DESPESA_CATEGORIA_Nome da Conta"
+        conta_destinatario_formatada = f"DESPESA_{categoria}_{conta_despesa}"
+        
+        # 🔥 CORREÇÃO: Usar estrutura EXATAMENTE como no exemplo
         transacao_data = {
             'id': transacao_id,
             'tipo': 'despesa',
@@ -9039,26 +9049,33 @@ def api_admin_gerenciar_despesa():
             'moeda': moeda,
             'valor': valor,
             'conta_remetente': conta_bancaria,
-            'descricao': descricao,
+            'conta_destinatario': conta_destinatario_formatada,  # 🔥 FORMATO ESPECIAL
+            'descricao': None,  # 🔥 Deixar null, usar descricao_despesa
+            'usuario': usuario,
             'categoria_despesa': categoria,
             'descricao_despesa': descricao,
-            'conta_despesa': conta_despesa,
-            'usuario': usuario,
             'executado_por': usuario,
             'created_at': datetime.now().isoformat()
         }
         
-        supabase.table('transferencias').insert(transacao_data).execute()
+        result = supabase.table('transferencias').insert(transacao_data).execute()
+        
+        if not result.data:
+            return jsonify({"success": False, "message": "Erro ao registrar despesa"}), 500
         
         print(f"📉 Despesa lançada: {valor:.2f} {moeda} - {descricao}")
+        print(f"   Conta destino formatada: {conta_destinatario_formatada}")
         
         return jsonify({
             "success": True,
-            "message": f"Despesa lançada com sucesso!"
+            "message": f"Despesa lançada com sucesso!",
+            "transacao_id": transacao_id
         })
         
     except Exception as e:
         print(f"❌ Erro ao lançar despesa: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"success": False, "message": str(e)}), 500
 
 
