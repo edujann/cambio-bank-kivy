@@ -8643,10 +8643,11 @@ def api_admin_gerenciar_ajuste():
         
         if operacao == 'credito':
             novo_saldo = saldo_atual + valor
-            tipo_ajuste = "CRÉDITO"
+            # 🔥 CORREÇÃO: Usar "CREDITO" sem acento
+            tipo_ajuste = "CREDITO"
         else:
             novo_saldo = saldo_atual - valor
-            tipo_ajuste = "DÉBITO"
+            tipo_ajuste = "DEBITO"  # 🔥 Também padronizar em maiúsculo
         
         # Atualizar saldo
         update_response = supabase.table('contas')\
@@ -8661,7 +8662,13 @@ def api_admin_gerenciar_ajuste():
         from datetime import datetime
         import random
         
-        transacao_id = f"{random.randint(100000, 999999)}_aj"
+        # Gerar ID numérico
+        transacao_id = str(random.randint(100000, 999999))
+        while True:
+            check = supabase.table('transferencias').select('id').eq('id', transacao_id).execute()
+            if not check.data:
+                break
+            transacao_id = str(random.randint(100000, 999999))
         
         transacao_data = {
             'id': transacao_id,
@@ -8672,7 +8679,7 @@ def api_admin_gerenciar_ajuste():
             'valor': valor,
             'conta_remetente': conta_numero,
             'descricao': descricao,
-            'tipo_ajuste': tipo_ajuste,
+            'tipo_ajuste': tipo_ajuste,  # 🔥 "CREDITO" ou "DEBITO"
             'descricao_ajuste': descricao,
             'usuario': usuario,
             'cliente': username,
