@@ -10089,6 +10089,490 @@ def api_admin_gerenciar_transferencia():
         return jsonify({"success": False, "message": str(e)}), 500
 
 
+# ============================================
+# ADMIN - RELATÓRIOS
+# ============================================
+
+@app.route('/admin/relatorios')
+def admin_relatorios():
+    """Tela de relatórios financeiros"""
+    usuario = session.get('username')
+    
+    if not usuario:
+        return redirect('/login')
+    
+    # Verificar se é admin
+    if supabase:
+        user_check = supabase.table('usuarios')\
+            .select('tipo')\
+            .eq('username', usuario)\
+            .single()\
+            .execute()
+        
+        if not user_check.data or user_check.data.get('tipo') != 'admin':
+            return redirect('/dashboard')
+    
+    # Buscar dados do usuário
+    nome = usuario.upper()
+    email = f'{usuario}@exemplo.com'
+    
+    try:
+        if supabase:
+            user_response = supabase.table('usuarios')\
+                .select('nome, email')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if user_response.data:
+                if user_response.data.get('nome'):
+                    nome = user_response.data['nome']
+                if user_response.data.get('email'):
+                    email = user_response.data['email']
+    except:
+        pass
+    
+    return render_template('admin_relatorios.html',
+                          usuario=usuario,
+                          nome=nome,
+                          email=email)
+
+
+@app.route('/api/admin/relatorios/categorias', methods=['GET'])
+def api_admin_relatorios_categorias():
+    """Retorna lista de categorias disponíveis para receitas/despesas"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Buscar categorias de receitas
+        receitas_response = supabase.table('contas_contabeis')\
+            .select('categoria')\
+            .eq('tipo', 'receita')\
+            .execute()
+        
+        # Buscar categorias de despesas
+        despesas_response = supabase.table('contas_contabeis')\
+            .select('categoria')\
+            .eq('tipo', 'despesa')\
+            .execute()
+        
+        categorias = set()
+        for item in (receitas_response.data or []):
+            categorias.add(item.get('categoria'))
+        for item in (despesas_response.data or []):
+            categorias.add(item.get('categoria'))
+        
+        return jsonify({
+            "success": True,
+            "categorias": sorted(list(categorias))
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar categorias: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/relatorios/mensal', methods=['POST'])
+def api_admin_relatorios_mensal():
+    """Retorna relatório mensal de receitas ou despesas"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        dados = request.get_json()
+        
+        ano = dados.get('ano')
+        mes = dados.get('mes')
+        tipo = dados.get('tipo')  # 'receita' ou 'despesa'
+        moeda_filtro = dados.get('moeda', 'TODAS')
+        categoria_filtro = dados.get('categoria')
+        conta_filtro = dados.get('conta')
+        
+        if not ano or not mes or not tipo:
+            return jsonify({"success": False, "message": "Dados incompletos"}), 400
+        
+        from datetime import datetime
+        import calendar
+        
+        # Calcular primeiro e último dia do mês
+        data_inicio = f"{ano}-{mes:02d}-01"
+        ultimo_dia = calendar.monthrange(ano, mes)[1]
+        data_fim = f"{ano}-{mes:02d}-{ultimo_dia} 23:59:59"
+        
+        print(f"📊 Buscando relatório {tipo} - {mes}/{ano}")
+        
+        # Construir query base
+        query = supabase.table('transferencias').select('*').eq('tipo', tipo)
+        
+        # Filtrar por data (usando created_at)
+        query = query.gte('created_at', f"{data_inicio} 00:00:00")\
+                     .lte('created_at', data_fim)
+        
+        # Filtrar por status (apenas completed)
+        query = query.eq('status', 'completed')
+        
+        response = query.execute()
+        
+        transacoes = response.data or []
+        print(f"📊 Total de transações encontradas: {len(transacoes)}")
+        
+        # Processar dados
+        from collections import defaultdict
+        
+        total_geral = 0
+        total_por_moeda = defaultdict(float)
+        categorias = defaultdict(lambda: {'total': 0, 'contas': defaultdict(lambda: {'total': 0, 'quantidade': 0})})
+        transacoes_lista = []
+        
+        for t in transacoes:
+            valor = float(t.get('valor', 0))
+            moeda = t.get('moeda', 'USD')
+            data_transf = t.get('created_at') or t.get('data')
+            
+            # Filtrar por moeda
+            if moeda_filtro != 'TODAS' and moeda != moeda_filtro:
+                continue
+            
+            # Obter categoria e conta baseado no tipo
+            if tipo == 'receita':
+                categoria = t.get('categoria_receita', 'SEM CATEGORIA')
+                if not categoria:
+                    categoria = 'SEM CATEGORIA'
+                
+                conta_especifica = t.get('conta_destinatario', 'Outras')
+                if not conta_especifica:
+                    conta_especifica = 'Outras'
+                
+                descricao = t.get('descricao_receita', '')
+                if not descricao:
+                    descricao = t.get('descricao', 'Receita')
+            else:  # despesa
+                categoria = t.get('categoria_despesa', 'SEM CATEGORIA')
+                if not categoria:
+                    categoria = 'SEM CATEGORIA'
+                
+                # Extrair conta específica do campo conta_destinatario
+                conta_dest = t.get('conta_destinatario', '')
+                if conta_dest and '_' in conta_dest:
+                    partes = conta_dest.split('_')
+                    if len(partes) >= 3:
+                        conta_especifica = partes[2]
+                    else:
+                        conta_especifica = partes[-1] if partes else 'Outras'
+                else:
+                    conta_especifica = conta_dest if conta_dest else 'Outras'
+                
+                descricao = t.get('descricao_despesa', '')
+                if not descricao:
+                    descricao = t.get('descricao', 'Despesa')
+            
+            # Aplicar filtros de categoria e conta
+            if categoria_filtro and categoria_filtro != 'TODAS' and categoria != categoria_filtro:
+                continue
+            
+            if conta_filtro and conta_filtro != 'TODAS' and conta_especifica != conta_filtro:
+                continue
+            
+            # Acumular totais
+            total_geral += valor
+            total_por_moeda[moeda] += valor
+            
+            # Agrupar por categoria
+            categorias[categoria]['total'] += valor
+            categorias[categoria]['contas'][conta_especifica]['total'] += valor
+            categorias[categoria]['contas'][conta_especifica]['quantidade'] += 1
+            
+            # Adicionar à lista de transações
+            transacoes_lista.append({
+                'data': data_transf,
+                'descricao': descricao,
+                'categoria': categoria,
+                'conta_especifica': conta_especifica,
+                'valor': valor,
+                'moeda': moeda
+            })
+        
+        # Ordenar transações por data (mais recente primeiro)
+        transacoes_lista.sort(key=lambda x: x.get('data', ''), reverse=True)
+        
+        # Ordenar categorias por total (decrescente)
+        categorias_ordenadas = dict(sorted(categorias.items(), key=lambda x: x[1]['total'], reverse=True))
+        
+        for cat in categorias_ordenadas:
+            categorias_ordenadas[cat]['contas'] = dict(sorted(
+                categorias_ordenadas[cat]['contas'].items(),
+                key=lambda x: x[1]['total'],
+                reverse=True
+            ))
+        
+        # Determinar moeda padrão para exibição
+        moeda_padrao = moeda_filtro if moeda_filtro != 'TODAS' else 'USD'
+        
+        return jsonify({
+            "success": True,
+            "dados": {
+                "total_geral": total_geral,
+                "total_por_moeda": dict(total_por_moeda),
+                "quantidade_transacoes": len(transacoes_lista),
+                "categorias": categorias_ordenadas,
+                "transacoes": transacoes_lista,
+                "moeda_padrao": moeda_padrao
+            }
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao gerar relatório mensal: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/relatorios/comparativo', methods=['POST'])
+def api_admin_relatorios_comparativo():
+    """Retorna comparativo entre dois períodos"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        dados = request.get_json()
+        
+        ano_ref = dados.get('ano_ref')
+        mes_ref = dados.get('mes_ref')
+        ano_comp = dados.get('ano_comp')
+        mes_comp = dados.get('mes_comp')
+        tipo = dados.get('tipo')  # 'receita' ou 'despesa'
+        moeda_filtro = dados.get('moeda', 'TODAS')
+        
+        if not all([ano_ref, mes_ref, ano_comp, mes_comp, tipo]):
+            return jsonify({"success": False, "message": "Dados incompletos"}), 400
+        
+        import calendar
+        from datetime import datetime
+        
+        # Função auxiliar para buscar dados de um período
+        def buscar_dados_periodo(ano, mes):
+            data_inicio = f"{ano}-{mes:02d}-01"
+            ultimo_dia = calendar.monthrange(ano, mes)[1]
+            data_fim = f"{ano}-{mes:02d}-{ultimo_dia} 23:59:59"
+            
+            query = supabase.table('transferencias').select('*')\
+                .eq('tipo', tipo)\
+                .eq('status', 'completed')\
+                .gte('created_at', f"{data_inicio} 00:00:00")\
+                .lte('created_at', data_fim)
+            
+            response = query.execute()
+            return response.data or []
+        
+        # Buscar dados dos dois períodos
+        dados_ref = buscar_dados_periodo(ano_ref, mes_ref)
+        dados_comp = buscar_dados_periodo(ano_comp, mes_comp)
+        
+        # Processar dados
+        from collections import defaultdict
+        
+        def processar_dados(transacoes):
+            categorias = defaultdict(lambda: {'total': 0, 'contas': defaultdict(float)})
+            total_geral = 0
+            
+            for t in transacoes:
+                valor = float(t.get('valor', 0))
+                moeda = t.get('moeda', 'USD')
+                
+                if moeda_filtro != 'TODAS' and moeda != moeda_filtro:
+                    continue
+                
+                if tipo == 'receita':
+                    categoria = t.get('categoria_receita', 'SEM CATEGORIA')
+                    if not categoria:
+                        categoria = 'SEM CATEGORIA'
+                    
+                    conta = t.get('conta_destinatario', 'Outras')
+                    if not conta:
+                        conta = 'Outras'
+                else:
+                    categoria = t.get('categoria_despesa', 'SEM CATEGORIA')
+                    if not categoria:
+                        categoria = 'SEM CATEGORIA'
+                    
+                    conta_dest = t.get('conta_destinatario', '')
+                    if conta_dest and '_' in conta_dest:
+                        partes = conta_dest.split('_')
+                        if len(partes) >= 3:
+                            conta = partes[2]
+                        else:
+                            conta = partes[-1] if partes else 'Outras'
+                    else:
+                        conta = conta_dest if conta_dest else 'Outras'
+                
+                total_geral += valor
+                categorias[categoria]['total'] += valor
+                categorias[categoria]['contas'][conta] += valor
+            
+            return {
+                'total_geral': total_geral,
+                'categorias': dict(categorias)
+            }
+        
+        dados_ref_processados = processar_dados(dados_ref)
+        dados_comp_processados = processar_dados(dados_comp)
+        
+        # Combinar categorias
+        categorias_combinadas = {}
+        todas_categorias = set(dados_ref_processados['categorias'].keys()) | set(dados_comp_processados['categorias'].keys())
+        
+        for categoria in todas_categorias:
+            cat_ref = dados_ref_processados['categorias'].get(categoria, {'total': 0, 'contas': {}})
+            cat_comp = dados_comp_processados['categorias'].get(categoria, {'total': 0, 'contas': {}})
+            
+            # Combinar contas
+            contas_combinadas = {}
+            todas_contas = set(cat_ref['contas'].keys()) | set(cat_comp['contas'].keys())
+            
+            for conta in todas_contas:
+                val_ref = cat_ref['contas'].get(conta, 0)
+                val_comp = cat_comp['contas'].get(conta, 0)
+                contas_combinadas[conta] = {
+                    'valor_ref': val_ref,
+                    'valor_comp': val_comp,
+                    'variacao': val_ref - val_comp,
+                    'variacao_percentual': ((val_ref - val_comp) / val_comp * 100) if val_comp > 0 else (100 if val_ref > 0 else 0)
+                }
+            
+            categorias_combinadas[categoria] = {
+                'total_ref': cat_ref['total'],
+                'total_comp': cat_comp['total'],
+                'variacao': cat_ref['total'] - cat_comp['total'],
+                'variacao_percentual': ((cat_ref['total'] - cat_comp['total']) / cat_comp['total'] * 100) if cat_comp['total'] > 0 else (100 if cat_ref['total'] > 0 else 0),
+                'contas': contas_combinadas
+            }
+        
+        total_ref = dados_ref_processados['total_geral']
+        total_comp = dados_comp_processados['total_geral']
+        
+        return jsonify({
+            "success": True,
+            "dados": {
+                "totais": {
+                    "referencia": total_ref,
+                    "comparacao": total_comp,
+                    "variacao": total_ref - total_comp,
+                    "variacao_percentual": ((total_ref - total_comp) / total_comp * 100) if total_comp > 0 else (100 if total_ref > 0 else 0)
+                },
+                "categorias": categorias_combinadas,
+                "tipo": tipo,
+                "moeda": moeda_filtro if moeda_filtro != 'TODAS' else 'USD'
+            }
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao gerar comparativo: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/relatorios/anual', methods=['POST'])
+def api_admin_relatorios_anual():
+    """Retorna evolução anual de receitas ou despesas"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        dados = request.get_json()
+        
+        ano = dados.get('ano')
+        tipo = dados.get('tipo')  # 'receita' ou 'despesa'
+        moeda_filtro = dados.get('moeda', 'TODAS')
+        
+        if not ano or not tipo:
+            return jsonify({"success": False, "message": "Dados incompletos"}), 400
+        
+        import calendar
+        from datetime import datetime
+        
+        meses_nomes = {
+            1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril',
+            5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto',
+            9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
+        }
+        
+        meses_data = []
+        total_ano = 0
+        mes_anterior = 0
+        
+        for mes in range(1, 13):
+            data_inicio = f"{ano}-{mes:02d}-01"
+            ultimo_dia = calendar.monthrange(ano, mes)[1]
+            data_fim = f"{ano}-{mes:02d}-{ultimo_dia} 23:59:59"
+            
+            query = supabase.table('transferencias').select('*')\
+                .eq('tipo', tipo)\
+                .eq('status', 'completed')\
+                .gte('created_at', f"{data_inicio} 00:00:00")\
+                .lte('created_at', data_fim)
+            
+            response = query.execute()
+            
+            valor_mes = 0
+            for t in (response.data or []):
+                valor = float(t.get('valor', 0))
+                moeda = t.get('moeda', 'USD')
+                
+                if moeda_filtro != 'TODAS' and moeda != moeda_filtro:
+                    continue
+                
+                valor_mes += valor
+            
+            total_ano += valor_mes
+            
+            variacao = ((valor_mes - mes_anterior) / mes_anterior * 100) if mes_anterior > 0 else 0
+            
+            meses_data.append({
+                'mes': meses_nomes[mes],
+                'valor': valor_mes,
+                'variacao_mensal': variacao,
+                'acumulado': total_ano
+            })
+            
+            mes_anterior = valor_mes
+        
+        # Encontrar melhor e pior mês
+        melhor_mes = max(meses_data, key=lambda x: x['valor']) if meses_data else {'mes': '', 'valor': 0}
+        pior_mes = min(meses_data, key=lambda x: x['valor']) if meses_data else {'mes': '', 'valor': 0}
+        
+        moeda_padrao = moeda_filtro if moeda_filtro != 'TODAS' else 'USD'
+        
+        return jsonify({
+            "success": True,
+            "dados": {
+                "meses": meses_data,
+                "totais": {
+                    "total_ano": total_ano,
+                    "media_mensal": total_ano / 12 if meses_data else 0,
+                    "melhor_mes": {'mes': melhor_mes['mes'], 'valor': melhor_mes['valor']},
+                    "pior_mes": {'mes': pior_mes['mes'], 'valor': pior_mes['valor']}
+                },
+                "moeda_padrao": moeda_padrao
+            }
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao gerar evolução anual: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'

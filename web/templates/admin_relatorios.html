@@ -1,0 +1,1674 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏦 Cambio Bank - Relatórios Financeiros</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --cor-fundo: #0a0e15;
+            --cor-card: #0d1117;
+            --cor-borda: #1e232e;
+            --cor-texto: #e0e0e0;
+            --cor-texto-secundario: #8b949e;
+            --cor-primaria: #1a5fb4;
+            --cor-admin: #1a5fb4;
+            --cor-sucesso: #2ec27e;
+            --cor-alerta: #f39c12;
+            --cor-perigo: #e01b24;
+            --borda-radius: 12px;
+            --borda-radius-pequeno: 8px;
+        }
+
+        body {
+            background: var(--cor-fundo);
+            color: var(--cor-texto);
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* HEADER */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--cor-borda);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .logo i {
+            color: var(--cor-admin);
+            font-size: 28px;
+        }
+
+        .logo-text {
+            background: linear-gradient(90deg, var(--cor-admin), #2d8fff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .badge-admin {
+            background: var(--cor-admin);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .btn-voltar {
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            padding: 10px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-voltar:hover {
+            border-color: var(--cor-admin);
+            color: var(--cor-admin);
+            transform: translateY(-2px);
+        }
+
+        /* TABS */
+        .tabs-container {
+            margin-bottom: 30px;
+        }
+
+        .tabs-header {
+            display: flex;
+            gap: 5px;
+            border-bottom: 1px solid var(--cor-borda);
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--cor-texto-secundario);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .tab-btn:hover {
+            color: var(--cor-texto);
+            background: rgba(26, 95, 180, 0.1);
+        }
+
+        .tab-btn.active {
+            color: var(--cor-admin);
+            border-bottom: 2px solid var(--cor-admin);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* PAINEL DE CONTROLES */
+        .painel-controles {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .filtros-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--cor-texto-secundario);
+            text-transform: uppercase;
+        }
+
+        .form-group label i {
+            margin-right: 5px;
+            color: var(--cor-admin);
+        }
+
+        .form-control {
+            padding: 10px 12px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            color: var(--cor-texto);
+            font-size: 14px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--cor-admin);
+        }
+
+        .toggle-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 10px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            text-align: center;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-btn.active {
+            background: var(--cor-admin);
+            border-color: var(--cor-admin);
+            color: white;
+        }
+
+        .btn-gerar {
+            background: var(--cor-admin);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: var(--borda-radius-pequeno);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .btn-gerar:hover {
+            background: #2d8fff;
+            transform: translateY(-2px);
+        }
+
+        /* CARDS DE RESUMO */
+        .cards-resumo {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .card-resumo {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .card-resumo:hover {
+            transform: translateY(-3px);
+            border-color: var(--cor-admin);
+        }
+
+        .card-resumo .titulo {
+            font-size: 12px;
+            color: var(--cor-texto-secundario);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .card-resumo .valor {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--cor-primaria);
+        }
+
+        /* BREAKDOWN POR MOEDA */
+        .breakdown-moedas {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 15px;
+            margin-bottom: 25px;
+        }
+
+        .breakdown-titulo {
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--cor-admin);
+            margin-bottom: 15px;
+        }
+
+        .moedas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .moeda-card {
+            background: rgba(26, 95, 180, 0.1);
+            border: 1px solid var(--cor-admin);
+            border-radius: var(--borda-radius-pequeno);
+            padding: 12px;
+            text-align: center;
+        }
+
+        .moeda-sigla {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--cor-admin);
+        }
+
+        .moeda-valor {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--cor-texto);
+        }
+
+        .moeda-usd {
+            font-size: 11px;
+            color: var(--cor-texto-secundario);
+        }
+
+        /* SEÇÃO DE CATEGORIAS */
+        .secao-categorias {
+            margin-bottom: 25px;
+        }
+
+        .secao-titulo {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--cor-admin);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+
+        .categoria-card {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .categoria-header {
+            background: rgba(26, 95, 180, 0.1);
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .categoria-header:hover {
+            background: rgba(26, 95, 180, 0.15);
+        }
+
+        .categoria-nome {
+            font-size: 15px;
+            font-weight: bold;
+            color: var(--cor-admin);
+        }
+
+        .categoria-total {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--cor-texto);
+        }
+
+        .categoria-contas {
+            padding: 0 15px;
+        }
+
+        .conta-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+
+        .conta-item:last-child {
+            border-bottom: none;
+        }
+
+        .conta-nome {
+            font-size: 13px;
+            color: var(--cor-texto-secundario);
+        }
+
+        .conta-valor {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--cor-texto);
+        }
+
+        .conta-quantidade {
+            font-size: 11px;
+            color: var(--cor-texto-secundario);
+            margin-left: 10px;
+        }
+
+        /* TABELA DE TRANSAÇÕES */
+        .tabela-container {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            overflow-x: auto;
+        }
+
+        .tabela-transacoes {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .tabela-transacoes th,
+        .tabela-transacoes td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+
+        .tabela-transacoes th {
+            background: rgba(26, 95, 180, 0.1);
+            color: var(--cor-admin);
+            font-weight: 600;
+        }
+
+        .tabela-transacoes tr:hover {
+            background: rgba(26, 95, 180, 0.05);
+        }
+
+        .total-geral {
+            background: rgba(26, 95, 180, 0.15);
+            font-weight: bold;
+        }
+
+        /* GRÁFICO */
+        .grafico-container {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        canvas {
+            max-height: 300px;
+        }
+
+        /* BOTÕES DE EXPORTAÇÃO */
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: flex-end;
+        }
+
+        .btn-export {
+            background: var(--cor-sucesso);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-export:hover {
+            background: #239b56;
+            transform: translateY(-2px);
+        }
+
+        .btn-export-excel {
+            background: #217346;
+        }
+
+        .btn-export-excel:hover {
+            background: #1a5c38;
+        }
+
+        /* MODAL DE TAXAS */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            width: 90%;
+            max-width: 450px;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--cor-borda);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            color: var(--cor-admin);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--cor-texto-secundario);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid var(--cor-borda);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* LOADING */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--cor-texto-secundario);
+        }
+
+        .loading i {
+            font-size: 32px;
+            margin-bottom: 10px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* RESPONSIVIDADE */
+        @media (max-width: 768px) {
+            .cards-resumo {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .filtros-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .tabs-header {
+                flex-direction: column;
+            }
+            
+            .tab-btn {
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fas fa-university"></i>
+                <span class="logo-text">CAMBIO BANK</span>
+                <span class="badge-admin">ADMIN</span>
+            </div>
+            
+            <h1 class="page-title">RELATÓRIOS FINANCEIROS</h1>
+            
+            <button class="btn-voltar" onclick="window.location.href='/admin/dashboard'">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </button>
+        </header>
+
+        <!-- TABS -->
+        <div class="tabs-container">
+            <div class="tabs-header">
+                <button class="tab-btn active" data-tab="tab-mensal">📅 MENSAL</button>
+                <button class="tab-btn" data-tab="tab-comparativo">📊 COMPARATIVO</button>
+                <button class="tab-btn" data-tab="tab-anual">📈 ANUAL</button>
+            </div>
+
+            <!-- ============================================
+                 ABA 1: RELATÓRIO MENSAL
+                 ============================================ -->
+            <div id="tab-mensal" class="tab-content active">
+                <div class="painel-controles">
+                    <div class="filtros-grid">
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar"></i> MÊS</label>
+                            <select id="mensalMes" class="form-control"></select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar-alt"></i> ANO</label>
+                            <select id="mensalAno" class="form-control"></select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-chart-line"></i> TIPO</label>
+                            <div class="toggle-group">
+                                <button id="mensalTipoReceita" class="toggle-btn active" onclick="setTipoMensal('receita')">RECEITAS</button>
+                                <button id="mensalTipoDespesa" class="toggle-btn" onclick="setTipoMensal('despesa')">DESPESAS</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-dollar-sign"></i> MOEDA</label>
+                            <select id="mensalMoeda" class="form-control">
+                                <option value="TODAS">TODAS</option>
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                                <option value="GBP">GBP</option>
+                                <option value="BRL">BRL</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-tags"></i> CATEGORIA</label>
+                            <select id="mensalCategoria" class="form-control">
+                                <option value="TODAS">TODAS</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-receipt"></i> CONTA</label>
+                            <select id="mensalConta" class="form-control">
+                                <option value="TODAS">TODAS</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn-gerar" onclick="gerarRelatorioMensal()">
+                        <i class="fas fa-chart-bar"></i> GERAR RELATÓRIO
+                    </button>
+                </div>
+
+                <div id="mensalResultados">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Selecione os filtros e clique em GERAR RELATÓRIO</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 ABA 2: COMPARATIVO MENSAL
+                 ============================================ -->
+            <div id="tab-comparativo" class="tab-content">
+                <div class="painel-controles">
+                    <div class="filtros-grid">
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar"></i> PERÍODO 1 (MÊS)</label>
+                            <select id="compMes1" class="form-control"></select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar-alt"></i> PERÍODO 1 (ANO)</label>
+                            <select id="compAno1" class="form-control"></select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar"></i> PERÍODO 2 (MÊS)</label>
+                            <select id="compMes2" class="form-control"></select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar-alt"></i> PERÍODO 2 (ANO)</label>
+                            <select id="compAno2" class="form-control"></select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-chart-line"></i> TIPO</label>
+                            <div class="toggle-group">
+                                <button id="compTipoReceita" class="toggle-btn active" onclick="setTipoComparativo('receita')">RECEITAS</button>
+                                <button id="compTipoDespesa" class="toggle-btn" onclick="setTipoComparativo('despesa')">DESPESAS</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-dollar-sign"></i> MOEDA</label>
+                            <select id="compMoeda" class="form-control">
+                                <option value="TODAS">TODAS</option>
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                                <option value="GBP">GBP</option>
+                                <option value="BRL">BRL</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn-gerar" onclick="gerarRelatorioComparativo()">
+                        <i class="fas fa-chart-line"></i> GERAR COMPARATIVO
+                    </button>
+                </div>
+
+                <div id="comparativoResultados">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Selecione os filtros e clique em GERAR COMPARATIVO</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 ABA 3: EVOLUÇÃO ANUAL
+                 ============================================ -->
+            <div id="tab-anual" class="tab-content">
+                <div class="painel-controles">
+                    <div class="filtros-grid">
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar-alt"></i> ANO</label>
+                            <select id="anualAno" class="form-control"></select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-chart-line"></i> TIPO</label>
+                            <div class="toggle-group">
+                                <button id="anualTipoReceita" class="toggle-btn active" onclick="setTipoAnual('receita')">RECEITAS</button>
+                                <button id="anualTipoDespesa" class="toggle-btn" onclick="setTipoAnual('despesa')">DESPESAS</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-dollar-sign"></i> MOEDA</label>
+                            <select id="anualMoeda" class="form-control">
+                                <option value="TODAS">TODAS</option>
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                                <option value="GBP">GBP</option>
+                                <option value="BRL">BRL</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn-gerar" onclick="gerarRelatorioAnual()">
+                        <i class="fas fa-chart-line"></i> GERAR EVOLUÇÃO
+                    </button>
+                </div>
+
+                <div id="anualResultados">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Selecione os filtros e clique em GERAR EVOLUÇÃO</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE TAXAS DE CÂMBIO -->
+    <div id="modalTaxas" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-exchange-alt"></i> Taxas de Câmbio (USD Base)</h3>
+                <button class="modal-close" onclick="fecharModalTaxas()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 15px; font-size: 13px; color: var(--cor-texto-secundario);">
+                    Informe a cotação de cada moeda em relação ao USD:
+                </p>
+                <div id="taxasInputs" style="display: flex; flex-direction: column; gap: 15px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-gerar" style="background: var(--cor-perigo);" onclick="fecharModalTaxas()">Cancelar</button>
+                <button class="btn-gerar" onclick="confirmarTaxas()">Confirmar Taxas</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // VARIÁVEIS GLOBAIS
+        // ============================================
+        let tipoMensalAtual = 'receita';
+        let tipoComparativoAtual = 'receita';
+        let tipoAnualAtual = 'receita';
+        
+        let dadosMensal = null;
+        let dadosComparativo = null;
+        let dadosAnual = null;
+        
+        let graficoMensal = null;
+        let graficoAnual = null;
+        
+        let taxasCallback = null;
+        let taxasPendentes = null;
+
+        // Meses
+        const meses = {
+            1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril',
+            5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto',
+            9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
+        };
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Tela de Relatórios carregada');
+            
+            // Configurar TABS
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.getElementById(btn.dataset.tab).classList.add('active');
+                });
+            });
+            
+            // Carregar anos e meses
+            carregarAnosEMeses();
+            
+            // Carregar categorias
+            carregarCategorias();
+        });
+
+        // ============================================
+        // CARREGAR DADOS AUXILIARES
+        // ============================================
+        function carregarAnosEMeses() {
+            const anoAtual = new Date().getFullYear();
+            const anos = [];
+            for (let i = anoAtual - 5; i <= anoAtual + 1; i++) {
+                anos.push(i);
+            }
+            
+            // Preencher selects de ano
+            const selectsAno = ['mensalAno', 'compAno1', 'compAno2', 'anualAno'];
+            selectsAno.forEach(id => {
+                const select = document.getElementById(id);
+                if (select) {
+                    select.innerHTML = anos.map(a => `<option value="${a}" ${a === anoAtual ? 'selected' : ''}>${a}</option>`).join('');
+                }
+            });
+            
+            // Preencher selects de mês
+            const selectsMes = ['mensalMes', 'compMes1', 'compMes2'];
+            const mesAtual = new Date().getMonth() + 1;
+            selectsMes.forEach(id => {
+                const select = document.getElementById(id);
+                if (select) {
+                    select.innerHTML = Object.entries(meses).map(([num, nome]) => 
+                        `<option value="${num}" ${parseInt(num) === mesAtual ? 'selected' : ''}>${nome}</option>`
+                    ).join('');
+                }
+            });
+        }
+
+        async function carregarCategorias() {
+            try {
+                const response = await fetch('/api/admin/relatorios/categorias');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const selectCategoria = document.getElementById('mensalCategoria');
+                    if (selectCategoria) {
+                        selectCategoria.innerHTML = '<option value="TODAS">TODAS</option>';
+                        data.categorias.forEach(cat => {
+                            const option = document.createElement('option');
+                            option.value = cat;
+                            option.textContent = cat;
+                            selectCategoria.appendChild(option);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao carregar categorias:', error);
+            }
+        }
+
+        // ============================================
+        // FUNÇÕES DE TIPO (Mensal)
+        // ============================================
+        function setTipoMensal(tipo) {
+            tipoMensalAtual = tipo;
+            
+            const btnReceita = document.getElementById('mensalTipoReceita');
+            const btnDespesa = document.getElementById('mensalTipoDespesa');
+            
+            if (tipo === 'receita') {
+                btnReceita.classList.add('active');
+                btnDespesa.classList.remove('active');
+            } else {
+                btnReceita.classList.remove('active');
+                btnDespesa.classList.add('active');
+            }
+        }
+
+        function setTipoComparativo(tipo) {
+            tipoComparativoAtual = tipo;
+            
+            const btnReceita = document.getElementById('compTipoReceita');
+            const btnDespesa = document.getElementById('compTipoDespesa');
+            
+            if (tipo === 'receita') {
+                btnReceita.classList.add('active');
+                btnDespesa.classList.remove('active');
+            } else {
+                btnReceita.classList.remove('active');
+                btnDespesa.classList.add('active');
+            }
+        }
+
+        function setTipoAnual(tipo) {
+            tipoAnualAtual = tipo;
+            
+            const btnReceita = document.getElementById('anualTipoReceita');
+            const btnDespesa = document.getElementById('anualTipoDespesa');
+            
+            if (tipo === 'receita') {
+                btnReceita.classList.add('active');
+                btnDespesa.classList.remove('active');
+            } else {
+                btnReceita.classList.remove('active');
+                btnDespesa.classList.add('active');
+            }
+        }
+
+        // ============================================
+        // ABA 1: RELATÓRIO MENSAL
+        // ============================================
+        async function gerarRelatorioMensal() {
+            const mes = document.getElementById('mensalMes').value;
+            const ano = document.getElementById('mensalAno').value;
+            const moeda = document.getElementById('mensalMoeda').value;
+            const categoria = document.getElementById('mensalCategoria').value;
+            const conta = document.getElementById('mensalConta').value;
+            
+            const resultadosDiv = document.getElementById('mensalResultados');
+            resultadosDiv.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><p>Carregando relatório...</p></div>';
+            
+            try {
+                const response = await fetch('/api/admin/relatorios/mensal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ano: parseInt(ano),
+                        mes: parseInt(mes),
+                        tipo: tipoMensalAtual,
+                        moeda: moeda,
+                        categoria: categoria === 'TODAS' ? null : categoria,
+                        conta: conta === 'TODAS' ? null : conta
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    dadosMensal = data.dados;
+                    
+                    // Se moeda for TODAS e tiver múltiplas moedas, abrir popup de taxas
+                    if (moeda === 'TODAS' && dadosMensal.total_por_moeda && Object.keys(dadosMensal.total_por_moeda).length > 1) {
+                        taxasPendentes = dadosMensal;
+                        abrirModalTaxas((taxas) => {
+                            exibirRelatorioMensal(dadosMensal, taxas);
+                        });
+                    } else {
+                        exibirRelatorioMensal(dadosMensal, null);
+                    }
+                } else {
+                    resultadosDiv.innerHTML = `<div class="loading"><p>❌ ${data.message}</p></div>`;
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                resultadosDiv.innerHTML = '<div class="loading"><p>❌ Erro ao carregar relatório</p></div>';
+            }
+        }
+
+        function exibirRelatorioMensal(dados, taxas) {
+            const resultadosDiv = document.getElementById('mensalResultados');
+            
+            const totalGeral = dados.total_geral || 0;
+            const quantidade = dados.quantidade_transacoes || 0;
+            const media = quantidade > 0 ? totalGeral / quantidade : 0;
+            const moedaPadrao = dados.moeda_padrao || 'USD';
+            
+            let totalUsd = totalGeral;
+            if (taxas && dados.total_por_moeda) {
+                totalUsd = 0;
+                for (const [moeda, valor] of Object.entries(dados.total_por_moeda)) {
+                    if (moeda === 'USD') {
+                        totalUsd += valor;
+                    } else {
+                        const taxa = taxas[moeda] || 1;
+                        totalUsd += valor / taxa;
+                    }
+                }
+            }
+            
+            let html = `
+                <div class="cards-resumo">
+                    <div class="card-resumo">
+                        <div class="titulo"><i class="fas fa-chart-line"></i> TOTAL</div>
+                        <div class="valor">${formatarValor(totalGeral, moedaPadrao)}</div>
+                    </div>
+                    <div class="card-resumo">
+                        <div class="titulo"><i class="fas fa-exchange-alt"></i> TRANSAÇÕES</div>
+                        <div class="valor">${quantidade}</div>
+                    </div>
+                    <div class="card-resumo">
+                        <div class="titulo"><i class="fas fa-calculator"></i> MÉDIA</div>
+                        <div class="valor">${formatarValor(media, moedaPadrao)}</div>
+                    </div>
+                    <div class="card-resumo">
+                        <div class="titulo"><i class="fas fa-dollar-sign"></i> TOTAL (USD)</div>
+                        <div class="valor">${formatarValor(totalUsd, 'USD')}</div>
+                    </div>
+                </div>
+            `;
+            
+            // Breakdown por moeda
+            if (dados.total_por_moeda && Object.keys(dados.total_por_moeda).length > 0) {
+                html += `
+                    <div class="breakdown-moedas">
+                        <div class="breakdown-titulo"><i class="fas fa-coins"></i> DETALHAMENTO POR MOEDA</div>
+                        <div class="moedas-grid">
+                `;
+                
+                for (const [moeda, valor] of Object.entries(dados.total_por_moeda)) {
+                    let valorUsd = '';
+                    if (taxas && moeda !== 'USD') {
+                        const taxa = taxas[moeda] || 1;
+                        const valorEmUsd = valor / taxa;
+                        valorUsd = `<div class="moeda-usd">≈ ${formatarValor(valorEmUsd, 'USD')}</div>`;
+                    } else if (moeda === 'USD') {
+                        valorUsd = `<div class="moeda-usd">(base)</div>`;
+                    }
+                    
+                    html += `
+                        <div class="moeda-card">
+                            <div class="moeda-sigla">${moeda}</div>
+                            <div class="moeda-valor">${formatarValor(valor, moeda)}</div>
+                            ${valorUsd}
+                        </div>
+                    `;
+                }
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Categorias
+            if (dados.categorias && Object.keys(dados.categorias).length > 0) {
+                html += `
+                    <div class="secao-categorias">
+                        <div class="secao-titulo"><i class="fas fa-folder-open"></i> DETALHAMENTO POR CATEGORIA</div>
+                `;
+                
+                for (const [categoria, catDados] of Object.entries(dados.categorias)) {
+                    const totalCat = catDados.total || 0;
+                    const contas = catDados.contas || {};
+                    
+                    html += `
+                        <div class="categoria-card">
+                            <div class="categoria-header" onclick="toggleCategoria(this)">
+                                <span class="categoria-nome"><i class="fas fa-folder"></i> ${escapeHtml(categoria)}</span>
+                                <span class="categoria-total">${formatarValor(totalCat, moedaPadrao)}</span>
+                            </div>
+                            <div class="categoria-contas" style="display: none;">
+                    `;
+                    
+                    for (const [conta, contaDados] of Object.entries(contas)) {
+                        const totalConta = contaDados.total || 0;
+                        const qtd = contaDados.quantidade || 0;
+                        html += `
+                            <div class="conta-item">
+                                <span class="conta-nome">📄 ${escapeHtml(conta)}</span>
+                                <span class="conta-valor">${formatarValor(totalConta, moedaPadrao)} <span class="conta-quantidade">(${qtd} tx)</span></span>
+                            </div>
+                        `;
+                    }
+                    
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                html += `</div>`;
+            }
+            
+            // Lista de transações
+            if (dados.transacoes && dados.transacoes.length > 0) {
+                html += `
+                    <div class="secao-categorias">
+                        <div class="secao-titulo"><i class="fas fa-list"></i> LISTA DE TRANSAÇÕES</div>
+                        <div class="tabela-container">
+                            <table class="tabela-transacoes">
+                                <thead>
+                                    <tr>
+                                        <th>Data</th>
+                                        <th>Descrição</th>
+                                        <th>Categoria</th>
+                                        <th>Conta</th>
+                                        <th>Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+                
+                for (const trans of dados.transacoes) {
+                    html += `
+                        <tr>
+                            <td>${formatarData(trans.data)}</td>
+                            <td>${escapeHtml(trans.descricao || '-')}</td>
+                            <td>${escapeHtml(trans.categoria || '-')}</td>
+                            <td>${escapeHtml(trans.conta_especifica || '-')}</td>
+                            <td>${formatarValor(trans.valor, trans.moeda || moedaPadrao)}</td>
+                        </tr>
+                    `;
+                }
+                
+                html += `
+                                    <tr class="total-geral">
+                                        <td colspan="4"><strong>TOTAL GERAL</strong></td>
+                                        <td><strong>${formatarValor(totalGeral, moedaPadrao)}</strong></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Botões de exportação
+            html += `
+                <div class="export-buttons">
+                    <button class="btn-export" onclick="exportarPDFMensal()">
+                        <i class="fas fa-file-pdf"></i> Exportar PDF
+                    </button>
+                    <button class="btn-export btn-export-excel" onclick="exportarExcelMensal()">
+                        <i class="fas fa-file-excel"></i> Exportar Excel
+                    </button>
+                </div>
+            `;
+            
+            resultadosDiv.innerHTML = html;
+        }
+
+        // ============================================
+        // ABA 2: COMPARATIVO MENSAL
+        // ============================================
+        async function gerarRelatorioComparativo() {
+            const mes1 = document.getElementById('compMes1').value;
+            const ano1 = document.getElementById('compAno1').value;
+            const mes2 = document.getElementById('compMes2').value;
+            const ano2 = document.getElementById('compAno2').value;
+            const moeda = document.getElementById('compMoeda').value;
+            
+            const resultadosDiv = document.getElementById('comparativoResultados');
+            resultadosDiv.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><p>Carregando comparativo...</p></div>';
+            
+            try {
+                const response = await fetch('/api/admin/relatorios/comparativo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ano_ref: parseInt(ano1),
+                        mes_ref: parseInt(mes1),
+                        ano_comp: parseInt(ano2),
+                        mes_comp: parseInt(mes2),
+                        tipo: tipoComparativoAtual,
+                        moeda: moeda
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    dadosComparativo = data.dados;
+                    exibirRelatorioComparativo(dadosComparativo, mes1, ano1, mes2, ano2, moeda);
+                } else {
+                    resultadosDiv.innerHTML = `<div class="loading"><p>❌ ${data.message}</p></div>`;
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                resultadosDiv.innerHTML = '<div class="loading"><p>❌ Erro ao carregar comparativo</p></div>';
+            }
+        }
+
+        function exibirRelatorioComparativo(dados, mes1, ano1, mes2, ano2, moeda) {
+            const resultadosDiv = document.getElementById('comparativoResultados');
+            const totais = dados.totais || {};
+            
+            const valorRef = totais.referencia || 0;
+            const valorComp = totais.comparacao || 0;
+            const variacao = totais.variacao || 0;
+            const variacaoPercentual = totais.variacao_percentual || 0;
+            
+            const sinalVariacao = variacao > 0 ? '+' : variacao < 0 ? '-' : '=';
+            const corVariacao = variacao > 0 ? 'var(--cor-sucesso)' : variacao < 0 ? 'var(--cor-perigo)' : 'var(--cor-texto-secundario)';
+            
+            let html = `
+                <div class="cards-resumo">
+                    <div class="card-resumo">
+                        <div class="titulo">${meses[mes1]}/${ano1}</div>
+                        <div class="valor">${formatarValor(valorRef, moeda)}</div>
+                    </div>
+                    <div class="card-resumo">
+                        <div class="titulo">${meses[mes2]}/${ano2}</div>
+                        <div class="valor">${formatarValor(valorComp, moeda)}</div>
+                    </div>
+                    <div class="card-resumo">
+                        <div class="titulo">VARIAÇÃO</div>
+                        <div class="valor" style="color: ${corVariacao}">${sinalVariacao} ${formatarValor(Math.abs(variacao), moeda)}</div>
+                    </div>
+                    <div class="card-resumo">
+                        <div class="titulo">VARIAÇÃO %</div>
+                        <div class="valor" style="color: ${corVariacao}">${sinalVariacao} ${Math.abs(variacaoPercentual).toFixed(1)}%</div>
+                    </div>
+                </div>
+            `;
+            
+            // Comparativo por categoria
+            if (dados.categorias && Object.keys(dados.categorias).length > 0) {
+                html += `
+                    <div class="secao-categorias">
+                        <div class="secao-titulo"><i class="fas fa-chart-line"></i> COMPARATIVO POR CATEGORIA</div>
+                        <div class="tabela-container">
+                            <table class="tabela-transacoes">
+                                <thead>
+                                    <tr>
+                                        <th>Categoria</th>
+                                        <th>${meses[mes1]}/${ano1}</th>
+                                        <th>${meses[mes2]}/${ano2}</th>
+                                        <th>Variação</th>
+                                        <th>%</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+                
+                for (const [categoria, catDados] of Object.entries(dados.categorias)) {
+                    const valRef = catDados.total_ref || 0;
+                    const valComp = catDados.total_comp || 0;
+                    const varValor = catDados.variacao || 0;
+                    const varPercentual = catDados.variacao_percentual || 0;
+                    const sinal = varValor > 0 ? '+' : varValor < 0 ? '-' : '=';
+                    const cor = varValor > 0 ? 'var(--cor-sucesso)' : varValor < 0 ? 'var(--cor-perigo)' : 'var(--cor-texto-secundario)';
+                    
+                    html += `
+                        <tr>
+                            <td><strong>${escapeHtml(categoria)}</strong></td>
+                            <td>${formatarValor(valRef, moeda)}</td>
+                            <td>${formatarValor(valComp, moeda)}</td>
+                            <td style="color: ${cor}">${sinal} ${formatarValor(Math.abs(varValor), moeda)}</td>
+                            <td style="color: ${cor}">${sinal} ${Math.abs(varPercentual).toFixed(1)}%</td>
+                        </tr>
+                    `;
+                    
+                    // Subcontas
+                    if (catDados.contas) {
+                        for (const [conta, contaDados] of Object.entries(catDados.contas)) {
+                            const valRefConta = contaDados.valor_ref || 0;
+                            const valCompConta = contaDados.valor_comp || 0;
+                            const varConta = contaDados.variacao || 0;
+                            const sinalConta = varConta > 0 ? '+' : varConta < 0 ? '-' : '=';
+                            const corConta = varConta > 0 ? 'var(--cor-sucesso)' : varConta < 0 ? 'var(--cor-perigo)' : 'var(--cor-texto-secundario)';
+                            
+                            html += `
+                                <tr>
+                                    <td style="padding-left: 20px;">└ ${escapeHtml(conta)}</td>
+                                    <td>${formatarValor(valRefConta, moeda)}</td>
+                                    <td>${formatarValor(valCompConta, moeda)}</td>
+                                    <td style="color: ${corConta}">${sinalConta} ${formatarValor(Math.abs(varConta), moeda)}</td>
+                                    <td></td>
+                                </tr>
+                            `;
+                        }
+                    }
+                }
+                
+                html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Botões de exportação
+            html += `
+                <div class="export-buttons">
+                    <button class="btn-export" onclick="exportarPDFComparativo()">
+                        <i class="fas fa-file-pdf"></i> Exportar PDF
+                    </button>
+                    <button class="btn-export btn-export-excel" onclick="exportarExcelComparativo()">
+                        <i class="fas fa-file-excel"></i> Exportar Excel
+                    </button>
+                </div>
+            `;
+            
+            resultadosDiv.innerHTML = html;
+        }
+
+        // ============================================
+        // ABA 3: EVOLUÇÃO ANUAL
+        // ============================================
+        async function gerarRelatorioAnual() {
+            const ano = document.getElementById('anualAno').value;
+            const moeda = document.getElementById('anualMoeda').value;
+            
+            const resultadosDiv = document.getElementById('anualResultados');
+            resultadosDiv.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><p>Carregando evolução anual...</p></div>';
+            
+            try {
+                const response = await fetch('/api/admin/relatorios/anual', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ano: parseInt(ano),
+                        tipo: tipoAnualAtual,
+                        moeda: moeda
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    dadosAnual = data.dados;
+                    exibirRelatorioAnual(dadosAnual, ano, moeda);
+                } else {
+                    resultadosDiv.innerHTML = `<div class="loading"><p>❌ ${data.message}</p></div>`;
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                resultadosDiv.innerHTML = '<div class="loading"><p>❌ Erro ao carregar evolução anual</p></div>';
+            }
+        }
+
+        function exibirRelatorioAnual(dados, ano, moeda) {
+            const resultadosDiv = document.getElementById('anualResultados');
+            const totais = dados.totais || {};
+            const mesesData = dados.meses || [];
+            
+            const totalAno = totais.total_ano || 0;
+            const mediaMensal = totais.media_mensal || 0;
+            const melhorMes = totais.melhor_mes || {};
+            const piorMes = totais.pior_mes || {};
+            
+            let html = `
+                <div class="cards-resumo">
+                    <div class="card-resumo">
+                        <div class="titulo">TOTAL ANO</div>
+                        <div class="valor">${formatarValor(totalAno, moeda)}</div>
+                    </div>
+                    <div class="card-resumo">
+                        <div class="titulo">MÉDIA MENSAL</div>
+                        <div class="valor">${formatarValor(mediaMensal, moeda)}</div>
+                    </div>
+                    <div class="card-resumo">
+                        <div class="titulo">MELHOR MÊS</div>
+                        <div class="valor">${melhorMes.mes || '-'}<br><small>${formatarValor(melhorMes.valor || 0, moeda)}</small></div>
+                    </div>
+                    <div class="card-resumo">
+                        <div class="titulo">PIOR MÊS</div>
+                        <div class="valor">${piorMes.mes || '-'}<br><small>${formatarValor(piorMes.valor || 0, moeda)}</small></div>
+                    </div>
+                </div>
+            `;
+            
+            // Gráfico
+            if (mesesData.length > 0) {
+                html += `
+                    <div class="grafico-container">
+                        <canvas id="graficoAnual"></canvas>
+                    </div>
+                `;
+            }
+            
+            // Tabela de evolução mensal
+            html += `
+                <div class="secao-categorias">
+                    <div class="secao-titulo"><i class="fas fa-chart-line"></i> EVOLUÇÃO MENSAL</div>
+                    <div class="tabela-container">
+                        <table class="tabela-transacoes">
+                            <thead>
+                                <tr>
+                                    <th>Mês</th>
+                                    <th>Valor</th>
+                                    <th>Variação Mensal</th>
+                                    <th>Acumulado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+            
+            let acumulado = 0;
+            for (const mes of mesesData) {
+                acumulado += mes.valor || 0;
+                const variacao = mes.variacao_mensal || 0;
+                const sinal = variacao > 0 ? '+' : variacao < 0 ? '-' : '=';
+                const cor = variacao > 0 ? 'var(--cor-sucesso)' : variacao < 0 ? 'var(--cor-perigo)' : 'var(--cor-texto-secundario)';
+                
+                html += `
+                    <tr>
+                        <td><strong>${mes.mes}</strong></td>
+                        <td>${formatarValor(mes.valor, moeda)}</td>
+                        <td style="color: ${cor}">${sinal} ${Math.abs(variacao).toFixed(1)}%</td>
+                        <td>${formatarValor(acumulado, moeda)}</td>
+                    </tr>
+                `;
+            }
+            
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            // Barra de distribuição
+            if (mesesData.length > 0) {
+                const maxValor = Math.max(...mesesData.map(m => m.valor || 0));
+                html += `
+                    <div class="secao-categorias">
+                        <div class="secao-titulo"><i class="fas fa-chart-bar"></i> DISTRIBUIÇÃO MENSAL</div>
+                        <div class="breakdown-moedas">
+                `;
+                
+                for (const mes of mesesData) {
+                    const percentual = maxValor > 0 ? ((mes.valor || 0) / maxValor * 100) : 0;
+                    html += `
+                        <div style="margin-bottom: 10px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                <span>${mes.mes}</span>
+                                <span>${formatarValor(mes.valor, moeda)} (${percentual.toFixed(0)}%)</span>
+                            </div>
+                            <div style="background: var(--cor-borda); border-radius: 10px; overflow: hidden;">
+                                <div style="width: ${percentual}%; background: var(--cor-admin); height: 20px; border-radius: 10px;"></div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Botões de exportação
+            html += `
+                <div class="export-buttons">
+                    <button class="btn-export" onclick="exportarPDFAnual()">
+                        <i class="fas fa-file-pdf"></i> Exportar PDF
+                    </button>
+                    <button class="btn-export btn-export-excel" onclick="exportarExcelAnual()">
+                        <i class="fas fa-file-excel"></i> Exportar Excel
+                    </button>
+                </div>
+            `;
+            
+            resultadosDiv.innerHTML = html;
+            
+            // Criar gráfico
+            if (mesesData.length > 0) {
+                const ctx = document.getElementById('graficoAnual').getContext('2d');
+                if (graficoAnual) graficoAnual.destroy();
+                
+                graficoAnual = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: mesesData.map(m => m.mes.substring(0, 3)),
+                        datasets: [{
+                            label: tipoAnualAtual === 'receita' ? 'Receitas' : 'Despesas',
+                            data: mesesData.map(m => m.valor || 0),
+                            borderColor: '#1a5fb4',
+                            backgroundColor: 'rgba(26, 95, 180, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: { labels: { color: '#e0e0e0' } },
+                            tooltip: { callbacks: { label: (ctx) => `${formatarValor(ctx.raw, moeda)}` } }
+                        },
+                        scales: {
+                            y: { grid: { color: '#1e232e' }, ticks: { color: '#e0e0e0' } },
+                            x: { grid: { color: '#1e232e' }, ticks: { color: '#e0e0e0' } }
+                        }
+                    }
+                });
+            }
+        }
+
+        // ============================================
+        // MODAL DE TAXAS
+        // ============================================
+        function abrirModalTaxas(callback) {
+            taxasCallback = callback;
+            const moedas = ['EUR', 'GBP', 'BRL'];
+            
+            const container = document.getElementById('taxasInputs');
+            container.innerHTML = '';
+            
+            for (const moeda of moedas) {
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <label style="font-size: 13px; color: var(--cor-texto-secundario);">1 USD = ? ${moeda}</label>
+                    <input type="number" id="taxa_${moeda}" class="form-control" step="0.0001" value="${moeda === 'EUR' ? '0.92' : moeda === 'GBP' ? '0.79' : '5.20'}" style="margin-top: 5px;">
+                `;
+                container.appendChild(div);
+            }
+            
+            document.getElementById('modalTaxas').classList.add('active');
+        }
+
+        function fecharModalTaxas() {
+            document.getElementById('modalTaxas').classList.remove('active');
+            taxasCallback = null;
+        }
+
+        function confirmarTaxas() {
+            const taxas = {};
+            const moedas = ['EUR', 'GBP', 'BRL'];
+            
+            for (const moeda of moedas) {
+                const input = document.getElementById(`taxa_${moeda}`);
+                if (input) {
+                    taxas[moeda] = parseFloat(input.value);
+                }
+            }
+            
+            fecharModalTaxas();
+            if (taxasCallback) {
+                taxasCallback(taxas);
+                taxasCallback = null;
+            }
+        }
+
+        // ============================================
+        // EXPORTAÇÕES
+        // ============================================
+        function exportarPDFMensal() {
+            if (!dadosMensal) {
+                alert('Gere um relatório mensal primeiro!');
+                return;
+            }
+            alert('Exportação para PDF será implementada em breve!');
+        }
+
+        function exportarExcelMensal() {
+            if (!dadosMensal) {
+                alert('Gere um relatório mensal primeiro!');
+                return;
+            }
+            
+            const dados = [];
+            dados.push(['Data', 'Descrição', 'Categoria', 'Conta', 'Valor', 'Moeda']);
+            
+            for (const trans of dadosMensal.transacoes || []) {
+                dados.push([
+                    formatarData(trans.data),
+                    trans.descricao || '-',
+                    trans.categoria || '-',
+                    trans.conta_especifica || '-',
+                    trans.valor,
+                    trans.moeda
+                ]);
+            }
+            
+            const ws = XLSX.utils.aoa_to_sheet(dados);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Relatorio Mensal');
+            XLSX.writeFile(wb, `relatorio_mensal_${new Date().toISOString().slice(0, 19)}.xlsx`);
+        }
+
+        function exportarPDFComparativo() {
+            if (!dadosComparativo) {
+                alert('Gere um comparativo primeiro!');
+                return;
+            }
+            alert('Exportação para PDF será implementada em breve!');
+        }
+
+        function exportarExcelComparativo() {
+            if (!dadosComparativo) {
+                alert('Gere um comparativo primeiro!');
+                return;
+            }
+            alert('Exportação para Excel do comparativo será implementada em breve!');
+        }
+
+        function exportarPDFAnual() {
+            if (!dadosAnual) {
+                alert('Gere uma evolução anual primeiro!');
+                return;
+            }
+            alert('Exportação para PDF será implementada em breve!');
+        }
+
+        function exportarExcelAnual() {
+            if (!dadosAnual) {
+                alert('Gere uma evolução anual primeiro!');
+                return;
+            }
+            
+            const dados = [];
+            dados.push(['Mês', 'Valor', 'Variação Mensal', 'Acumulado']);
+            
+            let acumulado = 0;
+            for (const mes of dadosAnual.meses || []) {
+                acumulado += mes.valor || 0;
+                dados.push([
+                    mes.mes,
+                    mes.valor,
+                    `${mes.variacao_mensal > 0 ? '+' : ''}${mes.variacao_mensal.toFixed(1)}%`,
+                    acumulado
+                ]);
+            }
+            
+            const ws = XLSX.utils.aoa_to_sheet(dados);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Evolucao Anual');
+            XLSX.writeFile(wb, `evolucao_anual_${new Date().toISOString().slice(0, 19)}.xlsx`);
+        }
+
+        // ============================================
+        // FUNÇÕES AUXILIARES
+        // ============================================
+        function toggleCategoria(element) {
+            const contasDiv = element.nextElementSibling;
+            if (contasDiv) {
+                const isVisible = contasDiv.style.display !== 'none';
+                contasDiv.style.display = isVisible ? 'none' : 'block';
+            }
+        }
+
+        function formatarValor(valor, moeda) {
+            if (valor === undefined || valor === null) valor = 0;
+            const valorFormatado = valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            
+            const simbolos = { USD: '$', EUR: '€', GBP: '£', BRL: 'R$' };
+            const simbolo = simbolos[moeda] || moeda;
+            
+            if (moeda === 'BRL') return `${simbolo} ${valorFormatado}`;
+            return `${simbolo}${valorFormatado}`;
+        }
+
+        function formatarData(dataStr) {
+            if (!dataStr) return '';
+            try {
+                if (dataStr.includes('T')) {
+                    const data = new Date(dataStr);
+                    return data.toLocaleDateString('pt-BR');
+                }
+                return dataStr.split(' ')[0].split('-').reverse().join('/');
+            } catch {
+                return dataStr;
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
