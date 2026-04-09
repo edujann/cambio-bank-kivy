@@ -8978,7 +8978,7 @@ def api_admin_gerenciar_extrato():
 
 @app.route('/api/admin/gerenciar-contas/despesa', methods=['POST'])
 def api_admin_gerenciar_despesa():
-    """Lança uma despesa na conta bancária da empresa"""
+    """Lança uma despesa na conta bancária da empresa (permite saldo negativo)"""
     try:
         usuario = session.get('username')
         
@@ -9023,10 +9023,14 @@ def api_admin_gerenciar_despesa():
         saldo_atual = float(conta_response.data['saldo'])
         moeda = conta_response.data['moeda']
         
-        if saldo_atual < valor:
-            return jsonify({"success": False, "message": f"Saldo insuficiente! Disponível: {saldo_atual:.2f} {moeda}"}), 400
+        # 🔥 REMOVIDA A VERIFICAÇÃO DE SALDO
+        # Agora permite saldo negativo sem restrições
         
         novo_saldo = saldo_atual - valor
+        
+        # Mostrar aviso se ficar negativo (apenas para informação)
+        if novo_saldo < 0:
+            print(f"⚠️ AVISO: Conta bancária ficará negativa: {saldo_atual:.2f} → {novo_saldo:.2f} {moeda}")
         
         # Atualizar saldo
         supabase.table('contas_bancarias_empresa')\
@@ -9046,10 +9050,9 @@ def api_admin_gerenciar_despesa():
                 break
             transacao_id = str(random.randint(100000, 999999))
         
-        # 🔥 CORREÇÃO: Formatar conta_destinatario no padrão "DESPESA_CATEGORIA_Nome da Conta"
+        # Formatar conta_destinatario no padrão "DESPESA_CATEGORIA_Nome da Conta"
         conta_destinatario_formatada = f"DESPESA_{categoria}_{conta_despesa}"
         
-        # 🔥 CORREÇÃO: Usar estrutura EXATAMENTE como no exemplo
         transacao_data = {
             'id': transacao_id,
             'tipo': 'despesa',
@@ -9058,8 +9061,8 @@ def api_admin_gerenciar_despesa():
             'moeda': moeda,
             'valor': valor,
             'conta_remetente': conta_bancaria,
-            'conta_destinatario': conta_destinatario_formatada,  # 🔥 FORMATO ESPECIAL
-            'descricao': None,  # 🔥 Deixar null, usar descricao_despesa
+            'conta_destinatario': conta_destinatario_formatada,
+            'descricao': None,
             'usuario': usuario,
             'categoria_despesa': categoria,
             'descricao_despesa': descricao,
@@ -9073,12 +9076,14 @@ def api_admin_gerenciar_despesa():
             return jsonify({"success": False, "message": "Erro ao registrar despesa"}), 500
         
         print(f"📉 Despesa lançada: {valor:.2f} {moeda} - {descricao}")
+        print(f"   Conta: {conta_bancaria} | Saldo: {saldo_atual:.2f} → {novo_saldo:.2f} {moeda}")
         print(f"   Conta destino formatada: {conta_destinatario_formatada}")
         
         return jsonify({
             "success": True,
             "message": f"Despesa lançada com sucesso!",
-            "transacao_id": transacao_id
+            "transacao_id": transacao_id,
+            "novo_saldo": novo_saldo
         })
         
     except Exception as e:
