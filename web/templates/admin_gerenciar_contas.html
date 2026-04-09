@@ -1957,8 +1957,17 @@
                 
                 if (data.success) {
                     alert(`✅ Transferência realizada com sucesso!`);
+                    
+                    // 🔥 Recarregar os selects para atualizar os saldos
+                    await carregarContasEmpresa();
+                    await carregarClientes();
+                    
+                    // Limpar campos
                     document.getElementById('transferenciaValor').value = '';
                     document.getElementById('transferenciaDescricao').value = '';
+                    
+                    // Recarregar os selects dinâmicos
+                    atualizarCamposTransferencia();
                 } else {
                     alert('❌ ' + data.message);
                 }

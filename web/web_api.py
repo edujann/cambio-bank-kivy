@@ -9255,6 +9255,7 @@ def api_admin_gerenciar_transferencia():
         print(f"🔄 Transferência do tipo: {tipo_transferencia}")
         print(f"   Origem: {conta_origem} ({tipo_origem})")
         print(f"   Destino: {conta_destino} ({tipo_destino})")
+        print(f"   Valor: {valor}")
         
         # ============================================
         # PROCESSAR CONTA ORIGEM
@@ -9276,6 +9277,7 @@ def api_admin_gerenciar_transferencia():
             if saldo_origem < valor:
                 return jsonify({"success": False, "message": f"Saldo insuficiente na conta origem"}), 400
             
+            # 🔥 EMPRESA ORIGEM SEMPRE DIMINUI
             novo_saldo_origem = saldo_origem - valor
             
             supabase.table('contas_bancarias_empresa')\
@@ -9300,7 +9302,15 @@ def api_admin_gerenciar_transferencia():
             if saldo_origem < valor:
                 return jsonify({"success": False, "message": f"Saldo insuficiente na conta origem"}), 400
             
-            novo_saldo_origem = saldo_origem - valor
+            # 🔥 CLIENTE ORIGEM: verifica se é cliente_empresa (AUMENTA) ou interna_cliente (DIMINUI)
+            if tipo_transferencia == 'transferencia_cliente_empresa':
+                # Cliente → Empresa: CLIENTE AUMENTA (ganha dinheiro)
+                novo_saldo_origem = saldo_origem + valor
+                print(f"   Cliente origem AUMENTA: {saldo_origem} → {novo_saldo_origem}")
+            else:
+                # Cliente → Cliente (interna): CLIENTE DIMINUI
+                novo_saldo_origem = saldo_origem - valor
+                print(f"   Cliente origem DIMINUI: {saldo_origem} → {novo_saldo_origem}")
             
             supabase.table('contas')\
                 .update({'saldo': novo_saldo_origem})\
@@ -9322,7 +9332,20 @@ def api_admin_gerenciar_transferencia():
                 return jsonify({"success": False, "message": "Conta destino não encontrada"}), 404
             
             saldo_destino = float(conta_response.data['saldo'])
-            novo_saldo_destino = saldo_destino + valor
+            
+            # 🔥 EMPRESA DESTINO: verifica se é cliente_empresa (AUMENTA) ou empresa_cliente (DIMINUI)
+            if tipo_transferencia == 'transferencia_cliente_empresa':
+                # Cliente → Empresa: EMPRESA AUMENTA
+                novo_saldo_destino = saldo_destino + valor
+                print(f"   Empresa destino AUMENTA: {saldo_destino} → {novo_saldo_destino}")
+            elif tipo_transferencia == 'transferencia_empresa_cliente':
+                # Empresa → Cliente: EMPRESA DIMINUI
+                novo_saldo_destino = saldo_destino - valor
+                print(f"   Empresa destino DIMINUI: {saldo_destino} → {novo_saldo_destino}")
+            else:
+                # Empresa → Empresa (interna): DIMINUI (já processado na origem)
+                novo_saldo_destino = saldo_destino + valor
+                print(f"   Empresa destino AUMENTA (interna): {saldo_destino} → {novo_saldo_destino}")
             
             supabase.table('contas_bancarias_empresa')\
                 .update({'saldo': novo_saldo_destino})\
@@ -9341,7 +9364,16 @@ def api_admin_gerenciar_transferencia():
                 return jsonify({"success": False, "message": "Conta destino não encontrada"}), 404
             
             saldo_destino = float(conta_response.data['saldo'])
-            novo_saldo_destino = saldo_destino + valor
+            
+            # 🔥 CLIENTE DESTINO: sempre AUMENTA (recebe dinheiro)
+            if tipo_transferencia == 'transferencia_empresa_cliente':
+                # Empresa → Cliente: CLIENTE DIMINUI (perde o dinheiro que estava conosco)
+                novo_saldo_destino = saldo_destino - valor
+                print(f"   Cliente destino DIMINUI: {saldo_destino} → {novo_saldo_destino}")
+            else:
+                # Cliente → Cliente ou Cliente → Empresa: CLIENTE AUMENTA
+                novo_saldo_destino = saldo_destino + valor
+                print(f"   Cliente destino AUMENTA: {saldo_destino} → {novo_saldo_destino}")
             
             supabase.table('contas')\
                 .update({'saldo': novo_saldo_destino})\
@@ -9355,7 +9387,7 @@ def api_admin_gerenciar_transferencia():
             'id': transacao_id,
             'tipo': tipo_transferencia,
             'status': 'completed',
-            'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3],  # Formato com milissegundos
+            'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3],
             'moeda': moeda,
             'valor': valor,
             'conta_remetente': conta_origem,
@@ -9372,14 +9404,16 @@ def api_admin_gerenciar_transferencia():
         if not result.data:
             return jsonify({"success": False, "message": "Erro ao registrar transferência"}), 500
         
-        print(f"🔄 Transferência realizada: {valor:.2f} {moeda} de {conta_origem} para {conta_destino}")
+        print(f"🔄 Transferência realizada: {valor:.2f} {moeda}")
         print(f"   Tipo: {tipo_transferencia} | ID: {transacao_id}")
         
         return jsonify({
             "success": True,
             "message": f"Transferência realizada com sucesso!",
             "transacao_id": transacao_id,
-            "tipo": tipo_transferencia
+            "tipo": tipo_transferencia,
+            "novo_saldo_origem": novo_saldo_origem,
+            "novo_saldo_destino": novo_saldo_destino
         })
         
     except Exception as e:
