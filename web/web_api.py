@@ -8704,7 +8704,7 @@ def api_admin_gerenciar_ajuste():
 
 @app.route('/api/admin/gerenciar-contas/cambio', methods=['POST'])
 def api_admin_gerenciar_cambio():
-    """Realiza operação de câmbio entre contas do cliente"""
+    """Realiza operação de câmbio entre contas do cliente (permite saldo negativo)"""
     try:
         usuario = session.get('username')
         
@@ -8769,9 +8769,12 @@ def api_admin_gerenciar_cambio():
         novo_saldo_origem = saldo_origem - valor
         novo_saldo_destino = float(conta_destino_response.data['saldo']) + valor_destino
         
-        # Verificar saldo
-        if saldo_origem < valor:
-            return jsonify({"success": False, "message": f"Saldo insuficiente na conta origem"}), 400
+        # 🔥 REMOVIDA A VERIFICAÇÃO DE SALDO
+        # Agora permite saldo negativo sem restrições
+        
+        # Mostrar aviso se ficar negativo (apenas para informação)
+        if novo_saldo_origem < 0:
+            print(f"⚠️ AVISO: Conta origem ficará negativa: {saldo_origem:.2f} → {novo_saldo_origem:.2f} {moeda_origem}")
         
         # Atualizar saldos
         supabase.table('contas')\
@@ -8784,29 +8787,23 @@ def api_admin_gerenciar_cambio():
             .eq('id', conta_destino)\
             .execute()
         
-        # 🔥 CORREÇÃO: Gerar ID APENAS COM NÚMEROS (sem sufixo)
-        import random
+        # Registrar transação
         from datetime import datetime
+        import random
         
-        # Gerar ID numérico de 6 dígitos
+        # Gerar ID numérico
         transacao_id = str(random.randint(100000, 999999))
         while True:
-            # Verificar se já existe
             check = supabase.table('transferencias').select('id').eq('id', transacao_id).execute()
             if not check.data:
                 break
             transacao_id = str(random.randint(100000, 999999))
         
-        # 🔥 CORREÇÃO: Formatar par de moedas no formato CORRETO (MOEDA_ORIGEM_MOEDA_DESTINO)
+        # Formatar par de moedas
         par_moedas = f"{moeda_origem}_{moeda_destino}"
-        
-        # 🔥 CORREÇÃO: Formatar descrição
         descricao = f"CÂMBIO ADMIN - {moeda_origem} → {moeda_destino}"
-        
-        # 🔥 CORREÇÃO: Formatar taxa com 6 casas decimais
         taxa_formatada = f"{taxa_principal:.6f}"
         
-        # 🔥 CORREÇÃO: Salvar com a estrutura EXATA do exemplo
         transacao_data = {
             'id': transacao_id,
             'tipo': 'cambio',
@@ -8832,20 +8829,22 @@ def api_admin_gerenciar_cambio():
             'created_at': datetime.now().isoformat()
         }
         
-        # Inserir no Supabase
-        response = supabase.table('transferencias').insert(transacao_data).execute()
+        result = supabase.table('transferencias').insert(transacao_data).execute()
         
-        if not response.data:
+        if not result.data:
             return jsonify({"success": False, "message": "Erro ao registrar transação"}), 500
         
         print(f"💱 Câmbio realizado: {valor:.2f} {moeda_origem} → {valor_destino:.2f} {moeda_destino}")
-        print(f"📝 ID: {transacao_id} | Par: {par_moedas} | Taxa: {taxa_formatada}")
+        print(f"   Conta origem: {saldo_origem:.2f} → {novo_saldo_origem:.2f} {moeda_origem}")
+        print(f"   Conta destino: {float(conta_destino_response.data['saldo']):.2f} → {novo_saldo_destino:.2f} {moeda_destino}")
         
         return jsonify({
             "success": True,
             "message": f"Câmbio realizado com sucesso!",
             "transacao_id": transacao_id,
-            "par_moedas": par_moedas
+            "par_moedas": par_moedas,
+            "novo_saldo_origem": novo_saldo_origem,
+            "novo_saldo_destino": novo_saldo_destino
         })
         
     except Exception as e:
