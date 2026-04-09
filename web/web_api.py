@@ -9127,9 +9127,15 @@ def api_admin_gerenciar_receita():
         
         saldo_atual = float(conta_response.data['saldo'])
         moeda = conta_response.data['moeda']
-        novo_saldo = saldo_atual + valor
         
-        # Atualizar saldo
+        # 🔥 CLIENTE É REMETENTE (paga a receita) → SALDO DIMINUI
+        novo_saldo = saldo_atual - valor
+        
+        # Verificar saldo
+        if saldo_atual < valor:
+            return jsonify({"success": False, "message": f"Saldo insuficiente! Disponível: {saldo_atual:.2f} {moeda}"}), 400
+        
+        # Atualizar saldo (DÉBITO na conta do cliente)
         supabase.table('contas')\
             .update({'saldo': novo_saldo})\
             .eq('id', conta_cliente)\
@@ -9139,8 +9145,15 @@ def api_admin_gerenciar_receita():
         from datetime import datetime
         import random
         
-        transacao_id = f"{random.randint(100000, 999999)}_rec"
+        # Gerar ID numérico
+        transacao_id = str(random.randint(100000, 999999))
+        while True:
+            check = supabase.table('transferencias').select('id').eq('id', transacao_id).execute()
+            if not check.data:
+                break
+            transacao_id = str(random.randint(100000, 999999))
         
+        # 🔥 CORREÇÃO: Usar estrutura EXATAMENTE como no exemplo
         transacao_data = {
             'id': transacao_id,
             'tipo': 'receita',
@@ -9148,28 +9161,34 @@ def api_admin_gerenciar_receita():
             'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'moeda': moeda,
             'valor': valor,
-            'conta_destinatario': conta_cliente,
-            'descricao': descricao,
+            'conta_remetente': conta_cliente,  # 🔥 Cliente é o remetente (quem paga)
+            'conta_destinatario': conta_receita,  # 🔥 Nome da conta de receita (sem prefixo)
+            'descricao': None,  # 🔥 Deixar null
+            'usuario': usuario,
             'categoria_receita': categoria,
             'descricao_receita': descricao,
-            'conta_receita': conta_receita,
-            'usuario': usuario,
-            'cliente': username,
             'executado_por': usuario,
             'created_at': datetime.now().isoformat()
         }
         
-        supabase.table('transferencias').insert(transacao_data).execute()
+        result = supabase.table('transferencias').insert(transacao_data).execute()
+        
+        if not result.data:
+            return jsonify({"success": False, "message": "Erro ao registrar receita"}), 500
         
         print(f"📈 Receita lançada: {valor:.2f} {moeda} - {descricao}")
+        print(f"   Cliente: {username} | Conta: {conta_cliente} | Receita: {conta_receita}")
         
         return jsonify({
             "success": True,
-            "message": f"Receita lançada com sucesso!"
+            "message": f"Receita lançada com sucesso!",
+            "transacao_id": transacao_id
         })
         
     except Exception as e:
         print(f"❌ Erro ao lançar receita: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"success": False, "message": str(e)}), 500
 
 
