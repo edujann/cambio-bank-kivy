@@ -1326,13 +1326,19 @@
                 const selectDestino = document.getElementById('cambioContaDestino');
                 
                 if (data.success && data.contas.length > 0) {
-                    const options = '<option value="">Selecione a conta...</option>' + 
-                        data.contas.map(conta => `<option value="${conta.numero}">${conta.numero} - ${conta.moeda} (Saldo: ${formatarValor(conta.saldo)})</option>`).join('');
+                    // 🔥 Formatar com a moeda visível no texto
+                    const options = data.contas.map(conta => 
+                        `<option value="${conta.numero}">${conta.numero} - ${conta.moeda} (Saldo: ${formatarValor(conta.saldo)})</option>`
+                    ).join('');
                     
-                    selectOrigem.innerHTML = options;
-                    selectDestino.innerHTML = options;
+                    selectOrigem.innerHTML = '<option value="">Selecione a conta...</option>' + options;
+                    selectDestino.innerHTML = '<option value="">Selecione a conta...</option>' + options;
                     selectOrigem.disabled = false;
                     selectDestino.disabled = false;
+                    
+                    // 🔥 Adicionar evento para recalcular quando mudar a conta
+                    selectOrigem.addEventListener('change', calcularConversaoCambio);
+                    selectDestino.addEventListener('change', calcularConversaoCambio);
                 } else {
                     selectOrigem.innerHTML = '<option value="">Cliente não possui contas</option>';
                     selectOrigem.disabled = true;
@@ -1371,24 +1377,88 @@
         }
 
         function calcularConversaoCambio() {
-            const contaOrigem = document.getElementById('cambioContaOrigem').value;
-            const contaDestino = document.getElementById('cambioContaDestino').value;
+            const contaOrigemSelect = document.getElementById('cambioContaOrigem');
+            const contaDestinoSelect = document.getElementById('cambioContaDestino');
             const valor = parseFloat(document.getElementById('cambioValor').value.replace(',', '.'));
             const taxaPrincipal = parseFloat(document.getElementById('taxaPrincipal').value.replace(',', '.'));
             
             const infoDiv = document.getElementById('infoConversaoCambio');
             
-            if (!contaOrigem || !contaDestino || isNaN(valor) || valor <= 0 || isNaN(taxaPrincipal) || taxaPrincipal <= 0) {
-                infoDiv.innerHTML = 'Preencha os campos para ver a conversão';
+            // Verificar se tem dados suficientes
+            if (!contaOrigemSelect || !contaDestinoSelect || !contaOrigemSelect.value || !contaDestinoSelect.value) {
+                infoDiv.innerHTML = 'Selecione as contas origem e destino para ver a conversão';
                 return;
             }
             
+            if (isNaN(valor) || valor <= 0) {
+                infoDiv.innerHTML = 'Digite um valor válido para ver a conversão';
+                return;
+            }
+            
+            if (isNaN(taxaPrincipal) || taxaPrincipal <= 0) {
+                infoDiv.innerHTML = 'Digite uma taxa de câmbio válida';
+                return;
+            }
+            
+            // 🔥 Obter as moedas das contas selecionadas
+            const textoOrigem = contaOrigemSelect.options[contaOrigemSelect.selectedIndex]?.text || '';
+            const textoDestino = contaDestinoSelect.options[contaDestinoSelect.selectedIndex]?.text || '';
+            
+            // Extrair moeda do texto da conta (formato: "123456 - USD (Saldo: 1,000.00)")
+            let moedaOrigem = '';
+            let moedaDestino = '';
+            
+            const matchOrigem = textoOrigem.match(/- ([A-Z]{3}) \(/);
+            if (matchOrigem) {
+                moedaOrigem = matchOrigem[1];
+            }
+            
+            const matchDestino = textoDestino.match(/- ([A-Z]{3}) \(/);
+            if (matchDestino) {
+                moedaDestino = matchDestino[1];
+            }
+            
+            // Se não conseguiu extrair pelo padrão, tentar outro formato
+            if (!moedaOrigem) {
+                const partesOrigem = textoOrigem.split(' - ');
+                if (partesOrigem.length >= 2) {
+                    const moedaParte = partesOrigem[1].split(' ')[0];
+                    if (moedaParte.match(/^[A-Z]{3}$/)) {
+                        moedaOrigem = moedaParte;
+                    }
+                }
+            }
+            
+            if (!moedaDestino) {
+                const partesDestino = textoDestino.split(' - ');
+                if (partesDestino.length >= 2) {
+                    const moedaParte = partesDestino[1].split(' ')[0];
+                    if (moedaParte.match(/^[A-Z]{3}$/)) {
+                        moedaDestino = moedaParte;
+                    }
+                }
+            }
+            
+            // Calcular valor convertido
             const valorDestino = valor * taxaPrincipal;
-            infoDiv.innerHTML = `
-                <i class="fas fa-calculator"></i> 
-                ${formatarValor(valor)} → ${formatarValor(valorDestino)}<br>
-                <small>Taxa: 1 = ${taxaPrincipal.toFixed(6)}</small>
-            `;
+            
+            // Montar a mensagem com as moedas
+            if (moedaOrigem && moedaDestino) {
+                infoDiv.innerHTML = `
+                    <i class="fas fa-calculator"></i> 
+                    <strong>${formatarValor(valor)} ${moedaOrigem}</strong> → 
+                    <strong>${formatarValor(valorDestino)} ${moedaDestino}</strong>
+                    <br>
+                    <small>Taxa: 1 ${moedaOrigem} = ${taxaPrincipal.toFixed(6)} ${moedaDestino}</small>
+                `;
+            } else {
+                infoDiv.innerHTML = `
+                    <i class="fas fa-calculator"></i> 
+                    ${formatarValor(valor)} → ${formatarValor(valorDestino)}
+                    <br>
+                    <small>Taxa: ${taxaPrincipal.toFixed(6)}</small>
+                `;
+            }
         }
 
         async function executarCambio() {
