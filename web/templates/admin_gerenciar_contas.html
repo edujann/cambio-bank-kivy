@@ -327,7 +327,37 @@
         }
 
         .toggle-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Botão CRÉDITO - padrão (inativo) */
+        #btnCreditoAjuste {
+            border-color: var(--cor-borda);
+            background: var(--cor-fundo);
+            color: var(--cor-texto);
+        }
+
+        /* Botão CRÉDITO - ativo (AZUL) */
+        #btnCreditoAjuste.active {
+            background: var(--cor-admin);
             border-color: var(--cor-admin);
+            color: white;
+            box-shadow: 0 2px 8px rgba(26, 95, 180, 0.3);
+        }
+
+        /* Botão DÉBITO - padrão (inativo) */
+        #btnDebitoAjuste {
+            border-color: var(--cor-borda);
+            background: var(--cor-fundo);
+            color: var(--cor-texto);
+        }
+
+        /* Botão DÉBITO - ativo (VERMELHO) */
+        #btnDebitoAjuste.active {
+            background: #e01b24;
+            border-color: #e01b24;
+            color: white;
+            box-shadow: 0 2px 8px rgba(224, 27, 36, 0.3);
         }
 
         .toggle-btn.active {
