@@ -8757,9 +8757,14 @@ def api_admin_gerenciar_cambio():
         moeda_origem = conta_origem_response.data['moeda']
         moeda_destino = conta_destino_response.data['moeda']
         
+        # Calcular valor destino
         valor_destino = valor * taxa_principal
         novo_saldo_origem = saldo_origem - valor
         novo_saldo_destino = float(conta_destino_response.data['saldo']) + valor_destino
+        
+        # Verificar saldo
+        if saldo_origem < valor:
+            return jsonify({"success": False, "message": f"Saldo insuficiente na conta origem"}), 400
         
         # Atualizar saldos
         supabase.table('contas')\
@@ -8772,41 +8777,74 @@ def api_admin_gerenciar_cambio():
             .eq('id', conta_destino)\
             .execute()
         
-        # Registrar transação
-        from datetime import datetime
+        # 🔥 CORREÇÃO: Gerar ID APENAS COM NÚMEROS (sem sufixo)
         import random
+        from datetime import datetime
         
-        transacao_id = f"{random.randint(100000, 999999)}_cb"
+        # Gerar ID numérico de 6 dígitos
+        transacao_id = str(random.randint(100000, 999999))
+        while True:
+            # Verificar se já existe
+            check = supabase.table('transferencias').select('id').eq('id', transacao_id).execute()
+            if not check.data:
+                break
+            transacao_id = str(random.randint(100000, 999999))
         
+        # 🔥 CORREÇÃO: Formatar par de moedas no formato CORRETO (MOEDA_ORIGEM_MOEDA_DESTINO)
+        par_moedas = f"{moeda_origem}_{moeda_destino}"
+        
+        # 🔥 CORREÇÃO: Formatar descrição
+        descricao = f"CÂMBIO ADMIN - {moeda_origem} → {moeda_destino}"
+        
+        # 🔥 CORREÇÃO: Formatar taxa com 6 casas decimais
+        taxa_formatada = f"{taxa_principal:.6f}"
+        
+        # 🔥 CORREÇÃO: Salvar com a estrutura EXATA do exemplo
         transacao_data = {
             'id': transacao_id,
             'tipo': 'cambio',
             'status': 'completed',
             'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            'moeda_origem': moeda_origem,
-            'moeda_destino': moeda_destino,
+            'moeda': moeda_origem,
+            'valor': valor,
+            'conta_remetente': conta_origem,
+            'conta_destinatario': conta_destino,
+            'descricao': descricao,
+            'executado_por': usuario,
+            'cliente': username,
+            'usuario': usuario,
+            'operacao': 'cambio_admin',
+            'par_moedas': par_moedas,
             'valor_origem': valor,
             'valor_destino': valor_destino,
-            'taxa_cambio': taxa_principal,
-            'conta_origem': conta_origem,
-            'conta_destino': conta_destino,
-            'usuario': usuario,
-            'cliente': username,
-            'executado_por': usuario,
+            'cotacao': taxa_formatada,
+            'moeda_origem': moeda_origem,
+            'moeda_destino': moeda_destino,
+            'tipo_taxa_usada': 'principal',
+            'taxa_principal_registro': taxa_formatada,
             'created_at': datetime.now().isoformat()
         }
         
-        supabase.table('transferencias').insert(transacao_data).execute()
+        # Inserir no Supabase
+        response = supabase.table('transferencias').insert(transacao_data).execute()
+        
+        if not response.data:
+            return jsonify({"success": False, "message": "Erro ao registrar transação"}), 500
         
         print(f"💱 Câmbio realizado: {valor:.2f} {moeda_origem} → {valor_destino:.2f} {moeda_destino}")
+        print(f"📝 ID: {transacao_id} | Par: {par_moedas} | Taxa: {taxa_formatada}")
         
         return jsonify({
             "success": True,
-            "message": f"Câmbio realizado com sucesso!"
+            "message": f"Câmbio realizado com sucesso!",
+            "transacao_id": transacao_id,
+            "par_moedas": par_moedas
         })
         
     except Exception as e:
         print(f"❌ Erro ao realizar câmbio: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"success": False, "message": str(e)}), 500
 
 

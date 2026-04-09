@@ -195,13 +195,6 @@
         "cliente_nome": "TEXACO LLC",
         "data_criacao": "2025-11-01"
     },
-    "376793336": {
-        "moeda": "USD",
-        "saldo": 16000.0,
-        "cliente": "gables",
-        "cliente_nome": "GABLES ENTERPRISE",
-        "data_criacao": "2025-12-22"
-    },
     "900519236": {
         "moeda": "BRL",
         "saldo": 4350.0,
@@ -426,6 +419,13 @@
         "cliente_nome": "TEXACO LLC",
         "data_criacao": "2025-11-01"
     },
+    "792916936": {
+        "moeda": "USD",
+        "saldo": 80.0,
+        "cliente": "edinho",
+        "cliente_nome": "EDINHO ENTERPRISE",
+        "data_criacao": "2025-12-22"
+    },
     "667276348": {
         "moeda": "USD",
         "saldo": 0.0,
@@ -477,16 +477,16 @@
     },
     "755234527": {
         "moeda": "BRL",
-        "saldo": 1386711.27,
+        "saldo": 1516922.54,
         "cliente": "gables",
         "cliente_nome": "GABLES ENTERPRISE",
         "data_criacao": "2025-12-22"
     },
-    "792916936": {
+    "376793336": {
         "moeda": "USD",
-        "saldo": 80.0,
-        "cliente": "edinho",
-        "cliente_nome": "EDINHO ENTERPRISE",
+        "saldo": 46100.0,
+        "cliente": "gables",
+        "cliente_nome": "GABLES ENTERPRISE",
         "data_criacao": "2025-12-22"
     }
 }
