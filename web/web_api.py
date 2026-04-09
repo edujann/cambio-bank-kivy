@@ -8877,7 +8877,7 @@ def api_admin_gerenciar_extrato():
         
         username = dados.get('username')
         conta_numero = dados.get('conta_numero')
-        periodo = dados.get('periodo', '0')  # 🔥 Padrão '0' = todo período
+        periodo = dados.get('periodo', '0')  # '0' = todo período
         
         print(f"📊 Buscando extrato para: {username} - Conta: {conta_numero} - Período: {periodo}")
         
@@ -8888,7 +8888,7 @@ def api_admin_gerenciar_extrato():
         
         # Definir período
         if periodo == '0':
-            data_inicio = datetime(2024, 1, 1)  # Data bem antiga
+            data_inicio = datetime(2024, 1, 1)
         else:
             dias = int(periodo)
             data_inicio = datetime.now() - timedelta(days=dias)
@@ -8897,16 +8897,32 @@ def api_admin_gerenciar_extrato():
         
         print(f"📅 Período: {data_inicio} até {data_fim}")
         
-        # Buscar transações da conta
-        response = supabase.table('transferencias')\
-            .select('*')\
-            .or_(f'conta_remetente.eq.{conta_numero},conta_destinatario.eq.{conta_numero}')\
-            .execute()
+        # 🔥 CORREÇÃO: Buscar separadamente (sem usar or_)
+        todas_transacoes = []
         
-        print(f"📊 Total de transações encontradas: {len(response.data) if response.data else 0}")
+        # Buscar onde a conta é remetente
+        response1 = supabase.table('transferencias')\
+            .select('*')\
+            .eq('conta_remetente', conta_numero)\
+            .execute()
+        todas_transacoes.extend(response1.data or [])
+        
+        # Buscar onde a conta é destinatário
+        response2 = supabase.table('transferencias')\
+            .select('*')\
+            .eq('conta_destinatario', conta_numero)\
+            .execute()
+        todas_transacoes.extend(response2.data or [])
+        
+        # Remover duplicatas (usando id como chave)
+        transacoes_dict = {}
+        for t in todas_transacoes:
+            transacoes_dict[t['id']] = t
+        
+        print(f"📊 Total de transações encontradas: {len(transacoes_dict)}")
         
         transacoes = []
-        for t in (response.data or []):
+        for t in transacoes_dict.values():
             data_transf = t.get('created_at') or t.get('data')
             if data_transf:
                 try:
@@ -8937,9 +8953,9 @@ def api_admin_gerenciar_extrato():
             # Para ajustes de saldo
             if tipo == 'ajuste_admin':
                 tipo_ajuste = t.get('tipo_ajuste', '')
-                if tipo_ajuste == 'DÉBITO':
+                if tipo_ajuste == 'DEBITO':  # 🔥 SEM ACENTO
                     is_entrada = True
-                elif tipo_ajuste == 'CRÉDITO':
+                elif tipo_ajuste == 'CREDITO':  # 🔥 SEM ACENTO
                     is_saida = True
             
             transacoes.append({
