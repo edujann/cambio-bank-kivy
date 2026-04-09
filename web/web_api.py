@@ -4268,16 +4268,22 @@ def obter_extrato_kivy():
                             print(f"💰 CÂMBIO NORMAL: {descricao_cambio[:50]}...")
                     
                     elif transf_tipo == 'receita':
+                        # 🔥 CORREÇÃO: Buscar a descrição correta da receita
+                        descricao_receita = transf.get('descricao_receita', '')
+                        if not descricao_receita:
+                            descricao_receita = transf.get('descricao', 'Lançamento de receita')
+                        
                         transacoes_todas.append({
                             'id': transf_id,
                             'data': data_transacao_str,
-                            'descricao': f"TAXA/DESPESA - {transf.get('descricao_receita', '')}",
+                            'descricao': f"RECEITA - {descricao_receita}",
                             'credito': 0.00,
                             'debito': valor,
-                            'tipo': "Taxa/Despesa",
+                            'tipo': "Receita",
                             'moeda': moeda,
                             'timestamp': data_transacao
                         })
+                        print(f"💰 RECEITA PROCESSADA: RECEITA - {descricao_receita}")
                     
                     # 🔥 BLOCO TRANSFERÊNCIA CLIENTE → EMPRESA (AGORA COMO CRÉDITO)
                     elif transf_tipo == 'transferencia_cliente_empresa':
