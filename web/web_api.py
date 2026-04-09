@@ -8595,7 +8595,7 @@ def api_admin_contas_contabeis():
 
 @app.route('/api/admin/gerenciar-contas/ajuste', methods=['POST'])
 def api_admin_gerenciar_ajuste():
-    """Realiza ajuste de saldo na conta do cliente"""
+    """Realiza ajuste de saldo na conta do cliente (permite saldo negativo)"""
     try:
         usuario = session.get('username')
         
@@ -8641,13 +8641,21 @@ def api_admin_gerenciar_ajuste():
         saldo_atual = float(conta_response.data['saldo'])
         moeda = conta_response.data['moeda']
         
+        # 🔥 REMOVIDA A VERIFICAÇÃO DE SALDO
+        # Agora permite saldo negativo sem restrições
+        
         if operacao == 'credito':
             novo_saldo = saldo_atual + valor
-            # 🔥 CORREÇÃO: Usar "CREDITO" sem acento
             tipo_ajuste = "CREDITO"
+            print(f"💰 Ajuste CRÉDITO: {saldo_atual:.2f} → {novo_saldo:.2f} (+{valor:.2f}) {moeda}")
         else:
             novo_saldo = saldo_atual - valor
-            tipo_ajuste = "DEBITO"  # 🔥 Também padronizar em maiúsculo
+            tipo_ajuste = "DEBITO"
+            print(f"💰 Ajuste DÉBITO: {saldo_atual:.2f} → {novo_saldo:.2f} (-{valor:.2f}) {moeda}")
+        
+        # Mostrar aviso se ficar negativo (apenas para informação)
+        if novo_saldo < 0:
+            print(f"⚠️ AVISO: Conta ficará negativa: {saldo_atual:.2f} → {novo_saldo:.2f} {moeda}")
         
         # Atualizar saldo
         update_response = supabase.table('contas')\
@@ -8679,7 +8687,7 @@ def api_admin_gerenciar_ajuste():
             'valor': valor,
             'conta_remetente': conta_numero,
             'descricao': descricao,
-            'tipo_ajuste': tipo_ajuste,  # 🔥 "CREDITO" ou "DEBITO"
+            'tipo_ajuste': tipo_ajuste,
             'descricao_ajuste': descricao,
             'usuario': usuario,
             'cliente': username,
@@ -8689,7 +8697,7 @@ def api_admin_gerenciar_ajuste():
         
         supabase.table('transferencias').insert(transacao_data).execute()
         
-        print(f"💰 Ajuste {tipo_ajuste} de {valor:.2f} {moeda} na conta {conta_numero} do cliente {username}")
+        print(f"✅ Ajuste {tipo_ajuste} concluído: {valor:.2f} {moeda} na conta {conta_numero} do cliente {username}")
         
         return jsonify({
             "success": True,
@@ -8699,6 +8707,8 @@ def api_admin_gerenciar_ajuste():
         
     except Exception as e:
         print(f"❌ Erro ao realizar ajuste: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"success": False, "message": str(e)}), 500
 
 
