@@ -388,6 +388,37 @@
             -webkit-text-fill-color: var(--cor-texto) !important;
             transition: background-color 5000s ease-in-out 0s !important;
         }
+
+        /* ============================================
+        SOLUÇÃO DEFINITIVA PARA AUTOFILL DO CHROME
+        ============================================ */
+
+        /* Forçar TODOS os inputs com autofill */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 1000px var(--cor-fundo) inset !important;
+            -webkit-text-fill-color: var(--cor-texto) !important;
+            caret-color: var(--cor-texto) !important;
+            transition: background-color 5000s ease-in-out 0s !important;
+        }
+
+        /* Especificamente para o campo remetente */
+        #remetenteInput:-webkit-autofill,
+        #remetenteInput:-webkit-autofill:hover,
+        #remetenteInput:-webkit-autofill:focus {
+            -webkit-box-shadow: 0 0 0 1000px var(--cor-fundo) inset !important;
+            -webkit-text-fill-color: var(--cor-texto) !important;
+        }
+
+        /* Garantir a cor de fundo normal também */
+        #remetenteInput {
+            background-color: var(--cor-fundo) !important;
+            color: var(--cor-texto) !important;
+            border: 1px solid var(--cor-borda) !important;
+        }
+
     </style>
 </head>
 <body>
