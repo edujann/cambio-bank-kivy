@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏦 Cambio Bank - Cadastrar Cliente</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: var(--cor-fundo);
+            color: var(--cor-texto);
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* HEADER */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--cor-borda);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .logo i {
+            color: var(--cor-admin);
+            font-size: 28px;
+        }
+
+        .logo-text {
+            background: linear-gradient(90deg, var(--cor-admin), #2d8fff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .badge-admin {
+            background: var(--cor-admin);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .btn-voltar {
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            padding: 10px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-voltar:hover {
+            border-color: var(--cor-admin);
+            color: var(--cor-admin);
+            transform: translateY(-2px);
+        }
+
+        /* FORMULÁRIO */
+        .form-container {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 30px;
+        }
+
+        .form-row {
+            margin-bottom: 20px;
+        }
+
+        .form-row label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--cor-texto-secundario);
+        }
+
+        .form-row label i {
+            margin-right: 8px;
+            color: var(--cor-admin);
+        }
+
+        .form-row label .required {
+            color: var(--cor-perigo);
+            margin-left: 4px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            color: var(--cor-texto);
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--cor-admin);
+            box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2);
+        }
+
+        .form-row-duas-colunas {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-row-tres-colunas {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        /* MOEDAS CHECKBOX */
+        .moedas-group {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .moeda-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 10px 20px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            transition: all 0.3s ease;
+        }
+
+        .moeda-checkbox:hover {
+            border-color: var(--cor-admin);
+        }
+
+        .moeda-checkbox.selected {
+            background: var(--cor-admin);
+            border-color: var(--cor-admin);
+            color: white;
+        }
+
+        .moeda-checkbox input {
+            display: none;
+        }
+
+        .moeda-simbolo {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        /* BOTÕES */
+        .btn-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn-submit {
+            flex: 1;
+            background: var(--cor-sucesso);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: var(--borda-radius-pequeno);
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-submit:hover {
+            background: #239b56;
+            transform: translateY(-2px);
+            box-shadow: var(--sombra-suave);
+        }
+
+        .btn-clear {
+            flex: 1;
+            background: var(--cor-alerta);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: var(--borda-radius-pequeno);
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-clear:hover {
+            background: #e67e22;
+            transform: translateY(-2px);
+        }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            width: 90%;
+            max-width: 450px;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--cor-borda);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            color: var(--cor-admin);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--cor-texto-secundario);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid var(--cor-borda);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn-modal {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+        }
+
+        .btn-modal-primary {
+            background: var(--cor-admin);
+            color: white;
+        }
+
+        .btn-modal-secondary {
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+        }
+
+        /* INFO */
+        .info-card {
+            background: rgba(26, 95, 180, 0.1);
+            border: 1px solid var(--cor-admin);
+            border-radius: var(--borda-radius-pequeno);
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .info-card i {
+            color: var(--cor-admin);
+            margin-right: 8px;
+        }
+
+        /* RESPONSIVIDADE */
+        @media (max-width: 768px) {
+            .form-row-duas-colunas,
+            .form-row-tres-colunas {
+                grid-template-columns: 1fr;
+            }
+            
+            .btn-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fas fa-university"></i>
+                <span class="logo-text">CAMBIO BANK</span>
+                <span class="badge-admin">ADMIN</span>
+            </div>
+            
+            <h1 class="page-title">CADASTRAR CLIENTE</h1>
+            
+            <button class="btn-voltar" onclick="window.location.href='/admin/clientes'">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </button>
+        </header>
+
+        <!-- FORMULÁRIO -->
+        <div class="form-container">
+            <div class="info-card">
+                <i class="fas fa-info-circle"></i> Preencha os dados abaixo para cadastrar um novo cliente
+            </div>
+
+            <!-- DADOS PESSOAIS -->
+            <div class="form-row-duas-colunas">
+                <div class="form-row">
+                    <label><i class="fas fa-user"></i> Nome Completo <span class="required">*</span></label>
+                    <input type="text" id="nome" class="form-control" placeholder="Ex: João Silva">
+                </div>
+                <div class="form-row">
+                    <label><i class="fas fa-at"></i> Usuário <span class="required">*</span></label>
+                    <input type="text" id="username" class="form-control" placeholder="Ex: joao.silva">
+                </div>
+            </div>
+
+            <div class="form-row-duas-colunas">
+                <div class="form-row">
+                    <label><i class="fas fa-envelope"></i> Email <span class="required">*</span></label>
+                    <input type="email" id="email" class="form-control" placeholder="Ex: joao@empresa.com">
+                </div>
+                <div class="form-row">
+                    <label><i class="fas fa-phone"></i> Telefone</label>
+                    <input type="text" id="telefone" class="form-control" placeholder="Ex: (11) 99999-9999">
+                </div>
+            </div>
+
+            <div class="form-row-duas-colunas">
+                <div class="form-row">
+                    <label><i class="fas fa-lock"></i> Senha <span class="required">*</span></label>
+                    <input type="password" id="senha" class="form-control" placeholder="Mínimo 8 caracteres">
+                </div>
+                <div class="form-row">
+                    <label><i class="fas fa-lock"></i> Confirmar Senha <span class="required">*</span></label>
+                    <input type="password" id="confirmarSenha" class="form-control" placeholder="Digite a senha novamente">
+                </div>
+            </div>
+
+            <!-- DOCUMENTO -->
+            <div class="form-row">
+                <label><i class="fas fa-id-card"></i> Documento (CPF/CNPJ)</label>
+                <input type="text" id="documento" class="form-control" placeholder="Ex: 12.345.678/0001-90 ou 123.456.789-00">
+            </div>
+
+            <!-- ENDEREÇO -->
+            <div class="form-row">
+                <label><i class="fas fa-map-marker-alt"></i> Endereço</label>
+                <input type="text" id="endereco" class="form-control" placeholder="Ex: Av. Paulista, 1000">
+            </div>
+
+            <div class="form-row-tres-colunas">
+                <div class="form-row">
+                    <label><i class="fas fa-city"></i> Cidade</label>
+                    <input type="text" id="cidade" class="form-control" placeholder="Ex: São Paulo">
+                </div>
+                <div class="form-row">
+                    <label><i class="fas fa-map-pin"></i> Estado</label>
+                    <input type="text" id="estado" class="form-control" placeholder="Ex: SP">
+                </div>
+                <div class="form-row">
+                    <label><i class="fas fa-mail-bulk"></i> CEP</label>
+                    <input type="text" id="cep" class="form-control" placeholder="Ex: 01234-567">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <label><i class="fas fa-globe"></i> País</label>
+                <input type="text" id="pais" class="form-control" placeholder="Ex: Brasil" value="Brasil">
+            </div>
+
+            <!-- MOEDAS SELECIONADAS -->
+            <div class="form-row">
+                <label><i class="fas fa-coins"></i> Moedas para as Contas <span class="required">*</span></label>
+                <div class="moedas-group" id="moedasGroup">
+                    <div class="moeda-checkbox" data-moeda="USD" onclick="toggleMoeda(this)">
+                        <span class="moeda-simbolo">$</span>
+                        <span>USD</span>
+                        <input type="checkbox" value="USD">
+                    </div>
+                    <div class="moeda-checkbox" data-moeda="EUR" onclick="toggleMoeda(this)">
+                        <span class="moeda-simbolo">€</span>
+                        <span>EUR</span>
+                        <input type="checkbox" value="EUR">
+                    </div>
+                    <div class="moeda-checkbox" data-moeda="GBP" onclick="toggleMoeda(this)">
+                        <span class="moeda-simbolo">£</span>
+                        <span>GBP</span>
+                        <input type="checkbox" value="GBP">
+                    </div>
+                    <div class="moeda-checkbox" data-moeda="BRL" onclick="toggleMoeda(this)">
+                        <span class="moeda-simbolo">R$</span>
+                        <span>BRL</span>
+                        <input type="checkbox" value="BRL">
+                    </div>
+                </div>
+                <small style="color: var(--cor-texto-secundario);">Selecione pelo menos uma moeda</small>
+            </div>
+
+            <!-- BOTÕES -->
+            <div class="btn-actions">
+                <button class="btn-clear" onclick="limparFormulario()">
+                    <i class="fas fa-eraser"></i> Limpar
+                </button>
+                <button class="btn-submit" onclick="cadastrarCliente()">
+                    <i class="fas fa-user-plus"></i> Cadastrar Cliente
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL SUCESSO -->
+    <div id="modalSucesso" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-check-circle"></i> Cliente Cadastrado</h3>
+                <button class="modal-close" onclick="fecharModalSucesso()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalSucessoBody">
+                <!-- Conteúdo dinâmico -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal btn-modal-primary" onclick="fecharModalSucesso()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ERRO -->
+    <div id="modalErro" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-times-circle"></i> Erro</h3>
+                <button class="modal-close" onclick="fecharModalErro()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalErroBody">
+                <!-- Conteúdo dinâmico -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal btn-modal-primary" onclick="fecharModalErro()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/theme.js"></script>
+    <script>
+        // ============================================
+        // MOEDAS
+        // ============================================
+        function toggleMoeda(element) {
+            const checkbox = element.querySelector('input');
+            checkbox.checked = !checkbox.checked;
+            
+            if (checkbox.checked) {
+                element.classList.add('selected');
+            } else {
+                element.classList.remove('selected');
+            }
+        }
+
+        function getMoedasSelecionadas() {
+            const moedas = [];
+            document.querySelectorAll('#moedasGroup .moeda-checkbox input:checked').forEach(cb => {
+                moedas.push(cb.value);
+            });
+            return moedas;
+        }
+
+        // ============================================
+        // VALIDAÇÃO
+        // ============================================
+        function validarCampos() {
+            const nome = document.getElementById('nome').value.trim();
+            const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const senha = document.getElementById('senha').value;
+            const confirmarSenha = document.getElementById('confirmarSenha').value;
+            const moedas = getMoedasSelecionadas();
+            
+            if (!nome) {
+                mostrarErro('Informe o nome completo do cliente!');
+                return false;
+            }
+            
+            if (!username) {
+                mostrarErro('Informe o nome de usuário!');
+                return false;
+            }
+            
+            // Validar username (apenas letras, números, ponto e underscore)
+            const usernameRegex = /^[a-zA-Z0-9._]+$/;
+            if (!usernameRegex.test(username)) {
+                mostrarErro('Usuário inválido! Use apenas letras, números, ponto ou underscore.');
+                return false;
+            }
+            
+            if (!email) {
+                mostrarErro('Informe o email do cliente!');
+                return false;
+            }
+            
+            // Validar email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                mostrarErro('Email inválido! Use o formato: nome@empresa.com');
+                return false;
+            }
+            
+            if (!senha) {
+                mostrarErro('Informe uma senha para o cliente!');
+                return false;
+            }
+            
+            if (senha.length < 8) {
+                mostrarErro('A senha deve ter no mínimo 8 caracteres!');
+                return false;
+            }
+            
+            if (senha !== confirmarSenha) {
+                mostrarErro('As senhas não coincidem!');
+                return false;
+            }
+            
+            if (moedas.length === 0) {
+                mostrarErro('Selecione pelo menos uma moeda para criar as contas!');
+                return false;
+            }
+            
+            return true;
+        }
+
+        // ============================================
+        // CADASTRAR CLIENTE
+        // ============================================
+        async function cadastrarCliente() {
+            if (!validarCampos()) return;
+            
+            const dados = {
+                nome: document.getElementById('nome').value.trim(),
+                username: document.getElementById('username').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                senha: document.getElementById('senha').value,
+                telefone: document.getElementById('telefone').value.trim(),
+                documento: document.getElementById('documento').value.trim(),
+                endereco: document.getElementById('endereco').value.trim(),
+                cidade: document.getElementById('cidade').value.trim(),
+                estado: document.getElementById('estado').value.trim(),
+                cep: document.getElementById('cep').value.trim(),
+                pais: document.getElementById('pais').value.trim() || 'Brasil',
+                moedas: getMoedasSelecionadas()
+            };
+            
+            // Mostrar loading no botão
+            const btn = document.querySelector('.btn-submit');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cadastrando...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/admin/cadastrar-cliente', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dados)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const modalBody = document.getElementById('modalSucessoBody');
+                    modalBody.innerHTML = `
+                        <div class="info-card" style="background: rgba(46, 194, 126, 0.1); border-color: var(--cor-sucesso);">
+                            <i class="fas fa-check-circle"></i> Cliente cadastrado com sucesso!
+                        </div>
+                        <p><strong>Cliente:</strong> ${escapeHtml(dados.nome)}</p>
+                        <p><strong>Usuário:</strong> ${escapeHtml(dados.username)}</p>
+                        <p><strong>Email:</strong> ${escapeHtml(dados.email)}</p>
+                        <p><strong>Moedas:</strong> ${dados.moedas.join(', ')}</p>
+                        <p style="color: var(--cor-sucesso); margin-top: 10px;">✅ Contas criadas com saldo zero</p>
+                        <p style="color: var(--cor-alerta);">⚠️ Câmbio desabilitado - Ative na tela de Cotações Moedas</p>
+                    `;
+                    document.getElementById('modalSucesso').classList.add('active');
+                    limparFormulario();
+                } else {
+                    mostrarErro(data.message || 'Erro ao cadastrar cliente!');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                mostrarErro('Erro ao conectar com o servidor!');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // ============================================
+        // LIMPAR FORMULÁRIO
+        // ============================================
+        function limparFormulario() {
+            document.getElementById('nome').value = '';
+            document.getElementById('username').value = '';
+            document.getElementById('email').value = '';
+            document.getElementById('senha').value = '';
+            document.getElementById('confirmarSenha').value = '';
+            document.getElementById('telefone').value = '';
+            document.getElementById('documento').value = '';
+            document.getElementById('endereco').value = '';
+            document.getElementById('cidade').value = '';
+            document.getElementById('estado').value = '';
+            document.getElementById('cep').value = '';
+            document.getElementById('pais').value = 'Brasil';
+            
+            // Resetar moedas
+            document.querySelectorAll('#moedasGroup .moeda-checkbox').forEach(el => {
+                const checkbox = el.querySelector('input');
+                checkbox.checked = false;
+                el.classList.remove('selected');
+            });
+        }
+
+        // ============================================
+        // MODAIS
+        // ============================================
+        function fecharModalSucesso() {
+            document.getElementById('modalSucesso').classList.remove('active');
+            window.location.href = '/admin/clientes';
+        }
+
+        function fecharModalErro() {
+            document.getElementById('modalErro').classList.remove('active');
+        }
+
+        function mostrarErro(mensagem) {
+            const modalBody = document.getElementById('modalErroBody');
+            modalBody.innerHTML = `<div class="info-card" style="background: rgba(224, 27, 36, 0.1); border-color: var(--cor-perigo);">${escapeHtml(mensagem)}</div>`;
+            document.getElementById('modalErro').classList.add('active');
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

@@ -11527,6 +11527,254 @@ def api_admin_cotacoes_exportar():
         return jsonify({"success": False, "message": str(e)}), 500
 
 
+# ============================================
+# ADMIN - CADASTRAR CLIENTE
+# ============================================
+
+@app.route('/admin/cadastrar-cliente')
+def admin_cadastrar_cliente():
+    """Tela de cadastro de cliente"""
+    usuario = session.get('username')
+    
+    if not usuario:
+        return redirect('/login')
+    
+    # Verificar se é admin
+    if supabase:
+        user_check = supabase.table('usuarios')\
+            .select('tipo')\
+            .eq('username', usuario)\
+            .single()\
+            .execute()
+        
+        if not user_check.data or user_check.data.get('tipo') != 'admin':
+            return redirect('/dashboard')
+    
+    # Buscar dados do usuário
+    nome = usuario.upper()
+    email = f'{usuario}@exemplo.com'
+    
+    try:
+        if supabase:
+            user_response = supabase.table('usuarios')\
+                .select('nome, email')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if user_response.data:
+                if user_response.data.get('nome'):
+                    nome = user_response.data['nome']
+                if user_response.data.get('email'):
+                    email = user_response.data['email']
+    except:
+        pass
+    
+    return render_template('admin_cadastrar_cliente.html',
+                          usuario=usuario,
+                          nome=nome,
+                          email=email)
+
+
+@app.route('/api/admin/cadastrar-cliente', methods=['POST'])
+def api_admin_cadastrar_cliente():
+    """Cadastra um novo cliente no sistema"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Verificar se é admin
+        if supabase:
+            user_check = supabase.table('usuarios')\
+                .select('tipo')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if not user_check.data or user_check.data.get('tipo') != 'admin':
+                return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        dados = request.get_json()
+        
+        # Extrair dados
+        nome = dados.get('nome', '').strip()
+        username = dados.get('username', '').strip().lower()
+        email = dados.get('email', '').strip().lower()
+        senha = dados.get('senha', '')
+        telefone = dados.get('telefone', '').strip()
+        documento = dados.get('documento', '').strip()
+        endereco = dados.get('endereco', '').strip()
+        cidade = dados.get('cidade', '').strip()
+        estado = dados.get('estado', '').strip()
+        cep = dados.get('cep', '').strip()
+        pais = dados.get('pais', 'Brasil').strip()
+        moedas = dados.get('moedas', [])
+        
+        # Validar campos obrigatórios
+        if not nome:
+            return jsonify({"success": False, "message": "Nome é obrigatório"}), 400
+        
+        if not username:
+            return jsonify({"success": False, "message": "Usuário é obrigatório"}), 400
+        
+        # Validar username (apenas letras, números, ponto e underscore)
+        import re
+        if not re.match(r'^[a-zA-Z0-9._]+$', username):
+            return jsonify({"success": False, "message": "Usuário inválido! Use apenas letras, números, ponto ou underscore."}), 400
+        
+        if not email:
+            return jsonify({"success": False, "message": "Email é obrigatório"}), 400
+        
+        # Validar email
+        if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
+            return jsonify({"success": False, "message": "Email inválido!"}), 400
+        
+        if not senha:
+            return jsonify({"success": False, "message": "Senha é obrigatória"}), 400
+        
+        if len(senha) < 8:
+            return jsonify({"success": False, "message": "Senha deve ter no mínimo 8 caracteres"}), 400
+        
+        if not moedas or len(moedas) == 0:
+            return jsonify({"success": False, "message": "Selecione pelo menos uma moeda"}), 400
+        
+        from datetime import datetime
+        import hashlib
+        import random
+        
+        # Verificar se usuário já existe
+        check_user = supabase.table('usuarios')\
+            .select('username')\
+            .eq('username', username)\
+            .execute()
+        
+        if check_user.data:
+            return jsonify({"success": False, "message": f"Usuário '{username}' já existe!"}), 400
+        
+        # Verificar se email já existe
+        check_email = supabase.table('usuarios')\
+            .select('email')\
+            .eq('email', email)\
+            .execute()
+        
+        if check_email.data:
+            return jsonify({"success": False, "message": f"Email '{email}' já está cadastrado!"}), 400
+        
+        # Gerar hash da senha
+        senha_hash = hashlib.sha256(senha.encode()).hexdigest()
+        
+        # Gerar hash do documento (se fornecido)
+        documento_hash = None
+        if documento:
+            documento_limpo = re.sub(r'[^a-zA-Z0-9]', '', documento)
+            documento_hash = hashlib.sha256(documento_limpo.encode()).hexdigest()
+        
+        # Criar contas para cada moeda selecionada
+        contas_criadas = []
+        
+        for moeda in moedas:
+            # Gerar número de conta único (9 dígitos)
+            while True:
+                numero_conta = str(random.randint(100000000, 999999999))
+                check_conta = supabase.table('contas')\
+                    .select('id')\
+                    .eq('id', numero_conta)\
+                    .execute()
+                if not check_conta.data:
+                    break
+            
+            # Criar conta no Supabase
+            conta_data = {
+                'id': numero_conta,
+                'moeda': moeda,
+                'saldo': 0.00,
+                'cliente_username': username,
+                'cliente_nome': nome,
+                'data_criacao': datetime.now().date().isoformat(),
+                'ativa': True,
+                'created_at': datetime.now().isoformat()
+            }
+            
+            conta_response = supabase.table('contas').insert(conta_data).execute()
+            
+            if conta_response.data:
+                contas_criadas.append(numero_conta)
+                print(f"✅ Conta {numero_conta} criada em {moeda} para {username}")
+        
+        if not contas_criadas:
+            return jsonify({"success": False, "message": "Erro ao criar contas bancárias"}), 500
+        
+        # Criar usuário no Supabase
+        usuario_data = {
+            'username': username,
+            'senha_hash': senha_hash,
+            'nome': nome,
+            'email': email,
+            'documento_hash': documento_hash,
+            'telefone': telefone if telefone else None,
+            'endereco': endereco if endereco else None,
+            'cidade': cidade if cidade else None,
+            'cep': cep if cep else None,
+            'estado': estado if estado else None,
+            'pais': pais if pais else None,
+            'tipo': 'cliente',
+            'data_cadastro': datetime.now().isoformat(),
+            'created_at': datetime.now().isoformat(),
+            'contas': contas_criadas,
+            'status': 'ativo',
+            'verificado': True,
+            'cambio_liberado': False,  # 🔥 Câmbio desabilitado por padrão
+            'codigo_verificacao': ''
+        }
+        
+        user_response = supabase.table('usuarios').insert(usuario_data).execute()
+        
+        if not user_response.data:
+            # Se falhou, tentar remover as contas criadas (rollback)
+            for conta in contas_criadas:
+                supabase.table('contas').delete().eq('id', conta).execute()
+            return jsonify({"success": False, "message": "Erro ao criar usuário"}), 500
+        
+        # 🔥 Criar configuração de permissão de câmbio (desabilitado)
+        config_data = {
+            'tipo_config': 'permissoes',
+            'cliente_username': username,
+            'valor_config': False,  # Câmbio desabilitado
+            'data_atualizacao': datetime.now().isoformat(),
+            'created_at': datetime.now().isoformat()
+        }
+        supabase.table('config_cotacoes').insert(config_data).execute()
+        
+        # 🔥 Criar configuração de limite padrão
+        limite_data = {
+            'tipo_config': 'limites',
+            'cliente_username': username,
+            'valor_config': 10000.00,  # Limite padrão de US$ 10.000
+            'data_atualizacao': datetime.now().isoformat(),
+            'created_at': datetime.now().isoformat()
+        }
+        supabase.table('config_cotacoes').insert(limite_data).execute()
+        
+        print(f"✅ Cliente {username} cadastrado com sucesso por {usuario}")
+        print(f"   Contas criadas: {', '.join(contas_criadas)}")
+        print(f"   Moedas: {', '.join(moedas)}")
+        
+        return jsonify({
+            "success": True,
+            "message": f"Cliente {nome} cadastrado com sucesso!",
+            "contas": contas_criadas,
+            "moedas": moedas
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao cadastrar cliente: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
