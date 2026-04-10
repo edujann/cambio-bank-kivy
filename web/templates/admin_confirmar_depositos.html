@@ -419,6 +419,40 @@
             border: 1px solid var(--cor-borda) !important;
         }
 
+        /* ============================================
+        SOLUÇÃO DEFINITIVA - MATA O AUTOFILL DO CHROME
+        ============================================ */
+
+        /* Força todos os inputs a ignorar autofill */
+        input, input:focus, input:hover, input:active {
+            background-color: var(--cor-fundo) !important;
+            color: var(--cor-texto) !important;
+            border: 1px solid var(--cor-borda) !important;
+            transition: none !important;
+        }
+
+        /* Mata o autofill com sombra interna */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 10000px var(--cor-fundo) inset !important;
+            -webkit-text-fill-color: var(--cor-texto) !important;
+            caret-color: var(--cor-texto) !important;
+            background-color: var(--cor-fundo) !important;
+            transition: background-color 50000s ease-in-out 0s !important;
+        }
+
+        /* Especificamente para o campo remetente */
+        #remetenteInput,
+        #remetenteInput:-webkit-autofill,
+        #remetenteInput:-webkit-autofill:hover,
+        #remetenteInput:-webkit-autofill:focus {
+            -webkit-box-shadow: 0 0 0 10000px var(--cor-fundo) inset !important;
+            -webkit-text-fill-color: var(--cor-texto) !important;
+            background-color: var(--cor-fundo) !important;
+        }
+
     </style>
 </head>
 <body>
@@ -1310,5 +1344,30 @@
         }
     </script>
     <script src="/static/js/theme.js"></script>
+    <script>
+        // Forçar remoção do autofill do Chrome
+        document.addEventListener('DOMContentLoaded', function() {
+            const remetenteInput = document.getElementById('remetenteInput');
+            if (remetenteInput) {
+                // Forçar o campo a perder o autofill
+                remetenteInput.setAttribute('autocomplete', 'off');
+                remetenteInput.setAttribute('autocorrect', 'off');
+                remetenteInput.setAttribute('autocapitalize', 'off');
+                remetenteInput.setAttribute('spellcheck', 'false');
+                
+                // Se ainda tiver autofill, recriar o campo
+                if (remetenteInput.matches(':-webkit-autofill')) {
+                    const newInput = document.createElement('input');
+                    newInput.type = 'text';
+                    newInput.id = 'remetenteInput';
+                    newInput.className = remetenteInput.className;
+                    newInput.placeholder = remetenteInput.placeholder;
+                    newInput.value = remetenteInput.value;
+                    newInput.setAttribute('autocomplete', 'off');
+                    remetenteInput.parentNode.replaceChild(newInput, remetenteInput);
+                }
+            }
+        });
+    </script>
 </body>
 </html>
