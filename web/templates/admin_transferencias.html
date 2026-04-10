@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏦 Cambio Bank - Transferências</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: var(--cor-fundo);
+            color: var(--cor-texto);
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* HEADER */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--cor-borda);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .logo i {
+            color: var(--cor-admin);
+            font-size: 28px;
+        }
+
+        .logo-text {
+            background: linear-gradient(90deg, var(--cor-admin), #2d8fff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .badge-admin {
+            background: var(--cor-admin);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .btn-voltar {
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            padding: 10px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-voltar:hover {
+            border-color: var(--cor-admin);
+            color: var(--cor-admin);
+            transform: translateY(-2px);
+        }
+
+        /* CARDS DE ESTATÍSTICAS */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 15px 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--cor-admin);
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--cor-primaria);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--cor-texto-secundario);
+            margin-top: 5px;
+        }
+
+        /* BARRA DE FILTROS */
+        .filtros-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+        }
+
+        .filtros-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filtro-select {
+            padding: 8px 12px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            color: var(--cor-texto);
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-input {
+            padding: 8px 12px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            color: var(--cor-texto);
+            width: 250px;
+        }
+
+        .btn-search, .btn-clear, .btn-exportar {
+            padding: 8px 15px;
+            border: none;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-search {
+            background: var(--cor-admin);
+            color: white;
+        }
+
+        .btn-clear {
+            background: var(--cor-alerta);
+            color: white;
+        }
+
+        .btn-exportar {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .btn-search:hover, .btn-clear:hover, .btn-exportar:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+
+        /* TABELA */
+        .tabela-container {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+
+        th {
+            background: rgba(26, 95, 180, 0.1);
+            color: var(--cor-admin);
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        tr:hover {
+            background: rgba(26, 95, 180, 0.05);
+        }
+
+        /* STATUS BADGES */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-completed {
+            background: rgba(46, 194, 126, 0.2);
+            color: #2ec27e;
+        }
+
+        .status-processing {
+            background: rgba(52, 152, 219, 0.2);
+            color: #3498db;
+        }
+
+        .status-pending, .status-solicitada {
+            background: rgba(243, 156, 18, 0.2);
+            color: #f39c12;
+        }
+
+        .status-rejected {
+            background: rgba(224, 27, 36, 0.2);
+            color: #e01b24;
+        }
+
+        /* BOTÕES DE AÇÃO */
+        .btn-acao {
+            background: transparent;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 5px 8px;
+            margin: 0 2px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-acao:hover {
+            background: rgba(26, 95, 180, 0.2);
+            transform: scale(1.1);
+        }
+
+        .btn-detalhes { color: #3498db; }
+        .btn-invoice { color: #2ecc71; }
+        .btn-invoice.disabled { color: #7f8c8d; cursor: not-allowed; }
+
+        /* PAGINAÇÃO */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+            padding: 15px;
+        }
+
+        .pagination button {
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            padding: 8px 15px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: var(--cor-admin);
+            border-color: var(--cor-admin);
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            width: 90%;
+            max-width: 650px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--cor-borda);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            color: var(--cor-admin);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--cor-texto-secundario);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid var(--cor-borda);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn-modal {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+        }
+
+        .btn-modal-primary {
+            background: var(--cor-admin);
+            color: white;
+        }
+
+        .btn-modal-secondary {
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+        }
+
+        .info-card {
+            background: rgba(26, 95, 180, 0.1);
+            border: 1px solid var(--cor-admin);
+            border-radius: var(--borda-radius-pequeno);
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .info-card p {
+            margin: 5px 0;
+        }
+
+        /* LOADING */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--cor-texto-secundario);
+        }
+
+        .loading i {
+            font-size: 32px;
+            margin-bottom: 10px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* RESPONSIVIDADE */
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .filtros-bar {
+                flex-direction: column;
+            }
+            
+            .filtros-group {
+                width: 100%;
+            }
+            
+            .search-box {
+                width: 100%;
+            }
+            
+            .search-input {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fas fa-university"></i>
+                <span class="logo-text">CAMBIO BANK</span>
+                <span class="badge-admin">ADMIN</span>
+            </div>
+            
+            <h1 class="page-title">TRANSFERÊNCIAS</h1>
+            
+            <button class="btn-voltar" onclick="window.location.href='/admin/dashboard'">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </button>
+        </header>
+
+        <!-- CARDS DE ESTATÍSTICAS -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalTransacoes">0</div>
+                <div class="stat-label">Total de Transações</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalPendentes">0</div>
+                <div class="stat-label">Pendentes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalProcessando">0</div>
+                <div class="stat-label">Processando</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalConcluidas">0</div>
+                <div class="stat-label">Concluídas</div>
+            </div>
+        </div>
+
+        <!-- FILTROS -->
+        <div class="filtros-bar">
+            <div class="filtros-group">
+                <select id="filtroStatus" class="filtro-select">
+                    <option value="todos">Todos os status</option>
+                    <option value="solicitada">Pendentes</option>
+                    <option value="pending">Pendentes</option>
+                    <option value="processing">Processando</option>
+                    <option value="completed">Concluídas</option>
+                    <option value="rejected">Recusadas</option>
+                </select>
+                <select id="filtroCliente" class="filtro-select">
+                    <option value="">Todos os clientes</option>
+                </select>
+                <select id="filtroPeriodo" class="filtro-select">
+                    <option value="0">Todo período</option>
+                    <option value="7">Últimos 7 dias</option>
+                    <option value="30">Últimos 30 dias</option>
+                    <option value="90">Últimos 90 dias</option>
+                </select>
+            </div>
+            <div class="search-box">
+                <input type="text" id="searchInput" class="search-input" placeholder="🔍 Buscar por ID, cliente, beneficiário...">
+                <button class="btn-search" onclick="aplicarFiltros()">
+                    <i class="fas fa-search"></i>
+                </button>
+                <button class="btn-clear" onclick="limparFiltros()">
+                    <i class="fas fa-eraser"></i>
+                </button>
+                <button class="btn-exportar" onclick="exportarCSV()">
+                    <i class="fas fa-file-excel"></i> Exportar
+                </button>
+            </div>
+        </div>
+
+        <!-- TABELA -->
+        <div class="tabela-container">
+            <table id="tabelaTransferencias">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Data</th>
+                        <th>Cliente</th>
+                        <th>Tipo</th>
+                        <th>Valor Original</th>
+                        <th>Valor (USD)</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="transferenciasBody">
+                    <tr>
+                        <td colspan="8" class="loading">
+                            <i class="fas fa-spinner fa-spin"></i> Carregando transferências...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PAGINAÇÃO -->
+        <div class="pagination" id="pagination">
+            <button onclick="paginaAnterior()" id="btnAnterior" disabled>
+                <i class="fas fa-chevron-left"></i> Anterior
+            </button>
+            <span id="paginaInfo">Página 1 de 1</span>
+            <button onclick="proximaPagina()" id="btnProximo" disabled>
+                Próximo <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL DETALHES -->
+    <div id="modalDetalhes" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-info-circle"></i> Detalhes da Transferência</h3>
+                <button class="modal-close" onclick="fecharModalDetalhes()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalDetalhesBody">
+                <!-- Conteúdo dinâmico -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal btn-modal-secondary" onclick="fecharModalDetalhes()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/theme.js"></script>
+    <script>
+        // ============================================
+        // VARIÁVEIS GLOBAIS
+        // ============================================
+        let todasTransferencias = [];
+        let transferenciasFiltradas = [];
+        let clientes = [];
+        let paginaAtual = 1;
+        let itensPorPagina = 20;
+        let cotacoesCache = {};
+        let cotacoesAtualizadas = null;
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Tela Transferências carregada');
+            carregarClientes();
+            carregarTransferencias();
+            
+            // Eventos de filtro
+            document.getElementById('filtroStatus').addEventListener('change', aplicarFiltros);
+            document.getElementById('filtroCliente').addEventListener('change', aplicarFiltros);
+            document.getElementById('filtroPeriodo').addEventListener('change', aplicarFiltros);
+            document.getElementById('searchInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') aplicarFiltros();
+            });
+        });
+
+        // ============================================
+        // CARREGAR DADOS
+        // ============================================
+        async function carregarClientes() {
+            try {
+                const response = await fetch('/api/admin/clientes');
+                const data = await response.json();
+                if (data.success) {
+                    clientes = data.clientes;
+                    const select = document.getElementById('filtroCliente');
+                    select.innerHTML = '<option value="">Todos os clientes</option>';
+                    clientes.forEach(c => {
+                        const option = document.createElement('option');
+                        option.value = c.username;
+                        option.textContent = `${c.nome} (${c.username})`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar clientes:', error);
+            }
+        }
+
+        async function carregarTransferencias() {
+            try {
+                const response = await fetch('/api/admin/transferencias');
+                const data = await response.json();
+                
+                if (data.success) {
+                    todasTransferencias = data.transferencias;
+                    
+                    // Buscar cotações atualizadas
+                    await carregarCotacoes();
+                    
+                    // Converter valores para USD
+                    for (const t of todasTransferencias) {
+                        t.valor_usd = await converterParaUSD(t.valor, t.moeda, t.data);
+                    }
+                    
+                    aplicarFiltros();
+                } else {
+                    console.error('Erro:', data.message);
+                    document.getElementById('transferenciasBody').innerHTML = `<table><td colspan="8" class="loading">❌ ${data.message}</td></tr>`;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar transferências:', error);
+                document.getElementById('transferenciasBody').innerHTML = '<tr><td colspan="8" class="loading">❌ Erro ao carregar transferências</td></tr>';
+            }
+        }
+
+        // ============================================
+        // COTAÇÕES API
+        // ============================================
+        async function carregarCotacoes() {
+            try {
+                const response = await fetch('/api/cotacoes/atualizadas');
+                const data = await response.json();
+                if (data.success) {
+                    cotacoesCache = data.cotacoes;
+                    cotacoesAtualizadas = new Date();
+                    console.log('✅ Cotações atualizadas:', cotacoesCache);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar cotações:', error);
+                // Fallback: taxas padrão
+                cotacoesCache = { USD_BRL: 5.20, USD_EUR: 0.92, USD_GBP: 0.79 };
+            }
+        }
+
+        async function converterParaUSD(valor, moeda, dataTransacao) {
+            if (moeda === 'USD') return valor;
+            
+            // Tentar buscar cotação da data da transação (se disponível)
+            // Por enquanto, usar cotação atual
+            const par = `USD_${moeda}`;
+            let taxa = cotacoesCache[par];
+            
+            if (!taxa) {
+                // Tentar par inverso
+                const parInverso = `${moeda}_USD`;
+                const taxaInversa = cotacoesCache[parInverso];
+                if (taxaInversa) {
+                    taxa = 1 / taxaInversa;
+                } else {
+                    // Fallback
+                    const fallbacks = { BRL: 5.20, EUR: 0.92, GBP: 0.79 };
+                    taxa = fallbacks[moeda] || 1;
+                }
+            }
+            
+            return valor / taxa;
+        }
+
+        // ============================================
+        // FILTROS
+        // ============================================
+        function aplicarFiltros() {
+            const statusFiltro = document.getElementById('filtroStatus').value;
+            const clienteFiltro = document.getElementById('filtroCliente').value;
+            const periodoFiltro = parseInt(document.getElementById('filtroPeriodo').value);
+            const buscaTexto = document.getElementById('searchInput').value.toLowerCase();
+            
+            let dataLimite = null;
+            if (periodoFiltro > 0) {
+                dataLimite = new Date();
+                dataLimite.setDate(dataLimite.getDate() - periodoFiltro);
+            }
+            
+            transferenciasFiltradas = todasTransferencias.filter(t => {
+                // Filtro status
+                if (statusFiltro !== 'todos') {
+                    if (statusFiltro === 'solicitada' && t.status !== 'solicitada') return false;
+                    if (statusFiltro === 'pending' && t.status !== 'pending') return false;
+                    if (statusFiltro === 'processing' && t.status !== 'processing') return false;
+                    if (statusFiltro === 'completed' && t.status !== 'completed') return false;
+                    if (statusFiltro === 'rejected' && t.status !== 'rejected') return false;
+                }
+                
+                // Filtro cliente
+                if (clienteFiltro && t.cliente !== clienteFiltro && t.usuario !== clienteFiltro) return false;
+                
+                // Filtro período
+                if (dataLimite && t.data) {
+                    const dataTransacao = new Date(t.data);
+                    if (dataTransacao < dataLimite) return false;
+                }
+                
+                // Filtro busca
+                if (buscaTexto) {
+                    const camposBusca = [
+                        t.id, t.beneficiario, t.cliente, t.usuario, t.descricao
+                    ].join(' ').toLowerCase();
+                    if (!camposBusca.includes(buscaTexto)) return false;
+                }
+                
+                return true;
+            });
+            
+            atualizarEstatisticas();
+            paginaAtual = 1;
+            renderizarTabela();
+        }
+
+        function limparFiltros() {
+            document.getElementById('filtroStatus').value = 'todos';
+            document.getElementById('filtroCliente').value = '';
+            document.getElementById('filtroPeriodo').value = '0';
+            document.getElementById('searchInput').value = '';
+            aplicarFiltros();
+        }
+
+        function atualizarEstatisticas() {
+            const total = transferenciasFiltradas.length;
+            const pendentes = transferenciasFiltradas.filter(t => t.status === 'solicitada' || t.status === 'pending').length;
+            const processando = transferenciasFiltradas.filter(t => t.status === 'processing').length;
+            const concluidas = transferenciasFiltradas.filter(t => t.status === 'completed').length;
+            
+            document.getElementById('totalTransacoes').textContent = total;
+            document.getElementById('totalPendentes').textContent = pendentes;
+            document.getElementById('totalProcessando').textContent = processando;
+            document.getElementById('totalConcluidas').textContent = concluidas;
+        }
+
+        // ============================================
+        // RENDERIZAR TABELA
+        // ============================================
+        function renderizarTabela() {
+            const tbody = document.getElementById('transferenciasBody');
+            const inicio = (paginaAtual - 1) * itensPorPagina;
+            const fim = inicio + itensPorPagina;
+            const paginaTransacoes = transferenciasFiltradas.slice(inicio, fim);
+            
+            if (paginaTransacoes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="loading">📭 Nenhuma transferência encontrada</td></tr>';
+                atualizarPaginacao();
+                return;
+            }
+            
+            tbody.innerHTML = '';
+            
+            for (const t of paginaTransacoes) {
+                const row = tbody.insertRow();
+                
+                // ID
+                row.insertCell(0).innerHTML = `<strong>${escapeHtml(t.id)}</strong>`;
+                
+                // Data
+                row.insertCell(1).textContent = formatarData(t.data);
+                
+                // Cliente
+                const clienteNome = t.cliente_nome || t.cliente || t.usuario || '-';
+                row.insertCell(2).textContent = escapeHtml(clienteNome);
+                
+                // Tipo
+                const tipoDisplay = t.tipo === 'transferencia_internacional' ? 'Internacional' : 
+                                   t.tipo === 'cambio' ? 'Câmbio' :
+                                   t.tipo === 'ajuste_admin' ? 'Ajuste' : 'Interna';
+                row.insertCell(3).textContent = tipoDisplay;
+                
+                // Valor Original
+                const simbolo = obterSimboloMoeda(t.moeda);
+                row.insertCell(4).innerHTML = `${simbolo} ${formatarValor(t.valor)}`;
+                
+                // Valor USD
+                const valorUsd = t.valor_usd || t.valor;
+                row.insertCell(5).innerHTML = `$ ${formatarValor(valorUsd)}`;
+                
+                // Status
+                const statusClass = getStatusClass(t.status);
+                const statusText = getStatusText(t.status);
+                row.insertCell(6).innerHTML = `<span class="status-badge ${statusClass}">${statusText}</span>`;
+                
+                // Ações
+                const temInvoice = t.tem_invoice === true;
+                const acoesCell = row.insertCell(7);
+                acoesCell.innerHTML = `
+                    <button class="btn-acao btn-detalhes" onclick="verDetalhes('${t.id}')" title="Ver detalhes">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn-acao btn-invoice ${!temInvoice ? 'disabled' : ''}" 
+                            onclick="${temInvoice ? `abrirInvoice('${t.id}')` : ''}" 
+                            title="${temInvoice ? 'Ver invoice' : 'Sem invoice'}" 
+                            ${!temInvoice ? 'disabled' : ''}>
+                        <i class="fas fa-file-invoice"></i>
+                    </button>
+                `;
+            }
+            
+            atualizarPaginacao();
+        }
+
+        function getStatusClass(status) {
+            const map = {
+                'completed': 'status-completed',
+                'processing': 'status-processing',
+                'solicitada': 'status-pending',
+                'pending': 'status-pending',
+                'rejected': 'status-rejected'
+            };
+            return map[status] || 'status-pending';
+        }
+
+        function getStatusText(status) {
+            const map = {
+                'completed': 'Concluída',
+                'processing': 'Processando',
+                'solicitada': 'Pendente',
+                'pending': 'Pendente',
+                'rejected': 'Recusada'
+            };
+            return map[status] || status;
+        }
+
+        // ============================================
+        // PAGINAÇÃO
+        // ============================================
+        function atualizarPaginacao() {
+            const totalPaginas = Math.ceil(transferenciasFiltradas.length / itensPorPagina);
+            document.getElementById('paginaInfo').textContent = `Página ${paginaAtual} de ${totalPaginas || 1}`;
+            
+            document.getElementById('btnAnterior').disabled = paginaAtual === 1;
+            document.getElementById('btnProximo').disabled = paginaAtual === totalPaginas || totalPaginas === 0;
+        }
+
+        function paginaAnterior() {
+            if (paginaAtual > 1) {
+                paginaAtual--;
+                renderizarTabela();
+            }
+        }
+
+        function proximaPagina() {
+            const totalPaginas = Math.ceil(transferenciasFiltradas.length / itensPorPagina);
+            if (paginaAtual < totalPaginas) {
+                paginaAtual++;
+                renderizarTabela();
+            }
+        }
+
+        // ============================================
+        // DETALHES E INVOICE
+        // ============================================
+        async function verDetalhes(id) {
+            try {
+                const response = await fetch(`/api/admin/transferencias/${id}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const t = data.transferencia;
+                    const modalBody = document.getElementById('modalDetalhesBody');
+                    const dataFormatada = formatarData(t.data);
+                    const valorFormatado = `${obterSimboloMoeda(t.moeda)} ${formatarValor(t.valor)}`;
+                    const statusClass = getStatusClass(t.status);
+                    const statusText = getStatusText(t.status);
+                    
+                    let html = `
+                        <div class="info-card">
+                            <p><strong>ID:</strong> ${escapeHtml(t.id)}</p>
+                            <p><strong>Status:</strong> <span class="status-badge ${statusClass}">${statusText}</span></p>
+                            <p><strong>Tipo:</strong> ${t.tipo === 'transferencia_internacional' ? 'Internacional' : t.tipo === 'cambio' ? 'Câmbio' : 'Interna'}</p>
+                            <p><strong>Data:</strong> ${dataFormatada}</p>
+                        </div>
+                        <div class="info-card">
+                            <p><strong>Valor:</strong> ${valorFormatado}</p>
+                            <p><strong>Moeda:</strong> ${t.moeda}</p>
+                            <p><strong>Cliente:</strong> ${escapeHtml(t.cliente_nome || t.cliente || t.usuario || '-')}</p>
+                        </div>
+                    `;
+                    
+                    if (t.tipo === 'transferencia_internacional') {
+                        html += `
+                            <div class="info-card">
+                                <p><strong>Beneficiário:</strong> ${escapeHtml(t.beneficiario || '-')}</p>
+                                <p><strong>Banco:</strong> ${escapeHtml(t.nome_banco || '-')}</p>
+                                <p><strong>SWIFT:</strong> ${escapeHtml(t.codigo_swift || '-')}</p>
+                                <p><strong>IBAN:</strong> ${escapeHtml(t.iban_account || '-')}</p>
+                                <p><strong>Finalidade:</strong> ${escapeHtml(t.finalidade || '-')}</p>
+                            </div>
+                        `;
+                    } else if (t.tipo === 'cambio') {
+                        html += `
+                            <div class="info-card">
+                                <p><strong>Par de Moedas:</strong> ${t.par_moedas || '-'}</p>
+                                <p><strong>Valor Origem:</strong> ${formatarValor(t.valor_origem)} ${t.moeda_origem || t.moeda}</p>
+                                <p><strong>Valor Destino:</strong> ${formatarValor(t.valor_destino)} ${t.moeda_destino || t.moeda}</p>
+                                <p><strong>Cotação:</strong> ${t.cotacao || '-'}</p>
+                            </div>
+                        `;
+                    }
+                    
+                    if (t.motivo_recusa) {
+                        html += `
+                            <div class="info-card" style="border-color: var(--cor-perigo);">
+                                <p><strong>Motivo da Recusa:</strong> ${escapeHtml(t.motivo_recusa)}</p>
+                            </div>
+                        `;
+                    }
+                    
+                    modalBody.innerHTML = html;
+                    document.getElementById('modalDetalhes').classList.add('active');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao carregar detalhes!');
+            }
+        }
+
+        async function abrirInvoice(id) {
+            try {
+                const response = await fetch(`/api/admin/transferencias/${id}/invoice`);
+                const data = await response.json();
+                
+                if (data.success && data.url) {
+                    window.open(data.url, '_blank');
+                } else {
+                    alert('Invoice não encontrada!');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao abrir invoice!');
+            }
+        }
+
+        function fecharModalDetalhes() {
+            document.getElementById('modalDetalhes').classList.remove('active');
+        }
+
+        // ============================================
+        // EXPORTAÇÃO
+        // ============================================
+        function exportarCSV() {
+            const dados = transferenciasFiltradas.map(t => ({
+                'ID': t.id,
+                'Data': formatarData(t.data),
+                'Cliente': t.cliente_nome || t.cliente || t.usuario,
+                'Tipo': t.tipo,
+                'Status': getStatusText(t.status),
+                'Valor Original': `${t.valor} ${t.moeda}`,
+                'Valor (USD)': t.valor_usd || t.valor
+            }));
+            
+            const csv = convertToCSV(dados);
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.setAttribute('download', `transferencias_${new Date().toISOString().slice(0, 19)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            alert('✅ CSV exportado com sucesso!');
+        }
+
+        function convertToCSV(data) {
+            if (!data || data.length === 0) return '';
+            const headers = Object.keys(data[0]);
+            const rows = data.map(obj => headers.map(header => JSON.stringify(obj[header] || '')).join(';'));
+            return [headers.join(';'), ...rows].join('\n');
+        }
+
+        // ============================================
+        // FUNÇÕES AUXILIARES
+        // ============================================
+        function formatarValor(valor) {
+            if (valor === undefined || valor === null) return '0,00';
+            return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function formatarData(dataStr) {
+            if (!dataStr) return '-';
+            try {
+                const data = new Date(dataStr);
+                return data.toLocaleDateString('pt-BR');
+            } catch {
+                return dataStr.split('T')[0].split('-').reverse().join('/');
+            }
+        }
+
+        function obterSimboloMoeda(moeda) {
+            const simbolos = { USD: '$', EUR: '€', GBP: '£', BRL: 'R$' };
+            return simbolos[moeda] || moeda;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

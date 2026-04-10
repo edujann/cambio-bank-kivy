@@ -11775,6 +11775,341 @@ def api_admin_cadastrar_cliente():
         return jsonify({"success": False, "message": str(e)}), 500
 
 
+# ============================================
+# ADMIN - TRANSFERÊNCIAS
+# ============================================
+
+@app.route('/admin/transferencias')
+def admin_transferencias():
+    """Tela de gerenciamento de transferências"""
+    usuario = session.get('username')
+    
+    if not usuario:
+        return redirect('/login')
+    
+    # Verificar se é admin
+    if supabase:
+        user_check = supabase.table('usuarios')\
+            .select('tipo')\
+            .eq('username', usuario)\
+            .single()\
+            .execute()
+        
+        if not user_check.data or user_check.data.get('tipo') != 'admin':
+            return redirect('/dashboard')
+    
+    # Buscar dados do usuário
+    nome = usuario.upper()
+    email = f'{usuario}@exemplo.com'
+    
+    try:
+        if supabase:
+            user_response = supabase.table('usuarios')\
+                .select('nome, email')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if user_response.data:
+                if user_response.data.get('nome'):
+                    nome = user_response.data['nome']
+                if user_response.data.get('email'):
+                    email = user_response.data['email']
+    except:
+        pass
+    
+    return render_template('admin_transferencias.html',
+                          usuario=usuario,
+                          nome=nome,
+                          email=email)
+
+
+@app.route('/api/admin/transferencias', methods=['GET'])
+def api_admin_transferencias():
+    """Retorna todas as transferências do sistema"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Buscar todas as transferências
+        response = supabase.table('transferencias')\
+            .select('*')\
+            .order('created_at', desc=True)\
+            .execute()
+        
+        transferencias = []
+        for t in (response.data or []):
+            # Buscar nome do cliente
+            cliente_nome = None
+            cliente_username = t.get('cliente') or t.get('usuario') or t.get('solicitado_por')
+            
+            if cliente_username:
+                cliente_response = supabase.table('usuarios')\
+                    .select('nome')\
+                    .eq('username', cliente_username)\
+                    .single()\
+                    .execute()
+                
+                if cliente_response.data:
+                    cliente_nome = cliente_response.data.get('nome')
+            
+            # Verificar se tem invoice
+            invoice_info = t.get('invoice_info')
+            tem_invoice = invoice_info is not None and isinstance(invoice_info, dict) and invoice_info.get('caminho_arquivo')
+            
+            transferencias.append({
+                'id': t.get('id'),
+                'tipo': t.get('tipo'),
+                'status': t.get('status'),
+                'data': t.get('created_at') or t.get('data'),
+                'moeda': t.get('moeda', 'USD'),
+                'valor': float(t.get('valor', 0)),
+                'cliente': cliente_username,
+                'cliente_nome': cliente_nome,
+                'usuario': t.get('usuario'),
+                'beneficiario': t.get('beneficiario'),
+                'descricao': t.get('descricao'),
+                'tem_invoice': tem_invoice,
+                'motivo_recusa': t.get('motivo_recusa')
+            })
+        
+        return jsonify({
+            "success": True,
+            "transferencias": transferencias
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar transferências: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/transferencias/<transferencia_id>', methods=['GET'])
+def api_admin_transferencia_detalhes(transferencia_id):
+    """Retorna detalhes completos de uma transferência"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Buscar transferência
+        response = supabase.table('transferencias')\
+            .select('*')\
+            .eq('id', transferencia_id)\
+            .single()\
+            .execute()
+        
+        if not response.data:
+            return jsonify({"success": False, "message": "Transferência não encontrada"}), 404
+        
+        t = response.data
+        
+        # Buscar nome do cliente
+        cliente_nome = None
+        cliente_username = t.get('cliente') or t.get('usuario') or t.get('solicitado_por')
+        
+        if cliente_username:
+            cliente_response = supabase.table('usuarios')\
+                .select('nome')\
+                .eq('username', cliente_username)\
+                .single()\
+                .execute()
+            
+            if cliente_response.data:
+                cliente_nome = cliente_response.data.get('nome')
+        
+        # Processar invoice_info
+        invoice_info = t.get('invoice_info')
+        if invoice_info and isinstance(invoice_info, str):
+            try:
+                import json
+                invoice_info = json.loads(invoice_info)
+            except:
+                invoice_info = None
+        
+        return jsonify({
+            "success": True,
+            "transferencia": {
+                'id': t.get('id'),
+                'tipo': t.get('tipo'),
+                'status': t.get('status'),
+                'data': t.get('created_at') or t.get('data'),
+                'moeda': t.get('moeda', 'USD'),
+                'valor': float(t.get('valor', 0)),
+                'cliente': cliente_username,
+                'cliente_nome': cliente_nome,
+                'usuario': t.get('usuario'),
+                'beneficiario': t.get('beneficiario'),
+                'nome_banco': t.get('nome_banco'),
+                'codigo_swift': t.get('codigo_swift'),
+                'iban_account': t.get('iban_account'),
+                'finalidade': t.get('finalidade'),
+                'descricao': t.get('descricao'),
+                'motivo_recusa': t.get('motivo_recusa'),
+                'par_moedas': t.get('par_moedas'),
+                'valor_origem': float(t.get('valor_origem', 0)) if t.get('valor_origem') else None,
+                'valor_destino': float(t.get('valor_destino', 0)) if t.get('valor_destino') else None,
+                'cotacao': t.get('cotacao'),
+                'moeda_origem': t.get('moeda_origem'),
+                'moeda_destino': t.get('moeda_destino'),
+                'tem_invoice': invoice_info is not None and invoice_info.get('caminho_arquivo'),
+                'invoice_info': invoice_info
+            }
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar detalhes da transferência: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/transferencias/<transferencia_id>/invoice', methods=['GET'])
+def api_admin_transferencia_invoice(transferencia_id):
+    """Download da invoice de uma transferência"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Buscar transferência
+        response = supabase.table('transferencias')\
+            .select('invoice_info')\
+            .eq('id', transferencia_id)\
+            .single()\
+            .execute()
+        
+        if not response.data:
+            return jsonify({"success": False, "message": "Transferência não encontrada"}), 404
+        
+        invoice_info = response.data.get('invoice_info')
+        
+        if isinstance(invoice_info, str):
+            try:
+                import json
+                invoice_info = json.loads(invoice_info)
+            except:
+                invoice_info = None
+        
+        if not invoice_info or not invoice_info.get('caminho_arquivo'):
+            return jsonify({"success": False, "message": "Invoice não encontrada"}), 404
+        
+        caminho_arquivo = invoice_info['caminho_arquivo']
+        
+        # Buscar arquivo no storage
+        file_data = supabase.storage.from_("invoices").download(caminho_arquivo)
+        
+        if not file_data:
+            return jsonify({"success": False, "message": "Arquivo não encontrado"}), 404
+        
+        # Determinar content type
+        nome_arquivo = caminho_arquivo.split('/')[-1]
+        extensao = nome_arquivo.lower().split('.')[-1] if '.' in nome_arquivo else ''
+        
+        mime_types = {
+            'pdf': 'application/pdf',
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'png': 'image/png'
+        }
+        
+        content_type = mime_types.get(extensao, 'application/octet-stream')
+        
+        from flask import Response
+        return Response(
+            file_data,
+            content_type=content_type,
+            headers={
+                'Content-Disposition': f'inline; filename="{nome_arquivo}"',
+                'Cache-Control': 'no-cache'
+            }
+        )
+        
+    except Exception as e:
+        print(f"❌ Erro ao baixar invoice: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/cotacoes/atualizadas', methods=['GET'])
+def api_cotacoes_atualizadas():
+    """Retorna cotações atualizadas da API para conversão de moedas"""
+    try:
+        import requests
+        
+        # Moedas que queremos
+        moedas = ['USD', 'BRL', 'EUR', 'GBP']
+        
+        cotacoes = {}
+        
+        # Buscar cotações da AwesomeAPI
+        for moeda in moedas:
+            if moeda == 'USD':
+                cotacoes['USD_USD'] = 1.0
+                continue
+            
+            try:
+                url = f"https://economia.awesomeapi.com.br/json/last/USD-{moeda}"
+                response = requests.get(url, timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    chave = f"USD{moeda}"
+                    if chave in data:
+                        cotacao = float(data[chave]['bid'])
+                        cotacoes[f"USD_{moeda}"] = cotacao
+                        cotacoes[f"{moeda}_USD"] = 1 / cotacao if cotacao > 0 else 0
+                        print(f"✅ Cotação USD/{moeda}: {cotacao}")
+                    else:
+                        # Tentar o inverso
+                        url_inv = f"https://economia.awesomeapi.com.br/json/last/{moeda}-USD"
+                        response_inv = requests.get(url_inv, timeout=10)
+                        if response_inv.status_code == 200:
+                            data_inv = response_inv.json()
+                            chave_inv = f"{moeda}USD"
+                            if chave_inv in data_inv:
+                                cotacao_inv = float(data_inv[chave_inv]['bid'])
+                                cotacoes[f"{moeda}_USD"] = cotacao_inv
+                                cotacoes[f"USD_{moeda}"] = 1 / cotacao_inv if cotacao_inv > 0 else 0
+                                print(f"✅ Cotação {moeda}/USD: {cotacao_inv}")
+                else:
+                    print(f"⚠️ Erro ao buscar cotação USD/{moeda}: {response.status_code}")
+                    
+            except Exception as e:
+                print(f"⚠️ Erro ao buscar cotação para {moeda}: {e}")
+        
+        # Fallback para moedas que não conseguiu buscar
+        if 'USD_BRL' not in cotacoes:
+            cotacoes['USD_BRL'] = 5.20
+            cotacoes['BRL_USD'] = 0.1923
+        if 'USD_EUR' not in cotacoes:
+            cotacoes['USD_EUR'] = 0.92
+            cotacoes['EUR_USD'] = 1.087
+        if 'USD_GBP' not in cotacoes:
+            cotacoes['USD_GBP'] = 0.79
+            cotacoes['GBP_USD'] = 1.266
+        
+        return jsonify({
+            "success": True,
+            "cotacoes": cotacoes,
+            "atualizado_em": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar cotações: {e}")
+        # Retornar fallback
+        return jsonify({
+            "success": True,
+            "cotacoes": {
+                "USD_BRL": 5.20, "BRL_USD": 0.1923,
+                "USD_EUR": 0.92, "EUR_USD": 1.087,
+                "USD_GBP": 0.79, "GBP_USD": 1.266
+            },
+            "atualizado_em": datetime.now().isoformat(),
+            "fallback": True
+        })
+
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
