@@ -18,30 +18,34 @@
 
 /* TEMA CLARO */
 :root[data-theme="light"] {
-    /* FUNDOS - Hierarquia clara */
-    --cor-fundo: #e8ecef;   /* Fundo um pouco mais escuro */
-    --cor-card: #eef2f6;    /* Quase igual ao fundo, mas levemente diferente */
-    --cor-card-hover: #e6eaf0;   /* Hover - um tom mais escuro que o card */
+    /* FUNDOS - Mais escuros que antes */
+    --cor-fundo: #e0e5ec;        /* Fundo principal - cinza azulado mais escuro */
+    --cor-card: #f0f4f9;         /* Cards - cinza azulado claro (não branco puro) */
+    --cor-card-hover: #e8ecf2;    /* Hover dos cards - um tom mais escuro */
     
-    /* RESTO MANTÉM IGUAL... */
-    --cor-borda: #dee2e8;
-    --cor-borda-forte: #d0d5da;
-    --cor-texto: #212529;
-    --cor-texto-secundario: #6c757d;
-    --cor-texto-muted: #adb5bd;
+    /* BORDAS - Mais definidas */
+    --cor-borda: #c5ced8;         /* Bordas - cinza médio */
+    --cor-borda-forte: #b0bac6;   /* Bordas mais evidentes */
     
-    --cor-primaria: #1a5fb4;
-    --cor-admin: #1a5fb4;
-    --cor-sucesso: #28a745;
-    --cor-alerta: #ffc107;
-    --cor-perigo: #dc3545;
-    --cor-info: #17a2b8;
+    /* TEXTOS - Escala legível */
+    --cor-texto: #1a1d24;         /* Texto principal - quase preto azulado */
+    --cor-texto-secundario: #5a6470; /* Texto secundário - cinza médio escuro */
+    --cor-texto-muted: #8a94a0;   /* Texto desabilitado - cinza claro */
     
-    --sombra-suave: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
-    --sombra-media: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
-    --sombra-forte: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+    /* CORES BRAND - Mantendo identidade */
+    --cor-primaria: #1a5fb4;      /* Azul institucional */
+    --cor-admin: #1a5fb4;         /* Azul admin */
+    --cor-sucesso: #2a9d6e;       /* Verde mais sofisticado */
+    --cor-alerta: #e67e22;        /* Laranja */
+    --cor-perigo: #c0392b;        /* Vermelho mais escuro */
+    --cor-info: #2980b9;          /* Azul informativo */
     
+    /* SOMBRAS - Mais perceptíveis */
+    --sombra-suave: 0 2px 4px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05);
+    --sombra-media: 0 6px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.05);
+    --sombra-forte: 0 12px 20px -8px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.08);
+    
+    /* BORDAS ARREDONDADAS */
     --borda-radius: 12px;
     --borda-radius-pequeno: 8px;
 }
-
