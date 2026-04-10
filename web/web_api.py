@@ -10573,6 +10573,191 @@ def api_admin_relatorios_anual():
         return jsonify({"success": False, "message": str(e)}), 500
 
 
+# ============================================
+# ADMIN - CONFIGURAÇÕES
+# ============================================
+
+@app.route('/admin/configuracoes')
+def admin_configuracoes():
+    """Tela de configurações do sistema"""
+    usuario = session.get('username')
+    
+    if not usuario:
+        return redirect('/login')
+    
+    # Verificar se é admin
+    if supabase:
+        user_check = supabase.table('usuarios')\
+            .select('tipo')\
+            .eq('username', usuario)\
+            .single()\
+            .execute()
+        
+        if not user_check.data or user_check.data.get('tipo') != 'admin':
+            return redirect('/dashboard')
+    
+    return render_template('admin_configuracoes.html',
+                          usuario=usuario,
+                          nome=usuario.upper(),
+                          email=f'{usuario}@exemplo.com')
+
+
+@app.route('/api/admin/configuracoes', methods=['GET'])
+def api_admin_configuracoes_get():
+    """Retorna todas as configurações do sistema"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Buscar configurações do Supabase
+        response = supabase.table('configuracoes_sistema').select('*').execute()
+        
+        configuracoes = {}
+        for item in (response.data or []):
+            chave = item.get('chave')
+            valor = item.get('valor')
+            tipo = item.get('tipo')
+            
+            # Converter valor baseado no tipo
+            if tipo == 'numero':
+                try:
+                    valor = float(valor) if '.' in str(valor) else int(valor)
+                except:
+                    pass
+            elif tipo == 'booleano':
+                valor = str(valor).lower() in ['true', '1', 'yes', 'on']
+            elif tipo == 'json':
+                try:
+                    import json
+                    valor = json.loads(valor)
+                except:
+                    pass
+            
+            configuracoes[chave] = valor
+        
+        # Valores padrão se não existirem
+        defaults = {
+            'empresa_nome': 'Cambio Bank',
+            'empresa_email': 'contato@cambiobank.com',
+            'empresa_telefone': '(11) 99999-9999',
+            'empresa_endereco': 'Av. Paulista, 1000 - São Paulo, SP',
+            'fuso_horario': 'America/Sao_Paulo',
+            'formato_data': 'DD/MM/AAAA',
+            'moeda_padrao': 'USD',
+            'senha_tamanho_min': 8,
+            'senha_expiracao': 90,
+            'req_maiuscula': True,
+            'req_minuscula': True,
+            'req_numero': True,
+            'req_especial': True,
+            'tentativas_login': 3,
+            'tempo_inatividade': 30,
+            'dois_fatores': False,
+            'notif_novo_cliente': True,
+            'notif_transferencia': True,
+            'notif_aprovacao': True,
+            'notif_invoice': True,
+            'notif_relatorio': False,
+            'frequencia_relatorio': 'nenhum',
+            'email_relatorios': 'relatorios@cambiobank.com',
+            'taxa_internacional': 2.0,
+            'taxa_cambio': 0.5,
+            'comissao_minima': 10.0,
+            'moeda_comissao': 'USD',
+            'limite_diario': 10000.0,
+            'limite_mensal': 50000.0
+        }
+        
+        # Mesclar com defaults
+        for chave, valor_default in defaults.items():
+            if chave not in configuracoes:
+                configuracoes[chave] = valor_default
+        
+        return jsonify({
+            "success": True,
+            "configuracoes": configuracoes
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar configurações: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/configuracoes', methods=['POST'])
+def api_admin_configuracoes_post():
+    """Salva configurações do sistema"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        dados = request.get_json()
+        categoria = dados.get('categoria')
+        configuracoes = dados.get('dados', {})
+        
+        from datetime import datetime
+        
+        for chave, valor in configuracoes.items():
+            # Determinar tipo
+            if isinstance(valor, bool):
+                tipo = 'booleano'
+                valor_str = str(valor).lower()
+            elif isinstance(valor, (int, float)):
+                tipo = 'numero'
+                valor_str = str(valor)
+            elif isinstance(valor, dict):
+                tipo = 'json'
+                import json
+                valor_str = json.dumps(valor)
+            else:
+                tipo = 'texto'
+                valor_str = str(valor)
+            
+            # Verificar se já existe
+            check = supabase.table('configuracoes_sistema')\
+                .select('id')\
+                .eq('chave', chave)\
+                .execute()
+            
+            if check.data:
+                # Atualizar
+                supabase.table('configuracoes_sistema')\
+                    .update({
+                        'valor': valor_str,
+                        'tipo': tipo,
+                        'updated_at': datetime.now().isoformat(),
+                        'updated_by': usuario
+                    })\
+                    .eq('chave', chave)\
+                    .execute()
+            else:
+                # Inserir
+                supabase.table('configuracoes_sistema')\
+                    .insert({
+                        'chave': chave,
+                        'valor': valor_str,
+                        'tipo': tipo,
+                        'categoria': categoria,
+                        'updated_at': datetime.now().isoformat(),
+                        'updated_by': usuario
+                    })\
+                    .execute()
+        
+        print(f"✅ Configurações de {categoria} salvas por {usuario}")
+        
+        return jsonify({
+            "success": True,
+            "message": f"Configurações de {categoria} salvas com sucesso!"
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao salvar configurações: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'

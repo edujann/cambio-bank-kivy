@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏦 Cambio Bank - Configurações</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* TEMA ESCURO (padrão) */
+        :root {
+            --cor-fundo: #0a0e15;
+            --cor-card: #0d1117;
+            --cor-borda: #1e232e;
+            --cor-texto: #e0e0e0;
+            --cor-texto-secundario: #8b949e;
+            --cor-primaria: #1a5fb4;
+            --cor-admin: #1a5fb4;
+            --cor-sucesso: #2ec27e;
+            --cor-alerta: #f39c12;
+            --cor-perigo: #e01b24;
+            --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.4);
+            --borda-radius: 12px;
+            --borda-radius-pequeno: 8px;
+        }
+
+        /* TEMA CLARO */
+        :root[data-theme="light"] {
+            --cor-fundo: #f5f5f5;
+            --cor-card: #ffffff;
+            --cor-borda: #e0e0e0;
+            --cor-texto: #1a1a1a;
+            --cor-texto-secundario: #666666;
+            --cor-primaria: #1a5fb4;
+            --cor-admin: #1a5fb4;
+            --cor-sucesso: #2ec27e;
+            --cor-alerta: #f39c12;
+            --cor-perigo: #e01b24;
+            --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            background: var(--cor-fundo);
+            color: var(--cor-texto);
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* HEADER */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--cor-borda);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .logo i {
+            color: var(--cor-admin);
+            font-size: 28px;
+        }
+
+        .logo-text {
+            background: linear-gradient(90deg, var(--cor-admin), #2d8fff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .badge-admin {
+            background: var(--cor-admin);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .btn-voltar {
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            padding: 10px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-voltar:hover {
+            border-color: var(--cor-admin);
+            color: var(--cor-admin);
+            transform: translateY(-2px);
+        }
+
+        .btn-theme {
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            padding: 10px 15px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-theme:hover {
+            border-color: var(--cor-admin);
+            transform: translateY(-2px);
+        }
+
+        /* TABS */
+        .tabs-container {
+            margin-bottom: 30px;
+        }
+
+        .tabs-header {
+            display: flex;
+            gap: 5px;
+            border-bottom: 1px solid var(--cor-borda);
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--cor-texto-secundario);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .tab-btn:hover {
+            color: var(--cor-texto);
+            background: rgba(26, 95, 180, 0.1);
+        }
+
+        .tab-btn.active {
+            color: var(--cor-admin);
+            border-bottom: 2px solid var(--cor-admin);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* FORMULÁRIOS */
+        .form-card {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .form-title {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: var(--cor-admin);
+            border-left: 3px solid var(--cor-admin);
+            padding-left: 15px;
+        }
+
+        .form-row {
+            margin-bottom: 20px;
+        }
+
+        .form-row label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--cor-texto-secundario);
+        }
+
+        .form-row label i {
+            margin-right: 8px;
+            color: var(--cor-admin);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            color: var(--cor-texto);
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--cor-admin);
+            box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2);
+        }
+
+        select.form-control {
+            cursor: pointer;
+        }
+
+        .form-row-duas-colunas {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        /* TOGGLE SWITCH */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--cor-borda);
+            transition: 0.4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--cor-sucesso);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        /* BOTÕES */
+        .btn-submit {
+            background: var(--cor-admin);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: var(--borda-radius-pequeno);
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-submit:hover {
+            background: #2d8fff;
+            transform: translateY(-2px);
+            box-shadow: var(--sombra-suave);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        /* PREVIEW TEMA */
+        .preview-tema {
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .preview-tema h4 {
+            margin-bottom: 15px;
+            color: var(--cor-admin);
+        }
+
+        .preview-card {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        /* INFO */
+        .info-conversao {
+            background: rgba(26, 95, 180, 0.1);
+            border: 1px solid var(--cor-admin);
+            border-radius: var(--borda-radius-pequeno);
+            padding: 15px;
+            margin-top: 15px;
+            font-size: 13px;
+        }
+
+        /* RESPONSIVIDADE */
+        @media (max-width: 768px) {
+            .form-row-duas-colunas {
+                grid-template-columns: 1fr;
+            }
+            
+            .tabs-header {
+                flex-direction: column;
+            }
+            
+            .tab-btn {
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fas fa-university"></i>
+                <span class="logo-text">CAMBIO BANK</span>
+                <span class="badge-admin">ADMIN</span>
+            </div>
+            
+            <h1 class="page-title">CONFIGURAÇÕES</h1>
+            
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-theme" id="btnTheme" onclick="toggleTheme()">
+                    <i class="fas fa-sun"></i>
+                </button>
+                <button class="btn-voltar" onclick="window.location.href='/admin/dashboard'">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </button>
+            </div>
+        </header>
+
+        <!-- TABS -->
+        <div class="tabs-container">
+            <div class="tabs-header">
+                <button class="tab-btn active" data-tab="tab-gerais">⚙️ GERAIS</button>
+                <button class="tab-btn" data-tab="tab-seguranca">🔐 SEGURANÇA</button>
+                <button class="tab-btn" data-tab="tab-notificacoes">📧 NOTIFICAÇÕES</button>
+                <button class="tab-btn" data-tab="tab-taxas">💳 TAXAS</button>
+                <button class="tab-btn" data-tab="tab-tema">🎨 TEMA</button>
+            </div>
+
+            <!-- ============================================
+                 ABA 1: GERAIS
+                 ============================================ -->
+            <div id="tab-gerais" class="tab-content active">
+                <div class="form-card">
+                    <h3 class="form-title"><i class="fas fa-building"></i> Informações da Empresa</h3>
+                    
+                    <div class="form-row">
+                        <label><i class="fas fa-tag"></i> Nome da Empresa</label>
+                        <input type="text" id="empresaNome" class="form-control" placeholder="Cambio Bank">
+                    </div>
+                    
+                    <div class="form-row">
+                        <label><i class="fas fa-envelope"></i> Email de Contato</label>
+                        <input type="email" id="empresaEmail" class="form-control" placeholder="contato@cambiobank.com">
+                    </div>
+                    
+                    <div class="form-row">
+                        <label><i class="fas fa-phone"></i> Telefone</label>
+                        <input type="text" id="empresaTelefone" class="form-control" placeholder="(11) 99999-9999">
+                    </div>
+                    
+                    <div class="form-row">
+                        <label><i class="fas fa-map-marker-alt"></i> Endereço</label>
+                        <input type="text" id="empresaEndereco" class="form-control" placeholder="Av. Paulista, 1000 - São Paulo, SP">
+                    </div>
+                </div>
+
+                <div class="form-card">
+                    <h3 class="form-title"><i class="fas fa-globe"></i> Configurações Regionais</h3>
+                    
+                    <div class="form-row-duas-colunas">
+                        <div class="form-row">
+                            <label><i class="fas fa-clock"></i> Fuso Horário</label>
+                            <select id="fusoHorario" class="form-control">
+                                <option value="America/Sao_Paulo">America/Sao_Paulo (Brasília)</option>
+                                <option value="America/New_York">America/New_York (EUA)</option>
+                                <option value="Europe/London">Europe/London (UK)</option>
+                                <option value="Europe/Berlin">Europe/Berlin (Alemanha)</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label><i class="fas fa-calendar-alt"></i> Formato de Data</label>
+                            <select id="formatoData" class="form-control">
+                                <option value="DD/MM/AAAA">DD/MM/AAAA (Brasil)</option>
+                                <option value="MM/DD/AAAA">MM/DD/AAAA (EUA)</option>
+                                <option value="AAAA-MM-DD">AAAA-MM-DD (ISO)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label><i class="fas fa-dollar-sign"></i> Moeda Padrão</label>
+                        <select id="moedaPadrao" class="form-control">
+                            <option value="USD">USD - Dólar Americano</option>
+                            <option value="EUR">EUR - Euro</option>
+                            <option value="GBP">GBP - Libra Esterlina</option>
+                            <option value="BRL">BRL - Real Brasileiro</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn-submit" onclick="salvarConfiguracoesGerais()">
+                        <i class="fas fa-save"></i> Salvar Configurações
+                    </button>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 ABA 2: SEGURANÇA
+                 ============================================ -->
+            <div id="tab-seguranca" class="tab-content">
+                <div class="form-card">
+                    <h3 class="form-title"><i class="fas fa-key"></i> Política de Senhas</h3>
+                    
+                    <div class="form-row-duas-colunas">
+                        <div class="form-row">
+                            <label><i class="fas fa-text-height"></i> Tamanho Mínimo</label>
+                            <input type="number" id="senhaTamanhoMin" class="form-control" value="8" min="4" max="20">
+                        </div>
+                        <div class="form-row">
+                            <label><i class="fas fa-clock"></i> Expiração (dias)</label>
+                            <input type="number" id="senhaExpiracao" class="form-control" value="90" min="0" max="365">
+                            <small style="color: var(--cor-texto-secundario);">0 = nunca expira</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label><i class="fas fa-check-circle"></i> Requisitos de Senha</label>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="checkbox" id="reqMaiuscula" checked> Letra maiúscula
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="checkbox" id="reqMinuscula" checked> Letra minúscula
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="checkbox" id="reqNumero" checked> Número
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="checkbox" id="reqEspecial" checked> Caractere especial (@, !, #, $)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-card">
+                    <h3 class="form-title"><i class="fas fa-shield-alt"></i> Configurações de Sessão</h3>
+                    
+                    <div class="form-row-duas-colunas">
+                        <div class="form-row">
+                            <label><i class="fas fa-sign-in-alt"></i> Tentativas de Login</label>
+                            <input type="number" id="tentativasLogin" class="form-control" value="3" min="1" max="10">
+                            <small>Antes de bloquear temporariamente</small>
+                        </div>
+                        <div class="form-row">
+                            <label><i class="fas fa-hourglass-half"></i> Tempo de Inatividade (min)</label>
+                            <input type="number" id="tempoInatividade" class="form-control" value="30" min="5" max="120">
+                            <small>Logout automático após inatividade</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="doisFatores"> Autenticação de Dois Fatores (2FA)
+                        </label>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn-submit" onclick="salvarConfiguracoesSeguranca()">
+                        <i class="fas fa-save"></i> Salvar Configurações
+                    </button>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 ABA 3: NOTIFICAÇÕES
+                 ============================================ -->
+            <div id="tab-notificacoes" class="tab-content">
+                <div class="form-card">
+                    <h3 class="form-title"><i class="fas fa-envelope"></i> Notificações por Email</h3>
+                    
+                    <div class="form-row">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="notifNovoCliente"> Novo cliente cadastrado
+                        </label>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="notifTransferencia"> Transferência solicitada
+                        </label>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="notifAprovacao"> Transferência aguardando aprovação
+                        </label>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="notifInvoice"> Invoice pendente
+                        </label>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="notifRelatorio"> Relatórios automáticos
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-card">
+                    <h3 class="form-title"><i class="fas fa-chart-line"></i> Relatórios Automáticos</h3>
+                    
+                    <div class="form-row">
+                        <label><i class="fas fa-calendar-week"></i> Frequência</label>
+                        <select id="frequenciaRelatorio" class="form-control">
+                            <option value="diario">Diário</option>
+                            <option value="semanal">Semanal</option>
+                            <option value="mensal">Mensal</option>
+                            <option value="nenhum">Nenhum</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-row">
+                        <label><i class="fas fa-envelope"></i> Email para Relatórios</label>
+                        <input type="email" id="emailRelatorios" class="form-control" placeholder="relatorios@cambiobank.com">
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn-submit" onclick="salvarConfiguracoesNotificacoes()">
+                        <i class="fas fa-save"></i> Salvar Configurações
+                    </button>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 ABA 4: TAXAS
+                 ============================================ -->
+            <div id="tab-taxas" class="tab-content">
+                <div class="form-card">
+                    <h3 class="form-title"><i class="fas fa-percent"></i> Taxas e Comissões</h3>
+                    
+                    <div class="form-row-duas-colunas">
+                        <div class="form-row">
+                            <label><i class="fas fa-globe"></i> Transferência Internacional (%)</label>
+                            <input type="number" id="taxaInternacional" class="form-control" value="2.0" step="0.1" min="0">
+                        </div>
+                        <div class="form-row">
+                            <label><i class="fas fa-exchange-alt"></i> Câmbio (Spread) (%)</label>
+                            <input type="number" id="taxaCambio" class="form-control" value="0.5" step="0.1" min="0">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row-duas-colunas">
+                        <div class="form-row">
+                            <label><i class="fas fa-money-bill-wave"></i> Comissão Mínima</label>
+                            <input type="number" id="comissaoMinima" class="form-control" value="10.00" step="0.01" min="0">
+                        </div>
+                        <div class="form-row">
+                            <label><i class="fas fa-dollar-sign"></i> Moeda da Comissão</label>
+                            <select id="moedaComissao" class="form-control">
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                                <option value="GBP">GBP</option>
+                                <option value="BRL">BRL</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="info-conversao">
+                        <i class="fas fa-info-circle"></i> As taxas de transferência internacional são aplicadas sobre o valor da transação.
+                        O spread de câmbio é aplicado sobre a cotação real da moeda.
+                    </div>
+                </div>
+
+                <div class="form-card">
+                    <h3 class="form-title"><i class="fas fa-chart-line"></i> Limites Operacionais</h3>
+                    
+                    <div class="form-row-duas-colunas">
+                        <div class="form-row">
+                            <label><i class="fas fa-calendar-day"></i> Limite Diário</label>
+                            <input type="number" id="limiteDiario" class="form-control" value="10000" step="1000" min="0">
+                        </div>
+                        <div class="form-row">
+                            <label><i class="fas fa-calendar-alt"></i> Limite Mensal</label>
+                            <input type="number" id="limiteMensal" class="form-control" value="50000" step="5000" min="0">
+                        </div>
+                    </div>
+                    
+                    <div class="info-conversao">
+                        <i class="fas fa-info-circle"></i> Os limites podem ser ajustados individualmente por cliente na tela de gerenciamento.
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn-submit" onclick="salvarConfiguracoesTaxas()">
+                        <i class="fas fa-save"></i> Salvar Configurações
+                    </button>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 ABA 5: TEMA
+                 ============================================ -->
+            <div id="tab-tema" class="tab-content">
+                <div class="form-card">
+                    <h3 class="form-title"><i class="fas fa-palette"></i> Aparência</h3>
+                    
+                    <div class="form-row">
+                        <label><i class="fas fa-moon"></i> Tema do Sistema</label>
+                        <div class="toggle-group" style="display: flex; gap: 15px;">
+                            <button id="btnTemaEscuro" class="toggle-btn" onclick="setThemePreview('dark')" style="flex: 0 0 auto; padding: 10px 30px;">
+                                <i class="fas fa-moon"></i> Escuro
+                            </button>
+                            <button id="btnTemaClaro" class="toggle-btn" onclick="setThemePreview('light')" style="flex: 0 0 auto; padding: 10px 30px;">
+                                <i class="fas fa-sun"></i> Claro
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="preview-tema" id="previewTema">
+                        <h4><i class="fas fa-eye"></i> Pré-visualização</h4>
+                        <div class="preview-card">
+                            <strong>Card de exemplo</strong>
+                            <p style="margin-top: 5px;">Este é um exemplo de como os cards aparecerão com o tema selecionado.</p>
+                            <button class="btn-submit" style="margin-top: 10px; padding: 8px 16px; font-size: 12px;">Botão Exemplo</button>
+                        </div>
+                    </div>
+                    
+                    <div class="info-conversao">
+                        <i class="fas fa-info-circle"></i> O tema será aplicado em todas as telas do sistema e será salvo no seu navegador.
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn-submit" onclick="aplicarTema()">
+                        <i class="fas fa-check"></i> Aplicar Tema
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // TEMA GLOBAL
+        // ============================================
+        function toggleTheme() {
+            const root = document.documentElement;
+            const currentTheme = root.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            
+            root.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            // Atualizar ícone do botão
+            const btnIcon = document.querySelector('#btnTheme i');
+            if (btnIcon) {
+                btnIcon.className = newTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+            }
+            
+            // Atualizar preview se estiver na aba de tema
+            atualizarPreviewTema();
+        }
+
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            
+            const btnIcon = document.querySelector('#btnTheme i');
+            if (btnIcon) {
+                btnIcon.className = savedTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+            }
+        }
+
+        function setThemePreview(theme) {
+            const root = document.documentElement;
+            root.setAttribute('data-theme', theme);
+            
+            // Atualizar estilo dos botões de tema
+            const btnEscuro = document.getElementById('btnTemaEscuro');
+            const btnClaro = document.getElementById('btnTemaClaro');
+            
+            if (theme === 'dark') {
+                btnEscuro.classList.add('active');
+                btnClaro.classList.remove('active');
+            } else {
+                btnEscuro.classList.remove('active');
+                btnClaro.classList.add('active');
+            }
+        }
+
+        function aplicarTema() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            localStorage.setItem('theme', currentTheme);
+            
+            // Atualizar ícone do botão no header
+            const btnIcon = document.querySelector('#btnTheme i');
+            if (btnIcon) {
+                btnIcon.className = currentTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+            }
+            
+            alert('✅ Tema aplicado com sucesso!');
+        }
+
+        function atualizarPreviewTema() {
+            const previewDiv = document.getElementById('previewTema');
+            if (previewDiv) {
+                // Recriar o preview para aplicar as novas cores
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                previewDiv.innerHTML = `
+                    <h4><i class="fas fa-eye"></i> Pré-visualização (Tema ${currentTheme === 'dark' ? 'Escuro' : 'Claro'})</h4>
+                    <div class="preview-card">
+                        <strong>Card de exemplo</strong>
+                        <p style="margin-top: 5px;">Este é um exemplo de como os cards aparecerão com o tema selecionado.</p>
+                        <button class="btn-submit" style="margin-top: 10px; padding: 8px 16px; font-size: 12px;">Botão Exemplo</button>
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Tela de Configurações carregada');
+            
+            // Carregar tema
+            loadTheme();
+            
+            // Configurar TABS
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.getElementById(btn.dataset.tab).classList.add('active');
+                });
+            });
+            
+            // Carregar configurações salvas
+            carregarConfiguracoes();
+        });
+
+        // ============================================
+        // CARREGAR CONFIGURAÇÕES
+        // ============================================
+        async function carregarConfiguracoes() {
+            try {
+                const response = await fetch('/api/admin/configuracoes');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const config = data.configuracoes;
+                    
+                    // Gerais
+                    if (config.empresa_nome) document.getElementById('empresaNome').value = config.empresa_nome;
+                    if (config.empresa_email) document.getElementById('empresaEmail').value = config.empresa_email;
+                    if (config.empresa_telefone) document.getElementById('empresaTelefone').value = config.empresa_telefone;
+                    if (config.empresa_endereco) document.getElementById('empresaEndereco').value = config.empresa_endereco;
+                    if (config.fuso_horario) document.getElementById('fusoHorario').value = config.fuso_horario;
+                    if (config.formato_data) document.getElementById('formatoData').value = config.formato_data;
+                    if (config.moeda_padrao) document.getElementById('moedaPadrao').value = config.moeda_padrao;
+                    
+                    // Segurança
+                    if (config.senha_tamanho_min) document.getElementById('senhaTamanhoMin').value = config.senha_tamanho_min;
+                    if (config.senha_expiracao) document.getElementById('senhaExpiracao').value = config.senha_expiracao;
+                    if (config.tentativas_login) document.getElementById('tentativasLogin').value = config.tentativas_login;
+                    if (config.tempo_inatividade) document.getElementById('tempoInatividade').value = config.tempo_inatividade;
+                    if (config.req_maiuscula) document.getElementById('reqMaiuscula').checked = config.req_maiuscula;
+                    if (config.req_minuscula) document.getElementById('reqMinuscula').checked = config.req_minuscula;
+                    if (config.req_numero) document.getElementById('reqNumero').checked = config.req_numero;
+                    if (config.req_especial) document.getElementById('reqEspecial').checked = config.req_especial;
+                    if (config.dois_fatores) document.getElementById('doisFatores').checked = config.dois_fatores;
+                    
+                    // Notificações
+                    if (config.notif_novo_cliente) document.getElementById('notifNovoCliente').checked = config.notif_novo_cliente;
+                    if (config.notif_transferencia) document.getElementById('notifTransferencia').checked = config.notif_transferencia;
+                    if (config.notif_aprovacao) document.getElementById('notifAprovacao').checked = config.notif_aprovacao;
+                    if (config.notif_invoice) document.getElementById('notifInvoice').checked = config.notif_invoice;
+                    if (config.notif_relatorio) document.getElementById('notifRelatorio').checked = config.notif_relatorio;
+                    if (config.frequencia_relatorio) document.getElementById('frequenciaRelatorio').value = config.frequencia_relatorio;
+                    if (config.email_relatorios) document.getElementById('emailRelatorios').value = config.email_relatorios;
+                    
+                    // Taxas
+                    if (config.taxa_internacional) document.getElementById('taxaInternacional').value = config.taxa_internacional;
+                    if (config.taxa_cambio) document.getElementById('taxaCambio').value = config.taxa_cambio;
+                    if (config.comissao_minima) document.getElementById('comissaoMinima').value = config.comissao_minima;
+                    if (config.moeda_comissao) document.getElementById('moedaComissao').value = config.moeda_comissao;
+                    if (config.limite_diario) document.getElementById('limiteDiario').value = config.limite_diario;
+                    if (config.limite_mensal) document.getElementById('limiteMensal').value = config.limite_mensal;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar configurações:', error);
+            }
+        }
+
+        // ============================================
+        // SALVAR CONFIGURAÇÕES
+        // ============================================
+        async function salvarConfiguracoesGerais() {
+            const dados = {
+                empresa_nome: document.getElementById('empresaNome').value,
+                empresa_email: document.getElementById('empresaEmail').value,
+                empresa_telefone: document.getElementById('empresaTelefone').value,
+                empresa_endereco: document.getElementById('empresaEndereco').value,
+                fuso_horario: document.getElementById('fusoHorario').value,
+                formato_data: document.getElementById('formatoData').value,
+                moeda_padrao: document.getElementById('moedaPadrao').value
+            };
+            
+            await salvarConfiguracoes(dados, 'gerais');
+        }
+
+        async function salvarConfiguracoesSeguranca() {
+            const dados = {
+                senha_tamanho_min: document.getElementById('senhaTamanhoMin').value,
+                senha_expiracao: document.getElementById('senhaExpiracao').value,
+                req_maiuscula: document.getElementById('reqMaiuscula').checked,
+                req_minuscula: document.getElementById('reqMinuscula').checked,
+                req_numero: document.getElementById('reqNumero').checked,
+                req_especial: document.getElementById('reqEspecial').checked,
+                tentativas_login: document.getElementById('tentativasLogin').value,
+                tempo_inatividade: document.getElementById('tempoInatividade').value,
+                dois_fatores: document.getElementById('doisFatores').checked
+            };
+            
+            await salvarConfiguracoes(dados, 'seguranca');
+        }
+
+        async function salvarConfiguracoesNotificacoes() {
+            const dados = {
+                notif_novo_cliente: document.getElementById('notifNovoCliente').checked,
+                notif_transferencia: document.getElementById('notifTransferencia').checked,
+                notif_aprovacao: document.getElementById('notifAprovacao').checked,
+                notif_invoice: document.getElementById('notifInvoice').checked,
+                notif_relatorio: document.getElementById('notifRelatorio').checked,
+                frequencia_relatorio: document.getElementById('frequenciaRelatorio').value,
+                email_relatorios: document.getElementById('emailRelatorios').value
+            };
+            
+            await salvarConfiguracoes(dados, 'notificacoes');
+        }
+
+        async function salvarConfiguracoesTaxas() {
+            const dados = {
+                taxa_internacional: parseFloat(document.getElementById('taxaInternacional').value),
+                taxa_cambio: parseFloat(document.getElementById('taxaCambio').value),
+                comissao_minima: parseFloat(document.getElementById('comissaoMinima').value),
+                moeda_comissao: document.getElementById('moedaComissao').value,
+                limite_diario: parseFloat(document.getElementById('limiteDiario').value),
+                limite_mensal: parseFloat(document.getElementById('limiteMensal').value)
+            };
+            
+            await salvarConfiguracoes(dados, 'taxas');
+        }
+
+        async function salvarConfiguracoes(dados, categoria) {
+            try {
+                const response = await fetch('/api/admin/configuracoes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ categoria, dados })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Configurações de ${categoria} salvas com sucesso!`);
+                } else {
+                    alert(`❌ Erro ao salvar configurações: ${data.message}`);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('❌ Erro ao salvar configurações!');
+            }
+        }
+    </script>
+</body>
+</html>
