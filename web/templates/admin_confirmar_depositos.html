@@ -453,6 +453,19 @@
             background-color: var(--cor-fundo) !important;
         }
 
+        /* ============================================
+        CORREÇÃO DO CURSOR (TEXTO PISCANDO)
+        ============================================ */
+
+        /* Garantir que o cursor apareça */
+        input, textarea, select {
+            caret-color: var(--cor-texto) !important;
+        }
+
+        /* Especificamente para o campo remetente */
+        #remetenteInput {
+            caret-color: var(--cor-texto) !important;
+        }        
     </style>
 </head>
 <body>
