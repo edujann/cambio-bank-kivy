@@ -1,0 +1,1494 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏦 Cambio Bank - Cotações Moedas</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --cor-fundo: #0a0e15;
+            --cor-card: #0d1117;
+            --cor-borda: #1e232e;
+            --cor-texto: #e0e0e0;
+            --cor-texto-secundario: #8b949e;
+            --cor-primaria: #1a5fb4;
+            --cor-admin: #1a5fb4;
+            --cor-sucesso: #2ec27e;
+            --cor-alerta: #f39c12;
+            --cor-perigo: #e01b24;
+            --borda-radius: 12px;
+            --borda-radius-pequeno: 8px;
+        }
+
+        body {
+            background: var(--cor-fundo);
+            color: var(--cor-texto);
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* HEADER */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--cor-borda);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .logo i {
+            color: var(--cor-admin);
+            font-size: 28px;
+        }
+
+        .logo-text {
+            background: linear-gradient(90deg, var(--cor-admin), #2d8fff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .badge-admin {
+            background: var(--cor-admin);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .btn-voltar {
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            padding: 10px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-voltar:hover {
+            border-color: var(--cor-admin);
+            color: var(--cor-admin);
+            transform: translateY(-2px);
+        }
+
+        /* LAYOUT PRINCIPAL */
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            min-height: calc(100vh - 150px);
+        }
+
+        /* SIDEBAR ESQUERDA - LISTA DE CLIENTES */
+        .sidebar-clientes {
+            width: 320px;
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 15px;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 10px 12px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            color: var(--cor-texto);
+            font-size: 13px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--cor-admin);
+        }
+
+        .btn-clear-search {
+            background: var(--cor-perigo);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+        }
+
+        .clientes-count {
+            font-size: 12px;
+            color: var(--cor-texto-secundario);
+            margin-top: 10px;
+        }
+
+        .clientes-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .cliente-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .cliente-item:hover {
+            border-color: var(--cor-admin);
+            transform: translateX(3px);
+        }
+
+        .cliente-item.selected {
+            border-color: var(--cor-admin);
+            background: rgba(26, 95, 180, 0.1);
+        }
+
+        .cliente-info {
+            flex: 1;
+        }
+
+        .cliente-nome {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .cliente-email {
+            font-size: 11px;
+            color: var(--cor-texto-secundario);
+        }
+
+        .cliente-status {
+            text-align: right;
+        }
+
+        .status-badge {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-weight: bold;
+        }
+
+        .status-badge.liberado {
+            background: rgba(46, 194, 126, 0.2);
+            color: var(--cor-sucesso);
+        }
+
+        .status-badge.bloqueado {
+            background: rgba(224, 27, 36, 0.2);
+            color: var(--cor-perigo);
+        }
+
+        .spreads-count {
+            font-size: 10px;
+            color: var(--cor-texto-secundario);
+            margin-top: 4px;
+        }
+
+        /* PAINEL DIREITO - CONFIGURAÇÕES */
+        .painel-config {
+            flex: 1;
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .painel-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+
+        .cliente-selecionado-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--cor-admin);
+        }
+
+        .cliente-selecionado-email {
+            font-size: 12px;
+            color: var(--cor-texto-secundario);
+            margin-top: 5px;
+        }
+
+        .painel-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        /* SEÇÕES DO PAINEL */
+        .secao-card {
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .secao-titulo {
+            font-size: 13px;
+            font-weight: bold;
+            color: var(--cor-admin);
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* TEMPLATES */
+        .templates-grid {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-template {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: var(--borda-radius-pequeno);
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-template.corporativo { background: #3498db; color: white; }
+        .btn-template.varejo { background: #2ecc71; color: white; }
+        .btn-template.vip { background: #f39c12; color: white; }
+
+        .btn-template:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+
+        /* CONTROLES DO CLIENTE */
+        .controle-linha {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .controle-label {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* SWITCH */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--cor-borda);
+            transition: 0.4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--cor-sucesso);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        /* INPUT LIMITE */
+        .input-limite {
+            width: 150px;
+            padding: 8px 12px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            color: var(--cor-texto);
+            text-align: right;
+            font-size: 14px;
+        }
+
+        .input-limite.modified {
+            border-color: var(--cor-alerta);
+            background: rgba(243, 156, 18, 0.1);
+        }
+
+        /* HORÁRIO */
+        .horario-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .horario-field {
+            flex: 1;
+        }
+
+        .horario-field label {
+            display: block;
+            font-size: 11px;
+            color: var(--cor-texto-secundario);
+            margin-bottom: 5px;
+        }
+
+        .horario-input {
+            width: 100%;
+            padding: 8px 10px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            color: var(--cor-texto);
+            font-size: 13px;
+        }
+
+        .horario-input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-selecionar-dias {
+            padding: 8px 15px;
+            background: var(--cor-admin);
+            color: white;
+            border: none;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .btn-selecionar-dias:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* TABELA DE SPREADS */
+        .tabela-spreads {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .tabela-spreads th,
+        .tabela-spreads td {
+            padding: 10px 8px;
+            text-align: center;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+
+        .tabela-spreads th {
+            background: rgba(26, 95, 180, 0.1);
+            color: var(--cor-admin);
+            font-weight: 600;
+        }
+
+        .tabela-spreads tr:hover {
+            background: rgba(26, 95, 180, 0.05);
+        }
+
+        .spread-input {
+            width: 80px;
+            padding: 6px 8px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            color: var(--cor-texto);
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .spread-input.modified {
+            border-color: var(--cor-alerta);
+            background: rgba(243, 156, 18, 0.1);
+        }
+
+        .btn-salvar-spread {
+            padding: 5px 12px;
+            background: var(--cor-sucesso);
+            color: white;
+            border: none;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .btn-salvar-spread:hover {
+            background: #239b56;
+        }
+
+        /* BOTÕES DE AÇÃO */
+        .acoes-footer {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--cor-borda);
+        }
+
+        .btn-acao {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: var(--borda-radius-pequeno);
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-exportar {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-salvar-tudo {
+            background: var(--cor-sucesso);
+            color: white;
+        }
+
+        .btn-acao:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            width: 90%;
+            max-width: 450px;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--cor-borda);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            color: var(--cor-admin);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--cor-texto-secundario);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid var(--cor-borda);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn-modal {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+        }
+
+        .btn-modal-cancel {
+            background: var(--cor-perigo);
+            color: white;
+        }
+
+        .btn-modal-confirm {
+            background: var(--cor-sucesso);
+            color: white;
+        }
+
+        /* DIAS MODAL */
+        .dias-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .dia-btn {
+            padding: 10px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            color: var(--cor-texto);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .dia-btn.selected {
+            background: var(--cor-admin);
+            border-color: var(--cor-admin);
+            color: white;
+        }
+
+        .dias-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        /* LOADING */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--cor-texto-secundario);
+        }
+
+        .loading i {
+            font-size: 32px;
+            margin-bottom: 10px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* RESPONSIVIDADE */
+        @media (max-width: 900px) {
+            .main-layout {
+                flex-direction: column;
+            }
+            
+            .sidebar-clientes {
+                width: 100%;
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fas fa-university"></i>
+                <span class="logo-text">CAMBIO BANK</span>
+                <span class="badge-admin">ADMIN</span>
+            </div>
+            
+            <h1 class="page-title">COTAÇÕES DE MOEDAS</h1>
+            
+            <button class="btn-voltar" onclick="window.location.href='/admin/dashboard'">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </button>
+        </header>
+
+        <!-- LAYOUT PRINCIPAL -->
+        <div class="main-layout">
+            <!-- SIDEBAR ESQUERDA - LISTA DE CLIENTES -->
+            <div class="sidebar-clientes">
+                <div class="sidebar-header">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" class="search-input" placeholder="🔍 Buscar cliente...">
+                        <button class="btn-clear-search" onclick="limparBusca()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="clientes-count" id="clientesCount">Carregando clientes...</div>
+                </div>
+                <div class="clientes-list" id="clientesList">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Carregando clientes...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAINEL DIREITO - CONFIGURAÇÕES -->
+            <div class="painel-config">
+                <div class="painel-header">
+                    <div class="cliente-selecionado-title" id="clienteSelecionadoTitle">Selecione um cliente</div>
+                    <div class="cliente-selecionado-email" id="clienteSelecionadoEmail">-</div>
+                </div>
+                <div class="painel-body" id="painelBody">
+                    <div class="loading">
+                        <i class="fas fa-info-circle"></i>
+                        <p>Selecione um cliente para configurar as cotações</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL SELEÇÃO DE DIAS -->
+    <div id="modalDias" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-calendar-alt"></i> Selecionar Dias da Semana</h3>
+                <button class="modal-close" onclick="fecharModalDias()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="dias-actions">
+                    <button class="btn-modal" style="background: var(--cor-admin); color: white; flex: 1;" onclick="selecionarTodosDias()">Selecionar Todos</button>
+                    <button class="btn-modal" style="background: var(--cor-perigo); color: white; flex: 1;" onclick="limparTodosDias()">Limpar Todos</button>
+                </div>
+                <div class="dias-grid" id="diasGrid">
+                    <button class="dia-btn" data-dia="0">Segunda-feira</button>
+                    <button class="dia-btn" data-dia="1">Terça-feira</button>
+                    <button class="dia-btn" data-dia="2">Quarta-feira</button>
+                    <button class="dia-btn" data-dia="3">Quinta-feira</button>
+                    <button class="dia-btn" data-dia="4">Sexta-feira</button>
+                    <button class="dia-btn" data-dia="5">Sábado</button>
+                    <button class="dia-btn" data-dia="6">Domingo</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal-cancel" onclick="fecharModalDias()">Cancelar</button>
+                <button class="btn-modal-confirm" onclick="confirmarDias()">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/theme.js"></script>
+    <script>
+        // ============================================
+        // VARIÁVEIS GLOBAIS
+        // ============================================
+        let clientes = [];
+        let clienteSelecionado = null;
+        let spreadsOriginais = {};
+        let temAlteracoesPendentes = false;
+        
+        // Pares de moedas
+        const paresMoedas = [
+            'USD_BRL', 'EUR_BRL', 'GBP_BRL',
+            'EUR_USD', 'GBP_USD', 'USD_EUR',
+            'BRL_USD', 'BRL_EUR', 'BRL_GBP',
+            'USD_GBP', 'EUR_GBP', 'GBP_EUR'
+        ];
+        
+        // Templates de spread
+        const templatesSpread = {
+            corporativo: { compra: 0.5, venda: 0.5 },
+            varejo: { compra: 0.6, venda: 0.6 },
+            vip: { compra: 0.3, venda: 0.3 }
+        };
+        
+        // Dias da semana
+        const diasNomes = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+        
+        // Estado do modal de dias
+        let diasSelecionadosTemp = [];
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Tela Cotações Moedas carregada');
+            carregarClientes();
+        });
+
+        // ============================================
+        // CARREGAR CLIENTES
+        // ============================================
+        async function carregarClientes() {
+            try {
+                const response = await fetch('/api/admin/cotacoes/clientes');
+                const data = await response.json();
+                
+                if (data.success) {
+                    clientes = data.clientes;
+                    renderizarListaClientes();
+                    document.getElementById('clientesCount').innerHTML = `${clientes.length} clientes`;
+                } else {
+                    console.error('Erro:', data.message);
+                    document.getElementById('clientesList').innerHTML = `<div class="loading"><p>❌ ${data.message}</p></div>`;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar clientes:', error);
+                document.getElementById('clientesList').innerHTML = '<div class="loading"><p>❌ Erro ao carregar clientes</p></div>';
+            }
+        }
+
+        function renderizarListaClientes(filtro = '') {
+            const container = document.getElementById('clientesList');
+            let clientesFiltrados = clientes;
+            
+            if (filtro) {
+                const filtroLower = filtro.toLowerCase();
+                clientesFiltrados = clientes.filter(c => 
+                    c.nome.toLowerCase().includes(filtroLower) ||
+                    c.username.toLowerCase().includes(filtroLower) ||
+                    (c.email && c.email.toLowerCase().includes(filtroLower))
+                );
+            }
+            
+            if (clientesFiltrados.length === 0) {
+                container.innerHTML = '<div class="loading"><p>📭 Nenhum cliente encontrado</p></div>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            clientesFiltrados.forEach(cliente => {
+                const spreadsCount = Object.keys(cliente.spreads || {}).length;
+                const statusClass = cliente.cambio_liberado ? 'liberado' : 'bloqueado';
+                const statusText = cliente.cambio_liberado ? 'LIBERADO' : 'BLOQUEADO';
+                
+                const div = document.createElement('div');
+                div.className = `cliente-item ${clienteSelecionado?.username === cliente.username ? 'selected' : ''}`;
+                div.onclick = () => selecionarCliente(cliente.username);
+                div.innerHTML = `
+                    <div class="cliente-info">
+                        <div class="cliente-nome">${escapeHtml(cliente.nome)}</div>
+                        <div class="cliente-email">${escapeHtml(cliente.email || cliente.username)}</div>
+                        <div class="spreads-count"><i class="fas fa-chart-line"></i> ${spreadsCount} spreads configurados</div>
+                    </div>
+                    <div class="cliente-status">
+                        <div class="status-badge ${statusClass}">${statusText}</div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // ============================================
+        // SELEÇÃO DE CLIENTE
+        // ============================================
+        async function selecionarCliente(username) {
+            console.log('🔍 Selecionando cliente:', username);
+            
+            try {
+                const response = await fetch(`/api/admin/cotacoes/cliente/${username}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    clienteSelecionado = data.cliente;
+                    spreadsOriginais = JSON.parse(JSON.stringify(clienteSelecionado.spreads || {}));
+                    temAlteracoesPendentes = false;
+                    
+                    // Atualizar UI
+                    document.getElementById('clienteSelecionadoTitle').innerHTML = `<i class="fas fa-user"></i> ${escapeHtml(clienteSelecionado.nome)}`;
+                    document.getElementById('clienteSelecionadoEmail').innerHTML = clienteSelecionado.email || clienteSelecionado.username;
+                    
+                    // Renderizar painel de configurações
+                    renderizarPainelConfig();
+                    
+                    // Destacar na lista
+                    document.querySelectorAll('.cliente-item').forEach(item => {
+                        item.classList.remove('selected');
+                    });
+                    const items = document.querySelectorAll('.cliente-item');
+                    for (let i = 0; i < items.length; i++) {
+                        if (items[i].querySelector('.cliente-nome')?.innerText === clienteSelecionado.nome) {
+                            items[i].classList.add('selected');
+                            break;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao selecionar cliente:', error);
+                alert('Erro ao carregar dados do cliente!');
+            }
+        }
+
+        // ============================================
+        // RENDERIZAR PAINEL DE CONFIGURAÇÃO
+        // ============================================
+        function renderizarPainelConfig() {
+            if (!clienteSelecionado) return;
+            
+            const spreads = clienteSelecionado.spreads || {};
+            const spreadsCount = Object.keys(spreads).length;
+            const limite = clienteSelecionado.limite_operacional || 10000;
+            const cambioLiberado = clienteSelecionado.cambio_liberado !== false;
+            
+            // Horário
+            const temHorarioPersonalizado = clienteSelecionado.horario && Object.keys(clienteSelecionado.horario).length > 0;
+            const horario = clienteSelecionado.horario || { dias_semana: [0,1,2,3,4], inicio: '10:00', fim: '15:00' };
+            const diasTexto = formatarDiasTexto(horario.dias_semana);
+            
+            let html = `
+                <!-- TEMPLATES -->
+                <div class="secao-card">
+                    <div class="secao-titulo"><i class="fas fa-copy"></i> TEMPLATES DE SPREAD</div>
+                    <div class="templates-grid">
+                        <button class="btn-template corporativo" onclick="aplicarTemplate('corporativo')">🏢 Corporativo<br><small>0.5% / 0.5%</small></button>
+                        <button class="btn-template varejo" onclick="aplicarTemplate('varejo')">🛒 Varejo<br><small>0.6% / 0.6%</small></button>
+                        <button class="btn-template vip" onclick="aplicarTemplate('vip')">⭐ VIP<br><small>0.3% / 0.3%</small></button>
+                    </div>
+                </div>
+                
+                <!-- CONTROLES DO CLIENTE -->
+                <div class="secao-card">
+                    <div class="secao-titulo"><i class="fas fa-sliders-h"></i> CONTROLES</div>
+                    <div class="controle-linha">
+                        <span class="controle-label"><i class="fas fa-exchange-alt"></i> Câmbio Liberado</span>
+                        <label class="switch">
+                            <input type="checkbox" id="switchLiberado" ${cambioLiberado ? 'checked' : ''} onchange="alterarPermissao(this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="controle-linha">
+                        <span class="controle-label"><i class="fas fa-chart-line"></i> Limite Operacional (USD)</span>
+                        <input type="text" id="inputLimite" class="input-limite" value="${formatarValor(limite)}" onchange="alterarLimite(this.value)">
+                    </div>
+                </div>
+                
+                <!-- HORÁRIO COMERCIAL -->
+                <div class="secao-card">
+                    <div class="secao-titulo"><i class="fas fa-clock"></i> HORÁRIO COMERCIAL</div>
+                    <div class="controle-linha">
+                        <span class="controle-label"><i class="fas fa-calendar-alt"></i> Usar horário personalizado</span>
+                        <label class="switch">
+                            <input type="checkbox" id="switchHorario" ${temHorarioPersonalizado ? 'checked' : ''} onchange="toggleHorarioPersonalizado(this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div id="horarioFields" style="${temHorarioPersonalizado ? '' : 'opacity: 0.5;'}">
+                        <div class="horario-row">
+                            <div class="horario-field">
+                                <label>Dias da Semana</label>
+                                <div style="display: flex; gap: 10px;">
+                                    <input type="text" id="inputDias" class="horario-input" value="${diasTexto}" ${!temHorarioPersonalizado ? 'disabled' : ''}>
+                                    <button class="btn-selecionar-dias" onclick="abrirModalDias()" ${!temHorarioPersonalizado ? 'disabled' : ''}>
+                                        <i class="fas fa-calendar"></i> Selecionar
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="horario-field">
+                                <label>Início</label>
+                                <input type="time" id="inputInicio" class="horario-input" value="${horario.inicio}" ${!temHorarioPersonalizado ? 'disabled' : ''} onchange="marcarHorarioAlterado()">
+                            </div>
+                            <div class="horario-field">
+                                <label>Fim</label>
+                                <input type="time" id="inputFim" class="horario-input" value="${horario.fim}" ${!temHorarioPersonalizado ? 'disabled' : ''} onchange="marcarHorarioAlterado()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- TABELA DE SPREADS -->
+                <div class="secao-card">
+                    <div class="secao-titulo"><i class="fas fa-table"></i> SPREADS POR PAR DE MOEDA <span style="font-size: 11px;">(${spreadsCount}/12 configurados)</span></div>
+                    <div style="overflow-x: auto;">
+                        <table class="tabela-spreads">
+                            <thead>
+                                <tr>
+                                    <th>Par</th>
+                                    <th>Compra (%)</th>
+                                    <th>Venda (%)</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+            
+            for (const par of paresMoedas) {
+                const spread = spreads[par] || { compra: 0.5, venda: 0.5 };
+                const parDisplay = par.replace('_', ' → ');
+                html += `
+                    <tr data-par="${par}">
+                        <td><strong>${parDisplay}</strong></td>
+                        <td><input type="number" step="0.1" class="spread-input spread-compra" value="${spread.compra}" onchange="marcarSpreadAlterado('${par}', 'compra', this.value)"></td>
+                        <td><input type="number" step="0.1" class="spread-input spread-venda" value="${spread.venda}" onchange="marcarSpreadAlterado('${par}', 'venda', this.value)"></td>
+                        <td><button class="btn-salvar-spread" onclick="salvarSpreadIndividual('${par}')">Salvar</button></td>
+                    </tr>
+                `;
+            }
+            
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- BOTÕES DE AÇÃO -->
+                <div class="acoes-footer">
+                    <button class="btn-acao btn-exportar" onclick="exportarConfiguracoes()">
+                        <i class="fas fa-file-excel"></i> Exportar CSV
+                    </button>
+                    <button class="btn-acao btn-salvar-tudo" onclick="salvarTodasAlteracoes()">
+                        <i class="fas fa-save"></i> Salvar Todas
+                    </button>
+                </div>
+            `;
+            
+            document.getElementById('painelBody').innerHTML = html;
+        }
+
+        // ============================================
+        // FUNÇÕES DE SPREADS
+        // ============================================
+        function marcarSpreadAlterado(par, tipo, valor) {
+            temAlteracoesPendentes = true;
+            const row = document.querySelector(`tr[data-par="${par}"]`);
+            if (row) {
+                const input = tipo === 'compra' ? row.querySelector('.spread-compra') : row.querySelector('.spread-venda');
+                if (input) input.classList.add('modified');
+            }
+        }
+
+        async function salvarSpreadIndividual(par) {
+            const row = document.querySelector(`tr[data-par="${par}"]`);
+            const inputCompra = row.querySelector('.spread-compra');
+            const inputVenda = row.querySelector('.spread-venda');
+            
+            const spreadCompra = parseFloat(inputCompra.value);
+            const spreadVenda = parseFloat(inputVenda.value);
+            
+            if (isNaN(spreadCompra) || isNaN(spreadVenda)) {
+                alert('Valores inválidos!');
+                return;
+            }
+            
+            if (spreadCompra < 0 || spreadVenda < 0) {
+                alert('Os spreads não podem ser negativos!');
+                return;
+            }
+            
+            if (!confirm(`Confirmar alteração no par ${par}?\nCompra: ${spreadCompra}%\nVenda: ${spreadVenda}%`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/cotacoes/spread', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: clienteSelecionado.username,
+                        par: par,
+                        spread_compra: spreadCompra,
+                        spread_venda: spreadVenda
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    inputCompra.classList.remove('modified');
+                    inputVenda.classList.remove('modified');
+                    
+                    // Atualizar cache local
+                    if (!clienteSelecionado.spreads) clienteSelecionado.spreads = {};
+                    clienteSelecionado.spreads[par] = { compra: spreadCompra, venda: spreadVenda };
+                    
+                    alert(`✅ Spread ${par} salvo com sucesso!`);
+                    
+                    // Atualizar contador na lista
+                    const spreadsCount = Object.keys(clienteSelecionado.spreads).length;
+                    const clienteItem = document.querySelector(`.cliente-item.selected .spreads-count`);
+                    if (clienteItem) clienteItem.innerHTML = `<i class="fas fa-chart-line"></i> ${spreadsCount} spreads configurados`;
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao salvar spread!');
+            }
+        }
+
+        async function aplicarTemplate(tipo) {
+            const template = templatesSpread[tipo];
+            if (!template) return;
+            
+            if (!confirm(`Aplicar template ${tipo.toUpperCase()} a TODOS os pares?\nCompra: ${template.compra}% | Venda: ${template.venda}%`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/cotacoes/template', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: clienteSelecionado.username,
+                        template: tipo,
+                        spreads: template
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Atualizar UI
+                    for (const par of paresMoedas) {
+                        const row = document.querySelector(`tr[data-par="${par}"]`);
+                        if (row) {
+                            row.querySelector('.spread-compra').value = template.compra;
+                            row.querySelector('.spread-venda').value = template.venda;
+                            row.querySelector('.spread-compra').classList.add('modified');
+                            row.querySelector('.spread-venda').classList.add('modified');
+                        }
+                        
+                        if (!clienteSelecionado.spreads) clienteSelecionado.spreads = {};
+                        clienteSelecionado.spreads[par] = { compra: template.compra, venda: template.venda };
+                    }
+                    
+                    temAlteracoesPendentes = true;
+                    
+                    // Atualizar contador
+                    const spreadsCount = paresMoedas.length;
+                    const clienteItem = document.querySelector(`.cliente-item.selected .spreads-count`);
+                    if (clienteItem) clienteItem.innerHTML = `<i class="fas fa-chart-line"></i> ${spreadsCount} spreads configurados`;
+                    
+                    alert(`✅ Template ${tipo.toUpperCase()} aplicado a todos os pares!`);
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao aplicar template!');
+            }
+        }
+
+        // ============================================
+        // FUNÇÕES DE PERMISSÃO E LIMITE
+        // ============================================
+        async function alterarPermissao(liberado) {
+            try {
+                const response = await fetch('/api/admin/cotacoes/permissao', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: clienteSelecionado.username,
+                        liberado: liberado
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    clienteSelecionado.cambio_liberado = liberado;
+                    
+                    // Atualizar status na lista
+                    const clienteItem = document.querySelector(`.cliente-item.selected .status-badge`);
+                    if (clienteItem) {
+                        clienteItem.className = `status-badge ${liberado ? 'liberado' : 'bloqueado'}`;
+                        clienteItem.textContent = liberado ? 'LIBERADO' : 'BLOQUEADO';
+                    }
+                    
+                    alert(`✅ Câmbio ${liberado ? 'liberado' : 'bloqueado'} para ${clienteSelecionado.nome}`);
+                } else {
+                    alert('❌ ' + data.message);
+                    // Reverter switch
+                    document.getElementById('switchLiberado').checked = !liberado;
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao alterar permissão!');
+            }
+        }
+
+        async function alterarLimite(valor) {
+            const limite = parseFloat(valor.replace(/\./g, '').replace(',', '.'));
+            
+            if (isNaN(limite) || limite < 0) {
+                alert('Valor inválido!');
+                document.getElementById('inputLimite').value = formatarValor(clienteSelecionado.limite_operacional || 10000);
+                return;
+            }
+            
+            if (limite > 100000) {
+                alert('Limite muito alto! Máximo permitido: US$ 100.000,00');
+                document.getElementById('inputLimite').value = formatarValor(clienteSelecionado.limite_operacional || 10000);
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/cotacoes/limite', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: clienteSelecionado.username,
+                        limite: limite
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    clienteSelecionado.limite_operacional = limite;
+                    document.getElementById('inputLimite').classList.remove('modified');
+                    alert(`✅ Limite atualizado para US$ ${formatarValor(limite)}`);
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao alterar limite!');
+            }
+        }
+
+        // ============================================
+        // FUNÇÕES DE HORÁRIO
+        // ============================================
+        function toggleHorarioPersonalizado(ativo) {
+            const inputs = document.querySelectorAll('#horarioFields input, #horarioFields button');
+            inputs.forEach(input => {
+                if (ativo) {
+                    input.removeAttribute('disabled');
+                } else {
+                    input.setAttribute('disabled', 'disabled');
+                }
+            });
+            
+            const horarioDiv = document.getElementById('horarioFields');
+            if (horarioDiv) {
+                horarioDiv.style.opacity = ativo ? '1' : '0.5';
+            }
+            
+            if (!ativo) {
+                // Resetar para valores padrão
+                document.getElementById('inputDias').value = 'Segunda a Sexta';
+                document.getElementById('inputInicio').value = '10:00';
+                document.getElementById('inputFim').value = '15:00';
+            }
+            
+            marcarHorarioAlterado();
+        }
+
+        function marcarHorarioAlterado() {
+            temAlteracoesPendentes = true;
+            const inputs = ['inputDias', 'inputInicio', 'inputFim'];
+            inputs.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && !el.disabled) el.classList.add('modified');
+            });
+        }
+
+        function formatarDiasTexto(dias) {
+            if (!dias || dias.length === 0) return 'Segunda a Sexta';
+            if (dias.length === 7) return 'Todos os dias';
+            if (dias.length === 5 && dias[0] === 0 && dias[4] === 4) return 'Segunda a Sexta';
+            if (dias.length === 6 && dias[0] === 0 && dias[5] === 5) return 'Segunda a Sábado';
+            
+            const nomes = dias.map(d => diasNomes[d].substring(0, 3)).join(', ');
+            return nomes;
+        }
+
+        function abrirModalDias() {
+            const textoDias = document.getElementById('inputDias').value;
+            let diasAtuais = [];
+            
+            if (textoDias === 'Segunda a Sexta') diasAtuais = [0,1,2,3,4];
+            else if (textoDias === 'Segunda a Sábado') diasAtuais = [0,1,2,3,4,5];
+            else if (textoDias === 'Todos os dias') diasAtuais = [0,1,2,3,4,5,6];
+            else {
+                const diasNomesAbrev = { 'Seg':0, 'Ter':1, 'Qua':2, 'Qui':3, 'Sex':4, 'Sáb':5, 'Dom':6 };
+                const partes = textoDias.split(', ');
+                for (const parte of partes) {
+                    if (diasNomesAbrev[parte] !== undefined) diasAtuais.push(diasNomesAbrev[parte]);
+                }
+            }
+            
+            diasSelecionadosTemp = [...diasAtuais];
+            
+            // Atualizar UI dos botões
+            document.querySelectorAll('.dia-btn').forEach(btn => {
+                const dia = parseInt(btn.dataset.dia);
+                if (diasSelecionadosTemp.includes(dia)) {
+                    btn.classList.add('selected');
+                } else {
+                    btn.classList.remove('selected');
+                }
+            });
+            
+            document.getElementById('modalDias').classList.add('active');
+        }
+
+        function fecharModalDias() {
+            document.getElementById('modalDias').classList.remove('active');
+        }
+
+        function selecionarTodosDias() {
+            diasSelecionadosTemp = [0,1,2,3,4,5,6];
+            document.querySelectorAll('.dia-btn').forEach(btn => {
+                btn.classList.add('selected');
+            });
+        }
+
+        function limparTodosDias() {
+            diasSelecionadosTemp = [];
+            document.querySelectorAll('.dia-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+        }
+
+        function confirmarDias() {
+            diasSelecionadosTemp.sort((a,b) => a - b);
+            const diasTexto = formatarDiasTexto(diasSelecionadosTemp);
+            document.getElementById('inputDias').value = diasTexto;
+            marcarHorarioAlterado();
+            fecharModalDias();
+        }
+
+        // ============================================
+        // SALVAR TODAS ALTERAÇÕES
+        // ============================================
+        async function salvarTodasAlteracoes() {
+            if (!clienteSelecionado) {
+                alert('Nenhum cliente selecionado!');
+                return;
+            }
+            
+            // Coletar spreads
+            const spreads = {};
+            for (const par of paresMoedas) {
+                const row = document.querySelector(`tr[data-par="${par}"]`);
+                if (row) {
+                    const compra = parseFloat(row.querySelector('.spread-compra').value);
+                    const venda = parseFloat(row.querySelector('.spread-venda').value);
+                    spreads[par] = { compra, venda };
+                }
+            }
+            
+            // Coletar horário
+            let horario = null;
+            const switchHorario = document.getElementById('switchHorario');
+            if (switchHorario && switchHorario.checked) {
+                const diasTexto = document.getElementById('inputDias').value;
+                let diasSemana = [];
+                if (diasTexto === 'Segunda a Sexta') diasSemana = [0,1,2,3,4];
+                else if (diasTexto === 'Segunda a Sábado') diasSemana = [0,1,2,3,4,5];
+                else if (diasTexto === 'Todos os dias') diasSemana = [0,1,2,3,4,5,6];
+                else {
+                    const diasNomesAbrev = { 'Seg':0, 'Ter':1, 'Qua':2, 'Qui':3, 'Sex':4, 'Sáb':5, 'Dom':6 };
+                    const partes = diasTexto.split(', ');
+                    for (const parte of partes) {
+                        if (diasNomesAbrev[parte] !== undefined) diasSemana.push(diasNomesAbrev[parte]);
+                    }
+                }
+                
+                horario = {
+                    dias_semana: diasSemana,
+                    inicio: document.getElementById('inputInicio').value,
+                    fim: document.getElementById('inputFim').value
+                };
+            }
+            
+            const data = {
+                username: clienteSelecionado.username,
+                spreads: spreads,
+                cambio_liberado: document.getElementById('switchLiberado').checked,
+                limite_operacional: parseFloat(document.getElementById('inputLimite').value.replace(/\./g, '').replace(',', '.')),
+                horario: horario
+            };
+            
+            if (!confirm('Salvar todas as alterações?')) return;
+            
+            try {
+                const response = await fetch('/api/admin/cotacoes/salvar-tudo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Remover classes modified
+                    document.querySelectorAll('.modified').forEach(el => el.classList.remove('modified'));
+                    
+                    // Atualizar cache local
+                    clienteSelecionado.spreads = spreads;
+                    clienteSelecionado.cambio_liberado = data.cambio_liberado;
+                    clienteSelecionado.limite_operacional = data.limite_operacional;
+                    if (horario) clienteSelecionado.horario = horario;
+                    else delete clienteSelecionado.horario;
+                    
+                    temAlteracoesPendentes = false;
+                    
+                    // Atualizar contador na lista
+                    const spreadsCount = Object.keys(spreads).length;
+                    const clienteItem = document.querySelector(`.cliente-item.selected .spreads-count`);
+                    if (clienteItem) clienteItem.innerHTML = `<i class="fas fa-chart-line"></i> ${spreadsCount} spreads configurados`;
+                    
+                    alert('✅ Todas as alterações foram salvas com sucesso!');
+                } else {
+                    alert('❌ ' + result.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao salvar alterações!');
+            }
+        }
+
+        // ============================================
+        // EXPORTAR CONFIGURAÇÕES
+        // ============================================
+        async function exportarConfiguracoes() {
+            try {
+                const response = await fetch('/api/admin/cotacoes/exportar');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Criar CSV
+                    const headers = ['Cliente', 'Email', 'Câmbio Liberado', 'Limite Operacional'];
+                    for (const par of paresMoedas) {
+                        headers.push(`${par} Compra (%)`);
+                        headers.push(`${par} Venda (%)`);
+                    }
+                    
+                    const rows = [headers];
+                    
+                    for (const cliente of data.clientes) {
+                        const row = [
+                            cliente.nome,
+                            cliente.email || cliente.username,
+                            cliente.cambio_liberado ? 'Sim' : 'Não',
+                            cliente.limite_operacional
+                        ];
+                        
+                        for (const par of paresMoedas) {
+                            const spread = (cliente.spreads && cliente.spreads[par]) || { compra: 0.5, venda: 0.5 };
+                            row.push(spread.compra);
+                            row.push(spread.venda);
+                        }
+                        
+                        rows.push(row);
+                    }
+                    
+                    // Converter para CSV
+                    const csvContent = rows.map(row => row.join(';')).join('\n');
+                    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    const url = URL.createObjectURL(blob);
+                    link.href = url;
+                    link.setAttribute('download', `cotacoes_${new Date().toISOString().slice(0, 19)}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    
+                    alert('✅ Arquivo CSV exportado com sucesso!');
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao exportar configurações!');
+            }
+        }
+
+        // ============================================
+        // FUNÇÕES AUXILIARES
+        // ============================================
+        function formatarValor(valor) {
+            if (valor === undefined || valor === null) return '0,00';
+            return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function limparBusca() {
+            document.getElementById('searchInput').value = '';
+            renderizarListaClientes('');
+        }
+
+        // Busca em tempo real
+        document.getElementById('searchInput')?.addEventListener('input', (e) => {
+            renderizarListaClientes(e.target.value);
+        });
+    </script>
+</body>
+</html>

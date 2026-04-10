@@ -10738,6 +10738,795 @@ def api_admin_configuracoes_post():
         return jsonify({"success": False, "message": str(e)}), 500
 
 
+
+# ============================================
+# ADMIN - COTAÇÕES MOEDAS
+# ============================================
+
+@app.route('/admin/cotacoes')
+def admin_cotacoes():
+    """Tela de gerenciamento de cotações de moedas"""
+    usuario = session.get('username')
+    
+    if not usuario:
+        return redirect('/login')
+    
+    # Verificar se é admin
+    if supabase:
+        user_check = supabase.table('usuarios')\
+            .select('tipo')\
+            .eq('username', usuario)\
+            .single()\
+            .execute()
+        
+        if not user_check.data or user_check.data.get('tipo') != 'admin':
+            return redirect('/dashboard')
+    
+    # Buscar dados do usuário
+    nome = usuario.upper()
+    email = f'{usuario}@exemplo.com'
+    
+    try:
+        if supabase:
+            user_response = supabase.table('usuarios')\
+                .select('nome, email')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if user_response.data:
+                if user_response.data.get('nome'):
+                    nome = user_response.data['nome']
+                if user_response.data.get('email'):
+                    email = user_response.data['email']
+    except:
+        pass
+    
+    return render_template('admin_cotacoes.html',
+                          usuario=usuario,
+                          nome=nome,
+                          email=email)
+
+
+@app.route('/api/admin/cotacoes/clientes', methods=['GET'])
+def api_admin_cotacoes_clientes():
+    """Retorna lista de clientes para configuração de cotações"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Buscar todos os clientes
+        clientes_response = supabase.table('usuarios')\
+            .select('username, nome, email, tipo')\
+            .eq('tipo', 'cliente')\
+            .execute()
+        
+        clientes = []
+        for cliente in (clientes_response.data or []):
+            username = cliente.get('username')
+            
+            # Buscar spreads do cliente
+            spreads = {}
+            spreads_response = supabase.table('config_cotacoes')\
+                .select('valor_config')\
+                .eq('tipo_config', 'spreads')\
+                .eq('cliente_username', username)\
+                .execute()
+            
+            if spreads_response.data:
+                spreads = spreads_response.data[0].get('valor_config', {})
+            
+            # Buscar permissão de câmbio
+            permissao_response = supabase.table('config_cotacoes')\
+                .select('valor_config')\
+                .eq('tipo_config', 'permissoes')\
+                .eq('cliente_username', username)\
+                .execute()
+            
+            cambio_liberado = True
+            if permissao_response.data:
+                cambio_liberado = permissao_response.data[0].get('valor_config', True)
+            
+            # Buscar limite operacional
+            limite_response = supabase.table('config_cotacoes')\
+                .select('valor_config')\
+                .eq('tipo_config', 'limites')\
+                .eq('cliente_username', username)\
+                .execute()
+            
+            limite_operacional = 10000.00
+            if limite_response.data:
+                limite_operacional = float(limite_response.data[0].get('valor_config', 10000))
+            
+            # Buscar horário personalizado
+            horario_response = supabase.table('config_cotacoes')\
+                .select('valor_config')\
+                .eq('tipo_config', 'horarios')\
+                .eq('cliente_username', username)\
+                .execute()
+            
+            horario = None
+            if horario_response.data:
+                horario = horario_response.data[0].get('valor_config')
+            
+            clientes.append({
+                'username': username,
+                'nome': cliente.get('nome', username),
+                'email': cliente.get('email', ''),
+                'cambio_liberado': cambio_liberado,
+                'limite_operacional': limite_operacional,
+                'spreads': spreads,
+                'horario': horario
+            })
+        
+        return jsonify({
+            "success": True,
+            "clientes": clientes
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar clientes: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/cotacoes/cliente/<username>', methods=['GET'])
+def api_admin_cotacoes_cliente(username):
+    """Retorna dados completos de um cliente específico"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Buscar dados do cliente
+        cliente_response = supabase.table('usuarios')\
+            .select('username, nome, email')\
+            .eq('username', username)\
+            .single()\
+            .execute()
+        
+        if not cliente_response.data:
+            return jsonify({"success": False, "message": "Cliente não encontrado"}), 404
+        
+        cliente = cliente_response.data
+        
+        # Buscar spreads
+        spreads_response = supabase.table('config_cotacoes')\
+            .select('valor_config')\
+            .eq('tipo_config', 'spreads')\
+            .eq('cliente_username', username)\
+            .execute()
+        
+        spreads = {}
+        if spreads_response.data:
+            spreads = spreads_response.data[0].get('valor_config', {})
+        
+        # Buscar permissão
+        permissao_response = supabase.table('config_cotacoes')\
+            .select('valor_config')\
+            .eq('tipo_config', 'permissoes')\
+            .eq('cliente_username', username)\
+            .execute()
+        
+        cambio_liberado = True
+        if permissao_response.data:
+            cambio_liberado = permissao_response.data[0].get('valor_config', True)
+        
+        # Buscar limite
+        limite_response = supabase.table('config_cotacoes')\
+            .select('valor_config')\
+            .eq('tipo_config', 'limites')\
+            .eq('cliente_username', username)\
+            .execute()
+        
+        limite_operacional = 10000.00
+        if limite_response.data:
+            limite_operacional = float(limite_response.data[0].get('valor_config', 10000))
+        
+        # Buscar horário
+        horario_response = supabase.table('config_cotacoes')\
+            .select('valor_config')\
+            .eq('tipo_config', 'horarios')\
+            .eq('cliente_username', username)\
+            .execute()
+        
+        horario = None
+        if horario_response.data:
+            horario = horario_response.data[0].get('valor_config')
+        
+        return jsonify({
+            "success": True,
+            "cliente": {
+                'username': cliente.get('username'),
+                'nome': cliente.get('nome'),
+                'email': cliente.get('email', ''),
+                'cambio_liberado': cambio_liberado,
+                'limite_operacional': limite_operacional,
+                'spreads': spreads,
+                'horario': horario
+            }
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar cliente: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/cotacoes/spread', methods=['POST'])
+def api_admin_cotacoes_spread():
+    """Salva spread individual para um cliente"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        dados = request.get_json()
+        
+        username = dados.get('username')
+        par = dados.get('par')
+        spread_compra = float(dados.get('spread_compra', 0))
+        spread_venda = float(dados.get('spread_venda', 0))
+        
+        if not username or not par:
+            return jsonify({"success": False, "message": "Dados incompletos"}), 400
+        
+        # Buscar spreads atuais
+        response = supabase.table('config_cotacoes')\
+            .select('valor_config')\
+            .eq('tipo_config', 'spreads')\
+            .eq('cliente_username', username)\
+            .execute()
+        
+        spreads = {}
+        if response.data:
+            spreads = response.data[0].get('valor_config', {})
+        
+        # Atualizar spread do par
+        if par not in spreads:
+            spreads[par] = {}
+        spreads[par]['compra'] = spread_compra
+        spreads[par]['venda'] = spread_venda
+        
+        # Salvar no Supabase
+        from datetime import datetime
+        
+        if response.data:
+            # Atualizar existente
+            supabase.table('config_cotacoes')\
+                .update({
+                    'valor_config': spreads,
+                    'data_atualizacao': datetime.now().isoformat()
+                })\
+                .eq('tipo_config', 'spreads')\
+                .eq('cliente_username', username)\
+                .execute()
+        else:
+            # Criar novo
+            supabase.table('config_cotacoes')\
+                .insert({
+                    'tipo_config': 'spreads',
+                    'cliente_username': username,
+                    'valor_config': spreads,
+                    'data_atualizacao': datetime.now().isoformat(),
+                    'created_at': datetime.now().isoformat()
+                })\
+                .execute()
+        
+        print(f"✅ Spread {par} salvo para {username}: compra={spread_compra}%, venda={spread_venda}%")
+        
+        return jsonify({
+            "success": True,
+            "message": f"Spread {par} salvo com sucesso!"
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao salvar spread: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/cotacoes/template', methods=['POST'])
+def api_admin_cotacoes_template():
+    """Aplica template de spreads para todos os pares de um cliente"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        dados = request.get_json()
+        
+        username = dados.get('username')
+        template = dados.get('template')
+        spreads_template = dados.get('spreads', {})
+        
+        if not username:
+            return jsonify({"success": False, "message": "Usuário não informado"}), 400
+        
+        # Pares de moedas
+        pares_moedas = [
+            'USD_BRL', 'EUR_BRL', 'GBP_BRL',
+            'EUR_USD', 'GBP_USD', 'USD_EUR',
+            'BRL_USD', 'BRL_EUR', 'BRL_GBP',
+            'USD_GBP', 'EUR_GBP', 'GBP_EUR'
+        ]
+        
+        # Criar spreads para todos os pares
+        spreads = {}
+        for par in pares_moedas:
+            spreads[par] = {
+                'compra': spreads_template.get('compra', 0.5),
+                'venda': spreads_template.get('venda', 0.5)
+            }
+        
+        # Buscar se já existe
+        response = supabase.table('config_cotacoes')\
+            .select('id')\
+            .eq('tipo_config', 'spreads')\
+            .eq('cliente_username', username)\
+            .execute()
+        
+        from datetime import datetime
+        
+        if response.data:
+            # Atualizar existente
+            supabase.table('config_cotacoes')\
+                .update({
+                    'valor_config': spreads,
+                    'data_atualizacao': datetime.now().isoformat()
+                })\
+                .eq('tipo_config', 'spreads')\
+                .eq('cliente_username', username)\
+                .execute()
+        else:
+            # Criar novo
+            supabase.table('config_cotacoes')\
+                .insert({
+                    'tipo_config': 'spreads',
+                    'cliente_username': username,
+                    'valor_config': spreads,
+                    'data_atualizacao': datetime.now().isoformat(),
+                    'created_at': datetime.now().isoformat()
+                })\
+                .execute()
+        
+        print(f"✅ Template {template} aplicado para {username} em todos os pares")
+        
+        return jsonify({
+            "success": True,
+            "message": f"Template {template} aplicado com sucesso!"
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao aplicar template: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/cotacoes/permissao', methods=['POST'])
+def api_admin_cotacoes_permissao():
+    """Altera permissão de câmbio de um cliente"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        dados = request.get_json()
+        
+        username = dados.get('username')
+        liberado = dados.get('liberado', False)
+        
+        if not username:
+            return jsonify({"success": False, "message": "Usuário não informado"}), 400
+        
+        # Buscar se já existe
+        response = supabase.table('config_cotacoes')\
+            .select('id')\
+            .eq('tipo_config', 'permissoes')\
+            .eq('cliente_username', username)\
+            .execute()
+        
+        from datetime import datetime
+        
+        if response.data:
+            # Atualizar existente
+            supabase.table('config_cotacoes')\
+                .update({
+                    'valor_config': liberado,
+                    'data_atualizacao': datetime.now().isoformat()
+                })\
+                .eq('tipo_config', 'permissoes')\
+                .eq('cliente_username', username)\
+                .execute()
+        else:
+            # Criar novo
+            supabase.table('config_cotacoes')\
+                .insert({
+                    'tipo_config': 'permissoes',
+                    'cliente_username': username,
+                    'valor_config': liberado,
+                    'data_atualizacao': datetime.now().isoformat(),
+                    'created_at': datetime.now().isoformat()
+                })\
+                .execute()
+        
+        print(f"✅ Permissão de câmbio para {username}: {'liberado' if liberado else 'bloqueado'}")
+        
+        return jsonify({
+            "success": True,
+            "message": f"Câmbio {'liberado' if liberado else 'bloqueado'} com sucesso!"
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao alterar permissão: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/cotacoes/limite', methods=['POST'])
+def api_admin_cotacoes_limite():
+    """Altera limite operacional de um cliente"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        dados = request.get_json()
+        
+        username = dados.get('username')
+        limite = float(dados.get('limite', 10000))
+        
+        if not username:
+            return jsonify({"success": False, "message": "Usuário não informado"}), 400
+        
+        if limite < 0:
+            return jsonify({"success": False, "message": "Limite não pode ser negativo"}), 400
+        
+        if limite > 100000:
+            return jsonify({"success": False, "message": "Limite máximo é US$ 100.000,00"}), 400
+        
+        # Buscar se já existe
+        response = supabase.table('config_cotacoes')\
+            .select('id')\
+            .eq('tipo_config', 'limites')\
+            .eq('cliente_username', username)\
+            .execute()
+        
+        from datetime import datetime
+        
+        if response.data:
+            # Atualizar existente
+            supabase.table('config_cotacoes')\
+                .update({
+                    'valor_config': limite,
+                    'data_atualizacao': datetime.now().isoformat()
+                })\
+                .eq('tipo_config', 'limites')\
+                .eq('cliente_username', username)\
+                .execute()
+        else:
+            # Criar novo
+            supabase.table('config_cotacoes')\
+                .insert({
+                    'tipo_config': 'limites',
+                    'cliente_username': username,
+                    'valor_config': limite,
+                    'data_atualizacao': datetime.now().isoformat(),
+                    'created_at': datetime.now().isoformat()
+                })\
+                .execute()
+        
+        print(f"✅ Limite operacional para {username}: US$ {limite:,.2f}")
+        
+        return jsonify({
+            "success": True,
+            "message": f"Limite atualizado para US$ {limite:,.2f}"
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao alterar limite: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/cotacoes/horario', methods=['POST'])
+def api_admin_cotacoes_horario():
+    """Salva horário personalizado de um cliente"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        dados = request.get_json()
+        
+        username = dados.get('username')
+        horario = dados.get('horario')  # Pode ser None para remover
+        
+        if not username:
+            return jsonify({"success": False, "message": "Usuário não informado"}), 400
+        
+        from datetime import datetime
+        
+        if horario is None:
+            # Remover horário personalizado
+            supabase.table('config_cotacoes')\
+                .delete()\
+                .eq('tipo_config', 'horarios')\
+                .eq('cliente_username', username)\
+                .execute()
+            print(f"🗑️ Horário personalizado removido para {username}")
+        else:
+            # Salvar horário personalizado
+            response = supabase.table('config_cotacoes')\
+                .select('id')\
+                .eq('tipo_config', 'horarios')\
+                .eq('cliente_username', username)\
+                .execute()
+            
+            if response.data:
+                # Atualizar existente
+                supabase.table('config_cotacoes')\
+                    .update({
+                        'valor_config': horario,
+                        'data_atualizacao': datetime.now().isoformat()
+                    })\
+                    .eq('tipo_config', 'horarios')\
+                    .eq('cliente_username', username)\
+                    .execute()
+            else:
+                # Criar novo
+                supabase.table('config_cotacoes')\
+                    .insert({
+                        'tipo_config': 'horarios',
+                        'cliente_username': username,
+                        'valor_config': horario,
+                        'data_atualizacao': datetime.now().isoformat(),
+                        'created_at': datetime.now().isoformat()
+                    })\
+                    .execute()
+            print(f"✅ Horário personalizado salvo para {username}: {horario}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Horário salvo com sucesso!"
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao salvar horário: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/cotacoes/salvar-tudo', methods=['POST'])
+def api_admin_cotacoes_salvar_tudo():
+    """Salva todas as configurações de um cliente de uma vez"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        dados = request.get_json()
+        
+        username = dados.get('username')
+        spreads = dados.get('spreads', {})
+        cambio_liberado = dados.get('cambio_liberado', True)
+        limite_operacional = dados.get('limite_operacional', 10000)
+        horario = dados.get('horario')  # Pode ser None
+        
+        if not username:
+            return jsonify({"success": False, "message": "Usuário não informado"}), 400
+        
+        from datetime import datetime
+        
+        # 1. Salvar spreads
+        spreads_response = supabase.table('config_cotacoes')\
+            .select('id')\
+            .eq('tipo_config', 'spreads')\
+            .eq('cliente_username', username)\
+            .execute()
+        
+        if spreads_response.data:
+            supabase.table('config_cotacoes')\
+                .update({
+                    'valor_config': spreads,
+                    'data_atualizacao': datetime.now().isoformat()
+                })\
+                .eq('tipo_config', 'spreads')\
+                .eq('cliente_username', username)\
+                .execute()
+        else:
+            supabase.table('config_cotacoes')\
+                .insert({
+                    'tipo_config': 'spreads',
+                    'cliente_username': username,
+                    'valor_config': spreads,
+                    'data_atualizacao': datetime.now().isoformat(),
+                    'created_at': datetime.now().isoformat()
+                })\
+                .execute()
+        
+        # 2. Salvar permissão
+        permissao_response = supabase.table('config_cotacoes')\
+            .select('id')\
+            .eq('tipo_config', 'permissoes')\
+            .eq('cliente_username', username)\
+            .execute()
+        
+        if permissao_response.data:
+            supabase.table('config_cotacoes')\
+                .update({
+                    'valor_config': cambio_liberado,
+                    'data_atualizacao': datetime.now().isoformat()
+                })\
+                .eq('tipo_config', 'permissoes')\
+                .eq('cliente_username', username)\
+                .execute()
+        else:
+            supabase.table('config_cotacoes')\
+                .insert({
+                    'tipo_config': 'permissoes',
+                    'cliente_username': username,
+                    'valor_config': cambio_liberado,
+                    'data_atualizacao': datetime.now().isoformat(),
+                    'created_at': datetime.now().isoformat()
+                })\
+                .execute()
+        
+        # 3. Salvar limite
+        limite_response = supabase.table('config_cotacoes')\
+            .select('id')\
+            .eq('tipo_config', 'limites')\
+            .eq('cliente_username', username)\
+            .execute()
+        
+        if limite_response.data:
+            supabase.table('config_cotacoes')\
+                .update({
+                    'valor_config': limite_operacional,
+                    'data_atualizacao': datetime.now().isoformat()
+                })\
+                .eq('tipo_config', 'limites')\
+                .eq('cliente_username', username)\
+                .execute()
+        else:
+            supabase.table('config_cotacoes')\
+                .insert({
+                    'tipo_config': 'limites',
+                    'cliente_username': username,
+                    'valor_config': limite_operacional,
+                    'data_atualizacao': datetime.now().isoformat(),
+                    'created_at': datetime.now().isoformat()
+                })\
+                .execute()
+        
+        # 4. Salvar horário
+        if horario:
+            horario_response = supabase.table('config_cotacoes')\
+                .select('id')\
+                .eq('tipo_config', 'horarios')\
+                .eq('cliente_username', username)\
+                .execute()
+            
+            if horario_response.data:
+                supabase.table('config_cotacoes')\
+                    .update({
+                        'valor_config': horario,
+                        'data_atualizacao': datetime.now().isoformat()
+                    })\
+                    .eq('tipo_config', 'horarios')\
+                    .eq('cliente_username', username)\
+                    .execute()
+            else:
+                supabase.table('config_cotacoes')\
+                    .insert({
+                        'tipo_config': 'horarios',
+                        'cliente_username': username,
+                        'valor_config': horario,
+                        'data_atualizacao': datetime.now().isoformat(),
+                        'created_at': datetime.now().isoformat()
+                    })\
+                    .execute()
+        else:
+            # Remover horário personalizado se existir
+            supabase.table('config_cotacoes')\
+                .delete()\
+                .eq('tipo_config', 'horarios')\
+                .eq('cliente_username', username)\
+                .execute()
+        
+        print(f"✅ Todas as configurações salvas para {username}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Todas as configurações foram salvas com sucesso!"
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao salvar configurações: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/cotacoes/exportar', methods=['GET'])
+def api_admin_cotacoes_exportar():
+    """Exporta todas as configurações para CSV"""
+    try:
+        usuario = session.get('username')
+        
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Buscar todos os clientes
+        clientes_response = supabase.table('usuarios')\
+            .select('username, nome, email')\
+            .eq('tipo', 'cliente')\
+            .execute()
+        
+        pares_moedas = [
+            'USD_BRL', 'EUR_BRL', 'GBP_BRL',
+            'EUR_USD', 'GBP_USD', 'USD_EUR',
+            'BRL_USD', 'BRL_EUR', 'BRL_GBP',
+            'USD_GBP', 'EUR_GBP', 'GBP_EUR'
+        ]
+        
+        clientes = []
+        for cliente in (clientes_response.data or []):
+            username = cliente.get('username')
+            
+            # Buscar spreads
+            spreads_response = supabase.table('config_cotacoes')\
+                .select('valor_config')\
+                .eq('tipo_config', 'spreads')\
+                .eq('cliente_username', username)\
+                .execute()
+            
+            spreads = {}
+            if spreads_response.data:
+                spreads = spreads_response.data[0].get('valor_config', {})
+            
+            # Buscar permissão
+            permissao_response = supabase.table('config_cotacoes')\
+                .select('valor_config')\
+                .eq('tipo_config', 'permissoes')\
+                .eq('cliente_username', username)\
+                .execute()
+            
+            cambio_liberado = True
+            if permissao_response.data:
+                cambio_liberado = permissao_response.data[0].get('valor_config', True)
+            
+            # Buscar limite
+            limite_response = supabase.table('config_cotacoes')\
+                .select('valor_config')\
+                .eq('tipo_config', 'limites')\
+                .eq('cliente_username', username)\
+                .execute()
+            
+            limite_operacional = 10000.00
+            if limite_response.data:
+                limite_operacional = float(limite_response.data[0].get('valor_config', 10000))
+            
+            clientes.append({
+                'username': username,
+                'nome': cliente.get('nome', username),
+                'email': cliente.get('email', ''),
+                'cambio_liberado': cambio_liberado,
+                'limite_operacional': limite_operacional,
+                'spreads': spreads
+            })
+        
+        return jsonify({
+            "success": True,
+            "clientes": clientes,
+            "pares": pares_moedas
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao exportar configurações: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
