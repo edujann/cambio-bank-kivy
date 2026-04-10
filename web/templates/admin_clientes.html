@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏦 Cambio Bank - Listar Clientes</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: var(--cor-fundo);
+            color: var(--cor-texto);
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* HEADER */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--cor-borda);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .logo i {
+            color: var(--cor-admin);
+            font-size: 28px;
+        }
+
+        .logo-text {
+            background: linear-gradient(90deg, var(--cor-admin), #2d8fff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .badge-admin {
+            background: var(--cor-admin);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .btn-voltar {
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            padding: 10px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-voltar:hover {
+            border-color: var(--cor-admin);
+            color: var(--cor-admin);
+            transform: translateY(-2px);
+        }
+
+        /* CARDS DE ESTATÍSTICAS */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 15px 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--cor-admin);
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--cor-primaria);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--cor-texto-secundario);
+            margin-top: 5px;
+        }
+
+        /* BARRA DE AÇÕES */
+        .acoes-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 10px 15px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            color: var(--cor-texto);
+            font-size: 14px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--cor-admin);
+        }
+
+        .btn-search {
+            background: var(--cor-admin);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+        }
+
+        .btn-exportar {
+            background: #2ecc71;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+        }
+
+        /* TABELA */
+        .tabela-container {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+
+        th {
+            background: rgba(26, 95, 180, 0.1);
+            color: var(--cor-admin);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        th:hover {
+            background: rgba(26, 95, 180, 0.2);
+        }
+
+        tr:hover {
+            background: rgba(26, 95, 180, 0.05);
+        }
+
+        /* STATUS BADGES */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-ativo {
+            background: rgba(46, 194, 126, 0.2);
+            color: #2ec27e;
+        }
+
+        .status-bloqueado {
+            background: rgba(224, 27, 36, 0.2);
+            color: #e01b24;
+        }
+
+        .cambio-liberado {
+            background: rgba(46, 194, 126, 0.2);
+            color: #2ec27e;
+        }
+
+        .cambio-bloqueado {
+            background: rgba(243, 156, 18, 0.2);
+            color: #f39c12;
+        }
+
+        /* BOTÕES DE AÇÃO */
+        .btn-acao {
+            background: transparent;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 5px 8px;
+            margin: 0 2px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-acao:hover {
+            background: rgba(26, 95, 180, 0.2);
+            transform: scale(1.1);
+        }
+
+        .btn-editar { color: #3498db; }
+        .btn-detalhes { color: #2ecc71; }
+        .btn-cambio { color: #f39c12; }
+        .btn-bloquear { color: #e74c3c; }
+        .btn-ativar { color: #2ecc71; }
+        .btn-contas { color: #9b59b6; }
+
+        /* PAGINAÇÃO */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+            padding: 15px;
+        }
+
+        .pagination button {
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            padding: 8px 15px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: var(--cor-admin);
+            border-color: var(--cor-admin);
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination span {
+            color: var(--cor-texto-secundario);
+        }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--cor-borda);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            color: var(--cor-admin);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--cor-texto-secundario);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid var(--cor-borda);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn-modal {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+        }
+
+        .btn-modal-primary {
+            background: var(--cor-admin);
+            color: white;
+        }
+
+        .btn-modal-secondary {
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+        }
+
+        .info-card {
+            background: rgba(26, 95, 180, 0.1);
+            border: 1px solid var(--cor-admin);
+            border-radius: var(--borda-radius-pequeno);
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        /* RESPONSIVIDADE */
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .acoes-bar {
+                flex-direction: column;
+            }
+            
+            .search-box {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fas fa-university"></i>
+                <span class="logo-text">CAMBIO BANK</span>
+                <span class="badge-admin">ADMIN</span>
+            </div>
+            
+            <h1 class="page-title">LISTAR CLIENTES</h1>
+            
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-voltar" onclick="window.location.href='/admin/dashboard'">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </button>
+            </div>
+        </header>
+
+        <!-- CARDS DE ESTATÍSTICAS -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalClientes">0</div>
+                <div class="stat-label">Total de Clientes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalAtivos">0</div>
+                <div class="stat-label">Ativos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalBloqueados">0</div>
+                <div class="stat-label">Bloqueados</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalCambioLiberado">0</div>
+                <div class="stat-label">Câmbio Liberado</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalContas">0</div>
+                <div class="stat-label">Total de Contas</div>
+            </div>
+        </div>
+
+        <!-- BARRA DE AÇÕES -->
+        <div class="acoes-bar">
+            <div class="search-box">
+                <input type="text" id="searchInput" class="search-input" placeholder="🔍 Buscar por nome, usuário ou email...">
+                <button class="btn-search" onclick="buscarClientes()">
+                    <i class="fas fa-search"></i>
+                </button>
+                <button class="btn-exportar" onclick="exportarClientes()">
+                    <i class="fas fa-file-excel"></i> Exportar
+                </button>
+            </div>
+        </div>
+
+        <!-- TABELA DE CLIENTES -->
+        <div class="tabela-container">
+            <table id="tabelaClientes">
+                <thead>
+                    <tr>
+                        <th onclick="ordenarPor('username')">Usuário <i class="fas fa-sort"></i></th>
+                        <th onclick="ordenarPor('nome')">Nome <i class="fas fa-sort"></i></th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Câmbio</th>
+                        <th>Contas</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="clientesBody">
+                    <tr>
+                        <td colspan="7" class="loading">
+                            <i class="fas fa-spinner fa-spin"></i> Carregando clientes...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PAGINAÇÃO -->
+        <div class="pagination" id="pagination">
+            <button onclick="paginaAnterior()" id="btnAnterior" disabled>
+                <i class="fas fa-chevron-left"></i> Anterior
+            </button>
+            <span id="paginaInfo">Página 1 de 1</span>
+            <button onclick="proximaPagina()" id="btnProximo" disabled>
+                Próximo <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL DETALHES DO CLIENTE -->
+    <div id="modalDetalhes" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-circle"></i> Detalhes do Cliente</h3>
+                <button class="modal-close" onclick="fecharModalDetalhes()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalDetalhesBody">
+                <!-- Conteúdo dinâmico -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal btn-modal-secondary" onclick="fecharModalDetalhes()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CONTAS -->
+    <div id="modalContas" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-wallet"></i> Contas do Cliente</h3>
+                <button class="modal-close" onclick="fecharModalContas()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalContasBody">
+                <!-- Conteúdo dinâmico -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal btn-modal-secondary" onclick="fecharModalContas()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL EDIÇÃO -->
+    <div id="modalEdicao" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> Editar Cliente</h3>
+                <button class="modal-close" onclick="fecharModalEdicao()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editUsername">
+                <div class="form-row">
+                    <label>Nome</label>
+                    <input type="text" id="editNome" class="form-control">
+                </div>
+                <div class="form-row">
+                    <label>Email</label>
+                    <input type="email" id="editEmail" class="form-control">
+                </div>
+                <div class="form-row">
+                    <label>Telefone</label>
+                    <input type="text" id="editTelefone" class="form-control">
+                </div>
+                <div class="form-row">
+                    <label>Endereço</label>
+                    <input type="text" id="editEndereco" class="form-control">
+                </div>
+                <div class="form-row-duas-colunas" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-row">
+                        <label>Cidade</label>
+                        <input type="text" id="editCidade" class="form-control">
+                    </div>
+                    <div class="form-row">
+                        <label>Estado</label>
+                        <input type="text" id="editEstado" class="form-control">
+                    </div>
+                </div>
+                <div class="form-row-duas-colunas" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-row">
+                        <label>CEP</label>
+                        <input type="text" id="editCep" class="form-control">
+                    </div>
+                    <div class="form-row">
+                        <label>País</label>
+                        <input type="text" id="editPais" class="form-control">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal btn-modal-secondary" onclick="fecharModalEdicao()">Cancelar</button>
+                <button class="btn-modal btn-modal-primary" onclick="salvarEdicao()">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/theme.js"></script>
+    <script>
+        // ============================================
+        // VARIÁVEIS GLOBAIS
+        // ============================================
+        let clientes = [];
+        let clientesFiltrados = [];
+        let paginaAtual = 1;
+        let itensPorPagina = 15;
+        let ordemAtual = 'nome';
+        let ordemDirecao = 'asc';
+
+        // ============================================
+        // CARREGAR CLIENTES
+        // ============================================
+        async function carregarClientes() {
+            try {
+                const response = await fetch('/api/admin/clientes');
+                const data = await response.json();
+                
+                if (data.success) {
+                    clientes = data.clientes;
+                    clientesFiltrados = [...clientes];
+                    atualizarEstatisticas();
+                    aplicarFiltro();
+                } else {
+                    console.error('Erro:', data.message);
+                    document.getElementById('clientesBody').innerHTML = `<tr><td colspan="7" class="loading">❌ ${data.message}</td></tr>`;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar clientes:', error);
+                document.getElementById('clientesBody').innerHTML = '<tr><td colspan="7" class="loading">❌ Erro ao carregar clientes</td></tr>';
+            }
+        }
+
+        function atualizarEstatisticas() {
+            const total = clientes.length;
+            const ativos = clientes.filter(c => c.status !== 'bloqueado').length;
+            const bloqueados = clientes.filter(c => c.status === 'bloqueado').length;
+            const cambioLiberado = clientes.filter(c => c.cambio_liberado).length;
+            
+            document.getElementById('totalClientes').textContent = total;
+            document.getElementById('totalAtivos').textContent = ativos;
+            document.getElementById('totalBloqueados').textContent = bloqueados;
+            document.getElementById('totalCambioLiberado').textContent = cambioLiberado;
+            
+            // Calcular total de contas (precisa de outra chamada)
+            calcularTotalContas();
+        }
+
+        async function calcularTotalContas() {
+            try {
+                const response = await fetch('/api/admin/contas');
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('totalContas').textContent = data.total || 0;
+                }
+            } catch (error) {
+                console.error('Erro ao calcular total de contas:', error);
+            }
+        }
+
+        // ============================================
+        // BUSCA E FILTRO
+        // ============================================
+        function buscarClientes() {
+            const termo = document.getElementById('searchInput').value.toLowerCase();
+            
+            if (!termo) {
+                clientesFiltrados = [...clientes];
+            } else {
+                clientesFiltrados = clientes.filter(c => 
+                    c.nome.toLowerCase().includes(termo) ||
+                    c.username.toLowerCase().includes(termo) ||
+                    (c.email && c.email.toLowerCase().includes(termo))
+                );
+            }
+            
+            paginaAtual = 1;
+            aplicarFiltro();
+        }
+
+        function aplicarFiltro() {
+            // Ordenar
+            clientesFiltrados.sort((a, b) => {
+                let valA = a[ordemAtual] || '';
+                let valB = b[ordemAtual] || '';
+                if (typeof valA === 'string') valA = valA.toLowerCase();
+                if (typeof valB === 'string') valB = valB.toLowerCase();
+                
+                if (valA < valB) return ordemDirecao === 'asc' ? -1 : 1;
+                if (valA > valB) return ordemDirecao === 'asc' ? 1 : -1;
+                return 0;
+            });
+            
+            // Paginar
+            const inicio = (paginaAtual - 1) * itensPorPagina;
+            const fim = inicio + itensPorPagina;
+            const clientesPagina = clientesFiltrados.slice(inicio, fim);
+            
+            renderizarTabela(clientesPagina);
+            atualizarPaginacao();
+        }
+
+        function ordenarPor(campo) {
+            if (ordemAtual === campo) {
+                ordemDirecao = ordemDirecao === 'asc' ? 'desc' : 'asc';
+            } else {
+                ordemAtual = campo;
+                ordemDirecao = 'asc';
+            }
+            aplicarFiltro();
+        }
+
+        // ============================================
+        // RENDERIZAR TABELA
+        // ============================================
+        function renderizarTabela(clientesPagina) {
+            const tbody = document.getElementById('clientesBody');
+            
+            if (clientesPagina.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="loading">📭 Nenhum cliente encontrado</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = '';
+            
+            for (const cliente of clientesPagina) {
+                const row = tbody.insertRow();
+                
+                // Usuário
+                row.insertCell(0).innerHTML = `<strong>${escapeHtml(cliente.username)}</strong>`;
+                
+                // Nome
+                row.insertCell(1).innerHTML = escapeHtml(cliente.nome);
+                
+                // Email
+                row.insertCell(2).innerHTML = escapeHtml(cliente.email || '-');
+                
+                // Status
+                const statusClass = cliente.status === 'bloqueado' ? 'status-bloqueado' : 'status-ativo';
+                const statusText = cliente.status === 'bloqueado' ? 'Bloqueado' : 'Ativo';
+                row.insertCell(3).innerHTML = `<span class="status-badge ${statusClass}">${statusText}</span>`;
+                
+                // Câmbio
+                const cambioClass = cliente.cambio_liberado ? 'cambio-liberado' : 'cambio-bloqueado';
+                const cambioText = cliente.cambio_liberado ? 'Liberado' : 'Bloqueado';
+                row.insertCell(4).innerHTML = `<span class="status-badge ${cambioClass}">${cambioText}</span>`;
+                
+                // Contas
+                row.insertCell(5).innerHTML = `<button class="btn-acao btn-contas" onclick="verContas('${cliente.username}')" title="Ver contas">
+                    <i class="fas fa-wallet"></i> ${cliente.total_contas || 0}
+                </button>`;
+                
+                // Ações
+                const acoesCell = row.insertCell(6);
+                acoesCell.innerHTML = `
+                    <button class="btn-acao btn-detalhes" onclick="verDetalhes('${cliente.username}')" title="Ver detalhes">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn-acao btn-editar" onclick="editarCliente('${cliente.username}')" title="Editar">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-acao btn-cambio" onclick="toggleCambio('${cliente.username}', ${cliente.cambio_liberado})" title="${cliente.cambio_liberado ? 'Bloquear câmbio' : 'Liberar câmbio'}">
+                        <i class="fas fa-exchange-alt"></i>
+                    </button>
+                    <button class="btn-acao btn-bloquear" onclick="toggleStatus('${cliente.username}', '${cliente.status}')" title="${cliente.status === 'bloqueado' ? 'Ativar' : 'Bloquear'}">
+                        <i class="fas fa-${cliente.status === 'bloqueado' ? 'check-circle' : 'ban'}"></i>
+                    </button>
+                `;
+            }
+        }
+
+        // ============================================
+        // PAGINAÇÃO
+        // ============================================
+        function atualizarPaginacao() {
+            const totalPaginas = Math.ceil(clientesFiltrados.length / itensPorPagina);
+            document.getElementById('paginaInfo').textContent = `Página ${paginaAtual} de ${totalPaginas || 1}`;
+            
+            document.getElementById('btnAnterior').disabled = paginaAtual === 1;
+            document.getElementById('btnProximo').disabled = paginaAtual === totalPaginas || totalPaginas === 0;
+        }
+
+        function paginaAnterior() {
+            if (paginaAtual > 1) {
+                paginaAtual--;
+                aplicarFiltro();
+            }
+        }
+
+        function proximaPagina() {
+            const totalPaginas = Math.ceil(clientesFiltrados.length / itensPorPagina);
+            if (paginaAtual < totalPaginas) {
+                paginaAtual++;
+                aplicarFiltro();
+            }
+        }
+
+        // ============================================
+        // AÇÕES DOS CLIENTES
+        // ============================================
+        async function verDetalhes(username) {
+            try {
+                const response = await fetch(`/api/admin/clientes/${username}/detalhes`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const c = data.cliente;
+                    const modalBody = document.getElementById('modalDetalhesBody');
+                    modalBody.innerHTML = `
+                        <div class="info-card">
+                            <strong><i class="fas fa-user"></i> Informações Pessoais</strong><br>
+                            Nome: ${escapeHtml(c.nome)}<br>
+                            Usuário: ${escapeHtml(c.username)}<br>
+                            Email: ${escapeHtml(c.email || '-')}<br>
+                            Telefone: ${escapeHtml(c.telefone || '-')}<br>
+                            Documento: ${escapeHtml(c.documento || '-')}
+                        </div>
+                        <div class="info-card">
+                            <strong><i class="fas fa-map-marker-alt"></i> Endereço</strong><br>
+                            ${escapeHtml(c.endereco || '-')}<br>
+                            ${escapeHtml(c.cidade || '-')} - ${escapeHtml(c.estado || '-')}<br>
+                            CEP: ${escapeHtml(c.cep || '-')}<br>
+                            País: ${escapeHtml(c.pais || '-')}
+                        </div>
+                        <div class="info-card">
+                            <strong><i class="fas fa-calendar"></i> Datas</strong><br>
+                            Cadastro: ${formatarData(c.data_cadastro)}<br>
+                            Status: ${c.status === 'bloqueado' ? 'Bloqueado' : 'Ativo'}<br>
+                            Verificado: ${c.verificado ? '✅ Sim' : '❌ Não'}<br>
+                            Câmbio Liberado: ${c.cambio_liberado ? '✅ Sim' : '❌ Não'}
+                        </div>
+                    `;
+                    document.getElementById('modalDetalhes').classList.add('active');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao carregar detalhes!');
+            }
+        }
+
+        async function verContas(username) {
+            try {
+                const response = await fetch(`/api/admin/clientes/${username}/contas`);
+                const data = await response.json();
+                
+                if (data.success && data.contas.length > 0) {
+                    let contasHtml = '<div class="info-card"><strong>Contas Bancárias</strong></div>';
+                    for (const conta of data.contas) {
+                        const saldoClass = conta.saldo >= 0 ? 'positivo' : 'negativo';
+                        contasHtml += `
+                            <div class="info-card">
+                                <strong>${conta.numero}</strong><br>
+                                Moeda: ${conta.moeda}<br>
+                                Saldo: <span class="${saldoClass}">${formatarValor(conta.saldo)} ${conta.moeda}</span><br>
+                                Status: ${conta.ativa ? 'Ativa' : 'Inativa'}<br>
+                                Criada em: ${formatarData(conta.data_criacao)}
+                            </div>
+                        `;
+                    }
+                    document.getElementById('modalContasBody').innerHTML = contasHtml;
+                    document.getElementById('modalContas').classList.add('active');
+                } else {
+                    alert('Cliente não possui contas!');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao carregar contas!');
+            }
+        }
+
+        async function editarCliente(username) {
+            try {
+                const response = await fetch(`/api/admin/clientes/${username}/detalhes`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const c = data.cliente;
+                    document.getElementById('editUsername').value = username;
+                    document.getElementById('editNome').value = c.nome || '';
+                    document.getElementById('editEmail').value = c.email || '';
+                    document.getElementById('editTelefone').value = c.telefone || '';
+                    document.getElementById('editEndereco').value = c.endereco || '';
+                    document.getElementById('editCidade').value = c.cidade || '';
+                    document.getElementById('editEstado').value = c.estado || '';
+                    document.getElementById('editCep').value = c.cep || '';
+                    document.getElementById('editPais').value = c.pais || '';
+                    document.getElementById('modalEdicao').classList.add('active');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao carregar dados para edição!');
+            }
+        }
+
+        async function salvarEdicao() {
+            const username = document.getElementById('editUsername').value;
+            const dados = {
+                nome: document.getElementById('editNome').value,
+                email: document.getElementById('editEmail').value,
+                telefone: document.getElementById('editTelefone').value,
+                endereco: document.getElementById('editEndereco').value,
+                cidade: document.getElementById('editCidade').value,
+                estado: document.getElementById('editEstado').value,
+                cep: document.getElementById('editCep').value,
+                pais: document.getElementById('editPais').value
+            };
+            
+            try {
+                const response = await fetch('/api/admin/clientes/editar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, dados })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('✅ Cliente atualizado com sucesso!');
+                    fecharModalEdicao();
+                    carregarClientes();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao salvar alterações!');
+            }
+        }
+
+        async function toggleCambio(username, liberadoAtual) {
+            const novoStatus = !liberadoAtual;
+            const acao = novoStatus ? 'liberar' : 'bloquear';
+            
+            if (!confirm(`Confirmar ${acao} câmbio para este cliente?`)) return;
+            
+            try {
+                const response = await fetch('/api/admin/clientes/toggle-cambio', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, liberado: novoStatus })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Câmbio ${novoStatus ? 'liberado' : 'bloqueado'} com sucesso!`);
+                    carregarClientes();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao alterar permissão de câmbio!');
+            }
+        }
+
+        async function toggleStatus(username, statusAtual) {
+            const novoStatus = statusAtual === 'bloqueado' ? 'ativo' : 'bloqueado';
+            const acao = novoStatus === 'ativo' ? 'ativar' : 'bloquear';
+            
+            if (!confirm(`Confirmar ${acao} este cliente?`)) return;
+            
+            try {
+                const response = await fetch('/api/admin/clientes/toggle-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, status: novoStatus })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Cliente ${novoStatus === 'ativo' ? 'ativado' : 'bloqueado'} com sucesso!`);
+                    carregarClientes();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao alterar status do cliente!');
+            }
+        }
+
+        // ============================================
+        // EXPORTAÇÃO
+        // ============================================
+        function exportarClientes() {
+            const dados = clientes.map(c => ({
+                'Usuário': c.username,
+                'Nome': c.nome,
+                'Email': c.email,
+                'Telefone': c.telefone,
+                'Status': c.status === 'bloqueado' ? 'Bloqueado' : 'Ativo',
+                'Câmbio Liberado': c.cambio_liberado ? 'Sim' : 'Não',
+                'Data Cadastro': formatarData(c.data_cadastro)
+            }));
+            
+            const csv = convertToCSV(dados);
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.setAttribute('download', `clientes_${new Date().toISOString().slice(0, 19)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            alert('✅ Arquivo CSV exportado com sucesso!');
+        }
+
+        function convertToCSV(data) {
+            const headers = Object.keys(data[0] || {});
+            const rows = data.map(obj => headers.map(header => JSON.stringify(obj[header] || '')).join(';'));
+            return [headers.join(';'), ...rows].join('\n');
+        }
+
+        // ============================================
+        // MODAIS
+        // ============================================
+        function fecharModalDetalhes() {
+            document.getElementById('modalDetalhes').classList.remove('active');
+        }
+
+        function fecharModalContas() {
+            document.getElementById('modalContas').classList.remove('active');
+        }
+
+        function fecharModalEdicao() {
+            document.getElementById('modalEdicao').classList.remove('active');
+        }
+
+        // ============================================
+        // FUNÇÕES AUXILIARES
+        // ============================================
+        function formatarValor(valor) {
+            if (valor === undefined || valor === null) return '0,00';
+            return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function formatarData(dataStr) {
+            if (!dataStr) return '-';
+            try {
+                const data = new Date(dataStr);
+                return data.toLocaleDateString('pt-BR');
+            } catch {
+                return dataStr;
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarClientes();
+            
+            // Busca ao pressionar Enter
+            document.getElementById('searchInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') buscarClientes();
+            });
+        });
+    </script>
+</body>
+</html>

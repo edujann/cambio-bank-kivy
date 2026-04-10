@@ -456,6 +456,56 @@
                 "compra": 0.6
             }
         },
+        "gables": {
+            "BRL_EUR": {
+                "venda": 0.3,
+                "compra": 0.3
+            },
+            "BRL_GBP": {
+                "venda": 0.9,
+                "compra": 0.9
+            },
+            "BRL_USD": {
+                "venda": 0.3,
+                "compra": 0.3
+            },
+            "EUR_BRL": {
+                "venda": 0.3,
+                "compra": 0.3
+            },
+            "EUR_GBP": {
+                "venda": 0.3,
+                "compra": 0.3
+            },
+            "EUR_USD": {
+                "venda": 0.3,
+                "compra": 0.3
+            },
+            "GBP_BRL": {
+                "venda": 0.3,
+                "compra": 0.3
+            },
+            "GBP_EUR": {
+                "venda": 0.3,
+                "compra": 0.3
+            },
+            "GBP_USD": {
+                "venda": 0.3,
+                "compra": 0.3
+            },
+            "USD_BRL": {
+                "venda": 0.3,
+                "compra": 0.3
+            },
+            "USD_EUR": {
+                "venda": 0.3,
+                "compra": 0.3
+            },
+            "USD_GBP": {
+                "venda": 0.3,
+                "compra": 0.3
+            }
+        },
         "hidroamerica": {
             "BRL_EUR": {
                 "venda": 0.5,
@@ -583,12 +633,13 @@
         "hidroamerica": false,
         "lacoste": true,
         "nike": true,
-        "jbs": false,
         "jbl": false,
+        "jbs": true,
         "bmw": true,
         "neosoro": true,
+        "mascambio": true,
         "gables": true,
-        "mascambio": true
+        "marlux": false
     },
     "limites_operacionais": {
         "apple": 10000.0,
@@ -597,7 +648,8 @@
         "pantanal": 100000.0,
         "neosoro": 10000.0,
         "mascambio": 10000.0,
-        "gables": 100000.0
+        "gables": 100000,
+        "marlux": 10000.0
     },
     "horario_comercial_padrao": {
         "fim": "15:00",
