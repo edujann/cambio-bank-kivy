@@ -19,8 +19,8 @@
 /* TEMA CLARO */
 :root[data-theme="light"] {
     /* FUNDOS - Hierarquia clara */
-    --cor-fundo: #e8ecef;        /* Fundo - mantém */
-    --cor-card: #edf1f5;         /* Cards - um pouco mais escuro que #f5f7fa */
+    --cor-fundo: #e8ecef;   /* Fundo um pouco mais escuro */
+    --cor-card: #eef2f6;    /* Quase igual ao fundo, mas levemente diferente */
     --cor-card-hover: #e6eaf0;   /* Hover - um tom mais escuro que o card */
     
     /* RESTO MANTÉM IGUAL... */
