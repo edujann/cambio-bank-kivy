@@ -49,3 +49,20 @@
     --borda-radius: 12px;
     --borda-radius-pequeno: 8px;
 }
+
+
+/* ============================================
+   ESTILOS ESPECÍFICOS POR TEMA
+   ============================================ */
+
+/* Gradiente no header para tema claro */
+:root[data-theme="light"] .app-header {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-bottom: 1px solid var(--cor-borda);
+}
+
+/* Header padrão para tema escuro (opcional, já é o padrão) */
+:root .app-header {
+    background: var(--cor-card);
+    border-bottom: 1px solid var(--cor-borda);
+}
