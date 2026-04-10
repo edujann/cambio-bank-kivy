@@ -335,6 +335,43 @@
                 flex-direction: column;
             }
         }
+
+        /* ============================================
+        CORREÇÃO FORÇADA PARA INPUTS E SELECTS (TEMA CLARO/ESCURO)
+        ============================================ */
+
+        /* Garantir que inputs e selects usem as variáveis do tema */
+        input, select, textarea {
+            background-color: var(--cor-fundo) !important;
+            color: var(--cor-texto) !important;
+            border: 1px solid var(--cor-borda) !important;
+            border-radius: var(--borda-radius-pequeno) !important;
+        }
+
+        /* Forçar opções do select */
+        select option {
+            background-color: var(--cor-card) !important;
+            color: var(--cor-texto) !important;
+        }
+
+        /* Forçar campo "Outro Banco" */
+        #outroBancoInput {
+            background-color: var(--cor-fundo) !important;
+            color: var(--cor-texto) !important;
+            border: 1px solid var(--cor-borda) !important;
+        }
+
+        /* Corrigir autofill do Chrome */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        select:-webkit-autofill,
+        select:-webkit-autofill:hover,
+        select:-webkit-autofill:focus {
+            -webkit-box-shadow: 0 0 0 1000px var(--cor-fundo) inset !important;
+            -webkit-text-fill-color: var(--cor-texto) !important;
+            transition: background-color 5000s ease-in-out 0s !important;
+        }
     </style>
 </head>
 <body>
