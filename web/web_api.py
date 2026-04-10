@@ -10574,7 +10574,7 @@ def api_admin_relatorios_anual():
 
 
 # ============================================
-# ADMIN - CONFIGURAÇÕES
+# ADMIN - CONFIGURAÇÕES (usando tabela config_sistema)
 # ============================================
 
 @app.route('/admin/configuracoes')
@@ -10604,40 +10604,26 @@ def admin_configuracoes():
 
 @app.route('/api/admin/configuracoes', methods=['GET'])
 def api_admin_configuracoes_get():
-    """Retorna todas as configurações do sistema"""
+    """Retorna todas as configurações do sistema da tabela config_sistema"""
     try:
         usuario = session.get('username')
         
         if not usuario:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
-        # Buscar configurações do Supabase
-        response = supabase.table('configuracoes_sistema').select('*').execute()
+        # Buscar todas as configurações
+        response = supabase.table('config_sistema').select('*').execute()
         
         configuracoes = {}
         for item in (response.data or []):
-            chave = item.get('chave')
-            valor = item.get('valor')
-            tipo = item.get('tipo')
+            modulo = item.get('modulo')
+            chave = item.get('chave_config')
+            valor = item.get('valor_config')
             
-            # Converter valor baseado no tipo
-            if tipo == 'numero':
-                try:
-                    valor = float(valor) if '.' in str(valor) else int(valor)
-                except:
-                    pass
-            elif tipo == 'booleano':
-                valor = str(valor).lower() in ['true', '1', 'yes', 'on']
-            elif tipo == 'json':
-                try:
-                    import json
-                    valor = json.loads(valor)
-                except:
-                    pass
-            
+            # Organizar por chave (compatível com o frontend)
             configuracoes[chave] = valor
         
-        # Valores padrão se não existirem
+        # Valores padrão (caso alguma configuração não exista)
         defaults = {
             'empresa_nome': 'Cambio Bank',
             'empresa_email': 'contato@cambiobank.com',
@@ -10648,13 +10634,14 @@ def api_admin_configuracoes_get():
             'moeda_padrao': 'USD',
             'senha_tamanho_min': 8,
             'senha_expiracao': 90,
-            'req_maiuscula': True,
-            'req_minuscula': True,
-            'req_numero': True,
-            'req_especial': True,
             'tentativas_login': 3,
             'tempo_inatividade': 30,
-            'dois_fatores': False,
+            'taxa_internacional': 2.0,
+            'taxa_cambio': 0.5,
+            'comissao_minima': 10.0,
+            'moeda_comissao': 'USD',
+            'limite_diario': 10000.0,
+            'limite_mensal': 50000.0,
             'notif_novo_cliente': True,
             'notif_transferencia': True,
             'notif_aprovacao': True,
@@ -10662,15 +10649,10 @@ def api_admin_configuracoes_get():
             'notif_relatorio': False,
             'frequencia_relatorio': 'nenhum',
             'email_relatorios': 'relatorios@cambiobank.com',
-            'taxa_internacional': 2.0,
-            'taxa_cambio': 0.5,
-            'comissao_minima': 10.0,
-            'moeda_comissao': 'USD',
-            'limite_diario': 10000.0,
-            'limite_mensal': 50000.0
+            'tema': 'escuro'
         }
         
-        # Mesclar com defaults
+        # Mesclar com defaults (se não existir, usar default)
         for chave, valor_default in defaults.items():
             if chave not in configuracoes:
                 configuracoes[chave] = valor_default
@@ -10687,7 +10669,7 @@ def api_admin_configuracoes_get():
 
 @app.route('/api/admin/configuracoes', methods=['POST'])
 def api_admin_configuracoes_post():
-    """Salva configurações do sistema"""
+    """Salva configurações do sistema na tabela config_sistema"""
     try:
         usuario = session.get('username')
         
@@ -10695,54 +10677,50 @@ def api_admin_configuracoes_post():
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
         dados = request.get_json()
-        categoria = dados.get('categoria')
+        categoria = dados.get('categoria')  # 'gerais', 'seguranca', 'notificacoes', 'taxas'
         configuracoes = dados.get('dados', {})
         
         from datetime import datetime
         
+        # Mapear categoria para módulo
+        modulo_map = {
+            'gerais': 'sistema',
+            'seguranca': 'seguranca',
+            'notificacoes': 'notificacoes',
+            'taxas': 'financeiras',
+            'tema': 'interface'
+        }
+        
+        modulo = modulo_map.get(categoria, 'sistema')
+        
         for chave, valor in configuracoes.items():
-            # Determinar tipo
-            if isinstance(valor, bool):
-                tipo = 'booleano'
-                valor_str = str(valor).lower()
-            elif isinstance(valor, (int, float)):
-                tipo = 'numero'
-                valor_str = str(valor)
-            elif isinstance(valor, dict):
-                tipo = 'json'
-                import json
-                valor_str = json.dumps(valor)
-            else:
-                tipo = 'texto'
-                valor_str = str(valor)
-            
             # Verificar se já existe
-            check = supabase.table('configuracoes_sistema')\
+            check = supabase.table('config_sistema')\
                 .select('id')\
-                .eq('chave', chave)\
+                .eq('modulo', modulo)\
+                .eq('chave_config', chave)\
                 .execute()
             
             if check.data:
                 # Atualizar
-                supabase.table('configuracoes_sistema')\
+                supabase.table('config_sistema')\
                     .update({
-                        'valor': valor_str,
-                        'tipo': tipo,
-                        'updated_at': datetime.now().isoformat(),
-                        'updated_by': usuario
+                        'valor_config': valor,
+                        'data_atualizacao': datetime.now().isoformat()
                     })\
-                    .eq('chave', chave)\
+                    .eq('modulo', modulo)\
+                    .eq('chave_config', chave)\
                     .execute()
             else:
                 # Inserir
-                supabase.table('configuracoes_sistema')\
+                supabase.table('config_sistema')\
                     .insert({
-                        'chave': chave,
-                        'valor': valor_str,
-                        'tipo': tipo,
-                        'categoria': categoria,
-                        'updated_at': datetime.now().isoformat(),
-                        'updated_by': usuario
+                        'modulo': modulo,
+                        'chave_config': chave,
+                        'valor_config': valor,
+                        'descricao': f'Configuração {chave} do módulo {modulo}',
+                        'data_atualizacao': datetime.now().isoformat(),
+                        'created_at': datetime.now().isoformat()
                     })\
                     .execute()
         
@@ -10755,6 +10733,8 @@ def api_admin_configuracoes_post():
         
     except Exception as e:
         print(f"❌ Erro ao salvar configurações: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"success": False, "message": str(e)}), 500
 
 
