@@ -643,6 +643,8 @@
             const bancoSelect = document.getElementById('bancoOrigemSelect');
             if (bancoSelect) {
                 bancoSelect.addEventListener('change', onBancoOrigemChange);
+                // 🔥 ADICIONAR ESTA LINHA - Garante o estado inicial
+                onBancoOrigemChange();
             }
             
             // Configurar eventos de navegação por teclado
