@@ -235,6 +235,89 @@
         padding: 0 20px;
     }
 
+    /* ============================================
+    CORREÇÃO PARA CAMPOS DA TRANSFERÊNCIA
+    ============================================ */
+
+    /* Spinners e selects */
+    .form-control, select, .form-select {
+        background-color: var(--cor-fundo) !important;
+        color: var(--cor-texto) !important;
+        border: 1px solid var(--cor-borda) !important;
+        border-radius: var(--borda-radius-pequeno) !important;
+        padding: 12px 15px !important;
+        font-size: 14px !important;
+    }
+
+    /* Campo de valor */
+    .valor-input, input[type="text"], input[type="number"] {
+        background-color: var(--cor-fundo) !important;
+        color: var(--cor-texto) !important;
+        border: 1px solid var(--cor-borda) !important;
+        border-radius: var(--borda-radius-pequeno) !important;
+        padding: 12px 15px !important;
+    }
+
+    /* Focus */
+    .form-control:focus, select:focus, input:focus {
+        outline: none !important;
+        border-color: var(--cor-primaria) !important;
+        box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2) !important;
+    }
+
+    /* Opções do select */
+    select option {
+        background-color: var(--cor-card) !important;
+        color: var(--cor-texto) !important;
+    }
+
+    /* Placeholder */
+    ::placeholder {
+        color: var(--cor-texto-secundario) !important;
+        opacity: 0.7 !important;
+    }
+
+    /* Autofill do Chrome */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    select:-webkit-autofill,
+    select:-webkit-autofill:hover,
+    select:-webkit-autofill:focus {
+        -webkit-box-shadow: 0 0 0 1000px var(--cor-fundo) inset !important;
+        -webkit-text-fill-color: var(--cor-texto) !important;
+        transition: background-color 5000s ease-in-out 0s !important;
+    }  
+    
+    .form-control {
+        width: 100%;
+        padding: 12px 15px;
+        background-color: var(--cor-fundo) !important;
+        color: var(--cor-texto) !important;
+        border: 1px solid var(--cor-borda) !important;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--cor-primaria) !important;
+        box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2);
+    }
+
+    select.form-control {
+        cursor: pointer;
+    }
+
+    textarea.form-control {
+        resize: vertical;
+    }
+
+    .form-control::placeholder {
+        color: var(--cor-texto-secundario);
+    }    
+
     </style>
 </head>
 
@@ -293,7 +376,7 @@
                             <label for="conta_origem">
                                 <i class="fas fa-wallet"></i> Conta de Origem *
                             </label>
-                            <select id="conta_origem" name="conta_origem" required>
+                            <select id="conta_origem" name="conta_origem" class="form-control" required>
                                 <option value="">Selecione sua conta...</option>
                                 <!-- Contas serão carregadas via JavaScript -->
                             </select>
@@ -307,8 +390,8 @@
                                 <i class="fas fa-money-bill-wave"></i> Valor a Transferir *
                             </label>
                             <div class="input-with-icon">
-                                <input type="number" id="valor" name="valor" step="0.01" min="0.01" 
-                                       placeholder="0.00" required>
+                                <input type="number" id="valor" name="valor" class="form-control" step="0.01" min="0.01" 
+                                    placeholder="0.00" required>
                                 <span id="moeda_label" class="currency-label">USD</span>
                             </div>
                             <small class="helper-text">Valor mínimo: 0.01</small>
@@ -320,7 +403,7 @@
                         <label for="finalidade">
                             <i class="fas fa-bullseye"></i> Finalidade da Transferência *
                         </label>
-                        <select id="finalidade" name="finalidade" required>
+                        <select id="finalidade" name="finalidade" class="form-control" required>
                             <option value="Pagamento de Serviços">Pagamento de Serviços</option>
                             <option value="Pagamento de Produtos">Pagamento de Produtos</option>
                             <option value="Remessa Familiar">Remessa Familiar</option>
@@ -334,8 +417,8 @@
                         <label for="descricao">
                             <i class="fas fa-comment-alt"></i> Descrição / Observações
                         </label>
-                        <textarea id="descricao" name="descricao" rows="3" 
-                                  placeholder="Descreva o propósito desta transferência..."></textarea>
+                        <textarea id="descricao" name="descricao" class="form-control" rows="3" 
+                                placeholder="Descreva o propósito desta transferência..."></textarea>
                     </div>
 
                     <hr class="form-divider">
@@ -350,7 +433,7 @@
                         <label for="beneficiarios_salvos">
                             <i class="fas fa-address-book"></i> Beneficiários Salvos
                         </label>
-                        <select id="beneficiarios_salvos" class="beneficiarios-select">
+                        <select id="beneficiarios_salvos" class="form-control beneficiarios-select">
                             <option value="">Selecione um beneficiário salvo...</option>
                             <!-- Beneficiários serão carregados via JavaScript -->
                         </select>
@@ -363,16 +446,16 @@
                             <label for="beneficiario">
                                 <i class="fas fa-user"></i> Nome Completo do Beneficiário *
                             </label>
-                            <input type="text" id="beneficiario" name="beneficiario" 
-                                   placeholder="Nome completo" required>
+                            <input type="text" id="beneficiario" name="beneficiario" class="form-control" 
+                                placeholder="Nome completo" required>
                         </div>
                         
                         <div class="form-group">
                             <label for="endereco">
                                 <i class="fas fa-map-marker-alt"></i> Endereço Completo *
                             </label>
-                            <input type="text" id="endereco" name="endereco" 
-                                   placeholder="Rua, número, complemento" required>
+                            <input type="text" id="endereco" name="endereco" class="form-control" 
+                                placeholder="Rua, número, complemento" required>
                         </div>
                     </div>
 
@@ -381,16 +464,16 @@
                             <label for="cidade">
                                 <i class="fas fa-city"></i> Cidade *
                             </label>
-                            <input type="text" id="cidade" name="cidade" 
-                                   placeholder="Cidade" required>
+                            <input type="text" id="cidade" name="cidade" class="form-control" 
+                                placeholder="Cidade" required>
                         </div>
                         
                         <div class="form-group">
                             <label for="pais">
                                 <i class="fas fa-flag"></i> País *
                             </label>
-                            <input type="text" id="pais" name="pais" 
-                                   placeholder="País" required>
+                            <input type="text" id="pais" name="pais" class="form-control" 
+                                placeholder="País" required>
                         </div>
                     </div>
 
@@ -406,16 +489,16 @@
                             <label for="banco">
                                 <i class="fas fa-landmark"></i> Nome do Banco *
                             </label>
-                            <input type="text" id="banco" name="banco" 
-                                   placeholder="Nome do banco destinatário" required>
+                            <input type="text" id="banco" name="banco" class="form-control" 
+                                placeholder="Nome do banco destinatário" required>
                         </div>
                         
                         <div class="form-group">
                             <label for="endereco_banco">
                                 <i class="fas fa-map-pin"></i> Endereço do Banco
                             </label>
-                            <input type="text" id="endereco_banco" name="endereco_banco" 
-                                   placeholder="Endereço do banco">
+                            <input type="text" id="endereco_banco" name="endereco_banco" class="form-control" 
+                                placeholder="Endereço do banco">
                         </div>
                     </div>
 
@@ -424,16 +507,16 @@
                             <label for="cidade_banco">
                                 <i class="fas fa-city"></i> Cidade do Banco *
                             </label>
-                            <input type="text" id="cidade_banco" name="cidade_banco" 
-                                   placeholder="Cidade do banco" required>
+                            <input type="text" id="cidade_banco" name="cidade_banco" class="form-control" 
+                                placeholder="Cidade do banco" required>
                         </div>
                         
                         <div class="form-group">
                             <label for="pais_banco">
                                 <i class="fas fa-flag"></i> País do Banco *
                             </label>
-                            <input type="text" id="pais_banco" name="pais_banco" 
-                                   placeholder="País do banco" required>
+                            <input type="text" id="pais_banco" name="pais_banco" class="form-control" 
+                                placeholder="País do banco" required>
                         </div>
                     </div>
 
@@ -449,16 +532,16 @@
                             <label for="swift">
                                 <i class="fas fa-barcode"></i> Código SWIFT/BIC *
                             </label>
-                            <input type="text" id="swift" name="swift" 
-                                   placeholder="Ex: CHASUS33XXX" required>
+                            <input type="text" id="swift" name="swift" class="form-control" 
+                                placeholder="Ex: CHASUS33XXX" required>
                         </div>
                         
                         <div class="form-group">
                             <label for="iban">
                                 <i class="fas fa-hashtag"></i> Código IBAN / Account # *
                             </label>
-                            <input type="text" id="iban" name="iban" 
-                                   placeholder="Número da conta" required>
+                            <input type="text" id="iban" name="iban" class="form-control" 
+                                placeholder="Número da conta" required>
                         </div>
                     </div>
 
@@ -466,8 +549,8 @@
                         <label for="aba">
                             <i class="fas fa-route"></i> Código ABA / Routing #
                         </label>
-                        <input type="text" id="aba" name="aba" 
-                               placeholder="Apenas para transferências EUA">
+                        <input type="text" id="aba" name="aba" class="form-control" 
+                            placeholder="Apenas para transferências EUA">
                     </div>
 
                     <hr class="form-divider">
