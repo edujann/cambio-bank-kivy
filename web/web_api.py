@@ -11833,7 +11833,7 @@ def api_admin_transferencias():
         if not usuario:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
-        # 🔥 FILTRAR APENAS TRANSFERÊNCIAS INTERNACIONAIS
+        # Buscar apenas transferências internacionais
         response = supabase.table('transferencias')\
             .select('*')\
             .eq('tipo', 'transferencia_internacional')\
@@ -11856,9 +11856,28 @@ def api_admin_transferencias():
                 if cliente_response.data:
                     cliente_nome = cliente_response.data.get('nome')
             
-            # Verificar se tem invoice
+            # 🔥 CORREÇÃO: Verificar invoice de forma robusta
             invoice_info = t.get('invoice_info')
-            tem_invoice = invoice_info is not None and isinstance(invoice_info, dict) and invoice_info.get('caminho_arquivo')
+            tem_invoice = False
+            
+            # Se invoice_info for string JSON, converter
+            if invoice_info and isinstance(invoice_info, str):
+                try:
+                    import json
+                    invoice_info = json.loads(invoice_info)
+                except:
+                    invoice_info = None
+            
+            # Verificar se existe invoice (caminho_arquivo presente e não vazio)
+            if invoice_info and isinstance(invoice_info, dict):
+                caminho = invoice_info.get('caminho_arquivo')
+                if caminho and caminho.strip():
+                    tem_invoice = True
+                    print(f"📎 Invoice encontrada para {t.get('id')}: {caminho}")
+                else:
+                    print(f"⚠️ Invoice sem caminho para {t.get('id')}")
+            else:
+                print(f"📭 Sem invoice para {t.get('id')}")
             
             transferencias.append({
                 'id': t.get('id'),
@@ -11877,6 +11896,7 @@ def api_admin_transferencias():
             })
         
         print(f"📊 {len(transferencias)} transferências internacionais encontradas")
+        print(f"📎 Transferências com invoice: {sum(1 for t in transferencias if t['tem_invoice'])}")
         
         return jsonify({
             "success": True,
@@ -11988,23 +12008,33 @@ def api_admin_transferencia_invoice(transferencia_id):
         
         invoice_info = response.data.get('invoice_info')
         
-        if isinstance(invoice_info, str):
+        # 🔥 CORREÇÃO: Se for string JSON, converter
+        if invoice_info and isinstance(invoice_info, str):
             try:
                 import json
                 invoice_info = json.loads(invoice_info)
             except:
                 invoice_info = None
         
-        if not invoice_info or not invoice_info.get('caminho_arquivo'):
+        if not invoice_info or not isinstance(invoice_info, dict):
             return jsonify({"success": False, "message": "Invoice não encontrada"}), 404
         
-        caminho_arquivo = invoice_info['caminho_arquivo']
+        caminho_arquivo = invoice_info.get('caminho_arquivo')
+        
+        if not caminho_arquivo or not caminho_arquivo.strip():
+            return jsonify({"success": False, "message": "Invoice não encontrada"}), 404
+        
+        print(f"📥 Baixando invoice: {caminho_arquivo}")
         
         # Buscar arquivo no storage
-        file_data = supabase.storage.from_("invoices").download(caminho_arquivo)
+        try:
+            file_data = supabase.storage.from_("invoices").download(caminho_arquivo)
+        except Exception as e:
+            print(f"❌ Erro ao baixar do storage: {e}")
+            return jsonify({"success": False, "message": f"Erro ao baixar arquivo: {str(e)}"}), 404
         
         if not file_data:
-            return jsonify({"success": False, "message": "Arquivo não encontrado"}), 404
+            return jsonify({"success": False, "message": "Arquivo não encontrado no storage"}), 404
         
         # Determinar content type
         nome_arquivo = caminho_arquivo.split('/')[-1]
@@ -12031,6 +12061,8 @@ def api_admin_transferencia_invoice(transferencia_id):
         
     except Exception as e:
         print(f"❌ Erro ao baixar invoice: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"success": False, "message": str(e)}), 500
 
 

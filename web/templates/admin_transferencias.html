@@ -768,7 +768,11 @@
             
             tbody.innerHTML = '';
             
+            // 🔥 LOG PARA DEBUG - MOSTRA QUAIS TRANSFERÊNCIAS TÊM INVOICE
+            console.log('=== TRANSFERÊNCIAS COM INVOICE ===');
             for (const t of paginaTransacoes) {
+                console.log('Transferência:', t.id, '| tem_invoice:', t.tem_invoice, '| status:', t.status);
+                
                 const row = tbody.insertRow();
                 
                 // ID
@@ -782,9 +786,7 @@
                 row.insertCell(2).textContent = escapeHtml(clienteNome);
                 
                 // Tipo
-                const tipoDisplay = t.tipo === 'transferencia_internacional' ? 'Internacional' : 
-                                   t.tipo === 'cambio' ? 'Câmbio' :
-                                   t.tipo === 'ajuste_admin' ? 'Ajuste' : 'Interna';
+                const tipoDisplay = 'Internacional';
                 row.insertCell(3).textContent = tipoDisplay;
                 
                 // Valor Original
