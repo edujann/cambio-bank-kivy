@@ -941,12 +941,12 @@
             const novoStatus = statusAtual === 'bloqueado' ? 'ativo' : 'bloqueado';
             const acao = novoStatus === 'ativo' ? 'ativar' : 'bloquear';
             
+            console.log(`🔄 Alterando status para ${username}: ${acao}`);
+            console.log(`   Status atual: ${statusAtual} -> Novo status: ${novoStatus}`);
+            
             if (!confirm(`Confirmar ${acao} este cliente?`)) return;
             
-            console.log(`🔄 Alterando status para ${username}: ${acao}`);
-            
             try {
-                // Primeiro, precisamos criar o endpoint de toggle-status
                 const response = await fetch('/api/admin/clientes/toggle-status', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -954,11 +954,12 @@
                 });
                 
                 const data = await response.json();
-                console.log('📥 Resposta:', data);
+                console.log('📥 Resposta do servidor:', data);
                 
                 if (data.success) {
                     alert(`✅ Cliente ${novoStatus === 'ativo' ? 'ativado' : 'bloqueado'} com sucesso!`);
-                    location.reload();
+                    // Recarregar a lista para mostrar o novo status
+                    carregarClientes();
                 } else {
                     alert('❌ ' + data.message);
                 }

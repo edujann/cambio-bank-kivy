@@ -6135,14 +6135,14 @@ def api_admin_toggle_cambio(username):
     
 @app.route('/api/admin/clientes/toggle-status', methods=['POST'])
 def api_admin_toggle_status():
-    """Ativa/desativa (bloqueia) um cliente"""
+    """Ativa ou bloqueia o acesso de um cliente ao sistema"""
     try:
         admin_user = session.get('username')
         
         if not admin_user:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
-        # Verificar admin
+        # Verificar se é admin
         user_check = supabase.table('usuarios')\
             .select('tipo')\
             .eq('username', admin_user)\
@@ -6159,11 +6159,10 @@ def api_admin_toggle_status():
         if not username:
             return jsonify({"success": False, "message": "Usuário não informado"}), 400
         
-        # Validar status
         if status not in ['ativo', 'bloqueado']:
             return jsonify({"success": False, "message": "Status inválido"}), 400
         
-        # Atualizar status do usuário
+        # 🔥 ATUALIZAR STATUS NO SUPABASE
         update_response = supabase.table('usuarios')\
             .update({'status': status})\
             .eq('username', username)\
@@ -6172,16 +6171,21 @@ def api_admin_toggle_status():
         if not update_response.data:
             return jsonify({"success": False, "message": "Cliente não encontrado"}), 404
         
-        print(f"✅ Status de {username} alterado para {status} por {admin_user}")
+        print(f"✅ Status do cliente {username} alterado para {status} por {admin_user}")
+        
+        if status == 'ativo':
+            mensagem = f"Cliente {username} ativado com sucesso!"
+        else:
+            mensagem = f"Cliente {username} bloqueado com sucesso!"
         
         return jsonify({
             "success": True,
-            "message": f"Cliente {'ativado' if status == 'ativo' else 'bloqueado'} com sucesso!"
+            "message": mensagem
         })
         
     except Exception as e:
         print(f"❌ Erro ao alterar status: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500    
+        return jsonify({"success": False, "message": str(e)}), 500
     
 
 # ============================================
