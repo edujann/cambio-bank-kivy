@@ -655,6 +655,64 @@
         .hidden {
             display: none !important;
         }
+
+        /* FUNDO DOS CARDS POR STATUS (TOM BEM SUAVE) - MANTENDO O DEGRADE */
+        .card-transferencia[data-status="pending"] {
+            background: rgba(243, 156, 18, 0.04);
+        }
+
+        .card-transferencia[data-status="processing"] {
+            background: rgba(26, 95, 180, 0.04);
+        }
+
+        .card-transferencia[data-status="completed"] {
+            background: rgba(46, 194, 126, 0.04);
+        }
+
+        .card-transferencia[data-status="rejected"] {
+            background: rgba(224, 27, 36, 0.04);
+        }
+
+        /* O DEGRADE NA BORDA SUPERIOR JÁ EXISTE E VAI CONTINUAR FUNCIONANDO */
+        .card-transferencia::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--cor-primaria), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .card-transferencia[data-status="pending"]::before {
+            background: linear-gradient(90deg, var(--cor-alerta), transparent);
+        }
+
+        .card-transferencia[data-status="processing"]::before {
+            background: linear-gradient(90deg, var(--cor-primaria), transparent);
+        }
+
+        .card-transferencia[data-status="completed"]::before {
+            background: linear-gradient(90deg, var(--cor-sucesso), transparent);
+        }
+
+        .card-transferencia[data-status="rejected"]::before {
+            background: linear-gradient(90deg, var(--cor-perigo), transparent);
+        }
+
+        /* No hover, o degrade aparece e o fundo volta ao normal */
+        .card-transferencia[data-status="pending"]:hover,
+        .card-transferencia[data-status="processing"]:hover,
+        .card-transferencia[data-status="completed"]:hover,
+        .card-transferencia[data-status="rejected"]:hover {
+            background: var(--cor-card);
+        }
+
+        .card-transferencia:hover::before {
+            opacity: 1;
+        }       
     </style>
 </head>
 <body>
