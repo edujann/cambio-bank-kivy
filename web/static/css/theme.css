@@ -63,3 +63,35 @@
     color: transparent;
 }
 
+/* Para títulos de seção */
+.section-title {
+    font-size: 18px;
+    font-weight: bold;
+    background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 15px;
+}
+
+/* ============================================
+   TÍTULO DO HEADER (PÁGINA) - DEGRADÊ AZUL
+   ============================================ */
+
+.app-header .page-title {
+    font-size: 20px;
+    font-weight: bold;
+    background: linear-gradient(135deg, #1a5fb4 0%, #2d8fff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin: 0;
+    padding: 0;
+}
+
+/* Para telas menores */
+@media (max-width: 768px) {
+    .app-header .page-title {
+        font-size: 16px;
+    }
+}
