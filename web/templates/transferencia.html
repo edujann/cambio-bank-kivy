@@ -525,6 +525,49 @@
 
     .logo i {
         color: var(--cor-primaria) !important;
+    }  
+    
+    /* ============================================
+    CHECKBOX - SALVAR BENEFICIÁRIO
+    ============================================ */
+
+    .form-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 20px 0;
+        padding: 10px 15px;
+        background-color: var(--cor-card);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius-pequeno);
+        transition: all 0.3s ease;
+    }
+
+    .form-checkbox input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: var(--cor-primaria);
+        margin: 0;
+        padding: 0;
+    }
+
+    .form-checkbox label {
+        color: var(--cor-texto) !important;
+        cursor: pointer;
+        margin: 0;
+        font-size: 14px;
+        flex: 1;
+    }
+
+    .form-checkbox label i {
+        color: var(--cor-primaria);
+        margin-right: 8px;
+    }
+
+    .form-checkbox:hover {
+        background-color: var(--cor-card-hover);
+        border-color: var(--cor-primaria);
     }    
 
     </style>
