@@ -18,6 +18,7 @@ function toggleTheme() {
 }
 
 function loadTheme() {
+    // 🔥 TEMA ESCURO É O PADRÃO 🔥
     const savedTheme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
     

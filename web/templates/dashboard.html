@@ -1989,6 +1989,7 @@ function abrirTransferencia() {
         const themeText = document.getElementById('themeText');
         const currentTheme = document.documentElement.getAttribute('data-theme');
         
+        // 🔥 Se estiver no tema claro, mostrar opção para voltar ao escuro
         if (currentTheme === 'light') {
             themeIcon.className = 'fas fa-moon';
             themeText.textContent = 'Tema Escuro';
