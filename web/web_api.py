@@ -11121,17 +11121,25 @@ def api_admin_cotacoes_permissao():
         if not username:
             return jsonify({"success": False, "message": "Usuário não informado"}), 400
         
-        # Buscar se já existe
-        response = supabase.table('config_cotacoes')\
+        from datetime import datetime
+        
+        # 🔥 1. ATUALIZAR TABELA USUARIOS (CAMPO cambio_liberado)
+        update_response = supabase.table('usuarios')\
+            .update({'cambio_liberado': liberado})\
+            .eq('username', username)\
+            .execute()
+        
+        if not update_response.data:
+            return jsonify({"success": False, "message": "Cliente não encontrado"}), 404
+        
+        # 🔥 2. TAMBÉM ATUALIZAR TABELA config_cotacoes (para manter compatibilidade)
+        config_check = supabase.table('config_cotacoes')\
             .select('id')\
             .eq('tipo_config', 'permissoes')\
             .eq('cliente_username', username)\
             .execute()
         
-        from datetime import datetime
-        
-        if response.data:
-            # Atualizar existente
+        if config_check.data:
             supabase.table('config_cotacoes')\
                 .update({
                     'valor_config': liberado,
@@ -11141,7 +11149,6 @@ def api_admin_cotacoes_permissao():
                 .eq('cliente_username', username)\
                 .execute()
         else:
-            # Criar novo
             supabase.table('config_cotacoes')\
                 .insert({
                     'tipo_config': 'permissoes',
@@ -11153,6 +11160,8 @@ def api_admin_cotacoes_permissao():
                 .execute()
         
         print(f"✅ Permissão de câmbio para {username}: {'liberado' if liberado else 'bloqueado'}")
+        print(f"   - usuarios.cambio_liberado = {liberado}")
+        print(f"   - config_cotacoes atualizada")
         
         return jsonify({
             "success": True,
@@ -11313,14 +11322,23 @@ def api_admin_cotacoes_salvar_tudo():
         spreads = dados.get('spreads', {})
         cambio_liberado = dados.get('cambio_liberado', True)
         limite_operacional = dados.get('limite_operacional', 10000)
-        horario = dados.get('horario')  # Pode ser None
+        horario = dados.get('horario')
         
         if not username:
             return jsonify({"success": False, "message": "Usuário não informado"}), 400
         
         from datetime import datetime
         
-        # 1. Salvar spreads
+        # 🔥 1. ATUALIZAR TABELA USUARIOS (CAMPO cambio_liberado)
+        update_response = supabase.table('usuarios')\
+            .update({'cambio_liberado': cambio_liberado})\
+            .eq('username', username)\
+            .execute()
+        
+        if not update_response.data:
+            print(f"⚠️ Cliente {username} não encontrado na tabela usuarios")
+        
+        # 2. Salvar spreads
         spreads_response = supabase.table('config_cotacoes')\
             .select('id')\
             .eq('tipo_config', 'spreads')\
@@ -11347,7 +11365,7 @@ def api_admin_cotacoes_salvar_tudo():
                 })\
                 .execute()
         
-        # 2. Salvar permissão
+        # 3. Salvar permissão (config_cotacoes)
         permissao_response = supabase.table('config_cotacoes')\
             .select('id')\
             .eq('tipo_config', 'permissoes')\
@@ -11374,7 +11392,7 @@ def api_admin_cotacoes_salvar_tudo():
                 })\
                 .execute()
         
-        # 3. Salvar limite
+        # 4. Salvar limite
         limite_response = supabase.table('config_cotacoes')\
             .select('id')\
             .eq('tipo_config', 'limites')\
@@ -11401,7 +11419,7 @@ def api_admin_cotacoes_salvar_tudo():
                 })\
                 .execute()
         
-        # 4. Salvar horário
+        # 5. Salvar horário
         if horario:
             horario_response = supabase.table('config_cotacoes')\
                 .select('id')\
@@ -11437,6 +11455,7 @@ def api_admin_cotacoes_salvar_tudo():
                 .execute()
         
         print(f"✅ Todas as configurações salvas para {username}")
+        print(f"   - usuarios.cambio_liberado = {cambio_liberado}")
         
         return jsonify({
             "success": True,
