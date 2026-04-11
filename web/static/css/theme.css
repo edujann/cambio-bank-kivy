@@ -97,23 +97,39 @@
 }
 
 /* ============================================
-   CORREÇÃO DEFINITIVA DO AUTOFILL
+   SOLUÇÃO DEFINITIVA DO AUTOFILL
    ============================================ */
 
-/* Autofill para qualquer tema */
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
-input:-webkit-autofill:active,
-textarea:-webkit-autofill,
-textarea:-webkit-autofill:hover,
-textarea:-webkit-autofill:focus,
-select:-webkit-autofill,
-select:-webkit-autofill:hover,
-select:-webkit-autofill:focus {
-    -webkit-box-shadow: 0 0 0 1000px var(--cor-fundo) inset !important;
-    -webkit-text-fill-color: var(--cor-texto) !important;
-    caret-color: var(--cor-texto) !important;
-    transition: background-color 5000s ease-in-out 0s !important;
-    background-color: var(--cor-fundo) !important;
+/* Tema Claro - Autofill */
+:root[data-theme="light"] input:-webkit-autofill,
+:root[data-theme="light"] input:-webkit-autofill:hover,
+:root[data-theme="light"] input:-webkit-autofill:focus,
+:root[data-theme="light"] input:-webkit-autofill:active,
+:root[data-theme="light"] textarea:-webkit-autofill,
+:root[data-theme="light"] textarea:-webkit-autofill:hover,
+:root[data-theme="light"] textarea:-webkit-autofill:focus,
+:root[data-theme="light"] select:-webkit-autofill,
+:root[data-theme="light"] select:-webkit-autofill:hover,
+:root[data-theme="light"] select:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 10000px #f0f4f9 inset !important;
+    -webkit-text-fill-color: #1a1d24 !important;
+    caret-color: #1a1d24 !important;
+    background-color: #f0f4f9 !important;
+}
+
+/* Tema Escuro - Autofill */
+:root[data-theme="dark"] input:-webkit-autofill,
+:root[data-theme="dark"] input:-webkit-autofill:hover,
+:root[data-theme="dark"] input:-webkit-autofill:focus,
+:root[data-theme="dark"] input:-webkit-autofill:active,
+:root[data-theme="dark"] textarea:-webkit-autofill,
+:root[data-theme="dark"] textarea:-webkit-autofill:hover,
+:root[data-theme="dark"] textarea:-webkit-autofill:focus,
+:root[data-theme="dark"] select:-webkit-autofill,
+:root[data-theme="dark"] select:-webkit-autofill:hover,
+:root[data-theme="dark"] select:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 10000px #0a0e15 inset !important;
+    -webkit-text-fill-color: #e0e0e0 !important;
+    caret-color: #e0e0e0 !important;
+    background-color: #0a0e15 !important;
 }

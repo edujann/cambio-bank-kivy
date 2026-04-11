@@ -1329,15 +1329,45 @@
     </script>
     <script src="/static/js/theme.js"></script>
     <script>
-    // 🔥 FORÇAR CORREÇÃO DO AUTOFILL EM TEMPO REAL
+    // 🔥 FORÇAR REMOÇÃO DO AUTOFILL COM RECRIAÇÃO DO CAMPO
     document.addEventListener('DOMContentLoaded', function() {
         const inputs = document.querySelectorAll('input, textarea, select');
         
         inputs.forEach(input => {
-            // Verificar se o campo tem autofill
-            const checkAutofill = function() {
-                if (input.matches(':-webkit-autofill')) {
-                    const theme = document.documentElement.getAttribute('data-theme');
+            // Criar um clone do campo e substituir
+            const clone = input.cloneNode(true);
+            
+            // Copiar o valor
+            clone.value = input.value;
+            
+            // Copiar os atributos
+            if (input.id) clone.id = input.id;
+            if (input.name) clone.name = input.name;
+            if (input.className) clone.className = input.className;
+            
+            // Substituir o campo original pelo clone
+            input.parentNode.replaceChild(clone, input);
+            
+            // Forçar a cor do tema no clone
+            const theme = document.documentElement.getAttribute('data-theme');
+            if (theme === 'light') {
+                clone.style.backgroundColor = '#f0f4f9';
+                clone.style.color = '#1a1d24';
+            } else {
+                clone.style.backgroundColor = '#0a0e15';
+                clone.style.color = '#e0e0e0';
+            }
+        });
+    });
+
+    // Monitorar mudanças de tema e corrigir novamente
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.attributeName === 'data-theme') {
+                const theme = document.documentElement.getAttribute('data-theme');
+                const inputs = document.querySelectorAll('input, textarea, select');
+                
+                inputs.forEach(input => {
                     if (theme === 'light') {
                         input.style.backgroundColor = '#f0f4f9';
                         input.style.color = '#1a1d24';
@@ -1345,18 +1375,12 @@
                         input.style.backgroundColor = '#0a0e15';
                         input.style.color = '#e0e0e0';
                     }
-                }
-            };
-            
-            // Verificar periodicamente
-            setInterval(checkAutofill, 500);
-            
-            // Verificar quando o campo muda
-            input.addEventListener('input', checkAutofill);
-            input.addEventListener('focus', checkAutofill);
-            input.addEventListener('blur', checkAutofill);
+                });
+            }
         });
     });
-    </script>    
+
+    observer.observe(document.documentElement, { attributes: true });
+    </script>  
 </body>
 </html>
