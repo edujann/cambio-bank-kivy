@@ -534,13 +534,15 @@
     .form-checkbox {
         display: flex;
         align-items: center;
+        justify-content: flex-end;  /* 🔥 Alinha à direita */
         gap: 10px;
         margin: 20px 0;
-        padding: 10px 15px;
+        padding: 8px 15px;
         background-color: var(--cor-card);
         border: 1px solid var(--cor-borda);
         border-radius: var(--borda-radius-pequeno);
-        transition: all 0.3s ease;
+        width: fit-content;         /* 🔥 Largura apenas do conteúdo */
+        margin-left: auto;          /* 🔥 Empurra para a direita */
     }
 
     .form-checkbox input[type="checkbox"] {
@@ -557,7 +559,6 @@
         cursor: pointer;
         margin: 0;
         font-size: 14px;
-        flex: 1;
     }
 
     .form-checkbox label i {
@@ -568,7 +569,7 @@
     .form-checkbox:hover {
         background-color: var(--cor-card-hover);
         border-color: var(--cor-primaria);
-    }    
+    }  
 
     </style>
 </head>
