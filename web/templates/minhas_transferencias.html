@@ -11,7 +11,7 @@
     
     <style>
         /* ============================================
-        VARIÁVEIS CSS (EXATAMENTE IGUAL AO DASHBOARD)
+        VARIÁVEIS CSS
         ============================================ */
         :root {
             --cor-fundo: #0a0e15;
@@ -33,9 +33,6 @@
             --borda-radius-pequeno: 8px;
         }
 
-        /* ============================================
-        RESET E CONFIGURAÇÕES GERAIS
-        ============================================ */
         * {
             margin: 0;
             padding: 0;
@@ -47,13 +44,9 @@
             background: var(--cor-fundo);
             color: var(--cor-texto);
             min-height: 100vh;
-            margin: 0;
-            padding: 0;
         }
 
-        /* ============================================
-        CONTAINER PRINCIPAL
-        ============================================ */
+        /* CONTAINER PRINCIPAL */
         .app-container {
             background: var(--cor-fundo);
             min-height: 100vh;
@@ -62,9 +55,7 @@
             width: 100%;
         }
 
-        /* ============================================
-        CABEÇALHO - FUNDO IGUAL AO DA TELA
-        ============================================ */
+        /* CABEÇALHO - FUNDO IGUAL AO DA TELA */
         .app-header {
             display: flex;
             justify-content: space-between;
@@ -143,16 +134,12 @@
             transform: translateY(-1px);
         }
 
-        /* ============================================
-        CONTEÚDO PRINCIPAL
-        ============================================ */
+        /* CONTEÚDO PRINCIPAL */
         .main-content {
             padding: 30px;
         }
 
-        /* ============================================
-        TÍTULO DA PÁGINA - AZUL DEGRADÊ
-        ============================================ */
+        /* TÍTULO DA PÁGINA - AZUL DEGRADÊ */
         .page-header {
             text-align: center;
             margin-bottom: 30px;
@@ -182,9 +169,7 @@
             margin: 0;
         }
 
-        /* ============================================
-        FILTROS RÁPIDOS
-        ============================================ */
+        /* FILTROS RÁPIDOS */
         .filtros-container {
             margin-bottom: 30px;
         }
@@ -222,15 +207,38 @@
             background: rgba(26, 95, 180, 0.1);
         }
 
-        .btn-filtro.ativo {
+        /* CORES DOS BOTÕES DE FILTRO QUANDO ATIVOS */
+        #btn-todas.ativo {
             background: var(--cor-primaria);
             color: white;
             border-color: var(--cor-primaria);
         }
 
-        /* ============================================
-        CARDS DE TRANSFERÊNCIA
-        ============================================ */
+        #btn-pendentes.ativo {
+            background: var(--cor-alerta);
+            color: white;
+            border-color: var(--cor-alerta);
+        }
+
+        #btn-processando.ativo {
+            background: var(--cor-primaria);
+            color: white;
+            border-color: var(--cor-primaria);
+        }
+
+        #btn-concluidas.ativo {
+            background: var(--cor-sucesso);
+            color: white;
+            border-color: var(--cor-sucesso);
+        }
+
+        #btn-recusadas.ativo {
+            background: var(--cor-perigo);
+            color: white;
+            border-color: var(--cor-perigo);
+        }
+
+        /* CARDS DE TRANSFERÊNCIA (MANTIDO ORIGINAL) */
         .transferencias-container {
             margin-bottom: 40px;
         }
@@ -259,6 +267,22 @@
             transition: opacity 0.3s ease;
         }
 
+        .card-transferencia[data-status="pending"]::before {
+            background: linear-gradient(90deg, var(--cor-alerta), transparent);
+        }
+
+        .card-transferencia[data-status="processing"]::before {
+            background: linear-gradient(90deg, var(--cor-primaria), transparent);
+        }
+
+        .card-transferencia[data-status="completed"]::before {
+            background: linear-gradient(90deg, var(--cor-sucesso), transparent);
+        }
+
+        .card-transferencia[data-status="rejected"]::before {
+            background: linear-gradient(90deg, var(--cor-perigo), transparent);
+        }
+
         .card-transferencia:hover {
             border-color: var(--cor-primaria);
             transform: translateY(-5px);
@@ -269,65 +293,17 @@
             opacity: 1;
         }
 
-        /* ============================================
-        BOTÕES DOS CARDS
-        ============================================ */
-        .botoes-acao {
+        /* HEADER DO CARD */
+        .card-header {
             display: flex;
-            gap: 10px;
-        }
-
-        .btn-acao {
-            padding: 8px 16px;
-            border: 1px solid var(--cor-borda);
-            border-radius: var(--borda-radius-pequeno);
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 6px;
-            transition: all 0.3s;
-            background: transparent;
-            color: var(--cor-texto);
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--cor-borda);
         }
 
-        .btn-detalhes {
-            background: rgba(26, 95, 180, 0.15);
-            color: var(--cor-primaria);
-            border-color: rgba(26, 95, 180, 0.3);
-        }
-
-        .btn-detalhes:hover {
-            background: rgba(26, 95, 180, 0.25);
-            transform: translateY(-2px);
-        }
-
-        .btn-invoice {
-            background: rgba(46, 194, 126, 0.15);
-            color: var(--cor-sucesso);
-            border-color: rgba(46, 194, 126, 0.3);
-        }
-
-        .btn-invoice:hover {
-            background: rgba(46, 194, 126, 0.25);
-            transform: translateY(-2px);
-        }
-
-        .btn-pdf {
-            background: rgba(155, 89, 182, 0.15);
-            color: var(--roxo);
-            border-color: rgba(155, 89, 182, 0.3);
-        }
-
-        .btn-pdf:hover {
-            background: rgba(155, 89, 182, 0.25);
-            transform: translateY(-2px);
-        }
-
-        /* ============================================
-        STATUS BADGES
-        ============================================ */
+        /* STATUS BADGES */
         .status-badge {
             padding: 8px 16px;
             border-radius: 20px;
@@ -364,9 +340,220 @@
             border: 1px solid rgba(224, 27, 36, 0.3);
         }
 
-        /* ============================================
-        FOOTER
-        ============================================ */
+        .transferencia-id {
+            font-size: 12px;
+            color: var(--cor-texto-secundario);
+            font-family: monospace;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        /* CONTEÚDO DO CARD */
+        .card-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .info-label {
+            font-size: 11px;
+            color: var(--cor-texto-secundario);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--cor-texto);
+        }
+
+        .valor-destaque {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--cor-texto);
+        }
+
+        /* INVOICE LINE */
+        .invoice-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: var(--borda-radius-pequeno);
+            border: 1px solid var(--cor-borda);
+        }
+
+        .invoice-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .invoice-status.pending { color: var(--cor-alerta); }
+        .invoice-status.approved { color: var(--cor-sucesso); }
+        .invoice-status.rejected { color: var(--cor-perigo); }
+
+        .btn-renviar-invoice {
+            padding: 6px 12px;
+            background: transparent;
+            border: 1px solid var(--cor-sucesso);
+            color: var(--cor-sucesso);
+            border-radius: var(--borda-radius-pequeno);
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s;
+        }
+
+        .btn-renviar-invoice:hover {
+            background: rgba(46, 194, 126, 0.1);
+            transform: translateY(-1px);
+        }
+
+        /* FOOTER DO CARD */
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid var(--cor-borda);
+        }
+
+        .data-transferencia {
+            font-size: 12px;
+            color: var(--cor-texto-secundario);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* BOTÕES DE AÇÃO - CORES ESPECÍFICAS */
+        .botoes-acao {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-acao {
+            padding: 8px 16px;
+            border-radius: var(--borda-radius-pequeno);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s;
+            border: none;
+        }
+
+        .btn-detalhes {
+            background: rgba(26, 95, 180, 0.15);
+            color: var(--cor-primaria);
+            border: 1px solid rgba(26, 95, 180, 0.3);
+        }
+
+        .btn-detalhes:hover {
+            background: rgba(26, 95, 180, 0.25);
+            transform: translateY(-2px);
+        }
+
+        .btn-invoice {
+            background: rgba(46, 194, 126, 0.15);
+            color: var(--cor-sucesso);
+            border: 1px solid rgba(46, 194, 126, 0.3);
+        }
+
+        .btn-invoice:hover {
+            background: rgba(46, 194, 126, 0.25);
+            transform: translateY(-2px);
+        }
+
+        .btn-pdf {
+            background: rgba(155, 89, 182, 0.15);
+            color: var(--roxo);
+            border: 1px solid rgba(155, 89, 182, 0.3);
+        }
+
+        .btn-pdf:hover {
+            background: rgba(155, 89, 182, 0.25);
+            transform: translateY(-2px);
+        }
+
+        /* BOTÃO CARREGAR MAIS */
+        .btn-carregar-mais {
+            background: linear-gradient(135deg, var(--cor-primaria), #2d8fff);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: var(--borda-radius);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(26, 95, 180, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+            margin: 30px auto;
+            display: block;
+        }
+
+        .btn-carregar-mais:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(26, 95, 180, 0.4);
+        }
+
+        /* MENSAGEM VAZIA */
+        .mensagem-vazia {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--cor-texto-secundario);
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+        }
+
+        .mensagem-vazia i {
+            font-size: 48px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        /* LOADING */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--cor-texto-secundario);
+        }
+
+        .loading i {
+            font-size: 24px;
+            margin-bottom: 10px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* FOOTER */
         .app-footer {
             margin-top: 40px;
             padding-top: 20px;
@@ -401,14 +588,34 @@
             font-weight: 600;
         }
 
-        /* ============================================
-        RESPONSIVIDADE
-        ============================================ */
+        /* BOTÃO ATUALIZAR */
+        .btn-atualizar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            border-radius: var(--borda-radius-pequeno);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-atualizar:hover {
+            border-color: var(--cor-sucesso);
+            color: var(--cor-sucesso);
+            background: rgba(46, 194, 126, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .btn-atualizar.animando i {
+            animation: spin 1s linear infinite;
+        }
+
+        /* RESPONSIVIDADE */
         @media (max-width: 768px) {
-            .app-container {
-                padding: 10px;
-            }
-            
             .app-header {
                 flex-direction: column;
                 gap: 15px;
@@ -445,80 +652,8 @@
             }
         }
 
-        /* ============================================
-        UTILITIES
-        ============================================ */
         .hidden {
             display: none !important;
-        }
-
-        .text-center {
-            text-align: center;
-        }
-
-        /* ============================================
-        BOTÃO ATUALIZAR
-        ============================================ */
-        .btn-atualizar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            background: transparent;
-            border: 1px solid var(--cor-borda);
-            color: var(--cor-texto);
-            border-radius: var(--borda-radius-pequeno);
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-atualizar:hover {
-            border-color: var(--cor-sucesso);
-            color: var(--cor-sucesso);
-            background: rgba(46, 194, 126, 0.1);
-            transform: translateY(-1px);
-        }
-
-        .btn-atualizar.animando i {
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* ============================================
-        MENSAGEM VAZIA
-        ============================================ */
-        .mensagem-vazia {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--cor-texto-secundario);
-            background: var(--cor-card);
-            border: 1px solid var(--cor-borda);
-            border-radius: var(--borda-radius);
-        }
-
-        .mensagem-vazia i {
-            font-size: 48px;
-            margin-bottom: 20px;
-            opacity: 0.5;
-        }
-
-        /* ============================================
-        LOADING
-        ============================================ */
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: var(--cor-texto-secundario);
-        }
-
-        .loading i {
-            font-size: 24px;
-            margin-bottom: 10px;
-            animation: spin 1s linear infinite;
         }
     </style>
 </head>
