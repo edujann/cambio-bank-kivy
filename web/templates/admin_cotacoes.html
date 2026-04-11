@@ -1215,7 +1215,7 @@
         }
 
         // ============================================
-        // FUNÇÕES DE HORÁRIO
+        // FUNÇÕES DE HORÁRIO - VERSÃO CORRIGIDA
         // ============================================
         function toggleHorarioPersonalizado(ativo) {
             const inputs = document.querySelectorAll('#horarioFields input, #horarioFields button');
@@ -1279,16 +1279,44 @@
             diasSelecionadosTemp = [...diasAtuais];
             
             // Atualizar UI dos botões
-            document.querySelectorAll('.dia-btn').forEach(btn => {
+            const diasBtns = document.querySelectorAll('.dia-btn');
+            diasBtns.forEach(btn => {
                 const dia = parseInt(btn.dataset.dia);
                 if (diasSelecionadosTemp.includes(dia)) {
                     btn.classList.add('selected');
                 } else {
                     btn.classList.remove('selected');
                 }
+                
+                // 🔥 ADICIONAR EVENTO DE CLICK PARA CADA BOTÃO 🔥
+                btn.onclick = (function(diaNum) {
+                    return function() {
+                        toggleDiaSelecionado(diaNum);
+                    };
+                })(dia);
             });
             
             document.getElementById('modalDias').classList.add('active');
+        }
+
+        // 🔥 NOVA FUNÇÃO: Alternar seleção de um dia específico 🔥
+        function toggleDiaSelecionado(diaNum) {
+            const index = diasSelecionadosTemp.indexOf(diaNum);
+            
+            if (index === -1) {
+                // Adicionar dia
+                diasSelecionadosTemp.push(diaNum);
+                const btn = document.querySelector(`.dia-btn[data-dia="${diaNum}"]`);
+                if (btn) btn.classList.add('selected');
+            } else {
+                // Remover dia
+                diasSelecionadosTemp.splice(index, 1);
+                const btn = document.querySelector(`.dia-btn[data-dia="${diaNum}"]`);
+                if (btn) btn.classList.remove('selected');
+            }
+            
+            // Ordenar para manter consistência
+            diasSelecionadosTemp.sort((a, b) => a - b);
         }
 
         function fecharModalDias() {
