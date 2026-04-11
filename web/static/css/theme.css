@@ -49,3 +49,37 @@
     --borda-radius: 12px;
     --borda-radius-pequeno: 8px;
 }
+
+/* ============================================
+   TÍTULOS COM DEGRADÊ AZUL (visível em ambos temas)
+   ============================================ */
+
+.page-title {
+    font-size: 20px;
+    font-weight: bold;
+    background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+/* Para títulos de seção */
+.section-title {
+    font-size: 18px;
+    font-weight: bold;
+    background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 15px;
+}
+
+/* Para títulos de cards */
+.card-title {
+    font-size: 16px;
+    font-weight: bold;
+    background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
