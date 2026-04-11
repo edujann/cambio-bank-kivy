@@ -656,7 +656,7 @@
             display: none !important;
         }
 
-        /* FUNDO DOS CARDS POR STATUS (TOM BEM SUAVE) - MANTENDO O DEGRADE */
+        /* FUNDO DOS CARDS POR STATUS (TOM BEM SUAVE) - SEMPRE VISÍVEL */
         .card-transferencia[data-status="pending"] {
             background: rgba(243, 156, 18, 0.04);
         }
@@ -673,7 +673,31 @@
             background: rgba(224, 27, 36, 0.04);
         }
 
-        /* O DEGRADE NA BORDA SUPERIOR JÁ EXISTE E VAI CONTINUAR FUNCIONANDO */
+        /* EFEITO HOVER ORIGINAL - FUNDO GRADIENTE */
+        .card-transferencia:hover {
+            background: linear-gradient(135deg, rgba(26, 95, 180, 0.15), rgba(46, 194, 126, 0.05));
+            transform: translateY(-5px);
+            box-shadow: var(--sombra-forte);
+        }
+
+        /* CORES ESPECÍFICAS DO GRADIENTE POR STATUS NO HOVER */
+        .card-transferencia[data-status="pending"]:hover {
+            background: linear-gradient(135deg, rgba(243, 156, 18, 0.15), rgba(243, 156, 18, 0.05));
+        }
+
+        .card-transferencia[data-status="processing"]:hover {
+            background: linear-gradient(135deg, rgba(26, 95, 180, 0.15), rgba(26, 95, 180, 0.05));
+        }
+
+        .card-transferencia[data-status="completed"]:hover {
+            background: linear-gradient(135deg, rgba(46, 194, 126, 0.15), rgba(46, 194, 126, 0.05));
+        }
+
+        .card-transferencia[data-status="rejected"]:hover {
+            background: linear-gradient(135deg, rgba(224, 27, 36, 0.15), rgba(224, 27, 36, 0.05));
+        }
+
+        /* DEGRADE NA BORDA SUPERIOR - SÓ APARECE NO HOVER (ORIGINAL) */
         .card-transferencia::before {
             content: '';
             position: absolute;
@@ -702,17 +726,9 @@
             background: linear-gradient(90deg, var(--cor-perigo), transparent);
         }
 
-        /* No hover, o degrade aparece e o fundo volta ao normal */
-        .card-transferencia[data-status="pending"]:hover,
-        .card-transferencia[data-status="processing"]:hover,
-        .card-transferencia[data-status="completed"]:hover,
-        .card-transferencia[data-status="rejected"]:hover {
-            background: var(--cor-card);
-        }
-
         .card-transferencia:hover::before {
             opacity: 1;
-        }       
+        }
     </style>
 </head>
 <body>
