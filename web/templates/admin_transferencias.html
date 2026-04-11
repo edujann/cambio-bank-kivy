@@ -938,17 +938,34 @@
         }
 
         async function abrirInvoice(id) {
+            console.log('📄 Abrindo invoice para transferência:', id);
+            
             try {
                 const response = await fetch(`/api/admin/transferencias/${id}/invoice`);
-                const data = await response.json();
                 
-                if (data.success && data.url) {
-                    window.open(data.url, '_blank');
+                if (response.ok) {
+                    // Verificar o tipo de conteúdo
+                    const contentType = response.headers.get('content-type');
+                    console.log('Content-Type:', contentType);
+                    
+                    if (contentType && contentType.includes('application/pdf')) {
+                        // É um PDF - abrir em nova aba
+                        const blob = await response.blob();
+                        const url = URL.createObjectURL(blob);
+                        window.open(url, '_blank');
+                        URL.revokeObjectURL(url);
+                    } else {
+                        // Tentar como JSON (erro)
+                        const text = await response.text();
+                        console.error('Resposta não é PDF:', text);
+                        alert('Erro ao carregar invoice!');
+                    }
                 } else {
-                    alert('Invoice não encontrada!');
+                    const error = await response.json();
+                    alert('❌ ' + (error.message || 'Erro ao abrir invoice'));
                 }
             } catch (error) {
-                console.error('Erro:', error);
+                console.error('❌ Erro ao abrir invoice:', error);
                 alert('Erro ao abrir invoice!');
             }
         }
