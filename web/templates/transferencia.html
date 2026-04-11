@@ -235,14 +235,14 @@
     .form-control {
         width: 100%;
         padding: 12px 15px;
-        background-color: var(--cor-fundo) !important;
-        color: var(--cor-texto) !important;
-        border: 1px solid var(--cor-borda) !important;
         border-radius: 8px;
         font-size: 14px;
         transition: all 0.3s ease;
     }
 
+    /* 🔥 CORES DINÂMICAS PARA INPUTS - USANDO JAVASCRIPT */
+    /* Os estilos serão aplicados via JavaScript para garantir que funcionem em ambos temas */
+    
     .form-control:focus {
         outline: none;
         border-color: var(--cor-primaria) !important;
@@ -496,6 +496,28 @@
         padding: 4px 12px;
         border-radius: 20px;
         font-size: 12px;
+    }
+
+    /* Alertas */
+    .alert {
+        padding: 12px 20px;
+        border-radius: var(--borda-radius-pequeno);
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .alert.success {
+        background: rgba(46, 204, 113, 0.2);
+        border: 1px solid var(--cor-sucesso);
+        color: var(--cor-sucesso);
+    }
+
+    .alert.error {
+        background: rgba(224, 27, 36, 0.2);
+        border: 1px solid var(--cor-perigo);
+        color: var(--cor-perigo);
     }
 
     @media (max-width: 768px) {
@@ -835,6 +857,28 @@
     window.invoiceFile = null;
 
     // ============================================
+    // 🔥 FUNÇÃO PARA APLICAR CORES DOS INPUTS BASEADO NO TEMA
+    // ============================================
+    function aplicarCoresInputs() {
+        const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+        const inputs = document.querySelectorAll('input, select, textarea, .form-control');
+        
+        inputs.forEach(input => {
+            if (theme === 'light') {
+                input.style.backgroundColor = '#f0f4f9';
+                input.style.color = '#1a1d24';
+                input.style.border = '1px solid #c5ced8';
+            } else {
+                input.style.backgroundColor = '#0a0e15';
+                input.style.color = '#e0e0e0';
+                input.style.border = '1px solid #1e232e';
+            }
+        });
+        
+        console.log(`🎨 Cores aplicadas para tema: ${theme}`);
+    }
+
+    // ============================================
     // FUNÇÃO PARA ATUALIZAR NOME DO USUÁRIO
     // ============================================
     function atualizarNomeUsuario() {
@@ -882,6 +926,7 @@
             }
             
             // 🔥 ADICIONAR EVENT LISTENER PARA PREENCHER CAMPOS
+            select.removeEventListener('change', preencherCamposBeneficiario);
             select.addEventListener('change', preencherCamposBeneficiario);
             
         } catch (error) {
@@ -1004,6 +1049,7 @@
             }
             
             // Adicionar evento para atualizar saldo
+            select.removeEventListener('change', atualizarSaldoInfo);
             select.addEventListener('change', atualizarSaldoInfo);
             
         } catch (error) {
@@ -1186,6 +1232,7 @@
                 if (uploadArea) uploadArea.style.display = 'block';
                 
                 await carregarContas();
+                await carregarBeneficiarios(); // Recarregar beneficiários após salvar novo
             } else {
                 throw new Error(resultado.message || 'Erro ao criar transferência');
             }
@@ -1210,6 +1257,18 @@
     }
     
     // ============================================
+    // 🔥 OBSERVADOR PARA MUDANÇAS DE TEMA
+    // ============================================
+    const themeObserver = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.attributeName === 'data-theme') {
+                console.log('🎨 Tema alterado, ajustando cores dos inputs...');
+                aplicarCoresInputs();
+            }
+        });
+    });
+    
+    // ============================================
     // INICIALIZAÇÃO
     // ============================================
     document.addEventListener('DOMContentLoaded', function() {
@@ -1217,8 +1276,14 @@
         
         atualizarNomeUsuario();
         carregarContas();
-        carregarBeneficiarios();  // 🔥 CHAMADA CORRIGIDA
+        carregarBeneficiarios();
         configurarUploadInvoice();
+        
+        // 🔥 APLICAR CORES DOS INPUTS
+        aplicarCoresInputs();
+        
+        // 🔥 OBSERVAR MUDANÇAS DE TEMA
+        themeObserver.observe(document.documentElement, { attributes: true });
         
         const form = document.getElementById('transferenciaForm');
         if (form) {
