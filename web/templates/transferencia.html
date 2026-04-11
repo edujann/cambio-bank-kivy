@@ -334,12 +334,24 @@
         transition: all 0.3s ease !important;
     }
 
-    /* 🔥 FOCUS - quando clica para digitar (mantém a mesma cor do tema) 🔥 */
-    input:focus, select:focus, textarea:focus, .form-control:focus {
+    /* Estado normal, foco, hover, active - TODOS usam a mesma cor */
+    input:hover, input:focus, input:active,
+    select:hover, select:focus, select:active,
+    textarea:hover, textarea:focus, textarea:active,
+    .form-control:hover, .form-control:focus, .form-control:active {
+        background-color: var(--cor-fundo) !important;
+        color: var(--cor-texto) !important;
         outline: none !important;
         border-color: var(--cor-primaria) !important;
         box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2) !important;
-        background-color: var(--cor-fundo) !important;  /* 🔥 Mantém a cor do tema */
+    }
+
+    /* 🔥 CORREÇÃO ESPECIAL PARA QUANDO O CAMPO ESTÁ SENDO DIGITADO 🔥 */
+    input:focus-within,
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    input:not([type]):focus {
+        background-color: var(--cor-fundo) !important;
         color: var(--cor-texto) !important;
     }
 
@@ -373,17 +385,12 @@
         color: var(--cor-texto) !important;
     }
 
-    /* 🔥 CORREÇÃO: Quando o campo está vazio e recebe foco 🔥 */
-    input:focus:placeholder-shown, textarea:focus:placeholder-shown {
-        background-color: var(--cor-fundo) !important;
-        color: var(--cor-texto) !important;
-    }
-
-    /* Autofill do Chrome - SOLUÇÃO DEFINITIVA */
+    /* 🔥 CORREÇÃO EXTREMA PARA AUTOFILL E DIGITAÇÃO 🔥 */
     input:-webkit-autofill,
     input:-webkit-autofill:hover,
     input:-webkit-autofill:focus,
     input:-webkit-autofill:active,
+    input:-internal-autofill-selected,
     select:-webkit-autofill,
     select:-webkit-autofill:hover,
     select:-webkit-autofill:focus,
@@ -400,7 +407,13 @@
     /* Cursor (texto piscando) */
     input, textarea, select {
         caret-color: var(--cor-texto) !important;
-    }   
+    }
+
+    /* 🔥 FORÇAR QUE TUDO USE A COR DO TEMA 🔥 */
+    body *:focus {
+        background-color: var(--cor-fundo) !important;
+        color: var(--cor-texto) !important;
+    }  
 
     </style>
 </head>
