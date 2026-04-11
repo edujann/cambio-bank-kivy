@@ -334,12 +334,13 @@
         transition: all 0.3s ease !important;
     }
 
-    /* Focus (quando clica para digitar) */
+    /* 🔥 FOCUS - quando clica para digitar (mantém a mesma cor do tema) 🔥 */
     input:focus, select:focus, textarea:focus, .form-control:focus {
         outline: none !important;
         border-color: var(--cor-primaria) !important;
         box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2) !important;
-        background-color: var(--cor-fundo) !important;
+        background-color: var(--cor-fundo) !important;  /* 🔥 Mantém a cor do tema */
+        color: var(--cor-texto) !important;
     }
 
     /* Placeholder */
@@ -372,6 +373,12 @@
         color: var(--cor-texto) !important;
     }
 
+    /* 🔥 CORREÇÃO: Quando o campo está vazio e recebe foco 🔥 */
+    input:focus:placeholder-shown, textarea:focus:placeholder-shown {
+        background-color: var(--cor-fundo) !important;
+        color: var(--cor-texto) !important;
+    }
+
     /* Autofill do Chrome - SOLUÇÃO DEFINITIVA */
     input:-webkit-autofill,
     input:-webkit-autofill:hover,
@@ -393,7 +400,7 @@
     /* Cursor (texto piscando) */
     input, textarea, select {
         caret-color: var(--cor-texto) !important;
-    }    
+    }   
 
     </style>
 </head>
