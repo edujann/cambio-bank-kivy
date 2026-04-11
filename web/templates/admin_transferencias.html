@@ -703,11 +703,7 @@
             transferenciasFiltradas = todasTransferencias.filter(t => {
                 // Filtro status
                 if (statusFiltro !== 'todos') {
-                    if (statusFiltro === 'solicitada' && t.status !== 'solicitada') return false;
-                    if (statusFiltro === 'pending' && t.status !== 'pending') return false;
-                    if (statusFiltro === 'processing' && t.status !== 'processing') return false;
-                    if (statusFiltro === 'completed' && t.status !== 'completed') return false;
-                    if (statusFiltro === 'rejected' && t.status !== 'rejected') return false;
+                    if (t.status !== statusFiltro) return false;
                 }
                 
                 // Filtro cliente

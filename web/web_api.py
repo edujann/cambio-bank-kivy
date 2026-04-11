@@ -11826,16 +11826,17 @@ def admin_transferencias():
 
 @app.route('/api/admin/transferencias', methods=['GET'])
 def api_admin_transferencias():
-    """Retorna todas as transferências do sistema"""
+    """Retorna apenas transferências internacionais"""
     try:
         usuario = session.get('username')
         
         if not usuario:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
-        # Buscar todas as transferências
+        # 🔥 FILTRAR APENAS TRANSFERÊNCIAS INTERNACIONAIS
         response = supabase.table('transferencias')\
             .select('*')\
+            .eq('tipo', 'transferencia_internacional')\
             .order('created_at', desc=True)\
             .execute()
         
@@ -11874,6 +11875,8 @@ def api_admin_transferencias():
                 'tem_invoice': tem_invoice,
                 'motivo_recusa': t.get('motivo_recusa')
             })
+        
+        print(f"📊 {len(transferencias)} transferências internacionais encontradas")
         
         return jsonify({
             "success": True,
