@@ -6133,6 +6133,56 @@ def api_admin_toggle_cambio(username):
         print(f"❌ Erro ao alterar permissão de câmbio: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
     
+@app.route('/api/admin/clientes/toggle-status', methods=['POST'])
+def api_admin_toggle_status():
+    """Ativa/desativa (bloqueia) um cliente"""
+    try:
+        admin_user = session.get('username')
+        
+        if not admin_user:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Verificar admin
+        user_check = supabase.table('usuarios')\
+            .select('tipo')\
+            .eq('username', admin_user)\
+            .single()\
+            .execute()
+        
+        if not user_check.data or user_check.data.get('tipo') != 'admin':
+            return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        data = request.get_json()
+        username = data.get('username')
+        status = data.get('status', 'ativo')
+        
+        if not username:
+            return jsonify({"success": False, "message": "Usuário não informado"}), 400
+        
+        # Validar status
+        if status not in ['ativo', 'bloqueado']:
+            return jsonify({"success": False, "message": "Status inválido"}), 400
+        
+        # Atualizar status do usuário
+        update_response = supabase.table('usuarios')\
+            .update({'status': status})\
+            .eq('username', username)\
+            .execute()
+        
+        if not update_response.data:
+            return jsonify({"success": False, "message": "Cliente não encontrado"}), 404
+        
+        print(f"✅ Status de {username} alterado para {status} por {admin_user}")
+        
+        return jsonify({
+            "success": True,
+            "message": f"Cliente {'ativado' if status == 'ativo' else 'bloqueado'} com sucesso!"
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao alterar status: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500    
+    
 
 # ============================================
 # ADMIN - CONTAS BANCÁRIAS DA EMPRESA

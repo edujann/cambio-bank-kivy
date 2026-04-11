@@ -712,12 +712,12 @@
                 // Email
                 row.insertCell(2).innerHTML = escapeHtml(cliente.email || '-');
                 
-                // Status
+                // Status (Ativo/Bloqueado)
                 const statusClass = cliente.status === 'bloqueado' ? 'status-bloqueado' : 'status-ativo';
                 const statusText = cliente.status === 'bloqueado' ? 'Bloqueado' : 'Ativo';
                 row.insertCell(3).innerHTML = `<span class="status-badge ${statusClass}">${statusText}</span>`;
                 
-                // Câmbio
+                // Câmbio (Liberado/Bloqueado)
                 const cambioClass = cliente.cambio_liberado ? 'cambio-liberado' : 'cambio-bloqueado';
                 const cambioText = cliente.cambio_liberado ? 'Liberado' : 'Bloqueado';
                 row.insertCell(4).innerHTML = `<span class="status-badge ${cambioClass}">${cambioText}</span>`;
@@ -727,7 +727,7 @@
                     <i class="fas fa-wallet"></i> ${cliente.total_contas || 0}
                 </button>`;
                 
-                // Ações
+                // 🔥 AÇÕES - BOTÕES 🔥
                 const acoesCell = row.insertCell(6);
                 acoesCell.innerHTML = `
                     <button class="btn-acao btn-detalhes" onclick="verDetalhes('${cliente.username}')" title="Ver detalhes">
@@ -744,6 +744,8 @@
                     </button>
                 `;
             }
+            
+            atualizarPaginacao();
         }
 
         // ============================================
@@ -910,23 +912,27 @@
             
             if (!confirm(`Confirmar ${acao} câmbio para este cliente?`)) return;
             
+            console.log(`🔄 Alterando câmbio para ${username}: ${acao}`);
+            
             try {
-                const response = await fetch('/api/admin/clientes/toggle-cambio', {
+                const response = await fetch(`/api/admin/clientes/${username}/toggle-cambio`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, liberado: novoStatus })
+                    body: JSON.stringify({ cambio_liberado: novoStatus })
                 });
                 
                 const data = await response.json();
+                console.log('📥 Resposta:', data);
                 
                 if (data.success) {
                     alert(`✅ Câmbio ${novoStatus ? 'liberado' : 'bloqueado'} com sucesso!`);
-                    carregarClientes();
+                    // Recarregar a lista para atualizar o status
+                    location.reload(); // ou carregarClientes()
                 } else {
                     alert('❌ ' + data.message);
                 }
             } catch (error) {
-                console.error('Erro:', error);
+                console.error('❌ Erro:', error);
                 alert('Erro ao alterar permissão de câmbio!');
             }
         }
@@ -937,7 +943,10 @@
             
             if (!confirm(`Confirmar ${acao} este cliente?`)) return;
             
+            console.log(`🔄 Alterando status para ${username}: ${acao}`);
+            
             try {
+                // Primeiro, precisamos criar o endpoint de toggle-status
                 const response = await fetch('/api/admin/clientes/toggle-status', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -945,15 +954,16 @@
                 });
                 
                 const data = await response.json();
+                console.log('📥 Resposta:', data);
                 
                 if (data.success) {
                     alert(`✅ Cliente ${novoStatus === 'ativo' ? 'ativado' : 'bloqueado'} com sucesso!`);
-                    carregarClientes();
+                    location.reload();
                 } else {
                     alert('❌ ' + data.message);
                 }
             } catch (error) {
-                console.error('Erro:', error);
+                console.error('❌ Erro:', error);
                 alert('Erro ao alterar status do cliente!');
             }
         }
