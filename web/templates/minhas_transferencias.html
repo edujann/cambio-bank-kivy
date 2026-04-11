@@ -10,838 +10,516 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-    /* ============================================
-       VARIÁVEIS CSS (EXATAMENTE IGUAL AO DASHBOARD)
-    ============================================ */
-    :root {
-        /* PALETA DE CORES DO SEU KIVY/DASHBOARD */
-        --cor-fundo: #0a0e15;
-        --cor-card: #0d1117;
-        --cor-borda: #1e232e;
-        --cor-texto: #e0e0e0;
-        --cor-texto-secundario: #8b949e;
-        --cor-primaria: #1a5fb4;
-        --cor-sucesso: #2ec27e;
-        --cor-alerta: #f39c12;
-        --cor-perigo: #e01b24;
-        --roxo: #9b59b6;
-        
-        /* SOMBRAS (IGUAL DASHBOARD) */
-        --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.3);
-        --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.4);
-        --sombra-forte: 0 12px 24px rgba(0, 0, 0, 0.5);
-        
-        /* BORDAS (IGUAL DASHBOARD) */
-        --borda-radius: 12px;
-        --borda-radius-pequeno: 8px;
-    }
-
-    /* ============================================
-       RESET E CONFIGURAÇÕES GERAIS
-    ============================================ */
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-
-    body {
-        background: #070b12;  /* MAIS ESCURO QUE O DASHBOARD */
-        color: var(--cor-texto);
-        min-height: 100vh;
-        margin: 0;
-        padding: 0;
-    }
-
-    /* ============================================
-       CONTAINER PRINCIPAL
-    ============================================ */
-    .app-container {
-        background: var(--cor-fundo);  /* #0a0e15 */
-        min-height: 100vh;
-        max-width: 1400px;
-        margin: 0 auto;
-        width: 100%;
-    }
-
-    /* ============================================
-       CABEÇALHO (EXATAMENTE IGUAL AO DASHBOARD)
-    ============================================ */
-    .app-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 20px 30px;
-        background: var(--cor-card);
-        border-bottom: 1px solid var(--cor-borda);
-        position: sticky;
-        top: 0;
-        z-index: 100;
-    }
-
-    .logo {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        font-size: 24px;
-        font-weight: bold;
-    }
-
-    .logo i {
-        color: var(--cor-primaria);
-        font-size: 28px;
-    }
-
-    .logo-text {
-        background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-    }
-
-    .user-menu {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 16px;
-        background: var(--cor-card);
-        border-radius: var(--borda-radius-pequeno);
-        border: 1px solid var(--cor-borda);
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    .user-menu:hover {
-        border-color: var(--cor-primaria);
-        transform: translateY(-2px);
-    }
-
-    .user-avatar {
-        font-size: 24px;
-        color: var(--cor-primaria);
-    }
-
-    .user-name {
-        font-weight: 600;
-    }
-
-    .btn-voltar-dashboard {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 20px;
-        background: transparent;
-        border: 1px solid var(--cor-borda);
-        color: var(--cor-texto);
-        border-radius: var(--borda-radius-pequeno);
-        text-decoration: none;
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-
-    .btn-voltar-dashboard:hover {
-        border-color: var(--cor-primaria);
-        background: rgba(26, 95, 180, 0.1);
-        transform: translateY(-1px);
-    }
-
-    /* ============================================
-       CONTEÚDO PRINCIPAL
-    ============================================ */
-    .main-content {
-        padding: 30px;
-    }
-
-    /* ============================================
-       TÍTULO DA PÁGINA (ESTILO DASHBOARD)
-    ============================================ */
-    .page-header {
-        text-align: center;
-        margin-bottom: 30px;
-        padding: 20px 0;
-    }
-
-    .page-title {
-        font-size: 28px;
-        margin-bottom: 10px;
-        color: var(--cor-texto);
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        justify-content: center;
-    }
-
-    .page-title i {
-        color: var(--cor-primaria);
-    }
-
-    .page-subtitle {
-        color: var(--cor-texto-secundario);
-        font-size: 16px;
-        margin: 0;
-    }
-
-    /* ============================================
-       FILTROS RÁPIDOS (ESTILO DASHBOARD)
-    ============================================ */
-    .filtros-container {
-        margin-bottom: 30px;
-    }
-
-    .filtros-title {
-        font-size: 14px;
-        color: var(--cor-texto-secundario);
-        margin-bottom: 10px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .filtros-rapidos {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-
-    .btn-filtro {
-        padding: 10px 20px;
-        border: 1px solid var(--cor-borda);
-        border-radius: var(--borda-radius-pequeno);
-        background: transparent;
-        color: var(--cor-texto);
-        cursor: pointer;
-        font-weight: 500;
-        transition: all 0.3s;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .btn-filtro:hover {
-        border-color: var(--cor-primaria);
-        background: rgba(26, 95, 180, 0.1);
-    }
-
-    .btn-filtro.ativo {
-        background: var(--cor-primaria);
-        color: white;
-        border-color: var(--cor-primaria);
-    }
-
-    #btn-pendentes.ativo {
-        background: var(--cor-alerta);
-        border-color: var(--cor-alerta);
-    }
-
-    #btn-processando.ativo {
-        background: var(--cor-primaria);
-        border-color: var(--cor-primaria);
-    }
-
-    #btn-concluidas.ativo {
-        background: var(--cor-sucesso);
-        border-color: var(--cor-sucesso);
-    }
-
-    #btn-recusadas.ativo {
-        background: var(--cor-perigo);
-        border-color: var(--cor-perigo);
-    }
-
-    /* ============================================
-       CARDS DE TRANSFERÊNCIA (COM EFEITOS DASHBOARD)
-    ============================================ */
-    .transferencias-container {
-        margin-bottom: 40px;
-    }
-
-    .card-transferencia {
-        background: var(--cor-card);
-        border: 1px solid var(--cor-borda);
-        border-radius: var(--borda-radius);
-        padding: 25px;
-        position: relative;
-        overflow: hidden;
-        margin-bottom: 20px;
-        transition: all 0.3s ease;
-        box-shadow: var(--sombra-suave);
-    }
-
-    /* LINHA SUPERIOR COLORIDA (status) */
-    .card-transferencia::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, var(--cor-primaria), transparent);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-
-    /* CORES POR STATUS NA LINHA SUPERIOR */
-    .card-transferencia[data-status="pending"]::before,
-    .card-transferencia[data-status="pendente"]::before {
-        background: linear-gradient(90deg, var(--cor-alerta), transparent);
-    }
-
-    .card-transferencia[data-status="processing"]::before,
-    .card-transferencia[data-status="processando"]::before {
-        background: linear-gradient(90deg, var(--cor-primaria), transparent);
-    }
-
-    .card-transferencia[data-status="completed"]::before,
-    .card-transferencia[data-status="concluida"]::before {
-        background: linear-gradient(90deg, var(--cor-sucesso), transparent);
-    }
-
-    .card-transferencia[data-status="rejected"]::before,
-    .card-transferencia[data-status="recusada"]::before {
-        background: linear-gradient(90deg, var(--cor-perigo), transparent);
-    }
-
-    /* EFEITO HOVER IGUAL AOS CARDS DO DASHBOARD */
-    .card-transferencia:hover {
-        border-color: var(--cor-primaria);
-        transform: translateY(-5px);
-        box-shadow: var(--sombra-forte);
-    }
-
-    .card-transferencia:hover::before {
-        opacity: 1;
-    }
-
-    /* BORDA COM GRADIENTE NO HOVER */
-    .card-transferencia::after {
-        content: '';
-        position: absolute;
-        top: -2px;
-        left: -2px;
-        right: -2px;
-        bottom: -2px;
-        border-radius: calc(var(--borda-radius) + 2px);
-        background: linear-gradient(45deg, 
-            transparent 0%,
-            var(--cor-primaria) 50%,
-            transparent 100%
-        );
-        z-index: -1;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-
-    .card-transferencia:hover::after {
-        opacity: 0.3;
-    }
-
-    /* GRADIENTE ESPECÍFICO POR STATUS NO HOVER */
-    .card-transferencia[data-status="pending"]:hover::after,
-    .card-transferencia[data-status="pendente"]:hover::after {
-        background: linear-gradient(45deg, 
-            transparent 0%,
-            var(--cor-alerta) 50%,
-            transparent 100%
-        );
-    }
-
-    .card-transferencia[data-status="processing"]:hover::after,
-    .card-transferencia[data-status="processando"]:hover::after {
-        background: linear-gradient(45deg, 
-            transparent 0%,
-            var(--cor-primaria) 50%,
-            transparent 100%
-        );
-    }
-
-    .card-transferencia[data-status="completed"]:hover::after,
-    .card-transferencia[data-status="concluida"]:hover::after {
-        background: linear-gradient(45deg, 
-            transparent 0%,
-            var(--cor-sucesso) 50%,
-            transparent 100%
-        );
-    }
-
-    .card-transferencia[data-status="rejected"]:hover::after,
-    .card-transferencia[data-status="recusada"]:hover::after {
-        background: linear-gradient(45deg, 
-            transparent 0%,
-            var(--cor-perigo) 50%,
-            transparent 100%
-        );
-    }
-
-    /* ============================================
-       HEADER DO CARD
-    ============================================ */
-    .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-        padding-bottom: 15px;
-        border-bottom: 1px solid var(--cor-borda);
-        position: relative;
-    }
-
-    /* BADGE DE STATUS (IGUAL DASHBOARD) */
-    .status-badge {
-        padding: 8px 16px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: bold;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        transition: all 0.3s ease;
-    }
-
-    .card-transferencia:hover .status-badge {
-        transform: scale(1.05);
-    }
-
-    /* CORES DOS STATUS */
-    .status-pending {
-        background: rgba(243, 156, 18, 0.15);
-        color: var(--cor-alerta);
-        border: 1px solid rgba(243, 156, 18, 0.3);
-    }
-
-    .status-processing {
-        background: rgba(26, 95, 180, 0.15);
-        color: var(--cor-primaria);
-        border: 1px solid rgba(26, 95, 180, 0.3);
-    }
-
-    .status-completed {
-        background: rgba(46, 194, 126, 0.15);
-        color: var(--cor-sucesso);
-        border: 1px solid rgba(46, 194, 126, 0.3);
-    }
-
-    .status-rejected {
-        background: rgba(224, 27, 36, 0.15);
-        color: var(--cor-perigo);
-        border: 1px solid rgba(224, 27, 36, 0.3);
-    }
-
-    .transferencia-id {
-        font-size: 12px;
-        color: var(--cor-texto-secundario);
-        font-family: monospace;
-        background: rgba(255, 255, 255, 0.05);
-        padding: 4px 8px;
-        border-radius: 4px;
-    }
-
-    /* ============================================
-       CONTEÚDO DO CARD
-    ============================================ */
-    .card-content {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 15px;
-        margin-bottom: 20px;
-    }
-
-    .info-group {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-    }
-
-    .info-label {
-        font-size: 11px;
-        color: var(--cor-texto-secundario);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .info-value {
-        font-size: 14px;
-        font-weight: 500;
-        color: var(--cor-texto);
-    }
-
-    .valor-destaque {
-        font-size: 20px;
-        font-weight: bold;
-        color: var(--cor-texto);
-    }
-
-    /* ============================================
-       LINHA DA INVOICE
-    ============================================ */
-    .invoice-line {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 15px;
-        padding: 12px 15px;
-        background: rgba(255, 255, 255, 0.03);
-        border-radius: var(--borda-radius-pequeno);
-        border: 1px solid var(--cor-borda);
-    }
-
-    .invoice-status {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 13px;
-        font-weight: 500;
-    }
-
-    .invoice-status.pending { 
-        color: var(--cor-alerta);
-    }
-    
-    .invoice-status.approved { 
-        color: var(--cor-sucesso);
-    }
-    
-    .invoice-status.rejected { 
-        color: var(--cor-perigo);
-    }
-
-    .btn-renviar-invoice {
-        padding: 6px 12px;
-        background: transparent;
-        border: 1px solid var(--cor-sucesso);
-        color: var(--cor-sucesso);
-        border-radius: var(--borda-radius-pequeno);
-        font-size: 12px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        transition: all 0.3s;
-    }
-
-    .btn-renviar-invoice:hover {
-        background: rgba(46, 194, 126, 0.1);
-        transform: translateY(-1px);
-    }
-
-    /* ============================================
-       FOOTER DO CARD
-    ============================================ */
-    .card-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 20px;
-        padding-top: 15px;
-        border-top: 1px solid var(--cor-borda);
-    }
-
-    .data-transferencia {
-        font-size: 12px;
-        color: var(--cor-texto-secundario);
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    /* ============================================
-       BOTÕES DE AÇÃO
-    ============================================ */
-    .botoes-acao {
-        display: flex;
-        gap: 10px;
-    }
-
-    .btn-acao {
-        padding: 8px 16px;
-        border: 1px solid var(--cor-borda);
-        border-radius: var(--borda-radius-pequeno);
-        font-size: 12px;
-        font-weight: 600;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        transition: all 0.3s;
-        background: transparent;
-        color: var(--cor-texto);
-    }
-
-    .btn-detalhes:hover {
-        border-color: var(--cor-primaria);
-        color: var(--cor-primaria);
-        background: rgba(26, 95, 180, 0.1);
-    }
-
-    .btn-invoice:hover {
-        border-color: var(--cor-sucesso);
-        color: var(--cor-sucesso);
-        background: rgba(46, 194, 126, 0.1);
-    }
-
-    .btn-pdf:hover {
-        border-color: var(--roxo);
-        color: var(--roxo);
-        background: rgba(155, 89, 182, 0.1);
-    }
-
-    /* ============================================
-       BOTÃO CARREGAR MAIS
-    ============================================ */
-    .btn-carregar-mais {
-        background: linear-gradient(135deg, var(--cor-primaria), #2d8fff);
-        color: white;
-        border: none;
-        padding: 15px 30px;
-        border-radius: var(--borda-radius);
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s;
-        box-shadow: 0 4px 15px rgba(26, 95, 180, 0.3);
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        justify-content: center;
-        margin: 30px auto;
-        display: block;
-    }
-
-    .btn-carregar-mais:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 20px rgba(26, 95, 180, 0.4);
-    }
-
-    .btn-carregar-mais i {
-        font-size: 18px;
-    }
-
-    .btn-carregar-mais small {
-        font-size: 12px;
-        opacity: 0.8;
-        font-weight: normal;
-        display: block;
-        margin-top: 4px;
-    }
-
-    /* ============================================
-       MENSAGEM VAZIA
-    ============================================ */
-    .mensagem-vazia {
-        text-align: center;
-        padding: 60px 20px;
-        color: var(--cor-texto-secundario);
-        background: var(--cor-card);
-        border: 1px solid var(--cor-borda);
-        border-radius: var(--borda-radius);
-    }
-
-    .mensagem-vazia i {
-        font-size: 48px;
-        margin-bottom: 20px;
-        opacity: 0.5;
-    }
-
-    /* ============================================
-       LOADING
-    ============================================ */
-    .loading {
-        text-align: center;
-        padding: 40px;
-        color: var(--cor-texto-secundario);
-    }
-
-    .loading i {
-        font-size: 24px;
-        margin-bottom: 10px;
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
-
-    /* ============================================
-       FOOTER (IGUAL AO DASHBOARD)
-    ============================================ */
-    .app-footer {
-        margin-top: 40px;
-        padding-top: 20px;
-        border-top: 1px solid var(--cor-borda);
-    }
-
-    .footer-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        color: var(--cor-texto-secundario);
-        font-size: 14px;
-    }
-
-    .footer-links {
-        display: flex;
-        gap: 20px;
-    }
-
-    .footer-links a {
-        color: var(--cor-texto-secundario);
-        text-decoration: none;
-        transition: color 0.3s ease;
-    }
-
-    .footer-links a:hover {
-        color: var(--cor-primaria);
-    }
-
-    .status-online {
-        color: var(--cor-sucesso);
-        font-weight: 600;
-    }
-
-    /* ============================================
-       RESPONSIVIDADE
-    ============================================ */
-    @media (max-width: 768px) {
+        /* ============================================
+        VARIÁVEIS CSS (EXATAMENTE IGUAL AO DASHBOARD)
+        ============================================ */
+        :root {
+            --cor-fundo: #0a0e15;
+            --cor-card: #0d1117;
+            --cor-borda: #1e232e;
+            --cor-texto: #e0e0e0;
+            --cor-texto-secundario: #8b949e;
+            --cor-primaria: #1a5fb4;
+            --cor-sucesso: #2ec27e;
+            --cor-alerta: #f39c12;
+            --cor-perigo: #e01b24;
+            --roxo: #9b59b6;
+            
+            --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.4);
+            --sombra-forte: 0 12px 24px rgba(0, 0, 0, 0.5);
+            
+            --borda-radius: 12px;
+            --borda-radius-pequeno: 8px;
+        }
+
+        /* ============================================
+        RESET E CONFIGURAÇÕES GERAIS
+        ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: var(--cor-fundo);
+            color: var(--cor-texto);
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ============================================
+        CONTAINER PRINCIPAL
+        ============================================ */
         .app-container {
-            padding: 10px;
-        }
-        
-        .app-header {
-            flex-direction: column;
-            gap: 15px;
-            text-align: center;
-        }
-        
-        .filtros-rapidos {
-            justify-content: center;
-        }
-        
-        .card-content {
-            grid-template-columns: 1fr;
-        }
-        
-        .card-footer {
-            flex-direction: column;
-            gap: 15px;
-        }
-        
-        .botoes-acao {
+            background: var(--cor-fundo);
+            min-height: 100vh;
+            max-width: 1400px;
+            margin: 0 auto;
             width: 100%;
+        }
+
+        /* ============================================
+        CABEÇALHO - FUNDO IGUAL AO DA TELA
+        ============================================ */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            background: var(--cor-fundo) !important;
+            border-bottom: 1px solid var(--cor-borda);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .logo i {
+            color: var(--cor-primaria);
+            font-size: 28px;
+        }
+
+        .logo-text {
+            background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            background: var(--cor-card);
+            border-radius: var(--borda-radius-pequeno);
+            border: 1px solid var(--cor-borda);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .user-menu:hover {
+            border-color: var(--cor-primaria);
+            transform: translateY(-2px);
+        }
+
+        .user-avatar {
+            font-size: 24px;
+            color: var(--cor-primaria);
+        }
+
+        .user-name {
+            font-weight: 600;
+        }
+
+        .btn-voltar-dashboard {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            border-radius: var(--borda-radius-pequeno);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-voltar-dashboard:hover {
+            border-color: var(--cor-primaria);
+            background: rgba(26, 95, 180, 0.1);
+            transform: translateY(-1px);
+        }
+
+        /* ============================================
+        CONTEÚDO PRINCIPAL
+        ============================================ */
+        .main-content {
+            padding: 30px;
+        }
+
+        /* ============================================
+        TÍTULO DA PÁGINA - AZUL DEGRADÊ
+        ============================================ */
+        .page-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+        }
+
+        .page-title {
+            font-size: 28px;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 12px;
             justify-content: center;
+        }
+
+        .page-title i {
+            color: var(--cor-primaria);
+        }
+
+        .page-subtitle {
+            color: var(--cor-texto-secundario);
+            font-size: 16px;
+            margin: 0;
+        }
+
+        /* ============================================
+        FILTROS RÁPIDOS
+        ============================================ */
+        .filtros-container {
+            margin-bottom: 30px;
+        }
+
+        .filtros-title {
+            font-size: 14px;
+            color: var(--cor-primaria);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filtros-rapidos {
+            display: flex;
+            gap: 10px;
             flex-wrap: wrap;
         }
-        
-        .footer-content {
-            flex-direction: column;
+
+        .btn-filtro {
+            padding: 10px 20px;
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            background: transparent;
+            color: var(--cor-texto);
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-filtro:hover {
+            border-color: var(--cor-primaria);
+            background: rgba(26, 95, 180, 0.1);
+        }
+
+        .btn-filtro.ativo {
+            background: var(--cor-primaria);
+            color: white;
+            border-color: var(--cor-primaria);
+        }
+
+        /* ============================================
+        CARDS DE TRANSFERÊNCIA
+        ============================================ */
+        .transferencias-container {
+            margin-bottom: 40px;
+        }
+
+        .card-transferencia {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 25px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            box-shadow: var(--sombra-suave);
+        }
+
+        .card-transferencia::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--cor-primaria), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .card-transferencia:hover {
+            border-color: var(--cor-primaria);
+            transform: translateY(-5px);
+            box-shadow: var(--sombra-forte);
+        }
+
+        .card-transferencia:hover::before {
+            opacity: 1;
+        }
+
+        /* ============================================
+        BOTÕES DOS CARDS
+        ============================================ */
+        .botoes-acao {
+            display: flex;
             gap: 10px;
+        }
+
+        .btn-acao {
+            padding: 8px 16px;
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s;
+            background: transparent;
+            color: var(--cor-texto);
+        }
+
+        .btn-detalhes {
+            background: rgba(26, 95, 180, 0.15);
+            color: var(--cor-primaria);
+            border-color: rgba(26, 95, 180, 0.3);
+        }
+
+        .btn-detalhes:hover {
+            background: rgba(26, 95, 180, 0.25);
+            transform: translateY(-2px);
+        }
+
+        .btn-invoice {
+            background: rgba(46, 194, 126, 0.15);
+            color: var(--cor-sucesso);
+            border-color: rgba(46, 194, 126, 0.3);
+        }
+
+        .btn-invoice:hover {
+            background: rgba(46, 194, 126, 0.25);
+            transform: translateY(-2px);
+        }
+
+        .btn-pdf {
+            background: rgba(155, 89, 182, 0.15);
+            color: var(--roxo);
+            border-color: rgba(155, 89, 182, 0.3);
+        }
+
+        .btn-pdf:hover {
+            background: rgba(155, 89, 182, 0.25);
+            transform: translateY(-2px);
+        }
+
+        /* ============================================
+        STATUS BADGES
+        ============================================ */
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-pending {
+            background: rgba(243, 156, 18, 0.15);
+            color: var(--cor-alerta);
+            border: 1px solid rgba(243, 156, 18, 0.3);
+        }
+
+        .status-processing {
+            background: rgba(26, 95, 180, 0.15);
+            color: var(--cor-primaria);
+            border: 1px solid rgba(26, 95, 180, 0.3);
+        }
+
+        .status-completed {
+            background: rgba(46, 194, 126, 0.15);
+            color: var(--cor-sucesso);
+            border: 1px solid rgba(46, 194, 126, 0.3);
+        }
+
+        .status-rejected {
+            background: rgba(224, 27, 36, 0.15);
+            color: var(--cor-perigo);
+            border: 1px solid rgba(224, 27, 36, 0.3);
+        }
+
+        /* ============================================
+        FOOTER
+        ============================================ */
+        .app-footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--cor-borda);
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--cor-texto-secundario);
+            font-size: 14px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .footer-links a {
+            color: var(--cor-texto-secundario);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--cor-primaria);
+        }
+
+        .status-online {
+            color: var(--cor-sucesso);
+            font-weight: 600;
+        }
+
+        /* ============================================
+        RESPONSIVIDADE
+        ============================================ */
+        @media (max-width: 768px) {
+            .app-container {
+                padding: 10px;
+            }
+            
+            .app-header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .filtros-rapidos {
+                justify-content: center;
+            }
+            
+            .card-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .card-footer {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .botoes-acao {
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            
+            .footer-content {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+            
+            .footer-links {
+                justify-content: center;
+            }
+        }
+
+        /* ============================================
+        UTILITIES
+        ============================================ */
+        .hidden {
+            display: none !important;
+        }
+
+        .text-center {
             text-align: center;
         }
-        
-        .footer-links {
-            justify-content: center;
+
+        /* ============================================
+        BOTÃO ATUALIZAR
+        ============================================ */
+        .btn-atualizar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            border-radius: var(--borda-radius-pequeno);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
-    }
 
-    /* ============================================
-       UTILITIES
-    ============================================ */
-    .hidden {
-        display: none !important;
-    }
+        .btn-atualizar:hover {
+            border-color: var(--cor-sucesso);
+            color: var(--cor-sucesso);
+            background: rgba(46, 194, 126, 0.1);
+            transform: translateY(-1px);
+        }
 
-    .text-center {
-        text-align: center;
-    }
+        .btn-atualizar.animando i {
+            animation: spin 1s linear infinite;
+        }
 
-    /* ============================================
-    BOTÃO ATUALIZAR NO HEADER
-    ============================================ */
-    .btn-atualizar {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 20px;
-        background: transparent;
-        border: 1px solid var(--cor-borda);
-        color: var(--cor-texto);
-        border-radius: var(--borda-radius-pequeno);
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
 
-    .btn-atualizar:hover {
-        border-color: var(--cor-sucesso);
-        color: var(--cor-sucesso);
-        background: rgba(46, 194, 126, 0.1);
-        transform: translateY(-1px);
-    }
+        /* ============================================
+        MENSAGEM VAZIA
+        ============================================ */
+        .mensagem-vazia {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--cor-texto-secundario);
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+        }
 
-    .btn-atualizar.animando i {
-        animation: spin 1s linear infinite;
-    }
+        .mensagem-vazia i {
+            font-size: 48px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
 
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
+        /* ============================================
+        LOADING
+        ============================================ */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--cor-texto-secundario);
+        }
 
-    /* ============================================
-    BOTÃO ATUALIZAR (FIX FINAL - NÃO APAGUE NADA!)
-    ============================================ */
-    #btnAtualizar.btn-atualizar {
-        /* GARANTIR VISIBILIDADE */
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        
-        /* LAYOUT */
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 10px 20px;
-        
-        /* CORES DASHBOARD */
-        background: transparent;
-        border: 1px solid var(--cor-borda);
-        color: var(--cor-texto);
-        border-radius: var(--borda-radius-pequeno);
-        
-        /* TEXTO */
-        font-weight: 500;
-        font-size: 14px;
-        font-family: inherit;
-        
-        /* DIMENSÕES */
-        width: auto;
-        height: auto;
-        min-width: 100px;
-        min-height: 40px;
-        white-space: nowrap;
-        
-        /* INTERAÇÃO */
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    /* HOVER EFFECT */
-    #btnAtualizar.btn-atualizar:hover {
-        border-color: var(--cor-sucesso);
-        color: var(--cor-sucesso);
-        background: rgba(46, 194, 126, 0.1);
-        transform: translateY(-1px);
-    }
-
-    /* ANIMAÇÃO DE LOADING */
-    #btnAtualizar.btn-atualizar.animando i {
-        animation: spin 1s linear infinite;
-    }
-
-    /* GARANTIR QUE NÃO FICA ESCONDIDO */
-    #btnAtualizar:not(.hidden) {
-        display: flex !important;
-    }
-
+        .loading i {
+            font-size: 24px;
+            margin-bottom: 10px;
+            animation: spin 1s linear infinite;
+        }
     </style>
 </head>
 <body>
