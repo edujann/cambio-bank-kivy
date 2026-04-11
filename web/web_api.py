@@ -202,6 +202,14 @@ def login():
             }), 401
         
         usuario_data = response.data[0]
+
+        # 🔥 🔥 🔥 VERIFICAR SE O USUÁRIO ESTÁ BLOQUEADO 🔥 🔥 🔥
+        status = usuario_data.get('status', 'ativo')
+        if status == 'bloqueado':
+            return jsonify({
+                "success": False,
+                "message": "Usuário bloqueado! Entre em contato com o administrador."
+            }), 401        
         
         # 🚫 Remove a senha da resposta por segurança
         if 'senha_hash' in usuario_data:
