@@ -1328,5 +1328,35 @@
     }
     </script>
     <script src="/static/js/theme.js"></script>
+    <script>
+    // 🔥 FORÇAR CORREÇÃO DO AUTOFILL EM TEMPO REAL
+    document.addEventListener('DOMContentLoaded', function() {
+        const inputs = document.querySelectorAll('input, textarea, select');
+        
+        inputs.forEach(input => {
+            // Verificar se o campo tem autofill
+            const checkAutofill = function() {
+                if (input.matches(':-webkit-autofill')) {
+                    const theme = document.documentElement.getAttribute('data-theme');
+                    if (theme === 'light') {
+                        input.style.backgroundColor = '#f0f4f9';
+                        input.style.color = '#1a1d24';
+                    } else {
+                        input.style.backgroundColor = '#0a0e15';
+                        input.style.color = '#e0e0e0';
+                    }
+                }
+            };
+            
+            // Verificar periodicamente
+            setInterval(checkAutofill, 500);
+            
+            // Verificar quando o campo muda
+            input.addEventListener('input', checkAutofill);
+            input.addEventListener('focus', checkAutofill);
+            input.addEventListener('blur', checkAutofill);
+        });
+    });
+    </script>    
 </body>
 </html>
