@@ -476,10 +476,10 @@
     .form-group textarea {
         width: 100%;
         padding: 12px 15px;
-        background: #1a1a2e;
-        border: 1px solid #3498db;
+        background: var(--cor-fundo) !important;
+        border: 1px solid var(--cor-borda) !important;
         border-radius: var(--borda-radius-pequeno);
-        color: var(--cor-texto);
+        color: var(--cor-texto) !important;
         font-size: 14px;
     }
 
@@ -495,14 +495,16 @@
         box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.3);
     }
 
-    /* CORREÇÃO DO AUTOCOMPLETE */
+    /* Autofill para tema claro e escuro */
     input:-webkit-autofill,
     input:-webkit-autofill:hover,
     input:-webkit-autofill:focus,
     input:-webkit-autofill:active {
-        -webkit-box-shadow: 0 0 0px 1000px #1a1a2e inset !important;
+        -webkit-box-shadow: 0 0 0 1000px var(--cor-fundo) inset !important;
         -webkit-text-fill-color: var(--cor-texto) !important;
-        transition: background-color 5000s ease-in-out 0s;
+        caret-color: var(--cor-texto) !important;
+        transition: background-color 5000s ease-in-out 0s !important;
+        background-color: var(--cor-fundo) !important;
     }
 
     .form-group.full-width {
@@ -823,6 +825,43 @@
             align-items: flex-start;
         }
     }
+
+    /* Títulos do modal em azul */
+    .modal-header h2 {
+        background: linear-gradient(90deg, var(--cor-primaria), #2d8fff) !important;
+        -webkit-background-clip: text !important;
+        background-clip: text !important;
+        color: transparent !important;
+    }
+
+    .modal-header h2 i {
+        color: var(--cor-primaria) !important;
+    }    
+
+    /* Focus nos campos do modal */
+    .form-group input:focus,
+    .form-group textarea:focus {
+        outline: none !important;
+        border-color: var(--cor-primaria) !important;
+        box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2) !important;
+        background-color: var(--cor-fundo) !important;
+        color: var(--cor-texto) !important;
+    }
+
+    /* Labels do modal */
+    .form-group label {
+        color: var(--cor-texto-secundario) !important;
+    }
+
+    .form-group label .required {
+        color: var(--cor-perigo) !important;
+    }
+
+    /* Título das seções internas */
+    .form-group h3 {
+        color: var(--cor-primaria) !important;
+    }    
+
     </style>
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
