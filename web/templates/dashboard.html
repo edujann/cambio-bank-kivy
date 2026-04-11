@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🏦 Cambio Bank - Dashboard</title>
+    <link rel="stylesheet" href="/static/css/theme.css">
     <style>
     /* RESET E CONFIGURAÇÕES GERAIS */
     * {
@@ -1836,6 +1837,10 @@ function abrirTransferencia() {
             <i class="fas fa-cog"></i> Configurações
         </a>
         
+        <div class="dropdown-item" onclick="toggleTheme(); fecharMenu();">
+            <i class="fas fa-moon" id="themeIcon"></i> <span id="themeText">Tema Escuro</span>
+        </div>
+
         <div class="dropdown-divider"></div>
         
         <a href="/logout" class="dropdown-item logout-item">
@@ -1972,6 +1977,48 @@ function abrirTransferencia() {
         } else {
             console.log('📁 FECHANDO menu...');
             dropdown.style.display = 'none';
+        }
+    }
+
+    // ============================================
+    // ATUALIZAR TEXTO DO BOTÃO DE TEMA
+    // ============================================
+
+    function atualizarTextoTheme() {
+        const themeIcon = document.getElementById('themeIcon');
+        const themeText = document.getElementById('themeText');
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        
+        if (currentTheme === 'light') {
+            themeIcon.className = 'fas fa-moon';
+            themeText.textContent = 'Tema Escuro';
+        } else {
+            themeIcon.className = 'fas fa-sun';
+            themeText.textContent = 'Tema Claro';
+        }
+    }
+
+    // Observar mudanças no tema
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.attributeName === 'data-theme') {
+                atualizarTextoTheme();
+            }
+        });
+    });
+    observer.observe(document.documentElement, { attributes: true });
+
+    // Inicializar
+    document.addEventListener('DOMContentLoaded', function() {
+        atualizarTextoTheme();
+    });
+
+    // Função para fechar o dropdown (adicione se não existir)
+    function fecharMenu() {
+        const dropdown = document.getElementById('userDropdown');
+        if (dropdown) {
+            dropdown.style.display = 'none';
+            window.menuVisivel = false;
         }
     }
 
@@ -2150,6 +2197,6 @@ function abrirTransferencia() {
             </div>
         </div>
     </div>
-
+    <script src="/static/js/theme.js"></script>
 </body>
 </html>
