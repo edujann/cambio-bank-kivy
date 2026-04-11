@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -7,8 +6,8 @@
     <title>Transferência Internacional | Cambio Bank</title>
     
     <!-- CSS ORGANIZADO -->
-    <link rel="stylesheet" href="/static/css/style.css">          <!-- Estilos gerais -->
-    <link rel="stylesheet" href="/static/css/formularios.css">   <!-- Estilos específicos de formulários -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/formularios.css">
     
     <!-- Ícones FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -22,13 +21,12 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 20px 30px; /* ← JÁ TEM */
+        padding: 20px 30px;
         background: var(--cor-card);
         border-bottom: 1px solid var(--cor-borda);
         position: sticky;
         top: 0;
         z-index: 100;
-        /* ADICIONE: */
         max-width: 1400px;
         margin: 0 auto;
         width: 100%;
@@ -95,7 +93,6 @@
         background-color: var(--cor-fundo) !important;
         text-align: center;
         color: var(--cor-texto-secundario);
-        /* ADICIONE: */
         max-width: 1400px;
         margin: 20px auto 0;
         width: 100%;
@@ -113,14 +110,13 @@
 
     /* NAVEGAÇÃO (BREADCRUMB) */
     .page-nav {
-        padding: 15px 30px; /* ← JÁ TEM */
+        padding: 15px 30px;
         background: rgba(255, 255, 255, 0.02);
         border-bottom: 1px solid var(--cor-borda);
         display: flex;
         align-items: center;
         gap: 10px;
         font-size: 14px;
-        /* ADICIONE: */
         max-width: 1400px;
         margin: 0 auto;
         width: 100%;
@@ -158,9 +154,9 @@
     /* TÍTULO DA PÁGINA */
     .page-header {
         padding: 30px 30px 20px;
-        text-align: center; /* ← ADICIONE ESTA LINHA */
-        max-width: 1200px; /* ← ADICIONE ESTA LINHA */
-        margin: 0 auto; /* ← ADICIONE ESTA LINHA */
+        text-align: center;
+        max-width: 1200px;
+        margin: 0 auto;
     }
 
     .page-header h2 {
@@ -170,7 +166,7 @@
         display: flex;
         align-items: center;
         gap: 12px;
-        justify-content: center; /* ← ADICIONE ESTA LINHA */
+        justify-content: center;
     }
 
     .page-header h2 i {
@@ -183,7 +179,7 @@
         margin: 0;
     }
 
-    /* BOTÕES (ESTILO DO DASHBOARD) */
+    /* BOTÕES */
     .btn-primary, .btn-secondary {
         padding: 12px 24px;
         border-radius: var(--borda-radius-pequeno);
@@ -235,60 +231,7 @@
         padding: 0 20px;
     }
 
-    /* ============================================
-    CORREÇÃO PARA CAMPOS DA TRANSFERÊNCIA
-    ============================================ */
-
-    /* Spinners e selects */
-    .form-control, select, .form-select {
-        background-color: var(--cor-fundo) !important;
-        color: var(--cor-texto) !important;
-        border: 1px solid var(--cor-borda) !important;
-        border-radius: var(--borda-radius-pequeno) !important;
-        padding: 12px 15px !important;
-        font-size: 14px !important;
-    }
-
-    /* Campo de valor */
-    .valor-input, input[type="text"], input[type="number"] {
-        background-color: var(--cor-fundo) !important;
-        color: var(--cor-texto) !important;
-        border: 1px solid var(--cor-borda) !important;
-        border-radius: var(--borda-radius-pequeno) !important;
-        padding: 12px 15px !important;
-    }
-
-    /* Focus */
-    .form-control:focus, select:focus, input:focus {
-        outline: none !important;
-        border-color: var(--cor-primaria) !important;
-        box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2) !important;
-    }
-
-    /* Opções do select */
-    select option {
-        background-color: var(--cor-card) !important;
-        color: var(--cor-texto) !important;
-    }
-
-    /* Placeholder */
-    ::placeholder {
-        color: var(--cor-texto-secundario) !important;
-        opacity: 0.7 !important;
-    }
-
-    /* Autofill do Chrome */
-    input:-webkit-autofill,
-    input:-webkit-autofill:hover,
-    input:-webkit-autofill:focus,
-    select:-webkit-autofill,
-    select:-webkit-autofill:hover,
-    select:-webkit-autofill:focus {
-        -webkit-box-shadow: 0 0 0 1000px var(--cor-fundo) inset !important;
-        -webkit-text-fill-color: var(--cor-texto) !important;
-        transition: background-color 5000s ease-in-out 0s !important;
-    }  
-    
+    /* Formulário */
     .form-control {
         width: 100%;
         padding: 12px 15px;
@@ -316,233 +259,163 @@
 
     .form-control::placeholder {
         color: var(--cor-texto-secundario);
-    }  
-    
-    /* ============================================
-    CORREÇÃO COMPLETA PARA TODOS OS CAMPOS
-    ============================================ */
-
-    /* Reset para todos os inputs, selects e textareas */
-    input, select, textarea, .form-control {
-        background-color: var(--cor-fundo) !important;
-        color: var(--cor-texto) !important;
-        border: 1px solid var(--cor-borda) !important;
-        border-radius: 8px !important;
-        padding: 12px 15px !important;
-        font-size: 14px !important;
-        width: 100% !important;
-        transition: all 0.3s ease !important;
     }
 
-    /* Estado normal, foco, hover, active - TODOS usam a mesma cor */
-    input:hover, input:focus, input:active,
-    select:hover, select:focus, select:active,
-    textarea:hover, textarea:focus, textarea:active,
-    .form-control:hover, .form-control:focus, .form-control:active {
-        background-color: var(--cor-fundo) !important;
-        color: var(--cor-texto) !important;
-        outline: none !important;
-        border-color: var(--cor-primaria) !important;
-        box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2) !important;
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
     }
 
-    /* 🔥 CORREÇÃO ESPECIAL PARA QUANDO O CAMPO ESTÁ SENDO DIGITADO 🔥 */
-    input:focus-within,
-    input[type="text"]:focus,
-    input[type="number"]:focus,
-    input:not([type]):focus {
-        background-color: var(--cor-fundo) !important;
-        color: var(--cor-texto) !important;
+    .form-group {
+        margin-bottom: 20px;
     }
 
-    /* Placeholder */
-    ::placeholder {
-        color: var(--cor-texto-secundario) !important;
-        opacity: 0.7 !important;
-    }
-
-    /* Opções do select (dropdown) */
-    select option {
-        background-color: var(--cor-card) !important;
-        color: var(--cor-texto) !important;
-    }
-
-    /* Select específicos */
-    #conta_origem, #finalidade, #beneficiarios_salvos {
-        background-color: var(--cor-fundo) !important;
-        color: var(--cor-texto) !important;
-    }
-
-    /* Textarea específico */
-    #descricao {
-        background-color: var(--cor-fundo) !important;
-        color: var(--cor-texto) !important;
-    }
-
-    /* Inputs específicos */
-    input[type="text"], input[type="number"], input[type="email"], input[type="password"] {
-        background-color: var(--cor-fundo) !important;
-        color: var(--cor-texto) !important;
-    }
-
-    /* 🔥 CORREÇÃO EXTREMA PARA AUTOFILL E DIGITAÇÃO 🔥 */
-    input:-webkit-autofill,
-    input:-webkit-autofill:hover,
-    input:-webkit-autofill:focus,
-    input:-webkit-autofill:active,
-    input:-internal-autofill-selected,
-    select:-webkit-autofill,
-    select:-webkit-autofill:hover,
-    select:-webkit-autofill:focus,
-    textarea:-webkit-autofill,
-    textarea:-webkit-autofill:hover,
-    textarea:-webkit-autofill:focus {
-        -webkit-box-shadow: 0 0 0 1000px var(--cor-fundo) inset !important;
-        -webkit-text-fill-color: var(--cor-texto) !important;
-        caret-color: var(--cor-texto) !important;
-        transition: background-color 5000s ease-in-out 0s !important;
-        background-color: var(--cor-fundo) !important;
-    }
-
-    /* Cursor (texto piscando) */
-    input, textarea, select {
-        caret-color: var(--cor-texto) !important;
-    }
-
-    /* 🔥 FORÇAR QUE TUDO USE A COR DO TEMA 🔥 */
-    body *:focus {
-        background-color: var(--cor-fundo) !important;
-        color: var(--cor-texto) !important;
-    }  
-
-    /* Títulos do formulário - tema claro fica azul */
-    :root[data-theme="light"] .form-title,
-    :root[data-theme="light"] .form-subtitle {
-        color: #1a5fb4 !important;
-    }
-
-    :root[data-theme="dark"] .form-title,
-    :root[data-theme="dark"] .form-subtitle {
-        color: #ffffff !important;
-    }    
-
-    /* ============================================
-    CORREÇÃO DO HEADER - FUNDO E CORES
-    ============================================ */
-
-    /* Fundo do header - usa a cor do tema */
-    .main-header {
-        background: var(--cor-card) !important;
-        border-bottom: 1px solid var(--cor-borda) !important;
-    }
-
-    /* Nome do usuário - em azul */
-    .user-info span:first-child {
-        color: var(--cor-primaria) !important;
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
         font-weight: 600;
+        color: var(--cor-texto);
     }
 
-    /* Avatar do usuário */
-    .user-info i {
-        color: var(--cor-primaria) !important;
+    .form-group label i {
+        color: var(--cor-primaria);
+        margin-right: 8px;
     }
 
-    /* Título da página (TRANSFERÊNCIA INTERNACIONAL) */
-    .page-header h2 {
-        background: linear-gradient(90deg, var(--cor-primaria), #2d8fff) !important;
-        -webkit-background-clip: text !important;
-        background-clip: text !important;
-        color: transparent !important;
+    .form-divider {
+        margin: 25px 0;
+        border: none;
+        height: 1px;
+        background: var(--cor-borda);
     }
 
-    /* Subtítulo da página */
-    .page-subtitle {
-        color: var(--cor-texto-secundario) !important;
+    .form-title, .form-subtitle {
+        font-size: 18px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
     }
 
-    /* Breadcrumb (navegação) */
-    .page-nav a {
-        color: var(--cor-texto-secundario) !important;
+    .form-title i, .form-subtitle i {
+        color: var(--cor-primaria);
     }
 
-    .page-nav a:hover {
-        color: var(--cor-primaria) !important;
+    .form-card {
+        background: var(--cor-card);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius);
+        padding: 30px;
+        margin-bottom: 30px;
     }
 
-    .current-page {
-        color: var(--cor-texto) !important;
+    /* Saldo info */
+    .saldo-info {
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--cor-texto-secundario);
     }
 
-    /* Logo */
-    .logo h1 {
-        background: linear-gradient(90deg, var(--cor-primaria), #2d8fff) !important;
-        -webkit-background-clip: text !important;
-        background-clip: text !important;
-        color: transparent !important;
+    .saldo-info i {
+        color: var(--cor-sucesso);
     }
 
-    .logo i {
-        color: var(--cor-primaria) !important;
-    }    
-
-    /* ============================================
-    CORREÇÃO DO HEADER PARA TRANSFERENCIA.HTML
-    ============================================ */
-
-    /* Fundo do header - usa a cor do tema */
-    /* Fundo do header - MESMO FUNDO DA TELA */
-    .main-header {
-        background-color: var(--cor-fundo) !important;
-        border-bottom: 1px solid var(--cor-borda) !important;
+    .input-with-icon {
+        position: relative;
     }
 
-    /* Título da página (TRANSFERÊNCIA INTERNACIONAL) */
-    .page-header h2 {
-        background: linear-gradient(90deg, var(--cor-primaria), #2d8fff) !important;
-        -webkit-background-clip: text !important;
-        background-clip: text !important;
-        color: transparent !important;
+    .currency-label {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--cor-primaria);
+        font-weight: bold;
     }
 
-    /* Nome do usuário - em azul */
-    .user-info span:first-child {
-        color: var(--cor-primaria) !important;
-        font-weight: 600;
+    .helper-text {
+        font-size: 12px;
+        color: var(--cor-texto-secundario);
+        margin-top: 5px;
+        display: block;
     }
 
-    /* Avatar do usuário */
-    .user-info i {
-        color: var(--cor-primaria) !important;
+    /* Upload de arquivo */
+    .file-upload-area {
+        border: 2px dashed var(--cor-borda);
+        border-radius: var(--borda-radius-pequeno);
+        padding: 30px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: var(--cor-fundo);
     }
 
-    /* Logo */
-    .logo h1 {
-        background: linear-gradient(90deg, var(--cor-primaria), #2d8fff) !important;
-        -webkit-background-clip: text !important;
-        background-clip: text !important;
-        color: transparent !important;
+    .file-upload-area:hover {
+        border-color: var(--cor-primaria);
+        background: rgba(26, 95, 180, 0.05);
     }
 
-    .logo i {
-        color: var(--cor-primaria) !important;
-    }  
-    
-    /* ============================================
-    CHECKBOX - SALVAR BENEFICIÁRIO
-    ============================================ */
+    .file-upload-area i {
+        font-size: 48px;
+        color: var(--cor-primaria);
+        margin-bottom: 10px;
+    }
 
+    .btn-select-file {
+        background: var(--cor-primaria);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: var(--borda-radius-pequeno);
+        cursor: pointer;
+        margin: 10px 0;
+    }
+
+    .file-preview {
+        background: var(--cor-fundo);
+        border: 1px solid var(--cor-sucesso);
+        border-radius: var(--borda-radius-pequeno);
+        padding: 15px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .file-preview i {
+        font-size: 32px;
+        color: var(--cor-sucesso);
+    }
+
+    .btn-remove-file {
+        margin-left: auto;
+        background: var(--cor-perigo);
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: var(--borda-radius-pequeno);
+        cursor: pointer;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    /* Checkbox */
     .form-checkbox {
         display: flex;
         align-items: center;
-        justify-content: flex-end;  /* 🔥 Alinha à direita */
+        justify-content: flex-end;
         gap: 10px;
         margin: 20px 0;
         padding: 8px 15px;
         background-color: var(--cor-card);
         border: 1px solid var(--cor-borda);
         border-radius: var(--borda-radius-pequeno);
-        width: fit-content;         /* 🔥 Largura apenas do conteúdo */
-        margin-left: auto;          /* 🔥 Empurra para a direita */
+        width: fit-content;
+        margin-left: auto;
     }
 
     .form-checkbox input[type="checkbox"] {
@@ -566,18 +439,85 @@
         margin-right: 8px;
     }
 
-    .form-checkbox:hover {
-        background-color: var(--cor-card-hover);
-        border-color: var(--cor-primaria);
-    }  
+    /* Modal */
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 
+    .modal.hidden {
+        display: none;
+    }
+
+    .modal-content {
+        background: var(--cor-card);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius);
+        padding: 30px;
+        max-width: 500px;
+        width: 90%;
+        text-align: center;
+    }
+
+    .modal-icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+    }
+
+    .modal-icon.success i {
+        color: var(--cor-sucesso);
+    }
+
+    .modal-details {
+        background: var(--cor-fundo);
+        padding: 15px;
+        border-radius: var(--borda-radius-pequeno);
+        margin: 20px 0;
+        text-align: left;
+    }
+
+    .modal-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+    }
+
+    .status-pending {
+        background: var(--cor-alerta);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+    }
+
+    @media (max-width: 768px) {
+        .form-row {
+            grid-template-columns: 1fr;
+            gap: 0;
+        }
+        
+        .form-buttons {
+            flex-direction: column;
+        }
+        
+        .form-buttons button {
+            width: 100%;
+            justify-content: center;
+        }
+    }
     </style>
 </head>
 
-
-
 <body>
-    <!-- CABEÇALHO FIXO (IGUAL AO DASHBOARD) -->
+    <!-- CABEÇALHO -->
     <header class="main-header">
         <div class="header-left">
             <div class="logo">
@@ -598,265 +538,253 @@
 
     <!-- CONTEÚDO PRINCIPAL -->
     <main class="main-content">
-        <!-- BREADCRUMB/NAVEGAÇÃO -->
         <div class="content-container">
-        <nav class="page-nav">
-            <a href="/dashboard"><i class="fas fa-home"></i> Home</a>
-            <i class="fas fa-chevron-right"></i>
-            <span class="current-page"><i class="fas fa-exchange-alt"></i> Transferência Internacional</span>
-        </nav>
+            <nav class="page-nav">
+                <a href="/dashboard"><i class="fas fa-home"></i> Home</a>
+                <i class="fas fa-chevron-right"></i>
+                <span class="current-page"><i class="fas fa-exchange-alt"></i> Transferência Internacional</span>
+            </nav>
 
-        <!-- TÍTULO DA PÁGINA -->
-        <div class="page-header">
-            <h2><i class="fas fa-globe-americas"></i> TRANSFERÊNCIA INTERNACIONAL</h2>
-            <p class="page-subtitle">Envie dinheiro para qualquer parte do mundo com segurança</p>
-        </div>
+            <div class="page-header">
+                <h2><i class="fas fa-globe-americas"></i> TRANSFERÊNCIA INTERNACIONAL</h2>
+                <p class="page-subtitle">Envie dinheiro para qualquer parte do mundo com segurança</p>
+            </div>
 
-        <!-- FORMULÁRIO DE TRANSFERÊNCIA -->
-        <div class="form-container">
-            <div class="form-card">
-                <h3 class="form-title">
-                    <i class="fas fa-file-invoice-dollar"></i> Dados da Transferência
-                </h3>
-                
-                <!-- ALERTAS -->
-                <div id="alert" class="alert hidden"></div>
+            <!-- FORMULÁRIO DE TRANSFERÊNCIA -->
+            <div class="form-container">
+                <div class="form-card">
+                    <h3 class="form-title">
+                        <i class="fas fa-file-invoice-dollar"></i> Dados da Transferência
+                    </h3>
+                    
+                    <div id="alert" class="alert hidden"></div>
 
-                <form id="transferenciaForm">
-                    <!-- LINHA 1: CONTA ORIGEM E VALOR -->
-                    <div class="form-row">
+                    <form id="transferenciaForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="conta_origem">
+                                    <i class="fas fa-wallet"></i> Conta de Origem *
+                                </label>
+                                <select id="conta_origem" name="conta_origem" class="form-control" required>
+                                    <option value="">Selecione sua conta...</option>
+                                </select>
+                                <div id="saldo_info" class="saldo-info">
+                                    <i class="fas fa-info-circle"></i> Saldo disponível: <span id="saldo_valor">--</span>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="valor">
+                                    <i class="fas fa-money-bill-wave"></i> Valor a Transferir *
+                                </label>
+                                <div class="input-with-icon">
+                                    <input type="number" id="valor" name="valor" class="form-control" step="0.01" min="0.01" 
+                                        placeholder="0.00" required>
+                                    <span id="moeda_label" class="currency-label">USD</span>
+                                </div>
+                                <small class="helper-text">Valor mínimo: 0.01</small>
+                            </div>
+                        </div>
+
                         <div class="form-group">
-                            <label for="conta_origem">
-                                <i class="fas fa-wallet"></i> Conta de Origem *
+                            <label for="finalidade">
+                                <i class="fas fa-bullseye"></i> Finalidade da Transferência *
                             </label>
-                            <select id="conta_origem" name="conta_origem" class="form-control" required>
-                                <option value="">Selecione sua conta...</option>
-                                <!-- Contas serão carregadas via JavaScript -->
+                            <select id="finalidade" name="finalidade" class="form-control" required>
+                                <option value="Pagamento de Serviços">Pagamento de Serviços</option>
+                                <option value="Pagamento de Produtos">Pagamento de Produtos</option>
+                                <option value="Remessa Familiar">Remessa Familiar</option>
+                                <option value="Investimento">Investimento</option>
+                                <option value="Outros">Outros</option>
                             </select>
-                            <div id="saldo_info" class="saldo-info">
-                                <i class="fas fa-info-circle"></i> Saldo disponível: <span id="saldo_valor">--</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="descricao">
+                                <i class="fas fa-comment-alt"></i> Descrição / Observações
+                            </label>
+                            <textarea id="descricao" name="descricao" class="form-control" rows="3" 
+                                    placeholder="Descreva o propósito desta transferência..."></textarea>
+                        </div>
+
+                        <hr class="form-divider">
+
+                        <!-- SEÇÃO BENEFICIÁRIO -->
+                        <h3 class="form-subtitle">
+                            <i class="fas fa-user-tie"></i> Dados do Beneficiário
+                        </h3>
+
+                        <div class="form-group">
+                            <label for="beneficiarios_salvos">
+                                <i class="fas fa-address-book"></i> Beneficiários Salvos
+                            </label>
+                            <select id="beneficiarios_salvos" class="form-control beneficiarios-select">
+                                <option value="">Selecione um beneficiário salvo...</option>
+                            </select>
+                            <small class="helper-text">Selecione para preencher automaticamente</small>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="beneficiario">
+                                    <i class="fas fa-user"></i> Nome Completo do Beneficiário *
+                                </label>
+                                <input type="text" id="beneficiario" name="beneficiario" class="form-control" 
+                                    placeholder="Nome completo" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="endereco">
+                                    <i class="fas fa-map-marker-alt"></i> Endereço Completo *
+                                </label>
+                                <input type="text" id="endereco" name="endereco" class="form-control" 
+                                    placeholder="Rua, número, complemento" required>
                             </div>
                         </div>
-                        
-                        <div class="form-group">
-                            <label for="valor">
-                                <i class="fas fa-money-bill-wave"></i> Valor a Transferir *
-                            </label>
-                            <div class="input-with-icon">
-                                <input type="number" id="valor" name="valor" class="form-control" step="0.01" min="0.01" 
-                                    placeholder="0.00" required>
-                                <span id="moeda_label" class="currency-label">USD</span>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="cidade">
+                                    <i class="fas fa-city"></i> Cidade *
+                                </label>
+                                <input type="text" id="cidade" name="cidade" class="form-control" 
+                                    placeholder="Cidade" required>
                             </div>
-                            <small class="helper-text">Valor mínimo: 0.01</small>
+                            
+                            <div class="form-group">
+                                <label for="pais">
+                                    <i class="fas fa-flag"></i> País *
+                                </label>
+                                <input type="text" id="pais" name="pais" class="form-control" 
+                                    placeholder="País" required>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- LINHA 2: FINALIDADE -->
-                    <div class="form-group">
-                        <label for="finalidade">
-                            <i class="fas fa-bullseye"></i> Finalidade da Transferência *
-                        </label>
-                        <select id="finalidade" name="finalidade" class="form-control" required>
-                            <option value="Pagamento de Serviços">Pagamento de Serviços</option>
-                            <option value="Pagamento de Produtos">Pagamento de Produtos</option>
-                            <option value="Remessa Familiar">Remessa Familiar</option>
-                            <option value="Investimento">Investimento</option>
-                            <option value="Outros">Outros</option>
-                        </select>
-                    </div>
+                        <hr class="form-divider">
 
-                    <!-- LINHA 3: DESCRIÇÃO -->
-                    <div class="form-group">
-                        <label for="descricao">
-                            <i class="fas fa-comment-alt"></i> Descrição / Observações
-                        </label>
-                        <textarea id="descricao" name="descricao" class="form-control" rows="3" 
-                                placeholder="Descreva o propósito desta transferência..."></textarea>
-                    </div>
+                        <!-- SEÇÃO BANCO DESTINATÁRIO -->
+                        <h3 class="form-subtitle">
+                            <i class="fas fa-university"></i> Banco Destinatário
+                        </h3>
 
-                    <hr class="form-divider">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="banco">
+                                    <i class="fas fa-landmark"></i> Nome do Banco *
+                                </label>
+                                <input type="text" id="banco" name="banco" class="form-control" 
+                                    placeholder="Nome do banco destinatário" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="endereco_banco">
+                                    <i class="fas fa-map-pin"></i> Endereço do Banco
+                                </label>
+                                <input type="text" id="endereco_banco" name="endereco_banco" class="form-control" 
+                                    placeholder="Endereço do banco">
+                            </div>
+                        </div>
 
-                    <!-- SEÇÃO BENEFICIÁRIO -->
-                    <h3 class="form-subtitle">
-                        <i class="fas fa-user-tie"></i> Dados do Beneficiário
-                    </h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="cidade_banco">
+                                    <i class="fas fa-city"></i> Cidade do Banco *
+                                </label>
+                                <input type="text" id="cidade_banco" name="cidade_banco" class="form-control" 
+                                    placeholder="Cidade do banco" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="pais_banco">
+                                    <i class="fas fa-flag"></i> País do Banco *
+                                </label>
+                                <input type="text" id="pais_banco" name="pais_banco" class="form-control" 
+                                    placeholder="País do banco" required>
+                            </div>
+                        </div>
 
-                    <!-- BENEFICIÁRIOS SALVOS -->
-                    <div class="form-group">
-                        <label for="beneficiarios_salvos">
-                            <i class="fas fa-address-book"></i> Beneficiários Salvos
-                        </label>
-                        <select id="beneficiarios_salvos" class="form-control beneficiarios-select">
-                            <option value="">Selecione um beneficiário salvo...</option>
-                            <!-- Beneficiários serão carregados via JavaScript -->
-                        </select>
-                        <small class="helper-text">Selecione para preencher automaticamente</small>
-                    </div>
+                        <hr class="form-divider">
 
-                    <!-- CAMPOS DO BENEFICIÁRIO -->
-                    <div class="form-row">
+                        <!-- SEÇÃO DADOS BANCÁRIOS -->
+                        <h3 class="form-subtitle">
+                            <i class="fas fa-key"></i> Dados Bancários
+                        </h3>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="swift">
+                                    <i class="fas fa-barcode"></i> Código SWIFT/BIC *
+                                </label>
+                                <input type="text" id="swift" name="swift" class="form-control" 
+                                    placeholder="Ex: CHASUS33XXX" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="iban">
+                                    <i class="fas fa-hashtag"></i> Código IBAN / Account # *
+                                </label>
+                                <input type="text" id="iban" name="iban" class="form-control" 
+                                    placeholder="Número da conta" required>
+                            </div>
+                        </div>
+
                         <div class="form-group">
-                            <label for="beneficiario">
-                                <i class="fas fa-user"></i> Nome Completo do Beneficiário *
+                            <label for="aba">
+                                <i class="fas fa-route"></i> Código ABA / Routing #
                             </label>
-                            <input type="text" id="beneficiario" name="beneficiario" class="form-control" 
-                                placeholder="Nome completo" required>
+                            <input type="text" id="aba" name="aba" class="form-control" 
+                                placeholder="Apenas para transferências EUA">
                         </div>
-                        
+
+                        <hr class="form-divider">
+
+                        <!-- SEÇÃO INVOICE -->
+                        <h3 class="form-subtitle">
+                            <i class="fas fa-file-invoice"></i> Documento Comprobatório (Invoice)
+                        </h3>
+
                         <div class="form-group">
-                            <label for="endereco">
-                                <i class="fas fa-map-marker-alt"></i> Endereço Completo *
-                            </label>
-                            <input type="text" id="endereco" name="endereco" class="form-control" 
-                                placeholder="Rua, número, complemento" required>
+                            <div class="file-upload-area" id="uploadArea">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <p>Arraste e solte o arquivo aqui ou</p>
+                                <button type="button" class="btn-select-file" id="selectFileBtn">
+                                    <i class="fas fa-folder-open"></i> Selecionar Arquivo
+                                </button>
+                                <input type="file" id="invoiceFile" accept=".pdf,.jpg,.jpeg,.png" style="display: none;">
+                                <p class="file-info">
+                                    <small>Formatos aceitos: PDF, JPG, PNG (máx. 5MB)</small>
+                                </p>
+                            </div>
+                            <div id="filePreview" class="file-preview hidden">
+                                <i class="fas fa-file-pdf"></i>
+                                <span id="fileName">arquivo.pdf</span>
+                                <button type="button" class="btn-remove-file" id="removeFileBtn">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="cidade">
-                                <i class="fas fa-city"></i> Cidade *
+                        <div class="form-checkbox">
+                            <input type="checkbox" id="salvar_beneficiario" name="salvar_beneficiario">
+                            <label for="salvar_beneficiario">
+                                <i class="fas fa-save"></i> Salvar este beneficiário para futuras transferências
                             </label>
-                            <input type="text" id="cidade" name="cidade" class="form-control" 
-                                placeholder="Cidade" required>
                         </div>
-                        
-                        <div class="form-group">
-                            <label for="pais">
-                                <i class="fas fa-flag"></i> País *
-                            </label>
-                            <input type="text" id="pais" name="pais" class="form-control" 
-                                placeholder="País" required>
-                        </div>
-                    </div>
 
-                    <hr class="form-divider">
-
-                    <!-- SEÇÃO BANCO DESTINATÁRIO -->
-                    <h3 class="form-subtitle">
-                        <i class="fas fa-university"></i> Banco Destinatário
-                    </h3>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="banco">
-                                <i class="fas fa-landmark"></i> Nome do Banco *
-                            </label>
-                            <input type="text" id="banco" name="banco" class="form-control" 
-                                placeholder="Nome do banco destinatário" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="endereco_banco">
-                                <i class="fas fa-map-pin"></i> Endereço do Banco
-                            </label>
-                            <input type="text" id="endereco_banco" name="endereco_banco" class="form-control" 
-                                placeholder="Endereço do banco">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="cidade_banco">
-                                <i class="fas fa-city"></i> Cidade do Banco *
-                            </label>
-                            <input type="text" id="cidade_banco" name="cidade_banco" class="form-control" 
-                                placeholder="Cidade do banco" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="pais_banco">
-                                <i class="fas fa-flag"></i> País do Banco *
-                            </label>
-                            <input type="text" id="pais_banco" name="pais_banco" class="form-control" 
-                                placeholder="País do banco" required>
-                        </div>
-                    </div>
-
-                    <hr class="form-divider">
-
-                    <!-- SEÇÃO DADOS BANCÁRIOS -->
-                    <h3 class="form-subtitle">
-                        <i class="fas fa-key"></i> Dados Bancários
-                    </h3>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="swift">
-                                <i class="fas fa-barcode"></i> Código SWIFT/BIC *
-                            </label>
-                            <input type="text" id="swift" name="swift" class="form-control" 
-                                placeholder="Ex: CHASUS33XXX" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="iban">
-                                <i class="fas fa-hashtag"></i> Código IBAN / Account # *
-                            </label>
-                            <input type="text" id="iban" name="iban" class="form-control" 
-                                placeholder="Número da conta" required>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="aba">
-                            <i class="fas fa-route"></i> Código ABA / Routing #
-                        </label>
-                        <input type="text" id="aba" name="aba" class="form-control" 
-                            placeholder="Apenas para transferências EUA">
-                    </div>
-
-                    <hr class="form-divider">
-
-                    <!-- SEÇÃO INVOICE -->
-                    <h3 class="form-subtitle">
-                        <i class="fas fa-file-invoice"></i> Documento Comprobatório (Invoice)
-                    </h3>
-
-                    <div class="form-group">
-                        <div class="file-upload-area" id="uploadArea">
-                            <i class="fas fa-cloud-upload-alt"></i>
-                            <p>Arraste e solte o arquivo aqui ou</p>
-                            <button type="button" class="btn-select-file" id="selectFileBtn">
-                                <i class="fas fa-folder-open"></i> Selecionar Arquivo
+                        <div class="form-buttons">
+                            <button type="button" class="btn-secondary" onclick="window.history.back()">
+                                <i class="fas fa-times"></i> Cancelar
                             </button>
-                            <input type="file" id="invoiceFile" accept=".pdf,.jpg,.jpeg,.png" style="display: none;">
-                            <p class="file-info">
-                                <small>Formatos aceitos: PDF, JPG, PNG (máx. 5MB)</small>
-                            </p>
-                        </div>
-                        <div id="filePreview" class="file-preview hidden">
-                            <i class="fas fa-file-pdf"></i>
-                            <span id="fileName">arquivo.pdf</span>
-                            <button type="button" class="btn-remove-file" id="removeFileBtn">
-                                <i class="fas fa-times"></i>
+                            <button type="submit" class="btn-primary" id="submitBtn">
+                                <i class="fas fa-paper-plane"></i> Solicitar Transferência
                             </button>
                         </div>
-                    </div>
-
-                    <!-- CHECKBOX SALVAR BENEFICIÁRIO -->
-                    <div class="form-checkbox">
-                        <input type="checkbox" id="salvar_beneficiario" name="salvar_beneficiario">
-                        <label for="salvar_beneficiario">
-                            <i class="fas fa-save"></i> Salvar este beneficiário para futuras transferências
-                        </label>
-                    </div>
-
-                    <!-- BOTÕES -->
-                    <div class="form-buttons">
-                        <button type="button" class="btn-secondary" onclick="window.history.back()">
-                            <i class="fas fa-times"></i> Cancelar
-                        </button>
-                        <button type="submit" class="btn-primary" id="submitBtn">
-                            <i class="fas fa-paper-plane"></i> Solicitar Transferência
-                        </button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
     </main>
 
-    <!-- RODAPÉ -->
     <footer class="main-footer">
         <p>© 2024 Cambio Bank - Sistema de Câmbio Internacional. Todos os direitos reservados.</p>
         <p class="footer-links">
@@ -888,9 +816,8 @@
         </div>
     </div>
 
-    <!-- VARIÁVEIS DO FLASK (CRÍTICO!) -->
     <script>
-        // Dados do usuário logado (do Flask)
+        // Dados do usuário logado
         window.USER = { 
             username: "{{ usuario if usuario else '' }}", 
             nome: "{{ nome if nome else 'Usuário' }}", 
@@ -901,91 +828,218 @@
         console.log('Transferência - Usuário logado:', window.USER);
     </script>
 
-    <!-- SCRIPTS -->
-    <script src="/static/js/script.js"></script>
     <script>
-   
+    // ============================================
+    // VARIÁVEIS GLOBAIS
+    // ============================================
+    window.invoiceFile = null;
+
     // ============================================
     // FUNÇÃO PARA ATUALIZAR NOME DO USUÁRIO
     // ============================================
-
     function atualizarNomeUsuario() {
-        console.log('👤 Atualizando nome do usuário...');
-        
-        // 1. Verificar se o elemento existe
         const usernameElement = document.getElementById('username');
-        if (!usernameElement) {
-            console.error('❌ Elemento #username não encontrado no HTML');
-            return;
-        }
+        if (!usernameElement) return;
         
-        // 2. Verificar se temos os dados do usuário
         if (window.USER && window.USER.nome) {
-            console.log('✅ Dados do usuário encontrados:', window.USER.nome);
             usernameElement.textContent = window.USER.nome;
-            usernameElement.style.fontWeight = 'bold';
-            usernameElement.style.color = 'var(--cor-texto)';
         } else if (window.USER && window.USER.username) {
-            console.log('✅ Usando username como fallback:', window.USER.username);
             usernameElement.textContent = window.USER.username.toUpperCase();
-        } else {
-            console.warn('⚠️ Dados do usuário não encontrados em window.USER');
-            // Tentar carregar da API
-            carregarUsuarioDaAPI();
         }
     }
 
-    // Função para carregar usuário da API se necessário
-    async function carregarUsuarioDaAPI() {
+    // ============================================
+    // 🔥 FUNÇÃO CORRIGIDA PARA CARREGAR BENEFICIÁRIOS
+    // ============================================
+    async function carregarBeneficiarios() {
+        console.log('📖 Carregando beneficiários...');
+        
         try {
-            const response = await fetch('/api/user');
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success && data.user) {
-                    const usernameElement = document.getElementById('username');
-                    if (usernameElement) {
-                        usernameElement.textContent = data.user.nome || data.user.username || 'Usuário';
-                    }
-                    console.log('✅ Usuário carregado da API');
+            const response = await fetch('/api/beneficiarios');
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const data = await response.json();
+            console.log('📦 Beneficiários recebidos:', data);
+            
+            const select = document.getElementById('beneficiarios_salvos');
+            if (!select) return;
+            
+            // Limpar e preencher
+            select.innerHTML = '<option value="">Selecione um beneficiário salvo...</option>';
+            
+            if (data.success && data.beneficiarios && data.beneficiarios.length > 0) {
+                data.beneficiarios.forEach(benef => {
+                    const option = document.createElement('option');
+                    option.value = benef.id;
+                    option.textContent = `${benef.nome} | ${benef.banco} | ${benef.pais || benef.pais_banco || '--'}`;
+                    option.dataset.id = benef.id;
+                    select.appendChild(option);
+                });
+                
+                console.log(`✅ ${data.beneficiarios.length} beneficiários carregados`);
+            } else {
+                console.log('ℹ️ Nenhum beneficiário encontrado');
+            }
+            
+            // 🔥 ADICIONAR EVENT LISTENER PARA PREENCHER CAMPOS
+            select.addEventListener('change', preencherCamposBeneficiario);
+            
+        } catch (error) {
+            console.error('❌ Erro ao carregar beneficiários:', error);
+        }
+    }
+
+    // ============================================
+    // 🔥 FUNÇÃO CORRIGIDA PARA PREENCHER CAMPOS DO BENEFICIÁRIO
+    // ============================================
+    async function preencherCamposBeneficiario(event) {
+        const select = event.target;
+        const beneficiarioId = select.value;
+        
+        console.log(`🔍 Beneficiário selecionado: ${beneficiarioId}`);
+        
+        if (!beneficiarioId) {
+            console.log('ℹ️ Nenhum beneficiário selecionado');
+            return;
+        }
+        
+        try {
+            console.log(`📡 Buscando detalhes do beneficiário ID: ${beneficiarioId}`);
+            const response = await fetch(`/api/beneficiarios/${beneficiarioId}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('📦 Detalhes do beneficiário:', data);
+            
+            if (data.success && data.beneficiario) {
+                const benef = data.beneficiario;
+                
+                // Preencher campos do beneficiário
+                document.getElementById('beneficiario').value = benef.nome || '';
+                document.getElementById('endereco').value = benef.endereco || '';
+                document.getElementById('cidade').value = benef.cidade || '';
+                document.getElementById('pais').value = benef.pais || '';
+                
+                // Preencher campos do banco
+                document.getElementById('banco').value = benef.banco || '';
+                document.getElementById('endereco_banco').value = benef.endereco_banco || '';
+                document.getElementById('cidade_banco').value = benef.cidade_banco || '';
+                document.getElementById('pais_banco').value = benef.pais_banco || '';
+                
+                // Preencher dados bancários
+                document.getElementById('swift').value = benef.swift || '';
+                document.getElementById('iban').value = benef.iban || '';
+                document.getElementById('aba').value = benef.aba || '';
+                
+                console.log(`✅ Campos preenchidos com sucesso para: ${benef.nome}`);
+                
+                // Mostrar feedback visual
+                const alertDiv = document.getElementById('alert');
+                if (alertDiv) {
+                    alertDiv.innerHTML = `<i class="fas fa-check-circle"></i> Beneficiário "${benef.nome}" carregado com sucesso!`;
+                    alertDiv.className = 'alert success';
+                    alertDiv.classList.remove('hidden');
+                    setTimeout(() => {
+                        alertDiv.classList.add('hidden');
+                    }, 3000);
+                }
+            } else {
+                console.warn('⚠️ Dados do beneficiário não encontrados');
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro ao carregar detalhes do beneficiário:', error);
+            
+            const alertDiv = document.getElementById('alert');
+            if (alertDiv) {
+                alertDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Erro ao carregar beneficiário: ${error.message}`;
+                alertDiv.className = 'alert error';
+                alertDiv.classList.remove('hidden');
+                setTimeout(() => {
+                    alertDiv.classList.add('hidden');
+                }, 5000);
+            }
+        }
+    }
+
+    // ============================================
+    // FUNÇÃO PARA CARREGAR CONTAS
+    // ============================================
+    async function carregarContas() {
+        console.log('📖 Carregando contas...');
+        
+        try {
+            const response = await fetch('/api/user/contas');
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const data = await response.json();
+            console.log('📦 Contas recebidas:', data);
+            
+            const select = document.getElementById('conta_origem');
+            if (!select) return;
+            
+            select.innerHTML = '<option value="">Selecione sua conta...</option>';
+            
+            if (data.success && data.contas && data.contas.length > 0) {
+                data.contas.forEach(conta => {
+                    const option = document.createElement('option');
+                    option.value = conta.id;
+                    const saldo = parseFloat(conta.saldo || 0).toFixed(2);
+                    option.textContent = `${conta.moeda} - Saldo: ${saldo}`;
+                    option.dataset.moeda = conta.moeda || 'USD';
+                    option.dataset.saldo = conta.saldo || 0;
+                    select.appendChild(option);
+                });
+                
+                console.log(`✅ ${data.contas.length} contas carregadas`);
+                
+                // Selecionar primeira conta
+                if (select.options.length > 1) {
+                    select.selectedIndex = 1;
+                    atualizarSaldoInfo();
                 }
             }
+            
+            // Adicionar evento para atualizar saldo
+            select.addEventListener('change', atualizarSaldoInfo);
+            
         } catch (error) {
-            console.error('❌ Erro ao carregar usuário da API:', error);
+            console.error('❌ Erro ao carregar contas:', error);
         }
-    }    
-    
-    // ============================================
-    // CÓDIGO SIMPLES QUE FUNCIONA
-    // Mantém upload de invoice + usa funções do script.js
-    // ============================================
+    }
 
-    // Variável para o arquivo selecionado (não conflita com script.js)
-    window.invoiceFile = null;
-
-    // 1. CONFIGURAR UPLOAD DE ARQUIVO (ÚNICA COISA QUE PRECISA)
-    function configurarUploadInvoice() {
-        console.log('⚙️ Configurando upload de invoice COMPLETO...');
+    function atualizarSaldoInfo() {
+        const select = document.getElementById('conta_origem');
+        const option = select.options[select.selectedIndex];
         
+        if (option && option.value) {
+            const moeda = option.dataset.moeda || 'USD';
+            const saldo = parseFloat(option.dataset.saldo || 0);
+            document.getElementById('saldo_valor').textContent = `${saldo.toFixed(2)} ${moeda}`;
+            document.getElementById('moeda_label').textContent = moeda;
+        }
+    }
+
+    // ============================================
+    // CONFIGURAR UPLOAD DE INVOICE
+    // ============================================
+    function configurarUploadInvoice() {
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('invoiceFile');
         const filePreview = document.getElementById('filePreview');
         const removeBtn = document.getElementById('removeFileBtn');
         
-        if (!uploadArea || !fileInput) {
-            console.log('⚠️ Elementos de upload não encontrados');
-            return;
-        }
+        if (!uploadArea || !fileInput) return;
         
-        // Click para selecionar arquivo
         uploadArea.addEventListener('click', () => fileInput.click());
         
-        // Arquivo selecionado - GUARDAR NA VARIÁVEL GLOBAL
         fileInput.addEventListener('change', function(e) {
             if (this.files.length > 0) {
                 const file = this.files[0];
-                console.log('📁 Arquivo selecionado:', file.name, 'Tamanho:', file.size, 'bytes');
                 
-                // Validações
                 if (file.size > 5 * 1024 * 1024) {
                     alert('❌ Arquivo muito grande! Máximo: 5MB');
                     this.value = '';
@@ -999,533 +1053,192 @@
                     return;
                 }
                 
-                // 🔥 SALVAR EM VARIÁVEL GLOBAL
                 window.invoiceFile = file;
-                console.log('💾 Arquivo salvo em window.invoiceFile');
                 
-                // Mostrar preview
                 if (filePreview) {
                     const fileName = document.getElementById('fileName');
                     if (fileName) fileName.textContent = file.name;
-                    
-                    // Mudar ícone baseado no tipo
-                    const icon = filePreview.querySelector('i');
-                    if (icon) {
-                        if (ext === 'pdf') {
-                            icon.className = 'fas fa-file-pdf';
-                            icon.style.color = '#27ae60';
-                        } else {
-                            icon.className = 'fas fa-file-image';
-                            icon.style.color = '#27ae60';
-                        }
-                    }
-                    
                     filePreview.classList.remove('hidden');
                     uploadArea.style.display = 'none';
                 }
             }
         });
         
-        // Remover arquivo
         if (removeBtn) {
             removeBtn.addEventListener('click', () => {
-                console.log('🗑️ Removendo arquivo...');
                 window.invoiceFile = null;
                 fileInput.value = '';
-                if (filePreview) {
-                    filePreview.classList.add('hidden');
-                    uploadArea.style.display = 'block';
-                }
+                if (filePreview) filePreview.classList.add('hidden');
+                if (uploadArea) uploadArea.style.display = 'block';
             });
         }
         
-        // ============================================
-        // DRAG & DROP COMPLETO (ADICIONADO DE VOLTA)
-        // ============================================
-        
+        // Drag & drop
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadArea.style.borderColor = '#2d8fff';
-            uploadArea.style.backgroundColor = 'rgba(45, 143, 255, 0.1)';
         });
         
         uploadArea.addEventListener('dragleave', () => {
             uploadArea.style.borderColor = '';
-            uploadArea.style.backgroundColor = '';
         });
         
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadArea.style.borderColor = '';
-            uploadArea.style.backgroundColor = '';
             
             if (e.dataTransfer.files.length > 0) {
                 const file = e.dataTransfer.files[0];
-                console.log('📁 Arquivo solto via drag & drop:', file.name);
-                
-                // Validações para drag & drop também
-                if (file.size > 5 * 1024 * 1024) {
-                    alert('❌ Arquivo muito grande! Máximo: 5MB');
-                    return;
-                }
-                
-                const ext = file.name.split('.').pop().toLowerCase();
-                if (!['pdf', 'jpg', 'jpeg', 'png'].includes(ext)) {
-                    alert('❌ Formato não suportado! Use: PDF, JPG, PNG');
-                    return;
-                }
-                
-                // Criar DataTransfer para simular seleção via input
                 const dataTransfer = new DataTransfer();
                 dataTransfer.items.add(file);
                 fileInput.files = dataTransfer.files;
-                
-                // Disparar evento de change para processar o arquivo
                 fileInput.dispatchEvent(new Event('change'));
-                
-                console.log('✅ Arquivo processado via drag & drop');
             }
         });
-        
-        console.log('✅ Upload configurado COMPLETO com drag & drop');
     }
 
-    // 2. MODIFICAR A FUNÇÃO enviarTransferencia DO script.js PARA USAR NOSSO UPLOAD
-    function patchEnviarTransferencia() {
-        console.log('🔧 Aplicando patch CORRIGIDO para upload de invoice...');
+    // ============================================
+    // FUNÇÃO PARA ENVIAR TRANSFERÊNCIA
+    // ============================================
+    async function enviarTransferencia(e) {
+        if (e) e.preventDefault();
         
-        // Sobrescrever a função original
-        window.enviarTransferencia = async function(e) {
-            if (e) e.preventDefault();
-            
-            console.log('🚀 ENVIAR TRANSFERÊNCIA COM INVOICE - VERSÃO CORRIGIDA');
-            
-            // Pegar o botão de submit
-            const btn = document.getElementById('submitBtn');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
-            btn.disabled = true;
-            
-            try {
-                // 1. VALIDAR CAMPOS OBRIGATÓRIOS
-                const camposObrigatorios = [
-                    { id: 'conta_origem', nome: 'Conta de origem' },
-                    { id: 'valor', nome: 'Valor' },
-                    { id: 'beneficiario', nome: 'Beneficiário' },
-                    { id: 'endereco', nome: 'Endereço' },
-                    { id: 'cidade', nome: 'Cidade' },
-                    { id: 'pais', nome: 'País' },
-                    { id: 'banco', nome: 'Banco' },
-                    { id: 'swift', nome: 'SWIFT' },
-                    { id: 'iban', nome: 'IBAN' }
-                ];
-                
-                for (const { id, nome } of camposObrigatorios) {
-                    const campo = document.getElementById(id);
-                    if (!campo || !campo.value.trim()) {
-                        alert(`❌ ${nome} é obrigatório`);
-                        campo?.focus();
-                        throw new Error(`${nome} é obrigatório`);
-                    }
+        console.log('🚀 Enviando transferência...');
+        
+        const btn = document.getElementById('submitBtn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+        btn.disabled = true;
+        
+        try {
+            // Validar campos obrigatórios
+            const campos = ['conta_origem', 'valor', 'beneficiario', 'endereco', 'cidade', 'pais', 'banco', 'swift', 'iban'];
+            for (const campo of campos) {
+                const el = document.getElementById(campo);
+                if (!el || !el.value.trim()) {
+                    throw new Error(`Campo ${campo.replace('_', ' ')} é obrigatório`);
                 }
-                
-                // 2. COLETAR DADOS DO FORMULÁRIO
-                const dados = {
-                    conta_origem: document.getElementById('conta_origem').value,
-                    valor: parseFloat(document.getElementById('valor').value),
-                    moeda: document.getElementById('conta_origem').options[
-                        document.getElementById('conta_origem').selectedIndex
-                    ]?.dataset.moeda || 'USD',
-                    beneficiario: document.getElementById('beneficiario').value.trim(),
-                    endereco_beneficiario: document.getElementById('endereco').value.trim(),
-                    cidade: document.getElementById('cidade').value.trim(),
-                    pais: document.getElementById('pais').value.trim(),
-                    nome_banco: document.getElementById('banco').value.trim(),
-                    endereco_banco: document.getElementById('endereco_banco').value.trim(),
-                    cidade_banco: document.getElementById('cidade_banco').value.trim(),
-                    pais_banco: document.getElementById('pais_banco').value.trim(),
-                    codigo_swift: document.getElementById('swift').value.trim(),
-                    iban_account: document.getElementById('iban').value.trim(),
-                    aba_routing: document.getElementById('aba').value.trim() || '',
-                    finalidade: document.getElementById('finalidade').value,
-                    descricao: document.getElementById('descricao').value || '',
-                    cliente: window.USER?.username || 'pantanal',
-                    usuario: window.USER?.username || 'pantanal',
-                    solicitado_por: window.USER?.username || 'pantanal',
-                    tipo: 'transferencia_internacional',
-                    status: 'solicitada',
-                     salvar_beneficiario: document.getElementById('salvar_beneficiario').checked
-                };
-                
-                console.log('📦 Dados coletados:', dados);
-                console.log('🔍 Checkbox salvar_beneficiario:', document.getElementById('salvar_beneficiario').checked);
-                console.log('🔍 Dados com checkbox:', dados);
-                
-                // 3. VALIDAR SALDO
-                const contaSelect = document.getElementById('conta_origem');
-                const saldo = parseFloat(contaSelect.options[contaSelect.selectedIndex]?.dataset.saldo || 0);
-                
-                if (dados.valor > saldo) {
-                    throw new Error(`Saldo insuficiente! Disponível: ${saldo.toFixed(2)} ${dados.moeda}`);
-                }
-                
-                // 4. PREPARAR FORMDATA (CRÍTICO PARA UPLOAD)
-                const formData = new FormData();
-                
-                // Adicionar dados como JSON
-                formData.append('dados', JSON.stringify(dados));
-                
-                // 🔥 CORREÇÃO CRÍTICA: Adicionar arquivo CORRETAMENTE
-                if (window.invoiceFile) {
-                    console.log('📎 Adicionando invoice ao FormData:', window.invoiceFile.name);
-                    
-                    // Verificar se o arquivo é válido
-                    if (window.invoiceFile.size > 5 * 1024 * 1024) {
-                        throw new Error('Arquivo muito grande! Máximo: 5MB');
-                    }
-                    
-                    const ext = window.invoiceFile.name.split('.').pop().toLowerCase();
-                    if (!['pdf', 'jpg', 'jpeg', 'png'].includes(ext)) {
-                        throw new Error('Formato não suportado! Use: PDF, JPG, PNG');
-                    }
-                    
-                    // 🔥 ADICIONAR CORRETAMENTE - usar 'file' como chave (igual ao web_api.py espera)
-                    formData.append('file', window.invoiceFile);
-                    console.log('✅ Arquivo adicionado ao FormData com chave "file"');
-                } else {
-                    console.log('ℹ️ Nenhum arquivo selecionado para upload');
-                }
-                
-                // 5. ENVIAR PARA API (MOSTRAR DETALHES)
-                console.log('📤 Enviando para /api/transferencias/criar...');
-                console.log('📊 FormData entries:');
-                for (let pair of formData.entries()) {
-                    console.log(`  ${pair[0]}:`, pair[0] === 'file' ? `[Arquivo: ${pair[1].name}]` : pair[1]);
-                }
-                
-                const response = await fetch('/api/transferencias/criar', {
-                    method: 'POST',
-                    body: formData
-                    // NÃO adicionar headers - o FormData define automaticamente
-                });
-                
-                console.log('📥 Resposta recebida. Status:', response.status);
-                
-                const resultado = await response.json();
-                console.log('📦 Resposta JSON:', resultado);
-                
-                if (!response.ok) {
-                    throw new Error(resultado.message || `Erro ${response.status}`);
-                }
-                
-                if (resultado.success) {
-                    // 6. MOSTRAR POPUP DE SUCESSO
-                    console.log('🎉 Transferência criada com sucesso! ID:', resultado.transferencia_id);
-                    
-                    if (window.garantirPopupSucesso) {
-                        window.garantirPopupSucesso(
-                            resultado.transferencia_id, 
-                            dados.valor.toFixed(2), 
-                            dados.moeda
-                        );
-                    } else {
-                        alert(`✅ Transferência criada! ID: ${resultado.transferencia_id}\nValor: ${dados.valor} ${dados.moeda}`);
-                    }
-                    
-                    // 7. LIMPAR FORMULÁRIO
-                    document.getElementById('transferenciaForm').reset();
-                    window.invoiceFile = null;
-                    const filePreview = document.getElementById('filePreview');
-                    if (filePreview) filePreview.classList.add('hidden');
-                    const uploadArea = document.getElementById('uploadArea');
-                    if (uploadArea) uploadArea.style.display = 'block';
-                    
-                    // 8. RECARREGAR CONTAS
-                    if (window.carregarContasDireto) {
-                        await window.carregarContasDireto();
-                    }
-                    
-                    console.log('✅ Processo completo concluído com sucesso!');
-                    
-                } else {
-                    throw new Error(resultado.message || 'Erro ao criar transferência');
-                }
-                
-            } catch (error) {
-                console.error('❌ ERRO DETALHADO:', error);
-                console.error('Stack:', error.stack);
-                alert(`❌ Erro: ${error.message}`);
-            } finally {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
             }
             
-            return false;
-        };
-        
-        console.log('✅ Patch CORRIGIDO aplicado');
+            const selectConta = document.getElementById('conta_origem');
+            const moeda = selectConta.options[selectConta.selectedIndex]?.dataset.moeda || 'USD';
+            const valor = parseFloat(document.getElementById('valor').value);
+            const saldo = parseFloat(selectConta.options[selectConta.selectedIndex]?.dataset.saldo || 0);
+            
+            if (valor > saldo) {
+                throw new Error(`Saldo insuficiente! Disponível: ${saldo.toFixed(2)} ${moeda}`);
+            }
+            
+            const dados = {
+                conta_origem: document.getElementById('conta_origem').value,
+                valor: valor,
+                moeda: moeda,
+                beneficiario: document.getElementById('beneficiario').value.trim(),
+                endereco_beneficiario: document.getElementById('endereco').value.trim(),
+                cidade: document.getElementById('cidade').value.trim(),
+                pais: document.getElementById('pais').value.trim(),
+                nome_banco: document.getElementById('banco').value.trim(),
+                endereco_banco: document.getElementById('endereco_banco').value.trim(),
+                cidade_banco: document.getElementById('cidade_banco').value.trim(),
+                pais_banco: document.getElementById('pais_banco').value.trim(),
+                codigo_swift: document.getElementById('swift').value.trim(),
+                iban_account: document.getElementById('iban').value.trim(),
+                aba_routing: document.getElementById('aba').value.trim() || '',
+                finalidade: document.getElementById('finalidade').value,
+                descricao: document.getElementById('descricao').value || '',
+                cliente: window.USER?.username || '',
+                usuario: window.USER?.username || '',
+                solicitado_por: window.USER?.username || '',
+                tipo: 'transferencia_internacional',
+                status: 'solicitada',
+                salvar_beneficiario: document.getElementById('salvar_beneficiario').checked
+            };
+            
+            console.log('📦 Dados:', dados);
+            
+            const formData = new FormData();
+            formData.append('dados', JSON.stringify(dados));
+            
+            if (window.invoiceFile) {
+                formData.append('file', window.invoiceFile);
+                console.log('📎 Arquivo anexado:', window.invoiceFile.name);
+            }
+            
+            const response = await fetch('/api/transferencias/criar', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const resultado = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(resultado.message || `Erro ${response.status}`);
+            }
+            
+            if (resultado.success) {
+                mostrarPopupSucesso(resultado.transferencia_id, valor, moeda);
+                document.getElementById('transferenciaForm').reset();
+                window.invoiceFile = null;
+                
+                const filePreview = document.getElementById('filePreview');
+                if (filePreview) filePreview.classList.add('hidden');
+                const uploadArea = document.getElementById('uploadArea');
+                if (uploadArea) uploadArea.style.display = 'block';
+                
+                await carregarContas();
+            } else {
+                throw new Error(resultado.message || 'Erro ao criar transferência');
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro:', error);
+            alert(`❌ Erro: ${error.message}`);
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
     }
-
-    // 3. INICIALIZAÇÃO SIMPLES
+    
+    function mostrarPopupSucesso(transferId, valor, moeda) {
+        document.getElementById('modalTransferId').textContent = transferId;
+        document.getElementById('modalValor').textContent = `${valor.toFixed(2)} ${moeda}`;
+        document.getElementById('successModal').classList.remove('hidden');
+    }
+    
+    function fecharPopup() {
+        document.getElementById('successModal').classList.add('hidden');
+    }
+    
+    // ============================================
+    // INICIALIZAÇÃO
+    // ============================================
     document.addEventListener('DOMContentLoaded', function() {
         console.log('🏦 Página de transferência carregada');
         
-        // ATUALIZAR NOME DO USUÁRIO IMEDIATAMENTE
         atualizarNomeUsuario();
-
-        // Apenas configurar o upload
+        carregarContas();
+        carregarBeneficiarios();  // 🔥 CHAMADA CORRIGIDA
         configurarUploadInvoice();
         
-        // Aplicar patch para integrar upload
-        patchEnviarTransferencia();
+        const form = document.getElementById('transferenciaForm');
+        if (form) {
+            form.addEventListener('submit', enviarTransferencia);
+        }
         
-        // O script.js já cuida do resto (contas, beneficiários, etc.)
-        console.log('✅ Pronto! O script.js cuida do resto.');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const goToDashboardBtn = document.getElementById('goToDashboardBtn');
+        
+        if (closeModalBtn) closeModalBtn.addEventListener('click', fecharPopup);
+        if (goToDashboardBtn) {
+            goToDashboardBtn.addEventListener('click', () => {
+                window.location.href = '/dashboard';
+            });
+        }
+        
+        console.log('✅ Inicialização concluída');
     });
-
-    // ============================================
-    // FORÇAR CARREGAMENTO DAS CONTAS E BENEFICIÁRIOS
-    // ============================================
-
-    // Aguardar um pouco para o script.js carregar completamente
-    setTimeout(async function() {
-        console.log('🔄 FORÇANDO CARREGAMENTO DE DADOS...');
-        
-        // 1. VERIFICAR E EXECUTAR loadContas SE EXISTIR
-        if (typeof window.loadContas === 'function') {
-            console.log('🔍 Executando loadContas...');
-            try {
-                const resultado = await window.loadContas();
-                console.log('✅ loadContas executado:', resultado);
-                
-                // Verificar se as contas foram carregadas
-                const selectContas = document.getElementById('conta_origem');
-                if (selectContas && selectContas.options.length > 1) {
-                    console.log(`✅ ${selectContas.options.length - 1} contas carregadas`);
-                    
-                    // Atualizar display do saldo
-                    if (selectContas.value) {
-                        const option = selectContas.options[selectContas.selectedIndex];
-                        if (option && option.dataset.saldo) {
-                            const moeda = option.dataset.moeda || 'USD';
-                            const saldo = parseFloat(option.dataset.saldo || 0);
-                            document.getElementById('saldo_valor').textContent = `${saldo.toFixed(2)} ${moeda}`;
-                            document.getElementById('moeda_label').textContent = moeda;
-                        }
-                    }
-                } else {
-                    console.log('⚠️ Nenhuma conta carregada, tentando API direta...');
-                    await carregarContasDireto();
-                }
-            } catch (error) {
-                console.error('❌ Erro em loadContas:', error);
-                await carregarContasDireto();
-            }
-        } else {
-            console.log('⚠️ loadContas não encontrada, carregando direto...');
-            await carregarContasDireto();
-        }
-        
-        // 2. VERIFICAR E EXECUTAR loadBeneficiarios SE EXISTIR
-        if (typeof window.loadBeneficiarios === 'function') {
-            console.log('🔍 Executando loadBeneficiarios...');
-            try {
-                const resultado = await window.loadBeneficiarios();
-                console.log('✅ loadBeneficiarios executado:', resultado);
-                
-                // Verificar se os beneficiários foram carregados
-                const selectBenef = document.getElementById('beneficiarios_salvos');
-                if (selectBenef && selectBenef.options.length > 1) {
-                    console.log(`✅ ${selectBenef.options.length - 1} beneficiários carregados`);
-                } else {
-                    console.log('⚠️ Nenhum beneficiário carregado, tentando API direta...');
-                    await carregarBeneficiariosDireto();
-                }
-            } catch (error) {
-                console.error('❌ Erro em loadBeneficiarios:', error);
-                await carregarBeneficiariosDireto();
-            }
-        } else {
-            console.log('⚠️ loadBeneficiarios não encontrada, carregando direto...');
-            await carregarBeneficiariosDireto();
-        }
-        
-        console.log('🎯 CARREGAMENTO FORÇADO CONCLUÍDO!');
-    }, 1000); // Aguardar 1 segundo para o script.js carregar
-
-    // ============================================
-    // FUNÇÕES DE FALLBACK - CARREGAMENTO DIRETO
-    // ============================================
-
-    async function carregarContasDireto() {
-        console.log('🔄 Carregando contas diretamente da API...');
-        
-        try {
-            const response = await fetch('/api/user/contas');
-            if (response.ok) {
-                const data = await response.json();
-                console.log('📦 Dados contas:', data);
-                
-                if (data.success && data.contas && data.contas.length > 0) {
-                    const select = document.getElementById('conta_origem');
-                    if (select) {
-                        // Limpar e preencher
-                        select.innerHTML = '<option value="">Selecione sua conta...</option>';
-                        
-                        data.contas.forEach(conta => {
-                            const option = document.createElement('option');
-                            option.value = conta.id;
-                            const saldo = parseFloat(conta.saldo || 0).toFixed(2);
-                            option.textContent = `${conta.moeda} - Saldo: ${saldo}`;
-                            option.dataset.moeda = conta.moeda || 'USD';
-                            option.dataset.saldo = conta.saldo || 0;
-                            select.appendChild(option);
-                        });
-                        
-                        console.log(`✅ ${data.contas.length} contas carregadas diretamente`);
-                        
-                        // Configurar evento para atualizar saldo
-                        select.addEventListener('change', function() {
-                            const option = this.options[this.selectedIndex];
-                            if (option && option.value) {
-                                const moeda = option.dataset.moeda || 'USD';
-                                const saldo = parseFloat(option.dataset.saldo || 0);
-                                document.getElementById('saldo_valor').textContent = `${saldo.toFixed(2)} ${moeda}`;
-                                document.getElementById('moeda_label').textContent = moeda;
-                            }
-                        });
-                        
-                        // Selecionar primeira conta automaticamente
-                        if (select.options.length > 1) {
-                            select.selectedIndex = 1;
-                            select.dispatchEvent(new Event('change'));
-                        }
-                    }
-                } else {
-                    console.log('⚠️ Nenhuma conta encontrada na API');
-                }
-            }
-        } catch (error) {
-            console.error('❌ Erro ao carregar contas diretamente:', error);
-        }
-    }
-
-    async function carregarBeneficiariosDireto() {
-        console.log('🔄 Carregando beneficiários diretamente da API...');
-        
-        try {
-            const response = await fetch('/api/beneficiarios');
-            if (response.ok) {
-                const data = await response.json();
-                console.log('📦 Dados beneficiários:', data);
-                
-                if (data.success && data.beneficiarios && data.beneficiarios.length > 0) {
-                    const select = document.getElementById('beneficiarios_salvos');
-                    if (select) {
-                        // Limpar e preencher
-                        select.innerHTML = '<option value="">Selecione um beneficiário salvo...</option>';
-                        
-                        data.beneficiarios.forEach(benef => {
-                            const option = document.createElement('option');
-                            option.value = benef.id;
-                            option.textContent = `${benef.nome} | ${benf.banco} | ${benef.pais}`;
-                            select.appendChild(option);
-                        });
-                        
-                        console.log(`✅ ${data.beneficiarios.length} beneficiários carregados diretamente`);
-                        
-                        // Configurar preenchimento automático
-                        select.addEventListener('change', async function() {
-                            if (this.value) {
-                                try {
-                                    const response = await fetch(`/api/beneficiarios/${this.value}`);
-                                    if (response.ok) {
-                                        const data = await response.json();
-                                        if (data.success && data.beneficiario) {
-                                            const benef = data.beneficiario;
-                                            document.getElementById('beneficiario').value = benef.nome || '';
-                                            document.getElementById('endereco').value = benef.endereco || '';
-                                            document.getElementById('cidade').value = benef.cidade || '';
-                                            document.getElementById('pais').value = benef.pais || '';
-                                            document.getElementById('banco').value = benef.banco || '';
-                                            document.getElementById('endereco_banco').value = benef.endereco_banco || '';
-                                            document.getElementById('cidade_banco').value = benef.cidade_banco || '';
-                                            document.getElementById('pais_banco').value = benef.pais_banco || '';
-                                            document.getElementById('swift').value = benef.swift || '';
-                                            document.getElementById('iban').value = benef.iban || '';
-                                            document.getElementById('aba').value = benef.aba || '';
-                                            console.log(`✅ Beneficiário "${benef.nome}" preenchido`);
-                                        }
-                                    }
-                                } catch (error) {
-                                    console.error('Erro ao carregar detalhes do beneficiário:', error);
-                                }
-                            }
-                        });
-                    }
-                } else {
-                    console.log('⚠️ Nenhum beneficiário encontrado na API');
-                }
-            }
-        } catch (error) {
-            console.error('❌ Erro ao carregar beneficiários diretamente:', error);
-        }
-    }
     </script>
+    
     <script src="/static/js/theme.js"></script>
-    <script>
-    // 🔥 FORÇAR REMOÇÃO DO AUTOFILL COM RECRIAÇÃO DO CAMPO
-    document.addEventListener('DOMContentLoaded', function() {
-        const inputs = document.querySelectorAll('input, textarea, select');
-        
-        inputs.forEach(input => {
-            // Criar um clone do campo e substituir
-            const clone = input.cloneNode(true);
-            
-            // Copiar o valor
-            clone.value = input.value;
-            
-            // Copiar os atributos
-            if (input.id) clone.id = input.id;
-            if (input.name) clone.name = input.name;
-            if (input.className) clone.className = input.className;
-            
-            // Substituir o campo original pelo clone
-            input.parentNode.replaceChild(clone, input);
-            
-            // Forçar a cor do tema no clone
-            const theme = document.documentElement.getAttribute('data-theme');
-            if (theme === 'light') {
-                clone.style.backgroundColor = '#f0f4f9';
-                clone.style.color = '#1a1d24';
-            } else {
-                clone.style.backgroundColor = '#0a0e15';
-                clone.style.color = '#e0e0e0';
-            }
-        });
-    });
-
-    // Monitorar mudanças de tema e corrigir novamente
-    const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-            if (mutation.attributeName === 'data-theme') {
-                const theme = document.documentElement.getAttribute('data-theme');
-                const inputs = document.querySelectorAll('input, textarea, select');
-                
-                inputs.forEach(input => {
-                    if (theme === 'light') {
-                        input.style.backgroundColor = '#f0f4f9';
-                        input.style.color = '#1a1d24';
-                    } else {
-                        input.style.backgroundColor = '#0a0e15';
-                        input.style.color = '#e0e0e0';
-                    }
-                });
-            }
-        });
-    });
-
-    observer.observe(document.documentElement, { attributes: true });
-    </script>  
 </body>
 </html>
