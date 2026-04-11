@@ -6,32 +6,14 @@
     <title>🏦 Cambio Bank - Compra e Venda de Moedas</title>
     <link rel="stylesheet" href="/static/css/theme.css">
 
-    <!-- Estilos principais (mantendo seu tema escuro) -->
+    <!-- Estilos principais (USANDO VARIÁVEIS CSS DO TEMA) -->
     <style>
-    /* RESET E TEMA ESCURO (igual seu dashboard) */
+    /* RESET E CONFIGURAÇÕES GERAIS */
     * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-
-    :root {
-        --cor-fundo: #0a0e15;
-        --cor-card: #0d1117;
-        --cor-borda: #1e232e;
-        --cor-texto: #e0e0e0;
-        --cor-texto-secundario: #8b949e;
-        --cor-primaria: #1a5fb4;
-        --cor-sucesso: #2ec27e;
-        --cor-alerta: #f39c12;
-        --cor-perigo: #e01b24;
-        --cor-compra: #2ecc71;
-        --cor-venda: #e74c3c;
-        --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.3);
-        --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.4);
-        --borda-radius: 12px;
-        --borda-radius-pequeno: 8px;
     }
 
     body {
@@ -41,7 +23,7 @@
         overflow-x: hidden;
     }
 
-    /* Container principal - RESPONSIVO como no Kivy */
+    /* Container principal - RESPONSIVO */
     .app-container {
         max-width: 1200px;
         margin: 0 auto;
@@ -57,7 +39,7 @@
     }
 
     /* ============================================
-       HEADER - IDÊNTICO AO KIVY
+       HEADER - IDÊNTICO AO DASHBOARD
     ============================================ */
     .cambio-header {
         display: flex;
@@ -69,7 +51,7 @@
     }
 
     .btn-voltar {
-        background: #8C5FE8;
+        background: var(--cor-primaria);
         color: white;
         border: none;
         padding: 10px 20px;
@@ -83,17 +65,19 @@
     }
 
     .btn-voltar:hover {
-        background: #7a4fd3;
+        background: #1559a3;
         transform: translateY(-2px);
     }
 
     .cambio-titulo {
-        font-size: 24px;
+        font-size: 20px;
         font-weight: bold;
+        background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
         text-align: center;
         flex: 1;
-        color: white;
-        text-transform: uppercase;
         letter-spacing: 1px;
     }
 
@@ -105,10 +89,13 @@
     }
 
     .saldos-titulo {
-        font-size: 18px;
-        color: var(--cor-primaria);
+        font-size: 16px;
+        font-weight: bold;
+        background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
         margin-bottom: 15px;
-        font-weight: 600;
     }
 
     .saldos-grid-container {
@@ -136,8 +123,9 @@
     }
 
     .saldo-card {
-        background: #202833;
-        border-radius: 8px;
+        background: var(--cor-card);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius-pequeno);
         padding: 12px 15px;
         min-height: 70px;
         display: flex;
@@ -147,7 +135,7 @@
 
     .saldo-moeda {
         font-size: 12px;
-        color: #ccd6f6;
+        color: var(--cor-texto-secundario);
         font-weight: 600;
         margin-bottom: 5px;
     }
@@ -181,7 +169,7 @@
        SEÇÃO DE OPERAÇÃO - CONTADOR E TOGGLE
     ============================================ */
     .operacao-section {
-        background: #121620;
+        background: var(--cor-card);
         border: 1px solid var(--cor-borda);
         border-radius: var(--borda-radius);
         padding: 20px;
@@ -195,7 +183,7 @@
         align-items: center;
         margin-bottom: 20px;
         padding-bottom: 15px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        border-bottom: 1px solid var(--cor-borda);
     }
 
     .contador-texto {
@@ -207,11 +195,11 @@
     }
 
     .contador-texto.critico {
-        color: #ff6b6b;
+        color: var(--cor-perigo);
     }
 
     .contador-texto.alerta {
-        color: #f39c12;
+        color: var(--cor-alerta);
     }
 
     .btn-atualizar-agora {
@@ -219,7 +207,7 @@
         color: white;
         border: none;
         padding: 8px 15px;
-        border-radius: 6px;
+        border-radius: var(--borda-radius-pequeno);
         cursor: pointer;
         font-size: 13px;
         display: flex;
@@ -241,7 +229,7 @@
         font-weight: 600;
     }
 
-    /* Toggle buttons - IDÊNTICO AO KIVY */
+    /* Toggle buttons */
     .toggle-container {
         display: flex;
         gap: 15px;
@@ -251,34 +239,28 @@
     .toggle-btn {
         flex: 1;
         padding: 15px;
-        border: none;
+        border: 1px solid var(--cor-borda);
         border-radius: var(--borda-radius-pequeno);
         cursor: pointer;
         font-size: 14px;
         font-weight: 600;
         transition: all 0.3s ease;
         text-align: center;
-    }
-
-    .toggle-btn-compra {
-        background: #333;
-        color: rgba(255, 255, 255, 0.7);
+        background: var(--cor-fundo);
+        color: var(--cor-texto-secundario);
     }
 
     .toggle-btn-compra.ativo {
-        background: var(--cor-compra);
+        background: var(--cor-compra, #2ecc71);
         color: white;
+        border-color: var(--cor-compra, #2ecc71);
         box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
     }
 
-    .toggle-btn-venda {
-        background: #333;
-        color: rgba(255, 255, 255, 0.7);
-    }
-
     .toggle-btn-venda.ativo {
-        background: var(--cor-venda);
+        background: var(--cor-venda, #e74c3c);
         color: white;
+        border-color: var(--cor-venda, #e74c3c);
         box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
     }
 
@@ -291,7 +273,7 @@
 
     .moedas-titulo {
         font-size: 14px;
-        color: #ccd6f6;
+        color: var(--cor-texto-secundario);
         margin-bottom: 10px;
     }
 
@@ -302,7 +284,7 @@
     }
 
     .moeda-label {
-        font-size: 16px;
+        font-size: 14px;
         color: var(--cor-primaria);
         width: 45%;
     }
@@ -320,10 +302,10 @@
     .spinner {
         width: 100%;
         padding: 12px 15px;
-        background: #202833;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: var(--cor-fundo);
+        border: 1px solid var(--cor-borda);
         border-radius: var(--borda-radius-pequeno);
-        color: white;
+        color: var(--cor-texto);
         font-size: 14px;
         appearance: none;
         background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
@@ -331,6 +313,11 @@
         background-position: right 15px center;
         background-size: 16px;
         cursor: pointer;
+    }
+
+    /* Tema claro - seta do select */
+    :root[data-theme="light"] .spinner {
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231a1d24'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
     }
 
     .setas {
@@ -344,7 +331,7 @@
        SEÇÃO DE CONFIRMAÇÃO - CÁLCULOS
     ============================================ */
     .confirmacao-section {
-        background: #121620;
+        background: var(--cor-card);
         border: 1px solid var(--cor-borda);
         border-radius: var(--borda-radius);
         padding: 25px;
@@ -355,7 +342,7 @@
         text-align: center;
         margin-bottom: 25px;
         padding: 20px;
-        background: rgba(255, 255, 255, 0.03);
+        background: rgba(26, 95, 180, 0.05);
         border-radius: var(--borda-radius-pequeno);
         min-height: 100px;
         display: flex;
@@ -366,7 +353,7 @@
     .cotacao-texto {
         font-size: 15px;
         line-height: 1.6;
-        color: #ccd6f6;
+        color: var(--cor-texto-secundario);
     }
 
     .cotacao-titulo {
@@ -376,14 +363,14 @@
     }
 
     .cotacao-titulo.compra {
-        color: var(--cor-compra);
+        color: var(--cor-compra, #2ecc71);
     }
 
     .cotacao-titulo.venda {
-        color: var(--cor-venda);
+        color: var(--cor-venda, #e74c3c);
     }
 
-    /* Input de valor - IGUAL À TRANSFERÊNCIA */
+    /* Input de valor */
     .valor-container {
         margin-bottom: 25px;
     }
@@ -393,7 +380,7 @@
         font-size: 16px;
         font-weight: bold;
         margin-bottom: 15px;
-        color: white;
+        color: var(--cor-texto);
     }
 
     .valor-input-group {
@@ -409,10 +396,10 @@
         flex: 1;
         max-width: 250px;
         padding: 14px 15px;
-        background: #202833;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: var(--cor-fundo);
+        border: 1px solid var(--cor-borda);
         border-radius: var(--borda-radius-pequeno);
-        color: white;
+        color: var(--cor-texto);
         font-size: 16px;
         text-align: right;
     }
@@ -466,14 +453,15 @@
     }
 
     .btn-confirmar:disabled {
-        background: #4a5568;
-        color: #a0aec0;
+        background: var(--cor-texto-secundario);
+        color: var(--cor-texto);
         cursor: not-allowed;
         transform: none;
+        opacity: 0.6;
     }
 
     /* ============================================
-       POPUPS - IDÊNTICOS AO KIVY
+       POPUPS
     ============================================ */
     .popup-overlay {
         position: fixed;
@@ -493,15 +481,15 @@
     }
 
     .popup-content {
-        background: #1a1f2e;
+        background: var(--cor-card);
+        border: 1px solid var(--cor-borda);
         border-radius: var(--borda-radius);
         padding: 30px;
         width: 90%;
         max-width: 500px;
         max-height: 90vh;
         overflow-y: auto;
-        border: 2px solid;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        box-shadow: var(--sombra-forte);
     }
 
     .popup-titulo {
@@ -509,12 +497,14 @@
         font-weight: bold;
         margin-bottom: 20px;
         text-align: center;
+        color: var(--cor-texto);
     }
 
     .popup-mensagem {
         margin-bottom: 25px;
         line-height: 1.6;
         text-align: center;
+        color: var(--cor-texto);
     }
 
     .popup-botoes {
@@ -535,12 +525,12 @@
     }
 
     .popup-btn-cancelar {
-        background: #e74c3c;
+        background: var(--cor-perigo);
         color: white;
     }
 
     .popup-btn-confirmar {
-        background: #2ecc71;
+        background: var(--cor-sucesso);
         color: white;
     }
 
@@ -551,11 +541,11 @@
 
     /* Popup de saldo negativo específico */
     .popup-saldo-negativo .popup-content {
-        border-color: #f39c12;
+        border-color: var(--cor-alerta);
     }
 
     .popup-saldo-negativo .popup-titulo {
-        color: #e74c3c;
+        color: var(--cor-perigo);
     }
 
     .termos-negativo {
@@ -564,7 +554,7 @@
         border-radius: var(--borda-radius-pequeno);
         margin: 15px 0;
         font-size: 13px;
-        color: #ffcccb;
+        color: var(--cor-texto);
     }
 
     /* ============================================
@@ -591,7 +581,7 @@
     }
 
     .error-message {
-        color: #e74c3c;
+        color: var(--cor-perigo);
         text-align: center;
         padding: 15px;
         background: rgba(231, 76, 60, 0.1);
@@ -644,14 +634,13 @@
        ESTILOS ADICIONAIS PARA POPUPS DE LIBERAÇÃO
     ============================================ */
     
-    /* Estilo para o popup de liberação */
     .popup-solicitacao .popup-content {
-        border: 2px solid #3498db;
+        border: 2px solid var(--cor-primaria);
         box-shadow: 0 10px 30px rgba(52, 152, 219, 0.2);
     }
 
     .popup-solicitacao-enviada .popup-content {
-        border: 2px solid #2ecc71;
+        border: 2px solid var(--cor-sucesso);
         box-shadow: 0 10px 30px rgba(46, 204, 113, 0.2);
     }
 
@@ -666,17 +655,17 @@
     }
 
     .status-pendente {
-        background: #f39c12;
+        background: var(--cor-alerta);
         color: white;
     }
 
     .status-aprovado {
-        background: #2ecc71;
+        background: var(--cor-sucesso);
         color: white;
     }
 
     .status-recusado {
-        background: #e74c3c;
+        background: var(--cor-perigo);
         color: white;
     }
 
@@ -689,6 +678,12 @@
         0% { transform: translateY(0px); }
         50% { transform: translateY(-5px); }
         100% { transform: translateY(0px); }
+    }
+
+    /* Cores de operação (definir para ambos os temas) */
+    :root {
+        --cor-compra: #2ecc71;
+        --cor-venda: #e74c3c;
     }
 
     </style>
@@ -849,7 +844,7 @@
     <!-- POPUP ERRO -->
     <div class="popup-overlay" id="popupErro">
         <div class="popup-content">
-            <h2 class="popup-titulo" style="color: #e74c3c;" id="popupErroTitulo">Erro</h2>
+            <h2 class="popup-titulo" style="color: var(--cor-perigo);" id="popupErroTitulo">Erro</h2>
             <div class="popup-mensagem" id="popupErroMensagem"></div>
             <div class="popup-botoes">
                 <button class="popup-btn popup-btn-ok" onclick="fecharPopup('popupErro')">
@@ -862,7 +857,7 @@
     <!-- POPUP SUCESSO -->
     <div class="popup-overlay" id="popupSucesso">
         <div class="popup-content">
-            <h2 class="popup-titulo" style="color: #2ecc71;">OPERAÇÃO CONCLUÍDA</h2>
+            <h2 class="popup-titulo" style="color: var(--cor-sucesso);">OPERAÇÃO CONCLUÍDA</h2>
             <div class="popup-mensagem" id="popupSucessoMensagem"></div>
             <div class="popup-botoes">
                 <button class="popup-btn popup-btn-ok" onclick="fecharPopup('popupSucesso')">
@@ -875,15 +870,15 @@
     <!-- POPUP SOLICITAR LIBERAÇÃO -->
     <div class="popup-overlay" id="popupSolicitarLiberacao">
         <div class="popup-content">
-            <h2 class="popup-titulo" style="color: #3498db;">
+            <h2 class="popup-titulo" style="color: var(--cor-primaria);">
                 <i class="fas fa-user-check"></i> SOLICITAR LIBERAÇÃO
             </h2>
             <div class="popup-mensagem" id="popupSolicitarMensagem">
                 <!-- Será preenchido via JS -->
             </div>
             
-            <div style="margin: 20px 0; padding: 15px; background: rgba(26, 95, 180, 0.2); border-radius: 8px; border-left: 4px solid #1a5fb4;">
-                <h4 style="margin-bottom: 12px; color: #64b5f6; font-size: 16px;">
+            <div style="margin: 20px 0; padding: 15px; background: rgba(26, 95, 180, 0.1); border-radius: 8px; border-left: 4px solid var(--cor-primaria);">
+                <h4 style="margin-bottom: 12px; color: var(--cor-primaria); font-size: 16px;">
                     <i class="fas fa-info-circle"></i> Informações do Cliente
                 </h4>
                 <div style="font-family: monospace; font-size: 14px;">
@@ -1036,15 +1031,15 @@
                 
                 // Mudar cor conforme no Kivy
                 if (this.contadorAtualizacao <= 10) {
-                    contadorText.style.color = '#ff6b6b';
+                    contadorText.style.color = 'var(--cor-perigo)';
                     contadorText.classList.add('critico');
                     contadorText.classList.remove('alerta');
                 } else if (this.contadorAtualizacao <= 20) {
-                    contadorText.style.color = '#f39c12';
+                    contadorText.style.color = 'var(--cor-alerta)';
                     contadorText.classList.add('alerta');
                     contadorText.classList.remove('critico');
                 } else {
-                    contadorText.style.color = '#2ec27e';
+                    contadorText.style.color = 'var(--cor-sucesso)';
                     contadorText.classList.remove('critico', 'alerta');
                 }
             }
@@ -1113,11 +1108,11 @@
                 const grid = document.getElementById('saldosGrid');
                 if (grid) {
                     grid.innerHTML = `
-                        <div class="saldo-card" style="grid-column: 1 / -1; text-align: center; background: rgba(224, 32, 32, 0.1);">
-                            <div class="saldo-moeda" style="color: #ff6b6b;">
+                        <div class="saldo-card" style="grid-column: 1 / -1; text-align: center;">
+                            <div class="saldo-moeda" style="color: var(--cor-perigo);">
                                 <i class="fas fa-exclamation-triangle"></i> ERRO
                             </div>
-                            <div class="saldo-valor" style="color: #ff6b6b; font-size: 14px;">
+                            <div class="saldo-valor" style="color: var(--cor-perigo); font-size: 14px;">
                                 Não foi possível carregar saldos
                             </div>
                         </div>
@@ -1216,13 +1211,13 @@
             
             let icone = '🔒';
             let titulo = 'ACESSO NÃO AUTORIZADO';
-            let cor = '#e74c3c';
+            let cor = 'var(--cor-perigo)';
             let fundo = 'rgba(231, 76, 60, 0.1)';
             
             if (isForaHorario) {
                 icone = '⏰';
                 titulo = 'FORA DO HORÁRIO';
-                cor = '#f39c12';
+                cor = 'var(--cor-alerta)';
                 fundo = 'rgba(243, 156, 18, 0.1)';
             }
             
@@ -1276,12 +1271,12 @@
                         <div style="
                             margin-top: 20px; 
                             padding: 15px;
-                            background: rgba(255, 255, 255, 0.2);
+                            background: rgba(255, 255, 255, 0.1);
                             border-radius: 8px;
                         ">
                             <p style="
                                 font-size: 14px; 
-                                color: #7f8c8d; 
+                                color: var(--cor-texto-secundario); 
                                 margin: 0;
                             ">
                                 <i class="fas fa-info-circle"></i> 
@@ -1301,7 +1296,7 @@
                     ">
                         <button onclick="window.location.href='/dashboard'" 
                                 style="
-                                    background: #3498db; 
+                                    background: var(--cor-primaria); 
                                     color: white; 
                                     border: none; 
                                     padding: 15px 30px; 
@@ -1313,7 +1308,7 @@
                                     gap: 8px;
                                     transition: all 0.3s;
                                 "
-                                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(52, 152, 219, 0.3)';"
+                                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(26, 95, 180, 0.3)';"
                                 onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
                             <i class="fas fa-home"></i> Voltar ao Dashboard
                         </button>
@@ -1321,7 +1316,7 @@
                         ${isPermissaoNegada ? `
                         <button onclick="solicitarLiberacao()" 
                                 style="
-                                    background: #2ecc71; 
+                                    background: var(--cor-sucesso); 
                                     color: white; 
                                     border: none; 
                                     padding: 15px 30px; 
@@ -1341,7 +1336,7 @@
                         
                         <button onclick="location.reload()" 
                                 style="
-                                    background: #95a5a6; 
+                                    background: var(--cor-texto-secundario); 
                                     color: white; 
                                     border: none; 
                                     padding: 15px 25px; 
@@ -1364,16 +1359,17 @@
                     <div style="
                         margin-top: 30px; 
                         padding: 20px; 
-                        background: #f8f9fa; 
+                        background: var(--cor-card); 
+                        border: 1px solid var(--cor-borda);
                         border-radius: 10px; 
-                        border-left: 4px solid #3498db;
+                        border-left: 4px solid var(--cor-primaria);
                         text-align: left;
                     ">
-                        <h3 style="color: #2c3e50; margin-bottom: 15px; font-size: 18px;">
+                        <h3 style="color: var(--cor-primaria); margin-bottom: 15px; font-size: 18px;">
                             <i class="fas fa-clipboard-list"></i> Processo de Liberação
                         </h3>
                         
-                        <ol style="margin: 0; padding-left: 20px; color: #6c757d;">
+                        <ol style="margin: 0; padding-left: 20px; color: var(--cor-texto-secundario);">
                             <li style="margin-bottom: 8px;">
                                 <strong>Entre em contato com o suporte</strong><br>
                                 Telefone: (11) 99999-9999 | Email: suporte@cambiobank.com
@@ -1575,7 +1571,7 @@
                     <div class="cotacao-titulo ${tituloClasse}">${titulo}</div>
                     <p>1 ${moedaPara} = ${cotacao.toFixed(4)} ${moedaDe}</p>
                     <p>1 ${moedaDe} = ${cotacaoInversa.toFixed(4)} ${moedaPara}</p>
-                    <small style="color: #8b949e;">Spread: ${spread}%</small>
+                    <small style="color: var(--cor-texto-secundario);">Spread: ${spread}%</small>
                 `;
             } else {
                 titulo = `VENDER ${moedaDe}`;
@@ -1584,7 +1580,7 @@
                     <div class="cotacao-titulo ${tituloClasse}">${titulo}</div>
                     <p>1 ${moedaDe} = ${cotacao.toFixed(4)} ${moedaPara}</p>
                     <p>1 ${moedaPara} = ${cotacaoInversa.toFixed(4)} ${moedaDe}</p>
-                    <small style="color: #8b949e;">Spread: ${spread}%</small>
+                    <small style="color: var(--cor-texto-secundario);">Spread: ${spread}%</small>
                 `;
             }
             
@@ -1880,11 +1876,11 @@
             const titulo = `CONFIRMAR OPERAÇÃO ${this.tipoOperacao.toUpperCase()}`;
             const mensagem = `
                 <div style="text-align: center; margin-bottom: 15px;">
-                    <strong style="color: #2ecc71; font-size: 18px;">${this.tipoOperacao.toUpperCase()} ${moedaReceber}</strong>
+                    <strong style="color: var(--cor-sucesso); font-size: 18px;">${this.tipoOperacao.toUpperCase()} ${moedaReceber}</strong>
                 </div>
                 <p><strong>Você pagará:</strong> ${valorPagar.toFixed(2)} ${moedaPagar}</p>
                 <p><strong>Você receberá:</strong> ${valorReceber.toFixed(2)} ${moedaReceber}</p>
-                <p style="margin-top: 10px; color: #8b949e; font-size: 14px;">
+                <p style="margin-top: 10px; color: var(--cor-texto-secundario); font-size: 14px;">
                     Cotação: 1 ${moedaPagar} = ${cotacaoDireta.toFixed(4)} ${moedaReceber}
                 </p>
             `;
@@ -1913,7 +1909,7 @@
                 <p><strong>Você ficará com saldo negativo em ${dadosNegativos.moeda}!</strong></p>
                 <p>Saldo atual: ${dadosNegativos.saldoAtual.toFixed(2)} ${dadosNegativos.moeda}</p>
                 <p>Valor da operação: ${valorPagar.toFixed(2)} ${moedaPagar}</p>
-                <p><strong>Saldo após operação: <span style="color: #ff4444;">${dadosNegativos.saldoPos.toFixed(2)} ${dadosNegativos.moeda}</span></strong></p>
+                <p><strong>Saldo após operação: <span style="color: var(--cor-perigo);">${dadosNegativos.saldoPos.toFixed(2)} ${dadosNegativos.moeda}</span></strong></p>
                 <p>Você receberá: ${valorReceber.toFixed(2)} ${moedaReceber}</p>
             `;
             
@@ -2048,7 +2044,7 @@
                 <p>Você recebeu: ${valorReceber.toFixed(2)} ${moedaReceber}</p>
                 <p>Saldo atual: ${saldoAtual.toFixed(2)} ${moedaPagar}</p>
                 <div style="margin: 15px 0; padding: 10px; background: rgba(243, 156, 18, 0.1); border-radius: 5px;">
-                    <strong style="color: #f39c12;">ATENÇÃO - SALDO NEGATIVO EM ${moedaNegativa}</strong>
+                    <strong style="color: var(--cor-alerta);">ATENÇÃO - SALDO NEGATIVO EM ${moedaNegativa}</strong>
                     <p style="margin-top: 5px; font-size: 14px;">
                         • Deposite ${valorDepositar.toFixed(2)} ${moedaNegativa} em 24h<br>
                         • Multa após prazo: ${multaPotencial.toFixed(2)} ${moedaNegativa}<br>
@@ -2150,7 +2146,7 @@
             const mensagem = `
                 <p>Você está solicitando liberação para operações de câmbio.</p>
                 
-                <div style="margin: 15px 0; padding: 12px; background: #f8f9fa; border-radius: 6px;">
+                <div style="margin: 15px 0; padding: 12px; background: rgba(26, 95, 180, 0.1); border-radius: 6px;">
                     <strong><i class="fas fa-clock"></i> Processo:</strong>
                     <ol style="margin: 8px 0 0 20px; font-size: 14px;">
                         <li>Sua solicitação será registrada</li>
@@ -2160,7 +2156,7 @@
                     </ol>
                 </div>
                 
-                <p style="color: #7f8c8d; font-size: 14px;">
+                <p style="color: var(--cor-texto-secundario); font-size: 14px;">
                     <i class="fas fa-shield-alt"></i> 
                     Sua segurança é nossa prioridade. Todas as solicitações passam por análise.
                 </p>
@@ -2202,7 +2198,7 @@
             
             const mensagem = `
                 <div style="text-align: center;">
-                    <div style="font-size: 50px; color: #2ecc71; margin-bottom: 15px;" class="icon-animated">
+                    <div style="font-size: 50px; color: var(--cor-sucesso); margin-bottom: 15px;" class="icon-animated">
                         <i class="fas fa-check-circle"></i>
                     </div>
                     <p><strong>Solicitação enviada com sucesso!</strong></p>
@@ -2213,7 +2209,7 @@
                         <p><strong>Data estimada:</strong> ${dataEstimada.toLocaleDateString('pt-BR')}</p>
                     </div>
                     
-                    <p style="color: #7f8c8d; font-size: 14px;">
+                    <p style="color: var(--cor-texto-secundario); font-size: 14px;">
                         <i class="fas fa-envelope"></i> 
                         Você receberá um email quando sua liberação for aprovada.
                     </p>
@@ -2224,7 +2220,7 @@
             const popupHTML = `
                 <div class="popup-overlay active popup-solicitacao-enviada" id="popupSolicitacaoEnviada">
                     <div class="popup-content">
-                        <h2 class="popup-titulo" style="color: #2ecc71;">
+                        <h2 class="popup-titulo" style="color: var(--cor-sucesso);">
                             <i class="fas fa-check-circle"></i> SOLICITAÇÃO REGISTRADA
                         </h2>
                         <div class="popup-mensagem">
@@ -2234,8 +2230,8 @@
                             <button class="popup-btn popup-btn-ok" onclick="window.location.href='/dashboard'">
                                 <i class="fas fa-home"></i> VOLTAR AO DASHBOARD
                             </button>
-                            <button class="popup-btn" onclick="fecharPopup('popupSolicitacaoEnviada'); location.reload()" 
-                                    style="background: #95a5a6; color: white;">
+                            <button class="popup-btn" onclick="document.getElementById('popupSolicitacaoEnviada').remove(); location.reload()" 
+                                    style="background: var(--cor-texto-secundario); color: white;">
                                 <i class="fas fa-redo"></i> ATUALIZAR STATUS
                             </button>
                         </div>
@@ -2243,7 +2239,6 @@
                 </div>
             `;
             
-            // Adicionar ao body
             const div = document.createElement('div');
             div.innerHTML = popupHTML;
             document.body.appendChild(div.firstElementChild);
@@ -2297,11 +2292,11 @@
         const mensagem = `
             <p>Você está solicitando liberação para operações de câmbio.</p>
             
-            <div style="margin: 15px 0; padding: 15px; background: rgba(52, 152, 219, 0.15); border-radius: 8px; border-left: 4px solid #3498db;">
-                <strong style="color: #3498db; display: block; margin-bottom: 8px;">
+            <div style="margin: 15px 0; padding: 15px; background: rgba(52, 152, 219, 0.15); border-radius: 8px; border-left: 4px solid var(--cor-primaria);">
+                <strong style="color: var(--cor-primaria); display: block; margin-bottom: 8px;">
                     <i class="fas fa-clock"></i> Processo:
                 </strong>
-                <ol style="margin: 8px 0 0 20px; font-size: 14px; color: #e0e0e0;">
+                <ol style="margin: 8px 0 0 20px; font-size: 14px; color: var(--cor-texto);">
                     <li>Sua solicitação será registrada</li>
                     <li>Administrador será notificado</li>
                     <li>Aprovação em até 24h úteis</li>
@@ -2309,7 +2304,7 @@
                 </ol>
             </div>
             
-            <p style="color: #7f8c8d; font-size: 14px;">
+            <p style="color: var(--cor-texto-secundario); font-size: 14px;">
                 <i class="fas fa-shield-alt"></i> 
                 Sua segurança é nossa prioridade. Todas as solicitações passam por análise.
             </p>
@@ -2349,12 +2344,12 @@
             const popupHTML = `
                 <div class="popup-overlay active popup-solicitacao-enviada" id="popupSolicitacaoEnviada">
                     <div class="popup-content">
-                        <h2 class="popup-titulo" style="color: #2ecc71;">
+                        <h2 class="popup-titulo" style="color: var(--cor-sucesso);">
                             <i class="fas fa-check-circle"></i> SOLICITAÇÃO REGISTRADA
                         </h2>
                         <div class="popup-mensagem">
                             <div style="text-align: center;">
-                                <div style="font-size: 50px; color: #2ecc71; margin-bottom: 15px;" class="icon-animated">
+                                <div style="font-size: 50px; color: var(--cor-sucesso); margin-bottom: 15px;" class="icon-animated">
                                     <i class="fas fa-check-circle"></i>
                                 </div>
                                 <p><strong>Solicitação enviada com sucesso!</strong></p>
@@ -2365,7 +2360,7 @@
                                     <p><strong>Data estimada:</strong> ${dataEstimada.toLocaleDateString('pt-BR')}</p>
                                 </div>
                                 
-                                <p style="color: #7f8c8d; font-size: 14px;">
+                                <p style="color: var(--cor-texto-secundario); font-size: 14px;">
                                     <i class="fas fa-envelope"></i> 
                                     Você receberá um email quando sua liberação for aprovada.
                                 </p>
@@ -2376,7 +2371,7 @@
                                 <i class="fas fa-home"></i> VOLTAR AO DASHBOARD
                             </button>
                             <button class="popup-btn" onclick="document.getElementById('popupSolicitacaoEnviada').remove(); location.reload()" 
-                                    style="background: #95a5a6; color: white;">
+                                    style="background: var(--cor-texto-secundario); color: white;">
                                 <i class="fas fa-redo"></i> ATUALIZAR STATUS
                             </button>
                         </div>
