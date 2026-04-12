@@ -869,70 +869,406 @@
         }
 
         // ============================================
+        // MODAL DE DETALHES ADMIN (ESTILO CLIENTE - COMPLETO)
+        // ============================================
+
+        function criarModalDetalhesAdmin(transferencia) {
+            // Criar overlay
+            const modalOverlay = document.createElement('div');
+            modalOverlay.id = 'modalDetalhesAdmin';
+            modalOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.85);
+                z-index: 10000;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                backdrop-filter: blur(5px);
+                animation: fadeIn 0.3s ease;
+            `;
+            
+            // Obter cores do tema atual
+            const isLightTheme = document.documentElement.getAttribute('data-theme') === 'light';
+            const bgCard = isLightTheme ? '#f0f4f9' : '#0d1117';
+            const textColor = isLightTheme ? '#1a1d24' : '#e0e0e0';
+            const textSecundary = isLightTheme ? '#5a6470' : '#8b949e';
+            const borderColor = isLightTheme ? '#c5ced8' : '#1e232e';
+            
+            // Criar container do modal
+            const modalContainer = document.createElement('div');
+            modalContainer.style.cssText = `
+                background: ${bgCard};
+                border-radius: 12px;
+                width: 750px;
+                max-width: 90vw;
+                max-height: 85vh;
+                overflow: hidden;
+                border: 1px solid ${borderColor};
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+                display: flex;
+                flex-direction: column;
+                animation: slideUp 0.3s ease;
+            `;
+            
+            // Cabeçalho
+            const modalHeader = document.createElement('div');
+            modalHeader.style.cssText = `
+                background: linear-gradient(90deg, #1a5fb4, #2d8fff);
+                color: white;
+                padding: 20px 25px;
+                font-size: 18px;
+                font-weight: bold;
+                border-bottom: 2px solid #1a5fb4;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            `;
+            
+            const statusClass = getStatusClass(transferencia.status);
+            const statusText = getStatusText(transferencia.status);
+            
+            modalHeader.innerHTML = `
+                <div>
+                    <i class="fas fa-exchange-alt"></i>
+                    DETALHES COMPLETOS DA TRANSFERÊNCIA
+                </div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span class="status-badge ${statusClass}" style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 12px;">
+                        <i class="fas ${getStatusIcon(transferencia.status)}"></i> ${statusText}
+                    </span>
+                    <div style="font-size: 14px; font-weight: normal; opacity: 0.9;">
+                        ID: #${transferencia.id}
+                    </div>
+                </div>
+            `;
+            
+            // Conteúdo com scroll
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                flex: 1;
+                overflow-y: auto;
+                padding: 25px;
+                color: ${textColor};
+                font-size: 14px;
+                line-height: 1.6;
+            `;
+            
+            // GERAR CONTEÚDO COMPLETO
+            modalContent.innerHTML = gerarConteudoDetalhesAdmin(transferencia, isLightTheme);
+            
+            // Footer
+            const modalFooter = document.createElement('div');
+            modalFooter.style.cssText = `
+                padding: 20px 25px;
+                border-top: 1px solid ${borderColor};
+                display: flex;
+                justify-content: flex-end;
+                gap: 10px;
+            `;
+            
+            const btnFechar = document.createElement('button');
+            btnFechar.innerHTML = '<i class="fas fa-times"></i> FECHAR';
+            btnFechar.style.cssText = `
+                padding: 10px 25px;
+                background: #9b59b6;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-weight: bold;
+                cursor: pointer;
+                font-size: 14px;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            `;
+            
+            btnFechar.onmouseover = () => {
+                btnFechar.style.background = '#8e44ad';
+                btnFechar.style.transform = 'translateY(-2px)';
+            };
+            btnFechar.onmouseout = () => {
+                btnFechar.style.background = '#9b59b6';
+                btnFechar.style.transform = 'translateY(0)';
+            };
+            btnFechar.onclick = () => {
+                document.body.removeChild(modalOverlay);
+            };
+            
+            modalFooter.appendChild(btnFechar);
+            
+            // Montar modal
+            modalContainer.appendChild(modalHeader);
+            modalContainer.appendChild(modalContent);
+            modalContainer.appendChild(modalFooter);
+            modalOverlay.appendChild(modalContainer);
+            
+            // Adicionar ao body
+            document.body.appendChild(modalOverlay);
+            
+            // Fechar ao clicar fora
+            modalOverlay.onclick = (e) => {
+                if (e.target === modalOverlay) {
+                    document.body.removeChild(modalOverlay);
+                }
+            };
+            
+            // Adicionar estilos específicos
+            adicionarEstilosModalAdmin(isLightTheme, borderColor, textSecundary, textColor);
+        }
+
+        // ============================================
+        // GERAR CONTEÚDO COMPLETO DOS DETALHES
+        // ============================================
+
+        function gerarConteudoDetalhesAdmin(dados, isLightTheme) {
+            const textSecundary = isLightTheme ? '#5a6470' : '#8b949e';
+            const textColor = isLightTheme ? '#1a1d24' : '#e0e0e0';
+            const borderColor = isLightTheme ? '#c5ced8' : '#2a2f3a';
+            const successColor = '#2ec27e';
+            const alertColor = '#f39c12';
+            const dangerColor = '#e01b24';
+            const primaryColor = '#1a5fb4';
+            
+            const statusText = getStatusText(dados.status);
+            const statusClass = getStatusClass(dados.status);
+            const tipoTexto = dados.tipo === 'transferencia_internacional' ? 'INTERNACIONAL' : 'INTERNA';
+            
+            // Formatar datas
+            const dataFormatada = formatarDataCompleta(dados.data || dados.created_at);
+            const dataAprovacaoFormatada = dados.data_aprovacao ? formatarDataCompleta(dados.data_aprovacao) : null;
+            const dataConclusaoFormatada = dados.data_conclusao ? formatarDataCompleta(dados.data_conclusao) : null;
+            const dataSolicitacaoFormatada = dados.data_solicitacao ? formatarDataCompleta(dados.data_solicitacao) : null;
+            
+            // Valor formatado
+            const valorFormatado = formatarMoedaCompleta(dados.valor, dados.moeda);
+            
+            let html = '';
+            
+            // SEÇÃO 1: INFORMAÇÕES BÁSICAS
+            html += `
+                <div class="detalhes-secao-admin">
+                    <div class="detalhes-titulo-admin">
+                        <i class="fas fa-info-circle"></i>
+                        INFORMAÇÕES BÁSICAS
+                    </div>
+                    <div class="detalhes-grid-admin">
+                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">ID:</span><span class="detalhes-valor-admin">${dados.id}</span></div>
+                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">Status:</span><span class="detalhes-valor-admin"><span class="status-badge ${statusClass}">${statusText}</span></span></div>
+                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">Tipo:</span><span class="detalhes-valor-admin">${tipoTexto}</span></div>
+                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">Valor:</span><span class="detalhes-valor-admin" style="font-weight: bold; color: ${primaryColor}">${valorFormatado}</span></div>
+                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">Cliente:</span><span class="detalhes-valor-admin">${dados.cliente || dados.usuario || dados.solicitado_por || 'N/A'}</span></div>
+                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">Data Solicitação:</span><span class="detalhes-valor-admin">${dataSolicitacaoFormatada || dataFormatada}</span></div>
+                    </div>
+                </div>
+            `;
+            
+            // SEÇÃO 2: DATAS DE PROCESSAMENTO
+            if (dataAprovacaoFormatada || dataConclusaoFormatada) {
+                html += `<div class="detalhes-secao-admin"><div class="detalhes-titulo-admin"><i class="fas fa-clock"></i> DATAS DE PROCESSAMENTO</div><div class="detalhes-grid-admin">`;
+                if (dataAprovacaoFormatada) {
+                    html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">Data Aprovação:</span><span class="detalhes-valor-admin">${dataAprovacaoFormatada}</span></div>`;
+                    html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">Aprovado por:</span><span class="detalhes-valor-admin">${dados.executado_por || dados.concluido_por || 'Admin'}</span></div>`;
+                }
+                if (dataConclusaoFormatada) {
+                    html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">Data Conclusão:</span><span class="detalhes-valor-admin">${dataConclusaoFormatada}</span></div>`;
+                    html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">Concluído por:</span><span class="detalhes-valor-admin">${dados.concluido_por || dados.executado_por || 'Admin'}</span></div>`;
+                }
+                html += `</div></div>`;
+            }
+            
+            // SEÇÃO 3: BENEFICIÁRIO
+            if (dados.tipo === 'transferencia_internacional') {
+                html += `
+                    <div class="detalhes-secao-admin">
+                        <div class="detalhes-titulo-admin"><i class="fas fa-user-tie"></i> BENEFICIÁRIO</div>
+                        <div class="detalhes-grid-admin">
+                            <div class="detalhes-item-admin"><span class="detalhes-label-admin">Nome:</span><span class="detalhes-valor-admin">${dados.beneficiario || 'N/A'}</span></div>
+                            <div class="detalhes-item-admin"><span class="detalhes-label-admin">Endereço:</span><span class="detalhes-valor-admin">${dados.endereco_beneficiario || 'N/A'}</span></div>
+                            <div class="detalhes-item-admin"><span class="detalhes-label-admin">Cidade:</span><span class="detalhes-valor-admin">${dados.cidade || 'N/A'}</span></div>
+                            <div class="detalhes-item-admin"><span class="detalhes-label-admin">País:</span><span class="detalhes-valor-admin">${dados.pais || 'N/A'}</span></div>
+                        </div>
+                    </div>
+                    <div class="detalhes-secao-admin">
+                        <div class="detalhes-titulo-admin"><i class="fas fa-university"></i> DADOS BANCÁRIOS</div>
+                        <div class="detalhes-grid-admin">
+                            <div class="detalhes-item-admin"><span class="detalhes-label-admin">Banco:</span><span class="detalhes-valor-admin">${dados.nome_banco || 'N/A'}</span></div>
+                            <div class="detalhes-item-admin"><span class="detalhes-label-admin">Endereço Banco:</span><span class="detalhes-valor-admin">${dados.endereco_banco || 'N/A'}</span></div>
+                            <div class="detalhes-item-admin"><span class="detalhes-label-admin">Cidade Banco:</span><span class="detalhes-valor-admin">${dados.cidade_banco || 'N/A'}</span></div>
+                            <div class="detalhes-item-admin"><span class="detalhes-label-admin">País Banco:</span><span class="detalhes-valor-admin">${dados.pais_banco || 'N/A'}</span></div>
+                            <div class="detalhes-item-admin"><span class="detalhes-label-admin">SWIFT/BIC:</span><span class="detalhes-valor-admin" style="font-family: monospace;">${dados.codigo_swift || 'N/A'}</span></div>
+                            <div class="detalhes-item-admin"><span class="detalhes-label-admin">IBAN/Conta:</span><span class="detalhes-valor-admin" style="font-family: monospace;">${dados.iban_account || 'N/A'}</span></div>
+                            ${dados.aba_routing ? `<div class="detalhes-item-admin"><span class="detalhes-label-admin">ABA/Routing:</span><span class="detalhes-valor-admin">${dados.aba_routing}</span></div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // SEÇÃO 4: INFORMAÇÕES ADICIONAIS
+            if (dados.finalidade || dados.descricao) {
+                html += `<div class="detalhes-secao-admin"><div class="detalhes-titulo-admin"><i class="fas fa-sticky-note"></i> INFORMAÇÕES ADICIONAIS</div><div class="detalhes-grid-admin">`;
+                if (dados.finalidade) html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">Finalidade:</span><span class="detalhes-valor-admin">${dados.finalidade}</span></div>`;
+                if (dados.descricao) html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">Descrição:</span><span class="detalhes-valor-admin">${dados.descricao}</span></div>`;
+                html += `</div></div>`;
+            }
+            
+            // SEÇÃO 5: MOTIVO DA RECUSA
+            if (dados.status === 'rejected' && dados.motivo_recusa) {
+                html += `<div class="detalhes-secao-admin"><div class="detalhes-titulo-admin" style="color: ${dangerColor};"><i class="fas fa-exclamation-triangle"></i> MOTIVO DA RECUSA</div><div class="detalhes-item-admin" style="grid-template-columns: 1fr;"><span class="detalhes-valor-admin" style="color: ${dangerColor}; font-style: italic;">"${dados.motivo_recusa}"</span></div></div>`;
+            }
+            
+            // SEÇÃO 6: DADOS SWIFT
+            if (dados.dados_swift_pagamento && Object.keys(dados.dados_swift_pagamento).length > 0) {
+                html += `<div class="detalhes-secao-admin"><div class="detalhes-titulo-admin" style="color: ${primaryColor};"><i class="fas fa-file-invoice-dollar"></i> DADOS SWIFT DO PAGAMENTO</div><div class="detalhes-grid-admin">`;
+                const swiftKeys = [
+                    { key: 'linha1_uetr', label: 'UETR #' }, { key: 'linha2_20', label: ':20:' }, { key: 'linha3_32a', label: ':32A:' },
+                    { key: 'linha4_50k', label: ':50K:' }, { key: 'linha5_57a', label: ':57A:' }, { key: 'linha6_59', label: ':59:' },
+                    { key: 'linha7_beneficiario', label: 'Beneficiário' }, { key: 'linha8_70', label: ':70:' }, { key: 'linha9_71a', label: ':71A:' }
+                ];
+                swiftKeys.forEach(({ key, label }) => {
+                    if (dados.dados_swift_pagamento[key]) {
+                        html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">${label}:</span><span class="detalhes-valor-admin" style="font-family: monospace; font-size: 12px; word-break: break-all;">${dados.dados_swift_pagamento[key]}</span></div>`;
+                    }
+                });
+                html += `</div></div>`;
+            }
+            
+            // SEÇÃO 7: INFORMAÇÕES DA INVOICE
+            if (dados.invoice_info) {
+                const invoiceInfo = typeof dados.invoice_info === 'string' ? JSON.parse(dados.invoice_info) : dados.invoice_info;
+                const invoiceStatus = invoiceInfo.status || 'pending';
+                const invoiceStatusText = invoiceStatus === 'approved' ? 'Aprovada' : invoiceStatus === 'rejected' ? 'Recusada' : 'Pendente';
+                let invoiceStatusColor = alertColor;
+                if (invoiceStatus === 'approved') invoiceStatusColor = successColor;
+                if (invoiceStatus === 'rejected') invoiceStatusColor = dangerColor;
+                
+                html += `<div class="detalhes-secao-admin"><div class="detalhes-titulo-admin"><i class="fas fa-file-contract"></i> STATUS DA INVOICE</div><div class="detalhes-grid-admin">`;
+                html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">Status:</span><span class="detalhes-valor-admin" style="color: ${invoiceStatusColor}; font-weight: bold;">${invoiceStatusText}</span></div>`;
+                if (invoiceStatus === 'rejected' && invoiceInfo.motivo_recusa) {
+                    html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">Motivo Recusa:</span><span class="detalhes-valor-admin" style="color: ${dangerColor};">${invoiceInfo.motivo_recusa}</span></div>`;
+                }
+                if (invoiceInfo.data_upload) {
+                    html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">Data Upload:</span><span class="detalhes-valor-admin">${formatarDataCompleta(invoiceInfo.data_upload)}</span></div>`;
+                }
+                html += `</div></div>`;
+            }
+            
+            return html;
+        }
+
+        // ============================================
+        // FUNÇÕES AUXILIARES
+        // ============================================
+
+        function formatarDataCompleta(dataString) {
+            if (!dataString) return 'N/A';
+            try {
+                const data = new Date(dataString);
+                if (isNaN(data.getTime())) return dataString;
+                const dia = data.getDate().toString().padStart(2, '0');
+                const mes = (data.getMonth() + 1).toString().padStart(2, '0');
+                const ano = data.getFullYear();
+                const horas = data.getHours().toString().padStart(2, '0');
+                const minutos = data.getMinutes().toString().padStart(2, '0');
+                const segundos = data.getSeconds().toString().padStart(2, '0');
+                return `${dia}/${mes}/${ano} ${horas}:${minutos}:${segundos}`;
+            } catch { return dataString; }
+        }
+
+        function formatarMoedaCompleta(valor, moeda) {
+            if (!valor) return '--';
+            const simbolos = { USD: 'US$', EUR: '€', GBP: '£', BRL: 'R$' };
+            const simbolo = simbolos[moeda] || moeda;
+            const valorNumerico = parseFloat(valor);
+            return `${simbolo} ${valorNumerico.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+        }
+
+        function getStatusIcon(status) {
+            const s = (status || '').toLowerCase();
+            if (s === 'pending' || s === 'pendente' || s === 'solicitada') return 'fa-clock';
+            if (s === 'processing' || s === 'processando') return 'fa-sync-alt';
+            if (s === 'completed' || s === 'concluida' || s === 'aprovada') return 'fa-check-circle';
+            if (s === 'rejected' || s === 'recusada') return 'fa-times-circle';
+            return 'fa-clock';
+        }
+
+        function adicionarEstilosModalAdmin(isLightTheme, borderColor, textSecundary, textColor) {
+            const styleId = 'modalDetalhesAdminStyle';
+            let style = document.getElementById(styleId);
+            if (!style) {
+                style = document.createElement('style');
+                style.id = styleId;
+                document.head.appendChild(style);
+            }
+            style.textContent = `
+                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+                .detalhes-secao-admin { margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid ${borderColor}; }
+                .detalhes-titulo-admin { color: #1a5fb4; font-size: 15px; font-weight: bold; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+                .detalhes-grid-admin { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 20px; }
+                .detalhes-item-admin { display: flex; flex-direction: column; gap: 4px; }
+                .detalhes-label-admin { color: ${textSecundary}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+                .detalhes-valor-admin { color: ${textColor}; font-size: 13px; word-break: break-word; }
+                .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+                .status-pending { background: rgba(243, 156, 18, 0.15); color: #f39c12; }
+                .status-processing { background: rgba(26, 95, 180, 0.15); color: #1a5fb4; }
+                .status-completed { background: rgba(46, 194, 126, 0.15); color: #2ec27e; }
+                .status-rejected { background: rgba(224, 27, 36, 0.15); color: #e01b24; }
+                @media (max-width: 600px) { .detalhes-grid-admin { grid-template-columns: 1fr; } }
+            `;
+        }
+
+        function showLoading(show, message = 'Carregando...') {
+            let loadingDiv = document.getElementById('globalLoading');
+            if (show) {
+                if (!loadingDiv) {
+                    loadingDiv = document.createElement('div');
+                    loadingDiv.id = 'globalLoading';
+                    loadingDiv.style.cssText = `position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 20px 30px; border-radius: 12px; z-index: 10001; display: flex; flex-direction: column; align-items: center; gap: 10px; backdrop-filter: blur(5px);`;
+                    loadingDiv.innerHTML = `<i class="fas fa-spinner fa-spin" style="font-size: 32px;"></i><span>${message}</span>`;
+                    document.body.appendChild(loadingDiv);
+                } else {
+                    loadingDiv.style.display = 'flex';
+                    const span = loadingDiv.querySelector('span');
+                    if (span) span.textContent = message;
+                }
+            } else {
+                if (loadingDiv) loadingDiv.style.display = 'none';
+            }
+        }        
+
+        // ============================================
         // DETALHES E INVOICE
         // ============================================
         async function verDetalhes(id) {
+            console.log(`🔍 Buscando detalhes completos da transferência ${id}...`);
+            
             try {
-                const response = await fetch(`/api/admin/transferencias/${id}`);
-                const data = await response.json();
+                showLoading('Carregando detalhes...');
                 
-                if (data.success) {
-                    const t = data.transferencia;
-                    const modalBody = document.getElementById('modalDetalhesBody');
-                    const dataFormatada = formatarData(t.data);
-                    const valorFormatado = `${obterSimboloMoeda(t.moeda)} ${formatarValor(t.valor)}`;
-                    const statusClass = getStatusClass(t.status);
-                    const statusText = getStatusText(t.status);
-                    
-                    let html = `
-                        <div class="info-card">
-                            <p><strong>ID:</strong> ${escapeHtml(t.id)}</p>
-                            <p><strong>Status:</strong> <span class="status-badge ${statusClass}">${statusText}</span></p>
-                            <p><strong>Tipo:</strong> ${t.tipo === 'transferencia_internacional' ? 'Internacional' : t.tipo === 'cambio' ? 'Câmbio' : 'Interna'}</p>
-                            <p><strong>Data:</strong> ${dataFormatada}</p>
-                        </div>
-                        <div class="info-card">
-                            <p><strong>Valor:</strong> ${valorFormatado}</p>
-                            <p><strong>Moeda:</strong> ${t.moeda}</p>
-                            <p><strong>Cliente:</strong> ${escapeHtml(t.cliente_nome || t.cliente || t.usuario || '-')}</p>
-                        </div>
-                    `;
-                    
-                    if (t.tipo === 'transferencia_internacional') {
-                        html += `
-                            <div class="info-card">
-                                <p><strong>Beneficiário:</strong> ${escapeHtml(t.beneficiario || '-')}</p>
-                                <p><strong>Banco:</strong> ${escapeHtml(t.nome_banco || '-')}</p>
-                                <p><strong>SWIFT:</strong> ${escapeHtml(t.codigo_swift || '-')}</p>
-                                <p><strong>IBAN:</strong> ${escapeHtml(t.iban_account || '-')}</p>
-                                <p><strong>Finalidade:</strong> ${escapeHtml(t.finalidade || '-')}</p>
-                            </div>
-                        `;
-                    } else if (t.tipo === 'cambio') {
-                        html += `
-                            <div class="info-card">
-                                <p><strong>Par de Moedas:</strong> ${t.par_moedas || '-'}</p>
-                                <p><strong>Valor Origem:</strong> ${formatarValor(t.valor_origem)} ${t.moeda_origem || t.moeda}</p>
-                                <p><strong>Valor Destino:</strong> ${formatarValor(t.valor_destino)} ${t.moeda_destino || t.moeda}</p>
-                                <p><strong>Cotação:</strong> ${t.cotacao || '-'}</p>
-                            </div>
-                        `;
-                    }
-                    
-                    if (t.motivo_recusa) {
-                        html += `
-                            <div class="info-card" style="border-color: var(--cor-perigo);">
-                                <p><strong>Motivo da Recusa:</strong> ${escapeHtml(t.motivo_recusa)}</p>
-                            </div>
-                        `;
-                    }
-                    
-                    modalBody.innerHTML = html;
-                    document.getElementById('modalDetalhes').classList.add('active');
+                // Buscar dados completos da transferência
+                const response = await fetch(`/api/transferencias/${id}/completo`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
                 }
+                
+                const transferencia = await response.json();
+                console.log('📦 Dados completos carregados:', transferencia);
+                
+                showLoading(false);
+                
+                // Criar modal de detalhes ESTILO CLIENTE (completo)
+                criarModalDetalhesAdmin(transferencia);
+                
             } catch (error) {
-                console.error('Erro:', error);
-                alert('Erro ao carregar detalhes!');
+                console.error('❌ Erro ao carregar detalhes:', error);
+                showLoading(false);
+                alert(`❌ Erro: ${error.message}`);
             }
         }
 
