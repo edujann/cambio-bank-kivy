@@ -1034,9 +1034,12 @@
             const dangerColor = '#e01b24';
             const primaryColor = '#1a5fb4';
             
+            // Garantir que dados existe
+            if (!dados) return '<div>Erro: Dados não disponíveis</div>';
+            
             const statusText = getStatusText(dados.status);
             const statusClass = getStatusClass(dados.status);
-            const tipoTexto = dados.tipo === 'transferencia_internacional' ? 'INTERNACIONAL' : 'INTERNA';
+            const tipoTexto = dados.tipo === 'transferencia_internacional' ? 'INTERNACIONAL' : dados.tipo === 'cambio' ? 'CÂMBIO' : 'INTERNA';
             
             // Formatar datas
             const dataFormatada = formatarDataCompleta(dados.data || dados.created_at);
@@ -1057,11 +1060,11 @@
                         INFORMAÇÕES BÁSICAS
                     </div>
                     <div class="detalhes-grid-admin">
-                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">ID:</span><span class="detalhes-valor-admin">${dados.id}</span></div>
+                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">ID:</span><span class="detalhes-valor-admin">${dados.id || 'N/A'}</span></div>
                         <div class="detalhes-item-admin"><span class="detalhes-label-admin">Status:</span><span class="detalhes-valor-admin"><span class="status-badge ${statusClass}">${statusText}</span></span></div>
                         <div class="detalhes-item-admin"><span class="detalhes-label-admin">Tipo:</span><span class="detalhes-valor-admin">${tipoTexto}</span></div>
                         <div class="detalhes-item-admin"><span class="detalhes-label-admin">Valor:</span><span class="detalhes-valor-admin" style="font-weight: bold; color: ${primaryColor}">${valorFormatado}</span></div>
-                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">Cliente:</span><span class="detalhes-valor-admin">${dados.cliente || dados.usuario || dados.solicitado_por || 'N/A'}</span></div>
+                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">Cliente:</span><span class="detalhes-valor-admin">${dados.cliente_nome || dados.cliente || dados.usuario || dados.solicitado_por || 'N/A'}</span></div>
                         <div class="detalhes-item-admin"><span class="detalhes-label-admin">Data Solicitação:</span><span class="detalhes-valor-admin">${dataSolicitacaoFormatada || dataFormatada}</span></div>
                     </div>
                 </div>
@@ -1081,7 +1084,7 @@
                 html += `</div></div>`;
             }
             
-            // SEÇÃO 3: BENEFICIÁRIO
+            // SEÇÃO 3: BENEFICIÁRIO (para transferências internacionais)
             if (dados.tipo === 'transferencia_internacional') {
                 html += `
                     <div class="detalhes-secao-admin">
@@ -1108,7 +1111,23 @@
                 `;
             }
             
-            // SEÇÃO 4: INFORMAÇÕES ADICIONAIS
+            // SEÇÃO 4: CÂMBIO (se for operação de câmbio)
+            if (dados.tipo === 'cambio') {
+                html += `
+                    <div class="detalhes-secao-admin">
+                        <div class="detalhes-titulo-admin"><i class="fas fa-exchange-alt"></i> OPERAÇÃO DE CÂMBIO</div>
+                        <div class="detalhes-grid-admin">
+                            <div class="detalhes-item-admin"><span class="detalhes-label-admin">Par de Moedas:</span><span class="detalhes-valor-admin">${dados.par_moedas || '-'}</span></div>
+                            <div class="detalhes-item-admin"><span class="detalhes-label-admin">Valor Origem:</span><span class="detalhes-valor-admin">${formatarMoedaCompleta(dados.valor_origem, dados.moeda_origem || dados.moeda)}</span></div>
+                            <div class="detalhes-item-admin"><span class="detalhes-label-admin">Valor Destino:</span><span class="detalhes-valor-admin">${formatarMoedaCompleta(dados.valor_destino, dados.moeda_destino || dados.moeda)}</span></div>
+                            <div class="detalhes-item-admin"><span class="detalhes-label-admin">Cotação:</span><span class="detalhes-valor-admin">${dados.cotacao || '-'}</span></div>
+                            <div class="detalhes-item-admin"><span class="detalhes-label-admin">Operação:</span><span class="detalhes-valor-admin">${dados.operacao || '-'}</span></div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // SEÇÃO 5: INFORMAÇÕES ADICIONAIS
             if (dados.finalidade || dados.descricao) {
                 html += `<div class="detalhes-secao-admin"><div class="detalhes-titulo-admin"><i class="fas fa-sticky-note"></i> INFORMAÇÕES ADICIONAIS</div><div class="detalhes-grid-admin">`;
                 if (dados.finalidade) html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">Finalidade:</span><span class="detalhes-valor-admin">${dados.finalidade}</span></div>`;
@@ -1116,13 +1135,14 @@
                 html += `</div></div>`;
             }
             
-            // SEÇÃO 5: MOTIVO DA RECUSA
-            if (dados.status === 'rejected' && dados.motivo_recusa) {
+            // SEÇÃO 6: MOTIVO DA RECUSA
+            if ((dados.status === 'rejected' || dados.status === 'rejected') && dados.motivo_recusa) {
                 html += `<div class="detalhes-secao-admin"><div class="detalhes-titulo-admin" style="color: ${dangerColor};"><i class="fas fa-exclamation-triangle"></i> MOTIVO DA RECUSA</div><div class="detalhes-item-admin" style="grid-template-columns: 1fr;"><span class="detalhes-valor-admin" style="color: ${dangerColor}; font-style: italic;">"${dados.motivo_recusa}"</span></div></div>`;
             }
             
-            // SEÇÃO 6: DADOS SWIFT
+            // SEÇÃO 7: DADOS SWIFT
             if (dados.dados_swift_pagamento && Object.keys(dados.dados_swift_pagamento).length > 0) {
+                const swiftData = typeof dados.dados_swift_pagamento === 'string' ? JSON.parse(dados.dados_swift_pagamento) : dados.dados_swift_pagamento;
                 html += `<div class="detalhes-secao-admin"><div class="detalhes-titulo-admin" style="color: ${primaryColor};"><i class="fas fa-file-invoice-dollar"></i> DADOS SWIFT DO PAGAMENTO</div><div class="detalhes-grid-admin">`;
                 const swiftKeys = [
                     { key: 'linha1_uetr', label: 'UETR #' }, { key: 'linha2_20', label: ':20:' }, { key: 'linha3_32a', label: ':32A:' },
@@ -1130,14 +1150,14 @@
                     { key: 'linha7_beneficiario', label: 'Beneficiário' }, { key: 'linha8_70', label: ':70:' }, { key: 'linha9_71a', label: ':71A:' }
                 ];
                 swiftKeys.forEach(({ key, label }) => {
-                    if (dados.dados_swift_pagamento[key]) {
-                        html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">${label}:</span><span class="detalhes-valor-admin" style="font-family: monospace; font-size: 12px; word-break: break-all;">${dados.dados_swift_pagamento[key]}</span></div>`;
+                    if (swiftData[key]) {
+                        html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">${label}:</span><span class="detalhes-valor-admin" style="font-family: monospace; font-size: 12px; word-break: break-all;">${swiftData[key]}</span></div>`;
                     }
                 });
                 html += `</div></div>`;
             }
             
-            // SEÇÃO 7: INFORMAÇÕES DA INVOICE
+            // SEÇÃO 8: INFORMAÇÕES DA INVOICE
             if (dados.invoice_info) {
                 const invoiceInfo = typeof dados.invoice_info === 'string' ? JSON.parse(dados.invoice_info) : dados.invoice_info;
                 const invoiceStatus = invoiceInfo.status || 'pending';
@@ -1245,25 +1265,29 @@
         // DETALHES E INVOICE
         // ============================================
         async function verDetalhes(id) {
-            console.log(`🔍 Buscando detalhes completos da transferência ${id}...`);
+            console.log(`🔍 Buscando detalhes da transferência ${id}...`);
             
             try {
                 showLoading('Carregando detalhes...');
                 
-                // Buscar dados completos da transferência
-                const response = await fetch(`/api/transferencias/${id}/completo`);
+                // 🔥 USAR O ENDPOINT DO ADMIN QUE JÁ EXISTE
+                const response = await fetch(`/api/admin/transferencias/${id}`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
                 }
                 
-                const transferencia = await response.json();
-                console.log('📦 Dados completos carregados:', transferencia);
+                const data = await response.json();
+                console.log('📦 Dados carregados:', data);
+                
+                if (!data.success) {
+                    throw new Error(data.message || 'Erro ao carregar dados');
+                }
                 
                 showLoading(false);
                 
-                // Criar modal de detalhes ESTILO CLIENTE (completo)
-                criarModalDetalhesAdmin(transferencia);
+                // Criar modal de detalhes com os dados
+                criarModalDetalhesAdmin(data.transferencia);
                 
             } catch (error) {
                 console.error('❌ Erro ao carregar detalhes:', error);
