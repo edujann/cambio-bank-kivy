@@ -1307,33 +1307,29 @@
             try {
                 showLoading('Carregando detalhes...');
                 
-                // 🔥 USAR O MESMO ENDPOINT DO CLIENTE (que funciona!)
-                const response = await fetch('/api/transferencias-internacionais');
+                // 🔥 USAR O ENDPOINT DO ADMIN (AGORA CORRIGIDO)
+                const response = await fetch(`/api/admin/transferencias/${id}`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
                 }
                 
-                const todasTransferencias = await response.json();
+                const data = await response.json();
                 
-                // Encontrar a transferência específica pelo ID
-                const transferencia = todasTransferencias.find(t => 
-                    t.id === id || t.id.toString() === id.toString()
-                );
-                
-                if (!transferencia) {
-                    throw new Error(`Transferência ${id} não encontrada`);
+                if (!data.success) {
+                    throw new Error(data.message || 'Erro ao carregar dados');
                 }
                 
-                console.log('✅ Dados da transferência carregados:', transferencia);
+                const transferencia = data.transferencia;
+                console.log('✅ Dados carregados:', transferencia);
                 
                 showLoading(false);
                 
-                // Usar a mesma função de modal do cliente (que já funciona)
+                // Usar a função de modal que já funciona
                 criarModalDetalhesKivy(transferencia);
                 
             } catch (error) {
-                console.error('❌ Erro ao carregar detalhes:', error);
+                console.error('❌ Erro:', error);
                 showLoading(false);
                 alert(`❌ Erro: ${error.message}`);
             }

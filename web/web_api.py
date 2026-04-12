@@ -11991,30 +11991,40 @@ def api_admin_transferencias():
 
 @app.route('/api/admin/transferencias/<transferencia_id>', methods=['GET'])
 def api_admin_transferencia_detalhes(transferencia_id):
-    """Retorna detalhes completos de uma transferência"""
+    """Retorna detalhes COMPLETOS de uma transferência para o admin"""
     try:
         usuario = session.get('username')
         
         if not usuario:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
-        # Buscar transferência
+        # Verificar se é admin
+        if supabase:
+            user_check = supabase.table('usuarios')\
+                .select('tipo')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if not user_check.data or user_check.data.get('tipo') != 'admin':
+                return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        # 🔥 BUSCAR A TRANSFERÊNCIA DIRETAMENTE (SEM FILTRO DE CLIENTE)
         response = supabase.table('transferencias')\
             .select('*')\
             .eq('id', transferencia_id)\
-            .single()\
             .execute()
         
         if not response.data:
             return jsonify({"success": False, "message": "Transferência não encontrada"}), 404
         
-        t = response.data
+        transferencia = response.data[0]
         
-        # Buscar nome do cliente
+        # 🔥 BUSCAR NOME DO CLIENTE (se tiver)
         cliente_nome = None
-        cliente_username = t.get('cliente') or t.get('usuario') or t.get('solicitado_por')
+        cliente_username = transferencia.get('cliente') or transferencia.get('usuario') or transferencia.get('solicitado_por')
         
-        if cliente_username:
+        if cliente_username and supabase:
             cliente_response = supabase.table('usuarios')\
                 .select('nome')\
                 .eq('username', cliente_username)\
@@ -12024,8 +12034,8 @@ def api_admin_transferencia_detalhes(transferencia_id):
             if cliente_response.data:
                 cliente_nome = cliente_response.data.get('nome')
         
-        # Processar invoice_info
-        invoice_info = t.get('invoice_info')
+        # 🔥 PROCESSAR invoice_info (se for string JSON)
+        invoice_info = transferencia.get('invoice_info')
         if invoice_info and isinstance(invoice_info, str):
             try:
                 import json
@@ -12033,38 +12043,77 @@ def api_admin_transferencia_detalhes(transferencia_id):
             except:
                 invoice_info = None
         
+        # 🔥 PROCESSAR dados_swift_pagamento (se for string JSON)
+        dados_swift = transferencia.get('dados_swift_pagamento')
+        if dados_swift and isinstance(dados_swift, str):
+            try:
+                import json
+                dados_swift = json.loads(dados_swift)
+            except:
+                dados_swift = None
+        
+        # 🔥 MONTAR RESPOSTA COMPLETA (IGUAL AO CLIENTE)
         return jsonify({
             "success": True,
             "transferencia": {
-                'id': t.get('id'),
-                'tipo': t.get('tipo'),
-                'status': t.get('status'),
-                'data': t.get('created_at') or t.get('data'),
-                'moeda': t.get('moeda', 'USD'),
-                'valor': float(t.get('valor', 0)),
+                'id': transferencia.get('id'),
+                'tipo': transferencia.get('tipo'),
+                'status': transferencia.get('status'),
+                'data': transferencia.get('data'),
+                'data_solicitacao': transferencia.get('data_solicitacao'),
+                'data_aprovacao': transferencia.get('data_aprovacao'),
+                'data_conclusao': transferencia.get('data_conclusao'),
+                'data_processing': transferencia.get('data_processing'),
+                'created_at': transferencia.get('created_at'),
+                'moeda': transferencia.get('moeda', 'USD'),
+                'valor': float(transferencia.get('valor', 0)),
                 'cliente': cliente_username,
                 'cliente_nome': cliente_nome,
-                'usuario': t.get('usuario'),
-                'beneficiario': t.get('beneficiario'),
-                'nome_banco': t.get('nome_banco'),
-                'codigo_swift': t.get('codigo_swift'),
-                'iban_account': t.get('iban_account'),
-                'finalidade': t.get('finalidade'),
-                'descricao': t.get('descricao'),
-                'motivo_recusa': t.get('motivo_recusa'),
-                'par_moedas': t.get('par_moedas'),
-                'valor_origem': float(t.get('valor_origem', 0)) if t.get('valor_origem') else None,
-                'valor_destino': float(t.get('valor_destino', 0)) if t.get('valor_destino') else None,
-                'cotacao': t.get('cotacao'),
-                'moeda_origem': t.get('moeda_origem'),
-                'moeda_destino': t.get('moeda_destino'),
+                'usuario': transferencia.get('usuario'),
+                'solicitado_por': transferencia.get('solicitado_por'),
+                'executado_por': transferencia.get('executado_por'),
+                'concluido_por': transferencia.get('concluido_por'),
+                'conta_remetente': transferencia.get('conta_remetente'),
+                'conta_destinatario': transferencia.get('conta_destinatario'),
+                
+                # Dados do beneficiário
+                'beneficiario': transferencia.get('beneficiario'),
+                'endereco_beneficiario': transferencia.get('endereco_beneficiario'),
+                'cidade': transferencia.get('cidade'),
+                'pais': transferencia.get('pais'),
+                
+                # Dados do banco
+                'nome_banco': transferencia.get('nome_banco'),
+                'endereco_banco': transferencia.get('endereco_banco'),
+                'cidade_banco': transferencia.get('cidade_banco'),
+                'pais_banco': transferencia.get('pais_banco'),
+                'codigo_swift': transferencia.get('codigo_swift'),
+                'iban_account': transferencia.get('iban_account'),
+                'aba_routing': transferencia.get('aba_routing'),
+                
+                # Informações adicionais
+                'finalidade': transferencia.get('finalidade'),
+                'descricao': transferencia.get('descricao'),
+                'motivo_recusa': transferencia.get('motivo_recusa'),
+                
+                # Dados SWIFT
+                'dados_swift_pagamento': dados_swift,
+                
+                # Invoice
+                'invoice_info': invoice_info,
                 'tem_invoice': invoice_info is not None and invoice_info.get('caminho_arquivo'),
-                'invoice_info': invoice_info
+                
+                # Para compatibilidade com o frontend
+                'invoice': invoice_info is not None,
+                'invoice_status': invoice_info.get('status') if invoice_info else None,
+                'invoice_recusada': invoice_info.get('status') == 'rejected' if invoice_info else False
             }
         })
         
     except Exception as e:
         print(f"❌ Erro ao buscar detalhes da transferência: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"success": False, "message": str(e)}), 500
 
 
