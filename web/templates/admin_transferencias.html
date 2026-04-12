@@ -572,291 +572,335 @@
         let paginaAtual = 1;
         let itensPorPagina = 20;
         let cotacoesCache = {};
-        let cotacoesAtualizadas = null;
+        let isLoading = false;
+        let searchDebounceTimer = null;
+        let filtroStatus = 'todos';
+        let filtroCliente = '';
+        let filtroPeriodo = '0';
+        let buscaTexto = '';
+        let totalItens = 0;
+
+        // Cache de resultados de busca
+        let searchCache = new Map();
 
         // ============================================
-        // INICIALIZAÇÃO
+        // INICIALIZAÇÃO OTIMIZADA
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('🚀 Tela Transferências carregada');
+            console.log('🚀 Tela Transferências carregada (versão otimizada)');
             carregarClientes();
             carregarTransferencias();
             
-            // Eventos de filtro
-            document.getElementById('filtroStatus').addEventListener('change', aplicarFiltros);
-            document.getElementById('filtroCliente').addEventListener('change', aplicarFiltros);
-            document.getElementById('filtroPeriodo').addEventListener('change', aplicarFiltros);
-            document.getElementById('searchInput').addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') aplicarFiltros();
+            // Eventos com DEBOUNCE para busca
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+                    searchDebounceTimer = setTimeout(() => {
+                        buscaTexto = e.target.value.toLowerCase();
+                        aplicarFiltros();
+                    }, 500); // Aguarda 500ms após parar de digitar
+                });
+            }
+            
+            // Eventos normais para selects
+            document.getElementById('filtroStatus')?.addEventListener('change', (e) => {
+                filtroStatus = e.target.value;
+                aplicarFiltros();
+            });
+            
+            document.getElementById('filtroCliente')?.addEventListener('change', (e) => {
+                filtroCliente = e.target.value;
+                aplicarFiltros();
+            });
+            
+            document.getElementById('filtroPeriodo')?.addEventListener('change', (e) => {
+                filtroPeriodo = e.target.value;
+                aplicarFiltros();
             });
         });
 
         // ============================================
-        // CARREGAR DADOS
+        // CARREGAR CLIENTES (apenas nomes, não dados completos)
         // ============================================
         async function carregarClientes() {
             try {
-                const response = await fetch('/api/admin/clientes');
+                const response = await fetch('/api/admin/clientes?fields=username,nome');
                 const data = await response.json();
                 if (data.success) {
                     clientes = data.clientes;
                     const select = document.getElementById('filtroCliente');
-                    select.innerHTML = '<option value="">Todos os clientes</option>';
-                    clientes.forEach(c => {
-                        const option = document.createElement('option');
-                        option.value = c.username;
-                        option.textContent = `${c.nome} (${c.username})`;
-                        select.appendChild(option);
-                    });
+                    if (select) {
+                        select.innerHTML = '<option value="">Todos os clientes</option>';
+                        clientes.forEach(c => {
+                            const option = document.createElement('option');
+                            option.value = c.username;
+                            option.textContent = `${c.nome} (${c.username})`;
+                            select.appendChild(option);
+                        });
+                    }
                 }
             } catch (error) {
                 console.error('Erro ao carregar clientes:', error);
             }
         }
 
+        // ============================================
+        // CARREGAR TRANSFERÊNCIAS COM PAGINAÇÃO NO BACKEND
+        // ============================================
         async function carregarTransferencias() {
+            if (isLoading) return;
+            isLoading = true;
+            
+            mostrarLoading(true);
+            
+            try {
+                // 🔥 CONSTRUIR URL COM FILTROS (para paginação no backend)
+                const params = new URLSearchParams();
+                params.append('pagina', paginaAtual);
+                params.append('limite', itensPorPagina);
+                
+                if (filtroStatus !== 'todos') params.append('status', filtroStatus);
+                if (filtroCliente) params.append('cliente', filtroCliente);
+                if (filtroPeriodo !== '0') params.append('dias', filtroPeriodo);
+                if (buscaTexto) params.append('busca', buscaTexto);
+                
+                // 🔥 NOVO ENDPOINT COM PAGINAÇÃO (precisa criar no backend)
+                const response = await fetch(`/api/admin/transferencias/paginadas?${params.toString()}`);
+                
+                if (!response.ok) {
+                    // Fallback: carregar tudo e filtrar no frontend
+                    await carregarTransferenciasFull();
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    transferenciasFiltradas = data.transferencias;
+                    totalItens = data.total;
+                    
+                    // Carregar cotações apenas uma vez
+                    if (Object.keys(cotacoesCache).length === 0) {
+                        await carregarCotacoes();
+                    }
+                    
+                    // Converter valores para USD (apenas as transferências carregadas)
+                    for (const t of transferenciasFiltradas) {
+                        if (!t.valor_usd) {
+                            t.valor_usd = await converterParaUSD(t.valor, t.moeda, t.data);
+                        }
+                    }
+                    
+                    atualizarEstatisticas(data.estatisticas || calcularEstatisticasLocais());
+                    renderizarTabela();
+                    atualizarPaginacao(data.totalPaginas || Math.ceil(totalItens / itensPorPagina));
+                }
+                
+            } catch (error) {
+                console.error('Erro ao carregar transferências:', error);
+                // Fallback: carregar tudo
+                await carregarTransferenciasFull();
+            } finally {
+                isLoading = false;
+                mostrarLoading(false);
+            }
+        }
+
+        // ============================================
+        // FALLBACK: CARREGAR TUDO E FILTRAR NO FRONTEND
+        // ============================================
+        async function carregarTransferenciasFull() {
             try {
                 const response = await fetch('/api/admin/transferencias');
                 const data = await response.json();
                 
                 if (data.success) {
                     todasTransferencias = data.transferencias;
-                    
-                    // Buscar cotações atualizadas
                     await carregarCotacoes();
                     
-                    // Converter valores para USD
                     for (const t of todasTransferencias) {
                         t.valor_usd = await converterParaUSD(t.valor, t.moeda, t.data);
                     }
                     
-                    aplicarFiltros();
-                } else {
-                    console.error('Erro:', data.message);
-                    document.getElementById('transferenciasBody').innerHTML = `<table><td colspan="8" class="loading">❌ ${data.message}</td></tr>`;
+                    aplicarFiltrosFrontend();
                 }
             } catch (error) {
-                console.error('Erro ao carregar transferências:', error);
-                document.getElementById('transferenciasBody').innerHTML = '<tr><td colspan="8" class="loading">❌ Erro ao carregar transferências</td></tr>';
+                console.error('Erro ao carregar transferências (fallback):', error);
+                document.getElementById('transferenciasBody').innerHTML = `<tr><td colspan="8" class="loading">❌ Erro ao carregar transferências</td></tr>`;
             }
         }
 
         // ============================================
-        // COTAÇÕES API
+        // FILTRAR NO FRONTEND (FALLBACK)
         // ============================================
-        async function carregarCotacoes() {
-            try {
-                const response = await fetch('/api/cotacoes/atualizadas');
-                const data = await response.json();
-                if (data.success) {
-                    cotacoesCache = data.cotacoes;
-                    cotacoesAtualizadas = new Date();
-                    console.log('✅ Cotações atualizadas:', cotacoesCache);
-                }
-            } catch (error) {
-                console.error('Erro ao carregar cotações:', error);
-                // Fallback: taxas padrão
-                cotacoesCache = { USD_BRL: 5.20, USD_EUR: 0.92, USD_GBP: 0.79 };
-            }
-        }
-
-        async function converterParaUSD(valor, moeda, dataTransacao) {
-            if (moeda === 'USD') return valor;
-            
-            // Tentar buscar cotação da data da transação (se disponível)
-            // Por enquanto, usar cotação atual
-            const par = `USD_${moeda}`;
-            let taxa = cotacoesCache[par];
-            
-            if (!taxa) {
-                // Tentar par inverso
-                const parInverso = `${moeda}_USD`;
-                const taxaInversa = cotacoesCache[parInverso];
-                if (taxaInversa) {
-                    taxa = 1 / taxaInversa;
-                } else {
-                    // Fallback
-                    const fallbacks = { BRL: 5.20, EUR: 0.92, GBP: 0.79 };
-                    taxa = fallbacks[moeda] || 1;
-                }
-            }
-            
-            return valor / taxa;
-        }
-
-        // ============================================
-        // FILTROS
-        // ============================================
-        function aplicarFiltros() {
-            const statusFiltro = document.getElementById('filtroStatus').value;
-            const clienteFiltro = document.getElementById('filtroCliente').value;
-            const periodoFiltro = parseInt(document.getElementById('filtroPeriodo').value);
-            const buscaTexto = document.getElementById('searchInput').value.toLowerCase();
-            
+        function aplicarFiltrosFrontend() {
             let dataLimite = null;
-            if (periodoFiltro > 0) {
+            if (filtroPeriodo && filtroPeriodo !== '0') {
                 dataLimite = new Date();
-                dataLimite.setDate(dataLimite.getDate() - periodoFiltro);
+                dataLimite.setDate(dataLimite.getDate() - parseInt(filtroPeriodo));
             }
             
             transferenciasFiltradas = todasTransferencias.filter(t => {
-                // Filtro status
-                if (statusFiltro !== 'todos') {
-                    if (t.status !== statusFiltro) return false;
-                }
-                
-                // Filtro cliente
-                if (clienteFiltro && t.cliente !== clienteFiltro && t.usuario !== clienteFiltro) return false;
-                
-                // Filtro período
+                if (filtroStatus !== 'todos' && t.status !== filtroStatus) return false;
+                if (filtroCliente && t.cliente !== filtroCliente && t.usuario !== filtroCliente) return false;
                 if (dataLimite && t.data) {
                     const dataTransacao = new Date(t.data);
                     if (dataTransacao < dataLimite) return false;
                 }
-                
-                // Filtro busca
                 if (buscaTexto) {
-                    const camposBusca = [
-                        t.id, t.beneficiario, t.cliente, t.usuario, t.descricao
-                    ].join(' ').toLowerCase();
+                    const camposBusca = [t.id, t.beneficiario, t.cliente, t.usuario, t.descricao].join(' ').toLowerCase();
                     if (!camposBusca.includes(buscaTexto)) return false;
                 }
-                
                 return true;
             });
             
-            atualizarEstatisticas();
+            totalItens = transferenciasFiltradas.length;
+            atualizarEstatisticas(calcularEstatisticasLocais());
             paginaAtual = 1;
             renderizarTabela();
+            atualizarPaginacao(Math.ceil(totalItens / itensPorPagina));
         }
 
-        function limparFiltros() {
-            document.getElementById('filtroStatus').value = 'todos';
-            document.getElementById('filtroCliente').value = '';
-            document.getElementById('filtroPeriodo').value = '0';
-            document.getElementById('searchInput').value = '';
-            aplicarFiltros();
-        }
-
-        function atualizarEstatisticas() {
+        // ============================================
+        // CALCULAR ESTATÍSTICAS LOCALMENTE
+        // ============================================
+        function calcularEstatisticasLocais() {
             const total = transferenciasFiltradas.length;
             const pendentes = transferenciasFiltradas.filter(t => t.status === 'solicitada' || t.status === 'pending').length;
             const processando = transferenciasFiltradas.filter(t => t.status === 'processing').length;
             const concluidas = transferenciasFiltradas.filter(t => t.status === 'completed').length;
-            
-            document.getElementById('totalTransacoes').textContent = total;
-            document.getElementById('totalPendentes').textContent = pendentes;
-            document.getElementById('totalProcessando').textContent = processando;
-            document.getElementById('totalConcluidas').textContent = concluidas;
+            return { total, pendentes, processando, concluidas };
         }
 
         // ============================================
-        // RENDERIZAR TABELA
+        // ATUALIZAR ESTATÍSTICAS
+        // ============================================
+        function atualizarEstatisticas(stats) {
+            document.getElementById('totalTransacoes').textContent = stats.total || transferenciasFiltradas.length;
+            document.getElementById('totalPendentes').textContent = stats.pendentes || transferenciasFiltradas.filter(t => t.status === 'solicitada' || t.status === 'pending').length;
+            document.getElementById('totalProcessando').textContent = stats.processando || transferenciasFiltradas.filter(t => t.status === 'processing').length;
+            document.getElementById('totalConcluidas').textContent = stats.concluidas || transferenciasFiltradas.filter(t => t.status === 'completed').length;
+        }
+
+        // ============================================
+        // APLICAR FILTROS (com cache)
+        // ============================================
+        function aplicarFiltros() {
+            // Criar chave de cache
+            const cacheKey = `${filtroStatus}|${filtroCliente}|${filtroPeriodo}|${buscaTexto}`;
+            
+            // Verificar cache
+            if (searchCache.has(cacheKey)) {
+                console.log('📦 Usando cache para:', cacheKey);
+                transferenciasFiltradas = searchCache.get(cacheKey);
+                totalItens = transferenciasFiltradas.length;
+                atualizarEstatisticas(calcularEstatisticasLocais());
+                paginaAtual = 1;
+                renderizarTabela();
+                atualizarPaginacao(Math.ceil(totalItens / itensPorPagina));
+                return;
+            }
+            
+            // Se não tiver cache, carregar do backend
+            if (typeof carregarTransferencias === 'function') {
+                carregarTransferencias();
+            } else {
+                aplicarFiltrosFrontend();
+                // Salvar no cache
+                searchCache.set(cacheKey, [...transferenciasFiltradas]);
+            }
+        }
+
+        // ============================================
+        // LIMPAR FILTROS
+        // ============================================
+        function limparFiltros() {
+            filtroStatus = 'todos';
+            filtroCliente = '';
+            filtroPeriodo = '0';
+            buscaTexto = '';
+            
+            document.getElementById('filtroStatus').value = 'todos';
+            document.getElementById('filtroCliente').value = '';
+            document.getElementById('filtroPeriodo').value = '0';
+            document.getElementById('searchInput').value = '';
+            
+            aplicarFiltros();
+        }
+
+        // ============================================
+        // RENDERIZAR TABELA (otimizada)
         // ============================================
         function renderizarTabela() {
             const tbody = document.getElementById('transferenciasBody');
+            if (!tbody) return;
+            
             const inicio = (paginaAtual - 1) * itensPorPagina;
             const fim = inicio + itensPorPagina;
             const paginaTransacoes = transferenciasFiltradas.slice(inicio, fim);
             
             if (paginaTransacoes.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="8" class="loading">📭 Nenhuma transferência encontrada</td></tr>';
-                atualizarPaginacao();
                 return;
             }
             
-            tbody.innerHTML = '';
+            // Usar DocumentFragment para melhor performance
+            const fragment = document.createDocumentFragment();
             
-            // 🔥 LOG PARA DEBUG - MOSTRA QUAIS TRANSFERÊNCIAS TÊM INVOICE
-            console.log('=== TRANSFERÊNCIAS COM INVOICE ===');
             for (const t of paginaTransacoes) {
-                console.log('Transferência:', t.id, '| tem_invoice:', t.tem_invoice, '| status:', t.status);
+                const row = document.createElement('tr');
                 
-                const row = tbody.insertRow();
-                
-                // ID
-                row.insertCell(0).innerHTML = `<strong>${escapeHtml(t.id)}</strong>`;
-                
-                // Data
-                row.insertCell(1).textContent = formatarData(t.data);
-                
-                // Cliente
-                const clienteNome = t.cliente_nome || t.cliente || t.usuario || '-';
-                row.insertCell(2).textContent = escapeHtml(clienteNome);
-                
-                // Tipo
-                const tipoDisplay = 'Internacional';
-                row.insertCell(3).textContent = tipoDisplay;
-                
-                // Valor Original
-                const simbolo = obterSimboloMoeda(t.moeda);
-                row.insertCell(4).innerHTML = `${simbolo} ${formatarValor(t.valor)}`;
-                
-                // Valor USD
-                const valorUsd = t.valor_usd || t.valor;
-                row.insertCell(5).innerHTML = `$ ${formatarValor(valorUsd)}`;
-                
-                // Status
-                const statusClass = getStatusClass(t.status);
-                const statusText = getStatusText(t.status);
-                row.insertCell(6).innerHTML = `<span class="status-badge ${statusClass}">${statusText}</span>`;
-                
-                // Ações
-                const temInvoice = t.tem_invoice === true;
-                const acoesCell = row.insertCell(7);
-                acoesCell.innerHTML = `
-                    <button class="btn-acao btn-detalhes" onclick="verDetalhes('${t.id}')" title="Ver detalhes">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="btn-acao btn-invoice ${!temInvoice ? 'disabled' : ''}" 
-                            onclick="${temInvoice ? `abrirInvoice('${t.id}')` : ''}" 
-                            title="${temInvoice ? 'Ver invoice' : 'Sem invoice'}" 
-                            ${!temInvoice ? 'disabled' : ''}>
-                        <i class="fas fa-file-invoice"></i>
-                    </button>
+                row.innerHTML = `
+                    <td><strong>${escapeHtml(t.id)}</strong></td>
+                    <td>${formatarData(t.data)}</td>
+                    <td>${escapeHtml(t.cliente_nome || t.cliente || t.usuario || '-')}</td>
+                    <td>Internacional</td>
+                    <td>${obterSimboloMoeda(t.moeda)} ${formatarValor(t.valor)}</td>
+                    <td>$ ${formatarValor(t.valor_usd || t.valor)}</td>
+                    <td><span class="status-badge ${getStatusClass(t.status)}">${getStatusText(t.status)}</span></td>
+                    <td>
+                        <button class="btn-acao btn-detalhes" onclick="verDetalhes('${t.id}')" title="Ver detalhes">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn-acao btn-invoice ${!t.tem_invoice ? 'disabled' : ''}" 
+                                onclick="${t.tem_invoice ? `abrirInvoice('${t.id}')` : ''}" 
+                                title="${t.tem_invoice ? 'Ver invoice' : 'Sem invoice'}" 
+                                ${!t.tem_invoice ? 'disabled' : ''}>
+                            <i class="fas fa-file-invoice"></i>
+                        </button>
+                    </td>
                 `;
+                
+                fragment.appendChild(row);
             }
             
-            atualizarPaginacao();
-        }
-
-        function getStatusClass(status) {
-            const map = {
-                'completed': 'status-completed',
-                'processing': 'status-processing',
-                'solicitada': 'status-pending',
-                'pending': 'status-pending',
-                'rejected': 'status-rejected'
-            };
-            return map[status] || 'status-pending';
-        }
-
-        function getStatusText(status) {
-            const map = {
-                'completed': 'Concluída',
-                'processing': 'Processando',
-                'solicitada': 'Pendente',
-                'pending': 'Pendente',
-                'rejected': 'Recusada'
-            };
-            return map[status] || status;
+            // Limpar e adicionar de uma vez (melhor performance)
+            tbody.innerHTML = '';
+            tbody.appendChild(fragment);
         }
 
         // ============================================
         // PAGINAÇÃO
         // ============================================
-        function atualizarPaginacao() {
-            const totalPaginas = Math.ceil(transferenciasFiltradas.length / itensPorPagina);
-            document.getElementById('paginaInfo').textContent = `Página ${paginaAtual} de ${totalPaginas || 1}`;
+        function atualizarPaginacao(totalPaginas) {
+            const pagInfo = document.getElementById('paginaInfo');
+            const btnAnterior = document.getElementById('btnAnterior');
+            const btnProximo = document.getElementById('btnProximo');
             
-            document.getElementById('btnAnterior').disabled = paginaAtual === 1;
-            document.getElementById('btnProximo').disabled = paginaAtual === totalPaginas || totalPaginas === 0;
+            if (pagInfo) pagInfo.textContent = `Página ${paginaAtual} de ${totalPaginas || 1}`;
+            if (btnAnterior) btnAnterior.disabled = paginaAtual === 1;
+            if (btnProximo) btnProximo.disabled = paginaAtual === totalPaginas || totalPaginas === 0;
         }
 
         function paginaAnterior() {
             if (paginaAtual > 1) {
                 paginaAtual--;
-                renderizarTabela();
+                if (typeof carregarTransferencias === 'function' && document.getElementById('filtroStatus')) {
+                    carregarTransferencias();
+                } else {
+                    renderizarTabela();
+                }
             }
         }
 
@@ -864,853 +908,53 @@
             const totalPaginas = Math.ceil(transferenciasFiltradas.length / itensPorPagina);
             if (paginaAtual < totalPaginas) {
                 paginaAtual++;
-                renderizarTabela();
-            }
-        }
-
-        // ============================================
-        // MODAL DE DETALHES ADMIN (ESTILO CLIENTE - COMPLETO)
-        // ============================================
-
-        function criarModalDetalhesAdmin(transferencia) {
-            // Criar overlay
-            const modalOverlay = document.createElement('div');
-            modalOverlay.id = 'modalDetalhesAdmin';
-            modalOverlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.85);
-                z-index: 10000;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                backdrop-filter: blur(5px);
-                animation: fadeIn 0.3s ease;
-            `;
-            
-            // Obter cores do tema atual
-            const isLightTheme = document.documentElement.getAttribute('data-theme') === 'light';
-            const bgCard = isLightTheme ? '#f0f4f9' : '#0d1117';
-            const textColor = isLightTheme ? '#1a1d24' : '#e0e0e0';
-            const textSecundary = isLightTheme ? '#5a6470' : '#8b949e';
-            const borderColor = isLightTheme ? '#c5ced8' : '#1e232e';
-            
-            // Criar container do modal
-            const modalContainer = document.createElement('div');
-            modalContainer.style.cssText = `
-                background: ${bgCard};
-                border-radius: 12px;
-                width: 750px;
-                max-width: 90vw;
-                max-height: 85vh;
-                overflow: hidden;
-                border: 1px solid ${borderColor};
-                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-                display: flex;
-                flex-direction: column;
-                animation: slideUp 0.3s ease;
-            `;
-            
-            // Cabeçalho
-            const modalHeader = document.createElement('div');
-            modalHeader.style.cssText = `
-                background: linear-gradient(90deg, #1a5fb4, #2d8fff);
-                color: white;
-                padding: 20px 25px;
-                font-size: 18px;
-                font-weight: bold;
-                border-bottom: 2px solid #1a5fb4;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            `;
-            
-            const statusClass = getStatusClass(transferencia.status);
-            const statusText = getStatusText(transferencia.status);
-            
-            modalHeader.innerHTML = `
-                <div>
-                    <i class="fas fa-exchange-alt"></i>
-                    DETALHES COMPLETOS DA TRANSFERÊNCIA
-                </div>
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <span class="status-badge ${statusClass}" style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 12px;">
-                        <i class="fas ${getStatusIcon(transferencia.status)}"></i> ${statusText}
-                    </span>
-                    <div style="font-size: 14px; font-weight: normal; opacity: 0.9;">
-                        ID: #${transferencia.id}
-                    </div>
-                </div>
-            `;
-            
-            // Conteúdo com scroll
-            const modalContent = document.createElement('div');
-            modalContent.style.cssText = `
-                flex: 1;
-                overflow-y: auto;
-                padding: 25px;
-                color: ${textColor};
-                font-size: 14px;
-                line-height: 1.6;
-            `;
-            
-            // GERAR CONTEÚDO COMPLETO
-            modalContent.innerHTML = gerarConteudoDetalhesAdmin(transferencia, isLightTheme);
-            
-            // Footer
-            const modalFooter = document.createElement('div');
-            modalFooter.style.cssText = `
-                padding: 20px 25px;
-                border-top: 1px solid ${borderColor};
-                display: flex;
-                justify-content: flex-end;
-                gap: 10px;
-            `;
-            
-            const btnFechar = document.createElement('button');
-            btnFechar.innerHTML = '<i class="fas fa-times"></i> FECHAR';
-            btnFechar.style.cssText = `
-                padding: 10px 25px;
-                background: #9b59b6;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-weight: bold;
-                cursor: pointer;
-                font-size: 14px;
-                transition: all 0.3s ease;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            `;
-            
-            btnFechar.onmouseover = () => {
-                btnFechar.style.background = '#8e44ad';
-                btnFechar.style.transform = 'translateY(-2px)';
-            };
-            btnFechar.onmouseout = () => {
-                btnFechar.style.background = '#9b59b6';
-                btnFechar.style.transform = 'translateY(0)';
-            };
-            btnFechar.onclick = () => {
-                document.body.removeChild(modalOverlay);
-            };
-            
-            modalFooter.appendChild(btnFechar);
-            
-            // Montar modal
-            modalContainer.appendChild(modalHeader);
-            modalContainer.appendChild(modalContent);
-            modalContainer.appendChild(modalFooter);
-            modalOverlay.appendChild(modalContainer);
-            
-            // Adicionar ao body
-            document.body.appendChild(modalOverlay);
-            
-            // Fechar ao clicar fora
-            modalOverlay.onclick = (e) => {
-                if (e.target === modalOverlay) {
-                    document.body.removeChild(modalOverlay);
-                }
-            };
-            
-            // Adicionar estilos específicos
-            adicionarEstilosModalAdmin(isLightTheme, borderColor, textSecundary, textColor);
-        }
-
-        // ============================================
-        // GERAR CONTEÚDO COMPLETO DOS DETALHES
-        // ============================================
-
-        function gerarConteudoDetalhesAdmin(dados, isLightTheme) {
-            const textSecundary = isLightTheme ? '#5a6470' : '#8b949e';
-            const textColor = isLightTheme ? '#1a1d24' : '#e0e0e0';
-            const borderColor = isLightTheme ? '#c5ced8' : '#2a2f3a';
-            const successColor = '#2ec27e';
-            const alertColor = '#f39c12';
-            const dangerColor = '#e01b24';
-            const primaryColor = '#1a5fb4';
-            
-            if (!dados) return '<div>Erro: Dados não disponíveis</div>';
-            
-            const statusText = getStatusText(dados.status);
-            const statusClass = getStatusClass(dados.status);
-            const tipoTexto = dados.tipo === 'transferencia_internacional' ? 'INTERNACIONAL' : dados.tipo === 'cambio' ? 'CÂMBIO' : 'INTERNA';
-            
-            // Formatar datas usando os campos corretos
-            const dataSolicitacaoFormatada = formatarDataCompleta(dados.data_solicitacao || dados.created_at);
-            const dataAprovacaoFormatada = dados.data_aprovacao ? formatarDataCompleta(dados.data_aprovacao) : null;
-            const dataConclusaoFormatada = dados.data_conclusao ? formatarDataCompleta(dados.data_conclusao) : null;
-            const dataProcessingFormatada = dados.data_processing ? formatarDataCompleta(dados.data_processing) : null;
-            
-            // Valor formatado
-            const valorFormatado = formatarMoedaCompleta(dados.valor, dados.moeda);
-            
-            let html = '';
-            
-            // SEÇÃO 1: INFORMAÇÕES BÁSICAS
-            html += `
-                <div class="detalhes-secao-admin">
-                    <div class="detalhes-titulo-admin">
-                        <i class="fas fa-info-circle"></i>
-                        INFORMAÇÕES BÁSICAS
-                    </div>
-                    <div class="detalhes-grid-admin">
-                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">ID:</span><span class="detalhes-valor-admin">${dados.id || 'N/A'}</span></div>
-                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">Status:</span><span class="detalhes-valor-admin"><span class="status-badge ${statusClass}">${statusText}</span></span></div>
-                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">Tipo:</span><span class="detalhes-valor-admin">${tipoTexto}</span></div>
-                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">Valor:</span><span class="detalhes-valor-admin" style="font-weight: bold; color: ${primaryColor}">${valorFormatado}</span></div>
-                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">Cliente:</span><span class="detalhes-valor-admin">${dados.cliente || dados.usuario || dados.solicitado_por || 'N/A'}</span></div>
-                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">Data Solicitação:</span><span class="detalhes-valor-admin">${dataSolicitacaoFormatada}</span></div>
-                    </div>
-                </div>
-            `;
-            
-            // SEÇÃO 2: DATAS DE PROCESSAMENTO
-            if (dataAprovacaoFormatada || dataProcessingFormatada || dataConclusaoFormatada) {
-                html += `<div class="detalhes-secao-admin"><div class="detalhes-titulo-admin"><i class="fas fa-clock"></i> DATAS DE PROCESSAMENTO</div><div class="detalhes-grid-admin">`;
-                if (dataAprovacaoFormatada) {
-                    html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">Data Aprovação:</span><span class="detalhes-valor-admin">${dataAprovacaoFormatada}</span></div>`;
-                    html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">Aprovado por:</span><span class="detalhes-valor-admin">${dados.executado_por || 'Admin'}</span></div>`;
-                }
-                if (dataProcessingFormatada && !dataAprovacaoFormatada) {
-                    html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">Data Processamento:</span><span class="detalhes-valor-admin">${dataProcessingFormatada}</span></div>`;
-                }
-                if (dataConclusaoFormatada) {
-                    html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">Data Conclusão:</span><span class="detalhes-valor-admin">${dataConclusaoFormatada}</span></div>`;
-                    html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">Concluído por:</span><span class="detalhes-valor-admin">${dados.concluido_por || dados.executado_por || 'Admin'}</span></div>`;
-                }
-                html += `</div></div>`;
-            }
-            
-            // SEÇÃO 3: BENEFICIÁRIO (usando os campos EXATOS do Supabase)
-            html += `
-                <div class="detalhes-secao-admin">
-                    <div class="detalhes-titulo-admin"><i class="fas fa-user-tie"></i> BENEFICIÁRIO</div>
-                    <div class="detalhes-grid-admin">
-                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">Nome:</span><span class="detalhes-valor-admin">${dados.beneficiario || 'N/A'}</span></div>
-                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">Endereço:</span><span class="detalhes-valor-admin">${dados.endereco_beneficiario || 'N/A'}</span></div>
-                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">Cidade:</span><span class="detalhes-valor-admin">${dados.cidade || 'N/A'}</span></div>
-                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">País:</span><span class="detalhes-valor-admin">${dados.pais || 'N/A'}</span></div>
-                    </div>
-                </div>
-            `;
-            
-            // SEÇÃO 4: DADOS BANCÁRIOS (usando os campos EXATOS do Supabase)
-            html += `
-                <div class="detalhes-secao-admin">
-                    <div class="detalhes-titulo-admin"><i class="fas fa-university"></i> DADOS BANCÁRIOS</div>
-                    <div class="detalhes-grid-admin">
-                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">Banco:</span><span class="detalhes-valor-admin">${dados.nome_banco || 'N/A'}</span></div>
-                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">Endereço Banco:</span><span class="detalhes-valor-admin">${dados.endereco_banco || 'N/A'}</span></div>
-                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">Cidade Banco:</span><span class="detalhes-valor-admin">${dados.cidade_banco || 'N/A'}</span></div>
-                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">País Banco:</span><span class="detalhes-valor-admin">${dados.pais_banco || 'N/A'}</span></div>
-                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">SWIFT/BIC:</span><span class="detalhes-valor-admin" style="font-family: monospace;">${dados.codigo_swift || 'N/A'}</span></div>
-                        <div class="detalhes-item-admin"><span class="detalhes-label-admin">IBAN/Conta:</span><span class="detalhes-valor-admin" style="font-family: monospace;">${dados.iban_account || 'N/A'}</span></div>
-                        ${dados.aba_routing ? `<div class="detalhes-item-admin"><span class="detalhes-label-admin">ABA/Routing:</span><span class="detalhes-valor-admin">${dados.aba_routing}</span></div>` : ''}
-                    </div>
-                </div>
-            `;
-            
-            // SEÇÃO 5: INFORMAÇÕES ADICIONAIS
-            if (dados.finalidade || dados.descricao) {
-                html += `<div class="detalhes-secao-admin"><div class="detalhes-titulo-admin"><i class="fas fa-sticky-note"></i> INFORMAÇÕES ADICIONAIS</div><div class="detalhes-grid-admin">`;
-                if (dados.finalidade) html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">Finalidade:</span><span class="detalhes-valor-admin">${dados.finalidade}</span></div>`;
-                if (dados.descricao) html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">Descrição:</span><span class="detalhes-valor-admin">${dados.descricao}</span></div>`;
-                html += `</div></div>`;
-            }
-            
-            // SEÇÃO 6: MOTIVO DA RECUSA
-            if (dados.status === 'rejected' && dados.motivo_recusa) {
-                html += `<div class="detalhes-secao-admin"><div class="detalhes-titulo-admin" style="color: ${dangerColor};"><i class="fas fa-exclamation-triangle"></i> MOTIVO DA RECUSA</div><div class="detalhes-item-admin" style="grid-template-columns: 1fr;"><span class="detalhes-valor-admin" style="color: ${dangerColor}; font-style: italic;">"${dados.motivo_recusa}"</span></div></div>`;
-            }
-            
-            // 🔥 SEÇÃO 7: DADOS SWIFT (usando o campo dados_swift_pagamento)
-            // Verificar se existem dados SWIFT
-            let swiftData = null;
-            if (dados.dados_swift_pagamento) {
-                swiftData = typeof dados.dados_swift_pagamento === 'string' ? JSON.parse(dados.dados_swift_pagamento) : dados.dados_swift_pagamento;
-            }
-            
-            // Para transferências concluídas, verificar se tem dados SWIFT
-            if (swiftData && Object.keys(swiftData).length > 0) {
-                html += `<div class="detalhes-secao-admin"><div class="detalhes-titulo-admin" style="color: ${primaryColor};"><i class="fas fa-file-invoice-dollar"></i> DADOS SWIFT DO PAGAMENTO</div><div class="detalhes-grid-admin">`;
-                
-                const swiftKeys = [
-                    { key: 'linha1_uetr', label: 'UETR #' },
-                    { key: 'linha2_20', label: ':20:' },
-                    { key: 'linha3_32a', label: ':32A:' },
-                    { key: 'linha4_50k', label: ':50K:' },
-                    { key: 'linha5_57a', label: ':57A:' },
-                    { key: 'linha6_59', label: ':59:' },
-                    { key: 'linha7_beneficiario', label: 'Beneficiário' },
-                    { key: 'linha8_70', label: ':70:' },
-                    { key: 'linha9_71a', label: ':71A:' }
-                ];
-                
-                let temSwiftData = false;
-                swiftKeys.forEach(({ key, label }) => {
-                    if (swiftData[key] && swiftData[key].trim && swiftData[key].trim() !== '') {
-                        temSwiftData = true;
-                        html += `<div class="detalhes-item-admin">
-                                    <span class="detalhes-label-admin">${label}:</span>
-                                    <span class="detalhes-valor-admin" style="font-family: monospace; font-size: 12px; word-break: break-all;">${swiftData[key]}</span>
-                                </div>`;
-                    }
-                });
-                
-                if (!temSwiftData) {
-                    html += `<div class="detalhes-item-admin" style="grid-template-columns: 1fr; text-align: center;">
-                                <span class="detalhes-valor-admin" style="color: ${alertColor};">⚠️ Nenhum dado SWIFT disponível para esta transferência</span>
-                            </div>`;
-                }
-                
-                html += `</div></div>`;
-            } else if (dados.status === 'completed') {
-                // Transferência concluída sem dados SWIFT (mostrar mensagem)
-                html += `<div class="detalhes-secao-admin">
-                            <div class="detalhes-titulo-admin" style="color: ${alertColor};">
-                                <i class="fas fa-info-circle"></i>
-                                DADOS SWIFT
-                            </div>
-                            <div class="detalhes-item-admin" style="grid-template-columns: 1fr; text-align: center;">
-                                <span class="detalhes-valor-admin" style="color: ${alertColor};">ℹ️ Dados SWIFT não registrados para esta transferência</span>
-                            </div>
-                        </div>`;
-            }
-            
-            // SEÇÃO 8: INFORMAÇÕES DA INVOICE
-            let invoiceInfo = null;
-            if (dados.invoice_info) {
-                invoiceInfo = typeof dados.invoice_info === 'string' ? JSON.parse(dados.invoice_info) : dados.invoice_info;
-            }
-            
-            if (invoiceInfo) {
-                const invoiceStatus = invoiceInfo.status || 'pending';
-                const invoiceStatusText = invoiceStatus === 'approved' ? 'Aprovada' : invoiceStatus === 'rejected' ? 'Recusada' : 'Pendente';
-                let invoiceStatusColor = alertColor;
-                if (invoiceStatus === 'approved') invoiceStatusColor = successColor;
-                if (invoiceStatus === 'rejected') invoiceStatusColor = dangerColor;
-                
-                html += `<div class="detalhes-secao-admin"><div class="detalhes-titulo-admin"><i class="fas fa-file-contract"></i> STATUS DA INVOICE</div><div class="detalhes-grid-admin">`;
-                html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">Status:</span><span class="detalhes-valor-admin" style="color: ${invoiceStatusColor}; font-weight: bold;">${invoiceStatusText}</span></div>`;
-                
-                if (invoiceStatus === 'rejected' && invoiceInfo.motivo_recusa) {
-                    html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">Motivo Recusa:</span><span class="detalhes-valor-admin" style="color: ${dangerColor};">${invoiceInfo.motivo_recusa}</span></div>`;
-                }
-                
-                if (invoiceInfo.data_upload) {
-                    html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">Data Upload:</span><span class="detalhes-valor-admin">${formatarDataCompleta(invoiceInfo.data_upload)}</span></div>`;
-                }
-                
-                // Nome do arquivo da invoice (se disponível)
-                if (invoiceInfo.nome_arquivo) {
-                    html += `<div class="detalhes-item-admin"><span class="detalhes-label-admin">Arquivo:</span><span class="detalhes-valor-admin" style="font-size: 11px; word-break: break-all;">${invoiceInfo.nome_arquivo}</span></div>`;
-                }
-                
-                html += `</div></div>`;
-            }
-            
-            return html;
-        }
-
-        // ============================================
-        // FUNÇÕES AUXILIARES
-        // ============================================
-
-        function formatarDataCompleta(dataString) {
-            if (!dataString) return 'N/A';
-            try {
-                const data = new Date(dataString);
-                if (isNaN(data.getTime())) return dataString;
-                const dia = data.getDate().toString().padStart(2, '0');
-                const mes = (data.getMonth() + 1).toString().padStart(2, '0');
-                const ano = data.getFullYear();
-                const horas = data.getHours().toString().padStart(2, '0');
-                const minutos = data.getMinutes().toString().padStart(2, '0');
-                const segundos = data.getSeconds().toString().padStart(2, '0');
-                return `${dia}/${mes}/${ano} ${horas}:${minutos}:${segundos}`;
-            } catch { return dataString; }
-        }
-
-        function formatarMoedaCompleta(valor, moeda) {
-            if (!valor) return '--';
-            const simbolos = { USD: 'US$', EUR: '€', GBP: '£', BRL: 'R$' };
-            const simbolo = simbolos[moeda] || moeda;
-            const valorNumerico = parseFloat(valor);
-            return `${simbolo} ${valorNumerico.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
-        }
-
-        function getStatusIcon(status) {
-            const s = (status || '').toLowerCase();
-            if (s === 'pending' || s === 'pendente' || s === 'solicitada') return 'fa-clock';
-            if (s === 'processing' || s === 'processando') return 'fa-sync-alt';
-            if (s === 'completed' || s === 'concluida' || s === 'aprovada') return 'fa-check-circle';
-            if (s === 'rejected' || s === 'recusada') return 'fa-times-circle';
-            return 'fa-clock';
-        }
-
-        function adicionarEstilosModalAdmin(isLightTheme, borderColor, textSecundary, textColor) {
-            const styleId = 'modalDetalhesAdminStyle';
-            let style = document.getElementById(styleId);
-            if (!style) {
-                style = document.createElement('style');
-                style.id = styleId;
-                document.head.appendChild(style);
-            }
-            style.textContent = `
-                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-                @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-                .detalhes-secao-admin { margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid ${borderColor}; }
-                .detalhes-titulo-admin { color: #1a5fb4; font-size: 15px; font-weight: bold; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
-                .detalhes-grid-admin { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 20px; }
-                .detalhes-item-admin { display: flex; flex-direction: column; gap: 4px; }
-                .detalhes-label-admin { color: ${textSecundary}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
-                .detalhes-valor-admin { color: ${textColor}; font-size: 13px; word-break: break-word; }
-                .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; }
-                .status-pending { background: rgba(243, 156, 18, 0.15); color: #f39c12; }
-                .status-processing { background: rgba(26, 95, 180, 0.15); color: #1a5fb4; }
-                .status-completed { background: rgba(46, 194, 126, 0.15); color: #2ec27e; }
-                .status-rejected { background: rgba(224, 27, 36, 0.15); color: #e01b24; }
-                @media (max-width: 600px) { .detalhes-grid-admin { grid-template-columns: 1fr; } }
-            `;
-        }
-
-        function showLoading(show, message = 'Carregando...') {
-            let loadingDiv = document.getElementById('globalLoading');
-            if (show) {
-                if (!loadingDiv) {
-                    loadingDiv = document.createElement('div');
-                    loadingDiv.id = 'globalLoading';
-                    loadingDiv.style.cssText = `position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 20px 30px; border-radius: 12px; z-index: 10001; display: flex; flex-direction: column; align-items: center; gap: 10px; backdrop-filter: blur(5px);`;
-                    loadingDiv.innerHTML = `<i class="fas fa-spinner fa-spin" style="font-size: 32px;"></i><span>${message}</span>`;
-                    document.body.appendChild(loadingDiv);
+                if (typeof carregarTransferencias === 'function' && document.getElementById('filtroStatus')) {
+                    carregarTransferencias();
                 } else {
-                    loadingDiv.style.display = 'flex';
-                    const span = loadingDiv.querySelector('span');
-                    if (span) span.textContent = message;
+                    renderizarTabela();
                 }
-            } else {
-                if (loadingDiv) loadingDiv.style.display = 'none';
             }
-        }        
-
-        // ============================================
-        // FUNÇÕES AUXILIARES PARA O MODAL
-        // ============================================
-
-        function formatarStatusKivy(status) {
-            const statusMap = {
-                'solicitada': 'PENDENTE',
-                'pendente': 'PENDENTE',
-                'pending': 'PENDENTE',
-                'processando': 'PROCESSANDO',
-                'processing': 'PROCESSANDO',
-                'concluida': 'CONCLUÍDA',
-                'completed': 'CONCLUÍDA',
-                'aprovada': 'CONCLUÍDA',
-                'recusada': 'RECUSADA',
-                'rejected': 'RECUSADA'
-            };
-            return statusMap[status?.toLowerCase()] || status?.toUpperCase() || 'PENDENTE';
-        }
-
-        function formatarStatusInvoiceKivy(status) {
-            const statusMap = {
-                'pending': 'Pendente',
-                'approved': 'Aprovada',
-                'rejected': 'Recusada'
-            };
-            return statusMap[status?.toLowerCase()] || status;
-        }
-
-        function formatarDataKivy(dataString) {
-            if (!dataString) return 'N/A';
-            try {
-                const data = new Date(dataString);
-                if (isNaN(data.getTime())) return dataString;
-                const dia = data.getDate().toString().padStart(2, '0');
-                const mes = (data.getMonth() + 1).toString().padStart(2, '0');
-                const ano = data.getFullYear();
-                const horas = data.getHours().toString().padStart(2, '0');
-                const minutos = data.getMinutes().toString().padStart(2, '0');
-                const segundos = data.getSeconds().toString().padStart(2, '0');
-                return `${dia}/${mes}/${ano} ${horas}:${minutos}:${segundos}`;
-            } catch { return dataString; }
-        }
-
-        function formatarMoedaKivy(valor, moeda) {
-            if (!valor) return '--';
-            const simbolos = { 'USD': 'US$', 'EUR': '€', 'GBP': '£', 'BRL': 'R$' };
-            const simbolo = simbolos[moeda] || moeda;
-            const valorNumerico = parseFloat(valor);
-            return `${simbolo} ${valorNumerico.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
-        }
-
-        function formatarLabelSwift(key) {
-            const labelMap = {
-                'linha1_uetr': 'UETR #',
-                'linha2_20': ':20:',
-                'linha3_32a': ':32A:',
-                'linha4_50k': ':50K:',
-                'linha5_57a': ':57A:',
-                'linha6_59': ':59:',
-                'linha7_beneficiario': 'Beneficiário',
-                'linha8_70': ':70:',
-                'linha9_71a': ':71A:'
-            };
-            return labelMap[key] || key.replace('linha', 'Linha ').replace('_', ':');
-        }
-
-        function getStatusClassKivy(status) {
-            const s = (status || '').toLowerCase();
-            if (s === 'pending' || s === 'pendente' || s === 'solicitada') return 'status-pending';
-            if (s === 'processing' || s === 'processando') return 'status-processing';
-            if (s === 'completed' || s === 'concluida' || s === 'aprovada') return 'status-completed';
-            if (s === 'rejected' || s === 'recusada') return 'status-rejected';
-            return 'status-pending';
         }
 
         // ============================================
-        // GERAR CONTEÚDO DOS DETALHES (IDÊNTICO AO CLIENTE)
+        // MOSTRAR/ESCONDER LOADING
         // ============================================
-
-        function gerarConteudoDetalhesKivy(dados, isLightTheme) {
-            const textColor = isLightTheme ? '#1a1d24' : '#e0e0e0';
-            const textSecundary = isLightTheme ? '#5a6470' : '#8b949e';
-            const borderColor = isLightTheme ? '#c5ced8' : '#2a2f3a';
-            const successColor = '#2ec27e';
-            const alertColor = '#f39c12';
-            const dangerColor = '#e01b24';
-            const primaryColor = '#1a5fb4';
-            
-            const statusText = formatarStatusKivy(dados.status);
-            const statusClass = getStatusClassKivy(dados.status);
-            const tipoTransferencia = dados.tipo === 'transferencia_internacional' ? 'INTERNACIONAL' : 'INTERNA';
-            
-            const dataFormatada = formatarDataKivy(dados.data || dados.created_at);
-            const dataAprovacaoFormatada = dados.data_aprovacao ? formatarDataKivy(dados.data_aprovacao) : null;
-            const dataConclusaoFormatada = dados.data_conclusao ? formatarDataKivy(dados.data_conclusao) : null;
-            const valorFormatado = formatarMoedaKivy(dados.valor, dados.moeda);
-            
-            let html = '';
-            
-            // SEÇÃO 1: INFORMAÇÕES BÁSICAS
-            html += `
-                <div class="detalhes-secao">
-                    <div class="detalhes-titulo">
-                        <i class="fas fa-info-circle"></i>
-                        INFORMAÇÕES BÁSICAS
-                    </div>
-                    <div class="detalhes-item"><span class="detalhes-label">ID:</span><span class="detalhes-valor">${dados.id}</span></div>
-                    <div class="detalhes-item"><span class="detalhes-label">Status:</span><span class="detalhes-valor"><span class="status-badge ${statusClass}">${statusText}</span></span></div>
-                    <div class="detalhes-item"><span class="detalhes-label">Tipo:</span><span class="detalhes-valor">${tipoTransferencia}</span></div>
-                    <div class="detalhes-item"><span class="detalhes-label">Valor:</span><span class="detalhes-valor" style="font-weight: bold; font-size: 15px;">${valorFormatado}</span></div>
-                    <div class="detalhes-item"><span class="detalhes-label">Data:</span><span class="detalhes-valor">${dataFormatada}</span></div>
-                </div>
-            `;
-            
-            // SEÇÃO 2: BENEFICIÁRIO INTERNACIONAL
-            if (tipoTransferencia === 'INTERNACIONAL') {
-                html += `
-                    <div class="detalhes-secao">
-                        <div class="detalhes-titulo"><i class="fas fa-user-tie"></i> BENEFICIÁRIO INTERNACIONAL</div>
-                        <div class="detalhes-item"><span class="detalhes-label">Nome:</span><span class="detalhes-valor">${dados.beneficiario || 'N/A'}</span></div>
-                        <div class="detalhes-item"><span class="detalhes-label">Endereço:</span><span class="detalhes-valor">${dados.endereco_beneficiario || 'N/A'}</span></div>
-                        <div class="detalhes-item"><span class="detalhes-label">Cidade:</span><span class="detalhes-valor">${dados.cidade || dados.cidade_banco || 'N/A'}</span></div>
-                        <div class="detalhes-item"><span class="detalhes-label">País:</span><span class="detalhes-valor">${dados.pais || dados.pais_banco || 'N/A'}</span></div>
-                    </div>
-                    <div class="detalhes-secao">
-                        <div class="detalhes-titulo"><i class="fas fa-university"></i> INFORMAÇÕES BANCÁRIAS</div>
-                        <div class="detalhes-item"><span class="detalhes-label">Banco:</span><span class="detalhes-valor">${dados.nome_banco || 'N/A'}</span></div>
-                        ${dados.endereco_banco ? `<div class="detalhes-item"><span class="detalhes-label">Endereço Banco:</span><span class="detalhes-valor">${dados.endereco_banco}</span></div>` : ''}
-                        ${dados.cidade_banco ? `<div class="detalhes-item"><span class="detalhes-label">Cidade Banco:</span><span class="detalhes-valor">${dados.cidade_banco}</span></div>` : ''}
-                        ${dados.pais_banco ? `<div class="detalhes-item"><span class="detalhes-label">País Banco:</span><span class="detalhes-valor">${dados.pais_banco}</span></div>` : ''}
-                        <div class="detalhes-item"><span class="detalhes-label">Código SWIFT:</span><span class="detalhes-valor" style="font-family: monospace;">${dados.codigo_swift || 'N/A'}</span></div>
-                        <div class="detalhes-item"><span class="detalhes-label">IBAN/Conta:</span><span class="detalhes-valor" style="font-family: monospace;">${dados.iban_account || 'N/A'}</span></div>
-                        ${dados.aba_routing ? `<div class="detalhes-item"><span class="detalhes-label">ABA/Routing:</span><span class="detalhes-valor">${dados.aba_routing}</span></div>` : ''}
-                    </div>
-                `;
+        function mostrarLoading(show) {
+            const tbody = document.getElementById('transferenciasBody');
+            if (show && tbody && tbody.children.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando transferências...</td></tr>';
             }
-            
-            // SEÇÃO 3: INFORMAÇÕES ADICIONAIS
-            if (dados.finalidade || dados.descricao) {
-                html += `<div class="detalhes-secao"><div class="detalhes-titulo"><i class="fas fa-sticky-note"></i> INFORMAÇÕES ADICIONAIS</div>`;
-                if (dados.finalidade) html += `<div class="detalhes-item"><span class="detalhes-label">Finalidade:</span><span class="detalhes-valor">${dados.finalidade}</span></div>`;
-                if (dados.descricao) html += `<div class="detalhes-item"><span class="detalhes-label">Descrição:</span><span class="detalhes-valor">${dados.descricao}</span></div>`;
-                html += `</div>`;
-            }
-            
-            // SEÇÃO 4: PROCESSAMENTO
-            if (dados.data_aprovacao || dados.executado_por || dados.data_conclusao || dados.concluido_por) {
-                html += `<div class="detalhes-secao"><div class="detalhes-titulo"><i class="fas fa-cogs"></i> PROCESSAMENTO</div>`;
-                if (dados.data_aprovacao) {
-                    html += `<div class="detalhes-item"><span class="detalhes-label">Aprovado por:</span><span class="detalhes-valor">${dados.executado_por || dados.concluido_por || 'N/A'}</span></div>`;
-                    html += `<div class="detalhes-item"><span class="detalhes-label">Data Aprovação:</span><span class="detalhes-valor">${dataAprovacaoFormatada}</span></div>`;
-                }
-                if (dados.data_conclusao) {
-                    html += `<div class="detalhes-item"><span class="detalhes-label">Concluído por:</span><span class="detalhes-valor">${dados.concluido_por || 'N/A'}</span></div>`;
-                    html += `<div class="detalhes-item"><span class="detalhes-label">Data Conclusão:</span><span class="detalhes-valor">${dataConclusaoFormatada}</span></div>`;
-                }
-                html += `</div>`;
-            }
-            
-            // SEÇÃO 5: MOTIVO DA RECUSA
-            if (dados.status === 'rejected' && dados.motivo_recusa) {
-                html += `<div class="detalhes-secao"><div class="detalhes-titulo" style="color: ${dangerColor};"><i class="fas fa-exclamation-triangle"></i> MOTIVO DA RECUSA</div>
-                        <div class="detalhes-item" style="grid-template-columns: 1fr;"><span class="detalhes-valor" style="color: ${dangerColor}; font-style: italic;">"${dados.motivo_recusa}"</span></div></div>`;
-            }
-            
-            // SEÇÃO 6: DADOS SWIFT
-            if (dados.dados_swift_pagamento && Object.keys(dados.dados_swift_pagamento).length > 0) {
-                html += `<div class="detalhes-secao"><div class="detalhes-titulo" style="color: ${primaryColor};"><i class="fas fa-file-invoice-dollar"></i> DADOS SWIFT DO PAGAMENTO</div>`;
-                const swiftKeys = ['linha1_uetr', 'linha2_20', 'linha3_32a', 'linha4_50k', 'linha5_57a', 'linha6_59', 'linha7_beneficiario', 'linha8_70', 'linha9_71a'];
-                swiftKeys.forEach(key => {
-                    if (dados.dados_swift_pagamento[key]) {
-                        html += `<div class="detalhes-item"><span class="detalhes-label">${formatarLabelSwift(key)}:</span>
-                                <span class="detalhes-valor" style="font-family: monospace; font-size: 13px;">${dados.dados_swift_pagamento[key]}</span></div>`;
-                    }
-                });
-                html += `</div>`;
-            }
-            
-            // SEÇÃO 7: STATUS DA INVOICE
-            if (dados.invoice_info) {
-                const invoiceStatus = dados.invoice_info.status || 'pending';
-                const invoiceStatusText = formatarStatusInvoiceKivy(invoiceStatus);
-                let invoiceStatusColor = alertColor;
-                if (invoiceStatus === 'approved') invoiceStatusColor = successColor;
-                if (invoiceStatus === 'rejected') invoiceStatusColor = dangerColor;
-                
-                html += `<div class="detalhes-secao"><div class="detalhes-titulo"><i class="fas fa-file-contract"></i> STATUS DA INVOICE</div>
-                        <div class="detalhes-item"><span class="detalhes-label">Status:</span><span class="detalhes-valor" style="color: ${invoiceStatusColor}; font-weight: bold;">${invoiceStatusText}</span></div>`;
-                if (invoiceStatus === 'rejected' && dados.invoice_info.motivo_recusa) {
-                    html += `<div class="detalhes-item"><span class="detalhes-label">Motivo:</span><span class="detalhes-valor" style="color: ${dangerColor};">${dados.invoice_info.motivo_recusa}</span></div>`;
-                }
-                if (dados.invoice_info.data_upload) {
-                    html += `<div class="detalhes-item"><span class="detalhes-label">Data Upload:</span><span class="detalhes-valor">${formatarDataKivy(dados.invoice_info.data_upload)}</span></div>`;
-                }
-                html += `</div>`;
-            }
-            
-            return html;
         }
 
         // ============================================
-        // MODAL DE DETALHES (ESTILO CLIENTE)
+        // CARREGAR COTAÇÕES (apenas uma vez)
         // ============================================
-
-        function criarModalDetalhesKivy(dados) {
-            const modalOverlay = document.createElement('div');
-            modalOverlay.id = 'modalDetalhesOverlay';
-            modalOverlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.8);
-                z-index: 10000;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                backdrop-filter: blur(5px);
-                animation: fadeIn 0.3s ease;
-            `;
-            
-            const isLightTheme = document.documentElement.getAttribute('data-theme') === 'light';
-            const bgCard = isLightTheme ? '#f0f4f9' : '#0d1117';
-            const bgHeader = 'linear-gradient(90deg, #1a5fb4, #2d8fff)';
-            const textColor = isLightTheme ? '#1a1d24' : '#e0e0e0';
-            const textSecundary = isLightTheme ? '#5a6470' : '#8b949e';
-            const borderColor = isLightTheme ? '#c5ced8' : '#1e232e';
-            
-            const modalContainer = document.createElement('div');
-            modalContainer.style.cssText = `
-                background: ${bgCard};
-                border-radius: 12px;
-                width: 700px;
-                max-width: 90vw;
-                max-height: 85vh;
-                overflow: hidden;
-                border: 1px solid ${borderColor};
-                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-                display: flex;
-                flex-direction: column;
-                animation: slideUp 0.3s ease;
-            `;
-            
-            const modalHeader = document.createElement('div');
-            modalHeader.style.cssText = `
-                background: ${bgHeader};
-                color: white;
-                padding: 20px 25px;
-                font-size: 18px;
-                font-weight: bold;
-                border-bottom: 2px solid #1a5fb4;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            `;
-            modalHeader.innerHTML = `<div><i class="fas fa-exchange-alt"></i> DETALHES COMPLETOS DA TRANSFERÊNCIA</div>
-                                    <div style="font-size: 14px; font-weight: normal; opacity: 0.9;">ID: #${dados.id}</div>`;
-            
-            const modalContent = document.createElement('div');
-            modalContent.style.cssText = `flex: 1; overflow-y: auto; padding: 25px; color: ${textColor}; font-size: 14px; line-height: 1.6;`;
-            modalContent.innerHTML = gerarConteudoDetalhesKivy(dados, isLightTheme);
-            
-            const modalFooter = document.createElement('div');
-            modalFooter.style.cssText = `padding: 20px 25px; border-top: 1px solid ${borderColor}; display: flex; justify-content: flex-end; gap: 10px;`;
-            
-            const btnFechar = document.createElement('button');
-            btnFechar.innerHTML = '<i class="fas fa-times"></i> FECHAR';
-            btnFechar.style.cssText = `padding: 10px 25px; background: #9b59b6; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; transition: all 0.3s ease; display: flex; align-items: center; gap: 8px;`;
-            btnFechar.onmouseover = () => { btnFechar.style.background = '#8e44ad'; btnFechar.style.transform = 'translateY(-2px)'; };
-            btnFechar.onmouseout = () => { btnFechar.style.background = '#9b59b6'; btnFechar.style.transform = 'translateY(0)'; };
-            btnFechar.onclick = () => { document.body.removeChild(modalOverlay); };
-            
-            modalFooter.appendChild(btnFechar);
-            
-            modalContainer.appendChild(modalHeader);
-            modalContainer.appendChild(modalContent);
-            modalContainer.appendChild(modalFooter);
-            modalOverlay.appendChild(modalContainer);
-            document.body.appendChild(modalOverlay);
-            
-            modalOverlay.onclick = (e) => { if (e.target === modalOverlay) document.body.removeChild(modalOverlay); };
-            
-            const styleId = 'modalDetalhesStyle';
-            let style = document.getElementById(styleId);
-            if (!style) {
-                style = document.createElement('style');
-                style.id = styleId;
-                document.head.appendChild(style);
-            }
-            style.textContent = `
-                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-                @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-                #modalDetalhesOverlay .detalhes-secao { margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid ${borderColor}; }
-                #modalDetalhesOverlay .detalhes-titulo { color: #1a5fb4; font-size: 16px; font-weight: bold; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-                #modalDetalhesOverlay .detalhes-item { display: grid; grid-template-columns: 140px 1fr; margin-bottom: 8px; padding: 4px 0; }
-                #modalDetalhesOverlay .detalhes-label { color: ${textSecundary}; font-weight: 600; }
-                #modalDetalhesOverlay .detalhes-valor { color: ${textColor}; word-break: break-word; }
-                #modalDetalhesOverlay .status-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; text-transform: uppercase; }
-                #modalDetalhesOverlay .status-pending { background: rgba(243, 156, 18, 0.15); color: #f39c12; border: 1px solid rgba(243, 156, 18, 0.3); }
-                #modalDetalhesOverlay .status-processing { background: rgba(26, 95, 180, 0.15); color: #1a5fb4; border: 1px solid rgba(26, 95, 180, 0.3); }
-                #modalDetalhesOverlay .status-completed { background: rgba(46, 194, 126, 0.15); color: #2ec27e; border: 1px solid rgba(46, 194, 126, 0.3); }
-                #modalDetalhesOverlay .status-rejected { background: rgba(224, 27, 36, 0.15); color: #e01b24; border: 1px solid rgba(224, 27, 36, 0.3); }
-            `;
-        }
-
-        // ============================================
-        // DETALHES E INVOICE
-        // ============================================
-        async function verDetalhes(id) {
-            console.log(`🔍 Buscando detalhes da transferência ${id}...`);
+        async function carregarCotacoes() {
+            if (Object.keys(cotacoesCache).length > 0) return;
             
             try {
-                showLoading('Carregando detalhes...');
-                
-                // Usar o endpoint do admin (já corrigido no backend)
-                const response = await fetch(`/api/admin/transferencias/${id}`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                
+                const response = await fetch('/api/cotacoes/atualizadas');
                 const data = await response.json();
-                
-                if (!data.success) {
-                    throw new Error(data.message || 'Erro ao carregar dados');
+                if (data.success) {
+                    cotacoesCache = data.cotacoes;
+                    console.log('✅ Cotações carregadas:', Object.keys(cotacoesCache).length);
                 }
-                
-                const transferencia = data.transferencia;
-                console.log('✅ Dados carregados:', transferencia);
-                
-                showLoading(false);
-                
-                criarModalDetalhesKivy(transferencia);
-                
             } catch (error) {
-                console.error('❌ Erro:', error);
-                showLoading(false);
-                alert(`❌ Erro: ${error.message}`);
+                console.error('Erro ao carregar cotações:', error);
+                cotacoesCache = { USD_BRL: 5.20, USD_EUR: 0.92, USD_GBP: 0.79 };
             }
         }
 
-        async function abrirInvoice(id) {
-            console.log('📄 Abrindo invoice para transferência:', id);
-            
-            try {
-                const response = await fetch(`/api/admin/transferencias/${id}/invoice`);
-                
-                if (response.ok) {
-                    // Verificar o tipo de conteúdo
-                    const contentType = response.headers.get('content-type');
-                    console.log('Content-Type:', contentType);
-                    
-                    if (contentType && contentType.includes('application/pdf')) {
-                        // É um PDF - abrir em nova aba
-                        const blob = await response.blob();
-                        const url = URL.createObjectURL(blob);
-                        window.open(url, '_blank');
-                        URL.revokeObjectURL(url);
-                    } else {
-                        // Tentar como JSON (erro)
-                        const text = await response.text();
-                        console.error('Resposta não é PDF:', text);
-                        alert('Erro ao carregar invoice!');
-                    }
-                } else {
-                    const error = await response.json();
-                    alert('❌ ' + (error.message || 'Erro ao abrir invoice'));
-                }
-            } catch (error) {
-                console.error('❌ Erro ao abrir invoice:', error);
-                alert('Erro ao abrir invoice!');
+        async function converterParaUSD(valor, moeda, dataTransacao) {
+            if (moeda === 'USD') return valor;
+            const par = `USD_${moeda}`;
+            let taxa = cotacoesCache[par];
+            if (!taxa) {
+                const parInverso = `${moeda}_USD`;
+                const taxaInversa = cotacoesCache[parInverso];
+                taxa = taxaInversa ? 1 / taxaInversa : 1;
             }
-        }
-
-        function fecharModalDetalhes() {
-            document.getElementById('modalDetalhes').classList.remove('active');
-        }
-
-        // ============================================
-        // EXPORTAÇÃO
-        // ============================================
-        function exportarCSV() {
-            const dados = transferenciasFiltradas.map(t => ({
-                'ID': t.id,
-                'Data': formatarData(t.data),
-                'Cliente': t.cliente_nome || t.cliente || t.usuario,
-                'Tipo': t.tipo,
-                'Status': getStatusText(t.status),
-                'Valor Original': `${t.valor} ${t.moeda}`,
-                'Valor (USD)': t.valor_usd || t.valor
-            }));
-            
-            const csv = convertToCSV(dados);
-            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.href = url;
-            link.setAttribute('download', `transferencias_${new Date().toISOString().slice(0, 19)}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            
-            alert('✅ CSV exportado com sucesso!');
-        }
-
-        function convertToCSV(data) {
-            if (!data || data.length === 0) return '';
-            const headers = Object.keys(data[0]);
-            const rows = data.map(obj => headers.map(header => JSON.stringify(obj[header] || '')).join(';'));
-            return [headers.join(';'), ...rows].join('\n');
+            return valor / taxa;
         }
 
         // ============================================
@@ -1736,11 +980,84 @@
             return simbolos[moeda] || moeda;
         }
 
+        function getStatusClass(status) {
+            const map = { 'completed': 'status-completed', 'processing': 'status-processing', 'solicitada': 'status-pending', 'pending': 'status-pending', 'rejected': 'status-rejected' };
+            return map[status] || 'status-pending';
+        }
+
+        function getStatusText(status) {
+            const map = { 'completed': 'Concluída', 'processing': 'Processando', 'solicitada': 'Pendente', 'pending': 'Pendente', 'rejected': 'Recusada' };
+            return map[status] || status;
+        }
+
         function escapeHtml(text) {
             if (!text) return '';
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // ============================================
+        // EXPORTAÇÃO OTIMIZADA
+        // ============================================
+        function exportarCSV() {
+            // Exportar apenas os dados visíveis (página atual ou todos?)
+            const dadosParaExportar = transferenciasFiltradas;
+            
+            const dados = dadosParaExportar.map(t => ({
+                'ID': t.id,
+                'Data': formatarData(t.data),
+                'Cliente': t.cliente_nome || t.cliente || t.usuario,
+                'Status': getStatusText(t.status),
+                'Valor Original': `${t.valor} ${t.moeda}`,
+                'Valor (USD)': t.valor_usd || t.valor
+            }));
+            
+            const csv = convertToCSV(dados);
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.setAttribute('download', `transferencias_${new Date().toISOString().slice(0, 19)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function convertToCSV(data) {
+            if (!data || data.length === 0) return '';
+            const headers = Object.keys(data[0]);
+            const rows = data.map(obj => headers.map(header => JSON.stringify(obj[header] || '')).join(';'));
+            return [headers.join(';'), ...rows].join('\n');
+        }
+
+        // ============================================
+        // VER DETALHES (LAZY LOADING)
+        // ============================================
+        async function verDetalhes(id) {
+            console.log(`🔍 Buscando detalhes da transferência ${id}...`);
+            
+            try {
+                mostrarLoading(true);
+                
+                const response = await fetch(`/api/admin/transferencias/${id}`);
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const data = await response.json();
+                
+                if (!data.success) throw new Error(data.message || 'Erro ao carregar dados');
+                
+                mostrarLoading(false);
+                
+                criarModalDetalhesKivy(data.transferencia);
+                
+            } catch (error) {
+                console.error('❌ Erro:', error);
+                mostrarLoading(false);
+                alert(`❌ Erro: ${error.message}`);
+            }
         }
     </script>
 </body>
