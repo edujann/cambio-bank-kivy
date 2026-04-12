@@ -1428,7 +1428,8 @@
                         data.beneficiarios.forEach(benef => {
                             const option = document.createElement('option');
                             option.value = benef.id;
-                            option.textContent = `${benef.nome} | ${benf.banco} | ${benef.pais}`;
+                            // 🔥 CORREÇÃO: benf.banco → benef.banco
+                            option.textContent = `${benef.nome} | ${benef.banco} | ${benef.pais || benef.pais_banco || '--'}`;
                             select.appendChild(option);
                         });
                         
