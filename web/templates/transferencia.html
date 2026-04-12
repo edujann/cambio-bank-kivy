@@ -1661,6 +1661,119 @@
     });
 
     observer.observe(document.documentElement, { attributes: true });
-    </script>  
+    </script> 
+    <script>
+    // ============================================
+    // 🔥 FUNÇÃO FORÇADA PARA CORRIGIR BENEFICIÁRIOS
+    // ============================================
+    function corrigirBeneficiarios() {
+        console.log('🔧 ========== CORRIGINDO BENEFICIÁRIOS ==========');
+        
+        const selectBenef = document.getElementById('beneficiarios_salvos');
+        if (!selectBenef) {
+            console.error('❌ Select de beneficiários não encontrado');
+            return;
+        }
+        
+        // 1. SALVAR OS DADOS ATUAIS
+        const opcoesAtuais = [];
+        for (let i = 0; i < selectBenef.options.length; i++) {
+            const opt = selectBenef.options[i];
+            opcoesAtuais.push({
+                value: opt.value,
+                text: opt.text
+            });
+        }
+        console.log('📋 Opções atuais salvas:', opcoesAtuais.length);
+        
+        // 2. REMOVER TODOS OS EVENTOS (clonando o elemento)
+        const novoSelect = selectBenef.cloneNode(false);
+        novoSelect.id = 'beneficiarios_salvos';
+        novoSelect.className = selectBenef.className;
+        
+        // 3. ADICIONAR AS OPÇÕES DE VOLTA
+        opcoesAtuais.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.value;
+            option.textContent = opt.text;
+            novoSelect.appendChild(option);
+        });
+        
+        // 4. SUBSTITUIR O SELECT ANTIGO PELO NOVO
+        selectBenef.parentNode.replaceChild(novoSelect, selectBenef);
+        
+        console.log('✅ Select recriado, adicionando novo evento...');
+        
+        // 5. ADICIONAR O EVENTO CORRETAMENTE
+        novoSelect.addEventListener('change', async function(event) {
+            const beneficiarioId = event.target.value;
+            console.log(`🎯 BENEFICIÁRIO SELECIONADO: ${beneficiarioId}`);
+            
+            if (!beneficiarioId) {
+                console.log('ℹ️ Nenhum beneficiário selecionado');
+                return;
+            }
+            
+            try {
+                console.log(`📡 Buscando detalhes do beneficiário ${beneficiarioId}...`);
+                const response = await fetch(`/api/beneficiarios/${beneficiarioId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('📦 Detalhes recebidos:', data);
+                
+                if (data.success && data.beneficiario) {
+                    const benef = data.beneficiario;
+                    console.log('✅ Preenchendo campos...');
+                    
+                    // Preencher todos os campos
+                    document.getElementById('beneficiario').value = benef.nome || '';
+                    document.getElementById('endereco').value = benef.endereco || '';
+                    document.getElementById('cidade').value = benef.cidade || '';
+                    document.getElementById('pais').value = benef.pais || '';
+                    document.getElementById('banco').value = benef.banco || '';
+                    document.getElementById('endereco_banco').value = benef.endereco_banco || '';
+                    document.getElementById('cidade_banco').value = benef.cidade_banco || '';
+                    document.getElementById('pais_banco').value = benef.pais_banco || '';
+                    document.getElementById('swift').value = benef.swift || '';
+                    document.getElementById('iban').value = benef.iban || '';
+                    document.getElementById('aba').value = benef.aba || '';
+                    
+                    console.log(`✅ Beneficiário "${benef.nome}" carregado com sucesso!`);
+                    
+                    // Feedback visual
+                    const alertDiv = document.getElementById('alert');
+                    if (alertDiv) {
+                        alertDiv.innerHTML = `<i class="fas fa-check-circle"></i> Beneficiário "${benef.nome}" carregado!`;
+                        alertDiv.className = 'alert success';
+                        alertDiv.classList.remove('hidden');
+                        setTimeout(() => alertDiv.classList.add('hidden'), 3000);
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Erro:', error);
+                const alertDiv = document.getElementById('alert');
+                if (alertDiv) {
+                    alertDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Erro: ${error.message}`;
+                    alertDiv.className = 'alert error';
+                    alertDiv.classList.remove('hidden');
+                    setTimeout(() => alertDiv.classList.add('hidden'), 5000);
+                }
+            }
+        });
+        
+        console.log('✅ Evento de change adicionado ao select de beneficiários');
+        console.log('🔧 ========== CORREÇÃO CONCLUÍDA ==========');
+    }
+
+    // Executar a correção 2 segundos após a página carregar
+    setTimeout(function() {
+        console.log('⏰ Executando correção de beneficiários...');
+        corrigirBeneficiarios();
+    }, 2000);
+    </script>     
 </body>
 </html>
