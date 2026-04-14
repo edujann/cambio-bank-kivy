@@ -1,3 +1,4 @@
+
 """
 API Web para o Cambio Bank
 Versão inicial - apenas endpoints básicos
@@ -11988,74 +11989,6 @@ def api_admin_transferencias():
         print(f"❌ Erro ao buscar transferências: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
-@app.route('/api/admin/transferencias/paginadas', methods=['GET'])
-def api_admin_transferencias_paginadas():
-    """Retorna transferências com paginação (otimizado)"""
-    try:
-        usuario = session.get('username')
-        if not usuario:
-            return jsonify({"success": False, "message": "Não autenticado"}), 401
-        
-        # Verificar admin
-        user_check = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
-        if not user_check.data or user_check.data.get('tipo') != 'admin':
-            return jsonify({"success": False, "message": "Acesso negado"}), 403
-        
-        # Parâmetros
-        pagina = int(request.args.get('pagina', 1))
-        limite = int(request.args.get('limite', 20))
-        offset = (pagina - 1) * limite
-        
-        status_filtro = request.args.get('status')
-        cliente_filtro = request.args.get('cliente')
-        dias_filtro = request.args.get('dias')
-        busca = request.args.get('busca')
-        
-        # Construir query
-        query = supabase.table('transferencias').select('*', count='exact')
-        
-        if status_filtro and status_filtro != 'todos':
-            query = query.eq('status', status_filtro)
-        
-        if cliente_filtro:
-            query = query.eq('cliente', cliente_filtro)
-        
-        if dias_filtro and dias_filtro != '0':
-            from datetime import datetime, timedelta
-            data_limite = (datetime.now() - timedelta(days=int(dias_filtro))).strftime('%Y-%m-%d')
-            query = query.gte('created_at', data_limite)
-        
-        if busca:
-            query = query.or_(f'id.ilike.%{busca}%,beneficiario.ilike.%{busca}%,cliente.ilike.%{busca}%')
-        
-        # Executar com paginação
-        response = query.order('created_at', desc=True).range(offset, offset + limite - 1).execute()
-        
-        # Estatísticas (para os cards)
-        stats_query = supabase.table('transferencias').select('*', count='exact')
-        if status_filtro and status_filtro != 'todos':
-            stats_query = stats_query.eq('status', status_filtro)
-        if cliente_filtro:
-            stats_query = stats_query.eq('cliente', cliente_filtro)
-        
-        total_response = stats_query.execute()
-        
-        return jsonify({
-            "success": True,
-            "transferencias": response.data,
-            "total": response.count,
-            "totalPaginas": (response.count + limite - 1) // limite,
-            "pagina": pagina,
-            "estatisticas": {
-                "total": total_response.count,
-                "pendentes": 0,  # Calcular separadamente se necessário
-                "processando": 0,
-                "concluidas": 0
-            }
-        })
-        
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route('/api/admin/transferencias/<transferencia_id>', methods=['GET'])
 def api_admin_transferencia_detalhes(transferencia_id):
