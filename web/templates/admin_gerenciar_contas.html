@@ -1751,8 +1751,38 @@
                 
                 if (data.success) {
                     alert(`✅ Despesa lançada com sucesso!`);
+                    
+                    // 🔥 RECARREGAR AS CONTAS BANCÁRIAS para atualizar o saldo no select
+                    await carregarContasEmpresa();
+                    
+                    // 🔥 Recarregar o select de contas bancárias na aba de despesas
+                    const selectConta = document.getElementById('despesaContaBancaria');
+                    if (selectConta) {
+                        // Salvar o valor selecionado atualmente
+                        const valorSelecionado = selectConta.value;
+                        
+                        // Recarregar as opções
+                        selectConta.innerHTML = '<option value="">Selecione a conta bancária...</option>';
+                        contasEmpresa.forEach(conta => {
+                            const option = document.createElement('option');
+                            option.value = conta.numero;
+                            option.textContent = `${conta.numero} - ${conta.banco} - ${conta.moeda} (Saldo: ${formatarValor(conta.saldo)})`;
+                            if (valorSelecionado === conta.numero) {
+                                option.selected = true;
+                            }
+                            selectConta.appendChild(option);
+                        });
+                    }
+                    
+                    // Limpar os campos
                     document.getElementById('despesaValor').value = '';
                     document.getElementById('despesaDescricao').value = '';
+                    
+                    // Opcional: Resetar os selects de categoria e conta de despesa
+                    document.getElementById('despesaCategoria').value = '';
+                    document.getElementById('despesaConta').innerHTML = '<option value="">Selecione primeiro uma categoria...</option>';
+                    document.getElementById('despesaConta').disabled = true;
+                    
                 } else {
                     alert('❌ ' + data.message);
                 }
