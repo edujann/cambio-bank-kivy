@@ -43,7 +43,6 @@
             padding: 20px;
         }
 
-        /* HEADER */
         .app-header {
             display: flex;
             justify-content: space-between;
@@ -96,7 +95,6 @@
             transform: translateY(-2px);
         }
 
-        /* INFO CONTA */
         .info-conta {
             background: var(--cor-card);
             border: 1px solid var(--cor-borda);
@@ -128,7 +126,6 @@
             color: var(--cor-primaria);
         }
 
-        /* RESUMO */
         .resumo-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -171,7 +168,6 @@
             color: var(--cor-perigo);
         }
 
-        /* TABELA */
         .tabela-container {
             background: var(--cor-card);
             border: 1px solid var(--cor-borda);
@@ -228,7 +224,6 @@
             transform: translateY(-2px);
         }
 
-        /* BOTÃO CARREGAR MAIS */
         .btn-carregar-mais {
             background: var(--cor-card);
             border: 1px solid var(--cor-borda);
@@ -254,7 +249,6 @@
             cursor: not-allowed;
         }
 
-        /* MODAL DETALHES */
         .modal {
             display: none;
             position: fixed;
@@ -371,6 +365,23 @@
             font-size: 12px;
         }
 
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--cor-texto-secundario);
+        }
+
+        .loading i {
+            font-size: 32px;
+            margin-bottom: 10px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
         @media (max-width: 768px) {
             .resumo-grid {
                 grid-template-columns: repeat(2, 1fr);
@@ -479,10 +490,10 @@
 
     <script>
         let contaNumero = '{{ conta_numero }}';
-        let todasTransacoesOriginais = [];  // Todas as transações (mais antigas primeiro, com saldo correto)
-        let transacoesExibidas = [];        // Transações atualmente exibidas (mais recentes primeiro)
-        let paginaAtual = 1;
-        let itemsPorPagina = 30;
+        let todasTransacoes = [];        // Todas as transações (mais antigas primeiro, com saldo correto)
+        let transacoesExibidas = [];      // Transações atualmente na tela (mais recentes primeiro)
+        let itemsPorPagina = 30;          // Quantas transações carregar por vez
+        let indiceAtual = 0;              // Próximo índice a ser carregado (começa do mais recente)
         let carregando = false;
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -511,12 +522,14 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    // 🔥 MANTER A ORDEM ORIGINAL (mais antigas primeiro, saldo já calculado)
-                    todasTransacoesOriginais = data.transacoes || [];
+                    // 🔥 DADOS ORIGINAIS: mais antigos primeiro (índice 0 = mais antigo)
+                    todasTransacoes = data.transacoes || [];
                     
-                    console.log(`✅ ${todasTransacoesOriginais.length} transações carregadas`);
+                    console.log(`✅ ${todasTransacoes.length} transações carregadas`);
+                    console.log(`   Mais antiga: ${todasTransacoes[0]?.data}`);
+                    console.log(`   Mais recente: ${todasTransacoes[todasTransacoes.length-1]?.data}`);
                     
-                    if (todasTransacoesOriginais.length === 0) {
+                    if (todasTransacoes.length === 0) {
                         tbody.innerHTML = '<tr><td colspan="6" class="loading">📭 Nenhuma transação encontrada</td></tr>';
                         atualizarResumo(data);
                         atualizarInfoConta(data);
@@ -524,15 +537,14 @@
                     }
                     
                     atualizarInfoConta(data);
-                    
-                    // 🔥 RESETAR PAGINAÇÃO
-                    paginaAtual = 1;
-                    
-                    // 🔥 EXIBIR PRIMEIRAS TRANSAÇÕES (mais recentes primeiro, mas com saldo original)
-                    carregarPagina();
-                    
-                    // Atualizar resumo com os dados originais
                     atualizarResumo(data);
+                    
+                    // 🔥 RESETAR ESTADO
+                    transacoesExibidas = [];
+                    indiceAtual = todasTransacoes.length - 1;  // Começa do MAIS RECENTE
+                    
+                    // 🔥 CARREGAR PRIMEIRAS 30 (as mais recentes)
+                    carregarProximasTransacoes();
                     
                 } else {
                     tbody.innerHTML = `<tr><td colspan="6" class="loading">❌ ${data.message}</td></tr>`;
@@ -543,35 +555,46 @@
             }
         }
 
-        function carregarPagina() {
-            // 🔥 Calcular índices para paginação (pegando do MAIS RECENTE para o MAIS ANTIGO)
-            const total = todasTransacoesOriginais.length;
-            const startIdx = total - (paginaAtual * itemsPorPagina);
-            const endIdx = total - ((paginaAtual - 1) * itemsPorPagina);
-            
-            // Pegar as transações da página atual (do mais recente para o mais antigo)
-            if (startIdx < 0) {
-                transacoesExibidas = todasTransacoesOriginais.slice(0, endIdx);
-            } else {
-                transacoesExibidas = todasTransacoesOriginais.slice(startIdx, endIdx);
+        function carregarProximasTransacoes() {
+            if (indiceAtual < 0) {
+                console.log('📭 Todas as transações já foram carregadas');
+                const botao = document.getElementById('btnCarregarMais');
+                botao.style.display = 'none';
+                return;
             }
             
-            // 🔥 INVERTER para exibir do mais recente primeiro (mas manter o saldo original)
-            transacoesExibidas = [...transacoesExibidas].reverse();
+            // 🔥 PEGAR PRÓXIMAS TRANSAÇÕES (do MAIS RECENTE para o MAIS ANTIGO)
+            const startIdx = Math.max(0, indiceAtual - itemsPorPagina + 1);
+            const novasTransacoes = [];
             
-            console.log(`📊 Página ${paginaAtual}: exibindo ${transacoesExibidas.length} transações (índices ${startIdx} a ${endIdx})`);
+            for (let i = indiceAtual; i >= startIdx; i--) {
+                novasTransacoes.push(todasTransacoes[i]);
+            }
             
-            renderizarTabela(transacoesExibidas);
+            console.log(`📊 Carregando transações ${startIdx} a ${indiceAtual} (${novasTransacoes.length} itens)`);
             
-            // Verificar se tem mais para carregar
-            const temMais = (paginaAtual * itemsPorPagina) < total;
+            // 🔥 ADICIONAR AO FINAL DA LISTA EXIBIDA (as mais antigas vão para o bottom)
+            transacoesExibidas = [...transacoesExibidas, ...novasTransacoes];
+            
+            // 🔥 ATUALIZAR ÍNDICE
+            indiceAtual = startIdx - 1;
+            
+            // 🔥 RENDERIZAR TABELA COMPLETA (já com todas as transações carregadas até agora)
+            renderizarTabela();
+            
+            // 🔥 VERIFICAR SE TEM MAIS PARA CARREGAR
+            const temMais = indiceAtual >= 0;
             const botao = document.getElementById('btnCarregarMais');
             
             if (temMais) {
+                const restantes = indiceAtual + 1;
+                const aCarregar = Math.min(itemsPorPagina, restantes);
                 botao.style.display = 'block';
-                botao.innerHTML = `<i class="fas fa-plus-circle"></i> Carregar mais ${Math.min(itemsPorPagina, total - (paginaAtual * itemsPorPagina))} transações`;
+                botao.innerHTML = `<i class="fas fa-plus-circle"></i> Carregar mais ${aCarregar} transações (${restantes} restantes)`;
+                console.log(`✅ Botão exibido: mais ${aCarregar} transações disponíveis`);
             } else {
                 botao.style.display = 'none';
+                console.log('📭 Todas as transações carregadas!');
             }
         }
 
@@ -585,8 +608,7 @@
             botao.disabled = true;
             
             try {
-                paginaAtual++;
-                carregarPagina();
+                carregarProximasTransacoes();
             } catch (error) {
                 console.error('❌ Erro:', error);
                 alert('Erro ao carregar mais transações.');
@@ -597,43 +619,18 @@
             }
         }
 
-        function atualizarInfoConta(data) {
-            const moeda = data.moeda || 'USD';
-            const simbolo = obterSimboloMoeda(moeda);
-            document.getElementById('contaNumero').innerHTML = contaNumero;
-            document.getElementById('contaBanco').innerHTML = data.conta_info?.banco || 'Conta Bancária';
-            document.getElementById('contaMoeda').innerHTML = `${simbolo} ${moeda}`;
-        }
-
-        function atualizarResumo(data) {
-            const moeda = data.moeda || 'USD';
-            const simbolo = obterSimboloMoeda(moeda);
-            
-            document.getElementById('saldoAtual').innerHTML = `${simbolo} ${formatarValor(data.saldo_final || 0)}`;
-            document.getElementById('totalEntradas').innerHTML = `${simbolo} ${formatarValor(data.total_entradas || 0)}`;
-            document.getElementById('totalSaidas').innerHTML = `${simbolo} ${formatarValor(data.total_saidas || 0)}`;
-            document.getElementById('totalTransacoes').innerHTML = data.quantidade || 0;
-            
-            if ((data.saldo_final || 0) < 0) {
-                document.getElementById('saldoAtual').classList.add('negativo');
-                document.getElementById('saldoAtual').classList.remove('positivo');
-            } else {
-                document.getElementById('saldoAtual').classList.add('positivo');
-                document.getElementById('saldoAtual').classList.remove('negativo');
-            }
-        }
-
-        function renderizarTabela(transacoes) {
+        function renderizarTabela() {
             const tbody = document.getElementById('extratoBody');
             
-            if (!transacoes || transacoes.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="loading">Nenhuma transação neste período</td></tr>';
+            if (!transacoesExibidas || transacoesExibidas.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="loading">Nenhuma transação encontrada</td></tr>';
                 return;
             }
             
             tbody.innerHTML = '';
             
-            for (const t of transacoes) {
+            // 🔥 JÁ ESTÃO NA ORDEM CORRETA: mais recentes primeiro (índice 0 = mais recente)
+            for (const t of transacoesExibidas) {
                 const row = tbody.insertRow();
                 
                 row.insertCell(0).textContent = formatarData(t.data);
@@ -659,6 +656,34 @@
                     return function() { abrirModalDetalhes(transacao); };
                 })(t);
                 detalheCell.appendChild(btnDetalhe);
+            }
+            
+            console.log(`✅ Tabela renderizada com ${transacoesExibidas.length} transações`);
+        }
+
+        function atualizarInfoConta(data) {
+            const moeda = data.moeda || 'USD';
+            const simbolo = obterSimboloMoeda(moeda);
+            document.getElementById('contaNumero').innerHTML = contaNumero;
+            document.getElementById('contaBanco').innerHTML = data.conta_info?.banco || 'Conta Bancária';
+            document.getElementById('contaMoeda').innerHTML = `${simbolo} ${moeda}`;
+        }
+
+        function atualizarResumo(data) {
+            const moeda = data.moeda || 'USD';
+            const simbolo = obterSimboloMoeda(moeda);
+            
+            document.getElementById('saldoAtual').innerHTML = `${simbolo} ${formatarValor(data.saldo_final || 0)}`;
+            document.getElementById('totalEntradas').innerHTML = `${simbolo} ${formatarValor(data.total_entradas || 0)}`;
+            document.getElementById('totalSaidas').innerHTML = `${simbolo} ${formatarValor(data.total_saidas || 0)}`;
+            document.getElementById('totalTransacoes').innerHTML = data.quantidade || 0;
+            
+            if ((data.saldo_final || 0) < 0) {
+                document.getElementById('saldoAtual').classList.add('negativo');
+                document.getElementById('saldoAtual').classList.remove('positivo');
+            } else {
+                document.getElementById('saldoAtual').classList.add('positivo');
+                document.getElementById('saldoAtual').classList.remove('negativo');
             }
         }
 
