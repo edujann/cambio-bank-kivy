@@ -6944,15 +6944,45 @@ def api_admin_extrato_conta():
         print(f"   conta_bancaria_credito: {len(response5.data)}")
         print(f"   Total únicas: {len(transacoes)}")
         
-        # Processar transações
+        # ============================================
+        # PROCESSAR TRANSAÇÕES
+        # ============================================
         transacoes_processadas = []
+        
+        # 🔥 ADICIONAR LINHA DE SALDO INICIAL (SALDO ZERO)
+        # Determinar a moeda da conta para exibir o símbolo correto
+        moeda_conta = 'USD'
+        try:
+            conta_info = supabase.table('contas_bancarias_empresa')\
+                .select('moeda')\
+                .eq('numero', conta_numero)\
+                .single()\
+                .execute()
+            if conta_info.data:
+                moeda_conta = conta_info.data.get('moeda', 'USD')
+        except:
+            pass
+        
+        # Adicionar linha de saldo inicial (sempre com saldo 0,00 no início do período)
+        transacoes_processadas.append({
+            'id': 'SALDO_INICIAL',
+            'data': data_inicio_obj.strftime("%Y-%m-%d %H:%M:%S"),
+            'descricao': 'SALDO INICIAL DO PERÍODO',
+            'credito': 0,
+            'debito': 0,
+            'tipo': 'Saldo Inicial',
+            'moeda': moeda_conta,
+            'status': 'completed',
+            'saldo_apos': 0
+        })
+        
+        print(f"💰 Saldo inicial adicionado: 0,00 {moeda_conta} na data {data_inicio_obj.strftime('%d/%m/%Y')}")
         
         for transf in transacoes:
             tipo = transf.get('tipo', '')
             status = transf.get('status', 'completed')
             
-            # 🔥🔥🔥 CORREÇÃO APENAS PARA TRANSFERÊNCIAS INTERNACIONAIS 🔥🔥🔥
-            # Definir a data correta baseada no tipo
+            # 🔥 CORREÇÃO APENAS PARA TRANSFERÊNCIAS INTERNACIONAIS
             if tipo in ['transferencia_internacional', 'internacional']:
                 # Para transferências internacionais, usar data_conclusao
                 data_transf = transf.get('data_conclusao') or transf.get('created_at') or transf.get('data')
@@ -7011,14 +7041,13 @@ def api_admin_extrato_conta():
                 
                 # CASO 1: Nossa conta é a REMETENTE (SAÍDA de dinheiro)
                 if conta_remetente == conta_numero:
-                    # 🔥 SÓ APARECE SE ESTIVER CONCLUÍDA (já verificado acima)
                     descricao = f"TRANSFERÊNCIA INTERNACIONAL {status_text} - Enviada para: {beneficiario}"
                     transacoes_processadas.append({
                         'id': transf.get('id'),
                         'data': data_transf,
                         'descricao': descricao,
-                        'credito': 0,        # ← MANTIDO IGUAL AO ORIGINAL
-                        'debito': valor,     # ← MANTIDO IGUAL AO ORIGINAL
+                        'credito': 0,
+                        'debito': valor,
                         'tipo': 'Transferência Internacional',
                         'moeda': moeda,
                         'status': status_transf
@@ -7027,14 +7056,13 @@ def api_admin_extrato_conta():
                 
                 # CASO 2: Nossa conta é a CREDORA (ENTRADA de dinheiro)
                 elif conta_bancaria_credito == conta_numero:
-                    # 🔥 SÓ APARECE SE ESTIVER CONCLUÍDA (já verificado acima)
                     descricao = f"TRANSFERÊNCIA INTERNACIONAL {status_text} - Recebida de: {beneficiario}"
                     transacoes_processadas.append({
                         'id': transf.get('id'),
                         'data': data_transf,
                         'descricao': descricao,
-                        'credito': valor,    # ← MANTIDO IGUAL AO ORIGINAL
-                        'debito': 0,         # ← MANTIDO IGUAL AO ORIGINAL
+                        'credito': valor,
+                        'debito': 0,
                         'tipo': 'Transferência Internacional',
                         'moeda': moeda,
                         'status': status_transf
@@ -7343,18 +7371,21 @@ def api_admin_extrato_conta():
         # Ordenar por data (mais antiga primeiro para calcular saldo)
         transacoes_processadas.sort(key=lambda x: x.get('data', ''))
         
-        # Calcular saldo sequencial
+        # Calcular saldo sequencial (começando do saldo inicial = 0)
         saldo_atual = 0
         for t in transacoes_processadas:
-            saldo_atual += t['debito'] - t['credito']
-            t['saldo_apos'] = saldo_atual
+            if t.get('tipo') == 'Saldo Inicial':
+                t['saldo_apos'] = saldo_atual
+            else:
+                saldo_atual += t['debito'] - t['credito']
+                t['saldo_apos'] = saldo_atual
         
         # Reverter para exibição (mais recente primeiro)
         transacoes_processadas.reverse()
         
-        # Calcular totais
-        total_entradas = sum(t['debito'] for t in transacoes_processadas)
-        total_saidas = sum(t['credito'] for t in transacoes_processadas)
+        # Calcular totais (excluindo a linha de saldo inicial)
+        total_entradas = sum(t['debito'] for t in transacoes_processadas if t.get('tipo') != 'Saldo Inicial')
+        total_saidas = sum(t['credito'] for t in transacoes_processadas if t.get('tipo') != 'Saldo Inicial')
         
         print(f"\n✅ EXTRATO PROCESSADO COM SUCESSO!")
         print(f"   Total transações: {len(transacoes_processadas)}")
@@ -7368,7 +7399,7 @@ def api_admin_extrato_conta():
             "total_entradas": total_entradas,
             "total_saidas": total_saidas,
             "saldo_final": saldo_atual,
-            "quantidade": len(transacoes_processadas)
+            "quantidade": len([t for t in transacoes_processadas if t.get('tipo') != 'Saldo Inicial'])
         })
         
     except Exception as e:
