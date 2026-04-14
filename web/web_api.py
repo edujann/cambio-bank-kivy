@@ -6842,7 +6842,7 @@ def admin_extrato_conta():
 
 @app.route('/api/admin/extrato-conta', methods=['POST'])
 def api_admin_extrato_conta():
-    """Retorna extrato da conta bancária da empresa - USA data_conclusao para transferências internacionais"""
+    """Retorna extrato da conta bancária com filtro de período"""
     try:
         usuario = session.get('username')
         
@@ -6891,41 +6891,42 @@ def api_admin_extrato_conta():
         # BUSCAR TODAS AS TRANSAÇÕES QUE ENVOLVEM A CONTA
         # ============================================
         
-        todas_transacoes = []
-        
         # Buscar onde a conta é remetente
         response1 = supabase.table('transferencias')\
             .select('*')\
             .eq('conta_remetente', conta_numero)\
             .execute()
-        todas_transacoes.extend(response1.data or [])
         
         # Buscar onde a conta é destinatário
         response2 = supabase.table('transferencias')\
             .select('*')\
             .eq('conta_destinatario', conta_numero)\
             .execute()
-        todas_transacoes.extend(response2.data or [])
         
         # Buscar onde a conta é origem (para câmbio)
         response3 = supabase.table('transferencias')\
             .select('*')\
             .eq('conta_origem', conta_numero)\
             .execute()
-        todas_transacoes.extend(response3.data or [])
         
         # Buscar onde a conta é destino (para câmbio)
         response4 = supabase.table('transferencias')\
             .select('*')\
             .eq('conta_destino', conta_numero)\
             .execute()
-        todas_transacoes.extend(response4.data or [])
         
         # Buscar onde a conta está no campo conta_bancaria_credito (transferências internacionais)
         response5 = supabase.table('transferencias')\
             .select('*')\
             .eq('conta_bancaria_credito', conta_numero)\
             .execute()
+        
+        # Combinar todos os resultados
+        todas_transacoes = []
+        todas_transacoes.extend(response1.data or [])
+        todas_transacoes.extend(response2.data or [])
+        todas_transacoes.extend(response3.data or [])
+        todas_transacoes.extend(response4.data or [])
         todas_transacoes.extend(response5.data or [])
         
         # Remover duplicatas
@@ -6943,30 +6944,6 @@ def api_admin_extrato_conta():
         print(f"   conta_bancaria_credito: {len(response5.data)}")
         print(f"   Total únicas: {len(transacoes)}")
         
-        # ============================================
-        # FUNÇÃO PARA OBTER A DATA CORRETA
-        # ============================================
-        def obter_data_correta(transf, tipo):
-            """
-            Para o extrato da EMPRESA:
-            - Transferências internacionais: usa data_conclusao (quando o dinheiro realmente saiu)
-            - Demais transações: usa created_at ou data
-            """
-            # 🔥 TRANSFERÊNCIAS INTERNACIONAIS: priorizar data_conclusao
-            if tipo in ['transferencia_internacional', 'internacional']:
-                data_conclusao = transf.get('data_conclusao')
-                if data_conclusao:
-                    return data_conclusao
-            
-            # 🔥 TRANSFERÊNCIAS INTERNAS: priorizar data_conclusao
-            if tipo in ['transferencia_interna', 'transferencia_interna_cliente', 'transferencia_interna_empresa']:
-                data_conclusao = transf.get('data_conclusao')
-                if data_conclusao:
-                    return data_conclusao
-            
-            # 🔥 DEMAIS: usar created_at ou data
-            return transf.get('created_at') or transf.get('data')
-        
         # Processar transações
         transacoes_processadas = []
         
@@ -6974,8 +6951,21 @@ def api_admin_extrato_conta():
             tipo = transf.get('tipo', '')
             status = transf.get('status', 'completed')
             
-            # 🔥 OBTER A DATA CORRETA PARA ESTA TRANSAÇÃO
-            data_transf = obter_data_correta(transf, tipo)
+            # 🔥🔥🔥 CORREÇÃO APENAS PARA TRANSFERÊNCIAS INTERNACIONAIS 🔥🔥🔥
+            # Definir a data correta baseada no tipo
+            if tipo in ['transferencia_internacional', 'internacional']:
+                # Para transferências internacionais, usar data_conclusao
+                data_transf = transf.get('data_conclusao') or transf.get('created_at') or transf.get('data')
+                # Só mostra se estiver concluída
+                if status not in ['completed']:
+                    print(f"   ⏭️ Transferência Internacional {transf.get('id')} com status {status} - ignorada (só mostra quando concluída)")
+                    continue
+            else:
+                # Para todos os outros tipos, manter a lógica original
+                data_transf = transf.get('created_at') or transf.get('data')
+                # Pular transações não concluídas (exceto internacionais pendentes - já tratado acima)
+                if status not in ['completed', 'processing', 'solicitada', 'pending']:
+                    continue
             
             # Filtrar por data
             if data_transf:
@@ -7021,41 +7011,35 @@ def api_admin_extrato_conta():
                 
                 # CASO 1: Nossa conta é a REMETENTE (SAÍDA de dinheiro)
                 if conta_remetente == conta_numero:
-                    # 🔥 SÓ APARECE SE ESTIVER CONCLUÍDA (dinheiro realmente saiu)
-                    if status_transf == 'completed':
-                        descricao = f"TRANSFERÊNCIA INTERNACIONAL {status_text} - Enviada para: {beneficiario}"
-                        transacoes_processadas.append({
-                            'id': transf.get('id'),
-                            'data': data_transf,
-                            'descricao': descricao,
-                            'credito': valor,  # SAÍDA = CRÉDITO
-                            'debito': 0,
-                            'tipo': 'Transferência Internacional',
-                            'moeda': moeda,
-                            'status': status_transf
-                        })
-                        print(f"   ✅ SAÍDA: -{valor:.2f} {moeda} (na data {data_transf})")
-                    else:
-                        print(f"   ⏭️ Transferência com status {status_transf} - ignorada (só mostra quando concluída)")
+                    # 🔥 SÓ APARECE SE ESTIVER CONCLUÍDA (já verificado acima)
+                    descricao = f"TRANSFERÊNCIA INTERNACIONAL {status_text} - Enviada para: {beneficiario}"
+                    transacoes_processadas.append({
+                        'id': transf.get('id'),
+                        'data': data_transf,
+                        'descricao': descricao,
+                        'credito': 0,        # ← MANTIDO IGUAL AO ORIGINAL
+                        'debito': valor,     # ← MANTIDO IGUAL AO ORIGINAL
+                        'tipo': 'Transferência Internacional',
+                        'moeda': moeda,
+                        'status': status_transf
+                    })
+                    print(f"   ✅ SAÍDA: -{valor:.2f} {moeda} (na data {data_transf})")
                 
                 # CASO 2: Nossa conta é a CREDORA (ENTRADA de dinheiro)
                 elif conta_bancaria_credito == conta_numero:
-                    # 🔥 SÓ APARECE SE ESTIVER CONCLUÍDA (dinheiro realmente entrou)
-                    if status_transf == 'completed':
-                        descricao = f"TRANSFERÊNCIA INTERNACIONAL {status_text} - Recebida de: {beneficiario}"
-                        transacoes_processadas.append({
-                            'id': transf.get('id'),
-                            'data': data_transf,
-                            'descricao': descricao,
-                            'credito': 0,
-                            'debito': valor,  # ENTRADA = DÉBITO
-                            'tipo': 'Transferência Internacional',
-                            'moeda': moeda,
-                            'status': status_transf
-                        })
-                        print(f"   ✅ ENTRADA: +{valor:.2f} {moeda} (na data {data_transf})")
-                    else:
-                        print(f"   ⏭️ Transferência com status {status_transf} - ignorada (só mostra quando concluída)")
+                    # 🔥 SÓ APARECE SE ESTIVER CONCLUÍDA (já verificado acima)
+                    descricao = f"TRANSFERÊNCIA INTERNACIONAL {status_text} - Recebida de: {beneficiario}"
+                    transacoes_processadas.append({
+                        'id': transf.get('id'),
+                        'data': data_transf,
+                        'descricao': descricao,
+                        'credito': valor,    # ← MANTIDO IGUAL AO ORIGINAL
+                        'debito': 0,         # ← MANTIDO IGUAL AO ORIGINAL
+                        'tipo': 'Transferência Internacional',
+                        'moeda': moeda,
+                        'status': status_transf
+                    })
+                    print(f"   ✅ ENTRADA: +{valor:.2f} {moeda} (na data {data_transf})")
                 else:
                     print(f"   ⏭️ Conta não envolvida - ignorando")
             
@@ -7082,7 +7066,7 @@ def api_admin_extrato_conta():
                         'id': transf.get('id'),
                         'data': data_transf,
                         'descricao': descricao,
-                        'credito': valor_origem,  # SAÍDA = CRÉDITO
+                        'credito': valor_origem,
                         'debito': 0,
                         'tipo': 'Câmbio entre Contas',
                         'moeda': moeda_origem,
@@ -7097,7 +7081,7 @@ def api_admin_extrato_conta():
                         'data': data_transf,
                         'descricao': descricao,
                         'credito': 0,
-                        'debito': valor_destino,  # ENTRADA = DÉBITO
+                        'debito': valor_destino,
                         'tipo': 'Câmbio entre Contas',
                         'moeda': moeda_destino,
                         'status': status
@@ -7163,7 +7147,7 @@ def api_admin_extrato_conta():
                         'data': data_transf,
                         'descricao': descricao,
                         'credito': 0,
-                        'debito': valor,  # DEPÓSITO = ENTRADA = DÉBITO
+                        'debito': valor,
                         'tipo': 'Depósito',
                         'moeda': moeda,
                         'status': status
@@ -7185,7 +7169,7 @@ def api_admin_extrato_conta():
                         'id': transf.get('id'),
                         'data': data_transf,
                         'descricao': descricao,
-                        'credito': valor,  # SAQUE = SAÍDA = CRÉDITO
+                        'credito': valor,
                         'debito': 0,
                         'tipo': 'Saque',
                         'moeda': moeda,
@@ -7213,7 +7197,7 @@ def api_admin_extrato_conta():
                         'id': transf.get('id'),
                         'data': data_transf,
                         'descricao': descricao,
-                        'credito': valor,  # SAÍDA = CRÉDITO
+                        'credito': valor,
                         'debito': 0,
                         'tipo': 'Transferência Interna',
                         'moeda': moeda,
@@ -7227,7 +7211,7 @@ def api_admin_extrato_conta():
                         'data': data_transf,
                         'descricao': descricao,
                         'credito': 0,
-                        'debito': valor,  # ENTRADA = DÉBITO
+                        'debito': valor,
                         'tipo': 'Transferência Interna',
                         'moeda': moeda,
                         'status': status
@@ -7254,7 +7238,7 @@ def api_admin_extrato_conta():
                         'data': data_transf,
                         'descricao': descricao,
                         'credito': 0,
-                        'debito': valor,  # ENTRADA = DÉBITO
+                        'debito': valor,
                         'tipo': 'Transferência de Cliente',
                         'moeda': moeda,
                         'status': status
@@ -7280,7 +7264,7 @@ def api_admin_extrato_conta():
                         'id': transf.get('id'),
                         'data': data_transf,
                         'descricao': descricao,
-                        'credito': valor,  # SAÍDA = CRÉDITO
+                        'credito': valor,
                         'debito': 0,
                         'tipo': 'Transferência para Cliente',
                         'moeda': moeda,
@@ -7310,7 +7294,7 @@ def api_admin_extrato_conta():
                         'id': transf.get('id'),
                         'data': data_transf,
                         'descricao': descricao,
-                        'credito': valor,  # SAÍDA = CRÉDITO
+                        'credito': valor,
                         'debito': 0,
                         'tipo': 'Despesa',
                         'moeda': moeda,
