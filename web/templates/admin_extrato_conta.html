@@ -96,70 +96,36 @@
             transform: translateY(-2px);
         }
 
-        /* FILTROS */
-        .filtros-container {
+        /* INFO CONTA */
+        .info-conta {
             background: var(--cor-card);
             border: 1px solid var(--cor-borda);
             border-radius: var(--borda-radius);
             padding: 20px;
             margin-bottom: 30px;
-        }
-
-        .filtros-header {
             display: flex;
-            gap: 10px;
+            justify-content: space-between;
+            align-items: center;
             flex-wrap: wrap;
-            margin-bottom: 15px;
-        }
-
-        .filtro-btn {
-            padding: 10px 20px;
-            background: var(--cor-fundo);
-            border: 1px solid var(--cor-borda);
-            color: var(--cor-texto-secundario);
-            border-radius: var(--borda-radius-pequeno);
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .filtro-btn:hover {
-            border-color: var(--cor-admin);
-            color: var(--cor-admin);
-            transform: translateY(-2px);
-        }
-
-        .filtro-btn.active {
-            background: var(--cor-admin);
-            border-color: var(--cor-admin);
-            color: white;
-        }
-
-        .filtro-personalizado {
-            display: flex;
             gap: 15px;
-            align-items: flex-end;
-            flex-wrap: wrap;
         }
 
-        .filtro-personalizado .form-group {
+        .info-conta-item {
             flex: 1;
-            min-width: 150px;
+            text-align: center;
         }
 
-        .form-control {
-            width: 100%;
-            padding: 10px 15px;
-            background: var(--cor-fundo);
-            border: 1px solid var(--cor-borda);
-            border-radius: var(--borda-radius-pequeno);
-            color: var(--cor-texto);
-            transition: all 0.3s ease;
+        .info-conta-label {
+            font-size: 12px;
+            color: var(--cor-texto-secundario);
+            text-transform: uppercase;
+            margin-bottom: 5px;
         }
 
-        .form-control:focus {
-            outline: none;
-            border-color: var(--cor-admin);
-            box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2);
+        .info-conta-valor {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--cor-primaria);
         }
 
         /* RESUMO */
@@ -219,7 +185,7 @@
         }
 
         th, td {
-            padding: 15px;
+            padding: 12px 15px;
             text-align: left;
             border-bottom: 1px solid var(--cor-borda);
         }
@@ -228,6 +194,8 @@
             background: rgba(26, 95, 180, 0.1);
             color: var(--cor-admin);
             font-weight: 600;
+            position: sticky;
+            top: 0;
         }
 
         tr:hover {
@@ -244,33 +212,55 @@
             font-weight: 600;
         }
 
-        /* BOTÕES */
-        .btn-exportar {
+        .btn-detalhe {
             background: var(--cor-admin);
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 6px 12px;
             border-radius: var(--borda-radius-pequeno);
             cursor: pointer;
-            margin-left: auto;
+            font-size: 12px;
             transition: all 0.3s ease;
         }
 
-        .btn-exportar:hover {
+        .btn-detalhe:hover {
             background: #2d8fff;
             transform: translateY(-2px);
-            box-shadow: var(--sombra-suave);
         }
 
-        .loading {
+        /* BOTÃO CARREGAR MAIS */
+        .btn-carregar-mais {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            padding: 15px 30px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            margin-top: 20px;
+            width: 100%;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-carregar-mais:hover {
+            border-color: var(--cor-admin);
+            color: var(--cor-admin);
+            transform: translateY(-2px);
+        }
+
+        .btn-carregar-mais:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading-more {
             text-align: center;
-            padding: 40px;
+            padding: 20px;
             color: var(--cor-texto-secundario);
         }
 
-        .loading i {
-            font-size: 32px;
-            margin-bottom: 10px;
+        .loading-more i {
             animation: spin 1s linear infinite;
         }
 
@@ -279,23 +269,142 @@
             to { transform: rotate(360deg); }
         }
 
+        /* MODAL DETALHES */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            width: 90%;
+            max-width: 700px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--cor-borda);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: var(--cor-card);
+        }
+
+        .modal-header h3 {
+            color: var(--cor-admin);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--cor-texto-secundario);
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            color: var(--cor-perigo);
+            transform: scale(1.1);
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .detalhe-grupo {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(26, 95, 180, 0.05);
+            border-radius: var(--borda-radius-pequeno);
+            border-left: 3px solid var(--cor-admin);
+        }
+
+        .detalhe-grupo h4 {
+            color: var(--cor-admin);
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .detalhe-linha {
+            display: flex;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .detalhe-label {
+            width: 140px;
+            color: var(--cor-texto-secundario);
+            font-weight: 600;
+        }
+
+        .detalhe-valor {
+            flex: 1;
+            color: var(--cor-texto);
+        }
+
+        .detalhe-valor strong {
+            color: var(--cor-admin);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-completed { background: rgba(46, 194, 126, 0.2); color: var(--cor-sucesso); }
+        .status-processing { background: rgba(243, 156, 18, 0.2); color: var(--cor-alerta); }
+        .status-pending { background: rgba(243, 156, 18, 0.2); color: var(--cor-alerta); }
+        .status-solicitada { background: rgba(243, 156, 18, 0.2); color: var(--cor-alerta); }
+        .status-rejected { background: rgba(224, 27, 36, 0.2); color: var(--cor-perigo); }
+
+        /* FOOTER */
+        .footer-info {
+            text-align: center;
+            padding: 20px;
+            color: var(--cor-texto-secundario);
+            font-size: 12px;
+        }
+
         /* RESPONSIVIDADE */
         @media (max-width: 768px) {
             .resumo-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
             
-            .filtros-header {
-                justify-content: center;
+            .info-conta {
+                flex-direction: column;
+                text-align: center;
             }
             
-            .filtro-personalizado {
+            .detalhe-linha {
                 flex-direction: column;
             }
             
-            .btn-exportar {
-                margin-left: 0;
+            .detalhe-label {
                 width: 100%;
+                margin-bottom: 5px;
             }
         }
     </style>
@@ -305,38 +414,27 @@
         <header class="app-header">
             <div class="logo">
                 <i class="fas fa-university"></i>
-                <span>CAMBIO BANK</span>
+                <span class="logo-text">CAMBIO BANK</span>
             </div>
-            <h1>EXTRATO - <span id="contaTitulo">{{ conta_numero }}</span></h1>
+            <h1 class="page-title">EXTRATO BANCÁRIO</h1>
             <button class="btn-voltar" onclick="window.location.href='/admin/contas-bancarias'">
                 <i class="fas fa-arrow-left"></i> Voltar
             </button>
         </header>
 
-        <!-- FILTROS -->
-        <div class="filtros-container">
-            <div class="filtros-header">
-                <button class="filtro-btn" data-periodo="7">7 dias</button>
-                <button class="filtro-btn" data-periodo="30">30 dias</button>
-                <button class="filtro-btn" data-periodo="90">90 dias</button>
-                <button class="filtro-btn" data-periodo="0">Todo período</button>
-                <button class="filtro-btn" data-periodo="personalizado">Personalizado</button>
+        <!-- INFORMAÇÕES DA CONTA -->
+        <div class="info-conta" id="infoConta">
+            <div class="info-conta-item">
+                <div class="info-conta-label">Conta</div>
+                <div class="info-conta-valor" id="contaNumero">-</div>
             </div>
-            
-            <div id="personalizadoGroup" style="display: none;">
-                <div class="filtro-personalizado">
-                    <div class="form-group">
-                        <label>Data Início</label>
-                        <input type="text" id="dataInicio" class="form-control" placeholder="DD/MM/AAAA">
-                    </div>
-                    <div class="form-group">
-                        <label>Data Fim</label>
-                        <input type="text" id="dataFim" class="form-control" placeholder="DD/MM/AAAA">
-                    </div>
-                    <button class="btn-exportar" onclick="aplicarFiltroPersonalizado()" style="margin-left: 0;">
-                        <i class="fas fa-search"></i> Aplicar
-                    </button>
-                </div>
+            <div class="info-conta-item">
+                <div class="info-conta-label">Banco</div>
+                <div class="info-conta-valor" id="contaBanco">-</div>
+            </div>
+            <div class="info-conta-item">
+                <div class="info-conta-label">Moeda</div>
+                <div class="info-conta-valor" id="contaMoeda">-</div>
             </div>
         </div>
 
@@ -370,7 +468,7 @@
                         <th>Crédito (Saída)</th>
                         <th>Débito (Entrada)</th>
                         <th>Saldo</th>
-                        <th>Status</th>
+                        <th style="width: 80px;">Detalhes</th>
                     </tr>
                 </thead>
                 <tbody id="extratoBody">
@@ -382,41 +480,65 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- BOTÃO CARREGAR MAIS -->
+        <button id="btnCarregarMais" class="btn-carregar-mais" onclick="carregarMaisTransacoes()" style="display: none;">
+            <i class="fas fa-plus-circle"></i> Carregar mais 30 dias
+        </button>
+
+        <div class="footer-info">
+            <i class="fas fa-info-circle"></i> Exibindo as transações mais recentes primeiro
+        </div>
+    </div>
+
+    <!-- MODAL DETALHES -->
+    <div id="modalDetalhes" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-info-circle"></i> Detalhes da Transação</h3>
+                <button class="modal-close" onclick="fecharModalDetalhes()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Conteúdo dinâmico -->
+            </div>
+        </div>
     </div>
 
     <script>
-        let periodoAtual = '30';
+        // ============================================
+        // VARIÁVEIS GLOBAIS
+        // ============================================
         let contaNumero = '{{ conta_numero }}';
+        let todasTransacoes = [];      // Todas as transações (mais antigas primeiro)
+        let transacoesExibidas = [];    // Transações atualmente exibidas (mais recentes primeiro)
+        let offsetDias = 30;            // Quantos dias carregar por vez
+        let diasCarregados = 30;        // Quantos dias já foram carregados (a partir da data mais recente)
+        let dataMaisRecente = null;     // Data da transação mais recente
+        let dataMaisAntiga = null;      // Data da transação mais antiga
+        let carregando = false;
 
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
         document.addEventListener('DOMContentLoaded', () => {
-            // Configurar filtros
-            document.querySelectorAll('.filtro-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    
-                    const periodo = btn.dataset.periodo;
-                    periodoAtual = periodo;
-                    
-                    if (periodo === 'personalizado') {
-                        document.getElementById('personalizadoGroup').style.display = 'block';
-                    } else {
-                        document.getElementById('personalizadoGroup').style.display = 'none';
-                        carregarExtrato();
-                    }
-                });
-            });
+            console.log('🚀 Página de extrato carregada');
+            console.log('📋 Conta:', contaNumero);
             
-            // Ativar período padrão (30 dias)
-            const btn30 = document.querySelector('.filtro-btn[data-periodo="30"]');
-            if (btn30) btn30.classList.add('active');
-            
-            carregarExtrato();
+            if (contaNumero && contaNumero !== 'None') {
+                carregarExtratoCompleto();
+            } else {
+                document.getElementById('extratoBody').innerHTML = '<tr><td colspan="6" class="loading">❌ Conta não especificada</td></tr>';
+            }
         });
 
-        async function carregarExtrato() {
+        // ============================================
+        // CARREGAR EXTRATO COMPLETO (TODAS TRANSAÇÕES)
+        // ============================================
+        async function carregarExtratoCompleto() {
+            console.log('📊 Carregando extrato completo para conta:', contaNumero);
+            
             const tbody = document.getElementById('extratoBody');
-            tbody.innerHTML = '<tr><td colspan="6" class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando transações...</td></tr>';
             
             try {
                 const response = await fetch('/api/admin/extrato-conta', {
@@ -424,71 +546,179 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         conta_numero: contaNumero,
-                        periodo: periodoAtual
+                        periodo: '0'  // 0 = todo período
                     })
                 });
                 
                 const data = await response.json();
+                console.log('📥 Resposta recebida:', data);
                 
                 if (data.success) {
-                    atualizarResumo(data);
-                    renderizarTabela(data.transacoes);
+                    // SALVAR TODAS AS TRANSAÇÕES
+                    todasTransacoes = data.transacoes || [];
+                    
+                    console.log(`✅ ${todasTransacoes.length} transações carregadas`);
+                    
+                    if (todasTransacoes.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6" class="loading">📭 Nenhuma transação encontrada</td></tr>';
+                        document.getElementById('btnCarregarMais').style.display = 'none';
+                        atualizarResumo(data);
+                        atualizarInfoConta(data);
+                        return;
+                    }
+                    
+                    // Atualizar informações da conta
+                    atualizarInfoConta(data);
+                    
+                    // Calcular datas mais recente e mais antiga
+                    calcularDatasExtremas();
+                    
+                    // Resetar dias carregados
+                    diasCarregados = 30;
+                    
+                    // Carregar primeiras transações (últimos 30 dias)
+                    carregarTransacoesPorDias();
+                    
                 } else {
                     tbody.innerHTML = `<tr><td colspan="6" class="loading">❌ ${data.message}</td></tr>`;
                 }
             } catch (error) {
-                console.error('Erro:', error);
+                console.error('❌ Erro:', error);
                 tbody.innerHTML = '<tr><td colspan="6" class="loading">❌ Erro ao carregar extrato</td></tr>';
             }
         }
 
-        async function aplicarFiltroPersonalizado() {
-            const dataInicio = document.getElementById('dataInicio').value;
-            const dataFim = document.getElementById('dataFim').value;
+        // ============================================
+        // CALCULAR DATAS EXTREMAS
+        // ============================================
+        function calcularDatasExtremas() {
+            if (todasTransacoes.length === 0) return;
             
-            if (!dataInicio || !dataFim) {
-                alert('Preencha as datas de início e fim!');
+            let dataRecente = null;
+            let dataAntiga = null;
+            
+            for (const t of todasTransacoes) {
+                const dataObj = parseData(t.data);
+                if (dataObj) {
+                    if (!dataRecente || dataObj > dataRecente) dataRecente = dataObj;
+                    if (!dataAntiga || dataObj < dataAntiga) dataAntiga = dataObj;
+                }
+            }
+            
+            dataMaisRecente = dataRecente;
+            dataMaisAntiga = dataAntiga;
+            
+            console.log(`📅 Datas extremas: ${formatarData(dataMaisRecente)} a ${formatarData(dataMaisAntiga)}`);
+        }
+
+        // ============================================
+        // CARREGAR TRANSAÇÕES POR DIAS (ÚLTIMOS X DIAS)
+        // ============================================
+        function carregarTransacoesPorDias() {
+            console.log(`📊 Carregando transações dos últimos ${diasCarregados} dias...`);
+            
+            if (!dataMaisRecente) {
+                console.log('⚠️ Sem data mais recente');
                 return;
             }
             
-            const tbody = document.getElementById('extratoBody');
-            tbody.innerHTML = '<tr><td colspan="6" class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</td></tr>';
+            // Calcular data limite (diasCarregados atrás)
+            const dataLimite = new Date(dataMaisRecente);
+            dataLimite.setDate(dataLimite.getDate() - diasCarregados);
             
-            try {
-                const response = await fetch('/api/admin/extrato-conta', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        conta_numero: contaNumero,
-                        periodo: 'personalizado',
-                        data_inicio: dataInicio,
-                        data_fim: dataFim
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    atualizarResumo(data);
-                    renderizarTabela(data.transacoes);
-                } else {
-                    tbody.innerHTML = `<tr><td colspan="6" class="loading">❌ ${data.message}</td></tr>`;
+            console.log(`   Data limite: ${formatarData(dataLimite)}`);
+            
+            // Filtrar transações dentro do período
+            const transacoesFiltradas = [];
+            
+            for (const t of todasTransacoes) {
+                const dataObj = parseData(t.data);
+                if (dataObj && dataObj >= dataLimite) {
+                    transacoesFiltradas.push(t);
                 }
-            } catch (error) {
-                console.error('Erro:', error);
-                tbody.innerHTML = '<tr><td colspan="6" class="loading">❌ Erro ao carregar extrato</td></tr>';
+            }
+            
+            console.log(`   Encontradas ${transacoesFiltradas.length} transações neste período`);
+            
+            // Ordenar por data (mais recente primeiro para exibição)
+            transacoesExibidas = [...transacoesFiltradas].sort((a, b) => {
+                const dataA = parseData(a.data);
+                const dataB = parseData(b.data);
+                if (!dataA || !dataB) return 0;
+                return dataB - dataA;
+            });
+            
+            // Renderizar tabela
+            renderizarTabela(transacoesExibidas);
+            
+            // Calcular totais apenas para as transações exibidas
+            calcularTotaisExibidos();
+            
+            // Verificar se tem mais transações para carregar
+            const temMaisTransacoes = transacoesExibidas.length < todasTransacoes.length;
+            const botao = document.getElementById('btnCarregarMais');
+            
+            if (temMaisTransacoes) {
+                botao.style.display = 'block';
+                console.log('✅ Botão "Carregar mais" exibido');
+            } else {
+                botao.style.display = 'none';
+                console.log('📭 Todas as transações já estão sendo exibidas');
             }
         }
 
-        function atualizarResumo(data) {
-            const simbolo = obterSimboloMoeda(data.transacoes[0]?.moeda || 'USD');
+        // ============================================
+        // CARREGAR MAIS 30 DIAS
+        // ============================================
+        async function carregarMaisTransacoes() {
+            if (carregando) return;
+            carregando = true;
             
-            document.getElementById('saldoAtual').innerHTML = `${simbolo} ${formatarValor(data.saldo_final)}`;
-            document.getElementById('totalEntradas').innerHTML = `${simbolo} ${formatarValor(data.total_entradas)}`;
-            document.getElementById('totalSaidas').innerHTML = `${simbolo} ${formatarValor(data.total_saidas)}`;
-            document.getElementById('totalTransacoes').innerHTML = data.quantidade;
+            const botao = document.getElementById('btnCarregarMais');
+            const textoOriginal = botao.innerHTML;
+            botao.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando mais transações...';
+            botao.disabled = true;
             
-            if (data.saldo_final < 0) {
+            try {
+                diasCarregados += 30;
+                console.log(`📊 Carregando mais 30 dias (total: ${diasCarregados} dias)`);
+                carregarTransacoesPorDias();
+            } catch (error) {
+                console.error('❌ Erro ao carregar mais transações:', error);
+                alert('Erro ao carregar mais transações. Tente novamente.');
+            } finally {
+                botao.innerHTML = textoOriginal;
+                botao.disabled = false;
+                carregando = false;
+            }
+        }
+
+        // ============================================
+        // CALCULAR TOTAIS APENAS DAS TRANSAÇÕES EXIBIDAS
+        // ============================================
+        function calcularTotaisExibidos() {
+            let totalEntradas = 0;
+            let totalSaidas = 0;
+            
+            for (const t of transacoesExibidas) {
+                totalEntradas += t.debito || 0;
+                totalSaidas += t.credito || 0;
+            }
+            
+            const moeda = transacoesExibidas[0]?.moeda || 'USD';
+            const simbolo = obterSimboloMoeda(moeda);
+            
+            let saldoAtual = 0;
+            if (todasTransacoes.length > 0) {
+                saldoAtual = todasTransacoes[todasTransacoes.length - 1]?.saldo_apos || 0;
+            }
+            
+            document.getElementById('saldoAtual').innerHTML = `${simbolo} ${formatarValor(saldoAtual)}`;
+            document.getElementById('totalEntradas').innerHTML = `${simbolo} ${formatarValor(totalEntradas)}`;
+            document.getElementById('totalSaidas').innerHTML = `${simbolo} ${formatarValor(totalSaidas)}`;
+            document.getElementById('totalTransacoes').innerHTML = transacoesExibidas.length;
+            
+            if (saldoAtual < 0) {
                 document.getElementById('saldoAtual').classList.add('negativo');
                 document.getElementById('saldoAtual').classList.remove('positivo');
             } else {
@@ -497,17 +727,46 @@
             }
         }
 
+        // ============================================
+        // ATUALIZAR INFORMAÇÕES DA CONTA
+        // ============================================
+        function atualizarInfoConta(data) {
+            const moeda = data.moeda || 'USD';
+            const simbolo = obterSimboloMoeda(moeda);
+            
+            document.getElementById('contaNumero').innerHTML = contaNumero;
+            document.getElementById('contaBanco').innerHTML = data.conta_info?.banco || 'Conta Bancária';
+            document.getElementById('contaMoeda').innerHTML = `${simbolo} ${moeda}`;
+        }
+
+        // ============================================
+        // ATUALIZAR RESUMO
+        // ============================================
+        function atualizarResumo(data) {
+            const moeda = data.moeda || 'USD';
+            const simbolo = obterSimboloMoeda(moeda);
+            
+            document.getElementById('saldoAtual').innerHTML = `${simbolo} ${formatarValor(data.saldo_final || 0)}`;
+            document.getElementById('totalEntradas').innerHTML = `${simbolo} ${formatarValor(data.total_entradas || 0)}`;
+            document.getElementById('totalSaidas').innerHTML = `${simbolo} ${formatarValor(data.total_saidas || 0)}`;
+            document.getElementById('totalTransacoes').innerHTML = data.quantidade || 0;
+        }
+
+        // ============================================
+        // RENDERIZAR TABELA
+        // ============================================
         function renderizarTabela(transacoes) {
             const tbody = document.getElementById('extratoBody');
             
             if (!transacoes || transacoes.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="loading">Nenhuma transação encontrada</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="loading">Nenhuma transação neste período</td></tr>';
                 return;
             }
             
             tbody.innerHTML = '';
             
-            for (const t of transacoes) {
+            for (let i = 0; i < transacoes.length; i++) {
+                const t = transacoes[i];
                 const row = tbody.insertRow();
                 
                 // Data
@@ -531,16 +790,235 @@
                 saldoCell.textContent = formatarValor(t.saldo_apos);
                 saldoCell.className = t.saldo_apos < 0 ? 'negativo' : 'positivo';
                 
-                // Status
-                const statusCell = row.insertCell(5);
-                statusCell.textContent = t.status || 'completed';
-                if (t.status === 'rejected') statusCell.style.color = 'var(--cor-perigo)';
-                else if (t.status === 'pending') statusCell.style.color = 'var(--cor-alerta)';
-                else statusCell.style.color = 'var(--cor-sucesso)';
+                // Botão Detalhes
+                const detalheCell = row.insertCell(5);
+                const btnDetalhe = document.createElement('button');
+                btnDetalhe.className = 'btn-detalhe';
+                btnDetalhe.innerHTML = '<i class="fas fa-search"></i> Ver';
+                btnDetalhe.onclick = (function(transacao) {
+                    return function() { abrirModalDetalhes(transacao); };
+                })(t);
+                detalheCell.appendChild(btnDetalhe);
+            }
+        }
+
+        // ============================================
+        // ABRIR MODAL DE DETALHES
+        // ============================================
+        function abrirModalDetalhes(transacao) {
+            console.log('🔍 Abrindo detalhes da transação:', transacao.id || transacao);
+            
+            const modalBody = document.getElementById('modalBody');
+            
+            // Determinar classe de status
+            let statusClass = '';
+            let statusText = transacao.status || 'completed';
+            
+            switch (statusText.toLowerCase()) {
+                case 'completed':
+                    statusClass = 'status-completed';
+                    statusText = 'CONCLUÍDA';
+                    break;
+                case 'processing':
+                    statusClass = 'status-processing';
+                    statusText = 'EM PROCESSAMENTO';
+                    break;
+                case 'pending':
+                case 'solicitada':
+                    statusClass = 'status-pending';
+                    statusText = 'SOLICITADA';
+                    break;
+                case 'rejected':
+                    statusClass = 'status-rejected';
+                    statusText = 'RECUSADA';
+                    break;
+                default:
+                    statusClass = 'status-processing';
+            }
+            
+            // Formatar valores
+            const simbolo = obterSimboloMoeda(transacao.moeda || 'USD');
+            const valorFormatado = formatarValor(transacao.credito > 0 ? transacao.credito : transacao.debito);
+            
+            let html = `
+                <div class="detalhe-grupo">
+                    <h4><i class="fas fa-tag"></i> Informações Básicas</h4>
+                    <div class="detalhe-linha">
+                        <div class="detalhe-label">ID da Transação:</div>
+                        <div class="detalhe-valor"><strong>${transacao.id || 'N/A'}</strong></div>
+                    </div>
+                    <div class="detalhe-linha">
+                        <div class="detalhe-label">Tipo:</div>
+                        <div class="detalhe-valor">${transacao.tipo || 'N/A'}</div>
+                    </div>
+                    <div class="detalhe-linha">
+                        <div class="detalhe-label">Status:</div>
+                        <div class="detalhe-valor"><span class="status-badge ${statusClass}">${statusText}</span></div>
+                    </div>
+                    <div class="detalhe-linha">
+                        <div class="detalhe-label">Data/Hora:</div>
+                        <div class="detalhe-valor">${formatarDataCompleta(transacao.data)}</div>
+                    </div>
+                </div>
+                
+                <div class="detalhe-grupo">
+                    <h4><i class="fas fa-coins"></i> Valores</h4>
+                    <div class="detalhe-linha">
+                        <div class="detalhe-label">Valor:</div>
+                        <div class="detalhe-valor"><strong>${simbolo} ${valorFormatado} ${transacao.moeda || 'USD'}</strong></div>
+                    </div>
+            `;
+            
+            // Adicionar informações de câmbio se disponíveis
+            if (transacao.tipo === 'cambio' || transacao.operacao) {
+                const valorOrigem = transacao.valor_origem || transacao.valor;
+                const valorDestino = transacao.valor_destino;
+                const moedaOrigem = transacao.moeda_origem || transacao.moeda;
+                const moedaDestino = transacao.moeda_destino;
+                const cotacao = transacao.cotacao;
+                
+                if (valorDestino && moedaDestino) {
+                    html += `
+                    <div class="detalhe-linha">
+                        <div class="detalhe-label">Valor Origem:</div>
+                        <div class="detalhe-valor">${formatarValor(valorOrigem)} ${moedaOrigem}</div>
+                    </div>
+                    <div class="detalhe-linha">
+                        <div class="detalhe-label">Valor Destino:</div>
+                        <div class="detalhe-valor">${formatarValor(valorDestino)} ${moedaDestino}</div>
+                    </div>
+                    <div class="detalhe-linha">
+                        <div class="detalhe-label">Cotação:</div>
+                        <div class="detalhe-valor">1 ${moedaOrigem} = ${cotacao} ${moedaDestino}</div>
+                    </div>
+                    `;
+                }
+            }
+            
+            html += `</div>`;
+            
+            // Adicionar informações do beneficiário (se for transferência)
+            if (transacao.beneficiario) {
+                html += `
+                <div class="detalhe-grupo">
+                    <h4><i class="fas fa-user"></i> Beneficiário</h4>
+                    <div class="detalhe-linha">
+                        <div class="detalhe-label">Nome:</div>
+                        <div class="detalhe-valor">${transacao.beneficiario || 'N/A'}</div>
+                    </div>
+                    <div class="detalhe-linha">
+                        <div class="detalhe-label">Endereço:</div>
+                        <div class="detalhe-valor">${transacao.endereco_beneficiario || 'N/A'}</div>
+                    </div>
+                    <div class="detalhe-linha">
+                        <div class="detalhe-label">Cidade/País:</div>
+                        <div class="detalhe-valor">${transacao.cidade || 'N/A'} / ${transacao.pais || 'N/A'}</div>
+                    </div>
+                </div>
+                
+                <div class="detalhe-grupo">
+                    <h4><i class="fas fa-university"></i> Banco do Beneficiário</h4>
+                    <div class="detalhe-linha">
+                        <div class="detalhe-label">Banco:</div>
+                        <div class="detalhe-valor">${transacao.nome_banco || 'N/A'}</div>
+                    </div>
+                    <div class="detalhe-linha">
+                        <div class="detalhe-label">Endereço:</div>
+                        <div class="detalhe-valor">${transacao.endereco_banco || 'N/A'}</div>
+                    </div>
+                    <div class="detalhe-linha">
+                        <div class="detalhe-label">Cidade/País:</div>
+                        <div class="detalhe-valor">${transacao.cidade_banco || 'N/A'} / ${transacao.pais_banco || 'N/A'}</div>
+                    </div>
+                    <div class="detalhe-linha">
+                        <div class="detalhe-label">SWIFT:</div>
+                        <div class="detalhe-valor"><strong>${transacao.codigo_swift || 'N/A'}</strong></div>
+                    </div>
+                    <div class="detalhe-linha">
+                        <div class="detalhe-label">IBAN:</div>
+                        <div class="detalhe-valor">${transacao.iban_account || 'N/A'}</div>
+                    </div>
+                    ${transacao.aba_routing ? `<div class="detalhe-linha"><div class="detalhe-label">ABA/Routing:</div><div class="detalhe-valor">${transacao.aba_routing}</div></div>` : ''}
+                </div>
+                `;
+            }
+            
+            // Informações adicionais
+            html += `
+                <div class="detalhe-grupo">
+                    <h4><i class="fas fa-info-circle"></i> Informações Adicionais</h4>
+                    <div class="detalhe-linha">
+                        <div class="detalhe-label">Descrição:</div>
+                        <div class="detalhe-valor">${transacao.descricao || 'N/A'}</div>
+                    </div>
+                    <div class="detalhe-linha">
+                        <div class="detalhe-label">Conta Origem:</div>
+                        <div class="detalhe-valor">${transacao.conta_remetente || transacao.conta_origem || 'N/A'}</div>
+                    </div>
+                    <div class="detalhe-linha">
+                        <div class="detalhe-label">Conta Destino:</div>
+                        <div class="detalhe-valor">${transacao.conta_destinatario || transacao.conta_destino || 'N/A'}</div>
+                    </div>
+            `;
+            
+            // Adicionar motivo de recusa se houver
+            if (transacao.motivo_recusa) {
+                html += `
+                    <div class="detalhe-linha">
+                        <div class="detalhe-label">Motivo da Recusa:</div>
+                        <div class="detalhe-valor" style="color: var(--cor-perigo);">${transacao.motivo_recusa}</div>
+                    </div>
+                `;
+            }
+            
+            // Datas adicionais
+            if (transacao.data_solicitacao) {
+                html += `<div class="detalhe-linha"><div class="detalhe-label">Data Solicitação:</div><div class="detalhe-valor">${formatarDataCompleta(transacao.data_solicitacao)}</div></div>`;
+            }
+            if (transacao.data_aprovacao) {
+                html += `<div class="detalhe-linha"><div class="detalhe-label">Data Aprovação:</div><div class="detalhe-valor">${formatarDataCompleta(transacao.data_aprovacao)}</div></div>`;
+            }
+            if (transacao.data_conclusao) {
+                html += `<div class="detalhe-linha"><div class="detalhe-label">Data Conclusão:</div><div class="detalhe-valor">${formatarDataCompleta(transacao.data_conclusao)}</div></div>`;
+            }
+            
+            html += `</div>`;
+            
+            modalBody.innerHTML = html;
+            document.getElementById('modalDetalhes').classList.add('active');
+        }
+        
+        function fecharModalDetalhes() {
+            document.getElementById('modalDetalhes').classList.remove('active');
+        }
+
+        // ============================================
+        // FUNÇÕES AUXILIARES
+        // ============================================
+        function parseData(dataStr) {
+            if (!dataStr) return null;
+            try {
+                if (dataStr.includes('T')) {
+                    return new Date(dataStr);
+                } else if (dataStr.includes(' ')) {
+                    const [dataPart] = dataStr.split(' ');
+                    const [ano, mes, dia] = dataPart.split('-');
+                    return new Date(ano, mes - 1, dia);
+                } else if (dataStr.includes('-')) {
+                    const [ano, mes, dia] = dataStr.split('-');
+                    return new Date(ano, mes - 1, dia);
+                } else if (dataStr.includes('/')) {
+                    const [dia, mes, ano] = dataStr.split('/');
+                    return new Date(ano, mes - 1, dia);
+                }
+                return new Date(dataStr);
+            } catch {
+                return null;
             }
         }
 
         function formatarValor(valor) {
+            if (valor === undefined || valor === null) return '0,00';
             return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
@@ -549,9 +1027,39 @@
             try {
                 if (dataStr.includes('T')) {
                     const data = new Date(dataStr);
+                    return data.toLocaleDateString('pt-BR');
+                }
+                if (dataStr.includes(' ')) {
+                    const [dataPart] = dataStr.split(' ');
+                    const [ano, mes, dia] = dataPart.split('-');
+                    return `${dia}/${mes}/${ano}`;
+                }
+                if (dataStr.includes('-')) {
+                    const [ano, mes, dia] = dataStr.split('-');
+                    return `${dia}/${mes}/${ano}`;
+                }
+                if (dataStr.includes('/')) {
+                    return dataStr.split(' ')[0];
+                }
+                return dataStr;
+            } catch {
+                return dataStr;
+            }
+        }
+        
+        function formatarDataCompleta(dataStr) {
+            if (!dataStr) return '';
+            try {
+                if (dataStr.includes('T')) {
+                    const data = new Date(dataStr);
                     return data.toLocaleDateString('pt-BR') + ' ' + data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                 }
-                return dataStr.split(' ')[0].split('-').reverse().join('/');
+                if (dataStr.includes(' ')) {
+                    const [dataPart, horaPart] = dataStr.split(' ');
+                    const [ano, mes, dia] = dataPart.split('-');
+                    return `${dia}/${mes}/${ano} ${horaPart.substring(0, 5)}`;
+                }
+                return dataStr;
             } catch {
                 return dataStr;
             }
@@ -561,6 +1069,14 @@
             const simbolos = { USD: '$', EUR: '€', GBP: '£', BRL: 'R$' };
             return simbolos[moeda] || moeda;
         }
+        
+        // Fechar modal ao clicar fora
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('modalDetalhes');
+            if (event.target === modal) {
+                fecharModalDetalhes();
+            }
+        });
     </script>
     <script src="/static/js/theme.js"></script>
 </body>
