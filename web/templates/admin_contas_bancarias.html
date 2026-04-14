@@ -1434,6 +1434,76 @@
             div.textContent = text;
             return div.innerHTML;
         }
+
+        // ============================================
+        // FUNÇÃO DE EXPORTAÇÃO PARA PDF
+        // ============================================
+
+        async function exportarExtratoPDF() {
+            const contaNumero = contaNumero; // Já existe no escopo global
+            
+            if (!contaNumero || transacoesExibidas.length === 0) {
+                alert('Nenhuma transação para exportar');
+                return;
+            }
+            
+            try {
+                // Mostrar loading
+                const btnExportar = document.querySelector('.btn-exportar');
+                const textoOriginal = btnExportar.innerHTML;
+                btnExportar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando PDF...';
+                btnExportar.disabled = true;
+                
+                // 🔥 PREPARAR DADOS PARA O PDF (mesma estrutura do extrato do cliente)
+                const dadosPDF = {
+                    conta: contaNumero,
+                    periodo: 'Todo período',
+                    transacoes: transacoesExibidas.map(t => ({
+                        ...t,
+                        data_formatada: formatarData(t.data)
+                    })),
+                    resumo: {
+                        saldo_final: saldoAtual,
+                        total_entradas: totalEntradas,
+                        total_saidas: totalSaidas,
+                        total_transacoes: transacoesExibidas.length,
+                        moeda: moedaAtual || 'USD'
+                    }
+                };
+                
+                console.log('📄 Gerando PDF com', transacoesExibidas.length, 'transações');
+                
+                // 🔥 CHAMAR API DE EXPORTAÇÃO (mesma do cliente)
+                const response = await fetch('/api/extrato/exportar-pdf', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(dadosPDF)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.pdf_url) {
+                    // 🔥 ABRIR PDF EM NOVA ABA
+                    window.open(data.pdf_url, '_blank');
+                    alert('✅ PDF gerado com sucesso!');
+                } else {
+                    throw new Error(data.message || 'Erro ao gerar PDF');
+                }
+                
+            } catch (error) {
+                console.error('❌ Erro ao exportar PDF:', error);
+                alert('❌ Erro ao gerar PDF: ' + error.message);
+            } finally {
+                // Restaurar botão
+                const btnExportar = document.querySelector('.btn-exportar');
+                if (btnExportar) {
+                    btnExportar.innerHTML = '<i class="fas fa-file-pdf"></i> Exportar Extrato (PDF)';
+                    btnExportar.disabled = false;
+                }
+            }
+        }        
     </script>
     <script src="/static/js/theme.js"></script>
 </body>

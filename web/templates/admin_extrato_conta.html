@@ -473,6 +473,25 @@
             <i class="fas fa-plus-circle"></i> Carregar mais 30 transações
         </button>
 
+        <!-- 🔥 BOTÃO EXPORTAR PDF 🔥 -->
+        <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+            <button onclick="exportarExtratoPDF()" style="
+                background: linear-gradient(135deg, #2ec27e, #27ae60);
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 8px;
+                font-weight: 600;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                transition: all 0.3s ease;
+            ">
+                <i class="fas fa-file-pdf"></i> Exportar Extrato (PDF)
+            </button>
+        </div>
+
         <div class="footer-info">
             <i class="fas fa-info-circle"></i> Exibindo as transações mais recentes primeiro
         </div>
@@ -846,6 +865,104 @@
             return simbolos[moeda] || moeda;
         }
         
+        // ============================================
+        // EXPORTAR EXTRATO PARA PDF
+        // ============================================
+        async function exportarExtratoPDF() {
+            if (!contaNumero || todasTransacoes.length === 0) {
+                alert('❌ Nenhuma transação para exportar');
+                return;
+            }
+            
+            // Encontrar o botão
+            const botoes = document.querySelectorAll('button');
+            let btnExportar = null;
+            for (const btn of botoes) {
+                if (btn.innerText.includes('Exportar Extrato')) {
+                    btnExportar = btn;
+                    break;
+                }
+            }
+            
+            if (!btnExportar) return;
+            
+            const textoOriginal = btnExportar.innerHTML;
+            
+            try {
+                btnExportar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando PDF...';
+                btnExportar.disabled = true;
+                
+                // Obter a moeda
+                let moeda = 'USD';
+                const moedaEl = document.getElementById('contaMoeda');
+                if (moedaEl) {
+                    const moedaText = moedaEl.innerText;
+                    const match = moedaText.match(/\$|€|£|R\$/);
+                    if (match) {
+                        if (match[0] === '$') moeda = 'USD';
+                        else if (match[0] === '€') moeda = 'EUR';
+                        else if (match[0] === '£') moeda = 'GBP';
+                        else if (match[0] === 'R$') moeda = 'BRL';
+                    }
+                }
+                
+                // Calcular totais a partir de todas as transações
+                let totalEntradasCalc = 0;
+                let totalSaidasCalc = 0;
+                for (const t of todasTransacoes) {
+                    totalEntradasCalc += t.debito || 0;
+                    totalSaidasCalc += t.credito || 0;
+                }
+                
+                // Obter saldo final (última transação)
+                let saldoFinal = 0;
+                if (todasTransacoes.length > 0) {
+                    saldoFinal = todasTransacoes[todasTransacoes.length - 1]?.saldo_apos || 0;
+                }
+                
+                // Preparar dados para o PDF
+                const dadosPDF = {
+                    conta: contaNumero,
+                    periodo: 'Todo período',
+                    transacoes: todasTransacoes.map(t => ({
+                        ...t,
+                        data_formatada: formatarData(t.data)
+                    })),
+                    resumo: {
+                        saldo_final: saldoFinal,
+                        total_entradas: totalEntradasCalc,
+                        total_saidas: totalSaidasCalc,
+                        total_transacoes: todasTransacoes.length,
+                        moeda: moeda
+                    }
+                };
+                
+                console.log('📄 Gerando PDF com', todasTransacoes.length, 'transações');
+                
+                const response = await fetch('/api/extrato/exportar-pdf', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dadosPDF)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.pdf_url) {
+                    window.open(data.pdf_url, '_blank');
+                    alert('✅ PDF gerado com sucesso!');
+                } else {
+                    throw new Error(data.message || 'Erro ao gerar PDF');
+                }
+                
+            } catch (error) {
+                console.error('❌ Erro ao exportar PDF:', error);
+                alert('❌ Erro ao gerar PDF: ' + error.message);
+            } finally {
+                btnExportar.innerHTML = textoOriginal;
+                btnExportar.disabled = false;
+            }
+        }
+
         document.addEventListener('click', function(event) {
             const modal = document.getElementById('modalDetalhes');
             if (event.target === modal) fecharModalDetalhes();
