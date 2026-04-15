@@ -398,6 +398,16 @@
                 margin-bottom: 5px;
             }
         }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }        
     </style>
 </head>
 <body>
@@ -881,7 +891,7 @@
         // ============================================
         async function exportarExtratoPDF() {
             if (!contaNumero || todasTransacoes.length === 0) {
-                alert('❌ Nenhuma transação para exportar');
+                mostrarMensagem('Nenhuma transação para exportar', 'erro');
                 return;
             }
             
@@ -963,18 +973,67 @@
                 
                 if (data.success && data.pdf_url) {
                     window.open(data.pdf_url, '_blank');
-                    alert('✅ PDF gerado com sucesso!');
+                    mostrarMensagem('✅ PDF gerado com sucesso!', 'sucesso');
                 } else {
                     throw new Error(data.message || 'Erro ao gerar PDF');
                 }
                 
             } catch (error) {
                 console.error('❌ Erro ao exportar PDF:', error);
-                alert('❌ Erro ao gerar PDF: ' + error.message);
+                mostrarMensagem('❌ Erro ao gerar PDF: ' + error.message, 'erro');
             } finally {
                 btnExportar.innerHTML = textoOriginal;
                 btnExportar.disabled = false;
             }
+        }
+        
+        // 🔥 FUNÇÃO PARA MOSTRAR MENSAGEM ELEGANTE (adicionar no final do script)
+        function mostrarMensagem(mensagem, tipo) {
+            // Remover mensagem anterior se existir
+            const msgAnterior = document.querySelector('.mensagem-flutuante');
+            if (msgAnterior) msgAnterior.remove();
+            
+            const cores = {
+                sucesso: { fundo: '#2ec27e', icone: 'fa-check-circle' },
+                erro: { fundo: '#e01b24', icone: 'fa-exclamation-circle' },
+                info: { fundo: '#1a5fb4', icone: 'fa-info-circle' }
+            };
+            
+            const cor = cores[tipo] || cores.info;
+            
+            const mensagemDiv = document.createElement('div');
+            mensagemDiv.className = 'mensagem-flutuante';
+            mensagemDiv.innerHTML = `
+                <div style="
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: ${cor.fundo};
+                    color: white;
+                    padding: 15px 25px;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    z-index: 10000;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                    animation: slideIn 0.3s ease;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    font-family: 'Segoe UI', sans-serif;
+                ">
+                    <i class="fas ${cor.icone}"></i>
+                    ${mensagem}
+                </div>
+            `;
+            
+            document.body.appendChild(mensagemDiv);
+            
+            setTimeout(() => {
+                if (mensagemDiv) {
+                    mensagemDiv.style.animation = 'slideOut 0.3s ease';
+                    setTimeout(() => mensagemDiv.remove(), 300);
+                }
+            }, 3000);
         }
 
         document.addEventListener('click', function(event) {
