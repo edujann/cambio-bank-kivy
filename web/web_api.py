@@ -3146,18 +3146,22 @@ def exportar_extrato_pdf():
                 ('WORDWRAP', (1, 1), (1, -2), True),
             ])
             
-            # Cores para crédito/débito
+            # Cores para crédito/débito (INVERTIDAS)
             for i in range(1, len(data) - 1):
                 credito_valor = float(transacoes_ordenadas[i-1].get('credito', 0))
                 debito_valor = float(transacoes_ordenadas[i-1].get('debito', 0))
                 saldo_valor = float(transacoes_ordenadas[i-1].get('saldo_apos', 0))
                 
-                if debito_valor > 0:
+                # 🔥 Coluna 2 (CRÉDITO) - VERMELHO
+                if credito_valor > 0:
                     estilo_tabela.add('TEXTCOLOR', (2, i), (2, i), colors.red)
                     estilo_tabela.add('FONTNAME', (2, i), (2, i), 'Helvetica-Bold')
-                if credito_valor > 0:
+                
+                # 🔥 Coluna 3 (DÉBITO) - AZUL
+                if debito_valor > 0:
                     estilo_tabela.add('TEXTCOLOR', (3, i), (3, i), colors.HexColor("#1a5fb4"))
                     estilo_tabela.add('FONTNAME', (3, i), (3, i), 'Helvetica-Bold')
+                
                 if saldo_valor >= 0:
                     estilo_tabela.add('TEXTCOLOR', (4, i), (4, i), colors.HexColor("#1a5fb4"))
                 else:
