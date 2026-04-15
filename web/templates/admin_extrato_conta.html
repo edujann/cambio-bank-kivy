@@ -906,17 +906,14 @@
                 // 🔥 CALCULAR TOTAIS DIRETAMENTE DAS TRANSAÇÕES
                 let totalEntradasCalc = 0;
                 let totalSaidasCalc = 0;
-                let saldoFinalCalc = 0;
                 
                 for (const t of todasTransacoes) {
                     totalEntradasCalc += t.debito || 0;
                     totalSaidasCalc += t.credito || 0;
                 }
                 
-                // Pegar o saldo final da última transação
-                if (todasTransacoes.length > 0) {
-                    saldoFinalCalc = todasTransacoes[todasTransacoes.length - 1]?.saldo_apos || 0;
-                }
+                // 🔥 CORREÇÃO: Calcular saldo final pela diferença (mais confiável)
+                const saldoFinalCalc = totalEntradasCalc - totalSaidasCalc;
                 
                 // Obter a moeda
                 let moeda = 'USD';
@@ -930,9 +927,9 @@
                 }
                 
                 console.log('📊 Totais calculados:');
-                console.log(`   Total entradas: ${totalEntradasCalc}`);
-                console.log(`   Total saídas: ${totalSaidasCalc}`);
-                console.log(`   Saldo final: ${saldoFinalCalc}`);
+                console.log(`   Total entradas (DÉBITO): ${totalEntradasCalc}`);
+                console.log(`   Total saídas (CRÉDITO): ${totalSaidasCalc}`);
+                console.log(`   Saldo final (entradas - saídas): ${saldoFinalCalc}`);
                 console.log(`   Total transações: ${todasTransacoes.length}`);
                 
                 // Preparar dados para o PDF
