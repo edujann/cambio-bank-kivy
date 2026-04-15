@@ -514,6 +514,7 @@
         let itemsPorPagina = 30;        // Quantas transações carregar por vez
         let paginaAtual = 1;            // Página atual
         let carregando = false;
+        let saldoFinalGlobal = 0;       // 🔥 NOVA VARIÁVEL PARA ARMAZENAR O SALDO FINAL
 
         document.addEventListener('DOMContentLoaded', () => {
             console.log('🚀 Página de extrato carregada');
@@ -541,14 +542,13 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    // 🔥 A API JÁ RETORNA NA ORDEM CORRETA (mais recentes primeiro)
                     todasTransacoes = data.transacoes || [];
                     
+                    // 🔥 SALVAR O SALDO FINAL GLOBAL
+                    saldoFinalGlobal = data.saldo_final || 0;
+                    
                     console.log(`✅ ${todasTransacoes.length} transações carregadas`);
-                    if (todasTransacoes.length > 0) {
-                        console.log(`   Primeira (mais recente): ${todasTransacoes[0]?.data}`);
-                        console.log(`   Última (mais antiga): ${todasTransacoes[todasTransacoes.length-1]?.data}`);
-                    }
+                    console.log(`💰 Saldo final (API): ${saldoFinalGlobal}`);
                     
                     if (todasTransacoes.length === 0) {
                         tbody.innerHTML = '<tr><td colspan="6" class="loading">📭 Nenhuma transação encontrada</td></tr>';
@@ -560,11 +560,8 @@
                     atualizarInfoConta(data);
                     atualizarResumo(data);
                     
-                    // 🔥 RESETAR PAGINAÇÃO
                     paginaAtual = 1;
                     transacoesExibidas = [];
-                    
-                    // 🔥 CARREGAR PRIMEIRA PÁGINA
                     carregarPagina();
                     
                 } else {
