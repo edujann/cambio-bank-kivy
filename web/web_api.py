@@ -3100,7 +3100,7 @@ def exportar_extrato_pdf():
         
         # Tabela de transações
         if transacoes_ordenadas:
-            header = ['Date', 'Description', 'Credit', 'Debit', 'Balance']
+            header = ['Date', 'Description', 'Débito', 'Crédito', 'Balance']
             data = [header]
             
             for t in transacoes_ordenadas:
@@ -3152,11 +3152,11 @@ def exportar_extrato_pdf():
                 debito_valor = float(transacoes_ordenadas[i-1].get('debito', 0))
                 saldo_valor = float(transacoes_ordenadas[i-1].get('saldo_apos', 0))
                 
-                if credito_valor > 0:
-                    estilo_tabela.add('TEXTCOLOR', (2, i), (2, i), colors.HexColor("#1a5fb4"))
-                    estilo_tabela.add('FONTNAME', (2, i), (2, i), 'Helvetica-Bold')
                 if debito_valor > 0:
-                    estilo_tabela.add('TEXTCOLOR', (3, i), (3, i), colors.red)
+                    estilo_tabela.add('TEXTCOLOR', (2, i), (2, i), colors.red)
+                    estilo_tabela.add('FONTNAME', (2, i), (2, i), 'Helvetica-Bold')
+                if credito_valor > 0:
+                    estilo_tabela.add('TEXTCOLOR', (3, i), (3, i), colors.HexColor("#1a5fb4"))
                     estilo_tabela.add('FONTNAME', (3, i), (3, i), 'Helvetica-Bold')
                 if saldo_valor >= 0:
                     estilo_tabela.add('TEXTCOLOR', (4, i), (4, i), colors.HexColor("#1a5fb4"))
