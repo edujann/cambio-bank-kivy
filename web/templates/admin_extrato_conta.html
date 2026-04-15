@@ -626,32 +626,17 @@
             const tbody = document.getElementById('extratoBody');
             
             if (!transacoesExibidas || transacoesExibidas.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="loading">Nenhuma transação encontrada</td>' + '</tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="loading">Nenhuma transação encontrada</td></tr>';
                 return;
             }
             
             tbody.innerHTML = '';
             
-            // 🔥 Obter o saldo atual do elemento de resumo (já está atualizado)
-            let saldoAtualValor = 0;
-            const saldoAtualElement = document.getElementById('saldoAtual');
-            if (saldoAtualElement) {
-                // Extrair o valor numérico do texto (ex: "$ 1.234,56" → 1234.56)
-                const textoSaldo = saldoAtualElement.innerText;
-                const match = textoSaldo.match(/[\d\.,]+/);
-                if (match) {
-                    saldoAtualValor = parseFloat(match[0].replace(/\./g, '').replace(',', '.'));
-                }
-            }
+            // 🔥 USAR O SALDO FINAL GLOBAL (que veio da API)
+            const saldoAtualValor = saldoFinalGlobal;
             
-            // Se não conseguiu extrair, usar o saldo da última transação
-            if (saldoAtualValor === 0 && transacoesExibidas.length > 0) {
-                saldoAtualValor = transacoesExibidas[transacoesExibidas.length - 1]?.saldo_apos || 0;
-            }
+            console.log(`💰 renderizarTabela - Saldo atual (global): ${saldoAtualValor}`);
             
-            console.log(`💰 Saldo atual para CURRENT BALANCE: ${saldoAtualValor}`);
-            
-            // 🔥 AS TRANSAÇÕES JÁ ESTÃO NA ORDEM CORRETA (mais recentes primeiro)
             for (let i = 0; i < transacoesExibidas.length; i++) {
                 const t = transacoesExibidas[i];
                 const row = tbody.insertRow();
@@ -671,9 +656,10 @@
                 debitoCell.className = 'debito';
                 
                 const saldoCell = row.insertCell(4);
-                // 🔥 Para a última linha, usar o saldo atual real
+                // 🔥 Na última linha, usar o saldoFinalGlobal
                 if (isUltimaLinha) {
                     saldoCell.textContent = formatarValor(saldoAtualValor);
+                    console.log(`   Última linha - saldo exibido: ${formatarValor(saldoAtualValor)}`);
                 } else {
                     saldoCell.textContent = formatarValor(t.saldo_apos);
                 }
@@ -690,11 +676,6 @@
             }
             
             console.log(`✅ Tabela renderizada com ${transacoesExibidas.length} transações`);
-            if (transacoesExibidas.length > 0) {
-                console.log(`   Primeira linha (mais recente): ${transacoesExibidas[0]?.data}`);
-                console.log(`   Última linha (mais antiga): ${transacoesExibidas[transacoesExibidas.length-1]?.data}`);
-                console.log(`   Saldo atual (CURRENT BALANCE): ${saldoAtualValor}`);
-            }
         }
 
         function atualizarInfoConta(data) {
