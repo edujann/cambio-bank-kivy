@@ -626,22 +626,29 @@
             const tbody = document.getElementById('extratoBody');
             
             if (!transacoesExibidas || transacoesExibidas.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="loading">Nenhuma transação encontrada</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="loading">Nenhuma transação encontrada</td>' + '</tr>';
                 return;
             }
             
             tbody.innerHTML = '';
             
-            // 🔥 USAR O SALDO FINAL GLOBAL (que veio da API)
-            const saldoAtualValor = saldoFinalGlobal;
+            // 🔥 PEGAR O SALDO DIRETAMENTE DO ELEMENTO DA TELA (já está correto)
+            let saldoAtualTexto = document.getElementById('saldoAtual').innerText;
+            let saldoAtualNumerico = 0;
             
-            console.log(`💰 renderizarTabela - Saldo atual (global): ${saldoAtualValor}`);
+            // Extrair número do texto (ex: "$ 13.535,10" → 13535.10)
+            const match = saldoAtualTexto.match(/[\d\.,]+/);
+            if (match) {
+                saldoAtualNumerico = parseFloat(match[0].replace(/\./g, '').replace(',', '.'));
+            }
+            
+            console.log(`💰 Saldo atual do resumo: ${saldoAtualNumerico}`);
             
             for (let i = 0; i < transacoesExibidas.length; i++) {
                 const t = transacoesExibidas[i];
                 const row = tbody.insertRow();
                 
-                // Verificar se é a última linha (mais antiga)
+                // É a última linha?
                 const isUltimaLinha = (i === transacoesExibidas.length - 1);
                 
                 row.insertCell(0).textContent = formatarData(t.data);
@@ -656,14 +663,13 @@
                 debitoCell.className = 'debito';
                 
                 const saldoCell = row.insertCell(4);
-                // 🔥 Na última linha, usar o saldoFinalGlobal
+                // 🔥 NA ÚLTIMA LINHA, USA O SALDO DO RESUMO (QUE ESTÁ CORRETO)
                 if (isUltimaLinha) {
-                    saldoCell.textContent = formatarValor(saldoAtualValor);
-                    console.log(`   Última linha - saldo exibido: ${formatarValor(saldoAtualValor)}`);
+                    saldoCell.textContent = formatarValor(saldoAtualNumerico);
                 } else {
                     saldoCell.textContent = formatarValor(t.saldo_apos);
                 }
-                saldoCell.className = t.saldo_apos < 0 ? 'negativo' : 'positivo';
+                saldoCell.className = saldoAtualNumerico < 0 ? 'negativo' : 'positivo';
                 
                 const detalheCell = row.insertCell(5);
                 const btnDetalhe = document.createElement('button');
@@ -674,8 +680,6 @@
                 })(t);
                 detalheCell.appendChild(btnDetalhe);
             }
-            
-            console.log(`✅ Tabela renderizada com ${transacoesExibidas.length} transações`);
         }
 
         function atualizarInfoConta(data) {
