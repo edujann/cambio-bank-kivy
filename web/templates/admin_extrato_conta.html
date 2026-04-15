@@ -899,33 +899,37 @@
                 btnExportar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando PDF...';
                 btnExportar.disabled = true;
                 
-                // Obter a moeda
-                let moeda = 'USD';
-                const moedaEl = document.getElementById('contaMoeda');
-                if (moedaEl) {
-                    const moedaText = moedaEl.innerText;
-                    const match = moedaText.match(/\$|€|£|R\$/);
-                    if (match) {
-                        if (match[0] === '$') moeda = 'USD';
-                        else if (match[0] === '€') moeda = 'EUR';
-                        else if (match[0] === '£') moeda = 'GBP';
-                        else if (match[0] === 'R$') moeda = 'BRL';
-                    }
-                }
-                
-                // Calcular totais a partir de todas as transações
+                // 🔥 CALCULAR TOTAIS DIRETAMENTE DAS TRANSAÇÕES
                 let totalEntradasCalc = 0;
                 let totalSaidasCalc = 0;
+                let saldoFinalCalc = 0;
+                
                 for (const t of todasTransacoes) {
                     totalEntradasCalc += t.debito || 0;
                     totalSaidasCalc += t.credito || 0;
                 }
                 
-                // Obter saldo final (última transação)
-                let saldoFinal = 0;
+                // Pegar o saldo final da última transação
                 if (todasTransacoes.length > 0) {
-                    saldoFinal = todasTransacoes[todasTransacoes.length - 1]?.saldo_apos || 0;
+                    saldoFinalCalc = todasTransacoes[todasTransacoes.length - 1]?.saldo_apos || 0;
                 }
+                
+                // Obter a moeda
+                let moeda = 'USD';
+                const moedaEl = document.getElementById('contaMoeda');
+                if (moedaEl) {
+                    const moedaText = moedaEl.innerText;
+                    if (moedaText.includes('$')) moeda = 'USD';
+                    else if (moedaText.includes('€')) moeda = 'EUR';
+                    else if (moedaText.includes('£')) moeda = 'GBP';
+                    else if (moedaText.includes('R$')) moeda = 'BRL';
+                }
+                
+                console.log('📊 Totais calculados:');
+                console.log(`   Total entradas: ${totalEntradasCalc}`);
+                console.log(`   Total saídas: ${totalSaidasCalc}`);
+                console.log(`   Saldo final: ${saldoFinalCalc}`);
+                console.log(`   Total transações: ${todasTransacoes.length}`);
                 
                 // Preparar dados para o PDF
                 const dadosPDF = {
@@ -936,7 +940,7 @@
                         data_formatada: formatarData(t.data)
                     })),
                     resumo: {
-                        saldo_final: saldoFinal,
+                        saldo_final: saldoFinalCalc,
                         total_entradas: totalEntradasCalc,
                         total_saidas: totalSaidasCalc,
                         total_transacoes: todasTransacoes.length,
@@ -944,7 +948,7 @@
                     }
                 };
                 
-                console.log('📄 Gerando PDF com', todasTransacoes.length, 'transações');
+                console.log('📄 Enviando dados para PDF:', dadosPDF.resumo);
                 
                 const response = await fetch('/api/extrato/exportar-pdf', {
                     method: 'POST',
@@ -954,12 +958,7 @@
                 
                 const data = await response.json();
                 
-                // 🔥 LOGS DE DEBUG - ADICIONAR AQUI 🔥
-                console.log('🔍 DATA COMPLETO:', data);
-                console.log('🔍 data.saldo_final:', data.saldo_final);
-                console.log('🔍 data.total_entradas:', data.total_entradas);
-                console.log('🔍 data.total_saidas:', data.total_saidas);
-                console.log('🔍 data.transacoes length:', data.transacoes?.length);
+                console.log('📥 Resposta da API:', data);
                 
                 if (data.success && data.pdf_url) {
                     window.open(data.pdf_url, '_blank');
