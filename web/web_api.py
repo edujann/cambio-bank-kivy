@@ -3119,7 +3119,7 @@ def exportar_extrato_pdf():
                 debito = f"{simbolo} {debito_valor:,.2f}" if debito_valor > 0 else ""
                 saldo = f"{simbolo} {saldo_valor:,.2f}"
                 
-                data.append([data_formatada, desc, credito, debito, saldo])
+                data.append([data_formatada, desc, debito, credito, saldo])
             
             # Linha de saldo final
             data.append(["", "CURRENT BALANCE", "", "", f"{simbolo} {saldo_atual:,.2f}"])
