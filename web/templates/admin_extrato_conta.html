@@ -954,6 +954,13 @@
                 
                 const data = await response.json();
                 
+                // 🔥 LOGS DE DEBUG - ADICIONAR AQUI 🔥
+                console.log('🔍 DATA COMPLETO:', data);
+                console.log('🔍 data.saldo_final:', data.saldo_final);
+                console.log('🔍 data.total_entradas:', data.total_entradas);
+                console.log('🔍 data.total_saidas:', data.total_saidas);
+                console.log('🔍 data.transacoes length:', data.transacoes?.length);
+                
                 if (data.success && data.pdf_url) {
                     window.open(data.pdf_url, '_blank');
                     alert('✅ PDF gerado com sucesso!');
