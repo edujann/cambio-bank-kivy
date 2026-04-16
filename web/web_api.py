@@ -240,6 +240,96 @@ def login():
         }), 500
 
 # ============================================
+# FUÇÃO PARA OS EXTRATOS USAREM EM CASO DE ESTORNO
+# ============================================
+
+def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transacao_str, data_transacao):
+    """
+    Processa estorno usando a lógica de INVERSÃO:
+    - Busca a transação original
+    - Determina qual era o efeito original (crédito/débito)
+    - Inverte para criar o efeito do estorno
+    """
+    transacao_original_id = transf_estorno.get('transacao_original_id')
+    
+    if not transacao_original_id:
+        return None, None
+    
+    # Buscar a transação original
+    original_response = supabase.table('transferencias')\
+        .select('*')\
+        .eq('id', transacao_original_id)\
+        .execute()
+    
+    if not original_response.data:
+        return None, None
+    
+    original = original_response.data[0]
+    tipo_original = original.get('tipo')
+    valor_original = float(original.get('valor', 0))
+    moeda_original = original.get('moeda', moeda)
+    descricao_estorno = transf_estorno.get('descricao', f"Estorno de {tipo_original}")
+    
+    # Verificar se a conta do cliente está envolvida na original
+    conta_envolvida = (
+        original.get('conta_remetente') == conta_num or
+        original.get('conta_destinatario') == conta_num or
+        original.get('conta_origem') == conta_num or
+        original.get('conta_destino') == conta_num
+    )
+    
+    if not conta_envolvida:
+        return None, None
+    
+    # 🔥 LÓGICA PRINCIPAL: Determinar o efeito ORIGINAL
+    credito_original = 0.0
+    debito_original = 0.0
+    
+    # Caso 1: Cliente era REMETENTE/ORIGEM (perdeu dinheiro)
+    if original.get('conta_remetente') == conta_num or original.get('conta_origem') == conta_num:
+        debito_original = valor_original
+        
+        # Casos especiais onde o cliente na verdade GANHOU dinheiro mesmo sendo remetente
+        if tipo_original == 'transferencia_cliente_empresa':
+            # Cliente → Empresa: cliente GANHA crédito
+            credito_original = valor_original
+            debito_original = 0.0
+    
+    # Caso 2: Cliente era DESTINATÁRIO/DESTINO (ganhou dinheiro)
+    elif original.get('conta_destinatario') == conta_num or original.get('conta_destino') == conta_num:
+        credito_original = valor_original
+        
+        # Casos especiais onde o cliente na verdade PERDEU dinheiro mesmo sendo destinatário
+        if tipo_original == 'transferencia_empresa_cliente':
+            # Empresa → Cliente: cliente PERDE dinheiro
+            debito_original = valor_original
+            credito_original = 0.0
+    
+    # Caso 3: Ajuste administrativo (usa tipo_ajuste)
+    if tipo_original == 'ajuste_admin':
+        tipo_ajuste = original.get('tipo_ajuste', '').upper()
+        if tipo_ajuste == 'CREDITO':
+            # CRÉDITO administrativo: aumenta saldo
+            credito_original = valor_original
+            debito_original = 0.0
+        else:
+            # DÉBITO administrativo: diminui saldo
+            debito_original = valor_original
+            credito_original = 0.0
+    
+    # 🔥 INVERSÃO: O que era crédito vira débito, o que era débito vira crédito
+    return {
+        'id': transf_estorno.get('id'),
+        'data': data_transacao_str,
+        'descricao': f"🔁 ESTORNO: {descricao_estorno}",
+        'credito': debito_original,  # INVERTIDO
+        'debito': credito_original,   # INVERTIDO
+        'tipo': "Estorno",
+        'moeda': moeda_original,
+        'timestamp': data_transacao
+    }, tipo_original
+
+# ============================================
 # ENDPOINTS PARA FRONTEND
 # ============================================
 
@@ -3891,6 +3981,24 @@ def obter_extrato_kivy():
                 
                 # 🔥 8. PROCESSAR A TRANSAÇÃO (LÓGICA DO KIVY)
                 valor = float(transf.get('valor', 0)) if transf.get('valor') is not None else 0.0
+
+                # ============================================
+                # 🔥 NOVO: PROCESSAR ESTORNO PRIMEIRO
+                # ============================================
+                if transf_tipo == 'estorno':
+                    transacao_estorno, tipo_original = processar_estorno_por_inversao(
+                        transf, conta_num, moeda, data_transacao_str, data_transacao
+                    )
+                    
+                    if transacao_estorno:
+                        transacoes_todas.append(transacao_estorno)
+                        transacoes_ids_utilizados.add(transf_id)
+                        print(f"💰 ESTORNO PROCESSADO: {transf_id}")
+                    else:
+                        print(f"⚠️ ESTORNO IGNORADO: {transf_id}")
+                    
+                    continue  # PULAR o resto do processamento
+
 
                 # Cliente é REMETENTE
                 if transf.get('conta_remetente') == conta_num or transf.get('conta_origem') == conta_num:
@@ -7607,6 +7715,23 @@ def api_admin_extrato_kivy():
                 if not deve_incluir:
                     continue
 
+                # ============================================
+                # 🔥 AQUI! COLOCAR O BLOCO DE ESTORNO
+                # ============================================
+                if transf_tipo == 'estorno':
+                    transacao_estorno, tipo_original = processar_estorno_por_inversao(
+                        transf, conta_num, moeda, data_transacao_str, data_transacao
+                    )
+                    
+                    if transacao_estorno:
+                        transacoes_todas.append(transacao_estorno)
+                        print(f"💰 ESTORNO PROCESSADO (ADMIN): {transf_id} | Original: {tipo_original}")
+                    else:
+                        print(f"⚠️ ESTORNO IGNORADO (ADMIN): {transf_id}")
+                    
+                    continue  # Pular o resto
+
+
                 # Cliente é REMETENTE
                 if transf.get('conta_remetente') == conta_num or transf.get('conta_origem') == conta_num:
                     
@@ -10361,11 +10486,10 @@ def buscar_transacao_por_id():
 
 def calcular_estorno(transacao):
     """
-    Calcula as operações de estorno com base no tipo da transação
+    Calcula as operações de estorno usando a lógica de INVERSÃO
     Retorna lista de operações a serem executadas
     """
     tipo = transacao.get('tipo')
-    status = transacao.get('status', '').lower()
     operacoes = []
     
     # ============================================
@@ -10378,15 +10502,15 @@ def calcular_estorno(transacao):
         
         if conta:
             if tipo_ajuste == 'CREDITO':
-                # Original: AUMENTOU saldo → Estorno: DIMINUIR
+                # Original: +valor → Estorno: -valor (DÉBITO)
                 operacoes.append({
                     'conta': conta,
                     'valor': valor,
                     'operacao': 'DEBITO',
                     'is_empresa': is_conta_empresa(conta)
                 })
-            elif tipo_ajuste == 'DEBITO':
-                # Original: DIMINUIU saldo → Estorno: AUMENTAR
+            else:
+                # Original: -valor → Estorno: +valor (CRÉDITO)
                 operacoes.append({
                     'conta': conta,
                     'valor': valor,
@@ -10397,14 +10521,14 @@ def calcular_estorno(transacao):
     # ============================================
     # CÂMBIO (entre contas de cliente)
     # ============================================
-    elif tipo == 'cambio' and '_nt' not in str(transacao.get('id', '')):
-        conta_origem = transacao.get('conta_remetente')
-        conta_destino = transacao.get('conta_destinatario')
+    elif tipo == 'cambio':
+        conta_origem = transacao.get('conta_remetente') or transacao.get('conta_origem')
+        conta_destino = transacao.get('conta_destinatario') or transacao.get('conta_destino')
         valor = float(transacao.get('valor', 0))
         valor_destino = float(transacao.get('valor_destino', valor))
         
         if conta_origem:
-            # Estornar: DEVOLVER para conta origem
+            # Original: -valor → Estorno: +valor (CRÉDITO)
             operacoes.append({
                 'conta': conta_origem,
                 'valor': valor,
@@ -10413,32 +10537,7 @@ def calcular_estorno(transacao):
             })
         
         if conta_destino:
-            # Estornar: RETIRAR da conta destino
-            operacoes.append({
-                'conta': conta_destino,
-                'valor': valor_destino,
-                'operacao': 'DEBITO',
-                'is_empresa': is_conta_empresa(conta_destino)
-            })
-    
-    # ============================================
-    # CÂMBIO (nova tela - com _nt)
-    # ============================================
-    elif tipo == 'cambio' and '_nt' in str(transacao.get('id', '')):
-        conta_origem = transacao.get('conta_origem') or transacao.get('conta_remetente')
-        conta_destino = transacao.get('conta_destino') or transacao.get('conta_destinatario')
-        valor = float(transacao.get('valor_origem', transacao.get('valor', 0)))
-        valor_destino = float(transacao.get('valor_destino', valor))
-        
-        if conta_origem:
-            operacoes.append({
-                'conta': conta_origem,
-                'valor': valor,
-                'operacao': 'CREDITO',
-                'is_empresa': is_conta_empresa(conta_origem)
-            })
-        
-        if conta_destino:
+            # Original: +valor_destino → Estorno: -valor_destino (DÉBITO)
             operacoes.append({
                 'conta': conta_destino,
                 'valor': valor_destino,
@@ -10452,38 +10551,16 @@ def calcular_estorno(transacao):
     elif tipo in ['transferencia_internacional', 'internacional']:
         conta_cliente = transacao.get('conta_remetente')
         valor = float(transacao.get('valor', 0))
+        status = transacao.get('status', '').lower()
         
-        if status in ['solicitada', 'pending']:
-            # Apenas debitou do cliente → estornar: devolver ao cliente
-            if conta_cliente:
-                operacoes.append({
-                    'conta': conta_cliente,
-                    'valor': valor,
-                    'operacao': 'CREDITO',
-                    'is_empresa': is_conta_empresa(conta_cliente)
-                })
-        
-        elif status == 'completed':
-            # Já concluiu: cliente foi debitado E empresa pagou
-            conta_empresa = transacao.get('conta_bancaria_credito')
-            
-            if conta_cliente:
-                # Devolver ao cliente
-                operacoes.append({
-                    'conta': conta_cliente,
-                    'valor': valor,
-                    'operacao': 'CREDITO',
-                    'is_empresa': is_conta_empresa(conta_cliente)
-                })
-            
-            if conta_empresa:
-                # Estornar na empresa: DÉBITO (aumenta saldo, pois empresa recupera o dinheiro)
-                operacoes.append({
-                    'conta': conta_empresa,
-                    'valor': valor,
-                    'operacao': 'DEBITO',
-                    'is_empresa': True
-                })
+        if conta_cliente:
+            # Original: -valor → Estorno: +valor (CRÉDITO)
+            operacoes.append({
+                'conta': conta_cliente,
+                'valor': valor,
+                'operacao': 'CREDITO',
+                'is_empresa': is_conta_empresa(conta_cliente)
+            })
     
     # ============================================
     # RECEITA (cliente pagou)
@@ -10493,7 +10570,7 @@ def calcular_estorno(transacao):
         valor = float(transacao.get('valor', 0))
         
         if conta_cliente:
-            # Estornar: devolver dinheiro ao cliente
+            # Original: -valor → Estorno: +valor (CRÉDITO)
             operacoes.append({
                 'conta': conta_cliente,
                 'valor': valor,
@@ -10509,7 +10586,8 @@ def calcular_estorno(transacao):
         valor = float(transacao.get('valor', 0))
         
         if conta_empresa:
-            # Estornar: DÉBITO na empresa (aumenta saldo, empresa recupera dinheiro)
+            # Original: CRÉDITO na empresa (diminui saldo)
+            # Estorno: DÉBITO na empresa (aumenta saldo)
             operacoes.append({
                 'conta': conta_empresa,
                 'valor': valor,
@@ -10525,7 +10603,8 @@ def calcular_estorno(transacao):
         valor = float(transacao.get('valor', 0))
         
         if conta_empresa:
-            # Estornar: CRÉDITO na empresa (diminui saldo)
+            # Original: DÉBITO na empresa (aumenta saldo)
+            # Estorno: CRÉDITO na empresa (diminui saldo)
             operacoes.append({
                 'conta': conta_empresa,
                 'valor': valor,
@@ -10542,7 +10621,7 @@ def calcular_estorno(transacao):
         valor = float(transacao.get('valor', 0))
         
         if conta_cliente:
-            # Estornar: cliente PERDE o crédito (DÉBITO)
+            # Original: +valor (cliente GANHA) → Estorno: -valor (DÉBITO)
             operacoes.append({
                 'conta': conta_cliente,
                 'valor': valor,
@@ -10551,7 +10630,7 @@ def calcular_estorno(transacao):
             })
         
         if conta_empresa:
-            # Estornar: empresa PERDE o dinheiro (CRÉDITO)
+            # Original: +valor (empresa GANHA) → Estorno: -valor (CRÉDITO)
             operacoes.append({
                 'conta': conta_empresa,
                 'valor': valor,
@@ -10568,7 +10647,7 @@ def calcular_estorno(transacao):
         valor = float(transacao.get('valor', 0))
         
         if conta_empresa:
-            # Estornar: empresa RECUPERA o dinheiro (DÉBITO)
+            # Original: -valor (empresa PERDE) → Estorno: +valor (DÉBITO)
             operacoes.append({
                 'conta': conta_empresa,
                 'valor': valor,
@@ -10577,7 +10656,7 @@ def calcular_estorno(transacao):
             })
         
         if conta_cliente:
-            # Estornar: cliente RECUPERA o crédito (CRÉDITO)
+            # Original: -valor (cliente PERDE) → Estorno: +valor (CRÉDITO)
             operacoes.append({
                 'conta': conta_cliente,
                 'valor': valor,
@@ -10595,7 +10674,7 @@ def calcular_estorno(transacao):
         valor_destino = float(transacao.get('valor_destino', valor_origem))
         
         if conta_origem:
-            # Estornar: DÉBITO na origem (aumenta saldo)
+            # Original: CRÉDITO na origem (diminui) → Estorno: DÉBITO (aumenta)
             operacoes.append({
                 'conta': conta_origem,
                 'valor': valor_origem,
@@ -10604,7 +10683,7 @@ def calcular_estorno(transacao):
             })
         
         if conta_destino:
-            # Estornar: CRÉDITO no destino (diminui saldo)
+            # Original: DÉBITO no destino (aumenta) → Estorno: CRÉDITO (diminui)
             operacoes.append({
                 'conta': conta_destino,
                 'valor': valor_destino,
@@ -10621,7 +10700,7 @@ def calcular_estorno(transacao):
         
         if conta_empresa:
             # Original: CRÉDITO (diminui saldo da empresa)
-            # Estornar: DÉBITO (aumenta saldo da empresa)
+            # Estorno: DÉBITO (aumenta saldo da empresa)
             operacoes.append({
                 'conta': conta_empresa,
                 'valor': valor,
