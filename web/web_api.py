@@ -10807,7 +10807,6 @@ def estornar_transacao():
             'descricao': descricao_estorno,
             'executado_por': usuario_logado,
             'transacao_original_id': transacao_id,
-            'motivo_estorno': motivo,
             'created_at': datetime.now().isoformat()
         }
         
@@ -10940,8 +10939,8 @@ def deletar_transacao():
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "message": str(e)}), 500
-    
-        
+
+
 
 # ============================================
 # ADMIN - RELATÓRIOS
