@@ -10107,6 +10107,841 @@ def api_admin_gerenciar_transferencia():
         traceback.print_exc()
         return jsonify({"success": False, "message": str(e)}), 500
 
+# ============================================
+# FUNÇÕES AUXILIARES PARA ESTORNOS
+# ============================================
+
+def is_conta_empresa(conta_id):
+    """Verifica se uma conta pertence à empresa (tabela contas_bancarias_empresa)"""
+    if not conta_id or supabase is None:
+        return False
+    
+    try:
+        response = supabase.table('contas_bancarias_empresa')\
+            .select('numero')\
+            .eq('numero', conta_id)\
+            .limit(1)\
+            .execute()
+        
+        return len(response.data) > 0
+    except Exception as e:
+        print(f"⚠️ Erro ao verificar conta empresa {conta_id}: {e}")
+        return False
+
+def obter_nome_cliente_por_conta(conta_id):
+    """Obtém o nome do cliente a partir do número da conta"""
+    if not conta_id or supabase is None:
+        return None
+    
+    try:
+        response = supabase.table('contas')\
+            .select('cliente_username, cliente_nome')\
+            .eq('id', conta_id)\
+            .limit(1)\
+            .execute()
+        
+        if response.data:
+            cliente_username = response.data[0].get('cliente_username')
+            if cliente_username:
+                # Buscar nome na tabela usuarios
+                user_response = supabase.table('usuarios')\
+                    .select('nome')\
+                    .eq('username', cliente_username)\
+                    .limit(1)\
+                    .execute()
+                
+                if user_response.data:
+                    return user_response.data[0].get('nome')
+            
+            return response.data[0].get('cliente_nome')
+        
+        return None
+    except Exception as e:
+        print(f"⚠️ Erro ao obter nome do cliente para conta {conta_id}: {e}")
+        return None
+
+def registrar_log_estorno(transacao_original_id, transacao_estorno_id, tipo_acao, motivo, executado_por, dados_originais):
+    """Registra a ação de estorno/delete no log"""
+    try:
+        if supabase is None:
+            print("⚠️ Supabase não conectado, log não registrado")
+            return False
+        
+        log_data = {
+            'transacao_original_id': transacao_original_id,
+            'transacao_estorno_id': transacao_estorno_id,
+            'tipo_acao': tipo_acao,
+            'motivo': motivo,
+            'executado_por': executado_por,
+            'dados_originais': dados_originais
+        }
+        
+        response = supabase.table('logs_estornos').insert(log_data).execute()
+        return len(response.data) > 0
+        
+    except Exception as e:
+        print(f"⚠️ Erro ao registrar log: {e}")
+        return False
+
+# ============================================
+# ENDPOINT PARA VERIFICAR SENHA DO ADMIN
+# ============================================
+
+@app.route('/api/admin/verificar-senha', methods=['POST'])
+def verificar_senha_admin():
+    """Verifica se a senha fornecida corresponde ao admin logado"""
+    try:
+        usuario_logado = session.get('username')
+        
+        if not usuario_logado:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        dados = request.get_json()
+        senha = dados.get('senha', '')
+        
+        if not senha:
+            return jsonify({"success": False, "message": "Senha não fornecida"}), 400
+        
+        # Buscar o hash da senha do admin
+        response = supabase.table('usuarios')\
+            .select('senha_hash')\
+            .eq('username', usuario_logado)\
+            .eq('tipo', 'admin')\
+            .single()\
+            .execute()
+        
+        if not response.data:
+            return jsonify({"success": False, "message": "Usuário não encontrado ou não é admin"}), 404
+        
+        # Calcular hash da senha fornecida
+        import hashlib
+        senha_hash = hashlib.sha256(senha.encode()).hexdigest()
+        
+        if senha_hash == response.data['senha_hash']:
+            return jsonify({"success": True, "message": "Senha correta"})
+        else:
+            return jsonify({"success": False, "message": "Senha incorreta"}), 401
+            
+    except Exception as e:
+        print(f"❌ Erro ao verificar senha: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+# ============================================
+# ENDPOINT PARA BUSCAR TRANSAÇÃO POR ID
+# ============================================
+
+@app.route('/api/admin/transacoes/buscar', methods=['POST'])
+def buscar_transacao_por_id():
+    """Busca uma transação pelo ID com todas as informações"""
+    try:
+        usuario_logado = session.get('username')
+        
+        if not usuario_logado:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Verificar se é admin
+        user_check = supabase.table('usuarios')\
+            .select('tipo')\
+            .eq('username', usuario_logado)\
+            .single()\
+            .execute()
+        
+        if not user_check.data or user_check.data.get('tipo') != 'admin':
+            return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        dados = request.get_json()
+        transacao_id = dados.get('id', '').strip()
+        
+        if not transacao_id:
+            return jsonify({"success": False, "message": "ID da transação não informado"}), 400
+        
+        # Buscar a transação
+        response = supabase.table('transferencias')\
+            .select('*')\
+            .eq('id', transacao_id)\
+            .execute()
+        
+        if not response.data:
+            return jsonify({"success": False, "message": f"Transação {transacao_id} não encontrada"}), 404
+        
+        transacao = response.data[0]
+        
+        # Buscar nome do cliente (se houver)
+        cliente_nome = None
+        cliente_username = transacao.get('cliente') or transacao.get('usuario')
+        
+        if not cliente_username and transacao.get('conta_remetente'):
+            # Buscar pela conta
+            conta_response = supabase.table('contas')\
+                .select('cliente_username')\
+                .eq('id', transacao['conta_remetente'])\
+                .limit(1)\
+                .execute()
+            if conta_response.data:
+                cliente_username = conta_response.data[0].get('cliente_username')
+        
+        if cliente_username:
+            user_response = supabase.table('usuarios')\
+                .select('nome')\
+                .eq('username', cliente_username)\
+                .limit(1)\
+                .execute()
+            if user_response.data:
+                cliente_nome = user_response.data[0].get('nome')
+        
+        # Buscar nome da conta (se for conta de cliente)
+        conta_nome = None
+        if transacao.get('conta_remetente'):
+            if not is_conta_empresa(transacao['conta_remetente']):
+                conta_response = supabase.table('contas')\
+                    .select('cliente_nome')\
+                    .eq('id', transacao['conta_remetente'])\
+                    .limit(1)\
+                    .execute()
+                if conta_response.data:
+                    conta_nome = conta_response.data[0].get('cliente_nome')
+        
+        # Construir resposta com informações enriquecidas
+        resultado = {
+            'id': transacao.get('id'),
+            'tipo': transacao.get('tipo'),
+            'status': transacao.get('status'),
+            'data': transacao.get('data'),
+            'created_at': transacao.get('created_at'),
+            'moeda': transacao.get('moeda'),
+            'valor': float(transacao.get('valor', 0)) if transacao.get('valor') else 0,
+            'conta_remetente': transacao.get('conta_remetente'),
+            'conta_destinatario': transacao.get('conta_destinatario'),
+            'conta_origem': transacao.get('conta_origem'),
+            'conta_destino': transacao.get('conta_destino'),
+            'descricao': transacao.get('descricao'),
+            'cliente_username': cliente_username,
+            'cliente_nome': cliente_nome,
+            'conta_nome': conta_nome,
+            'executado_por': transacao.get('executado_por'),
+            'tipo_ajuste': transacao.get('tipo_ajuste'),
+            'descricao_ajuste': transacao.get('descricao_ajuste'),
+            'categoria_receita': transacao.get('categoria_receita'),
+            'descricao_receita': transacao.get('descricao_receita'),
+            'categoria_despesa': transacao.get('categoria_despesa'),
+            'descricao_despesa': transacao.get('descricao_despesa'),
+            'beneficiario': transacao.get('beneficiario'),
+            'endereco_beneficiario': transacao.get('endereco_beneficiario'),
+            'cidade': transacao.get('cidade'),
+            'pais': transacao.get('pais'),
+            'nome_banco': transacao.get('nome_banco'),
+            'codigo_swift': transacao.get('codigo_swift'),
+            'iban_account': transacao.get('iban_account'),
+            'finalidade': transacao.get('finalidade'),
+            'conta_bancaria_credito': transacao.get('conta_bancaria_credito'),
+            'valor_origem': float(transacao.get('valor_origem', 0)) if transacao.get('valor_origem') else None,
+            'valor_destino': float(transacao.get('valor_destino', 0)) if transacao.get('valor_destino') else None,
+            'cotacao': float(transacao.get('cotacao', 0)) if transacao.get('cotacao') else None,
+            'moeda_origem': transacao.get('moeda_origem'),
+            'moeda_destino': transacao.get('moeda_destino'),
+            'dados_swift_pagamento': transacao.get('dados_swift_pagamento'),
+            'invoice_info': transacao.get('invoice_info'),
+            'motivo_recusa': transacao.get('motivo_recusa')
+        }
+        
+        return jsonify({
+            "success": True,
+            "transacao": resultado
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar transação: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+                    
+# ============================================
+# FUNÇÃO PRINCIPAL DE ESTORNO
+# ============================================
+
+def calcular_estorno(transacao):
+    """
+    Calcula as operações de estorno com base no tipo da transação
+    Retorna lista de operações a serem executadas
+    """
+    tipo = transacao.get('tipo')
+    status = transacao.get('status', '').lower()
+    operacoes = []
+    
+    # ============================================
+    # AJUSTE ADMINISTRATIVO
+    # ============================================
+    if tipo == 'ajuste_admin':
+        conta = transacao.get('conta_remetente')
+        valor = float(transacao.get('valor', 0))
+        tipo_ajuste = transacao.get('tipo_ajuste', '').upper()
+        
+        if conta:
+            if tipo_ajuste == 'CREDITO':
+                # Original: AUMENTOU saldo → Estorno: DIMINUIR
+                operacoes.append({
+                    'conta': conta,
+                    'valor': valor,
+                    'operacao': 'DEBITO',
+                    'is_empresa': is_conta_empresa(conta)
+                })
+            elif tipo_ajuste == 'DEBITO':
+                # Original: DIMINUIU saldo → Estorno: AUMENTAR
+                operacoes.append({
+                    'conta': conta,
+                    'valor': valor,
+                    'operacao': 'CREDITO',
+                    'is_empresa': is_conta_empresa(conta)
+                })
+    
+    # ============================================
+    # CÂMBIO (entre contas de cliente)
+    # ============================================
+    elif tipo == 'cambio' and '_nt' not in str(transacao.get('id', '')):
+        conta_origem = transacao.get('conta_remetente')
+        conta_destino = transacao.get('conta_destinatario')
+        valor = float(transacao.get('valor', 0))
+        valor_destino = float(transacao.get('valor_destino', valor))
+        
+        if conta_origem:
+            # Estornar: DEVOLVER para conta origem
+            operacoes.append({
+                'conta': conta_origem,
+                'valor': valor,
+                'operacao': 'CREDITO',
+                'is_empresa': is_conta_empresa(conta_origem)
+            })
+        
+        if conta_destino:
+            # Estornar: RETIRAR da conta destino
+            operacoes.append({
+                'conta': conta_destino,
+                'valor': valor_destino,
+                'operacao': 'DEBITO',
+                'is_empresa': is_conta_empresa(conta_destino)
+            })
+    
+    # ============================================
+    # CÂMBIO (nova tela - com _nt)
+    # ============================================
+    elif tipo == 'cambio' and '_nt' in str(transacao.get('id', '')):
+        conta_origem = transacao.get('conta_origem') or transacao.get('conta_remetente')
+        conta_destino = transacao.get('conta_destino') or transacao.get('conta_destinatario')
+        valor = float(transacao.get('valor_origem', transacao.get('valor', 0)))
+        valor_destino = float(transacao.get('valor_destino', valor))
+        
+        if conta_origem:
+            operacoes.append({
+                'conta': conta_origem,
+                'valor': valor,
+                'operacao': 'CREDITO',
+                'is_empresa': is_conta_empresa(conta_origem)
+            })
+        
+        if conta_destino:
+            operacoes.append({
+                'conta': conta_destino,
+                'valor': valor_destino,
+                'operacao': 'DEBITO',
+                'is_empresa': is_conta_empresa(conta_destino)
+            })
+    
+    # ============================================
+    # TRANSFERÊNCIA INTERNACIONAL
+    # ============================================
+    elif tipo in ['transferencia_internacional', 'internacional']:
+        conta_cliente = transacao.get('conta_remetente')
+        valor = float(transacao.get('valor', 0))
+        
+        if status in ['solicitada', 'pending']:
+            # Apenas debitou do cliente → estornar: devolver ao cliente
+            if conta_cliente:
+                operacoes.append({
+                    'conta': conta_cliente,
+                    'valor': valor,
+                    'operacao': 'CREDITO',
+                    'is_empresa': is_conta_empresa(conta_cliente)
+                })
+        
+        elif status == 'completed':
+            # Já concluiu: cliente foi debitado E empresa pagou
+            conta_empresa = transacao.get('conta_bancaria_credito')
+            
+            if conta_cliente:
+                # Devolver ao cliente
+                operacoes.append({
+                    'conta': conta_cliente,
+                    'valor': valor,
+                    'operacao': 'CREDITO',
+                    'is_empresa': is_conta_empresa(conta_cliente)
+                })
+            
+            if conta_empresa:
+                # Estornar na empresa: DÉBITO (aumenta saldo, pois empresa recupera o dinheiro)
+                operacoes.append({
+                    'conta': conta_empresa,
+                    'valor': valor,
+                    'operacao': 'DEBITO',
+                    'is_empresa': True
+                })
+    
+    # ============================================
+    # RECEITA (cliente pagou)
+    # ============================================
+    elif tipo == 'receita':
+        conta_cliente = transacao.get('conta_remetente')
+        valor = float(transacao.get('valor', 0))
+        
+        if conta_cliente:
+            # Estornar: devolver dinheiro ao cliente
+            operacoes.append({
+                'conta': conta_cliente,
+                'valor': valor,
+                'operacao': 'CREDITO',
+                'is_empresa': is_conta_empresa(conta_cliente)
+            })
+    
+    # ============================================
+    # DESPESA (empresa pagou)
+    # ============================================
+    elif tipo == 'despesa':
+        conta_empresa = transacao.get('conta_remetente')
+        valor = float(transacao.get('valor', 0))
+        
+        if conta_empresa:
+            # Estornar: DÉBITO na empresa (aumenta saldo, empresa recupera dinheiro)
+            operacoes.append({
+                'conta': conta_empresa,
+                'valor': valor,
+                'operacao': 'DEBITO',
+                'is_empresa': True
+            })
+    
+    # ============================================
+    # DEPÓSITO (empresa recebeu)
+    # ============================================
+    elif tipo == 'deposito':
+        conta_empresa = transacao.get('conta_destinatario')
+        valor = float(transacao.get('valor', 0))
+        
+        if conta_empresa:
+            # Estornar: CRÉDITO na empresa (diminui saldo)
+            operacoes.append({
+                'conta': conta_empresa,
+                'valor': valor,
+                'operacao': 'CREDITO',
+                'is_empresa': True
+            })
+    
+    # ============================================
+    # TRANSFERÊNCIA CLIENTE → EMPRESA
+    # ============================================
+    elif tipo == 'transferencia_cliente_empresa':
+        conta_cliente = transacao.get('conta_remetente')
+        conta_empresa = transacao.get('conta_destinatario')
+        valor = float(transacao.get('valor', 0))
+        
+        if conta_cliente:
+            # Estornar: cliente PERDE o crédito (DÉBITO)
+            operacoes.append({
+                'conta': conta_cliente,
+                'valor': valor,
+                'operacao': 'DEBITO',
+                'is_empresa': is_conta_empresa(conta_cliente)
+            })
+        
+        if conta_empresa:
+            # Estornar: empresa PERDE o dinheiro (CRÉDITO)
+            operacoes.append({
+                'conta': conta_empresa,
+                'valor': valor,
+                'operacao': 'CREDITO',
+                'is_empresa': True
+            })
+    
+    # ============================================
+    # TRANSFERÊNCIA EMPRESA → CLIENTE
+    # ============================================
+    elif tipo == 'transferencia_empresa_cliente':
+        conta_empresa = transacao.get('conta_remetente')
+        conta_cliente = transacao.get('conta_destinatario')
+        valor = float(transacao.get('valor', 0))
+        
+        if conta_empresa:
+            # Estornar: empresa RECUPERA o dinheiro (DÉBITO)
+            operacoes.append({
+                'conta': conta_empresa,
+                'valor': valor,
+                'operacao': 'DEBITO',
+                'is_empresa': True
+            })
+        
+        if conta_cliente:
+            # Estornar: cliente RECUPERA o crédito (CRÉDITO)
+            operacoes.append({
+                'conta': conta_cliente,
+                'valor': valor,
+                'operacao': 'CREDITO',
+                'is_empresa': is_conta_empresa(conta_cliente)
+            })
+    
+    # ============================================
+    # CÂMBIO ENTRE CONTAS DA EMPRESA
+    # ============================================
+    elif tipo == 'cambio_contas_empresa':
+        conta_origem = transacao.get('conta_origem')
+        conta_destino = transacao.get('conta_destino')
+        valor_origem = float(transacao.get('valor_origem', transacao.get('valor', 0)))
+        valor_destino = float(transacao.get('valor_destino', valor_origem))
+        
+        if conta_origem:
+            # Estornar: DÉBITO na origem (aumenta saldo)
+            operacoes.append({
+                'conta': conta_origem,
+                'valor': valor_origem,
+                'operacao': 'DEBITO',
+                'is_empresa': True
+            })
+        
+        if conta_destino:
+            # Estornar: CRÉDITO no destino (diminui saldo)
+            operacoes.append({
+                'conta': conta_destino,
+                'valor': valor_destino,
+                'operacao': 'CREDITO',
+                'is_empresa': True
+            })
+    
+    # ============================================
+    # SAQUE
+    # ============================================
+    elif tipo == 'saque':
+        conta_empresa = transacao.get('conta_remetente')
+        valor = float(transacao.get('valor', 0))
+        
+        if conta_empresa:
+            # Original: CRÉDITO (diminui saldo da empresa)
+            # Estornar: DÉBITO (aumenta saldo da empresa)
+            operacoes.append({
+                'conta': conta_empresa,
+                'valor': valor,
+                'operacao': 'DEBITO',
+                'is_empresa': True
+            })
+    
+    return operacoes
+
+
+def executar_operacao_saldo(conta, valor, operacao, is_empresa):
+    """
+    Executa uma operação de saldo em uma conta
+    is_empresa: True = conta da empresa (lógica invertida)
+    operacao: 'CREDITO' ou 'DEBITO'
+    """
+    try:
+        if is_empresa:
+            # Conta da empresa: CREDITO = diminui, DEBITO = aumenta
+            if operacao == 'CREDITO':
+                delta = -valor
+            else:  # DEBITO
+                delta = +valor
+        else:
+            # Conta de cliente: CREDITO = aumenta, DEBITO = diminui
+            if operacao == 'CREDITO':
+                delta = +valor
+            else:  # DEBITO
+                delta = -valor
+        
+        # Buscar saldo atual
+        if is_empresa:
+            response = supabase.table('contas_bancarias_empresa')\
+                .select('saldo')\
+                .eq('numero', conta)\
+                .execute()
+        else:
+            response = supabase.table('contas')\
+                .select('saldo')\
+                .eq('id', conta)\
+                .execute()
+        
+        if not response.data:
+            return False, f"Conta {conta} não encontrada"
+        
+        saldo_atual = float(response.data[0]['saldo'])
+        novo_saldo = saldo_atual + delta
+        
+        # Atualizar saldo
+        if is_empresa:
+            update_response = supabase.table('contas_bancarias_empresa')\
+                .update({'saldo': novo_saldo})\
+                .eq('numero', conta)\
+                .execute()
+        else:
+            update_response = supabase.table('contas')\
+                .update({'saldo': novo_saldo})\
+                .eq('id', conta)\
+                .execute()
+        
+        if update_response.data:
+            return True, novo_saldo
+        else:
+            return False, "Erro ao atualizar saldo"
+            
+    except Exception as e:
+        return False, str(e)
+    
+# ============================================
+# ENDPOINT PARA ESTORNAR TRANSAÇÃO
+# ============================================
+
+@app.route('/api/admin/transacoes/estornar', methods=['POST'])
+def estornar_transacao():
+    """Cria uma transação reversa para estornar uma transação existente"""
+    try:
+        usuario_logado = session.get('username')
+        
+        if not usuario_logado:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Verificar se é admin
+        user_check = supabase.table('usuarios')\
+            .select('tipo')\
+            .eq('username', usuario_logado)\
+            .single()\
+            .execute()
+        
+        if not user_check.data or user_check.data.get('tipo') != 'admin':
+            return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        dados = request.get_json()
+        transacao_id = dados.get('id', '').strip()
+        motivo = dados.get('motivo', '').strip()
+        
+        if not transacao_id:
+            return jsonify({"success": False, "message": "ID da transação não informado"}), 400
+        
+        if not motivo:
+            return jsonify({"success": False, "message": "Motivo do estorno é obrigatório"}), 400
+        
+        # Buscar a transação original
+        response = supabase.table('transferencias')\
+            .select('*')\
+            .eq('id', transacao_id)\
+            .execute()
+        
+        if not response.data:
+            return jsonify({"success": False, "message": f"Transação {transacao_id} não encontrada"}), 404
+        
+        transacao_original = response.data[0]
+        
+        # Verificar se já foi estornada (opcional: verificar logs)
+        log_check = supabase.table('logs_estornos')\
+            .select('id')\
+            .eq('transacao_original_id', transacao_id)\
+            .eq('tipo_acao', 'estorno')\
+            .execute()
+        
+        if log_check.data:
+            return jsonify({"success": False, "message": "Esta transação já foi estornada anteriormente!"}), 400
+        
+        # Calcular operações de estorno
+        operacoes = calcular_estorno(transacao_original)
+        
+        if not operacoes:
+            return jsonify({"success": False, "message": f"Não foi possível determinar o estorno para o tipo {transacao_original.get('tipo')}"}), 400
+        
+        # Executar cada operação de estorno
+        resultados = []
+        erros = []
+        
+        for op in operacoes:
+            sucesso, resultado = executar_operacao_saldo(
+                op['conta'], 
+                op['valor'], 
+                op['operacao'], 
+                op['is_empresa']
+            )
+            
+            if sucesso:
+                resultados.append({
+                    'conta': op['conta'],
+                    'novo_saldo': resultado,
+                    'operacao': op['operacao']
+                })
+            else:
+                erros.append(f"Conta {op['conta']}: {resultado}")
+        
+        if erros:
+            return jsonify({
+                "success": False, 
+                "message": f"Erros ao executar estorno: {'; '.join(erros)}"
+            }), 500
+        
+        # Criar registro da transação de estorno
+        import random
+        from datetime import datetime
+        
+        transacao_estorno_id = str(random.randint(100000, 999999))
+        
+        # Garantir ID único
+        while True:
+            check = supabase.table('transferencias')\
+                .select('id')\
+                .eq('id', transacao_estorno_id)\
+                .execute()
+            if not check.data:
+                break
+            transacao_estorno_id = str(random.randint(100000, 999999))
+        
+        # Descrição do estorno
+        descricao_estorno = f"ESTORNO da transação {transacao_id} - Motivo: {motivo}"
+        
+        # Criar transação de estorno no banco
+        estorno_data = {
+            'id': transacao_estorno_id,
+            'tipo': 'estorno',
+            'status': 'completed',
+            'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'moeda': transacao_original.get('moeda'),
+            'valor': transacao_original.get('valor'),
+            'descricao': descricao_estorno,
+            'executado_por': usuario_logado,
+            'transacao_original_id': transacao_id,
+            'motivo_estorno': motivo,
+            'created_at': datetime.now().isoformat()
+        }
+        
+        supabase.table('transferencias').insert(estorno_data).execute()
+        
+        # Registrar no log
+        registrar_log_estorno(
+            transacao_original_id=transacao_id,
+            transacao_estorno_id=transacao_estorno_id,
+            tipo_acao='estorno',
+            motivo=motivo,
+            executado_por=usuario_logado,
+            dados_originais=transacao_original
+        )
+        
+        # Atualizar status da transação original (opcional)
+        supabase.table('transferencias')\
+            .update({'status': 'estornada'})\
+            .eq('id', transacao_id)\
+            .execute()
+        
+        return jsonify({
+            "success": True,
+            "message": f"Transação {transacao_id} estornada com sucesso!",
+            "transacao_estorno_id": transacao_estorno_id,
+            "operacoes_executadas": resultados
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao estornar transação: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+# ============================================
+# ENDPOINT PARA DELETAR TRANSAÇÃO
+# ============================================
+
+@app.route('/api/admin/transacoes/deletar', methods=['DELETE'])
+def deletar_transacao():
+    """Remove permanentemente uma transação (Hard Delete)"""
+    try:
+        usuario_logado = session.get('username')
+        
+        if not usuario_logado:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Verificar se é admin
+        user_check = supabase.table('usuarios')\
+            .select('tipo')\
+            .eq('username', usuario_logado)\
+            .single()\
+            .execute()
+        
+        if not user_check.data or user_check.data.get('tipo') != 'admin':
+            return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        dados = request.get_json()
+        transacao_id = dados.get('id', '').strip()
+        motivo = dados.get('motivo', '').strip()
+        senha = dados.get('senha', '').strip()
+        
+        if not transacao_id:
+            return jsonify({"success": False, "message": "ID da transação não informado"}), 400
+        
+        if not motivo:
+            return jsonify({"success": False, "message": "Motivo da exclusão é obrigatório"}), 400
+        
+        if not senha:
+            return jsonify({"success": False, "message": "Senha do administrador é obrigatória"}), 400
+        
+        # Verificar senha do admin
+        import hashlib
+        senha_hash = hashlib.sha256(senha.encode()).hexdigest()
+        
+        admin_check = supabase.table('usuarios')\
+            .select('senha_hash')\
+            .eq('username', usuario_logado)\
+            .eq('tipo', 'admin')\
+            .single()\
+            .execute()
+        
+        if not admin_check.data or admin_check.data['senha_hash'] != senha_hash:
+            return jsonify({"success": False, "message": "Senha incorreta!"}), 401
+        
+        # Buscar a transação antes de deletar
+        response = supabase.table('transferencias')\
+            .select('*')\
+            .eq('id', transacao_id)\
+            .execute()
+        
+        if not response.data:
+            return jsonify({"success": False, "message": f"Transação {transacao_id} não encontrada"}), 404
+        
+        transacao_original = response.data[0]
+        
+        # Verificar se já foi estornada/deletada
+        log_check = supabase.table('logs_estornos')\
+            .select('id')\
+            .eq('transacao_original_id', transacao_id)\
+            .execute()
+        
+        # Registrar no log ANTES de deletar
+        registrar_log_estorno(
+            transacao_original_id=transacao_id,
+            transacao_estorno_id=None,
+            tipo_acao='delete',
+            motivo=motivo,
+            executado_por=usuario_logado,
+            dados_originais=transacao_original
+        )
+        
+        # Hard Delete: remover a transação
+        delete_response = supabase.table('transferencias')\
+            .delete()\
+            .eq('id', transacao_id)\
+            .execute()
+        
+        if delete_response.data:
+            return jsonify({
+                "success": True,
+                "message": f"Transação {transacao_id} deletada permanentemente!",
+                "foi_estornada_anteriormente": len(log_check.data) > 0
+            })
+        else:
+            return jsonify({"success": False, "message": "Erro ao deletar transação"}), 500
+        
+    except Exception as e:
+        print(f"❌ Erro ao deletar transação: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+    
+        
 
 # ============================================
 # ADMIN - RELATÓRIOS

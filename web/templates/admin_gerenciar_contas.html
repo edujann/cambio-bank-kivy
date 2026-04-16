@@ -608,6 +608,7 @@
                 <button class="tab-btn" data-tab="tab-despesas">📉 Despesas</button>
                 <button class="tab-btn" data-tab="tab-receitas">📈 Receitas</button>
                 <button class="tab-btn" data-tab="tab-transferencias">🔄 Transferências</button>
+                <button class="tab-btn" data-tab="tab-estornos">🔄 Estornos/Deleções</button>
             </div>
 
             <!-- ============================================
@@ -922,6 +923,108 @@
                     <button class="btn-submit" onclick="executarTransferenciaInterna()">
                         <i class="fas fa-exchange-alt"></i> Executar Transferência
                     </button>
+                </div>
+            </div>
+                <!-- ============================================
+                ABA 8: ESTORNOS/DELEÇÕES
+                ============================================ -->
+            <div id="tab-estornos" class="tab-content">
+                <div class="form-card">
+                    <h3 class="form-title"><i class="fas fa-search"></i> Buscar Transação</h3>
+                    
+                    <div class="form-row">
+                        <label><i class="fas fa-hashtag"></i> ID da Transação</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="buscaTransacaoId" class="form-control" 
+                                placeholder="Ex: 815965, 408044_nt, 446104" style="flex: 1;">
+                            <button class="btn-submit" onclick="buscarTransacaoPorId()" style="width: auto; padding: 12px 30px;">
+                                <i class="fas fa-search"></i> Buscar
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- ÁREA DE DETALHES DA TRANSAÇÃO -->
+                    <div id="detalhesTransacaoContainer" style="display: none; margin-top: 30px;">
+                        <div class="info-conversao" id="detalhesTransacaoContent" style="background: rgba(26, 95, 180, 0.1);">
+                            <!-- Conteúdo dinâmico -->
+                        </div>
+                        
+                        <div class="form-row" style="margin-top: 20px;">
+                            <label><i class="fas fa-comment"></i> Motivo do Estorno/Deleção *</label>
+                            <input type="text" id="motivoEstorno" class="form-control" 
+                                placeholder="Ex: Lançamento em duplicidade, Valor incorreto, Cliente solicitou estorno...">
+                        </div>
+                        
+                        <!-- Botões de ação -->
+                        <div style="display: flex; gap: 15px; margin-top: 20px;">
+                            <button id="btnEstornar" class="btn-submit" style="flex: 1; background: #f39c12;" onclick="abrirConfirmacaoEstorno()">
+                                <i class="fas fa-undo-alt"></i> ESTORNAR (Criar reversão)
+                            </button>
+                            <button id="btnDeletar" class="btn-submit" style="flex: 1; background: #e01b24;" onclick="abrirConfirmacaoDelete()">
+                                <i class="fas fa-trash-alt"></i> DELETAR (Remover permanentemente)
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Mensagem quando nenhuma transação foi buscada -->
+                    <div id="nenhumaTransacaoMessage" style="text-align: center; padding: 40px; color: var(--cor-texto-secundario);">
+                        <i class="fas fa-search" style="font-size: 48px; margin-bottom: 15px;"></i>
+                        <p>Digite um ID de transação e clique em Buscar</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL DE CONFIRMAÇÃO DE ESTORNO (2ª etapa) -->
+            <div id="modalConfirmacaoEstorno" class="modal" style="display: none;">
+                <div class="modal-content" style="max-width: 500px;">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-exclamation-triangle"></i> CONFIRMAR ESTORNO</h3>
+                        <button class="modal-close" onclick="fecharModalConfirmacaoEstorno()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p id="confirmacaoEstornoMensagem" style="margin-bottom: 20px;"></p>
+                        <div class="form-row">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="checkbox" id="confirmacaoEstornoCheckbox">
+                                <span>✅ Sim, eu entendo que esta ação é <strong>IRREVERSÍVEL</strong> e afetará os saldos das contas envolvidas.</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-secondary" onclick="fecharModalConfirmacaoEstorno()">Cancelar</button>
+                        <button class="btn-submit" id="btnConfirmarEstorno" style="background: #f39c12;" onclick="confirmarEstorno()" disabled>
+                            <i class="fas fa-check"></i> Confirmar Estorno
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL DE CONFIRMAÇÃO DE DELETE (2ª etapa com senha) -->
+            <div id="modalConfirmacaoDelete" class="modal" style="display: none;">
+                <div class="modal-content" style="max-width: 500px;">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-exclamation-triangle"></i> CONFIRMAR EXCLUSÃO PERMANENTE</h3>
+                        <button class="modal-close" onclick="fecharModalConfirmacaoDelete()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p id="confirmacaoDeleteMensagem" style="margin-bottom: 20px; color: var(--cor-perigo);"></p>
+                        <div class="form-row">
+                            <label><i class="fas fa-lock"></i> Senha do Administrador *</label>
+                            <input type="password" id="senhaAdminDelete" class="form-control" placeholder="Digite sua senha para confirmar a exclusão">
+                        </div>
+                        <div class="form-row" style="margin-top: 15px;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="checkbox" id="confirmacaoDeleteCheckbox">
+                                <span>✅ Sim, eu entendo que esta ação é <strong>IRREVERSÍVEL</strong> e não pode ser desfeita.</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-secondary" onclick="fecharModalConfirmacaoDelete()">Cancelar</button>
+                        <button class="btn-submit" id="btnConfirmarDelete" style="background: #e01b24;" onclick="confirmarDelete()" disabled>
+                            <i class="fas fa-trash-alt"></i> Confirmar Exclusão
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2137,6 +2240,484 @@
             div.textContent = text;
             return div.innerHTML;
         }
+
+        // ============================================
+        // VARIÁVEIS PARA ABA DE ESTORNOS
+        // ============================================
+        let transacaoAtual = null;
+
+        // ============================================
+        // BUSCAR TRANSAÇÃO POR ID
+        // ============================================
+        async function buscarTransacaoPorId() {
+            const id = document.getElementById('buscaTransacaoId').value.trim();
+            
+            if (!id) {
+                alert('Digite um ID de transação!');
+                return;
+            }
+            
+            const containerDetalhes = document.getElementById('detalhesTransacaoContainer');
+            const mensagemVazia = document.getElementById('nenhumaTransacaoMessage');
+            const content = document.getElementById('detalhesTransacaoContent');
+            
+            // Mostrar loading
+            content.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Buscando transação...</div>';
+            containerDetalhes.style.display = 'block';
+            mensagemVazia.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/admin/transacoes/buscar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    transacaoAtual = data.transacao;
+                    renderizarDetalhesTransacao(transacaoAtual);
+                    
+                    // Limpar campos de motivo
+                    document.getElementById('motivoEstorno').value = '';
+                    
+                } else {
+                    content.innerHTML = `
+                        <div style="text-align: center; padding: 20px; color: var(--cor-perigo);">
+                            <i class="fas fa-exclamation-circle" style="font-size: 48px; margin-bottom: 15px;"></i>
+                            <p>${data.message}</p>
+                        </div>
+                    `;
+                    transacaoAtual = null;
+                }
+                
+            } catch (error) {
+                console.error('Erro:', error);
+                content.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: var(--cor-perigo);">
+                        <i class="fas fa-exclamation-circle" style="font-size: 48px; margin-bottom: 15px;"></i>
+                        <p>Erro ao buscar transação: ${error.message}</p>
+                    </div>
+                `;
+                transacaoAtual = null;
+            }
+        }
+
+        // ============================================
+        // RENDERIZAR DETALHES DA TRANSAÇÃO (IGUAL MODAL DO CLIENTE)
+        // ============================================
+        function renderizarDetalhesTransacao(t) {
+            const content = document.getElementById('detalhesTransacaoContent');
+            
+            // Formatar valores
+            const valorFormatado = formatarValor(t.valor);
+            const dataFormatada = formatarData(t.data || t.created_at);
+            
+            // Determinar tipo para exibição
+            let tipoDisplay = t.tipo;
+            let infoEspecifica = '';
+            
+            switch (t.tipo) {
+                case 'ajuste_admin':
+                    tipoDisplay = 'Ajuste Administrativo';
+                    const tipoAjuste = t.tipo_ajuste === 'CREDITO' ? 'CRÉDITO (aumentou saldo)' : 'DÉBITO (diminuiu saldo)';
+                    infoEspecifica = `
+                        <div class="detalhes-linha">
+                            <div class="detalhes-chave">Tipo de Ajuste:</div>
+                            <div class="detalhes-valor">${tipoAjuste}</div>
+                        </div>
+                        <div class="detalhes-linha">
+                            <div class="detalhes-chave">Descrição:</div>
+                            <div class="detalhes-valor">${escapeHtml(t.descricao_ajuste || t.descricao || 'N/A')}</div>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'cambio':
+                    tipoDisplay = 'Câmbio';
+                    const valorDestino = t.valor_destino ? formatarValor(t.valor_destino) : 'N/A';
+                    const cotacao = t.cotacao ? t.cotacao.toFixed(6) : 'N/A';
+                    infoEspecifica = `
+                        <div class="detalhes-linha">
+                            <div class="detalhes-chave">Conta Origem:</div>
+                            <div class="detalhes-valor">${escapeHtml(t.conta_remetente || t.conta_origem || 'N/A')}</div>
+                        </div>
+                        <div class="detalhes-linha">
+                            <div class="detalhes-chave">Conta Destino:</div>
+                            <div class="detalhes-valor">${escapeHtml(t.conta_destinatario || t.conta_destino || 'N/A')}</div>
+                        </div>
+                        <div class="detalhes-linha">
+                            <div class="detalhes-chave">Valor Destino:</div>
+                            <div class="detalhes-valor">${valorDestino} ${t.moeda_destino || t.moeda}</div>
+                        </div>
+                        <div class="detalhes-linha">
+                            <div class="detalhes-chave">Taxa de Câmbio:</div>
+                            <div class="detalhes-valor">${cotacao}</div>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'transferencia_internacional':
+                case 'internacional':
+                    tipoDisplay = 'Transferência Internacional';
+                    infoEspecifica = `
+                        <div class="detalhes-linha">
+                            <div class="detalhes-chave">Beneficiário:</div>
+                            <div class="detalhes-valor">${escapeHtml(t.beneficiario || 'N/A')}</div>
+                        </div>
+                        <div class="detalhes-linha">
+                            <div class="detalhes-chave">Banco:</div>
+                            <div class="detalhes-valor">${escapeHtml(t.nome_banco || 'N/A')}</div>
+                        </div>
+                        <div class="detalhes-linha">
+                            <div class="detalhes-chave">SWIFT:</div>
+                            <div class="detalhes-valor">${escapeHtml(t.codigo_swift || 'N/A')}</div>
+                        </div>
+                        <div class="detalhes-linha">
+                            <div class="detalhes-chave">Finalidade:</div>
+                            <div class="detalhes-valor">${escapeHtml(t.finalidade || 'N/A')}</div>
+                        </div>
+                        <div class="detalhes-linha">
+                            <div class="detalhes-chave">Status:</div>
+                            <div class="detalhes-valor">${t.status?.toUpperCase() || 'N/A'}</div>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'receita':
+                    tipoDisplay = 'Receita';
+                    infoEspecifica = `
+                        <div class="detalhes-linha">
+                            <div class="detalhes-chave">Categoria:</div>
+                            <div class="detalhes-valor">${escapeHtml(t.categoria_receita || 'N/A')}</div>
+                        </div>
+                        <div class="detalhes-linha">
+                            <div class="detalhes-chave">Descrição:</div>
+                            <div class="detalhes-valor">${escapeHtml(t.descricao_receita || t.descricao || 'N/A')}</div>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'despesa':
+                    tipoDisplay = 'Despesa';
+                    infoEspecifica = `
+                        <div class="detalhes-linha">
+                            <div class="detalhes-chave">Categoria:</div>
+                            <div class="detalhes-valor">${escapeHtml(t.categoria_despesa || 'N/A')}</div>
+                        </div>
+                        <div class="detalhes-linha">
+                            <div class="detalhes-chave">Descrição:</div>
+                            <div class="detalhes-valor">${escapeHtml(t.descricao_despesa || t.descricao || 'N/A')}</div>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'deposito':
+                    tipoDisplay = 'Depósito';
+                    infoEspecifica = `
+                        <div class="detalhes-linha">
+                            <div class="detalhes-chave">Conta Destino:</div>
+                            <div class="detalhes-valor">${escapeHtml(t.conta_destinatario || 'N/A')}</div>
+                        </div>
+                        <div class="detalhes-linha">
+                            <div class="detalhes-chave">Descrição:</div>
+                            <div class="detalhes-valor">${escapeHtml(t.descricao || 'N/A')}</div>
+                        </div>
+                    `;
+                    break;
+                    
+                default:
+                    infoEspecifica = `
+                        <div class="detalhes-linha">
+                            <div class="detalhes-chave">Descrição:</div>
+                            <div class="detalhes-valor">${escapeHtml(t.descricao || 'N/A')}</div>
+                        </div>
+                    `;
+            }
+            
+            // Calcular impacto no saldo para exibir
+            let impactoHtml = '';
+            if (t.tipo === 'ajuste_admin') {
+                const operacao = t.tipo_ajuste === 'CREDITO' ? '+' : '-';
+                impactoHtml = `
+                    <div class="detalhes-linha" style="border-top: 1px solid var(--cor-borda); margin-top: 10px; padding-top: 10px;">
+                        <div class="detalhes-chave">Impacto no Saldo (Original):</div>
+                        <div class="detalhes-valor">Conta ${t.conta_remetente}: ${operacao} ${valorFormatado} ${t.moeda}</div>
+                    </div>
+                `;
+            } else if (t.tipo === 'cambio') {
+                impactoHtml = `
+                    <div class="detalhes-linha" style="border-top: 1px solid var(--cor-borda); margin-top: 10px; padding-top: 10px;">
+                        <div class="detalhes-chave">Impacto no Saldo (Original):</div>
+                        <div class="detalhes-valor">Conta ${t.conta_remetente || t.conta_origem}: -${valorFormatado} ${t.moeda}</div>
+                    </div>
+                    <div class="detalhes-linha">
+                        <div class="detalhes-chave"></div>
+                        <div class="detalhes-valor">Conta ${t.conta_destinatario || t.conta_destino}: +${formatarValor(t.valor_destino || t.valor)} ${t.moeda_destino || t.moeda}</div>
+                    </div>
+                `;
+            } else if (t.conta_remetente) {
+                impactoHtml = `
+                    <div class="detalhes-linha" style="border-top: 1px solid var(--cor-borda); margin-top: 10px; padding-top: 10px;">
+                        <div class="detalhes-chave">Conta Afetada:</div>
+                        <div class="detalhes-valor">${t.conta_remetente}</div>
+                    </div>
+                `;
+            }
+            
+            content.innerHTML = `
+                <div class="detalhes-linha">
+                    <div class="detalhes-chave">ID:</div>
+                    <div class="detalhes-valor"><strong>${escapeHtml(t.id)}</strong></div>
+                </div>
+                <div class="detalhes-linha">
+                    <div class="detalhes-chave">Tipo:</div>
+                    <div class="detalhes-valor">${tipoDisplay}</div>
+                </div>
+                <div class="detalhes-linha">
+                    <div class="detalhes-chave">Status:</div>
+                    <div class="detalhes-valor"><span style="color: ${t.status === 'completed' ? '#2ec27e' : t.status === 'rejected' ? '#e01b24' : '#f39c12'}">${t.status?.toUpperCase() || 'N/A'}</span></div>
+                </div>
+                <div class="detalhes-linha">
+                    <div class="detalhes-chave">Data:</div>
+                    <div class="detalhes-valor">${dataFormatada}</div>
+                </div>
+                <div class="detalhes-linha">
+                    <div class="detalhes-chave">Valor:</div>
+                    <div class="detalhes-valor"><strong>${valorFormatado} ${t.moeda || 'USD'}</strong></div>
+                </div>
+                <div class="detalhes-linha">
+                    <div class="detalhes-chave">Cliente:</div>
+                    <div class="detalhes-valor">${escapeHtml(t.cliente_nome || t.cliente_username || 'N/A')}</div>
+                </div>
+                ${infoEspecifica}
+                ${impactoHtml}
+            `;
+        }
+
+        // ============================================
+        // CONFIRMAÇÃO EM DUAS ETAPAS - ESTORNO
+        // ============================================
+        let transacaoIdParaEstornar = null;
+
+        function abrirConfirmacaoEstorno() {
+            if (!transacaoAtual) {
+                alert('Nenhuma transação encontrada! Busque uma transação primeiro.');
+                return;
+            }
+            
+            const motivo = document.getElementById('motivoEstorno').value.trim();
+            if (!motivo) {
+                alert('Informe o motivo do estorno!');
+                return;
+            }
+            
+            transacaoIdParaEstornar = transacaoAtual.id;
+            
+            const mensagem = `
+                Você está prestes a ESTORNAR a seguinte transação:
+                
+                ID: ${transacaoAtual.id}
+                Tipo: ${transacaoAtual.tipo}
+                Valor: ${formatarValor(transacaoAtual.valor)} ${transacaoAtual.moeda || 'USD'}
+                
+                Isso criará uma transação REVERSA e ajustará os saldos.
+            `;
+            
+            document.getElementById('confirmacaoEstornoMensagem').innerHTML = mensagem.replace(/\n/g, '<br>');
+            document.getElementById('confirmacaoEstornoCheckbox').checked = false;
+            document.getElementById('btnConfirmarEstorno').disabled = true;
+            
+            document.getElementById('modalConfirmacaoEstorno').style.display = 'flex';
+        }
+
+        function fecharModalConfirmacaoEstorno() {
+            document.getElementById('modalConfirmacaoEstorno').style.display = 'none';
+            transacaoIdParaEstornar = null;
+        }
+
+        // Habilitar botão quando checkbox for marcado
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkboxEstorno = document.getElementById('confirmacaoEstornoCheckbox');
+            if (checkboxEstorno) {
+                checkboxEstorno.addEventListener('change', function() {
+                    const btn = document.getElementById('btnConfirmarEstorno');
+                    if (btn) btn.disabled = !this.checked;
+                });
+            }
+            
+            const checkboxDelete = document.getElementById('confirmacaoDeleteCheckbox');
+            if (checkboxDelete) {
+                checkboxDelete.addEventListener('change', function() {
+                    const btn = document.getElementById('btnConfirmarDelete');
+                    const senha = document.getElementById('senhaAdminDelete');
+                    if (btn) btn.disabled = !(this.checked && senha && senha.value.trim());
+                });
+            }
+            
+            const senhaDelete = document.getElementById('senhaAdminDelete');
+            if (senhaDelete) {
+                senhaDelete.addEventListener('input', function() {
+                    const btn = document.getElementById('btnConfirmarDelete');
+                    const checkbox = document.getElementById('confirmacaoDeleteCheckbox');
+                    if (btn) btn.disabled = !(checkbox && checkbox.checked && this.value.trim());
+                });
+            }
+        });
+
+        async function confirmarEstorno() {
+            const motivo = document.getElementById('motivoEstorno').value.trim();
+            
+            if (!transacaoIdParaEstornar) {
+                alert('Erro: ID da transação não encontrado');
+                fecharModalConfirmacaoEstorno();
+                return;
+            }
+            
+            // Mostrar loading
+            const btn = document.getElementById('btnConfirmarEstorno');
+            const textoOriginal = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/admin/transacoes/estornar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: transacaoIdParaEstornar,
+                        motivo: motivo
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ ${data.message}\n\nTransação de estorno ID: ${data.transacao_estorno_id}`);
+                    fecharModalConfirmacaoEstorno();
+                    
+                    // Limpar e recarregar
+                    document.getElementById('buscaTransacaoId').value = '';
+                    document.getElementById('detalhesTransacaoContainer').style.display = 'none';
+                    document.getElementById('nenhumaTransacaoMessage').style.display = 'block';
+                    transacaoAtual = null;
+                    document.getElementById('motivoEstorno').value = '';
+                    
+                } else {
+                    alert(`❌ ${data.message}`);
+                }
+                
+            } catch (error) {
+                console.error('Erro:', error);
+                alert(`❌ Erro ao estornar: ${error.message}`);
+            } finally {
+                btn.innerHTML = textoOriginal;
+                btn.disabled = false;
+            }
+        }
+
+        // ============================================
+        // CONFIRMAÇÃO EM DUAS ETAPAS - DELETE (com senha)
+        // ============================================
+        let transacaoIdParaDeletar = null;
+
+        function abrirConfirmacaoDelete() {
+            if (!transacaoAtual) {
+                alert('Nenhuma transação encontrada! Busque uma transação primeiro.');
+                return;
+            }
+            
+            const motivo = document.getElementById('motivoEstorno').value.trim();
+            if (!motivo) {
+                alert('Informe o motivo da exclusão!');
+                return;
+            }
+            
+            transacaoIdParaDeletar = transacaoAtual.id;
+            
+            const mensagem = `
+                ⚠️ ATENÇÃO: Esta ação é PERMANENTE e IRREVERSÍVEL!
+                
+                Você está prestes a DELETAR permanentemente a seguinte transação:
+                
+                ID: ${transacaoAtual.id}
+                Tipo: ${transacaoAtual.tipo}
+                Valor: ${formatarValor(transacaoAtual.valor)} ${transacaoAtual.moeda || 'USD'}
+                
+                A transação será REMOVIDA do banco de dados e NÃO poderá ser recuperada.
+            `;
+            
+            document.getElementById('confirmacaoDeleteMensagem').innerHTML = mensagem.replace(/\n/g, '<br>');
+            document.getElementById('confirmacaoDeleteCheckbox').checked = false;
+            document.getElementById('senhaAdminDelete').value = '';
+            document.getElementById('btnConfirmarDelete').disabled = true;
+            
+            document.getElementById('modalConfirmacaoDelete').style.display = 'flex';
+        }
+
+        function fecharModalConfirmacaoDelete() {
+            document.getElementById('modalConfirmacaoDelete').style.display = 'none';
+            transacaoIdParaDeletar = null;
+        }
+
+        async function confirmarDelete() {
+            const motivo = document.getElementById('motivoEstorno').value.trim();
+            const senha = document.getElementById('senhaAdminDelete').value.trim();
+            
+            if (!transacaoIdParaDeletar) {
+                alert('Erro: ID da transação não encontrado');
+                fecharModalConfirmacaoDelete();
+                return;
+            }
+            
+            if (!senha) {
+                alert('Digite sua senha de administrador!');
+                return;
+            }
+            
+            // Mostrar loading
+            const btn = document.getElementById('btnConfirmarDelete');
+            const textoOriginal = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/admin/transacoes/deletar', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: transacaoIdParaDeletar,
+                        motivo: motivo,
+                        senha: senha
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ ${data.message}`);
+                    fecharModalConfirmacaoDelete();
+                    
+                    // Limpar e recarregar
+                    document.getElementById('buscaTransacaoId').value = '';
+                    document.getElementById('detalhesTransacaoContainer').style.display = 'none';
+                    document.getElementById('nenhumaTransacaoMessage').style.display = 'block';
+                    transacaoAtual = null;
+                    document.getElementById('motivoEstorno').value = '';
+                    
+                } else {
+                    alert(`❌ ${data.message}`);
+                }
+                
+            } catch (error) {
+                console.error('Erro:', error);
+                alert(`❌ Erro ao deletar: ${error.message}`);
+            } finally {
+                btn.innerHTML = textoOriginal;
+                btn.disabled = false;
+            }
+        }        
     </script>
     <script src="/static/js/theme.js"></script>
 </body>
