@@ -11505,6 +11505,54 @@ def deletar_transacao():
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "message": str(e)}), 500
+    
+@app.route('/api/admin/transacoes/verificar-estornado', methods=['POST'])
+def verificar_estornado():
+    """Verifica se uma transação já foi estornada (sem deletar)"""
+    try:
+        dados = request.get_json()
+        transacao_id = dados.get('id', '').strip()
+        
+        if not transacao_id:
+            return jsonify({"success": False, "message": "ID não informado"}), 400
+        
+        # Verificar nos logs
+        log_check = supabase.table('logs_estornos')\
+            .select('id, transacao_estorno_id, motivo, data_acao, executado_por')\
+            .eq('transacao_original_id', transacao_id)\
+            .eq('tipo_acao', 'estorno')\
+            .execute()
+        
+        if log_check.data:
+            estorno = log_check.data[0]
+            return jsonify({
+                "isEstornada": True,
+                "transacao_estorno_id": estorno.get('transacao_estorno_id'),
+                "data_estorno": estorno.get('data_acao'),
+                "executado_por": estorno.get('executado_por'),
+                "motivo": estorno.get('motivo')
+            })
+        
+        # Verificar pelo status da transação
+        trans_check = supabase.table('transferencias')\
+            .select('status')\
+            .eq('id', transacao_id)\
+            .execute()
+        
+        if trans_check.data and trans_check.data[0].get('status') == 'estornada':
+            return jsonify({
+                "isEstornada": True,
+                "transacao_estorno_id": None,
+                "data_estorno": None,
+                "executado_por": None,
+                "motivo": "Status da transação é 'estornada'"
+            })
+        
+        return jsonify({"isEstornada": False})
+        
+    except Exception as e:
+        print(f"❌ Erro ao verificar estorno: {e}")
+        return jsonify({"isEstornada": False, "error": str(e)}), 500
 
 
 # ============================================

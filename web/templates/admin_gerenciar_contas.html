@@ -2635,63 +2635,6 @@
             }
         }
 
-        // ============================================
-        // CONFIRMAÇÃO EM DUAS ETAPAS - DELETE (com senha)
-        // ============================================
-        let transacaoIdParaDeletar = null;
-
-        function abrirConfirmacaoDelete() {
-            if (!transacaoAtual) {
-                alert('Nenhuma transação encontrada! Busque uma transação primeiro.');
-                return;
-            }
-            
-            const motivo = document.getElementById('motivoEstorno').value.trim();
-            if (!motivo) {
-                alert('Informe o motivo da exclusão!');
-                return;
-            }
-            
-            // 🔥 VERIFICAR SE É DO MESMO DIA ANTES DE PEDIR SENHA
-            const dataTransacao = transacaoAtual.data || transacaoAtual.created_at;
-            const isMesmoDia = isTransacaoDoMesmoDia(dataTransacao);
-            
-            if (!isMesmoDia) {
-                // Formatar data para exibição
-                let dataFormatada = dataTransacao;
-                try {
-                    const dataObj = new Date(dataTransacao);
-                    dataFormatada = dataObj.toLocaleDateString('pt-BR');
-                } catch(e) {}
-                
-                // Mostrar alerta elegante explicando que não pode deletar
-                mostrarAlertaDeleteBloqueado(dataFormatada);
-                return;
-            }
-            
-            // Se for do mesmo dia, prosseguir com a confirmação
-            transacaoIdParaDeletar = transacaoAtual.id;
-            
-            const mensagem = `
-                ⚠️ ATENÇÃO: Esta ação é PERMANENTE e IRREVERSÍVEL!
-                
-                Você está prestes a DELETAR permanentemente a seguinte transação:
-                
-                ID: ${transacaoAtual.id}
-                Tipo: ${transacaoAtual.tipo}
-                Valor: ${formatarValor(transacaoAtual.valor)} ${transacaoAtual.moeda || 'USD'}
-                
-                A transação será REMOVIDA do banco de dados e NÃO poderá ser recuperada.
-            `;
-            
-            document.getElementById('confirmacaoDeleteMensagem').innerHTML = mensagem.replace(/\n/g, '<br>');
-            document.getElementById('confirmacaoDeleteCheckbox').checked = false;
-            document.getElementById('senhaAdminDelete').value = '';
-            document.getElementById('btnConfirmarDelete').disabled = true;
-            
-            document.getElementById('modalConfirmacaoDelete').style.display = 'flex';
-        }
-
         function fecharModalConfirmacaoDelete() {
             document.getElementById('modalConfirmacaoDelete').style.display = 'none';
             transacaoIdParaDeletar = null;
@@ -3219,6 +3162,128 @@
                 }
             };
         }
+
+        // ============================================
+        // VERIFICAR SE TRANSAÇÃO JÁ FOI ESTORNADA
+        // ============================================
+        async function isTransacaoEstornada(transacaoId) {
+            try {
+                const response = await fetch('/api/admin/transacoes/verificar-estornado', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: transacaoId })
+                });
+                
+                const data = await response.json();
+                return data;
+                
+            } catch (error) {
+                console.error('Erro ao verificar estorno:', error);
+                return { isEstornada: false, error: true };
+            }
+        } 
+        
+        // ============================================
+        // ABRIR CONFIRMAÇÃO DE DELETE (COM VERIFICAÇÕES)
+        // ============================================
+        async function abrirConfirmacaoDelete() {
+            if (!transacaoAtual) {
+                alert('Nenhuma transação encontrada! Busque uma transação primeiro.');
+                return;
+            }
+            
+            const motivo = document.getElementById('motivoEstorno').value.trim();
+            if (!motivo) {
+                alert('Informe o motivo da exclusão!');
+                return;
+            }
+            
+            // Mostrar loading no botão deletar (se existir)
+            const btnDeletar = document.getElementById('btnDeletar');
+            if (btnDeletar) {
+                btnDeletar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
+                btnDeletar.disabled = true;
+            }
+            
+            try {
+                // 🔥 1. VERIFICAR SE JÁ FOI ESTORNADA
+                const verificacao = await isTransacaoEstornada(transacaoAtual.id);
+                
+                if (verificacao.isEstornada) {
+                    // Construir a mensagem como um único texto
+                    const mensagem = `
+                ❌ Não é permitido deletar uma transação que já foi estornada!
+
+                📋 Transação original: ${transacaoAtual.id}
+                🔄 Transação de estorno: ${verificacao.transacao_estorno_id || 'N/A'}
+                📅 Data do estorno: ${verificacao.data_estorno || 'N/A'}
+                👤 Estornado por: ${verificacao.executado_por || 'N/A'}
+                📝 Motivo do estorno: ${verificacao.motivo || 'N/A'}
+
+                ⚠️ Recomendação: Mantenha o histórico e utilize apenas ESTORNO.
+                    `;
+                    
+                    // Chamar a função com apenas 1 parâmetro (a mensagem)
+                    mostrarAlertaDeleteEstornado(mensagem);
+                    
+                    if (btnDeletar) {
+                        btnDeletar.innerHTML = '<i class="fas fa-trash-alt"></i> DELETAR';
+                        btnDeletar.disabled = false;
+                    }
+                    return;
+                }
+                
+                // 🔥 2. VERIFICAR SE É DO MESMO DIA
+                const dataTransacao = transacaoAtual.data || transacaoAtual.created_at;
+                const isMesmoDia = isTransacaoDoMesmoDia(dataTransacao);
+                
+                if (!isMesmoDia) {
+                    let dataFormatada = dataTransacao;
+                    try {
+                        const dataObj = new Date(dataTransacao);
+                        dataFormatada = dataObj.toLocaleDateString('pt-BR');
+                    } catch(e) {}
+                    
+                    mostrarAlertaDeleteBloqueado(dataFormatada);
+                    if (btnDeletar) {
+                        btnDeletar.innerHTML = '<i class="fas fa-trash-alt"></i> DELETAR';
+                        btnDeletar.disabled = false;
+                    }
+                    return;
+                }
+                
+                // Se passou, prosseguir com o modal
+                transacaoIdParaDeletar = transacaoAtual.id;
+                
+                const mensagem = `
+                    ⚠️ ATENÇÃO: Esta ação é PERMANENTE e IRREVERSÍVEL!
+                    
+                    Você está prestes a DELETAR permanentemente a seguinte transação:
+                    
+                    ID: ${transacaoAtual.id}
+                    Tipo: ${transacaoAtual.tipo}
+                    Valor: ${formatarValor(transacaoAtual.valor)} ${transacaoAtual.moeda || 'USD'}
+                    
+                    A transação será REMOVIDA do banco de dados e NÃO poderá ser recuperada.
+                `;
+                
+                document.getElementById('confirmacaoDeleteMensagem').innerHTML = mensagem.replace(/\n/g, '<br>');
+                document.getElementById('confirmacaoDeleteCheckbox').checked = false;
+                document.getElementById('senhaAdminDelete').value = '';
+                document.getElementById('btnConfirmarDelete').disabled = true;
+                
+                document.getElementById('modalConfirmacaoDelete').style.display = 'flex';
+                
+            } catch (error) {
+                console.error('Erro na verificação:', error);
+                alert('Erro ao verificar transação. Tente novamente.');
+            } finally {
+                if (btnDeletar) {
+                    btnDeletar.innerHTML = '<i class="fas fa-trash-alt"></i> DELETAR';
+                    btnDeletar.disabled = false;
+                }
+            }
+        }        
     </script>
     <script src="/static/js/theme.js"></script>
 </body>
