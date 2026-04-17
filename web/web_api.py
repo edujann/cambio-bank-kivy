@@ -376,6 +376,16 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
             credito_original = 0.0
             print(f"   Ajuste Admin DÉBITO: debito_original={debito_original}")
     
+    # 🔥 NOVO: Caso 4 - Despesa (conta da empresa)
+    if tipo_original == 'despesa':
+        # Original: CRÉDITO na empresa (diminui saldo)
+        # Estorno: DÉBITO na empresa (aumenta saldo)
+        # Portanto, o estorno deve aparecer como DÉBITO
+        if conta_envolvida == 'origem':
+            debito_original = valor_correto
+            credito_original = 0.0
+            print(f"   Despesa: Estorno será DÉBITO de {debito_original}")
+    
     # 🔥 INVERSÃO: O que era crédito vira débito, o que era débito vira crédito
     resultado = {
         'id': transf_estorno.get('id'),
