@@ -275,7 +275,7 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
         .execute()
     
     if not original_response.data:
-        print(f"⚠️ [FUNÇÃO] Transação original {transacao_original_id} não encontrada no Supabase!")
+        print(f"⚠️ [FUNÇÃO] Transação original {transacao_original_id} não encontrada!")
         return None, None
     
     original = original_response.data[0]
@@ -283,25 +283,11 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
     moeda_original = original.get('moeda', moeda)
     descricao_estorno = transf_estorno.get('descricao', f"Estorno de {tipo_original}")
     
-    print(f"✅ [FUNÇÃO] Original encontrada - ID: {original.get('id')}, Tipo: {tipo_original}")
-    print(f"   conta_remetente original: {original.get('conta_remetente')}")
-    print(f"   conta_destinatario original: {original.get('conta_destinatario')}")
+    print(f"✅ [FUNÇÃO] Original encontrada - Tipo: {tipo_original}")
     
-    # Tratar valores None
-    valor_original_raw = original.get('valor')
-    if valor_original_raw is not None:
-        valor_original = float(valor_original_raw)
-    else:
-        valor_original = 0.0
-    
-    valor_destino_raw = original.get('valor_destino')
-    if valor_destino_raw is not None:
-        valor_destino = float(valor_destino_raw)
-    else:
-        valor_destino = valor_original
-    
-    print(f"   valor_original: {valor_original}")
-    print(f"   valor_destino: {valor_destino}")
+    # Tratar valores
+    valor_original = float(original.get('valor', 0)) if original.get('valor') else 0.0
+    valor_destino = float(original.get('valor_destino', valor_original)) if original.get('valor_destino') else valor_original
     
     # Verificar qual conta está envolvida
     conta_envolvida = None
@@ -320,7 +306,7 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
         print(f"🔍 Conta é DESTINO: valor={valor_correto}")
     
     if not conta_envolvida:
-        print(f"⚠️ [FUNÇÃO] Conta {conta_num} não está envolvida!")
+        print(f"⚠️ [FUNÇÃO] Conta não envolvida!")
         return None, None
     
     # Determinar efeito original
@@ -329,17 +315,17 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
     
     if conta_envolvida == 'origem':
         debito_original = valor_correto
+        print(f"   Efeito original: DÉBITO de {debito_original}")
     elif conta_envolvida == 'destino':
         credito_original = valor_correto
+        print(f"   Efeito original: CRÉDITO de {credito_original}")
     
-    # 🔥 INVERSÃO: O que era crédito vira débito, o que era débito vira crédito
+    # 🔥 INVERSÃO para estorno
     credito_final = debito_original
     debito_final = credito_original
     
-    # 🔥 SE FOR CONTA DA EMPRESA, AJUSTAR PARA LÓGICA INVERSA
+    # 🔥 SE FOR CONTA DA EMPRESA, FORÇAR DÉBITO (entrada)
     if eh_conta_empresa:
-        # Para empresa: queremos que o estorno apareça como DÉBITO (entrada)
-        # porque a empresa está recuperando o dinheiro
         credito_final = 0.0
         debito_final = valor_correto
         print(f"   🔄 Conta da empresa: forçando DÉBITO de {debito_final}")
@@ -355,7 +341,7 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
         'timestamp': data_transacao
     }
     
-    print(f"✅ [FUNÇÃO] Resultado final - Crédito: {resultado['credito']}, Débito: {resultado['debito']}")
+    print(f"✅ Resultado - Crédito: {credito_final}, Débito: {debito_final}")
     
     return resultado, tipo_original
 
