@@ -3972,6 +3972,9 @@ def obter_extrato_kivy():
                 elif status_normalizado in ['processing', 'completed']:
                     deve_incluir = True
                     motivo = f"Status: {transf_status}"
+                elif status_normalizado in ['processing', 'completed', 'estornada']:  # 🔥 ADICIONAR 'estornada' AQUI
+                    deve_incluir = True
+                    motivo = f"Status: {transf_status}"                    
                 else:
                     deve_incluir = False
                     motivo = f"Status não incluído: {transf_status}"
@@ -7023,7 +7026,7 @@ def api_admin_extrato_conta():
                 # Para todos os outros tipos, manter a lógica original
                 data_transf = transf.get('created_at') or transf.get('data')
                 # Pular transações não concluídas (exceto internacionais pendentes - já tratado acima)
-                if status not in ['completed', 'processing', 'solicitada', 'pending']:
+                if status not in ['completed', 'processing', 'solicitada', 'pending', 'estornada']:  # 🔥 ADICIONAR 'estornada'
                     continue
             
             # Filtrar por data
@@ -7790,6 +7793,8 @@ def api_admin_extrato_kivy():
                     deve_incluir = True
                 elif status_normalizado == 'rejected':
                     deve_incluir = True
+                elif status_normalizado in ['processing', 'completed', 'estornada']:  # 🔥 ADICIONAR 'estornada' AQUI
+                    deve_incluir = True                    
                 elif status_normalizado in ['processing', 'completed']:
                     deve_incluir = True
                 else:
