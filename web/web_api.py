@@ -255,7 +255,10 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
     print(f"   transacao_original_id: {transf_estorno.get('transacao_original_id')}")
     print(f"   conta_num (nossa conta): {conta_num}")
     print(f"   moeda: {moeda}")
-    print(f"   data_transacao_str: {data_transacao_str}")
+    
+    # Verificar se é conta da empresa
+    eh_conta_empresa = is_conta_empresa(conta_num)
+    print(f"   É conta da empresa? {eh_conta_empresa}")
     
     transacao_original_id = transf_estorno.get('transacao_original_id')
     
@@ -283,123 +286,76 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
     print(f"✅ [FUNÇÃO] Original encontrada - ID: {original.get('id')}, Tipo: {tipo_original}")
     print(f"   conta_remetente original: {original.get('conta_remetente')}")
     print(f"   conta_destinatario original: {original.get('conta_destinatario')}")
-    print(f"   conta_origem original: {original.get('conta_origem')}")
-    print(f"   conta_destino original: {original.get('conta_destino')}")
-    print(f"   valor original: {original.get('valor')}")
-    print(f"   valor_destino original: {original.get('valor_destino')}")
-    print(f"   moeda_original: {moeda_original}")
-    print(f"   status original: {original.get('status')}")
     
-    # 🔥 CORREÇÃO: Tratar valores None corretamente
+    # Tratar valores None
     valor_original_raw = original.get('valor')
     if valor_original_raw is not None:
         valor_original = float(valor_original_raw)
     else:
         valor_original = 0.0
-        print(f"⚠️ valor_original é None, usando 0.0")
     
-    # 🔥 CORREÇÃO: Tratar None para valor_destino
     valor_destino_raw = original.get('valor_destino')
     if valor_destino_raw is not None:
         valor_destino = float(valor_destino_raw)
     else:
         valor_destino = valor_original
-        print(f"⚠️ valor_destino é None, usando valor_original: {valor_destino}")
     
-    print(f"   valor_original (float): {valor_original}")
-    print(f"   valor_destino (float): {valor_destino}")
+    print(f"   valor_original: {valor_original}")
+    print(f"   valor_destino: {valor_destino}")
     
-    # Verificar qual conta do cliente está envolvida na original
+    # Verificar qual conta está envolvida
     conta_envolvida = None
     valor_correto = valor_original
     
-    # Verificar se a conta é a de origem
     if original.get('conta_remetente') == conta_num or original.get('conta_origem') == conta_num:
         conta_envolvida = 'origem'
         valor_correto = valor_original
-        print(f"🔍 Conta é ORIGEM (perdeu dinheiro): valor={valor_correto}")
-    
-    # Verificar se a conta é a de destino
+        print(f"🔍 Conta é ORIGEM: valor={valor_correto}")
     elif original.get('conta_destinatario') == conta_num or original.get('conta_destino') == conta_num:
         conta_envolvida = 'destino'
-        # 🔥 CORREÇÃO: Para conta destino, usar valor_destino
         if tipo_original == 'cambio':
             valor_correto = valor_destino
         else:
             valor_correto = valor_original
-        print(f"🔍 Conta é DESTINO (ganhou dinheiro): valor={valor_correto}")
+        print(f"🔍 Conta é DESTINO: valor={valor_correto}")
     
     if not conta_envolvida:
-        print(f"⚠️ [FUNÇÃO] Conta {conta_num} não está envolvida na transação original!")
-        print(f"   Verificando possibilidades:")
-        print(f"   conta_remetente == conta_num? {original.get('conta_remetente') == conta_num}")
-        print(f"   conta_origem == conta_num? {original.get('conta_origem') == conta_num}")
-        print(f"   conta_destinatario == conta_num? {original.get('conta_destinatario') == conta_num}")
-        print(f"   conta_destino == conta_num? {original.get('conta_destino') == conta_num}")
+        print(f"⚠️ [FUNÇÃO] Conta {conta_num} não está envolvida!")
         return None, None
     
-    # 🔥 LÓGICA PRINCIPAL: Determinar o efeito ORIGINAL
+    # Determinar efeito original
     credito_original = 0.0
     debito_original = 0.0
     
-    # Caso 1: Cliente era REMETENTE/ORIGEM (perdeu dinheiro)
     if conta_envolvida == 'origem':
         debito_original = valor_correto
-        print(f"   Efeito original: DÉBITO de {debito_original}")
-        
-        # Casos especiais onde o cliente na verdade GANHOU dinheiro mesmo sendo remetente
-        if tipo_original == 'transferencia_cliente_empresa':
-            credito_original = valor_correto
-            debito_original = 0.0
-            print(f"   EXCEÇÃO: transferencia_cliente_empresa - ajustando para CRÉDITO")
-    
-    # Caso 2: Cliente era DESTINATÁRIO/DESTINO (ganhou dinheiro)
     elif conta_envolvida == 'destino':
         credito_original = valor_correto
-        print(f"   Efeito original: CRÉDITO de {credito_original}")
-        
-        # Casos especiais onde o cliente na verdade PERDEU dinheiro mesmo sendo destinatário
-        if tipo_original == 'transferencia_empresa_cliente':
-            debito_original = valor_correto
-            credito_original = 0.0
-            print(f"   EXCEÇÃO: transferencia_empresa_cliente - ajustando para DÉBITO")
-    
-    # Caso 3: Ajuste administrativo (usa tipo_ajuste)
-    if tipo_original == 'ajuste_admin':
-        tipo_ajuste = original.get('tipo_ajuste', '').upper()
-        if tipo_ajuste == 'CREDITO':
-            credito_original = valor_correto
-            debito_original = 0.0
-            print(f"   Ajuste Admin CRÉDITO: credito_original={credito_original}")
-        else:
-            debito_original = valor_correto
-            credito_original = 0.0
-            print(f"   Ajuste Admin DÉBITO: debito_original={debito_original}")
-    
-    # 🔥 NOVO: Caso 4 - Despesa (conta da empresa)
-    if tipo_original == 'despesa':
-        # Original: CRÉDITO na empresa (diminui saldo)
-        # Estorno: DÉBITO na empresa (aumenta saldo)
-        # Portanto, o estorno deve aparecer como DÉBITO
-        if conta_envolvida == 'origem':
-            debito_original = valor_correto
-            credito_original = 0.0
-            print(f"   Despesa: Estorno será DÉBITO de {debito_original}")
     
     # 🔥 INVERSÃO: O que era crédito vira débito, o que era débito vira crédito
+    credito_final = debito_original
+    debito_final = credito_original
+    
+    # 🔥 SE FOR CONTA DA EMPRESA, AJUSTAR PARA LÓGICA INVERSA
+    if eh_conta_empresa:
+        # Para empresa: queremos que o estorno apareça como DÉBITO (entrada)
+        # porque a empresa está recuperando o dinheiro
+        credito_final = 0.0
+        debito_final = valor_correto
+        print(f"   🔄 Conta da empresa: forçando DÉBITO de {debito_final}")
+    
     resultado = {
         'id': transf_estorno.get('id'),
         'data': data_transacao_str,
         'descricao': f"🔁 ESTORNO: {descricao_estorno}",
-        'credito': debito_original,  # INVERTIDO
-        'debito': credito_original,   # INVERTIDO
+        'credito': credito_final,
+        'debito': debito_final,
         'tipo': "Estorno",
         'moeda': moeda_original,
         'timestamp': data_transacao
     }
     
     print(f"✅ [FUNÇÃO] Resultado final - Crédito: {resultado['credito']}, Débito: {resultado['debito']}")
-    print(f"   Descrição: {resultado['descricao']}")
     
     return resultado, tipo_original
 
@@ -10411,20 +10367,17 @@ def api_admin_gerenciar_transferencia():
 # ============================================
 
 def is_conta_empresa(conta_id):
-    """Verifica se uma conta pertence à empresa (tabela contas_bancarias_empresa)"""
+    """Verifica se uma conta pertence à empresa"""
     if not conta_id or supabase is None:
         return False
-    
     try:
         response = supabase.table('contas_bancarias_empresa')\
             .select('numero')\
             .eq('numero', conta_id)\
             .limit(1)\
             .execute()
-        
         return len(response.data) > 0
-    except Exception as e:
-        print(f"⚠️ Erro ao verificar conta empresa {conta_id}: {e}")
+    except:
         return False
 
 def obter_nome_cliente_por_conta(conta_id):
