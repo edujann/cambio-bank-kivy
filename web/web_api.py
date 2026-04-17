@@ -7228,67 +7228,60 @@ def api_admin_extrato_conta():
                 print(f"   moeda_destino: {transf.get('moeda_destino')}")
                 print(f"   Nossa conta: {conta_numero}")
                 
-                # 🔥 CASO 1: Nossa conta é a ORIGEM (GABLES_BRL_001)
-                if transf.get('conta_origem') == conta_numero:
-                    valor = float(transf.get('valor_origem', 0))
-                    moeda = transf.get('moeda_origem', 'BRL')
-                    
-                    # Estorno na conta origem: empresa RECUPERA o dinheiro → DÉBITO (entrada)
+                # 🔥 TRATAR VALOR ORIGEM
+                valor_origem_raw = transf.get('valor_origem')
+                if valor_origem_raw is None or valor_origem_raw == '':
+                    valor_origem_raw = 0
+                try:
+                    valor_origem = float(valor_origem_raw)
+                except (ValueError, TypeError):
+                    valor_origem = 0.0
+                
+                # 🔥 TRATAR VALOR DESTINO
+                valor_destino_raw = transf.get('valor_destino')
+                if valor_destino_raw is None or valor_destino_raw == '':
+                    valor_destino_raw = 0
+                try:
+                    valor_destino = float(valor_destino_raw)
+                except (ValueError, TypeError):
+                    valor_destino = 0.0
+                
+                moeda_origem = transf.get('moeda_origem', 'BRL')
+                moeda_destino = transf.get('moeda_destino', 'USD')
+                
+                # CASO 1: Nossa conta é a ORIGEM
+                if transf.get('conta_origem') == conta_numero and valor_origem > 0:
                     transacoes_processadas.append({
                         'id': transf.get('id'),
                         'data': data_transf,
                         'descricao': f"🔁 ESTORNO: {transf.get('descricao', 'Estorno')}",
                         'credito': 0,
-                        'debito': valor,
+                        'debito': valor_origem,
                         'tipo': 'Estorno',
-                        'moeda': moeda,
+                        'moeda': moeda_origem,
                         'status': status
                     })
-                    print(f"   ✅ ESTORNO NA ORIGEM ({conta_numero}): +{valor:.2f} {moeda} (DÉBITO - entrada)")
+                    print(f"   ✅ ESTORNO NA ORIGEM: +{valor_origem:.2f} {moeda_origem} (DÉBITO)")
                     continue
                 
-                # 🔥 CASO 2: Nossa conta é a DESTINO (BANK_USD_001)
-                elif transf.get('conta_destino') == conta_numero:
-                    valor = float(transf.get('valor_destino', 0))
-                    moeda = transf.get('moeda_destino', 'USD')
-                    
-                    # Estorno na conta destino: empresa DEVOLVE o dinheiro → CRÉDITO (saída)
+                # CASO 2: Nossa conta é a DESTINO
+                elif transf.get('conta_destino') == conta_numero and valor_destino > 0:
                     transacoes_processadas.append({
                         'id': transf.get('id'),
                         'data': data_transf,
                         'descricao': f"🔁 ESTORNO: {transf.get('descricao', 'Estorno')}",
-                        'credito': valor,
+                        'credito': valor_destino,
                         'debito': 0,
                         'tipo': 'Estorno',
-                        'moeda': moeda,
+                        'moeda': moeda_destino,
                         'status': status
                     })
-                    print(f"   ✅ ESTORNO NO DESTINO ({conta_numero}): -{valor:.2f} {moeda} (CRÉDITO - saída)")
+                    print(f"   ✅ ESTORNO NO DESTINO: -{valor_destino:.2f} {moeda_destino} (CRÉDITO)")
                     continue
                 
-                # 🔥 CASO 3: Fallback - verificar outras colunas
+                # CASO 3: Fallback (se não encontrou)
                 else:
-                    conta_envolvida = (
-                        transf.get('conta_remetente') == conta_numero or
-                        transf.get('conta_destinatario') == conta_numero
-                    )
-                    
-                    if conta_envolvida:
-                        valor = float(transf.get('valor_origem', transf.get('valor', 0)))
-                        moeda = transf.get('moeda_origem', transf.get('moeda', 'USD'))
-                        
-                        transacoes_processadas.append({
-                            'id': transf.get('id'),
-                            'data': data_transf,
-                            'descricao': f"🔁 ESTORNO: {transf.get('descricao', 'Estorno')}",
-                            'credito': 0,
-                            'debito': valor,
-                            'tipo': 'Estorno',
-                            'moeda': moeda,
-                            'status': status
-                        })
-                        print(f"   ✅ ESTORNO (FALLBACK): +{valor:.2f} {moeda} (DÉBITO)")
-                        continue
+                    print(f"   ⚠️ Estorno ignorado - conta não envolvida ou valores zerados")
 
 
             # ============================================
