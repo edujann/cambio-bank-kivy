@@ -7217,8 +7217,17 @@ def api_admin_extrato_conta():
             # PROCESSAR ESTORNO (CONTA BANCÁRIA DA EMPRESA)
             # ============================================
             if tipo == 'estorno':
-                # 🔥 USAR valor_origem se disponível
-                valor = float(transf.get('valor_origem', transf.get('valor', 0)))
+                # 🔥 TRATAR VALORES None
+                valor_raw = transf.get('valor_origem')
+                if valor_raw is None or valor_raw == '':
+                    valor_raw = transf.get('valor', 0)
+                
+                try:
+                    valor = float(valor_raw)
+                except (ValueError, TypeError):
+                    valor = 0.0
+                    print(f"   ⚠️ Erro ao converter valor: {valor_raw}")
+                
                 moeda = transf.get('moeda_origem', transf.get('moeda', 'USD'))
                 data_transf = transf.get('created_at') or transf.get('data')
                 
@@ -7238,7 +7247,7 @@ def api_admin_extrato_conta():
                     transf.get('conta_destino') == conta_numero
                 )
                 
-                if conta_envolvida:
+                if conta_envolvida and valor > 0:
                     transacoes_processadas.append({
                         'id': transf.get('id'),
                         'data': data_transf,
@@ -7250,7 +7259,7 @@ def api_admin_extrato_conta():
                         'status': status
                     })
                     print(f"   ✅ ESTORNO NA EMPRESA: +{valor:.2f} {moeda} (DÉBITO)")
-                    continue  # Pular processamento normal
+                    continue
 
 
             # ============================================
