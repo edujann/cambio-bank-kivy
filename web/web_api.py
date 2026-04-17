@@ -11344,13 +11344,9 @@ def estornar_transacao():
         traceback.print_exc()
         return jsonify({"success": False, "message": str(e)}), 500
     
-# ============================================
-# ENDPOINT PARA DELETAR TRANSAÇÃO
-# ============================================
-
 @app.route('/api/admin/transacoes/deletar', methods=['DELETE'])
 def deletar_transacao():
-    """Remove permanentemente uma transação (Hard Delete) - APENAS DO MESMO DIA e NÃO ESTORNADA"""
+    """Remove permanentemente uma transação (Hard Delete) - COM REVERSÃO DE SALDOS"""
     try:
         usuario_logado = session.get('username')
         
@@ -11395,30 +11391,33 @@ def deletar_transacao():
         # ============================================
         # 🔥 VERIFICAR SE JÁ FOI ESTORNADA
         # ============================================
+        ja_foi_estornada = False
+        estorno_info = None
+        
+        # Verificar nos logs
         log_check = supabase.table('logs_estornos')\
-            .select('id, transacao_estorno_id, motivo, data_acao, executado_por')\
+            .select('id, transacao_estorno_id')\
             .eq('transacao_original_id', transacao_id)\
             .eq('tipo_acao', 'estorno')\
             .execute()
         
         if log_check.data:
+            ja_foi_estornada = True
             estorno_info = log_check.data[0]
+        
+        # Verificar pelo status
+        elif transacao_original.get('status') == 'estornada':
+            ja_foi_estornada = True
+        
+        if ja_foi_estornada:
             return jsonify({
                 "success": False,
-                "message": f"❌ Não é permitido deletar uma transação que já foi estornada!\n\n"
-                           f"📋 Transação original: {transacao_id}\n"
-                           f"🔄 Transação de estorno: {estorno_info.get('transacao_estorno_id', 'N/A')}\n"
-                           f"📅 Data do estorno: {estorno_info.get('data_acao', 'N/A')}\n"
-                           f"👤 Estornado por: {estorno_info.get('executado_por', 'N/A')}\n"
-                           f"📝 Motivo do estorno: {estorno_info.get('motivo', 'N/A')}\n\n"
-                           f"✅ Para remover este lançamento, você precisaria:\n"
-                           f"   1. Primeiro estornar o estorno (criar reversão)\n"
-                           f"   2. Depois deletar ambos os lançamentos\n\n"
-                           f"⚠️ Recomendação: Mantenha o histórico e utilize apenas ESTORNO."
+                "message": "❌ Não é permitido deletar uma transação que já foi estornada!\n\n"
+                           "Utilize a função de ESTORNO para correções."
             }), 400
         
         # ============================================
-        # VERIFICAR SE É DO MESMO DIA
+        # 🔥 VERIFICAR SE É DO MESMO DIA
         # ============================================
         from datetime import datetime
         
@@ -11438,28 +11437,23 @@ def deletar_transacao():
             
             hoje = datetime.now()
             
-            # Verificar se é do mesmo dia (ano, mês, dia)
             if data_transacao_obj.date() != hoje.date():
                 dias_diferenca = (hoje.date() - data_transacao_obj.date()).days
                 return jsonify({
                     "success": False,
                     "message": f"❌ Não é permitido deletar lançamentos de dias anteriores!\n\n"
                                f"📅 Data da transação: {data_transacao_obj.strftime('%d/%m/%Y')} ({dias_diferenca} dia(s) atrás)\n"
-                               f"📅 Data atual: {hoje.strftime('%d/%m/%Y')}\n\n"
-                               f"✅ Para lançamentos antigos, utilize a função de **ESTORNO**:\n"
-                               f"   • Mantém histórico da correção\n"
-                               f"   • Cria registro de reversão\n"
-                               f"   • Não requer senha\n\n"
-                               f"❌ DELETE: permitido apenas para lançamentos do dia atual."
+                               f"✅ Utilize a função de ESTORNO."
                 }), 400
         except Exception as e:
-            print(f"⚠️ Erro ao comparar data: {e}")
             return jsonify({
                 "success": False,
-                "message": "❌ Não foi possível verificar a data da transação. Use a função de ESTORNO."
+                "message": "❌ Não foi possível verificar a data. Use a função de ESTORNO."
             }), 400
         
-        # Verificar senha do admin
+        # ============================================
+        # 🔥 VERIFICAR SENHA
+        # ============================================
         import hashlib
         senha_hash = hashlib.sha256(senha.encode()).hexdigest()
         
@@ -11472,6 +11466,52 @@ def deletar_transacao():
         
         if not admin_check.data or admin_check.data['senha_hash'] != senha_hash:
             return jsonify({"success": False, "message": "❌ Senha incorreta!"}), 401
+        
+        # ============================================
+        # 🔥 REVERTER SALDOS (MESMA LÓGICA DO ESTORNO)
+        # ============================================
+        print(f"\n💰 [DELETE] Revertendo saldos para transação: {transacao_id}")
+        
+        # Calcular operações de reversão (mesma lógica do estorno)
+        operacoes = calcular_estorno(transacao_original)
+        
+        if not operacoes:
+            return jsonify({
+                "success": False, 
+                "message": f"Não foi possível determinar a reversão para o tipo {transacao_original.get('tipo')}"
+            }), 400
+        
+        # Executar cada operação de reversão
+        resultados = []
+        erros = []
+        
+        for op in operacoes:
+            sucesso, resultado = executar_operacao_saldo(
+                op['conta'], 
+                op['valor'], 
+                op['operacao'], 
+                op['is_empresa']
+            )
+            
+            if sucesso:
+                resultados.append({
+                    'conta': op['conta'],
+                    'novo_saldo': resultado,
+                    'operacao': op['operacao']
+                })
+                print(f"   ✅ {op['conta']}: {op['operacao']} de {op['valor']} → novo saldo: {resultado}")
+            else:
+                erros.append(f"Conta {op['conta']}: {resultado}")
+        
+        if erros:
+            return jsonify({
+                "success": False, 
+                "message": f"Erros ao reverter saldos: {'; '.join(erros)}"
+            }), 500
+        
+        # ============================================
+        # 🔥 REGISTRAR LOG E DELETAR
+        # ============================================
         
         # Registrar no log ANTES de deletar
         registrar_log_estorno(
@@ -11495,7 +11535,8 @@ def deletar_transacao():
                 "message": f"✅ Transação {transacao_id} deletada permanentemente!\n\n"
                            f"📅 Data da transação: {data_transacao_obj.strftime('%d/%m/%Y')}\n"
                            f"📝 Motivo: {motivo}\n"
-                           f"👤 Executado por: {usuario_logado}"
+                           f"👤 Executado por: {usuario_logado}\n\n"
+                           f"💰 Saldos revertidos com sucesso!"
             })
         else:
             return jsonify({"success": False, "message": "Erro ao deletar transação"}), 500
