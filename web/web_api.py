@@ -7397,36 +7397,44 @@ def api_admin_extrato_conta():
             # AJUSTE DE SALDO DA EMPRESA
             # ============================================
             elif tipo == 'ajuste_saldo_empresa':
-                conta_empresa = transacao.get('conta_remetente')
-                valor = float(transacao.get('valor', 0))
-                tipo_ajuste = transacao.get('tipo_ajuste', '')
+                if transf.get('conta_remetente') != conta_numero:
+                    continue
                 
-                print(f"\n💰 [AJUSTE EMPRESA] Processando reversão")
-                print(f"   Conta: {conta_empresa}")
-                print(f"   Tipo ajuste original: {tipo_ajuste}")
-                print(f"   Valor: {valor}")
+                tipo_ajuste = transf.get('tipo_ajuste', '')
+                descricao_ajuste = transf.get('descricao_ajuste', 'Ajuste de saldo')
+                valor = float(transf.get('valor', 0))
+                moeda = transf.get('moeda', 'USD')
                 
-                if conta_empresa:
-                    if tipo_ajuste == 'DÉBITO':
-                        # DÉBITO original = ENTRADA (aumentou saldo)
-                        # Reversão = CRÉDITO (diminui saldo)
-                        operacoes.append({
-                            'conta': conta_empresa,
-                            'valor': valor,
-                            'operacao': 'CREDITO',
-                            'is_empresa': True
-                        })
-                        print(f"   → Reversão: CRÉDITO de {valor} (diminui saldo)")
-                    else:
-                        # CRÉDITO original = SAÍDA (diminuiu saldo)
-                        # Reversão = DÉBITO (aumenta saldo)
-                        operacoes.append({
-                            'conta': conta_empresa,
-                            'valor': valor,
-                            'operacao': 'DEBITO',
-                            'is_empresa': True
-                        })
-                        print(f"   → Reversão: DÉBITO de {valor} (aumenta saldo)")
+                print(f"\n💰 Ajuste: {transf.get('id')} - {tipo_ajuste}")
+                
+                if tipo_ajuste == 'DÉBITO':
+                    # DÉBITO = ENTRADA de dinheiro
+                    descricao = f"AJUSTE - ENTRADA: {descricao_ajuste}"
+                    transacoes_processadas.append({
+                        'id': transf.get('id'),
+                        'data': data_transf,
+                        'descricao': descricao,
+                        'credito': 0,
+                        'debito': valor,
+                        'tipo': 'Ajuste de Saldo',
+                        'moeda': moeda,
+                        'status': status
+                    })
+                    print(f"   ✅ ENTRADA: +{valor:.2f} {moeda}")
+                else:
+                    # CRÉDITO = SAÍDA de dinheiro
+                    descricao = f"AJUSTE - SAÍDA: {descricao_ajuste}"
+                    transacoes_processadas.append({
+                        'id': transf.get('id'),
+                        'data': data_transf,
+                        'descricao': descricao,
+                        'credito': valor,
+                        'debito': 0,
+                        'tipo': 'Ajuste de Saldo',
+                        'moeda': moeda,
+                        'status': status
+                    })
+                    print(f"   ✅ SAÍDA: -{valor:.2f} {moeda}")
             
             # ============================================
             # PROCESSAR DEPÓSITOS
