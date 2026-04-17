@@ -347,9 +347,14 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
     
     # --- Depósito ---
     elif tipo_original == 'deposito':
-        if conta_envolvida == 'destino':
-            # Original: empresa ganhou → Estorno: perde (crédito)
+        if conta_envolvida == 'origem':
+            # Cliente era origem (GANHOU dinheiro) → Estorno: PERDE (DÉBITO)
+            debito_final = valor_correto
+            print(f"   Depósito (cliente): perde {debito_final}")
+        elif conta_envolvida == 'destino':
+            # Empresa era destino (GANHOU) → Estorno: PERDE (CRÉDITO)
             credito_final = valor_correto
+            print(f"   Depósito (empresa): perde {credito_final}")
     
     # --- Transferência Cliente → Empresa ---
     elif tipo_original == 'transferencia_cliente_empresa':
