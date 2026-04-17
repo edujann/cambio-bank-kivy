@@ -2652,6 +2652,24 @@
                 return;
             }
             
+            // 🔥 VERIFICAR SE É DO MESMO DIA ANTES DE PEDIR SENHA
+            const dataTransacao = transacaoAtual.data || transacaoAtual.created_at;
+            const isMesmoDia = isTransacaoDoMesmoDia(dataTransacao);
+            
+            if (!isMesmoDia) {
+                // Formatar data para exibição
+                let dataFormatada = dataTransacao;
+                try {
+                    const dataObj = new Date(dataTransacao);
+                    dataFormatada = dataObj.toLocaleDateString('pt-BR');
+                } catch(e) {}
+                
+                // Mostrar alerta elegante explicando que não pode deletar
+                mostrarAlertaDeleteBloqueado(dataFormatada);
+                return;
+            }
+            
+            // Se for do mesmo dia, prosseguir com a confirmação
             transacaoIdParaDeletar = transacaoAtual.id;
             
             const mensagem = `
@@ -2888,6 +2906,207 @@
             };
         }        
 
+        // ============================================
+        // VERIFICAR SE A TRANSAÇÃO É DO MESMO DIA
+        // ============================================
+        function isTransacaoDoMesmoDia(dataTransacao) {
+            if (!dataTransacao) return false;
+            
+            try {
+                // Converter a data da transação
+                let dataTransacaoObj;
+                if (dataTransacao.includes('T')) {
+                    dataTransacaoObj = new Date(dataTransacao);
+                } else {
+                    dataTransacaoObj = new Date(dataTransacao);
+                }
+                
+                // Data atual
+                const hoje = new Date();
+                
+                // Comparar apenas ano, mês e dia
+                const dataTransacaoStr = dataTransacaoObj.toISOString().split('T')[0];
+                const hojeStr = hoje.toISOString().split('T')[0];
+                
+                return dataTransacaoStr === hojeStr;
+                
+            } catch (error) {
+                console.error('Erro ao verificar data:', error);
+                return false;
+            }
+        }
+
+        function mostrarAlertaDeleteBloqueado(dataFormatada) {
+            // Criar overlay
+            const modalOverlay = document.createElement('div');
+            modalOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.85);
+                z-index: 10000;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                backdrop-filter: blur(5px);
+                animation: fadeIn 0.3s ease;
+            `;
+            
+            // Criar container do modal
+            const modalContainer = document.createElement('div');
+            modalContainer.style.cssText = `
+                background: var(--cor-card);
+                border-radius: 12px;
+                width: 500px;
+                max-width: 90vw;
+                border: 1px solid var(--cor-borda);
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+                animation: slideUp 0.3s ease;
+                overflow: hidden;
+            `;
+            
+            // Cabeçalho (vermelho para alerta)
+            const modalHeader = document.createElement('div');
+            modalHeader.style.cssText = `
+                background: linear-gradient(90deg, #c0392b, #e74c3c);
+                color: white;
+                padding: 20px 25px;
+                font-size: 18px;
+                font-weight: bold;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            `;
+            modalHeader.innerHTML = `
+                <i class="fas fa-ban" style="font-size: 24px;"></i>
+                <span>⛔ OPERAÇÃO NÃO PERMITIDA</span>
+            `;
+            
+            // Corpo do modal
+            const modalBody = document.createElement('div');
+            modalBody.style.cssText = `
+                padding: 25px;
+                color: var(--cor-texto);
+                line-height: 1.6;
+            `;
+            
+            modalBody.innerHTML = `
+                <div style="margin-bottom: 20px;">
+                    <strong style="color: #e74c3c;">❌ Não é permitido DELETAR lançamentos de dias anteriores!</strong>
+                </div>
+                
+                <div style="background: rgba(231, 76, 60, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <p style="margin-bottom: 10px;"><strong>📅 Informações:</strong></p>
+                    <ul style="margin-left: 20px; color: var(--cor-texto-secundario);">
+                        <li>Data da transação: <strong style="color: #e74c3c;">${dataFormatada}</strong></li>
+                        <li>Data atual: <strong style="color: #2ecc71;">${new Date().toLocaleDateString('pt-BR')}</strong></li>
+                    </ul>
+                </div>
+                
+                <div style="background: rgba(52, 152, 219, 0.1); padding: 15px; border-radius: 8px;">
+                    <p><i class="fas fa-info-circle"></i> <strong>Regras do sistema:</strong></p>
+                    <ul style="margin-left: 20px; margin-top: 8px; color: var(--cor-texto-secundario);">
+                        <li>✅ <strong style="color: #2ecc71;">DELETE</strong>: permitido apenas para lançamentos do <strong>DIA ATUAL</strong></li>
+                        <li>✅ <strong style="color: #3498db;">ESTORNO</strong>: permitido para <strong>QUALQUER DATA</strong> (recomendado)</li>
+                    </ul>
+                    <p style="margin-top: 12px;">
+                        <i class="fas fa-undo-alt"></i> Utilize a função <strong style="color: #f39c12;">ESTORNAR</strong> para corrigir este lançamento.
+                    </p>
+                </div>
+            `;
+            
+            // Footer com botão
+            const modalFooter = document.createElement('div');
+            modalFooter.style.cssText = `
+                padding: 20px 25px;
+                border-top: 1px solid var(--cor-borda);
+                display: flex;
+                justify-content: center;
+                gap: 15px;
+            `;
+            
+            const btnEstornar = document.createElement('button');
+            btnEstornar.innerHTML = '<i class="fas fa-undo-alt"></i> USAR ESTORNO';
+            btnEstornar.style.cssText = `
+                padding: 12px 25px;
+                background: linear-gradient(90deg, #e67e22, #f39c12);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 14px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            `;
+            
+            const btnFechar = document.createElement('button');
+            btnFechar.innerHTML = '<i class="fas fa-times"></i> FECHAR';
+            btnFechar.style.cssText = `
+                padding: 12px 25px;
+                background: transparent;
+                border: 1px solid var(--cor-borda);
+                color: var(--cor-texto);
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 14px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            `;
+            
+            btnEstornar.onmouseover = () => {
+                btnEstornar.style.transform = 'translateY(-2px)';
+                btnEstornar.style.boxShadow = '0 4px 12px rgba(230, 126, 34, 0.4)';
+            };
+            btnEstornar.onmouseout = () => {
+                btnEstornar.style.transform = 'translateY(0)';
+                btnEstornar.style.boxShadow = 'none';
+            };
+            
+            btnFechar.onmouseover = () => {
+                btnFechar.style.borderColor = '#f39c12';
+                btnFechar.style.color = '#f39c12';
+            };
+            btnFechar.onmouseout = () => {
+                btnFechar.style.borderColor = 'var(--cor-borda)';
+                btnFechar.style.color = 'var(--cor-texto)';
+            };
+            
+            btnEstornar.onclick = () => {
+                document.body.removeChild(modalOverlay);
+                abrirConfirmacaoEstorno();
+            };
+            
+            btnFechar.onclick = () => {
+                document.body.removeChild(modalOverlay);
+            };
+            
+            modalFooter.appendChild(btnEstornar);
+            modalFooter.appendChild(btnFechar);
+            
+            // Montar modal
+            modalContainer.appendChild(modalHeader);
+            modalContainer.appendChild(modalBody);
+            modalContainer.appendChild(modalFooter);
+            modalOverlay.appendChild(modalContainer);
+            
+            // Adicionar ao body
+            document.body.appendChild(modalOverlay);
+            
+            // Fechar ao clicar fora
+            modalOverlay.onclick = (e) => {
+                if (e.target === modalOverlay) {
+                    document.body.removeChild(modalOverlay);
+                }
+            };
+        }
     </script>
     <script src="/static/js/theme.js"></script>
 </body>
