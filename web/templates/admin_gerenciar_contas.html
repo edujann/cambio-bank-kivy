@@ -579,6 +579,16 @@
                 margin: 10px 0;
             }
         }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }        
     </style>
 </head>
 <body>
@@ -2512,20 +2522,15 @@
                 alert('Informe o motivo do estorno!');
                 return;
             }
-
+            
             // 🔥 VALIDAÇÃO PARA TRANSFERÊNCIA INTERNACIONAL CONCLUÍDA
             if (transacaoAtual.tipo === 'transferencia_internacional' || transacaoAtual.tipo === 'internacional') {
                 if (transacaoAtual.status === 'completed') {
-                    alert('❌ Não é permitido estornar transferências internacionais já CONCLUÍDAS!\n\n' +
-                        'Para estornar uma transferência internacional, ela deve estar com status:\n' +
-                        '• PENDENTE (pending/solicitada)\n' +
-                        '• EM PROCESSAMENTO (processing)\n\n' +
-                        'Caso precise estornar esta transferência, utilize a tela de "Aprovar Operações" ' +
-                        'para recusar a transferência antes que ela seja concluída.');
+                    mostrarAlertaEstornoBloqueado();  // ← Popup elegante
                     return;
                 }
-            }            
-
+            }
+            
             transacaoIdParaEstornar = transacaoAtual.id;
             
             const mensagem = `
@@ -2730,7 +2735,148 @@
                 btn.innerHTML = textoOriginal;
                 btn.disabled = false;
             }
+        }  
+        
+        // ============================================
+        // POPUP DE ALERTA ELEGANTE
+        // ============================================
+
+        function mostrarAlertaEstornoBloqueado() {
+            // Criar overlay
+            const modalOverlay = document.createElement('div');
+            modalOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.85);
+                z-index: 10000;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                backdrop-filter: blur(5px);
+                animation: fadeIn 0.3s ease;
+            `;
+            
+            // Criar container do modal
+            const modalContainer = document.createElement('div');
+            modalContainer.style.cssText = `
+                background: var(--cor-card);
+                border-radius: 12px;
+                width: 500px;
+                max-width: 90vw;
+                border: 1px solid var(--cor-borda);
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+                animation: slideUp 0.3s ease;
+                overflow: hidden;
+            `;
+            
+            // Cabeçalho (laranja para alerta)
+            const modalHeader = document.createElement('div');
+            modalHeader.style.cssText = `
+                background: linear-gradient(90deg, #e67e22, #f39c12);
+                color: white;
+                padding: 20px 25px;
+                font-size: 18px;
+                font-weight: bold;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            `;
+            modalHeader.innerHTML = `
+                <i class="fas fa-exclamation-triangle" style="font-size: 24px;"></i>
+                <span>⚠️ OPERAÇÃO NÃO PERMITIDA</span>
+            `;
+            
+            // Corpo do modal
+            const modalBody = document.createElement('div');
+            modalBody.style.cssText = `
+                padding: 25px;
+                color: var(--cor-texto);
+                line-height: 1.6;
+            `;
+            
+            modalBody.innerHTML = `
+                <div style="margin-bottom: 20px;">
+                    <strong style="color: #f39c12;">❌ Não é permitido estornar transferências internacionais já CONCLUÍDAS!</strong>
+                </div>
+                
+                <div style="background: rgba(26, 95, 180, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <p style="margin-bottom: 10px;"><strong>📋 Para estornar uma transferência internacional, ela deve estar com status:</strong></p>
+                    <ul style="margin-left: 20px; color: var(--cor-texto-secundario);">
+                        <li>🟡 <strong style="color: #f39c12;">PENDENTE</strong> (pending/solicitada)</li>
+                        <li>🔵 <strong style="color: #3498db;">EM PROCESSAMENTO</strong> (processing)</li>
+                    </ul>
+                </div>
+                
+                <div style="background: rgba(46, 194, 126, 0.1); padding: 15px; border-radius: 8px;">
+                    <p><i class="fas fa-info-circle"></i> <strong>Solução alternativa:</strong></p>
+                    <p style="margin-top: 8px; color: var(--cor-texto-secundario);">
+                        Caso precise estornar esta transferência, utilize a tela de 
+                        <strong style="color: #2ecc71;">"Aprovar Operações"</strong> para recusar a transferência 
+                        <strong>antes que ela seja concluída</strong>.
+                    </p>
+                </div>
+            `;
+            
+            // Footer com botão
+            const modalFooter = document.createElement('div');
+            modalFooter.style.cssText = `
+                padding: 20px 25px;
+                border-top: 1px solid var(--cor-borda);
+                display: flex;
+                justify-content: flex-end;
+            `;
+            
+            const btnFechar = document.createElement('button');
+            btnFechar.innerHTML = '<i class="fas fa-check"></i> ENTENDI';
+            btnFechar.style.cssText = `
+                padding: 12px 30px;
+                background: linear-gradient(90deg, #e67e22, #f39c12);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 14px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            `;
+            
+            btnFechar.onmouseover = () => {
+                btnFechar.style.transform = 'translateY(-2px)';
+                btnFechar.style.boxShadow = '0 4px 12px rgba(230, 126, 34, 0.4)';
+            };
+            btnFechar.onmouseout = () => {
+                btnFechar.style.transform = 'translateY(0)';
+                btnFechar.style.boxShadow = 'none';
+            };
+            btnFechar.onclick = () => {
+                document.body.removeChild(modalOverlay);
+            };
+            
+            modalFooter.appendChild(btnFechar);
+            
+            // Montar modal
+            modalContainer.appendChild(modalHeader);
+            modalContainer.appendChild(modalBody);
+            modalContainer.appendChild(modalFooter);
+            modalOverlay.appendChild(modalContainer);
+            
+            // Adicionar ao body
+            document.body.appendChild(modalOverlay);
+            
+            // Fechar ao clicar fora
+            modalOverlay.onclick = (e) => {
+                if (e.target === modalOverlay) {
+                    document.body.removeChild(modalOverlay);
+                }
+            };
         }        
+
     </script>
     <script src="/static/js/theme.js"></script>
 </body>
