@@ -7089,6 +7089,78 @@ def api_admin_extrato_conta():
                 else:
                     print(f"   ⏭️ Conta não envolvida - ignorando")
             
+
+            # ============================================
+            # PROCESSAR ESTORNO (CONTA BANCÁRIA DA EMPRESA)
+            # ============================================
+            if tipo == 'estorno':
+                transacao_original_id = transf.get('transacao_original_id')
+                
+                if transacao_original_id:
+                    # Buscar a transação original
+                    original_response = supabase.table('transferencias')\
+                        .select('*')\
+                        .eq('id', transacao_original_id)\
+                        .execute()
+                    
+                    if original_response.data:
+                        original = original_response.data[0]
+                        valor = float(transf.get('valor', 0))
+                        moeda = transf.get('moeda', 'USD')
+                        data_transf = transf.get('created_at') or transf.get('data')
+                        
+                        # Verificar qual conta da empresa foi afetada
+                        # Caso 1: Empresa pagou (conta_bancaria_credito)
+                        if original.get('conta_bancaria_credito') == conta_numero:
+                            # Original: CRÉDITO na empresa (diminui saldo)
+                            # Estorno: DÉBITO na empresa (aumenta saldo)
+                            transacoes_processadas.append({
+                                'id': transf.get('id'),
+                                'data': data_transf,
+                                'descricao': f"🔁 ESTORNO: {transf.get('descricao', 'Estorno')}",
+                                'credito': 0,
+                                'debito': valor,
+                                'tipo': 'Estorno',
+                                'moeda': moeda,
+                                'status': status
+                            })
+                            print(f"💰 ESTORNO PROCESSADO (empresa pagou): {transf.get('id')}")
+                        
+                        # Caso 2: Empresa recebeu (conta_remetente)
+                        elif original.get('conta_remetente') == conta_numero:
+                            # Original: DÉBITO na empresa (aumenta saldo)
+                            # Estorno: CRÉDITO na empresa (diminui saldo)
+                            transacoes_processadas.append({
+                                'id': transf.get('id'),
+                                'data': data_transf,
+                                'descricao': f"🔁 ESTORNO: {transf.get('descricao', 'Estorno')}",
+                                'credito': valor,
+                                'debito': 0,
+                                'tipo': 'Estorno',
+                                'moeda': moeda,
+                                'status': status
+                            })
+                            print(f"💰 ESTORNO PROCESSADO (empresa recebeu): {transf.get('id')}")
+                        
+                        # Caso 3: Depósito (conta_destinatario)
+                        elif original.get('conta_destinatario') == conta_numero:
+                            # Original: DÉBITO na empresa (aumenta saldo)
+                            # Estorno: CRÉDITO na empresa (diminui saldo)
+                            transacoes_processadas.append({
+                                'id': transf.get('id'),
+                                'data': data_transf,
+                                'descricao': f"🔁 ESTORNO: {transf.get('descricao', 'Estorno')}",
+                                'credito': valor,
+                                'debito': 0,
+                                'tipo': 'Estorno',
+                                'moeda': moeda,
+                                'status': status
+                            })
+                            print(f"💰 ESTORNO PROCESSADO (depósito): {transf.get('id')}")
+                        
+                        continue  # Pular processamento normal
+
+
             # ============================================
             # PROCESSAR CÂMBIO ENTRE CONTAS
             # ============================================
