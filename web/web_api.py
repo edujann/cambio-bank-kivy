@@ -10734,6 +10734,9 @@ def calcular_estorno(transacao):
     tipo = transacao.get('tipo')
     operacoes = []
     
+    print(f"\n💰 [CALCULAR_ESTORNO] Processando tipo: {tipo}")
+    print(f"   ID: {transacao.get('id')}")
+    
     # ============================================
     # AJUSTE ADMINISTRATIVO
     # ============================================
@@ -10751,6 +10754,7 @@ def calcular_estorno(transacao):
                     'operacao': 'DEBITO',
                     'is_empresa': is_conta_empresa(conta)
                 })
+                print(f"   Ajuste Admin CREDITO: {conta} recebe DÉBITO de {valor}")
             else:
                 # Original: -valor → Estorno: +valor (CRÉDITO)
                 operacoes.append({
@@ -10759,9 +10763,10 @@ def calcular_estorno(transacao):
                     'operacao': 'CREDITO',
                     'is_empresa': is_conta_empresa(conta)
                 })
+                print(f"   Ajuste Admin DEBITO: {conta} recebe CRÉDITO de {valor}")
     
     # ============================================
-    # CÂMBIO (entre contas de cliente)
+    # CÂMBIO
     # ============================================
     elif tipo == 'cambio':
         conta_origem = transacao.get('conta_remetente') or transacao.get('conta_origem')
@@ -10770,22 +10775,24 @@ def calcular_estorno(transacao):
         valor_destino = float(transacao.get('valor_destino', valor))
         
         if conta_origem:
-            # Original: -valor → Estorno: +valor (CRÉDITO) - USAR VALOR ORIGEM
+            # Original: -valor → Estorno: +valor (CRÉDITO)
             operacoes.append({
                 'conta': conta_origem,
-                'valor': valor,  # ← USA O VALOR ORIGEM (BRL)
+                'valor': valor,
                 'operacao': 'CREDITO',
                 'is_empresa': is_conta_empresa(conta_origem)
             })
+            print(f"   Câmbio origem {conta_origem}: CRÉDITO de {valor}")
         
         if conta_destino:
-            # Original: +valor_destino → Estorno: -valor_destino (DÉBITO) - USAR VALOR DESTINO
+            # Original: +valor_destino → Estorno: -valor_destino (DÉBITO)
             operacoes.append({
                 'conta': conta_destino,
-                'valor': valor_destino,  # ← USA O VALOR DESTINO (USD)
+                'valor': valor_destino,
                 'operacao': 'DEBITO',
                 'is_empresa': is_conta_empresa(conta_destino)
             })
+            print(f"   Câmbio destino {conta_destino}: DÉBITO de {valor_destino}")
     
     # ============================================
     # TRANSFERÊNCIA INTERNACIONAL
@@ -10803,9 +10810,10 @@ def calcular_estorno(transacao):
                 'operacao': 'CREDITO',
                 'is_empresa': is_conta_empresa(conta_cliente)
             })
+            print(f"   Transferência Internacional: {conta_cliente} recebe CRÉDITO de {valor}")
     
     # ============================================
-    # RECEITA (cliente pagou)
+    # RECEITA
     # ============================================
     elif tipo == 'receita':
         conta_cliente = transacao.get('conta_remetente')
@@ -10819,9 +10827,10 @@ def calcular_estorno(transacao):
                 'operacao': 'CREDITO',
                 'is_empresa': is_conta_empresa(conta_cliente)
             })
+            print(f"   Receita: {conta_cliente} recebe CRÉDITO de {valor}")
     
     # ============================================
-    # DESPESA (empresa pagou)
+    # DESPESA
     # ============================================
     elif tipo == 'despesa':
         conta_empresa = transacao.get('conta_remetente')
@@ -10836,52 +10845,38 @@ def calcular_estorno(transacao):
                 'operacao': 'DEBITO',
                 'is_empresa': True
             })
+            print(f"   Despesa: {conta_empresa} recebe DÉBITO de {valor}")
     
     # ============================================
-    # DEPÓSITO (empresa recebeu)
+    # DEPÓSITO (CORRIGIDO)
     # ============================================
     elif tipo == 'deposito':
+        conta_cliente = transacao.get('conta_remetente')
         conta_empresa = transacao.get('conta_destinatario')
         valor = float(transacao.get('valor', 0))
         
+        if conta_cliente:
+            # Original: cliente GANHOU dinheiro (CRÉDITO no extrato)
+            # Estorno: cliente PERDE dinheiro (DÉBITO)
+            operacoes.append({
+                'conta': conta_cliente,
+                'valor': valor,
+                'operacao': 'DEBITO',
+                'is_empresa': is_conta_empresa(conta_cliente)
+            })
+            print(f"   Depósito (cliente): {conta_cliente} recebe DÉBITO de {valor}")
+        
         if conta_empresa:
-            # Original: DÉBITO na empresa (aumenta saldo)
-            # Estorno: CRÉDITO na empresa (diminui saldo)
+            # Original: empresa GANHOU dinheiro (DÉBITO na empresa = aumenta)
+            # Estorno: empresa PERDE dinheiro (CRÉDITO na empresa = diminui)
             operacoes.append({
                 'conta': conta_empresa,
                 'valor': valor,
                 'operacao': 'CREDITO',
                 'is_empresa': True
             })
-
-    # ============================================
-    # TRANSFERÊNCIA INTERNA CLIENTE (CLIENTE → CLIENTE)
-    # ============================================
-    elif tipo == 'transferencia_interna_cliente':
-        conta_origem = transacao.get('conta_remetente')
-        conta_destino = transacao.get('conta_destinatario')
-        valor = float(transacao.get('valor', 0))
-        
-        if conta_origem:
-            # Original: cliente origem PERDEU dinheiro (DÉBITO)
-            # Estorno: cliente origem RECUPERA (CRÉDITO)
-            operacoes.append({
-                'conta': conta_origem,
-                'valor': valor,
-                'operacao': 'CREDITO',
-                'is_empresa': is_conta_empresa(conta_origem)
-            })
-        
-        if conta_destino:
-            # Original: cliente destino GANHOU dinheiro (CRÉDITO)
-            # Estorno: cliente destino PERDE (DÉBITO)
-            operacoes.append({
-                'conta': conta_destino,
-                'valor': valor,
-                'operacao': 'DEBITO',
-                'is_empresa': is_conta_empresa(conta_destino)
-            })
-
+            print(f"   Depósito (empresa): {conta_empresa} recebe CRÉDITO de {valor}")
+    
     # ============================================
     # TRANSFERÊNCIA CLIENTE → EMPRESA
     # ============================================
@@ -10891,22 +10886,24 @@ def calcular_estorno(transacao):
         valor = float(transacao.get('valor', 0))
         
         if conta_cliente:
-            # Original: +valor (cliente GANHA) → Estorno: -valor (DÉBITO)
+            # Original: cliente GANHOU → Estorno: PERDE (DÉBITO)
             operacoes.append({
                 'conta': conta_cliente,
                 'valor': valor,
                 'operacao': 'DEBITO',
                 'is_empresa': is_conta_empresa(conta_cliente)
             })
+            print(f"   Cliente→Empresa (cliente): {conta_cliente} recebe DÉBITO de {valor}")
         
         if conta_empresa:
-            # Original: +valor (empresa GANHA) → Estorno: -valor (CRÉDITO)
+            # Original: empresa GANHOU → Estorno: PERDE (CRÉDITO)
             operacoes.append({
                 'conta': conta_empresa,
                 'valor': valor,
                 'operacao': 'CREDITO',
                 'is_empresa': True
             })
+            print(f"   Cliente→Empresa (empresa): {conta_empresa} recebe CRÉDITO de {valor}")
     
     # ============================================
     # TRANSFERÊNCIA EMPRESA → CLIENTE
@@ -10917,22 +10914,82 @@ def calcular_estorno(transacao):
         valor = float(transacao.get('valor', 0))
         
         if conta_empresa:
-            # Original: -valor (empresa PERDE) → Estorno: +valor (DÉBITO)
+            # Original: empresa PERDEU → Estorno: RECUPERA (DÉBITO)
             operacoes.append({
                 'conta': conta_empresa,
                 'valor': valor,
                 'operacao': 'DEBITO',
                 'is_empresa': True
             })
+            print(f"   Empresa→Cliente (empresa): {conta_empresa} recebe DÉBITO de {valor}")
         
         if conta_cliente:
-            # Original: -valor (cliente PERDE) → Estorno: +valor (CRÉDITO)
+            # Original: cliente PERDEU → Estorno: RECUPERA (CRÉDITO)
             operacoes.append({
                 'conta': conta_cliente,
                 'valor': valor,
                 'operacao': 'CREDITO',
                 'is_empresa': is_conta_empresa(conta_cliente)
             })
+            print(f"   Empresa→Cliente (cliente): {conta_cliente} recebe CRÉDITO de {valor}")
+    
+    # ============================================
+    # TRANSFERÊNCIA INTERNA CLIENTE
+    # ============================================
+    elif tipo == 'transferencia_interna_cliente':
+        conta_origem = transacao.get('conta_remetente')
+        conta_destino = transacao.get('conta_destinatario')
+        valor = float(transacao.get('valor', 0))
+        
+        if conta_origem:
+            # Original: origem PERDEU → Estorno: RECUPERA (CRÉDITO)
+            operacoes.append({
+                'conta': conta_origem,
+                'valor': valor,
+                'operacao': 'CREDITO',
+                'is_empresa': is_conta_empresa(conta_origem)
+            })
+            print(f"   Transf Interna Cliente (origem): {conta_origem} recebe CRÉDITO de {valor}")
+        
+        if conta_destino:
+            # Original: destino GANHOU → Estorno: PERDE (DÉBITO)
+            operacoes.append({
+                'conta': conta_destino,
+                'valor': valor,
+                'operacao': 'DEBITO',
+                'is_empresa': is_conta_empresa(conta_destino)
+            })
+            print(f"   Transf Interna Cliente (destino): {conta_destino} recebe DÉBITO de {valor}")
+    
+    # ============================================
+    # TRANSFERÊNCIA INTERNA EMPRESA
+    # ============================================
+    elif tipo == 'transferencia_interna_empresa':
+        conta_origem = transacao.get('conta_remetente')
+        conta_destino = transacao.get('conta_destinatario')
+        valor = float(transacao.get('valor', 0))
+        
+        if conta_origem:
+            # Original: origem PERDEU (CRÉDITO = diminui)
+            # Estorno: origem RECUPERA (DÉBITO = aumenta)
+            operacoes.append({
+                'conta': conta_origem,
+                'valor': valor,
+                'operacao': 'DEBITO',
+                'is_empresa': True
+            })
+            print(f"   Transf Interna Empresa (origem): {conta_origem} recebe DÉBITO de {valor}")
+        
+        if conta_destino:
+            # Original: destino GANHOU (DÉBITO = aumenta)
+            # Estorno: destino PERDE (CRÉDITO = diminui)
+            operacoes.append({
+                'conta': conta_destino,
+                'valor': valor,
+                'operacao': 'CREDITO',
+                'is_empresa': True
+            })
+            print(f"   Transf Interna Empresa (destino): {conta_destino} recebe CRÉDITO de {valor}")
     
     # ============================================
     # CÂMBIO ENTRE CONTAS DA EMPRESA
@@ -10944,22 +11001,26 @@ def calcular_estorno(transacao):
         valor_destino = float(transacao.get('valor_destino', valor_origem))
         
         if conta_origem:
-            # Original: CRÉDITO na origem (diminui) → Estorno: DÉBITO (aumenta)
+            # Original: origem PERDEU (CRÉDITO = diminui)
+            # Estorno: origem RECUPERA (DÉBITO = aumenta)
             operacoes.append({
                 'conta': conta_origem,
                 'valor': valor_origem,
                 'operacao': 'DEBITO',
                 'is_empresa': True
             })
+            print(f"   Câmbio Empresa (origem): {conta_origem} recebe DÉBITO de {valor_origem}")
         
         if conta_destino:
-            # Original: DÉBITO no destino (aumenta) → Estorno: CRÉDITO (diminui)
+            # Original: destino GANHOU (DÉBITO = aumenta)
+            # Estorno: destino PERDE (CRÉDITO = diminui)
             operacoes.append({
                 'conta': conta_destino,
                 'valor': valor_destino,
                 'operacao': 'CREDITO',
                 'is_empresa': True
             })
+            print(f"   Câmbio Empresa (destino): {conta_destino} recebe CRÉDITO de {valor_destino}")
     
     # ============================================
     # SAQUE
@@ -10969,14 +11030,44 @@ def calcular_estorno(transacao):
         valor = float(transacao.get('valor', 0))
         
         if conta_empresa:
-            # Original: CRÉDITO (diminui saldo da empresa)
-            # Estorno: DÉBITO (aumenta saldo da empresa)
+            # Original: empresa PERDEU (CRÉDITO = diminui)
+            # Estorno: empresa RECUPERA (DÉBITO = aumenta)
             operacoes.append({
                 'conta': conta_empresa,
                 'valor': valor,
                 'operacao': 'DEBITO',
                 'is_empresa': True
             })
+            print(f"   Saque: {conta_empresa} recebe DÉBITO de {valor}")
+    
+    # ============================================
+    # FALLBACK GENÉRICO
+    # ============================================
+    if not operacoes:
+        print(f"⚠️ Nenhuma operação gerada para tipo: {tipo}")
+        conta_origem = transacao.get('conta_remetente') or transacao.get('conta_origem')
+        conta_destino = transacao.get('conta_destinatario') or transacao.get('conta_destino')
+        valor = float(transacao.get('valor', 0))
+        
+        if conta_origem:
+            operacoes.append({
+                'conta': conta_origem,
+                'valor': valor,
+                'operacao': 'CREDITO',
+                'is_empresa': is_conta_empresa(conta_origem)
+            })
+            print(f"   Fallback: {conta_origem} recebe CRÉDITO de {valor}")
+        
+        if conta_destino:
+            operacoes.append({
+                'conta': conta_destino,
+                'valor': valor,
+                'operacao': 'DEBITO',
+                'is_empresa': is_conta_empresa(conta_destino)
+            })
+            print(f"   Fallback: {conta_destino} recebe DÉBITO de {valor}")
+    
+    print(f"💰 [CALCULAR_ESTORNO] Total de operações: {len(operacoes)}")
     
     return operacoes
 
