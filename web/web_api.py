@@ -11350,7 +11350,7 @@ def estornar_transacao():
 
 @app.route('/api/admin/transacoes/deletar', methods=['DELETE'])
 def deletar_transacao():
-    """Remove permanentemente uma transação (Hard Delete) - APENAS DO MESMO DIA"""
+    """Remove permanentemente uma transação (Hard Delete) - APENAS DO MESMO DIA e NÃO ESTORNADA"""
     try:
         usuario_logado = session.get('username')
         
@@ -11393,7 +11393,32 @@ def deletar_transacao():
         transacao_original = response.data[0]
         
         # ============================================
-        # 🔥 REGRA: Verificar se é do mesmo dia
+        # 🔥 VERIFICAR SE JÁ FOI ESTORNADA
+        # ============================================
+        log_check = supabase.table('logs_estornos')\
+            .select('id, transacao_estorno_id, motivo, data_acao, executado_por')\
+            .eq('transacao_original_id', transacao_id)\
+            .eq('tipo_acao', 'estorno')\
+            .execute()
+        
+        if log_check.data:
+            estorno_info = log_check.data[0]
+            return jsonify({
+                "success": False,
+                "message": f"❌ Não é permitido deletar uma transação que já foi estornada!\n\n"
+                           f"📋 Transação original: {transacao_id}\n"
+                           f"🔄 Transação de estorno: {estorno_info.get('transacao_estorno_id', 'N/A')}\n"
+                           f"📅 Data do estorno: {estorno_info.get('data_acao', 'N/A')}\n"
+                           f"👤 Estornado por: {estorno_info.get('executado_por', 'N/A')}\n"
+                           f"📝 Motivo do estorno: {estorno_info.get('motivo', 'N/A')}\n\n"
+                           f"✅ Para remover este lançamento, você precisaria:\n"
+                           f"   1. Primeiro estornar o estorno (criar reversão)\n"
+                           f"   2. Depois deletar ambos os lançamentos\n\n"
+                           f"⚠️ Recomendação: Mantenha o histórico e utilize apenas ESTORNO."
+            }), 400
+        
+        # ============================================
+        # VERIFICAR SE É DO MESMO DIA
         # ============================================
         from datetime import datetime
         
@@ -11480,7 +11505,6 @@ def deletar_transacao():
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "message": str(e)}), 500
-
 
 
 # ============================================
