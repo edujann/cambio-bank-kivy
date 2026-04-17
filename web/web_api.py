@@ -10992,13 +10992,18 @@ def calcular_estorno(transacao):
             print(f"   Transf Interna Empresa (destino): {conta_destino} recebe CRÉDITO de {valor}")
     
     # ============================================
-    # CÂMBIO ENTRE CONTAS DA EMPRESA
+    # CÂMBIO ENTRE CONTAS DA EMPRESA (CORRIGIDO)
     # ============================================
     elif tipo == 'cambio_contas_empresa':
         conta_origem = transacao.get('conta_origem')
         conta_destino = transacao.get('conta_destino')
-        valor_origem = float(transacao.get('valor_origem', transacao.get('valor', 0)))
-        valor_destino = float(transacao.get('valor_destino', valor_origem))
+        valor_origem = float(transacao.get('valor_origem', 0))
+        valor_destino = float(transacao.get('valor_destino', 0))
+        moeda_origem = transacao.get('moeda_origem', 'BRL')
+        moeda_destino = transacao.get('moeda_destino', 'USD')
+        
+        print(f"   Câmbio Empresa - Origem: {conta_origem} ({valor_origem} {moeda_origem})")
+        print(f"   Câmbio Empresa - Destino: {conta_destino} ({valor_destino} {moeda_destino})")
         
         if conta_origem:
             # Original: origem PERDEU (CRÉDITO = diminui)
@@ -11007,9 +11012,10 @@ def calcular_estorno(transacao):
                 'conta': conta_origem,
                 'valor': valor_origem,
                 'operacao': 'DEBITO',
-                'is_empresa': True
+                'is_empresa': True,
+                'moeda': moeda_origem
             })
-            print(f"   Câmbio Empresa (origem): {conta_origem} recebe DÉBITO de {valor_origem}")
+            print(f"      Origem {conta_origem}: DÉBITO de {valor_origem} {moeda_origem}")
         
         if conta_destino:
             # Original: destino GANHOU (DÉBITO = aumenta)
@@ -11018,9 +11024,10 @@ def calcular_estorno(transacao):
                 'conta': conta_destino,
                 'valor': valor_destino,
                 'operacao': 'CREDITO',
-                'is_empresa': True
+                'is_empresa': True,
+                'moeda': moeda_destino
             })
-            print(f"   Câmbio Empresa (destino): {conta_destino} recebe CRÉDITO de {valor_destino}")
+            print(f"      Destino {conta_destino}: CRÉDITO de {valor_destino} {moeda_destino}")
     
     # ============================================
     # SAQUE
@@ -11266,12 +11273,18 @@ def estornar_transacao():
             'executado_por': usuario_logado,
             'transacao_original_id': transacao_id,
             'created_at': datetime.now().isoformat(),
-            # 🔥 CAMPOS IMPORTANTES PARA O EXTRATO
+            # 🔥 CAMPOS PARA CÂMBIO ENTRE CONTAS DA EMPRESA
             'conta_remetente': transacao_original.get('conta_remetente'),
             'conta_destinatario': transacao_original.get('conta_destinatario'),
             'conta_origem': transacao_original.get('conta_origem'),
             'conta_destino': transacao_original.get('conta_destino'),
-            # 🔥 CAMPOS ADICIONAIS PARA CONTEXTO
+            # 🔥 CAMPOS DE VALOR PARA CÂMBIO
+            'valor_origem': transacao_original.get('valor_origem'),
+            'valor_destino': transacao_original.get('valor_destino'),
+            'moeda_origem': transacao_original.get('moeda_origem'),
+            'moeda_destino': transacao_original.get('moeda_destino'),
+            'taxa_cambio': transacao_original.get('taxa_cambio'),
+            # 🔥 OUTROS CAMPOS
             'cliente': transacao_original.get('cliente'),
             'usuario': transacao_original.get('usuario')
         }
