@@ -7139,15 +7139,23 @@ def api_admin_extrato_conta():
                     
                     if original_response.data:
                         original = original_response.data[0]
+                        tipo_original = original.get('tipo')
                         valor = float(transf.get('valor', 0))
                         moeda = transf.get('moeda', 'USD')
                         data_transf = transf.get('created_at') or transf.get('data')
                         
-                        # Verificar qual conta da empresa foi afetada
-                        # Caso 1: Empresa pagou (conta_bancaria_credito)
-                        if original.get('conta_bancaria_credito') == conta_numero:
-                            # Original: CRÉDITO na empresa (diminui saldo)
-                            # Estorno: DÉBITO na empresa (aumenta saldo)
+                        print(f"\n🔁 Processando estorno: {transf.get('id')}")
+                        print(f"   Tipo original: {tipo_original}")
+                        print(f"   conta_remetente original: {original.get('conta_remetente')}")
+                        print(f"   conta_destinatario original: {original.get('conta_destinatario')}")
+                        print(f"   Nossa conta: {conta_numero}")
+                        
+                        # 🔥 NOVA LÓGICA: Baseada no tipo da transação original
+                        
+                        # Caso 1: DESPESA (empresa pagou)
+                        if tipo_original == 'despesa':
+                            # Original: empresa PERDEU dinheiro (CRÉDITO = sai)
+                            # Estorno: empresa RECUPERA dinheiro (DÉBITO = entra)
                             transacoes_processadas.append({
                                 'id': transf.get('id'),
                                 'data': data_transf,
@@ -7158,12 +7166,12 @@ def api_admin_extrato_conta():
                                 'moeda': moeda,
                                 'status': status
                             })
-                            print(f"💰 ESTORNO PROCESSADO (empresa pagou): {transf.get('id')}")
+                            print(f"💰 ESTORNO DE DESPESA: +{valor:.2f} {moeda} (DÉBITO - empresa recupera)")
                         
-                        # Caso 2: Empresa recebeu (conta_remetente)
-                        elif original.get('conta_remetente') == conta_numero:
-                            # Original: DÉBITO na empresa (aumenta saldo)
-                            # Estorno: CRÉDITO na empresa (diminui saldo)
+                        # Caso 2: DEPÓSITO (empresa recebeu)
+                        elif tipo_original == 'deposito':
+                            # Original: empresa GANHOU dinheiro (DÉBITO = entra)
+                            # Estorno: empresa DEVOLVE dinheiro (CRÉDITO = sai)
                             transacoes_processadas.append({
                                 'id': transf.get('id'),
                                 'data': data_transf,
@@ -7174,23 +7182,55 @@ def api_admin_extrato_conta():
                                 'moeda': moeda,
                                 'status': status
                             })
-                            print(f"💰 ESTORNO PROCESSADO (empresa recebeu): {transf.get('id')}")
+                            print(f"💰 ESTORNO DE DEPÓSITO: -{valor:.2f} {moeda} (CRÉDITO - empresa devolve)")
                         
-                        # Caso 3: Depósito (conta_destinatario)
-                        elif original.get('conta_destinatario') == conta_numero:
-                            # Original: DÉBITO na empresa (aumenta saldo)
-                            # Estorno: CRÉDITO na empresa (diminui saldo)
-                            transacoes_processadas.append({
-                                'id': transf.get('id'),
-                                'data': data_transf,
-                                'descricao': f"🔁 ESTORNO: {transf.get('descricao', 'Estorno')}",
-                                'credito': valor,
-                                'debito': 0,
-                                'tipo': 'Estorno',
-                                'moeda': moeda,
-                                'status': status
-                            })
-                            print(f"💰 ESTORNO PROCESSADO (depósito): {transf.get('id')}")
+                        # Caso 3: TRANSFERÊNCIA INTERNACIONAL (empresa pagou)
+                        elif tipo_original in ['transferencia_internacional', 'internacional']:
+                            if original.get('conta_bancaria_credito') == conta_numero:
+                                # Empresa pagou o beneficiário
+                                transacoes_processadas.append({
+                                    'id': transf.get('id'),
+                                    'data': data_transf,
+                                    'descricao': f"🔁 ESTORNO: {transf.get('descricao', 'Estorno')}",
+                                    'credito': 0,
+                                    'debito': valor,
+                                    'tipo': 'Estorno',
+                                    'moeda': moeda,
+                                    'status': status
+                                })
+                                print(f"💰 ESTORNO DE TRANSFERÊNCIA INTERNACIONAL: +{valor:.2f} {moeda} (DÉBITO - empresa recupera)")
+                        
+                        # Caso 4: Outros tipos (fallback baseado na conta)
+                        else:
+                            # Se a empresa é a remetente na original, ela PERDEU dinheiro
+                            if original.get('conta_remetente') == conta_numero:
+                                # Estorno: empresa RECUPERA (DÉBITO)
+                                transacoes_processadas.append({
+                                    'id': transf.get('id'),
+                                    'data': data_transf,
+                                    'descricao': f"🔁 ESTORNO: {transf.get('descricao', 'Estorno')}",
+                                    'credito': 0,
+                                    'debito': valor,
+                                    'tipo': 'Estorno',
+                                    'moeda': moeda,
+                                    'status': status
+                                })
+                                print(f"💰 ESTORNO (empresa recupera): +{valor:.2f} {moeda} (DÉBITO)")
+                            
+                            # Se a empresa é a destinatária na original, ela GANHOU dinheiro
+                            elif original.get('conta_destinatario') == conta_numero:
+                                # Estorno: empresa DEVOLVE (CRÉDITO)
+                                transacoes_processadas.append({
+                                    'id': transf.get('id'),
+                                    'data': data_transf,
+                                    'descricao': f"🔁 ESTORNO: {transf.get('descricao', 'Estorno')}",
+                                    'credito': valor,
+                                    'debito': 0,
+                                    'tipo': 'Estorno',
+                                    'moeda': moeda,
+                                    'status': status
+                                })
+                                print(f"💰 ESTORNO (empresa devolve): -{valor:.2f} {moeda} (CRÉDITO)")
                         
                         continue  # Pular processamento normal
 
