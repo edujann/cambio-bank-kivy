@@ -290,9 +290,21 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
     print(f"   moeda_original: {moeda_original}")
     print(f"   status original: {original.get('status')}")
     
-    # 🔥 IMPORTANTE: Para câmbio, usar o valor correto baseado na conta
-    valor_original = float(original.get('valor', 0))
-    valor_destino = float(original.get('valor_destino', valor_original))
+    # 🔥 CORREÇÃO: Tratar valores None corretamente
+    valor_original_raw = original.get('valor')
+    if valor_original_raw is not None:
+        valor_original = float(valor_original_raw)
+    else:
+        valor_original = 0.0
+        print(f"⚠️ valor_original é None, usando 0.0")
+    
+    # 🔥 CORREÇÃO: Tratar None para valor_destino
+    valor_destino_raw = original.get('valor_destino')
+    if valor_destino_raw is not None:
+        valor_destino = float(valor_destino_raw)
+    else:
+        valor_destino = valor_original
+        print(f"⚠️ valor_destino é None, usando valor_original: {valor_destino}")
     
     print(f"   valor_original (float): {valor_original}")
     print(f"   valor_destino (float): {valor_destino}")
