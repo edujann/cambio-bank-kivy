@@ -10875,7 +10875,7 @@ def estornar_transacao():
         # Descrição do estorno
         descricao_estorno = f"ESTORNO da transação {transacao_id} - Motivo: {motivo}"
         
-        # Criar transação de estorno no banco
+        # Criar transação de estorno no banco (com as contas originais)
         estorno_data = {
             'id': transacao_estorno_id,
             'tipo': 'estorno',
@@ -10886,7 +10886,15 @@ def estornar_transacao():
             'descricao': descricao_estorno,
             'executado_por': usuario_logado,
             'transacao_original_id': transacao_id,
-            'created_at': datetime.now().isoformat()
+            'created_at': datetime.now().isoformat(),
+            # 🔥 CAMPOS IMPORTANTES PARA O EXTRATO
+            'conta_remetente': transacao_original.get('conta_remetente'),
+            'conta_destinatario': transacao_original.get('conta_destinatario'),
+            'conta_origem': transacao_original.get('conta_origem'),
+            'conta_destino': transacao_original.get('conta_destino'),
+            # 🔥 CAMPOS ADICIONAIS PARA CONTEXTO
+            'cliente': transacao_original.get('cliente'),
+            'usuario': transacao_original.get('usuario')
         }
         
         supabase.table('transferencias').insert(estorno_data).execute()
