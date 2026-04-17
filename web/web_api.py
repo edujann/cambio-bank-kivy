@@ -7228,21 +7228,23 @@ def api_admin_extrato_conta():
                 print(f"   moeda_destino: {transf.get('moeda_destino')}")
                 print(f"   Nossa conta: {conta_numero}")
                 
-                # 🔥 TRATAR VALOR ORIGEM
-                valor_origem_raw = transf.get('valor_origem')
-                if valor_origem_raw is None or valor_origem_raw == '':
-                    valor_origem_raw = 0
+                # Tratar valor_origem
                 try:
-                    valor_origem = float(valor_origem_raw)
+                    valor_origem_raw = transf.get('valor_origem')
+                    if valor_origem_raw is None:
+                        valor_origem = 0.0
+                    else:
+                        valor_origem = float(valor_origem_raw)
                 except (ValueError, TypeError):
                     valor_origem = 0.0
                 
-                # 🔥 TRATAR VALOR DESTINO
-                valor_destino_raw = transf.get('valor_destino')
-                if valor_destino_raw is None or valor_destino_raw == '':
-                    valor_destino_raw = 0
+                # Tratar valor_destino
                 try:
-                    valor_destino = float(valor_destino_raw)
+                    valor_destino_raw = transf.get('valor_destino')
+                    if valor_destino_raw is None:
+                        valor_destino = 0.0
+                    else:
+                        valor_destino = float(valor_destino_raw)
                 except (ValueError, TypeError):
                     valor_destino = 0.0
                 
@@ -7264,24 +7266,32 @@ def api_admin_extrato_conta():
                     print(f"   ✅ ESTORNO NA ORIGEM: +{valor_origem:.2f} {moeda_origem} (DÉBITO)")
                     continue
                 
-                # CASO 2: Nossa conta é a DESTINO
-                elif transf.get('conta_destino') == conta_numero and valor_destino > 0:
+                # CASO 2: Nossa conta é a DESTINO (removida a condição de valor)
+                elif transf.get('conta_destino') == conta_numero:
+                    # Usar valor_destino se disponível, senão usar valor_origem
+                    if valor_destino > 0:
+                        valor_usar = valor_destino
+                        moeda_usar = moeda_destino
+                    else:
+                        valor_usar = valor_origem
+                        moeda_usar = moeda_origem
+                    
                     transacoes_processadas.append({
                         'id': transf.get('id'),
                         'data': data_transf,
                         'descricao': f"🔁 ESTORNO: {transf.get('descricao', 'Estorno')}",
-                        'credito': valor_destino,
+                        'credito': valor_usar,
                         'debito': 0,
                         'tipo': 'Estorno',
-                        'moeda': moeda_destino,
+                        'moeda': moeda_usar,
                         'status': status
                     })
-                    print(f"   ✅ ESTORNO NO DESTINO: -{valor_destino:.2f} {moeda_destino} (CRÉDITO)")
+                    print(f"   ✅ ESTORNO NO DESTINO: -{valor_usar:.2f} {moeda_usar} (CRÉDITO)")
                     continue
                 
-                # CASO 3: Fallback (se não encontrou)
+                # CASO 3: Fallback
                 else:
-                    print(f"   ⚠️ Estorno ignorado - conta não envolvida ou valores zerados")
+                    print(f"   ⚠️ Estorno ignorado - conta não envolvida")
 
 
             # ============================================
