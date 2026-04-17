@@ -11173,7 +11173,25 @@ def estornar_transacao():
             return jsonify({"success": False, "message": f"Transação {transacao_id} não encontrada"}), 404
         
         transacao_original = response.data[0]
+        tipo = transacao_original.get('tipo', '')
         
+        # ============================================
+        # VALIDAÇÃO PARA TRANSFERÊNCIA INTERNACIONAL
+        # ============================================
+        if tipo in ['transferencia_internacional', 'internacional']:
+            status = transacao_original.get('status', '').lower()
+            
+            if status == 'completed':
+                return jsonify({
+                    "success": False,
+                    "message": "❌ Não é permitido estornar transferências internacionais já CONCLUÍDAS (status: completed).\n\n"
+                               "Para estornar uma transferência internacional, ela deve estar com status:\n"
+                               "• PENDENTE (pending/solicitada)\n"
+                               "• EM PROCESSAMENTO (processing)\n\n"
+                               "Caso precise estornar esta transferência, utilize a tela de 'Aprovar Operações' "
+                               "para recusar a transferência antes que ela seja concluída."
+                }), 400
+                    
         # Verificar se já foi estornada (opcional: verificar logs)
         log_check = supabase.table('logs_estornos')\
             .select('id')\

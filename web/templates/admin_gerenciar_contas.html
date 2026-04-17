@@ -2512,7 +2512,20 @@
                 alert('Informe o motivo do estorno!');
                 return;
             }
-            
+
+            // 🔥 VALIDAÇÃO PARA TRANSFERÊNCIA INTERNACIONAL CONCLUÍDA
+            if (transacaoAtual.tipo === 'transferencia_internacional' || transacaoAtual.tipo === 'internacional') {
+                if (transacaoAtual.status === 'completed') {
+                    alert('❌ Não é permitido estornar transferências internacionais já CONCLUÍDAS!\n\n' +
+                        'Para estornar uma transferência internacional, ela deve estar com status:\n' +
+                        '• PENDENTE (pending/solicitada)\n' +
+                        '• EM PROCESSAMENTO (processing)\n\n' +
+                        'Caso precise estornar esta transferência, utilize a tela de "Aprovar Operações" ' +
+                        'para recusar a transferência antes que ela seja concluída.');
+                    return;
+                }
+            }            
+
             transacaoIdParaEstornar = transacaoAtual.id;
             
             const mensagem = `
