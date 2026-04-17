@@ -266,17 +266,32 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
     
     original = original_response.data[0]
     tipo_original = original.get('tipo')
-    valor_original = float(original.get('valor', 0))
     moeda_original = original.get('moeda', moeda)
     descricao_estorno = transf_estorno.get('descricao', f"Estorno de {tipo_original}")
     
-    # Verificar se a conta do cliente está envolvida na original
-    conta_envolvida = (
-        original.get('conta_remetente') == conta_num or
-        original.get('conta_destinatario') == conta_num or
-        original.get('conta_origem') == conta_num or
-        original.get('conta_destino') == conta_num
-    )
+    # 🔥 IMPORTANTE: Para câmbio, usar o valor correto baseado na conta
+    valor_original = float(original.get('valor', 0))
+    valor_destino = float(original.get('valor_destino', valor_original))
+    
+    # Verificar qual conta do cliente está envolvida na original
+    conta_envolvida = None
+    valor_correto = valor_original
+    
+    # Verificar se a conta é a de origem (BRL)
+    if original.get('conta_remetente') == conta_num or original.get('conta_origem') == conta_num:
+        conta_envolvida = 'origem'
+        valor_correto = valor_original
+        print(f"🔍 Conta é ORIGEM (perdeu dinheiro): valor={valor_correto}")
+    
+    # Verificar se a conta é a de destino (USD)
+    elif original.get('conta_destinatario') == conta_num or original.get('conta_destino') == conta_num:
+        conta_envolvida = 'destino'
+        # 🔥 CORREÇÃO: Para conta destino, usar valor_destino
+        if tipo_original == 'cambio':
+            valor_correto = valor_destino
+        else:
+            valor_correto = valor_original
+        print(f"🔍 Conta é DESTINO (ganhou dinheiro): valor={valor_correto}")
     
     if not conta_envolvida:
         return None, None
@@ -286,35 +301,31 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
     debito_original = 0.0
     
     # Caso 1: Cliente era REMETENTE/ORIGEM (perdeu dinheiro)
-    if original.get('conta_remetente') == conta_num or original.get('conta_origem') == conta_num:
-        debito_original = valor_original
+    if conta_envolvida == 'origem':
+        debito_original = valor_correto
         
         # Casos especiais onde o cliente na verdade GANHOU dinheiro mesmo sendo remetente
         if tipo_original == 'transferencia_cliente_empresa':
-            # Cliente → Empresa: cliente GANHA crédito
-            credito_original = valor_original
+            credito_original = valor_correto
             debito_original = 0.0
     
     # Caso 2: Cliente era DESTINATÁRIO/DESTINO (ganhou dinheiro)
-    elif original.get('conta_destinatario') == conta_num or original.get('conta_destino') == conta_num:
-        credito_original = valor_original
+    elif conta_envolvida == 'destino':
+        credito_original = valor_correto
         
         # Casos especiais onde o cliente na verdade PERDEU dinheiro mesmo sendo destinatário
         if tipo_original == 'transferencia_empresa_cliente':
-            # Empresa → Cliente: cliente PERDE dinheiro
-            debito_original = valor_original
+            debito_original = valor_correto
             credito_original = 0.0
     
     # Caso 3: Ajuste administrativo (usa tipo_ajuste)
     if tipo_original == 'ajuste_admin':
         tipo_ajuste = original.get('tipo_ajuste', '').upper()
         if tipo_ajuste == 'CREDITO':
-            # CRÉDITO administrativo: aumenta saldo
-            credito_original = valor_original
+            credito_original = valor_correto
             debito_original = 0.0
         else:
-            # DÉBITO administrativo: diminui saldo
-            debito_original = valor_original
+            debito_original = valor_correto
             credito_original = 0.0
     
     # 🔥 INVERSÃO: O que era crédito vira débito, o que era débito vira crédito
@@ -10600,19 +10611,19 @@ def calcular_estorno(transacao):
         valor_destino = float(transacao.get('valor_destino', valor))
         
         if conta_origem:
-            # Original: -valor → Estorno: +valor (CRÉDITO)
+            # Original: -valor → Estorno: +valor (CRÉDITO) - USAR VALOR ORIGEM
             operacoes.append({
                 'conta': conta_origem,
-                'valor': valor,
+                'valor': valor,  # ← USA O VALOR ORIGEM (BRL)
                 'operacao': 'CREDITO',
                 'is_empresa': is_conta_empresa(conta_origem)
             })
         
         if conta_destino:
-            # Original: +valor_destino → Estorno: -valor_destino (DÉBITO)
+            # Original: +valor_destino → Estorno: -valor_destino (DÉBITO) - USAR VALOR DESTINO
             operacoes.append({
                 'conta': conta_destino,
-                'valor': valor_destino,
+                'valor': valor_destino,  # ← USA O VALOR DESTINO (USD)
                 'operacao': 'DEBITO',
                 'is_empresa': is_conta_empresa(conta_destino)
             })
