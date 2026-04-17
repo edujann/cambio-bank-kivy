@@ -3493,11 +3493,17 @@ def obter_extrato_kivy():
         
         # Buscar transferências onde o usuário é remetente ou destinatário
         try:
+            print(f"\n📊 [BUSCA] Iniciando busca para conta: {conta_num}")
+            
             # Buscar como remetente
             transf_remetente = supabase.table('transferencias')\
                 .select('*')\
                 .eq('conta_remetente', conta_num)\
                 .execute()
+            print(f"📊 [REMETENTE] Encontradas {len(transf_remetente.data)} transações")
+            # Mostrar os IDs encontrados
+            for t in transf_remetente.data[:5]:  # Mostrar apenas os 5 primeiros
+                print(f"   - ID: {t.get('id')}, Tipo: {t.get('tipo')}, Status: {t.get('status')}")
             todas_transferencias.extend(transf_remetente.data)
             
             # Buscar como destinatário
@@ -3505,6 +3511,9 @@ def obter_extrato_kivy():
                 .select('*')\
                 .eq('conta_destinatario', conta_num)\
                 .execute()
+            print(f"📊 [DESTINATARIO] Encontradas {len(transf_destinatario.data)} transações")
+            for t in transf_destinatario.data[:5]:
+                print(f"   - ID: {t.get('id')}, Tipo: {t.get('tipo')}, Status: {t.get('status')}")
             todas_transferencias.extend(transf_destinatario.data)
             
             # Buscar em conta_origem (para câmbio nova tela)
@@ -3512,6 +3521,9 @@ def obter_extrato_kivy():
                 .select('*')\
                 .eq('conta_origem', conta_num)\
                 .execute()
+            print(f"📊 [ORIGEM] Encontradas {len(transf_origem.data)} transações")
+            for t in transf_origem.data[:5]:
+                print(f"   - ID: {t.get('id')}, Tipo: {t.get('tipo')}, Status: {t.get('status')}")
             todas_transferencias.extend(transf_origem.data)
             
             # Buscar em conta_destino (para câmbio nova tela)
@@ -3519,7 +3531,12 @@ def obter_extrato_kivy():
                 .select('*')\
                 .eq('conta_destino', conta_num)\
                 .execute()
+            print(f"📊 [DESTINO] Encontradas {len(transf_destino.data)} transações")
+            for t in transf_destino.data[:5]:
+                print(f"   - ID: {t.get('id')}, Tipo: {t.get('tipo')}, Status: {t.get('status')}")
             todas_transferencias.extend(transf_destino.data)
+            
+            print(f"📊 [TOTAL] Total antes de remover duplicados: {len(todas_transferencias)}")
             
         except Exception as e:
             print(f"⚠️ Erro ao buscar transferências: {e}")
@@ -3530,14 +3547,12 @@ def obter_extrato_kivy():
             transf_id = transf.get('id')
             if transf_id:
                 transferencias_dict[transf_id] = transf
-        
-        transferencias = list(transferencias_dict.values())
-        print(f"📊 Total de transferências únicas: {len(transferencias)}")
 
-        # 🔥 DEBUG: Listar todas as transferências encontradas
-        print(f"\n" + "="*80)
-        print("🔍 DEBUG INICIAL - LISTANDO TODAS AS TRANSFERÊNCIAS ENCONTRADAS")
-        print("="*80)
+        transferencias = list(transferencias_dict.values())
+        print(f"📊 [UNICAS] Total de transferências únicas: {len(transferencias)}")
+        print(f"📊 [UNICAS] IDs encontrados:")
+        for transf in transferencias:
+            print(f"   - ID: {transf.get('id')}, Tipo: {transf.get('tipo')}, Status: {transf.get('status')}")
 
         tipos_contagem = {}
         for i, transf in enumerate(transferencias[:20]):
