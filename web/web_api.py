@@ -11350,7 +11350,7 @@ def estornar_transacao():
 
 @app.route('/api/admin/transacoes/deletar', methods=['DELETE'])
 def deletar_transacao():
-    """Remove permanentemente uma transação (Hard Delete)"""
+    """Remove permanentemente uma transação (Hard Delete) - APENAS DO MESMO DIA"""
     try:
         usuario_logado = session.get('username')
         
@@ -11381,6 +11381,59 @@ def deletar_transacao():
         if not senha:
             return jsonify({"success": False, "message": "Senha do administrador é obrigatória"}), 400
         
+        # Buscar a transação antes de deletar
+        response = supabase.table('transferencias')\
+            .select('*')\
+            .eq('id', transacao_id)\
+            .execute()
+        
+        if not response.data:
+            return jsonify({"success": False, "message": f"Transação {transacao_id} não encontrada"}), 404
+        
+        transacao_original = response.data[0]
+        
+        # ============================================
+        # 🔥 REGRA: Verificar se é do mesmo dia
+        # ============================================
+        from datetime import datetime
+        
+        data_transacao = transacao_original.get('data') or transacao_original.get('created_at')
+        
+        if not data_transacao:
+            return jsonify({
+                "success": False,
+                "message": "❌ Transação sem data registrada. Use a função de ESTORNO."
+            }), 400
+        
+        try:
+            if 'T' in data_transacao:
+                data_transacao_obj = datetime.fromisoformat(data_transacao.replace('Z', '+00:00'))
+            else:
+                data_transacao_obj = datetime.strptime(data_transacao, "%Y-%m-%d %H:%M:%S")
+            
+            hoje = datetime.now()
+            
+            # Verificar se é do mesmo dia (ano, mês, dia)
+            if data_transacao_obj.date() != hoje.date():
+                dias_diferenca = (hoje.date() - data_transacao_obj.date()).days
+                return jsonify({
+                    "success": False,
+                    "message": f"❌ Não é permitido deletar lançamentos de dias anteriores!\n\n"
+                               f"📅 Data da transação: {data_transacao_obj.strftime('%d/%m/%Y')} ({dias_diferenca} dia(s) atrás)\n"
+                               f"📅 Data atual: {hoje.strftime('%d/%m/%Y')}\n\n"
+                               f"✅ Para lançamentos antigos, utilize a função de **ESTORNO**:\n"
+                               f"   • Mantém histórico da correção\n"
+                               f"   • Cria registro de reversão\n"
+                               f"   • Não requer senha\n\n"
+                               f"❌ DELETE: permitido apenas para lançamentos do dia atual."
+                }), 400
+        except Exception as e:
+            print(f"⚠️ Erro ao comparar data: {e}")
+            return jsonify({
+                "success": False,
+                "message": "❌ Não foi possível verificar a data da transação. Use a função de ESTORNO."
+            }), 400
+        
         # Verificar senha do admin
         import hashlib
         senha_hash = hashlib.sha256(senha.encode()).hexdigest()
@@ -11393,24 +11446,7 @@ def deletar_transacao():
             .execute()
         
         if not admin_check.data or admin_check.data['senha_hash'] != senha_hash:
-            return jsonify({"success": False, "message": "Senha incorreta!"}), 401
-        
-        # Buscar a transação antes de deletar
-        response = supabase.table('transferencias')\
-            .select('*')\
-            .eq('id', transacao_id)\
-            .execute()
-        
-        if not response.data:
-            return jsonify({"success": False, "message": f"Transação {transacao_id} não encontrada"}), 404
-        
-        transacao_original = response.data[0]
-        
-        # Verificar se já foi estornada/deletada
-        log_check = supabase.table('logs_estornos')\
-            .select('id')\
-            .eq('transacao_original_id', transacao_id)\
-            .execute()
+            return jsonify({"success": False, "message": "❌ Senha incorreta!"}), 401
         
         # Registrar no log ANTES de deletar
         registrar_log_estorno(
@@ -11431,8 +11467,10 @@ def deletar_transacao():
         if delete_response.data:
             return jsonify({
                 "success": True,
-                "message": f"Transação {transacao_id} deletada permanentemente!",
-                "foi_estornada_anteriormente": len(log_check.data) > 0
+                "message": f"✅ Transação {transacao_id} deletada permanentemente!\n\n"
+                           f"📅 Data da transação: {data_transacao_obj.strftime('%d/%m/%Y')}\n"
+                           f"📝 Motivo: {motivo}\n"
+                           f"👤 Executado por: {usuario_logado}"
             })
         else:
             return jsonify({"success": False, "message": "Erro ao deletar transação"}), 500

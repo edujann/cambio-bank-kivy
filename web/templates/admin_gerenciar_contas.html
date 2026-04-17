@@ -2725,7 +2725,18 @@
                     document.getElementById('motivoEstorno').value = '';
                     
                 } else {
-                    alert(`❌ ${data.message}`);
+                    // Verificar se é erro de data (dias anteriores)
+                    if (data.message.includes('dias anteriores') || data.message.includes('data')) {
+                        // Mostrar alerta com opção de usar estorno
+                        const usarEstorno = confirm(`⚠️ ${data.message}\n\nDeseja usar a função de ESTORNO para esta transação?`);
+                        if (usarEstorno) {
+                            fecharModalConfirmacaoDelete();
+                            // Abrir confirmação de estorno
+                            abrirConfirmacaoEstorno();
+                        }
+                    } else {
+                        alert(`❌ ${data.message}`);
+                    }
                 }
                 
             } catch (error) {
@@ -2735,7 +2746,7 @@
                 btn.innerHTML = textoOriginal;
                 btn.disabled = false;
             }
-        }  
+        }
         
         // ============================================
         // POPUP DE ALERTA ELEGANTE
