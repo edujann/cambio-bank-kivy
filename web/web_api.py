@@ -253,20 +253,13 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
     print(f"\n🔧 [FUNÇÃO] processar_estorno_por_inversao chamada")
     print(f"   ID do estorno: {transf_estorno.get('id')}")
     print(f"   transacao_original_id: {transf_estorno.get('transacao_original_id')}")
-    print(f"   conta_num (nossa conta): {conta_num}")
-    print(f"   moeda: {moeda}")
-    
-    # Verificar se é conta da empresa
-    eh_conta_empresa = is_conta_empresa(conta_num)
-    print(f"   É conta da empresa? {eh_conta_empresa}")
+    print(f"   conta_num: {conta_num}")
     
     transacao_original_id = transf_estorno.get('transacao_original_id')
     
     if not transacao_original_id:
-        print(f"⚠️ [FUNÇÃO] Sem transacao_original_id, retornando None")
+        print(f"⚠️ Sem transacao_original_id")
         return None, None
-    
-    print(f"🔍 [FUNÇÃO] Buscando transação original ID: {transacao_original_id}")
     
     # Buscar a transação original
     original_response = supabase.table('transferencias')\
@@ -275,7 +268,7 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
         .execute()
     
     if not original_response.data:
-        print(f"⚠️ [FUNÇÃO] Transação original {transacao_original_id} não encontrada!")
+        print(f"⚠️ Transação original {transacao_original_id} não encontrada")
         return None, None
     
     original = original_response.data[0]
@@ -283,7 +276,7 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
     moeda_original = original.get('moeda', moeda)
     descricao_estorno = transf_estorno.get('descricao', f"Estorno de {tipo_original}")
     
-    print(f"✅ [FUNÇÃO] Original encontrada - Tipo: {tipo_original}")
+    print(f"✅ Original encontrada - Tipo: {tipo_original}")
     
     # Tratar valores
     valor_original = float(original.get('valor', 0)) if original.get('valor') else 0.0
@@ -306,30 +299,121 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
         print(f"🔍 Conta é DESTINO: valor={valor_correto}")
     
     if not conta_envolvida:
-        print(f"⚠️ [FUNÇÃO] Conta não envolvida!")
+        print(f"⚠️ Conta não envolvida na transação original")
         return None, None
     
-    # Determinar efeito original
-    credito_original = 0.0
-    debito_original = 0.0
+    # ============================================
+    # DETERMINAR EFEITO DO ESTORNO POR TIPO
+    # ============================================
+    credito_final = 0.0
+    debito_final = 0.0
     
-    if conta_envolvida == 'origem':
-        debito_original = valor_correto
-        print(f"   Efeito original: DÉBITO de {debito_original}")
-    elif conta_envolvida == 'destino':
-        credito_original = valor_correto
-        print(f"   Efeito original: CRÉDITO de {credito_original}")
+    # --- Ajuste Administrativo ---
+    if tipo_original == 'ajuste_admin':
+        tipo_ajuste = original.get('tipo_ajuste', '').upper()
+        if tipo_ajuste == 'CREDITO':
+            # Original: + (aumentou) → Estorno: - (débito)
+            debito_final = valor_correto
+        else:
+            # Original: - (diminuiu) → Estorno: + (crédito)
+            credito_final = valor_correto
     
-    # 🔥 INVERSÃO para estorno
-    credito_final = debito_original
-    debito_final = credito_original
+    # --- Câmbio ---
+    elif tipo_original == 'cambio':
+        if conta_envolvida == 'origem':
+            # Original: cliente perdeu → Estorno: recupera (crédito)
+            credito_final = valor_correto
+        else:
+            # Original: cliente ganhou → Estorno: perde (débito)
+            debito_final = valor_correto
     
-    # 🔥 SE FOR CONTA DA EMPRESA, FORÇAR DÉBITO (entrada)
-    if eh_conta_empresa:
-        credito_final = 0.0
-        debito_final = valor_correto
-        print(f"   🔄 Conta da empresa: forçando DÉBITO de {debito_final}")
+    # --- Transferência Internacional ---
+    elif tipo_original in ['transferencia_internacional', 'internacional']:
+        if conta_envolvida == 'origem':
+            # Original: cliente perdeu → Estorno: recupera (crédito)
+            credito_final = valor_correto
     
+    # --- Receita (cliente pagou) ---
+    elif tipo_original == 'receita':
+        if conta_envolvida == 'origem':
+            # Original: cliente perdeu → Estorno: recupera (crédito)
+            credito_final = valor_correto
+    
+    # --- Despesa (empresa pagou) ---
+    elif tipo_original == 'despesa':
+        if conta_envolvida == 'origem':
+            # Original: empresa perdeu → Estorno: recupera (débito para empresa)
+            debito_final = valor_correto
+    
+    # --- Depósito ---
+    elif tipo_original == 'deposito':
+        if conta_envolvida == 'destino':
+            # Original: empresa ganhou → Estorno: perde (crédito)
+            credito_final = valor_correto
+    
+    # --- Transferência Cliente → Empresa ---
+    elif tipo_original == 'transferencia_cliente_empresa':
+        if conta_envolvida == 'origem':
+            # Cliente era origem (ganhou crédito) → Estorno: perde (débito)
+            debito_final = valor_correto
+        elif conta_envolvida == 'destino':
+            # Empresa era destino (ganhou) → Estorno: perde (crédito)
+            credito_final = valor_correto
+    
+    # --- Transferência Empresa → Cliente ---
+    elif tipo_original == 'transferencia_empresa_cliente':
+        if conta_envolvida == 'origem':
+            # Empresa era origem (perdeu) → Estorno: recupera (débito)
+            debito_final = valor_correto
+        elif conta_envolvida == 'destino':
+            # Cliente era destino (perdeu) → Estorno: recupera (crédito)
+            credito_final = valor_correto
+    
+    # --- Transferência Interna Cliente ---
+    elif tipo_original == 'transferencia_interna_cliente':
+        if conta_envolvida == 'origem':
+            # Cliente origem perdeu → Estorno: recupera (crédito)
+            credito_final = valor_correto
+        elif conta_envolvida == 'destino':
+            # Cliente destino ganhou → Estorno: perde (débito)
+            debito_final = valor_correto
+    
+    # --- Transferência Interna Empresa ---
+    elif tipo_original == 'transferencia_interna_empresa':
+        if conta_envolvida == 'origem':
+            # Empresa origem perdeu → Estorno: recupera (débito)
+            debito_final = valor_correto
+        elif conta_envolvida == 'destino':
+            # Empresa destino ganhou → Estorno: perde (crédito)
+            credito_final = valor_correto
+    
+    # --- Câmbio entre Contas da Empresa ---
+    elif tipo_original == 'cambio_contas_empresa':
+        if conta_envolvida == 'origem':
+            # Empresa origem perdeu → Estorno: recupera (débito)
+            debito_final = valor_correto
+        elif conta_envolvida == 'destino':
+            # Empresa destino ganhou → Estorno: perde (crédito)
+            credito_final = valor_correto
+    
+    # --- Saque ---
+    elif tipo_original == 'saque':
+        if conta_envolvida == 'origem':
+            # Empresa perdeu dinheiro → Estorno: recupera (débito)
+            debito_final = valor_correto
+    
+    # --- Fallback genérico ---
+    else:
+        # Lógica padrão: inverte o que a original fez
+        if conta_envolvida == 'origem':
+            credito_final = valor_correto  # recupera
+        else:
+            debito_final = valor_correto   # devolve
+        print(f"⚠️ Usando fallback para tipo: {tipo_original}")
+    
+    # ============================================
+    # CRIAR RESULTADO
+    # ============================================
     resultado = {
         'id': transf_estorno.get('id'),
         'data': data_transacao_str,
