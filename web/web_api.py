@@ -10788,7 +10788,43 @@ def calcular_estorno(transacao):
                     'is_empresa': is_conta_empresa(conta)
                 })
                 print(f"   Ajuste Admin DEBITO: {conta} recebe CRÉDITO de {valor}")
-    
+
+    # ============================================
+    # AJUSTE DE SALDO DA EMPRESA
+    # ============================================
+    elif tipo == 'ajuste_saldo_empresa':
+        conta_empresa = transacao.get('conta_remetente')
+        valor = float(transacao.get('valor', 0))
+        tipo_ajuste = transacao.get('tipo_ajuste', '')
+        
+        print(f"\n💰 [AJUSTE EMPRESA] Processando reversão para DELETE")
+        print(f"   Conta: {conta_empresa}")
+        print(f"   Tipo ajuste original: {tipo_ajuste}")
+        print(f"   Valor: {valor}")
+        
+        if conta_empresa:
+            if tipo_ajuste == 'DÉBITO':
+                # DÉBITO original = ENTRADA (aumentou saldo)
+                # Reversão: CRÉDITO (diminui saldo)
+                operacoes.append({
+                    'conta': conta_empresa,
+                    'valor': valor,
+                    'operacao': 'CREDITO',
+                    'is_empresa': True
+                })
+                print(f"   → Reversão: CRÉDITO de {valor} (diminui saldo)")
+            else:  # CRÉDITO
+                # CRÉDITO original = SAÍDA (diminuiu saldo)
+                # Reversão: DÉBITO (aumenta saldo)
+                operacoes.append({
+                    'conta': conta_empresa,
+                    'valor': valor,
+                    'operacao': 'DEBITO',
+                    'is_empresa': True
+                })
+                print(f"   → Reversão: DÉBITO de {valor} (aumenta saldo)")
+
+
     # ============================================
     # CÂMBIO
     # ============================================
