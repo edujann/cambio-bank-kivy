@@ -250,10 +250,20 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
     - Determina qual era o efeito original (crédito/débito)
     - Inverte para criar o efeito do estorno
     """
+    print(f"\n🔧 [FUNÇÃO] processar_estorno_por_inversao chamada")
+    print(f"   ID do estorno: {transf_estorno.get('id')}")
+    print(f"   transacao_original_id: {transf_estorno.get('transacao_original_id')}")
+    print(f"   conta_num (nossa conta): {conta_num}")
+    print(f"   moeda: {moeda}")
+    print(f"   data_transacao_str: {data_transacao_str}")
+    
     transacao_original_id = transf_estorno.get('transacao_original_id')
     
     if not transacao_original_id:
+        print(f"⚠️ [FUNÇÃO] Sem transacao_original_id, retornando None")
         return None, None
+    
+    print(f"🔍 [FUNÇÃO] Buscando transação original ID: {transacao_original_id}")
     
     # Buscar a transação original
     original_response = supabase.table('transferencias')\
@@ -262,6 +272,7 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
         .execute()
     
     if not original_response.data:
+        print(f"⚠️ [FUNÇÃO] Transação original {transacao_original_id} não encontrada no Supabase!")
         return None, None
     
     original = original_response.data[0]
@@ -269,21 +280,34 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
     moeda_original = original.get('moeda', moeda)
     descricao_estorno = transf_estorno.get('descricao', f"Estorno de {tipo_original}")
     
+    print(f"✅ [FUNÇÃO] Original encontrada - ID: {original.get('id')}, Tipo: {tipo_original}")
+    print(f"   conta_remetente original: {original.get('conta_remetente')}")
+    print(f"   conta_destinatario original: {original.get('conta_destinatario')}")
+    print(f"   conta_origem original: {original.get('conta_origem')}")
+    print(f"   conta_destino original: {original.get('conta_destino')}")
+    print(f"   valor original: {original.get('valor')}")
+    print(f"   valor_destino original: {original.get('valor_destino')}")
+    print(f"   moeda_original: {moeda_original}")
+    print(f"   status original: {original.get('status')}")
+    
     # 🔥 IMPORTANTE: Para câmbio, usar o valor correto baseado na conta
     valor_original = float(original.get('valor', 0))
     valor_destino = float(original.get('valor_destino', valor_original))
+    
+    print(f"   valor_original (float): {valor_original}")
+    print(f"   valor_destino (float): {valor_destino}")
     
     # Verificar qual conta do cliente está envolvida na original
     conta_envolvida = None
     valor_correto = valor_original
     
-    # Verificar se a conta é a de origem (BRL)
+    # Verificar se a conta é a de origem
     if original.get('conta_remetente') == conta_num or original.get('conta_origem') == conta_num:
         conta_envolvida = 'origem'
         valor_correto = valor_original
         print(f"🔍 Conta é ORIGEM (perdeu dinheiro): valor={valor_correto}")
     
-    # Verificar se a conta é a de destino (USD)
+    # Verificar se a conta é a de destino
     elif original.get('conta_destinatario') == conta_num or original.get('conta_destino') == conta_num:
         conta_envolvida = 'destino'
         # 🔥 CORREÇÃO: Para conta destino, usar valor_destino
@@ -294,6 +318,12 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
         print(f"🔍 Conta é DESTINO (ganhou dinheiro): valor={valor_correto}")
     
     if not conta_envolvida:
+        print(f"⚠️ [FUNÇÃO] Conta {conta_num} não está envolvida na transação original!")
+        print(f"   Verificando possibilidades:")
+        print(f"   conta_remetente == conta_num? {original.get('conta_remetente') == conta_num}")
+        print(f"   conta_origem == conta_num? {original.get('conta_origem') == conta_num}")
+        print(f"   conta_destinatario == conta_num? {original.get('conta_destinatario') == conta_num}")
+        print(f"   conta_destino == conta_num? {original.get('conta_destino') == conta_num}")
         return None, None
     
     # 🔥 LÓGICA PRINCIPAL: Determinar o efeito ORIGINAL
@@ -303,20 +333,24 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
     # Caso 1: Cliente era REMETENTE/ORIGEM (perdeu dinheiro)
     if conta_envolvida == 'origem':
         debito_original = valor_correto
+        print(f"   Efeito original: DÉBITO de {debito_original}")
         
         # Casos especiais onde o cliente na verdade GANHOU dinheiro mesmo sendo remetente
         if tipo_original == 'transferencia_cliente_empresa':
             credito_original = valor_correto
             debito_original = 0.0
+            print(f"   EXCEÇÃO: transferencia_cliente_empresa - ajustando para CRÉDITO")
     
     # Caso 2: Cliente era DESTINATÁRIO/DESTINO (ganhou dinheiro)
     elif conta_envolvida == 'destino':
         credito_original = valor_correto
+        print(f"   Efeito original: CRÉDITO de {credito_original}")
         
         # Casos especiais onde o cliente na verdade PERDEU dinheiro mesmo sendo destinatário
         if tipo_original == 'transferencia_empresa_cliente':
             debito_original = valor_correto
             credito_original = 0.0
+            print(f"   EXCEÇÃO: transferencia_empresa_cliente - ajustando para DÉBITO")
     
     # Caso 3: Ajuste administrativo (usa tipo_ajuste)
     if tipo_original == 'ajuste_admin':
@@ -324,12 +358,14 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
         if tipo_ajuste == 'CREDITO':
             credito_original = valor_correto
             debito_original = 0.0
+            print(f"   Ajuste Admin CRÉDITO: credito_original={credito_original}")
         else:
             debito_original = valor_correto
             credito_original = 0.0
+            print(f"   Ajuste Admin DÉBITO: debito_original={debito_original}")
     
     # 🔥 INVERSÃO: O que era crédito vira débito, o que era débito vira crédito
-    return {
+    resultado = {
         'id': transf_estorno.get('id'),
         'data': data_transacao_str,
         'descricao': f"🔁 ESTORNO: {descricao_estorno}",
@@ -338,7 +374,12 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
         'tipo': "Estorno",
         'moeda': moeda_original,
         'timestamp': data_transacao
-    }, tipo_original
+    }
+    
+    print(f"✅ [FUNÇÃO] Resultado final - Crédito: {resultado['credito']}, Débito: {resultado['debito']}")
+    print(f"   Descrição: {resultado['descricao']}")
+    
+    return resultado, tipo_original
 
 # ============================================
 # ENDPOINTS PARA FRONTEND
@@ -7802,6 +7843,14 @@ def api_admin_extrato_kivy():
 
                 if not deve_incluir:
                     continue
+
+
+                # 🔥 LOG DE DEBUG ANTES DO BLOCO
+                print(f"🔍 DEBUG: Processando transação {transf_id}")
+                print(f"   tipo: {transf_tipo}")
+                print(f"   conta_remetente: {transf.get('conta_remetente')}")
+                print(f"   conta_destinatario: {transf.get('conta_destinatario')}")
+                print(f"   conta_num (nossa conta): {conta_num}")
 
                 # ============================================
                 # 🔥 AQUI! COLOCAR O BLOCO DE ESTORNO
