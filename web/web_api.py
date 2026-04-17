@@ -10764,7 +10764,35 @@ def calcular_estorno(transacao):
                 'operacao': 'CREDITO',
                 'is_empresa': True
             })
-    
+
+    # ============================================
+    # TRANSFERÊNCIA INTERNA CLIENTE (CLIENTE → CLIENTE)
+    # ============================================
+    elif tipo == 'transferencia_interna_cliente':
+        conta_origem = transacao.get('conta_remetente')
+        conta_destino = transacao.get('conta_destinatario')
+        valor = float(transacao.get('valor', 0))
+        
+        if conta_origem:
+            # Original: cliente origem PERDEU dinheiro (DÉBITO)
+            # Estorno: cliente origem RECUPERA (CRÉDITO)
+            operacoes.append({
+                'conta': conta_origem,
+                'valor': valor,
+                'operacao': 'CREDITO',
+                'is_empresa': is_conta_empresa(conta_origem)
+            })
+        
+        if conta_destino:
+            # Original: cliente destino GANHOU dinheiro (CRÉDITO)
+            # Estorno: cliente destino PERDE (DÉBITO)
+            operacoes.append({
+                'conta': conta_destino,
+                'valor': valor,
+                'operacao': 'DEBITO',
+                'is_empresa': is_conta_empresa(conta_destino)
+            })
+
     # ============================================
     # TRANSFERÊNCIA CLIENTE → EMPRESA
     # ============================================
