@@ -3008,22 +3008,59 @@
             if (!dataTransacao) return false;
             
             try {
-                // Converter a data da transação
+                // Criar objeto de data a partir da string original
                 let dataTransacaoObj;
-                if (dataTransacao.includes('T')) {
-                    dataTransacaoObj = new Date(dataTransacao);
+                
+                // Se for string ISO (ex: 2026-04-17T21:00:40.398)
+                if (typeof dataTransacao === 'string') {
+                    // Extrair apenas a parte da data (YYYY-MM-DD)
+                    let dataParte = dataTransacao;
+                    
+                    // Remover hora se existir
+                    if (dataParte.includes('T')) {
+                        dataParte = dataParte.split('T')[0];
+                    } else if (dataParte.includes(' ')) {
+                        dataParte = dataParte.split(' ')[0];
+                    }
+                    
+                    // Se ainda tiver microssegundos, limpar
+                    if (dataParte.includes('.')) {
+                        dataParte = dataParte.split('.')[0];
+                    }
+                    
+                    // Criar data a partir da parte da data (sem hora)
+                    const partes = dataParte.split('-');
+                    if (partes.length === 3) {
+                        dataTransacaoObj = new Date(partes[0], partes[1] - 1, partes[2]);
+                    } else {
+                        dataTransacaoObj = new Date(dataTransacao);
+                    }
                 } else {
                     dataTransacaoObj = new Date(dataTransacao);
                 }
                 
-                // Data atual
+                // Data atual (usando local, não UTC)
                 const hoje = new Date();
+                const hojeObj = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
                 
-                // Comparar apenas ano, mês e dia
-                const dataTransacaoStr = dataTransacaoObj.toISOString().split('T')[0];
-                const hojeStr = hoje.toISOString().split('T')[0];
+                // Extrair apenas ano, mês, dia
+                const anoTransacao = dataTransacaoObj.getFullYear();
+                const mesTransacao = dataTransacaoObj.getMonth();
+                const diaTransacao = dataTransacaoObj.getDate();
                 
-                return dataTransacaoStr === hojeStr;
+                const anoHoje = hojeObj.getFullYear();
+                const mesHoje = hojeObj.getMonth();
+                const diaHoje = hojeObj.getDate();
+                
+                const isMesmoDia = (anoTransacao === anoHoje && 
+                                mesTransacao === mesHoje && 
+                                diaTransacao === diaHoje);
+                
+                console.log(`📅 Data transação: ${anoTransacao}-${mesTransacao+1}-${diaTransacao}`);
+                console.log(`📅 Data hoje: ${anoHoje}-${mesHoje+1}-${diaHoje}`);
+                console.log(`📅 É mesmo dia? ${isMesmoDia}`);
+                
+                return isMesmoDia;
                 
             } catch (error) {
                 console.error('Erro ao verificar data:', error);
