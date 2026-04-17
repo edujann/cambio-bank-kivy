@@ -7394,47 +7394,39 @@ def api_admin_extrato_conta():
                     print(f"   ✅ ENTRADA: +{valor_destino:.2f} {moeda_destino}")
             
             # ============================================
-            # AJUSTE DE SALDO DA EMPRESA
+            # AJUSTE DE SALDO DA EMPRESA (CORRIGIDO)
             # ============================================
             elif tipo == 'ajuste_saldo_empresa':
-                if transf.get('conta_remetente') != conta_numero:
-                    continue
+                conta_empresa = transacao.get('conta_remetente')
+                valor = float(transacao.get('valor', 0))
+                tipo_ajuste = transacao.get('tipo_ajuste', '')
                 
-                tipo_ajuste = transf.get('tipo_ajuste', '')
-                descricao_ajuste = transf.get('descricao_ajuste', 'Ajuste de saldo')
-                valor = float(transf.get('valor', 0))
-                moeda = transf.get('moeda', 'USD')
+                print(f"\n💰 [AJUSTE EMPRESA] Processando reversão para DELETE")
+                print(f"   Conta: {conta_empresa}")
+                print(f"   Tipo ajuste original: {tipo_ajuste}")
+                print(f"   Valor: {valor}")
                 
-                print(f"\n💰 Ajuste: {transf.get('id')} - {tipo_ajuste}")
-                
-                if tipo_ajuste == 'DÉBITO':
-                    # DÉBITO = ENTRADA de dinheiro
-                    descricao = f"AJUSTE - ENTRADA: {descricao_ajuste}"
-                    transacoes_processadas.append({
-                        'id': transf.get('id'),
-                        'data': data_transf,
-                        'descricao': descricao,
-                        'credito': 0,
-                        'debito': valor,
-                        'tipo': 'Ajuste de Saldo',
-                        'moeda': moeda,
-                        'status': status
-                    })
-                    print(f"   ✅ ENTRADA: +{valor:.2f} {moeda}")
-                else:
-                    # CRÉDITO = SAÍDA de dinheiro
-                    descricao = f"AJUSTE - SAÍDA: {descricao_ajuste}"
-                    transacoes_processadas.append({
-                        'id': transf.get('id'),
-                        'data': data_transf,
-                        'descricao': descricao,
-                        'credito': valor,
-                        'debito': 0,
-                        'tipo': 'Ajuste de Saldo',
-                        'moeda': moeda,
-                        'status': status
-                    })
-                    print(f"   ✅ SAÍDA: -{valor:.2f} {moeda}")
+                if conta_empresa:
+                    if tipo_ajuste == 'DÉBITO':
+                        # DÉBITO original = ENTRADA (aumentou saldo)
+                        # Reversão: CRÉDITO (diminui saldo)
+                        operacoes.append({
+                            'conta': conta_empresa,
+                            'valor': valor,
+                            'operacao': 'CREDITO',
+                            'is_empresa': True
+                        })
+                        print(f"   → Reversão: CRÉDITO de {valor} (diminui saldo)")
+                    else:  # CRÉDITO
+                        # CRÉDITO original = SAÍDA (diminuiu saldo)
+                        # Reversão: DÉBITO (aumenta saldo)
+                        operacoes.append({
+                            'conta': conta_empresa,
+                            'valor': valor,
+                            'operacao': 'DEBITO',
+                            'is_empresa': True
+                        })
+                        print(f"   → Reversão: DÉBITO de {valor} (aumenta saldo)")
             
             # ============================================
             # PROCESSAR DEPÓSITOS
