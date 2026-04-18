@@ -584,6 +584,7 @@
         let itensPorPagina = 20;
         let cotacoesCache = {};
         let cotacoesAtualizadas = null;
+        let dadosPaginacaoGlobal = null; // 🔥 NOVO: Para estatísticas globais
 
         // ============================================
         // INICIALIZAÇÃO
@@ -642,9 +643,12 @@
                 
                 if (data.success) {
                     todasTransferencias = data.transferencias;
-                    transferenciasFiltradas = data.transferencias; // Agora já vem filtrada do servidor
+                    transferenciasFiltradas = data.transferencias; // Dados da página atual
                     
-                    atualizarEstatisticas();
+                    // 🔥 CORREÇÃO: Salvar dados de paginação e estatísticas globais
+                    dadosPaginacaoGlobal = data.pagination;
+                    
+                    atualizarEstatisticas(data.statistics);
                     renderizarTabela();
                     atualizarPaginacao(data.pagination);
                 } else {
@@ -716,18 +720,28 @@
             aplicarFiltros();
         }
 
-        function atualizarEstatisticas() {
-            // Como agora usamos paginação server-side, as estatísticas são baseadas apenas na página atual
-            // Para estatísticas globais, seria necessário um endpoint separado
-            const total = transferenciasFiltradas.length;
-            const pendentes = transferenciasFiltradas.filter(t => t.status === 'solicitada' || t.status === 'pending').length;
-            const processando = transferenciasFiltradas.filter(t => t.status === 'processing').length;
-            const concluidas = transferenciasFiltradas.filter(t => t.status === 'completed').length;
-            
-            document.getElementById('totalTransacoes').textContent = total;
-            document.getElementById('totalPendentes').textContent = pendentes;
-            document.getElementById('totalProcessando').textContent = processando;
-            document.getElementById('totalConcluidas').textContent = concluidas;
+        function atualizarEstatisticas(statisticsData = null) {
+            if (statisticsData) {
+                // 🔥 CORREÇÃO: Usar estatísticas globais do servidor
+                const { total, pendentes, processando, concluidas } = statisticsData;
+                
+                document.getElementById('totalTransacoes').textContent = total;
+                document.getElementById('totalPendentes').textContent = pendentes;
+                document.getElementById('totalProcessando').textContent = processando;
+                document.getElementById('totalConcluidas').textContent = concluidas;
+            } else {
+                // Fallback: estatísticas baseadas apenas na página atual (não recomendado)
+                console.warn('⚠️ Usando estatísticas da página atual (fallback)');
+                const total = transferenciasFiltradas.length;
+                const pendentes = transferenciasFiltradas.filter(t => t.status === 'solicitada' || t.status === 'pending').length;
+                const processando = transferenciasFiltradas.filter(t => t.status === 'processing').length;
+                const concluidas = transferenciasFiltradas.filter(t => t.status === 'completed').length;
+                
+                document.getElementById('totalTransacoes').textContent = total;
+                document.getElementById('totalPendentes').textContent = pendentes;
+                document.getElementById('totalProcessando').textContent = processando;
+                document.getElementById('totalConcluidas').textContent = concluidas;
+            }
         }
 
         // ============================================
@@ -735,20 +749,19 @@
         // ============================================
         function renderizarTabela() {
             const tbody = document.getElementById('transferenciasBody');
-            const inicio = (paginaAtual - 1) * itensPorPagina;
-            const fim = inicio + itensPorPagina;
-            const paginaTransacoes = transferenciasFiltradas.slice(inicio, fim);
+            
+            // 🔥 CORREÇÃO: Com paginação server-side, transferenciasFiltradas já contém apenas os dados da página atual
+            const paginaTransacoes = transferenciasFiltradas;
             
             if (paginaTransacoes.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" class="loading">📭 Nenhuma transferência encontrada</td></tr>';
-                atualizarPaginacao();
                 return;
             }
             
             tbody.innerHTML = '';
             
             // 🔥 LOG PARA DEBUG - MOSTRA QUAIS TRANSFERÊNCIAS TÊM INVOICE
-            console.log('=== TRANSFERÊNCIAS COM INVOICE ===');
+            console.log('=== TRANSFERÊNCIAS DA PÁGINA ATUAL ===');
             for (const t of paginaTransacoes) {
                 console.log('Transferência:', t.id, '| tem_invoice:', t.tem_invoice, '| status:', t.status);
                 
@@ -794,8 +807,6 @@
                     </button>
                 `;
             }
-            
-            atualizarPaginacao();
         }
 
         function getStatusClass(status) {

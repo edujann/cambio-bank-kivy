@@ -13496,6 +13496,11 @@ def api_admin_transferencias():
         print(f"📊 {len(transferencias)} transferências internacionais encontradas (página {page})")
         print(f"📎 Transferências com invoice: {sum(1 for t in transferencias if t['tem_invoice'])}")
         
+        # Calcular estatísticas globais baseadas em todos os dados filtrados
+        total_pendentes = sum(1 for t in all_transferencias_data if t.get('status') in ['solicitada', 'pending'])
+        total_processando = sum(1 for t in all_transferencias_data if t.get('status') == 'processing')
+        total_concluidas = sum(1 for t in all_transferencias_data if t.get('status') == 'completed')
+        
         return jsonify({
             "success": True,
             "transferencias": transferencias,
@@ -13504,6 +13509,12 @@ def api_admin_transferencias():
                 "limit": limit,
                 "total": total_count,
                 "total_pages": (total_count + limit - 1) // limit  # Ceiling division
+            },
+            "statistics": {  # 🔥 NOVO: Estatísticas globais
+                "total": total_count,
+                "pendentes": total_pendentes,
+                "processando": total_processando,
+                "concluidas": total_concluidas
             }
         })
         
