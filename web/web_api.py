@@ -13407,6 +13407,9 @@ def api_admin_transferencias():
         offset = (page - 1) * limit
         
         def build_filter_chain(query):
+            # Filtrar apenas transferências internacionais
+            query = query.eq('tipo', 'transferencia_internacional')
+            
             if status_filter and status_filter != 'todos':
                 query = query.eq('status', status_filter)
             
