@@ -13407,35 +13407,38 @@ def api_admin_transferencias():
         offset = (page - 1) * limit
         
         # Construir query base - APENAS TRANSFERÊNCIAS INTERNACIONAIS
-        query = supabase.table('transferencias')\
-            .select('*', count='exact')\
+        filter_query = supabase.table('transferencias')\
             .eq('tipo', 'transferencia_internacional')
         
         # Aplicar filtros
         if status_filter and status_filter != 'todos':
-            query = query.eq('status', status_filter)
+            filter_query = filter_query.eq('status', status_filter)
         
         if cliente_filter:
             # Filtro simples por cliente
-            query = query.eq('cliente', cliente_filter)
+            filter_query = filter_query.eq('cliente', cliente_filter)
         
         if periodo_filter > 0:
             from datetime import datetime, timedelta
             data_limite = datetime.now() - timedelta(days=periodo_filter)
-            query = query.gte('created_at', data_limite.isoformat())
+            filter_query = filter_query.gte('created_at', data_limite.isoformat())
         
         if search_filter:
-            # Busca simples no campo id ou descricao
+            # Busca simples no campo descricao
             search_pattern = '%' + search_filter + '%'
-            query = query.ilike('descricao', search_pattern)
+            filter_query = filter_query.ilike('descricao', search_pattern)
         
-        # Aplicar ordenação e paginação
-        response = query\
+        # QUERY 1: Obter total de registros
+        count_response = filter_query.select('id', count='exact').execute()
+        total_count = count_response.count or 0
+        
+        # QUERY 2: Obter dados paginados
+        response = filter_query\
+            .select('*')\
             .order('created_at', desc=True)\
             .range(offset, offset + limit - 1)\
             .execute()
         
-        total_count = response.count or 0
         transferencias_data = response.data or []
         
         transferencias = []
