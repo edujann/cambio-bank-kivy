@@ -303,7 +303,8 @@ class CardTransacao(BoxLayout):
                 radius=[5,]
             )
         self.bind(pos=self._atualizar_rect, size=self._atualizar_rect)
-        
+
+        self.transacao = transacao
         self.criar_conteudo(transacao)
     
     def _atualizar_rect(self, instance, value):
@@ -346,8 +347,8 @@ class CardTransacao(BoxLayout):
         )
         col_data.add_widget(lbl_data)
         
-        # Coluna 2: Descrição (48%) - AUMENTADA SIGNIFICATIVAMENTE
-        col_descricao = BoxLayout(orientation='vertical', size_hint_x=0.60)  # 🔥 60%
+        # Coluna 2: Descrição
+        col_descricao = BoxLayout(orientation='vertical', size_hint_x=0.50)
         lbl_descricao = Label(
             text=transacao['descricao'],
             font_size='11sp',
@@ -402,12 +403,185 @@ class CardTransacao(BoxLayout):
         )
         col_saldo.add_widget(lbl_saldo)
         
+        # Coluna 6: Botão Ver (10%)
+        btn_ver = Button(
+            text='Ver',
+            font_size='11sp',
+            size_hint_x=0.10,
+            background_color=(0.23, 0.51, 0.96, 1),
+            color=(1, 1, 1, 1)
+        )
+        btn_ver.bind(on_press=self.mostrar_detalhes)
+
         # Adicionar todas as colunas
         self.add_widget(col_data)
         self.add_widget(col_descricao)
         self.add_widget(col_credito)
         self.add_widget(col_debito)
         self.add_widget(col_saldo)
+        self.add_widget(btn_ver)
+
+    def mostrar_detalhes(self, instance):
+        from kivy.uix.scrollview import ScrollView
+
+        dados = self.transacao.get('dados', self.transacao)
+        tipo = dados.get('tipo', self.transacao.get('tipo', ''))
+        status = dados.get('status', '')
+
+        content = BoxLayout(orientation='vertical', padding=dp(12), spacing=dp(6),
+                            size_hint_y=None)
+        content.bind(minimum_height=content.setter('height'))
+
+        COR_SECAO = (0.23, 0.51, 0.96, 1)
+        COR_LABEL = (0.55, 0.68, 0.80, 1)
+        COR_VALOR = (0.92, 0.92, 0.92, 1)
+
+        def add_section(titulo):
+            lbl = Label(
+                text=f'── {titulo} ──',
+                font_size='12sp', bold=True, color=COR_SECAO,
+                size_hint_y=None, height=dp(26), halign='center', valign='middle'
+            )
+            lbl.bind(size=lambda i, v: setattr(i, 'text_size', (v[0], None)))
+            content.add_widget(lbl)
+
+        def add_field(label_text, value):
+            if value is None or value == '' or value == 0 or value == 0.0:
+                return
+            row = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(22), spacing=dp(4))
+            lbl_k = Label(text=f'{label_text}:', font_size='11sp', color=COR_LABEL,
+                          size_hint_x=0.38, halign='right', valign='middle')
+            lbl_k.bind(size=lambda i, v: setattr(i, 'text_size', (v[0], None)))
+            lbl_v = Label(text=str(value), font_size='11sp', color=COR_VALOR,
+                          size_hint_x=0.62, halign='left', valign='middle')
+            lbl_v.bind(size=lambda i, v: setattr(i, 'text_size', (v[0], None)))
+            row.add_widget(lbl_k)
+            row.add_widget(lbl_v)
+            content.add_widget(row)
+
+        def fmt_data(d):
+            if not d:
+                return None
+            s = str(d)
+            if 'T' in s:
+                s = s.replace('T', ' ').split('.')[0]
+            return s
+
+        def fmt_status(s):
+            return {'completed': 'Concluída', 'pending': 'Pendente', 'solicitada': 'Solicitada',
+                    'processing': 'Processando', 'approved': 'Aprovada',
+                    'rejected': 'Rejeitada', 'cancelled': 'Cancelada'}.get(str(s).lower(), s)
+
+        def fmt_tipo(t):
+            return {'cambio': 'Câmbio', 'deposito': 'Depósito',
+                    'transferencia_internacional': 'Transferência Internacional',
+                    'internacional': 'Transferência Internacional',
+                    'transferencia_interna': 'Transferência Interna',
+                    'transferencia_interna_cliente': 'Transferência Interna Cliente',
+                    'transferencia_cliente_empresa': 'Cliente → Empresa',
+                    'transferencia_empresa_cliente': 'Empresa → Cliente',
+                    'cambio_contas_empresa': 'Câmbio Contas Empresa',
+                    'ajuste_admin': 'Ajuste Administrativo',
+                    'receita': 'Receita'}.get(str(t).lower(), t)
+
+        # IDENTIFICAÇÃO
+        add_section('IDENTIFICAÇÃO')
+        add_field('ID', dados.get('id') or self.transacao.get('id'))
+        add_field('Tipo', fmt_tipo(tipo))
+        add_field('Status', fmt_status(status))
+        add_field('Data', fmt_data(dados.get('data')))
+        add_field('Executado por', dados.get('executado_por'))
+        add_field('Solicitado por', dados.get('solicitado_por'))
+
+        # VALORES
+        add_section('VALORES')
+        valor = dados.get('valor', 0)
+        moeda_v = dados.get('moeda', self.transacao.get('moeda', ''))
+        if valor and float(valor) != 0:
+            add_field('Valor', f"{float(valor):,.2f} {moeda_v}")
+        if tipo in ['cambio', 'cambio_contas_empresa']:
+            add_field('Operação', dados.get('operacao'))
+            add_field('Par de Moedas', dados.get('par_moedas'))
+            v_orig = dados.get('valor_origem')
+            v_dest = dados.get('valor_destino')
+            m_orig = dados.get('moeda_origem', '')
+            m_dest = dados.get('moeda_destino', '')
+            if v_orig and float(v_orig) != 0:
+                add_field('Valor Origem', f"{float(v_orig):,.2f} {m_orig}")
+            if v_dest and float(v_dest) != 0:
+                add_field('Valor Destino', f"{float(v_dest):,.2f} {m_dest}")
+            cotacao = dados.get('cotacao') or dados.get('taxa_cambio') or dados.get('taxa_principal_registro')
+            if cotacao and float(cotacao) != 0:
+                add_field('Cotação', f"{float(cotacao):,.4f}")
+        add_field('Finalidade', dados.get('finalidade'))
+        add_field('Descrição', dados.get('descricao'))
+        add_field('Taxa', dados.get('taxa'))
+
+        # CONTAS
+        conta_rem = dados.get('conta_remetente') or dados.get('conta_origem')
+        conta_dest = dados.get('conta_destinatario') or dados.get('conta_destino')
+        if conta_rem or conta_dest or dados.get('banco_origem'):
+            add_section('CONTAS')
+            add_field('Conta Remetente', conta_rem)
+            add_field('Conta Destinatário', conta_dest)
+            add_field('Banco Origem', dados.get('banco_origem'))
+
+        # BENEFICIÁRIO + DADOS BANCÁRIOS + SWIFT (apenas internacionais)
+        if tipo in ['transferencia_internacional', 'internacional']:
+            if dados.get('beneficiario'):
+                add_section('BENEFICIÁRIO')
+                add_field('Nome', dados.get('beneficiario'))
+                add_field('Endereço', dados.get('endereco_beneficiario'))
+                add_field('Cidade', dados.get('cidade'))
+                add_field('País', dados.get('pais'))
+
+            if any(dados.get(k) for k in ['nome_banco', 'codigo_swift', 'iban_account', 'aba_routing']):
+                add_section('DADOS BANCÁRIOS')
+                add_field('Banco', dados.get('nome_banco'))
+                add_field('Endereço Banco', dados.get('endereco_banco'))
+                add_field('Cidade Banco', dados.get('cidade_banco'))
+                add_field('País Banco', dados.get('pais_banco'))
+                add_field('SWIFT / BIC', dados.get('codigo_swift'))
+                add_field('IBAN / Conta', dados.get('iban_account'))
+                add_field('ABA / Routing', dados.get('aba_routing'))
+
+            if status.lower() == 'completed':
+                dados_swift = dados.get('dados_swift_pagamento')
+                if dados_swift and isinstance(dados_swift, dict):
+                    swift_labels = {
+                        'linha1_uetr': 'UETR #',
+                        'linha2_20': ':20:',
+                        'linha3_32a': ':32A:',
+                        'linha4_50k': ':50K:',
+                        'linha5_57a': ':57A:',
+                        'linha6_59': ':59:',
+                        'linha7_beneficiario': 'Beneficiário',
+                        'linha8_70': ':70:',
+                        'linha9_71a': ':71A:'
+                    }
+                    if any(dados_swift.get(k) for k in swift_labels):
+                        add_section('DADOS SWIFT DO PAGAMENTO')
+                        for key, lbl in swift_labels.items():
+                            add_field(lbl, dados_swift.get(key))
+
+        btn_fechar = Button(
+            text='FECHAR', size_hint_y=None, height=dp(40),
+            background_color=(0.55, 0.36, 0.96, 1), color=(1, 1, 1, 1),
+            font_size='13sp', bold=True
+        )
+        content.add_widget(btn_fechar)
+
+        scroll = ScrollView(size_hint=(1, 1))
+        scroll.add_widget(content)
+
+        popup = Popup(
+            title='Detalhes do Lançamento', content=scroll,
+            size_hint=(None, None), size=(dp(480), dp(520)),
+            background_color=(0.10, 0.14, 0.20, 1),
+            title_color=(0.23, 0.51, 0.96, 1), title_size='14sp'
+        )
+        btn_fechar.bind(on_press=popup.dismiss)
+        popup.open()
 
 
 class TelaGerenciarContas(Screen):

@@ -781,11 +781,12 @@
                                     <th>Débito</th>
                                     <th>Crédito</th>
                                     <th>Saldo</th>
+                                    <th style="width: 80px;">Detalhes</th>
                                 </tr>
                             </thead>
                             <tbody id="extratoBody">
                                 <tr>
-                                    <td colspan="5" class="loading">Nenhum dado</td>
+                                    <td colspan="6" class="loading">Nenhum dado</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1682,12 +1683,12 @@
                 } else {
                     select.innerHTML = '<option value="">Cliente não possui contas</option>';
                     select.disabled = true;
-                    document.getElementById('extratoBody').innerHTML = '<tr><td colspan="5" class="loading">Cliente não possui contas</td></tr>';
+                    document.getElementById('extratoBody').innerHTML = '<tr><td colspan="6" class="loading">Cliente não possui contas</td></tr>';
                     document.getElementById('infoExtrato').innerHTML = 'Cliente não possui contas cadastradas';
                 }
             } catch (error) {
                 console.error('Erro ao carregar contas:', error);
-                document.getElementById('extratoBody').innerHTML = '<tr><td colspan="5" class="loading">❌ Erro ao carregar contas</td></tr>';
+                document.getElementById('extratoBody').innerHTML = '<tr><td colspan="6" class="loading">❌ Erro ao carregar contas</td></tr>';
             }
         }
 
@@ -1701,7 +1702,7 @@
             
             if (!clienteSelect.value || !contaSelect.value) {
                 document.getElementById('infoExtrato').innerHTML = 'Selecione um cliente e uma conta para ver o extrato';
-                document.getElementById('extratoBody').innerHTML = '<tr><td colspan="5" class="loading">Nenhum dado</td></tr>';
+                document.getElementById('extratoBody').innerHTML = '<tr><td colspan="6" class="loading">Nenhum dado</td></tr>';
                 return;
             }
             
@@ -1755,6 +1756,15 @@
                         row.insertCell(3).innerHTML = t.credito > 0 ? `<span class="debito">${formatarValor(t.credito)}</span>` : '';
                         
                         row.insertCell(4).textContent = formatarValor(t.saldo_apos);
+                        
+                        // Adicionar botão de detalhes
+                        const btnDetalhe = document.createElement('button');
+                        btnDetalhe.className = 'btn-detalhe';
+                        btnDetalhe.innerHTML = '<i class="fas fa-search"></i> Ver';
+                        btnDetalhe.onclick = (function(transacao) {
+                            return function() { abrirModalDetalhes(transacao); };
+                        })(t);
+                        row.insertCell(5).appendChild(btnDetalhe);
                     });
                     
                     console.log(`✅ Extrato carregado: ${transacoes.length} transações`);
