@@ -13425,16 +13425,12 @@ def api_admin_transferencias():
             return query
         
         # QUERY 1: contar registros filtrados
-        count_query = build_filter_chain(supabase.table('transferencias')\
-            .select('*')\
-            .eq('tipo', 'transferencia_internacional'))
+        count_query = build_filter_chain(supabase.table('transferencias'))
         count_response = count_query.select('id', count='exact').execute()
         total_count = count_response.count or 0
         
         # QUERY 2: obter dados apenas da página atual
-        page_query = build_filter_chain(supabase.table('transferencias')\
-            .select('*')\
-            .eq('tipo', 'transferencia_internacional'))
+        page_query = build_filter_chain(supabase.table('transferencias'))
         response = page_query\
             .select('id, tipo, status, created_at, moeda, valor, cliente, usuario, solicitado_por, beneficiario, descricao, motivo_recusa, invoice_info')\
             .order('created_at', desc=True)\
@@ -13443,9 +13439,7 @@ def api_admin_transferencias():
         transferencias_data = response.data or []
         
         # QUERY 3: obter apenas status para estatísticas
-        status_query = build_filter_chain(supabase.table('transferencias')\
-            .select('*')\
-            .eq('tipo', 'transferencia_internacional'))
+        status_query = build_filter_chain(supabase.table('transferencias'))
         status_response = status_query.select('status').execute()
         status_data = status_response.data or []
         
