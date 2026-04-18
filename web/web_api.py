@@ -13426,6 +13426,7 @@ def api_admin_transferencias():
         
         # QUERY 1: contar registros filtrados
         count_query = build_filter_chain(supabase.table('transferencias')\
+            .select('*')\
             .eq('tipo', 'transferencia_internacional'))
         count_response = count_query.select('id', count='exact').execute()
         total_count = count_response.count or 0
