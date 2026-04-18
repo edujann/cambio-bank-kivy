@@ -13406,40 +13406,45 @@ def api_admin_transferencias():
         # Calcular offset
         offset = (page - 1) * limit
         
-        # Construir query base com filtros aplicados
-        def build_filtered_query():
-            q = supabase.table('transferencias')\
-                .eq('tipo', 'transferencia_internacional')
-            
+        def build_filter_chain(query):
             if status_filter and status_filter != 'todos':
-                q = q.eq('status', status_filter)
+                query = query.eq('status', status_filter)
             
             if cliente_filter:
-                q = q.eq('cliente', cliente_filter)
+                query = query.eq('cliente', cliente_filter)
             
             if periodo_filter > 0:
                 from datetime import datetime, timedelta
                 data_limite = datetime.now() - timedelta(days=periodo_filter)
-                q = q.gte('created_at', data_limite.isoformat())
+                query = query.gte('created_at', data_limite.isoformat())
             
             if search_filter:
                 search_pattern = '%' + search_filter + '%'
-                q = q.ilike('descricao', search_pattern)
+                query = query.ilike('descricao', search_pattern)
             
-            return q
+            return query
         
-        # QUERY 1: obter total filtrado e status para estatísticas
-        count_response = build_filtered_query().select('status', count='exact').execute()
+        # QUERY 1: contar registros filtrados
+        count_query = build_filter_chain(supabase.table('transferencias')\
+            .eq('tipo', 'transferencia_internacional'))
+        count_response = count_query.select('id', count='exact').execute()
         total_count = count_response.count or 0
-        status_data = count_response.data or []
         
-        # QUERY 2: dados apenas da página atual
-        response = build_filtered_query()\
+        # QUERY 2: obter dados apenas da página atual
+        page_query = build_filter_chain(supabase.table('transferencias')\
+            .eq('tipo', 'transferencia_internacional'))
+        response = page_query\
             .select('id, tipo, status, created_at, moeda, valor, cliente, usuario, solicitado_por, beneficiario, descricao, motivo_recusa, invoice_info')\
             .order('created_at', desc=True)\
             .range(offset, offset + limit - 1)\
             .execute()
         transferencias_data = response.data or []
+        
+        # QUERY 3: obter apenas status para estatísticas
+        status_query = build_filter_chain(supabase.table('transferencias')\
+            .eq('tipo', 'transferencia_internacional'))
+        status_response = status_query.select('status').execute()
+        status_data = status_response.data or []
         
         # 🔥 OTIMIZAÇÃO: Buscar todos os nomes de clientes de uma vez (evita N queries)
         cliente_usernames = set()
