@@ -13438,44 +13438,49 @@ def api_admin_transferencias():
         end_idx = min(offset + limit, total_count)
         transferencias_data = all_transferencias_data[start_idx:end_idx]
         
+        # 🔥 OTIMIZAÇÃO: Buscar todos os nomes de clientes de uma vez (evita N queries)
+        cliente_usernames = set()
+        for t in transferencias_data:
+            cliente_username = t.get('cliente') or t.get('usuario') or t.get('solicitado_por')
+            if cliente_username:
+                cliente_usernames.add(cliente_username)
+        
+        # Buscar nomes em lote
+        clientes_nomes = {}
+        if cliente_usernames:
+            clientes_response = supabase.table('usuarios')\
+                .select('username, nome')\
+                .in_('username', list(cliente_usernames))\
+                .execute()
+            
+            if clientes_response.data:
+                for cliente in clientes_response.data:
+                    clientes_nomes[cliente['username']] = cliente['nome']
+        
         transferencias = []
         for t in transferencias_data:
-            # Buscar nome do cliente
-            cliente_nome = None
+            # Buscar nome do cliente (agora do cache local)
             cliente_username = t.get('cliente') or t.get('usuario') or t.get('solicitado_por')
+            cliente_nome = clientes_nomes.get(cliente_username) if cliente_username else None
             
-            if cliente_username:
-                cliente_response = supabase.table('usuarios')\
-                    .select('nome')\
-                    .eq('username', cliente_username)\
-                    .single()\
-                    .execute()
-                
-                if cliente_response.data:
-                    cliente_nome = cliente_response.data.get('nome')
-            
-            # 🔥 CORREÇÃO: Verificar invoice de forma robusta
+            # 🔥 OTIMIZAÇÃO: Verificar invoice de forma mais eficiente
             invoice_info = t.get('invoice_info')
             tem_invoice = False
             
-            # Se invoice_info for string JSON, converter
-            if invoice_info and isinstance(invoice_info, str):
-                try:
-                    import json
-                    invoice_info = json.loads(invoice_info)
-                except:
-                    invoice_info = None
-            
-            # Verificar se existe invoice (caminho_arquivo presente e não vazio)
-            if invoice_info and isinstance(invoice_info, dict):
-                caminho = invoice_info.get('caminho_arquivo')
-                if caminho and caminho.strip():
-                    tem_invoice = True
-                    print(f"📎 Invoice encontrada para {t.get('id')}: {caminho}")
-                else:
-                    print(f"⚠️ Invoice sem caminho para {t.get('id')}")
-            else:
-                print(f"📭 Sem invoice para {t.get('id')}")
+            if invoice_info:
+                # Se for string JSON, converter uma vez
+                if isinstance(invoice_info, str):
+                    try:
+                        import json
+                        invoice_info = json.loads(invoice_info)
+                    except:
+                        invoice_info = None
+                
+                # Verificar se existe caminho de arquivo válido
+                if isinstance(invoice_info, dict):
+                    caminho = invoice_info.get('caminho_arquivo')
+                    if caminho and caminho.strip():
+                        tem_invoice = True
             
             transferencias.append({
                 'id': t.get('id'),
@@ -13494,12 +13499,18 @@ def api_admin_transferencias():
             })
         
         print(f"📊 {len(transferencias)} transferências internacionais encontradas (página {page})")
-        print(f"📎 Transferências com invoice: {sum(1 for t in transferencias if t['tem_invoice'])}")
+        # 🔥 OTIMIZAÇÃO: Removido print detalhado de invoices para performance
         
-        # Calcular estatísticas globais baseadas em todos os dados filtrados
-        total_pendentes = sum(1 for t in all_transferencias_data if t.get('status') in ['solicitada', 'pending'])
-        total_processando = sum(1 for t in all_transferencias_data if t.get('status') == 'processing')
-        total_concluidas = sum(1 for t in all_transferencias_data if t.get('status') == 'completed')
+        # 🔥 OTIMIZAÇÃO: Calcular estatísticas globais de forma mais eficiente
+        stats = {'pendentes': 0, 'processando': 0, 'concluidas': 0}
+        for t in all_transferencias_data:
+            status = t.get('status')
+            if status in ['solicitada', 'pending']:
+                stats['pendentes'] += 1
+            elif status == 'processing':
+                stats['processando'] += 1
+            elif status == 'completed':
+                stats['concluidas'] += 1
         
         return jsonify({
             "success": True,
@@ -13510,11 +13521,11 @@ def api_admin_transferencias():
                 "total": total_count,
                 "total_pages": (total_count + limit - 1) // limit  # Ceiling division
             },
-            "statistics": {  # 🔥 NOVO: Estatísticas globais
+            "statistics": {  # 🔥 Estatísticas globais otimizadas
                 "total": total_count,
-                "pendentes": total_pendentes,
-                "processando": total_processando,
-                "concluidas": total_concluidas
+                "pendentes": stats['pendentes'],
+                "processando": stats['processando'],
+                "concluidas": stats['concluidas']
             }
         })
         
