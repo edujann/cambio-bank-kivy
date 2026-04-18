@@ -530,14 +530,13 @@
                         <th>Cliente</th>
                         <th>Tipo</th>
                         <th>Valor Original</th>
-                        <th>Valor (USD)</th>
                         <th>Status</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody id="transferenciasBody">
                     <tr>
-                        <td colspan="8" class="loading">
+                        <td colspan="7" class="loading">
                             <i class="fas fa-spinner fa-spin"></i> Carregando transferências...
                         </td>
                     </tr>
@@ -628,30 +627,33 @@
 
         async function carregarTransferencias() {
             try {
-                const response = await fetch('/api/admin/transferencias');
+                // Construir URL com parâmetros de paginação e filtros atuais
+                const params = new URLSearchParams({
+                    page: paginaAtual,
+                    limit: itensPorPagina,
+                    status: document.getElementById('filtroStatus').value,
+                    cliente: document.getElementById('filtroCliente').value,
+                    periodo: document.getElementById('filtroPeriodo').value,
+                    search: document.getElementById('searchInput').value
+                });
+                
+                const response = await fetch(`/api/admin/transferencias?${params}`);
                 const data = await response.json();
                 
                 if (data.success) {
                     todasTransferencias = data.transferencias;
+                    transferenciasFiltradas = data.transferencias; // Agora já vem filtrada do servidor
                     
-                    // Buscar cotações atualizadas
-                    await carregarCotacoes();
-                    
-                    // Converter valores para USD em paralelo para melhorar performance
-                    const promises = todasTransferencias.map(t => converterParaUSD(t.valor, t.moeda, t.data));
-                    const valoresUSD = await Promise.all(promises);
-                    todasTransferencias.forEach((t, i) => {
-                        t.valor_usd = valoresUSD[i];
-                    });
-                    
-                    aplicarFiltros();
+                    atualizarEstatisticas();
+                    renderizarTabela();
+                    atualizarPaginacao(data.pagination);
                 } else {
                     console.error('Erro:', data.message);
-                    document.getElementById('transferenciasBody').innerHTML = `<table><td colspan="8" class="loading">❌ ${data.message}</td></tr>`;
+                    document.getElementById('transferenciasBody').innerHTML = `<tr><td colspan="7" class="loading">❌ ${data.message}</td></tr>`;
                 }
             } catch (error) {
                 console.error('Erro ao carregar transferências:', error);
-                document.getElementById('transferenciasBody').innerHTML = '<tr><td colspan="8" class="loading">❌ Erro ao carregar transferências</td></tr>';
+                document.getElementById('transferenciasBody').innerHTML = '<tr><td colspan="7" class="loading">❌ Erro ao carregar transferências</td></tr>';
             }
         }
 
@@ -702,46 +704,8 @@
         // FILTROS
         // ============================================
         function aplicarFiltros() {
-            const statusFiltro = document.getElementById('filtroStatus').value;
-            const clienteFiltro = document.getElementById('filtroCliente').value;
-            const periodoFiltro = parseInt(document.getElementById('filtroPeriodo').value);
-            const buscaTexto = document.getElementById('searchInput').value.toLowerCase();
-            
-            let dataLimite = null;
-            if (periodoFiltro > 0) {
-                dataLimite = new Date();
-                dataLimite.setDate(dataLimite.getDate() - periodoFiltro);
-            }
-            
-            transferenciasFiltradas = todasTransferencias.filter(t => {
-                // Filtro status
-                if (statusFiltro !== 'todos') {
-                    if (t.status !== statusFiltro) return false;
-                }
-                
-                // Filtro cliente
-                if (clienteFiltro && t.cliente !== clienteFiltro && t.usuario !== clienteFiltro) return false;
-                
-                // Filtro período
-                if (dataLimite && t.data) {
-                    const dataTransacao = new Date(t.data);
-                    if (dataTransacao < dataLimite) return false;
-                }
-                
-                // Filtro busca
-                if (buscaTexto) {
-                    const camposBusca = [
-                        t.id, t.beneficiario, t.cliente, t.usuario, t.descricao
-                    ].join(' ').toLowerCase();
-                    if (!camposBusca.includes(buscaTexto)) return false;
-                }
-                
-                return true;
-            });
-            
-            atualizarEstatisticas();
-            paginaAtual = 1;
-            renderizarTabela();
+            paginaAtual = 1; // Reset para primeira página quando aplicar filtros
+            carregarTransferencias();
         }
 
         function limparFiltros() {
@@ -753,6 +717,8 @@
         }
 
         function atualizarEstatisticas() {
+            // Como agora usamos paginação server-side, as estatísticas são baseadas apenas na página atual
+            // Para estatísticas globais, seria necessário um endpoint separado
             const total = transferenciasFiltradas.length;
             const pendentes = transferenciasFiltradas.filter(t => t.status === 'solicitada' || t.status === 'pending').length;
             const processando = transferenciasFiltradas.filter(t => t.status === 'processing').length;
@@ -774,7 +740,7 @@
             const paginaTransacoes = transferenciasFiltradas.slice(inicio, fim);
             
             if (paginaTransacoes.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="loading">📭 Nenhuma transferência encontrada</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="loading">📭 Nenhuma transferência encontrada</td></tr>';
                 atualizarPaginacao();
                 return;
             }
@@ -806,18 +772,16 @@
                 const simbolo = obterSimboloMoeda(t.moeda);
                 row.insertCell(4).innerHTML = `${simbolo} ${formatarValor(t.valor)}`;
                 
-                // Valor USD
-                const valorUsd = t.valor_usd || t.valor;
-                row.insertCell(5).innerHTML = `$ ${formatarValor(valorUsd)}`;
+                // Removido: Valor USD (não necessário)
                 
                 // Status
                 const statusClass = getStatusClass(t.status);
                 const statusText = getStatusText(t.status);
-                row.insertCell(6).innerHTML = `<span class="status-badge ${statusClass}">${statusText}</span>`;
+                row.insertCell(5).innerHTML = `<span class="status-badge ${statusClass}">${statusText}</span>`;
                 
                 // Ações
                 const temInvoice = t.tem_invoice === true;
-                const acoesCell = row.insertCell(7);
+                const acoesCell = row.insertCell(6);
                 acoesCell.innerHTML = `
                     <button class="btn-acao btn-detalhes" onclick="verDetalhes('${t.id}')" title="Ver detalhes">
                         <i class="fas fa-eye"></i>
@@ -859,95 +823,106 @@
         // ============================================
         // PAGINAÇÃO
         // ============================================
-        function atualizarPaginacao() {
-            const totalPaginas = Math.ceil(transferenciasFiltradas.length / itensPorPagina);
-            const pageNumbersDiv = document.getElementById('pageNumbers');
-            
-            // Limpar conteúdo anterior
-            pageNumbersDiv.innerHTML = '';
-            
-            // Adicionar info da página
-            const infoSpan = document.createElement('span');
-            infoSpan.id = 'paginaInfo';
-            infoSpan.textContent = `Página ${paginaAtual} de ${totalPaginas || 1}`;
-            infoSpan.style.margin = '0 10px';
-            pageNumbersDiv.appendChild(infoSpan);
-            
-            // Se poucas páginas, mostrar todas
-            if (totalPaginas <= 7) {
-                for (let i = 1; i <= totalPaginas; i++) {
-                    const btn = document.createElement('button');
-                    btn.textContent = i;
-                    btn.className = 'page-btn';
-                    if (i === paginaAtual) btn.classList.add('active');
-                    btn.onclick = () => irParaPagina(i);
-                    pageNumbersDiv.appendChild(btn);
+        function atualizarPaginacao(paginationData = null) {
+            if (paginationData) {
+                // Usar dados de paginação do servidor
+                const { page, total_pages } = paginationData;
+                paginaAtual = page;
+                
+                const pageNumbersDiv = document.getElementById('pageNumbers');
+                pageNumbersDiv.innerHTML = '';
+                
+                const infoSpan = document.createElement('span');
+                infoSpan.id = 'paginaInfo';
+                infoSpan.textContent = `Página ${page} de ${total_pages}`;
+                infoSpan.style.margin = '0 10px';
+                pageNumbersDiv.appendChild(infoSpan);
+                
+                // Gerar botões de página
+                if (total_pages <= 7) {
+                    for (let i = 1; i <= total_pages; i++) {
+                        const btn = document.createElement('button');
+                        btn.textContent = i;
+                        btn.className = 'page-btn';
+                        if (i === page) btn.classList.add('active');
+                        btn.onclick = () => irParaPagina(i);
+                        pageNumbersDiv.appendChild(btn);
+                    }
+                } else {
+                    // Lógica compacta para muitas páginas
+                    const start = Math.max(1, page - 2);
+                    const end = Math.min(total_pages, page + 2);
+                    
+                    if (page > 4) {
+                        const btn = document.createElement('button');
+                        btn.textContent = '1';
+                        btn.className = 'page-btn';
+                        btn.onclick = () => irParaPagina(1);
+                        pageNumbersDiv.appendChild(btn);
+                        
+                        const dots = document.createElement('span');
+                        dots.textContent = '...';
+                        dots.style.margin = '0 5px';
+                        pageNumbersDiv.appendChild(dots);
+                    }
+                    
+                    for (let i = start; i <= end; i++) {
+                        const btn = document.createElement('button');
+                        btn.textContent = i;
+                        btn.className = 'page-btn';
+                        if (i === page) btn.classList.add('active');
+                        btn.onclick = () => irParaPagina(i);
+                        pageNumbersDiv.appendChild(btn);
+                    }
+                    
+                    if (page < total_pages - 3) {
+                        const dots = document.createElement('span');
+                        dots.textContent = '...';
+                        dots.style.margin = '0 5px';
+                        pageNumbersDiv.appendChild(dots);
+                        
+                        const btn = document.createElement('button');
+                        btn.textContent = total_pages;
+                        btn.className = 'page-btn';
+                        btn.onclick = () => irParaPagina(total_pages);
+                        pageNumbersDiv.appendChild(btn);
+                    }
                 }
+                
+                document.getElementById('btnAnterior').disabled = page === 1;
+                document.getElementById('btnProximo').disabled = page === total_pages;
             } else {
-                // Mostrar primeira página
-                if (paginaAtual > 4) {
-                    const btn = document.createElement('button');
-                    btn.textContent = '1';
-                    btn.className = 'page-btn';
-                    btn.onclick = () => irParaPagina(1);
-                    pageNumbersDiv.appendChild(btn);
-                    
-                    const dots = document.createElement('span');
-                    dots.textContent = '...';
-                    dots.style.margin = '0 5px';
-                    pageNumbersDiv.appendChild(dots);
-                }
+                // Fallback para quando não há dados de paginação
+                const totalPaginas = Math.ceil(transferenciasFiltradas.length / itensPorPagina);
+                const pageNumbersDiv = document.getElementById('pageNumbers');
+                pageNumbersDiv.innerHTML = '';
                 
-                // Mostrar páginas ao redor da atual
-                const start = Math.max(1, paginaAtual - 2);
-                const end = Math.min(totalPaginas, paginaAtual + 2);
+                const infoSpan = document.createElement('span');
+                infoSpan.id = 'paginaInfo';
+                infoSpan.textContent = `Página ${paginaAtual} de ${totalPaginas || 1}`;
+                infoSpan.style.margin = '0 10px';
+                pageNumbersDiv.appendChild(infoSpan);
                 
-                for (let i = start; i <= end; i++) {
-                    const btn = document.createElement('button');
-                    btn.textContent = i;
-                    btn.className = 'page-btn';
-                    if (i === paginaAtual) btn.classList.add('active');
-                    btn.onclick = () => irParaPagina(i);
-                    pageNumbersDiv.appendChild(btn);
-                }
-                
-                // Mostrar última página
-                if (paginaAtual < totalPaginas - 3) {
-                    const dots = document.createElement('span');
-                    dots.textContent = '...';
-                    dots.style.margin = '0 5px';
-                    pageNumbersDiv.appendChild(dots);
-                    
-                    const btn = document.createElement('button');
-                    btn.textContent = totalPaginas;
-                    btn.className = 'page-btn';
-                    btn.onclick = () => irParaPagina(totalPaginas);
-                    pageNumbersDiv.appendChild(btn);
-                }
+                document.getElementById('btnAnterior').disabled = paginaAtual === 1;
+                document.getElementById('btnProximo').disabled = paginaAtual === totalPaginas || totalPaginas === 0;
             }
-            
-            document.getElementById('btnAnterior').disabled = paginaAtual === 1;
-            document.getElementById('btnProximo').disabled = paginaAtual === totalPaginas || totalPaginas === 0;
         }
 
         function paginaAnterior() {
             if (paginaAtual > 1) {
                 paginaAtual--;
-                renderizarTabela();
+                carregarTransferencias();
             }
         }
 
         function proximaPagina() {
-            const totalPaginas = Math.ceil(transferenciasFiltradas.length / itensPorPagina);
-            if (paginaAtual < totalPaginas) {
-                paginaAtual++;
-                renderizarTabela();
-            }
+            paginaAtual++;
+            carregarTransferencias();
         }
 
         function irParaPagina(pagina) {
             paginaAtual = pagina;
-            renderizarTabela();
+            carregarTransferencias();
         }
 
         // ============================================

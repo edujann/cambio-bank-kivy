@@ -13395,15 +13395,50 @@ def api_admin_transferencias():
         if not usuario:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
-        # Buscar apenas transferências internacionais
-        response = supabase.table('transferencias')\
-            .select('*')\
-            .eq('tipo', 'transferencia_internacional')\
+        # Parâmetros de paginação e filtros
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 20))
+        status_filter = request.args.get('status', '')
+        cliente_filter = request.args.get('cliente', '')
+        periodo_filter = int(request.args.get('periodo', 0))
+        search_filter = request.args.get('search', '').strip()
+        
+        # Calcular offset
+        offset = (page - 1) * limit
+        
+        # Construir query base
+        query = supabase.table('transferencias')\
+            .select('*', count='exact')\
+            .eq('tipo', 'transferencia_internacional')
+        
+        # Aplicar filtros
+        if status_filter and status_filter != 'todos':
+            query = query.eq('status', status_filter)
+        
+        if cliente_filter:
+            query = query.or_(f'cliente.eq.{cliente_filter},usuario.eq.{cliente_filter},solicitado_por.eq.{cliente_filter}')
+        
+        if periodo_filter > 0:
+            from datetime import datetime, timedelta
+            data_limite = datetime.now() - timedelta(days=periodo_filter)
+            query = query.gte('created_at', data_limite.isoformat())
+        
+        if search_filter:
+            # Buscar em múltiplos campos
+            search_pattern = f'%{search_filter}%'
+            query = query.or_(f'id.ilike.{search_pattern},beneficiario.ilike.{search_pattern},cliente.ilike.{search_pattern},usuario.ilike.{search_pattern},solicitado_por.ilike.{search_pattern},descricao.ilike.{search_pattern}')
+        
+        # Aplicar ordenação e paginação
+        response = query\
             .order('created_at', desc=True)\
+            .range(offset, offset + limit - 1)\
             .execute()
         
+        total_count = response.count or 0
+        transferencias_data = response.data or []
+        
         transferencias = []
-        for t in (response.data or []):
+        for t in transferencias_data:
             # Buscar nome do cliente
             cliente_nome = None
             cliente_username = t.get('cliente') or t.get('usuario') or t.get('solicitado_por')
@@ -13457,12 +13492,18 @@ def api_admin_transferencias():
                 'motivo_recusa': t.get('motivo_recusa')
             })
         
-        print(f"📊 {len(transferencias)} transferências internacionais encontradas")
+        print(f"📊 {len(transferencias)} transferências internacionais encontradas (página {page})")
         print(f"📎 Transferências com invoice: {sum(1 for t in transferencias if t['tem_invoice'])}")
         
         return jsonify({
             "success": True,
-            "transferencias": transferencias
+            "transferencias": transferencias,
+            "pagination": {
+                "page": page,
+                "limit": limit,
+                "total": total_count,
+                "total_pages": (total_count + limit - 1) // limit  # Ceiling division
+            }
         })
         
     except Exception as e:
