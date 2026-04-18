@@ -13406,37 +13406,40 @@ def api_admin_transferencias():
         # Calcular offset
         offset = (page - 1) * limit
         
-        # Abordagem mais simples: obter todos os dados filtrados e paginar manualmente
-        query = supabase.table('transferencias')\
-            .select('*')\
-            .eq('tipo', 'transferencia_internacional')\
-            .order('created_at', desc=True)
+        # Construir query base com filtros aplicados
+        def build_filtered_query():
+            q = supabase.table('transferencias')\
+                .eq('tipo', 'transferencia_internacional')
+            
+            if status_filter and status_filter != 'todos':
+                q = q.eq('status', status_filter)
+            
+            if cliente_filter:
+                q = q.eq('cliente', cliente_filter)
+            
+            if periodo_filter > 0:
+                from datetime import datetime, timedelta
+                data_limite = datetime.now() - timedelta(days=periodo_filter)
+                q = q.gte('created_at', data_limite.isoformat())
+            
+            if search_filter:
+                search_pattern = '%' + search_filter + '%'
+                q = q.ilike('descricao', search_pattern)
+            
+            return q
         
-        # Aplicar filtros
-        if status_filter and status_filter != 'todos':
-            query = query.eq('status', status_filter)
+        # QUERY 1: obter total filtrado e status para estatísticas
+        count_response = build_filtered_query().select('status', count='exact').execute()
+        total_count = count_response.count or 0
+        status_data = count_response.data or []
         
-        if cliente_filter:
-            query = query.eq('cliente', cliente_filter)
-        
-        if periodo_filter > 0:
-            from datetime import datetime, timedelta
-            data_limite = datetime.now() - timedelta(days=periodo_filter)
-            query = query.gte('created_at', data_limite.isoformat())
-        
-        if search_filter:
-            search_pattern = '%' + search_filter + '%'
-            query = query.ilike('descricao', search_pattern)
-        
-        # Executar query completa (sem paginação no banco)
-        response = query.execute()
-        all_transferencias_data = response.data or []
-        
-        # Paginação manual em Python
-        total_count = len(all_transferencias_data)
-        start_idx = offset
-        end_idx = min(offset + limit, total_count)
-        transferencias_data = all_transferencias_data[start_idx:end_idx]
+        # QUERY 2: dados apenas da página atual
+        response = build_filtered_query()\
+            .select('id, tipo, status, created_at, moeda, valor, cliente, usuario, solicitado_por, beneficiario, descricao, motivo_recusa, invoice_info')\
+            .order('created_at', desc=True)\
+            .range(offset, offset + limit - 1)\
+            .execute()
+        transferencias_data = response.data or []
         
         # 🔥 OTIMIZAÇÃO: Buscar todos os nomes de clientes de uma vez (evita N queries)
         cliente_usernames = set()
@@ -13503,7 +13506,7 @@ def api_admin_transferencias():
         
         # 🔥 OTIMIZAÇÃO: Calcular estatísticas globais de forma mais eficiente
         stats = {'pendentes': 0, 'processando': 0, 'concluidas': 0}
-        for t in all_transferencias_data:
+        for t in status_data:
             status = t.get('status')
             if status in ['solicitada', 'pending']:
                 stats['pendentes'] += 1
@@ -13521,7 +13524,7 @@ def api_admin_transferencias():
                 "total": total_count,
                 "total_pages": (total_count + limit - 1) // limit  # Ceiling division
             },
-            "statistics": {  # 🔥 Estatísticas globais otimizadas
+            "statistics": {
                 "total": total_count,
                 "pendentes": stats['pendentes'],
                 "processando": stats['processando'],
