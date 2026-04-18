@@ -13406,7 +13406,7 @@ def api_admin_transferencias():
         # Calcular offset
         offset = (page - 1) * limit
         
-        # Construir query base
+        # Construir query base - APENAS TRANSFERÊNCIAS INTERNACIONAIS
         query = supabase.table('transferencias')\
             .select('*', count='exact')\
             .eq('tipo', 'transferencia_internacional')
@@ -13416,7 +13416,8 @@ def api_admin_transferencias():
             query = query.eq('status', status_filter)
         
         if cliente_filter:
-            query = query.or_(f'cliente.eq.{cliente_filter},usuario.eq.{cliente_filter},solicitado_por.eq.{cliente_filter}')
+            # Filtro simples por cliente
+            query = query.eq('cliente', cliente_filter)
         
         if periodo_filter > 0:
             from datetime import datetime, timedelta
@@ -13424,9 +13425,9 @@ def api_admin_transferencias():
             query = query.gte('created_at', data_limite.isoformat())
         
         if search_filter:
-            # Buscar em múltiplos campos
-            search_pattern = f'%{search_filter}%'
-            query = query.or_(f'id.ilike.{search_pattern},beneficiario.ilike.{search_pattern},cliente.ilike.{search_pattern},usuario.ilike.{search_pattern},solicitado_por.ilike.{search_pattern},descricao.ilike.{search_pattern}')
+            # Busca simples no campo id ou descricao
+            search_pattern = '%' + search_filter + '%'
+            query = query.ilike('descricao', search_pattern)
         
         # Aplicar ordenação e paginação
         response = query\
