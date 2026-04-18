@@ -305,6 +305,18 @@
             cursor: not-allowed;
         }
 
+        .page-btn {
+            min-width: 35px;
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+
+        .page-btn.active {
+            background: var(--cor-admin);
+            border-color: var(--cor-admin);
+            color: white;
+        }
+
         /* MODAL */
         .modal {
             display: none;
@@ -538,7 +550,7 @@
             <button onclick="paginaAnterior()" id="btnAnterior" disabled>
                 <i class="fas fa-chevron-left"></i> Anterior
             </button>
-            <span id="paginaInfo">Página 1 de 1</span>
+            <div id="pageNumbers"></div>
             <button onclick="proximaPagina()" id="btnProximo" disabled>
                 Próximo <i class="fas fa-chevron-right"></i>
             </button>
@@ -625,10 +637,12 @@
                     // Buscar cotações atualizadas
                     await carregarCotacoes();
                     
-                    // Converter valores para USD
-                    for (const t of todasTransferencias) {
-                        t.valor_usd = await converterParaUSD(t.valor, t.moeda, t.data);
-                    }
+                    // Converter valores para USD em paralelo para melhorar performance
+                    const promises = todasTransferencias.map(t => converterParaUSD(t.valor, t.moeda, t.data));
+                    const valoresUSD = await Promise.all(promises);
+                    todasTransferencias.forEach((t, i) => {
+                        t.valor_usd = valoresUSD[i];
+                    });
                     
                     aplicarFiltros();
                 } else {
@@ -847,7 +861,70 @@
         // ============================================
         function atualizarPaginacao() {
             const totalPaginas = Math.ceil(transferenciasFiltradas.length / itensPorPagina);
-            document.getElementById('paginaInfo').textContent = `Página ${paginaAtual} de ${totalPaginas || 1}`;
+            const pageNumbersDiv = document.getElementById('pageNumbers');
+            
+            // Limpar conteúdo anterior
+            pageNumbersDiv.innerHTML = '';
+            
+            // Adicionar info da página
+            const infoSpan = document.createElement('span');
+            infoSpan.id = 'paginaInfo';
+            infoSpan.textContent = `Página ${paginaAtual} de ${totalPaginas || 1}`;
+            infoSpan.style.margin = '0 10px';
+            pageNumbersDiv.appendChild(infoSpan);
+            
+            // Se poucas páginas, mostrar todas
+            if (totalPaginas <= 7) {
+                for (let i = 1; i <= totalPaginas; i++) {
+                    const btn = document.createElement('button');
+                    btn.textContent = i;
+                    btn.className = 'page-btn';
+                    if (i === paginaAtual) btn.classList.add('active');
+                    btn.onclick = () => irParaPagina(i);
+                    pageNumbersDiv.appendChild(btn);
+                }
+            } else {
+                // Mostrar primeira página
+                if (paginaAtual > 4) {
+                    const btn = document.createElement('button');
+                    btn.textContent = '1';
+                    btn.className = 'page-btn';
+                    btn.onclick = () => irParaPagina(1);
+                    pageNumbersDiv.appendChild(btn);
+                    
+                    const dots = document.createElement('span');
+                    dots.textContent = '...';
+                    dots.style.margin = '0 5px';
+                    pageNumbersDiv.appendChild(dots);
+                }
+                
+                // Mostrar páginas ao redor da atual
+                const start = Math.max(1, paginaAtual - 2);
+                const end = Math.min(totalPaginas, paginaAtual + 2);
+                
+                for (let i = start; i <= end; i++) {
+                    const btn = document.createElement('button');
+                    btn.textContent = i;
+                    btn.className = 'page-btn';
+                    if (i === paginaAtual) btn.classList.add('active');
+                    btn.onclick = () => irParaPagina(i);
+                    pageNumbersDiv.appendChild(btn);
+                }
+                
+                // Mostrar última página
+                if (paginaAtual < totalPaginas - 3) {
+                    const dots = document.createElement('span');
+                    dots.textContent = '...';
+                    dots.style.margin = '0 5px';
+                    pageNumbersDiv.appendChild(dots);
+                    
+                    const btn = document.createElement('button');
+                    btn.textContent = totalPaginas;
+                    btn.className = 'page-btn';
+                    btn.onclick = () => irParaPagina(totalPaginas);
+                    pageNumbersDiv.appendChild(btn);
+                }
+            }
             
             document.getElementById('btnAnterior').disabled = paginaAtual === 1;
             document.getElementById('btnProximo').disabled = paginaAtual === totalPaginas || totalPaginas === 0;
@@ -866,6 +943,11 @@
                 paginaAtual++;
                 renderizarTabela();
             }
+        }
+
+        function irParaPagina(pagina) {
+            paginaAtual = pagina;
+            renderizarTabela();
         }
 
         // ============================================
