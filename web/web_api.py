@@ -13406,51 +13406,37 @@ def api_admin_transferencias():
         # Calcular offset
         offset = (page - 1) * limit
         
-        # QUERY 1: Contar total de registros com os filtros
-        count_query = supabase.table('transferencias')\
-            .eq('tipo', 'transferencia_internacional')
+        # Abordagem mais simples: obter todos os dados filtrados e paginar manualmente
+        query = supabase.table('transferencias')\
+            .select('*')\
+            .eq('tipo', 'transferencia_internacional')\
+            .order('created_at', desc=True)
         
+        # Aplicar filtros
         if status_filter and status_filter != 'todos':
-            count_query = count_query.eq('status', status_filter)
+            query = query.eq('status', status_filter)
         
         if cliente_filter:
-            count_query = count_query.eq('cliente', cliente_filter)
+            query = query.eq('cliente', cliente_filter)
         
         if periodo_filter > 0:
             from datetime import datetime, timedelta
             data_limite = datetime.now() - timedelta(days=periodo_filter)
-            count_query = count_query.gte('created_at', data_limite.isoformat())
+            query = query.gte('created_at', data_limite.isoformat())
         
         if search_filter:
             search_pattern = '%' + search_filter + '%'
-            count_query = count_query.ilike('descricao', search_pattern)
+            query = query.ilike('descricao', search_pattern)
         
-        count_response = count_query.select('id', count='exact').execute()
-        total_count = count_response.count or 0
+        # Executar query completa (sem paginação no banco)
+        response = query.execute()
+        all_transferencias_data = response.data or []
         
-        # QUERY 2: Obter dados paginados (refazer com mesmos filtros)
-        data_query = supabase.table('transferencias')\
-            .eq('tipo', 'transferencia_internacional')
-        
-        if status_filter and status_filter != 'todos':
-            data_query = data_query.eq('status', status_filter)
-        
-        if cliente_filter:
-            data_query = data_query.eq('cliente', cliente_filter)
-        
-        if periodo_filter > 0:
-            data_query = data_query.gte('created_at', data_limite.isoformat())
-        
-        if search_filter:
-            data_query = data_query.ilike('descricao', search_pattern)
-        
-        response = data_query\
-            .select('*')\
-            .order('created_at', desc=True)\
-            .range(offset, offset + limit - 1)\
-            .execute()
-        
-        transferencias_data = response.data or []
+        # Paginação manual em Python
+        total_count = len(all_transferencias_data)
+        start_idx = offset
+        end_idx = min(offset + limit, total_count)
+        transferencias_data = all_transferencias_data[start_idx:end_idx]
         
         transferencias = []
         for t in transferencias_data:
