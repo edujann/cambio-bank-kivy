@@ -13428,22 +13428,24 @@ def api_admin_transferencias():
             return query
         
         # QUERY 1: contar registros filtrados
-        count_query = build_filter_chain(supabase.table('transferencias'))
-        count_response = count_query.select('id', count='exact').execute()
+        count_query = build_filter_chain(supabase.table('transferencias')\
+            .select('id', count='exact'))
+        count_response = count_query.execute()
         total_count = count_response.count or 0
         
         # QUERY 2: obter dados apenas da página atual
-        page_query = build_filter_chain(supabase.table('transferencias'))
+        page_query = build_filter_chain(supabase.table('transferencias')\
+            .select('id, tipo, status, created_at, moeda, valor, cliente, usuario, solicitado_por, beneficiario, descricao, motivo_recusa, invoice_info'))
         response = page_query\
-            .select('id, tipo, status, created_at, moeda, valor, cliente, usuario, solicitado_por, beneficiario, descricao, motivo_recusa, invoice_info')\
             .order('created_at', desc=True)\
             .range(offset, offset + limit - 1)\
             .execute()
         transferencias_data = response.data or []
         
         # QUERY 3: obter apenas status para estatísticas
-        status_query = build_filter_chain(supabase.table('transferencias'))
-        status_response = status_query.select('status').execute()
+        status_query = build_filter_chain(supabase.table('transferencias')\
+            .select('status'))
+        status_response = status_query.execute()
         status_data = status_response.data or []
         
         # 🔥 OTIMIZAÇÃO: Buscar todos os nomes de clientes de uma vez (evita N queries)
