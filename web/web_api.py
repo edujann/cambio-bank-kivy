@@ -13406,34 +13406,45 @@ def api_admin_transferencias():
         # Calcular offset
         offset = (page - 1) * limit
         
-        # Construir query base - APENAS TRANSFERÊNCIAS INTERNACIONAIS
-        filter_query = supabase.table('transferencias')\
+        # QUERY 1: Contar total de registros com os filtros
+        count_query = supabase.table('transferencias')\
             .eq('tipo', 'transferencia_internacional')
         
-        # Aplicar filtros
         if status_filter and status_filter != 'todos':
-            filter_query = filter_query.eq('status', status_filter)
+            count_query = count_query.eq('status', status_filter)
         
         if cliente_filter:
-            # Filtro simples por cliente
-            filter_query = filter_query.eq('cliente', cliente_filter)
+            count_query = count_query.eq('cliente', cliente_filter)
         
         if periodo_filter > 0:
             from datetime import datetime, timedelta
             data_limite = datetime.now() - timedelta(days=periodo_filter)
-            filter_query = filter_query.gte('created_at', data_limite.isoformat())
+            count_query = count_query.gte('created_at', data_limite.isoformat())
         
         if search_filter:
-            # Busca simples no campo descricao
             search_pattern = '%' + search_filter + '%'
-            filter_query = filter_query.ilike('descricao', search_pattern)
+            count_query = count_query.ilike('descricao', search_pattern)
         
-        # QUERY 1: Obter total de registros
-        count_response = filter_query.select('id', count='exact').execute()
+        count_response = count_query.select('id', count='exact').execute()
         total_count = count_response.count or 0
         
-        # QUERY 2: Obter dados paginados
-        response = filter_query\
+        # QUERY 2: Obter dados paginados (refazer com mesmos filtros)
+        data_query = supabase.table('transferencias')\
+            .eq('tipo', 'transferencia_internacional')
+        
+        if status_filter and status_filter != 'todos':
+            data_query = data_query.eq('status', status_filter)
+        
+        if cliente_filter:
+            data_query = data_query.eq('cliente', cliente_filter)
+        
+        if periodo_filter > 0:
+            data_query = data_query.gte('created_at', data_limite.isoformat())
+        
+        if search_filter:
+            data_query = data_query.ilike('descricao', search_pattern)
+        
+        response = data_query\
             .select('*')\
             .order('created_at', desc=True)\
             .range(offset, offset + limit - 1)\
