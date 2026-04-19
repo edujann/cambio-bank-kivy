@@ -686,6 +686,122 @@
         --cor-venda: #e74c3c;
     }
 
+    /* ============================================
+       INDICADOR DE LIMITE DIÁRIO
+    ============================================ */
+    .limite-diario-container {
+        margin: -10px 0 20px;
+        padding: 10px 14px;
+        background: rgba(26, 95, 180, 0.05);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius-pequeno);
+    }
+
+    .limite-diario-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 7px;
+        font-size: 12px;
+    }
+
+    .limite-diario-label { color: var(--cor-texto-secundario); }
+    .limite-diario-valor { color: var(--cor-texto); font-weight: 600; }
+
+    .limite-bar-track {
+        background: var(--cor-borda);
+        border-radius: 10px;
+        height: 5px;
+        overflow: hidden;
+    }
+
+    .limite-bar-fill {
+        height: 100%;
+        border-radius: 10px;
+        background: var(--cor-primaria);
+        transition: width 0.6s ease;
+    }
+
+    .limite-bar-fill.aviso  { background: var(--cor-alerta); }
+    .limite-bar-fill.critico { background: var(--cor-perigo); }
+
+    /* ============================================
+       HISTÓRICO RÁPIDO DE TRADES
+    ============================================ */
+    .historico-section {
+        background: var(--cor-card);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius);
+        padding: 18px 20px;
+        margin-top: 25px;
+    }
+
+    .historico-titulo {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--cor-primaria);
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .historico-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 9px 0;
+        border-bottom: 1px solid var(--cor-borda);
+        font-size: 13px;
+    }
+
+    .historico-item:last-child { border-bottom: none; }
+
+    .historico-tipo {
+        display: inline-block;
+        padding: 2px 7px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: 700;
+        margin-right: 7px;
+        text-transform: uppercase;
+    }
+
+    .historico-tipo.compra {
+        background: rgba(46, 204, 113, 0.15);
+        color: var(--cor-compra);
+    }
+
+    .historico-tipo.venda {
+        background: rgba(231, 76, 60, 0.15);
+        color: var(--cor-venda);
+    }
+
+    .historico-par   { color: var(--cor-texto); font-weight: 600; }
+    .historico-valor { color: var(--cor-texto); font-size: 13px; font-weight: 500; }
+    .historico-data  { color: var(--cor-texto-secundario); font-size: 11px; margin-top: 2px; }
+
+    /* ============================================
+       AVISO DE TAXA ALTERADA
+    ============================================ */
+    .aviso-taxa {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        background: rgba(243, 156, 18, 0.12);
+        border: 1px solid var(--cor-alerta);
+        border-radius: var(--borda-radius-pequeno);
+        padding: 10px 12px;
+        margin-bottom: 14px;
+        font-size: 12px;
+        color: var(--cor-alerta);
+        text-align: left;
+    }
+
+    .aviso-taxa i { flex-shrink: 0; margin-top: 1px; }
+
     </style>
     
     <!-- FontAwesome para ícones -->
@@ -791,10 +907,29 @@
                 Você receberá: ---
             </div>
 
+            <!-- INDICADOR DE LIMITE DIÁRIO -->
+            <div class="limite-diario-container" id="limiteDiarioContainer" style="display:none">
+                <div class="limite-diario-header">
+                    <span class="limite-diario-label"><i class="fas fa-tachometer-alt"></i> Limite diário utilizado</span>
+                    <span class="limite-diario-valor" id="limiteDiarioTexto">...</span>
+                </div>
+                <div class="limite-bar-track">
+                    <div class="limite-bar-fill" id="limiteDiarioFill" style="width:0%"></div>
+                </div>
+            </div>
+
             <!-- BOTÃO CONFIRMAR -->
             <button class="btn-confirmar" id="btnConfirmar" onclick="confirmarOperacao()" disabled>
                 CONFIRMAR OPERAÇÃO
             </button>
+        </section>
+
+        <!-- HISTÓRICO RÁPIDO DE TRADES -->
+        <section class="historico-section" id="historicoSection" style="display:none">
+            <div class="historico-titulo">
+                <i class="fas fa-history"></i> ÚLTIMAS OPERAÇÕES
+            </div>
+            <div id="historicoLista"></div>
         </section>
     </div>
 
@@ -961,6 +1096,8 @@
             this.carregarSaldos();
             this.carregarParesDisponiveis();
             this.configurarEventos();
+            this.carregarLimiteDiario();
+            this.carregarHistoricoCambio();
         }
 
         async verificarAutorizacao() {
@@ -1671,59 +1808,18 @@
             }
         }
 
-        async calcularValorConvertido() {
-            if (!this.parSelecionado || this.valorDigitado <= 0) return;
-            
-            try {
-                const moedaDe = document.getElementById('spinnerDe').value;
-                const moedaPara = document.getElementById('spinnerPara').value;
-                
-                // 🔥 INTEGRAÇÃO COM API DE CÁLCULO
-                const response = await fetch('/api/calcular-cambio', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        moedaDe: moedaDe,
-                        moedaPara: moedaPara,
-                        tipoOperacao: this.tipoOperacao,
-                        valor: this.valorDigitado,
-                        usuario: this.usuario
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success && data.resultado) {
-                    let texto;
-                    
-                    if (this.tipoOperacao === 'compra') {
-                        texto = `Você pagará: ${data.resultado.toFixed(2)} ${moedaDe}`;
-                        console.log(`💰 COMPRA: Receberá ${this.valorDigitado.toFixed(2)} ${moedaPara}, Pagará ${data.resultado.toFixed(2)} ${moedaDe}`);
-                    } else {
-                        texto = `Você receberá: ${data.resultado.toFixed(2)} ${moedaPara}`;
-                        console.log(`💰 VENDA: Pagará ${this.valorDigitado.toFixed(2)} ${moedaDe}, Receberá ${data.resultado.toFixed(2)} ${moedaPara}`);
-                    }
-                    
-                    document.getElementById('resultadoCalculado').textContent = texto;
-                    
-                } else {
-                    document.getElementById('resultadoCalculado').textContent = 'Erro no cálculo';
-                }
-                
-            } catch (error) {
-                console.error("❌ Erro ao calcular:", error);
-                
-                // Fallback com cálculo local simples
-                let resultado;
-                if (this.tipoOperacao === 'compra') {
-                    resultado = this.valorDigitado * this.cotacaoAtual;
-                    document.getElementById('resultadoCalculado').textContent = 
-                        `Você pagará: ${resultado.toFixed(2)} ${document.getElementById('spinnerDe').value}`;
-                } else {
-                    resultado = this.valorDigitado / this.cotacaoAtual;
-                    document.getElementById('resultadoCalculado').textContent = 
-                        `Você receberá: ${resultado.toFixed(2)} ${document.getElementById('spinnerPara').value}`;
-                }
+        calcularValorConvertido() {
+            if (!this.parSelecionado || this.valorDigitado <= 0 || this.cotacaoAtual <= 0) return;
+            const moedaDe  = document.getElementById('spinnerDe').value;
+            const moedaPara = document.getElementById('spinnerPara').value;
+            // cotacaoAtual já inclui spread: para COMPRA → 1 moedaPara = cotacao moedaDe
+            // para VENDA → 1 moedaDe = cotacao moedaPara. Ambos: resultado = valor × cotacao
+            const resultado = this.valorDigitado * this.cotacaoAtual;
+            const el = document.getElementById('resultadoCalculado');
+            if (this.tipoOperacao === 'compra') {
+                el.textContent = `Você pagará: ${this.formatarMoeda(moedaDe, resultado)}`;
+            } else {
+                el.textContent = `Você receberá: ${this.formatarMoeda(moedaPara, resultado)}`;
             }
         }
 
@@ -1776,43 +1872,34 @@
             // Calcular valores para confirmação
             let valorPagar, valorReceber;
             
+            // Verificar se a taxa mudou desde a última consulta
+            this._taxaAlterada = null;
+            try {
+                const rateRes = await fetch('/api/cotacao', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ par: this.parSelecionado, operacao: this.tipoOperacao, usuario: this.usuario })
+                });
+                const rateData = await rateRes.json();
+                if (rateData.success && rateData.cotacao) {
+                    const diff = Math.abs(rateData.cotacao - this.cotacaoAtual) / this.cotacaoAtual * 100;
+                    if (diff > 0.3) {
+                        this._taxaAlterada = { anterior: this.cotacaoAtual, nova: rateData.cotacao, diff: diff.toFixed(2) };
+                        this.cotacaoAtual = rateData.cotacao;
+                        this.atualizarUI_Cotacao(rateData.cotacao, rateData.spread);
+                        this.calcularValorConvertido();
+                    }
+                }
+            } catch (e) { /* continua com taxa atual */ }
+
             if (this.tipoOperacao === 'compra') {
                 valorReceber = this.valorDigitado;
-                // Obter cálculo da API
-                const calcResponse = await fetch('/api/calcular-cambio', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        moedaDe: moedaDe,
-                        moedaPara: moedaPara,
-                        tipoOperacao: 'compra',
-                        valor: valorReceber,
-                        usuario: this.usuario
-                    })
-                });
-                
-                const calcData = await calcResponse.json();
-                valorPagar = calcData.resultado;
-                
+                valorPagar   = valorReceber * this.cotacaoAtual;
             } else {
-                valorPagar = this.valorDigitado;
-                // Obter cálculo da API
-                const calcResponse = await fetch('/api/calcular-cambio', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        moedaDe: moedaDe,
-                        moedaPara: moedaPara,
-                        tipoOperacao: 'venda',
-                        valor: valorPagar,
-                        usuario: this.usuario
-                    })
-                });
-                
-                const calcData = await calcResponse.json();
-                valorReceber = calcData.resultado;
+                valorPagar   = this.valorDigitado;
+                valorReceber = valorPagar * this.cotacaoAtual;
             }
-            
+
             if (!valorPagar || !valorReceber) {
                 this.mostrarErro("Erro ao calcular valores da operação!");
                 return;
@@ -1874,12 +1961,18 @@
         // ============================================
         mostrarPopupConfirmacao(valorPagar, valorReceber, moedaPagar, moedaReceber, cotacaoDireta, cotacaoInversa) {
             const titulo = `CONFIRMAR OPERAÇÃO ${this.tipoOperacao.toUpperCase()}`;
+            const avisoTaxa = this._taxaAlterada ? `
+                <div class="aviso-taxa">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Taxa atualizada! Era ${this._taxaAlterada.anterior.toFixed(4)}, agora ${this._taxaAlterada.nova.toFixed(4)} (${this._taxaAlterada.diff}% de variação). Valores recalculados.</span>
+                </div>` : '';
             const mensagem = `
+                ${avisoTaxa}
                 <div style="text-align: center; margin-bottom: 15px;">
                     <strong style="color: var(--cor-sucesso); font-size: 18px;">${this.tipoOperacao.toUpperCase()} ${moedaReceber}</strong>
                 </div>
-                <p><strong>Você pagará:</strong> ${valorPagar.toFixed(2)} ${moedaPagar}</p>
-                <p><strong>Você receberá:</strong> ${valorReceber.toFixed(2)} ${moedaReceber}</p>
+                <p><strong>Você pagará:</strong> ${this.formatarMoeda(moedaPagar, valorPagar)}</p>
+                <p><strong>Você receberá:</strong> ${this.formatarMoeda(moedaReceber, valorReceber)}</p>
                 <p style="margin-top: 10px; color: var(--cor-texto-secundario); font-size: 14px;">
                     Cotação: 1 ${moedaPagar} = ${cotacaoDireta.toFixed(4)} ${moedaReceber}
                 </p>
@@ -1987,10 +2080,13 @@
                     
                     // Limpar campos
                     document.getElementById('valorInput').value = '';
+                    this.valorDigitado = 0;
                     document.getElementById('resultadoCalculado').textContent = 'Você receberá: ---';
-                    
-                    // Recarregar saldos
+
+                    // Recarregar saldos, limite e histórico
                     await this.carregarSaldos();
+                    this.carregarLimiteDiario();
+                    this.carregarHistoricoCambio();
                     
                 } else {
                     this.mostrarErro(data.error || data.message || "Erro ao executar operação");
@@ -2106,6 +2202,55 @@
                     }
                 });
             });
+        }
+
+        // ============================================
+        // LIMITE DIÁRIO
+        // ============================================
+        async carregarLimiteDiario() {
+            try {
+                const res = await fetch(`/api/uso-diario/${this.usuario}`);
+                const data = await res.json();
+                if (!data.success) return;
+                const { usado, limite } = data;
+                const pct = limite > 0 ? Math.min(usado / limite * 100, 100) : 0;
+                const container = document.getElementById('limiteDiarioContainer');
+                container.style.display = 'block';
+                document.getElementById('limiteDiarioTexto').textContent =
+                    `${this.formatarMoeda('USD', usado)} / ${this.formatarMoeda('USD', limite)}`;
+                const fill = document.getElementById('limiteDiarioFill');
+                fill.style.width = `${pct}%`;
+                fill.className = 'limite-bar-fill' + (pct >= 90 ? ' critico' : pct >= 70 ? ' aviso' : '');
+            } catch (e) { /* silencioso */ }
+        }
+
+        // ============================================
+        // HISTÓRICO RÁPIDO
+        // ============================================
+        async carregarHistoricoCambio() {
+            try {
+                const res = await fetch(`/api/historico-cambio/${this.usuario}`);
+                const data = await res.json();
+                if (!data.success || !data.trades.length) return;
+                const section = document.getElementById('historicoSection');
+                section.style.display = 'block';
+                document.getElementById('historicoLista').innerHTML = data.trades.map(t => {
+                    const tipo = (t.operacao || 'cambio').toLowerCase();
+                    const dataStr = new Date(t.created_at).toLocaleString('pt-BR', {
+                        day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+                    });
+                    return `<div class="historico-item">
+                        <div>
+                            <span class="historico-tipo ${tipo}">${tipo}</span>
+                            <span class="historico-par">${t.par_moedas || '-'}</span>
+                        </div>
+                        <div style="text-align:right">
+                            <div class="historico-valor">${this.formatarMoeda(t.moeda, parseFloat(t.valor))}</div>
+                            <div class="historico-data">${dataStr}</div>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (e) { /* silencioso */ }
         }
 
         // ============================================

@@ -5440,6 +5440,87 @@ def api_limite_operacional(usuario):
         print(f"⚠️ Erro ao buscar limite: {e}")
         return jsonify({'success': True, 'limite': 10000.00})
 
+@app.route('/api/uso-diario/<usuario>')
+def api_uso_diario(usuario):
+    """Retorna quanto do limite diário já foi usado pelo cliente hoje"""
+    if 'username' not in session:
+        return jsonify({'success': False}), 401
+    try:
+        from datetime import date as _date
+        from collections import defaultdict as _dd
+        hoje = _date.today().isoformat()
+        trades = supabase.table('transferencias')\
+            .select('valor')\
+            .eq('usuario', usuario)\
+            .eq('tipo', 'cambio')\
+            .eq('status', 'completed')\
+            .gte('created_at', f"{hoje} 00:00:00")\
+            .execute()
+        usado = sum(float(t.get('valor', 0)) for t in (trades.data or []))
+
+        limite = 10000.0
+        try:
+            r = supabase.table('config_cotacoes')\
+                .select('valor_config')\
+                .eq('tipo_config', 'limites')\
+                .eq('cliente_username', usuario)\
+                .order('data_atualizacao', desc=True).limit(1).execute()
+            if r.data:
+                limite = float(r.data[0]['valor_config'])
+            else:
+                r2 = supabase.table('config_sistema')\
+                    .select('valor_config')\
+                    .eq('modulo', 'financeiras')\
+                    .eq('chave_config', 'limite_transferencia_diario')\
+                    .single().execute()
+                if r2.data:
+                    limite = float(r2.data['valor_config'])
+        except Exception:
+            pass
+
+        return jsonify({'success': True, 'usado': usado, 'limite': limite})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/historico-cambio/<usuario>')
+def api_historico_cambio(usuario):
+    """Retorna os últimos 5 trades de câmbio do cliente"""
+    if 'username' not in session:
+        return jsonify({'success': False}), 401
+    try:
+        res = supabase.table('transferencias')\
+            .select('id,valor,moeda,par_moedas,operacao,created_at')\
+            .eq('usuario', usuario)\
+            .eq('tipo', 'cambio')\
+            .eq('status', 'completed')\
+            .order('created_at', desc=True)\
+            .limit(5)\
+            .execute()
+        return jsonify({'success': True, 'trades': res.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/notificacoes/cambio')
+def api_admin_notificacoes_cambio():
+    """Retorna trades de câmbio realizados após o timestamp informado (para alertas admin)"""
+    if 'username' not in session:
+        return jsonify({'success': False}), 401
+    try:
+        desde = request.args.get('desde', '')
+        query = supabase.table('transferencias')\
+            .select('id,usuario,valor,moeda,par_moedas,operacao,created_at')\
+            .eq('tipo', 'cambio')\
+            .eq('status', 'completed')
+        if desde:
+            query = query.gt('created_at', desde)
+        res = query.order('created_at', desc=True).limit(20).execute()
+        return jsonify({'success': True, 'trades': res.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @app.route('/api/verificar-saldos/<usuario>', methods=['POST'])
 def api_verificar_saldos(usuario):
     """API para verificar saldos antes da operação"""

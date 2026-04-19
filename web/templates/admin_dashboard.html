@@ -880,10 +880,72 @@
         
         document.addEventListener('DOMContentLoaded', () => {
             carregarDashboardAdmin();
-            
-            // Recarregar a cada 30 segundos
             setInterval(carregarDashboardAdmin, 30000);
+            iniciarAlertasCambio();
         });
+
+        // ============================================
+        // ALERTAS DE TRADE EM TEMPO REAL
+        // ============================================
+        function iniciarAlertasCambio() {
+            const KEY = 'admin_last_seen_cambio';
+            if (!localStorage.getItem(KEY)) {
+                localStorage.setItem(KEY, new Date().toISOString());
+            }
+
+            async function verificarNovosTrades() {
+                try {
+                    const desde = localStorage.getItem(KEY);
+                    const res = await fetch(`/api/admin/notificacoes/cambio?desde=${encodeURIComponent(desde)}`);
+                    const data = await res.json();
+                    if (data.success && data.trades && data.trades.length > 0) {
+                        localStorage.setItem(KEY, data.trades[0].created_at);
+                        data.trades.forEach(t => mostrarToastTrade(t));
+                    }
+                } catch (e) { /* silencioso */ }
+            }
+
+            // Aguarda 5s antes da 1ª verificação para não disparar na abertura
+            setTimeout(() => {
+                verificarNovosTrades();
+                setInterval(verificarNovosTrades, 30000);
+            }, 5000);
+        }
+
+        function mostrarToastTrade(trade) {
+            const id = 'toast_' + Date.now();
+            const tipo = (trade.operacao || 'cambio').toUpperCase();
+            const cor  = tipo === 'COMPRA' ? '#2ecc71' : '#e74c3c';
+            const toast = document.createElement('div');
+            toast.id = id;
+            toast.style.cssText = `
+                position:fixed;bottom:20px;right:20px;z-index:99999;
+                background:var(--cor-card,#0d1117);border:1px solid ${cor};
+                border-left:4px solid ${cor};border-radius:8px;
+                padding:14px 18px;min-width:280px;max-width:340px;
+                box-shadow:0 4px 20px rgba(0,0,0,0.5);
+                animation:slideInToast 0.3s ease;
+                font-family:'Segoe UI',sans-serif;color:var(--cor-texto,#e0e0e0);
+            `;
+            toast.innerHTML = `
+                <style>@keyframes slideInToast{from{transform:translateX(110%)}to{transform:translateX(0)}}</style>
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+                    <div>
+                        <div style="font-size:12px;color:${cor};font-weight:700;margin-bottom:5px;">
+                            <i class="fas fa-exchange-alt"></i> NOVO TRADE — ${tipo}
+                        </div>
+                        <div style="font-size:14px;font-weight:600;">${trade.usuario}</div>
+                        <div style="font-size:13px;color:#8b949e;margin-top:3px;">
+                            ${trade.par_moedas || '-'} &nbsp;•&nbsp; ${parseFloat(trade.valor).toFixed(2)} ${trade.moeda}
+                        </div>
+                    </div>
+                    <button onclick="document.getElementById('${id}').remove()"
+                            style="background:none;border:none;color:#8b949e;font-size:18px;cursor:pointer;padding:0;line-height:1">×</button>
+                </div>
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => { const el = document.getElementById(id); if (el) el.remove(); }, 8000);
+        }
     </script>
     <script src="/static/js/theme.js"></script>
 </body>
