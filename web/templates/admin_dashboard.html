@@ -890,7 +890,9 @@
         function iniciarAlertasCambio() {
             const KEY = 'admin_last_seen_cambio';
             if (!localStorage.getItem(KEY)) {
-                localStorage.setItem(KEY, new Date().toISOString());
+                // Inicializa 1h atrás para capturar trades recentes ao abrir o dashboard
+                const quatroHorasAtras = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+                localStorage.setItem(KEY, quatroHorasAtras);
             }
 
             async function verificarNovosTrades() {
