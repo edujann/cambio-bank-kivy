@@ -131,6 +131,7 @@
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('pool')"><i class="fas fa-layer-group"></i> Pool</button>
         <button class="tab-btn" onclick="switchTab('comprar')"><i class="fas fa-plus-circle"></i> Registrar Compra</button>
+        <button class="tab-btn" onclick="switchTab('vender')"><i class="fas fa-handshake"></i> Registrar Venda</button>
         <button class="tab-btn" onclick="switchTab('pl')"><i class="fas fa-coins"></i> P&L</button>
         <button class="tab-btn" onclick="switchTab('trader')"><i class="fas fa-bolt"></i> Painel Trader</button>
     </div>
@@ -229,6 +230,87 @@
         </div>
     </div>
 
+    <!-- TAB: VENDER -->
+    <div id="tab-vender" class="tab-content">
+        <div class="form-card">
+            <div class="form-section-title"><i class="fas fa-handshake"></i> Venda de Moeda ao Parceiro Atacado</div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Parceiro *</label>
+                    <select id="vParceiro" class="form-control" onchange="onParceiroVendaChange()">
+                        <option value="">Selecione o parceiro…</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Moeda Vendida *</label>
+                    <select id="vMoeda" class="form-control" onchange="onMoedaVendaChange()">
+                        <option value="">Selecione…</option>
+                        <option value="USD">USD — Dólar Americano</option>
+                        <option value="EUR">EUR — Euro</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Valor Vendido *</label>
+                    <input id="vValor" type="number" step="0.01" class="form-control" placeholder="Ex: 2100" oninput="calcPreviewVenda()">
+                </div>
+                <div class="form-group">
+                    <label>Taxa BRL por <span id="vMoedaLabel">unidade</span> *</label>
+                    <input id="vTaxaBRL" type="number" step="0.0001" class="form-control" placeholder="Ex: 5.80" oninput="calcPreviewVenda()">
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Taxa GBP por <span id="vMoedaLabel2">unidade</span> (para P&L) *</label>
+                    <input id="vTaxaGBP" type="number" step="0.000001" class="form-control" placeholder="Ex: 0.7900" oninput="calcPreviewVenda()">
+                    <small style="color:var(--cor-texto-secundario);font-size:11px;margin-top:4px;display:block">Cotação GBP/moeda atual — define o P&L realizado no pool</small>
+                </div>
+                <div class="form-group">
+                    <label>Conta Empresa a Debitar *</label>
+                    <select id="vContaEmpresa" class="form-control"><option value="">Selecione a moeda primeiro…</option></select>
+                </div>
+            </div>
+
+            <div class="form-section-title" style="margin-top:16px"><i class="fas fa-user-tie"></i> Contas do Parceiro</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Conta BRL (debitar parceiro) *</label>
+                    <select id="vContaParcBRL" class="form-control"><option value="">Selecione o parceiro primeiro…</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Conta <span id="vMoedaLabel3">moeda</span> (creditar parceiro) *</label>
+                    <select id="vContaParcMoeda" class="form-control"><option value="">Selecione o parceiro primeiro…</option></select>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Ordem Captação vinculada <small style="color:var(--cor-texto-secundario)">(opcional — marca como paga)</small></label>
+                    <input id="vOrdemId" type="text" class="form-control" placeholder="UUID da ordem">
+                </div>
+                <div class="form-group">
+                    <label>Observações</label>
+                    <input id="vObs" type="text" class="form-control" placeholder="Opcional">
+                </div>
+            </div>
+
+            <div class="preview-box" id="vPreviewBox" style="display:none">
+                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Parceiro recebe:</span><span id="vPvMoeda" style="font-weight:700;color:#1a5fb4;font-size:16px"></span></div>
+                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Parceiro paga (BRL debitado):</span><span id="vPvBRL" style="font-weight:700;color:#e01b24;font-size:16px"></span></div>
+                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Custo GBP do pool:</span><span id="vPvCustoGBP" class="mono"></span></div>
+            </div>
+
+            <button class="btn-primary" id="btnVender" onclick="registrarVenda()">
+                <i class="fas fa-handshake"></i> Registrar Venda
+            </button>
+            <div id="vendaMsg" style="margin-top:14px;font-size:14px;"></div>
+        </div>
+    </div>
+
     <!-- TAB: P&L -->
     <div id="tab-pl" class="tab-content">
         <div id="pl-resumo" class="resumo-grid"></div>
@@ -290,7 +372,7 @@
 
     // ── Tabs ─────────────────────────────────────────────────────────────────
     function switchTab(name) {
-        document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['pool','comprar','pl','trader'][i] === name));
+        document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['pool','comprar','vender','pl','trader'][i] === name));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         document.getElementById(`tab-${name}`).classList.add('active');
         if (name === 'pool')    carregarPool();
@@ -581,9 +663,122 @@
         }
     }
 
+    // ── Vender ────────────────────────────────────────────────────────────────
+    let parceiroContasCache = {};
+
+    async function carregarParceirosVenda() {
+        const r = await fetch('/api/loja/parceiros');
+        const d = await r.json();
+        const sel = document.getElementById('vParceiro');
+        sel.innerHTML = '<option value="">Selecione o parceiro…</option>';
+        (d.parceiros || []).forEach(p => sel.innerHTML += `<option value="${p.username}">${p.nome} (${p.username})</option>`);
+    }
+
+    async function onParceiroVendaChange() {
+        const parceiro = document.getElementById('vParceiro').value;
+        const selBRL   = document.getElementById('vContaParcBRL');
+        const selMoeda = document.getElementById('vContaParcMoeda');
+        if (!parceiro) {
+            selBRL.innerHTML   = '<option value="">Selecione o parceiro primeiro…</option>';
+            selMoeda.innerHTML = '<option value="">Selecione o parceiro primeiro…</option>';
+            return;
+        }
+        selBRL.innerHTML   = '<option value="">Carregando…</option>';
+        selMoeda.innerHTML = '<option value="">Carregando…</option>';
+        const r = await fetch(`/api/admin/fx/cliente-contas?username=${encodeURIComponent(parceiro)}`);
+        const d = await r.json();
+        parceiroContasCache[parceiro] = d.contas || [];
+        onMoedaVendaChange();
+    }
+
+    function onMoedaVendaChange() {
+        const moeda    = document.getElementById('vMoeda').value;
+        const parceiro = document.getElementById('vParceiro').value;
+        ['vMoedaLabel','vMoedaLabel2','vMoedaLabel3'].forEach(id => {
+            if (moeda) document.getElementById(id).textContent = moeda;
+        });
+
+        const contas      = parceiroContasCache[parceiro] || [];
+        const contasBRL   = contas.filter(c => c.moeda === 'BRL');
+        const contasMoeda = moeda ? contas.filter(c => c.moeda === moeda) : [];
+
+        const selBRL   = document.getElementById('vContaParcBRL');
+        const selMoeda = document.getElementById('vContaParcMoeda');
+        selBRL.innerHTML   = '<option value="">Conta BRL do parceiro…</option>' +
+            contasBRL.map(c => `<option value="${c.id}">${c.id} (BRL) saldo: ${fmtNum(c.saldo)}</option>`).join('');
+        selMoeda.innerHTML = `<option value="">Conta ${moeda||'moeda'} do parceiro…</option>` +
+            contasMoeda.map(c => `<option value="${c.id}">${c.id} (${c.moeda}) saldo: ${fmtNum(c.saldo)}</option>`).join('');
+
+        const selEmp = document.getElementById('vContaEmpresa');
+        const filtradas = moeda ? contasEmpresa.filter(c => c.moeda === moeda) : contasEmpresa;
+        selEmp.innerHTML = '<option value="">Conta empresa a debitar…</option>' +
+            filtradas.map(c => `<option value="${c.numero}">${c.numero} — ${c.banco||''} (${c.moeda}) saldo: ${fmtNum(c.saldo)}</option>`).join('');
+
+        calcPreviewVenda();
+    }
+
+    function calcPreviewVenda() {
+        const valor   = parseFloat(document.getElementById('vValor').value) || 0;
+        const taxaBRL = parseFloat(document.getElementById('vTaxaBRL').value) || 0;
+        const taxaGBP = parseFloat(document.getElementById('vTaxaGBP').value) || 0;
+        const moeda   = document.getElementById('vMoeda').value;
+        const box     = document.getElementById('vPreviewBox');
+        if (!valor || !taxaBRL || !moeda) { box.style.display = 'none'; return; }
+        box.style.display = 'block';
+        document.getElementById('vPvMoeda').textContent = `${fmtNum(valor,2)} ${moeda}`;
+        document.getElementById('vPvBRL').textContent   = `R$ ${fmtNum(valor * taxaBRL, 2)} BRL`;
+        document.getElementById('vPvCustoGBP').textContent = taxaGBP > 0
+            ? `£${fmtNum(valor * taxaGBP, 2)} (${taxaGBP.toFixed(6)} GBP/${moeda})`
+            : '— informe a taxa GBP acima';
+    }
+
+    async function registrarVenda() {
+        const msg = document.getElementById('vendaMsg');
+        const btn = document.getElementById('btnVender');
+        const payload = {
+            parceiro:              document.getElementById('vParceiro').value,
+            moeda_vendida:         document.getElementById('vMoeda').value,
+            valor_vendido:         parseFloat(document.getElementById('vValor').value) || 0,
+            taxa_brl_unit:         parseFloat(document.getElementById('vTaxaBRL').value) || 0,
+            taxa_gbp_unit:         parseFloat(document.getElementById('vTaxaGBP').value) || 0,
+            conta_empresa:         document.getElementById('vContaEmpresa').value,
+            conta_parceiro_brl:    document.getElementById('vContaParcBRL').value,
+            conta_parceiro_moeda:  document.getElementById('vContaParcMoeda').value,
+            ordem_captacao_id:     document.getElementById('vOrdemId').value.trim() || null,
+            observacoes:           document.getElementById('vObs').value.trim(),
+        };
+        if (!payload.parceiro || !payload.moeda_vendida || !payload.valor_vendido ||
+            !payload.taxa_brl_unit || !payload.taxa_gbp_unit ||
+            !payload.conta_empresa || !payload.conta_parceiro_brl || !payload.conta_parceiro_moeda) {
+            msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Preencha todos os campos obrigatórios.</span>';
+            return;
+        }
+        btn.disabled = true;
+        msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registrando…';
+        try {
+            const res = await fetch('/api/admin/fx/venda', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            const d = await res.json();
+            if (d.success) {
+                msg.innerHTML = `<span style="color:var(--cor-sucesso)"><i class="fas fa-check-circle"></i> ${d.message}</span>`;
+                ['vValor','vTaxaBRL','vTaxaGBP','vOrdemId','vObs'].forEach(id => document.getElementById(id).value = '');
+                document.getElementById('vPreviewBox').style.display = 'none';
+            } else {
+                msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> ${d.message}</span>`;
+            }
+        } catch(e) {
+            msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> ${e.message}</span>`;
+        }
+        btn.disabled = false;
+    }
+
     // ── Init ──────────────────────────────────────────────────────────────────
     carregarPool();
     carregarContasEmpresa();
+    carregarParceirosVenda();
 </script>
 </body>
 </html>

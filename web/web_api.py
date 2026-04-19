@@ -14793,6 +14793,150 @@ def fx_registrar_compra():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+@app.route('/api/admin/fx/cliente-contas', methods=['GET'])
+def fx_cliente_contas():
+    try:
+        if not session.get('username'):
+            return jsonify({'success': False}), 401
+        username = request.args.get('username', '')
+        if not username:
+            return jsonify({'success': True, 'contas': []})
+        r = supabase.table('contas').select('id, moeda, saldo').eq('cliente_username', username).execute()
+        return jsonify({'success': True, 'contas': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/fx/venda', methods=['POST'])
+def fx_registrar_venda():
+    """Registra venda de moeda do pool para parceiro atacado.
+    Faz o câmbio completo nas contas do parceiro (igual admin_gerenciar_contas)."""
+    try:
+        from datetime import datetime
+        import random
+
+        usuario = session.get('username')
+        if not usuario:
+            return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+
+        d = request.get_json()
+        parceiro         = d.get('parceiro', '').strip()
+        moeda            = d.get('moeda_vendida', '').upper()
+        valor            = float(d.get('valor_vendido', 0))
+        taxa_brl         = float(d.get('taxa_brl_unit', 0))
+        taxa_gbp         = float(d.get('taxa_gbp_unit', 0))
+        conta_empresa    = d.get('conta_empresa', '')
+        conta_parc_brl   = d.get('conta_parceiro_brl', '')
+        conta_parc_moeda = d.get('conta_parceiro_moeda', '')
+        ordem_id         = d.get('ordem_captacao_id', '') or ''
+        obs              = d.get('observacoes', '')
+
+        if not all([parceiro, moeda, valor > 0, taxa_brl > 0, taxa_gbp > 0,
+                    conta_empresa, conta_parc_brl, conta_parc_moeda]):
+            return jsonify({'success': False, 'message': 'Campos obrigatórios faltando'}), 400
+
+        valor_brl = round(valor * taxa_brl, 4)
+
+        # WAC atual do pool
+        compras = supabase.table('pool_compras').select('moeda_comprada, valor_comprado, taxa_em_gbp').execute()
+        wac_dict, _ = _fx_wac(compras.data)
+        wac_gbp = wac_dict.get(moeda, 0)
+        pl_gbp  = round((taxa_gbp - wac_gbp) * valor, 4)
+
+        # 1. Debitar conta empresa (pool)
+        r_emp = supabase.table('contas_bancarias_empresa').select('saldo').eq('numero', conta_empresa).single().execute()
+        if not r_emp.data:
+            return jsonify({'success': False, 'message': f'Conta empresa {conta_empresa} não encontrada'}), 404
+        supabase.table('contas_bancarias_empresa').update(
+            {'saldo': float(r_emp.data['saldo'] or 0) - valor}
+        ).eq('numero', conta_empresa).execute()
+
+        # 2. Câmbio nas contas do parceiro (igual api_admin_gerenciar_cambio)
+        r_brl   = supabase.table('contas').select('saldo, moeda').eq('id', conta_parc_brl).single().execute()
+        r_moeda = supabase.table('contas').select('saldo, moeda').eq('id', conta_parc_moeda).single().execute()
+        if not r_brl.data or not r_moeda.data:
+            return jsonify({'success': False, 'message': 'Conta do parceiro não encontrada'}), 404
+
+        supabase.table('contas').update({'saldo': float(r_brl.data['saldo'] or 0) - valor_brl}).eq('id', conta_parc_brl).execute()
+        supabase.table('contas').update({'saldo': float(r_moeda.data['saldo'] or 0) + valor}).eq('id', conta_parc_moeda).execute()
+
+        # 3. Registrar transferencias (extrato do parceiro)
+        tid = str(random.randint(100000, 999999))
+        while supabase.table('transferencias').select('id').eq('id', tid).execute().data:
+            tid = str(random.randint(100000, 999999))
+
+        moeda_brl_str = r_brl.data['moeda']
+        descricao = f"CÂMBIO POOL — {moeda_brl_str} → {moeda} | Captação varejo"
+        if ordem_id:
+            descricao += f" | Ordem {ordem_id}"
+        if obs:
+            descricao += f" | {obs}"
+
+        supabase.table('transferencias').insert({
+            'id': tid,
+            'tipo': 'cambio',
+            'status': 'completed',
+            'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'moeda': moeda_brl_str,
+            'valor': valor_brl,
+            'conta_remetente': conta_parc_brl,
+            'conta_destinatario': conta_parc_moeda,
+            'descricao': descricao,
+            'executado_por': usuario,
+            'cliente': parceiro,
+            'usuario': usuario,
+            'operacao': 'cambio_admin',
+            'par_moedas': f'{moeda_brl_str}_{moeda}',
+            'valor_origem': valor_brl,
+            'valor_destino': valor,
+            'cotacao': f'{taxa_brl:.6f}',
+            'moeda_origem': moeda_brl_str,
+            'moeda_destino': moeda,
+            'tipo_taxa_usada': 'principal',
+            'taxa_principal_registro': f'{taxa_brl:.6f}',
+            'created_at': datetime.now().isoformat(),
+        }).execute()
+
+        # 4. Registrar pool_vendas
+        pool_venda = {
+            'data': datetime.now().isoformat(),
+            'moeda': moeda,
+            'valor_vendido': valor,
+            'parceiro': parceiro,
+            'taxa_brl_unit': taxa_brl,
+            'taxa_gbp_unit': taxa_gbp,
+            'wac_gbp': wac_gbp,
+            'pl_realizado_gbp': pl_gbp,
+            'conta_empresa': conta_empresa,
+            'transacao_id': tid,
+            'executado_por': usuario,
+        }
+        if ordem_id:
+            try:
+                pool_venda['ordem_captacao_id'] = ordem_id
+                supabase.table('ordens_captacao').update({
+                    'status': 'paga',
+                    'pago_em': datetime.now().isoformat(),
+                    'pago_por': usuario,
+                    'parceiro_pagador': parceiro,
+                    'updated_at': datetime.now().isoformat(),
+                }).eq('id', ordem_id).execute()
+            except Exception:
+                pass
+        supabase.table('pool_vendas').insert(pool_venda).execute()
+
+        return jsonify({
+            'success': True,
+            'message': f'Venda registrada: {valor} {moeda} → R$ {valor_brl:.2f} BRL | P&L £{pl_gbp:.2f}',
+            'transacao_id': tid,
+            'pl_gbp': pl_gbp,
+            'wac_gbp': wac_gbp,
+        })
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
