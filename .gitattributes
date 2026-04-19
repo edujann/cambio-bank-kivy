@@ -1,0 +1,6 @@
+# Normaliza line endings para LF no repositório, CRLF no Windows
+* text=auto
+*.html text eol=lf
+*.css  text eol=lf
+*.js   text eol=lf
+*.py   text eol=lf

@@ -12125,6 +12125,39 @@ def api_admin_relatorios_anual():
         return jsonify({"success": False, "message": str(e)}), 500
 
 
+@app.route('/api/admin/taxas-referencia', methods=['GET'])
+def api_admin_taxas_referencia():
+    """Retorna taxas de câmbio reais (sem spread) para uso em conversões administrativas"""
+    try:
+        if not session.get('username'):
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+
+        pares = {
+            'EUR': 'USD_EUR',
+            'GBP': 'USD_GBP',
+            'BRL': 'USD_BRL',
+        }
+
+        taxas = {}
+        erros = []
+        for moeda, par in pares.items():
+            try:
+                taxa = obter_cotacao_simples(par)
+                if taxa:
+                    taxas[moeda] = round(float(taxa), 4)
+                else:
+                    erros.append(moeda)
+            except Exception as e:
+                print(f"⚠️ Erro ao buscar taxa {par}: {e}")
+                erros.append(moeda)
+
+        return jsonify({"success": True, "taxas": taxas, "erros": erros})
+
+    except Exception as e:
+        print(f"❌ Erro em taxas-referencia: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 @app.route('/api/admin/relatorios/dre', methods=['POST'])
 def api_admin_relatorios_dre():
     """Retorna DRE simplificado (Receitas x Despesas) para um período"""

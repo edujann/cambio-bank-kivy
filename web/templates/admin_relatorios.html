@@ -845,7 +845,13 @@
             }
         }
 
+        function destruirGrafico(ref) {
+            try { if (ref) ref.destroy(); } catch (e) {}
+            return null;
+        }
+
         function exibirRelatorioMensal(dados, taxas) {
+            graficoMensal = destruirGrafico(graficoMensal);
             const resultadosDiv = document.getElementById('mensalResultados');
             const totalGeral  = dados.total_geral || 0;
             const quantidade  = dados.quantidade_transacoes || 0;
@@ -970,7 +976,6 @@
             if (catEntries.length > 0) {
                 const ctx = document.getElementById('graficoMensal')?.getContext('2d');
                 if (ctx) {
-                    if (graficoMensal) graficoMensal.destroy();
                     graficoMensal = new Chart(ctx, {
                         type: 'doughnut',
                         data: {
@@ -1021,7 +1026,15 @@
 
                 if (data.success) {
                     dadosComparativo = data.dados;
-                    exibirRelatorioComparativo(dadosComparativo, mes1, ano1, mes2, ano2, moeda);
+                    // Quando TODAS as moedas, usar a moeda devolvida pela API (USD)
+                    const moedaDisplay = moeda === 'TODAS' ? (data.dados.moeda || 'USD') : moeda;
+
+                    if (moeda === 'TODAS') {
+                        // Abre modal de taxas para conversão; avisa que é estimativa
+                        abrirModalTaxas(taxas => exibirRelatorioComparativo(dadosComparativo, mes1, ano1, mes2, ano2, moedaDisplay, taxas));
+                    } else {
+                        exibirRelatorioComparativo(dadosComparativo, mes1, ano1, mes2, ano2, moedaDisplay, null);
+                    }
                 } else {
                     resultadosDiv.innerHTML = `<div class="loading"><p>❌ ${data.message}</p></div>`;
                 }
@@ -1030,7 +1043,8 @@
             }
         }
 
-        function exibirRelatorioComparativo(dados, mes1, ano1, mes2, ano2, moeda) {
+        function exibirRelatorioComparativo(dados, mes1, ano1, mes2, ano2, moeda, taxas) {
+            graficoComparativo = destruirGrafico(graficoComparativo);
             const resultadosDiv = document.getElementById('comparativoResultados');
             const totais = dados.totais || {};
             const valorRef  = totais.referencia || 0;
@@ -1064,6 +1078,14 @@
             `;
 
             const catEntries = Object.entries(dados.categorias || {});
+
+            // Aviso quando múltiplas moedas somadas
+            if (taxas) {
+                html += `<div style="background:rgba(243,156,18,0.1);border:1px solid var(--cor-alerta);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:var(--cor-alerta);">
+                    <i class="fas fa-exclamation-triangle"></i> <strong>Estimativa multi-moeda:</strong>
+                    os totais foram convertidos para USD usando as taxas informadas. O endpoint de comparativo soma todas as moedas sem conversão prévia — use esses valores como referência aproximada.
+                </div>`;
+            }
 
             // Gráfico de barras agrupadas
             if (catEntries.length > 0) {
@@ -1130,7 +1152,6 @@
             if (catEntries.length > 0) {
                 const ctx = document.getElementById('graficoComparativo')?.getContext('2d');
                 if (ctx) {
-                    if (graficoComparativo) graficoComparativo.destroy();
                     graficoComparativo = new Chart(ctx, {
                         type: 'bar',
                         data: {
@@ -1198,6 +1219,7 @@
         }
 
         function exibirRelatorioAnual(dados, ano, moeda) {
+            graficoAnual = destruirGrafico(graficoAnual);
             const resultadosDiv = document.getElementById('anualResultados');
             const totais    = dados.totais   || {};
             const mesesData = dados.meses    || [];
@@ -1284,7 +1306,6 @@
             if (mesesData.length > 0) {
                 const ctx = document.getElementById('graficoAnual')?.getContext('2d');
                 if (ctx) {
-                    if (graficoAnual) graficoAnual.destroy();
                     graficoAnual = new Chart(ctx, {
                         type: 'line',
                         data: {
@@ -1347,6 +1368,8 @@
         }
 
         function exibirDRE(dados) {
+            graficoDRE      = destruirGrafico(graficoDRE);
+            graficoDREDonut = destruirGrafico(graficoDREDonut);
             const resultadosDiv = document.getElementById('dreResultados');
             const moeda    = dados.moeda_padrao || 'USD';
             const rec      = dados.total_receitas || 0;
@@ -1439,7 +1462,6 @@
             if (dreLinhas.length > 0) {
                 const ctx = document.getElementById('graficoDRE')?.getContext('2d');
                 if (ctx) {
-                    if (graficoDRE) graficoDRE.destroy();
                     graficoDRE = new Chart(ctx, {
                         type: 'bar',
                         data: {
@@ -1480,7 +1502,6 @@
             if (catDesp.length > 0) {
                 const ctx2 = document.getElementById('graficoDREDonut')?.getContext('2d');
                 if (ctx2) {
-                    if (graficoDREDonut) graficoDREDonut.destroy();
                     graficoDREDonut = new Chart(ctx2, {
                         type: 'doughnut',
                         data: {
@@ -1507,21 +1528,39 @@
         // ============================================
         // MODAL DE TAXAS
         // ============================================
-        function abrirModalTaxas(callback) {
+        async function abrirModalTaxas(callback) {
             taxasCallback = callback;
-            const moedas = ['EUR', 'GBP', 'BRL'];
+            const fallback = { EUR: '0.92', GBP: '0.79', BRL: '5.20' };
             const container = document.getElementById('taxasInputs');
+
+            // Mostrar loading no modal enquanto busca taxas reais
+            container.innerHTML = '<div style="text-align:center;padding:20px;color:#aaa;"><i class="fas fa-spinner fa-spin"></i> Buscando cotações...</div>';
+            document.getElementById('modalTaxas').classList.add('active');
+
+            let taxasReais = {};
+            try {
+                const res  = await fetch('/api/admin/taxas-referencia');
+                const data = await res.json();
+                if (data.success) taxasReais = data.taxas || {};
+            } catch (e) {
+                console.warn('Não foi possível buscar taxas reais, usando valores padrão.', e);
+            }
+
             container.innerHTML = '';
-            for (const m of moedas) {
-                const defaultVal = m === 'EUR' ? '0.92' : m === 'GBP' ? '0.79' : '5.20';
+            for (const m of ['EUR', 'GBP', 'BRL']) {
+                const val = taxasReais[m] !== undefined ? taxasReais[m] : fallback[m];
+                const fonte = taxasReais[m] !== undefined
+                    ? '<span style="font-size:11px;color:var(--cor-sucesso);margin-left:6px;"><i class="fas fa-check-circle"></i> cotação real</span>'
+                    : '<span style="font-size:11px;color:var(--cor-alerta);margin-left:6px;"><i class="fas fa-exclamation-triangle"></i> valor padrão</span>';
                 const div = document.createElement('div');
                 div.innerHTML = `
-                    <label style="font-size:13px;color:var(--cor-texto-secundario);">1 USD = ? ${m}</label>
-                    <input type="number" id="taxa_${m}" class="form-control" step="0.0001" value="${defaultVal}" style="margin-top:5px;">
+                    <label style="font-size:13px;color:var(--cor-texto-secundario);display:flex;align-items:center;">
+                        1 USD = ? ${m} ${fonte}
+                    </label>
+                    <input type="number" id="taxa_${m}" class="form-control" step="0.0001" value="${val}" style="margin-top:5px;">
                 `;
                 container.appendChild(div);
             }
-            document.getElementById('modalTaxas').classList.add('active');
         }
 
         function fecharModalTaxas() {
