@@ -10,6 +10,7 @@
     backdrop-filter: blur(2px);
 }
 #cs-panel {
+    display: none;
     position: fixed;
     top: 18%;
     left: 50%;
