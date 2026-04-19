@@ -10824,7 +10824,17 @@ def buscar_transacao_por_id():
             'moeda_destino': transacao.get('moeda_destino'),
             'dados_swift_pagamento': transacao.get('dados_swift_pagamento'),
             'invoice_info': transacao.get('invoice_info'),
-            'motivo_recusa': transacao.get('motivo_recusa')
+            'motivo_recusa': transacao.get('motivo_recusa'),
+            'aba_routing': transacao.get('aba_routing'),
+            'endereco_banco': transacao.get('endereco_banco'),
+            'cidade_banco': transacao.get('cidade_banco'),
+            'pais_banco': transacao.get('pais_banco'),
+            'banco_origem': transacao.get('banco_origem'),
+            'solicitado_por': transacao.get('solicitado_por'),
+            'operacao': transacao.get('operacao'),
+            'cliente': transacao.get('cliente') or cliente_username,
+            'taxa_cambio': transacao.get('taxa_cambio'),
+            'taxa_principal_registro': transacao.get('taxa_principal_registro')
         }
         
         return jsonify({

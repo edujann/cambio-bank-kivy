@@ -2395,7 +2395,7 @@
                 
                 if (data.success) {
                     transacaoAtual = data.transacao;
-                    renderizarDetalhesTransacao(transacaoAtual);
+                    renderizarModalDetalhes(transacaoAtual, content);
                     
                     // Limpar campos de motivo
                     document.getElementById('motivoEstorno').value = '';
