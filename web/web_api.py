@@ -11131,16 +11131,16 @@ def loja_confirmar_pagamento(ordem_id):
                 .eq('moeda', moeda_s).execute()
             if contas_p.data:
                 ct = contas_p.data[0]
-                novo_saldo = float(ct['saldo'] or 0) - valor_s
+                novo_saldo = float(ct['saldo'] or 0) + valor_s
                 supabase.table('contas').update({'saldo': novo_saldo}).eq('id', ct['id']).execute()
                 supabase.table('transferencias').insert({
                     'id': f"{random.randint(100000,999999)}_cap",
-                    'tipo': 'saque', 'status': 'completed',
+                    'tipo': 'deposito', 'status': 'completed',
                     'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     'moeda': moeda_s, 'valor': valor_s,
-                    'conta_remetente': ct['id'],
+                    'conta_destinatario': ct['id'],
                     'cliente': parceiro,
-                    'descricao': f"Pagamento captação varejo - {cliente_n} - Ordem {ordem_id}",
+                    'descricao': f"Captação varejo - pagamento BRL ao beneficiário - {cliente_n} - Ordem {ordem_id}",
                     'executado_por': usuario,
                     'created_at': datetime.now().isoformat()
                 }).execute()
