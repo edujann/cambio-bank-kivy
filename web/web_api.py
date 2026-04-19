@@ -12058,52 +12058,48 @@ def api_admin_relatorios_anual():
             9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
         }
         
+        from collections import defaultdict
         meses_data = []
         total_ano = 0
         mes_anterior = 0
-        
+        total_por_moeda = defaultdict(float)
+
         for mes in range(1, 13):
             data_inicio = f"{ano}-{mes:02d}-01"
             ultimo_dia = calendar.monthrange(ano, mes)[1]
             data_fim = f"{ano}-{mes:02d}-{ultimo_dia} 23:59:59"
-            
+
             query = supabase.table('transferencias').select('*')\
                 .eq('tipo', tipo)\
                 .eq('status', 'completed')\
                 .gte('created_at', f"{data_inicio} 00:00:00")\
                 .lte('created_at', data_fim)
-            
+
             response = query.execute()
-            
+
             valor_mes = 0
             for t in (response.data or []):
                 valor = float(t.get('valor', 0))
                 moeda = t.get('moeda', 'USD')
-                
                 if moeda_filtro != 'TODAS' and moeda != moeda_filtro:
                     continue
-                
                 valor_mes += valor
-            
+                total_por_moeda[moeda] += valor
+
             total_ano += valor_mes
-            
             variacao = ((valor_mes - mes_anterior) / mes_anterior * 100) if mes_anterior > 0 else 0
-            
             meses_data.append({
                 'mes': meses_nomes[mes],
                 'valor': valor_mes,
                 'variacao_mensal': variacao,
                 'acumulado': total_ano
             })
-            
             mes_anterior = valor_mes
-        
-        # Encontrar melhor e pior mês
+
         melhor_mes = max(meses_data, key=lambda x: x['valor']) if meses_data else {'mes': '', 'valor': 0}
-        pior_mes = min(meses_data, key=lambda x: x['valor']) if meses_data else {'mes': '', 'valor': 0}
-        
+        pior_mes   = min(meses_data, key=lambda x: x['valor']) if meses_data else {'mes': '', 'valor': 0}
         moeda_padrao = moeda_filtro if moeda_filtro != 'TODAS' else 'USD'
-        
+
         return jsonify({
             "success": True,
             "dados": {
@@ -12114,6 +12110,7 @@ def api_admin_relatorios_anual():
                     "melhor_mes": {'mes': melhor_mes['mes'], 'valor': melhor_mes['valor']},
                     "pior_mes": {'mes': pior_mes['mes'], 'valor': pior_mes['valor']}
                 },
+                "total_por_moeda": dict(total_por_moeda),
                 "moeda_padrao": moeda_padrao
             }
         })
@@ -12190,6 +12187,7 @@ def api_admin_relatorios_dre():
 
         def processar(transacoes, tipo):
             total = 0
+            por_moeda = defaultdict(float)
             por_categoria = defaultdict(float)
             for t in transacoes:
                 valor = float(t.get('valor', 0))
@@ -12198,11 +12196,12 @@ def api_admin_relatorios_dre():
                     continue
                 categoria = t.get(f'categoria_{tipo}') or 'SEM CATEGORIA'
                 total += valor
+                por_moeda[moeda] += valor
                 por_categoria[categoria] += valor
-            return total, dict(sorted(por_categoria.items(), key=lambda x: x[1], reverse=True))
+            return total, dict(por_moeda), dict(sorted(por_categoria.items(), key=lambda x: x[1], reverse=True))
 
-        total_receitas, cat_receitas = processar(buscar_tipo('receita'), 'receita')
-        total_despesas, cat_despesas = processar(buscar_tipo('despesa'), 'despesa')
+        total_receitas, moedas_receitas, cat_receitas = processar(buscar_tipo('receita'), 'receita')
+        total_despesas, moedas_despesas, cat_despesas = processar(buscar_tipo('despesa'), 'despesa')
 
         resultado = total_receitas - total_despesas
         margem = (resultado / total_receitas * 100) if total_receitas > 0 else 0
@@ -12224,6 +12223,8 @@ def api_admin_relatorios_dre():
                 "total_despesas": total_despesas,
                 "resultado": resultado,
                 "margem": margem,
+                "receitas_por_moeda": moedas_receitas,
+                "despesas_por_moeda": moedas_despesas,
                 "categorias_receitas": cat_receitas,
                 "categorias_despesas": cat_despesas,
                 "dre_linhas": dre_linhas,

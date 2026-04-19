@@ -1209,7 +1209,13 @@
 
                 if (data.success) {
                     dadosAnual = data.dados;
-                    exibirRelatorioAnual(dadosAnual, ano, moeda);
+                    const moedaDisplay = moeda === 'TODAS' ? (data.dados.moeda_padrao || 'USD') : moeda;
+                    const temMultiMoeda = data.dados.total_por_moeda && Object.keys(data.dados.total_por_moeda).length > 1;
+                    if (moeda === 'TODAS' && temMultiMoeda) {
+                        abrirModalTaxas(taxas => exibirRelatorioAnual(dadosAnual, ano, moedaDisplay, taxas));
+                    } else {
+                        exibirRelatorioAnual(dadosAnual, ano, moedaDisplay, null);
+                    }
                 } else {
                     resultadosDiv.innerHTML = `<div class="loading"><p>❌ ${data.message}</p></div>`;
                 }
@@ -1218,13 +1224,23 @@
             }
         }
 
-        function exibirRelatorioAnual(dados, ano, moeda) {
+        function exibirRelatorioAnual(dados, ano, moeda, taxas) {
             graficoAnual = destruirGrafico(graficoAnual);
             const resultadosDiv = document.getElementById('anualResultados');
             const totais    = dados.totais   || {};
             const mesesData = dados.meses    || [];
-            const totalAno  = totais.total_ano   || 0;
-            const mediaMens = totais.media_mensal || 0;
+
+            // Converter total geral para USD se taxas fornecidas
+            let totalAno  = totais.total_ano   || 0;
+            let mediaMens = totais.media_mensal || 0;
+            if (taxas && dados.total_por_moeda) {
+                totalAno = 0;
+                for (const [m, v] of Object.entries(dados.total_por_moeda)) {
+                    totalAno += m === 'USD' ? v : v / (taxas[m] || 1);
+                }
+                mediaMens = totalAno / 12;
+            }
+
             const melhorMes = totais.melhor_mes   || {};
             const piorMes   = totais.pior_mes     || {};
 
@@ -1358,7 +1374,15 @@
                     dadosDRE = data.dados;
                     dadosDRE._label = `${meses[parseInt(mes)]}/${ano}`;
                     dadosDRE._moeda = moeda;
-                    exibirDRE(dadosDRE);
+                    const moedaDisplay = moeda === 'TODAS' ? (data.dados.moeda_padrao || 'USD') : moeda;
+                    const recMoedas  = data.dados.receitas_por_moeda  || {};
+                    const despMoedas = data.dados.despesas_por_moeda  || {};
+                    const todasMoedas = new Set([...Object.keys(recMoedas), ...Object.keys(despMoedas)]);
+                    if (moeda === 'TODAS' && todasMoedas.size > 1) {
+                        abrirModalTaxas(taxas => exibirDRE(dadosDRE, taxas));
+                    } else {
+                        exibirDRE(dadosDRE, null);
+                    }
                 } else {
                     resultadosDiv.innerHTML = `<div class="loading"><p>❌ ${data.message}</p></div>`;
                 }
@@ -1367,15 +1391,29 @@
             }
         }
 
-        function exibirDRE(dados) {
+        function converterParaUSD(porMoeda, taxas) {
+            let total = 0;
+            for (const [m, v] of Object.entries(porMoeda || {})) {
+                total += m === 'USD' ? v : v / (taxas[m] || 1);
+            }
+            return total;
+        }
+
+        function exibirDRE(dados, taxas) {
             graficoDRE      = destruirGrafico(graficoDRE);
             graficoDREDonut = destruirGrafico(graficoDREDonut);
             const resultadosDiv = document.getElementById('dreResultados');
-            const moeda    = dados.moeda_padrao || 'USD';
-            const rec      = dados.total_receitas || 0;
-            const desp     = dados.total_despesas || 0;
-            const res      = dados.resultado      || 0;
-            const margem   = dados.margem         || 0;
+            const moeda = dados.moeda_padrao || 'USD';
+
+            // Se taxas fornecidas, converter totais para USD
+            let rec   = dados.total_receitas || 0;
+            let desp  = dados.total_despesas || 0;
+            if (taxas) {
+                rec  = converterParaUSD(dados.receitas_por_moeda,  taxas);
+                desp = converterParaUSD(dados.despesas_por_moeda, taxas);
+            }
+            const res    = rec - desp;
+            const margem = rec > 0 ? (res / rec * 100) : 0;
             const resCls   = res >= 0 ? 'dre-positivo' : 'dre-negativo';
             const resSinal = res >= 0 ? '+' : '';
 
@@ -1574,8 +1612,9 @@
                 const inp = document.getElementById(`taxa_${m}`);
                 if (inp) taxas[m] = parseFloat(inp.value);
             }
+            const cb = taxasCallback; // salva referência ANTES de fechar (fechar zera taxasCallback)
             fecharModalTaxas();
-            if (taxasCallback) { taxasCallback(taxas); taxasCallback = null; }
+            if (cb) cb(taxas);
         }
 
         // ============================================
