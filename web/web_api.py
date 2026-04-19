@@ -8917,6 +8917,15 @@ def api_admin_detalhes_transferencia(transferencia_id):
                 'status': transf.get('status'),
                 'valor': float(transf.get('valor', 0)),
                 'moeda': transf.get('moeda', 'USD'),
+                'operacao': transf.get('operacao'),
+                'par_moedas': transf.get('par_moedas'),
+                'moeda_origem': transf.get('moeda_origem'),
+                'valor_origem': float(transf.get('valor_origem', 0)) if transf.get('valor_origem') else None,
+                'moeda_destino': transf.get('moeda_destino'),
+                'valor_destino': float(transf.get('valor_destino', 0)) if transf.get('valor_destino') else None,
+                'cotacao': float(transf.get('cotacao', 0)) if transf.get('cotacao') else (
+                           float(transf.get('taxa_cambio', 0)) if transf.get('taxa_cambio') else (
+                           float(transf.get('taxa_principal_registro', 0)) if transf.get('taxa_principal_registro') else None)),
                 'data': transf.get('created_at') or transf.get('data'),
                 'data_solicitacao': transf.get('data_solicitacao'),
                 'data_aprovacao': transf.get('data_aprovacao'),
