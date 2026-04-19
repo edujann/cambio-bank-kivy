@@ -6128,7 +6128,9 @@ def admin_dashboard():
     return render_template('admin_dashboard.html',
                           usuario=usuario,
                           nome=nome,
-                          email=email)
+                          email=email,
+                          supabase_url=os.getenv('SUPABASE_URL', ''),
+                          supabase_key=os.getenv('SUPABASE_KEY', ''))
 
 @app.route('/api/admin/dashboard')
 def api_admin_dashboard():

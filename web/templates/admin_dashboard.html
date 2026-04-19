@@ -885,33 +885,33 @@
         });
 
         // ============================================
-        // ALERTAS DE TRADE EM TEMPO REAL
+        // ALERTAS DE TRADE EM TEMPO REAL (Supabase Realtime)
         // ============================================
         function iniciarAlertasCambio() {
-            const KEY = 'admin_last_seen_cambio';
-            if (!localStorage.getItem(KEY)) {
-                // Inicializa 1h atrás para capturar trades recentes ao abrir o dashboard
-                const quatroHorasAtras = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
-                localStorage.setItem(KEY, quatroHorasAtras);
+            const SUPA_URL = '{{ supabase_url }}';
+            const SUPA_KEY = '{{ supabase_key }}';
+
+            if (!SUPA_URL || !SUPA_KEY || !window.supabase) {
+                console.warn('Supabase Realtime não disponível — alertas desativados.');
+                return;
             }
 
-            async function verificarNovosTrades() {
-                try {
-                    const desde = localStorage.getItem(KEY);
-                    const res = await fetch(`/api/admin/notificacoes/cambio?desde=${encodeURIComponent(desde)}`);
-                    const data = await res.json();
-                    if (data.success && data.trades && data.trades.length > 0) {
-                        localStorage.setItem(KEY, data.trades[0].created_at);
-                        data.trades.forEach(t => mostrarToastTrade(t));
-                    }
-                } catch (e) { /* silencioso */ }
-            }
+            const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
 
-            // Aguarda 5s antes da 1ª verificação para não disparar na abertura
-            setTimeout(() => {
-                verificarNovosTrades();
-                setInterval(verificarNovosTrades, 30000);
-            }, 5000);
+            sb.channel('admin-trades')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'transferencias',
+                        filter: 'tipo=eq.cambio'
+                    },
+                    (payload) => mostrarToastTrade(payload.new)
+                )
+                .subscribe((status) => {
+                    console.log('Supabase Realtime:', status);
+                });
         }
 
         function mostrarToastTrade(trade) {
@@ -949,6 +949,7 @@
             setTimeout(() => { const el = document.getElementById(id); if (el) el.remove(); }, 8000);
         }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/static/js/theme.js"></script>
 </body>
 </html>
