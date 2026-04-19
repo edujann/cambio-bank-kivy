@@ -14150,6 +14150,348 @@ def api_cotacoes_atualizadas():
         })
 
 
+# ============================================
+# POSIÇÃO CAMBIAL — FX BOOK
+# ============================================
+
+def _fx_get_rates():
+    """Busca cotações atuais (USD como base) para conversões em GBP."""
+    try:
+        import requests as _req
+        rates = {'USD_USD': 1.0}
+        for moeda in ['BRL', 'EUR', 'GBP']:
+            try:
+                r = _req.get(f"https://economia.awesomeapi.com.br/json/last/USD-{moeda}", timeout=8)
+                if r.status_code == 200:
+                    data = r.json()
+                    chave = f"USD{moeda}"
+                    if chave in data:
+                        c = float(data[chave]['bid'])
+                        rates[f"USD_{moeda}"] = c
+                        rates[f"{moeda}_USD"] = 1 / c if c else 0
+            except Exception:
+                pass
+        if 'USD_BRL' not in rates: rates.update({'USD_BRL': 5.20, 'BRL_USD': 0.1923})
+        if 'USD_EUR' not in rates: rates.update({'USD_EUR': 0.92, 'EUR_USD': 1.087})
+        if 'USD_GBP' not in rates: rates.update({'USD_GBP': 0.79, 'GBP_USD': 1.266})
+        return rates
+    except Exception:
+        return {'USD_USD':1,'USD_BRL':5.20,'BRL_USD':0.1923,'USD_EUR':0.92,'EUR_USD':1.087,'USD_GBP':0.79,'GBP_USD':1.266}
+
+
+def _fx_to_gbp(amount, moeda, rates):
+    """Converte qualquer valor para GBP usando as taxas fornecidas."""
+    if not amount:
+        return 0.0
+    amount = float(amount)
+    if moeda == 'GBP':
+        return amount
+    usd_gbp = float(rates.get('USD_GBP', 0.79))
+    if moeda == 'USD':
+        return amount * usd_gbp
+    usd_x = float(rates.get(f'USD_{moeda}', 0))
+    if usd_x > 0:
+        return (amount / usd_x) * usd_gbp
+    return amount
+
+
+def _fx_wac(compras_data):
+    """Calcula WAC em GBP por moeda a partir dos registros de pool_compras."""
+    wac = {}
+    vol = {}
+    for c in (compras_data or []):
+        m = c['moeda_comprada']
+        if m not in wac:
+            wac[m] = {'total': 0.0, 'custo': 0.0}
+        wac[m]['total'] += float(c['valor_comprado'])
+        wac[m]['custo'] += float(c['valor_comprado']) * float(c['taxa_em_gbp'])
+    return {m: (d['custo'] / d['total'] if d['total'] > 0 else 0) for m, d in wac.items()}, \
+           {m: d['total'] for m, d in wac.items()}
+
+
+@app.route('/admin/posicao-cambial')
+def admin_posicao_cambial():
+    usuario = session.get('username')
+    if not usuario:
+        return redirect('/login')
+    if supabase:
+        ck = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not ck.data or ck.data.get('tipo') != 'admin':
+            return redirect('/login')
+    return render_template('admin_posicao_cambial.html', usuario=usuario)
+
+
+@app.route('/api/admin/fx/pool', methods=['GET'])
+def fx_pool():
+    try:
+        if not session.get('username'):
+            return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+        rates = _fx_get_rates()
+        compras = supabase.table('pool_compras').select('*').order('data').execute()
+        wac, vol = _fx_wac(compras.data)
+        contas = supabase.table('contas_bancarias_empresa').select('numero, moeda, saldo').execute()
+        saldos = {}
+        for ct in (contas.data or []):
+            m = (ct.get('moeda') or '').upper()
+            saldos[m] = saldos.get(m, 0) + float(ct.get('saldo') or 0)
+        pendentes = supabase.table('transferencias')\
+            .select('tipo, moeda_destino, valor_destino')\
+            .in_('status', ['solicitada', 'pending', 'processing']).execute()
+        comprometidos = {}
+        for p in (pendentes.data or []):
+            if p.get('tipo') in ['transferencia_internacional', 'internacional']:
+                m = (p.get('moeda_destino') or '').upper()
+                if m:
+                    comprometidos[m] = comprometidos.get(m, 0) + float(p.get('valor_destino') or 0)
+        moedas = sorted(set(list(wac.keys()) + list(saldos.keys())) - {'BRL'})
+        usd_gbp = float(rates.get('USD_GBP', 0.79))
+        usd_brl = float(rates.get('USD_BRL', 5.20))
+        resultado = []
+        for moeda in moedas:
+            wac_gbp = wac.get(moeda, 0)
+            wac_usd = (wac_gbp / usd_gbp) if usd_gbp > 0 else 0
+            wac_brl = wac_usd * usd_brl
+            market_gbp = _fx_to_gbp(1, moeda, rates)
+            saldo = saldos.get(moeda, 0)
+            comp = comprometidos.get(moeda, 0)
+            resultado.append({
+                'moeda': moeda,
+                'total_pool': round(vol.get(moeda, 0), 2),
+                'wac_gbp': round(wac_gbp, 6),
+                'wac_usd': round(wac_usd, 6),
+                'wac_brl': round(wac_brl, 4),
+                'market_gbp': round(market_gbp, 6),
+                'saldo_empresa': round(saldo, 2),
+                'comprometido': round(comp, 2),
+                'disponivel': round(saldo - comp, 2),
+            })
+        return jsonify({'success': True, 'pool': resultado, 'rates': rates})
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/fx/pl', methods=['GET'])
+def fx_pl():
+    try:
+        if not session.get('username'):
+            return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+        rates = _fx_get_rates()
+        compras = supabase.table('pool_compras').select('moeda_comprada, valor_comprado, taxa_em_gbp').execute()
+        wac, _ = _fx_wac(compras.data)
+        trades = supabase.table('transferencias')\
+            .select('*').eq('tipo', 'cambio').eq('status', 'completed')\
+            .order('data', desc=True).limit(300).execute()
+        trades_pl = []
+        total_realizado = 0.0
+        for t in (trades.data or []):
+            if str(t.get('id', '')).endswith('_cb'):
+                continue
+            m_in  = (t.get('moeda') or t.get('moeda_origem') or '').upper()
+            m_out = (t.get('moeda_destino') or '').upper()
+            v_in  = float(t.get('valor') or t.get('valor_origem') or 0)
+            v_out = float(t.get('valor_destino') or 0)
+            if not m_in or not v_in:
+                continue
+            rev_gbp  = _fx_to_gbp(v_in, m_in, rates)
+            cost_gbp = v_out * wac[m_out] if m_out in wac and v_out else _fx_to_gbp(v_out, m_out, rates)
+            profit   = rev_gbp - cost_gbp
+            total_realizado += profit
+            trades_pl.append({
+                'id': t.get('id'),
+                'data': t.get('data') or t.get('created_at'),
+                'cliente': t.get('cliente') or t.get('usuario') or 'N/A',
+                'm_in': m_in, 'v_in': round(v_in, 2),
+                'm_out': m_out, 'v_out': round(v_out, 2),
+                'cotacao': t.get('cotacao') or t.get('taxa_cambio'),
+                'rev_gbp': round(rev_gbp, 4),
+                'cost_gbp': round(cost_gbp, 4),
+                'profit_gbp': round(profit, 4),
+                'margin_pct': round((profit / rev_gbp * 100) if rev_gbp else 0, 2)
+            })
+        pendentes = supabase.table('transferencias')\
+            .select('*').in_('status', ['solicitada', 'pending', 'processing'])\
+            .in_('tipo', ['transferencia_internacional', 'internacional', 'cambio']).execute()
+        posicoes = []
+        total_nao_realizado = 0.0
+        for p in (pendentes.data or []):
+            if str(p.get('id', '')).endswith('_cb'):
+                continue
+            m_in  = (p.get('moeda') or p.get('moeda_origem') or '').upper()
+            m_out = (p.get('moeda_destino') or m_in).upper()
+            v_in  = float(p.get('valor') or p.get('valor_origem') or 0)
+            v_out = float(p.get('valor_destino') or v_in)
+            rev_gbp  = _fx_to_gbp(v_in, m_in, rates) if m_in and v_in else 0
+            cost_gbp = v_out * wac[m_out] if m_out in wac and v_out else _fx_to_gbp(v_out, m_out, rates)
+            profit   = rev_gbp - cost_gbp
+            total_nao_realizado += profit
+            posicoes.append({
+                'id': p.get('id'), 'tipo': p.get('tipo'), 'status': p.get('status'),
+                'cliente': p.get('cliente') or p.get('usuario') or 'N/A',
+                'm_in': m_in, 'v_in': round(v_in, 2),
+                'm_out': m_out, 'v_out': round(v_out, 2),
+                'rev_gbp': round(rev_gbp, 4), 'cost_gbp': round(cost_gbp, 4),
+                'profit_gbp': round(profit, 4)
+            })
+        return jsonify({
+            'success': True,
+            'total_realizado_gbp': round(total_realizado, 4),
+            'total_nao_realizado_gbp': round(total_nao_realizado, 4),
+            'total_geral_gbp': round(total_realizado + total_nao_realizado, 4),
+            'trades': trades_pl, 'posicoes_abertas': posicoes, 'rates': rates
+        })
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/fx/trader', methods=['GET'])
+def fx_trader():
+    try:
+        if not session.get('username'):
+            return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+        rates = _fx_get_rates()
+        compras = supabase.table('pool_compras').select('moeda_comprada, valor_comprado, taxa_em_gbp').execute()
+        wac, _ = _fx_wac(compras.data)
+        contas = supabase.table('contas_bancarias_empresa').select('moeda, saldo').execute()
+        saldos = {}
+        for ct in (contas.data or []):
+            m = (ct.get('moeda') or '').upper()
+            saldos[m] = saldos.get(m, 0) + float(ct.get('saldo') or 0)
+        pendentes = supabase.table('transferencias')\
+            .select('*')\
+            .in_('status', ['solicitada', 'pending', 'processing'])\
+            .in_('tipo', ['transferencia_internacional', 'internacional', 'cambio'])\
+            .order('data', desc=True).execute()
+        pedidos = []
+        for p in (pendentes.data or []):
+            if str(p.get('id', '')).endswith('_cb'):
+                continue
+            tipo  = p.get('tipo', '')
+            m_in  = (p.get('moeda') or p.get('moeda_origem') or '').upper()
+            m_out = (p.get('moeda_destino') or m_in).upper()
+            v_in  = float(p.get('valor') or p.get('valor_origem') or 0)
+            v_out = float(p.get('valor_destino') or v_in)
+            m_precisa = m_out
+            v_precisa = v_out
+            pool_disp = saldos.get(m_precisa, 0)
+            wac_gbp   = wac.get(m_precisa, 0)
+            rev_gbp   = _fx_to_gbp(v_in, m_in, rates) if m_in and v_in else 0
+            rev_por_unit = rev_gbp / v_precisa if v_precisa > 0 else 0
+            max_custo    = rev_por_unit / 1.01 if rev_por_unit > 0 else 0
+            taxa_min_ref = (1 / max_custo) if max_custo > 0 else 0
+            margem_pct   = ((rev_por_unit - wac_gbp) / rev_por_unit * 100) if wac_gbp and rev_por_unit else None
+            pedidos.append({
+                'id': p.get('id'), 'tipo': tipo, 'status': p.get('status'),
+                'data': p.get('data') or p.get('created_at'),
+                'cliente': p.get('cliente') or p.get('usuario') or p.get('beneficiario') or 'N/A',
+                'm_in': m_in, 'v_in': round(v_in, 2),
+                'm_out': m_out, 'v_out': round(v_out, 2),
+                'm_precisa': m_precisa, 'v_precisa': round(v_precisa, 2),
+                'cotacao_cliente': float(p.get('cotacao') or p.get('taxa_cambio') or 0) or None,
+                'pool_disponivel': round(pool_disp, 2),
+                'cobre': pool_disp >= v_precisa,
+                'wac_gbp': round(wac_gbp, 6) if wac_gbp else None,
+                'rev_por_unit_gbp': round(rev_por_unit, 6),
+                'max_custo_gbp': round(max_custo, 6),
+                'taxa_min_ref': round(taxa_min_ref, 4),
+                'margem_pct': round(margem_pct, 2) if margem_pct is not None else None,
+                'beneficiario': p.get('beneficiario'),
+                'nome_banco': p.get('nome_banco'),
+                'codigo_swift': p.get('codigo_swift'),
+            })
+        return jsonify({'success': True, 'pedidos': pedidos, 'rates': rates,
+                        'wac': {m: round(v, 6) for m, v in wac.items()}})
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/fx/compra', methods=['POST'])
+def fx_registrar_compra():
+    try:
+        usuario = session.get('username')
+        if not usuario:
+            return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+        ck = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not ck.data or ck.data.get('tipo') != 'admin':
+            return jsonify({'success': False, 'message': 'Acesso negado'}), 403
+        d = request.get_json()
+        moeda_c  = d.get('moeda_comprada', '').upper().strip()
+        valor_c  = float(d.get('valor_comprado', 0))
+        moeda_p  = d.get('moeda_paga', '').upper().strip()
+        valor_p  = float(d.get('valor_pago', 0))
+        taxa     = float(d.get('taxa', 0))
+        gbp_rate = d.get('gbp_rate_moeda_paga')
+        fornecedor    = d.get('fornecedor', '').strip()
+        conta_deb     = d.get('conta_debitada', '').strip()
+        conta_cred    = d.get('conta_creditada', '').strip()
+        observacoes   = d.get('observacoes', '').strip()
+        if not all([moeda_c, valor_c, moeda_p, valor_p, conta_deb, conta_cred]):
+            return jsonify({'success': False, 'message': 'Campos obrigatórios faltando'}), 400
+        if valor_c <= 0 or valor_p <= 0:
+            return jsonify({'success': False, 'message': 'Valores devem ser maiores que zero'}), 400
+        if moeda_p == 'GBP':
+            taxa_em_gbp = valor_p / valor_c
+        elif gbp_rate:
+            taxa_em_gbp = (valor_p * float(gbp_rate)) / valor_c
+        else:
+            rates = _fx_get_rates()
+            taxa_em_gbp = (_fx_to_gbp(valor_p, moeda_p, rates)) / valor_c
+        from datetime import datetime
+        import random
+        pool_rec = {
+            'data': datetime.now().isoformat(),
+            'moeda_comprada': moeda_c,
+            'valor_comprado': valor_c,
+            'moeda_paga': moeda_p,
+            'valor_pago': valor_p,
+            'taxa': taxa if taxa > 0 else round(valor_c / valor_p, 6),
+            'taxa_em_gbp': round(taxa_em_gbp, 6),
+            'gbp_rate_moeda_paga': float(gbp_rate) if gbp_rate else None,
+            'fornecedor': fornecedor,
+            'conta_debitada': conta_deb,
+            'conta_creditada': conta_cred,
+            'executado_por': usuario,
+            'observacoes': observacoes,
+        }
+        ins = supabase.table('pool_compras').insert(pool_rec).execute()
+        pool_id = ins.data[0]['id'] if ins.data else None
+        r_deb  = supabase.table('contas_bancarias_empresa').select('saldo').eq('numero', conta_deb).single().execute()
+        r_cred = supabase.table('contas_bancarias_empresa').select('saldo').eq('numero', conta_cred).single().execute()
+        if not r_deb.data or not r_cred.data:
+            return jsonify({'success': False, 'message': 'Conta não encontrada'}), 404
+        novo_deb  = float(r_deb.data['saldo'] or 0) - valor_p
+        novo_cred = float(r_cred.data['saldo'] or 0) + valor_c
+        supabase.table('contas_bancarias_empresa').update({'saldo': novo_deb}).eq('numero', conta_deb).execute()
+        supabase.table('contas_bancarias_empresa').update({'saldo': novo_cred}).eq('numero', conta_cred).execute()
+        tid = f"{random.randint(100000, 999999)}_cb"
+        transacao = {
+            'id': tid, 'tipo': 'cambio_contas_empresa', 'status': 'completed',
+            'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'moeda_origem': moeda_p, 'moeda_destino': moeda_c,
+            'valor_origem': valor_p, 'valor_destino': valor_c,
+            'taxa_cambio': taxa if taxa > 0 else round(valor_c / valor_p, 6),
+            'taxa_principal_registro': taxa if taxa > 0 else round(valor_c / valor_p, 6),
+            'conta_origem': conta_deb, 'conta_destino': conta_cred,
+            'usuario': usuario,
+            'descricao': f"Compra pool - {fornecedor}" if fornecedor else "Compra pool fornecedor",
+            'created_at': datetime.now().isoformat()
+        }
+        supabase.table('transferencias').insert(transacao).execute()
+        if pool_id:
+            supabase.table('pool_compras').update({'transferencia_id': tid}).eq('id', str(pool_id)).execute()
+        return jsonify({
+            'success': True,
+            'message': f'Compra registrada: {valor_c} {moeda_c} | custo {taxa_em_gbp:.6f} GBP/{moeda_c}',
+            'taxa_em_gbp': round(taxa_em_gbp, 6),
+            'transferencia_id': tid,
+        })
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'

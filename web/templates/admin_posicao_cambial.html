@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏦 Cambio Bank - Posição Cambial</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; }
+        :root {
+            --cor-fundo:#0a0e15; --cor-card:#0d1117; --cor-borda:#1e232e;
+            --cor-texto:#e0e0e0; --cor-texto-secundario:#8b949e;
+            --cor-admin:#1a5fb4; --cor-sucesso:#2ec27e; --cor-alerta:#f39c12; --cor-perigo:#e01b24;
+            --sombra-suave:0 4px 6px rgba(0,0,0,.3); --borda-radius:12px; --borda-radius-pequeno:8px;
+        }
+        body { background:var(--cor-fundo); color:var(--cor-texto); min-height:100vh; }
+        .app-container { max-width:1400px; margin:0 auto; padding:20px; }
+        .app-header { display:flex; justify-content:space-between; align-items:center; padding:20px 0; margin-bottom:24px; border-bottom:1px solid var(--cor-borda); flex-wrap:wrap; gap:12px; }
+        .logo { display:flex; align-items:center; gap:12px; font-size:22px; font-weight:bold; }
+        .logo i { color:var(--cor-admin); font-size:26px; }
+        .logo-text { background:linear-gradient(90deg,var(--cor-admin),#2d8fff); -webkit-background-clip:text; background-clip:text; color:transparent; }
+        .btn-voltar { background:rgba(26,95,180,.15); border:1px solid var(--cor-admin); color:var(--cor-admin); padding:8px 18px; border-radius:var(--borda-radius-pequeno); cursor:pointer; font-size:14px; text-decoration:none; display:inline-flex; align-items:center; gap:8px; }
+        .btn-voltar:hover { background:rgba(26,95,180,.3); }
+
+        /* Tabs */
+        .tabs { display:flex; gap:4px; margin-bottom:24px; border-bottom:1px solid var(--cor-borda); }
+        .tab-btn { background:transparent; border:none; border-bottom:2px solid transparent; color:var(--cor-texto-secundario); padding:10px 22px; cursor:pointer; font-size:14px; font-weight:600; transition:.2s; display:flex; align-items:center; gap:8px; margin-bottom:-1px; }
+        .tab-btn:hover { color:var(--cor-texto); }
+        .tab-btn.active { color:var(--cor-admin); border-bottom-color:var(--cor-admin); }
+        .tab-content { display:none; }
+        .tab-content.active { display:block; }
+
+        /* Cards resumo */
+        .resumo-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:24px; }
+        .resumo-card { background:var(--cor-card); border:1px solid var(--cor-borda); border-radius:var(--borda-radius); padding:18px 20px; }
+        .resumo-card .label { font-size:11px; color:var(--cor-texto-secundario); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; }
+        .resumo-card .valor { font-size:22px; font-weight:700; }
+        .resumo-card .sub { font-size:11px; color:var(--cor-texto-secundario); margin-top:4px; }
+        .verde { color:var(--cor-sucesso); }
+        .vermelho { color:var(--cor-perigo); }
+        .amarelo { color:var(--cor-alerta); }
+        .azul { color:var(--cor-admin); }
+
+        /* Pool cards */
+        .pool-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; }
+        .pool-card { background:var(--cor-card); border:1px solid var(--cor-borda); border-radius:var(--borda-radius); overflow:hidden; }
+        .pool-card-header { padding:14px 18px; background:rgba(26,95,180,.1); border-bottom:1px solid var(--cor-borda); display:flex; justify-content:space-between; align-items:center; }
+        .pool-moeda { font-size:20px; font-weight:800; color:var(--cor-admin); }
+        .pool-badge { font-size:11px; background:rgba(26,95,180,.2); color:var(--cor-admin); padding:2px 10px; border-radius:20px; }
+        .pool-body { padding:16px 18px; }
+        .pool-row { display:flex; justify-content:space-between; align-items:baseline; font-size:13px; margin-bottom:8px; }
+        .pool-row:last-child { margin-bottom:0; }
+        .pool-lbl { color:var(--cor-texto-secundario); }
+        .pool-val { font-weight:600; font-family:monospace; }
+        .pool-sep { border:none; border-top:1px solid var(--cor-borda); margin:10px 0; }
+        .status-bar { height:6px; background:var(--cor-borda); border-radius:3px; margin-top:12px; overflow:hidden; }
+        .status-bar-fill { height:100%; border-radius:3px; background:var(--cor-admin); transition:width .4s; }
+
+        /* Formulário compra */
+        .form-card { background:var(--cor-card); border:1px solid var(--cor-borda); border-radius:var(--borda-radius); padding:28px; max-width:720px; }
+        .form-section-title { font-size:13px; font-weight:700; color:var(--cor-admin); text-transform:uppercase; letter-spacing:.5px; margin-bottom:16px; padding-bottom:8px; border-bottom:1px solid var(--cor-borda); }
+        .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+        .form-grid-3 { grid-template-columns:1fr 1fr 1fr; }
+        .form-group label { display:block; font-size:12px; color:var(--cor-texto-secundario); margin-bottom:6px; font-weight:600; }
+        .form-control { width:100%; background:#0a0e15; border:1px solid var(--cor-borda); color:var(--cor-texto); padding:10px 12px; border-radius:var(--borda-radius-pequeno); font-size:14px; outline:none; transition:.2s; }
+        .form-control:focus { border-color:var(--cor-admin); }
+        select.form-control option { background:#0d1117; }
+        .preview-box { background:rgba(26,95,180,.07); border:1px solid rgba(26,95,180,.2); border-radius:var(--borda-radius-pequeno); padding:14px 18px; margin:16px 0; font-size:13px; }
+        .preview-row { display:flex; justify-content:space-between; margin-bottom:6px; }
+        .preview-row:last-child { margin-bottom:0; }
+        .btn-primary { background:var(--cor-admin); color:#fff; border:none; padding:12px 28px; border-radius:var(--borda-radius-pequeno); font-size:15px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:8px; }
+        .btn-primary:hover { background:#1c71d8; }
+        .btn-primary:disabled { opacity:.5; cursor:not-allowed; }
+        .gbp-rate-row { display:none; }
+        .gbp-rate-row.visible { display:grid; }
+
+        /* Tabelas P&L */
+        .section-card { background:var(--cor-card); border:1px solid var(--cor-borda); border-radius:var(--borda-radius); overflow:hidden; margin-bottom:20px; }
+        .section-header { padding:14px 20px; border-bottom:1px solid var(--cor-borda); display:flex; justify-content:space-between; align-items:center; }
+        .section-header h3 { font-size:14px; font-weight:700; display:flex; align-items:center; gap:8px; }
+        .table-wrap { overflow-x:auto; }
+        table { width:100%; border-collapse:collapse; font-size:13px; }
+        th { background:rgba(255,255,255,.04); color:var(--cor-texto-secundario); padding:10px 14px; text-align:left; font-weight:600; font-size:12px; white-space:nowrap; }
+        td { padding:10px 14px; border-top:1px solid var(--cor-borda); white-space:nowrap; }
+        tr:hover td { background:rgba(255,255,255,.02); }
+        .mono { font-family:monospace; }
+        .tag { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; }
+        .tag-verde { background:rgba(46,194,126,.15); color:var(--cor-sucesso); }
+        .tag-vermelho { background:rgba(224,27,36,.15); color:var(--cor-perigo); }
+        .tag-amarelo { background:rgba(243,156,18,.15); color:var(--cor-alerta); }
+        .tag-azul { background:rgba(26,95,180,.15); color:var(--cor-admin); }
+
+        /* Trader cards */
+        .trader-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:16px; }
+        .trader-card { background:var(--cor-card); border:1px solid var(--cor-borda); border-radius:var(--borda-radius); overflow:hidden; }
+        .trader-card.urgente { border-color:rgba(224,27,36,.4); }
+        .trader-card.ok { border-color:rgba(46,194,126,.3); }
+        .trader-header { padding:12px 16px; border-bottom:1px solid var(--cor-borda); display:flex; justify-content:space-between; align-items:center; }
+        .trader-body { padding:14px 16px; }
+        .trader-row { display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px; gap:8px; }
+        .trader-row:last-child { margin-bottom:0; }
+        .trader-lbl { color:var(--cor-texto-secundario); flex-shrink:0; }
+        .trader-val { font-weight:600; text-align:right; }
+        .sugestao-box { margin-top:12px; background:rgba(26,95,180,.08); border:1px solid rgba(26,95,180,.2); border-radius:6px; padding:10px 14px; font-size:12px; }
+        .sugestao-title { font-weight:700; color:var(--cor-admin); margin-bottom:6px; font-size:11px; text-transform:uppercase; }
+        .empty-state { text-align:center; padding:50px 20px; color:var(--cor-texto-secundario); }
+        .empty-state i { font-size:42px; margin-bottom:12px; display:block; }
+
+        /* Spinner */
+        .loading-spin { text-align:center; padding:40px; color:var(--cor-texto-secundario); }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="app-header">
+        <div class="logo">
+            <i class="fas fa-chart-line"></i>
+            <span class="logo-text">POSIÇÃO CAMBIAL</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <span style="font-size:13px;color:var(--cor-texto-secundario);">
+                <i class="fas fa-clock"></i> <span id="lastUpdate">—</span>
+            </span>
+            <button class="btn-voltar" onclick="location.reload()"><i class="fas fa-sync-alt"></i> Atualizar</button>
+            <a href="/admin/dashboard" class="btn-voltar"><i class="fas fa-arrow-left"></i> Dashboard</a>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('pool')"><i class="fas fa-layer-group"></i> Pool</button>
+        <button class="tab-btn" onclick="switchTab('comprar')"><i class="fas fa-plus-circle"></i> Registrar Compra</button>
+        <button class="tab-btn" onclick="switchTab('pl')"><i class="fas fa-coins"></i> P&L</button>
+        <button class="tab-btn" onclick="switchTab('trader')"><i class="fas fa-bolt"></i> Painel Trader</button>
+    </div>
+
+    <!-- TAB: POOL -->
+    <div id="tab-pool" class="tab-content active">
+        <div id="pool-resumo" class="resumo-grid"></div>
+        <div id="pool-cards" class="pool-grid">
+            <div class="loading-spin"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top:12px">Carregando pool...</p></div>
+        </div>
+    </div>
+
+    <!-- TAB: COMPRAR -->
+    <div id="tab-comprar" class="tab-content">
+        <div class="form-card">
+            <div class="form-section-title"><i class="fas fa-shopping-cart"></i> Nova Compra de Fornecedor</div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Moeda Comprada *</label>
+                    <select id="cMoedaC" class="form-control" onchange="calcPreview()">
+                        <option value="">Selecione…</option>
+                        <option value="USD">USD — Dólar Americano</option>
+                        <option value="EUR">EUR — Euro</option>
+                        <option value="GBP">GBP — Libra Esterlina</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Valor Comprado *</label>
+                    <input id="cValorC" type="number" step="0.01" class="form-control" placeholder="Ex: 10000" oninput="calcPreview()">
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Moeda Paga *</label>
+                    <select id="cMoedaP" class="form-control" onchange="onMoedaPagaChange()">
+                        <option value="">Selecione…</option>
+                        <option value="GBP">GBP — Libra Esterlina</option>
+                        <option value="USD">USD — Dólar Americano</option>
+                        <option value="EUR">EUR — Euro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Valor Pago *</label>
+                    <input id="cValorP" type="number" step="0.01" class="form-control" placeholder="Ex: 7432" oninput="calcPreview()">
+                </div>
+            </div>
+
+            <div class="form-grid form-grid-3 gbp-rate-row" id="gbpRateRow">
+                <div class="form-group" style="grid-column:1/-1">
+                    <label>Taxa GBP por 1 <span id="gbpRateMoeda">—</span> (necessário pois moeda paga ≠ GBP) *</label>
+                    <input id="cGbpRate" type="number" step="0.000001" class="form-control" placeholder="Ex: 0.7432 (para USD: 1 USD = 0.7432 GBP)" oninput="calcPreview()">
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Taxa Negociada</label>
+                    <input id="cTaxa" type="number" step="0.000001" class="form-control" placeholder="Auto-calculada" oninput="calcPreview()">
+                </div>
+                <div class="form-group">
+                    <label>Fornecedor</label>
+                    <input id="cFornecedor" type="text" class="form-control" placeholder="Ex: Barclays, HSBC…">
+                </div>
+            </div>
+
+            <div class="form-section-title" style="margin-top:20px"><i class="fas fa-exchange-alt"></i> Lançamento nas Contas</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Conta Debitada (paga) *</label>
+                    <select id="cContaDeb" class="form-control"><option value="">Carregando…</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Conta Creditada (recebe) *</label>
+                    <select id="cContaCred" class="form-control"><option value="">Carregando…</option></select>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:16px">
+                <label>Observações</label>
+                <input id="cObs" type="text" class="form-control" placeholder="Opcional">
+            </div>
+
+            <div class="preview-box" id="previewBox" style="display:none">
+                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Operação:</span><span id="pvOp" style="font-weight:600"></span></div>
+                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Custo GBP / unidade:</span><span id="pvCustoGbp" class="mono verde" style="font-weight:700"></span></div>
+                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Custo total em GBP:</span><span id="pvCustoTotal" class="mono"></span></div>
+                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Taxa (moeda_comprada / moeda_paga):</span><span id="pvTaxa" class="mono"></span></div>
+            </div>
+
+            <button class="btn-primary" id="btnComprar" onclick="registrarCompra()">
+                <i class="fas fa-check"></i> Registrar Compra
+            </button>
+            <div id="compraMsg" style="margin-top:14px;font-size:14px;"></div>
+        </div>
+    </div>
+
+    <!-- TAB: P&L -->
+    <div id="tab-pl" class="tab-content">
+        <div id="pl-resumo" class="resumo-grid"></div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <h3><i class="fas fa-check-circle" style="color:var(--cor-sucesso)"></i> P&L Realizado — Trades Concluídos</h3>
+                <span id="pl-count" style="font-size:12px;color:var(--cor-texto-secundario)"></span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr>
+                        <th>Data</th><th>ID</th><th>Cliente</th>
+                        <th>Entrada</th><th>Saída</th><th>Cotação</th>
+                        <th>Receita GBP</th><th>Custo GBP</th>
+                        <th>Lucro GBP</th><th>Margem</th>
+                    </tr></thead>
+                    <tbody id="plTableBody"><tr><td colspan="10" class="loading-spin"><i class="fas fa-spinner fa-spin"></i></td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <h3><i class="fas fa-clock" style="color:var(--cor-alerta)"></i> Posições Abertas — Não-Realizado</h3>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr>
+                        <th>ID</th><th>Tipo</th><th>Status</th><th>Cliente</th>
+                        <th>Entrada</th><th>Saída</th>
+                        <th>Receita Est. GBP</th><th>Custo Est. GBP</th><th>Lucro Est. GBP</th>
+                    </tr></thead>
+                    <tbody id="plAbertaBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: TRADER -->
+    <div id="tab-trader" class="tab-content">
+        <div id="trader-wac" class="resumo-grid" style="margin-bottom:20px"></div>
+        <div id="trader-cards" class="trader-grid">
+            <div class="loading-spin"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top:12px">Carregando pedidos…</p></div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/theme.js"></script>
+<script src="/static/js/conta_search.js"></script>
+<script>
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    const fmtGBP = v => '£' + parseFloat(v||0).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const fmtNum = (v,d=2) => parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+    const fmtDate = d => { if(!d) return '—'; try { const s=d.replace('T',' ').split('.')[0]; const[dt,hr]=s.split(' '); const[y,m,dd]=dt.split('-'); return hr?`${dd}/${m}/${y} ${hr.slice(0,5)}`:`${dd}/${m}/${y}`; } catch{ return d; } };
+    const profitClass = v => parseFloat(v||0) >= 0 ? 'verde' : 'vermelho';
+    const profitTag   = v => parseFloat(v||0) >= 0 ? 'tag-verde' : 'tag-vermelho';
+    let contasEmpresa = [];
+
+    // ── Tabs ─────────────────────────────────────────────────────────────────
+    function switchTab(name) {
+        document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['pool','comprar','pl','trader'][i] === name));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById(`tab-${name}`).classList.add('active');
+        if (name === 'pool')    carregarPool();
+        if (name === 'pl')      carregarPL();
+        if (name === 'trader')  carregarTrader();
+    }
+
+    // ── Pool ─────────────────────────────────────────────────────────────────
+    async function carregarPool() {
+        try {
+            const res  = await fetch('/api/admin/fx/pool');
+            const data = await res.json();
+            if (!data.success) return;
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('pt-BR');
+
+            // Resumo
+            const totalCustoGBP = data.pool.reduce((a,p) => a + p.total_custo_gbp, 0);
+            const totalDisp     = data.pool.filter(p=>p.moeda==='USD').reduce((a,p)=>a+p.disponivel,0);
+            const totalComp     = data.pool.reduce((a,p) => a + p.comprometido, 0);
+            document.getElementById('pool-resumo').innerHTML = `
+                <div class="resumo-card"><div class="label">Investido no Pool (GBP)</div><div class="valor azul">${fmtGBP(totalCustoGBP)}</div><div class="sub">custo total acumulado</div></div>
+                <div class="resumo-card"><div class="label">USD Disponível</div><div class="valor verde">${fmtNum(totalDisp)} USD</div><div class="sub">pool líquido</div></div>
+                <div class="resumo-card"><div class="label">Comprometido</div><div class="valor amarelo">${fmtNum(totalComp)} unid.</div><div class="sub">pendentes de entrega</div></div>
+                <div class="resumo-card"><div class="label">Moedas no Pool</div><div class="valor azul">${data.pool.length}</div><div class="sub">currencies rastreadas</div></div>
+            `;
+
+            if (!data.pool.length) {
+                document.getElementById('pool-cards').innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>Nenhuma compra registrada no pool ainda.</p></div>';
+                return;
+            }
+
+            document.getElementById('pool-cards').innerHTML = data.pool.map(p => {
+                const pct = p.saldo_empresa > 0 ? Math.min(100, (p.disponivel / p.saldo_empresa) * 100) : 0;
+                const barColor = pct > 60 ? 'var(--cor-sucesso)' : pct > 30 ? 'var(--cor-alerta)' : 'var(--cor-perigo)';
+                const diff = p.market_gbp - p.wac_gbp;
+                const diffPct = p.wac_gbp > 0 ? (diff / p.wac_gbp * 100) : 0;
+                return `
+                <div class="pool-card">
+                    <div class="pool-card-header">
+                        <span class="pool-moeda">${p.moeda}</span>
+                        <span class="pool-badge">${p.num_compras || 0} compras</span>
+                    </div>
+                    <div class="pool-body">
+                        <div class="pool-row"><span class="pool-lbl">WAC (GBP/unit)</span><span class="pool-val azul">${fmtNum(p.wac_gbp,6)}</span></div>
+                        <div class="pool-row"><span class="pool-lbl">WAC (USD/unit)</span><span class="pool-val">${fmtNum(p.wac_usd,6)}</span></div>
+                        <div class="pool-row"><span class="pool-lbl">WAC (BRL/unit)</span><span class="pool-val">${fmtNum(p.wac_brl,4)}</span></div>
+                        <div class="pool-row"><span class="pool-lbl">Mercado atual (GBP)</span><span class="pool-val ${diff>=0?'verde':'vermelho'}">${fmtNum(p.market_gbp,6)} <small>(${diff>=0?'+':''}${fmtNum(diffPct,2)}%)</small></span></div>
+                        <hr class="pool-sep">
+                        <div class="pool-row"><span class="pool-lbl">Total comprado pool</span><span class="pool-val">${fmtNum(p.total_pool,2)} ${p.moeda}</span></div>
+                        <div class="pool-row"><span class="pool-lbl">Saldo empresa</span><span class="pool-val">${fmtNum(p.saldo_empresa,2)} ${p.moeda}</span></div>
+                        <div class="pool-row"><span class="pool-lbl">Comprometido</span><span class="pool-val amarelo">${fmtNum(p.comprometido,2)} ${p.moeda}</span></div>
+                        <div class="pool-row"><span class="pool-lbl">Disponível</span><span class="pool-val ${p.disponivel>=0?'verde':'vermelho'}">${fmtNum(p.disponivel,2)} ${p.moeda}</span></div>
+                        <div class="status-bar"><div class="status-bar-fill" style="width:${pct}%;background:${barColor}"></div></div>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch(e) {
+            document.getElementById('pool-cards').innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle vermelho"></i><p>${e.message}</p></div>`;
+        }
+    }
+
+    // ── Comprar ───────────────────────────────────────────────────────────────
+    async function carregarContasEmpresa() {
+        try {
+            const res  = await fetch('/api/admin/contas-bancarias');
+            const data = await res.json();
+            contasEmpresa = data.contas || [];
+            const deb  = document.getElementById('cContaDeb');
+            const cred = document.getElementById('cContaCred');
+            deb.innerHTML  = '<option value="">Selecione a conta debitada…</option>';
+            cred.innerHTML = '<option value="">Selecione a conta creditada…</option>';
+            contasEmpresa.forEach(c => {
+                const opt = `<option value="${c.numero}">${c.numero} — ${c.banco||''} (${c.moeda}) saldo: ${fmtNum(c.saldo)}</option>`;
+                deb.innerHTML  += opt;
+                cred.innerHTML += opt;
+            });
+        } catch(e) { console.error(e); }
+    }
+
+    function onMoedaPagaChange() {
+        const mp = document.getElementById('cMoedaP').value;
+        const row = document.getElementById('gbpRateRow');
+        const lbl = document.getElementById('gbpRateMoeda');
+        if (mp && mp !== 'GBP') {
+            row.classList.add('visible');
+            lbl.textContent = mp;
+        } else {
+            row.classList.remove('visible');
+        }
+        calcPreview();
+    }
+
+    function calcPreview() {
+        const mc   = document.getElementById('cMoedaC').value;
+        const vc   = parseFloat(document.getElementById('cValorC').value) || 0;
+        const mp   = document.getElementById('cMoedaP').value;
+        const vp   = parseFloat(document.getElementById('cValorP').value) || 0;
+        const gbpR = parseFloat(document.getElementById('cGbpRate').value) || 0;
+        const box  = document.getElementById('previewBox');
+
+        if (!mc || !vc || !mp || !vp) { box.style.display = 'none'; return; }
+
+        const taxa = vc > 0 && vp > 0 ? vc / vp : 0;
+        let custoGbp = 0;
+        if (mp === 'GBP') {
+            custoGbp = vp / vc;
+        } else if (gbpR > 0) {
+            custoGbp = (vp * gbpR) / vc;
+        }
+
+        // Preenche taxa automaticamente se vazia
+        const taxaInput = document.getElementById('cTaxa');
+        if (!taxaInput.value) taxaInput.value = taxa.toFixed(6);
+
+        box.style.display = 'block';
+        document.getElementById('pvOp').textContent = `Comprar ${fmtNum(vc,2)} ${mc} pagando ${fmtNum(vp,2)} ${mp}`;
+        document.getElementById('pvTaxa').textContent = `${taxa.toFixed(6)} ${mc}/${mp}`;
+        if (custoGbp > 0) {
+            document.getElementById('pvCustoGbp').textContent = `${custoGbp.toFixed(6)} GBP/${mc}`;
+            document.getElementById('pvCustoTotal').textContent = `£${(custoGbp * vc).toFixed(2)}`;
+        } else {
+            document.getElementById('pvCustoGbp').textContent = 'informe a taxa GBP acima';
+            document.getElementById('pvCustoTotal').textContent = '—';
+        }
+    }
+
+    async function registrarCompra() {
+        const mc  = document.getElementById('cMoedaC').value;
+        const vc  = parseFloat(document.getElementById('cValorC').value) || 0;
+        const mp  = document.getElementById('cMoedaP').value;
+        const vp  = parseFloat(document.getElementById('cValorP').value) || 0;
+        const taxa = parseFloat(document.getElementById('cTaxa').value) || 0;
+        const gbpRate = parseFloat(document.getElementById('cGbpRate').value) || null;
+        const fornecedor = document.getElementById('cFornecedor').value;
+        const contaDeb   = document.getElementById('cContaDeb').value;
+        const contaCred  = document.getElementById('cContaCred').value;
+        const obs = document.getElementById('cObs').value;
+        const msg = document.getElementById('compraMsg');
+
+        if (!mc || !vc || !mp || !vp || !contaDeb || !contaCred) {
+            msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Preencha todos os campos obrigatórios.</span>';
+            return;
+        }
+        if (mp !== 'GBP' && !gbpRate) {
+            msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Informe a taxa GBP por ' + mp + ' para calcular o custo correto.</span>';
+            return;
+        }
+
+        const btn = document.getElementById('btnComprar');
+        btn.disabled = true;
+        msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registrando…';
+
+        try {
+            const res  = await fetch('/api/admin/fx/compra', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ moeda_comprada:mc, valor_comprado:vc, moeda_paga:mp, valor_pago:vp, taxa, gbp_rate_moeda_paga:gbpRate, fornecedor, conta_debitada:contaDeb, conta_creditada:contaCred, observacoes:obs })
+            });
+            const data = await res.json();
+            if (data.success) {
+                msg.innerHTML = `<span style="color:var(--cor-sucesso)"><i class="fas fa-check-circle"></i> ${data.message}</span>`;
+                // Limpar form
+                ['cMoedaC','cValorC','cMoedaP','cValorP','cTaxa','cGbpRate','cFornecedor','cObs'].forEach(id => document.getElementById(id).value = '');
+                document.getElementById('previewBox').style.display = 'none';
+                document.getElementById('gbpRateRow').classList.remove('visible');
+            } else {
+                msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> ${data.message}</span>`;
+            }
+        } catch(e) {
+            msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> Erro: ${e.message}</span>`;
+        }
+        btn.disabled = false;
+    }
+
+    // ── P&L ──────────────────────────────────────────────────────────────────
+    async function carregarPL() {
+        try {
+            document.getElementById('plTableBody').innerHTML = '<tr><td colspan="10" class="loading-spin"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+            const res  = await fetch('/api/admin/fx/pl');
+            const data = await res.json();
+            if (!data.success) return;
+
+            // Resumo
+            document.getElementById('pl-resumo').innerHTML = `
+                <div class="resumo-card"><div class="label">Realizado (GBP)</div><div class="valor ${profitClass(data.total_realizado_gbp)}">${fmtGBP(data.total_realizado_gbp)}</div><div class="sub">trades fechados</div></div>
+                <div class="resumo-card"><div class="label">Não-Realizado (GBP)</div><div class="valor ${profitClass(data.total_nao_realizado_gbp)}">${fmtGBP(data.total_nao_realizado_gbp)}</div><div class="sub">posições abertas</div></div>
+                <div class="resumo-card"><div class="label">Total Geral (GBP)</div><div class="valor ${profitClass(data.total_geral_gbp)}">${fmtGBP(data.total_geral_gbp)}</div><div class="sub">realizado + aberto</div></div>
+                <div class="resumo-card"><div class="label">Trades analisados</div><div class="valor azul">${data.trades.length}</div><div class="sub">últimos 300</div></div>
+            `;
+
+            document.getElementById('pl-count').textContent = `${data.trades.length} operações`;
+
+            // Tabela realizado
+            if (!data.trades.length) {
+                document.getElementById('plTableBody').innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--cor-texto-secundario)">Nenhum trade encontrado</td></tr>';
+            } else {
+                document.getElementById('plTableBody').innerHTML = data.trades.map(t => `
+                    <tr>
+                        <td>${fmtDate(t.data)}</td>
+                        <td class="mono" style="font-size:11px">${t.id}</td>
+                        <td>${t.cliente}</td>
+                        <td class="mono">${fmtNum(t.v_in,2)} ${t.m_in}</td>
+                        <td class="mono">${fmtNum(t.v_out,2)} ${t.m_out}</td>
+                        <td class="mono">${t.cotacao ? fmtNum(t.cotacao,4) : '—'}</td>
+                        <td class="mono azul">${fmtGBP(t.rev_gbp)}</td>
+                        <td class="mono">${fmtGBP(t.cost_gbp)}</td>
+                        <td class="mono ${profitClass(t.profit_gbp)}" style="font-weight:700">${fmtGBP(t.profit_gbp)}</td>
+                        <td><span class="tag ${profitTag(t.profit_gbp)}">${t.margin_pct}%</span></td>
+                    </tr>`).join('');
+            }
+
+            // Tabela posições abertas
+            if (!data.posicoes_abertas.length) {
+                document.getElementById('plAbertaBody').innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--cor-texto-secundario)">Sem posições abertas</td></tr>';
+            } else {
+                document.getElementById('plAbertaBody').innerHTML = data.posicoes_abertas.map(p => `
+                    <tr>
+                        <td class="mono" style="font-size:11px">${p.id}</td>
+                        <td><span class="tag tag-azul">${p.tipo}</span></td>
+                        <td><span class="tag tag-amarelo">${p.status}</span></td>
+                        <td>${p.cliente}</td>
+                        <td class="mono">${fmtNum(p.v_in,2)} ${p.m_in}</td>
+                        <td class="mono">${fmtNum(p.v_out,2)} ${p.m_out}</td>
+                        <td class="mono azul">${fmtGBP(p.rev_gbp)}</td>
+                        <td class="mono">${fmtGBP(p.cost_gbp)}</td>
+                        <td class="mono ${profitClass(p.profit_gbp)}" style="font-weight:700">${fmtGBP(p.profit_gbp)}</td>
+                    </tr>`).join('');
+            }
+        } catch(e) {
+            document.getElementById('plTableBody').innerHTML = `<tr><td colspan="10" style="color:var(--cor-perigo);padding:20px">${e.message}</td></tr>`;
+        }
+    }
+
+    // ── Trader ────────────────────────────────────────────────────────────────
+    async function carregarTrader() {
+        try {
+            document.getElementById('trader-cards').innerHTML = '<div class="loading-spin"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
+            const res  = await fetch('/api/admin/fx/trader');
+            const data = await res.json();
+            if (!data.success) return;
+
+            // WAC summary
+            const wacs = Object.entries(data.wac || {});
+            document.getElementById('trader-wac').innerHTML = wacs.length
+                ? wacs.map(([m,v]) => `<div class="resumo-card"><div class="label">WAC ${m} (GBP)</div><div class="valor azul mono">${v}</div><div class="sub">custo médio ponderado</div></div>`).join('')
+                : '';
+
+            if (!data.pedidos.length) {
+                document.getElementById('trader-cards').innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-check-circle verde"></i><p>Nenhum pedido pendente.</p></div>';
+                return;
+            }
+
+            document.getElementById('trader-cards').innerHTML = data.pedidos.map(p => {
+                const urgente = !p.cobre;
+                const margemColor = p.margem_pct === null ? 'amarelo' : p.margem_pct >= 1 ? 'verde' : 'vermelho';
+                return `
+                <div class="trader-card ${urgente ? 'urgente' : 'ok'}">
+                    <div class="trader-header">
+                        <div>
+                            <span class="tag ${urgente?'tag-vermelho':'tag-verde'}" style="margin-right:6px">${urgente?'⚠ POOL INSUFICIENTE':'✓ COBERTO'}</span>
+                            <span style="font-size:11px;color:var(--cor-texto-secundario)">${p.tipo.replace('transferencia_','').toUpperCase()}</span>
+                        </div>
+                        <span class="tag tag-amarelo">${p.status}</span>
+                    </div>
+                    <div class="trader-body">
+                        <div class="trader-row"><span class="trader-lbl">Cliente</span><span class="trader-val">${p.cliente}</span></div>
+                        <div class="trader-row"><span class="trader-lbl">Precisa entregar</span><span class="trader-val mono" style="color:var(--cor-alerta);font-size:15px">${fmtNum(p.v_precisa,2)} ${p.m_precisa}</span></div>
+                        <div class="trader-row"><span class="trader-lbl">Pool disponível</span><span class="trader-val mono ${p.cobre?'verde':'vermelho'}">${fmtNum(p.pool_disponivel,2)} ${p.m_precisa}</span></div>
+                        <div class="trader-row"><span class="trader-lbl">Recebe do cliente</span><span class="trader-val mono">${fmtNum(p.v_in,2)} ${p.m_in}</span></div>
+                        ${p.cotacao_cliente ? `<div class="trader-row"><span class="trader-lbl">Taxa cliente</span><span class="trader-val mono">${fmtNum(p.cotacao_cliente,4)} ${p.m_out}/${p.m_in}</span></div>` : ''}
+                        ${p.wac_gbp ? `<div class="trader-row"><span class="trader-lbl">WAC atual ${p.m_precisa}</span><span class="trader-val mono azul">${p.wac_gbp} GBP/${p.m_precisa}</span></div>` : ''}
+                        ${p.margem_pct !== null ? `<div class="trader-row"><span class="trader-lbl">Margem c/ WAC atual</span><span class="trader-val ${margemColor}">${p.margem_pct}%</span></div>` : ''}
+                        ${p.beneficiario ? `<div class="trader-row"><span class="trader-lbl">Beneficiário</span><span class="trader-val">${p.beneficiario}</span></div>` : ''}
+                        ${p.codigo_swift ? `<div class="trader-row"><span class="trader-lbl">SWIFT</span><span class="trader-val mono">${p.codigo_swift}</span></div>` : ''}
+                        <div class="trader-row" style="font-size:11px;color:var(--cor-texto-secundario)"><span>${fmtDate(p.data)}</span><span>${p.id}</span></div>
+
+                        <div class="sugestao-box">
+                            <div class="sugestao-title"><i class="fas fa-lightbulb"></i> Sugestão — margem mínima 1%</div>
+                            <div style="margin-bottom:4px">Receita: <strong>${fmtNum(p.rev_por_unit_gbp,6)} GBP/${p.m_precisa}</strong></div>
+                            <div style="margin-bottom:4px">Custo máx: <strong class="verde">${fmtNum(p.max_custo_gbp,6)} GBP/${p.m_precisa}</strong></div>
+                            ${p.m_precisa !== 'GBP' ? `<div>Taxa mín GBP/${p.m_precisa}: <strong class="verde">${fmtNum(p.taxa_min_ref,4)}</strong> <span style="color:var(--cor-texto-secundario)">(precisa de pelo menos ${fmtNum(p.taxa_min_ref,4)} ${p.m_precisa} por GBP)</span></div>` : ''}
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch(e) {
+            document.getElementById('trader-cards').innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle vermelho"></i><p>${e.message}</p></div>`;
+        }
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    carregarPool();
+    carregarContasEmpresa();
+</script>
+</body>
+</html>
