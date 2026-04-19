@@ -588,7 +588,104 @@
         @keyframes slideUp {
             from { opacity: 0; transform: translateY(30px); }
             to { opacity: 1; transform: translateY(0); }
-        }        
+        }
+
+        /* ── Modal Detalhes ── */
+        .btn-detalhe {
+            background: var(--cor-admin, #1a5fb4);
+            color: white;
+            border: none;
+            padding: 5px 11px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+        .btn-detalhe:hover {
+            background: #2d8fff;
+            transform: translateY(-1px);
+        }
+        .modal-detalhes {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-detalhes.active { display: flex; }
+        .modal-detalhes .modal-content {
+            background: var(--cor-card, #1e2636);
+            border: 1px solid var(--cor-borda, #2d3748);
+            border-radius: 8px;
+            width: 92%;
+            max-width: 680px;
+            max-height: 88vh;
+            overflow-y: auto;
+        }
+        .modal-detalhes .modal-header {
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--cor-borda, #2d3748);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: var(--cor-card, #1e2636);
+            z-index: 1;
+        }
+        .modal-detalhes .modal-header h3 { color: var(--cor-admin, #1a5fb4); font-size: 16px; }
+        .modal-detalhes .modal-close {
+            background: none; border: none;
+            color: var(--cor-texto-secundario, #aaa);
+            font-size: 24px; cursor: pointer;
+        }
+        .modal-detalhes .modal-close:hover { color: #e74c3c; }
+        .modal-detalhes .modal-body { padding: 20px; }
+        .detalhe-grupo-gc {
+            margin-bottom: 16px;
+            padding: 14px;
+            background: rgba(26,95,180,0.06);
+            border-radius: 6px;
+            border-left: 3px solid var(--cor-admin, #1a5fb4);
+        }
+        .detalhe-grupo-gc h4 {
+            color: var(--cor-admin, #1a5fb4);
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+        .detalhe-grupo-gc.swift-grupo {
+            border-left-color: #8b5cf6;
+            background: rgba(139,92,246,0.06);
+        }
+        .detalhe-grupo-gc.swift-grupo h4 { color: #8b5cf6; }
+        .detalhe-linha-gc {
+            display: flex;
+            margin-bottom: 7px;
+            font-size: 13px;
+            gap: 8px;
+        }
+        .detalhe-label-gc {
+            min-width: 145px;
+            color: var(--cor-texto-secundario, #aaa);
+            font-weight: 600;
+        }
+        .detalhe-valor-gc { flex: 1; color: var(--cor-texto, #eee); word-break: break-all; }
+        .detalhe-valor-gc strong { color: var(--cor-admin, #1a5fb4); }
+        .detalhe-valor-gc.mono { font-family: monospace; font-size: 12px; }
+        .status-gc {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-gc.completed { background: rgba(46,194,126,0.2); color: #2ec27e; }
+        .status-gc.processing { background: rgba(243,156,18,0.2); color: #f39c12; }
+        .status-gc.pending, .status-gc.solicitada { background: rgba(243,156,18,0.2); color: #f39c12; }
+        .status-gc.rejected { background: rgba(231,76,60,0.2); color: #e74c3c; }
     </style>
 </head>
 <body>
@@ -3482,8 +3579,196 @@
                     btnDeletar.disabled = false;
                 }
             }
-        }        
+        }
+
+        // ── MODAL DETALHES DO LANÇAMENTO ──────────────────────────────────────
+
+        async function abrirModalDetalhes(transacao) {
+            const modal = document.getElementById('modalDetalhesGC');
+            const body  = document.getElementById('modalBodyGC');
+
+            // Mostrar loading e abrir modal
+            body.innerHTML = '<div style="text-align:center;padding:40px;color:#aaa;"><i class="fas fa-spinner fa-spin" style="font-size:28px;"></i><p style="margin-top:12px;">Carregando detalhes...</p></div>';
+            modal.classList.add('active');
+
+            try {
+                const res  = await fetch(`/api/admin/aprovar-operacoes/detalhes/${transacao.id}`);
+                const data = await res.json();
+
+                if (!data.success) {
+                    body.innerHTML = `<p style="color:#e74c3c;padding:20px;">Erro: ${data.message}</p>`;
+                    return;
+                }
+
+                const t = data.transferencia;
+                renderizarModalDetalhes(t, body);
+
+            } catch (err) {
+                body.innerHTML = `<p style="color:#e74c3c;padding:20px;">Erro ao carregar detalhes.</p>`;
+                console.error('Erro abrirModalDetalhes:', err);
+            }
+        }
+
+        function fecharModalDetalhesGC() {
+            document.getElementById('modalDetalhesGC').classList.remove('active');
+        }
+
+        // Fechar ao clicar fora do modal
+        document.getElementById('modalDetalhesGC')?.addEventListener('click', function(e) {
+            if (e.target === this) fecharModalDetalhesGC();
+        });
+
+        function renderizarModalDetalhes(t, container) {
+            const fmtVal = v => v != null && v !== '' ? parseFloat(v).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : null;
+            const fmtData = d => {
+                if (!d) return null;
+                try {
+                    const s = d.replace('T', ' ').split('.')[0];
+                    const [dt, hr] = s.split(' ');
+                    const [y, m, dd] = dt.split('-');
+                    return hr ? `${dd}/${m}/${y} ${hr}` : `${dd}/${m}/${y}`;
+                } catch { return d; }
+            };
+            const statusMap = {
+                completed: ['CONCLUÍDA', 'completed'],
+                processing: ['EM PROCESSAMENTO', 'processing'],
+                pending: ['PENDENTE', 'pending'],
+                solicitada: ['SOLICITADA', 'solicitada'],
+                rejected: ['RECUSADA', 'rejected'],
+                approved: ['APROVADA', 'completed']
+            };
+            const tipoMap = {
+                cambio: 'Câmbio',
+                deposito: 'Depósito',
+                transferencia_internacional: 'Transferência Internacional',
+                internacional: 'Transferência Internacional',
+                transferencia_interna: 'Transferência Interna',
+                transferencia_interna_cliente: 'Transferência Interna Cliente',
+                transferencia_cliente_empresa: 'Cliente → Empresa',
+                transferencia_empresa_cliente: 'Empresa → Cliente',
+                cambio_contas_empresa: 'Câmbio Contas Empresa',
+                ajuste_admin: 'Ajuste Administrativo',
+                receita: 'Receita'
+            };
+            const swiftLabels = {
+                linha1_uetr: 'UETR #', linha2_20: ':20:', linha3_32a: ':32A:',
+                linha4_50k: ':50K:', linha5_57a: ':57A:', linha6_59: ':59:',
+                linha7_beneficiario: 'Beneficiário', linha8_70: ':70:', linha9_71a: ':71A:'
+            };
+
+            const grupo = (titulo, icone, linhas, extra = '') => {
+                const rows = linhas.filter(l => l[1] != null && l[1] !== '').map(([lbl, val, mono]) =>
+                    `<div class="detalhe-linha-gc">
+                        <span class="detalhe-label-gc">${lbl}:</span>
+                        <span class="detalhe-valor-gc${mono ? ' mono' : ''}">${val}</span>
+                    </div>`
+                ).join('');
+                if (!rows && !extra) return '';
+                return `<div class="detalhe-grupo-gc${titulo === 'DADOS SWIFT DO PAGAMENTO' ? ' swift-grupo' : ''}">
+                    <h4><i class="${icone}"></i> ${titulo}</h4>
+                    ${rows}${extra}
+                </div>`;
+            };
+
+            const tipo    = (t.tipo || '').toLowerCase();
+            const status  = (t.status || '').toLowerCase();
+            const [statusTxt, statusCls] = statusMap[status] || [t.status || 'N/A', 'processing'];
+            const tipoTxt = tipoMap[tipo] || t.tipo || 'N/A';
+            const valNum  = parseFloat(t.valor || 0);
+
+            let html = '';
+
+            // IDENTIFICAÇÃO
+            html += grupo('IDENTIFICAÇÃO', 'fas fa-tag', [
+                ['ID', t.id],
+                ['Tipo', tipoTxt],
+                ['Status', `<span class="status-gc ${statusCls}">${statusTxt}</span>`],
+                ['Data', fmtData(t.data)],
+                ['Executado por', t.executado_por],
+                ['Solicitado por', t.solicitado_por || t.cliente]
+            ]);
+
+            // VALORES
+            const valLinhas = [
+                ['Valor', valNum ? `<strong>${fmtVal(valNum)} ${t.moeda || ''}</strong>` : null],
+                ['Finalidade', t.finalidade],
+                ['Descrição', t.descricao]
+            ];
+            if (tipo === 'cambio' || tipo === 'cambio_contas_empresa') {
+                const vOrig = parseFloat(t.valor_origem || 0);
+                const vDest = parseFloat(t.valor_destino || 0);
+                const cot   = parseFloat(t.cotacao || t.taxa_cambio || t.taxa_principal_registro || 0);
+                if (vOrig) valLinhas.splice(1, 0, ['Valor Origem', `${fmtVal(vOrig)} ${t.moeda_origem || ''}`]);
+                if (vDest) valLinhas.splice(2, 0, ['Valor Destino', `${fmtVal(vDest)} ${t.moeda_destino || ''}`]);
+                if (cot)   valLinhas.splice(3, 0, ['Cotação', cot.toLocaleString('pt-BR', {minimumFractionDigits: 4, maximumFractionDigits: 4})]);
+                if (t.operacao) valLinhas.splice(1, 0, ['Operação', t.operacao]);
+            }
+            html += grupo('VALORES', 'fas fa-coins', valLinhas);
+
+            // CONTAS
+            const contaRem  = t.conta_remetente || t.conta_origem;
+            const contaDest = t.conta_destinatario || t.conta_destino;
+            if (contaRem || contaDest || t.banco_origem) {
+                html += grupo('CONTAS', 'fas fa-exchange-alt', [
+                    ['Conta Remetente', contaRem],
+                    ['Conta Destinatário', contaDest],
+                    ['Banco Origem', t.banco_origem]
+                ]);
+            }
+
+            // BENEFICIÁRIO + DADOS BANCÁRIOS (apenas internacionais)
+            if (tipo === 'transferencia_internacional' || tipo === 'internacional') {
+                if (t.beneficiario) {
+                    html += grupo('BENEFICIÁRIO', 'fas fa-user', [
+                        ['Nome', t.beneficiario],
+                        ['Endereço', t.endereco_beneficiario],
+                        ['Cidade', t.cidade],
+                        ['País', t.pais]
+                    ]);
+                }
+                if (t.nome_banco || t.codigo_swift || t.iban_account || t.aba_routing) {
+                    html += grupo('DADOS BANCÁRIOS', 'fas fa-university', [
+                        ['Banco', t.nome_banco],
+                        ['Endereço Banco', t.endereco_banco],
+                        ['Cidade Banco', t.cidade_banco],
+                        ['País Banco', t.pais_banco],
+                        ['SWIFT / BIC', t.codigo_swift, true],
+                        ['IBAN / Conta', t.iban_account, true],
+                        ['ABA / Routing', t.aba_routing, true]
+                    ]);
+                }
+
+                // DADOS SWIFT DO PAGAMENTO (apenas completed com dados)
+                if (status === 'completed' && t.dados_swift_pagamento && typeof t.dados_swift_pagamento === 'object') {
+                    const swiftLinhas = Object.entries(swiftLabels)
+                        .filter(([k]) => t.dados_swift_pagamento[k])
+                        .map(([k, lbl]) => [lbl, t.dados_swift_pagamento[k], true]);
+                    if (swiftLinhas.length > 0) {
+                        html += grupo('DADOS SWIFT DO PAGAMENTO', 'fas fa-file-invoice-dollar', swiftLinhas);
+                    }
+                }
+            }
+
+            container.innerHTML = html || '<p style="color:#aaa;padding:16px;">Sem informações adicionais.</p>';
+        }
+
     </script>
     <script src="/static/js/theme.js"></script>
+
+    <!-- Modal Detalhes do Lançamento -->
+    <div id="modalDetalhesGC" class="modal-detalhes">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-info-circle"></i> Detalhes do Lançamento</h3>
+                <button class="modal-close" onclick="fecharModalDetalhesGC()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBodyGC">
+                <div style="text-align:center;padding:40px;color:#aaa;">
+                    <i class="fas fa-spinner fa-spin" style="font-size:28px;"></i>
+                    <p style="margin-top:12px;">Carregando detalhes...</p>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

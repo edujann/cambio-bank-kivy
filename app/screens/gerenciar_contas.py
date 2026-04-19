@@ -408,6 +408,7 @@ class CardTransacao(BoxLayout):
             text='Ver',
             font_size='11sp',
             size_hint_x=0.10,
+            background_normal='',
             background_color=(0.23, 0.51, 0.96, 1),
             color=(1, 1, 1, 1)
         )
@@ -424,7 +425,8 @@ class CardTransacao(BoxLayout):
     def mostrar_detalhes(self, instance):
         from kivy.uix.scrollview import ScrollView
 
-        dados = self.transacao.get('dados', self.transacao)
+        try:
+            dados = self.transacao.get('dados', self.transacao)
         tipo = dados.get('tipo', self.transacao.get('tipo', ''))
         status = dados.get('status', '')
 
@@ -582,6 +584,11 @@ class CardTransacao(BoxLayout):
         )
         btn_fechar.bind(on_press=popup.dismiss)
         popup.open()
+
+        except Exception as e:
+            import traceback
+            print(f"❌ ERRO em mostrar_detalhes: {e}")
+            traceback.print_exc()
 
 
 class TelaGerenciarContas(Screen):
