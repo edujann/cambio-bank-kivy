@@ -10851,6 +10851,70 @@ def buscar_transacao_por_id():
 # ============================================
 # FUNÇÃO PRINCIPAL DE ESTORNO
 # ============================================
+# LOOKUP GLOBAL DE CONTA (Ctrl+K)
+# ============================================
+
+@app.route('/api/admin/conta/lookup', methods=['POST'])
+def lookup_conta():
+    """Busca uma conta pelo ID em contas (clientes) e contas_bancarias_empresa"""
+    try:
+        usuario_logado = session.get('username')
+        if not usuario_logado:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+
+        user_check = supabase.table('usuarios').select('tipo').eq('username', usuario_logado).single().execute()
+        if not user_check.data or user_check.data.get('tipo') != 'admin':
+            return jsonify({"success": False, "message": "Acesso negado"}), 403
+
+        dados = request.get_json()
+        conta_id = (dados.get('id') or '').strip()
+        if not conta_id:
+            return jsonify({"success": False, "message": "ID não informado"}), 400
+
+        resultados = []
+
+        # Buscar em contas (clientes)
+        r_cliente = supabase.table('contas')\
+            .select('id, cliente_nome, cliente_username, moeda, saldo, ativa')\
+            .eq('id', conta_id)\
+            .limit(1).execute()
+        if r_cliente.data:
+            c = r_cliente.data[0]
+            resultados.append({
+                'origem': 'cliente',
+                'id': c.get('id'),
+                'cliente_nome': c.get('cliente_nome'),
+                'cliente_username': c.get('cliente_username'),
+                'moeda': c.get('moeda'),
+                'saldo': float(c.get('saldo', 0)) if c.get('saldo') is not None else None,
+                'ativa': c.get('ativa'),
+            })
+
+        # Buscar em contas_bancarias_empresa
+        r_empresa = supabase.table('contas_bancarias_empresa')\
+            .select('*')\
+            .eq('numero', conta_id)\
+            .limit(1).execute()
+        if r_empresa.data:
+            e = r_empresa.data[0]
+            resultados.append({
+                'origem': 'empresa',
+                'id': e.get('numero') or e.get('id'),
+                'nome': e.get('nome') or e.get('descricao') or 'Conta da Empresa',
+                'moeda': e.get('moeda'),
+                'saldo': float(e.get('saldo', 0)) if e.get('saldo') is not None else None,
+            })
+
+        if not resultados:
+            return jsonify({"success": False, "message": f"Nenhuma conta encontrada com ID \"{conta_id}\""}), 404
+
+        return jsonify({"success": True, "resultados": resultados})
+
+    except Exception as e:
+        print(f"❌ Erro lookup_conta: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+# ============================================
 
 def calcular_estorno(transacao):
     """
