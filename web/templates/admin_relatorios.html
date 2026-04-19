@@ -63,10 +63,7 @@
             font-weight: bold;
         }
 
-        .logo i {
-            color: var(--cor-admin);
-            font-size: 28px;
-        }
+        .logo i { color: var(--cor-admin); font-size: 28px; }
 
         .logo-text {
             background: linear-gradient(90deg, var(--cor-admin), #2d8fff);
@@ -85,10 +82,7 @@
             margin-left: 10px;
         }
 
-        .page-title {
-            font-size: 20px;
-            font-weight: bold;
-        }
+        .page-title { font-size: 20px; font-weight: bold; }
 
         .btn-voltar {
             background: transparent;
@@ -107,9 +101,7 @@
         }
 
         /* TABS */
-        .tabs-container {
-            margin-bottom: 30px;
-        }
+        .tabs-container { margin-bottom: 30px; }
 
         .tabs-header {
             display: flex;
@@ -131,23 +123,10 @@
             border-radius: 8px 8px 0 0;
         }
 
-        .tab-btn:hover {
-            color: var(--cor-texto);
-            background: rgba(26, 95, 180, 0.1);
-        }
-
-        .tab-btn.active {
-            color: var(--cor-admin);
-            border-bottom: 2px solid var(--cor-admin);
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
+        .tab-btn:hover { color: var(--cor-texto); background: rgba(26, 95, 180, 0.1); }
+        .tab-btn.active { color: var(--cor-admin); border-bottom: 2px solid var(--cor-admin); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
 
         /* PAINEL DE CONTROLES */
         .painel-controles {
@@ -165,11 +144,7 @@
             margin-bottom: 20px;
         }
 
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
 
         .form-group label {
             font-size: 12px;
@@ -178,10 +153,7 @@
             text-transform: uppercase;
         }
 
-        .form-group label i {
-            margin-right: 5px;
-            color: var(--cor-admin);
-        }
+        .form-group label i { margin-right: 5px; color: var(--cor-admin); }
 
         .form-control {
             padding: 10px 12px;
@@ -192,15 +164,9 @@
             font-size: 14px;
         }
 
-        .form-control:focus {
-            outline: none;
-            border-color: var(--cor-admin);
-        }
+        .form-control:focus { outline: none; border-color: var(--cor-admin); }
 
-        .toggle-group {
-            display: flex;
-            gap: 10px;
-        }
+        .toggle-group { display: flex; gap: 10px; }
 
         .toggle-btn {
             flex: 1;
@@ -233,10 +199,7 @@
             margin-top: 10px;
         }
 
-        .btn-gerar:hover {
-            background: #2d8fff;
-            transform: translateY(-2px);
-        }
+        .btn-gerar:hover { background: #2d8fff; transform: translateY(-2px); }
 
         /* CARDS DE RESUMO */
         .cards-resumo {
@@ -255,23 +218,18 @@
             transition: all 0.3s ease;
         }
 
-        .card-resumo:hover {
-            transform: translateY(-3px);
-            border-color: var(--cor-admin);
-        }
+        .card-resumo:hover { transform: translateY(-3px); border-color: var(--cor-admin); }
+        .card-resumo .titulo { font-size: 12px; color: var(--cor-texto-secundario); text-transform: uppercase; margin-bottom: 10px; }
+        .card-resumo .valor { font-size: 24px; font-weight: bold; color: var(--cor-primaria); }
 
-        .card-resumo .titulo {
-            font-size: 12px;
-            color: var(--cor-texto-secundario);
-            text-transform: uppercase;
-            margin-bottom: 10px;
-        }
-
-        .card-resumo .valor {
-            font-size: 28px;
-            font-weight: bold;
-            color: var(--cor-primaria);
-        }
+        /* DRE cards */
+        .card-resumo.dre-receita  { border-color: var(--cor-sucesso); }
+        .card-resumo.dre-receita  .valor { color: var(--cor-sucesso); }
+        .card-resumo.dre-despesa  { border-color: var(--cor-perigo); }
+        .card-resumo.dre-despesa  .valor { color: var(--cor-perigo); }
+        .card-resumo.dre-resultado { border-color: var(--cor-admin); }
+        .dre-positivo { color: var(--cor-sucesso) !important; }
+        .dre-negativo { color: var(--cor-perigo)  !important; }
 
         /* BREAKDOWN POR MOEDA */
         .breakdown-moedas {
@@ -282,18 +240,9 @@
             margin-bottom: 25px;
         }
 
-        .breakdown-titulo {
-            font-size: 14px;
-            font-weight: bold;
-            color: var(--cor-admin);
-            margin-bottom: 15px;
-        }
+        .breakdown-titulo { font-size: 14px; font-weight: bold; color: var(--cor-admin); margin-bottom: 15px; }
 
-        .moedas-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-        }
+        .moedas-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
 
         .moeda-card {
             background: rgba(26, 95, 180, 0.1);
@@ -303,27 +252,12 @@
             text-align: center;
         }
 
-        .moeda-sigla {
-            font-size: 18px;
-            font-weight: bold;
-            color: var(--cor-admin);
-        }
-
-        .moeda-valor {
-            font-size: 16px;
-            font-weight: bold;
-            color: var(--cor-texto);
-        }
-
-        .moeda-usd {
-            font-size: 11px;
-            color: var(--cor-texto-secundario);
-        }
+        .moeda-sigla { font-size: 18px; font-weight: bold; color: var(--cor-admin); }
+        .moeda-valor { font-size: 16px; font-weight: bold; color: var(--cor-texto); }
+        .moeda-usd   { font-size: 11px; color: var(--cor-texto-secundario); }
 
         /* SEÇÃO DE CATEGORIAS */
-        .secao-categorias {
-            margin-bottom: 25px;
-        }
+        .secao-categorias { margin-bottom: 25px; }
 
         .secao-titulo {
             font-size: 16px;
@@ -349,27 +283,25 @@
             justify-content: space-between;
             align-items: center;
             cursor: pointer;
+            user-select: none;
         }
 
-        .categoria-header:hover {
-            background: rgba(26, 95, 180, 0.15);
+        .categoria-header:hover { background: rgba(26, 95, 180, 0.18); }
+
+        .categoria-header-left { display: flex; align-items: center; gap: 10px; }
+
+        .categoria-header .fa-chevron-right {
+            transition: transform 0.22s;
+            font-size: 11px;
+            color: var(--cor-texto-secundario);
         }
 
-        .categoria-nome {
-            font-size: 15px;
-            font-weight: bold;
-            color: var(--cor-admin);
-        }
+        .categoria-header.aberta .fa-chevron-right { transform: rotate(90deg); }
 
-        .categoria-total {
-            font-size: 16px;
-            font-weight: bold;
-            color: var(--cor-texto);
-        }
+        .categoria-nome { font-size: 15px; font-weight: bold; color: var(--cor-admin); }
+        .categoria-total { font-size: 16px; font-weight: bold; color: var(--cor-texto); }
 
-        .categoria-contas {
-            padding: 0 15px;
-        }
+        .categoria-contas { padding: 0 15px; }
 
         .conta-item {
             display: flex;
@@ -379,26 +311,10 @@
             border-bottom: 1px solid var(--cor-borda);
         }
 
-        .conta-item:last-child {
-            border-bottom: none;
-        }
-
-        .conta-nome {
-            font-size: 13px;
-            color: var(--cor-texto-secundario);
-        }
-
-        .conta-valor {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--cor-texto);
-        }
-
-        .conta-quantidade {
-            font-size: 11px;
-            color: var(--cor-texto-secundario);
-            margin-left: 10px;
-        }
+        .conta-item:last-child { border-bottom: none; }
+        .conta-nome { font-size: 13px; color: var(--cor-texto-secundario); }
+        .conta-valor { font-size: 14px; font-weight: 600; color: var(--cor-texto); }
+        .conta-quantidade { font-size: 11px; color: var(--cor-texto-secundario); margin-left: 10px; }
 
         /* TABELA DE TRANSAÇÕES */
         .tabela-container {
@@ -408,11 +324,7 @@
             overflow-x: auto;
         }
 
-        .tabela-transacoes {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
+        .tabela-transacoes { width: 100%; border-collapse: collapse; font-size: 13px; }
 
         .tabela-transacoes th,
         .tabela-transacoes td {
@@ -427,14 +339,8 @@
             font-weight: 600;
         }
 
-        .tabela-transacoes tr:hover {
-            background: rgba(26, 95, 180, 0.05);
-        }
-
-        .total-geral {
-            background: rgba(26, 95, 180, 0.15);
-            font-weight: bold;
-        }
+        .tabela-transacoes tr:hover { background: rgba(26, 95, 180, 0.05); }
+        .total-geral { background: rgba(26, 95, 180, 0.15); font-weight: bold; }
 
         /* GRÁFICO */
         .grafico-container {
@@ -445,9 +351,21 @@
             margin-bottom: 25px;
         }
 
-        canvas {
-            max-height: 300px;
+        .grafico-titulo {
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--cor-admin);
+            margin-bottom: 15px;
         }
+
+        .graficos-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        canvas { max-height: 300px; }
 
         /* BOTÕES DE EXPORTAÇÃO */
         .export-buttons {
@@ -467,36 +385,23 @@
             transition: all 0.3s ease;
         }
 
-        .btn-export:hover {
-            background: #239b56;
-            transform: translateY(-2px);
-        }
-
-        .btn-export-excel {
-            background: #217346;
-        }
-
-        .btn-export-excel:hover {
-            background: #1a5c38;
-        }
+        .btn-export:hover { background: #239b56; transform: translateY(-2px); }
+        .btn-export-excel { background: #217346; }
+        .btn-export-excel:hover { background: #1a5c38; }
 
         /* MODAL DE TAXAS */
         .modal {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.8);
             z-index: 1000;
             justify-content: center;
             align-items: center;
         }
 
-        .modal.active {
-            display: flex;
-        }
+        .modal.active { display: flex; }
 
         .modal-content {
             background: var(--cor-card);
@@ -514,21 +419,9 @@
             align-items: center;
         }
 
-        .modal-header h3 {
-            color: var(--cor-admin);
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            color: var(--cor-texto-secundario);
-            font-size: 24px;
-            cursor: pointer;
-        }
-
-        .modal-body {
-            padding: 20px;
-        }
+        .modal-header h3 { color: var(--cor-admin); }
+        .modal-close { background: none; border: none; color: var(--cor-texto-secundario); font-size: 24px; cursor: pointer; }
+        .modal-body { padding: 20px; }
 
         .modal-footer {
             padding: 20px;
@@ -539,40 +432,32 @@
         }
 
         /* LOADING */
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: var(--cor-texto-secundario);
-        }
+        .loading { text-align: center; padding: 40px; color: var(--cor-texto-secundario); }
+        .loading i { font-size: 32px; margin-bottom: 10px; animation: spin 1s linear infinite; }
 
-        .loading i {
-            font-size: 32px;
-            margin-bottom: 10px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
         /* RESPONSIVIDADE */
         @media (max-width: 768px) {
-            .cards-resumo {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .filtros-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .tabs-header {
-                flex-direction: column;
-            }
-            
-            .tab-btn {
-                text-align: center;
-            }
+            .cards-resumo { grid-template-columns: repeat(2, 1fr); }
+            .filtros-grid { grid-template-columns: 1fr; }
+            .tabs-header { flex-direction: column; }
+            .tab-btn { text-align: center; }
+            .graficos-row { grid-template-columns: 1fr; }
+        }
+
+        /* IMPRESSÃO */
+        @media print {
+            .app-header { padding: 10px 0 !important; margin-bottom: 15px !important; }
+            .tabs-header, .painel-controles, .export-buttons, .modal { display: none !important; }
+            .tab-content { display: none !important; }
+            .tab-content.active { display: block !important; }
+            body { background: #fff !important; color: #000 !important; }
+            .card-resumo, .breakdown-moedas, .grafico-container, .categoria-card { break-inside: avoid; }
+            .card-resumo .valor, .card-resumo .titulo { color: #000 !important; }
+            .tabela-transacoes th { background: #eee !important; color: #000 !important; }
+            .categoria-contas { display: block !important; }
+            .grafico-container canvas { max-height: 220px; }
         }
     </style>
 </head>
@@ -585,9 +470,7 @@
                 <span class="logo-text">CAMBIO BANK</span>
                 <span class="badge-admin">ADMIN</span>
             </div>
-            
             <h1 class="page-title">RELATÓRIOS FINANCEIROS</h1>
-            
             <button class="btn-voltar" onclick="window.location.href='/admin/dashboard'">
                 <i class="fas fa-arrow-left"></i> Voltar
             </button>
@@ -599,6 +482,7 @@
                 <button class="tab-btn active" data-tab="tab-mensal">📅 MENSAL</button>
                 <button class="tab-btn" data-tab="tab-comparativo">📊 COMPARATIVO</button>
                 <button class="tab-btn" data-tab="tab-anual">📈 ANUAL</button>
+                <button class="tab-btn" data-tab="tab-dre">💰 DRE</button>
             </div>
 
             <!-- ============================================
@@ -635,12 +519,6 @@
                         <div class="form-group">
                             <label><i class="fas fa-tags"></i> CATEGORIA</label>
                             <select id="mensalCategoria" class="form-control">
-                                <option value="TODAS">TODAS</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label><i class="fas fa-receipt"></i> CONTA</label>
-                            <select id="mensalConta" class="form-control">
                                 <option value="TODAS">TODAS</option>
                             </select>
                         </div>
@@ -751,8 +629,47 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
+
+            <!-- ============================================
+                 ABA 4: DRE — RECEITAS x DESPESAS
+                 ============================================ -->
+            <div id="tab-dre" class="tab-content">
+                <div class="painel-controles">
+                    <div class="filtros-grid">
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar"></i> MÊS</label>
+                            <select id="dreMes" class="form-control"></select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar-alt"></i> ANO</label>
+                            <select id="dreAno" class="form-control"></select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-dollar-sign"></i> MOEDA</label>
+                            <select id="dreMoeda" class="form-control">
+                                <option value="TODAS">TODAS</option>
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                                <option value="GBP">GBP</option>
+                                <option value="BRL">BRL</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn-gerar" onclick="gerarDRE()">
+                        <i class="fas fa-balance-scale"></i> GERAR DRE
+                    </button>
+                </div>
+
+                <div id="dreResultados">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Selecione o período e clique em GERAR DRE</p>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /tabs-container -->
+    </div><!-- /app-container -->
 
     <!-- MODAL DE TAXAS DE CÂMBIO -->
     <div id="modalTaxas" class="modal">
@@ -778,34 +695,40 @@
         // ============================================
         // VARIÁVEIS GLOBAIS
         // ============================================
-        let tipoMensalAtual = 'receita';
+        let tipoMensalAtual      = 'receita';
         let tipoComparativoAtual = 'receita';
-        let tipoAnualAtual = 'receita';
-        
-        let dadosMensal = null;
-        let dadosComparativo = null;
-        let dadosAnual = null;
-        
-        let graficoMensal = null;
-        let graficoAnual = null;
-        
-        let taxasCallback = null;
-        let taxasPendentes = null;
+        let tipoAnualAtual       = 'receita';
 
-        // Meses
+        let dadosMensal      = null;
+        let dadosComparativo = null;
+        let dadosAnual       = null;
+        let dadosDRE         = null;
+
+        let graficoMensal      = null;  // donut
+        let graficoComparativo = null;  // grouped bars
+        let graficoAnual       = null;  // line
+        let graficoDRE         = null;  // grouped bars DRE
+        let graficoDREDonut    = null;  // donut despesas
+
+        let taxasCallback = null;
+
         const meses = {
             1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril',
             5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto',
             9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
         };
 
+        // Paleta de cores para gráficos
+        const PALETA = [
+            '#1a5fb4','#2ec27e','#f39c12','#e01b24','#9b59b6',
+            '#3498db','#e67e22','#1abc9c','#e74c3c','#8e44ad',
+            '#2980b9','#27ae60','#d35400','#c0392b','#7f8c8d'
+        ];
+
         // ============================================
         // INICIALIZAÇÃO
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('🚀 Tela de Relatórios carregada');
-            
-            // Configurar TABS
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -814,187 +737,129 @@
                     document.getElementById(btn.dataset.tab).classList.add('active');
                 });
             });
-            
-            // Carregar anos e meses
+
             carregarAnosEMeses();
-            
-            // Carregar categorias
             carregarCategorias();
         });
 
         // ============================================
-        // CARREGAR DADOS AUXILIARES
+        // DADOS AUXILIARES
         // ============================================
         function carregarAnosEMeses() {
             const anoAtual = new Date().getFullYear();
             const anos = [];
-            for (let i = anoAtual - 5; i <= anoAtual + 1; i++) {
-                anos.push(i);
-            }
-            
-            // Preencher selects de ano
-            const selectsAno = ['mensalAno', 'compAno1', 'compAno2', 'anualAno'];
-            selectsAno.forEach(id => {
-                const select = document.getElementById(id);
-                if (select) {
-                    select.innerHTML = anos.map(a => `<option value="${a}" ${a === anoAtual ? 'selected' : ''}>${a}</option>`).join('');
-                }
+            for (let i = anoAtual - 5; i <= anoAtual + 1; i++) anos.push(i);
+
+            ['mensalAno', 'compAno1', 'compAno2', 'anualAno', 'dreAno'].forEach(id => {
+                const sel = document.getElementById(id);
+                if (sel) sel.innerHTML = anos.map(a =>
+                    `<option value="${a}" ${a === anoAtual ? 'selected' : ''}>${a}</option>`
+                ).join('');
             });
-            
-            // Preencher selects de mês
-            const selectsMes = ['mensalMes', 'compMes1', 'compMes2'];
+
             const mesAtual = new Date().getMonth() + 1;
-            selectsMes.forEach(id => {
-                const select = document.getElementById(id);
-                if (select) {
-                    select.innerHTML = Object.entries(meses).map(([num, nome]) => 
-                        `<option value="${num}" ${parseInt(num) === mesAtual ? 'selected' : ''}>${nome}</option>`
-                    ).join('');
-                }
+            ['mensalMes', 'compMes1', 'compMes2', 'dreMes'].forEach(id => {
+                const sel = document.getElementById(id);
+                if (sel) sel.innerHTML = Object.entries(meses).map(([num, nome]) =>
+                    `<option value="${num}" ${parseInt(num) === mesAtual ? 'selected' : ''}>${nome}</option>`
+                ).join('');
             });
         }
 
         async function carregarCategorias() {
             try {
-                const response = await fetch('/api/admin/relatorios/categorias');
-                const data = await response.json();
-                
+                const res = await fetch('/api/admin/relatorios/categorias');
+                const data = await res.json();
                 if (data.success) {
-                    const selectCategoria = document.getElementById('mensalCategoria');
-                    if (selectCategoria) {
-                        selectCategoria.innerHTML = '<option value="TODAS">TODAS</option>';
+                    const sel = document.getElementById('mensalCategoria');
+                    if (sel) {
+                        sel.innerHTML = '<option value="TODAS">TODAS</option>';
                         data.categorias.forEach(cat => {
-                            const option = document.createElement('option');
-                            option.value = cat;
-                            option.textContent = cat;
-                            selectCategoria.appendChild(option);
+                            const opt = document.createElement('option');
+                            opt.value = cat;
+                            opt.textContent = cat;
+                            sel.appendChild(opt);
                         });
                     }
                 }
-            } catch (error) {
-                console.error('Erro ao carregar categorias:', error);
-            }
+            } catch (e) { console.error('Erro ao carregar categorias:', e); }
         }
 
         // ============================================
-        // FUNÇÕES DE TIPO (Mensal)
+        // TOGGLE TIPO
         // ============================================
         function setTipoMensal(tipo) {
             tipoMensalAtual = tipo;
-            
-            const btnReceita = document.getElementById('mensalTipoReceita');
-            const btnDespesa = document.getElementById('mensalTipoDespesa');
-            
-            if (tipo === 'receita') {
-                btnReceita.classList.add('active');
-                btnDespesa.classList.remove('active');
-            } else {
-                btnReceita.classList.remove('active');
-                btnDespesa.classList.add('active');
-            }
+            document.getElementById('mensalTipoReceita').classList.toggle('active', tipo === 'receita');
+            document.getElementById('mensalTipoDespesa').classList.toggle('active', tipo === 'despesa');
         }
 
         function setTipoComparativo(tipo) {
             tipoComparativoAtual = tipo;
-            
-            const btnReceita = document.getElementById('compTipoReceita');
-            const btnDespesa = document.getElementById('compTipoDespesa');
-            
-            if (tipo === 'receita') {
-                btnReceita.classList.add('active');
-                btnDespesa.classList.remove('active');
-            } else {
-                btnReceita.classList.remove('active');
-                btnDespesa.classList.add('active');
-            }
+            document.getElementById('compTipoReceita').classList.toggle('active', tipo === 'receita');
+            document.getElementById('compTipoDespesa').classList.toggle('active', tipo === 'despesa');
         }
 
         function setTipoAnual(tipo) {
             tipoAnualAtual = tipo;
-            
-            const btnReceita = document.getElementById('anualTipoReceita');
-            const btnDespesa = document.getElementById('anualTipoDespesa');
-            
-            if (tipo === 'receita') {
-                btnReceita.classList.add('active');
-                btnDespesa.classList.remove('active');
-            } else {
-                btnReceita.classList.remove('active');
-                btnDespesa.classList.add('active');
-            }
+            document.getElementById('anualTipoReceita').classList.toggle('active', tipo === 'receita');
+            document.getElementById('anualTipoDespesa').classList.toggle('active', tipo === 'despesa');
         }
 
         // ============================================
         // ABA 1: RELATÓRIO MENSAL
         // ============================================
         async function gerarRelatorioMensal() {
-            const mes = document.getElementById('mensalMes').value;
-            const ano = document.getElementById('mensalAno').value;
-            const moeda = document.getElementById('mensalMoeda').value;
+            const mes       = document.getElementById('mensalMes').value;
+            const ano       = document.getElementById('mensalAno').value;
+            const moeda     = document.getElementById('mensalMoeda').value;
             const categoria = document.getElementById('mensalCategoria').value;
-            const conta = document.getElementById('mensalConta').value;
-            
+
             const resultadosDiv = document.getElementById('mensalResultados');
             resultadosDiv.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><p>Carregando relatório...</p></div>';
-            
+
             try {
-                const response = await fetch('/api/admin/relatorios/mensal', {
+                const res  = await fetch('/api/admin/relatorios/mensal', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        ano: parseInt(ano),
-                        mes: parseInt(mes),
-                        tipo: tipoMensalAtual,
-                        moeda: moeda,
-                        categoria: categoria === 'TODAS' ? null : categoria,
-                        conta: conta === 'TODAS' ? null : conta
+                        ano: parseInt(ano), mes: parseInt(mes),
+                        tipo: tipoMensalAtual, moeda,
+                        categoria: categoria === 'TODAS' ? null : categoria
                     })
                 });
-                
-                const data = await response.json();
-                
+                const data = await res.json();
+
                 if (data.success) {
                     dadosMensal = data.dados;
-                    
-                    // Se moeda for TODAS e tiver múltiplas moedas, abrir popup de taxas
                     if (moeda === 'TODAS' && dadosMensal.total_por_moeda && Object.keys(dadosMensal.total_por_moeda).length > 1) {
-                        taxasPendentes = dadosMensal;
-                        abrirModalTaxas((taxas) => {
-                            exibirRelatorioMensal(dadosMensal, taxas);
-                        });
+                        abrirModalTaxas(taxas => exibirRelatorioMensal(dadosMensal, taxas));
                     } else {
                         exibirRelatorioMensal(dadosMensal, null);
                     }
                 } else {
                     resultadosDiv.innerHTML = `<div class="loading"><p>❌ ${data.message}</p></div>`;
                 }
-            } catch (error) {
-                console.error('Erro:', error);
+            } catch (e) {
                 resultadosDiv.innerHTML = '<div class="loading"><p>❌ Erro ao carregar relatório</p></div>';
             }
         }
 
         function exibirRelatorioMensal(dados, taxas) {
             const resultadosDiv = document.getElementById('mensalResultados');
-            
-            const totalGeral = dados.total_geral || 0;
-            const quantidade = dados.quantidade_transacoes || 0;
-            const media = quantidade > 0 ? totalGeral / quantidade : 0;
+            const totalGeral  = dados.total_geral || 0;
+            const quantidade  = dados.quantidade_transacoes || 0;
+            const media       = quantidade > 0 ? totalGeral / quantidade : 0;
             const moedaPadrao = dados.moeda_padrao || 'USD';
-            
+
             let totalUsd = totalGeral;
             if (taxas && dados.total_por_moeda) {
                 totalUsd = 0;
-                for (const [moeda, valor] of Object.entries(dados.total_por_moeda)) {
-                    if (moeda === 'USD') {
-                        totalUsd += valor;
-                    } else {
-                        const taxa = taxas[moeda] || 1;
-                        totalUsd += valor / taxa;
-                    }
+                for (const [m, v] of Object.entries(dados.total_por_moeda)) {
+                    totalUsd += m === 'USD' ? v : v / (taxas[m] || 1);
                 }
             }
-            
+
             let html = `
                 <div class="cards-resumo">
                     <div class="card-resumo">
@@ -1015,175 +880,152 @@
                     </div>
                 </div>
             `;
-            
+
             // Breakdown por moeda
             if (dados.total_por_moeda && Object.keys(dados.total_por_moeda).length > 0) {
-                html += `
-                    <div class="breakdown-moedas">
-                        <div class="breakdown-titulo"><i class="fas fa-coins"></i> DETALHAMENTO POR MOEDA</div>
-                        <div class="moedas-grid">
-                `;
-                
-                for (const [moeda, valor] of Object.entries(dados.total_por_moeda)) {
-                    let valorUsd = '';
-                    if (taxas && moeda !== 'USD') {
-                        const taxa = taxas[moeda] || 1;
-                        const valorEmUsd = valor / taxa;
-                        valorUsd = `<div class="moeda-usd">≈ ${formatarValor(valorEmUsd, 'USD')}</div>`;
-                    } else if (moeda === 'USD') {
-                        valorUsd = `<div class="moeda-usd">(base)</div>`;
-                    }
-                    
-                    html += `
-                        <div class="moeda-card">
-                            <div class="moeda-sigla">${moeda}</div>
-                            <div class="moeda-valor">${formatarValor(valor, moeda)}</div>
-                            ${valorUsd}
-                        </div>
-                    `;
+                html += `<div class="breakdown-moedas">
+                    <div class="breakdown-titulo"><i class="fas fa-coins"></i> DETALHAMENTO POR MOEDA</div>
+                    <div class="moedas-grid">`;
+                for (const [m, v] of Object.entries(dados.total_por_moeda)) {
+                    let usdLine = '';
+                    if (taxas && m !== 'USD') usdLine = `<div class="moeda-usd">≈ ${formatarValor(v / (taxas[m] || 1), 'USD')}</div>`;
+                    else if (m === 'USD') usdLine = `<div class="moeda-usd">(base)</div>`;
+                    html += `<div class="moeda-card">
+                        <div class="moeda-sigla">${m}</div>
+                        <div class="moeda-valor">${formatarValor(v, m)}</div>
+                        ${usdLine}
+                    </div>`;
                 }
-                
-                html += `
-                        </div>
+                html += `</div></div>`;
+            }
+
+            // Gráfico donut por categoria + categorias
+            const catEntries = Object.entries(dados.categorias || {});
+            if (catEntries.length > 0) {
+                html += `<div class="graficos-row">
+                    <div class="grafico-container">
+                        <div class="grafico-titulo"><i class="fas fa-chart-pie"></i> Distribuição por Categoria</div>
+                        <canvas id="graficoMensal"></canvas>
                     </div>
-                `;
-            }
-            
-            // Categorias
-            if (dados.categorias && Object.keys(dados.categorias).length > 0) {
-                html += `
-                    <div class="secao-categorias">
-                        <div class="secao-titulo"><i class="fas fa-folder-open"></i> DETALHAMENTO POR CATEGORIA</div>
-                `;
-                
-                for (const [categoria, catDados] of Object.entries(dados.categorias)) {
+                    <div class="secao-categorias" style="margin-bottom:0;">
+                        <div class="secao-titulo"><i class="fas fa-folder-open"></i> DETALHAMENTO POR CATEGORIA</div>`;
+
+                for (const [categoria, catDados] of catEntries) {
                     const totalCat = catDados.total || 0;
-                    const contas = catDados.contas || {};
-                    
-                    html += `
-                        <div class="categoria-card">
-                            <div class="categoria-header" onclick="toggleCategoria(this)">
+                    html += `<div class="categoria-card">
+                        <div class="categoria-header" onclick="toggleCategoria(this)">
+                            <div class="categoria-header-left">
+                                <i class="fas fa-chevron-right"></i>
                                 <span class="categoria-nome"><i class="fas fa-folder"></i> ${escapeHtml(categoria)}</span>
-                                <span class="categoria-total">${formatarValor(totalCat, moedaPadrao)}</span>
                             </div>
-                            <div class="categoria-contas" style="display: none;">
-                    `;
-                    
-                    for (const [conta, contaDados] of Object.entries(contas)) {
-                        const totalConta = contaDados.total || 0;
-                        const qtd = contaDados.quantidade || 0;
-                        html += `
-                            <div class="conta-item">
-                                <span class="conta-nome">📄 ${escapeHtml(conta)}</span>
-                                <span class="conta-valor">${formatarValor(totalConta, moedaPadrao)} <span class="conta-quantidade">(${qtd} tx)</span></span>
-                            </div>
-                        `;
-                    }
-                    
-                    html += `
-                            </div>
+                            <span class="categoria-total">${formatarValor(totalCat, moedaPadrao)}</span>
                         </div>
-                    `;
+                        <div class="categoria-contas" style="display:none;">`;
+                    for (const [conta, contaDados] of Object.entries(catDados.contas || {})) {
+                        html += `<div class="conta-item">
+                            <span class="conta-nome">📄 ${escapeHtml(conta)}</span>
+                            <span class="conta-valor">${formatarValor(contaDados.total || 0, moedaPadrao)}
+                                <span class="conta-quantidade">(${contaDados.quantidade || 0} tx)</span>
+                            </span>
+                        </div>`;
+                    }
+                    html += `</div></div>`;
                 }
-                
-                html += `</div>`;
+                html += `</div></div>`;
             }
-            
+
             // Lista de transações
             if (dados.transacoes && dados.transacoes.length > 0) {
-                html += `
-                    <div class="secao-categorias">
-                        <div class="secao-titulo"><i class="fas fa-list"></i> LISTA DE TRANSAÇÕES</div>
-                        <div class="tabela-container">
-                            <table class="tabela-transacoes">
-                                <thead>
-                                    <tr>
-                                        <th>Data</th>
-                                        <th>Descrição</th>
-                                        <th>Categoria</th>
-                                        <th>Conta</th>
-                                        <th>Valor</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                `;
-                
-                for (const trans of dados.transacoes) {
-                    html += `
-                        <tr>
-                            <td>${formatarData(trans.data)}</td>
-                            <td>${escapeHtml(trans.descricao || '-')}</td>
-                            <td>${escapeHtml(trans.categoria || '-')}</td>
-                            <td>${escapeHtml(trans.conta_especifica || '-')}</td>
-                            <td>${formatarValor(trans.valor, trans.moeda || moedaPadrao)}</td>
-                        </tr>
-                    `;
+                html += `<div class="secao-categorias">
+                    <div class="secao-titulo"><i class="fas fa-list"></i> LISTA DE TRANSAÇÕES</div>
+                    <div class="tabela-container">
+                        <table class="tabela-transacoes">
+                            <thead><tr>
+                                <th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Valor</th>
+                            </tr></thead>
+                            <tbody>`;
+                for (const t of dados.transacoes) {
+                    html += `<tr>
+                        <td>${formatarData(t.data)}</td>
+                        <td>${escapeHtml(t.descricao || '-')}</td>
+                        <td>${escapeHtml(t.categoria || '-')}</td>
+                        <td>${escapeHtml(t.conta_especifica || '-')}</td>
+                        <td>${formatarValor(t.valor, t.moeda || moedaPadrao)}</td>
+                    </tr>`;
                 }
-                
-                html += `
-                                    <tr class="total-geral">
-                                        <td colspan="4"><strong>TOTAL GERAL</strong></td>
-                                        <td><strong>${formatarValor(totalGeral, moedaPadrao)}</strong></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
+                html += `<tr class="total-geral">
+                    <td colspan="4"><strong>TOTAL GERAL</strong></td>
+                    <td><strong>${formatarValor(totalGeral, moedaPadrao)}</strong></td>
+                </tr></tbody></table></div></div>`;
             }
-            
-            // Botões de exportação
-            html += `
-                <div class="export-buttons">
-                    <button class="btn-export" onclick="exportarPDFMensal()">
-                        <i class="fas fa-file-pdf"></i> Exportar PDF
-                    </button>
-                    <button class="btn-export btn-export-excel" onclick="exportarExcelMensal()">
-                        <i class="fas fa-file-excel"></i> Exportar Excel
-                    </button>
-                </div>
-            `;
-            
+
+            html += `<div class="export-buttons">
+                <button class="btn-export" onclick="exportarPDFMensal()"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
+                <button class="btn-export btn-export-excel" onclick="exportarExcelMensal()"><i class="fas fa-file-excel"></i> Exportar Excel</button>
+            </div>`;
+
             resultadosDiv.innerHTML = html;
+
+            // Criar gráfico donut
+            if (catEntries.length > 0) {
+                const ctx = document.getElementById('graficoMensal')?.getContext('2d');
+                if (ctx) {
+                    if (graficoMensal) graficoMensal.destroy();
+                    graficoMensal = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: catEntries.map(([c]) => c),
+                            datasets: [{
+                                data: catEntries.map(([, d]) => d.total || 0),
+                                backgroundColor: PALETA.slice(0, catEntries.length),
+                                borderWidth: 2,
+                                borderColor: '#0d1117'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: { position: 'right', labels: { color: '#e0e0e0', font: { size: 12 } } },
+                                tooltip: { callbacks: { label: ctx => `${ctx.label}: ${formatarValor(ctx.raw, moedaPadrao)}` } }
+                            }
+                        }
+                    });
+                }
+            }
         }
 
         // ============================================
         // ABA 2: COMPARATIVO MENSAL
         // ============================================
         async function gerarRelatorioComparativo() {
-            const mes1 = document.getElementById('compMes1').value;
-            const ano1 = document.getElementById('compAno1').value;
-            const mes2 = document.getElementById('compMes2').value;
-            const ano2 = document.getElementById('compAno2').value;
+            const mes1  = document.getElementById('compMes1').value;
+            const ano1  = document.getElementById('compAno1').value;
+            const mes2  = document.getElementById('compMes2').value;
+            const ano2  = document.getElementById('compAno2').value;
             const moeda = document.getElementById('compMoeda').value;
-            
+
             const resultadosDiv = document.getElementById('comparativoResultados');
             resultadosDiv.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><p>Carregando comparativo...</p></div>';
-            
+
             try {
-                const response = await fetch('/api/admin/relatorios/comparativo', {
+                const res  = await fetch('/api/admin/relatorios/comparativo', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        ano_ref: parseInt(ano1),
-                        mes_ref: parseInt(mes1),
-                        ano_comp: parseInt(ano2),
-                        mes_comp: parseInt(mes2),
-                        tipo: tipoComparativoAtual,
-                        moeda: moeda
+                        ano_ref: parseInt(ano1), mes_ref: parseInt(mes1),
+                        ano_comp: parseInt(ano2), mes_comp: parseInt(mes2),
+                        tipo: tipoComparativoAtual, moeda
                     })
                 });
-                
-                const data = await response.json();
-                
+                const data = await res.json();
+
                 if (data.success) {
                     dadosComparativo = data.dados;
                     exibirRelatorioComparativo(dadosComparativo, mes1, ano1, mes2, ano2, moeda);
                 } else {
                     resultadosDiv.innerHTML = `<div class="loading"><p>❌ ${data.message}</p></div>`;
                 }
-            } catch (error) {
-                console.error('Erro:', error);
+            } catch (e) {
                 resultadosDiv.innerHTML = '<div class="loading"><p>❌ Erro ao carregar comparativo</p></div>';
             }
         }
@@ -1191,163 +1033,179 @@
         function exibirRelatorioComparativo(dados, mes1, ano1, mes2, ano2, moeda) {
             const resultadosDiv = document.getElementById('comparativoResultados');
             const totais = dados.totais || {};
-            
-            const valorRef = totais.referencia || 0;
-            const valorComp = totais.comparacao || 0;
-            const variacao = totais.variacao || 0;
-            const variacaoPercentual = totais.variacao_percentual || 0;
-            
-            const sinalVariacao = variacao > 0 ? '+' : variacao < 0 ? '-' : '=';
-            const corVariacao = variacao > 0 ? 'var(--cor-sucesso)' : variacao < 0 ? 'var(--cor-perigo)' : 'var(--cor-texto-secundario)';
-            
+            const valorRef  = totais.referencia || 0;
+            const valorComp = totais.comparacao  || 0;
+            const variacao  = totais.variacao    || 0;
+            const varPct    = totais.variacao_percentual || 0;
+            const sinal = variacao > 0 ? '+' : variacao < 0 ? '-' : '=';
+            const cor   = variacao > 0 ? 'var(--cor-sucesso)' : variacao < 0 ? 'var(--cor-perigo)' : 'var(--cor-texto-secundario)';
+            const label1 = `${meses[mes1]}/${ano1}`;
+            const label2 = `${meses[mes2]}/${ano2}`;
+
             let html = `
                 <div class="cards-resumo">
                     <div class="card-resumo">
-                        <div class="titulo">${meses[mes1]}/${ano1}</div>
+                        <div class="titulo">${label1}</div>
                         <div class="valor">${formatarValor(valorRef, moeda)}</div>
                     </div>
                     <div class="card-resumo">
-                        <div class="titulo">${meses[mes2]}/${ano2}</div>
+                        <div class="titulo">${label2}</div>
                         <div class="valor">${formatarValor(valorComp, moeda)}</div>
                     </div>
                     <div class="card-resumo">
                         <div class="titulo">VARIAÇÃO</div>
-                        <div class="valor" style="color: ${corVariacao}">${sinalVariacao} ${formatarValor(Math.abs(variacao), moeda)}</div>
+                        <div class="valor" style="color:${cor}">${sinal} ${formatarValor(Math.abs(variacao), moeda)}</div>
                     </div>
                     <div class="card-resumo">
                         <div class="titulo">VARIAÇÃO %</div>
-                        <div class="valor" style="color: ${corVariacao}">${sinalVariacao} ${Math.abs(variacaoPercentual).toFixed(1)}%</div>
+                        <div class="valor" style="color:${cor}">${sinal} ${Math.abs(varPct).toFixed(1)}%</div>
                     </div>
                 </div>
             `;
-            
-            // Comparativo por categoria
-            if (dados.categorias && Object.keys(dados.categorias).length > 0) {
-                html += `
-                    <div class="secao-categorias">
-                        <div class="secao-titulo"><i class="fas fa-chart-line"></i> COMPARATIVO POR CATEGORIA</div>
-                        <div class="tabela-container">
-                            <table class="tabela-transacoes">
-                                <thead>
-                                    <tr>
-                                        <th>Categoria</th>
-                                        <th>${meses[mes1]}/${ano1}</th>
-                                        <th>${meses[mes2]}/${ano2}</th>
-                                        <th>Variação</th>
-                                        <th>%</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                `;
-                
-                for (const [categoria, catDados] of Object.entries(dados.categorias)) {
-                    const valRef = catDados.total_ref || 0;
-                    const valComp = catDados.total_comp || 0;
-                    const varValor = catDados.variacao || 0;
-                    const varPercentual = catDados.variacao_percentual || 0;
-                    const sinal = varValor > 0 ? '+' : varValor < 0 ? '-' : '=';
-                    const cor = varValor > 0 ? 'var(--cor-sucesso)' : varValor < 0 ? 'var(--cor-perigo)' : 'var(--cor-texto-secundario)';
-                    
-                    html += `
-                        <tr>
-                            <td><strong>${escapeHtml(categoria)}</strong></td>
-                            <td>${formatarValor(valRef, moeda)}</td>
-                            <td>${formatarValor(valComp, moeda)}</td>
-                            <td style="color: ${cor}">${sinal} ${formatarValor(Math.abs(varValor), moeda)}</td>
-                            <td style="color: ${cor}">${sinal} ${Math.abs(varPercentual).toFixed(1)}%</td>
-                        </tr>
-                    `;
-                    
-                    // Subcontas
-                    if (catDados.contas) {
-                        for (const [conta, contaDados] of Object.entries(catDados.contas)) {
-                            const valRefConta = contaDados.valor_ref || 0;
-                            const valCompConta = contaDados.valor_comp || 0;
-                            const varConta = contaDados.variacao || 0;
-                            const sinalConta = varConta > 0 ? '+' : varConta < 0 ? '-' : '=';
-                            const corConta = varConta > 0 ? 'var(--cor-sucesso)' : varConta < 0 ? 'var(--cor-perigo)' : 'var(--cor-texto-secundario)';
-                            
-                            html += `
-                                <tr>
-                                    <td style="padding-left: 20px;">└ ${escapeHtml(conta)}</td>
-                                    <td>${formatarValor(valRefConta, moeda)}</td>
-                                    <td>${formatarValor(valCompConta, moeda)}</td>
-                                    <td style="color: ${corConta}">${sinalConta} ${formatarValor(Math.abs(varConta), moeda)}</td>
-                                    <td></td>
-                                </tr>
-                            `;
-                        }
+
+            const catEntries = Object.entries(dados.categorias || {});
+
+            // Gráfico de barras agrupadas
+            if (catEntries.length > 0) {
+                html += `<div class="grafico-container">
+                    <div class="grafico-titulo"><i class="fas fa-chart-bar"></i> Comparativo por Categoria</div>
+                    <canvas id="graficoComparativo"></canvas>
+                </div>`;
+            }
+
+            // Tabela comparativa
+            if (catEntries.length > 0) {
+                html += `<div class="secao-categorias">
+                    <div class="secao-titulo"><i class="fas fa-chart-line"></i> COMPARATIVO POR CATEGORIA</div>
+                    <div class="tabela-container">
+                        <table class="tabela-transacoes">
+                            <thead><tr>
+                                <th>Categoria</th>
+                                <th>${label1}</th>
+                                <th>${label2}</th>
+                                <th>Variação</th>
+                                <th>%</th>
+                            </tr></thead>
+                            <tbody>`;
+                for (const [categoria, catDados] of catEntries) {
+                    const vR = catDados.total_ref  || 0;
+                    const vC = catDados.total_comp || 0;
+                    const vV = catDados.variacao   || 0;
+                    const vP = catDados.variacao_percentual || 0;
+                    const s  = vV > 0 ? '+' : vV < 0 ? '-' : '=';
+                    const c  = vV > 0 ? 'var(--cor-sucesso)' : vV < 0 ? 'var(--cor-perigo)' : 'var(--cor-texto-secundario)';
+                    html += `<tr>
+                        <td><strong>${escapeHtml(categoria)}</strong></td>
+                        <td>${formatarValor(vR, moeda)}</td>
+                        <td>${formatarValor(vC, moeda)}</td>
+                        <td style="color:${c}">${s} ${formatarValor(Math.abs(vV), moeda)}</td>
+                        <td style="color:${c}">${s} ${Math.abs(vP).toFixed(1)}%</td>
+                    </tr>`;
+                    for (const [conta, contaDados] of Object.entries(catDados.contas || {})) {
+                        const cVR = contaDados.valor_ref  || 0;
+                        const cVC = contaDados.valor_comp || 0;
+                        const cVV = contaDados.variacao   || 0;
+                        const cS  = cVV > 0 ? '+' : cVV < 0 ? '-' : '=';
+                        const cC  = cVV > 0 ? 'var(--cor-sucesso)' : cVV < 0 ? 'var(--cor-perigo)' : 'var(--cor-texto-secundario)';
+                        html += `<tr>
+                            <td style="padding-left:20px;">└ ${escapeHtml(conta)}</td>
+                            <td>${formatarValor(cVR, moeda)}</td>
+                            <td>${formatarValor(cVC, moeda)}</td>
+                            <td style="color:${cC}">${cS} ${formatarValor(Math.abs(cVV), moeda)}</td>
+                            <td></td>
+                        </tr>`;
                     }
                 }
-                
-                html += `
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
+                html += `</tbody></table></div></div>`;
             }
-            
-            // Botões de exportação
-            html += `
-                <div class="export-buttons">
-                    <button class="btn-export" onclick="exportarPDFComparativo()">
-                        <i class="fas fa-file-pdf"></i> Exportar PDF
-                    </button>
-                    <button class="btn-export btn-export-excel" onclick="exportarExcelComparativo()">
-                        <i class="fas fa-file-excel"></i> Exportar Excel
-                    </button>
-                </div>
-            `;
-            
+
+            html += `<div class="export-buttons">
+                <button class="btn-export" onclick="exportarPDFComparativo()"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
+                <button class="btn-export btn-export-excel" onclick="exportarExcelComparativo('${label1}','${label2}','${moeda}')"><i class="fas fa-file-excel"></i> Exportar Excel</button>
+            </div>`;
+
             resultadosDiv.innerHTML = html;
+
+            // Criar gráfico de barras agrupadas
+            if (catEntries.length > 0) {
+                const ctx = document.getElementById('graficoComparativo')?.getContext('2d');
+                if (ctx) {
+                    if (graficoComparativo) graficoComparativo.destroy();
+                    graficoComparativo = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: catEntries.map(([c]) => c),
+                            datasets: [
+                                {
+                                    label: label1,
+                                    data: catEntries.map(([, d]) => d.total_ref || 0),
+                                    backgroundColor: 'rgba(26, 95, 180, 0.8)',
+                                    borderColor: '#1a5fb4',
+                                    borderWidth: 1
+                                },
+                                {
+                                    label: label2,
+                                    data: catEntries.map(([, d]) => d.total_comp || 0),
+                                    backgroundColor: 'rgba(46, 194, 126, 0.8)',
+                                    borderColor: '#2ec27e',
+                                    borderWidth: 1
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: { labels: { color: '#e0e0e0' } },
+                                tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatarValor(ctx.raw, moeda)}` } }
+                            },
+                            scales: {
+                                y: { grid: { color: '#1e232e' }, ticks: { color: '#e0e0e0' } },
+                                x: { grid: { color: '#1e232e' }, ticks: { color: '#e0e0e0' } }
+                            }
+                        }
+                    });
+                }
+            }
         }
 
         // ============================================
         // ABA 3: EVOLUÇÃO ANUAL
         // ============================================
         async function gerarRelatorioAnual() {
-            const ano = document.getElementById('anualAno').value;
+            const ano   = document.getElementById('anualAno').value;
             const moeda = document.getElementById('anualMoeda').value;
-            
+
             const resultadosDiv = document.getElementById('anualResultados');
             resultadosDiv.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><p>Carregando evolução anual...</p></div>';
-            
+
             try {
-                const response = await fetch('/api/admin/relatorios/anual', {
+                const res  = await fetch('/api/admin/relatorios/anual', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        ano: parseInt(ano),
-                        tipo: tipoAnualAtual,
-                        moeda: moeda
-                    })
+                    body: JSON.stringify({ ano: parseInt(ano), tipo: tipoAnualAtual, moeda })
                 });
-                
-                const data = await response.json();
-                
+                const data = await res.json();
+
                 if (data.success) {
                     dadosAnual = data.dados;
                     exibirRelatorioAnual(dadosAnual, ano, moeda);
                 } else {
                     resultadosDiv.innerHTML = `<div class="loading"><p>❌ ${data.message}</p></div>`;
                 }
-            } catch (error) {
-                console.error('Erro:', error);
+            } catch (e) {
                 resultadosDiv.innerHTML = '<div class="loading"><p>❌ Erro ao carregar evolução anual</p></div>';
             }
         }
 
         function exibirRelatorioAnual(dados, ano, moeda) {
             const resultadosDiv = document.getElementById('anualResultados');
-            const totais = dados.totais || {};
-            const mesesData = dados.meses || [];
-            
-            const totalAno = totais.total_ano || 0;
-            const mediaMensal = totais.media_mensal || 0;
-            const melhorMes = totais.melhor_mes || {};
-            const piorMes = totais.pior_mes || {};
-            
+            const totais    = dados.totais   || {};
+            const mesesData = dados.meses    || [];
+            const totalAno  = totais.total_ano   || 0;
+            const mediaMens = totais.media_mensal || 0;
+            const melhorMes = totais.melhor_mes   || {};
+            const piorMes   = totais.pior_mes     || {};
+
             let html = `
                 <div class="cards-resumo">
                     <div class="card-resumo">
@@ -1356,7 +1214,7 @@
                     </div>
                     <div class="card-resumo">
                         <div class="titulo">MÉDIA MENSAL</div>
-                        <div class="valor">${formatarValor(mediaMensal, moeda)}</div>
+                        <div class="valor">${formatarValor(mediaMens, moeda)}</div>
                     </div>
                     <div class="card-resumo">
                         <div class="titulo">MELHOR MÊS</div>
@@ -1368,132 +1226,281 @@
                     </div>
                 </div>
             `;
-            
-            // Gráfico
+
             if (mesesData.length > 0) {
-                html += `
-                    <div class="grafico-container">
-                        <canvas id="graficoAnual"></canvas>
-                    </div>
-                `;
+                html += `<div class="grafico-container"><canvas id="graficoAnual"></canvas></div>`;
             }
-            
-            // Tabela de evolução mensal
-            html += `
-                <div class="secao-categorias">
-                    <div class="secao-titulo"><i class="fas fa-chart-line"></i> EVOLUÇÃO MENSAL</div>
-                    <div class="tabela-container">
-                        <table class="tabela-transacoes">
-                            <thead>
-                                <tr>
-                                    <th>Mês</th>
-                                    <th>Valor</th>
-                                    <th>Variação Mensal</th>
-                                    <th>Acumulado</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-            `;
-            
+
+            html += `<div class="secao-categorias">
+                <div class="secao-titulo"><i class="fas fa-chart-line"></i> EVOLUÇÃO MENSAL</div>
+                <div class="tabela-container">
+                    <table class="tabela-transacoes">
+                        <thead><tr>
+                            <th>Mês</th><th>Valor</th><th>Variação Mensal</th><th>Acumulado</th>
+                        </tr></thead>
+                        <tbody>`;
             let acumulado = 0;
             for (const mes of mesesData) {
                 acumulado += mes.valor || 0;
-                const variacao = mes.variacao_mensal || 0;
-                const sinal = variacao > 0 ? '+' : variacao < 0 ? '-' : '=';
-                const cor = variacao > 0 ? 'var(--cor-sucesso)' : variacao < 0 ? 'var(--cor-perigo)' : 'var(--cor-texto-secundario)';
-                
-                html += `
-                    <tr>
-                        <td><strong>${mes.mes}</strong></td>
-                        <td>${formatarValor(mes.valor, moeda)}</td>
-                        <td style="color: ${cor}">${sinal} ${Math.abs(variacao).toFixed(1)}%</td>
-                        <td>${formatarValor(acumulado, moeda)}</td>
-                    </tr>
-                `;
+                const v = mes.variacao_mensal || 0;
+                const s = v > 0 ? '+' : v < 0 ? '-' : '=';
+                const c = v > 0 ? 'var(--cor-sucesso)' : v < 0 ? 'var(--cor-perigo)' : 'var(--cor-texto-secundario)';
+                html += `<tr>
+                    <td><strong>${mes.mes}</strong></td>
+                    <td>${formatarValor(mes.valor, moeda)}</td>
+                    <td style="color:${c}">${s} ${Math.abs(v).toFixed(1)}%</td>
+                    <td>${formatarValor(acumulado, moeda)}</td>
+                </tr>`;
             }
-            
-            html += `
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-            
-            // Barra de distribuição
+            html += `</tbody></table></div></div>`;
+
             if (mesesData.length > 0) {
-                const maxValor = Math.max(...mesesData.map(m => m.valor || 0));
-                html += `
-                    <div class="secao-categorias">
-                        <div class="secao-titulo"><i class="fas fa-chart-bar"></i> DISTRIBUIÇÃO MENSAL</div>
-                        <div class="breakdown-moedas">
-                `;
-                
+                const maxVal = Math.max(...mesesData.map(m => m.valor || 0));
+                html += `<div class="secao-categorias">
+                    <div class="secao-titulo"><i class="fas fa-chart-bar"></i> DISTRIBUIÇÃO MENSAL</div>
+                    <div class="breakdown-moedas">`;
                 for (const mes of mesesData) {
-                    const percentual = maxValor > 0 ? ((mes.valor || 0) / maxValor * 100) : 0;
-                    html += `
-                        <div style="margin-bottom: 10px;">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                                <span>${mes.mes}</span>
-                                <span>${formatarValor(mes.valor, moeda)} (${percentual.toFixed(0)}%)</span>
-                            </div>
-                            <div style="background: var(--cor-borda); border-radius: 10px; overflow: hidden;">
-                                <div style="width: ${percentual}%; background: var(--cor-admin); height: 20px; border-radius: 10px;"></div>
-                            </div>
+                    const pct = maxVal > 0 ? ((mes.valor || 0) / maxVal * 100) : 0;
+                    html += `<div style="margin-bottom:10px;">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                            <span>${mes.mes}</span>
+                            <span>${formatarValor(mes.valor, moeda)} (${pct.toFixed(0)}%)</span>
                         </div>
-                    `;
+                        <div style="background:var(--cor-borda);border-radius:10px;overflow:hidden;">
+                            <div style="width:${pct}%;background:var(--cor-admin);height:20px;border-radius:10px;"></div>
+                        </div>
+                    </div>`;
                 }
-                
-                html += `
-                        </div>
-                    </div>
-                `;
+                html += `</div></div>`;
             }
-            
-            // Botões de exportação
-            html += `
-                <div class="export-buttons">
-                    <button class="btn-export" onclick="exportarPDFAnual()">
-                        <i class="fas fa-file-pdf"></i> Exportar PDF
-                    </button>
-                    <button class="btn-export btn-export-excel" onclick="exportarExcelAnual()">
-                        <i class="fas fa-file-excel"></i> Exportar Excel
-                    </button>
+
+            html += `<div class="export-buttons">
+                <button class="btn-export" onclick="exportarPDFAnual()"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
+                <button class="btn-export btn-export-excel" onclick="exportarExcelAnual()"><i class="fas fa-file-excel"></i> Exportar Excel</button>
+            </div>`;
+
+            resultadosDiv.innerHTML = html;
+
+            if (mesesData.length > 0) {
+                const ctx = document.getElementById('graficoAnual')?.getContext('2d');
+                if (ctx) {
+                    if (graficoAnual) graficoAnual.destroy();
+                    graficoAnual = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: mesesData.map(m => m.mes.substring(0, 3)),
+                            datasets: [{
+                                label: tipoAnualAtual === 'receita' ? 'Receitas' : 'Despesas',
+                                data: mesesData.map(m => m.valor || 0),
+                                borderColor: '#1a5fb4',
+                                backgroundColor: 'rgba(26, 95, 180, 0.1)',
+                                fill: true,
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: { labels: { color: '#e0e0e0' } },
+                                tooltip: { callbacks: { label: ctx => formatarValor(ctx.raw, moeda) } }
+                            },
+                            scales: {
+                                y: { grid: { color: '#1e232e' }, ticks: { color: '#e0e0e0' } },
+                                x: { grid: { color: '#1e232e' }, ticks: { color: '#e0e0e0' } }
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        // ============================================
+        // ABA 4: DRE — RECEITAS x DESPESAS
+        // ============================================
+        async function gerarDRE() {
+            const mes   = document.getElementById('dreMes').value;
+            const ano   = document.getElementById('dreAno').value;
+            const moeda = document.getElementById('dreMoeda').value;
+
+            const resultadosDiv = document.getElementById('dreResultados');
+            resultadosDiv.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><p>Carregando DRE...</p></div>';
+
+            try {
+                const res  = await fetch('/api/admin/relatorios/dre', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ano: parseInt(ano), mes: parseInt(mes), moeda })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    dadosDRE = data.dados;
+                    dadosDRE._label = `${meses[parseInt(mes)]}/${ano}`;
+                    dadosDRE._moeda = moeda;
+                    exibirDRE(dadosDRE);
+                } else {
+                    resultadosDiv.innerHTML = `<div class="loading"><p>❌ ${data.message}</p></div>`;
+                }
+            } catch (e) {
+                resultadosDiv.innerHTML = '<div class="loading"><p>❌ Erro ao carregar DRE</p></div>';
+            }
+        }
+
+        function exibirDRE(dados) {
+            const resultadosDiv = document.getElementById('dreResultados');
+            const moeda    = dados.moeda_padrao || 'USD';
+            const rec      = dados.total_receitas || 0;
+            const desp     = dados.total_despesas || 0;
+            const res      = dados.resultado      || 0;
+            const margem   = dados.margem         || 0;
+            const resCls   = res >= 0 ? 'dre-positivo' : 'dre-negativo';
+            const resSinal = res >= 0 ? '+' : '';
+
+            let html = `
+                <div class="cards-resumo">
+                    <div class="card-resumo dre-receita">
+                        <div class="titulo"><i class="fas fa-arrow-up"></i> RECEITAS</div>
+                        <div class="valor">${formatarValor(rec, moeda)}</div>
+                    </div>
+                    <div class="card-resumo dre-despesa">
+                        <div class="titulo"><i class="fas fa-arrow-down"></i> DESPESAS</div>
+                        <div class="valor">${formatarValor(desp, moeda)}</div>
+                    </div>
+                    <div class="card-resumo dre-resultado">
+                        <div class="titulo"><i class="fas fa-balance-scale"></i> RESULTADO</div>
+                        <div class="valor ${resCls}">${resSinal}${formatarValor(res, moeda)}</div>
+                    </div>
+                    <div class="card-resumo">
+                        <div class="titulo"><i class="fas fa-percent"></i> MARGEM</div>
+                        <div class="valor ${resCls}">${resSinal}${margem.toFixed(1)}%</div>
+                    </div>
                 </div>
             `;
-            
+
+            const dreLinhas     = dados.dre_linhas || [];
+            const catDesp       = Object.entries(dados.categorias_despesas || {});
+
+            // Gráficos lado a lado
+            html += `<div class="graficos-row">
+                <div class="grafico-container">
+                    <div class="grafico-titulo"><i class="fas fa-chart-bar"></i> Receitas x Despesas por Categoria</div>
+                    <canvas id="graficoDRE"></canvas>
+                </div>
+                <div class="grafico-container">
+                    <div class="grafico-titulo"><i class="fas fa-chart-pie"></i> Distribuição de Despesas</div>
+                    <canvas id="graficoDREDonut"></canvas>
+                </div>
+            </div>`;
+
+            // Tabela DRE
+            html += `<div class="secao-categorias">
+                <div class="secao-titulo"><i class="fas fa-table"></i> DEMONSTRATIVO DE RESULTADO (DRE)</div>
+                <div class="tabela-container">
+                    <table class="tabela-transacoes">
+                        <thead><tr>
+                            <th>Categoria</th>
+                            <th style="color:var(--cor-sucesso)"><i class="fas fa-arrow-up"></i> Receitas</th>
+                            <th style="color:var(--cor-perigo)"><i class="fas fa-arrow-down"></i> Despesas</th>
+                            <th>Resultado</th>
+                        </tr></thead>
+                        <tbody>`;
+
+            for (const linha of dreLinhas) {
+                const lRes   = linha.resultado || 0;
+                const lCls   = lRes >= 0 ? 'var(--cor-sucesso)' : 'var(--cor-perigo)';
+                const lSinal = lRes >= 0 ? '+' : '';
+                html += `<tr>
+                    <td><strong>${escapeHtml(linha.categoria)}</strong></td>
+                    <td style="color:var(--cor-sucesso)">${linha.receita > 0 ? formatarValor(linha.receita, moeda) : '-'}</td>
+                    <td style="color:var(--cor-perigo)">${linha.despesa > 0 ? formatarValor(linha.despesa, moeda) : '-'}</td>
+                    <td style="color:${lCls};font-weight:600">${lSinal}${formatarValor(lRes, moeda)}</td>
+                </tr>`;
+            }
+
+            const totSinal = res >= 0 ? '+' : '';
+            const totCls   = res >= 0 ? 'var(--cor-sucesso)' : 'var(--cor-perigo)';
+            html += `<tr class="total-geral">
+                <td><strong>TOTAL</strong></td>
+                <td style="color:var(--cor-sucesso)"><strong>${formatarValor(rec, moeda)}</strong></td>
+                <td style="color:var(--cor-perigo)"><strong>${formatarValor(desp, moeda)}</strong></td>
+                <td style="color:${totCls}"><strong>${totSinal}${formatarValor(res, moeda)}</strong></td>
+            </tr>`;
+
+            html += `</tbody></table></div></div>`;
+
+            html += `<div class="export-buttons">
+                <button class="btn-export" onclick="exportarPDFDRE()"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
+                <button class="btn-export btn-export-excel" onclick="exportarExcelDRE()"><i class="fas fa-file-excel"></i> Exportar Excel</button>
+            </div>`;
+
             resultadosDiv.innerHTML = html;
-            
-            // Criar gráfico
-            if (mesesData.length > 0) {
-                const ctx = document.getElementById('graficoAnual').getContext('2d');
-                if (graficoAnual) graficoAnual.destroy();
-                
-                graficoAnual = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: mesesData.map(m => m.mes.substring(0, 3)),
-                        datasets: [{
-                            label: tipoAnualAtual === 'receita' ? 'Receitas' : 'Despesas',
-                            data: mesesData.map(m => m.valor || 0),
-                            borderColor: '#1a5fb4',
-                            backgroundColor: 'rgba(26, 95, 180, 0.1)',
-                            fill: true,
-                            tension: 0.4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        plugins: {
-                            legend: { labels: { color: '#e0e0e0' } },
-                            tooltip: { callbacks: { label: (ctx) => `${formatarValor(ctx.raw, moeda)}` } }
+
+            // Gráfico barras agrupadas
+            if (dreLinhas.length > 0) {
+                const ctx = document.getElementById('graficoDRE')?.getContext('2d');
+                if (ctx) {
+                    if (graficoDRE) graficoDRE.destroy();
+                    graficoDRE = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: dreLinhas.map(l => l.categoria),
+                            datasets: [
+                                {
+                                    label: 'Receitas',
+                                    data: dreLinhas.map(l => l.receita || 0),
+                                    backgroundColor: 'rgba(46, 194, 126, 0.8)',
+                                    borderColor: '#2ec27e',
+                                    borderWidth: 1
+                                },
+                                {
+                                    label: 'Despesas',
+                                    data: dreLinhas.map(l => l.despesa || 0),
+                                    backgroundColor: 'rgba(224, 27, 36, 0.7)',
+                                    borderColor: '#e01b24',
+                                    borderWidth: 1
+                                }
+                            ]
                         },
-                        scales: {
-                            y: { grid: { color: '#1e232e' }, ticks: { color: '#e0e0e0' } },
-                            x: { grid: { color: '#1e232e' }, ticks: { color: '#e0e0e0' } }
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: { labels: { color: '#e0e0e0' } },
+                                tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatarValor(ctx.raw, moeda)}` } }
+                            },
+                            scales: {
+                                y: { grid: { color: '#1e232e' }, ticks: { color: '#e0e0e0' } },
+                                x: { grid: { color: '#1e232e' }, ticks: { color: '#e0e0e0' } }
+                            }
                         }
-                    }
-                });
+                    });
+                }
+            }
+
+            // Gráfico donut de despesas
+            if (catDesp.length > 0) {
+                const ctx2 = document.getElementById('graficoDREDonut')?.getContext('2d');
+                if (ctx2) {
+                    if (graficoDREDonut) graficoDREDonut.destroy();
+                    graficoDREDonut = new Chart(ctx2, {
+                        type: 'doughnut',
+                        data: {
+                            labels: catDesp.map(([c]) => c),
+                            datasets: [{
+                                data: catDesp.map(([, v]) => v),
+                                backgroundColor: PALETA.map((c, i) => i === 0 ? 'rgba(224,27,36,0.8)' : PALETA[i]),
+                                borderWidth: 2,
+                                borderColor: '#0d1117'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: { position: 'right', labels: { color: '#e0e0e0', font: { size: 12 } } },
+                                tooltip: { callbacks: { label: ctx => `${ctx.label}: ${formatarValor(ctx.raw, moeda)}` } }
+                            }
+                        }
+                    });
+                }
             }
         }
 
@@ -1503,19 +1510,17 @@
         function abrirModalTaxas(callback) {
             taxasCallback = callback;
             const moedas = ['EUR', 'GBP', 'BRL'];
-            
             const container = document.getElementById('taxasInputs');
             container.innerHTML = '';
-            
-            for (const moeda of moedas) {
+            for (const m of moedas) {
+                const defaultVal = m === 'EUR' ? '0.92' : m === 'GBP' ? '0.79' : '5.20';
                 const div = document.createElement('div');
                 div.innerHTML = `
-                    <label style="font-size: 13px; color: var(--cor-texto-secundario);">1 USD = ? ${moeda}</label>
-                    <input type="number" id="taxa_${moeda}" class="form-control" step="0.0001" value="${moeda === 'EUR' ? '0.92' : moeda === 'GBP' ? '0.79' : '5.20'}" style="margin-top: 5px;">
+                    <label style="font-size:13px;color:var(--cor-texto-secundario);">1 USD = ? ${m}</label>
+                    <input type="number" id="taxa_${m}" class="form-control" step="0.0001" value="${defaultVal}" style="margin-top:5px;">
                 `;
                 container.appendChild(div);
             }
-            
             document.getElementById('modalTaxas').classList.add('active');
         }
 
@@ -1526,142 +1531,131 @@
 
         function confirmarTaxas() {
             const taxas = {};
-            const moedas = ['EUR', 'GBP', 'BRL'];
-            
-            for (const moeda of moedas) {
-                const input = document.getElementById(`taxa_${moeda}`);
-                if (input) {
-                    taxas[moeda] = parseFloat(input.value);
-                }
+            for (const m of ['EUR', 'GBP', 'BRL']) {
+                const inp = document.getElementById(`taxa_${m}`);
+                if (inp) taxas[m] = parseFloat(inp.value);
             }
-            
             fecharModalTaxas();
-            if (taxasCallback) {
-                taxasCallback(taxas);
-                taxasCallback = null;
-            }
+            if (taxasCallback) { taxasCallback(taxas); taxasCallback = null; }
         }
 
         // ============================================
         // EXPORTAÇÕES
         // ============================================
         function exportarPDFMensal() {
-            if (!dadosMensal) {
-                alert('Gere um relatório mensal primeiro!');
-                return;
-            }
-            alert('Exportação para PDF será implementada em breve!');
+            if (!dadosMensal) { alert('Gere um relatório mensal primeiro!'); return; }
+            const titulo = document.title;
+            document.title = 'Relatorio Mensal - Cambio Bank';
+            window.print();
+            document.title = titulo;
         }
 
         function exportarExcelMensal() {
-            if (!dadosMensal) {
-                alert('Gere um relatório mensal primeiro!');
-                return;
+            if (!dadosMensal) { alert('Gere um relatório mensal primeiro!'); return; }
+            const linhas = [['Data', 'Descrição', 'Categoria', 'Conta', 'Valor', 'Moeda']];
+            for (const t of dadosMensal.transacoes || []) {
+                linhas.push([formatarData(t.data), t.descricao || '-', t.categoria || '-', t.conta_especifica || '-', t.valor, t.moeda]);
             }
-            
-            const dados = [];
-            dados.push(['Data', 'Descrição', 'Categoria', 'Conta', 'Valor', 'Moeda']);
-            
-            for (const trans of dadosMensal.transacoes || []) {
-                dados.push([
-                    formatarData(trans.data),
-                    trans.descricao || '-',
-                    trans.categoria || '-',
-                    trans.conta_especifica || '-',
-                    trans.valor,
-                    trans.moeda
-                ]);
-            }
-            
-            const ws = XLSX.utils.aoa_to_sheet(dados);
+            const ws = XLSX.utils.aoa_to_sheet(linhas);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Relatorio Mensal');
-            XLSX.writeFile(wb, `relatorio_mensal_${new Date().toISOString().slice(0, 19)}.xlsx`);
+            XLSX.writeFile(wb, `relatorio_mensal_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 
         function exportarPDFComparativo() {
-            if (!dadosComparativo) {
-                alert('Gere um comparativo primeiro!');
-                return;
-            }
-            alert('Exportação para PDF será implementada em breve!');
+            if (!dadosComparativo) { alert('Gere um comparativo primeiro!'); return; }
+            const titulo = document.title;
+            document.title = 'Comparativo - Cambio Bank';
+            window.print();
+            document.title = titulo;
         }
 
-        function exportarExcelComparativo() {
-            if (!dadosComparativo) {
-                alert('Gere um comparativo primeiro!');
-                return;
+        function exportarExcelComparativo(label1, label2, moeda) {
+            if (!dadosComparativo) { alert('Gere um comparativo primeiro!'); return; }
+            const linhas = [['Categoria', label1 || 'Período 1', label2 || 'Período 2', 'Variação', 'Variação %']];
+            for (const [cat, d] of Object.entries(dadosComparativo.categorias || {})) {
+                linhas.push([cat, d.total_ref || 0, d.total_comp || 0, d.variacao || 0, `${(d.variacao_percentual || 0).toFixed(1)}%`]);
+                for (const [conta, cd] of Object.entries(d.contas || {})) {
+                    linhas.push([`  └ ${conta}`, cd.valor_ref || 0, cd.valor_comp || 0, cd.variacao || 0, '']);
+                }
             }
-            alert('Exportação para Excel do comparativo será implementada em breve!');
+            const t = dadosComparativo.totais || {};
+            linhas.push(['TOTAL', t.referencia || 0, t.comparacao || 0, t.variacao || 0, `${(t.variacao_percentual || 0).toFixed(1)}%`]);
+            const ws = XLSX.utils.aoa_to_sheet(linhas);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Comparativo');
+            XLSX.writeFile(wb, `comparativo_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 
         function exportarPDFAnual() {
-            if (!dadosAnual) {
-                alert('Gere uma evolução anual primeiro!');
-                return;
-            }
-            alert('Exportação para PDF será implementada em breve!');
+            if (!dadosAnual) { alert('Gere uma evolução anual primeiro!'); return; }
+            const titulo = document.title;
+            document.title = 'Evolucao Anual - Cambio Bank';
+            window.print();
+            document.title = titulo;
         }
 
         function exportarExcelAnual() {
-            if (!dadosAnual) {
-                alert('Gere uma evolução anual primeiro!');
-                return;
-            }
-            
-            const dados = [];
-            dados.push(['Mês', 'Valor', 'Variação Mensal', 'Acumulado']);
-            
+            if (!dadosAnual) { alert('Gere uma evolução anual primeiro!'); return; }
+            const linhas = [['Mês', 'Valor', 'Variação Mensal', 'Acumulado']];
             let acumulado = 0;
             for (const mes of dadosAnual.meses || []) {
                 acumulado += mes.valor || 0;
-                dados.push([
-                    mes.mes,
-                    mes.valor,
-                    `${mes.variacao_mensal > 0 ? '+' : ''}${mes.variacao_mensal.toFixed(1)}%`,
-                    acumulado
-                ]);
+                linhas.push([mes.mes, mes.valor, `${mes.variacao_mensal > 0 ? '+' : ''}${mes.variacao_mensal.toFixed(1)}%`, acumulado]);
             }
-            
-            const ws = XLSX.utils.aoa_to_sheet(dados);
+            const ws = XLSX.utils.aoa_to_sheet(linhas);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Evolucao Anual');
-            XLSX.writeFile(wb, `evolucao_anual_${new Date().toISOString().slice(0, 19)}.xlsx`);
+            XLSX.writeFile(wb, `evolucao_anual_${new Date().toISOString().slice(0,10)}.xlsx`);
+        }
+
+        function exportarPDFDRE() {
+            if (!dadosDRE) { alert('Gere o DRE primeiro!'); return; }
+            const titulo = document.title;
+            document.title = `DRE ${dadosDRE._label || ''} - Cambio Bank`;
+            window.print();
+            document.title = titulo;
+        }
+
+        function exportarExcelDRE() {
+            if (!dadosDRE) { alert('Gere o DRE primeiro!'); return; }
+            const moeda = dadosDRE.moeda_padrao || 'USD';
+            const linhas = [['Categoria', 'Receitas', 'Despesas', 'Resultado']];
+            for (const l of dadosDRE.dre_linhas || []) {
+                linhas.push([l.categoria, l.receita || 0, l.despesa || 0, l.resultado || 0]);
+            }
+            linhas.push(['TOTAL', dadosDRE.total_receitas || 0, dadosDRE.total_despesas || 0, dadosDRE.resultado || 0]);
+            const ws = XLSX.utils.aoa_to_sheet(linhas);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'DRE');
+            XLSX.writeFile(wb, `dre_${(dadosDRE._label || new Date().toISOString().slice(0,7)).replace('/','-')}.xlsx`);
         }
 
         // ============================================
         // FUNÇÕES AUXILIARES
         // ============================================
-        function toggleCategoria(element) {
-            const contasDiv = element.nextElementSibling;
-            if (contasDiv) {
-                const isVisible = contasDiv.style.display !== 'none';
-                contasDiv.style.display = isVisible ? 'none' : 'block';
-            }
+        function toggleCategoria(header) {
+            const contas = header.nextElementSibling;
+            if (!contas) return;
+            const abrindo = contas.style.display === 'none';
+            contas.style.display = abrindo ? 'block' : 'none';
+            header.classList.toggle('aberta', abrindo);
         }
 
         function formatarValor(valor, moeda) {
             if (valor === undefined || valor === null) valor = 0;
-            const valorFormatado = valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            
+            const vf = valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             const simbolos = { USD: '$', EUR: '€', GBP: '£', BRL: 'R$' };
-            const simbolo = simbolos[moeda] || moeda;
-            
-            if (moeda === 'BRL') return `${simbolo} ${valorFormatado}`;
-            return `${simbolo}${valorFormatado}`;
+            const s = simbolos[moeda] || (moeda || '');
+            return moeda === 'BRL' ? `${s} ${vf}` : `${s}${vf}`;
         }
 
         function formatarData(dataStr) {
             if (!dataStr) return '';
             try {
-                if (dataStr.includes('T')) {
-                    const data = new Date(dataStr);
-                    return data.toLocaleDateString('pt-BR');
-                }
+                if (dataStr.includes('T')) return new Date(dataStr).toLocaleDateString('pt-BR');
                 return dataStr.split(' ')[0].split('-').reverse().join('/');
-            } catch {
-                return dataStr;
-            }
+            } catch { return dataStr; }
         }
 
         function escapeHtml(text) {

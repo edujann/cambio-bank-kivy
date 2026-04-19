@@ -12125,6 +12125,86 @@ def api_admin_relatorios_anual():
         return jsonify({"success": False, "message": str(e)}), 500
 
 
+@app.route('/api/admin/relatorios/dre', methods=['POST'])
+def api_admin_relatorios_dre():
+    """Retorna DRE simplificado (Receitas x Despesas) para um período"""
+    try:
+        usuario = session.get('username')
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+
+        dados = request.get_json()
+        ano = dados.get('ano')
+        mes = dados.get('mes')
+        moeda_filtro = dados.get('moeda', 'TODAS')
+
+        if not ano or not mes:
+            return jsonify({"success": False, "message": "Dados incompletos"}), 400
+
+        import calendar
+        from collections import defaultdict
+
+        data_inicio = f"{ano}-{mes:02d}-01"
+        ultimo_dia = calendar.monthrange(ano, mes)[1]
+        data_fim = f"{ano}-{mes:02d}-{ultimo_dia} 23:59:59"
+
+        def buscar_tipo(tipo):
+            return supabase.table('transferencias').select('*') \
+                .eq('tipo', tipo).eq('status', 'completed') \
+                .gte('created_at', f"{data_inicio} 00:00:00") \
+                .lte('created_at', data_fim) \
+                .execute().data or []
+
+        def processar(transacoes, tipo):
+            total = 0
+            por_categoria = defaultdict(float)
+            for t in transacoes:
+                valor = float(t.get('valor', 0))
+                moeda = t.get('moeda', 'USD')
+                if moeda_filtro != 'TODAS' and moeda != moeda_filtro:
+                    continue
+                categoria = t.get(f'categoria_{tipo}') or 'SEM CATEGORIA'
+                total += valor
+                por_categoria[categoria] += valor
+            return total, dict(sorted(por_categoria.items(), key=lambda x: x[1], reverse=True))
+
+        total_receitas, cat_receitas = processar(buscar_tipo('receita'), 'receita')
+        total_despesas, cat_despesas = processar(buscar_tipo('despesa'), 'despesa')
+
+        resultado = total_receitas - total_despesas
+        margem = (resultado / total_receitas * 100) if total_receitas > 0 else 0
+
+        todas_cats = sorted(set(cat_receitas.keys()) | set(cat_despesas.keys()))
+        dre_linhas = [
+            {'categoria': c, 'receita': cat_receitas.get(c, 0),
+             'despesa': cat_despesas.get(c, 0),
+             'resultado': cat_receitas.get(c, 0) - cat_despesas.get(c, 0)}
+            for c in todas_cats
+        ]
+
+        moeda_padrao = moeda_filtro if moeda_filtro != 'TODAS' else 'USD'
+
+        return jsonify({
+            "success": True,
+            "dados": {
+                "total_receitas": total_receitas,
+                "total_despesas": total_despesas,
+                "resultado": resultado,
+                "margem": margem,
+                "categorias_receitas": cat_receitas,
+                "categorias_despesas": cat_despesas,
+                "dre_linhas": dre_linhas,
+                "moeda_padrao": moeda_padrao
+            }
+        })
+
+    except Exception as e:
+        print(f"❌ Erro ao gerar DRE: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 # ============================================
 # ADMIN - CONFIGURAÇÕES (usando tabela config_sistema)
 # ============================================
