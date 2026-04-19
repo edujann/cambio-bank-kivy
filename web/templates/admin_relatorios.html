@@ -726,6 +726,20 @@
         ];
 
         // ============================================
+        // FUNÇÃO DE CONVERSÃO PARA USD
+        // ============================================
+        function converterValorParaUSD(valor, moeda, taxas) {
+            if (!taxas || moeda === 'USD') return valor;
+            const taxa = taxas[moeda];
+            if (!taxa || taxa === 0) return valor; // fallback
+            return valor / taxa;
+        }
+
+        function converterMoedaParaUSD(valor, moedaOrigem, taxas) {
+            return converterValorParaUSD(valor, moedaOrigem, taxas);
+        }
+
+        // ============================================
         // INICIALIZAÇÃO
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
@@ -853,24 +867,35 @@
         function exibirRelatorioMensal(dados, taxas) {
             graficoMensal = destruirGrafico(graficoMensal);
             const resultadosDiv = document.getElementById('mensalResultados');
-            const totalGeral  = dados.total_geral || 0;
-            const quantidade  = dados.quantidade_transacoes || 0;
-            const media       = quantidade > 0 ? totalGeral / quantidade : 0;
             const moedaPadrao = dados.moeda_padrao || 'USD';
-
-            let totalUsd = totalGeral;
+            
+            // 🔥 CALCULAR TOTAL GERAL CONVERTIDO (se taxas existirem)
+            let totalGeral = dados.total_geral || 0;
+            let totalEmUSD = 0;
+            const valoresPorMoeda = {};
+            
             if (taxas && dados.total_por_moeda) {
-                totalUsd = 0;
+                totalEmUSD = 0;
                 for (const [m, v] of Object.entries(dados.total_por_moeda)) {
-                    totalUsd += m === 'USD' ? v : v / (taxas[m] || 1);
+                    const valorUSD = converterValorParaUSD(v, m, taxas);
+                    totalEmUSD += valorUSD;
+                    valoresPorMoeda[m] = { original: v, convertido: valorUSD };
+                }
+                totalGeral = totalEmUSD;
+            } else if (dados.total_por_moeda) {
+                for (const [m, v] of Object.entries(dados.total_por_moeda)) {
+                    valoresPorMoeda[m] = { original: v, convertido: v };
                 }
             }
-
+            
+            const quantidade = dados.quantidade_transacoes || 0;
+            const media = quantidade > 0 ? totalGeral / quantidade : 0;
+            
             let html = `
                 <div class="cards-resumo">
                     <div class="card-resumo">
                         <div class="titulo"><i class="fas fa-chart-line"></i> TOTAL</div>
-                        <div class="valor">${formatarValor(totalGeral, moedaPadrao)}</div>
+                        <div class="valor">${formatarValor(totalGeral, 'USD')}</div>
                     </div>
                     <div class="card-resumo">
                         <div class="titulo"><i class="fas fa-exchange-alt"></i> TRANSAÇÕES</div>
@@ -878,59 +903,92 @@
                     </div>
                     <div class="card-resumo">
                         <div class="titulo"><i class="fas fa-calculator"></i> MÉDIA</div>
-                        <div class="valor">${formatarValor(media, moedaPadrao)}</div>
+                        <div class="valor">${formatarValor(media, 'USD')}</div>
                     </div>
                     <div class="card-resumo">
                         <div class="titulo"><i class="fas fa-dollar-sign"></i> TOTAL (USD)</div>
-                        <div class="valor">${formatarValor(totalUsd, 'USD')}</div>
+                        <div class="valor">${formatarValor(totalEmUSD || totalGeral, 'USD')}</div>
                     </div>
                 </div>
             `;
-
-            // Breakdown por moeda
-            if (dados.total_por_moeda && Object.keys(dados.total_por_moeda).length > 0) {
+            
+            // Breakdown por moeda (mostrar original e convertido)
+            if (Object.keys(valoresPorMoeda).length > 0) {
                 html += `<div class="breakdown-moedas">
                     <div class="breakdown-titulo"><i class="fas fa-coins"></i> DETALHAMENTO POR MOEDA</div>
                     <div class="moedas-grid">`;
-                for (const [m, v] of Object.entries(dados.total_por_moeda)) {
-                    let usdLine = '';
-                    if (taxas && m !== 'USD') usdLine = `<div class="moeda-usd">≈ ${formatarValor(v / (taxas[m] || 1), 'USD')}</div>`;
-                    else if (m === 'USD') usdLine = `<div class="moeda-usd">(base)</div>`;
+                for (const [m, vals] of Object.entries(valoresPorMoeda)) {
+                    const valorOriginal = vals.original;
+                    const valorConvertido = vals.convertido;
+                    const mostraConversao = taxas && m !== 'USD';
                     html += `<div class="moeda-card">
                         <div class="moeda-sigla">${m}</div>
-                        <div class="moeda-valor">${formatarValor(v, m)}</div>
-                        ${usdLine}
+                        <div class="moeda-valor">${formatarValor(valorOriginal, m)}</div>
+                        ${mostraConversao ? `<div class="moeda-usd">≈ ${formatarValor(valorConvertido, 'USD')}</div>` : ''}
+                        ${!mostraConversao && m === 'USD' ? '<div class="moeda-usd">(base)</div>' : ''}
                     </div>`;
                 }
                 html += `</div></div>`;
             }
-
-            // Gráfico donut por categoria + categorias
+            
+            // Preparar dados para o gráfico (valores em USD)
             const catEntries = Object.entries(dados.categorias || {});
+            let dadosGrafico = [];
+            let labelsGrafico = [];
+            
+            if (taxas && dados.total_por_moeda) {
+                // Converter cada categoria para USD
+                for (const [categoria, catDados] of catEntries) {
+                    let totalUSD = 0;
+                    for (const [moeda, valor] of Object.entries(catDados.total_por_moeda || {})) {
+                        totalUSD += converterValorParaUSD(valor, moeda, taxas);
+                    }
+                    dadosGrafico.push(totalUSD);
+                    labelsGrafico.push(categoria);
+                }
+            } else {
+                dadosGrafico = catEntries.map(([, d]) => d.total || 0);
+                labelsGrafico = catEntries.map(([c]) => c);
+            }
+            
+            // Gráfico donut
             if (catEntries.length > 0) {
                 html += `<div class="graficos-row">
                     <div class="grafico-container">
-                        <div class="grafico-titulo"><i class="fas fa-chart-pie"></i> Distribuição por Categoria</div>
+                        <div class="grafico-titulo"><i class="fas fa-chart-pie"></i> Distribuição por Categoria (USD)</div>
                         <canvas id="graficoMensal"></canvas>
                     </div>
                     <div class="secao-categorias" style="margin-bottom:0;">
                         <div class="secao-titulo"><i class="fas fa-folder-open"></i> DETALHAMENTO POR CATEGORIA</div>`;
-
+                
                 for (const [categoria, catDados] of catEntries) {
-                    const totalCat = catDados.total || 0;
+                    let totalCat = catDados.total || 0;
+                    if (taxas && catDados.total_por_moeda) {
+                        totalCat = 0;
+                        for (const [moeda, valor] of Object.entries(catDados.total_por_moeda || {})) {
+                            totalCat += converterValorParaUSD(valor, moeda, taxas);
+                        }
+                    }
                     html += `<div class="categoria-card">
                         <div class="categoria-header" onclick="toggleCategoria(this)">
                             <div class="categoria-header-left">
                                 <i class="fas fa-chevron-right"></i>
                                 <span class="categoria-nome"><i class="fas fa-folder"></i> ${escapeHtml(categoria)}</span>
                             </div>
-                            <span class="categoria-total">${formatarValor(totalCat, moedaPadrao)}</span>
+                            <span class="categoria-total">${formatarValor(totalCat, 'USD')}</span>
                         </div>
                         <div class="categoria-contas" style="display:none;">`;
                     for (const [conta, contaDados] of Object.entries(catDados.contas || {})) {
+                        let valorConta = contaDados.total || 0;
+                        if (taxas && contaDados.total_por_moeda) {
+                            valorConta = 0;
+                            for (const [moeda, valor] of Object.entries(contaDados.total_por_moeda || {})) {
+                                valorConta += converterValorParaUSD(valor, moeda, taxas);
+                            }
+                        }
                         html += `<div class="conta-item">
                             <span class="conta-nome">📄 ${escapeHtml(conta)}</span>
-                            <span class="conta-valor">${formatarValor(contaDados.total || 0, moedaPadrao)}
+                            <span class="conta-valor">${formatarValor(valorConta, 'USD')}
                                 <span class="conta-quantidade">(${contaDados.quantidade || 0} tx)</span>
                             </span>
                         </div>`;
@@ -939,50 +997,56 @@
                 }
                 html += `</div></div>`;
             }
-
-            // Lista de transações
+            
+            // Lista de transações (converter valores individuais)
             if (dados.transacoes && dados.transacoes.length > 0) {
                 html += `<div class="secao-categorias">
                     <div class="secao-titulo"><i class="fas fa-list"></i> LISTA DE TRANSAÇÕES</div>
                     <div class="tabela-container">
                         <table class="tabela-transacoes">
                             <thead><tr>
-                                <th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Valor</th>
+                                <th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Valor Original</th><th>Valor (USD)</th>
                             </tr></thead>
                             <tbody>`;
                 for (const t of dados.transacoes) {
+                    let valorUSD = t.valor;
+                    let moedaTransacao = t.moeda || moedaPadrao;
+                    if (taxas && moedaTransacao !== 'USD') {
+                        valorUSD = converterValorParaUSD(t.valor, moedaTransacao, taxas);
+                    }
                     html += `<tr>
                         <td>${formatarData(t.data)}</td>
                         <td>${escapeHtml(t.descricao || '-')}</td>
                         <td>${escapeHtml(t.categoria || '-')}</td>
                         <td>${escapeHtml(t.conta_especifica || '-')}</td>
-                        <td>${formatarValor(t.valor, t.moeda || moedaPadrao)}</td>
+                        <td>${formatarValor(t.valor, moedaTransacao)}</td>
+                        <td><strong>${formatarValor(valorUSD, 'USD')}</strong></td>
                     </tr>`;
                 }
                 html += `<tr class="total-geral">
-                    <td colspan="4"><strong>TOTAL GERAL</strong></td>
-                    <td><strong>${formatarValor(totalGeral, moedaPadrao)}</strong></td>
-                </tr></tbody></table></div></div>`;
+                    <td colspan="5"><strong>TOTAL GERAL</strong></td>
+                    <td><strong>${formatarValor(totalEmUSD || totalGeral, 'USD')}</strong></td>
+                </tr></tbody>收入</div></div>`;
             }
-
+            
             html += `<div class="export-buttons">
                 <button class="btn-export" onclick="exportarPDFMensal()"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
                 <button class="btn-export btn-export-excel" onclick="exportarExcelMensal()"><i class="fas fa-file-excel"></i> Exportar Excel</button>
             </div>`;
-
+            
             resultadosDiv.innerHTML = html;
-
+            
             // Criar gráfico donut
-            if (catEntries.length > 0) {
+            if (dadosGrafico.length > 0) {
                 const ctx = document.getElementById('graficoMensal')?.getContext('2d');
                 if (ctx) {
                     graficoMensal = new Chart(ctx, {
                         type: 'doughnut',
                         data: {
-                            labels: catEntries.map(([c]) => c),
+                            labels: labelsGrafico,
                             datasets: [{
-                                data: catEntries.map(([, d]) => d.total || 0),
-                                backgroundColor: PALETA.slice(0, catEntries.length),
+                                data: dadosGrafico,
+                                backgroundColor: PALETA.slice(0, dadosGrafico.length),
                                 borderWidth: 2,
                                 borderColor: '#0d1117'
                             }]
@@ -991,14 +1055,13 @@
                             responsive: true,
                             plugins: {
                                 legend: { position: 'right', labels: { color: '#e0e0e0', font: { size: 12 } } },
-                                tooltip: { callbacks: { label: ctx => `${ctx.label}: ${formatarValor(ctx.raw, moedaPadrao)}` } }
+                                tooltip: { callbacks: { label: ctx => `${ctx.label}: ${formatarValor(ctx.raw, 'USD')}` } }
                             }
                         }
                     });
                 }
             }
         }
-
         // ============================================
         // ABA 2: COMPARATIVO MENSAL
         // ============================================
@@ -1046,29 +1109,44 @@
         function exibirRelatorioComparativo(dados, mes1, ano1, mes2, ano2, moeda, taxas) {
             graficoComparativo = destruirGrafico(graficoComparativo);
             const resultadosDiv = document.getElementById('comparativoResultados');
-            const totais = dados.totais || {};
-            const valorRef  = totais.referencia || 0;
-            const valorComp = totais.comparacao  || 0;
-            const variacao  = totais.variacao    || 0;
-            const varPct    = totais.variacao_percentual || 0;
+            
+            // 🔥 CONVERTER TOTAIS PARA USD (se taxas existirem)
+            let valorRef = dados.totais?.referencia || 0;
+            let valorComp = dados.totais?.comparacao || 0;
+            let variacao = dados.totais?.variacao || 0;
+            let varPct = dados.totais?.variacao_percentual || 0;
+            
+            if (taxas && dados.totais?.por_moeda_ref && dados.totais?.por_moeda_comp) {
+                valorRef = 0;
+                valorComp = 0;
+                for (const [m, v] of Object.entries(dados.totais.por_moeda_ref)) {
+                    valorRef += converterValorParaUSD(v, m, taxas);
+                }
+                for (const [m, v] of Object.entries(dados.totais.por_moeda_comp)) {
+                    valorComp += converterValorParaUSD(v, m, taxas);
+                }
+                variacao = valorRef - valorComp;
+                varPct = valorComp > 0 ? (variacao / valorComp * 100) : (valorRef > 0 ? 100 : 0);
+            }
+            
             const sinal = variacao > 0 ? '+' : variacao < 0 ? '-' : '=';
-            const cor   = variacao > 0 ? 'var(--cor-sucesso)' : variacao < 0 ? 'var(--cor-perigo)' : 'var(--cor-texto-secundario)';
+            const cor = variacao > 0 ? 'var(--cor-sucesso)' : variacao < 0 ? 'var(--cor-perigo)' : 'var(--cor-texto-secundario)';
             const label1 = `${meses[mes1]}/${ano1}`;
             const label2 = `${meses[mes2]}/${ano2}`;
-
+            
             let html = `
                 <div class="cards-resumo">
                     <div class="card-resumo">
                         <div class="titulo">${label1}</div>
-                        <div class="valor">${formatarValor(valorRef, moeda)}</div>
+                        <div class="valor">${formatarValor(valorRef, 'USD')}</div>
                     </div>
                     <div class="card-resumo">
                         <div class="titulo">${label2}</div>
-                        <div class="valor">${formatarValor(valorComp, moeda)}</div>
+                        <div class="valor">${formatarValor(valorComp, 'USD')}</div>
                     </div>
                     <div class="card-resumo">
                         <div class="titulo">VARIAÇÃO</div>
-                        <div class="valor" style="color:${cor}">${sinal} ${formatarValor(Math.abs(variacao), moeda)}</div>
+                        <div class="valor" style="color:${cor}">${sinal} ${formatarValor(Math.abs(variacao), 'USD')}</div>
                     </div>
                     <div class="card-resumo">
                         <div class="titulo">VARIAÇÃO %</div>
@@ -1076,29 +1154,45 @@
                     </div>
                 </div>
             `;
-
+            
+            // Converter categorias para USD
             const catEntries = Object.entries(dados.categorias || {});
-
-            // Aviso quando múltiplas moedas somadas
-            if (taxas) {
-                html += `<div style="background:rgba(243,156,18,0.1);border:1px solid var(--cor-alerta);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:var(--cor-alerta);">
-                    <i class="fas fa-exclamation-triangle"></i> <strong>Estimativa multi-moeda:</strong>
-                    os totais foram convertidos para USD usando as taxas informadas. O endpoint de comparativo soma todas as moedas sem conversão prévia — use esses valores como referência aproximada.
-                </div>`;
+            let dadosGraficoRef = [];
+            let dadosGraficoComp = [];
+            let labelsGrafico = [];
+            
+            for (const [categoria, catDados] of catEntries) {
+                let valorRefCat = catDados.total_ref || 0;
+                let valorCompCat = catDados.total_comp || 0;
+                
+                if (taxas) {
+                    valorRefCat = 0;
+                    valorCompCat = 0;
+                    for (const [m, v] of Object.entries(catDados.por_moeda_ref || {})) {
+                        valorRefCat += converterValorParaUSD(v, m, taxas);
+                    }
+                    for (const [m, v] of Object.entries(catDados.por_moeda_comp || {})) {
+                        valorCompCat += converterValorParaUSD(v, m, taxas);
+                    }
+                }
+                
+                dadosGraficoRef.push(valorRefCat);
+                dadosGraficoComp.push(valorCompCat);
+                labelsGrafico.push(categoria);
             }
-
-            // Gráfico de barras agrupadas
+            
+            // Gráfico de barras
             if (catEntries.length > 0) {
                 html += `<div class="grafico-container">
-                    <div class="grafico-titulo"><i class="fas fa-chart-bar"></i> Comparativo por Categoria</div>
+                    <div class="grafico-titulo"><i class="fas fa-chart-bar"></i> Comparativo por Categoria (USD)</div>
                     <canvas id="graficoComparativo"></canvas>
                 </div>`;
             }
-
+            
             // Tabela comparativa
             if (catEntries.length > 0) {
                 html += `<div class="secao-categorias">
-                    <div class="secao-titulo"><i class="fas fa-chart-line"></i> COMPARATIVO POR CATEGORIA</div>
+                    <div class="secao-titulo"><i class="fas fa-chart-line"></i> COMPARATIVO POR CATEGORIA (USD)</div>
                     <div class="tabela-container">
                         <table class="tabela-transacoes">
                             <thead><tr>
@@ -1109,64 +1203,53 @@
                                 <th>%</th>
                             </tr></thead>
                             <tbody>`;
-                for (const [categoria, catDados] of catEntries) {
-                    const vR = catDados.total_ref  || 0;
-                    const vC = catDados.total_comp || 0;
-                    const vV = catDados.variacao   || 0;
-                    const vP = catDados.variacao_percentual || 0;
-                    const s  = vV > 0 ? '+' : vV < 0 ? '-' : '=';
-                    const c  = vV > 0 ? 'var(--cor-sucesso)' : vV < 0 ? 'var(--cor-perigo)' : 'var(--cor-texto-secundario)';
+                
+                for (let i = 0; i < catEntries.length; i++) {
+                    const categoria = catEntries[i][0];
+                    const vR = dadosGraficoRef[i];
+                    const vC = dadosGraficoComp[i];
+                    const vV = vR - vC;
+                    const vP = vC > 0 ? (vV / vC * 100) : (vR > 0 ? 100 : 0);
+                    const s = vV > 0 ? '+' : vV < 0 ? '-' : '=';
+                    const c = vV > 0 ? 'var(--cor-sucesso)' : vV < 0 ? 'var(--cor-perigo)' : 'var(--cor-texto-secundario)';
                     html += `<tr>
                         <td><strong>${escapeHtml(categoria)}</strong></td>
-                        <td>${formatarValor(vR, moeda)}</td>
-                        <td>${formatarValor(vC, moeda)}</td>
-                        <td style="color:${c}">${s} ${formatarValor(Math.abs(vV), moeda)}</td>
+                        <td>${formatarValor(vR, 'USD')}</td>
+                        <td>${formatarValor(vC, 'USD')}</td>
+                        <td style="color:${c}">${s} ${formatarValor(Math.abs(vV), 'USD')}</td>
                         <td style="color:${c}">${s} ${Math.abs(vP).toFixed(1)}%</td>
                     </tr>`;
-                    for (const [conta, contaDados] of Object.entries(catDados.contas || {})) {
-                        const cVR = contaDados.valor_ref  || 0;
-                        const cVC = contaDados.valor_comp || 0;
-                        const cVV = contaDados.variacao   || 0;
-                        const cS  = cVV > 0 ? '+' : cVV < 0 ? '-' : '=';
-                        const cC  = cVV > 0 ? 'var(--cor-sucesso)' : cVV < 0 ? 'var(--cor-perigo)' : 'var(--cor-texto-secundario)';
-                        html += `<tr>
-                            <td style="padding-left:20px;">└ ${escapeHtml(conta)}</td>
-                            <td>${formatarValor(cVR, moeda)}</td>
-                            <td>${formatarValor(cVC, moeda)}</td>
-                            <td style="color:${cC}">${cS} ${formatarValor(Math.abs(cVV), moeda)}</td>
-                            <td></td>
-                        </tr>`;
-                    }
                 }
-                html += `</tbody></table></div></div>`;
+                
+                html += `</tbody>收入</div></div>`;
             }
-
+            
             html += `<div class="export-buttons">
                 <button class="btn-export" onclick="exportarPDFComparativo()"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
-                <button class="btn-export btn-export-excel" onclick="exportarExcelComparativo('${label1}','${label2}','${moeda}')"><i class="fas fa-file-excel"></i> Exportar Excel</button>
+                <button class="btn-export btn-export-excel" onclick="exportarExcelComparativo('${label1}','${label2}','USD')"><i class="fas fa-file-excel"></i> Exportar Excel</button>
             </div>`;
-
+            
             resultadosDiv.innerHTML = html;
-
-            // Criar gráfico de barras agrupadas
+            
+            // Criar gráfico
             if (catEntries.length > 0) {
                 const ctx = document.getElementById('graficoComparativo')?.getContext('2d');
                 if (ctx) {
                     graficoComparativo = new Chart(ctx, {
                         type: 'bar',
                         data: {
-                            labels: catEntries.map(([c]) => c),
+                            labels: labelsGrafico,
                             datasets: [
                                 {
                                     label: label1,
-                                    data: catEntries.map(([, d]) => d.total_ref || 0),
+                                    data: dadosGraficoRef,
                                     backgroundColor: 'rgba(26, 95, 180, 0.8)',
                                     borderColor: '#1a5fb4',
                                     borderWidth: 1
                                 },
                                 {
                                     label: label2,
-                                    data: catEntries.map(([, d]) => d.total_comp || 0),
+                                    data: dadosGraficoComp,
                                     backgroundColor: 'rgba(46, 194, 126, 0.8)',
                                     borderColor: '#2ec27e',
                                     borderWidth: 1
@@ -1177,7 +1260,7 @@
                             responsive: true,
                             plugins: {
                                 legend: { labels: { color: '#e0e0e0' } },
-                                tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatarValor(ctx.raw, moeda)}` } }
+                                tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatarValor(ctx.raw, 'USD')}` } }
                             },
                             scales: {
                                 y: { grid: { color: '#1e232e' }, ticks: { color: '#e0e0e0' } },
@@ -1227,82 +1310,106 @@
         function exibirRelatorioAnual(dados, ano, moeda, taxas) {
             graficoAnual = destruirGrafico(graficoAnual);
             const resultadosDiv = document.getElementById('anualResultados');
-            const totais    = dados.totais   || {};
-            const mesesData = dados.meses    || [];
-
-            // Converter total geral para USD se taxas fornecidas
-            let totalAno  = totais.total_ano   || 0;
-            let mediaMens = totais.media_mensal || 0;
+            
+            // 🔥 CONVERTER TOTAIS PARA USD
+            let totalAno = dados.totais?.total_ano || 0;
+            let mediaMens = dados.totais?.media_mensal || 0;
+            let melhorMes = dados.totais?.melhor_mes || {};
+            let piorMes = dados.totais?.pior_mes || {};
+            
             if (taxas && dados.total_por_moeda) {
                 totalAno = 0;
                 for (const [m, v] of Object.entries(dados.total_por_moeda)) {
-                    totalAno += m === 'USD' ? v : v / (taxas[m] || 1);
+                    totalAno += converterValorParaUSD(v, m, taxas);
                 }
                 mediaMens = totalAno / 12;
             }
-
-            const melhorMes = totais.melhor_mes   || {};
-            const piorMes   = totais.pior_mes     || {};
-
+            
             let html = `
                 <div class="cards-resumo">
                     <div class="card-resumo">
                         <div class="titulo">TOTAL ANO</div>
-                        <div class="valor">${formatarValor(totalAno, moeda)}</div>
+                        <div class="valor">${formatarValor(totalAno, 'USD')}</div>
                     </div>
                     <div class="card-resumo">
                         <div class="titulo">MÉDIA MENSAL</div>
-                        <div class="valor">${formatarValor(mediaMens, moeda)}</div>
+                        <div class="valor">${formatarValor(mediaMens, 'USD')}</div>
                     </div>
                     <div class="card-resumo">
                         <div class="titulo">MELHOR MÊS</div>
-                        <div class="valor">${melhorMes.mes || '-'}<br><small>${formatarValor(melhorMes.valor || 0, moeda)}</small></div>
+                        <div class="valor">${melhorMes.mes || '-'}<br><small>${formatarValor(melhorMes.valor || 0, 'USD')}</small></div>
                     </div>
                     <div class="card-resumo">
                         <div class="titulo">PIOR MÊS</div>
-                        <div class="valor">${piorMes.mes || '-'}<br><small>${formatarValor(piorMes.valor || 0, moeda)}</small></div>
+                        <div class="valor">${piorMes.mes || '-'}<br><small>${formatarValor(piorMes.valor || 0, 'USD')}</small></div>
                     </div>
                 </div>
             `;
-
+            
+            // Converter dados mensais
+            const mesesData = dados.meses || [];
+            let dadosGrafico = [];
+            let acumulado = 0;
+            
+            for (const mes of mesesData) {
+                let valorMes = mes.valor || 0;
+                if (taxas && mes.por_moeda) {
+                    valorMes = 0;
+                    for (const [m, v] of Object.entries(mes.por_moeda)) {
+                        valorMes += converterValorParaUSD(v, m, taxas);
+                    }
+                }
+                dadosGrafico.push(valorMes);
+            }
+            
             if (mesesData.length > 0) {
                 html += `<div class="grafico-container"><canvas id="graficoAnual"></canvas></div>`;
             }
-
+            
             html += `<div class="secao-categorias">
-                <div class="secao-titulo"><i class="fas fa-chart-line"></i> EVOLUÇÃO MENSAL</div>
+                <div class="secao-titulo"><i class="fas fa-chart-line"></i> EVOLUÇÃO MENSAL (USD)</div>
                 <div class="tabela-container">
                     <table class="tabela-transacoes">
                         <thead><tr>
-                            <th>Mês</th><th>Valor</th><th>Variação Mensal</th><th>Acumulado</th>
+                            <th>Mês</th><th>Valor (USD)</th><th>Variação Mensal</th><th>Acumulado (USD)</th>
                         </tr></thead>
                         <tbody>`;
-            let acumulado = 0;
-            for (const mes of mesesData) {
-                acumulado += mes.valor || 0;
-                const v = mes.variacao_mensal || 0;
-                const s = v > 0 ? '+' : v < 0 ? '-' : '=';
-                const c = v > 0 ? 'var(--cor-sucesso)' : v < 0 ? 'var(--cor-perigo)' : 'var(--cor-texto-secundario)';
+            
+            acumulado = 0;
+            for (let i = 0; i < mesesData.length; i++) {
+                const mes = mesesData[i];
+                let valorMes = dadosGrafico[i];
+                acumulado += valorMes;
+                let variacao = 0;
+                if (i > 0 && dadosGrafico[i-1] > 0) {
+                    variacao = ((valorMes - dadosGrafico[i-1]) / dadosGrafico[i-1]) * 100;
+                }
+                const s = variacao > 0 ? '+' : variacao < 0 ? '-' : '=';
+                const c = variacao > 0 ? 'var(--cor-sucesso)' : variacao < 0 ? 'var(--cor-perigo)' : 'var(--cor-texto-secundario)';
                 html += `<tr>
                     <td><strong>${mes.mes}</strong></td>
-                    <td>${formatarValor(mes.valor, moeda)}</td>
-                    <td style="color:${c}">${s} ${Math.abs(v).toFixed(1)}%</td>
-                    <td>${formatarValor(acumulado, moeda)}</td>
+                    <td>${formatarValor(valorMes, 'USD')}</td>
+                    <td style="color:${c}">${s} ${Math.abs(variacao).toFixed(1)}%</td>
+                    <td>${formatarValor(acumulado, 'USD')}</td>
                 </tr>`;
             }
-            html += `</tbody></table></div></div>`;
-
-            if (mesesData.length > 0) {
-                const maxVal = Math.max(...mesesData.map(m => m.valor || 0));
+            
+            html += `</tbody>收入</div></div>`;
+            
+            // Barras de distribuição
+            if (dadosGrafico.length > 0) {
+                const maxVal = Math.max(...dadosGrafico);
                 html += `<div class="secao-categorias">
-                    <div class="secao-titulo"><i class="fas fa-chart-bar"></i> DISTRIBUIÇÃO MENSAL</div>
+                    <div class="secao-titulo"><i class="fas fa-chart-bar"></i> DISTRIBUIÇÃO MENSAL (USD)</div>
                     <div class="breakdown-moedas">`;
-                for (const mes of mesesData) {
-                    const pct = maxVal > 0 ? ((mes.valor || 0) / maxVal * 100) : 0;
+                for (let i = 0; i < mesesData.length; i++) {
+                    const mes = mesesData[i];
+                    const valor = dadosGrafico[i];
+                    const pct = maxVal > 0 ? (valor / maxVal * 100) : 0;
                     html += `<div style="margin-bottom:10px;">
                         <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
                             <span>${mes.mes}</span>
-                            <span>${formatarValor(mes.valor, moeda)} (${pct.toFixed(0)}%)</span>
+                            <span>${formatarValor(valor, 'USD')} (${pct.toFixed(0)}%)</span>
                         </div>
                         <div style="background:var(--cor-borda);border-radius:10px;overflow:hidden;">
                             <div style="width:${pct}%;background:var(--cor-admin);height:20px;border-radius:10px;"></div>
@@ -1311,15 +1418,16 @@
                 }
                 html += `</div></div>`;
             }
-
+            
             html += `<div class="export-buttons">
                 <button class="btn-export" onclick="exportarPDFAnual()"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
                 <button class="btn-export btn-export-excel" onclick="exportarExcelAnual()"><i class="fas fa-file-excel"></i> Exportar Excel</button>
             </div>`;
-
+            
             resultadosDiv.innerHTML = html;
-
-            if (mesesData.length > 0) {
+            
+            // Gráfico de linha
+            if (dadosGrafico.length > 0) {
                 const ctx = document.getElementById('graficoAnual')?.getContext('2d');
                 if (ctx) {
                     graficoAnual = new Chart(ctx, {
@@ -1328,7 +1436,7 @@
                             labels: mesesData.map(m => m.mes.substring(0, 3)),
                             datasets: [{
                                 label: tipoAnualAtual === 'receita' ? 'Receitas' : 'Despesas',
-                                data: mesesData.map(m => m.valor || 0),
+                                data: dadosGrafico,
                                 borderColor: '#1a5fb4',
                                 backgroundColor: 'rgba(26, 95, 180, 0.1)',
                                 fill: true,
@@ -1339,7 +1447,7 @@
                             responsive: true,
                             plugins: {
                                 legend: { labels: { color: '#e0e0e0' } },
-                                tooltip: { callbacks: { label: ctx => formatarValor(ctx.raw, moeda) } }
+                                tooltip: { callbacks: { label: ctx => formatarValor(ctx.raw, 'USD') } }
                             },
                             scales: {
                                 y: { grid: { color: '#1e232e' }, ticks: { color: '#e0e0e0' } },
@@ -1400,36 +1508,53 @@
         }
 
         function exibirDRE(dados, taxas) {
-            graficoDRE      = destruirGrafico(graficoDRE);
+            graficoDRE = destruirGrafico(graficoDRE);
             graficoDREDonut = destruirGrafico(graficoDREDonut);
             const resultadosDiv = document.getElementById('dreResultados');
-            const moeda = dados.moeda_padrao || 'USD';
-
-            // Se taxas fornecidas, converter totais para USD
-            let rec   = dados.total_receitas || 0;
-            let desp  = dados.total_despesas || 0;
+            const moeda = 'USD'; // Sempre exibir em USD quando usar taxas
+            
+            // 🔥 CONVERTER RECEITAS E DESPESAS
+            let receitas = dados.total_receitas || 0;
+            let despesas = dados.total_despesas || 0;
+            let receitasPorMoeda = {};
+            let despesasPorMoeda = {};
+            
             if (taxas) {
-                rec  = converterParaUSD(dados.receitas_por_moeda,  taxas);
-                desp = converterParaUSD(dados.despesas_por_moeda, taxas);
+                receitas = 0;
+                despesas = 0;
+                for (const [m, v] of Object.entries(dados.receitas_por_moeda || {})) {
+                    const convertido = converterValorParaUSD(v, m, taxas);
+                    receitas += convertido;
+                    receitasPorMoeda[m] = { original: v, convertido: convertido };
+                }
+                for (const [m, v] of Object.entries(dados.despesas_por_moeda || {})) {
+                    const convertido = converterValorParaUSD(v, m, taxas);
+                    despesas += convertido;
+                    despesasPorMoeda[m] = { original: v, convertido: convertido };
+                }
+            } else {
+                receitasPorMoeda = dados.receitas_por_moeda || {};
+                despesasPorMoeda = dados.despesas_por_moeda || {};
             }
-            const res    = rec - desp;
-            const margem = rec > 0 ? (res / rec * 100) : 0;
-            const resCls   = res >= 0 ? 'dre-positivo' : 'dre-negativo';
-            const resSinal = res >= 0 ? '+' : '';
-
+            
+            const resultado = receitas - despesas;
+            const margem = receitas > 0 ? (resultado / receitas * 100) : 0;
+            const resCls = resultado >= 0 ? 'dre-positivo' : 'dre-negativo';
+            const resSinal = resultado >= 0 ? '+' : '';
+            
             let html = `
                 <div class="cards-resumo">
                     <div class="card-resumo dre-receita">
                         <div class="titulo"><i class="fas fa-arrow-up"></i> RECEITAS</div>
-                        <div class="valor">${formatarValor(rec, moeda)}</div>
+                        <div class="valor">${formatarValor(receitas, moeda)}</div>
                     </div>
                     <div class="card-resumo dre-despesa">
                         <div class="titulo"><i class="fas fa-arrow-down"></i> DESPESAS</div>
-                        <div class="valor">${formatarValor(desp, moeda)}</div>
+                        <div class="valor">${formatarValor(despesas, moeda)}</div>
                     </div>
                     <div class="card-resumo dre-resultado">
                         <div class="titulo"><i class="fas fa-balance-scale"></i> RESULTADO</div>
-                        <div class="valor ${resCls}">${resSinal}${formatarValor(res, moeda)}</div>
+                        <div class="valor ${resCls}">${resSinal}${formatarValor(resultado, moeda)}</div>
                     </div>
                     <div class="card-resumo">
                         <div class="titulo"><i class="fas fa-percent"></i> MARGEM</div>
@@ -1437,25 +1562,49 @@
                     </div>
                 </div>
             `;
-
-            const dreLinhas     = dados.dre_linhas || [];
-            const catDesp       = Object.entries(dados.categorias_despesas || {});
-
-            // Gráficos lado a lado
+            
+            // Breakdown por moeda (se houver múltiplas moedas)
+            const temMultiMoeda = Object.keys(receitasPorMoeda).length > 1 || Object.keys(despesasPorMoeda).length > 1;
+            if (temMultiMoeda && taxas) {
+                html += `<div class="breakdown-moedas">
+                    <div class="breakdown-titulo"><i class="fas fa-coins"></i> CONVERSÃO POR MOEDA</div>
+                    <div class="moedas-grid">`;
+                
+                const todasMoedas = new Set([...Object.keys(receitasPorMoeda), ...Object.keys(despesasPorMoeda)]);
+                for (const m of todasMoedas) {
+                    const recOriginal = receitasPorMoeda[m]?.original || 0;
+                    const recConvertido = receitasPorMoeda[m]?.convertido || 0;
+                    const despOriginal = despesasPorMoeda[m]?.original || 0;
+                    const despConvertido = despesasPorMoeda[m]?.convertido || 0;
+                    html += `<div class="moeda-card">
+                        <div class="moeda-sigla">${m}</div>
+                        <div class="moeda-valor">Receitas: ${formatarValor(recOriginal, m)}</div>
+                        <div class="moeda-usd">≈ ${formatarValor(recConvertido, 'USD')}</div>
+                        <div class="moeda-valor" style="margin-top:8px;">Despesas: ${formatarValor(despOriginal, m)}</div>
+                        <div class="moeda-usd">≈ ${formatarValor(despConvertido, 'USD')}</div>
+                    </div>`;
+                }
+                html += `</div></div>`;
+            }
+            
+            // Gráficos
+            const dreLinhas = dados.dre_linhas || [];
+            const catDesp = Object.entries(dados.categorias_despesas || {});
+            
             html += `<div class="graficos-row">
                 <div class="grafico-container">
-                    <div class="grafico-titulo"><i class="fas fa-chart-bar"></i> Receitas x Despesas por Categoria</div>
+                    <div class="grafico-titulo"><i class="fas fa-chart-bar"></i> Receitas x Despesas por Categoria (USD)</div>
                     <canvas id="graficoDRE"></canvas>
                 </div>
                 <div class="grafico-container">
-                    <div class="grafico-titulo"><i class="fas fa-chart-pie"></i> Distribuição de Despesas</div>
+                    <div class="grafico-titulo"><i class="fas fa-chart-pie"></i> Distribuição de Despesas (USD)</div>
                     <canvas id="graficoDREDonut"></canvas>
                 </div>
             </div>`;
-
+            
             // Tabela DRE
             html += `<div class="secao-categorias">
-                <div class="secao-titulo"><i class="fas fa-table"></i> DEMONSTRATIVO DE RESULTADO (DRE)</div>
+                <div class="secao-titulo"><i class="fas fa-table"></i> DEMONSTRATIVO DE RESULTADO (DRE) - USD</div>
                 <div class="tabela-container">
                     <table class="tabela-transacoes">
                         <thead><tr>
@@ -1465,56 +1614,91 @@
                             <th>Resultado</th>
                         </tr></thead>
                         <tbody>`;
-
+            
             for (const linha of dreLinhas) {
-                const lRes   = linha.resultado || 0;
-                const lCls   = lRes >= 0 ? 'var(--cor-sucesso)' : 'var(--cor-perigo)';
+                let receitaLinha = linha.receita || 0;
+                let despesaLinha = linha.despesa || 0;
+                
+                if (taxas) {
+                    receitaLinha = 0;
+                    despesaLinha = 0;
+                    for (const [m, v] of Object.entries(linha.receitas_por_moeda || {})) {
+                        receitaLinha += converterValorParaUSD(v, m, taxas);
+                    }
+                    for (const [m, v] of Object.entries(linha.despesas_por_moeda || {})) {
+                        despesaLinha += converterValorParaUSD(v, m, taxas);
+                    }
+                }
+                
+                const lRes = receitaLinha - despesaLinha;
+                const lCls = lRes >= 0 ? 'var(--cor-sucesso)' : 'var(--cor-perigo)';
                 const lSinal = lRes >= 0 ? '+' : '';
                 html += `<tr>
                     <td><strong>${escapeHtml(linha.categoria)}</strong></td>
-                    <td style="color:var(--cor-sucesso)">${linha.receita > 0 ? formatarValor(linha.receita, moeda) : '-'}</td>
-                    <td style="color:var(--cor-perigo)">${linha.despesa > 0 ? formatarValor(linha.despesa, moeda) : '-'}</td>
-                    <td style="color:${lCls};font-weight:600">${lSinal}${formatarValor(lRes, moeda)}</td>
+                    <td style="color:var(--cor-sucesso)">${receitaLinha > 0 ? formatarValor(receitaLinha, moeda) : '-'}</td>
+                    <td style="color:var(--cor-perigo)">${despesaLinha > 0 ? formatarValor(despesaLinha, moeda) : '-'}</td>
+                    <td style="color:${lCls};font-weight:600">${lSinal}${formatarValor(Math.abs(lRes), moeda)}</td>
                 </tr>`;
             }
-
-            const totSinal = res >= 0 ? '+' : '';
-            const totCls   = res >= 0 ? 'var(--cor-sucesso)' : 'var(--cor-perigo)';
+            
+            const totSinal = resultado >= 0 ? '+' : '';
+            const totCls = resultado >= 0 ? 'var(--cor-sucesso)' : 'var(--cor-perigo)';
             html += `<tr class="total-geral">
                 <td><strong>TOTAL</strong></td>
-                <td style="color:var(--cor-sucesso)"><strong>${formatarValor(rec, moeda)}</strong></td>
-                <td style="color:var(--cor-perigo)"><strong>${formatarValor(desp, moeda)}</strong></td>
-                <td style="color:${totCls}"><strong>${totSinal}${formatarValor(res, moeda)}</strong></td>
+                <td style="color:var(--cor-sucesso)"><strong>${formatarValor(receitas, moeda)}</strong></td>
+                <td style="color:var(--cor-perigo)"><strong>${formatarValor(despesas, moeda)}</strong></td>
+                <td style="color:${totCls}"><strong>${totSinal}${formatarValor(Math.abs(resultado), moeda)}</strong></td>
             </tr>`;
-
-            html += `</tbody></table></div></div>`;
-
+            
+            html += `</tbody>收入</div></div>`;
+            
             html += `<div class="export-buttons">
                 <button class="btn-export" onclick="exportarPDFDRE()"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
                 <button class="btn-export btn-export-excel" onclick="exportarExcelDRE()"><i class="fas fa-file-excel"></i> Exportar Excel</button>
             </div>`;
-
+            
             resultadosDiv.innerHTML = html;
-
-            // Gráfico barras agrupadas
+            
+            // Gráfico de barras DRE
             if (dreLinhas.length > 0) {
+                const labelsDRE = dreLinhas.map(l => l.categoria);
+                let receitasDRE = [];
+                let despesasDRE = [];
+                
+                for (const linha of dreLinhas) {
+                    let rec = linha.receita || 0;
+                    let desp = linha.despesa || 0;
+                    if (taxas) {
+                        rec = 0;
+                        desp = 0;
+                        for (const [m, v] of Object.entries(linha.receitas_por_moeda || {})) {
+                            rec += converterValorParaUSD(v, m, taxas);
+                        }
+                        for (const [m, v] of Object.entries(linha.despesas_por_moeda || {})) {
+                            desp += converterValorParaUSD(v, m, taxas);
+                        }
+                    }
+                    receitasDRE.push(rec);
+                    despesasDRE.push(desp);
+                }
+                
                 const ctx = document.getElementById('graficoDRE')?.getContext('2d');
                 if (ctx) {
                     graficoDRE = new Chart(ctx, {
                         type: 'bar',
                         data: {
-                            labels: dreLinhas.map(l => l.categoria),
+                            labels: labelsDRE,
                             datasets: [
                                 {
                                     label: 'Receitas',
-                                    data: dreLinhas.map(l => l.receita || 0),
+                                    data: receitasDRE,
                                     backgroundColor: 'rgba(46, 194, 126, 0.8)',
                                     borderColor: '#2ec27e',
                                     borderWidth: 1
                                 },
                                 {
                                     label: 'Despesas',
-                                    data: dreLinhas.map(l => l.despesa || 0),
+                                    data: despesasDRE,
                                     backgroundColor: 'rgba(224, 27, 36, 0.7)',
                                     borderColor: '#e01b24',
                                     borderWidth: 1
@@ -1525,7 +1709,7 @@
                             responsive: true,
                             plugins: {
                                 legend: { labels: { color: '#e0e0e0' } },
-                                tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatarValor(ctx.raw, moeda)}` } }
+                                tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatarValor(ctx.raw, 'USD')}` } }
                             },
                             scales: {
                                 y: { grid: { color: '#1e232e' }, ticks: { color: '#e0e0e0' } },
@@ -1535,17 +1719,31 @@
                     });
                 }
             }
-
+            
             // Gráfico donut de despesas
             if (catDesp.length > 0) {
+                let dadosDonut = [];
+                let labelsDonut = [];
+                
+                for (const [cat, valor] of catDesp) {
+                    let valorConvertido = valor;
+                    if (taxas && dados.despesas_por_moeda) {
+                        // Se tiver taxas, o valor já pode vir em moeda mista, precisamos converter
+                        // Idealmente a API já retorna valores por moeda, mas como fallback:
+                        valorConvertido = valor; // manter como está se não tiver detalhamento
+                    }
+                    dadosDonut.push(valorConvertido);
+                    labelsDonut.push(cat);
+                }
+                
                 const ctx2 = document.getElementById('graficoDREDonut')?.getContext('2d');
                 if (ctx2) {
                     graficoDREDonut = new Chart(ctx2, {
                         type: 'doughnut',
                         data: {
-                            labels: catDesp.map(([c]) => c),
+                            labels: labelsDonut,
                             datasets: [{
-                                data: catDesp.map(([, v]) => v),
+                                data: dadosDonut,
                                 backgroundColor: PALETA.map((c, i) => i === 0 ? 'rgba(224,27,36,0.8)' : PALETA[i]),
                                 borderWidth: 2,
                                 borderColor: '#0d1117'
@@ -1555,7 +1753,7 @@
                             responsive: true,
                             plugins: {
                                 legend: { position: 'right', labels: { color: '#e0e0e0', font: { size: 12 } } },
-                                tooltip: { callbacks: { label: ctx => `${ctx.label}: ${formatarValor(ctx.raw, moeda)}` } }
+                                tooltip: { callbacks: { label: ctx => `${ctx.label}: ${formatarValor(ctx.raw, 'USD')}` } }
                             }
                         }
                     });
