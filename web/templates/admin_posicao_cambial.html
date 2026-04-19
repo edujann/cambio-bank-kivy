@@ -248,6 +248,7 @@
                         <option value="">Selecione…</option>
                         <option value="USD">USD — Dólar Americano</option>
                         <option value="EUR">EUR — Euro</option>
+                        <option value="GBP">GBP — Libra Esterlina</option>
                     </select>
                 </div>
             </div>
@@ -258,32 +259,32 @@
                     <input id="vValor" type="number" step="0.01" class="form-control" placeholder="Ex: 2100" oninput="calcPreviewVenda()">
                 </div>
                 <div class="form-group">
-                    <label>Taxa BRL por <span id="vMoedaLabel">unidade</span> *</label>
-                    <input id="vTaxaBRL" type="number" step="0.0001" class="form-control" placeholder="Ex: 5.80" oninput="calcPreviewVenda()">
+                    <label><span id="vLabelTaxaRec">Taxa recebida por unidade vendida</span> *</label>
+                    <input id="vTaxaRec" type="number" step="0.0001" class="form-control" placeholder="Ex: 5.80" oninput="calcPreviewVenda()">
                 </div>
             </div>
 
-            <div class="form-grid">
+            <div class="form-grid gbp-rate-row" id="vRowGBP">
                 <div class="form-group">
-                    <label>Taxa GBP por <span id="vMoedaLabel2">unidade</span> (para P&L) *</label>
-                    <input id="vTaxaGBP" type="number" step="0.000001" class="form-control" placeholder="Ex: 0.7900" oninput="calcPreviewVenda()">
-                    <small style="color:var(--cor-texto-secundario);font-size:11px;margin-top:4px;display:block">Cotação GBP/moeda atual — define o P&L realizado no pool</small>
+                    <label><span id="vLabelGBPRec">Taxa GBP por moeda recebida</span> <small style="color:var(--cor-texto-secundario)">(para P&L em GBP)</small></label>
+                    <input id="vTaxaGBPRec" type="number" step="0.000001" class="form-control" placeholder="Ex: 0.7900" oninput="calcPreviewVenda()">
+                    <small style="color:var(--cor-texto-secundario);font-size:11px;margin-top:4px;display:block">Se preenchido: lança Ganhos/Perdas Cambiais no DRE automaticamente</small>
                 </div>
                 <div class="form-group">
-                    <label>Conta Empresa a Debitar *</label>
-                    <select id="vContaEmpresa" class="form-control"><option value="">Selecione a moeda primeiro…</option></select>
+                    <label>Conta Empresa a Debitar <small style="color:var(--cor-texto-secundario)">(opcional — pool)</small></label>
+                    <select id="vContaEmpresa" class="form-control"><option value="">Sem débito no pool (posicionamento)</option></select>
                 </div>
             </div>
 
             <div class="form-section-title" style="margin-top:16px"><i class="fas fa-user-tie"></i> Contas do Parceiro</div>
             <div class="form-grid">
                 <div class="form-group">
-                    <label>Conta BRL (debitar parceiro) *</label>
-                    <select id="vContaParcBRL" class="form-control"><option value="">Selecione o parceiro primeiro…</option></select>
+                    <label>Conta Origem — <span id="vLabelOrigem">moeda recebida</span> (debitar parceiro) *</label>
+                    <select id="vContaParcOrigem" class="form-control" onchange="onContaOrigemChange()"><option value="">Selecione o parceiro primeiro…</option></select>
                 </div>
                 <div class="form-group">
-                    <label>Conta <span id="vMoedaLabel3">moeda</span> (creditar parceiro) *</label>
-                    <select id="vContaParcMoeda" class="form-control"><option value="">Selecione o parceiro primeiro…</option></select>
+                    <label>Conta Destino — <span id="vLabelDestino">moeda vendida</span> (creditar parceiro) *</label>
+                    <select id="vContaParcDestino" class="form-control"><option value="">Selecione o parceiro primeiro…</option></select>
                 </div>
             </div>
 
@@ -299,9 +300,9 @@
             </div>
 
             <div class="preview-box" id="vPreviewBox" style="display:none">
-                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Parceiro recebe:</span><span id="vPvMoeda" style="font-weight:700;color:#1a5fb4;font-size:16px"></span></div>
-                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Parceiro paga (BRL debitado):</span><span id="vPvBRL" style="font-weight:700;color:#e01b24;font-size:16px"></span></div>
-                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Custo GBP do pool:</span><span id="vPvCustoGBP" class="mono"></span></div>
+                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Parceiro recebe (crédito):</span><span id="vPvVend" style="font-weight:700;color:#2ec27e;font-size:16px"></span></div>
+                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Parceiro paga (débito):</span><span id="vPvRec" style="font-weight:700;color:#e01b24;font-size:16px"></span></div>
+                <div class="preview-row" id="vPvPLRow" style="display:none"><span style="color:var(--cor-texto-secundario)">P&L estimado (GBP):</span><span id="vPvPL" class="mono"></span></div>
             </div>
 
             <button class="btn-primary" id="btnVender" onclick="registrarVenda()">
@@ -676,15 +677,15 @@
 
     async function onParceiroVendaChange() {
         const parceiro = document.getElementById('vParceiro').value;
-        const selBRL   = document.getElementById('vContaParcBRL');
-        const selMoeda = document.getElementById('vContaParcMoeda');
+        const selOrig  = document.getElementById('vContaParcOrigem');
+        const selDest  = document.getElementById('vContaParcDestino');
         if (!parceiro) {
-            selBRL.innerHTML   = '<option value="">Selecione o parceiro primeiro…</option>';
-            selMoeda.innerHTML = '<option value="">Selecione o parceiro primeiro…</option>';
+            selOrig.innerHTML = '<option value="">Selecione o parceiro primeiro…</option>';
+            selDest.innerHTML = '<option value="">Selecione o parceiro primeiro…</option>';
             return;
         }
-        selBRL.innerHTML   = '<option value="">Carregando…</option>';
-        selMoeda.innerHTML = '<option value="">Carregando…</option>';
+        selOrig.innerHTML = '<option value="">Carregando…</option>';
+        selDest.innerHTML = '<option value="">Carregando…</option>';
         const r = await fetch(`/api/admin/fx/cliente-contas?username=${encodeURIComponent(parceiro)}`);
         const d = await r.json();
         parceiroContasCache[parceiro] = d.contas || [];
@@ -694,62 +695,94 @@
     function onMoedaVendaChange() {
         const moeda    = document.getElementById('vMoeda').value;
         const parceiro = document.getElementById('vParceiro').value;
-        ['vMoedaLabel','vMoedaLabel2','vMoedaLabel3'].forEach(id => {
-            if (moeda) document.getElementById(id).textContent = moeda;
-        });
+        const contas   = parceiroContasCache[parceiro] || [];
 
-        const contas      = parceiroContasCache[parceiro] || [];
-        const contasBRL   = contas.filter(c => c.moeda === 'BRL');
-        const contasMoeda = moeda ? contas.filter(c => c.moeda === moeda) : [];
+        const contasDest = moeda ? contas.filter(c => c.moeda === moeda) : [];
+        const contasOrig = moeda ? contas.filter(c => c.moeda !== moeda) : contas;
 
-        const selBRL   = document.getElementById('vContaParcBRL');
-        const selMoeda = document.getElementById('vContaParcMoeda');
-        selBRL.innerHTML   = '<option value="">Conta BRL do parceiro…</option>' +
-            contasBRL.map(c => `<option value="${c.id}">${c.id} (BRL) saldo: ${fmtNum(c.saldo)}</option>`).join('');
-        selMoeda.innerHTML = `<option value="">Conta ${moeda||'moeda'} do parceiro…</option>` +
-            contasMoeda.map(c => `<option value="${c.id}">${c.id} (${c.moeda}) saldo: ${fmtNum(c.saldo)}</option>`).join('');
+        document.getElementById('vLabelDestino').textContent = moeda || 'moeda vendida';
+
+        const selOrig = document.getElementById('vContaParcOrigem');
+        const selDest = document.getElementById('vContaParcDestino');
+        selOrig.innerHTML = '<option value="">Conta origem do parceiro…</option>' +
+            contasOrig.map(c => `<option value="${c.id}" data-moeda="${c.moeda}">${c.id} (${c.moeda}) saldo: ${fmtNum(c.saldo)}</option>`).join('');
+        selDest.innerHTML = `<option value="">Conta ${moeda||'moeda'} do parceiro…</option>` +
+            contasDest.map(c => `<option value="${c.id}">${c.id} (${c.moeda}) saldo: ${fmtNum(c.saldo)}</option>`).join('');
 
         const selEmp = document.getElementById('vContaEmpresa');
         const filtradas = moeda ? contasEmpresa.filter(c => c.moeda === moeda) : contasEmpresa;
-        selEmp.innerHTML = '<option value="">Conta empresa a debitar…</option>' +
+        selEmp.innerHTML = '<option value="">Sem débito no pool (posicionamento)</option>' +
             filtradas.map(c => `<option value="${c.numero}">${c.numero} — ${c.banco||''} (${c.moeda}) saldo: ${fmtNum(c.saldo)}</option>`).join('');
+
+        onContaOrigemChange();
+    }
+
+    function onContaOrigemChange() {
+        const selOrig  = document.getElementById('vContaParcOrigem');
+        const opt      = selOrig.options[selOrig.selectedIndex];
+        const moedaRec = opt && opt.dataset.moeda ? opt.dataset.moeda : '';
+        const moedaVend = document.getElementById('vMoeda').value;
+
+        document.getElementById('vLabelOrigem').textContent = moedaRec || 'moeda recebida';
+        if (moedaRec) {
+            document.getElementById('vLabelTaxaRec').textContent = `Taxa ${moedaRec} por ${moedaVend || 'unidade vendida'}`;
+            document.getElementById('vLabelGBPRec').textContent  = `Taxa GBP por ${moedaRec}`;
+        }
+
+        const rowGBP = document.getElementById('vRowGBP');
+        if (moedaRec && moedaRec !== 'GBP') {
+            rowGBP.classList.add('visible');
+        } else {
+            rowGBP.classList.remove('visible');
+            document.getElementById('vTaxaGBPRec').value = '';
+        }
 
         calcPreviewVenda();
     }
 
     function calcPreviewVenda() {
-        const valor   = parseFloat(document.getElementById('vValor').value) || 0;
-        const taxaBRL = parseFloat(document.getElementById('vTaxaBRL').value) || 0;
-        const taxaGBP = parseFloat(document.getElementById('vTaxaGBP').value) || 0;
-        const moeda   = document.getElementById('vMoeda').value;
-        const box     = document.getElementById('vPreviewBox');
-        if (!valor || !taxaBRL || !moeda) { box.style.display = 'none'; return; }
+        const valor     = parseFloat(document.getElementById('vValor').value) || 0;
+        const taxaRec   = parseFloat(document.getElementById('vTaxaRec').value) || 0;
+        const taxaGBP   = parseFloat(document.getElementById('vTaxaGBPRec').value) || 0;
+        const moedaVend = document.getElementById('vMoeda').value;
+        const selOrig   = document.getElementById('vContaParcOrigem');
+        const opt       = selOrig.options[selOrig.selectedIndex];
+        const moedaRec  = opt && opt.dataset.moeda ? opt.dataset.moeda : '';
+        const box       = document.getElementById('vPreviewBox');
+        if (!valor || !taxaRec || !moedaVend) { box.style.display = 'none'; return; }
         box.style.display = 'block';
-        document.getElementById('vPvMoeda').textContent = `${fmtNum(valor,2)} ${moeda}`;
-        document.getElementById('vPvBRL').textContent   = `R$ ${fmtNum(valor * taxaBRL, 2)} BRL`;
-        document.getElementById('vPvCustoGBP').textContent = taxaGBP > 0
-            ? `£${fmtNum(valor * taxaGBP, 2)} (${taxaGBP.toFixed(6)} GBP/${moeda})`
-            : '— informe a taxa GBP acima';
+        const valorRec = valor * taxaRec;
+        document.getElementById('vPvVend').textContent = `${fmtNum(valor, 2)} ${moedaVend}`;
+        document.getElementById('vPvRec').textContent  = `${fmtNum(valorRec, 2)} ${moedaRec || '?'}`;
+        const plRow = document.getElementById('vPvPLRow');
+        if (moedaRec === 'GBP') {
+            plRow.style.display = 'flex';
+            document.getElementById('vPvPL').textContent = `£${fmtNum(valorRec, 4)} receita bruta (P&L depende do WAC)`;
+        } else if (taxaGBP > 0 && moedaRec) {
+            plRow.style.display = 'flex';
+            document.getElementById('vPvPL').textContent = `£${fmtNum(valorRec * taxaGBP, 4)} receita bruta (P&L depende do WAC)`;
+        } else {
+            plRow.style.display = 'none';
+        }
     }
 
     async function registrarVenda() {
         const msg = document.getElementById('vendaMsg');
         const btn = document.getElementById('btnVender');
         const payload = {
-            parceiro:              document.getElementById('vParceiro').value,
-            moeda_vendida:         document.getElementById('vMoeda').value,
-            valor_vendido:         parseFloat(document.getElementById('vValor').value) || 0,
-            taxa_brl_unit:         parseFloat(document.getElementById('vTaxaBRL').value) || 0,
-            taxa_gbp_unit:         parseFloat(document.getElementById('vTaxaGBP').value) || 0,
-            conta_empresa:         document.getElementById('vContaEmpresa').value,
-            conta_parceiro_brl:    document.getElementById('vContaParcBRL').value,
-            conta_parceiro_moeda:  document.getElementById('vContaParcMoeda').value,
-            ordem_captacao_id:     document.getElementById('vOrdemId').value.trim() || null,
-            observacoes:           document.getElementById('vObs').value.trim(),
+            parceiro:               document.getElementById('vParceiro').value,
+            moeda_vendida:          document.getElementById('vMoeda').value,
+            valor_vendido:          parseFloat(document.getElementById('vValor').value) || 0,
+            taxa_recebida_unit:     parseFloat(document.getElementById('vTaxaRec').value) || 0,
+            taxa_gbp_recebida:      parseFloat(document.getElementById('vTaxaGBPRec').value) || 0,
+            conta_empresa:          document.getElementById('vContaEmpresa').value,
+            conta_parceiro_origem:  document.getElementById('vContaParcOrigem').value,
+            conta_parceiro_destino: document.getElementById('vContaParcDestino').value,
+            ordem_captacao_id:      document.getElementById('vOrdemId').value.trim() || null,
+            observacoes:            document.getElementById('vObs').value.trim(),
         };
         if (!payload.parceiro || !payload.moeda_vendida || !payload.valor_vendido ||
-            !payload.taxa_brl_unit || !payload.taxa_gbp_unit ||
-            !payload.conta_empresa || !payload.conta_parceiro_brl || !payload.conta_parceiro_moeda) {
+            !payload.taxa_recebida_unit || !payload.conta_parceiro_origem || !payload.conta_parceiro_destino) {
             msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Preencha todos os campos obrigatórios.</span>';
             return;
         }
@@ -764,7 +797,7 @@
             const d = await res.json();
             if (d.success) {
                 msg.innerHTML = `<span style="color:var(--cor-sucesso)"><i class="fas fa-check-circle"></i> ${d.message}</span>`;
-                ['vValor','vTaxaBRL','vTaxaGBP','vOrdemId','vObs'].forEach(id => document.getElementById(id).value = '');
+                ['vValor','vTaxaRec','vTaxaGBPRec','vOrdemId','vObs'].forEach(id => document.getElementById(id).value = '');
                 document.getElementById('vPreviewBox').style.display = 'none';
             } else {
                 msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> ${d.message}</span>`;

@@ -14810,7 +14810,11 @@ def fx_cliente_contas():
 @app.route('/api/admin/fx/venda', methods=['POST'])
 def fx_registrar_venda():
     """Registra venda de moeda do pool para parceiro atacado.
-    Faz o câmbio completo nas contas do parceiro (igual admin_gerenciar_contas)."""
+    P&L universal: converte o valor recebido (qualquer moeda) para GBP usando taxa_gbp_recebida.
+    Campos opcionais:
+    - conta_empresa: se omitido, não debita pool (posicionamento puro)
+    - taxa_gbp_recebida: se omitido, não registra P&L contábil
+    """
     try:
         from datetime import datetime
         import random
@@ -14820,91 +14824,102 @@ def fx_registrar_venda():
             return jsonify({'success': False, 'message': 'Não autenticado'}), 401
 
         d = request.get_json()
-        parceiro         = d.get('parceiro', '').strip()
-        moeda            = d.get('moeda_vendida', '').upper()
-        valor            = float(d.get('valor_vendido', 0))
-        taxa_brl         = float(d.get('taxa_brl_unit', 0))
-        taxa_gbp         = float(d.get('taxa_gbp_unit', 0))
-        conta_empresa    = d.get('conta_empresa', '')
-        conta_parc_brl   = d.get('conta_parceiro_brl', '')
-        conta_parc_moeda = d.get('conta_parceiro_moeda', '')
-        ordem_id         = d.get('ordem_captacao_id', '') or ''
-        obs              = d.get('observacoes', '')
+        parceiro          = d.get('parceiro', '').strip()
+        moeda_vendida     = d.get('moeda_vendida', '').upper()
+        valor_vendido     = float(d.get('valor_vendido', 0))
+        taxa_recebida     = float(d.get('taxa_recebida_unit', 0))   # moeda_recebida por moeda_vendida
+        taxa_gbp_rec      = float(d.get('taxa_gbp_recebida') or 0)  # GBP por moeda_recebida (opcional)
+        conta_empresa     = d.get('conta_empresa', '').strip()
+        conta_parc_orig   = d.get('conta_parceiro_origem', '')      # conta debitada do parceiro
+        conta_parc_dest   = d.get('conta_parceiro_destino', '')     # conta creditada do parceiro
+        ordem_id          = d.get('ordem_captacao_id', '') or ''
+        obs               = d.get('observacoes', '')
 
-        if not all([parceiro, moeda, valor > 0, taxa_brl > 0, taxa_gbp > 0,
-                    conta_empresa, conta_parc_brl, conta_parc_moeda]):
+        if not all([parceiro, moeda_vendida, valor_vendido > 0, taxa_recebida > 0,
+                    conta_parc_orig, conta_parc_dest]):
             return jsonify({'success': False, 'message': 'Campos obrigatórios faltando'}), 400
 
-        valor_brl = round(valor * taxa_brl, 4)
-
         # WAC atual do pool
-        compras = supabase.table('pool_compras').select('moeda_comprada, valor_comprado, taxa_em_gbp').execute()
+        compras  = supabase.table('pool_compras').select('moeda_comprada, valor_comprado, taxa_em_gbp').execute()
         wac_dict, _ = _fx_wac(compras.data)
-        wac_gbp = wac_dict.get(moeda, 0)
-        pl_gbp  = round((taxa_gbp - wac_gbp) * valor, 4)
+        wac_gbp  = wac_dict.get(moeda_vendida, 0)
 
-        # 1. Debitar conta empresa (pool)
-        r_emp = supabase.table('contas_bancarias_empresa').select('saldo').eq('numero', conta_empresa).single().execute()
-        if not r_emp.data:
-            return jsonify({'success': False, 'message': f'Conta empresa {conta_empresa} não encontrada'}), 404
-        supabase.table('contas_bancarias_empresa').update(
-            {'saldo': float(r_emp.data['saldo'] or 0) - valor}
-        ).eq('numero', conta_empresa).execute()
-
-        # 2. Câmbio nas contas do parceiro (igual api_admin_gerenciar_cambio)
-        r_brl   = supabase.table('contas').select('saldo, moeda').eq('id', conta_parc_brl).single().execute()
-        r_moeda = supabase.table('contas').select('saldo, moeda').eq('id', conta_parc_moeda).single().execute()
-        if not r_brl.data or not r_moeda.data:
+        # Buscar contas do parceiro (detecta moeda_recebida automaticamente)
+        r_orig = supabase.table('contas').select('saldo, moeda').eq('id', conta_parc_orig).single().execute()
+        r_dest = supabase.table('contas').select('saldo, moeda').eq('id', conta_parc_dest).single().execute()
+        if not r_orig.data or not r_dest.data:
             return jsonify({'success': False, 'message': 'Conta do parceiro não encontrada'}), 404
 
-        supabase.table('contas').update({'saldo': float(r_brl.data['saldo'] or 0) - valor_brl}).eq('id', conta_parc_brl).execute()
-        supabase.table('contas').update({'saldo': float(r_moeda.data['saldo'] or 0) + valor}).eq('id', conta_parc_moeda).execute()
+        moeda_recebida = r_orig.data['moeda']
+        valor_recebido = round(valor_vendido * taxa_recebida, 4)
 
-        # 3. Registrar transferencias (extrato do parceiro)
+        # P&L universal — converte receita para GBP independente da moeda recebida
+        if moeda_recebida == 'GBP':
+            taxa_gbp_rec = 1.0
+        if taxa_gbp_rec > 0:
+            receita_gbp = valor_recebido * taxa_gbp_rec
+            pl_gbp = round(receita_gbp - (valor_vendido * wac_gbp), 4)
+        else:
+            pl_gbp = 0
+
+        # 1. Debitar conta empresa (pool) — opcional
+        if conta_empresa:
+            r_emp = supabase.table('contas_bancarias_empresa').select('saldo').eq('numero', conta_empresa).single().execute()
+            if not r_emp.data:
+                return jsonify({'success': False, 'message': f'Conta empresa {conta_empresa} não encontrada'}), 404
+            supabase.table('contas_bancarias_empresa').update(
+                {'saldo': float(r_emp.data['saldo'] or 0) - valor_vendido}
+            ).eq('numero', conta_empresa).execute()
+
+        # 2. Câmbio nas contas do parceiro
+        supabase.table('contas').update({'saldo': float(r_orig.data['saldo'] or 0) - valor_recebido}).eq('id', conta_parc_orig).execute()
+        supabase.table('contas').update({'saldo': float(r_dest.data['saldo'] or 0) + valor_vendido}).eq('id', conta_parc_dest).execute()
+
+        # 3. Registrar transferencias (extrato do parceiro — igual admin_gerenciar_contas)
         tid = str(random.randint(100000, 999999))
         while supabase.table('transferencias').select('id').eq('id', tid).execute().data:
             tid = str(random.randint(100000, 999999))
 
-        moeda_brl_str = r_brl.data['moeda']
-        descricao = f"CÂMBIO POOL — {moeda_brl_str} → {moeda} | Captação varejo"
-        if ordem_id:
-            descricao += f" | Ordem {ordem_id}"
-        if obs:
-            descricao += f" | {obs}"
+        descricao = f"CÂMBIO POOL — {moeda_recebida} → {moeda_vendida}"
+        if obs:      descricao += f" | {obs}"
+        if ordem_id: descricao += f" | Ordem {ordem_id}"
 
         supabase.table('transferencias').insert({
             'id': tid,
             'tipo': 'cambio',
             'status': 'completed',
             'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            'moeda': moeda_brl_str,
-            'valor': valor_brl,
-            'conta_remetente': conta_parc_brl,
-            'conta_destinatario': conta_parc_moeda,
+            'moeda': moeda_recebida,
+            'valor': valor_recebido,
+            'conta_remetente': conta_parc_orig,
+            'conta_destinatario': conta_parc_dest,
             'descricao': descricao,
             'executado_por': usuario,
             'cliente': parceiro,
             'usuario': usuario,
             'operacao': 'cambio_admin',
-            'par_moedas': f'{moeda_brl_str}_{moeda}',
-            'valor_origem': valor_brl,
-            'valor_destino': valor,
-            'cotacao': f'{taxa_brl:.6f}',
-            'moeda_origem': moeda_brl_str,
-            'moeda_destino': moeda,
+            'par_moedas': f'{moeda_recebida}_{moeda_vendida}',
+            'valor_origem': valor_recebido,
+            'valor_destino': valor_vendido,
+            'cotacao': f'{taxa_recebida:.6f}',
+            'moeda_origem': moeda_recebida,
+            'moeda_destino': moeda_vendida,
             'tipo_taxa_usada': 'principal',
-            'taxa_principal_registro': f'{taxa_brl:.6f}',
+            'taxa_principal_registro': f'{taxa_recebida:.6f}',
             'created_at': datetime.now().isoformat(),
         }).execute()
 
         # 4. Registrar pool_vendas
         pool_venda = {
             'data': datetime.now().isoformat(),
-            'moeda': moeda,
-            'valor_vendido': valor,
+            'moeda': moeda_vendida,
+            'valor_vendido': valor_vendido,
+            'valor_recebido': valor_recebido,
+            'moeda_recebida': moeda_recebida,
             'parceiro': parceiro,
-            'taxa_brl_unit': taxa_brl,
-            'taxa_gbp_unit': taxa_gbp,
+            'taxa_brl_unit': taxa_recebida,        # compatibilidade
+            'taxa_gbp_unit': taxa_gbp_rec,          # compatibilidade
+            'taxa_gbp_recebida': taxa_gbp_rec,
             'wac_gbp': wac_gbp,
             'pl_realizado_gbp': pl_gbp,
             'conta_empresa': conta_empresa,
@@ -14925,10 +14940,61 @@ def fx_registrar_venda():
                 pass
         supabase.table('pool_vendas').insert(pool_venda).execute()
 
+        # 5. Lançamento contábil P&L — só quando taxa_gbp_recebida informada
+        if taxa_gbp_rec > 0 and pl_gbp != 0:
+            pl_abs = abs(pl_gbp)
+            pl_tid = str(random.randint(100000, 999999))
+            while supabase.table('transferencias').select('id').eq('id', pl_tid).execute().data:
+                pl_tid = str(random.randint(100000, 999999))
+
+            desc_pl = (f'P&L FX Pool — Venda {valor_vendido} {moeda_vendida} → '
+                       f'{valor_recebido} {moeda_recebida} | '
+                       f'WAC {wac_gbp:.6f} GBP/{moeda_vendida} | '
+                       f'GBP/{moeda_recebida}={taxa_gbp_rec:.6f} | Parceiro {parceiro}')
+
+            if pl_gbp > 0:
+                supabase.table('transferencias').insert({
+                    'id': pl_tid, 'tipo': 'receita', 'status': 'completed',
+                    'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'moeda': 'GBP', 'valor': pl_abs,
+                    'conta_remetente': conta_empresa or 'POOL_FX',
+                    'conta_destinatario': 'Ganhos Cambiais',
+                    'categoria_receita': 'RECEITAS FINANCEIRAS',
+                    'descricao_receita': desc_pl,
+                    'executado_por': usuario, 'usuario': usuario,
+                    'created_at': datetime.now().isoformat(),
+                }).execute()
+                r_cc = supabase.table('contas_contabeis').select('id, saldo').eq('nome', 'Ganhos Cambiais').eq('moeda', 'GBP').single().execute()
+                if r_cc.data:
+                    supabase.table('contas_contabeis').update({
+                        'saldo': float(r_cc.data['saldo'] or 0) + pl_abs,
+                        'updated_at': datetime.now().isoformat()
+                    }).eq('id', r_cc.data['id']).execute()
+            else:
+                supabase.table('transferencias').insert({
+                    'id': pl_tid, 'tipo': 'despesa', 'status': 'completed',
+                    'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'moeda': 'GBP', 'valor': pl_abs,
+                    'conta_remetente': conta_empresa or 'POOL_FX',
+                    'conta_destinatario': 'DESPESA_DESPESAS FINANCEIRAS_Perdas Cambiais',
+                    'categoria_despesa': 'DESPESAS FINANCEIRAS',
+                    'descricao_despesa': desc_pl,
+                    'executado_por': usuario, 'usuario': usuario,
+                    'created_at': datetime.now().isoformat(),
+                }).execute()
+                r_cc = supabase.table('contas_contabeis').select('id, saldo').eq('nome', 'Perdas Cambiais').eq('moeda', 'GBP').single().execute()
+                if r_cc.data:
+                    supabase.table('contas_contabeis').update({
+                        'saldo': float(r_cc.data['saldo'] or 0) + pl_abs,
+                        'updated_at': datetime.now().isoformat()
+                    }).eq('id', r_cc.data['id']).execute()
+
+        pl_msg = f' | P&L £{pl_gbp:.2f}' if taxa_gbp_rec > 0 else ' | P&L pendente (informe taxa GBP para registrar)'
         return jsonify({
             'success': True,
-            'message': f'Venda registrada: {valor} {moeda} → R$ {valor_brl:.2f} BRL | P&L £{pl_gbp:.2f}',
+            'message': f'Venda: {valor_vendido} {moeda_vendida} → {valor_recebido} {moeda_recebida}{pl_msg}',
             'transacao_id': tid,
+            'moeda_recebida': moeda_recebida,
             'pl_gbp': pl_gbp,
             'wac_gbp': wac_gbp,
         })
