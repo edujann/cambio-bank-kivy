@@ -10851,6 +10851,307 @@ def buscar_transacao_por_id():
 # ============================================
 # FUNÇÃO PRINCIPAL DE ESTORNO
 # ============================================
+# MÓDULO CAPTAÇÃO — LOJA
+# ============================================
+
+def _check_loja_acesso():
+    usuario = session.get('username')
+    if not usuario:
+        return None, None, redirect('/login')
+    tipo = session.get('tipo', 'cliente')
+    if tipo not in ['loja', 'admin']:
+        return None, None, redirect('/login')
+    return usuario, tipo, None
+
+
+@app.route('/loja/dashboard')
+def loja_dashboard():
+    usuario, tipo, redir = _check_loja_acesso()
+    if redir:
+        return redir
+    loja = session.get('loja', usuario)
+    return render_template('loja_dashboard.html', usuario=usuario, tipo=tipo, loja=loja)
+
+
+@app.route('/api/loja/contas-empresa', methods=['GET'])
+def loja_contas_empresa():
+    usuario, tipo, redir = _check_loja_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('contas_bancarias_empresa').select('numero, banco, moeda, saldo').order('moeda').execute()
+        return jsonify({'success': True, 'contas': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/loja/parceiros', methods=['GET'])
+def loja_parceiros():
+    usuario, tipo, redir = _check_loja_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('usuarios').select('username, nome').eq('tipo', 'cliente').order('nome').execute()
+        return jsonify({'success': True, 'parceiros': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/loja/clientes/buscar', methods=['GET'])
+def loja_buscar_cliente():
+    usuario, tipo, redir = _check_loja_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        q = request.args.get('q', '').strip()
+        if not q:
+            return jsonify({'success': True, 'clientes': []})
+        r = supabase.table('clientes_varejo')\
+            .select('id, nome, documento, telefone, email')\
+            .or_(f'nome.ilike.%{q}%,documento.ilike.%{q}%,telefone.ilike.%{q}%')\
+            .limit(10).execute()
+        return jsonify({'success': True, 'clientes': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/loja/nova-ordem', methods=['POST'])
+def loja_nova_ordem():
+    usuario, tipo, redir = _check_loja_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        from datetime import datetime
+        d = request.get_json()
+
+        forma        = d.get('forma_pagamento', '')
+        moeda_e      = d.get('moeda_entrada', '').upper()
+        valor_e      = float(d.get('valor_entrada', 0))
+        taxa         = float(d.get('taxa_cobrada', 0))
+        moeda_s      = d.get('moeda_saida', 'BRL').upper()
+        conta_emp    = d.get('conta_empresa', '')
+        loja         = d.get('loja', usuario)
+
+        if not all([forma, moeda_e, valor_e, taxa, conta_emp]):
+            return jsonify({'success': False, 'message': 'Campos obrigatórios faltando'}), 400
+
+        valor_s = round(valor_e * taxa, 4)
+        status  = 'on_hold' if forma == 'transferencia' else 'liberada'
+
+        # Salvar ou criar cliente
+        cliente_id   = d.get('cliente_id')
+        cliente_nome = d.get('cliente_nome', '').strip()
+        cliente_doc  = d.get('cliente_doc', '').strip()
+        cliente_tel  = d.get('cliente_telefone', '').strip()
+
+        if not cliente_id and cliente_nome:
+            ins = supabase.table('clientes_varejo').insert({
+                'nome': cliente_nome, 'documento': cliente_doc,
+                'telefone': cliente_tel, 'criado_por': usuario
+            }).execute()
+            if ins.data:
+                cliente_id = str(ins.data[0]['id'])
+
+        ordem = {
+            'data': datetime.now().isoformat(),
+            'status': status,
+            'cliente_id': cliente_id,
+            'cliente_nome': cliente_nome,
+            'cliente_doc': cliente_doc,
+            'cliente_telefone': cliente_tel,
+            'loja': loja,
+            'forma_pagamento': forma,
+            'moeda_entrada': moeda_e,
+            'valor_entrada': valor_e,
+            'conta_empresa': conta_emp,
+            'taxa_cobrada': taxa,
+            'moeda_saida': moeda_s,
+            'valor_saida': valor_s,
+            'beneficiario_nome': d.get('beneficiario_nome', ''),
+            'beneficiario_banco': d.get('beneficiario_banco', ''),
+            'beneficiario_agencia': d.get('beneficiario_agencia', ''),
+            'beneficiario_conta': d.get('beneficiario_conta', ''),
+            'beneficiario_cpf': d.get('beneficiario_cpf', ''),
+            'beneficiario_pix': d.get('beneficiario_pix', ''),
+            'criado_por': usuario,
+            'observacoes': d.get('observacoes', ''),
+        }
+        ins_ordem = supabase.table('ordens_captacao').insert(ordem).execute()
+        ordem_id  = str(ins_ordem.data[0]['id']) if ins_ordem.data else None
+
+        # Cash/cartão: creditar conta empresa imediatamente
+        if status == 'liberada' and conta_emp:
+            r_ct = supabase.table('contas_bancarias_empresa').select('saldo').eq('numero', conta_emp).single().execute()
+            if r_ct.data:
+                novo = float(r_ct.data['saldo'] or 0) + valor_e
+                supabase.table('contas_bancarias_empresa').update({'saldo': novo}).eq('numero', conta_emp).execute()
+                import random
+                supabase.table('transferencias').insert({
+                    'id': f"{random.randint(100000,999999)}_cap",
+                    'tipo': 'deposito', 'status': 'completed',
+                    'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'moeda': moeda_e, 'valor': valor_e,
+                    'conta_destinatario': conta_emp,
+                    'descricao': f"Captação loja - {cliente_nome} - Ordem {ordem_id}",
+                    'executado_por': usuario,
+                    'created_at': datetime.now().isoformat()
+                }).execute()
+
+        return jsonify({'success': True, 'message': f'Ordem criada — {valor_e} {moeda_e} → {valor_s} {moeda_s}',
+                        'ordem_id': ordem_id, 'status': status, 'valor_saida': valor_s})
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/loja/ordens', methods=['GET'])
+def loja_listar_ordens():
+    usuario, tipo, redir = _check_loja_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        status_f = request.args.get('status', '')
+        loja_f   = request.args.get('loja', '')
+        q = supabase.table('ordens_captacao').select('*').order('data', desc=True).limit(200)
+        if status_f:
+            q = q.eq('status', status_f)
+        if tipo == 'loja' and not loja_f:
+            q = q.eq('loja', usuario)
+        elif loja_f:
+            q = q.eq('loja', loja_f)
+        r = q.execute()
+        return jsonify({'success': True, 'ordens': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/loja/ordens/<ordem_id>/liberar', methods=['POST'])
+def loja_liberar_ordem(ordem_id):
+    usuario, tipo, redir = _check_loja_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        from datetime import datetime
+        r = supabase.table('ordens_captacao').select('*').eq('id', ordem_id).single().execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'Ordem não encontrada'}), 404
+        o = r.data
+        if o['status'] != 'on_hold':
+            return jsonify({'success': False, 'message': 'Ordem não está on_hold'}), 400
+
+        conta_emp = o.get('conta_empresa')
+        valor_e   = float(o.get('valor_entrada', 0))
+        moeda_e   = o.get('moeda_entrada', '')
+
+        supabase.table('ordens_captacao').update({
+            'status': 'liberada', 'updated_at': datetime.now().isoformat()
+        }).eq('id', ordem_id).execute()
+
+        if conta_emp and valor_e:
+            r_ct = supabase.table('contas_bancarias_empresa').select('saldo').eq('numero', conta_emp).single().execute()
+            if r_ct.data:
+                novo = float(r_ct.data['saldo'] or 0) + valor_e
+                supabase.table('contas_bancarias_empresa').update({'saldo': novo}).eq('numero', conta_emp).execute()
+                import random
+                supabase.table('transferencias').insert({
+                    'id': f"{random.randint(100000,999999)}_cap",
+                    'tipo': 'deposito', 'status': 'completed',
+                    'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'moeda': moeda_e, 'valor': valor_e,
+                    'conta_destinatario': conta_emp,
+                    'descricao': f"Captação liberada - Ordem {ordem_id}",
+                    'executado_por': usuario,
+                    'created_at': datetime.now().isoformat()
+                }).execute()
+
+        return jsonify({'success': True, 'message': 'Ordem liberada e conta creditada.'})
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/loja/ordens/<ordem_id>/despachar', methods=['POST'])
+def loja_despachar_ordem(ordem_id):
+    usuario, tipo, redir = _check_loja_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        from datetime import datetime
+        d = request.get_json()
+        parceiro = d.get('parceiro_pagador', '').strip()
+        if not parceiro:
+            return jsonify({'success': False, 'message': 'Selecione um parceiro pagador'}), 400
+        r = supabase.table('ordens_captacao').select('status').eq('id', ordem_id).single().execute()
+        if not r.data or r.data['status'] != 'liberada':
+            return jsonify({'success': False, 'message': 'Ordem não está liberada'}), 400
+        supabase.table('ordens_captacao').update({
+            'status': 'despachada',
+            'parceiro_pagador': parceiro,
+            'despachado_em': datetime.now().isoformat(),
+            'despachado_por': usuario,
+            'updated_at': datetime.now().isoformat()
+        }).eq('id', ordem_id).execute()
+        return jsonify({'success': True, 'message': f'Ordem despachada para {parceiro}.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/loja/ordens/<ordem_id>/confirmar-pagamento', methods=['POST'])
+def loja_confirmar_pagamento(ordem_id):
+    usuario, tipo, redir = _check_loja_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        from datetime import datetime
+        import random
+        r = supabase.table('ordens_captacao').select('*').eq('id', ordem_id).single().execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'Ordem não encontrada'}), 404
+        o = r.data
+        if o['status'] != 'despachada':
+            return jsonify({'success': False, 'message': 'Ordem não está despachada'}), 400
+
+        parceiro  = o.get('parceiro_pagador')
+        valor_s   = float(o.get('valor_saida', 0))
+        moeda_s   = o.get('moeda_saida', 'BRL')
+        cliente_n = o.get('cliente_nome', '')
+
+        supabase.table('ordens_captacao').update({
+            'status': 'paga',
+            'pago_em': datetime.now().isoformat(),
+            'pago_por': usuario,
+            'updated_at': datetime.now().isoformat()
+        }).eq('id', ordem_id).execute()
+
+        # Debitar BRL da conta do parceiro e registrar no extrato
+        if parceiro and valor_s:
+            contas_p = supabase.table('contas')\
+                .select('id, saldo, moeda')\
+                .eq('cliente_username', parceiro)\
+                .eq('moeda', moeda_s).execute()
+            if contas_p.data:
+                ct = contas_p.data[0]
+                novo_saldo = float(ct['saldo'] or 0) - valor_s
+                supabase.table('contas').update({'saldo': novo_saldo}).eq('id', ct['id']).execute()
+                supabase.table('transferencias').insert({
+                    'id': f"{random.randint(100000,999999)}_cap",
+                    'tipo': 'saque', 'status': 'completed',
+                    'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'moeda': moeda_s, 'valor': valor_s,
+                    'conta_remetente': ct['id'],
+                    'cliente': parceiro,
+                    'descricao': f"Pagamento captação varejo - {cliente_n} - Ordem {ordem_id}",
+                    'executado_por': usuario,
+                    'created_at': datetime.now().isoformat()
+                }).execute()
+
+        return jsonify({'success': True, 'message': 'Pagamento confirmado. Extrato do parceiro atualizado.'})
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================
 # LOOKUP GLOBAL DE CONTA (Ctrl+K)
 # ============================================
 

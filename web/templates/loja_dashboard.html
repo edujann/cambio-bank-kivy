@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏦 Cambio Bank — Captação</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+        :root{
+            --cor-fundo:#0a0e15;--cor-card:#0d1117;--cor-borda:#1e232e;
+            --cor-texto:#e0e0e0;--cor-texto-secundario:#8b949e;
+            --cor-admin:#1a5fb4;--cor-sucesso:#2ec27e;--cor-alerta:#f39c12;--cor-perigo:#e01b24;
+            --borda-radius:12px;--borda-radius-pequeno:8px;
+        }
+        body{background:var(--cor-fundo);color:var(--cor-texto);min-height:100vh;}
+        .app-container{max-width:1200px;margin:0 auto;padding:20px;}
+        .app-header{display:flex;justify-content:space-between;align-items:center;padding:18px 0;margin-bottom:24px;border-bottom:1px solid var(--cor-borda);flex-wrap:wrap;gap:12px;}
+        .logo{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:bold;}
+        .logo i{color:var(--cor-admin);font-size:24px;}
+        .logo-text{background:linear-gradient(90deg,var(--cor-admin),#2d8fff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+        .header-right{display:flex;align-items:center;gap:10px;}
+        .btn-sm{background:rgba(26,95,180,.15);border:1px solid var(--cor-admin);color:var(--cor-admin);padding:7px 14px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;}
+        .btn-sm:hover{background:rgba(26,95,180,.3);}
+
+        /* Tabs */
+        .tabs{display:flex;gap:4px;margin-bottom:24px;border-bottom:1px solid var(--cor-borda);}
+        .tab-btn{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--cor-texto-secundario);padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;transition:.2s;display:flex;align-items:center;gap:7px;margin-bottom:-1px;}
+        .tab-btn.active{color:var(--cor-admin);border-bottom-color:var(--cor-admin);}
+        .tab-content{display:none;}
+        .tab-content.active{display:block;}
+
+        /* Resumo */
+        .resumo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px;}
+        .resumo-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:16px 18px;}
+        .resumo-card .lbl{font-size:11px;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+        .resumo-card .val{font-size:20px;font-weight:700;}
+        .verde{color:#2ec27e;} .vermelho{color:#e01b24;} .amarelo{color:#f39c12;} .azul{color:#1a5fb4;}
+
+        /* Form */
+        .form-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:24px;}
+        .form-section{font-size:12px;font-weight:700;color:var(--cor-admin);text-transform:uppercase;letter-spacing:.5px;margin:20px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--cor-borda);}
+        .form-section:first-child{margin-top:0;}
+        .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+        .form-grid-3{grid-template-columns:1fr 1fr 1fr;}
+        .form-group label{display:block;font-size:12px;color:var(--cor-texto-secundario);margin-bottom:5px;font-weight:600;}
+        .form-control{width:100%;background:var(--cor-fundo);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:9px 11px;border-radius:var(--borda-radius-pequeno);font-size:14px;outline:none;transition:.2s;}
+        .form-control:focus{border-color:var(--cor-admin);}
+        select.form-control option{background:var(--cor-card);}
+        .cliente-search{position:relative;}
+        .cliente-dropdown{position:absolute;top:100%;left:0;right:0;background:var(--cor-card);border:1px solid var(--cor-admin);border-radius:var(--borda-radius-pequeno);z-index:100;max-height:200px;overflow-y:auto;display:none;}
+        .cliente-item{padding:10px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--cor-borda);}
+        .cliente-item:hover{background:rgba(26,95,180,.1);}
+        .preview-box{background:rgba(46,194,126,.06);border:1px solid rgba(46,194,126,.2);border-radius:var(--borda-radius-pequeno);padding:12px 16px;margin:12px 0;font-size:13px;}
+        .preview-row{display:flex;justify-content:space-between;margin-bottom:5px;}
+        .preview-row:last-child{margin-bottom:0;}
+        .btn-primary{background:var(--cor-admin);color:#fff;border:none;padding:11px 26px;border-radius:var(--borda-radius-pequeno);font-size:15px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;}
+        .btn-primary:hover{background:#1c71d8;}
+        .btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+
+        /* Ordens table */
+        .section-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);overflow:hidden;margin-bottom:18px;}
+        .section-header{padding:14px 18px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+        .section-header h3{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;}
+        .filtros{display:flex;gap:8px;flex-wrap:wrap;}
+        .filtro-btn{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:5px 12px;border-radius:20px;cursor:pointer;font-size:12px;}
+        .filtro-btn.active{background:rgba(26,95,180,.15);border-color:var(--cor-admin);color:var(--cor-admin);}
+        .table-wrap{overflow-x:auto;}
+        table{width:100%;border-collapse:collapse;font-size:13px;}
+        th{background:rgba(255,255,255,.04);color:var(--cor-texto-secundario);padding:10px 14px;text-align:left;font-weight:600;font-size:12px;white-space:nowrap;}
+        td{padding:10px 14px;border-top:1px solid var(--cor-borda);white-space:nowrap;}
+        tr:hover td{background:rgba(255,255,255,.02);}
+        .tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+        .tag-on_hold{background:rgba(243,156,18,.15);color:#f39c12;}
+        .tag-liberada{background:rgba(26,95,180,.15);color:#1a5fb4;}
+        .tag-despachada{background:rgba(155,89,182,.15);color:#9b59b6;}
+        .tag-paga{background:rgba(46,194,126,.15);color:#2ec27e;}
+        .tag-cancelada{background:rgba(224,27,36,.15);color:#e01b24;}
+        .btn-acao{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;white-space:nowrap;}
+        .btn-acao:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+        .btn-acao.verde{border-color:rgba(46,194,126,.4);color:#2ec27e;}
+        .btn-acao.verde:hover{background:rgba(46,194,126,.1);}
+        .mono{font-family:monospace;}
+        .empty-state{text-align:center;padding:50px;color:var(--cor-texto-secundario);}
+        .empty-state i{font-size:36px;margin-bottom:10px;display:block;}
+
+        /* Modal */
+        .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;backdrop-filter:blur(2px);}
+        .modal-overlay.active{display:flex;align-items:center;justify-content:center;}
+        .modal{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:24px;width:min(480px,92vw);max-height:90vh;overflow-y:auto;}
+        .modal h3{margin-bottom:16px;font-size:16px;display:flex;align-items:center;gap:8px;}
+        .modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;}
+        .btn-cancel{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:9px 18px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:14px;}
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="app-header">
+        <div class="logo">
+            <i class="fas fa-store"></i>
+            <span class="logo-text">CAPTAÇÃO — {{ loja|upper }}</span>
+        </div>
+        <div class="header-right">
+            <span style="font-size:13px;color:var(--cor-texto-secundario)">{{ usuario }}</span>
+            {% if tipo == 'admin' %}
+            <a href="/admin/dashboard" class="btn-sm"><i class="fas fa-shield-alt"></i> Admin</a>
+            {% endif %}
+            <a href="/logout" class="btn-sm"><i class="fas fa-sign-out-alt"></i> Sair</a>
+        </div>
+    </div>
+
+    <!-- Resumo -->
+    <div class="resumo-grid" id="resumoGrid"></div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('nova')"><i class="fas fa-plus-circle"></i> Nova Ordem</button>
+        <button class="tab-btn" onclick="switchTab('ordens')"><i class="fas fa-list"></i> Ordens</button>
+    </div>
+
+    <!-- TAB: NOVA ORDEM -->
+    <div id="tab-nova" class="tab-content active">
+        <div class="form-card">
+
+            <div class="form-section"><i class="fas fa-user"></i> Cliente</div>
+            <div class="form-grid">
+                <div class="form-group cliente-search">
+                    <label>Buscar cliente (nome, doc, tel)</label>
+                    <input id="buscaCliente" type="text" class="form-control" placeholder="Digite para buscar ou cadastrar novo…" oninput="buscarCliente()" autocomplete="off">
+                    <div class="cliente-dropdown" id="clienteDropdown"></div>
+                    <input type="hidden" id="clienteId">
+                </div>
+                <div class="form-group">
+                    <label>Nome completo *</label>
+                    <input id="clienteNome" type="text" class="form-control" placeholder="Nome do cliente">
+                </div>
+            </div>
+            <div class="form-grid form-grid-3">
+                <div class="form-group">
+                    <label>Documento (Passaporte/ID)</label>
+                    <input id="clienteDoc" type="text" class="form-control" placeholder="Nº documento">
+                </div>
+                <div class="form-group">
+                    <label>Telefone</label>
+                    <input id="clienteTel" type="text" class="form-control" placeholder="+44…">
+                </div>
+                <div class="form-group">
+                    <label>Loja</label>
+                    <input id="lojaInput" type="text" class="form-control" value="{{ loja }}">
+                </div>
+            </div>
+
+            <div class="form-section"><i class="fas fa-money-bill-wave"></i> Captação</div>
+            <div class="form-grid form-grid-3">
+                <div class="form-group">
+                    <label>Forma de Pagamento *</label>
+                    <select id="formaPgto" class="form-control" onchange="onFormaChange()">
+                        <option value="">Selecione…</option>
+                        <option value="cash">Cash</option>
+                        <option value="debito">Cartão Débito</option>
+                        <option value="credito">Cartão Crédito</option>
+                        <option value="transferencia">Transferência</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Moeda Recebida *</label>
+                    <select id="moedaEntrada" class="form-control" onchange="calcPreview()">
+                        <option value="">Selecione…</option>
+                        <option value="GBP">GBP — Libra</option>
+                        <option value="USD">USD — Dólar</option>
+                        <option value="EUR">EUR — Euro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Valor Recebido *</label>
+                    <input id="valorEntrada" type="number" step="0.01" class="form-control" placeholder="Ex: 1530" oninput="calcPreview()">
+                </div>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Conta Empresa (recebe) *</label>
+                    <select id="contaEmpresa" class="form-control"><option value="">Carregando…</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Taxa Cobrada (BRL por unidade) *</label>
+                    <input id="taxaCobrada" type="number" step="0.0001" class="form-control" placeholder="Ex: 6.50" oninput="calcPreview()">
+                </div>
+            </div>
+
+            <div class="preview-box" id="previewBox" style="display:none">
+                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Cliente recebe:</span><span id="pvSaida" style="font-weight:700;color:#2ec27e;font-size:16px"></span></div>
+                <div class="preview-row"><span style="color:var(--cor-texto-secundario)">Status inicial:</span><span id="pvStatus"></span></div>
+            </div>
+
+            <div class="form-section"><i class="fas fa-user-friends"></i> Beneficiário no Brasil</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Nome do Beneficiário *</label>
+                    <input id="benNome" type="text" class="form-control" placeholder="Nome completo">
+                </div>
+                <div class="form-group">
+                    <label>CPF</label>
+                    <input id="benCpf" type="text" class="form-control" placeholder="000.000.000-00">
+                </div>
+            </div>
+            <div class="form-grid form-grid-3">
+                <div class="form-group">
+                    <label>Banco</label>
+                    <input id="benBanco" type="text" class="form-control" placeholder="Ex: Itaú, Nubank…">
+                </div>
+                <div class="form-group">
+                    <label>Agência</label>
+                    <input id="benAgencia" type="text" class="form-control" placeholder="0000">
+                </div>
+                <div class="form-group">
+                    <label>Conta</label>
+                    <input id="benConta" type="text" class="form-control" placeholder="00000-0">
+                </div>
+            </div>
+            <div class="form-group" style="margin-bottom:16px">
+                <label>PIX (opcional)</label>
+                <input id="benPix" type="text" class="form-control" placeholder="CPF, e-mail, telefone ou chave aleatória">
+            </div>
+            <div class="form-group" style="margin-bottom:20px">
+                <label>Observações</label>
+                <input id="obsInput" type="text" class="form-control" placeholder="Opcional">
+            </div>
+
+            <button class="btn-primary" id="btnNova" onclick="criarOrdem()">
+                <i class="fas fa-check"></i> Registrar Ordem
+            </button>
+            <div id="novaMsg" style="margin-top:12px;font-size:14px;"></div>
+        </div>
+    </div>
+
+    <!-- TAB: ORDENS -->
+    <div id="tab-ordens" class="tab-content">
+        <div class="section-card">
+            <div class="section-header">
+                <h3><i class="fas fa-list"></i> Ordens</h3>
+                <div class="filtros">
+                    <button class="filtro-btn active" onclick="filtrarOrdens('')">Todas</button>
+                    <button class="filtro-btn" onclick="filtrarOrdens('on_hold')">On Hold</button>
+                    <button class="filtro-btn" onclick="filtrarOrdens('liberada')">Liberadas</button>
+                    <button class="filtro-btn" onclick="filtrarOrdens('despachada')">Despachadas</button>
+                    <button class="filtro-btn" onclick="filtrarOrdens('paga')">Pagas</button>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr>
+                        <th>Data</th><th>Cliente</th><th>Entrada</th>
+                        <th>Saída (BRL)</th><th>Beneficiário</th>
+                        <th>Status</th><th>Parceiro</th>
+                        {% if tipo == 'admin' %}<th>Ações</th>{% endif %}
+                    </tr></thead>
+                    <tbody id="ordensBody">
+                        <tr><td colspan="8" class="empty-state"><i class="fas fa-spinner fa-spin"></i></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Despachar -->
+<div class="modal-overlay" id="modalDespachar">
+    <div class="modal">
+        <h3><i class="fas fa-paper-plane azul"></i> Despachar Ordem</h3>
+        <p style="color:var(--cor-texto-secundario);font-size:13px;margin-bottom:16px">Selecione o parceiro que irá pagar o BRL no Brasil:</p>
+        <div class="form-group">
+            <label>Parceiro Pagador *</label>
+            <select id="parceiroSelect" class="form-control"><option value="">Carregando…</option></select>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="fecharModal('modalDespachar')">Cancelar</button>
+            <button class="btn-primary" onclick="confirmarDespacho()"><i class="fas fa-paper-plane"></i> Despachar</button>
+        </div>
+        <div id="despacharMsg" style="margin-top:10px;font-size:13px;"></div>
+    </div>
+</div>
+
+<!-- Modal Confirmar Pagamento -->
+<div class="modal-overlay" id="modalConfirmar">
+    <div class="modal">
+        <h3><i class="fas fa-check-circle verde"></i> Confirmar Pagamento</h3>
+        <p style="color:var(--cor-texto-secundario);font-size:13px;margin-bottom:8px">Confirmar que o parceiro efetuou o pagamento?</p>
+        <div id="confirmarInfo" style="background:rgba(46,194,126,.07);border:1px solid rgba(46,194,126,.2);border-radius:8px;padding:12px;font-size:13px;margin-bottom:4px;"></div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="fecharModal('modalConfirmar')">Cancelar</button>
+            <button class="btn-primary btn-verde" onclick="confirmarPagamento()" style="background:#2ec27e"><i class="fas fa-check"></i> Confirmar</button>
+        </div>
+        <div id="confirmarMsg" style="margin-top:10px;font-size:13px;"></div>
+    </div>
+</div>
+
+<script src="/static/js/theme.js"></script>
+<script src="/static/js/conta_search.js"></script>
+<script>
+    const IS_ADMIN = {{ 'true' if tipo == 'admin' else 'false' }};
+    const fmtNum  = (v,d=2) => parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+    const fmtDate = d => { if(!d) return '—'; try{const s=d.replace('T',' ').split('.')[0];const[dt,hr]=s.split(' ');const[y,m,dd]=dt.split('-');return hr?`${dd}/${m}/${y} ${hr.slice(0,5)}`:`${dd}/${m}/${y}`;}catch{return d;} };
+    let ordemAtual = null;
+    let parceiros  = [];
+
+    function switchTab(name) {
+        document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['nova','ordens'][i]===name));
+        document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+        document.getElementById(`tab-${name}`).classList.add('active');
+        if (name === 'ordens') carregarOrdens('');
+    }
+
+    // ── Resumo ────────────────────────────────────────────────────────────────
+    async function carregarResumo() {
+        try {
+            const r = await fetch('/api/loja/ordens');
+            const d = await r.json();
+            if (!d.success) return;
+            const ordens = d.ordens;
+            const hoje = new Date().toISOString().slice(0,10);
+            const hj   = ordens.filter(o => (o.data||'').slice(0,10) === hoje);
+            const hold = ordens.filter(o => o.status === 'on_hold');
+            const lib  = ordens.filter(o => o.status === 'liberada');
+            const desp = ordens.filter(o => o.status === 'despachada');
+            document.getElementById('resumoGrid').innerHTML = `
+                <div class="resumo-card"><div class="lbl">Hoje</div><div class="val azul">${hj.length}</div></div>
+                <div class="resumo-card"><div class="lbl">On Hold</div><div class="val amarelo">${hold.length}</div></div>
+                <div class="resumo-card"><div class="lbl">Liberadas</div><div class="val azul">${lib.length}</div></div>
+                <div class="resumo-card"><div class="lbl">Despachadas</div><div class="val" style="color:#9b59b6">${desp.length}</div></div>
+            `;
+        } catch(e) { console.error(e); }
+    }
+
+    // ── Contas empresa ────────────────────────────────────────────────────────
+    async function carregarContas() {
+        const r = await fetch('/api/loja/contas-empresa');
+        const d = await r.json();
+        const sel = document.getElementById('contaEmpresa');
+        sel.innerHTML = '<option value="">Selecione a conta…</option>';
+        (d.contas||[]).forEach(c => sel.innerHTML += `<option value="${c.numero}">${c.numero} — ${c.banco||''} (${c.moeda})</option>`);
+    }
+
+    async function carregarParceiros() {
+        const r = await fetch('/api/loja/parceiros');
+        const d = await r.json();
+        parceiros = d.parceiros || [];
+        const sel = document.getElementById('parceiroSelect');
+        sel.innerHTML = '<option value="">Selecione…</option>';
+        parceiros.forEach(p => sel.innerHTML += `<option value="${p.username}">${p.nome} (${p.username})</option>`);
+    }
+
+    // ── Busca cliente ─────────────────────────────────────────────────────────
+    let buscaTimer;
+    async function buscarCliente() {
+        clearTimeout(buscaTimer);
+        const q = document.getElementById('buscaCliente').value.trim();
+        const dd = document.getElementById('clienteDropdown');
+        if (q.length < 2) { dd.style.display='none'; return; }
+        buscaTimer = setTimeout(async () => {
+            const r = await fetch(`/api/loja/clientes/buscar?q=${encodeURIComponent(q)}`);
+            const d = await r.json();
+            if (!d.clientes.length) { dd.style.display='none'; return; }
+            dd.innerHTML = d.clientes.map(c => `
+                <div class="cliente-item" onclick="selecionarCliente('${c.id}','${c.nome}','${c.documento||''}','${c.telefone||''}')">
+                    <strong>${c.nome}</strong> <span style="color:var(--cor-texto-secundario);font-size:12px">${c.documento||''} ${c.telefone||''}</span>
+                </div>`).join('');
+            dd.style.display = 'block';
+        }, 300);
+    }
+
+    function selecionarCliente(id, nome, doc, tel) {
+        document.getElementById('clienteId').value = id;
+        document.getElementById('clienteNome').value = nome;
+        document.getElementById('clienteDoc').value = doc;
+        document.getElementById('clienteTel').value = tel;
+        document.getElementById('buscaCliente').value = nome;
+        document.getElementById('clienteDropdown').style.display = 'none';
+    }
+
+    document.addEventListener('click', e => {
+        if (!e.target.closest('.cliente-search')) document.getElementById('clienteDropdown').style.display='none';
+    });
+
+    // ── Preview ───────────────────────────────────────────────────────────────
+    function onFormaChange() { calcPreview(); }
+    function calcPreview() {
+        const ve = parseFloat(document.getElementById('valorEntrada').value)||0;
+        const tx = parseFloat(document.getElementById('taxaCobrada').value)||0;
+        const me = document.getElementById('moedaEntrada').value;
+        const fp = document.getElementById('formaPgto').value;
+        const box = document.getElementById('previewBox');
+        if (!ve||!tx||!me) { box.style.display='none'; return; }
+        const vs = ve * tx;
+        const st = fp === 'transferencia' ? 'on_hold' : 'liberada';
+        box.style.display = 'block';
+        document.getElementById('pvSaida').textContent = `R$ ${fmtNum(vs,2)} BRL`;
+        document.getElementById('pvStatus').innerHTML = `<span class="tag tag-${st}">${st}</span>`;
+    }
+
+    // ── Nova ordem ────────────────────────────────────────────────────────────
+    async function criarOrdem() {
+        const msg = document.getElementById('novaMsg');
+        const btn = document.getElementById('btnNova');
+        const payload = {
+            cliente_id: document.getElementById('clienteId').value||null,
+            cliente_nome: document.getElementById('clienteNome').value.trim(),
+            cliente_doc: document.getElementById('clienteDoc').value.trim(),
+            cliente_telefone: document.getElementById('clienteTel').value.trim(),
+            loja: document.getElementById('lojaInput').value.trim(),
+            forma_pagamento: document.getElementById('formaPgto').value,
+            moeda_entrada: document.getElementById('moedaEntrada').value,
+            valor_entrada: parseFloat(document.getElementById('valorEntrada').value)||0,
+            conta_empresa: document.getElementById('contaEmpresa').value,
+            taxa_cobrada: parseFloat(document.getElementById('taxaCobrada').value)||0,
+            moeda_saida: 'BRL',
+            beneficiario_nome: document.getElementById('benNome').value.trim(),
+            beneficiario_banco: document.getElementById('benBanco').value.trim(),
+            beneficiario_agencia: document.getElementById('benAgencia').value.trim(),
+            beneficiario_conta: document.getElementById('benConta').value.trim(),
+            beneficiario_cpf: document.getElementById('benCpf').value.trim(),
+            beneficiario_pix: document.getElementById('benPix').value.trim(),
+            observacoes: document.getElementById('obsInput').value.trim(),
+        };
+        if (!payload.cliente_nome||!payload.forma_pagamento||!payload.moeda_entrada||!payload.valor_entrada||!payload.taxa_cobrada||!payload.conta_empresa) {
+            msg.innerHTML='<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Preencha os campos obrigatórios.</span>';
+            return;
+        }
+        btn.disabled = true;
+        msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registrando…';
+        try {
+            const r = await fetch('/api/loja/nova-ordem',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+            const d = await r.json();
+            if (d.success) {
+                msg.innerHTML = `<span style="color:var(--cor-sucesso)"><i class="fas fa-check-circle"></i> ${d.message}</span>`;
+                // Limpar form
+                ['clienteId','clienteNome','clienteDoc','clienteTel','buscaCliente','valorEntrada','taxaCobrada','benNome','benCpf','benBanco','benAgencia','benConta','benPix','obsInput'].forEach(id=>document.getElementById(id).value='');
+                document.getElementById('formaPgto').value='';
+                document.getElementById('moedaEntrada').value='';
+                document.getElementById('previewBox').style.display='none';
+                carregarResumo();
+            } else {
+                msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> ${d.message}</span>`;
+            }
+        } catch(e) { msg.innerHTML=`<span style="color:var(--cor-perigo)">${e.message}</span>`; }
+        btn.disabled = false;
+    }
+
+    // ── Ordens ────────────────────────────────────────────────────────────────
+    let filtroAtivo = '';
+    async function carregarOrdens(status) {
+        filtroAtivo = status;
+        document.querySelectorAll('.filtro-btn').forEach(b => b.classList.toggle('active', b.textContent.trim().toLowerCase().replace(' ','_') === (status||'todas')));
+        document.getElementById('ordensBody').innerHTML = '<tr><td colspan="8" class="empty-state"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+        try {
+            const r = await fetch(`/api/loja/ordens?status=${status}`);
+            const d = await r.json();
+            if (!d.ordens.length) {
+                document.getElementById('ordensBody').innerHTML='<tr><td colspan="8" class="empty-state"><i class="fas fa-inbox"></i><p>Nenhuma ordem encontrada.</p></td></tr>';
+                return;
+            }
+            document.getElementById('ordensBody').innerHTML = d.ordens.map(o => {
+                let acoes = '';
+                if (IS_ADMIN) {
+                    if (o.status==='on_hold') acoes=`<button class="btn-acao verde" onclick="liberarOrdem('${o.id}')"><i class="fas fa-unlock"></i> Liberar</button>`;
+                    else if (o.status==='liberada') acoes=`<button class="btn-acao" onclick="abrirDespachar('${o.id}')"><i class="fas fa-paper-plane"></i> Despachar</button>`;
+                    else if (o.status==='despachada') acoes=`<button class="btn-acao verde" onclick="abrirConfirmar('${o.id}','${o.parceiro_pagador||''}',${o.valor_saida||0},'${o.moeda_saida||'BRL'}','${o.beneficiario_nome||''}')"><i class="fas fa-check"></i> Confirmar Pgto</button>`;
+                }
+                return `<tr>
+                    <td>${fmtDate(o.data)}</td>
+                    <td>${o.cliente_nome||'—'}</td>
+                    <td class="mono">${fmtNum(o.valor_entrada,2)} ${o.moeda_entrada||''}</td>
+                    <td class="mono verde">R$ ${fmtNum(o.valor_saida,2)}</td>
+                    <td>${o.beneficiario_nome||'—'}</td>
+                    <td><span class="tag tag-${o.status}">${o.status}</span></td>
+                    <td>${o.parceiro_pagador||'—'}</td>
+                    ${IS_ADMIN?`<td>${acoes}</td>`:''}
+                </tr>`;
+            }).join('');
+        } catch(e) { document.getElementById('ordensBody').innerHTML=`<tr><td colspan="8" style="color:var(--cor-perigo);padding:20px">${e.message}</td></tr>`; }
+    }
+
+    async function filtrarOrdens(status) {
+        document.querySelectorAll('.filtro-btn').forEach(b => {
+            const label = b.textContent.trim().toLowerCase();
+            const match = status === '' ? label === 'todas' : label === status.replace('_',' ');
+            b.classList.toggle('active', match);
+        });
+        await carregarOrdens(status);
+    }
+
+    async function liberarOrdem(id) {
+        if (!confirm('Confirmar que o dinheiro chegou na conta e liberar esta ordem?')) return;
+        const r = await fetch(`/api/loja/ordens/${id}/liberar`,{method:'POST'});
+        const d = await r.json();
+        alert(d.message);
+        if (d.success) { carregarOrdens(filtroAtivo); carregarResumo(); }
+    }
+
+    function abrirDespachar(id) {
+        ordemAtual = id;
+        document.getElementById('despacharMsg').innerHTML = '';
+        document.getElementById('modalDespachar').classList.add('active');
+    }
+
+    async function confirmarDespacho() {
+        const parceiro = document.getElementById('parceiroSelect').value;
+        const msg = document.getElementById('despacharMsg');
+        if (!parceiro) { msg.innerHTML='<span style="color:var(--cor-perigo)">Selecione um parceiro.</span>'; return; }
+        const r = await fetch(`/api/loja/ordens/${ordemAtual}/despachar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({parceiro_pagador:parceiro})});
+        const d = await r.json();
+        msg.innerHTML = d.success ? `<span style="color:var(--cor-sucesso)">${d.message}</span>` : `<span style="color:var(--cor-perigo)">${d.message}</span>`;
+        if (d.success) { setTimeout(()=>{ fecharModal('modalDespachar'); carregarOrdens(filtroAtivo); carregarResumo(); },1200); }
+    }
+
+    function abrirConfirmar(id, parceiro, valor, moeda, beneficiario) {
+        ordemAtual = id;
+        document.getElementById('confirmarMsg').innerHTML='';
+        document.getElementById('confirmarInfo').innerHTML=`
+            <div><strong>Parceiro:</strong> ${parceiro}</div>
+            <div><strong>Valor a debitar:</strong> R$ ${fmtNum(valor,2)} ${moeda}</div>
+            <div><strong>Beneficiário:</strong> ${beneficiario||'—'}</div>`;
+        document.getElementById('modalConfirmar').classList.add('active');
+    }
+
+    async function confirmarPagamento() {
+        const msg = document.getElementById('confirmarMsg');
+        const r = await fetch(`/api/loja/ordens/${ordemAtual}/confirmar-pagamento`,{method:'POST'});
+        const d = await r.json();
+        msg.innerHTML = d.success ? `<span style="color:var(--cor-sucesso)">${d.message}</span>` : `<span style="color:var(--cor-perigo)">${d.message}</span>`;
+        if (d.success) { setTimeout(()=>{ fecharModal('modalConfirmar'); carregarOrdens(filtroAtivo); carregarResumo(); },1200); }
+    }
+
+    function fecharModal(id) { document.getElementById(id).classList.remove('active'); }
+    document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if(e.target===m) m.classList.remove('active'); }));
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    carregarResumo();
+    carregarContas();
+    carregarParceiros();
+</script>
+</body>
+</html>

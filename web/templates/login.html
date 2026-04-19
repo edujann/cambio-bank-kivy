@@ -118,10 +118,10 @@
                     // 🔥 REDIRECIONAMENTO CORRETO
                     setTimeout(() => {
                         if (data.tipo === 'admin') {
-                            // Admin vai para dashboard admin
                             window.location.href = '/admin/dashboard';
+                        } else if (data.tipo === 'loja') {
+                            window.location.href = '/loja/dashboard';
                         } else {
-                            // Cliente vai para dashboard normal
                             window.location.href = `/dashboard?usuario=${encodeURIComponent(username)}`;
                         }
                     }, 1000);
