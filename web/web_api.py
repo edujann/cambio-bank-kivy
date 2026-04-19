@@ -11778,7 +11778,11 @@ def api_admin_relatorios_mensal():
         
         total_geral = 0
         total_por_moeda = defaultdict(float)
-        categorias = defaultdict(lambda: {'total': 0, 'contas': defaultdict(lambda: {'total': 0, 'quantidade': 0})})
+        categorias = defaultdict(lambda: {
+            'total': 0,
+            'total_por_moeda': defaultdict(float),
+            'contas': defaultdict(lambda: {'total': 0, 'total_por_moeda': defaultdict(float), 'quantidade': 0})
+        })
         transacoes_lista = []
         
         for t in transacoes:
@@ -11836,7 +11840,9 @@ def api_admin_relatorios_mensal():
             
             # Agrupar por categoria
             categorias[categoria]['total'] += valor
+            categorias[categoria]['total_por_moeda'][moeda] += valor
             categorias[categoria]['contas'][conta_especifica]['total'] += valor
+            categorias[categoria]['contas'][conta_especifica]['total_por_moeda'][moeda] += valor
             categorias[categoria]['contas'][conta_especifica]['quantidade'] += 1
             
             # Adicionar à lista de transações
@@ -11856,11 +11862,15 @@ def api_admin_relatorios_mensal():
         categorias_ordenadas = dict(sorted(categorias.items(), key=lambda x: x[1]['total'], reverse=True))
         
         for cat in categorias_ordenadas:
-            categorias_ordenadas[cat]['contas'] = dict(sorted(
+            categorias_ordenadas[cat]['total_por_moeda'] = dict(categorias_ordenadas[cat]['total_por_moeda'])
+            contas_ordenadas = dict(sorted(
                 categorias_ordenadas[cat]['contas'].items(),
                 key=lambda x: x[1]['total'],
                 reverse=True
             ))
+            for conta in contas_ordenadas:
+                contas_ordenadas[conta]['total_por_moeda'] = dict(contas_ordenadas[conta]['total_por_moeda'])
+            categorias_ordenadas[cat]['contas'] = contas_ordenadas
         
         # Determinar moeda padrão para exibição
         moeda_padrao = moeda_filtro if moeda_filtro != 'TODAS' else 'USD'
@@ -11931,21 +11941,26 @@ def api_admin_relatorios_comparativo():
         from collections import defaultdict
         
         def processar_dados(transacoes):
-            categorias = defaultdict(lambda: {'total': 0, 'contas': defaultdict(float)})
+            categorias = defaultdict(lambda: {
+                'total': 0,
+                'por_moeda': defaultdict(float),
+                'contas': defaultdict(float)
+            })
             total_geral = 0
-            
+            total_por_moeda = defaultdict(float)
+
             for t in transacoes:
                 valor = float(t.get('valor', 0))
                 moeda = t.get('moeda', 'USD')
-                
+
                 if moeda_filtro != 'TODAS' and moeda != moeda_filtro:
                     continue
-                
+
                 if tipo == 'receita':
                     categoria = t.get('categoria_receita', 'SEM CATEGORIA')
                     if not categoria:
                         categoria = 'SEM CATEGORIA'
-                    
+
                     conta = t.get('conta_destinatario', 'Outras')
                     if not conta:
                         conta = 'Outras'
@@ -11953,7 +11968,7 @@ def api_admin_relatorios_comparativo():
                     categoria = t.get('categoria_despesa', 'SEM CATEGORIA')
                     if not categoria:
                         categoria = 'SEM CATEGORIA'
-                    
+
                     conta_dest = t.get('conta_destinatario', '')
                     if conta_dest and '_' in conta_dest:
                         partes = conta_dest.split('_')
@@ -11963,14 +11978,25 @@ def api_admin_relatorios_comparativo():
                             conta = partes[-1] if partes else 'Outras'
                     else:
                         conta = conta_dest if conta_dest else 'Outras'
-                
+
                 total_geral += valor
+                total_por_moeda[moeda] += valor
                 categorias[categoria]['total'] += valor
+                categorias[categoria]['por_moeda'][moeda] += valor
                 categorias[categoria]['contas'][conta] += valor
-            
+
+            cats_dict = {}
+            for cat, cd in categorias.items():
+                cats_dict[cat] = {
+                    'total': cd['total'],
+                    'por_moeda': dict(cd['por_moeda']),
+                    'contas': dict(cd['contas'])
+                }
+
             return {
                 'total_geral': total_geral,
-                'categorias': dict(categorias)
+                'total_por_moeda': dict(total_por_moeda),
+                'categorias': cats_dict
             }
         
         dados_ref_processados = processar_dados(dados_ref)
@@ -11981,15 +12007,13 @@ def api_admin_relatorios_comparativo():
         todas_categorias = set(dados_ref_processados['categorias'].keys()) | set(dados_comp_processados['categorias'].keys())
         
         for categoria in todas_categorias:
-            cat_ref = dados_ref_processados['categorias'].get(categoria, {'total': 0, 'contas': {}})
-            cat_comp = dados_comp_processados['categorias'].get(categoria, {'total': 0, 'contas': {}})
-            
-            # Combinar contas
+            cat_ref  = dados_ref_processados['categorias'].get(categoria,  {'total': 0, 'por_moeda': {}, 'contas': {}})
+            cat_comp = dados_comp_processados['categorias'].get(categoria, {'total': 0, 'por_moeda': {}, 'contas': {}})
+
             contas_combinadas = {}
             todas_contas = set(cat_ref['contas'].keys()) | set(cat_comp['contas'].keys())
-            
             for conta in todas_contas:
-                val_ref = cat_ref['contas'].get(conta, 0)
+                val_ref  = cat_ref['contas'].get(conta, 0)
                 val_comp = cat_comp['contas'].get(conta, 0)
                 contas_combinadas[conta] = {
                     'valor_ref': val_ref,
@@ -11997,18 +12021,20 @@ def api_admin_relatorios_comparativo():
                     'variacao': val_ref - val_comp,
                     'variacao_percentual': ((val_ref - val_comp) / val_comp * 100) if val_comp > 0 else (100 if val_ref > 0 else 0)
                 }
-            
+
             categorias_combinadas[categoria] = {
-                'total_ref': cat_ref['total'],
+                'total_ref':  cat_ref['total'],
                 'total_comp': cat_comp['total'],
+                'por_moeda_ref':  cat_ref.get('por_moeda', {}),
+                'por_moeda_comp': cat_comp.get('por_moeda', {}),
                 'variacao': cat_ref['total'] - cat_comp['total'],
                 'variacao_percentual': ((cat_ref['total'] - cat_comp['total']) / cat_comp['total'] * 100) if cat_comp['total'] > 0 else (100 if cat_ref['total'] > 0 else 0),
                 'contas': contas_combinadas
             }
-        
-        total_ref = dados_ref_processados['total_geral']
+
+        total_ref  = dados_ref_processados['total_geral']
         total_comp = dados_comp_processados['total_geral']
-        
+
         return jsonify({
             "success": True,
             "dados": {
@@ -12016,7 +12042,9 @@ def api_admin_relatorios_comparativo():
                     "referencia": total_ref,
                     "comparacao": total_comp,
                     "variacao": total_ref - total_comp,
-                    "variacao_percentual": ((total_ref - total_comp) / total_comp * 100) if total_comp > 0 else (100 if total_ref > 0 else 0)
+                    "variacao_percentual": ((total_ref - total_comp) / total_comp * 100) if total_comp > 0 else (100 if total_ref > 0 else 0),
+                    "por_moeda_ref":  dados_ref_processados.get('total_por_moeda', {}),
+                    "por_moeda_comp": dados_comp_processados.get('total_por_moeda', {})
                 },
                 "categorias": categorias_combinadas,
                 "tipo": tipo,
@@ -12078,12 +12106,14 @@ def api_admin_relatorios_anual():
             response = query.execute()
 
             valor_mes = 0
+            por_moeda_mes = defaultdict(float)
             for t in (response.data or []):
                 valor = float(t.get('valor', 0))
                 moeda = t.get('moeda', 'USD')
                 if moeda_filtro != 'TODAS' and moeda != moeda_filtro:
                     continue
                 valor_mes += valor
+                por_moeda_mes[moeda] += valor
                 total_por_moeda[moeda] += valor
 
             total_ano += valor_mes
@@ -12091,6 +12121,7 @@ def api_admin_relatorios_anual():
             meses_data.append({
                 'mes': meses_nomes[mes],
                 'valor': valor_mes,
+                'por_moeda': dict(por_moeda_mes),
                 'variacao_mensal': variacao,
                 'acumulado': total_ano
             })
@@ -12189,6 +12220,7 @@ def api_admin_relatorios_dre():
             total = 0
             por_moeda = defaultdict(float)
             por_categoria = defaultdict(float)
+            por_categoria_moeda = defaultdict(lambda: defaultdict(float))
             for t in transacoes:
                 valor = float(t.get('valor', 0))
                 moeda = t.get('moeda', 'USD')
@@ -12198,19 +12230,26 @@ def api_admin_relatorios_dre():
                 total += valor
                 por_moeda[moeda] += valor
                 por_categoria[categoria] += valor
-            return total, dict(por_moeda), dict(sorted(por_categoria.items(), key=lambda x: x[1], reverse=True))
+                por_categoria_moeda[categoria][moeda] += valor
+            cat_por_moeda = {k: dict(v) for k, v in por_categoria_moeda.items()}
+            return total, dict(por_moeda), dict(sorted(por_categoria.items(), key=lambda x: x[1], reverse=True)), cat_por_moeda
 
-        total_receitas, moedas_receitas, cat_receitas = processar(buscar_tipo('receita'), 'receita')
-        total_despesas, moedas_despesas, cat_despesas = processar(buscar_tipo('despesa'), 'despesa')
+        total_receitas, moedas_receitas, cat_receitas, cat_receitas_moeda = processar(buscar_tipo('receita'), 'receita')
+        total_despesas, moedas_despesas, cat_despesas, cat_despesas_moeda = processar(buscar_tipo('despesa'), 'despesa')
 
         resultado = total_receitas - total_despesas
         margem = (resultado / total_receitas * 100) if total_receitas > 0 else 0
 
         todas_cats = sorted(set(cat_receitas.keys()) | set(cat_despesas.keys()))
         dre_linhas = [
-            {'categoria': c, 'receita': cat_receitas.get(c, 0),
-             'despesa': cat_despesas.get(c, 0),
-             'resultado': cat_receitas.get(c, 0) - cat_despesas.get(c, 0)}
+            {
+                'categoria': c,
+                'receita': cat_receitas.get(c, 0),
+                'despesa': cat_despesas.get(c, 0),
+                'resultado': cat_receitas.get(c, 0) - cat_despesas.get(c, 0),
+                'receitas_por_moeda': cat_receitas_moeda.get(c, {}),
+                'despesas_por_moeda': cat_despesas_moeda.get(c, {})
+            }
             for c in todas_cats
         ]
 
@@ -12227,6 +12266,7 @@ def api_admin_relatorios_dre():
                 "despesas_por_moeda": moedas_despesas,
                 "categorias_receitas": cat_receitas,
                 "categorias_despesas": cat_despesas,
+                "categorias_despesas_por_moeda": cat_despesas_moeda,
                 "dre_linhas": dre_linhas,
                 "moeda_padrao": moeda_padrao
             }

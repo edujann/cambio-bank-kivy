@@ -1026,7 +1026,7 @@
                 html += `<tr class="total-geral">
                     <td colspan="5"><strong>TOTAL GERAL</strong></td>
                     <td><strong>${formatarValor(totalEmUSD || totalGeral, 'USD')}</strong></td>
-                </tr></tbody>收入</div></div>`;
+                </tr></tbody></table></div></div>`;
             }
             
             html += `<div class="export-buttons">
@@ -1221,7 +1221,7 @@
                     </tr>`;
                 }
                 
-                html += `</tbody>收入</div></div>`;
+                html += `</tbody></table></div></div>`;
             }
             
             html += `<div class="export-buttons">
@@ -1394,7 +1394,7 @@
                 </tr>`;
             }
             
-            html += `</tbody>收入</div></div>`;
+            html += `</tbody></table></div></div>`;
             
             // Barras de distribuição
             if (dadosGrafico.length > 0) {
@@ -1650,7 +1650,7 @@
                 <td style="color:${totCls}"><strong>${totSinal}${formatarValor(Math.abs(resultado), moeda)}</strong></td>
             </tr>`;
             
-            html += `</tbody>收入</div></div>`;
+            html += `</tbody></table></div></div>`;
             
             html += `<div class="export-buttons">
                 <button class="btn-export" onclick="exportarPDFDRE()"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
@@ -1724,13 +1724,15 @@
             if (catDesp.length > 0) {
                 let dadosDonut = [];
                 let labelsDonut = [];
-                
+                const catDespPorMoeda = dados.categorias_despesas_por_moeda || {};
+
                 for (const [cat, valor] of catDesp) {
                     let valorConvertido = valor;
-                    if (taxas && dados.despesas_por_moeda) {
-                        // Se tiver taxas, o valor já pode vir em moeda mista, precisamos converter
-                        // Idealmente a API já retorna valores por moeda, mas como fallback:
-                        valorConvertido = valor; // manter como está se não tiver detalhamento
+                    if (taxas && catDespPorMoeda[cat]) {
+                        valorConvertido = 0;
+                        for (const [m, v] of Object.entries(catDespPorMoeda[cat])) {
+                            valorConvertido += converterValorParaUSD(v, m, taxas);
+                        }
                     }
                     dadosDonut.push(valorConvertido);
                     labelsDonut.push(cat);
