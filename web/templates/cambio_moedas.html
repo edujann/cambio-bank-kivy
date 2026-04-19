@@ -2078,6 +2078,23 @@
                         this.mostrarSucesso(`Operação realizada com sucesso!<br>ID: ${data.transacaoId}`);
                     }
                     
+                    // Notificar admin em tempo real (mesma sessão de browser)
+                    try {
+                        const ch = new BroadcastChannel('cambio_bank_trades');
+                        ch.postMessage({
+                            tipo: 'novo_trade',
+                            trade: {
+                                usuario: this.usuario,
+                                par_moedas: operacao.moedaPagar + '_' + operacao.moedaReceber,
+                                valor: operacao.valorPagar,
+                                moeda: operacao.moedaPagar,
+                                operacao: this.tipoOperacao,
+                                created_at: new Date().toISOString()
+                            }
+                        });
+                        ch.close();
+                    } catch (e) { /* browser sem suporte a BroadcastChannel */ }
+
                     // Limpar campos
                     document.getElementById('valorInput').value = '';
                     this.valorDigitado = 0;
