@@ -592,18 +592,19 @@
 
         /* ── Modal Detalhes ── */
         .btn-detalhe {
-            background: var(--cor-admin, #1a5fb4);
+            background: var(--cor-admin);
             color: white;
             border: none;
-            padding: 5px 11px;
-            border-radius: 4px;
+            padding: 6px 12px;
+            border-radius: var(--borda-radius-pequeno);
             cursor: pointer;
             font-size: 12px;
-            transition: all 0.2s ease;
+            white-space: nowrap;
+            transition: all 0.3s ease;
         }
         .btn-detalhe:hover {
             background: #2d8fff;
-            transform: translateY(-1px);
+            transform: translateY(-2px);
         }
         .modal-detalhes {
             display: none;

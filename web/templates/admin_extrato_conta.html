@@ -358,6 +358,13 @@
         .status-solicitada { background: rgba(243, 156, 18, 0.2); color: var(--cor-alerta); }
         .status-rejected { background: rgba(224, 27, 36, 0.2); color: var(--cor-perigo); }
 
+        .swift-grupo {
+            background: rgba(139, 92, 246, 0.08);
+            border-left-color: #8b5cf6;
+        }
+        .swift-grupo h4 { color: #8b5cf6; }
+        .detalhe-valor.mono { font-family: monospace; font-size: 12px; word-break: break-all; }
+
         .footer-info {
             text-align: center;
             padding: 20px;
@@ -718,118 +725,161 @@
             }
         }
 
-        function abrirModalDetalhes(transacao) {
-            const modalBody = document.getElementById('modalBody');
-            
-            let statusClass = '';
-            let statusText = transacao.status || 'completed';
-            
-            switch (statusText.toLowerCase()) {
-                case 'completed': statusClass = 'status-completed'; statusText = 'CONCLUÍDA'; break;
-                case 'processing': statusClass = 'status-processing'; statusText = 'EM PROCESSAMENTO'; break;
-                case 'pending': case 'solicitada': statusClass = 'status-pending'; statusText = 'SOLICITADA'; break;
-                case 'rejected': statusClass = 'status-rejected'; statusText = 'RECUSADA'; break;
-                default: statusClass = 'status-processing';
+        async function abrirModalDetalhes(transacao) {
+            const modal = document.getElementById('modalDetalhes');
+            const body  = document.getElementById('modalBody');
+
+            body.innerHTML = '<div style="text-align:center;padding:40px;color:#aaa;"><i class="fas fa-spinner fa-spin" style="font-size:28px;"></i><p style="margin-top:12px;">Carregando detalhes...</p></div>';
+            modal.classList.add('active');
+
+            try {
+                const res  = await fetch(`/api/admin/aprovar-operacoes/detalhes/${transacao.id}`);
+                const data = await res.json();
+
+                if (!data.success) {
+                    body.innerHTML = `<p style="color:#e74c3c;padding:20px;">Erro: ${data.message}</p>`;
+                    return;
+                }
+
+                renderizarModalDetalhes(data.transferencia, body);
+            } catch (err) {
+                body.innerHTML = `<p style="color:#e74c3c;padding:20px;">Erro ao carregar detalhes.</p>`;
+                console.error('Erro abrirModalDetalhes:', err);
             }
-            
-            const simbolo = obterSimboloMoeda(transacao.moeda || 'USD');
-            const valorFormatado = formatarValor(transacao.credito > 0 ? transacao.credito : transacao.debito);
-            
-            let html = `
-                <div class="detalhe-grupo">
-                    <h4><i class="fas fa-tag"></i> Informações Básicas</h4>
-                    <div class="detalhe-linha">
-                        <div class="detalhe-label">ID da Transação:</div>
-                        <div class="detalhe-valor"><strong>${transacao.id || 'N/A'}</strong></div>
-                    </div>
-                    <div class="detalhe-linha">
-                        <div class="detalhe-label">Tipo:</div>
-                        <div class="detalhe-valor">${transacao.tipo || 'N/A'}</div>
-                    </div>
-                    <div class="detalhe-linha">
-                        <div class="detalhe-label">Status:</div>
-                        <div class="detalhe-valor"><span class="status-badge ${statusClass}">${statusText}</span></div>
-                    </div>
-                    <div class="detalhe-linha">
-                        <div class="detalhe-label">Data/Hora:</div>
-                        <div class="detalhe-valor">${formatarDataCompleta(transacao.data)}</div>
-                    </div>
-                </div>
-                
-                <div class="detalhe-grupo">
-                    <h4><i class="fas fa-coins"></i> Valores</h4>
-                    <div class="detalhe-linha">
-                        <div class="detalhe-label">Valor:</div>
-                        <div class="detalhe-valor"><strong>${simbolo} ${valorFormatado} ${transacao.moeda || 'USD'}</strong></div>
-                    </div>
-            `;
-            
-            if (transacao.tipo === 'cambio' || transacao.operacao) {
-                const valorOrigem = transacao.valor_origem || transacao.valor;
-                const valorDestino = transacao.valor_destino;
-                const moedaOrigem = transacao.moeda_origem || transacao.moeda;
-                const moedaDestino = transacao.moeda_destino;
-                const cotacao = transacao.cotacao;
-                
-                if (valorDestino && moedaDestino) {
-                    html += `
-                    <div class="detalhe-linha">
-                        <div class="detalhe-label">Valor Origem:</div>
-                        <div class="detalhe-valor">${formatarValor(valorOrigem)} ${moedaOrigem}</div>
-                    </div>
-                    <div class="detalhe-linha">
-                        <div class="detalhe-label">Valor Destino:</div>
-                        <div class="detalhe-valor">${formatarValor(valorDestino)} ${moedaDestino}</div>
-                    </div>
-                    <div class="detalhe-linha">
-                        <div class="detalhe-label">Cotação:</div>
-                        <div class="detalhe-valor">1 ${moedaOrigem} = ${cotacao} ${moedaDestino}</div>
-                    </div>
-                    `;
+        }
+
+        function renderizarModalDetalhes(t, container) {
+            const fmtVal = v => v != null && v !== '' ? parseFloat(v).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : null;
+            const fmtData = d => {
+                if (!d) return null;
+                try {
+                    const s = d.replace('T', ' ').split('.')[0];
+                    const [dt, hr] = s.split(' ');
+                    const [y, m, dd] = dt.split('-');
+                    return hr ? `${dd}/${m}/${y} ${hr}` : `${dd}/${m}/${y}`;
+                } catch { return d; }
+            };
+            const statusMap = {
+                completed:  ['CONCLUÍDA',         'status-completed'],
+                processing: ['EM PROCESSAMENTO',  'status-processing'],
+                pending:    ['PENDENTE',           'status-pending'],
+                solicitada: ['SOLICITADA',         'status-solicitada'],
+                rejected:   ['RECUSADA',           'status-rejected'],
+                approved:   ['APROVADA',           'status-completed']
+            };
+            const tipoMap = {
+                cambio: 'Câmbio',
+                deposito: 'Depósito',
+                transferencia_internacional: 'Transferência Internacional',
+                internacional: 'Transferência Internacional',
+                transferencia_interna: 'Transferência Interna',
+                transferencia_interna_cliente: 'Transferência Interna Cliente',
+                transferencia_cliente_empresa: 'Cliente → Empresa',
+                transferencia_empresa_cliente: 'Empresa → Cliente',
+                cambio_contas_empresa: 'Câmbio Contas Empresa',
+                ajuste_admin: 'Ajuste Administrativo',
+                receita: 'Receita'
+            };
+            const swiftLabels = {
+                linha1_uetr: 'UETR #', linha2_20: ':20:', linha3_32a: ':32A:',
+                linha4_50k: ':50K:', linha5_57a: ':57A:', linha6_59: ':59:',
+                linha7_beneficiario: 'Beneficiário', linha8_70: ':70:', linha9_71a: ':71A:'
+            };
+
+            const grupo = (titulo, icone, linhas, extra = '') => {
+                const rows = linhas.filter(l => l[1] != null && l[1] !== '').map(([lbl, val, mono]) =>
+                    `<div class="detalhe-linha">
+                        <span class="detalhe-label">${lbl}:</span>
+                        <span class="detalhe-valor${mono ? ' mono' : ''}">${val}</span>
+                    </div>`
+                ).join('');
+                if (!rows && !extra) return '';
+                return `<div class="detalhe-grupo${titulo === 'DADOS SWIFT DO PAGAMENTO' ? ' swift-grupo' : ''}">
+                    <h4><i class="${icone}"></i> ${titulo}</h4>
+                    ${rows}${extra}
+                </div>`;
+            };
+
+            const tipo   = (t.tipo || '').toLowerCase();
+            const status = (t.status || '').toLowerCase();
+            const [statusTxt, statusCls] = statusMap[status] || [t.status || 'N/A', 'status-processing'];
+            const tipoTxt = tipoMap[tipo] || t.tipo || 'N/A';
+            const valNum  = parseFloat(t.valor || 0);
+
+            let html = '';
+
+            // IDENTIFICAÇÃO
+            html += grupo('IDENTIFICAÇÃO', 'fas fa-tag', [
+                ['ID', t.id],
+                ['Tipo', tipoTxt],
+                ['Status', `<span class="status-badge ${statusCls}">${statusTxt}</span>`],
+                ['Data', fmtData(t.data)],
+                ['Executado por', t.executado_por],
+                ['Solicitado por', t.solicitado_por || t.cliente]
+            ]);
+
+            // VALORES
+            const valLinhas = [
+                ['Valor', valNum ? `<strong>${fmtVal(valNum)} ${t.moeda || ''}</strong>` : null],
+                ['Finalidade', t.finalidade],
+                ['Descrição', t.descricao]
+            ];
+            if (tipo === 'cambio' || tipo === 'cambio_contas_empresa') {
+                const vOrig = parseFloat(t.valor_origem || 0);
+                const vDest = parseFloat(t.valor_destino || 0);
+                const cot   = parseFloat(t.cotacao || t.taxa_cambio || t.taxa_principal_registro || 0);
+                if (t.operacao) valLinhas.splice(1, 0, ['Operação', t.operacao]);
+                if (vOrig) valLinhas.splice(1, 0, ['Valor Origem', `${fmtVal(vOrig)} ${t.moeda_origem || ''}`]);
+                if (vDest) valLinhas.splice(2, 0, ['Valor Destino', `${fmtVal(vDest)} ${t.moeda_destino || ''}`]);
+                if (cot)   valLinhas.splice(3, 0, ['Cotação', cot.toLocaleString('pt-BR', {minimumFractionDigits: 4, maximumFractionDigits: 4})]);
+            }
+            html += grupo('VALORES', 'fas fa-coins', valLinhas);
+
+            // CONTAS
+            const contaRem  = t.conta_remetente || t.conta_origem;
+            const contaDest = t.conta_destinatario || t.conta_destino;
+            if (contaRem || contaDest || t.banco_origem) {
+                html += grupo('CONTAS', 'fas fa-exchange-alt', [
+                    ['Conta Remetente',  contaRem],
+                    ['Conta Destinatário', contaDest],
+                    ['Banco Origem', t.banco_origem]
+                ]);
+            }
+
+            // BENEFICIÁRIO + DADOS BANCÁRIOS (apenas internacionais)
+            if (tipo === 'transferencia_internacional' || tipo === 'internacional') {
+                if (t.beneficiario) {
+                    html += grupo('BENEFICIÁRIO', 'fas fa-user', [
+                        ['Nome',     t.beneficiario],
+                        ['Endereço', t.endereco_beneficiario],
+                        ['Cidade',   t.cidade],
+                        ['País',     t.pais]
+                    ]);
+                }
+                if (t.nome_banco || t.codigo_swift || t.iban_account || t.aba_routing) {
+                    html += grupo('DADOS BANCÁRIOS', 'fas fa-university', [
+                        ['Banco',          t.nome_banco],
+                        ['Endereço Banco', t.endereco_banco],
+                        ['Cidade Banco',   t.cidade_banco],
+                        ['País Banco',     t.pais_banco],
+                        ['SWIFT / BIC',    t.codigo_swift, true],
+                        ['IBAN / Conta',   t.iban_account, true],
+                        ['ABA / Routing',  t.aba_routing,  true]
+                    ]);
+                }
+
+                // DADOS SWIFT DO PAGAMENTO (apenas completed com dados)
+                if (status === 'completed' && t.dados_swift_pagamento && typeof t.dados_swift_pagamento === 'object') {
+                    const swiftLinhas = Object.entries(swiftLabels)
+                        .filter(([k]) => t.dados_swift_pagamento[k])
+                        .map(([k, lbl]) => [lbl, t.dados_swift_pagamento[k], true]);
+                    if (swiftLinhas.length > 0) {
+                        html += grupo('DADOS SWIFT DO PAGAMENTO', 'fas fa-file-invoice-dollar', swiftLinhas);
+                    }
                 }
             }
-            
-            html += `</div>`;
-            
-            if (transacao.beneficiario) {
-                html += `
-                <div class="detalhe-grupo">
-                    <h4><i class="fas fa-user"></i> Beneficiário</h4>
-                    <div class="detalhe-linha"><div class="detalhe-label">Nome:</div><div class="detalhe-valor">${transacao.beneficiario || 'N/A'}</div></div>
-                    <div class="detalhe-linha"><div class="detalhe-label">Endereço:</div><div class="detalhe-valor">${transacao.endereco_beneficiario || 'N/A'}</div></div>
-                    <div class="detalhe-linha"><div class="detalhe-label">Cidade/País:</div><div class="detalhe-valor">${transacao.cidade || 'N/A'} / ${transacao.pais || 'N/A'}</div></div>
-                </div>
-                
-                <div class="detalhe-grupo">
-                    <h4><i class="fas fa-university"></i> Banco do Beneficiário</h4>
-                    <div class="detalhe-linha"><div class="detalhe-label">Banco:</div><div class="detalhe-valor">${transacao.nome_banco || 'N/A'}</div></div>
-                    <div class="detalhe-linha"><div class="detalhe-label">SWIFT:</div><div class="detalhe-valor"><strong>${transacao.codigo_swift || 'N/A'}</strong></div></div>
-                    <div class="detalhe-linha"><div class="detalhe-label">IBAN:</div><div class="detalhe-valor">${transacao.iban_account || 'N/A'}</div></div>
-                    ${transacao.aba_routing ? `<div class="detalhe-linha"><div class="detalhe-label">ABA/Routing:</div><div class="detalhe-valor">${transacao.aba_routing}</div></div>` : ''}
-                </div>
-                `;
-            }
-            
-            html += `
-                <div class="detalhe-grupo">
-                    <h4><i class="fas fa-info-circle"></i> Informações Adicionais</h4>
-                    <div class="detalhe-linha"><div class="detalhe-label">Descrição:</div><div class="detalhe-valor">${transacao.descricao || 'N/A'}</div></div>
-                    <div class="detalhe-linha"><div class="detalhe-label">Conta Origem:</div><div class="detalhe-valor">${transacao.conta_remetente || transacao.conta_origem || 'N/A'}</div></div>
-                    <div class="detalhe-linha"><div class="detalhe-label">Conta Destino:</div><div class="detalhe-valor">${transacao.conta_destinatario || transacao.conta_destino || 'N/A'}</div></div>
-            `;
-            
-            if (transacao.motivo_recusa) {
-                html += `<div class="detalhe-linha"><div class="detalhe-label">Motivo da Recusa:</div><div class="detalhe-valor" style="color: var(--cor-perigo);">${transacao.motivo_recusa}</div></div>`;
-            }
-            
-            if (transacao.data_solicitacao) html += `<div class="detalhe-linha"><div class="detalhe-label">Data Solicitação:</div><div class="detalhe-valor">${formatarDataCompleta(transacao.data_solicitacao)}</div></div>`;
-            if (transacao.data_aprovacao) html += `<div class="detalhe-linha"><div class="detalhe-label">Data Aprovação:</div><div class="detalhe-valor">${formatarDataCompleta(transacao.data_aprovacao)}</div></div>`;
-            if (transacao.data_conclusao) html += `<div class="detalhe-linha"><div class="detalhe-label">Data Conclusão:</div><div class="detalhe-valor">${formatarDataCompleta(transacao.data_conclusao)}</div></div>`;
-            
-            html += `</div>`;
-            
-            modalBody.innerHTML = html;
-            document.getElementById('modalDetalhes').classList.add('active');
+
+            container.innerHTML = html || '<p style="color:#aaa;padding:16px;">Sem informações adicionais.</p>';
         }
         
         function fecharModalDetalhes() {
