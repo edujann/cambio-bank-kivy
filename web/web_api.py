@@ -14496,18 +14496,58 @@ def _fx_to_gbp(amount, moeda, rates):
     return amount
 
 
-def _fx_wac(compras_data):
-    """Calcula WAC em GBP por moeda a partir dos registros de pool_compras."""
-    wac = {}
-    vol = {}
+def _fx_ultimo_reset():
+    """Retorna a data do último reset do pool, ou None se nunca foi resetado."""
+    try:
+        r = supabase.table('pool_resets').select('data').order('data', desc=True).limit(1).execute()
+        if r.data:
+            return r.data[0]['data']
+    except Exception:
+        pass
+    return None
+
+
+def _fx_wac(compras_data, vendas_data=None, since=None):
+    """Calcula WAC atual em GBP por moeda processando compras e vendas cronologicamente.
+    Se 'since' for informado, considera apenas registros a partir dessa data."""
+    events = []
     for c in (compras_data or []):
-        m = c['moeda_comprada']
-        if m not in wac:
-            wac[m] = {'total': 0.0, 'custo': 0.0}
-        wac[m]['total'] += float(c['valor_comprado'])
-        wac[m]['custo'] += float(c['valor_comprado']) * float(c['taxa_em_gbp'])
-    return {m: (d['custo'] / d['total'] if d['total'] > 0 else 0) for m, d in wac.items()}, \
-           {m: d['total'] for m, d in wac.items()}
+        dt = c.get('data') or c.get('created_at') or ''
+        if since and dt < since:
+            continue
+        events.append({
+            'tipo': 'compra',
+            'data': dt,
+            'moeda': c['moeda_comprada'],
+            'valor': float(c.get('valor_comprado') or 0),
+            'taxa_gbp': float(c.get('taxa_em_gbp') or 0)
+        })
+    for v in (vendas_data or []):
+        dt = v.get('data') or v.get('created_at') or ''
+        if since and dt < since:
+            continue
+        events.append({
+            'tipo': 'venda',
+            'data': dt,
+            'moeda': v['moeda'],
+            'valor': float(v.get('valor_vendido') or 0)
+        })
+    events.sort(key=lambda x: x['data'])
+    state = {}
+    for e in events:
+        m = e['moeda']
+        if m not in state:
+            state[m] = {'saldo': 0.0, 'custo_gbp': 0.0}
+        if e['tipo'] == 'compra':
+            state[m]['saldo']     += e['valor']
+            state[m]['custo_gbp'] += e['valor'] * e['taxa_gbp']
+        else:
+            wac_atual = state[m]['custo_gbp'] / state[m]['saldo'] if state[m]['saldo'] > 0 else 0
+            state[m]['custo_gbp'] = max(0.0, state[m]['custo_gbp'] - e['valor'] * wac_atual)
+            state[m]['saldo']     = max(0.0, state[m]['saldo'] - e['valor'])
+    wac = {m: (s['custo_gbp'] / s['saldo'] if s['saldo'] > 0 else 0) for m, s in state.items()}
+    vol = {m: s['saldo'] for m, s in state.items()}
+    return wac, vol
 
 
 @app.route('/admin/posicao-cambial')
@@ -14528,8 +14568,10 @@ def fx_pool():
         if not session.get('username'):
             return jsonify({'success': False, 'message': 'Não autenticado'}), 401
         rates = _fx_get_rates()
+        since   = _fx_ultimo_reset()
         compras = supabase.table('pool_compras').select('*').order('data').execute()
-        wac, vol = _fx_wac(compras.data)
+        vendas  = supabase.table('pool_vendas').select('moeda, valor_vendido, data').order('data').execute()
+        wac, vol = _fx_wac(compras.data, vendas.data, since=since)
         contas = supabase.table('contas_bancarias_empresa').select('numero, moeda, saldo').execute()
         saldos = {}
         for ct in (contas.data or []):
@@ -14555,9 +14597,11 @@ def fx_pool():
             market_gbp = _fx_to_gbp(1, moeda, rates)
             saldo = saldos.get(moeda, 0)
             comp = comprometidos.get(moeda, 0)
+            saldo_pool = vol.get(moeda, 0)
             resultado.append({
                 'moeda': moeda,
-                'total_pool': round(vol.get(moeda, 0), 2),
+                'total_pool': round(saldo_pool, 2),
+                'total_custo_gbp': round(saldo_pool * wac_gbp, 2),
                 'wac_gbp': round(wac_gbp, 6),
                 'wac_usd': round(wac_usd, 6),
                 'wac_brl': round(wac_brl, 4),
@@ -14566,9 +14610,24 @@ def fx_pool():
                 'comprometido': round(comp, 2),
                 'disponivel': round(saldo - comp, 2),
             })
-        return jsonify({'success': True, 'pool': resultado, 'rates': rates})
+        ultimo_reset = _fx_ultimo_reset()
+        return jsonify({'success': True, 'pool': resultado, 'rates': rates, 'ultimo_reset': ultimo_reset})
     except Exception as e:
         import traceback; traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/fx/pool/reset', methods=['POST'])
+def fx_pool_reset():
+    try:
+        if not session.get('username'):
+            return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+        usuario = session.get('username')
+        supabase.table('pool_resets').insert({
+            'executado_por': usuario
+        }).execute()
+        return jsonify({'success': True, 'message': 'Pool zerado com sucesso. Histórico preservado.'})
+    except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
@@ -14578,8 +14637,10 @@ def fx_pl():
         if not session.get('username'):
             return jsonify({'success': False, 'message': 'Não autenticado'}), 401
         rates = _fx_get_rates()
-        compras = supabase.table('pool_compras').select('moeda_comprada, valor_comprado, taxa_em_gbp').execute()
-        wac, _ = _fx_wac(compras.data)
+        since   = _fx_ultimo_reset()
+        compras = supabase.table('pool_compras').select('moeda_comprada, valor_comprado, taxa_em_gbp, data').execute()
+        vendas  = supabase.table('pool_vendas').select('moeda, valor_vendido, data').order('data').execute()
+        wac, _ = _fx_wac(compras.data, vendas.data, since=since)
         trades = supabase.table('transferencias')\
             .select('*').eq('tipo', 'cambio').eq('status', 'completed')\
             .order('data', desc=True).limit(300).execute()
@@ -14652,8 +14713,10 @@ def fx_trader():
         if not session.get('username'):
             return jsonify({'success': False, 'message': 'Não autenticado'}), 401
         rates = _fx_get_rates()
-        compras = supabase.table('pool_compras').select('moeda_comprada, valor_comprado, taxa_em_gbp').execute()
-        wac, _ = _fx_wac(compras.data)
+        since   = _fx_ultimo_reset()
+        compras = supabase.table('pool_compras').select('moeda_comprada, valor_comprado, taxa_em_gbp, data').execute()
+        vendas  = supabase.table('pool_vendas').select('moeda, valor_vendido, data').order('data').execute()
+        wac, _ = _fx_wac(compras.data, vendas.data, since=since)
         contas = supabase.table('contas_bancarias_empresa').select('moeda, saldo').execute()
         saldos = {}
         for ct in (contas.data or []):
@@ -14839,9 +14902,11 @@ def fx_registrar_venda():
                     conta_parc_orig, conta_parc_dest]):
             return jsonify({'success': False, 'message': 'Campos obrigatórios faltando'}), 400
 
-        # WAC atual do pool
-        compras  = supabase.table('pool_compras').select('moeda_comprada, valor_comprado, taxa_em_gbp').execute()
-        wac_dict, _ = _fx_wac(compras.data)
+        # WAC atual do pool (descontando vendas já realizadas, desde último reset)
+        since_reset = _fx_ultimo_reset()
+        compras  = supabase.table('pool_compras').select('moeda_comprada, valor_comprado, taxa_em_gbp, data').order('data').execute()
+        vendas_pool = supabase.table('pool_vendas').select('moeda, valor_vendido, data').order('data').execute()
+        wac_dict, _ = _fx_wac(compras.data, vendas_pool.data, since=since_reset)
         wac_gbp  = wac_dict.get(moeda_vendida, 0)
 
         # Buscar contas do parceiro (detecta moeda_recebida automaticamente)

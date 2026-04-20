@@ -138,6 +138,12 @@
 
     <!-- TAB: POOL -->
     <div id="tab-pool" class="tab-content active">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px">
+            <span id="pool-reset-info" style="font-size:12px;color:var(--cor-texto-secundario)"></span>
+            <button class="btn-primary" style="background:rgba(224,27,36,.2);border:1px solid var(--cor-perigo);color:var(--cor-perigo);font-size:13px;padding:8px 18px" onclick="zerarPool()">
+                <i class="fas fa-redo"></i> Zerar Pool
+            </button>
+        </div>
         <div id="pool-resumo" class="resumo-grid"></div>
         <div id="pool-cards" class="pool-grid">
             <div class="loading-spin"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top:12px">Carregando pool...</p></div>
@@ -382,12 +388,32 @@
     }
 
     // ── Pool ─────────────────────────────────────────────────────────────────
+    async function zerarPool() {
+        if (!confirm('Zerar o pool vai iniciar um novo ciclo de cálculo. O histórico anterior será preservado. Confirma?')) return;
+        const res = await fetch('/api/admin/fx/pool/reset', {method:'POST'});
+        const d   = await res.json();
+        if (d.success) {
+            alert(d.message);
+            carregarPool();
+        } else {
+            alert('Erro: ' + d.message);
+        }
+    }
+
     async function carregarPool() {
         try {
             const res  = await fetch('/api/admin/fx/pool');
             const data = await res.json();
             if (!data.success) return;
             document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('pt-BR');
+
+            // Info último reset
+            const resetInfo = document.getElementById('pool-reset-info');
+            if (data.ultimo_reset) {
+                resetInfo.textContent = `Ciclo atual desde: ${new Date(data.ultimo_reset).toLocaleString('pt-BR')}`;
+            } else {
+                resetInfo.textContent = 'Ciclo desde o início (sem resets)';
+            }
 
             // Resumo
             const totalCustoGBP = data.pool.reduce((a,p) => a + p.total_custo_gbp, 0);
