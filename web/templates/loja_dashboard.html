@@ -396,6 +396,7 @@
                 <div class="benef-form" id="benef-form-brazil">
                     <div class="grid2">
                         <div class="fg full"><label>Nome Completo *</label><input id="bb-nome" type="text" class="fc"></div>
+                        <div class="fg full"><label>Apelido (ex: João - Nubank)</label><input id="bb-apelido" type="text" class="fc" placeholder="Para identificar facilmente"></div>
                         <div class="fg"><label>CPF</label><input id="bb-cpf" type="text" class="fc" placeholder="000.000.000-00"></div>
                         <div class="fg"><label>Banco</label><input id="bb-banco" type="text" class="fc" placeholder="Nubank, Itaú…"></div>
                         <div class="fg"><label>Agência</label><input id="bb-agencia" type="text" class="fc" placeholder="0001"></div>
@@ -407,7 +408,7 @@
                                 <option value="poupanca">Poupança</option>
                             </select>
                         </div>
-                        <div class="fg"><label>Chave PIX</label><input id="bb-pix" type="text" class="fc" placeholder="CPF, email, tel ou aleatória" style="grid-column:1/-1"></div>
+                        <div class="fg"><label>Chave PIX</label><input id="bb-pix" type="text" class="fc" placeholder="CPF, email, tel ou aleatória"></div>
                         <div class="fg">
                             <label>Tipo PIX</label>
                             <select id="bb-pix-tipo" class="fc">
@@ -418,6 +419,11 @@
                                 <option value="aleatoria">Chave Aleatória</option>
                             </select>
                         </div>
+                        <div class="fg"><label>Endereço Linha 1</label><input id="bb-end1" type="text" class="fc" placeholder="Número, rua"></div>
+                        <div class="fg"><label>Endereço Linha 2</label><input id="bb-end2" type="text" class="fc" placeholder="Complemento, bairro"></div>
+                        <div class="fg"><label>Cidade</label><input id="bb-cidade" type="text" class="fc"></div>
+                        <div class="fg"><label>CEP</label><input id="bb-postcode" type="text" class="fc" placeholder="00000-000"></div>
+                        <div class="fg full"><label>País</label><input id="bb-pais" type="text" class="fc" placeholder="Brasil"></div>
                         <div class="fg">
                             <label>Relacionamento</label>
                             <select id="bb-rel" class="fc">
@@ -440,10 +446,15 @@
                 <div class="benef-form" id="benef-form-europe">
                     <div class="grid2">
                         <div class="fg full"><label>Nome Completo *</label><input id="be-nome" type="text" class="fc"></div>
+                        <div class="fg full"><label>Apelido</label><input id="be-apelido" type="text" class="fc" placeholder="Para identificar facilmente"></div>
                         <div class="fg full"><label>IBAN *</label><input id="be-iban" type="text" class="fc" placeholder="GB29 NWBK 6016 1331 9268 19"></div>
                         <div class="fg"><label>BIC / SWIFT</label><input id="be-swift" type="text" class="fc" placeholder="NWBKGB2L"></div>
                         <div class="fg"><label>Banco</label><input id="be-banco" type="text" class="fc"></div>
                         <div class="fg"><label>País do Banco</label><input id="be-pais" type="text" class="fc" placeholder="DE, FR, PT…"></div>
+                        <div class="fg"><label>Endereço Linha 1</label><input id="be-end1" type="text" class="fc"></div>
+                        <div class="fg"><label>Endereço Linha 2</label><input id="be-end2" type="text" class="fc"></div>
+                        <div class="fg"><label>Cidade</label><input id="be-cidade" type="text" class="fc"></div>
+                        <div class="fg"><label>Postcode</label><input id="be-postcode" type="text" class="fc"></div>
                         <div class="fg">
                             <label>Relacionamento</label>
                             <select id="be-rel" class="fc">
@@ -465,6 +476,7 @@
                 <div class="benef-form" id="benef-form-usa">
                     <div class="grid2">
                         <div class="fg full"><label>Nome Completo *</label><input id="bu-nome" type="text" class="fc"></div>
+                        <div class="fg full"><label>Apelido</label><input id="bu-apelido" type="text" class="fc" placeholder="Para identificar facilmente"></div>
                         <div class="fg"><label>Routing Number</label><input id="bu-routing" type="text" class="fc" placeholder="021000021"></div>
                         <div class="fg"><label>Account Number</label><input id="bu-account" type="text" class="fc" placeholder="000123456789"></div>
                         <div class="fg">
@@ -476,6 +488,10 @@
                         </div>
                         <div class="fg"><label>SWIFT</label><input id="bu-swift" type="text" class="fc" placeholder="CHASUS33"></div>
                         <div class="fg"><label>Banco</label><input id="bu-banco" type="text" class="fc" placeholder="Chase, Wells Fargo…"></div>
+                        <div class="fg"><label>Endereço Linha 1</label><input id="bu-end1" type="text" class="fc"></div>
+                        <div class="fg"><label>Endereço Linha 2</label><input id="bu-end2" type="text" class="fc"></div>
+                        <div class="fg"><label>Cidade</label><input id="bu-cidade" type="text" class="fc"></div>
+                        <div class="fg"><label>Zip Code</label><input id="bu-postcode" type="text" class="fc" placeholder="10001"></div>
                         <div class="fg">
                             <label>Relacionamento</label>
                             <select id="bu-rel" class="fc">
@@ -838,16 +854,27 @@ async function salvarNovoBenef(tipo) {
     const get = id => (document.getElementById(id)?.value || '').trim();
     let payload = { tipo, nome: '' };
     if (tipo === 'brazil') {
-        payload = { tipo, nome: get('bb-nome'), cpf: get('bb-cpf'), banco_nome: get('bb-banco'),
+        payload = { tipo, nome: get('bb-nome'), apelido: get('bb-apelido'),
+            cpf: get('bb-cpf'), banco_nome: get('bb-banco'),
             agencia: get('bb-agencia'), conta: get('bb-conta'), tipo_conta: get('bb-tipo-conta'),
-            pix_chave: get('bb-pix'), pix_tipo: get('bb-pix-tipo'), relacionamento: get('bb-rel') };
+            pix_chave: get('bb-pix'), pix_tipo: get('bb-pix-tipo'),
+            endereco_linha1: get('bb-end1'), endereco_linha2: get('bb-end2'),
+            cidade: get('bb-cidade'), postcode: get('bb-postcode'), pais: get('bb-pais'),
+            relacionamento: get('bb-rel') };
     } else if (tipo === 'europe') {
-        payload = { tipo, nome: get('be-nome'), iban: get('be-iban'), bic_swift: get('be-swift'),
-            banco_nome_eu: get('be-banco'), banco_pais: get('be-pais'), relacionamento: get('be-rel') };
+        payload = { tipo, nome: get('be-nome'), apelido: get('be-apelido'),
+            iban: get('be-iban'), bic_swift: get('be-swift'),
+            banco_nome_eu: get('be-banco'), banco_pais: get('be-pais'),
+            endereco_linha1: get('be-end1'), endereco_linha2: get('be-end2'),
+            cidade: get('be-cidade'), postcode: get('be-postcode'),
+            relacionamento: get('be-rel') };
     } else {
-        payload = { tipo, nome: get('bu-nome'), routing_number: get('bu-routing'),
-            account_number: get('bu-account'), account_type_us: get('bu-tipo'),
-            swift_us: get('bu-swift'), banco_nome_us: get('bu-banco'), relacionamento: get('bu-rel') };
+        payload = { tipo, nome: get('bu-nome'), apelido: get('bu-apelido'),
+            routing_number: get('bu-routing'), account_number: get('bu-account'),
+            account_type_us: get('bu-tipo'), swift_us: get('bu-swift'), banco_nome_us: get('bu-banco'),
+            endereco_linha1: get('bu-end1'), endereco_linha2: get('bu-end2'),
+            cidade: get('bu-cidade'), postcode: get('bu-postcode'),
+            relacionamento: get('bu-rel') };
     }
     if (!payload.nome) { toast('Nome do beneficiário obrigatório', 'err'); return; }
     try {

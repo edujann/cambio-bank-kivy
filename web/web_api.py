@@ -11268,9 +11268,7 @@ def clientes_listar():
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
         q = request.args.get('q', '').strip()
-        query = supabase.table('clientes_varejo')\
-            .select('id,nome,documento,tipo_documento,telefone,email,data_nascimento,pais_residencia,kyc_level,risk_score,pep_flag,sanctions_flag,total_90d,doc_photo_id_ok,doc_address_ok,doc_source_funds_ok,doc_declaration_ok,doc_edd_ok,criado_por,created_at')\
-            .order('nome')
+        query = supabase.table('clientes_varejo').select('*').order('nome')
         if q:
             query = query.or_(f'nome.ilike.%{q}%,documento.ilike.%{q}%,telefone.ilike.%{q}%,email.ilike.%{q}%')
         r = query.limit(50).execute()
@@ -11559,6 +11557,12 @@ def beneficiarios_criar(cliente_id):
             'account_type_us': (d.get('account_type_us') or '').strip() or None,
             'swift_us':        (d.get('swift_us') or '').strip() or None,
             'banco_nome_us':   (d.get('banco_nome_us') or '').strip() or None,
+            # Endereço do beneficiário
+            'endereco_linha1': (d.get('endereco_linha1') or '').strip() or None,
+            'endereco_linha2': (d.get('endereco_linha2') or '').strip() or None,
+            'cidade':          (d.get('cidade') or '').strip() or None,
+            'postcode':        (d.get('postcode') or '').strip() or None,
+            'pais':            (d.get('pais') or '').strip() or None,
             # Relação
             'relacionamento': (d.get('relacionamento') or '').strip() or None,
             'proposito':      (d.get('proposito') or '').strip() or None,
@@ -11581,6 +11585,7 @@ def beneficiarios_atualizar(benef_id):
         allowed = ['nome','apelido','tipo','cpf','banco_nome','banco_codigo','agencia','conta',
                    'tipo_conta','pix_chave','pix_tipo','iban','bic_swift','banco_nome_eu','banco_pais',
                    'routing_number','account_number','account_type_us','swift_us','banco_nome_us',
+                   'endereco_linha1','endereco_linha2','cidade','postcode','pais',
                    'relacionamento','proposito']
         payload = {k: d[k] for k in allowed if k in d}
         r = supabase.table('beneficiarios_de_clientes').update(payload).eq('id', benef_id).execute()

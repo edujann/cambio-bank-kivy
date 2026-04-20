@@ -175,7 +175,7 @@
                 </div>
                 <div class="form-group">
                     <label>País de Residência</label>
-                    <select id="cPais" class="form-control">
+                    <select id="cPais" class="form-control" onchange="onPaisChange()">
                         <option value="GB">Reino Unido (GB)</option>
                         <option value="BR">Brasil (BR)</option>
                         <option value="PT">Portugal (PT)</option>
@@ -184,8 +184,9 @@
                         <option value="FR">França (FR)</option>
                         <option value="IT">Itália (IT)</option>
                         <option value="ES">Espanha (ES)</option>
-                        <option value="OTHER">Outro</option>
+                        <option value="OTHER">Outro...</option>
                     </select>
+                    <input type="text" id="cPaisOutro" class="form-control" placeholder="Nome do país" style="display:none;margin-top:6px;">
                 </div>
                 <div class="form-group">
                     <label>Endereço (Linha 1)</label>
@@ -217,41 +218,7 @@
                 </div>
             </div>
 
-            <p class="section-label">Beneficiário Padrão — Brasil (BRL)</p>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Nome do Beneficiário</label>
-                    <input type="text" id="cBenefNome" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>CPF do Beneficiário</label>
-                    <input type="text" id="cBenefCpf" class="form-control" placeholder="000.000.000-00">
-                </div>
-                <div class="form-group">
-                    <label>Banco</label>
-                    <input type="text" id="cBenefBanco" class="form-control" placeholder="ex: Nubank / 260">
-                </div>
-                <div class="form-group">
-                    <label>Conta / Agência</label>
-                    <input type="text" id="cBenefConta" class="form-control" placeholder="Ag. 0001 / CC 12345-6">
-                </div>
-                <div class="form-group form-full">
-                    <label>Chave PIX</label>
-                    <input type="text" id="cBenefPix" class="form-control" placeholder="CPF, email, telefone ou chave aleatória">
-                </div>
-            </div>
-
-            <p class="section-label">Beneficiário Padrão — Europa (SEPA/IBAN)</p>
-            <div class="form-grid">
-                <div class="form-group form-full">
-                    <label>IBAN</label>
-                    <input type="text" id="cBenefIban" class="form-control" placeholder="GB29 NWBK 6016 1331 9268 19">
-                </div>
-                <div class="form-group">
-                    <label>BIC / SWIFT</label>
-                    <input type="text" id="cBenefSwift" class="form-control" placeholder="NWBKGB2L">
-                </div>
-            </div>
+            <p class="section-label" style="margin-top:4px;color:var(--cor-texto-secundario);font-size:10px;border:none;padding:0;">Os beneficiários são gerenciados na tela de detalhe do cliente após o cadastro.</p>
 
             <p class="section-label">Flags AML</p>
             <div class="form-grid">
@@ -455,13 +422,116 @@ function renderDetalhe(c) {
             <div class="detail-item"><label>Email</label><span>${c.email||'—'}</span></div>
             <div class="detail-item"><label>Tipo Doc</label><span>${c.tipo_documento||'—'}</span></div>
             <div class="detail-item"><label>Endereço</label><span>${c.endereco||'—'}</span></div>
-            <div class="detail-item"><label>Cidade</label><span>${c.cidade||'—'}</span></div>
-            <div class="detail-item"><label>Beneficiário Padrão</label><span>${c.benef_nome||'—'}</span></div>
-            <div class="detail-item"><label>PIX</label><span>${c.benef_pix||'—'}</span></div>
-            <div class="detail-item"><label>IBAN</label><span>${c.benef_iban||'—'}</span></div>
-            <div class="detail-item"><label>SWIFT</label><span>${c.benef_swift||'—'}</span></div>
+            <div class="detail-item"><label>Cidade / Postcode</label><span>${c.cidade||'—'}</span></div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px;margin-bottom:10px;">
+            <p class="section-label" style="margin:0;">Beneficiários</p>
+            <button class="btn btn-ghost btn-sm" onclick="abrirNovoBenef('${c.id}')"><i class="fas fa-plus"></i> Adicionar</button>
+        </div>
+        <div id="benefDetalheList">Carregando...</div>
+
+        <div id="novoBenefForm" style="display:none;background:rgba(128,128,128,.04);border:1px solid var(--cor-borda);border-radius:var(--borda-radius-pequeno);padding:16px;margin-top:10px;">
+            <p class="section-label" style="margin-top:0;">Novo Beneficiário</p>
+            <div class="form-grid">
+                <div class="form-group form-full">
+                    <label>Tipo de Destino *</label>
+                    <select id="nb-tipo" class="form-control" onchange="onNbTipoChange()">
+                        <option value="brazil">🇧🇷 Brasil (BRL)</option>
+                        <option value="europe">🇪🇺 Europa (SEPA/IBAN)</option>
+                        <option value="usa">🇺🇸 USA (USD/SWIFT)</option>
+                    </select>
+                </div>
+                <div class="form-group form-full"><label>Nome Completo *</label><input id="nb-nome" type="text" class="form-control"></div>
+                <div class="form-group form-full"><label>Apelido (ex: João - Nubank)</label><input id="nb-apelido" type="text" class="form-control" placeholder="Para identificar facilmente"></div>
+            </div>
+
+            <!-- Endereço (comum a todos) -->
+            <div class="form-grid">
+                <div class="form-group"><label>Endereço Linha 1</label><input id="nb-end1" type="text" class="form-control" placeholder="Número, rua"></div>
+                <div class="form-group"><label>Endereço Linha 2</label><input id="nb-end2" type="text" class="form-control" placeholder="Complemento, bairro"></div>
+                <div class="form-group"><label>Cidade</label><input id="nb-cidade" type="text" class="form-control"></div>
+                <div class="form-group"><label>CEP / Postcode</label><input id="nb-postcode" type="text" class="form-control"></div>
+                <div class="form-group form-full"><label>País</label><input id="nb-pais" type="text" class="form-control" placeholder="ex: Brasil, Portugal, UK"></div>
+            </div>
+
+            <!-- Brasil -->
+            <div id="nb-brazil">
+                <p class="section-label">Dados Bancários Brasil</p>
+                <div class="form-grid">
+                    <div class="form-group"><label>CPF</label><input id="nb-cpf" type="text" class="form-control" placeholder="000.000.000-00"></div>
+                    <div class="form-group"><label>Banco</label><input id="nb-banco" type="text" class="form-control" placeholder="Ex: Nubank, Itaú"></div>
+                    <div class="form-group"><label>Agência</label><input id="nb-agencia" type="text" class="form-control" placeholder="0001"></div>
+                    <div class="form-group"><label>Conta</label><input id="nb-conta" type="text" class="form-control" placeholder="12345-6"></div>
+                    <div class="form-group">
+                        <label>Tipo de Conta</label>
+                        <select id="nb-tipo-conta" class="form-control">
+                            <option value="corrente">Corrente</option>
+                            <option value="poupanca">Poupança</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Chave PIX</label><input id="nb-pix" type="text" class="form-control" placeholder="CPF, email, tel ou aleatória"></div>
+                    <div class="form-group">
+                        <label>Tipo PIX</label>
+                        <select id="nb-pix-tipo" class="form-control">
+                            <option value="">—</option>
+                            <option value="cpf">CPF</option>
+                            <option value="email">Email</option>
+                            <option value="telefone">Telefone</option>
+                            <option value="aleatoria">Chave Aleatória</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Europa -->
+            <div id="nb-europe" style="display:none;">
+                <p class="section-label">Dados Bancários Europa</p>
+                <div class="form-grid">
+                    <div class="form-group form-full"><label>IBAN *</label><input id="nb-iban" type="text" class="form-control" placeholder="GB29 NWBK 6016 1331 9268 19"></div>
+                    <div class="form-group"><label>BIC / SWIFT</label><input id="nb-bic" type="text" class="form-control" placeholder="NWBKGB2L"></div>
+                    <div class="form-group"><label>Banco</label><input id="nb-banco-eu" type="text" class="form-control"></div>
+                    <div class="form-group"><label>País do Banco</label><input id="nb-pais-eu" type="text" class="form-control" placeholder="DE, FR, PT…"></div>
+                </div>
+            </div>
+
+            <!-- USA -->
+            <div id="nb-usa" style="display:none;">
+                <p class="section-label">Dados Bancários USA</p>
+                <div class="form-grid">
+                    <div class="form-group"><label>Routing Number</label><input id="nb-routing" type="text" class="form-control" placeholder="021000021"></div>
+                    <div class="form-group"><label>Account Number</label><input id="nb-account" type="text" class="form-control" placeholder="000123456789"></div>
+                    <div class="form-group">
+                        <label>Tipo de Conta</label>
+                        <select id="nb-account-tipo" class="form-control">
+                            <option value="checking">Checking</option>
+                            <option value="savings">Savings</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>SWIFT</label><input id="nb-swift-us" type="text" class="form-control" placeholder="CHASUS33"></div>
+                    <div class="form-group"><label>Banco</label><input id="nb-banco-us" type="text" class="form-control" placeholder="Chase, Wells Fargo…"></div>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top:8px;">
+                <label>Relacionamento com o Remetente</label>
+                <select id="nb-rel" class="form-control">
+                    <option value="">—</option>
+                    <option value="proprio">Próprio (mesma pessoa)</option>
+                    <option value="familiar">Familiar</option>
+                    <option value="amigo">Amigo</option>
+                    <option value="negocio">Negócio / Empresa</option>
+                </select>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:12px;">
+                <button class="btn btn-primary" onclick="salvarNovoBenefDetalhe()"><i class="fas fa-save"></i> Salvar Beneficiário</button>
+                <button class="btn btn-ghost" onclick="fecharNovoBenef()">Cancelar</button>
+            </div>
         </div>
     `;
+    clienteDetalheId = c.id;
+    carregarBenefDetalhe(c.id);
 }
 
 async function marcarDocOk(clienteId, tipoDoc) {
@@ -483,6 +553,13 @@ async function marcarDocOk(clienteId, tipoDoc) {
     }
 }
 
+function onPaisChange() {
+    const sel = document.getElementById('cPais');
+    const outro = document.getElementById('cPaisOutro');
+    outro.style.display = sel.value === 'OTHER' ? 'block' : 'none';
+    if (sel.value !== 'OTHER') outro.value = '';
+}
+
 function editarCliente() {
     if (clienteAtual) editarClienteById(clienteAtual.id, clienteAtual);
 }
@@ -493,11 +570,12 @@ function abrirModalNovo() {
     document.getElementById('clienteId').value = '';
     document.getElementById('modalClienteTitulo').innerHTML = '<i class="fas fa-user-plus"></i> Novo Cliente';
     ['cNome','cDob','cTelefone','cEmail','cProfissao','cNacionalidade','cEndereco','cCidade',
-     'cDocumento','cBenefNome','cBenefCpf','cBenefBanco','cBenefConta','cBenefPix','cBenefIban','cBenefSwift','cPepInfo'].forEach(id => {
+     'cDocumento','cPepInfo','cPaisOutro'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
     document.getElementById('cPais').value = 'GB';
+    document.getElementById('cPaisOutro').style.display = 'none';
     document.getElementById('cTipoDoc').value = '';
     document.getElementById('cPepFlag').value = 'false';
     document.getElementById('cRiskScore').value = 'medium';
@@ -516,15 +594,20 @@ function editarClienteById(id, c) {
     document.getElementById('cNacionalidade').value = c.nacionalidade || '';
     document.getElementById('cEndereco').value = c.endereco || '';
     document.getElementById('cCidade').value = c.cidade || '';
-    document.getElementById('cPais').value = c.pais_residencia || 'GB';
+    // País
+    const paisSel = document.getElementById('cPais');
+    const paisOutro = document.getElementById('cPaisOutro');
+    const paises = Array.from(paisSel.options).map(o => o.value);
+    if (c.pais_residencia && paises.includes(c.pais_residencia)) {
+        paisSel.value = c.pais_residencia;
+        paisOutro.style.display = 'none';
+    } else if (c.pais_residencia) {
+        paisSel.value = 'OTHER';
+        paisOutro.value = c.pais_residencia;
+        paisOutro.style.display = 'block';
+    }
     document.getElementById('cTipoDoc').value = c.tipo_documento || '';
     document.getElementById('cDocumento').value = c.documento || '';
-    document.getElementById('cBenefNome').value = c.benef_nome || '';
-    document.getElementById('cBenefBanco').value = c.benef_banco || '';
-    document.getElementById('cBenefConta').value = c.benef_conta || '';
-    document.getElementById('cBenefPix').value = c.benef_pix || '';
-    document.getElementById('cBenefIban').value = c.benef_iban || '';
-    document.getElementById('cBenefSwift').value = c.benef_swift || '';
     document.getElementById('cPepFlag').value = c.pep_flag ? 'true' : 'false';
     document.getElementById('cRiskScore').value = c.risk_score || 'medium';
     document.getElementById('cPepInfo').value = c.pep_info || c.observacoes || '';
@@ -535,6 +618,10 @@ async function salvarCliente() {
     const id = document.getElementById('clienteId').value;
     const nome = document.getElementById('cNome').value.trim();
     if (!nome) { toast('Nome obrigatório', 'err'); return; }
+    const paisSel = document.getElementById('cPais').value;
+    const paisFinal = paisSel === 'OTHER'
+        ? (document.getElementById('cPaisOutro').value.trim().toUpperCase().slice(0,2) || 'XX')
+        : paisSel;
     const payload = {
         nome,
         data_nascimento: document.getElementById('cDob').value || null,
@@ -544,18 +631,13 @@ async function salvarCliente() {
         nacionalidade: document.getElementById('cNacionalidade').value.trim(),
         endereco: document.getElementById('cEndereco').value.trim(),
         cidade: document.getElementById('cCidade').value.trim(),
-        pais_residencia: document.getElementById('cPais').value,
+        pais_residencia: paisFinal,
         tipo_documento: document.getElementById('cTipoDoc').value,
         documento: document.getElementById('cDocumento').value.trim(),
-        benef_nome: document.getElementById('cBenefNome').value.trim(),
-        benef_banco: document.getElementById('cBenefBanco').value.trim(),
-        benef_conta: document.getElementById('cBenefConta').value.trim(),
-        benef_pix: document.getElementById('cBenefPix').value.trim(),
-        benef_iban: document.getElementById('cBenefIban').value.trim(),
-        benef_swift: document.getElementById('cBenefSwift').value.trim(),
         pep_flag: document.getElementById('cPepFlag').value === 'true',
         risk_score: document.getElementById('cRiskScore').value,
         pep_info: document.getElementById('cPepInfo').value.trim(),
+        observacoes: document.getElementById('cPepInfo').value.trim(),
     };
     try {
         const url = id ? `/api/clientes/${id}` : '/api/clientes';
@@ -572,6 +654,97 @@ async function salvarCliente() {
     } catch(e) {
         toast('Erro ao salvar cliente', 'err');
     }
+}
+
+// ---- Beneficiários no detalhe ----
+let clienteDetalheId = null;
+
+function abrirNovoBenef(clienteId) {
+    clienteDetalheId = clienteId;
+    document.getElementById('novoBenefForm').style.display = 'block';
+    document.getElementById('novoBenefForm').scrollIntoView({behavior:'smooth'});
+    onNbTipoChange();
+}
+function fecharNovoBenef() {
+    document.getElementById('novoBenefForm').style.display = 'none';
+}
+function onNbTipoChange() {
+    const tipo = document.getElementById('nb-tipo').value;
+    document.getElementById('nb-brazil').style.display  = tipo === 'brazil'  ? 'block' : 'none';
+    document.getElementById('nb-europe').style.display  = tipo === 'europe'  ? 'block' : 'none';
+    document.getElementById('nb-usa').style.display     = tipo === 'usa'     ? 'block' : 'none';
+}
+async function carregarBenefDetalhe(clienteId) {
+    const el = document.getElementById('benefDetalheList');
+    if (!el) return;
+    try {
+        const r = await fetch(`/api/clientes/${clienteId}/beneficiarios`);
+        const d = await r.json();
+        const lista = d.beneficiarios || [];
+        if (!lista.length) { el.innerHTML = '<p style="color:var(--cor-texto-secundario);font-size:13px;padding:8px 0;">Nenhum beneficiário cadastrado.</p>'; return; }
+        const flag = {brazil:'🇧🇷',europe:'🇪🇺',usa:'🇺🇸'};
+        el.innerHTML = lista.map(b => {
+            const det = b.tipo === 'brazil'
+                ? [b.banco_nome, b.agencia ? `Ag ${b.agencia}` : '', b.conta, b.pix_chave ? `PIX: ${b.pix_chave}` : ''].filter(Boolean).join(' · ')
+                : b.tipo === 'europe'
+                ? [b.iban, b.bic_swift].filter(Boolean).join(' · ')
+                : [b.routing_number, b.account_number, b.banco_nome_us].filter(Boolean).join(' · ');
+            const addr = [b.endereco_linha1, b.cidade, b.postcode, b.pais].filter(Boolean).join(', ');
+            return `<div class="doc-item" style="flex-direction:column;align-items:flex-start;gap:4px;">
+                <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
+                    <span><strong>${flag[b.tipo]||''} ${b.nome}</strong>${b.apelido?` <span style="color:var(--cor-texto-secundario);font-size:12px;">(${b.apelido})</span>`:''}</span>
+                    <button onclick="removerBenef('${b.id}','${clienteId}')" style="background:transparent;border:none;color:var(--cor-perigo);cursor:pointer;font-size:11px;"><i class="fas fa-trash"></i></button>
+                </div>
+                ${det?`<div style="font-size:12px;color:var(--cor-texto-secundario);">${det}</div>`:''}
+                ${addr?`<div style="font-size:11px;color:var(--cor-texto-secundario);"><i class="fas fa-map-marker-alt" style="margin-right:3px;"></i>${addr}</div>`:''}
+            </div>`;
+        }).join('');
+    } catch(e) { el.innerHTML = '<p style="color:var(--cor-perigo);">Erro ao carregar beneficiários.</p>'; }
+}
+async function removerBenef(benefId, clienteId) {
+    if (!confirm('Remover este beneficiário?')) return;
+    const r = await fetch(`/api/beneficiarios-de-clientes/${benefId}`, {method:'DELETE'});
+    const d = await r.json();
+    toast(d.message, d.success ? 'ok' : 'err');
+    if (d.success) carregarBenefDetalhe(clienteId);
+}
+async function salvarNovoBenefDetalhe() {
+    if (!clienteDetalheId) return;
+    const get = id => (document.getElementById(id)?.value || '').trim();
+    const tipo = get('nb-tipo');
+    const nome = get('nb-nome');
+    if (!nome) { toast('Nome obrigatório', 'err'); return; }
+    const payload = {
+        tipo, nome,
+        apelido: get('nb-apelido'),
+        endereco_linha1: get('nb-end1'),
+        endereco_linha2: get('nb-end2'),
+        cidade: get('nb-cidade'),
+        postcode: get('nb-postcode'),
+        pais: get('nb-pais'),
+        relacionamento: get('nb-rel'),
+        // Brazil
+        cpf: get('nb-cpf'), banco_nome: get('nb-banco'),
+        agencia: get('nb-agencia'), conta: get('nb-conta'),
+        tipo_conta: get('nb-tipo-conta'),
+        pix_chave: get('nb-pix'), pix_tipo: get('nb-pix-tipo'),
+        // Europe
+        iban: get('nb-iban'), bic_swift: get('nb-bic'),
+        banco_nome_eu: get('nb-banco-eu'), banco_pais: get('nb-pais-eu'),
+        // USA
+        routing_number: get('nb-routing'), account_number: get('nb-account'),
+        account_type_us: get('nb-account-tipo'),
+        swift_us: get('nb-swift-us'), banco_nome_us: get('nb-banco-us'),
+    };
+    try {
+        const r = await fetch(`/api/clientes/${clienteDetalheId}/beneficiarios`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        const d = await r.json();
+        if (d.success) {
+            toast('Beneficiário salvo!', 'ok');
+            fecharNovoBenef();
+            carregarBenefDetalhe(clienteDetalheId);
+        } else toast(d.message, 'err');
+    } catch(e) { toast(e.message, 'err'); }
 }
 
 // ---- Utils ----
