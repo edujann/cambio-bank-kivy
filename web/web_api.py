@@ -11049,15 +11049,21 @@ def loja_listar_ordens():
     if redir:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
-        status_f = request.args.get('status', '')
-        loja_f   = request.args.get('loja', '')
-        q = supabase.table('ordens_captacao').select('*').order('data', desc=True).limit(200)
+        status_f   = request.args.get('status', '')
+        loja_f     = request.args.get('loja', '')
+        data_de    = request.args.get('data_de', '')
+        data_ate   = request.args.get('data_ate', '')
+        q = supabase.table('ordens_captacao').select('*').order('data', desc=True).limit(500)
         if status_f:
             q = q.eq('status', status_f)
         if tipo == 'loja' and not loja_f:
             q = q.eq('loja', usuario)
         elif loja_f:
             q = q.eq('loja', loja_f)
+        if data_de:
+            q = q.gte('data', data_de)
+        if data_ate:
+            q = q.lte('data', data_ate + 'T23:59:59')
         r = q.execute()
         return jsonify({'success': True, 'ordens': r.data or []})
     except Exception as e:
@@ -11489,6 +11495,108 @@ def admin_atualizar_loja(loja_id):
         payload = {k: d[k] for k in allowed if k in d}
         r = supabase.table('lojas').update(payload).eq('id', loja_id).execute()
         return jsonify({'success': True, 'message': 'Loja atualizada.', 'loja': r.data[0] if r.data else {}})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================
+# BENEFICIÁRIOS DE CLIENTES
+# ============================================
+
+@app.route('/api/clientes/<cliente_id>/beneficiarios', methods=['GET'])
+def beneficiarios_listar(cliente_id):
+    usuario, tipo, redir = _check_loja_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        tipo_filtro = request.args.get('tipo', '')
+        q = supabase.table('beneficiarios_de_clientes')\
+            .select('*')\
+            .eq('cliente_id', cliente_id)\
+            .eq('ativo', True)\
+            .order('nome')
+        if tipo_filtro:
+            q = q.eq('tipo', tipo_filtro)
+        r = q.execute()
+        return jsonify({'success': True, 'beneficiarios': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/clientes/<cliente_id>/beneficiarios', methods=['POST'])
+def beneficiarios_criar(cliente_id):
+    usuario, tipo, redir = _check_loja_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        d = request.get_json()
+        nome = (d.get('nome') or '').strip()
+        tipo_benef = (d.get('tipo') or '').strip()
+        if not nome or tipo_benef not in ('brazil', 'europe', 'usa'):
+            return jsonify({'success': False, 'message': 'Nome e tipo (brazil/europe/usa) obrigatórios'}), 400
+        payload = {
+            'cliente_id': cliente_id,
+            'nome':        nome,
+            'apelido':     (d.get('apelido') or '').strip() or None,
+            'tipo':        tipo_benef,
+            # Brazil
+            'cpf':         (d.get('cpf') or '').strip() or None,
+            'banco_nome':  (d.get('banco_nome') or '').strip() or None,
+            'banco_codigo':(d.get('banco_codigo') or '').strip() or None,
+            'agencia':     (d.get('agencia') or '').strip() or None,
+            'conta':       (d.get('conta') or '').strip() or None,
+            'tipo_conta':  (d.get('tipo_conta') or '').strip() or None,
+            'pix_chave':   (d.get('pix_chave') or '').strip() or None,
+            'pix_tipo':    (d.get('pix_tipo') or '').strip() or None,
+            # Europe
+            'iban':        (d.get('iban') or '').strip() or None,
+            'bic_swift':   (d.get('bic_swift') or '').strip() or None,
+            'banco_nome_eu':(d.get('banco_nome_eu') or '').strip() or None,
+            'banco_pais':  (d.get('banco_pais') or '').strip() or None,
+            # USA
+            'routing_number':  (d.get('routing_number') or '').strip() or None,
+            'account_number':  (d.get('account_number') or '').strip() or None,
+            'account_type_us': (d.get('account_type_us') or '').strip() or None,
+            'swift_us':        (d.get('swift_us') or '').strip() or None,
+            'banco_nome_us':   (d.get('banco_nome_us') or '').strip() or None,
+            # Relação
+            'relacionamento': (d.get('relacionamento') or '').strip() or None,
+            'proposito':      (d.get('proposito') or '').strip() or None,
+            'criado_por':     usuario,
+        }
+        r = supabase.table('beneficiarios_de_clientes').insert(payload).execute()
+        return jsonify({'success': True, 'beneficiario': r.data[0] if r.data else {}, 'message': 'Beneficiário salvo.'})
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/beneficiarios-de-clientes/<benef_id>', methods=['PUT'])
+def beneficiarios_atualizar(benef_id):
+    usuario, tipo, redir = _check_loja_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        d = request.get_json()
+        allowed = ['nome','apelido','tipo','cpf','banco_nome','banco_codigo','agencia','conta',
+                   'tipo_conta','pix_chave','pix_tipo','iban','bic_swift','banco_nome_eu','banco_pais',
+                   'routing_number','account_number','account_type_us','swift_us','banco_nome_us',
+                   'relacionamento','proposito']
+        payload = {k: d[k] for k in allowed if k in d}
+        r = supabase.table('beneficiarios_de_clientes').update(payload).eq('id', benef_id).execute()
+        return jsonify({'success': True, 'message': 'Beneficiário atualizado.', 'beneficiario': r.data[0] if r.data else {}})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/beneficiarios-de-clientes/<benef_id>', methods=['DELETE'])
+def beneficiarios_remover(benef_id):
+    usuario, tipo, redir = _check_loja_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        supabase.table('beneficiarios_de_clientes').update({'ativo': False}).eq('id', benef_id).execute()
+        return jsonify({'success': True, 'message': 'Beneficiário removido.'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
