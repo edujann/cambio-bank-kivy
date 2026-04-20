@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cambio Bank — Gestão de Lojas</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+        body{background:var(--cor-fundo);color:var(--cor-texto);min-height:100vh;}
+        .page{max-width:1100px;margin:0 auto;padding:20px;}
+
+        /* Header */
+        .hd{display:flex;justify-content:space-between;align-items:center;padding:16px 0;margin-bottom:26px;border-bottom:1px solid var(--cor-borda);flex-wrap:wrap;gap:10px;}
+        .logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;}
+        .logo i{color:var(--cor-admin);}
+        .logo-text{background:linear-gradient(90deg,var(--cor-admin),#2d8fff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+        .hd-right{display:flex;align-items:center;gap:8px;}
+        .btn-hd{background:rgba(26,95,180,.12);border:1px solid var(--cor-admin);color:var(--cor-admin);padding:6px 13px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+        .btn-hd:hover{background:rgba(26,95,180,.25);}
+        .btn-hd-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-hd-ghost:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+
+        /* Action bar */
+        .action-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+        .btn-nova{background:var(--cor-admin);color:#fff;border:none;padding:10px 22px;border-radius:var(--borda-radius-pequeno);font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:.15s;}
+        .btn-nova:hover{background:#1c71d8;}
+        .search-box{background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:8px 13px;border-radius:var(--borda-radius-pequeno);font-size:13px;outline:none;min-width:220px;}
+        .search-box:focus{border-color:var(--cor-admin);}
+
+        /* Table */
+        .tbl-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);overflow:hidden;}
+        .tbl-hd{padding:13px 18px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;}
+        .tbl-hd h3{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px;}
+        .tbl-wrap{overflow-x:auto;}
+        table{width:100%;border-collapse:collapse;font-size:13px;}
+        th{background:rgba(128,128,128,.05);color:var(--cor-texto-secundario);padding:9px 14px;text-align:left;font-weight:600;font-size:11px;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px;}
+        td{padding:11px 14px;border-top:1px solid var(--cor-borda);vertical-align:middle;}
+        tr:hover td{background:rgba(128,128,128,.03);}
+        .empty{padding:48px;text-align:center;color:var(--cor-texto-secundario);}
+        .empty i{font-size:36px;margin-bottom:10px;display:block;}
+        .badge-ativa{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(46,194,126,.15);color:var(--cor-sucesso);}
+        .badge-inativa{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(224,27,36,.1);color:var(--cor-perigo);}
+        .codigo{font-family:monospace;font-size:12px;background:rgba(26,95,180,.1);color:var(--cor-admin);padding:2px 6px;border-radius:4px;}
+        .btn-act{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:4px 11px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap;transition:.15s;}
+        .btn-act:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+        .btn-act.danger:hover{border-color:var(--cor-perigo);color:var(--cor-perigo);}
+
+        /* Modal */
+        .modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
+        .modal-ov.open{display:flex;}
+        .modal{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:26px;width:min(520px,94vw);max-height:90vh;overflow-y:auto;}
+        .modal h3{margin-bottom:18px;font-size:16px;display:flex;align-items:center;gap:8px;}
+        .modal-acts{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;}
+
+        /* Form */
+        .fsec{font-size:11px;font-weight:700;color:var(--cor-admin);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--cor-borda);}
+        .fsec:first-child{margin-top:0;}
+        .fg{margin-bottom:13px;}
+        .fg label{display:block;font-size:12px;color:var(--cor-texto-secundario);margin-bottom:4px;font-weight:600;}
+        .fc{width:100%;background:var(--cor-fundo);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:9px 11px;border-radius:var(--borda-radius-pequeno);font-size:14px;outline:none;transition:.15s;}
+        .fc:focus{border-color:var(--cor-admin);}
+        select.fc option{background:var(--cor-card);}
+        .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+        .full{grid-column:1/-1;}
+        .btn-p{background:var(--cor-admin);color:#fff;border:none;padding:10px 22px;border-radius:var(--borda-radius-pequeno);font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s;}
+        .btn-p:hover{background:#1c71d8;}
+        .btn-p:disabled{opacity:.5;cursor:not-allowed;}
+        .btn-g{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:10px 20px;border-radius:var(--borda-radius-pequeno);font-size:14px;font-weight:600;cursor:pointer;transition:.15s;}
+        .btn-g:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+        .form-msg{font-size:13px;margin-top:10px;min-height:18px;}
+
+        /* Toast */
+        .toast-c{position:fixed;bottom:22px;right:22px;z-index:9999;display:flex;flex-direction:column;gap:7px;}
+        .toast-i{padding:11px 16px;border-radius:var(--borda-radius-pequeno);font-size:13px;font-weight:600;min-width:240px;animation:tIn .2s ease;}
+        .t-ok{background:rgba(46,194,126,.1);border:1px solid var(--cor-sucesso);color:var(--cor-sucesso);}
+        .t-err{background:rgba(224,27,36,.1);border:1px solid var(--cor-perigo);color:var(--cor-perigo);}
+        @keyframes tIn{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <!-- Header -->
+    <div class="hd">
+        <div class="logo">
+            <i class="fas fa-store-alt"></i>
+            <span class="logo-text">Gestão de Lojas</span>
+        </div>
+        <div class="hd-right">
+            <span style="font-size:12px;color:var(--cor-texto-secundario);">{{ usuario }}</span>
+            <a href="/admin/dashboard" class="btn-hd"><i class="fas fa-arrow-left"></i> Admin</a>
+            <a href="/logout" class="btn-hd btn-hd-ghost"><i class="fas fa-sign-out-alt"></i> Sair</a>
+        </div>
+    </div>
+
+    <!-- Action bar -->
+    <div class="action-bar">
+        <button class="btn-nova" onclick="abrirModalNova()">
+            <i class="fas fa-plus"></i> Nova Loja
+        </button>
+        <input type="text" class="search-box" placeholder="Filtrar por nome ou código…" oninput="filtrarTabela(this.value)">
+    </div>
+
+    <!-- Table -->
+    <div class="tbl-card">
+        <div class="tbl-hd">
+            <h3><i class="fas fa-store-alt" style="color:var(--cor-admin)"></i> Lojas Cadastradas <span id="tbl-count" style="color:var(--cor-texto-secundario);font-weight:400;font-size:12px;margin-left:4px;"></span></h3>
+            <button class="btn-hd btn-hd-ghost" onclick="carregarLojas()"><i class="fas fa-sync-alt"></i></button>
+        </div>
+        <div class="tbl-wrap">
+            <table>
+                <thead><tr>
+                    <th>Código</th>
+                    <th>Nome</th>
+                    <th>Responsável</th>
+                    <th>Cidade</th>
+                    <th>Telefone</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr></thead>
+                <tbody id="lojasBody">
+                    <tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nova/Editar Loja -->
+<div class="modal-ov" id="modalLoja">
+    <div class="modal">
+        <h3 id="modalTitulo"><i class="fas fa-store-alt" style="color:var(--cor-admin)"></i> Nova Loja</h3>
+
+        <div class="fsec">Identificação</div>
+        <div class="grid2">
+            <div class="fg full"><label>Nome da Loja *</label><input id="fNome" type="text" class="fc" placeholder="Ex: Link World Money - Brixton"></div>
+            <div class="fg"><label>Código <span style="color:var(--cor-texto-secundario);font-weight:400;">(slug único)</span></label><input id="fCodigo" type="text" class="fc" placeholder="Ex: brixton" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_-]/g,'')"></div>
+            <div class="fg"><label>Responsável</label><input id="fResponsavel" type="text" class="fc" placeholder="Nome do gerente"></div>
+        </div>
+
+        <div class="fsec">Localização &amp; Contato</div>
+        <div class="grid2">
+            <div class="fg full"><label>Endereço</label><input id="fEndereco" type="text" class="fc" placeholder="Rua, número, complemento"></div>
+            <div class="fg"><label>Cidade</label><input id="fCidade" type="text" class="fc" placeholder="London"></div>
+            <div class="fg"><label>Telefone</label><input id="fTelefone" type="text" class="fc" placeholder="+44 20 0000 0000"></div>
+        </div>
+
+        <div class="fsec">Status</div>
+        <div class="fg">
+            <label>Situação</label>
+            <select id="fAtiva" class="fc">
+                <option value="true">Ativa</option>
+                <option value="false">Inativa</option>
+            </select>
+        </div>
+
+        <input type="hidden" id="fLojaId">
+        <div class="form-msg" id="formMsg"></div>
+
+        <div class="modal-acts">
+            <button class="btn-g" onclick="fecharModal()">Cancelar</button>
+            <button class="btn-p" id="btnSalvar" onclick="salvarLoja()"><i class="fas fa-save"></i> Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast-c" id="toastC"></div>
+<script src="/static/js/theme.js"></script>
+<script>
+let todasLojas = [];
+
+async function carregarLojas() {
+    const tb = document.getElementById('lojasBody');
+    tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    try {
+        const r = await fetch('/api/admin/lojas');
+        const d = await r.json();
+        if (!d.success) { tb.innerHTML = `<tr><td colspan="7" style="color:var(--cor-perigo);padding:20px;">${d.message}</td></tr>`; return; }
+        todasLojas = d.lojas || [];
+        renderTabela(todasLojas);
+    } catch(e) {
+        tb.innerHTML = `<tr><td colspan="7" style="color:var(--cor-perigo);padding:20px;">${e.message}</td></tr>`;
+    }
+}
+
+function renderTabela(lista) {
+    const tb = document.getElementById('lojasBody');
+    document.getElementById('tbl-count').textContent = `(${lista.length})`;
+    if (!lista.length) {
+        tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-store-slash"></i><p>Nenhuma loja cadastrada</p></td></tr>';
+        return;
+    }
+    tb.innerHTML = lista.map(l => `<tr>
+        <td>${l.codigo ? `<span class="codigo">${l.codigo}</span>` : '<span style="color:var(--cor-texto-secundario);">—</span>'}</td>
+        <td style="font-weight:600;">${l.nome}</td>
+        <td>${l.responsavel || '—'}</td>
+        <td>${l.cidade || '—'}</td>
+        <td>${l.telefone || '—'}</td>
+        <td>${l.ativa !== false ? '<span class="badge-ativa">Ativa</span>' : '<span class="badge-inativa">Inativa</span>'}</td>
+        <td><button class="btn-act" onclick="abrirModalEditar(${JSON.stringify(l).replace(/"/g,'&quot;')})"><i class="fas fa-edit"></i> Editar</button></td>
+    </tr>`).join('');
+}
+
+function filtrarTabela(q) {
+    const ql = q.toLowerCase();
+    const filtrado = todasLojas.filter(l =>
+        (l.nome||'').toLowerCase().includes(ql) ||
+        (l.codigo||'').toLowerCase().includes(ql) ||
+        (l.cidade||'').toLowerCase().includes(ql) ||
+        (l.responsavel||'').toLowerCase().includes(ql)
+    );
+    renderTabela(filtrado);
+}
+
+function abrirModalNova() {
+    document.getElementById('modalTitulo').innerHTML = '<i class="fas fa-store-alt" style="color:var(--cor-admin)"></i> Nova Loja';
+    document.getElementById('fLojaId').value = '';
+    document.getElementById('fNome').value = '';
+    document.getElementById('fCodigo').value = '';
+    document.getElementById('fResponsavel').value = '';
+    document.getElementById('fEndereco').value = '';
+    document.getElementById('fCidade').value = '';
+    document.getElementById('fTelefone').value = '';
+    document.getElementById('fAtiva').value = 'true';
+    document.getElementById('formMsg').innerHTML = '';
+    document.getElementById('modalLoja').classList.add('open');
+    document.getElementById('fNome').focus();
+}
+
+function abrirModalEditar(l) {
+    document.getElementById('modalTitulo').innerHTML = '<i class="fas fa-edit" style="color:var(--cor-admin)"></i> Editar Loja';
+    document.getElementById('fLojaId').value = l.id || '';
+    document.getElementById('fNome').value = l.nome || '';
+    document.getElementById('fCodigo').value = l.codigo || '';
+    document.getElementById('fResponsavel').value = l.responsavel || '';
+    document.getElementById('fEndereco').value = l.endereco || '';
+    document.getElementById('fCidade').value = l.cidade || '';
+    document.getElementById('fTelefone').value = l.telefone || '';
+    document.getElementById('fAtiva').value = String(l.ativa !== false);
+    document.getElementById('formMsg').innerHTML = '';
+    document.getElementById('modalLoja').classList.add('open');
+}
+
+function fecharModal() {
+    document.getElementById('modalLoja').classList.remove('open');
+}
+
+async function salvarLoja() {
+    const btn = document.getElementById('btnSalvar');
+    const msg = document.getElementById('formMsg');
+    const nome = document.getElementById('fNome').value.trim();
+    if (!nome) { msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Nome obrigatório.</span>'; return; }
+
+    const id = document.getElementById('fLojaId').value;
+    const payload = {
+        nome,
+        codigo:      document.getElementById('fCodigo').value.trim() || null,
+        responsavel: document.getElementById('fResponsavel').value.trim(),
+        endereco:    document.getElementById('fEndereco').value.trim(),
+        cidade:      document.getElementById('fCidade').value.trim(),
+        telefone:    document.getElementById('fTelefone').value.trim(),
+        ativa:       document.getElementById('fAtiva').value === 'true',
+    };
+
+    btn.disabled = true;
+    msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando…';
+    try {
+        const url    = id ? `/api/admin/lojas/${id}` : '/api/admin/lojas';
+        const method = id ? 'PUT' : 'POST';
+        const r = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        const d = await r.json();
+        if (d.success) {
+            toast(d.message, 'ok');
+            fecharModal();
+            carregarLojas();
+        } else {
+            msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> ${d.message}</span>`;
+        }
+    } catch(e) {
+        msg.innerHTML = `<span style="color:var(--cor-perigo)">${e.message}</span>`;
+    }
+    btn.disabled = false;
+}
+
+function toast(m, tipo='ok') {
+    const c = document.getElementById('toastC');
+    const el = document.createElement('div');
+    el.className = `toast-i t-${tipo}`;
+    el.innerHTML = `<i class="fas fa-${tipo==='ok'?'check-circle':'times-circle'}"></i> ${m}`;
+    c.appendChild(el);
+    setTimeout(() => el.remove(), 4000);
+}
+
+document.querySelectorAll('.modal-ov').forEach(m => m.addEventListener('click', e => { if (e.target === m) fecharModal(); }));
+
+carregarLojas();
+</script>
+</body>
+</html>

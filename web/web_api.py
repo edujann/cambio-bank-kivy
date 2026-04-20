@@ -15009,6 +15009,20 @@ def _fx_wac(compras_data, vendas_data=None, since=None):
     return wac, vol
 
 
+@app.route('/admin/lojas')
+def admin_lojas_page():
+    usuario = session.get('username')
+    if not usuario:
+        return redirect('/login')
+    try:
+        ck = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not ck.data or ck.data.get('tipo') != 'admin':
+            return redirect('/login')
+    except:
+        return redirect('/login')
+    return render_template('admin_lojas.html', usuario=usuario)
+
+
 @app.route('/admin/posicao-cambial')
 def admin_posicao_cambial():
     usuario = session.get('username')
