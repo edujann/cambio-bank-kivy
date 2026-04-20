@@ -14921,6 +14921,16 @@ def fx_registrar_venda():
         # P&L universal — converte receita para GBP independente da moeda recebida
         if moeda_recebida == 'GBP':
             taxa_gbp_rec = 1.0
+        # Auto-calcular taxa_gbp_rec a partir da cotacao da ordem, se vinculada
+        if taxa_gbp_rec == 0 and ordem_id:
+            try:
+                r_ordem = supabase.table('ordens_captacao').select('taxa_cobrada').eq('id', ordem_id).single().execute()
+                if r_ordem.data and r_ordem.data.get('taxa_cobrada'):
+                    cotacao_ordem = float(r_ordem.data['taxa_cobrada'])
+                    if cotacao_ordem > 0:
+                        taxa_gbp_rec = round(1.0 / cotacao_ordem, 8)
+            except Exception:
+                pass
         if taxa_gbp_rec > 0:
             receita_gbp = valor_recebido * taxa_gbp_rec
             pl_gbp = round(receita_gbp - (valor_vendido * wac_gbp), 4)
