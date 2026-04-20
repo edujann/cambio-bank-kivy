@@ -10916,7 +10916,7 @@ def loja_buscar_cliente():
             return jsonify({'success': True, 'clientes': []})
         r = supabase.table('clientes_varejo')\
             .select('id, nome, documento, telefone, email')\
-            .or_(f'nome.ilike.%{q}%,documento.ilike.%{q}%,telefone.ilike.%{q}%')\
+            .or_(f'nome.ilike.*{q}*,documento.ilike.*{q}*,telefone.ilike.*{q}*')\
             .limit(10).execute()
         return jsonify({'success': True, 'clientes': r.data or []})
     except Exception as e:
@@ -11270,10 +11270,7 @@ def clientes_listar():
         q = request.args.get('q', '').strip()
         query = supabase.table('clientes_varejo').select('*').order('nome')
         if q:
-            try:
-                query = query.or_(f'nome.ilike.%{q}%,documento.ilike.%{q}%,telefone.ilike.%{q}%')
-            except Exception:
-                pass
+            query = query.or_(f'nome.ilike.*{q}*,documento.ilike.*{q}*,telefone.ilike.*{q}*')
         r = query.limit(50).execute()
         return jsonify({'success': True, 'clientes': r.data or []})
     except Exception as e:
