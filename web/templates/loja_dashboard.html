@@ -983,6 +983,15 @@ async function criarOrdem() {
             toast(d.message, 'ok');
             if (d.aml_alertas?.length) d.aml_alertas.forEach(a => toast(`AML: ${a}`, 'warn'));
             setTimeout(()=>{ fecharDrawer(); carregarOrdens(); carregarStats(); }, 800);
+        } else if (d.kyc_blocked) {
+            const docLabels = {photo_id:'Photo ID',proof_address:'Proof of Address',source_funds:'Source of Funds',declaration:'Declaration Form',edd:'EDD Documents'};
+            const lista = (d.docs_missing||[]).map(k => `<li>${docLabels[k]||k}</li>`).join('');
+            msg.innerHTML = `<div style="background:rgba(224,27,36,.08);border:1px solid rgba(224,27,36,.3);border-radius:8px;padding:12px;margin-top:8px;">
+                <strong style="color:var(--cor-perigo);display:flex;align-items:center;gap:6px;"><i class="fas fa-ban"></i> Ordem bloqueada — KYC incompleto</strong>
+                ${lista ? `<ul style="margin:8px 0 0 16px;color:var(--cor-perigo);font-size:12px;line-height:1.8;">${lista}</ul>` : ''}
+                <p style="font-size:12px;color:var(--cor-texto-secundario);margin-top:8px;">Acesse o <a href="/loja/clientes" target="_blank" style="color:var(--cor-admin);">cadastro do cliente</a> para carregar os documentos.</p>
+            </div>`;
+            btn.disabled = false;
         } else {
             msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> ${d.message}</span>`;
             btn.disabled = false;

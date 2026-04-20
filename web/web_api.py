@@ -10973,13 +10973,56 @@ def loja_nova_ordem():
             if ins.data:
                 cliente_id = str(ins.data[0]['id'])
 
-        # AML check
+        # AML / KYC check
         aml_alertas = []
         kyc_level_na_ordem = 0
         if cliente_id:
             valor_gbp = valor_e if moeda_e == 'GBP' else (valor_e * 0.86 if moeda_e == 'EUR' else valor_e * 0.79)
             aml = _aml_check_order(cliente_id, valor_gbp)
             kyc_level_na_ordem = aml['kyc_level_required']
+
+            # --- KYC bloqueante ---
+            try:
+                r_kyc = supabase.table('clientes_varejo')\
+                    .select('doc_photo_id_ok,doc_address_ok,doc_source_funds_ok,doc_declaration_ok,doc_edd_ok,sanctions_flag,pep_flag')\
+                    .eq('id', cliente_id).single().execute()
+                c = r_kyc.data or {}
+
+                if c.get('sanctions_flag'):
+                    return jsonify({
+                        'success': False,
+                        'message': 'BLOQUEADO: cliente consta na lista de sanções. Contacte o MLRO imediatamente.',
+                        'kyc_blocked': True
+                    }), 403
+
+                doc_map = {
+                    'basic_info':    True,
+                    'photo_id':      bool(c.get('doc_photo_id_ok')),
+                    'proof_address': bool(c.get('doc_address_ok')),
+                    'source_funds':  bool(c.get('doc_source_funds_ok')),
+                    'declaration':   bool(c.get('doc_declaration_ok')),
+                    'edd':           bool(c.get('doc_edd_ok')),
+                }
+                doc_labels = {
+                    'photo_id': 'Photo ID',
+                    'proof_address': 'Proof of Address',
+                    'source_funds': 'Source of Funds',
+                    'declaration': 'Declaration Form',
+                    'edd': 'EDD Documents',
+                }
+                missing = [doc for doc in aml['docs_required'] if not doc_map.get(doc, False)]
+                if missing:
+                    missing_str = ', '.join(doc_labels.get(doc, doc) for doc in missing)
+                    return jsonify({
+                        'success': False,
+                        'message': f'KYC incompleto — documentos pendentes: {missing_str}',
+                        'kyc_blocked': True,
+                        'docs_missing': missing
+                    }), 403
+            except Exception:
+                pass  # falha no KYC check não bloqueia (log apenas)
+
+            # --- Alertas não-bloqueantes ---
             if aml.get('pep_screening') and not d.get('pep_screening_ok'):
                 aml_alertas.append('PEP_SCREENING_REQUIRED')
             if pais_destino and pais_destino in HIGH_RISK_COUNTRIES:
