@@ -10914,11 +10914,16 @@ def loja_buscar_cliente():
         q = request.args.get('q', '').strip()
         if not q:
             return jsonify({'success': True, 'clientes': []})
-        r = supabase.table('clientes_varejo')\
-            .select('id, nome, documento, telefone, email')\
-            .or_(f'nome.ilike.*{q}*,documento.ilike.*{q}*,telefone.ilike.*{q}*')\
-            .limit(10).execute()
-        return jsonify({'success': True, 'clientes': r.data or []})
+        seen, data = set(), []
+        for col in ['nome', 'documento', 'telefone']:
+            res = supabase.table('clientes_varejo').select('id, nome, documento, telefone, email')\
+                .ilike(col, f'*{q}*').limit(10).execute()
+            for item in (res.data or []):
+                if item['id'] not in seen:
+                    seen.add(item['id'])
+                    data.append(item)
+        data.sort(key=lambda x: x.get('nome', ''))
+        return jsonify({'success': True, 'clientes': data[:10]})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
@@ -11268,10 +11273,18 @@ def clientes_listar():
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
         q = request.args.get('q', '').strip()
-        query = supabase.table('clientes_varejo').select('*').order('nome')
         if q:
-            query = query.or_(f'nome.ilike.*{q}*,documento.ilike.*{q}*,telefone.ilike.*{q}*')
-        r = query.limit(50).execute()
+            seen, data = set(), []
+            for col in ['nome', 'documento', 'telefone']:
+                res = supabase.table('clientes_varejo').select('*')\
+                    .ilike(col, f'*{q}*').limit(50).execute()
+                for item in (res.data or []):
+                    if item['id'] not in seen:
+                        seen.add(item['id'])
+                        data.append(item)
+            data.sort(key=lambda x: x.get('nome', ''))
+            return jsonify({'success': True, 'clientes': data[:50]})
+        r = supabase.table('clientes_varejo').select('*').order('nome').limit(50).execute()
         return jsonify({'success': True, 'clientes': r.data or []})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
