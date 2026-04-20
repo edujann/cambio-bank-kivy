@@ -704,9 +704,14 @@ async function s1BuscarCliente() {
         try {
             const r = await fetch(`/api/clientes?q=${encodeURIComponent(q)}`);
             const d = await r.json();
+            if (!d.success) {
+                dd.innerHTML = `<div class="fc-dd-item" style="color:var(--cor-perigo);font-size:12px;"><i class="fas fa-exclamation-circle"></i> Erro: ${d.message}</div>`;
+                dd.style.display = 'block';
+                return;
+            }
             const lista = d.clientes || [];
             if (!lista.length) {
-                dd.innerHTML = `<div class="fc-dd-item" onclick="s1UsarNovo()"><i class="fas fa-user-plus"></i> Cadastrar "<strong>${q}</strong>" como novo cliente</div>`;
+                dd.innerHTML = `<div class="fc-dd-item" onclick="s1UsarNovo()"><i class="fas fa-user-plus"></i> Nenhum resultado para "<strong>${q}</strong>" — cadastrar novo</div>`;
                 dd.style.display = 'block';
                 return;
             }
@@ -717,7 +722,10 @@ async function s1BuscarCliente() {
                 </div>`).join('') +
                 `<div class="fc-dd-item" style="border-top:1px solid var(--cor-borda);" onclick="s1UsarNovo()"><i class="fas fa-user-plus"></i> Cadastrar novo cliente</div>`;
             dd.style.display = 'block';
-        } catch(e){}
+        } catch(e) {
+            dd.innerHTML = `<div class="fc-dd-item" style="color:var(--cor-perigo);font-size:12px;">${e.message}</div>`;
+            dd.style.display = 'block';
+        }
     }, 300);
 }
 

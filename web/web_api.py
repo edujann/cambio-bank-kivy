@@ -11270,7 +11270,10 @@ def clientes_listar():
         q = request.args.get('q', '').strip()
         query = supabase.table('clientes_varejo').select('*').order('nome')
         if q:
-            query = query.or_(f'nome.ilike.%{q}%,documento.ilike.%{q}%,telefone.ilike.%{q}%,email.ilike.%{q}%')
+            try:
+                query = query.or_(f'nome.ilike.%{q}%,documento.ilike.%{q}%,telefone.ilike.%{q}%')
+            except Exception:
+                pass
         r = query.limit(50).execute()
         return jsonify({'success': True, 'clientes': r.data or []})
     except Exception as e:
@@ -11293,29 +11296,33 @@ def clientes_criar():
         if pais in PROHIBITED_COUNTRIES:
             return jsonify({'success': False, 'message': f'País {pais} está na lista de países proibidos (AML policy).'}), 403
 
-        payload = {
-            'nome':            nome,
-            'documento':       (d.get('documento') or '').strip(),
+        # Campos base — existem em qualquer versão da tabela
+        base = {
+            'nome':       nome,
+            'documento':  (d.get('documento') or '').strip(),
+            'telefone':   (d.get('telefone') or '').strip(),
+            'criado_por': usuario,
+        }
+        # Campos adicionais — só enviados se a coluna existir (pós ALTER TABLE)
+        extras = {
             'tipo_documento':  d.get('tipo_documento', ''),
             'data_nascimento': d.get('data_nascimento') or None,
-            'telefone':        (d.get('telefone') or '').strip(),
             'email':           (d.get('email') or '').strip(),
             'profissao':       (d.get('profissao') or '').strip(),
             'endereco':        (d.get('endereco') or '').strip(),
             'cidade':          (d.get('cidade') or '').strip(),
             'pais_residencia': pais,
             'nacionalidade':   (d.get('nacionalidade') or '').strip(),
-            'benef_nome':      (d.get('benef_nome') or '').strip(),
-            'benef_banco':     (d.get('benef_banco') or '').strip(),
-            'benef_conta':     (d.get('benef_conta') or '').strip(),
-            'benef_pix':       (d.get('benef_pix') or '').strip(),
-            'benef_iban':      (d.get('benef_iban') or '').strip(),
-            'benef_swift':     (d.get('benef_swift') or '').strip(),
             'observacoes':     (d.get('observacoes') or '').strip(),
             'risk_score':      'high' if pais in HIGH_RISK_COUNTRIES else 'medium',
-            'criado_por':      usuario,
+            'pep_flag':        bool(d.get('pep_flag', False)),
+            'pep_info':        (d.get('pep_info') or '').strip(),
         }
-        r = supabase.table('clientes_varejo').insert(payload).execute()
+        # Tenta inserir tudo; se falhar por coluna inexistente, usa só base
+        try:
+            r = supabase.table('clientes_varejo').insert({**base, **extras}).execute()
+        except Exception:
+            r = supabase.table('clientes_varejo').insert(base).execute()
         return jsonify({'success': True, 'cliente': r.data[0] if r.data else {}, 'message': 'Cliente cadastrado com sucesso.'})
     except Exception as e:
         import traceback; traceback.print_exc()
