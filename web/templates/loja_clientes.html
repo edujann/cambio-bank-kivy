@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cambio Bank — Clientes</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+        :root{
+            --bg:#0a0e15;--card:#0d1117;--border:#1e232e;
+            --text:#e0e0e0;--muted:#8b949e;
+            --blue:#1a5fb4;--green:#2ec27e;--yellow:#f39c12;--red:#e01b24;
+            --r:12px;--rs:8px;
+        }
+        body{background:var(--bg);color:var(--text);min-height:100vh;}
+        .container{max-width:1200px;margin:0 auto;padding:20px;}
+        .header{display:flex;justify-content:space-between;align-items:center;padding:18px 0;margin-bottom:24px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:12px;}
+        .logo{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:bold;}
+        .logo i{color:var(--blue);font-size:24px;}
+        .logo-text{background:linear-gradient(90deg,var(--blue),#2d8fff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+        .btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:var(--rs);border:none;cursor:pointer;font-size:13px;font-weight:600;text-decoration:none;transition:.2s;}
+        .btn-primary{background:var(--blue);color:#fff;}
+        .btn-primary:hover{background:#1c71d8;}
+        .btn-ghost{background:rgba(26,95,180,.12);border:1px solid var(--blue);color:var(--blue);}
+        .btn-ghost:hover{background:rgba(26,95,180,.25);}
+        .btn-sm{padding:5px 12px;font-size:12px;}
+        .btn-danger{background:rgba(224,27,36,.15);border:1px solid var(--red);color:var(--red);}
+
+        /* Search bar */
+        .search-bar{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;}
+        .search-input{flex:1;min-width:200px;background:var(--card);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:var(--rs);font-size:14px;outline:none;}
+        .search-input:focus{border-color:var(--blue);}
+
+        /* Table */
+        .section{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:20px;}
+        .section-hd{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+        .section-hd h3{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;}
+        .table-wrap{overflow-x:auto;}
+        table{width:100%;border-collapse:collapse;font-size:13px;}
+        th{background:rgba(255,255,255,.04);color:var(--muted);padding:10px 14px;text-align:left;font-weight:600;font-size:12px;white-space:nowrap;}
+        td{padding:10px 14px;border-top:1px solid var(--border);white-space:nowrap;vertical-align:middle;}
+        tr:hover td{background:rgba(255,255,255,.02);}
+        .badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+        .badge-ok{background:rgba(46,194,126,.15);color:#2ec27e;}
+        .badge-warn{background:rgba(243,156,18,.15);color:#f39c12;}
+        .badge-danger{background:rgba(224,27,36,.15);color:#e01b24;}
+        .badge-muted{background:rgba(255,255,255,.06);color:var(--muted);}
+        .kyc-dots{display:flex;gap:4px;align-items:center;}
+        .kyc-dot{width:10px;height:10px;border-radius:50%;background:var(--border);}
+        .kyc-dot.ok{background:var(--green);}
+        .kyc-dot.warn{background:var(--yellow);}
+        .no-data{padding:40px;text-align:center;color:var(--muted);}
+
+        /* Modal */
+        .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;justify-content:center;align-items:flex-start;overflow-y:auto;padding:20px;}
+        .modal-overlay.open{display:flex;}
+        .modal{background:var(--card);border:1px solid var(--border);border-radius:var(--r);width:100%;max-width:680px;margin:auto;}
+        .modal-hd{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);}
+        .modal-hd h3{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;}
+        .modal-body{padding:20px;}
+        .modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;}
+        .close-btn{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:18px;}
+        .close-btn:hover{color:var(--text);}
+        .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+        .form-grid-3{grid-template-columns:1fr 1fr 1fr;}
+        .form-full{grid-column:1/-1;}
+        .form-group label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;font-weight:600;}
+        .form-control{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:var(--rs);font-size:14px;outline:none;transition:.2s;}
+        .form-control:focus{border-color:var(--blue);}
+        select.form-control option{background:var(--card);}
+        .section-label{font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--border);}
+        .section-label:first-child{margin-top:0;}
+
+        /* Detail panel */
+        .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+        .detail-item label{font-size:11px;color:var(--muted);display:block;margin-bottom:2px;font-weight:600;}
+        .detail-item span{font-size:13px;}
+        .aml-panel{background:rgba(26,95,180,.06);border:1px solid rgba(26,95,180,.2);border-radius:var(--rs);padding:12px 16px;margin-bottom:14px;}
+        .aml-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:13px;}
+        .aml-row:last-child{margin-bottom:0;}
+        .doc-list{display:flex;flex-direction:column;gap:8px;}
+        .doc-item{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:var(--rs);font-size:13px;}
+        .doc-item.ok{border-color:rgba(46,194,126,.3);}
+        .doc-item.missing{border-color:rgba(243,156,18,.3);}
+        .doc-status{display:flex;align-items:center;gap:6px;}
+        .orders-mini{font-size:12px;}
+        .orders-mini td,.orders-mini th{padding:7px 10px;}
+
+        /* Toast */
+        .toast{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
+        .toast-item{padding:12px 18px;border-radius:var(--rs);font-size:13px;font-weight:600;min-width:260px;animation:slideIn .2s ease;}
+        .toast-ok{background:#1a3a2a;border:1px solid var(--green);color:var(--green);}
+        .toast-err{background:#3a1a1a;border:1px solid var(--red);color:var(--red);}
+        @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:none;opacity:1}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="logo">
+            <i class="fas fa-university"></i>
+            <span class="logo-text">Cambio Bank</span>
+            <span style="color:var(--muted);font-size:14px;font-weight:400;">/ Clientes</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="/loja/dashboard" class="btn btn-ghost btn-sm"><i class="fas fa-arrow-left"></i> Voltar</a>
+            <button class="btn btn-primary" onclick="abrirModalNovo()"><i class="fas fa-user-plus"></i> Novo Cliente</button>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <div class="search-bar">
+        <input type="text" id="searchInput" class="search-input" placeholder="Buscar por nome, documento, telefone ou email..." oninput="buscarClientes()">
+        <button class="btn btn-ghost" onclick="buscarClientes()"><i class="fas fa-search"></i> Buscar</button>
+    </div>
+
+    <!-- Tabela de clientes -->
+    <div class="section">
+        <div class="section-hd">
+            <h3><i class="fas fa-users"></i> Clientes Cadastrados</h3>
+            <span id="totalClientes" style="font-size:12px;color:var(--muted);">—</span>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Documento</th>
+                        <th>Telefone</th>
+                        <th>País</th>
+                        <th>KYC Docs</th>
+                        <th>Risco</th>
+                        <th>90d (GBP)</th>
+                        <th>Flags</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="tbClientes">
+                    <tr><td colspan="9" class="no-data"><i class="fas fa-spinner fa-spin"></i> Carregando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Novo/Editar Cliente -->
+<div class="modal-overlay" id="modalCliente">
+    <div class="modal">
+        <div class="modal-hd">
+            <h3 id="modalClienteTitulo"><i class="fas fa-user-plus"></i> Novo Cliente</h3>
+            <button class="close-btn" onclick="fecharModal('modalCliente')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="clienteId">
+            <p class="section-label">Dados Pessoais</p>
+            <div class="form-grid">
+                <div class="form-group form-full">
+                    <label>Nome Completo *</label>
+                    <input type="text" id="cNome" class="form-control" placeholder="Nome completo">
+                </div>
+                <div class="form-group">
+                    <label>Data de Nascimento</label>
+                    <input type="date" id="cDob" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Telefone</label>
+                    <input type="text" id="cTelefone" class="form-control" placeholder="+44 7xxx xxxxxx">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="cEmail" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Profissão</label>
+                    <input type="text" id="cProfissao" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Nacionalidade</label>
+                    <input type="text" id="cNacionalidade" class="form-control" placeholder="ex: Brazilian">
+                </div>
+                <div class="form-group">
+                    <label>País de Residência</label>
+                    <select id="cPais" class="form-control">
+                        <option value="GB">Reino Unido (GB)</option>
+                        <option value="BR">Brasil (BR)</option>
+                        <option value="PT">Portugal (PT)</option>
+                        <option value="US">Estados Unidos (US)</option>
+                        <option value="DE">Alemanha (DE)</option>
+                        <option value="FR">França (FR)</option>
+                        <option value="IT">Itália (IT)</option>
+                        <option value="ES">Espanha (ES)</option>
+                        <option value="OTHER">Outro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Endereço (Linha 1)</label>
+                    <input type="text" id="cEndereco" class="form-control" placeholder="Número, rua">
+                </div>
+                <div class="form-group">
+                    <label>Cidade / Postcode</label>
+                    <input type="text" id="cCidade" class="form-control" placeholder="London E1 1AA">
+                </div>
+            </div>
+
+            <p class="section-label">Documento de Identidade</p>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Tipo de Documento</label>
+                    <select id="cTipoDoc" class="form-control">
+                        <option value="">Selecionar...</option>
+                        <option value="uk_driving_license">UK Driving Licence</option>
+                        <option value="uk_provisional">UK Provisional Licence</option>
+                        <option value="passport_eu">EU/Non-UK Passport + UK Visa</option>
+                        <option value="passport_non_eu">Non-EU Passport + UK Valid Visa</option>
+                        <option value="travel_document">Travel Document</option>
+                        <option value="uk_visa_work">UK Visa with Work Permit</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Número do Documento</label>
+                    <input type="text" id="cDocumento" class="form-control" placeholder="Número">
+                </div>
+            </div>
+
+            <p class="section-label">Beneficiário Padrão — Brasil (BRL)</p>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Nome do Beneficiário</label>
+                    <input type="text" id="cBenefNome" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>CPF do Beneficiário</label>
+                    <input type="text" id="cBenefCpf" class="form-control" placeholder="000.000.000-00">
+                </div>
+                <div class="form-group">
+                    <label>Banco</label>
+                    <input type="text" id="cBenefBanco" class="form-control" placeholder="ex: Nubank / 260">
+                </div>
+                <div class="form-group">
+                    <label>Conta / Agência</label>
+                    <input type="text" id="cBenefConta" class="form-control" placeholder="Ag. 0001 / CC 12345-6">
+                </div>
+                <div class="form-group form-full">
+                    <label>Chave PIX</label>
+                    <input type="text" id="cBenefPix" class="form-control" placeholder="CPF, email, telefone ou chave aleatória">
+                </div>
+            </div>
+
+            <p class="section-label">Beneficiário Padrão — Europa (SEPA/IBAN)</p>
+            <div class="form-grid">
+                <div class="form-group form-full">
+                    <label>IBAN</label>
+                    <input type="text" id="cBenefIban" class="form-control" placeholder="GB29 NWBK 6016 1331 9268 19">
+                </div>
+                <div class="form-group">
+                    <label>BIC / SWIFT</label>
+                    <input type="text" id="cBenefSwift" class="form-control" placeholder="NWBKGB2L">
+                </div>
+            </div>
+
+            <p class="section-label">Flags AML</p>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>PEP (Politically Exposed Person)</label>
+                    <select id="cPepFlag" class="form-control">
+                        <option value="false">Não</option>
+                        <option value="true">Sim — PEP identificado</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Nível de Risco</label>
+                    <select id="cRiskScore" class="form-control">
+                        <option value="medium">Médio (padrão)</option>
+                        <option value="high">Alto</option>
+                    </select>
+                </div>
+                <div class="form-group form-full">
+                    <label>Info PEP / Observações</label>
+                    <input type="text" id="cPepInfo" class="form-control" placeholder="Descrição se PEP ou observações gerais">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="fecharModal('modalCliente')">Cancelar</button>
+            <button class="btn btn-primary" onclick="salvarCliente()"><i class="fas fa-save"></i> Salvar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Detalhe do Cliente -->
+<div class="modal-overlay" id="modalDetalhe">
+    <div class="modal" style="max-width:780px;">
+        <div class="modal-hd">
+            <h3 id="detalheNome"><i class="fas fa-user"></i> —</h3>
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-ghost btn-sm" id="btnEditarDetalhe" onclick="editarCliente()"><i class="fas fa-edit"></i> Editar</button>
+                <button class="close-btn" onclick="fecharModal('modalDetalhe')"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <div class="modal-body" id="detalheBody">
+            <div style="text-align:center;padding:30px;color:var(--muted);">Carregando...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast" id="toastContainer"></div>
+
+<script>
+let clienteAtual = null;
+
+// ---- Busca ----
+let searchTimer;
+function buscarClientes() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(_buscar, 350);
+}
+
+async function _buscar() {
+    const q = document.getElementById('searchInput').value.trim();
+    try {
+        const r = await fetch(`/api/clientes?q=${encodeURIComponent(q)}`);
+        const data = await r.json();
+        if (data.success) renderTabela(data.clientes);
+    } catch(e) {
+        toast('Erro ao buscar clientes', 'err');
+    }
+}
+
+function renderTabela(clientes) {
+    const tb = document.getElementById('tbClientes');
+    document.getElementById('totalClientes').textContent = `${clientes.length} cliente(s)`;
+    if (!clientes.length) {
+        tb.innerHTML = '<tr><td colspan="9" class="no-data">Nenhum cliente encontrado</td></tr>';
+        return;
+    }
+    tb.innerHTML = clientes.map(c => {
+        const risco = c.risk_score === 'high'
+            ? `<span class="badge badge-danger"><i class="fas fa-exclamation-triangle"></i> Alto</span>`
+            : `<span class="badge badge-warn">Médio</span>`;
+        const flags = [];
+        if (c.pep_flag) flags.push('<span class="badge badge-danger">PEP</span>');
+        if (c.sanctions_flag) flags.push('<span class="badge badge-danger">SANCOES</span>');
+        const docs = [
+            {ok: c.doc_photo_id_ok, label: 'ID'},
+            {ok: c.doc_address_ok, label: 'Addr'},
+            {ok: c.doc_source_funds_ok, label: 'SoF'},
+            {ok: c.doc_declaration_ok, label: 'Decl'},
+            {ok: c.doc_edd_ok, label: 'EDD'},
+        ];
+        const dotsHtml = '<div class="kyc-dots">' + docs.map(d =>
+            `<div class="kyc-dot ${d.ok ? 'ok' : ''}" title="${d.label}: ${d.ok ? 'OK' : 'Pendente'}"></div>`
+        ).join('') + '</div>';
+        const total90 = parseFloat(c.total_90d || 0).toFixed(0);
+        return `<tr>
+            <td style="font-weight:600;">${c.nome}</td>
+            <td style="color:var(--muted);">${c.documento || '—'}</td>
+            <td>${c.telefone || '—'}</td>
+            <td><span class="badge badge-muted">${c.pais_residencia || 'GB'}</span></td>
+            <td>${dotsHtml}</td>
+            <td>${risco}</td>
+            <td>£${total90}</td>
+            <td>${flags.join(' ') || '<span style="color:var(--muted);font-size:11px;">OK</span>'}</td>
+            <td>
+                <button class="btn btn-ghost btn-sm" onclick="verDetalhe('${c.id}')"><i class="fas fa-eye"></i></button>
+                <button class="btn btn-ghost btn-sm" onclick="editarClienteById('${c.id}', ${JSON.stringify(c).replace(/"/g,'&quot;')})" style="margin-left:4px"><i class="fas fa-edit"></i></button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+// ---- Detalhe ----
+async function verDetalhe(id) {
+    document.getElementById('detalheBody').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);"><i class="fas fa-spinner fa-spin"></i></div>';
+    document.getElementById('detalheNome').innerHTML = '<i class="fas fa-user"></i> Carregando...';
+    document.getElementById('modalDetalhe').classList.add('open');
+    document.getElementById('btnEditarDetalhe').setAttribute('data-id', id);
+    try {
+        const r = await fetch(`/api/clientes/${id}`);
+        const data = await r.json();
+        if (data.success) renderDetalhe(data.cliente);
+        else toast(data.message, 'err');
+    } catch(e) {
+        toast('Erro ao carregar cliente', 'err');
+    }
+}
+
+function renderDetalhe(c) {
+    clienteAtual = c;
+    document.getElementById('detalheNome').innerHTML = `<i class="fas fa-user"></i> ${c.nome}`;
+    const aml = c.aml || {};
+    const total90 = (c.total_90d_calc || 0).toFixed(2);
+    const kycReq = aml.kyc_level_required || 0;
+    const kycLabels = ['Basic Info apenas', 'Basic Info + Photo ID + Proof of Address',
+        'Basic Info + Photo ID + Address + Source of Funds',
+        'Full KYC + EDD (£3.5k-£5k)', 'Full KYC + EDD (acima £5k)'];
+
+    const docItems = [
+        {key:'photo_id', label:'Photo ID', ok: c.doc_photo_id_ok},
+        {key:'proof_address', label:'Proof of Address', ok: c.doc_address_ok},
+        {key:'source_funds', label:'Source of Funds', ok: c.doc_source_funds_ok},
+        {key:'declaration', label:'Declaration Form', ok: c.doc_declaration_ok},
+        {key:'edd', label:'EDD Documents', ok: c.doc_edd_ok},
+    ];
+
+    const ordensHtml = (c.ordens||[]).slice(0,5).map(o =>
+        `<tr><td>${(o.data||'').substring(0,10)}</td><td>${o.moeda_entrada} ${o.valor_entrada}</td><td>${o.moeda_saida} ${o.valor_saida}</td><td><span class="badge badge-${o.status==='paga'?'ok':o.status==='cancelada'?'danger':'warn'}">${o.status}</span></td></tr>`
+    ).join('') || '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:10px;">Nenhuma ordem</td></tr>';
+
+    document.getElementById('detalheBody').innerHTML = `
+        <div class="aml-panel">
+            <div class="aml-row">
+                <span><i class="fas fa-chart-line" style="color:var(--blue);margin-right:6px;"></i> Total 90 dias (GBP)</span>
+                <strong>£${total90}</strong>
+            </div>
+            <div class="aml-row">
+                <span><i class="fas fa-shield-alt" style="color:var(--blue);margin-right:6px;"></i> KYC Nível Requerido</span>
+                <strong>Nível ${kycReq} — ${kycLabels[kycReq] || ''}</strong>
+            </div>
+            <div class="aml-row">
+                <span><i class="fas fa-user-secret" style="color:${c.pep_flag?'var(--red)':'var(--muted)'};margin-right:6px;"></i> PEP</span>
+                <span class="badge ${c.pep_flag?'badge-danger':'badge-ok'}">${c.pep_flag?'PEP IDENTIFICADO':'Negativo'}</span>
+            </div>
+            <div class="aml-row">
+                <span><i class="fas fa-ban" style="color:${c.sanctions_flag?'var(--red)':'var(--muted)'};margin-right:6px;"></i> Sanções</span>
+                <span class="badge ${c.sanctions_flag?'badge-danger':'badge-ok'}">${c.sanctions_flag?'SANCTIONED':'Limpo'}</span>
+            </div>
+            <div class="aml-row">
+                <span><i class="fas fa-exclamation-triangle" style="color:var(--yellow);margin-right:6px;"></i> Risco</span>
+                <span class="badge ${c.risk_score==='high'?'badge-danger':'badge-warn'}">${c.risk_score==='high'?'Alto':'Médio'}</span>
+            </div>
+            ${aml.pep_screening?'<div class="aml-row" style="color:var(--yellow);"><i class="fas fa-bell" style="margin-right:6px;"></i> PEP Screening obrigatório (acumulado ≥ £2.000)</div>':''}
+        </div>
+
+        <p class="section-label">Documentos KYC</p>
+        <div class="doc-list">
+            ${docItems.map(d => `
+                <div class="doc-item ${d.ok?'ok':'missing'}">
+                    <span><i class="fas fa-${d.ok?'check-circle':'clock'}" style="color:${d.ok?'var(--green)':'var(--yellow)'};margin-right:8px;"></i>${d.label}</span>
+                    <div class="doc-status">
+                        <span class="badge ${d.ok?'badge-ok':'badge-warn'}">${d.ok?'Validado':'Pendente'}</span>
+                        ${!d.ok?`<button class="btn btn-ghost btn-sm" onclick="marcarDocOk('${c.id}','${d.key}')"><i class="fas fa-check"></i> Marcar OK</button>`:''}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+
+        <p class="section-label" style="margin-top:18px;">Últimas Ordens</p>
+        <div class="table-wrap">
+            <table class="orders-mini">
+                <thead><tr><th>Data</th><th>Entrada</th><th>Saída</th><th>Status</th></tr></thead>
+                <tbody>${ordensHtml}</tbody>
+            </table>
+        </div>
+
+        <p class="section-label" style="margin-top:18px;">Dados Pessoais</p>
+        <div class="detail-grid">
+            <div class="detail-item"><label>DOB</label><span>${c.data_nascimento||'—'}</span></div>
+            <div class="detail-item"><label>Profissão</label><span>${c.profissao||'—'}</span></div>
+            <div class="detail-item"><label>Email</label><span>${c.email||'—'}</span></div>
+            <div class="detail-item"><label>Tipo Doc</label><span>${c.tipo_documento||'—'}</span></div>
+            <div class="detail-item"><label>Endereço</label><span>${c.endereco||'—'}</span></div>
+            <div class="detail-item"><label>Cidade</label><span>${c.cidade||'—'}</span></div>
+            <div class="detail-item"><label>Beneficiário Padrão</label><span>${c.benef_nome||'—'}</span></div>
+            <div class="detail-item"><label>PIX</label><span>${c.benef_pix||'—'}</span></div>
+            <div class="detail-item"><label>IBAN</label><span>${c.benef_iban||'—'}</span></div>
+            <div class="detail-item"><label>SWIFT</label><span>${c.benef_swift||'—'}</span></div>
+        </div>
+    `;
+}
+
+async function marcarDocOk(clienteId, tipoDoc) {
+    try {
+        const r = await fetch(`/api/clientes/${clienteId}/documentos`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({tipo: tipoDoc, arquivo_nome: 'Manual validation', observacao: 'Marcado OK pelo operador'})
+        });
+        const data = await r.json();
+        if (data.success) {
+            toast('Documento marcado como validado', 'ok');
+            verDetalhe(clienteId);
+        } else {
+            toast(data.message, 'err');
+        }
+    } catch(e) {
+        toast('Erro ao marcar documento', 'err');
+    }
+}
+
+function editarCliente() {
+    if (clienteAtual) editarClienteById(clienteAtual.id, clienteAtual);
+}
+
+// ---- Novo / Editar ----
+function abrirModalNovo() {
+    clienteAtual = null;
+    document.getElementById('clienteId').value = '';
+    document.getElementById('modalClienteTitulo').innerHTML = '<i class="fas fa-user-plus"></i> Novo Cliente';
+    ['cNome','cDob','cTelefone','cEmail','cProfissao','cNacionalidade','cEndereco','cCidade',
+     'cDocumento','cBenefNome','cBenefCpf','cBenefBanco','cBenefConta','cBenefPix','cBenefIban','cBenefSwift','cPepInfo'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    document.getElementById('cPais').value = 'GB';
+    document.getElementById('cTipoDoc').value = '';
+    document.getElementById('cPepFlag').value = 'false';
+    document.getElementById('cRiskScore').value = 'medium';
+    document.getElementById('modalCliente').classList.add('open');
+}
+
+function editarClienteById(id, c) {
+    fecharModal('modalDetalhe');
+    document.getElementById('clienteId').value = id;
+    document.getElementById('modalClienteTitulo').innerHTML = '<i class="fas fa-edit"></i> Editar Cliente';
+    document.getElementById('cNome').value = c.nome || '';
+    document.getElementById('cDob').value = c.data_nascimento || '';
+    document.getElementById('cTelefone').value = c.telefone || '';
+    document.getElementById('cEmail').value = c.email || '';
+    document.getElementById('cProfissao').value = c.profissao || '';
+    document.getElementById('cNacionalidade').value = c.nacionalidade || '';
+    document.getElementById('cEndereco').value = c.endereco || '';
+    document.getElementById('cCidade').value = c.cidade || '';
+    document.getElementById('cPais').value = c.pais_residencia || 'GB';
+    document.getElementById('cTipoDoc').value = c.tipo_documento || '';
+    document.getElementById('cDocumento').value = c.documento || '';
+    document.getElementById('cBenefNome').value = c.benef_nome || '';
+    document.getElementById('cBenefBanco').value = c.benef_banco || '';
+    document.getElementById('cBenefConta').value = c.benef_conta || '';
+    document.getElementById('cBenefPix').value = c.benef_pix || '';
+    document.getElementById('cBenefIban').value = c.benef_iban || '';
+    document.getElementById('cBenefSwift').value = c.benef_swift || '';
+    document.getElementById('cPepFlag').value = c.pep_flag ? 'true' : 'false';
+    document.getElementById('cRiskScore').value = c.risk_score || 'medium';
+    document.getElementById('cPepInfo').value = c.pep_info || c.observacoes || '';
+    document.getElementById('modalCliente').classList.add('open');
+}
+
+async function salvarCliente() {
+    const id = document.getElementById('clienteId').value;
+    const nome = document.getElementById('cNome').value.trim();
+    if (!nome) { toast('Nome obrigatório', 'err'); return; }
+    const payload = {
+        nome,
+        data_nascimento: document.getElementById('cDob').value || null,
+        telefone: document.getElementById('cTelefone').value.trim(),
+        email: document.getElementById('cEmail').value.trim(),
+        profissao: document.getElementById('cProfissao').value.trim(),
+        nacionalidade: document.getElementById('cNacionalidade').value.trim(),
+        endereco: document.getElementById('cEndereco').value.trim(),
+        cidade: document.getElementById('cCidade').value.trim(),
+        pais_residencia: document.getElementById('cPais').value,
+        tipo_documento: document.getElementById('cTipoDoc').value,
+        documento: document.getElementById('cDocumento').value.trim(),
+        benef_nome: document.getElementById('cBenefNome').value.trim(),
+        benef_banco: document.getElementById('cBenefBanco').value.trim(),
+        benef_conta: document.getElementById('cBenefConta').value.trim(),
+        benef_pix: document.getElementById('cBenefPix').value.trim(),
+        benef_iban: document.getElementById('cBenefIban').value.trim(),
+        benef_swift: document.getElementById('cBenefSwift').value.trim(),
+        pep_flag: document.getElementById('cPepFlag').value === 'true',
+        risk_score: document.getElementById('cRiskScore').value,
+        pep_info: document.getElementById('cPepInfo').value.trim(),
+    };
+    try {
+        const url = id ? `/api/clientes/${id}` : '/api/clientes';
+        const method = id ? 'PUT' : 'POST';
+        const r = await fetch(url, {method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+        const data = await r.json();
+        if (data.success) {
+            toast(data.message, 'ok');
+            fecharModal('modalCliente');
+            _buscar();
+        } else {
+            toast(data.message, 'err');
+        }
+    } catch(e) {
+        toast('Erro ao salvar cliente', 'err');
+    }
+}
+
+// ---- Utils ----
+function fecharModal(id) {
+    document.getElementById(id).classList.remove('open');
+}
+
+function toast(msg, tipo) {
+    const c = document.getElementById('toastContainer');
+    const el = document.createElement('div');
+    el.className = `toast-item toast-${tipo}`;
+    el.innerHTML = `<i class="fas fa-${tipo==='ok'?'check-circle':'exclamation-circle'}"></i> ${msg}`;
+    c.appendChild(el);
+    setTimeout(() => el.remove(), 4000);
+}
+
+// Fechar modal clicando fora
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', function(e) {
+        if (e.target === this) this.classList.remove('open');
+    });
+});
+
+// Carga inicial
+_buscar();
+</script>
+</body>
+</html>

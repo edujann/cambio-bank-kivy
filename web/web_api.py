@@ -10873,6 +10873,14 @@ def loja_dashboard():
     return render_template('loja_dashboard.html', usuario=usuario, tipo=tipo, loja=loja)
 
 
+@app.route('/loja/clientes')
+def loja_clientes():
+    usuario, tipo, redir = _check_loja_acesso()
+    if redir:
+        return redir
+    return render_template('loja_clientes.html', usuario=usuario, tipo=tipo)
+
+
 @app.route('/api/loja/contas-empresa', methods=['GET'])
 def loja_contas_empresa():
     usuario, tipo, redir = _check_loja_acesso()
@@ -10938,6 +10946,14 @@ def loja_nova_ordem():
         valor_s = round(valor_e * taxa, 4)
         status  = 'on_hold' if forma == 'transferencia' else 'liberada'
 
+        # Destino
+        tipo_destino = d.get('tipo_destino', 'brazil')
+        pais_destino = (d.get('pais_destino') or '').upper()[:2]
+
+        # Verificar país proibido
+        if pais_destino and pais_destino in PROHIBITED_COUNTRIES:
+            return jsonify({'success': False, 'message': f'País de destino "{pais_destino}" está na lista de países proibidos (AML Policy).'}), 403
+
         # Salvar ou criar cliente
         cliente_id   = d.get('cliente_id')
         cliente_nome = d.get('cliente_nome', '').strip()
@@ -10951,6 +10967,20 @@ def loja_nova_ordem():
             }).execute()
             if ins.data:
                 cliente_id = str(ins.data[0]['id'])
+
+        # AML check
+        aml_alertas = []
+        kyc_level_na_ordem = 0
+        if cliente_id:
+            valor_gbp = valor_e if moeda_e == 'GBP' else (valor_e * 0.86 if moeda_e == 'EUR' else valor_e * 0.79)
+            aml = _aml_check_order(cliente_id, valor_gbp)
+            kyc_level_na_ordem = aml['kyc_level_required']
+            if aml.get('pep_screening') and not d.get('pep_screening_ok'):
+                aml_alertas.append('PEP_SCREENING_REQUIRED')
+            if pais_destino and pais_destino in HIGH_RISK_COUNTRIES:
+                aml_alertas.append('HIGH_RISK_COUNTRY_EDD')
+            if forma == 'cash':
+                aml_alertas.append('CASH_EDD')
 
         ordem = {
             'data': datetime.now().isoformat(),
@@ -10967,12 +10997,19 @@ def loja_nova_ordem():
             'taxa_cobrada': taxa,
             'moeda_saida': moeda_s,
             'valor_saida': valor_s,
+            'tipo_destino': tipo_destino,
+            'pais_destino': pais_destino or None,
             'beneficiario_nome': d.get('beneficiario_nome', ''),
             'beneficiario_banco': d.get('beneficiario_banco', ''),
             'beneficiario_agencia': d.get('beneficiario_agencia', ''),
             'beneficiario_conta': d.get('beneficiario_conta', ''),
             'beneficiario_cpf': d.get('beneficiario_cpf', ''),
             'beneficiario_pix': d.get('beneficiario_pix', ''),
+            'benef_iban': d.get('benef_iban', ''),
+            'benef_swift': d.get('benef_swift', ''),
+            'benef_routing': d.get('benef_routing', ''),
+            'kyc_level_na_ordem': kyc_level_na_ordem,
+            'aml_alertas': ','.join(aml_alertas) if aml_alertas else None,
             'criado_por': usuario,
             'observacoes': d.get('observacoes', ''),
         }
@@ -10997,8 +11034,10 @@ def loja_nova_ordem():
                     'created_at': datetime.now().isoformat()
                 }).execute()
 
-        return jsonify({'success': True, 'message': f'Ordem criada — {valor_e} {moeda_e} → {valor_s} {moeda_s}',
-                        'ordem_id': ordem_id, 'status': status, 'valor_saida': valor_s})
+        msg = f'Ordem criada — {valor_e} {moeda_e} → {valor_s} {moeda_s}'
+        return jsonify({'success': True, 'message': msg, 'ordem_id': ordem_id,
+                        'status': status, 'valor_saida': valor_s,
+                        'aml_alertas': aml_alertas, 'kyc_level': kyc_level_na_ordem})
     except Exception as e:
         import traceback; traceback.print_exc()
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -11148,6 +11187,309 @@ def loja_confirmar_pagamento(ordem_id):
         return jsonify({'success': True, 'message': 'Pagamento confirmado. Extrato do parceiro atualizado.'})
     except Exception as e:
         import traceback; traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================
+# AML / CLIENTES / LOJAS
+# ============================================
+
+PROHIBITED_COUNTRIES = {
+    'BY','BA','CU','KP','CD','GN','GW','HT','IR','IL','LB','LY','ML','MM',
+    'NI','RU','SO','SS','VE','YE','ZW'
+}
+HIGH_RISK_COUNTRIES = {
+    'DZ','AO','BO','VG','BG','BF','CM','CI','KP','CD','HT','IR','KE','LA',
+    'LB','MC','MZ','MM','NA','NP','NG','ZA','SS','SY','VE','VN','YE'
+}
+
+AML_TIERS = [
+    (850,   0, ['basic_info']),
+    (2500,  1, ['photo_id', 'proof_address']),
+    (3500,  2, ['photo_id', 'proof_address', 'source_funds']),
+    (5000,  3, ['photo_id', 'proof_address', 'source_funds', 'declaration', 'edd']),
+    (99999, 4, ['photo_id', 'proof_address', 'source_funds', 'declaration', 'edd']),
+]
+
+def _aml_required_tier(total_90d):
+    for thr, level, docs in AML_TIERS:
+        if total_90d <= thr:
+            return level, docs
+    return 4, AML_TIERS[-1][2]
+
+def _aml_calc_90d(cliente_id):
+    from datetime import datetime, timedelta
+    cutoff = (datetime.now() - timedelta(days=90)).date().isoformat()
+    try:
+        r = supabase.table('ordens_captacao')\
+            .select('valor_entrada, moeda_entrada, data')\
+            .eq('cliente_id', str(cliente_id))\
+            .neq('status', 'cancelada')\
+            .gte('data', cutoff).execute()
+        gbp_total = 0.0
+        for o in (r.data or []):
+            m = o.get('moeda_entrada', '').upper()
+            v = float(o.get('valor_entrada') or 0)
+            if m == 'GBP':
+                gbp_total += v
+            elif m == 'EUR':
+                gbp_total += v * 0.86
+            elif m == 'USD':
+                gbp_total += v * 0.79
+            else:
+                gbp_total += v
+        return round(gbp_total, 2)
+    except Exception:
+        return 0.0
+
+def _aml_check_order(cliente_id, valor_nova_ordem_gbp):
+    total_90d = _aml_calc_90d(cliente_id) + valor_nova_ordem_gbp
+    level, docs_req = _aml_required_tier(total_90d)
+    pep_screening = total_90d >= 2000
+    return {
+        'total_90d': total_90d,
+        'kyc_level_required': level,
+        'docs_required': docs_req,
+        'pep_screening': pep_screening,
+        'edd_required': level >= 3,
+    }
+
+
+@app.route('/api/clientes', methods=['GET'])
+def clientes_listar():
+    usuario, tipo, redir = _check_loja_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        q = request.args.get('q', '').strip()
+        query = supabase.table('clientes_varejo')\
+            .select('id,nome,documento,tipo_documento,telefone,email,data_nascimento,pais_residencia,kyc_level,risk_score,pep_flag,sanctions_flag,total_90d,doc_photo_id_ok,doc_address_ok,doc_source_funds_ok,doc_declaration_ok,doc_edd_ok,criado_por,created_at')\
+            .order('nome')
+        if q:
+            query = query.or_(f'nome.ilike.%{q}%,documento.ilike.%{q}%,telefone.ilike.%{q}%,email.ilike.%{q}%')
+        r = query.limit(50).execute()
+        return jsonify({'success': True, 'clientes': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/clientes', methods=['POST'])
+def clientes_criar():
+    usuario, tipo, redir = _check_loja_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        from datetime import datetime
+        d = request.get_json()
+        nome = (d.get('nome') or '').strip()
+        if not nome:
+            return jsonify({'success': False, 'message': 'Nome obrigatório'}), 400
+
+        pais = (d.get('pais_residencia') or 'GB').upper()[:2]
+        if pais in PROHIBITED_COUNTRIES:
+            return jsonify({'success': False, 'message': f'País {pais} está na lista de países proibidos (AML policy).'}), 403
+
+        payload = {
+            'nome':            nome,
+            'documento':       (d.get('documento') or '').strip(),
+            'tipo_documento':  d.get('tipo_documento', ''),
+            'data_nascimento': d.get('data_nascimento') or None,
+            'telefone':        (d.get('telefone') or '').strip(),
+            'email':           (d.get('email') or '').strip(),
+            'profissao':       (d.get('profissao') or '').strip(),
+            'endereco':        (d.get('endereco') or '').strip(),
+            'cidade':          (d.get('cidade') or '').strip(),
+            'pais_residencia': pais,
+            'nacionalidade':   (d.get('nacionalidade') or '').strip(),
+            'benef_nome':      (d.get('benef_nome') or '').strip(),
+            'benef_banco':     (d.get('benef_banco') or '').strip(),
+            'benef_conta':     (d.get('benef_conta') or '').strip(),
+            'benef_pix':       (d.get('benef_pix') or '').strip(),
+            'benef_iban':      (d.get('benef_iban') or '').strip(),
+            'benef_swift':     (d.get('benef_swift') or '').strip(),
+            'observacoes':     (d.get('observacoes') or '').strip(),
+            'risk_score':      'high' if pais in HIGH_RISK_COUNTRIES else 'medium',
+            'criado_por':      usuario,
+        }
+        r = supabase.table('clientes_varejo').insert(payload).execute()
+        return jsonify({'success': True, 'cliente': r.data[0] if r.data else {}, 'message': 'Cliente cadastrado com sucesso.'})
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/clientes/<cliente_id>', methods=['GET'])
+def clientes_detalhe(cliente_id):
+    usuario, tipo, redir = _check_loja_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('clientes_varejo').select('*').eq('id', cliente_id).single().execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'Cliente não encontrado'}), 404
+        c = r.data
+        c['total_90d_calc'] = _aml_calc_90d(cliente_id)
+        aml = _aml_check_order(cliente_id, 0)
+        c['aml'] = aml
+        docs_r = supabase.table('documentos_kyc').select('*').eq('cliente_id', cliente_id).order('created_at', desc=True).execute()
+        c['documentos'] = docs_r.data or []
+        ordens_r = supabase.table('ordens_captacao')\
+            .select('id,data,status,moeda_entrada,valor_entrada,taxa_cobrada,moeda_saida,valor_saida')\
+            .eq('cliente_id', cliente_id).order('data', desc=True).limit(20).execute()
+        c['ordens'] = ordens_r.data or []
+        return jsonify({'success': True, 'cliente': c})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/clientes/<cliente_id>', methods=['PUT'])
+def clientes_atualizar(cliente_id):
+    usuario, tipo, redir = _check_loja_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        from datetime import datetime
+        d = request.get_json()
+        allowed = ['nome','documento','tipo_documento','data_nascimento','telefone','email',
+                   'profissao','endereco','cidade','pais_residencia','nacionalidade',
+                   'benef_nome','benef_banco','benef_conta','benef_pix','benef_iban','benef_swift',
+                   'observacoes','pep_flag','pep_info','risk_score']
+        payload = {k: d[k] for k in allowed if k in d}
+        pais = payload.get('pais_residencia', '')
+        if pais and pais.upper() in PROHIBITED_COUNTRIES:
+            return jsonify({'success': False, 'message': f'País {pais} é proibido (AML policy).'}), 403
+        if pais and pais.upper() in HIGH_RISK_COUNTRIES and 'risk_score' not in payload:
+            payload['risk_score'] = 'high'
+        payload['updated_at'] = datetime.now().isoformat()
+        r = supabase.table('clientes_varejo').update(payload).eq('id', cliente_id).execute()
+        return jsonify({'success': True, 'message': 'Cliente atualizado.', 'cliente': r.data[0] if r.data else {}})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/clientes/<cliente_id>/kyc-check', methods=['GET'])
+def clientes_kyc_check(cliente_id):
+    usuario, tipo, redir = _check_loja_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        valor = float(request.args.get('valor', 0))
+        moeda = (request.args.get('moeda', 'GBP')).upper()
+        if moeda == 'EUR':
+            valor_gbp = valor * 0.86
+        elif moeda == 'USD':
+            valor_gbp = valor * 0.79
+        else:
+            valor_gbp = valor
+        aml = _aml_check_order(cliente_id, valor_gbp)
+        r = supabase.table('clientes_varejo')\
+            .select('kyc_level,doc_photo_id_ok,doc_address_ok,doc_source_funds_ok,doc_declaration_ok,doc_edd_ok,pep_flag,sanctions_flag,risk_score')\
+            .eq('id', cliente_id).single().execute()
+        c = r.data or {}
+        doc_map = {
+            'basic_info':    True,
+            'photo_id':      c.get('doc_photo_id_ok', False),
+            'proof_address': c.get('doc_address_ok', False),
+            'source_funds':  c.get('doc_source_funds_ok', False),
+            'declaration':   c.get('doc_declaration_ok', False),
+            'edd':           c.get('doc_edd_ok', False),
+        }
+        missing = [d for d in aml['docs_required'] if not doc_map.get(d, False)]
+        aml['docs_ok'] = len(missing) == 0
+        aml['docs_missing'] = missing
+        aml['pep_flag'] = c.get('pep_flag', False)
+        aml['sanctions_flag'] = c.get('sanctions_flag', False)
+        aml['can_proceed'] = len(missing) == 0 and not c.get('sanctions_flag', False)
+        return jsonify({'success': True, 'aml': aml})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/clientes/<cliente_id>/documentos', methods=['POST'])
+def clientes_upload_doc(cliente_id):
+    usuario, tipo, redir = _check_loja_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        from datetime import datetime
+        d = request.get_json()
+        tipo_doc = d.get('tipo', '')
+        valid_tipos = ['photo_id', 'proof_address', 'source_funds', 'declaration', 'edd']
+        if tipo_doc not in valid_tipos:
+            return jsonify({'success': False, 'message': 'Tipo de documento inválido'}), 400
+        r = supabase.table('documentos_kyc').insert({
+            'cliente_id': cliente_id,
+            'tipo': tipo_doc,
+            'arquivo_url': d.get('arquivo_url', ''),
+            'arquivo_nome': d.get('arquivo_nome', ''),
+            'observacao': d.get('observacao', ''),
+            'criado_por': usuario,
+        }).execute()
+        doc_id = r.data[0]['id'] if r.data else None
+        field_map = {
+            'photo_id': 'doc_photo_id_ok',
+            'proof_address': 'doc_address_ok',
+            'source_funds': 'doc_source_funds_ok',
+            'declaration': 'doc_declaration_ok',
+            'edd': 'doc_edd_ok',
+        }
+        if field_map.get(tipo_doc):
+            supabase.table('clientes_varejo').update({
+                field_map[tipo_doc]: True,
+                'updated_at': datetime.now().isoformat()
+            }).eq('id', cliente_id).execute()
+        return jsonify({'success': True, 'message': 'Documento registrado.', 'doc_id': doc_id})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/lojas', methods=['GET'])
+def admin_listar_lojas():
+    usuario_logado = session.get('username')
+    if not usuario_logado:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('lojas').select('*').order('nome').execute()
+        return jsonify({'success': True, 'lojas': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/lojas', methods=['POST'])
+def admin_criar_loja():
+    usuario_logado = session.get('username')
+    if not usuario_logado:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        d = request.get_json()
+        nome = (d.get('nome') or '').strip()
+        if not nome:
+            return jsonify({'success': False, 'message': 'Nome obrigatório'}), 400
+        r = supabase.table('lojas').insert({
+            'nome': nome,
+            'codigo': (d.get('codigo') or '').strip().upper() or None,
+            'endereco': (d.get('endereco') or '').strip(),
+            'cidade': (d.get('cidade') or '').strip(),
+            'telefone': (d.get('telefone') or '').strip(),
+            'responsavel': (d.get('responsavel') or '').strip(),
+        }).execute()
+        return jsonify({'success': True, 'loja': r.data[0] if r.data else {}, 'message': 'Loja criada.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/lojas/<loja_id>', methods=['PUT'])
+def admin_atualizar_loja(loja_id):
+    usuario_logado = session.get('username')
+    if not usuario_logado:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        d = request.get_json()
+        allowed = ['nome','codigo','endereco','cidade','telefone','responsavel','ativa']
+        payload = {k: d[k] for k in allowed if k in d}
+        r = supabase.table('lojas').update(payload).eq('id', loja_id).execute()
+        return jsonify({'success': True, 'message': 'Loja atualizada.', 'loja': r.data[0] if r.data else {}})
+    except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
