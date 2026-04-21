@@ -414,7 +414,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const IS_COMPLIANCE = '{{ session.get('tipo','') }}' === 'compliance' || '{{ usuario }}' !== '';
+const IS_COMPLIANCE = {{ session.get('tipo','') | tojson }} === 'compliance' || {{ usuario | tojson }} !== '';
 
 // ─── Tabs ────────────────────────────────────────
 function showTab(name) {
@@ -526,7 +526,7 @@ async function abrirOrdem(id) {
     document.getElementById('mo-obs').value = '';
     document.getElementById('mo-id').value = id;
     // Botões (só compliance pode agir)
-    const userTipo = '{{ session.get('tipo','') }}';
+    const userTipo = {{ session.get('tipo','') | tojson }};
     const acts = document.getElementById('mo-acts');
     if(userTipo === 'compliance' && o.compliance_status === 'pendente') {
         acts.innerHTML = `
@@ -734,7 +734,7 @@ async function carregarConfig() {
     try {
         const r = await fetch('/api/compliance/config').then(r=>r.json());
         configData = r.config||{};
-        const userTipo = '{{ session.get('tipo','') }}';
+        const userTipo = {{ session.get('tipo','') | tojson }};
         const readOnly = userTipo !== 'compliance';
         let html = Object.entries(CONFIG_LABELS).map(([k,l])=>`
             <div class="config-row">

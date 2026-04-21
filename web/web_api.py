@@ -12062,7 +12062,7 @@ def compliance_docs_pendentes():
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
         r = supabase.table('clientes_varejo')\
-            .select('id,nome,documento,risk_level,kyc_tier,doc_photo_id_ok,doc_address_ok,doc_source_funds_ok,doc_declaration_ok,doc_edd_ok,created_at')\
+            .select('*')\
             .order('created_at', desc=True).limit(500).execute()
         clientes = []
         for c in (r.data or []):
