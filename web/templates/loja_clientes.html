@@ -700,12 +700,12 @@ async function carregarBenefDetalhe(clienteId) {
                 ? [b.iban, b.bic_swift].filter(Boolean).join(' · ')
                 : [b.routing_number, b.account_number, b.banco_nome_us].filter(Boolean).join(' · ');
             const addr = [b.endereco_linha1, b.cidade, b.postcode, b.pais].filter(Boolean).join(', ');
-            const bJson = JSON.stringify(b).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+            _benefMap[b.id] = b;
         return `<div class="doc-item" style="flex-direction:column;align-items:flex-start;gap:4px;">
                 <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
                     <span><strong>${flag[b.tipo]||''} ${b.nome}</strong>${b.apelido?` <span style="color:var(--cor-texto-secundario);font-size:12px;">(${b.apelido})</span>`:''}</span>
                     <div style="display:flex;gap:6px;align-items:center;">
-                        <button onclick="abrirEditBenefDetalhe('${b.id}','${clienteId}',${bJson})" style="background:transparent;border:none;color:var(--cor-texto-secundario);cursor:pointer;font-size:11px;" title="Editar"><i class="fas fa-edit"></i></button>
+                        <button onclick="abrirEditBenefDetalhe('${b.id}','${clienteId}')" style="background:transparent;border:none;color:var(--cor-texto-secundario);cursor:pointer;font-size:11px;" title="Editar"><i class="fas fa-edit"></i></button>
                         <button onclick="removerBenef('${b.id}','${clienteId}')" style="background:transparent;border:none;color:var(--cor-perigo);cursor:pointer;font-size:11px;" title="Remover"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
@@ -763,7 +763,9 @@ async function salvarNovoBenefDetalhe() {
 
 // ---- Editar Beneficiário ----
 let editBenefClienteId = null;
-function abrirEditBenefDetalhe(benefId, clienteId, data) {
+const _benefMap = {};
+function abrirEditBenefDetalhe(benefId, clienteId) {
+    const data = _benefMap[benefId] || {};
     editBenefClienteId = clienteId;
     document.getElementById('ebd-id').value    = benefId;
     document.getElementById('ebd-tipo').value  = data.tipo || 'brazil';
@@ -895,10 +897,6 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
         if (e.target === this) this.classList.remove('open');
     });
 });
-document.getElementById('modalEditBenefDetalhe').addEventListener('click', function(e) {
-    if (e.target === this) this.classList.remove('open');
-});
-
 // Carga inicial
 _buscar();
 </script>
