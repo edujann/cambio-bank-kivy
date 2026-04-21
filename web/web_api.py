@@ -12093,9 +12093,7 @@ def compliance_listar_ordens():
     if redir:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
-        # 🔥 CORREÇÃO: Pegar TODAS as ordens com compliance_status = 'pendente'
-        # Independente do status (compliance_review, paga, etc.)
-        # EXCETO as que já foram liberadas ou canceladas
+        # Buscar ordens pendentes
         r = supabase.table('ordens_captacao')\
             .select('*')\
             .eq('compliance_status', 'pendente')\
@@ -12105,13 +12103,57 @@ def compliance_listar_ordens():
         
         ordens = r.data or []
         
-        print(f"🔍 [COMPLIANCE] Ordens pendentes encontradas: {len(ordens)}")
+        # 🔥 FORMATAR os dados para o frontend
+        ordens_formatadas = []
         for o in ordens:
-            print(f"   - ID: {o.get('id')} | Status: {o.get('status')} | Cliente: {o.get('cliente_nome')}")
-        
-        # 🔥 Enriquecer com dados do cliente (KYC docs)
-        for ordem in ordens:
-            cliente_id = ordem.get('cliente_id')
+            # Converter valores numéricos para float
+            try:
+                valor_entrada = float(o.get('valor_entrada', 0))
+            except (TypeError, ValueError):
+                valor_entrada = 0
+            
+            try:
+                valor_saida = float(o.get('valor_saida', 0))
+            except (TypeError, ValueError):
+                valor_saida = 0
+            
+            try:
+                taxa_cobrada = float(o.get('taxa_cobrada', 0))
+            except (TypeError, ValueError):
+                taxa_cobrada = 0
+            
+            # Processar aml_alertas (pode ser string ou lista)
+            aml_alertas = o.get('aml_alertas')
+            if aml_alertas and isinstance(aml_alertas, str):
+                # Se for string como "ALERTA1,ALERTA2", converter para lista
+                aml_alertas = [a.strip() for a in aml_alertas.split(',') if a.strip()]
+            elif not aml_alertas:
+                aml_alertas = []
+            
+            ordem_formatada = {
+                'id': o.get('id'),
+                'status': o.get('status'),
+                'compliance_status': o.get('compliance_status', 'pendente'),
+                'pagamento_confirmado': o.get('pagamento_confirmado', False),
+                'cliente_nome': o.get('cliente_nome', 'N/A'),
+                'cliente_id': o.get('cliente_id'),
+                'cliente_documento': o.get('cliente_doc', ''),
+                'valor_entrada': valor_entrada,
+                'moeda_entrada': o.get('moeda_entrada', 'GBP'),
+                'valor_saida': valor_saida,
+                'moeda_saida': o.get('moeda_saida', 'BRL'),
+                'taxa_cobrada': taxa_cobrada,
+                'forma_pagamento': o.get('forma_pagamento', ''),
+                'loja': o.get('loja', ''),
+                'loja_nome': o.get('loja', ''),
+                'created_at': o.get('created_at'),
+                'data': o.get('created_at'),
+                'aml_alertas': aml_alertas,
+                'kyc_level_na_ordem': o.get('kyc_level_na_ordem', 0)
+            }
+            
+            # Buscar dados KYC do cliente
+            cliente_id = o.get('cliente_id')
             if cliente_id:
                 cliente = supabase.table('clientes_varejo')\
                     .select('doc_photo_id_ok, doc_address_ok, doc_source_funds_ok, doc_declaration_ok, doc_edd_ok, risk_score, bloqueado')\
@@ -12120,17 +12162,23 @@ def compliance_listar_ordens():
                     .execute()
                 
                 if cliente.data:
-                    ordem['kyc_docs'] = {
+                    ordem_formatada['kyc_docs'] = {
                         'photo_id': cliente.data.get('doc_photo_id_ok', False),
                         'proof_address': cliente.data.get('doc_address_ok', False),
                         'source_funds': cliente.data.get('doc_source_funds_ok', False),
                         'declaration': cliente.data.get('doc_declaration_ok', False),
                         'edd': cliente.data.get('doc_edd_ok', False)
                     }
-                    ordem['risk_score'] = cliente.data.get('risk_score')
-                    ordem['cliente_bloqueado'] = cliente.data.get('bloqueado', False)
+                    ordem_formatada['risk_score'] = cliente.data.get('risk_score')
+                    ordem_formatada['cliente_bloqueado'] = cliente.data.get('bloqueado', False)
+            else:
+                ordem_formatada['kyc_docs'] = {}
+            
+            ordens_formatadas.append(ordem_formatada)
         
-        return jsonify({'success': True, 'ordens': ordens})
+        print(f"🔍 [COMPLIANCE] Retornando {len(ordens_formatadas)} ordens formatadas")
+        
+        return jsonify({'success': True, 'ordens': ordens_formatadas})
         
     except Exception as e:
         print(f"❌ Erro compliance/ordens: {e}")
