@@ -12055,24 +12055,36 @@ def compliance_alterar_limite(cliente_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-@app.route('/api/compliance/clientes/docs-pendentes', methods=['GET'])
-def compliance_docs_pendentes():
+@app.route('/api/compliance/ordens', methods=['GET'])
+def compliance_listar_ordens():
     usuario, tipo, redir = _check_compliance_acesso()
     if redir:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
-        r = supabase.table('clientes_varejo')\
+        # 🔥 VERSÃO SIMPLES: Buscar todas e filtrar no Python
+        r = supabase.table('ordens_captacao')\
             .select('*')\
-            .order('created_at', desc=True).limit(500).execute()
-        clientes = []
-        for c in (r.data or []):
-            docs_ok = all([c.get('doc_photo_id_ok'), c.get('doc_address_ok'),
-                           c.get('doc_source_funds_ok'), c.get('doc_declaration_ok')])
-            if not docs_ok:
-                c['kyc_docs_status'] = 'pendente'
-                clientes.append(c)
-        return jsonify({'success': True, 'clientes': clientes[:200]})
+            .neq('status', 'cancelada')\
+            .order('data', desc=False)\
+            .execute()
+        
+        # Filtrar no Python (mais garantido)
+        todas_ordens = r.data or []
+        ordens_pendentes = []
+        
+        for o in todas_ordens:
+            compliance = o.get('compliance_status')
+            # Incluir se compliance_status for 'pendente' ou NULL/None
+            if compliance == 'pendente' or compliance is None:
+                ordens_pendentes.append(o)
+        
+        print(f"🔍 [COMPLIANCE] Total: {len(todas_ordens)} | Pendentes: {len(ordens_pendentes)}")
+        
+        return jsonify({'success': True, 'ordens': ordens_pendentes})
     except Exception as e:
+        print(f"❌ Erro compliance/ordens: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
