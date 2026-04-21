@@ -11022,13 +11022,40 @@ def loja_nova_ordem():
             except Exception:
                 pass  # falha no KYC check não bloqueia (log apenas)
 
-            # --- Alertas não-bloqueantes ---
+            # --- Alertas AML não-bloqueantes ---
             if aml.get('pep_screening') and not d.get('pep_screening_ok'):
                 aml_alertas.append('PEP_SCREENING_REQUIRED')
             if pais_destino and pais_destino in HIGH_RISK_COUNTRIES:
                 aml_alertas.append('HIGH_RISK_COUNTRY_EDD')
             if forma == 'cash':
                 aml_alertas.append('CASH_EDD')
+
+        # --- pagamento_confirmado ---
+        pagamento_confirmado = forma != 'transferencia'
+
+        # --- compliance routing ---
+        compliance_status_val = 'pendente'
+        if cliente_id:
+            try:
+                ordens_ant = supabase.table('ordens_captacao')\
+                    .select('id', count='exact')\
+                    .eq('cliente_id', cliente_id)\
+                    .not_.eq('status', 'cancelada')\
+                    .execute()
+                tem_historico = (ordens_ant.count or 0) > 0
+                compliance_status_val = 'aprovado' if (tem_historico and not aml_alertas) else 'pendente'
+            except Exception:
+                compliance_status_val = 'pendente'
+        else:
+            compliance_status_val = 'pendente'
+
+        # --- status final ---
+        if forma == 'transferencia':
+            status = 'on_hold'
+        elif compliance_status_val == 'aprovado':
+            status = 'liberada'
+        else:
+            status = 'compliance_review'
 
         ordem = {
             'data': datetime.now().isoformat(),
@@ -11058,6 +11085,8 @@ def loja_nova_ordem():
             'benef_routing': d.get('benef_routing', ''),
             'kyc_level_na_ordem': kyc_level_na_ordem,
             'aml_alertas': ','.join(aml_alertas) if aml_alertas else None,
+            'pagamento_confirmado': pagamento_confirmado,
+            'compliance_status': compliance_status_val,
             'criado_por': usuario,
             'observacoes': d.get('observacoes', ''),
         }
@@ -11553,6 +11582,263 @@ def admin_atualizar_loja(loja_id):
         payload = {k: d[k] for k in allowed if k in d}
         r = supabase.table('lojas').update(payload).eq('id', loja_id).execute()
         return jsonify({'success': True, 'message': 'Loja atualizada.', 'loja': r.data[0] if r.data else {}})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================
+# COMPLIANCE
+# ============================================
+
+def _check_compliance_acesso():
+    usuario = session.get('username')
+    if not usuario:
+        return None, None, redirect('/login')
+    try:
+        r = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        tipo = r.data.get('tipo') if r.data else None
+        if tipo not in ('compliance', 'admin'):
+            return None, None, redirect('/login')
+        return usuario, tipo, None
+    except Exception:
+        return None, None, redirect('/login')
+
+
+@app.route('/compliance/dashboard')
+def compliance_dashboard():
+    usuario = session.get('username')
+    if not usuario:
+        return redirect('/login')
+    try:
+        r = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        tipo = r.data.get('tipo') if r.data else None
+        if tipo not in ('compliance', 'admin'):
+            return redirect('/login')
+    except Exception:
+        return redirect('/login')
+    return render_template('compliance_dashboard.html', usuario=usuario, tipo=tipo)
+
+
+@app.route('/api/compliance/ordens', methods=['GET'])
+def compliance_listar_ordens():
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('ordens_captacao')\
+            .select('*')\
+            .eq('compliance_status', 'pendente')\
+            .not_.eq('status', 'cancelada')\
+            .order('data', desc=False)\
+            .execute()
+        return jsonify({'success': True, 'ordens': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/compliance/ordens/<ordem_id>/aprovar', methods=['POST'])
+def compliance_aprovar(ordem_id):
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    if tipo == 'admin':
+        return jsonify({'success': False, 'message': 'Admin não tem permissão para aprovar ordens de compliance.'}), 403
+    try:
+        d = request.get_json() or {}
+        r_ord = supabase.table('ordens_captacao').select('*').eq('id', ordem_id).single().execute()
+        if not r_ord.data:
+            return jsonify({'success': False, 'message': 'Ordem não encontrada'}), 404
+        o = r_ord.data
+        novo_status = o['status']
+        if o.get('pagamento_confirmado'):
+            novo_status = 'liberada'
+        upd = {
+            'compliance_status': 'aprovado',
+            'compliance_aprovado_por': usuario,
+            'compliance_obs': (d.get('observacao') or '').strip(),
+        }
+        if novo_status != o['status']:
+            upd['status'] = novo_status
+        supabase.table('ordens_captacao').update(upd).eq('id', ordem_id).execute()
+        return jsonify({'success': True, 'message': 'Ordem aprovada pelo compliance.', 'novo_status': novo_status})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/compliance/ordens/<ordem_id>/rejeitar', methods=['POST'])
+def compliance_rejeitar(ordem_id):
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    if tipo == 'admin':
+        return jsonify({'success': False, 'message': 'Admin não tem permissão para rejeitar ordens de compliance.'}), 403
+    try:
+        d = request.get_json() or {}
+        motivo = (d.get('motivo') or '').strip()
+        if not motivo:
+            return jsonify({'success': False, 'message': 'Informe o motivo da rejeição.'}), 400
+        supabase.table('ordens_captacao').update({
+            'compliance_status': 'rejeitado',
+            'status': 'cancelada',
+            'compliance_aprovado_por': usuario,
+            'compliance_obs': motivo,
+        }).eq('id', ordem_id).execute()
+        return jsonify({'success': True, 'message': 'Ordem rejeitada.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ── Confirmar pagamento (on_hold → libera se compliance ok) ──
+
+@app.route('/api/admin/ordens/<ordem_id>/confirmar-recebimento', methods=['POST'])
+def admin_confirmar_recebimento(ordem_id):
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r_u = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not r_u.data or r_u.data.get('tipo') != 'admin':
+            return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+        r_ord = supabase.table('ordens_captacao').select('*').eq('id', ordem_id).single().execute()
+        if not r_ord.data:
+            return jsonify({'success': False, 'message': 'Ordem não encontrada'}), 404
+        o = r_ord.data
+        novo_status = o['status']
+        if o.get('compliance_status') == 'aprovado':
+            novo_status = 'liberada'
+        else:
+            novo_status = 'compliance_review'
+        upd = {'pagamento_confirmado': True, 'status': novo_status}
+        supabase.table('ordens_captacao').update(upd).eq('id', ordem_id).execute()
+        # Creditar conta se liberada
+        if novo_status == 'liberada':
+            conta_emp = o.get('conta_empresa')
+            valor_e   = float(o.get('valor_entrada', 0))
+            moeda_e   = o.get('moeda_entrada', 'GBP')
+            if conta_emp:
+                r_ct = supabase.table('contas_bancarias_empresa').select('saldo').eq('numero', conta_emp).single().execute()
+                if r_ct.data:
+                    novo_saldo = float(r_ct.data['saldo'] or 0) + valor_e
+                    supabase.table('contas_bancarias_empresa').update({'saldo': novo_saldo}).eq('numero', conta_emp).execute()
+        msg = 'Pagamento confirmado — ordem liberada.' if novo_status == 'liberada' else 'Pagamento confirmado — aguardando compliance.'
+        return jsonify({'success': True, 'message': msg, 'novo_status': novo_status})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================
+# DESPACHOS
+# ============================================
+
+@app.route('/api/admin/despachos', methods=['GET'])
+def admin_listar_despachos():
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('despachos').select('*').order('created_at', desc=True).limit(200).execute()
+        return jsonify({'success': True, 'despachos': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/despachos', methods=['POST'])
+def admin_criar_despacho():
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r_u = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not r_u.data or r_u.data.get('tipo') != 'admin':
+            return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+        d = request.get_json()
+        ordem_ids   = d.get('ordem_ids', [])
+        parceiro    = (d.get('parceiro_pagador') or '').strip()
+        observacoes = (d.get('observacoes') or '').strip()
+        if not ordem_ids or not parceiro:
+            return jsonify({'success': False, 'message': 'Selecione ordens e informe o parceiro.'}), 400
+        # Buscar ordens selecionadas
+        ordens_data = []
+        for oid in ordem_ids:
+            ro = supabase.table('ordens_captacao').select('id,status,valor_saida,moeda_saida').eq('id', oid).single().execute()
+            if ro.data and ro.data['status'] == 'liberada':
+                ordens_data.append(ro.data)
+        if not ordens_data:
+            return jsonify({'success': False, 'message': 'Nenhuma ordem liberada encontrada.'}), 400
+        valor_total = sum(float(o.get('valor_saida', 0)) for o in ordens_data)
+        moeda_saida = ordens_data[0].get('moeda_saida', 'BRL')
+        # Criar despacho
+        ins = supabase.table('despachos').insert({
+            'parceiro_pagador': parceiro,
+            'moeda_saida':      moeda_saida,
+            'valor_total':      valor_total,
+            'qtd_ordens':       len(ordens_data),
+            'observacoes':      observacoes,
+            'criado_por':       usuario,
+        }).execute()
+        despacho_id = ins.data[0]['id'] if ins.data else None
+        despacho_num = ins.data[0].get('numero') if ins.data else '?'
+        # Vincular ordens ao despacho + atualizar status
+        for o in ordens_data:
+            supabase.table('despacho_ordens').insert({
+                'despacho_id': despacho_id,
+                'ordem_id':    o['id'],
+            }).execute()
+            supabase.table('ordens_captacao').update({
+                'status': 'despachada',
+                'parceiro_pagador': parceiro,
+            }).eq('id', o['id']).execute()
+        return jsonify({
+            'success': True,
+            'message': f'Despacho #{despacho_num} criado — {len(ordens_data)} ordens — {moeda_saida} {valor_total:,.2f}',
+            'despacho_id': despacho_id,
+            'despacho_numero': despacho_num,
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/despachos/<despacho_id>/confirmar-pago', methods=['POST'])
+def admin_despacho_confirmar_pago(despacho_id):
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r_u = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not r_u.data or r_u.data.get('tipo') != 'admin':
+            return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+        # Buscar ordens do despacho
+        links = supabase.table('despacho_ordens').select('ordem_id').eq('despacho_id', despacho_id).execute()
+        for lnk in (links.data or []):
+            supabase.table('ordens_captacao').update({'status': 'paga'}).eq('id', lnk['ordem_id']).execute()
+        supabase.table('despachos').update({'status': 'pago'}).eq('id', despacho_id).execute()
+        return jsonify({'success': True, 'message': 'Despacho confirmado como pago.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/ordens/liberadas', methods=['GET'])
+def admin_listar_ordens_liberadas():
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        query = supabase.table('ordens_captacao').select('*').eq('status', 'liberada')
+        # Filtros opcionais
+        banco = request.args.get('banco', '').strip()
+        valor_min = request.args.get('valor_min', '').strip()
+        moeda = request.args.get('moeda', '').strip()
+        tipo_destino = request.args.get('tipo_destino', '').strip()
+        if banco:
+            query = query.ilike('beneficiario_banco', f'*{banco}*')
+        if valor_min:
+            query = query.gte('valor_saida', float(valor_min))
+        if moeda:
+            query = query.eq('moeda_saida', moeda.upper())
+        if tipo_destino:
+            query = query.eq('tipo_destino', tipo_destino)
+        r = query.order('data', desc=False).limit(500).execute()
+        return jsonify({'success': True, 'ordens': r.data or []})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
@@ -15063,6 +15349,20 @@ def _fx_wac(compras_data, vendas_data=None, since=None):
     wac = {m: (s['custo_gbp'] / s['saldo'] if s['saldo'] > 0 else 0) for m, s in state.items()}
     vol = {m: s['saldo'] for m, s in state.items()}
     return wac, vol
+
+
+@app.route('/admin/despachos')
+def admin_despachos_page():
+    usuario = session.get('username')
+    if not usuario:
+        return redirect('/login')
+    try:
+        ck = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not ck.data or ck.data.get('tipo') != 'admin':
+            return redirect('/login')
+    except:
+        return redirect('/login')
+    return render_template('admin_despachos.html', usuario=usuario)
 
 
 @app.route('/admin/lojas')

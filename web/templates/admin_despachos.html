@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cambio Bank — Despachos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+        body{background:var(--cor-fundo);color:var(--cor-texto);min-height:100vh;}
+        .page{max-width:1400px;margin:0 auto;padding:20px;}
+
+        /* Header */
+        .hd{display:flex;justify-content:space-between;align-items:center;padding:16px 0;margin-bottom:22px;border-bottom:1px solid var(--cor-borda);flex-wrap:wrap;gap:10px;}
+        .logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;}
+        .logo i{color:var(--cor-admin);}
+        .logo-text{background:linear-gradient(90deg,var(--cor-admin),#2d8fff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+        .hd-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+        .btn-hd{background:rgba(26,95,180,.12);border:1px solid var(--cor-admin);color:var(--cor-admin);padding:6px 13px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+        .btn-hd:hover{background:rgba(26,95,180,.25);}
+        .btn-hd-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-hd-ghost:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+
+        /* Stats */
+        .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px;}
+        .stat{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:14px 16px;}
+        .stat .lbl{font-size:11px;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+        .stat .val{font-size:22px;font-weight:700;}
+        .stat .sub{font-size:11px;color:var(--cor-texto-secundario);margin-top:3px;}
+        .c-verde{color:var(--cor-sucesso);} .c-am{color:var(--cor-alerta);} .c-azul{color:var(--cor-admin);} .c-roxo{color:#9b59b6;}
+
+        /* Tabs */
+        .tabs{display:flex;gap:0;border-bottom:2px solid var(--cor-borda);margin-bottom:20px;}
+        .tab{padding:10px 20px;cursor:pointer;font-size:13px;font-weight:600;color:var(--cor-texto-secundario);border-bottom:2px solid transparent;margin-bottom:-2px;display:flex;align-items:center;gap:7px;transition:.15s;white-space:nowrap;}
+        .tab:hover{color:var(--cor-texto);}
+        .tab.active{color:var(--cor-admin);border-bottom-color:var(--cor-admin);}
+        .tab-badge{background:var(--cor-admin);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;}
+        .tab-panel{display:none;}
+        .tab-panel.active{display:block;}
+
+        /* Filters */
+        .filters{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:14px 16px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
+        .fgroup{display:flex;flex-direction:column;gap:4px;}
+        .fgroup label{font-size:11px;color:var(--cor-texto-secundario);font-weight:600;text-transform:uppercase;letter-spacing:.3px;}
+        .fc{background:var(--cor-fundo);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:7px 10px;border-radius:var(--borda-radius-pequeno);font-size:13px;outline:none;}
+        .fc:focus{border-color:var(--cor-admin);}
+        select.fc option{background:var(--cor-card);}
+        .btn-filter{background:var(--cor-admin);color:#fff;border:none;padding:7px 16px;border-radius:var(--borda-radius-pequeno);font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+        .btn-filter:hover{background:#1c71d8;}
+        .btn-filter-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:7px 14px;border-radius:var(--borda-radius-pequeno);font-size:13px;cursor:pointer;}
+        .btn-filter-ghost:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+
+        /* Selection bar */
+        .sel-bar{background:rgba(26,95,180,.08);border:1px solid var(--cor-admin);border-radius:var(--borda-radius-pequeno);padding:10px 16px;margin-bottom:12px;display:none;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+        .sel-bar.visible{display:flex;}
+        .sel-info{font-size:13px;font-weight:600;color:var(--cor-admin);}
+        .sel-total{font-size:13px;color:var(--cor-texto-secundario);}
+        .btn-despachar{background:var(--cor-admin);color:#fff;border:none;padding:9px 20px;border-radius:var(--borda-radius-pequeno);font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px;}
+        .btn-despachar:hover{background:#1c71d8;}
+        .btn-limpar{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:9px 14px;border-radius:var(--borda-radius-pequeno);font-size:13px;cursor:pointer;}
+        .btn-limpar:hover{border-color:var(--cor-perigo);color:var(--cor-perigo);}
+
+        /* Table */
+        .tbl-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);overflow:hidden;}
+        .tbl-hd{padding:12px 16px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;}
+        .tbl-hd h3{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px;}
+        .tbl-wrap{overflow-x:auto;}
+        table{width:100%;border-collapse:collapse;font-size:13px;}
+        th{background:rgba(128,128,128,.05);color:var(--cor-texto-secundario);padding:9px 12px;text-align:left;font-weight:600;font-size:11px;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px;}
+        th.check-col{width:36px;text-align:center;}
+        td{padding:10px 12px;border-top:1px solid var(--cor-borda);vertical-align:middle;white-space:nowrap;}
+        tr:hover td{background:rgba(128,128,128,.03);}
+        tr.selected td{background:rgba(26,95,180,.06);}
+        .cb{width:16px;height:16px;cursor:pointer;accent-color:var(--cor-admin);}
+        .empty{padding:40px;text-align:center;color:var(--cor-texto-secundario);}
+        .empty i{font-size:32px;margin-bottom:8px;display:block;}
+        .tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+        .tag-on_hold{background:rgba(243,156,18,.15);color:var(--cor-alerta);}
+        .tag-liberada{background:rgba(26,95,180,.15);color:var(--cor-admin);}
+        .tag-compliance_review{background:rgba(155,89,182,.15);color:#9b59b6;}
+        .tag-despachada{background:rgba(46,194,126,.15);color:var(--cor-sucesso);}
+        .tag-paga{background:rgba(46,194,126,.2);color:var(--cor-sucesso);}
+        .tag-enviado{background:rgba(26,95,180,.15);color:var(--cor-admin);}
+        .tag-pago{background:rgba(46,194,126,.15);color:var(--cor-sucesso);}
+        .flag-pgto-ok{color:var(--cor-sucesso);font-size:11px;}
+        .flag-pgto-pend{color:var(--cor-alerta);font-size:11px;}
+        .dest-flag{font-size:14px;}
+        .mono{font-family:monospace;font-size:13px;}
+        .btn-act{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:3px 10px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap;transition:.15s;}
+        .btn-act:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+        .btn-act.g{border-color:rgba(46,194,126,.4);color:var(--cor-sucesso);}
+        .btn-act.g:hover{background:rgba(46,194,126,.1);}
+
+        /* Despacho card */
+        .desp-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
+        .desp-num{font-size:18px;font-weight:700;color:var(--cor-admin);}
+        .desp-info{font-size:13px;color:var(--cor-texto-secundario);margin-top:3px;}
+        .desp-val{font-size:20px;font-weight:700;color:var(--cor-sucesso);}
+        .desp-meta{font-size:12px;color:var(--cor-texto-secundario);}
+
+        /* Modal */
+        .modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
+        .modal-ov.open{display:flex;}
+        .modal{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:26px;width:min(560px,95vw);max-height:90vh;overflow-y:auto;}
+        .modal h3{margin-bottom:18px;font-size:16px;display:flex;align-items:center;gap:8px;}
+        .modal-acts{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;}
+        .fg{margin-bottom:13px;}
+        .fg label{display:block;font-size:12px;color:var(--cor-texto-secundario);margin-bottom:4px;font-weight:600;}
+        .fc-full{width:100%;background:var(--cor-fundo);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:9px 11px;border-radius:var(--borda-radius-pequeno);font-size:14px;outline:none;}
+        .fc-full:focus{border-color:var(--cor-admin);}
+        .btn-p{background:var(--cor-admin);color:#fff;border:none;padding:10px 22px;border-radius:var(--borda-radius-pequeno);font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px;}
+        .btn-p:hover{background:#1c71d8;}
+        .btn-p:disabled{opacity:.5;cursor:not-allowed;}
+        .btn-g{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:10px 20px;border-radius:var(--borda-radius-pequeno);font-size:14px;cursor:pointer;}
+        .btn-g:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+        .resumo-despacho{background:rgba(26,95,180,.05);border:1px solid rgba(26,95,180,.2);border-radius:8px;padding:14px;margin-bottom:14px;}
+        .resumo-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;}
+        .resumo-row:last-child{margin:0;padding-top:8px;border-top:1px solid rgba(26,95,180,.15);font-size:15px;font-weight:700;}
+        .form-msg{font-size:13px;margin-top:8px;}
+
+        /* Toast */
+        .toast-c{position:fixed;bottom:22px;right:22px;z-index:9999;display:flex;flex-direction:column;gap:7px;}
+        .toast-i{padding:11px 16px;border-radius:var(--borda-radius-pequeno);font-size:13px;font-weight:600;min-width:240px;animation:tIn .2s ease;}
+        .t-ok{background:rgba(46,194,126,.1);border:1px solid var(--cor-sucesso);color:var(--cor-sucesso);}
+        .t-err{background:rgba(224,27,36,.1);border:1px solid var(--cor-perigo);color:var(--cor-perigo);}
+        .t-warn{background:rgba(243,156,18,.1);border:1px solid var(--cor-alerta);color:var(--cor-alerta);}
+        @keyframes tIn{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <div class="hd">
+        <div class="logo">
+            <i class="fas fa-paper-plane"></i>
+            <span class="logo-text">Despachos</span>
+        </div>
+        <div class="hd-right">
+            <span style="font-size:12px;color:var(--cor-texto-secundario);">{{ usuario }}</span>
+            <a href="/admin/dashboard" class="btn-hd"><i class="fas fa-arrow-left"></i> Admin</a>
+            <a href="/logout" class="btn-hd btn-hd-ghost"><i class="fas fa-sign-out-alt"></i> Sair</a>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats">
+        <div class="stat"><div class="lbl">Liberadas</div><div class="val c-verde" id="s-lib">—</div><div class="sub">prontas p/ despachar</div></div>
+        <div class="stat"><div class="lbl">On Hold</div><div class="val c-am" id="s-hold">—</div><div class="sub">aguardando TED</div></div>
+        <div class="stat"><div class="lbl">Compliance</div><div class="val c-roxo" id="s-comp">—</div><div class="sub">em análise</div></div>
+        <div class="stat"><div class="lbl">Volume liberado</div><div class="val c-azul" id="s-vol">—</div><div class="sub" id="s-vol-moeda">BRL</div></div>
+        <div class="stat"><div class="lbl">Despachos hoje</div><div class="val c-azul" id="s-desp">—</div><div class="sub">criados hoje</div></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('liberadas',this)"><i class="fas fa-check-circle"></i> Liberadas <span class="tab-badge" id="badge-lib">0</span></div>
+        <div class="tab" onclick="switchTab('onhold',this)"><i class="fas fa-clock"></i> On Hold <span class="tab-badge" id="badge-hold" style="background:var(--cor-alerta);">0</span></div>
+        <div class="tab" onclick="switchTab('compliance',this)"><i class="fas fa-shield-check"></i> Compliance <span class="tab-badge" id="badge-comp" style="background:#9b59b6;">0</span></div>
+        <div class="tab" onclick="switchTab('despachos',this)"><i class="fas fa-paper-plane"></i> Histórico Despachos</div>
+    </div>
+
+    <!-- TAB: Liberadas -->
+    <div class="tab-panel active" id="panel-liberadas">
+        <!-- Filtros -->
+        <div class="filters">
+            <div class="fgroup">
+                <label>Banco beneficiário</label>
+                <input id="f-banco" type="text" class="fc" placeholder="Bradesco, Itaú…" style="min-width:160px;">
+            </div>
+            <div class="fgroup">
+                <label>Valor saída mínimo</label>
+                <input id="f-valmin" type="number" class="fc" placeholder="Ex: 5000" style="width:130px;">
+            </div>
+            <div class="fgroup">
+                <label>Moeda saída</label>
+                <select id="f-moeda" class="fc">
+                    <option value="">Todas</option>
+                    <option value="BRL">BRL</option>
+                    <option value="EUR">EUR</option>
+                    <option value="USD">USD</option>
+                </select>
+            </div>
+            <div class="fgroup">
+                <label>Destino</label>
+                <select id="f-destino" class="fc">
+                    <option value="">Todos</option>
+                    <option value="brazil">🇧🇷 Brasil</option>
+                    <option value="europe">🇪🇺 Europa</option>
+                    <option value="usa">🇺🇸 USA</option>
+                </select>
+            </div>
+            <div style="display:flex;gap:8px;align-items:flex-end;">
+                <button class="btn-filter" onclick="carregarLiberadas()"><i class="fas fa-search"></i> Filtrar</button>
+                <button class="btn-filter-ghost" onclick="limparFiltros()"><i class="fas fa-times"></i> Limpar</button>
+            </div>
+        </div>
+
+        <!-- Barra de seleção -->
+        <div class="sel-bar" id="selBar">
+            <div>
+                <div class="sel-info"><i class="fas fa-check-square"></i> <span id="selQtd">0</span> ordens selecionadas</div>
+                <div class="sel-total">Total: <strong id="selTotal">R$ 0,00</strong></div>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button class="btn-limpar" onclick="limparSelecao()"><i class="fas fa-times"></i> Limpar seleção</button>
+                <button class="btn-despachar" onclick="abrirModalDespacho()"><i class="fas fa-paper-plane"></i> Criar Despacho</button>
+            </div>
+        </div>
+
+        <div class="tbl-card">
+            <div class="tbl-hd">
+                <h3><i class="fas fa-check-circle" style="color:var(--cor-sucesso)"></i> Ordens Liberadas <span id="tbl-lib-count" style="color:var(--cor-texto-secundario);font-weight:400;font-size:12px;margin-left:4px;"></span></h3>
+                <label style="font-size:12px;color:var(--cor-texto-secundario);cursor:pointer;display:flex;align-items:center;gap:6px;">
+                    <input type="checkbox" id="selAll" class="cb" onchange="toggleSelAll(this.checked)"> Selec. todas
+                </label>
+            </div>
+            <div class="tbl-wrap">
+                <table>
+                    <thead><tr>
+                        <th class="check-col"><i class="fas fa-check-square" style="color:var(--cor-texto-secundario);font-size:12px;"></i></th>
+                        <th>Data</th>
+                        <th>Cliente</th>
+                        <th>Entrada</th>
+                        <th>Saída</th>
+                        <th>Banco benef.</th>
+                        <th>Destino</th>
+                        <th>Loja</th>
+                    </tr></thead>
+                    <tbody id="libBody">
+                        <tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: On Hold -->
+    <div class="tab-panel" id="panel-onhold">
+        <div class="tbl-card">
+            <div class="tbl-hd">
+                <h3><i class="fas fa-clock" style="color:var(--cor-alerta)"></i> On Hold — Aguardando TED <span id="tbl-hold-count" style="color:var(--cor-texto-secundario);font-weight:400;font-size:12px;margin-left:4px;"></span></h3>
+                <button class="btn-hd btn-hd-ghost" onclick="carregarOnHold()"><i class="fas fa-sync-alt"></i></button>
+            </div>
+            <div class="tbl-wrap">
+                <table>
+                    <thead><tr>
+                        <th>Data</th>
+                        <th>Cliente</th>
+                        <th>Entrada</th>
+                        <th>Saída</th>
+                        <th>Compliance</th>
+                        <th>Loja</th>
+                        <th>Ações</th>
+                    </tr></thead>
+                    <tbody id="holdBody">
+                        <tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: Compliance (visualização) -->
+    <div class="tab-panel" id="panel-compliance">
+        <div style="background:rgba(155,89,182,.06);border:1px solid rgba(155,89,182,.25);border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#9b59b6;display:flex;align-items:center;gap:8px;">
+            <i class="fas fa-eye"></i> Visualização apenas — aprovação e rejeição é exclusivo do Compliance.
+            <a href="/compliance/dashboard" style="color:var(--cor-admin);margin-left:auto;font-weight:700;text-decoration:none;"><i class="fas fa-external-link-alt"></i> Abrir tela Compliance</a>
+        </div>
+        <div class="tbl-card">
+            <div class="tbl-hd">
+                <h3><i class="fas fa-shield-check" style="color:#9b59b6"></i> Em Análise <span id="tbl-comp-count" style="color:var(--cor-texto-secundario);font-weight:400;font-size:12px;margin-left:4px;"></span></h3>
+                <button class="btn-hd btn-hd-ghost" onclick="carregarCompliance()"><i class="fas fa-sync-alt"></i></button>
+            </div>
+            <div class="tbl-wrap">
+                <table>
+                    <thead><tr>
+                        <th>Data</th>
+                        <th>Cliente</th>
+                        <th>Entrada</th>
+                        <th>Saída</th>
+                        <th>Pagamento</th>
+                        <th>Alertas</th>
+                        <th>Status</th>
+                    </tr></thead>
+                    <tbody id="compBody">
+                        <tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: Histórico Despachos -->
+    <div class="tab-panel" id="panel-despachos">
+        <div id="despachosLista">
+            <div class="empty"><i class="fas fa-spinner fa-spin"></i></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Criar Despacho -->
+<div class="modal-ov" id="modalDespacho">
+    <div class="modal">
+        <h3><i class="fas fa-paper-plane" style="color:var(--cor-admin)"></i> Criar Despacho</h3>
+
+        <div class="resumo-despacho" id="resumoDespacho"></div>
+
+        <div class="fg">
+            <label>Parceiro Pagador *</label>
+            <select id="dParceiro" class="fc-full">
+                <option value="">Selecione o parceiro…</option>
+            </select>
+        </div>
+        <div class="fg">
+            <label>Observações</label>
+            <input id="dObs" type="text" class="fc-full" placeholder="Ex: ordens Banco do Brasil solicitadas pelo Gables">
+        </div>
+
+        <div class="form-msg" id="despachoMsg"></div>
+        <div class="modal-acts">
+            <button class="btn-g" onclick="fecharModal('modalDespacho')">Cancelar</button>
+            <button class="btn-p" id="btnConfDespacho" onclick="confirmarDespacho()"><i class="fas fa-paper-plane"></i> Confirmar Despacho</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast-c" id="toastC"></div>
+<script src="/static/js/theme.js"></script>
+<script>
+const fmtN = (v,d=2) => parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtD = s => { if(!s)return'—'; try{const[dt,hr]=(s.replace('T',' ').split('.')[0]).split(' ');const[y,m,d]=dt.split('-');return hr?`${d}/${m}/${y} ${hr.slice(0,5)}`:`${d}/${m}/${y}`;}catch{return s;}};
+const destFlag = {brazil:'🇧🇷',europe:'🇪🇺',usa:'🇺🇸'};
+const amlLabels = {PEP_SCREENING_REQUIRED:'PEP',HIGH_RISK_COUNTRY_EDD:'Alto Risco',CASH_EDD:'Cash EDD'};
+
+let selecionadas = new Set();
+let ordensLiberadas = [];
+let parceiros = [];
+
+// ══ TABS ═══════════════════════════════════════════════
+function switchTab(nome, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById(`panel-${nome}`).classList.add('active');
+    if (nome === 'liberadas') carregarLiberadas();
+    else if (nome === 'onhold') carregarOnHold();
+    else if (nome === 'compliance') carregarCompliance();
+    else if (nome === 'despachos') carregarDespachos();
+}
+
+// ══ STATS ══════════════════════════════════════════════
+async function carregarStats() {
+    try {
+        const [rLib, rHold, rComp, rDesp] = await Promise.all([
+            fetch('/api/admin/ordens/liberadas'),
+            fetch('/api/loja/ordens?status=on_hold'),
+            fetch('/api/compliance/ordens'),
+            fetch('/api/admin/despachos'),
+        ]);
+        const [dLib, dHold, dComp, dDesp] = await Promise.all([rLib.json(), rHold.json(), rComp.json(), rDesp.json()]);
+        const lib = dLib.ordens || [];
+        const hold = dHold.ordens || [];
+        const comp = dComp.ordens || [];
+        const hoje = new Date().toISOString().slice(0,10);
+        const despHoje = (dDesp.despachos||[]).filter(d => (d.created_at||'').slice(0,10) === hoje);
+        const volLib = lib.reduce((s,o) => s + parseFloat(o.valor_saida||0), 0);
+        document.getElementById('s-lib').textContent  = lib.length;
+        document.getElementById('s-hold').textContent = hold.length;
+        document.getElementById('s-comp').textContent = comp.length;
+        document.getElementById('s-vol').textContent  = 'R$ ' + fmtN(volLib, 0);
+        document.getElementById('s-desp').textContent = despHoje.length;
+        document.getElementById('badge-lib').textContent  = lib.length;
+        document.getElementById('badge-hold').textContent = hold.length;
+        document.getElementById('badge-comp').textContent = comp.length;
+    } catch(e) {}
+}
+
+// ══ LIBERADAS ══════════════════════════════════════════
+async function carregarLiberadas() {
+    const tb = document.getElementById('libBody');
+    tb.innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    const banco    = document.getElementById('f-banco').value.trim();
+    const valMin   = document.getElementById('f-valmin').value.trim();
+    const moeda    = document.getElementById('f-moeda').value;
+    const destino  = document.getElementById('f-destino').value;
+    let url = '/api/admin/ordens/liberadas?';
+    if (banco)   url += `banco=${encodeURIComponent(banco)}&`;
+    if (valMin)  url += `valor_min=${valMin}&`;
+    if (moeda)   url += `moeda=${moeda}&`;
+    if (destino) url += `tipo_destino=${destino}&`;
+    try {
+        const r = await fetch(url);
+        const d = await r.json();
+        ordensLiberadas = d.ordens || [];
+        document.getElementById('tbl-lib-count').textContent = `(${ordensLiberadas.length})`;
+        if (!ordensLiberadas.length) {
+            tb.innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-inbox"></i><p>Nenhuma ordem liberada</p></td></tr>';
+            return;
+        }
+        tb.innerHTML = ordensLiberadas.map(o => {
+            const checked = selecionadas.has(o.id) ? 'checked' : '';
+            const rowCls  = selecionadas.has(o.id) ? 'selected' : '';
+            const saidaFmt = o.moeda_saida === 'BRL' ? `R$ ${fmtN(o.valor_saida)}` : `${fmtN(o.valor_saida)} ${o.moeda_saida}`;
+            return `<tr class="${rowCls}" id="row-${o.id}">
+                <td style="text-align:center;"><input type="checkbox" class="cb" ${checked} onchange="toggleSel('${o.id}',this.checked,${o.valor_saida||0},'${o.moeda_saida||'BRL'}')"></td>
+                <td>${fmtD(o.data)}</td>
+                <td style="font-weight:600;">${o.cliente_nome||'—'}</td>
+                <td class="mono">${fmtN(o.valor_entrada,2)} ${o.moeda_entrada||''}</td>
+                <td class="mono c-verde">${saidaFmt}</td>
+                <td>${o.beneficiario_banco||'—'}</td>
+                <td><span class="dest-flag">${destFlag[o.tipo_destino||'brazil']||'🇧🇷'}</span></td>
+                <td>${o.loja||'—'}</td>
+            </tr>`;
+        }).join('');
+    } catch(e) {
+        tb.innerHTML = `<tr><td colspan="8" style="color:var(--cor-perigo);padding:20px;">${e.message}</td></tr>`;
+    }
+}
+
+function toggleSel(id, checked, valor, moeda) {
+    if (checked) selecionadas.add(id);
+    else selecionadas.delete(id);
+    const row = document.getElementById(`row-${id}`);
+    if (row) row.classList.toggle('selected', checked);
+    atualizarSelBar();
+}
+
+function toggleSelAll(checked) {
+    ordensLiberadas.forEach(o => {
+        if (checked) selecionadas.add(o.id);
+        else selecionadas.delete(o.id);
+        const row = document.getElementById(`row-${o.id}`);
+        if (row) {
+            row.classList.toggle('selected', checked);
+            const cb = row.querySelector('.cb');
+            if (cb) cb.checked = checked;
+        }
+    });
+    atualizarSelBar();
+}
+
+function atualizarSelBar() {
+    const bar = document.getElementById('selBar');
+    const qtd = selecionadas.size;
+    bar.classList.toggle('visible', qtd > 0);
+    document.getElementById('selQtd').textContent = qtd;
+    const total = ordensLiberadas
+        .filter(o => selecionadas.has(o.id))
+        .reduce((s,o) => s + parseFloat(o.valor_saida||0), 0);
+    const moeda = ordensLiberadas.find(o => selecionadas.has(o.id))?.moeda_saida || 'BRL';
+    document.getElementById('selTotal').textContent = moeda === 'BRL'
+        ? `R$ ${fmtN(total)}` : `${fmtN(total)} ${moeda}`;
+}
+
+function limparSelecao() {
+    selecionadas.clear();
+    document.getElementById('selAll').checked = false;
+    document.querySelectorAll('#libBody .cb').forEach(cb => cb.checked = false);
+    document.querySelectorAll('#libBody tr.selected').forEach(tr => tr.classList.remove('selected'));
+    atualizarSelBar();
+}
+
+function limparFiltros() {
+    document.getElementById('f-banco').value = '';
+    document.getElementById('f-valmin').value = '';
+    document.getElementById('f-moeda').value = '';
+    document.getElementById('f-destino').value = '';
+    carregarLiberadas();
+}
+
+// ══ ON HOLD ════════════════════════════════════════════
+async function carregarOnHold() {
+    const tb = document.getElementById('holdBody');
+    tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    try {
+        const r = await fetch('/api/loja/ordens?status=on_hold');
+        const d = await r.json();
+        const lista = d.ordens || [];
+        document.getElementById('tbl-hold-count').textContent = `(${lista.length})`;
+        if (!lista.length) {
+            tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-inbox"></i><p>Nenhuma ordem on hold</p></td></tr>';
+            return;
+        }
+        tb.innerHTML = lista.map(o => {
+            const compCls = o.compliance_status === 'aprovado' ? 'c-verde' : 'c-roxo';
+            const compTxt = o.compliance_status === 'aprovado' ? '✅ Aprovado' : '⏳ Pendente';
+            return `<tr>
+                <td>${fmtD(o.data)}</td>
+                <td style="font-weight:600;">${o.cliente_nome||'—'}</td>
+                <td class="mono">${fmtN(o.valor_entrada,2)} ${o.moeda_entrada||''}</td>
+                <td class="mono c-verde">${o.moeda_saida==='BRL'?'R$ ':''}${fmtN(o.valor_saida)} ${o.moeda_saida||''}</td>
+                <td class="${compCls}" style="font-size:12px;">${compTxt}</td>
+                <td>${o.loja||'—'}</td>
+                <td><button class="btn-act g" onclick="confirmarRecebimento('${o.id}')"><i class="fas fa-check"></i> Confirmar TED</button></td>
+            </tr>`;
+        }).join('');
+    } catch(e) {
+        tb.innerHTML = `<tr><td colspan="7" style="color:var(--cor-perigo);padding:20px;">${e.message}</td></tr>`;
+    }
+}
+
+async function confirmarRecebimento(id) {
+    if (!confirm('Confirmar que o valor foi recebido na conta bancária?')) return;
+    try {
+        const r = await fetch(`/api/admin/ordens/${id}/confirmar-recebimento`, {method:'POST'});
+        const d = await r.json();
+        toast(d.message, d.success ? 'ok' : 'err');
+        if (d.success) { carregarOnHold(); carregarStats(); }
+    } catch(e) { toast(e.message, 'err'); }
+}
+
+// ══ COMPLIANCE (visualização) ═══════════════════════════
+async function carregarCompliance() {
+    const tb = document.getElementById('compBody');
+    tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    try {
+        const r = await fetch('/api/compliance/ordens');
+        const d = await r.json();
+        const lista = d.ordens || [];
+        document.getElementById('tbl-comp-count').textContent = `(${lista.length})`;
+        if (!lista.length) {
+            tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-check-circle" style="color:var(--cor-sucesso)"></i><p>Fila vazia</p></td></tr>';
+            return;
+        }
+        tb.innerHTML = lista.map(o => {
+            const alertas = (o.aml_alertas||'').split(',').filter(Boolean);
+            const amlHtml = alertas.map(a => `<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(243,156,18,.15);color:var(--cor-alerta);margin:1px;">${amlLabels[a]||a}</span>`).join('');
+            const pgtoHtml = o.pagamento_confirmado
+                ? `<span class="flag-pgto-ok"><i class="fas fa-check-circle"></i> Confirmado</span>`
+                : `<span class="flag-pgto-pend"><i class="fas fa-clock"></i> Aguardando</span>`;
+            return `<tr>
+                <td>${fmtD(o.data)}</td>
+                <td style="font-weight:600;">${o.cliente_nome||'—'}</td>
+                <td class="mono">${fmtN(o.valor_entrada,2)} ${o.moeda_entrada||''}</td>
+                <td class="mono">${o.moeda_saida==='BRL'?'R$ ':''}${fmtN(o.valor_saida)} ${o.moeda_saida||''}</td>
+                <td>${pgtoHtml}</td>
+                <td>${amlHtml||'—'}</td>
+                <td><span class="tag tag-${o.status}">${o.status}</span></td>
+            </tr>`;
+        }).join('');
+    } catch(e) {
+        tb.innerHTML = `<tr><td colspan="7" style="color:var(--cor-perigo);padding:20px;">${e.message}</td></tr>`;
+    }
+}
+
+// ══ DESPACHOS HISTÓRICO ════════════════════════════════
+async function carregarDespachos() {
+    const box = document.getElementById('despachosLista');
+    box.innerHTML = '<div class="empty"><i class="fas fa-spinner fa-spin"></i></div>';
+    try {
+        const r = await fetch('/api/admin/despachos');
+        const d = await r.json();
+        const lista = d.despachos || [];
+        if (!lista.length) {
+            box.innerHTML = '<div class="empty"><i class="fas fa-inbox"></i><p>Nenhum despacho criado ainda</p></div>';
+            return;
+        }
+        box.innerHTML = lista.map(dep => `
+            <div class="desp-card">
+                <div>
+                    <div class="desp-num">Despacho #${dep.numero||dep.id?.slice(0,8)}</div>
+                    <div class="desp-info">${dep.qtd_ordens||0} ordens · Parceiro: <strong>${dep.parceiro_pagador||'—'}</strong> · ${fmtD(dep.created_at)}</div>
+                    ${dep.observacoes ? `<div class="desp-info" style="margin-top:3px;font-style:italic;">${dep.observacoes}</div>` : ''}
+                </div>
+                <div style="text-align:right;">
+                    <div class="desp-val">${dep.moeda_saida==='BRL'?'R$ ':''}${fmtN(dep.valor_total)} ${dep.moeda_saida||''}</div>
+                    <div class="desp-meta" style="margin-top:4px;"><span class="tag tag-${dep.status}">${dep.status}</span></div>
+                    ${dep.status === 'enviado' ? `<button class="btn-act g" style="margin-top:8px;" onclick="confirmarPagoDespacho('${dep.id}')"><i class="fas fa-check"></i> Confirmar Pago</button>` : ''}
+                </div>
+            </div>
+        `).join('');
+    } catch(e) {
+        box.innerHTML = `<div style="color:var(--cor-perigo);padding:20px;">${e.message}</div>`;
+    }
+}
+
+async function confirmarPagoDespacho(id) {
+    if (!confirm('Confirmar que este despacho foi pago pelo parceiro?')) return;
+    try {
+        const r = await fetch(`/api/admin/despachos/${id}/confirmar-pago`, {method:'POST'});
+        const d = await r.json();
+        toast(d.message, d.success ? 'ok' : 'err');
+        if (d.success) { carregarDespachos(); carregarStats(); }
+    } catch(e) { toast(e.message, 'err'); }
+}
+
+// ══ CRIAR DESPACHO ══════════════════════════════════════
+async function abrirModalDespacho() {
+    if (!selecionadas.size) return;
+    const ordens = ordensLiberadas.filter(o => selecionadas.has(o.id));
+    const total  = ordens.reduce((s,o) => s + parseFloat(o.valor_saida||0), 0);
+    const moeda  = ordens[0]?.moeda_saida || 'BRL';
+    const moedas = [...new Set(ordens.map(o => o.moeda_saida))];
+
+    document.getElementById('resumoDespacho').innerHTML = `
+        <div class="resumo-row"><span>Ordens selecionadas</span><strong>${ordens.length}</strong></div>
+        <div class="resumo-row"><span>Moeda(s)</span><strong>${moedas.join(', ')}</strong></div>
+        ${ordens.map(o => `<div class="resumo-row" style="font-size:12px;color:var(--cor-texto-secundario);"><span>${o.cliente_nome||'—'} · ${o.beneficiario_banco||o.tipo_destino||'—'}</span><span>${o.moeda_saida==='BRL'?'R$ ':''}${fmtN(o.valor_saida)} ${o.moeda_saida}</span></div>`).join('')}
+        <div class="resumo-row"><span>Total</span><strong style="color:var(--cor-sucesso);">${moeda==='BRL'?'R$ ':''}${fmtN(total)} ${moeda}</strong></div>
+    `;
+    // Carregar parceiros
+    if (!parceiros.length) await carregarParceiros();
+    document.getElementById('despachoMsg').innerHTML = '';
+    document.getElementById('dObs').value = '';
+    document.getElementById('modalDespacho').classList.add('open');
+}
+
+async function carregarParceiros() {
+    try {
+        const r = await fetch('/api/loja/parceiros');
+        const d = await r.json();
+        parceiros = d.parceiros || [];
+        const sel = document.getElementById('dParceiro');
+        sel.innerHTML = '<option value="">Selecione o parceiro…</option>';
+        parceiros.forEach(p => sel.innerHTML += `<option value="${p.username}">${p.nome||p.username}</option>`);
+    } catch(e) {}
+}
+
+async function confirmarDespacho() {
+    const btn = document.getElementById('btnConfDespacho');
+    const msg = document.getElementById('despachoMsg');
+    const parceiro = document.getElementById('dParceiro').value;
+    if (!parceiro) { msg.innerHTML = '<span style="color:var(--cor-perigo);">Selecione o parceiro.</span>'; return; }
+    btn.disabled = true;
+    msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando despacho…';
+    try {
+        const r = await fetch('/api/admin/despachos', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({
+                ordem_ids: [...selecionadas],
+                parceiro_pagador: parceiro,
+                observacoes: document.getElementById('dObs').value.trim(),
+            })
+        });
+        const d = await r.json();
+        if (d.success) {
+            toast(d.message, 'ok');
+            fecharModal('modalDespacho');
+            selecionadas.clear();
+            carregarLiberadas();
+            carregarStats();
+        } else {
+            msg.innerHTML = `<span style="color:var(--cor-perigo);">${d.message}</span>`;
+        }
+    } catch(e) { msg.innerHTML = `<span style="color:var(--cor-perigo);">${e.message}</span>`; }
+    btn.disabled = false;
+}
+
+function fecharModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-ov').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); }));
+
+function toast(m, tipo='ok') {
+    const c = document.getElementById('toastC');
+    const el = document.createElement('div');
+    el.className = `toast-i t-${tipo}`;
+    el.innerHTML = `<i class="fas fa-${tipo==='ok'?'check-circle':tipo==='warn'?'exclamation-triangle':'times-circle'}"></i> ${m}`;
+    c.appendChild(el);
+    setTimeout(() => el.remove(), 4500);
+}
+
+// Init
+carregarStats();
+carregarLiberadas();
+</script>
+</body>
+</html>

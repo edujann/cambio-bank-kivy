@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cambio Bank — Compliance</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+        body{background:var(--cor-fundo);color:var(--cor-texto);min-height:100vh;}
+        .page{max-width:1200px;margin:0 auto;padding:20px;}
+
+        .hd{display:flex;justify-content:space-between;align-items:center;padding:16px 0;margin-bottom:24px;border-bottom:1px solid var(--cor-borda);flex-wrap:wrap;gap:10px;}
+        .logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;}
+        .logo i{color:#9b59b6;}
+        .logo-text{background:linear-gradient(90deg,#9b59b6,#c39bd3);-webkit-background-clip:text;background-clip:text;color:transparent;}
+        .hd-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+        .btn-hd{background:rgba(155,89,182,.12);border:1px solid #9b59b6;color:#9b59b6;padding:6px 13px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+        .btn-hd:hover{background:rgba(155,89,182,.25);}
+        .btn-hd-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-hd-ghost:hover{border-color:#9b59b6;color:#9b59b6;}
+
+        /* Stats */
+        .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px;}
+        .stat{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:14px 16px;}
+        .stat .lbl{font-size:11px;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+        .stat .val{font-size:24px;font-weight:700;}
+        .c-roxo{color:#9b59b6;} .c-am{color:var(--cor-alerta);} .c-verde{color:var(--cor-sucesso);} .c-perigo{color:var(--cor-perigo);}
+
+        /* Table */
+        .tbl-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);overflow:hidden;}
+        .tbl-hd{padding:13px 18px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;}
+        .tbl-hd h3{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px;}
+        .tbl-wrap{overflow-x:auto;}
+        table{width:100%;border-collapse:collapse;font-size:13px;}
+        th{background:rgba(128,128,128,.05);color:var(--cor-texto-secundario);padding:9px 13px;text-align:left;font-weight:600;font-size:11px;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px;}
+        td{padding:10px 13px;border-top:1px solid var(--cor-borda);vertical-align:middle;}
+        tr:hover td{background:rgba(128,128,128,.03);}
+        .empty{padding:48px;text-align:center;color:var(--cor-texto-secundario);}
+        .empty i{font-size:36px;margin-bottom:10px;display:block;}
+        .tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+        .tag-on_hold{background:rgba(243,156,18,.15);color:var(--cor-alerta);}
+        .tag-compliance_review{background:rgba(155,89,182,.15);color:#9b59b6;}
+        .tag-liberada{background:rgba(26,95,180,.15);color:var(--cor-admin);}
+        .tag-cancelada{background:rgba(224,27,36,.15);color:var(--cor-perigo);}
+        .flag-pgto-ok{color:var(--cor-sucesso);font-size:12px;}
+        .flag-pgto-pend{color:var(--cor-alerta);font-size:12px;}
+        .aml-pill{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(243,156,18,.15);color:var(--cor-alerta);margin:1px;}
+        .btn-act{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:4px 11px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap;transition:.15s;}
+        .btn-act:hover{border-color:#9b59b6;color:#9b59b6;}
+        .btn-act.danger:hover{border-color:var(--cor-perigo);color:var(--cor-perigo);}
+
+        /* Modal */
+        .modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
+        .modal-ov.open{display:flex;}
+        .modal{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:26px;width:min(620px,95vw);max-height:90vh;overflow-y:auto;}
+        .modal h3{margin-bottom:16px;font-size:16px;display:flex;align-items:center;gap:8px;}
+        .modal-acts{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;flex-wrap:wrap;}
+        .sec{font-size:11px;font-weight:700;color:#9b59b6;text-transform:uppercase;letter-spacing:.5px;margin:16px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--cor-borda);}
+        .sec:first-child{margin-top:0;}
+        .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+        .info-item .lbl{font-size:11px;color:var(--cor-texto-secundario);margin-bottom:2px;}
+        .info-item .val{font-size:14px;font-weight:600;}
+        .doc-row{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(128,128,128,.04);border:1px solid var(--cor-borda);border-radius:6px;margin-bottom:6px;font-size:13px;}
+        .doc-ok{color:var(--cor-sucesso);}
+        .doc-miss{color:var(--cor-perigo);}
+        .fg{margin-bottom:12px;}
+        .fg label{display:block;font-size:12px;color:var(--cor-texto-secundario);margin-bottom:4px;font-weight:600;}
+        .fc{width:100%;background:var(--cor-fundo);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:9px 11px;border-radius:var(--borda-radius-pequeno);font-size:14px;outline:none;transition:.15s;}
+        .fc:focus{border-color:#9b59b6;}
+        .btn-p{background:#9b59b6;color:#fff;border:none;padding:10px 22px;border-radius:var(--borda-radius-pequeno);font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s;}
+        .btn-p:hover{background:#7d3c98;}
+        .btn-p:disabled{opacity:.5;cursor:not-allowed;}
+        .btn-danger{background:var(--cor-perigo);color:#fff;border:none;padding:10px 22px;border-radius:var(--borda-radius-pequeno);font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s;}
+        .btn-danger:hover{background:#c0392b;}
+        .btn-g{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:10px 20px;border-radius:var(--borda-radius-pequeno);font-size:14px;font-weight:600;cursor:pointer;transition:.15s;}
+        .btn-g:hover{border-color:#9b59b6;color:#9b59b6;}
+        .form-msg{font-size:13px;margin-top:8px;min-height:18px;}
+        .admin-readonly{background:rgba(243,156,18,.06);border:1px solid rgba(243,156,18,.3);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--cor-alerta);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+
+        /* Toast */
+        .toast-c{position:fixed;bottom:22px;right:22px;z-index:9999;display:flex;flex-direction:column;gap:7px;}
+        .toast-i{padding:11px 16px;border-radius:var(--borda-radius-pequeno);font-size:13px;font-weight:600;min-width:240px;animation:tIn .2s ease;}
+        .t-ok{background:rgba(46,194,126,.1);border:1px solid var(--cor-sucesso);color:var(--cor-sucesso);}
+        .t-err{background:rgba(224,27,36,.1);border:1px solid var(--cor-perigo);color:var(--cor-perigo);}
+        @keyframes tIn{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <div class="hd">
+        <div class="logo">
+            <i class="fas fa-shield-check"></i>
+            <span class="logo-text">Compliance</span>
+        </div>
+        <div class="hd-right">
+            <span style="font-size:12px;color:var(--cor-texto-secundario);">{{ usuario }}</span>
+            {% if tipo == 'admin' %}
+            <a href="/admin/dashboard" class="btn-hd"><i class="fas fa-tachometer-alt"></i> Admin</a>
+            {% endif %}
+            <a href="/logout" class="btn-hd btn-hd-ghost"><i class="fas fa-sign-out-alt"></i> Sair</a>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats">
+        <div class="stat">
+            <div class="lbl">Pendentes</div>
+            <div class="val c-roxo" id="s-pend">—</div>
+        </div>
+        <div class="stat">
+            <div class="lbl">Pagamento pendente</div>
+            <div class="val c-am" id="s-pgto">—</div>
+        </div>
+        <div class="stat">
+            <div class="lbl">PEP / Alto risco</div>
+            <div class="val c-perigo" id="s-pep">—</div>
+        </div>
+        <div class="stat">
+            <div class="lbl">Aprovadas hoje</div>
+            <div class="val c-verde" id="s-aprov">—</div>
+        </div>
+    </div>
+
+    <!-- Tabela fila compliance -->
+    <div class="tbl-card">
+        <div class="tbl-hd">
+            <h3><i class="fas fa-clock" style="color:#9b59b6"></i> Fila de Análise <span id="tbl-count" style="color:var(--cor-texto-secundario);font-weight:400;font-size:12px;margin-left:4px;"></span></h3>
+            <button class="btn-hd btn-hd-ghost" onclick="carregarOrdens()"><i class="fas fa-sync-alt"></i></button>
+        </div>
+        <div class="tbl-wrap">
+            <table>
+                <thead><tr>
+                    <th>Data</th>
+                    <th>Cliente</th>
+                    <th>Valor entrada</th>
+                    <th>Valor saída</th>
+                    <th>Destino</th>
+                    <th>Pagamento</th>
+                    <th>Alertas AML</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr></thead>
+                <tbody id="ordensBody">
+                    <tr><td colspan="9" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de análise -->
+<div class="modal-ov" id="modalAnalise">
+    <div class="modal">
+        <h3><i class="fas fa-search" style="color:#9b59b6"></i> Análise de Compliance</h3>
+
+        {% if tipo == 'admin' %}
+        <div class="admin-readonly"><i class="fas fa-eye"></i> Você está como Admin — visualização apenas. Somente o Compliance pode aprovar ou rejeitar.</div>
+        {% endif %}
+
+        <div class="sec">Dados da Ordem</div>
+        <div class="info-grid" id="modalOrdemInfo"></div>
+
+        <div class="sec">Cliente</div>
+        <div class="info-grid" id="modalClienteInfo"></div>
+
+        <div class="sec">Documentos KYC</div>
+        <div id="modalDocs"></div>
+
+        <div class="sec">Alertas AML</div>
+        <div id="modalAml"></div>
+
+        <div id="modalAcoesCompliance" style="display:{% if tipo == 'compliance' %}block{% else %}none{% endif %}">
+            <div class="sec">Decisão</div>
+            <div class="fg">
+                <label>Observação (opcional para aprovação, obrigatória para rejeição)</label>
+                <textarea id="modalObs" class="fc" rows="3" placeholder="Descreva a análise realizada…"></textarea>
+            </div>
+            <div class="form-msg" id="modalMsg"></div>
+            <div class="modal-acts">
+                <button class="btn-g" onclick="fecharModal()">Fechar</button>
+                <button class="btn-danger" onclick="rejeitarOrdem()"><i class="fas fa-ban"></i> Rejeitar</button>
+                <button class="btn-p" onclick="aprovarOrdem()"><i class="fas fa-check"></i> Aprovar</button>
+            </div>
+        </div>
+
+        <div id="modalAcoesAdmin" style="display:{% if tipo == 'admin' %}flex{% else %}none{% endif %};justify-content:flex-end;margin-top:16px;">
+            <button class="btn-g" onclick="fecharModal()">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast-c" id="toastC"></div>
+<script src="/static/js/theme.js"></script>
+<script>
+const IS_COMPLIANCE = {{ 'true' if tipo == 'compliance' else 'false' }};
+const fmtN = (v,d=2) => parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtD = s => { if(!s)return'—'; try{const[dt,hr]=(s.replace('T',' ').split('.')[0]).split(' ');const[y,m,d]=dt.split('-');return hr?`${d}/${m}/${y} ${hr.slice(0,5)}`:`${d}/${m}/${y}`;}catch{return s;}};
+const destFlag = {brazil:'🇧🇷',europe:'🇪🇺',usa:'🇺🇸'};
+const amlLabels = {PEP_SCREENING_REQUIRED:'PEP',HIGH_RISK_COUNTRY_EDD:'Alto Risco',CASH_EDD:'Cash EDD'};
+const docLabels = {photo_id:'Photo ID',proof_address:'Proof of Address',source_funds:'Source of Funds',declaration:'Declaration Form',edd:'EDD Documents'};
+
+let ordemAtual = null;
+let todasOrdens = [];
+
+async function carregarOrdens() {
+    const tb = document.getElementById('ordensBody');
+    tb.innerHTML = '<tr><td colspan="9" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    try {
+        const r = await fetch('/api/compliance/ordens');
+        const d = await r.json();
+        if (!d.success) { tb.innerHTML = `<tr><td colspan="9" style="color:var(--cor-perigo);padding:20px;">${d.message}</td></tr>`; return; }
+        todasOrdens = d.ordens || [];
+        renderTabela(todasOrdens);
+        atualizarStats(todasOrdens);
+    } catch(e) {
+        tb.innerHTML = `<tr><td colspan="9" style="color:var(--cor-perigo);padding:20px;">${e.message}</td></tr>`;
+    }
+}
+
+function renderTabela(lista) {
+    const tb = document.getElementById('ordensBody');
+    document.getElementById('tbl-count').textContent = `(${lista.length})`;
+    if (!lista.length) {
+        tb.innerHTML = '<tr><td colspan="9" class="empty"><i class="fas fa-check-circle" style="color:var(--cor-sucesso)"></i><p>Nenhuma ordem pendente — fila vazia!</p></td></tr>';
+        return;
+    }
+    tb.innerHTML = lista.map(o => {
+        const flag = destFlag[o.tipo_destino||'brazil'] || '🇧🇷';
+        const alertas = (o.aml_alertas||'').split(',').filter(Boolean);
+        const alertaHtml = alertas.map(a => `<span class="aml-pill">${amlLabels[a]||a}</span>`).join('');
+        const pgtoHtml = o.pagamento_confirmado
+            ? `<span class="flag-pgto-ok"><i class="fas fa-check-circle"></i> Confirmado</span>`
+            : `<span class="flag-pgto-pend"><i class="fas fa-clock"></i> Aguardando</span>`;
+        const saidaFmt = o.moeda_saida === 'BRL' ? `R$ ${fmtN(o.valor_saida)}` : `${fmtN(o.valor_saida)} ${o.moeda_saida||'BRL'}`;
+        return `<tr>
+            <td style="white-space:nowrap;">${fmtD(o.data)}</td>
+            <td style="font-weight:600;">${o.cliente_nome||'—'}</td>
+            <td class="mono">${fmtN(o.valor_entrada,2)} ${o.moeda_entrada||''}</td>
+            <td class="mono" style="color:var(--cor-sucesso);">${saidaFmt}</td>
+            <td>${flag} ${o.tipo_destino||'brazil'}</td>
+            <td>${pgtoHtml}</td>
+            <td>${alertaHtml || '<span style="color:var(--cor-texto-secundario);font-size:11px;">Nenhum</span>'}</td>
+            <td><span class="tag tag-${o.status}">${o.status}</span></td>
+            <td><button class="btn-act" onclick="abrirAnalise('${o.id}')"><i class="fas fa-search"></i> Analisar</button></td>
+        </tr>`;
+    }).join('');
+}
+
+function atualizarStats(lista) {
+    const hoje = new Date().toISOString().slice(0,10);
+    document.getElementById('s-pend').textContent = lista.length;
+    document.getElementById('s-pgto').textContent = lista.filter(o => !o.pagamento_confirmado).length;
+    document.getElementById('s-pep').textContent  = lista.filter(o => (o.aml_alertas||'').includes('PEP')).length;
+}
+
+async function abrirAnalise(ordemId) {
+    ordemAtual = ordemId;
+    const o = todasOrdens.find(x => x.id === ordemId);
+    if (!o) return;
+
+    // Ordem info
+    const alertas = (o.aml_alertas||'').split(',').filter(Boolean);
+    document.getElementById('modalOrdemInfo').innerHTML = `
+        <div class="info-item"><div class="lbl">Data</div><div class="val">${fmtD(o.data)}</div></div>
+        <div class="info-item"><div class="lbl">Loja</div><div class="val">${o.loja||'—'}</div></div>
+        <div class="info-item"><div class="lbl">Entrada</div><div class="val">${fmtN(o.valor_entrada,2)} ${o.moeda_entrada}</div></div>
+        <div class="info-item"><div class="lbl">Saída</div><div class="val" style="color:var(--cor-sucesso);">${o.moeda_saida==='BRL'?'R$ ':''}${fmtN(o.valor_saida,2)} ${o.moeda_saida}</div></div>
+        <div class="info-item"><div class="lbl">Destino</div><div class="val">${destFlag[o.tipo_destino]||''} ${o.tipo_destino}</div></div>
+        <div class="info-item"><div class="lbl">Forma pagamento</div><div class="val">${o.forma_pagamento||'—'}</div></div>
+        <div class="info-item"><div class="lbl">Pagamento confirmado</div><div class="val ${o.pagamento_confirmado?'doc-ok':'doc-miss'}">${o.pagamento_confirmado?'✅ Sim':'⏳ Aguardando'}</div></div>
+        <div class="info-item"><div class="lbl">Status atual</div><div class="val"><span class="tag tag-${o.status}">${o.status}</span></div></div>
+    `;
+
+    // Cliente info
+    document.getElementById('modalClienteInfo').innerHTML = `
+        <div class="info-item"><div class="lbl">Nome</div><div class="val">${o.cliente_nome||'—'}</div></div>
+        <div class="info-item"><div class="lbl">Documento</div><div class="val">${o.cliente_doc||'—'}</div></div>
+        <div class="info-item"><div class="lbl">Telefone</div><div class="val">${o.cliente_telefone||'—'}</div></div>
+        <div class="info-item"><div class="lbl">Beneficiário</div><div class="val">${o.beneficiario_nome||'—'}</div></div>
+        <div class="info-item"><div class="lbl">Banco benef.</div><div class="val">${o.beneficiario_banco||o.benef_iban||'—'}</div></div>
+        <div class="info-item"><div class="lbl">Conta</div><div class="val">${o.beneficiario_conta||o.account_number||'—'}</div></div>
+    `;
+
+    // Docs KYC
+    await carregarDocsKyc(o.cliente_id);
+
+    // Alertas AML
+    const amlHtml = alertas.length
+        ? alertas.map(a => `<div class="doc-row"><span>${amlLabels[a]||a}</span><span class="doc-miss"><i class="fas fa-exclamation-triangle"></i> Atenção</span></div>`).join('')
+        : `<div class="doc-row"><span style="color:var(--cor-texto-secundario);">Nenhum alerta AML</span><span class="doc-ok"><i class="fas fa-check"></i></span></div>`;
+    document.getElementById('modalAml').innerHTML = amlHtml;
+
+    document.getElementById('modalObs').value = '';
+    document.getElementById('modalMsg').innerHTML = '';
+    document.getElementById('modalAnalise').classList.add('open');
+}
+
+async function carregarDocsKyc(clienteId) {
+    const box = document.getElementById('modalDocs');
+    if (!clienteId) { box.innerHTML = '<p style="color:var(--cor-texto-secundario);font-size:13px;">Cliente sem ID — verifique cadastro.</p>'; return; }
+    try {
+        const r = await fetch(`/api/clientes/${clienteId}/kyc-check?valor=0&moeda=GBP`);
+        const d = await r.json();
+        if (!d.success) { box.innerHTML = '<p style="color:var(--cor-perigo);">Erro ao carregar docs KYC.</p>'; return; }
+        const a = d.aml;
+        const todos = ['photo_id','proof_address','source_funds','declaration','edd'];
+        const obrig = a.docs_required || [];
+        box.innerHTML = todos.map(doc => {
+            const isObrig = obrig.includes(doc);
+            const isMissing = (a.docs_missing||[]).includes(doc);
+            const cls = !isObrig ? '' : isMissing ? 'doc-miss' : 'doc-ok';
+            const icon = !isObrig ? 'fa-minus' : isMissing ? 'fa-times-circle' : 'fa-check-circle';
+            const status = !isObrig ? 'Não obrigatório' : isMissing ? 'PENDENTE' : 'OK';
+            return `<div class="doc-row">
+                <span>${docLabels[doc]}</span>
+                <span class="${cls}"><i class="fas ${icon}"></i> ${status}</span>
+            </div>`;
+        }).join('');
+        if (a.pep_flag) box.innerHTML += `<div class="doc-row"><span>PEP Flag</span><span class="doc-miss"><i class="fas fa-flag"></i> PEP IDENTIFICADO</span></div>`;
+        if (a.sanctions_flag) box.innerHTML += `<div class="doc-row"><span>Sanções</span><span class="doc-miss"><i class="fas fa-ban"></i> SANCTIONED</span></div>`;
+    } catch(e) {
+        box.innerHTML = `<p style="color:var(--cor-perigo);">${e.message}</p>`;
+    }
+}
+
+async function aprovarOrdem() {
+    if (!IS_COMPLIANCE) return;
+    const btn = document.querySelector('.btn-p');
+    const msg = document.getElementById('modalMsg');
+    btn.disabled = true;
+    msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Aprovando…';
+    try {
+        const obs = document.getElementById('modalObs').value.trim();
+        const r = await fetch(`/api/compliance/ordens/${ordemAtual}/aprovar`, {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({observacao: obs})
+        });
+        const d = await r.json();
+        if (d.success) {
+            toast(d.message, 'ok');
+            fecharModal();
+            carregarOrdens();
+        } else {
+            msg.innerHTML = `<span style="color:var(--cor-perigo);">${d.message}</span>`;
+        }
+    } catch(e) { msg.innerHTML = `<span style="color:var(--cor-perigo);">${e.message}</span>`; }
+    btn.disabled = false;
+}
+
+async function rejeitarOrdem() {
+    if (!IS_COMPLIANCE) return;
+    const msg = document.getElementById('modalMsg');
+    const motivo = document.getElementById('modalObs').value.trim();
+    if (!motivo) {
+        msg.innerHTML = '<span style="color:var(--cor-perigo);"><i class="fas fa-exclamation-circle"></i> Informe o motivo da rejeição.</span>';
+        return;
+    }
+    if (!confirm(`Rejeitar esta ordem?\nMotivo: ${motivo}`)) return;
+    msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Rejeitando…';
+    try {
+        const r = await fetch(`/api/compliance/ordens/${ordemAtual}/rejeitar`, {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({motivo})
+        });
+        const d = await r.json();
+        if (d.success) {
+            toast(d.message, 'ok');
+            fecharModal();
+            carregarOrdens();
+        } else {
+            msg.innerHTML = `<span style="color:var(--cor-perigo);">${d.message}</span>`;
+        }
+    } catch(e) { msg.innerHTML = `<span style="color:var(--cor-perigo);">${e.message}</span>`; }
+}
+
+function fecharModal() { document.getElementById('modalAnalise').classList.remove('open'); ordemAtual = null; }
+document.getElementById('modalAnalise').addEventListener('click', e => { if (e.target === document.getElementById('modalAnalise')) fecharModal(); });
+
+function toast(m, tipo='ok') {
+    const c = document.getElementById('toastC');
+    const el = document.createElement('div');
+    el.className = `toast-i t-${tipo}`;
+    el.innerHTML = `<i class="fas fa-${tipo==='ok'?'check-circle':'times-circle'}"></i> ${m}`;
+    c.appendChild(el);
+    setTimeout(() => el.remove(), 4000);
+}
+
+carregarOrdens();
+setInterval(carregarOrdens, 30000);
+</script>
+</body>
+</html>
