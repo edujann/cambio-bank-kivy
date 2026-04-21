@@ -11816,22 +11816,6 @@ def compliance_dashboard():
     return render_template('compliance_dashboard.html', usuario=usuario, tipo=tipo)
 
 
-@app.route('/api/compliance/ordens', methods=['GET'])
-def compliance_listar_ordens():
-    usuario, tipo, redir = _check_compliance_acesso()
-    if redir:
-        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
-    try:
-        r = supabase.table('ordens_captacao')\
-            .select('*')\
-            .eq('compliance_status', 'pendente')\
-            .not_.eq('status', 'cancelada')\
-            .order('data', desc=False)\
-            .execute()
-        return jsonify({'success': True, 'ordens': r.data or []})
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
-
 
 @app.route('/api/compliance/ordens/<ordem_id>/aprovar', methods=['POST'])
 def compliance_aprovar(ordem_id):
@@ -12061,32 +12045,24 @@ def compliance_listar_ordens():
     if redir:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
-        # 🔥 VERSÃO SIMPLES: Buscar todas e filtrar no Python
+        # Buscar ordens que precisam de análise
         r = supabase.table('ordens_captacao')\
             .select('*')\
+            .filter('compliance_status', 'in', ('pendente', None))\
             .neq('status', 'cancelada')\
             .order('data', desc=False)\
             .execute()
         
-        # Filtrar no Python (mais garantido)
-        todas_ordens = r.data or []
-        ordens_pendentes = []
+        ordens = r.data or []
         
-        for o in todas_ordens:
-            compliance = o.get('compliance_status')
-            # Incluir se compliance_status for 'pendente' ou NULL/None
-            if compliance == 'pendente' or compliance is None:
-                ordens_pendentes.append(o)
+        print(f"🔍 [COMPLIANCE] Ordens encontradas: {len(ordens)}")
         
-        print(f"🔍 [COMPLIANCE] Total: {len(todas_ordens)} | Pendentes: {len(ordens_pendentes)}")
-        
-        return jsonify({'success': True, 'ordens': ordens_pendentes})
+        return jsonify({'success': True, 'ordens': ordens})
     except Exception as e:
         print(f"❌ Erro compliance/ordens: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'message': str(e)}), 500
-
 
 # ---- AML Config ----
 
