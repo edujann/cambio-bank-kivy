@@ -412,9 +412,16 @@
 </div>
 
 <div class="toast" id="toast"></div>
-
 <script>
-const IS_COMPLIANCE = {{ session.get('tipo','') | tojson }} === 'compliance' || {{ usuario | tojson }} !== '';
+    // Variáveis globais passadas do backend
+    window.USER_TIPO = {{ session.get('tipo', '') | tojson }};
+    window.USUARIO = {{ usuario | tojson }};
+    window.IS_COMPLIANCE = (window.USER_TIPO === 'compliance' || window.USUARIO !== '');
+</script>
+<script>
+// Usar variáveis globais definidas no HTML
+const IS_COMPLIANCE = window.IS_COMPLIANCE;
+const USER_TIPO = window.USER_TIPO;
 
 // ─── Tabs ────────────────────────────────────────
 function showTab(name) {
@@ -434,13 +441,15 @@ function showTab(name) {
 // ─── Toast ───────────────────────────────────────
 function toast(msg, tipo='ok') {
     const el = document.getElementById('toast');
+    if(!el) return;
     el.textContent = msg;
     el.className = 'toast show ' + tipo;
     setTimeout(()=>el.className='toast',3000);
 }
 
 function fecharModal(id) {
-    document.getElementById(id).classList.remove('open');
+    const modal = document.getElementById(id);
+    if(modal) modal.classList.remove('open');
 }
 
 // ─── Stats ───────────────────────────────────────
@@ -462,7 +471,7 @@ async function carregarStats() {
         document.getElementById('tab-cnt-sars').textContent = (rS.sars||[]).length;
         document.getElementById('tab-cnt-docs').textContent = (rD.clientes||[]).length;
         document.getElementById('tab-cnt-ordens').textContent = ordens.length;
-    } catch(e){}
+    } catch(e){ console.error('Stats error:', e); }
 }
 
 // ─── ORDENS ─────────────────────────────────────
@@ -471,125 +480,196 @@ async function carregarOrdens() {
     const tb = document.getElementById('tbOrdens');
     tb.innerHTML = '<tr><td colspan="9" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
     try {
-        const r = await fetch('/api/compliance/ordens').then(r=>r.json());
-        ordensData = r.ordens||[];
+        const r = await fetch('/api/compliance/ordens');
+        const data = await r.json();
+        ordensData = data.ordens||[];
         renderOrdens(ordensData);
-    } catch(e){ tb.innerHTML='<tr><td colspan="9" class="empty">Erro ao carregar</td></tr>'; }
+    } catch(e){ 
+        console.error('Erro carregar ordens:', e);
+        tb.innerHTML='<tr><td colspan="9" class="empty">Erro ao carregar</td></tr>'; 
+    }
 }
 
 function renderOrdens(list) {
     const tb = document.getElementById('tbOrdens');
-    if(!list.length){ tb.innerHTML='<tr><td colspan="9" class="empty"><i class="fas fa-check-circle"></i><br>Nenhuma ordem pendente</td></tr>'; return; }
-    tb.innerHTML = list.map(o=>{
-        const alertas = (o.aml_alertas||[]).map(a=>`<span class="aml-pill">${a}</span>`).join('');
+    if(!list.length){ 
+        tb.innerHTML='<tr><td colspan="9" class="empty"><i class="fas fa-check-circle"></i><br>Nenhuma ordem pendente</td></tr>'; 
+        return; 
+    }
+    
+    let html = '';
+    for (const o of list) {
+        const alertas = (o.aml_alertas || []).map(a => `<span class="aml-pill">${a}</span>`).join('');
         const pgtoIco = o.pagamento_confirmado ? '<i class="fas fa-check-circle flag-ok" title="Confirmado"></i>' : '<i class="fas fa-clock flag-pend" title="Aguardando"></i>';
-        const compTag = `<span class="tag tag-${o.compliance_status||'pendente'}">${o.compliance_status||'pendente'}</span>`;
+        const compTag = `<span class="tag tag-${o.compliance_status || 'pendente'}">${o.compliance_status || 'pendente'}</span>`;
         const dt = o.created_at ? new Date(o.created_at).toLocaleDateString('pt-BR') : '—';
-        return `<tr>
-            <td><strong>#${o.id}</strong></td>
-            <td>${o.cliente_nome||o.cliente_id||'—'}</td>
-            <td>${fmtVal(o.valor_entrada,o.moeda_entrada)}</td>
-            <td>${fmtVal(o.valor_saida,o.moeda_saida)}</td>
-            <td>${pgtoIco}</td>
-            <td>${compTag}</td>
-            <td>${alertas||'<span style="color:var(--cor-sucesso);font-size:11px;">✓ OK</span>'}</td>
-            <td style="white-space:nowrap">${dt}</td>
-            <td><button class="btn-act" onclick="abrirOrdem(${o.id})"><i class="fas fa-eye"></i> Analisar</button></td>
-        </tr>`;
-    }).join('');
+        
+        html += `
+            <tr>
+                <td><strong>#${o.id.substring(0,8)}</strong></td>
+                <td>${o.cliente_nome || o.cliente_id || '—'}</td>
+                <td>${fmtVal(o.valor_entrada, o.moeda_entrada)}</td>
+                <td>${fmtVal(o.valor_saida, o.moeda_saida)}</td>
+                <td>${pgtoIco}</td>
+                <td>${compTag}</td>
+                <td>${alertas || '<span style="color:var(--cor-sucesso);font-size:11px;">✓ OK</span>'}</td>
+                <td style="white-space:nowrap">${dt}</td>
+                <td><button class="btn-act" onclick="abrirOrdem('${o.id}')"><i class="fas fa-eye"></i> Analisar</button></td>
+            </tr>
+        `;
+    }
+    tb.innerHTML = html;
 }
 
-function fmtVal(v,m){ return v ? `${parseFloat(v).toLocaleString('pt-BR',{minimumFractionDigits:2})} ${m||''}` : '—'; }
+function fmtVal(v,m){ 
+    if(!v) return '—';
+    return `${parseFloat(v).toLocaleString('pt-BR',{minimumFractionDigits:2})} ${m || ''}`; 
+}
 
 async function abrirOrdem(id) {
-    const o = ordensData.find(x=>x.id==id);
-    if(!o) return;
-    document.getElementById('mo-titulo').textContent = `Ordem #${o.id}`;
-    document.getElementById('mo-cliente').textContent = o.cliente_nome||o.cliente_id||'—';
-    document.getElementById('mo-doc').textContent     = o.cliente_documento||'—';
-    document.getElementById('mo-entrada').textContent = fmtVal(o.valor_entrada,o.moeda_entrada);
-    document.getElementById('mo-saida').textContent   = fmtVal(o.valor_saida,o.moeda_saida);
-    document.getElementById('mo-forma').textContent   = o.forma_pagamento||'—';
-    document.getElementById('mo-loja').textContent    = o.loja_nome||o.loja_id||'—';
-    document.getElementById('mo-pgto').innerHTML  = o.pagamento_confirmado ? '<span class="tag tag-aprovado">Confirmado</span>' : '<span class="tag tag-pendente">Aguardando</span>';
-    document.getElementById('mo-comp').innerHTML  = `<span class="tag tag-${o.compliance_status||'pendente'}">${o.compliance_status||'pendente'}</span>`;
-    document.getElementById('mo-status').innerHTML = `<span class="tag tag-${o.status}">${o.status}</span>`;
-    const alertas = (o.aml_alertas||[]);
-    document.getElementById('mo-aml').innerHTML = alertas.length ? alertas.map(a=>`<span class="aml-pill">${a}</span>`).join(' ') : '<span style="color:var(--cor-sucesso)"><i class="fas fa-check"></i> Sem alertas</span>';
-    // Docs KYC
-    const docsEl = document.getElementById('mo-docs');
-    const docsMap = o.kyc_docs||{};
-    const docsLabels = {photo_id:'Documento com Foto',proof_address:'Comprovante de Residência',source_funds:'Origem dos Fundos',declaration:'Declaração',edd:'EDD'};
-    docsEl.innerHTML = Object.entries(docsLabels).map(([k,l])=>`<div class="doc-row"><span>${l}</span><span>${docsMap[k]?'<i class="fas fa-check-circle" style="color:var(--cor-sucesso)"></i> OK':'<i class="fas fa-times-circle" style="color:var(--cor-texto-secundario)"></i> Pendente'}</span></div>`).join('');
-    // Documentos da ordem (Proof of Funds e outros uploads)
-    carregarDocumentosOrdem(o.id);
-    document.getElementById('mo-obs').value = '';
-    document.getElementById('mo-id').value = id;
-    // Botões (só compliance pode agir)
-    const userTipo = {{ session.get('tipo','') | tojson }};
-    const acts = document.getElementById('mo-acts');
-    if(userTipo === 'compliance' && o.compliance_status === 'pendente') {
-        acts.innerHTML = `
-            <button class="btn-ghost" onclick="fecharModal('modalOrdem')">Fechar</button>
-            <button class="btn-danger" onclick="acao('rejeitar',${o.id})"><i class="fas fa-times"></i> Rejeitar</button>
-            <button class="btn-success" onclick="acao('aprovar',${o.id})"><i class="fas fa-check"></i> Aprovar</button>`;
-    } else {
-        acts.innerHTML = `<button class="btn-ghost" onclick="fecharModal('modalOrdem')">Fechar</button>`;
-    }
-    // Notas
-    carregarNotasOrdem(o.cliente_id);
-    document.getElementById('modalOrdem').classList.add('open');
-}
-
-async function carregarDocumentosOrdem(ordemId) {
-    const el = document.getElementById('mo-ordem-docs');
-    if (!el) return;
+    console.log("🔍 Buscando detalhes da ordem:", id);
+    
     try {
-        const r = await fetch(`/api/loja/ordens/${ordemId}/documentos`).then(r=>r.json());
-        const docs = r.documentos||[];
-        if (!docs.length) {
-            el.innerHTML = '<span style="color:var(--cor-texto-secundario);font-size:12px;">Nenhum documento anexado a esta ordem.</span>';
+        const response = await fetch(`/api/compliance/ordens/${id}/detalhes`);
+        const data = await response.json();
+        
+        if (!data.success) {
+            toast(data.message || 'Erro ao carregar ordem', 'err');
             return;
         }
-        el.innerHTML = docs.map(d => {
-            const nome = d.arquivo_nome || d.arquivo_url.split('/').pop();
-            const data = new Date(d.created_at).toLocaleString('pt-BR');
-            const url  = d.signed_url;
+        
+        const ordem = data.ordem;
+        const cliente = data.cliente;
+        const documentos = data.documentos || [];
+        const notas = data.notas || [];
+        
+        // Preencher o modal
+        document.getElementById('mo-titulo').textContent = `Ordem #${ordem.id.substring(0,8)}`;
+        document.getElementById('mo-cliente').textContent = ordem.cliente_nome || '—';
+        document.getElementById('mo-doc').textContent = ordem.cliente_doc || '—';
+        document.getElementById('mo-entrada').textContent = fmtVal(ordem.valor_entrada, ordem.moeda_entrada);
+        document.getElementById('mo-saida').textContent = fmtVal(ordem.valor_saida, ordem.moeda_saida);
+        document.getElementById('mo-forma').textContent = ordem.forma_pagamento || '—';
+        document.getElementById('mo-loja').textContent = ordem.loja || '—';
+        
+        // Status de pagamento
+        const pgtoHtml = ordem.pagamento_confirmado 
+            ? '<span class="tag tag-aprovado">Confirmado</span>' 
+            : '<span class="tag tag-pendente">Aguardando</span>';
+        document.getElementById('mo-pgto').innerHTML = pgtoHtml;
+        
+        // Status compliance
+        document.getElementById('mo-comp').innerHTML = `<span class="tag tag-${ordem.compliance_status || 'pendente'}">${ordem.compliance_status || 'pendente'}</span>`;
+        
+        // Status geral
+        document.getElementById('mo-status').innerHTML = `<span class="tag tag-${ordem.status}">${ordem.status}</span>`;
+        
+        // Alertas AML
+        const alertas = ordem.aml_alertas ? ordem.aml_alertas.split(',') : [];
+        const amlHtml = alertas.length 
+            ? alertas.map(a => `<span class="aml-pill">${a.trim()}</span>`).join(' ')
+            : '<span style="color:var(--cor-sucesso)"><i class="fas fa-check"></i> Sem alertas</span>';
+        document.getElementById('mo-aml').innerHTML = amlHtml;
+        
+        // Documentos KYC do cliente
+        const docsLabels = {
+            doc_photo_id_ok: 'Documento com Foto',
+            doc_address_ok: 'Comprovante de Residência',
+            doc_source_funds_ok: 'Origem dos Fundos',
+            doc_declaration_ok: 'Declaração',
+            doc_edd_ok: 'EDD'
+        };
+        
+        const docsHtml = cliente ? Object.entries(docsLabels).map(([campo, label]) => {
+            const isOk = cliente[campo] === true;
+            return `<div class="doc-row">
+                <span>${label}</span>
+                <span>${isOk ? '<i class="fas fa-check-circle" style="color:var(--cor-sucesso)"></i> OK' : '<i class="fas fa-times-circle" style="color:var(--cor-texto-secundario)"></i> Pendente'}</span>
+            </div>`;
+        }).join('') : '<p>Cliente não identificado</p>';
+        
+        document.getElementById('mo-docs').innerHTML = docsHtml;
+        
+        // Documentos da ordem
+        const ordemDocsHtml = documentos.length ? documentos.map(doc => {
+            const nome = doc.arquivo_nome || (doc.arquivo_url ? doc.arquivo_url.split('/').pop() : 'documento');
+            const data = doc.created_at ? new Date(doc.created_at).toLocaleString('pt-BR') : '';
+            const url = doc.signed_url || doc.arquivo_url;
             return `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;background:rgba(128,128,128,.06);border-radius:6px;margin-bottom:4px;">
                 <div style="overflow:hidden;">
-                    <div style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${nome}"><i class="fas fa-file-alt" style="color:var(--cor-admin);margin-right:4px;"></i>${nome}</div>
-                    <div style="font-size:11px;color:var(--cor-texto-secundario);">${d.tipo} — ${d.criado_por} — ${data}</div>
-                    ${d.observacao ? `<div style="font-size:11px;color:var(--cor-texto-secundario);font-style:italic;">${d.observacao}</div>` : ''}
+                    <div style="font-weight:600;font-size:12px;" title="${nome}">
+                        <i class="fas fa-file-alt" style="color:var(--cor-admin);margin-right:4px;"></i>${nome.substring(0, 50)}
+                    </div>
+                    <div style="font-size:11px;color:var(--cor-texto-secundario);">${doc.tipo || 'Documento'} — ${data}</div>
+                    ${doc.observacao ? `<div style="font-size:11px;color:var(--cor-texto-secundario);font-style:italic;">${doc.observacao}</div>` : ''}
                 </div>
-                ${url ? `<a href="${url}" target="_blank" style="margin-left:10px;background:var(--cor-admin);color:#fff;border:none;border-radius:5px;padding:5px 10px;font-size:11px;text-decoration:none;white-space:nowrap;"><i class="fas fa-eye"></i> Ver</a>` : '<span style="font-size:11px;color:var(--cor-perigo);">URL expirada</span>'}
+                ${url ? `<a href="${url}" target="_blank" class="btn-act" style="margin-left:10px;"><i class="fas fa-eye"></i> Ver</a>` : '<span style="font-size:11px;">URL indisponível</span>'}
             </div>`;
-        }).join('');
-    } catch(e) {
-        el.innerHTML = '<span style="color:var(--cor-perigo);font-size:12px;">Erro ao carregar documentos.</span>';
+        }).join('') : '<span style="color:var(--cor-texto-secundario);font-size:12px;">Nenhum documento anexado a esta ordem.</span>';
+        
+        document.getElementById('mo-ordem-docs').innerHTML = ordemDocsHtml;
+        
+        // Notas de compliance
+        const notasHtml = notas.length ? notas.map(n => `
+            <div class="nota-item">
+                ${n.nota}
+                <div class="meta">${n.usuario || n.criado_por || '—'} — ${new Date(n.created_at).toLocaleString('pt-BR')}</div>
+            </div>
+        `).join('') : '<p style="font-size:12px;color:var(--cor-texto-secundario);">Sem notas registradas.</p>';
+        
+        document.getElementById('mo-notas-list').innerHTML = notasHtml;
+        
+        // Limpar observação
+        document.getElementById('mo-obs').value = '';
+        document.getElementById('mo-id').value = id;
+        
+        // Configurar botões de ação
+        const acts = document.getElementById('mo-acts');
+        
+        if (USER_TIPO === 'compliance' && ordem.compliance_status === 'pendente') {
+            acts.innerHTML = `
+                <button class="btn-ghost" onclick="fecharModal('modalOrdem')">Fechar</button>
+                <button class="btn-danger" onclick="acao('rejeitar', '${id}')"><i class="fas fa-times"></i> Rejeitar</button>
+                <button class="btn-success" onclick="acao('aprovar', '${id}')"><i class="fas fa-check"></i> Aprovar</button>
+            `;
+        } else {
+            acts.innerHTML = '<button class="btn-ghost" onclick="fecharModal(\'modalOrdem\')">Fechar</button>';
+        }
+        
+        // Abrir modal
+        document.getElementById('modalOrdem').classList.add('open');
+        
+    } catch (error) {
+        console.error('❌ Erro ao abrir ordem:', error);
+        toast('Erro ao carregar detalhes da ordem', 'err');
     }
-}
-
-async function carregarNotasOrdem(clienteId) {
-    if(!clienteId) return;
-    try {
-        const r = await fetch(`/api/compliance/clientes/${clienteId}/notas`).then(r=>r.json());
-        const el = document.getElementById('mo-notas-list');
-        const notas = r.notas||[];
-        el.innerHTML = notas.length ? notas.map(n=>`<div class="nota-item">${n.nota}<div class="meta">${n.usuario} — ${new Date(n.created_at).toLocaleString('pt-BR')}</div></div>`).join('') : '<p style="font-size:12px;color:var(--cor-texto-secundario);">Sem notas.</p>';
-    } catch(e){}
 }
 
 async function acao(tipo, id) {
     const obs = document.getElementById('mo-obs').value.trim();
-    if(tipo==='rejeitar' && !obs){ toast('Informe o motivo da rejeição','err'); return; }
+    if(tipo === 'rejeitar' && !obs){ 
+        toast('Informe o motivo da rejeição', 'err'); 
+        return; 
+    }
     try {
         const r = await fetch(`/api/compliance/ordens/${id}/${tipo}`, {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({obs, motivo: obs})
-        }).then(r=>r.json());
-        if(r.success){ toast(r.message,'ok'); fecharModal('modalOrdem'); carregarOrdens(); carregarStats(); }
-        else toast(r.message,'err');
-    } catch(e){ toast('Erro de conexão','err'); }
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({observacao: obs, motivo: obs})
+        }).then(res => res.json());
+        
+        if(r.success){ 
+            toast(r.message, 'ok'); 
+            fecharModal('modalOrdem'); 
+            carregarOrdens(); 
+            carregarStats(); 
+        } else {
+            toast(r.message, 'err');
+        }
+    } catch(e){ 
+        console.error('Erro:', e);
+        toast('Erro de conexão', 'err'); 
+    }
 }
 
 // ─── CLIENTES ────────────────────────────────────
@@ -602,54 +682,68 @@ async function buscarClientes() {
     const params = new URLSearchParams();
     if(q) params.set('q',q);
     if(risco) params.set('risco',risco);
-    if(bloq!=='') params.set('bloqueado',bloq);
+    if(bloq !== '') params.set('bloqueado',bloq);
     try {
-        const r = await fetch('/api/compliance/clientes?'+params).then(r=>r.json());
-        const list = r.clientes||[];
-        if(!list.length){ tb.innerHTML='<tr><td colspan="7" class="empty"><i class="fas fa-users"></i><br>Nenhum cliente encontrado</td></tr>'; return; }
-        tb.innerHTML = list.map(c=>{
+        const r = await fetch('/api/compliance/clientes?'+params).then(res => res.json());
+        const list = r.clientes || [];
+        if(!list.length){ 
+            tb.innerHTML='<tr><td colspan="7" class="empty"><i class="fas fa-users"></i><br>Nenhum cliente encontrado</td></tr>'; 
+            return; 
+        }
+        
+        let html = '';
+        for (const c of list) {
             const bloqTag = c.bloqueado ? '<span class="tag tag-bloqueado">Bloqueado</span>' : '<span class="tag tag-ativo">Ativo</span>';
-            const riscoTag = `<span class="tag tag-${c.risk_level||'baixo'}">${c.risk_level||'baixo'}</span>`;
+            const riscoTag = `<span class="tag tag-${c.risk_level || 'baixo'}">${c.risk_level || 'baixo'}</span>`;
             const limite = c.limite_mensal_brl ? `R$ ${parseFloat(c.limite_mensal_brl).toLocaleString('pt-BR',{minimumFractionDigits:2})}` : '—';
-            return `<tr>
-                <td><strong>${c.nome||'—'}</strong></td>
-                <td>${c.documento||'—'}</td>
-                <td>${riscoTag}</td>
-                <td>${c.kyc_docs_status||'—'}</td>
-                <td>${bloqTag}</td>
-                <td>${limite}</td>
-                <td><button class="btn-act" onclick="abrirCliente(${c.id})"><i class="fas fa-edit"></i> Gerir</button></td>
-            </tr>`;
-        }).join('');
-    } catch(e){ tb.innerHTML='<tr><td colspan="7" class="empty">Erro ao buscar</td></tr>'; }
+            html += `
+                <tr>
+                    <td><strong>${c.nome || '—'}</strong></td>
+                    <td>${c.documento || '—'}</td>
+                    <td>${riscoTag}</td>
+                    <td>${c.kyc_docs_status || '—'}</td>
+                    <td>${bloqTag}</td>
+                    <td>${limite}</td>
+                    <td><button class="btn-act" onclick="abrirCliente('${c.id}')"><i class="fas fa-edit"></i> Gerir</button></td>
+                </tr>
+            `;
+        }
+        tb.innerHTML = html;
+    } catch(e){ 
+        console.error(e);
+        tb.innerHTML='<tr><td colspan="7" class="empty">Erro ao buscar</td></tr>'; 
+    }
 }
 
 let clientesCache = {};
 async function abrirCliente(id) {
     try {
-        const params = new URLSearchParams({q:''});
-        const r = await fetch('/api/compliance/clientes?').then(r=>r.json());
-        const allC = r.clientes||[];
-        const c = allC.find(x=>x.id==id) || clientesCache[id];
+        const r = await fetch('/api/compliance/clientes?').then(res => res.json());
+        const allC = r.clientes || [];
+        const c = allC.find(x => x.id == id) || clientesCache[id];
         if(!c){ toast('Cliente não encontrado','err'); return; }
         clientesCache[id] = c;
-        document.getElementById('mc-nome').textContent    = c.nome||'—';
-        document.getElementById('mc-doc').textContent     = c.documento||'—';
-        document.getElementById('mc-tel').textContent     = c.telefone||'—';
-        document.getElementById('mc-status').innerHTML    = c.bloqueado ? '<span class="tag tag-bloqueado">Bloqueado</span>' : '<span class="tag tag-ativo">Ativo</span>';
-        document.getElementById('mc-risco').innerHTML     = `<span class="tag tag-${c.risk_level||'baixo'}">${c.risk_level||'baixo'}</span>`;
-        document.getElementById('mc-novo-risco').value    = c.risk_level||'baixo';
-        document.getElementById('mc-limite').value        = c.limite_mensal_brl||'';
-        document.getElementById('mc-motivo-bloq').value   = c.motivo_bloqueio||'';
-        document.getElementById('mc-id').value            = id;
-        document.getElementById('mc-bloqueado').value     = c.bloqueado ? '1' : '0';
+        document.getElementById('mc-nome').textContent = c.nome || '—';
+        document.getElementById('mc-doc').textContent = c.documento || '—';
+        document.getElementById('mc-tel').textContent = c.telefone || '—';
+        document.getElementById('mc-status').innerHTML = c.bloqueado ? '<span class="tag tag-bloqueado">Bloqueado</span>' : '<span class="tag tag-ativo">Ativo</span>';
+        document.getElementById('mc-risco').innerHTML = `<span class="tag tag-${c.risk_level || 'baixo'}">${c.risk_level || 'baixo'}</span>`;
+        document.getElementById('mc-novo-risco').value = c.risk_level || 'baixo';
+        document.getElementById('mc-limite').value = c.limite_mensal_brl || '';
+        document.getElementById('mc-motivo-bloq').value = c.motivo_bloqueio || '';
+        document.getElementById('mc-id').value = id;
+        document.getElementById('mc-bloqueado').value = c.bloqueado ? '1' : '0';
         const btnB = document.getElementById('mc-btn-bloquear');
-        if(c.bloqueado){ btnB.textContent='Desbloquear'; btnB.className='btn-success'; }
-        else { btnB.textContent='Bloquear'; btnB.className='btn-danger'; }
-        // Notas
-        const rN = await fetch(`/api/compliance/clientes/${id}/notas`).then(r=>r.json());
-        const notas = rN.notas||[];
-        document.getElementById('mc-notas-list').innerHTML = notas.length ? notas.map(n=>`<div class="nota-item">${n.nota}<div class="meta">${n.usuario} — ${new Date(n.created_at).toLocaleString('pt-BR')}</div></div>`).join('') : '<p style="font-size:12px;color:var(--cor-texto-secundario)">Sem notas.</p>';
+        if(c.bloqueado){ btnB.textContent = 'Desbloquear'; btnB.className = 'btn-success'; }
+        else { btnB.textContent = 'Bloquear'; btnB.className = 'btn-danger'; }
+        
+        const rN = await fetch(`/api/compliance/clientes/${id}/notas`).then(res => res.json());
+        const notas = rN.notas || [];
+        let notasHtml = '';
+        for (const n of notas) {
+            notasHtml += `<div class="nota-item">${n.nota}<div class="meta">${n.usuario} — ${new Date(n.created_at).toLocaleString('pt-BR')}</div></div>`;
+        }
+        document.getElementById('mc-notas-list').innerHTML = notasHtml || '<p style="font-size:12px;color:var(--cor-texto-secundario)">Sem notas.</p>';
         document.getElementById('mc-nova-nota').value = '';
         document.getElementById('modalCliente').classList.add('open');
     } catch(e){ toast('Erro ao carregar cliente','err'); }
@@ -674,7 +768,7 @@ async function toggleBloquearCliente() {
     const motivo  = document.getElementById('mc-motivo-bloq').value.trim();
     const url     = bloqueado ? `/api/compliance/clientes/${id}/desbloquear` : `/api/compliance/clientes/${id}/bloquear`;
     try {
-        const r = await fetch(url, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({motivo})}).then(r=>r.json());
+        const r = await fetch(url, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({motivo})}).then(res => res.json());
         if(r.success){ toast(r.message,'ok'); fecharModal('modalCliente'); buscarClientes(); carregarStats(); }
         else toast(r.message,'err');
     } catch(e){ toast('Erro de conexão','err'); }
@@ -685,8 +779,8 @@ async function adicionarNota() {
     const nota = document.getElementById('mc-nova-nota').value.trim();
     if(!nota){ toast('Digite uma nota','err'); return; }
     try {
-        const r = await fetch(`/api/compliance/clientes/${id}/nota`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nota})}).then(r=>r.json());
-        if(r.success){ toast('Nota adicionada','ok'); document.getElementById('mc-nova-nota').value=''; abrirCliente(id); }
+        const r = await fetch(`/api/compliance/clientes/${id}/nota`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nota})}).then(res => res.json());
+        if(r.success){ toast('Nota adicionada','ok'); document.getElementById('mc-nova-nota').value = ''; abrirCliente(id); }
         else toast(r.message,'err');
     } catch(e){ toast('Erro','err'); }
 }
@@ -696,154 +790,229 @@ async function carregarDocsPendentes() {
     const tb = document.getElementById('tbDocs');
     tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
     try {
-        const r = await fetch('/api/compliance/clientes/docs-pendentes').then(r=>r.json());
-        const list = r.clientes||[];
+        const r = await fetch('/api/compliance/clientes/docs-pendentes').then(res => res.json());
+        const list = r.clientes || [];
         document.getElementById('tab-cnt-docs').textContent = list.length;
-        if(!list.length){ tb.innerHTML='<tr><td colspan="7" class="empty"><i class="fas fa-check-circle"></i><br>Todos os documentos OK</td></tr>'; return; }
-        const docMap = {doc_photo_id_ok:'Photo ID',doc_address_ok:'Endereço',doc_source_funds_ok:'Origem Fundos',doc_declaration_ok:'Declaração',doc_edd_ok:'EDD'};
-        tb.innerHTML = list.map(c=>{
-            const faltando = Object.entries(docMap).filter(([k])=>!c[k]).map(([,l])=>l);
-            const docsHtml = faltando.map(l=>`<span style="font-size:10px;background:rgba(224,27,36,.1);color:var(--cor-perigo);border-radius:4px;padding:1px 5px;margin:1px;display:inline-block;">${l}</span>`).join('');
-            return `<tr>
-            <td><strong>${c.nome||'—'}</strong></td>
-            <td>${c.documento||'—'}</td>
-            <td><span class="tag tag-${c.risk_level||'baixo'}">${c.risk_level||'baixo'}</span></td>
-            <td>Tier ${c.kyc_tier||0}</td>
-            <td>${docsHtml||'<span class="tag tag-aprovado">OK</span>'}</td>
-            <td>${c.created_at?new Date(c.created_at).toLocaleDateString('pt-BR'):'—'}</td>
-            <td><button class="btn-act" onclick="abrirCliente(${c.id})"><i class="fas fa-edit"></i> Gerir</button></td>
-        </tr>`;}).join('');
-    } catch(e){ tb.innerHTML='<tr><td colspan="7" class="empty">Erro ao carregar</td></tr>'; }
+        if(!list.length){ 
+            tb.innerHTML='<tr><td colspan="7" class="empty"><i class="fas fa-check-circle"></i><br>Todos os documentos OK</td></tr>'; 
+            return; 
+        }
+        
+        const docMap = {
+            doc_photo_id_ok: 'Photo ID',
+            doc_address_ok: 'Endereço',
+            doc_source_funds_ok: 'Origem Fundos',
+            doc_declaration_ok: 'Declaração',
+            doc_edd_ok: 'EDD'
+        };
+        
+        let html = '';
+        for (const c of list) {
+            const faltando = [];
+            for (const [campo, label] of Object.entries(docMap)) {
+                if (!c[campo]) faltando.push(label);
+            }
+            const docsHtml = faltando.map(l => `<span style="font-size:10px;background:rgba(224,27,36,.1);color:var(--cor-perigo);border-radius:4px;padding:1px 5px;margin:1px;display:inline-block;">${l}</span>`).join('');
+            html += `
+                <tr>
+                    <td><strong>${c.nome || '—'}</strong></td>
+                    <td>${c.documento || '—'}</td>
+                    <td><span class="tag tag-${c.risk_level || 'baixo'}">${c.risk_level || 'baixo'}</span></td>
+                    <td>Tier ${c.kyc_tier || 0}</td>
+                    <td>${docsHtml || '<span class="tag tag-aprovado">OK</span>'}</td>
+                    <td>${c.created_at ? new Date(c.created_at).toLocaleDateString('pt-BR') : '—'}</td>
+                    <td><button class="btn-act" onclick="abrirCliente('${c.id}')"><i class="fas fa-edit"></i> Gerir</button></td>
+                </tr>
+            `;
+        }
+        tb.innerHTML = html;
+    } catch(e){ 
+        console.error(e);
+        tb.innerHTML='<tr><td colspan="7" class="empty">Erro ao carregar</td></tr>'; 
+    }
 }
 
 // ─── CONFIG AML ──────────────────────────────────
 let configData = {};
 const CONFIG_LABELS = {
-    'limite_tier0':'Limite Tier 0 (R$)',
-    'limite_tier1':'Limite Tier 1 (R$)',
-    'limite_tier2':'Limite Tier 2 (R$)',
-    'limite_tier3':'Limite Tier 3 (R$)',
-    'limite_diario_auto':'Limite Diário Auto-Aprovação (R$)',
-    'limite_mensal_padrao':'Limite Mensal Padrão (R$)',
-    'pep_auto_block':'Bloquear PEP Automaticamente (1=sim)',
-    'high_risk_require_edd':'EDD Obrigatório País Alto Risco (1=sim)',
+    'limite_tier0': 'Limite Tier 0 (R$)',
+    'limite_tier1': 'Limite Tier 1 (R$)',
+    'limite_tier2': 'Limite Tier 2 (R$)',
+    'limite_tier3': 'Limite Tier 3 (R$)',
+    'limite_diario_auto': 'Limite Diário Auto-Aprovação (R$)',
+    'limite_mensal_padrao': 'Limite Mensal Padrão (R$)',
+    'pep_auto_block': 'Bloquear PEP Automaticamente (1=sim)',
+    'high_risk_require_edd': 'EDD Obrigatório País Alto Risco (1=sim)',
 };
 
 async function carregarConfig() {
-    document.getElementById('configArea').innerHTML = '<div class="empty"><i class="fas fa-spinner fa-spin"></i></div>';
+    const configArea = document.getElementById('configArea');
+    configArea.innerHTML = '<div class="empty"><i class="fas fa-spinner fa-spin"></i></div>';
     try {
-        const r = await fetch('/api/compliance/config').then(r=>r.json());
-        configData = r.config||{};
-        const userTipo = {{ session.get('tipo','') | tojson }};
-        const readOnly = userTipo !== 'compliance';
-        let html = Object.entries(CONFIG_LABELS).map(([k,l])=>`
-            <div class="config-row">
-                <div class="config-lbl">${l}</div>
-                <input class="config-input" id="cfg-${k}" type="text" value="${configData[k]||''}" ${readOnly?'readonly':''} placeholder="(não definido)">
-            </div>`).join('');
+        const r = await fetch('/api/compliance/config').then(res => res.json());
+        configData = r.config || {};
+        const readOnly = USER_TIPO !== 'compliance';
+        let html = '';
+        for (const [k, l] of Object.entries(CONFIG_LABELS)) {
+            html += `
+                <div class="config-row">
+                    <div class="config-lbl">${l}</div>
+                    <input class="config-input" id="cfg-${k}" type="text" value="${configData[k] || ''}" ${readOnly ? 'readonly' : ''} placeholder="(não definido)">
+                </div>
+            `;
+        }
         if(readOnly) html += '<p style="font-size:12px;color:var(--cor-texto-secundario);margin-top:12px;"><i class="fas fa-info-circle"></i> Apenas o perfil compliance pode alterar configurações AML.</p>';
-        document.getElementById('configArea').innerHTML = html;
-    } catch(e){ document.getElementById('configArea').innerHTML = '<div class="empty">Erro ao carregar</div>'; }
+        configArea.innerHTML = html;
+    } catch(e){ 
+        console.error(e);
+        configArea.innerHTML = '<div class="empty">Erro ao carregar</div>'; 
+    }
 }
 
 async function salvarConfig() {
     const data = {};
-    Object.keys(CONFIG_LABELS).forEach(k=>{ const el=document.getElementById('cfg-'+k); if(el&&el.value!=='') data[k]=el.value; });
+    for (const k of Object.keys(CONFIG_LABELS)) {
+        const el = document.getElementById('cfg-'+k);
+        if(el && el.value !== '') data[k] = el.value;
+    }
     try {
-        const r = await fetch('/api/compliance/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(r=>r.json());
-        if(r.success) toast('Configuração salva','ok');
-        else toast(r.message,'err');
-    } catch(e){ toast('Erro de conexão','err'); }
+        const r = await fetch('/api/compliance/config', {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        }).then(res => res.json());
+        if(r.success) toast('Configuração salva', 'ok');
+        else toast(r.message, 'err');
+    } catch(e){ toast('Erro de conexão', 'err'); }
 }
 
 // ─── SARs ────────────────────────────────────────
 async function carregarSARs() {
-    const el     = document.getElementById('listaSARs');
+    const el = document.getElementById('listaSARs');
     const status = document.getElementById('sar-filtro-status').value;
     el.innerHTML = '<div class="empty"><i class="fas fa-spinner fa-spin"></i></div>';
     const params = status ? `?status=${status}` : '';
     try {
-        const r = await fetch('/api/compliance/sars'+params).then(r=>r.json());
-        const sars = r.sars||[];
+        const r = await fetch('/api/compliance/sars' + params).then(res => res.json());
+        const sars = r.sars || [];
         document.getElementById('tab-cnt-sars').textContent = sars.length;
-        if(!sars.length){ el.innerHTML='<div class="empty"><i class="fas fa-shield-alt"></i><br>Nenhum SAR registrado</div>'; return; }
-        el.innerHTML = sars.map(s=>`
-            <div class="sar-card">
-                <h4>
-                    <span>SAR #${s.id} ${s.cliente_id?`— Cliente #${s.cliente_id}`:''}</span>
-                    <span class="tag tag-${s.status||'rascunho'}">${s.status||'rascunho'}</span>
-                </h4>
-                <p>${s.descricao||'—'}</p>
-                <p><strong>Valor suspeito:</strong> ${s.valor_suspeito?`R$ ${parseFloat(s.valor_suspeito).toLocaleString('pt-BR',{minimumFractionDigits:2})}`:'N/D'} &nbsp;|&nbsp; <strong>Criado por:</strong> ${s.criado_por||'—'} &nbsp;|&nbsp; <strong>Data:</strong> ${s.created_at?new Date(s.created_at).toLocaleDateString('pt-BR'):'—'}</p>
-                <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
-                    <select id="sar-status-${s.id}" style="background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:4px 8px;border-radius:4px;font-size:11px;">
-                        <option value="rascunho" ${s.status==='rascunho'?'selected':''}>Rascunho</option>
-                        <option value="revisao" ${s.status==='revisao'?'selected':''}>Em Revisão</option>
-                        <option value="enviado" ${s.status==='enviado'?'selected':''}>Enviado COAF</option>
-                        <option value="arquivado" ${s.status==='arquivado'?'selected':''}>Arquivado</option>
-                    </select>
-                    <button class="btn-act" onclick="atualizarSAR(${s.id})"><i class="fas fa-save"></i> Salvar Status</button>
+        if(!sars.length){ 
+            el.innerHTML = '<div class="empty"><i class="fas fa-shield-alt"></i><br>Nenhum SAR registrado</div>'; 
+            return; 
+        }
+        
+        let html = '';
+        for (const s of sars) {
+            html += `
+                <div class="sar-card">
+                    <h4>
+                        <span>SAR #${s.id} ${s.cliente_id ? `— Cliente #${s.cliente_id}` : ''}</span>
+                        <span class="tag tag-${s.status || 'rascunho'}">${s.status || 'rascunho'}</span>
+                    </h4>
+                    <p>${s.descricao || '—'}</p>
+                    <p><strong>Valor suspeito:</strong> ${s.valor_suspeito ? `R$ ${parseFloat(s.valor_suspeito).toLocaleString('pt-BR',{minimumFractionDigits:2})}` : 'N/D'} &nbsp;|&nbsp; <strong>Criado por:</strong> ${s.criado_por || '—'} &nbsp;|&nbsp; <strong>Data:</strong> ${s.created_at ? new Date(s.created_at).toLocaleDateString('pt-BR') : '—'}</p>
+                    <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+                        <select id="sar-status-${s.id}" style="background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:4px 8px;border-radius:4px;font-size:11px;">
+                            <option value="rascunho" ${s.status === 'rascunho' ? 'selected' : ''}>Rascunho</option>
+                            <option value="revisao" ${s.status === 'revisao' ? 'selected' : ''}>Em Revisão</option>
+                            <option value="enviado" ${s.status === 'enviado' ? 'selected' : ''}>Enviado COAF</option>
+                            <option value="arquivado" ${s.status === 'arquivado' ? 'selected' : ''}>Arquivado</option>
+                        </select>
+                        <button class="btn-act" onclick="atualizarSAR('${s.id}')"><i class="fas fa-save"></i> Salvar Status</button>
+                    </div>
                 </div>
-            </div>`).join('');
-    } catch(e){ el.innerHTML='<div class="empty">Erro ao carregar</div>'; }
+            `;
+        }
+        el.innerHTML = html;
+    } catch(e){ 
+        console.error(e);
+        el.innerHTML = '<div class="empty">Erro ao carregar</div>'; 
+    }
 }
 
 function abrirModalNovoSAR() {
-    document.getElementById('sar-cliente-id').value='';
-    document.getElementById('sar-valor').value='';
-    document.getElementById('sar-desc').value='';
+    document.getElementById('sar-cliente-id').value = '';
+    document.getElementById('sar-valor').value = '';
+    document.getElementById('sar-desc').value = '';
     document.getElementById('modalSAR').classList.add('open');
 }
 
 async function criarSAR() {
-    const desc  = document.getElementById('sar-desc').value.trim();
-    if(!desc){ toast('Descrição obrigatória','err'); return; }
-    const body  = {
+    const desc = document.getElementById('sar-desc').value.trim();
+    if(!desc){ toast('Descrição obrigatória', 'err'); return; }
+    const body = {
         descricao: desc,
-        cliente_id: document.getElementById('sar-cliente-id').value||null,
-        valor_suspeito: document.getElementById('sar-valor').value||null
+        cliente_id: document.getElementById('sar-cliente-id').value || null,
+        valor_suspeito: document.getElementById('sar-valor').value || null
     };
     try {
-        const r = await fetch('/api/compliance/sars',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());
-        if(r.success){ toast('SAR criado','ok'); fecharModal('modalSAR'); carregarSARs(); carregarStats(); }
-        else toast(r.message,'err');
-    } catch(e){ toast('Erro','err'); }
+        const r = await fetch('/api/compliance/sars', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        }).then(res => res.json());
+        if(r.success){ 
+            toast('SAR criado', 'ok'); 
+            fecharModal('modalSAR'); 
+            carregarSARs(); 
+            carregarStats(); 
+        } else {
+            toast(r.message, 'err');
+        }
+    } catch(e){ toast('Erro', 'err'); }
 }
 
 async function atualizarSAR(id) {
     const status = document.getElementById('sar-status-'+id).value;
     try {
-        const r = await fetch(`/api/compliance/sars/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})}).then(r=>r.json());
-        if(r.success) toast('SAR atualizado','ok');
-        else toast(r.message,'err');
-    } catch(e){ toast('Erro','err'); }
+        const r = await fetch(`/api/compliance/sars/${id}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({status})
+        }).then(res => res.json());
+        if(r.success) toast('SAR atualizado', 'ok');
+        else toast(r.message, 'err');
+    } catch(e){ toast('Erro', 'err'); }
 }
 
 // ─── AUDITORIA ───────────────────────────────────
 async function carregarAudit() {
-    const el   = document.getElementById('listaAudit');
+    const el = document.getElementById('listaAudit');
     const acao = document.getElementById('audit-acao').value;
     el.innerHTML = '<div class="empty"><i class="fas fa-spinner fa-spin"></i></div>';
     const params = acao ? `?acao=${acao}` : '';
     try {
-        const r = await fetch('/api/compliance/audit'+params).then(r=>r.json());
-        const logs = r.logs||[];
-        if(!logs.length){ el.innerHTML='<div class="empty"><i class="fas fa-history"></i><br>Sem registros</div>'; return; }
-        el.innerHTML = '<div style="padding:0 14px">'+logs.map(l=>`
-            <div class="log-item">
-                <span class="ts">${l.created_at?new Date(l.created_at).toLocaleString('pt-BR'):'—'}</span>
-                <span class="acao">${l.acao||'—'}</span>
-                <span class="det">${l.detalhe||''}</span>
-                <span style="color:var(--cor-texto-secundario);font-size:11px;">${l.usuario||''}</span>
-            </div>`).join('')+'</div>';
-    } catch(e){ el.innerHTML='<div class="empty">Erro ao carregar</div>'; }
+        const r = await fetch('/api/compliance/audit' + params).then(res => res.json());
+        const logs = r.logs || [];
+        if(!logs.length){ 
+            el.innerHTML = '<div class="empty"><i class="fas fa-history"></i><br>Sem registros</div>'; 
+            return; 
+        }
+        
+        let html = '<div style="padding:0 14px">';
+        for (const l of logs) {
+            html += `
+                <div class="log-item">
+                    <span class="ts">${l.created_at ? new Date(l.created_at).toLocaleString('pt-BR') : '—'}</span>
+                    <span class="acao">${l.acao || '—'}</span>
+                    <span class="det">${l.detalhe || ''}</span>
+                    <span style="color:var(--cor-texto-secundario);font-size:11px;">${l.usuario || ''}</span>
+                </div>
+            `;
+        }
+        html += '</div>';
+        el.innerHTML = html;
+    } catch(e){ 
+        console.error(e);
+        el.innerHTML = '<div class="empty">Erro ao carregar</div>'; 
+    }
 }
 
 // ─── Init ────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', ()=>{
+document.addEventListener('DOMContentLoaded', function() {
     carregarOrdens();
     carregarStats();
-    setInterval(()=>{ carregarStats(); }, 30000);
+    setInterval(function() { carregarStats(); }, 30000);
 });
 </script>
 <script src="/static/js/theme.js"></script>
