@@ -12093,19 +12093,45 @@ def compliance_listar_ordens():
     if redir:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
-        # Buscar ordens que precisam de análise
+        # 🔥 CORREÇÃO: Pegar TODAS as ordens com compliance_status = 'pendente'
+        # Independente do status (compliance_review, paga, etc.)
+        # EXCETO as que já foram liberadas ou canceladas
         r = supabase.table('ordens_captacao')\
             .select('*')\
-            .filter('compliance_status', 'in', ('pendente', None))\
-            .neq('status', 'cancelada')\
-            .order('data', desc=False)\
+            .eq('compliance_status', 'pendente')\
+            .not_.in_('status', ['liberada', 'cancelada'])\
+            .order('created_at', desc=False)\
             .execute()
         
         ordens = r.data or []
         
-        print(f"🔍 [COMPLIANCE] Ordens encontradas: {len(ordens)}")
+        print(f"🔍 [COMPLIANCE] Ordens pendentes encontradas: {len(ordens)}")
+        for o in ordens:
+            print(f"   - ID: {o.get('id')} | Status: {o.get('status')} | Cliente: {o.get('cliente_nome')}")
+        
+        # 🔥 Enriquecer com dados do cliente (KYC docs)
+        for ordem in ordens:
+            cliente_id = ordem.get('cliente_id')
+            if cliente_id:
+                cliente = supabase.table('clientes_varejo')\
+                    .select('doc_photo_id_ok, doc_address_ok, doc_source_funds_ok, doc_declaration_ok, doc_edd_ok, risk_score, bloqueado')\
+                    .eq('id', cliente_id)\
+                    .single()\
+                    .execute()
+                
+                if cliente.data:
+                    ordem['kyc_docs'] = {
+                        'photo_id': cliente.data.get('doc_photo_id_ok', False),
+                        'proof_address': cliente.data.get('doc_address_ok', False),
+                        'source_funds': cliente.data.get('doc_source_funds_ok', False),
+                        'declaration': cliente.data.get('doc_declaration_ok', False),
+                        'edd': cliente.data.get('doc_edd_ok', False)
+                    }
+                    ordem['risk_score'] = cliente.data.get('risk_score')
+                    ordem['cliente_bloqueado'] = cliente.data.get('bloqueado', False)
         
         return jsonify({'success': True, 'ordens': ordens})
+        
     except Exception as e:
         print(f"❌ Erro compliance/ordens: {e}")
         import traceback
