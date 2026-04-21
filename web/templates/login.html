@@ -121,6 +121,8 @@
                             window.location.href = '/admin/dashboard';
                         } else if (data.tipo === 'loja') {
                             window.location.href = '/loja/dashboard';
+                        } else if (data.tipo === 'compliance') {
+                            window.location.href = '/compliance/dashboard';
                         } else {
                             window.location.href = `/dashboard?usuario=${encodeURIComponent(username)}`;
                         }
