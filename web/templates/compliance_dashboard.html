@@ -331,6 +331,8 @@
     <div id="mo-aml" style="font-size:13px;padding:8px;background:rgba(128,128,128,.05);border-radius:6px;min-height:32px;">—</div>
     <div class="section-title">Documentos KYC</div>
     <div id="mo-docs"></div>
+    <div class="section-title">Documentos da Ordem <span style="font-size:11px;font-weight:400;color:var(--cor-texto-secundario);">(Proof of Funds e suportes)</span></div>
+    <div id="mo-ordem-docs" style="font-size:13px;min-height:28px;"><span style="color:var(--cor-texto-secundario);font-size:12px;"><i class="fas fa-spinner fa-spin"></i> Carregando…</span></div>
     <div class="section-title">Notas de Compliance</div>
     <div class="notas-list" id="mo-notas-list"></div>
     <div class="form-group" style="margin-top:10px;">
@@ -519,6 +521,8 @@ async function abrirOrdem(id) {
     const docsMap = o.kyc_docs||{};
     const docsLabels = {photo_id:'Documento com Foto',proof_address:'Comprovante de Residência',source_funds:'Origem dos Fundos',declaration:'Declaração',edd:'EDD'};
     docsEl.innerHTML = Object.entries(docsLabels).map(([k,l])=>`<div class="doc-row"><span>${l}</span><span>${docsMap[k]?'<i class="fas fa-check-circle" style="color:var(--cor-sucesso)"></i> OK':'<i class="fas fa-times-circle" style="color:var(--cor-texto-secundario)"></i> Pendente'}</span></div>`).join('');
+    // Documentos da ordem (Proof of Funds e outros uploads)
+    carregarDocumentosOrdem(o.id);
     document.getElementById('mo-obs').value = '';
     document.getElementById('mo-id').value = id;
     // Botões (só compliance pode agir)
@@ -535,6 +539,34 @@ async function abrirOrdem(id) {
     // Notas
     carregarNotasOrdem(o.cliente_id);
     document.getElementById('modalOrdem').classList.add('open');
+}
+
+async function carregarDocumentosOrdem(ordemId) {
+    const el = document.getElementById('mo-ordem-docs');
+    if (!el) return;
+    try {
+        const r = await fetch(`/api/loja/ordens/${ordemId}/documentos`).then(r=>r.json());
+        const docs = r.documentos||[];
+        if (!docs.length) {
+            el.innerHTML = '<span style="color:var(--cor-texto-secundario);font-size:12px;">Nenhum documento anexado a esta ordem.</span>';
+            return;
+        }
+        el.innerHTML = docs.map(d => {
+            const nome = d.arquivo_nome || d.arquivo_url.split('/').pop();
+            const data = new Date(d.created_at).toLocaleString('pt-BR');
+            const url  = d.signed_url;
+            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;background:rgba(128,128,128,.06);border-radius:6px;margin-bottom:4px;">
+                <div style="overflow:hidden;">
+                    <div style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${nome}"><i class="fas fa-file-alt" style="color:var(--cor-admin);margin-right:4px;"></i>${nome}</div>
+                    <div style="font-size:11px;color:var(--cor-texto-secundario);">${d.tipo} — ${d.criado_por} — ${data}</div>
+                    ${d.observacao ? `<div style="font-size:11px;color:var(--cor-texto-secundario);font-style:italic;">${d.observacao}</div>` : ''}
+                </div>
+                ${url ? `<a href="${url}" target="_blank" style="margin-left:10px;background:var(--cor-admin);color:#fff;border:none;border-radius:5px;padding:5px 10px;font-size:11px;text-decoration:none;white-space:nowrap;"><i class="fas fa-eye"></i> Ver</a>` : '<span style="font-size:11px;color:var(--cor-perigo);">URL expirada</span>'}
+            </div>`;
+        }).join('');
+    } catch(e) {
+        el.innerHTML = '<span style="color:var(--cor-perigo);font-size:12px;">Erro ao carregar documentos.</span>';
+    }
 }
 
 async function carregarNotasOrdem(clienteId) {

@@ -1290,13 +1290,32 @@ async function criarOrdem() {
             toast(d.message, 'ok');
             if (d.aml_alertas?.length) d.aml_alertas.forEach(a => toast(`AML: ${a}`, 'warn'));
             setTimeout(()=>{ fecharDrawer(); carregarOrdens(); }, 800);
-        } else if (d.kyc_blocked) {
+        } else if (d.kyc_blocked && !d.sanctions) {
+            // Guarda payload para reuso no envio com force_compliance_review
+            window._pendingOrderPayload = payload;
             const docLabels = {photo_id:'Photo ID',proof_address:'Proof of Address',source_funds:'Source of Funds',declaration:'Declaration Form',edd:'EDD Documents'};
             const lista = (d.docs_missing||[]).map(k => `<li>${docLabels[k]||k}</li>`).join('');
-            msg.innerHTML = `<div style="background:rgba(224,27,36,.08);border:1px solid rgba(224,27,36,.3);border-radius:8px;padding:12px;margin-top:8px;">
-                <strong style="color:var(--cor-perigo);display:flex;align-items:center;gap:6px;"><i class="fas fa-ban"></i> Ordem bloqueada — KYC incompleto</strong>
-                ${lista ? `<ul style="margin:8px 0 0 16px;color:var(--cor-perigo);font-size:12px;line-height:1.8;">${lista}</ul>` : ''}
-                <p style="font-size:12px;color:var(--cor-texto-secundario);margin-top:8px;">Acesse o <a href="/loja/clientes" target="_blank" style="color:var(--cor-admin);">cadastro do cliente</a> para carregar os documentos.</p>
+            msg.innerHTML = `<div id="kycAlertBox" style="background:rgba(224,107,0,.07);border:1px solid rgba(224,107,0,.4);border-radius:8px;padding:14px;margin-top:8px;">
+                <strong style="color:#e06b00;display:flex;align-items:center;gap:6px;"><i class="fas fa-exclamation-triangle"></i> KYC incompleto — documentos pendentes</strong>
+                ${lista ? `<ul style="margin:8px 0 8px 16px;color:#c05000;font-size:12px;line-height:1.8;">${lista}</ul>` : ''}
+                <p style="font-size:12px;color:var(--cor-texto-secundario);margin:4px 0 10px;">Faça o upload do <strong>Proof of Funds</strong> para criar a ordem com revisão pelo Compliance.</p>
+                <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Proof of Funds <span style="color:var(--cor-perigo)">*</span></label>
+                <input type="file" id="proofOfFundsFile" accept=".pdf,.jpg,.jpeg,.png" style="font-size:12px;width:100%;margin-bottom:10px;">
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button onclick="criarOrdemComCompliance()" style="flex:1;background:#e06b00;color:#fff;border:none;border-radius:6px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">
+                        <i class="fas fa-shield-alt"></i> Criar com Análise Compliance
+                    </button>
+                    <a href="/loja/clientes" target="_blank" style="flex:1;text-align:center;background:transparent;border:1px solid var(--cor-borda);border-radius:6px;padding:8px 12px;font-size:12px;color:var(--cor-admin);text-decoration:none;white-space:nowrap;">
+                        <i class="fas fa-user-edit"></i> Completar KYC
+                    </a>
+                </div>
+                <div id="proofUploadMsg" style="margin-top:8px;font-size:12px;"></div>
+            </div>`;
+            btn.disabled = false;
+        } else if (d.kyc_blocked && d.sanctions) {
+            msg.innerHTML = `<div style="background:rgba(224,27,36,.08);border:1px solid rgba(224,27,36,.4);border-radius:8px;padding:12px;margin-top:8px;">
+                <strong style="color:var(--cor-perigo);display:flex;align-items:center;gap:6px;"><i class="fas fa-ban"></i> Ordem BLOQUEADA — Cliente em lista de sanções</strong>
+                <p style="font-size:12px;margin:6px 0 0;">Contacte o MLRO imediatamente. Esta ordem não pode ser processada.</p>
             </div>`;
             btn.disabled = false;
         } else {
@@ -1306,6 +1325,42 @@ async function criarOrdem() {
     } catch(e) {
         msg.innerHTML = `<span style="color:var(--cor-perigo)">${e.message}</span>`;
         btn.disabled = false;
+    }
+}
+
+async function criarOrdemComCompliance() {
+    const proofInput = document.getElementById('proofOfFundsFile');
+    const proofMsg   = document.getElementById('proofUploadMsg');
+    if (!proofInput || !proofInput.files[0]) {
+        proofMsg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Selecione o arquivo de Proof of Funds.</span>';
+        return;
+    }
+    proofMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando ordem…';
+    const payload = {...(window._pendingOrderPayload||{}), force_compliance_review: true};
+    try {
+        const r1 = await fetch('/api/loja/nova-ordem',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        const d1 = await r1.json();
+        if (!d1.success) {
+            proofMsg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> ${d1.message}</span>`;
+            return;
+        }
+        const ordemId = d1.ordem_id;
+        // Upload do proof of funds
+        proofMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando Proof of Funds…';
+        const fd = new FormData();
+        fd.append('arquivo', proofInput.files[0]);
+        fd.append('observacao', 'Proof of Funds — KYC override para análise compliance');
+        const r2 = await fetch(`/api/loja/ordens/${ordemId}/upload-proof`, {method:'POST', body: fd});
+        const d2 = await r2.json();
+        if (!d2.success) {
+            proofMsg.innerHTML = `<span style="color:#e06b00"><i class="fas fa-exclamation-triangle"></i> Ordem criada (${ordemId}), mas falha no upload: ${d2.message}. Envie o documento depois.</span>`;
+            setTimeout(()=>{ fecharDrawer(); carregarOrdens(); }, 3000);
+            return;
+        }
+        toast(`Ordem ${ordemId} criada — aguardando análise do Compliance`, 'warn');
+        setTimeout(()=>{ fecharDrawer(); carregarOrdens(); }, 800);
+    } catch(e) {
+        proofMsg.innerHTML = `<span style="color:var(--cor-perigo)">${e.message}</span>`;
     }
 }
 

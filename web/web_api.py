@@ -10974,6 +10974,7 @@ def loja_nova_ordem():
         # AML / KYC check
         aml_alertas = []
         kyc_level_na_ordem = 0
+        force_compliance = bool(d.get('force_compliance_review'))
         if cliente_id:
             valor_gbp = valor_e if moeda_e == 'GBP' else (valor_e * 0.86 if moeda_e == 'EUR' else valor_e * 0.79)
             aml = _aml_check_order(cliente_id, valor_gbp)
@@ -10990,7 +10991,8 @@ def loja_nova_ordem():
                     return jsonify({
                         'success': False,
                         'message': 'BLOQUEADO: cliente consta na lista de sanções. Contacte o MLRO imediatamente.',
-                        'kyc_blocked': True
+                        'kyc_blocked': True,
+                        'sanctions': True
                     }), 403
 
                 doc_map = {
@@ -11009,7 +11011,7 @@ def loja_nova_ordem():
                     'edd': 'EDD Documents',
                 }
                 missing = [doc for doc in aml['docs_required'] if not doc_map.get(doc, False)]
-                if missing:
+                if missing and not force_compliance:
                     missing_str = ', '.join(doc_labels.get(doc, doc) for doc in missing)
                     return jsonify({
                         'success': False,
@@ -11017,6 +11019,8 @@ def loja_nova_ordem():
                         'kyc_blocked': True,
                         'docs_missing': missing
                     }), 403
+                if missing and force_compliance:
+                    aml_alertas.append('KYC_INCOMPLETO_PROOF_OF_FUNDS_SOLICITADO')
             except Exception:
                 pass  # falha no KYC check não bloqueia (log apenas)
 
@@ -11141,6 +11145,71 @@ def loja_listar_ordens():
             q = q.lte('data', data_ate + 'T23:59:59')
         r = q.execute()
         return jsonify({'success': True, 'ordens': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/loja/ordens/<ordem_id>/upload-proof', methods=['POST'])
+def loja_upload_proof_of_funds(ordem_id):
+    """Upload de Proof of Funds vinculado a uma ordem — gravado em kyc-docs/ordens/<ordem_id>/"""
+    if 'usuario' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    usuario = session['usuario']
+    try:
+        arquivo = request.files.get('arquivo')
+        if not arquivo or not arquivo.filename:
+            return jsonify({'success': False, 'message': 'Nenhum arquivo enviado.'}), 400
+
+        ext = os.path.splitext(arquivo.filename)[1].lower() or '.bin'
+        ts  = datetime.now().strftime('%Y%m%d_%H%M%S')
+        path_storage = f"ordens/{ordem_id}/proof_of_funds_{ts}{ext}"
+        conteudo     = arquivo.read()
+        ct           = arquivo.content_type or mimetypes.guess_type(arquivo.filename)[0] or 'application/octet-stream'
+
+        try:
+            supabase.storage.from_('kyc-docs').upload(
+                path_storage, conteudo,
+                file_options={'content-type': ct, 'upsert': 'false'}
+            )
+        except Exception as ue:
+            msg = str(ue)
+            if 'Bucket not found' in msg:
+                return jsonify({'success': False, 'message': 'Bucket "kyc-docs" não encontrado no Supabase Storage.'}), 500
+            raise
+
+        r = supabase.table('documentos_kyc').insert({
+            'ordem_id':     ordem_id,
+            'tipo':         'proof_of_funds_ordem',
+            'arquivo_url':  path_storage,
+            'arquivo_nome': arquivo.filename,
+            'observacao':   request.form.get('observacao', 'Proof of Funds — KYC override'),
+            'criado_por':   usuario,
+        }).execute()
+        doc_id = r.data[0]['id'] if r.data else None
+        return jsonify({'success': True, 'message': 'Proof of Funds enviado.', 'doc_id': doc_id})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/loja/ordens/<ordem_id>/documentos', methods=['GET'])
+def loja_ordem_documentos(ordem_id):
+    """Lista documentos vinculados a uma ordem com URL assinada para download."""
+    if 'usuario' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('documentos_kyc')\
+            .select('id,tipo,arquivo_url,arquivo_nome,observacao,criado_por,created_at')\
+            .eq('ordem_id', ordem_id)\
+            .order('created_at').execute()
+        docs = []
+        for doc in (r.data or []):
+            try:
+                signed = supabase.storage.from_('kyc-docs').create_signed_url(doc['arquivo_url'], 3600)
+                url = signed.get('signedURL') or signed.get('signedUrl', '')
+            except Exception:
+                url = ''
+            docs.append({**doc, 'signed_url': url})
+        return jsonify({'success': True, 'documentos': docs})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
