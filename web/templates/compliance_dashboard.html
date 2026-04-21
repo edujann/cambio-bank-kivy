@@ -150,6 +150,7 @@
             {% if session.get('tipo') == 'admin' %}
             <a href="/admin/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-cog"></i> Admin</a>
             {% endif %}
+            <button id="btnTheme" class="btn-hd btn-hd-ghost" onclick="toggleTheme()" title="Alternar tema"><i class="fas fa-moon"></i></button>
             <a href="/logout" class="btn-hd btn-hd-ghost"><i class="fas fa-sign-out-alt"></i> Sair</a>
         </div>
     </div>
@@ -809,5 +810,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
     setInterval(()=>{ carregarStats(); }, 30000);
 });
 </script>
+<script src="/static/js/theme.js"></script>
 </body>
 </html>
