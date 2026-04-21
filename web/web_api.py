@@ -12038,7 +12038,55 @@ def compliance_alterar_limite(cliente_id):
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
-
+@app.route('/api/compliance/clientes/docs-pendentes', methods=['GET'])
+def compliance_clientes_docs_pendentes():
+    """Retorna clientes com documentação KYC pendente"""
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        # Buscar todos os clientes
+        r = supabase.table('clientes_varejo')\
+            .select('*')\
+            .order('created_at', desc=True)\
+            .limit(500)\
+            .execute()
+        
+        clientes = []
+        for c in (r.data or []):
+            # Verificar quais documentos estão faltando
+            docs_faltando = []
+            
+            if not c.get('doc_photo_id_ok'):
+                docs_faltando.append('photo_id')
+            if not c.get('doc_address_ok'):
+                docs_faltando.append('proof_address')
+            if not c.get('doc_source_funds_ok'):
+                docs_faltando.append('source_funds')
+            if not c.get('doc_declaration_ok'):
+                docs_faltando.append('declaration')
+            if not c.get('doc_edd_ok'):
+                docs_faltando.append('edd')
+            
+            # Se tiver documentos faltando, incluir na lista
+            if docs_faltando:
+                c['kyc_docs_status'] = 'pendente'
+                c['docs_faltando'] = docs_faltando
+                clientes.append(c)
+        
+        print(f"🔍 [DOCS PENDENTES] Encontrados {len(clientes)} clientes com documentação pendente")
+        
+        return jsonify({
+            'success': True,
+            'clientes': clientes
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro em compliance/clientes/docs-pendentes: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
 @app.route('/api/compliance/ordens', methods=['GET'])
 def compliance_listar_ordens():
     usuario, tipo, redir = _check_compliance_acesso()
