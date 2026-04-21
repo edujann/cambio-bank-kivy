@@ -9,387 +9,805 @@
     <style>
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
         body{background:var(--cor-fundo);color:var(--cor-texto);min-height:100vh;}
-        .page{max-width:1200px;margin:0 auto;padding:20px;}
+        .page{max-width:1280px;margin:0 auto;padding:20px;}
 
-        .hd{display:flex;justify-content:space-between;align-items:center;padding:16px 0;margin-bottom:24px;border-bottom:1px solid var(--cor-borda);flex-wrap:wrap;gap:10px;}
+        /* Header */
+        .hd{display:flex;justify-content:space-between;align-items:center;padding:14px 0;margin-bottom:20px;border-bottom:1px solid var(--cor-borda);flex-wrap:wrap;gap:10px;}
         .logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;}
         .logo i{color:#9b59b6;}
         .logo-text{background:linear-gradient(90deg,#9b59b6,#c39bd3);-webkit-background-clip:text;background-clip:text;color:transparent;}
         .hd-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-        .btn-hd{background:rgba(155,89,182,.12);border:1px solid #9b59b6;color:#9b59b6;padding:6px 13px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+        .btn-hd{background:rgba(155,89,182,.12);border:1px solid #9b59b6;color:#9b59b6;padding:6px 13px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
         .btn-hd:hover{background:rgba(155,89,182,.25);}
         .btn-hd-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
         .btn-hd-ghost:hover{border-color:#9b59b6;color:#9b59b6;}
+        .badge-user{background:rgba(155,89,182,.15);color:#9b59b6;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;}
 
         /* Stats */
-        .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px;}
-        .stat{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:14px 16px;}
-        .stat .lbl{font-size:11px;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
-        .stat .val{font-size:24px;font-weight:700;}
-        .c-roxo{color:#9b59b6;} .c-am{color:var(--cor-alerta);} .c-verde{color:var(--cor-sucesso);} .c-perigo{color:var(--cor-perigo);}
+        .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px;}
+        .stat{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:13px 16px;}
+        .stat .lbl{font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;}
+        .stat .val{font-size:22px;font-weight:700;}
+        .c-roxo{color:#9b59b6;} .c-am{color:var(--cor-alerta);} .c-verde{color:var(--cor-sucesso);} .c-perigo{color:var(--cor-perigo);} .c-azul{color:var(--cor-admin);}
 
-        /* Table */
+        /* Tabs */
+        .tabs{display:flex;gap:2px;border-bottom:2px solid var(--cor-borda);margin-bottom:20px;overflow-x:auto;}
+        .tab{padding:10px 18px;font-size:13px;font-weight:600;color:var(--cor-texto-secundario);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;display:flex;align-items:center;gap:6px;transition:.15s;}
+        .tab:hover{color:#9b59b6;}
+        .tab.active{color:#9b59b6;border-bottom-color:#9b59b6;}
+        .tab-panel{display:none;}
+        .tab-panel.active{display:block;}
+        .cnt-badge{background:#9b59b6;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;}
+
+        /* Cards / Table */
         .tbl-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);overflow:hidden;}
-        .tbl-hd{padding:13px 18px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;}
+        .tbl-hd{padding:12px 16px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
         .tbl-hd h3{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px;}
         .tbl-wrap{overflow-x:auto;}
         table{width:100%;border-collapse:collapse;font-size:13px;}
-        th{background:rgba(128,128,128,.05);color:var(--cor-texto-secundario);padding:9px 13px;text-align:left;font-weight:600;font-size:11px;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px;}
-        td{padding:10px 13px;border-top:1px solid var(--cor-borda);vertical-align:middle;}
+        th{background:rgba(128,128,128,.05);color:var(--cor-texto-secundario);padding:8px 12px;text-align:left;font-weight:600;font-size:11px;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px;}
+        td{padding:9px 12px;border-top:1px solid var(--cor-borda);vertical-align:middle;}
         tr:hover td{background:rgba(128,128,128,.03);}
-        .empty{padding:48px;text-align:center;color:var(--cor-texto-secundario);}
-        .empty i{font-size:36px;margin-bottom:10px;display:block;}
+        .empty{padding:40px;text-align:center;color:var(--cor-texto-secundario);}
+        .empty i{font-size:32px;margin-bottom:8px;display:block;}
+
+        /* Tags & pills */
         .tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+        .tag-pendente{background:rgba(243,156,18,.15);color:var(--cor-alerta);}
+        .tag-aprovado{background:rgba(39,174,96,.15);color:var(--cor-sucesso);}
+        .tag-rejeitado{background:rgba(224,27,36,.15);color:var(--cor-perigo);}
         .tag-on_hold{background:rgba(243,156,18,.15);color:var(--cor-alerta);}
         .tag-compliance_review{background:rgba(155,89,182,.15);color:#9b59b6;}
         .tag-liberada{background:rgba(26,95,180,.15);color:var(--cor-admin);}
         .tag-cancelada{background:rgba(224,27,36,.15);color:var(--cor-perigo);}
-        .flag-pgto-ok{color:var(--cor-sucesso);font-size:12px;}
-        .flag-pgto-pend{color:var(--cor-alerta);font-size:12px;}
+        .tag-bloqueado{background:rgba(224,27,36,.15);color:var(--cor-perigo);}
+        .tag-ativo{background:rgba(39,174,96,.15);color:var(--cor-sucesso);}
+        .tag-alto{background:rgba(224,27,36,.15);color:var(--cor-perigo);}
+        .tag-medio{background:rgba(243,156,18,.15);color:var(--cor-alerta);}
+        .tag-baixo{background:rgba(39,174,96,.15);color:var(--cor-sucesso);}
         .aml-pill{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(243,156,18,.15);color:var(--cor-alerta);margin:1px;}
-        .btn-act{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:4px 11px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap;transition:.15s;}
+        .flag-ok{color:var(--cor-sucesso);font-size:12px;}
+        .flag-pend{color:var(--cor-alerta);font-size:12px;}
+
+        /* Buttons */
+        .btn-act{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap;transition:.15s;}
         .btn-act:hover{border-color:#9b59b6;color:#9b59b6;}
         .btn-act.danger:hover{border-color:var(--cor-perigo);color:var(--cor-perigo);}
+        .btn-act.success:hover{border-color:var(--cor-sucesso);color:var(--cor-sucesso);}
+        .btn-primary{background:#9b59b6;border:none;color:#fff;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;}
+        .btn-primary:hover{background:#8e44ad;}
+        .btn-danger{background:var(--cor-perigo);border:none;color:#fff;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;}
+        .btn-danger:hover{opacity:.85;}
+        .btn-success{background:var(--cor-sucesso);border:none;color:#fff;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;}
+        .btn-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:7px 14px;border-radius:6px;cursor:pointer;font-size:13px;}
+
+        /* Filters */
+        .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+        .filters input,.filters select{background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:7px 11px;border-radius:6px;font-size:12px;min-width:120px;}
+        .filters input:focus,.filters select:focus{outline:none;border-color:#9b59b6;}
 
         /* Modal */
         .modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
         .modal-ov.open{display:flex;}
-        .modal{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:26px;width:min(620px,95vw);max-height:90vh;overflow-y:auto;}
-        .modal h3{margin-bottom:16px;font-size:16px;display:flex;align-items:center;gap:8px;}
+        .modal{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:24px;width:min(680px,95vw);max-height:90vh;overflow-y:auto;}
+        .modal h3{margin-bottom:16px;font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;}
         .modal-acts{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;flex-wrap:wrap;}
-        .sec{font-size:11px;font-weight:700;color:#9b59b6;text-transform:uppercase;letter-spacing:.5px;margin:16px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--cor-borda);}
-        .sec:first-child{margin-top:0;}
-        .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
-        .info-item .lbl{font-size:11px;color:var(--cor-texto-secundario);margin-bottom:2px;}
-        .info-item .val{font-size:14px;font-weight:600;}
-        .doc-row{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(128,128,128,.04);border:1px solid var(--cor-borda);border-radius:6px;margin-bottom:6px;font-size:13px;}
-        .doc-ok{color:var(--cor-sucesso);}
-        .doc-miss{color:var(--cor-perigo);}
-        .fg{margin-bottom:12px;}
-        .fg label{display:block;font-size:12px;color:var(--cor-texto-secundario);margin-bottom:4px;font-weight:600;}
-        .fc{width:100%;background:var(--cor-fundo);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:9px 11px;border-radius:var(--borda-radius-pequeno);font-size:14px;outline:none;transition:.15s;}
-        .fc:focus{border-color:#9b59b6;}
-        .btn-p{background:#9b59b6;color:#fff;border:none;padding:10px 22px;border-radius:var(--borda-radius-pequeno);font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s;}
-        .btn-p:hover{background:#7d3c98;}
-        .btn-p:disabled{opacity:.5;cursor:not-allowed;}
-        .btn-danger{background:var(--cor-perigo);color:#fff;border:none;padding:10px 22px;border-radius:var(--borda-radius-pequeno);font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s;}
-        .btn-danger:hover{background:#c0392b;}
-        .btn-g{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:10px 20px;border-radius:var(--borda-radius-pequeno);font-size:14px;font-weight:600;cursor:pointer;transition:.15s;}
-        .btn-g:hover{border-color:#9b59b6;color:#9b59b6;}
-        .form-msg{font-size:13px;margin-top:8px;min-height:18px;}
-        .admin-readonly{background:rgba(243,156,18,.06);border:1px solid rgba(243,156,18,.3);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--cor-alerta);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+        .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+        .info-item{background:rgba(128,128,128,.06);border-radius:6px;padding:10px 12px;}
+        .info-item .lbl{font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
+        .info-item .val{font-size:13px;font-weight:600;}
+        .section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--cor-texto-secundario);margin:14px 0 8px;}
+        .doc-row{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:rgba(128,128,128,.04);border-radius:5px;margin-bottom:4px;font-size:12px;}
+        textarea{width:100%;background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);border-radius:6px;padding:9px 11px;font-size:13px;resize:vertical;min-height:80px;font-family:inherit;}
+        textarea:focus{outline:none;border-color:#9b59b6;}
+        .form-group{margin-bottom:12px;}
+        .form-group label{display:block;font-size:12px;font-weight:600;margin-bottom:5px;color:var(--cor-texto-secundario);}
+        .form-group input,.form-group select{width:100%;background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:8px 11px;border-radius:6px;font-size:13px;}
+        .form-group input:focus,.form-group select:focus{outline:none;border-color:#9b59b6;}
+        .notas-list{max-height:200px;overflow-y:auto;}
+        .nota-item{background:rgba(155,89,182,.06);border:1px solid rgba(155,89,182,.15);border-radius:5px;padding:8px 10px;margin-bottom:5px;font-size:12px;}
+        .nota-item .meta{color:var(--cor-texto-secundario);font-size:10px;margin-top:3px;}
+
+        /* Config table */
+        .config-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--cor-borda);}
+        .config-lbl{font-size:13px;}
+        .config-input{background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:6px 10px;border-radius:5px;font-size:13px;width:100%;}
+        .config-input:focus{outline:none;border-color:#9b59b6;}
+
+        /* SAR card */
+        .sar-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:14px 16px;margin-bottom:10px;}
+        .sar-card h4{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;}
+        .sar-card p{font-size:12px;color:var(--cor-texto-secundario);margin-bottom:4px;}
+        .tag-rascunho{background:rgba(128,128,128,.15);color:var(--cor-texto-secundario);}
+        .tag-enviado{background:rgba(26,95,180,.15);color:var(--cor-admin);}
+
+        /* Audit log */
+        .log-item{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--cor-borda);font-size:12px;}
+        .log-item .ts{color:var(--cor-texto-secundario);white-space:nowrap;min-width:130px;}
+        .log-item .acao{font-weight:700;min-width:160px;}
+        .log-item .det{color:var(--cor-texto-secundario);}
 
         /* Toast */
-        .toast-c{position:fixed;bottom:22px;right:22px;z-index:9999;display:flex;flex-direction:column;gap:7px;}
-        .toast-i{padding:11px 16px;border-radius:var(--borda-radius-pequeno);font-size:13px;font-weight:600;min-width:240px;animation:tIn .2s ease;}
-        .t-ok{background:rgba(46,194,126,.1);border:1px solid var(--cor-sucesso);color:var(--cor-sucesso);}
-        .t-err{background:rgba(224,27,36,.1);border:1px solid var(--cor-perigo);color:var(--cor-perigo);}
-        @keyframes tIn{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
+        .toast{position:fixed;bottom:20px;right:20px;padding:11px 18px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transform:translateY(12px);transition:.3s;pointer-events:none;}
+        .toast.show{opacity:1;transform:translateY(0);}
+        .toast.ok{background:var(--cor-sucesso);color:#fff;}
+        .toast.err{background:var(--cor-perigo);color:#fff;}
+        .toast.info{background:#9b59b6;color:#fff;}
     </style>
 </head>
 <body>
 <div class="page">
 
+    <!-- Header -->
     <div class="hd">
         <div class="logo">
-            <i class="fas fa-shield-check"></i>
+            <i class="fas fa-shield-alt"></i>
             <span class="logo-text">Compliance</span>
+            <span style="font-size:12px;color:var(--cor-texto-secundario);font-weight:400">— Cambio Bank</span>
         </div>
         <div class="hd-right">
-            <span style="font-size:12px;color:var(--cor-texto-secundario);">{{ usuario }}</span>
-            {% if tipo == 'admin' %}
-            <a href="/admin/dashboard" class="btn-hd"><i class="fas fa-tachometer-alt"></i> Admin</a>
+            <span class="badge-user"><i class="fas fa-user-shield"></i> {{ usuario }}</span>
+            {% if session.get('tipo') == 'admin' %}
+            <a href="/admin/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-cog"></i> Admin</a>
             {% endif %}
             <a href="/logout" class="btn-hd btn-hd-ghost"><i class="fas fa-sign-out-alt"></i> Sair</a>
         </div>
     </div>
 
     <!-- Stats -->
-    <div class="stats">
-        <div class="stat">
-            <div class="lbl">Pendentes</div>
-            <div class="val c-roxo" id="s-pend">—</div>
-        </div>
-        <div class="stat">
-            <div class="lbl">Pagamento pendente</div>
-            <div class="val c-am" id="s-pgto">—</div>
-        </div>
-        <div class="stat">
-            <div class="lbl">PEP / Alto risco</div>
-            <div class="val c-perigo" id="s-pep">—</div>
-        </div>
-        <div class="stat">
-            <div class="lbl">Aprovadas hoje</div>
-            <div class="val c-verde" id="s-aprov">—</div>
-        </div>
+    <div class="stats" id="statsRow">
+        <div class="stat"><div class="lbl">Pendentes Compliance</div><div class="val c-roxo" id="st-pendentes">—</div></div>
+        <div class="stat"><div class="lbl">Aguardando Pagamento</div><div class="val c-am" id="st-on-hold">—</div></div>
+        <div class="stat"><div class="lbl">PEP / Alto Risco</div><div class="val c-perigo" id="st-pep">—</div></div>
+        <div class="stat"><div class="lbl">Clientes Bloqueados</div><div class="val c-perigo" id="st-bloq">—</div></div>
+        <div class="stat"><div class="lbl">Docs Pendentes</div><div class="val c-am" id="st-docs">—</div></div>
+        <div class="stat"><div class="lbl">SARs Abertos</div><div class="val c-roxo" id="st-sars">—</div></div>
     </div>
 
-    <!-- Tabela fila compliance -->
-    <div class="tbl-card">
-        <div class="tbl-hd">
-            <h3><i class="fas fa-clock" style="color:#9b59b6"></i> Fila de Análise <span id="tbl-count" style="color:var(--cor-texto-secundario);font-weight:400;font-size:12px;margin-left:4px;"></span></h3>
-            <button class="btn-hd btn-hd-ghost" onclick="carregarOrdens()"><i class="fas fa-sync-alt"></i></button>
-        </div>
-        <div class="tbl-wrap">
-            <table>
-                <thead><tr>
-                    <th>Data</th>
-                    <th>Cliente</th>
-                    <th>Valor entrada</th>
-                    <th>Valor saída</th>
-                    <th>Destino</th>
-                    <th>Pagamento</th>
-                    <th>Alertas AML</th>
-                    <th>Status</th>
-                    <th>Ações</th>
-                </tr></thead>
-                <tbody id="ordensBody">
-                    <tr><td colspan="9" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>
-                </tbody>
-            </table>
-        </div>
+    <!-- Tabs -->
+    <div class="tabs">
+        <div class="tab active" onclick="showTab('ordens')"><i class="fas fa-file-alt"></i> Ordens <span class="cnt-badge" id="tab-cnt-ordens">0</span></div>
+        <div class="tab" onclick="showTab('clientes')"><i class="fas fa-users"></i> Clientes</div>
+        <div class="tab" onclick="showTab('docs')"><i class="fas fa-folder-open"></i> Docs Pendentes <span class="cnt-badge" id="tab-cnt-docs">0</span></div>
+        <div class="tab" onclick="showTab('regras')"><i class="fas fa-sliders-h"></i> Regras AML</div>
+        <div class="tab" onclick="showTab('sars')"><i class="fas fa-exclamation-triangle"></i> SARs <span class="cnt-badge" id="tab-cnt-sars">0</span></div>
+        <div class="tab" onclick="showTab('audit')"><i class="fas fa-history"></i> Auditoria</div>
     </div>
-</div>
 
-<!-- Modal de análise -->
-<div class="modal-ov" id="modalAnalise">
-    <div class="modal">
-        <h3><i class="fas fa-search" style="color:#9b59b6"></i> Análise de Compliance</h3>
-
-        {% if tipo == 'admin' %}
-        <div class="admin-readonly"><i class="fas fa-eye"></i> Você está como Admin — visualização apenas. Somente o Compliance pode aprovar ou rejeitar.</div>
-        {% endif %}
-
-        <div class="sec">Dados da Ordem</div>
-        <div class="info-grid" id="modalOrdemInfo"></div>
-
-        <div class="sec">Cliente</div>
-        <div class="info-grid" id="modalClienteInfo"></div>
-
-        <div class="sec">Documentos KYC</div>
-        <div id="modalDocs"></div>
-
-        <div class="sec">Alertas AML</div>
-        <div id="modalAml"></div>
-
-        <div id="modalAcoesCompliance" style="display:{% if tipo == 'compliance' %}block{% else %}none{% endif %}">
-            <div class="sec">Decisão</div>
-            <div class="fg">
-                <label>Observação (opcional para aprovação, obrigatória para rejeição)</label>
-                <textarea id="modalObs" class="fc" rows="3" placeholder="Descreva a análise realizada…"></textarea>
+    <!-- TAB: ORDENS -->
+    <div class="tab-panel active" id="panel-ordens">
+        <div class="tbl-card">
+            <div class="tbl-hd">
+                <h3><i class="fas fa-file-alt c-roxo"></i> Ordens em Análise</h3>
+                <button class="btn-primary" onclick="carregarOrdens()"><i class="fas fa-sync-alt"></i> Atualizar</button>
             </div>
-            <div class="form-msg" id="modalMsg"></div>
-            <div class="modal-acts">
-                <button class="btn-g" onclick="fecharModal()">Fechar</button>
-                <button class="btn-danger" onclick="rejeitarOrdem()"><i class="fas fa-ban"></i> Rejeitar</button>
-                <button class="btn-p" onclick="aprovarOrdem()"><i class="fas fa-check"></i> Aprovar</button>
+            <div class="tbl-wrap">
+                <table>
+                    <thead><tr>
+                        <th>#</th><th>Cliente</th><th>Entrada</th><th>Saída</th>
+                        <th>Pagamento</th><th>Compliance</th><th>AML</th><th>Data</th><th></th>
+                    </tr></thead>
+                    <tbody id="tbOrdens"><tr><td colspan="9" class="empty"><i class="fas fa-spinner fa-spin"></i><br>Carregando...</td></tr></tbody>
+                </table>
             </div>
         </div>
+    </div>
 
-        <div id="modalAcoesAdmin" style="display:{% if tipo == 'admin' %}flex{% else %}none{% endif %};justify-content:flex-end;margin-top:16px;">
-            <button class="btn-g" onclick="fecharModal()">Fechar</button>
+    <!-- TAB: CLIENTES -->
+    <div class="tab-panel" id="panel-clientes">
+        <div class="filters">
+            <input type="text" id="cli-busca" placeholder="Nome, CPF/CNPJ, telefone..." style="flex:1;min-width:200px">
+            <select id="cli-risco">
+                <option value="">Todos os riscos</option>
+                <option value="baixo">Baixo</option>
+                <option value="medio">Médio</option>
+                <option value="alto">Alto</option>
+                <option value="proibido">Proibido</option>
+            </select>
+            <select id="cli-bloq">
+                <option value="">Todos</option>
+                <option value="0">Ativos</option>
+                <option value="1">Bloqueados</option>
+            </select>
+            <button class="btn-primary" onclick="buscarClientes()"><i class="fas fa-search"></i> Buscar</button>
+        </div>
+        <div class="tbl-card">
+            <div class="tbl-wrap">
+                <table>
+                    <thead><tr>
+                        <th>Nome</th><th>Documento</th><th>Risco</th><th>KYC</th><th>Status</th><th>Limite Mensal</th><th></th>
+                    </tr></thead>
+                    <tbody id="tbClientes"><tr><td colspan="7" class="empty"><i class="fas fa-search"></i><br>Use a busca acima</td></tr></tbody>
+                </table>
+            </div>
         </div>
     </div>
+
+    <!-- TAB: DOCS PENDENTES -->
+    <div class="tab-panel" id="panel-docs">
+        <div class="tbl-card">
+            <div class="tbl-hd">
+                <h3><i class="fas fa-folder-open c-am"></i> Cadastros com Documentação Pendente</h3>
+                <button class="btn-primary" onclick="carregarDocsPendentes()"><i class="fas fa-sync-alt"></i> Atualizar</button>
+            </div>
+            <div class="tbl-wrap">
+                <table>
+                    <thead><tr>
+                        <th>Nome</th><th>Documento</th><th>Risco</th><th>Tier KYC</th><th>Status Docs</th><th>Cadastro</th><th></th>
+                    </tr></thead>
+                    <tbody id="tbDocs"><tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i><br>Carregando...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: REGRAS AML -->
+    <div class="tab-panel" id="panel-regras">
+        <div class="tbl-card">
+            <div class="tbl-hd">
+                <h3><i class="fas fa-sliders-h c-roxo"></i> Configurações AML / Limites</h3>
+                <button class="btn-primary" id="btnSalvarConfig" onclick="salvarConfig()"><i class="fas fa-save"></i> Salvar Alterações</button>
+            </div>
+            <div style="padding:16px;" id="configArea">
+                <div class="empty"><i class="fas fa-spinner fa-spin"></i><br>Carregando...</div>
+            </div>
+        </div>
+        <div style="margin-top:16px;" class="tbl-card">
+            <div class="tbl-hd"><h3><i class="fas fa-globe c-am"></i> Países de Alto Risco (visualização)</h3></div>
+            <div style="padding:14px;display:flex;flex-wrap:wrap;gap:6px;" id="paisesAltoRisco">
+                <span style="font-size:12px;color:var(--cor-texto-secundario)">DZ, AO, BO, VG, BG, BF, CM, CI, CD, HT, IR, KE, LA, LB, MC, MZ, MM, NA, NP, NG, ZA, SS, SY, VE, VN, YE</span>
+            </div>
+        </div>
+        <div style="margin-top:16px;" class="tbl-card">
+            <div class="tbl-hd"><h3><i class="fas fa-ban c-perigo"></i> Países Proibidos (visualização)</h3></div>
+            <div style="padding:14px;" id="paisesProibidos">
+                <span style="font-size:12px;color:var(--cor-texto-secundario)">BY, BA, CU, KP, CD, GN, GW, HT, IR, IL, LB, LY, ML, MM, NI, RU, SO, SS, VE, YE, ZW</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: SARs -->
+    <div class="tab-panel" id="panel-sars">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+            <div class="filters" style="margin:0">
+                <select id="sar-filtro-status">
+                    <option value="">Todos</option>
+                    <option value="rascunho">Rascunho</option>
+                    <option value="revisao">Em Revisão</option>
+                    <option value="enviado">Enviado ao COAF</option>
+                    <option value="arquivado">Arquivado</option>
+                </select>
+                <button class="btn-primary" onclick="carregarSARs()"><i class="fas fa-sync-alt"></i></button>
+            </div>
+            <button class="btn-primary" onclick="abrirModalNovoSAR()"><i class="fas fa-plus"></i> Novo SAR</button>
+        </div>
+        <div id="listaSARs"><div class="empty"><i class="fas fa-spinner fa-spin"></i><br>Carregando...</div></div>
+    </div>
+
+    <!-- TAB: AUDITORIA -->
+    <div class="tab-panel" id="panel-audit">
+        <div class="filters">
+            <select id="audit-acao">
+                <option value="">Todas as ações</option>
+                <option value="APROVAR_ORDEM">Aprovar Ordem</option>
+                <option value="REJEITAR_ORDEM">Rejeitar Ordem</option>
+                <option value="BLOQUEAR_CLIENTE">Bloquear Cliente</option>
+                <option value="DESBLOQUEAR_CLIENTE">Desbloquear Cliente</option>
+                <option value="ALTERAR_RISCO">Alterar Risco</option>
+                <option value="ALTERAR_LIMITE">Alterar Limite</option>
+                <option value="ALTERAR_CONFIG">Alterar Config</option>
+                <option value="CRIAR_SAR">Criar SAR</option>
+                <option value="NOTA_CLIENTE">Nota Cliente</option>
+            </select>
+            <button class="btn-primary" onclick="carregarAudit()"><i class="fas fa-sync-alt"></i> Atualizar</button>
+        </div>
+        <div class="tbl-card">
+            <div id="listaAudit"><div class="empty"><i class="fas fa-spinner fa-spin"></i><br>Carregando...</div></div>
+        </div>
+    </div>
+
+</div><!-- /page -->
+
+<!-- Modal: Análise de Ordem -->
+<div class="modal-ov" id="modalOrdem">
+<div class="modal">
+    <h3><i class="fas fa-file-alt c-roxo"></i> <span id="mo-titulo">Ordem #</span></h3>
+    <div class="info-grid">
+        <div class="info-item"><div class="lbl">Cliente</div><div class="val" id="mo-cliente">—</div></div>
+        <div class="info-item"><div class="lbl">Documento</div><div class="val" id="mo-doc">—</div></div>
+        <div class="info-item"><div class="lbl">Entrada</div><div class="val" id="mo-entrada">—</div></div>
+        <div class="info-item"><div class="lbl">Saída</div><div class="val" id="mo-saida">—</div></div>
+        <div class="info-item"><div class="lbl">Forma Pagamento</div><div class="val" id="mo-forma">—</div></div>
+        <div class="info-item"><div class="lbl">Loja</div><div class="val" id="mo-loja">—</div></div>
+    </div>
+    <div class="section-title">Status</div>
+    <div class="info-grid" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="info-item"><div class="lbl">Pagamento</div><div class="val" id="mo-pgto">—</div></div>
+        <div class="info-item"><div class="lbl">Compliance</div><div class="val" id="mo-comp">—</div></div>
+        <div class="info-item"><div class="lbl">Status Geral</div><div class="val" id="mo-status">—</div></div>
+    </div>
+    <div class="section-title">Alertas AML</div>
+    <div id="mo-aml" style="font-size:13px;padding:8px;background:rgba(128,128,128,.05);border-radius:6px;min-height:32px;">—</div>
+    <div class="section-title">Documentos KYC</div>
+    <div id="mo-docs"></div>
+    <div class="section-title">Notas de Compliance</div>
+    <div class="notas-list" id="mo-notas-list"></div>
+    <div class="form-group" style="margin-top:10px;">
+        <textarea id="mo-obs" placeholder="Observação / justificativa para aprovação ou rejeição..."></textarea>
+    </div>
+    <div class="modal-acts" id="mo-acts">
+        <button class="btn-ghost" onclick="fecharModal('modalOrdem')">Fechar</button>
+    </div>
+    <input type="hidden" id="mo-id">
+</div>
 </div>
 
-<div class="toast-c" id="toastC"></div>
-<script src="/static/js/theme.js"></script>
+<!-- Modal: Gestão de Cliente -->
+<div class="modal-ov" id="modalCliente">
+<div class="modal">
+    <h3><i class="fas fa-user-shield c-roxo"></i> <span id="mc-nome">Cliente</span></h3>
+    <div class="info-grid">
+        <div class="info-item"><div class="lbl">Documento</div><div class="val" id="mc-doc">—</div></div>
+        <div class="info-item"><div class="lbl">Telefone</div><div class="val" id="mc-tel">—</div></div>
+        <div class="info-item"><div class="lbl">Status</div><div class="val" id="mc-status">—</div></div>
+        <div class="info-item"><div class="lbl">Risco Atual</div><div class="val" id="mc-risco">—</div></div>
+    </div>
+    <div class="section-title">Alterar Risco</div>
+    <div class="form-group">
+        <select id="mc-novo-risco">
+            <option value="baixo">Baixo</option>
+            <option value="medio">Médio</option>
+            <option value="alto">Alto</option>
+            <option value="proibido">Proibido</option>
+        </select>
+    </div>
+    <div class="section-title">Limite Mensal (BRL)</div>
+    <div class="form-group">
+        <input type="number" id="mc-limite" placeholder="Ex: 10000">
+    </div>
+    <div class="section-title">Bloquear / Desbloquear</div>
+    <div class="form-group">
+        <input type="text" id="mc-motivo-bloq" placeholder="Motivo do bloqueio (se aplicável)">
+    </div>
+    <div class="section-title">Notas de Compliance</div>
+    <div class="notas-list" id="mc-notas-list"></div>
+    <div class="form-group" style="margin-top:8px;">
+        <textarea id="mc-nova-nota" placeholder="Adicionar nota..." style="min-height:60px;"></textarea>
+        <button class="btn-primary" style="margin-top:6px;" onclick="adicionarNota()"><i class="fas fa-plus"></i> Adicionar Nota</button>
+    </div>
+    <div class="modal-acts">
+        <button class="btn-ghost" onclick="fecharModal('modalCliente')">Fechar</button>
+        <button class="btn-primary" onclick="salvarAlteracoesCliente()" id="mc-btn-salvar"><i class="fas fa-save"></i> Salvar</button>
+        <button id="mc-btn-bloquear" class="btn-danger" onclick="toggleBloquearCliente()">Bloquear</button>
+    </div>
+    <input type="hidden" id="mc-id">
+    <input type="hidden" id="mc-bloqueado">
+</div>
+</div>
+
+<!-- Modal: Novo SAR -->
+<div class="modal-ov" id="modalSAR">
+<div class="modal">
+    <h3><i class="fas fa-exclamation-triangle c-am"></i> Novo SAR</h3>
+    <div class="form-group">
+        <label>ID do Cliente (opcional)</label>
+        <input type="number" id="sar-cliente-id" placeholder="ID do cliente relacionado">
+    </div>
+    <div class="form-group">
+        <label>Valor Suspeito (BRL)</label>
+        <input type="number" id="sar-valor" placeholder="0.00">
+    </div>
+    <div class="form-group">
+        <label>Descrição da Atividade Suspeita *</label>
+        <textarea id="sar-desc" placeholder="Descreva detalhadamente a atividade suspeita..." style="min-height:120px;"></textarea>
+    </div>
+    <div class="modal-acts">
+        <button class="btn-ghost" onclick="fecharModal('modalSAR')">Cancelar</button>
+        <button class="btn-primary" onclick="criarSAR()"><i class="fas fa-file-alt"></i> Criar SAR</button>
+    </div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <script>
-const IS_COMPLIANCE = {{ 'true' if tipo == 'compliance' else 'false' }};
-const fmtN = (v,d=2) => parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
-const fmtD = s => { if(!s)return'—'; try{const[dt,hr]=(s.replace('T',' ').split('.')[0]).split(' ');const[y,m,d]=dt.split('-');return hr?`${d}/${m}/${y} ${hr.slice(0,5)}`:`${d}/${m}/${y}`;}catch{return s;}};
-const destFlag = {brazil:'🇧🇷',europe:'🇪🇺',usa:'🇺🇸'};
-const amlLabels = {PEP_SCREENING_REQUIRED:'PEP',HIGH_RISK_COUNTRY_EDD:'Alto Risco',CASH_EDD:'Cash EDD'};
-const docLabels = {photo_id:'Photo ID',proof_address:'Proof of Address',source_funds:'Source of Funds',declaration:'Declaration Form',edd:'EDD Documents'};
+const IS_COMPLIANCE = '{{ session.get('tipo','') }}' === 'compliance' || '{{ usuario }}' !== '';
 
-let ordemAtual = null;
-let todasOrdens = [];
-
-async function carregarOrdens() {
-    const tb = document.getElementById('ordensBody');
-    tb.innerHTML = '<tr><td colspan="9" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
-    try {
-        const r = await fetch('/api/compliance/ordens');
-        const d = await r.json();
-        if (!d.success) { tb.innerHTML = `<tr><td colspan="9" style="color:var(--cor-perigo);padding:20px;">${d.message}</td></tr>`; return; }
-        todasOrdens = d.ordens || [];
-        renderTabela(todasOrdens);
-        atualizarStats(todasOrdens);
-    } catch(e) {
-        tb.innerHTML = `<tr><td colspan="9" style="color:var(--cor-perigo);padding:20px;">${e.message}</td></tr>`;
-    }
+// ─── Tabs ────────────────────────────────────────
+function showTab(name) {
+    document.querySelectorAll('.tab').forEach((t,i)=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    const tabs = ['ordens','clientes','docs','regras','sars','audit'];
+    const idx = tabs.indexOf(name);
+    if(idx>=0) document.querySelectorAll('.tab')[idx].classList.add('active');
+    document.getElementById('panel-'+name).classList.add('active');
+    if(name==='ordens') carregarOrdens();
+    else if(name==='docs') carregarDocsPendentes();
+    else if(name==='regras') carregarConfig();
+    else if(name==='sars') carregarSARs();
+    else if(name==='audit') carregarAudit();
 }
 
-function renderTabela(lista) {
-    const tb = document.getElementById('ordensBody');
-    document.getElementById('tbl-count').textContent = `(${lista.length})`;
-    if (!lista.length) {
-        tb.innerHTML = '<tr><td colspan="9" class="empty"><i class="fas fa-check-circle" style="color:var(--cor-sucesso)"></i><p>Nenhuma ordem pendente — fila vazia!</p></td></tr>';
-        return;
-    }
-    tb.innerHTML = lista.map(o => {
-        const flag = destFlag[o.tipo_destino||'brazil'] || '🇧🇷';
-        const alertas = (o.aml_alertas||'').split(',').filter(Boolean);
-        const alertaHtml = alertas.map(a => `<span class="aml-pill">${amlLabels[a]||a}</span>`).join('');
-        const pgtoHtml = o.pagamento_confirmado
-            ? `<span class="flag-pgto-ok"><i class="fas fa-check-circle"></i> Confirmado</span>`
-            : `<span class="flag-pgto-pend"><i class="fas fa-clock"></i> Aguardando</span>`;
-        const saidaFmt = o.moeda_saida === 'BRL' ? `R$ ${fmtN(o.valor_saida)}` : `${fmtN(o.valor_saida)} ${o.moeda_saida||'BRL'}`;
+// ─── Toast ───────────────────────────────────────
+function toast(msg, tipo='ok') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast show ' + tipo;
+    setTimeout(()=>el.className='toast',3000);
+}
+
+function fecharModal(id) {
+    document.getElementById(id).classList.remove('open');
+}
+
+// ─── Stats ───────────────────────────────────────
+async function carregarStats() {
+    try {
+        const [rO, rC, rD, rS] = await Promise.all([
+            fetch('/api/compliance/ordens').then(r=>r.json()),
+            fetch('/api/compliance/clientes?bloqueado=1').then(r=>r.json()),
+            fetch('/api/compliance/clientes/docs-pendentes').then(r=>r.json()),
+            fetch('/api/compliance/sars?status=rascunho').then(r=>r.json()),
+        ]);
+        const ordens = rO.ordens||[];
+        document.getElementById('st-pendentes').textContent = ordens.filter(o=>o.compliance_status==='pendente').length;
+        document.getElementById('st-on-hold').textContent   = ordens.filter(o=>!o.pagamento_confirmado).length;
+        document.getElementById('st-pep').textContent       = ordens.filter(o=>(o.aml_alertas||[]).length>0).length;
+        document.getElementById('st-bloq').textContent      = (rC.clientes||[]).length;
+        document.getElementById('st-docs').textContent      = (rD.clientes||[]).length;
+        document.getElementById('st-sars').textContent      = (rS.sars||[]).length;
+        document.getElementById('tab-cnt-sars').textContent = (rS.sars||[]).length;
+        document.getElementById('tab-cnt-docs').textContent = (rD.clientes||[]).length;
+        document.getElementById('tab-cnt-ordens').textContent = ordens.length;
+    } catch(e){}
+}
+
+// ─── ORDENS ─────────────────────────────────────
+let ordensData = [];
+async function carregarOrdens() {
+    const tb = document.getElementById('tbOrdens');
+    tb.innerHTML = '<tr><td colspan="9" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    try {
+        const r = await fetch('/api/compliance/ordens').then(r=>r.json());
+        ordensData = r.ordens||[];
+        renderOrdens(ordensData);
+    } catch(e){ tb.innerHTML='<tr><td colspan="9" class="empty">Erro ao carregar</td></tr>'; }
+}
+
+function renderOrdens(list) {
+    const tb = document.getElementById('tbOrdens');
+    if(!list.length){ tb.innerHTML='<tr><td colspan="9" class="empty"><i class="fas fa-check-circle"></i><br>Nenhuma ordem pendente</td></tr>'; return; }
+    tb.innerHTML = list.map(o=>{
+        const alertas = (o.aml_alertas||[]).map(a=>`<span class="aml-pill">${a}</span>`).join('');
+        const pgtoIco = o.pagamento_confirmado ? '<i class="fas fa-check-circle flag-ok" title="Confirmado"></i>' : '<i class="fas fa-clock flag-pend" title="Aguardando"></i>';
+        const compTag = `<span class="tag tag-${o.compliance_status||'pendente'}">${o.compliance_status||'pendente'}</span>`;
+        const dt = o.created_at ? new Date(o.created_at).toLocaleDateString('pt-BR') : '—';
         return `<tr>
-            <td style="white-space:nowrap;">${fmtD(o.data)}</td>
-            <td style="font-weight:600;">${o.cliente_nome||'—'}</td>
-            <td class="mono">${fmtN(o.valor_entrada,2)} ${o.moeda_entrada||''}</td>
-            <td class="mono" style="color:var(--cor-sucesso);">${saidaFmt}</td>
-            <td>${flag} ${o.tipo_destino||'brazil'}</td>
-            <td>${pgtoHtml}</td>
-            <td>${alertaHtml || '<span style="color:var(--cor-texto-secundario);font-size:11px;">Nenhum</span>'}</td>
-            <td><span class="tag tag-${o.status}">${o.status}</span></td>
-            <td><button class="btn-act" onclick="abrirAnalise('${o.id}')"><i class="fas fa-search"></i> Analisar</button></td>
+            <td><strong>#${o.id}</strong></td>
+            <td>${o.cliente_nome||o.cliente_id||'—'}</td>
+            <td>${fmtVal(o.valor_entrada,o.moeda_entrada)}</td>
+            <td>${fmtVal(o.valor_saida,o.moeda_saida)}</td>
+            <td>${pgtoIco}</td>
+            <td>${compTag}</td>
+            <td>${alertas||'<span style="color:var(--cor-sucesso);font-size:11px;">✓ OK</span>'}</td>
+            <td style="white-space:nowrap">${dt}</td>
+            <td><button class="btn-act" onclick="abrirOrdem(${o.id})"><i class="fas fa-eye"></i> Analisar</button></td>
         </tr>`;
     }).join('');
 }
 
-function atualizarStats(lista) {
-    const hoje = new Date().toISOString().slice(0,10);
-    document.getElementById('s-pend').textContent = lista.length;
-    document.getElementById('s-pgto').textContent = lista.filter(o => !o.pagamento_confirmado).length;
-    document.getElementById('s-pep').textContent  = lista.filter(o => (o.aml_alertas||'').includes('PEP')).length;
-}
+function fmtVal(v,m){ return v ? `${parseFloat(v).toLocaleString('pt-BR',{minimumFractionDigits:2})} ${m||''}` : '—'; }
 
-async function abrirAnalise(ordemId) {
-    ordemAtual = ordemId;
-    const o = todasOrdens.find(x => x.id === ordemId);
-    if (!o) return;
-
-    // Ordem info
-    const alertas = (o.aml_alertas||'').split(',').filter(Boolean);
-    document.getElementById('modalOrdemInfo').innerHTML = `
-        <div class="info-item"><div class="lbl">Data</div><div class="val">${fmtD(o.data)}</div></div>
-        <div class="info-item"><div class="lbl">Loja</div><div class="val">${o.loja||'—'}</div></div>
-        <div class="info-item"><div class="lbl">Entrada</div><div class="val">${fmtN(o.valor_entrada,2)} ${o.moeda_entrada}</div></div>
-        <div class="info-item"><div class="lbl">Saída</div><div class="val" style="color:var(--cor-sucesso);">${o.moeda_saida==='BRL'?'R$ ':''}${fmtN(o.valor_saida,2)} ${o.moeda_saida}</div></div>
-        <div class="info-item"><div class="lbl">Destino</div><div class="val">${destFlag[o.tipo_destino]||''} ${o.tipo_destino}</div></div>
-        <div class="info-item"><div class="lbl">Forma pagamento</div><div class="val">${o.forma_pagamento||'—'}</div></div>
-        <div class="info-item"><div class="lbl">Pagamento confirmado</div><div class="val ${o.pagamento_confirmado?'doc-ok':'doc-miss'}">${o.pagamento_confirmado?'✅ Sim':'⏳ Aguardando'}</div></div>
-        <div class="info-item"><div class="lbl">Status atual</div><div class="val"><span class="tag tag-${o.status}">${o.status}</span></div></div>
-    `;
-
-    // Cliente info
-    document.getElementById('modalClienteInfo').innerHTML = `
-        <div class="info-item"><div class="lbl">Nome</div><div class="val">${o.cliente_nome||'—'}</div></div>
-        <div class="info-item"><div class="lbl">Documento</div><div class="val">${o.cliente_doc||'—'}</div></div>
-        <div class="info-item"><div class="lbl">Telefone</div><div class="val">${o.cliente_telefone||'—'}</div></div>
-        <div class="info-item"><div class="lbl">Beneficiário</div><div class="val">${o.beneficiario_nome||'—'}</div></div>
-        <div class="info-item"><div class="lbl">Banco benef.</div><div class="val">${o.beneficiario_banco||o.benef_iban||'—'}</div></div>
-        <div class="info-item"><div class="lbl">Conta</div><div class="val">${o.beneficiario_conta||o.account_number||'—'}</div></div>
-    `;
-
+async function abrirOrdem(id) {
+    const o = ordensData.find(x=>x.id==id);
+    if(!o) return;
+    document.getElementById('mo-titulo').textContent = `Ordem #${o.id}`;
+    document.getElementById('mo-cliente').textContent = o.cliente_nome||o.cliente_id||'—';
+    document.getElementById('mo-doc').textContent     = o.cliente_documento||'—';
+    document.getElementById('mo-entrada').textContent = fmtVal(o.valor_entrada,o.moeda_entrada);
+    document.getElementById('mo-saida').textContent   = fmtVal(o.valor_saida,o.moeda_saida);
+    document.getElementById('mo-forma').textContent   = o.forma_pagamento||'—';
+    document.getElementById('mo-loja').textContent    = o.loja_nome||o.loja_id||'—';
+    document.getElementById('mo-pgto').innerHTML  = o.pagamento_confirmado ? '<span class="tag tag-aprovado">Confirmado</span>' : '<span class="tag tag-pendente">Aguardando</span>';
+    document.getElementById('mo-comp').innerHTML  = `<span class="tag tag-${o.compliance_status||'pendente'}">${o.compliance_status||'pendente'}</span>`;
+    document.getElementById('mo-status').innerHTML = `<span class="tag tag-${o.status}">${o.status}</span>`;
+    const alertas = (o.aml_alertas||[]);
+    document.getElementById('mo-aml').innerHTML = alertas.length ? alertas.map(a=>`<span class="aml-pill">${a}</span>`).join(' ') : '<span style="color:var(--cor-sucesso)"><i class="fas fa-check"></i> Sem alertas</span>';
     // Docs KYC
-    await carregarDocsKyc(o.cliente_id);
-
-    // Alertas AML
-    const amlHtml = alertas.length
-        ? alertas.map(a => `<div class="doc-row"><span>${amlLabels[a]||a}</span><span class="doc-miss"><i class="fas fa-exclamation-triangle"></i> Atenção</span></div>`).join('')
-        : `<div class="doc-row"><span style="color:var(--cor-texto-secundario);">Nenhum alerta AML</span><span class="doc-ok"><i class="fas fa-check"></i></span></div>`;
-    document.getElementById('modalAml').innerHTML = amlHtml;
-
-    document.getElementById('modalObs').value = '';
-    document.getElementById('modalMsg').innerHTML = '';
-    document.getElementById('modalAnalise').classList.add('open');
+    const docsEl = document.getElementById('mo-docs');
+    const docsMap = o.kyc_docs||{};
+    const docsLabels = {photo_id:'Documento com Foto',proof_address:'Comprovante de Residência',source_funds:'Origem dos Fundos',declaration:'Declaração',edd:'EDD'};
+    docsEl.innerHTML = Object.entries(docsLabels).map(([k,l])=>`<div class="doc-row"><span>${l}</span><span>${docsMap[k]?'<i class="fas fa-check-circle" style="color:var(--cor-sucesso)"></i> OK':'<i class="fas fa-times-circle" style="color:var(--cor-texto-secundario)"></i> Pendente'}</span></div>`).join('');
+    document.getElementById('mo-obs').value = '';
+    document.getElementById('mo-id').value = id;
+    // Botões (só compliance pode agir)
+    const userTipo = '{{ session.get('tipo','') }}';
+    const acts = document.getElementById('mo-acts');
+    if(userTipo === 'compliance' && o.compliance_status === 'pendente') {
+        acts.innerHTML = `
+            <button class="btn-ghost" onclick="fecharModal('modalOrdem')">Fechar</button>
+            <button class="btn-danger" onclick="acao('rejeitar',${o.id})"><i class="fas fa-times"></i> Rejeitar</button>
+            <button class="btn-success" onclick="acao('aprovar',${o.id})"><i class="fas fa-check"></i> Aprovar</button>`;
+    } else {
+        acts.innerHTML = `<button class="btn-ghost" onclick="fecharModal('modalOrdem')">Fechar</button>`;
+    }
+    // Notas
+    carregarNotasOrdem(o.cliente_id);
+    document.getElementById('modalOrdem').classList.add('open');
 }
 
-async function carregarDocsKyc(clienteId) {
-    const box = document.getElementById('modalDocs');
-    if (!clienteId) { box.innerHTML = '<p style="color:var(--cor-texto-secundario);font-size:13px;">Cliente sem ID — verifique cadastro.</p>'; return; }
+async function carregarNotasOrdem(clienteId) {
+    if(!clienteId) return;
     try {
-        const r = await fetch(`/api/clientes/${clienteId}/kyc-check?valor=0&moeda=GBP`);
-        const d = await r.json();
-        if (!d.success) { box.innerHTML = '<p style="color:var(--cor-perigo);">Erro ao carregar docs KYC.</p>'; return; }
-        const a = d.aml;
-        const todos = ['photo_id','proof_address','source_funds','declaration','edd'];
-        const obrig = a.docs_required || [];
-        box.innerHTML = todos.map(doc => {
-            const isObrig = obrig.includes(doc);
-            const isMissing = (a.docs_missing||[]).includes(doc);
-            const cls = !isObrig ? '' : isMissing ? 'doc-miss' : 'doc-ok';
-            const icon = !isObrig ? 'fa-minus' : isMissing ? 'fa-times-circle' : 'fa-check-circle';
-            const status = !isObrig ? 'Não obrigatório' : isMissing ? 'PENDENTE' : 'OK';
-            return `<div class="doc-row">
-                <span>${docLabels[doc]}</span>
-                <span class="${cls}"><i class="fas ${icon}"></i> ${status}</span>
-            </div>`;
+        const r = await fetch(`/api/compliance/clientes/${clienteId}/notas`).then(r=>r.json());
+        const el = document.getElementById('mo-notas-list');
+        const notas = r.notas||[];
+        el.innerHTML = notas.length ? notas.map(n=>`<div class="nota-item">${n.nota}<div class="meta">${n.usuario} — ${new Date(n.created_at).toLocaleString('pt-BR')}</div></div>`).join('') : '<p style="font-size:12px;color:var(--cor-texto-secundario);">Sem notas.</p>';
+    } catch(e){}
+}
+
+async function acao(tipo, id) {
+    const obs = document.getElementById('mo-obs').value.trim();
+    if(tipo==='rejeitar' && !obs){ toast('Informe o motivo da rejeição','err'); return; }
+    try {
+        const r = await fetch(`/api/compliance/ordens/${id}/${tipo}`, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({obs, motivo: obs})
+        }).then(r=>r.json());
+        if(r.success){ toast(r.message,'ok'); fecharModal('modalOrdem'); carregarOrdens(); carregarStats(); }
+        else toast(r.message,'err');
+    } catch(e){ toast('Erro de conexão','err'); }
+}
+
+// ─── CLIENTES ────────────────────────────────────
+async function buscarClientes() {
+    const q    = document.getElementById('cli-busca').value.trim();
+    const risco= document.getElementById('cli-risco').value;
+    const bloq = document.getElementById('cli-bloq').value;
+    const tb   = document.getElementById('tbClientes');
+    tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    const params = new URLSearchParams();
+    if(q) params.set('q',q);
+    if(risco) params.set('risco',risco);
+    if(bloq!=='') params.set('bloqueado',bloq);
+    try {
+        const r = await fetch('/api/compliance/clientes?'+params).then(r=>r.json());
+        const list = r.clientes||[];
+        if(!list.length){ tb.innerHTML='<tr><td colspan="7" class="empty"><i class="fas fa-users"></i><br>Nenhum cliente encontrado</td></tr>'; return; }
+        tb.innerHTML = list.map(c=>{
+            const bloqTag = c.bloqueado ? '<span class="tag tag-bloqueado">Bloqueado</span>' : '<span class="tag tag-ativo">Ativo</span>';
+            const riscoTag = `<span class="tag tag-${c.risk_level||'baixo'}">${c.risk_level||'baixo'}</span>`;
+            const limite = c.limite_mensal_brl ? `R$ ${parseFloat(c.limite_mensal_brl).toLocaleString('pt-BR',{minimumFractionDigits:2})}` : '—';
+            return `<tr>
+                <td><strong>${c.nome||'—'}</strong></td>
+                <td>${c.documento||'—'}</td>
+                <td>${riscoTag}</td>
+                <td>${c.kyc_docs_status||'—'}</td>
+                <td>${bloqTag}</td>
+                <td>${limite}</td>
+                <td><button class="btn-act" onclick="abrirCliente(${c.id})"><i class="fas fa-edit"></i> Gerir</button></td>
+            </tr>`;
         }).join('');
-        if (a.pep_flag) box.innerHTML += `<div class="doc-row"><span>PEP Flag</span><span class="doc-miss"><i class="fas fa-flag"></i> PEP IDENTIFICADO</span></div>`;
-        if (a.sanctions_flag) box.innerHTML += `<div class="doc-row"><span>Sanções</span><span class="doc-miss"><i class="fas fa-ban"></i> SANCTIONED</span></div>`;
-    } catch(e) {
-        box.innerHTML = `<p style="color:var(--cor-perigo);">${e.message}</p>`;
-    }
+    } catch(e){ tb.innerHTML='<tr><td colspan="7" class="empty">Erro ao buscar</td></tr>'; }
 }
 
-async function aprovarOrdem() {
-    if (!IS_COMPLIANCE) return;
-    const btn = document.querySelector('.btn-p');
-    const msg = document.getElementById('modalMsg');
-    btn.disabled = true;
-    msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Aprovando…';
+let clientesCache = {};
+async function abrirCliente(id) {
     try {
-        const obs = document.getElementById('modalObs').value.trim();
-        const r = await fetch(`/api/compliance/ordens/${ordemAtual}/aprovar`, {
-            method: 'POST', headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({observacao: obs})
-        });
-        const d = await r.json();
-        if (d.success) {
-            toast(d.message, 'ok');
-            fecharModal();
-            carregarOrdens();
-        } else {
-            msg.innerHTML = `<span style="color:var(--cor-perigo);">${d.message}</span>`;
-        }
-    } catch(e) { msg.innerHTML = `<span style="color:var(--cor-perigo);">${e.message}</span>`; }
-    btn.disabled = false;
+        const params = new URLSearchParams({q:''});
+        const r = await fetch('/api/compliance/clientes?').then(r=>r.json());
+        const allC = r.clientes||[];
+        const c = allC.find(x=>x.id==id) || clientesCache[id];
+        if(!c){ toast('Cliente não encontrado','err'); return; }
+        clientesCache[id] = c;
+        document.getElementById('mc-nome').textContent    = c.nome||'—';
+        document.getElementById('mc-doc').textContent     = c.documento||'—';
+        document.getElementById('mc-tel').textContent     = c.telefone||'—';
+        document.getElementById('mc-status').innerHTML    = c.bloqueado ? '<span class="tag tag-bloqueado">Bloqueado</span>' : '<span class="tag tag-ativo">Ativo</span>';
+        document.getElementById('mc-risco').innerHTML     = `<span class="tag tag-${c.risk_level||'baixo'}">${c.risk_level||'baixo'}</span>`;
+        document.getElementById('mc-novo-risco').value    = c.risk_level||'baixo';
+        document.getElementById('mc-limite').value        = c.limite_mensal_brl||'';
+        document.getElementById('mc-motivo-bloq').value   = c.motivo_bloqueio||'';
+        document.getElementById('mc-id').value            = id;
+        document.getElementById('mc-bloqueado').value     = c.bloqueado ? '1' : '0';
+        const btnB = document.getElementById('mc-btn-bloquear');
+        if(c.bloqueado){ btnB.textContent='Desbloquear'; btnB.className='btn-success'; }
+        else { btnB.textContent='Bloquear'; btnB.className='btn-danger'; }
+        // Notas
+        const rN = await fetch(`/api/compliance/clientes/${id}/notas`).then(r=>r.json());
+        const notas = rN.notas||[];
+        document.getElementById('mc-notas-list').innerHTML = notas.length ? notas.map(n=>`<div class="nota-item">${n.nota}<div class="meta">${n.usuario} — ${new Date(n.created_at).toLocaleString('pt-BR')}</div></div>`).join('') : '<p style="font-size:12px;color:var(--cor-texto-secundario)">Sem notas.</p>';
+        document.getElementById('mc-nova-nota').value = '';
+        document.getElementById('modalCliente').classList.add('open');
+    } catch(e){ toast('Erro ao carregar cliente','err'); }
 }
 
-async function rejeitarOrdem() {
-    if (!IS_COMPLIANCE) return;
-    const msg = document.getElementById('modalMsg');
-    const motivo = document.getElementById('modalObs').value.trim();
-    if (!motivo) {
-        msg.innerHTML = '<span style="color:var(--cor-perigo);"><i class="fas fa-exclamation-circle"></i> Informe o motivo da rejeição.</span>';
-        return;
-    }
-    if (!confirm(`Rejeitar esta ordem?\nMotivo: ${motivo}`)) return;
-    msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Rejeitando…';
+async function salvarAlteracoesCliente() {
+    const id     = document.getElementById('mc-id').value;
+    const risco  = document.getElementById('mc-novo-risco').value;
+    const limite = document.getElementById('mc-limite').value;
     try {
-        const r = await fetch(`/api/compliance/ordens/${ordemAtual}/rejeitar`, {
-            method: 'POST', headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({motivo})
-        });
-        const d = await r.json();
-        if (d.success) {
-            toast(d.message, 'ok');
-            fecharModal();
-            carregarOrdens();
-        } else {
-            msg.innerHTML = `<span style="color:var(--cor-perigo);">${d.message}</span>`;
-        }
-    } catch(e) { msg.innerHTML = `<span style="color:var(--cor-perigo);">${e.message}</span>`; }
+        await fetch(`/api/compliance/clientes/${id}/risco`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({nivel:risco})});
+        if(limite) await fetch(`/api/compliance/clientes/${id}/limite`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({limite_mensal:parseFloat(limite)})});
+        toast('Alterações salvas','ok');
+        fecharModal('modalCliente');
+        buscarClientes();
+    } catch(e){ toast('Erro ao salvar','err'); }
 }
 
-function fecharModal() { document.getElementById('modalAnalise').classList.remove('open'); ordemAtual = null; }
-document.getElementById('modalAnalise').addEventListener('click', e => { if (e.target === document.getElementById('modalAnalise')) fecharModal(); });
-
-function toast(m, tipo='ok') {
-    const c = document.getElementById('toastC');
-    const el = document.createElement('div');
-    el.className = `toast-i t-${tipo}`;
-    el.innerHTML = `<i class="fas fa-${tipo==='ok'?'check-circle':'times-circle'}"></i> ${m}`;
-    c.appendChild(el);
-    setTimeout(() => el.remove(), 4000);
+async function toggleBloquearCliente() {
+    const id      = document.getElementById('mc-id').value;
+    const bloqueado = document.getElementById('mc-bloqueado').value === '1';
+    const motivo  = document.getElementById('mc-motivo-bloq').value.trim();
+    const url     = bloqueado ? `/api/compliance/clientes/${id}/desbloquear` : `/api/compliance/clientes/${id}/bloquear`;
+    try {
+        const r = await fetch(url, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({motivo})}).then(r=>r.json());
+        if(r.success){ toast(r.message,'ok'); fecharModal('modalCliente'); buscarClientes(); carregarStats(); }
+        else toast(r.message,'err');
+    } catch(e){ toast('Erro de conexão','err'); }
 }
 
-carregarOrdens();
-setInterval(carregarOrdens, 30000);
+async function adicionarNota() {
+    const id   = document.getElementById('mc-id').value;
+    const nota = document.getElementById('mc-nova-nota').value.trim();
+    if(!nota){ toast('Digite uma nota','err'); return; }
+    try {
+        const r = await fetch(`/api/compliance/clientes/${id}/nota`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nota})}).then(r=>r.json());
+        if(r.success){ toast('Nota adicionada','ok'); document.getElementById('mc-nova-nota').value=''; abrirCliente(id); }
+        else toast(r.message,'err');
+    } catch(e){ toast('Erro','err'); }
+}
+
+// ─── DOCS PENDENTES ──────────────────────────────
+async function carregarDocsPendentes() {
+    const tb = document.getElementById('tbDocs');
+    tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    try {
+        const r = await fetch('/api/compliance/clientes/docs-pendentes').then(r=>r.json());
+        const list = r.clientes||[];
+        document.getElementById('tab-cnt-docs').textContent = list.length;
+        if(!list.length){ tb.innerHTML='<tr><td colspan="7" class="empty"><i class="fas fa-check-circle"></i><br>Todos os documentos OK</td></tr>'; return; }
+        tb.innerHTML = list.map(c=>`<tr>
+            <td><strong>${c.nome||'—'}</strong></td>
+            <td>${c.documento||'—'}</td>
+            <td><span class="tag tag-${c.risk_level||'baixo'}">${c.risk_level||'baixo'}</span></td>
+            <td>Tier ${c.kyc_tier||0}</td>
+            <td><span class="tag tag-pendente">${c.kyc_docs_status||'pendente'}</span></td>
+            <td>${c.created_at?new Date(c.created_at).toLocaleDateString('pt-BR'):'—'}</td>
+            <td><button class="btn-act" onclick="abrirCliente(${c.id})"><i class="fas fa-edit"></i> Gerir</button></td>
+        </tr>`).join('');
+    } catch(e){ tb.innerHTML='<tr><td colspan="7" class="empty">Erro ao carregar</td></tr>'; }
+}
+
+// ─── CONFIG AML ──────────────────────────────────
+let configData = {};
+const CONFIG_LABELS = {
+    'limite_tier0':'Limite Tier 0 (R$)',
+    'limite_tier1':'Limite Tier 1 (R$)',
+    'limite_tier2':'Limite Tier 2 (R$)',
+    'limite_tier3':'Limite Tier 3 (R$)',
+    'limite_diario_auto':'Limite Diário Auto-Aprovação (R$)',
+    'limite_mensal_padrao':'Limite Mensal Padrão (R$)',
+    'pep_auto_block':'Bloquear PEP Automaticamente (1=sim)',
+    'high_risk_require_edd':'EDD Obrigatório País Alto Risco (1=sim)',
+};
+
+async function carregarConfig() {
+    document.getElementById('configArea').innerHTML = '<div class="empty"><i class="fas fa-spinner fa-spin"></i></div>';
+    try {
+        const r = await fetch('/api/compliance/config').then(r=>r.json());
+        configData = r.config||{};
+        const userTipo = '{{ session.get('tipo','') }}';
+        const readOnly = userTipo !== 'compliance';
+        let html = Object.entries(CONFIG_LABELS).map(([k,l])=>`
+            <div class="config-row">
+                <div class="config-lbl">${l}</div>
+                <input class="config-input" id="cfg-${k}" type="text" value="${configData[k]||''}" ${readOnly?'readonly':''} placeholder="(não definido)">
+            </div>`).join('');
+        if(readOnly) html += '<p style="font-size:12px;color:var(--cor-texto-secundario);margin-top:12px;"><i class="fas fa-info-circle"></i> Apenas o perfil compliance pode alterar configurações AML.</p>';
+        document.getElementById('configArea').innerHTML = html;
+    } catch(e){ document.getElementById('configArea').innerHTML = '<div class="empty">Erro ao carregar</div>'; }
+}
+
+async function salvarConfig() {
+    const data = {};
+    Object.keys(CONFIG_LABELS).forEach(k=>{ const el=document.getElementById('cfg-'+k); if(el&&el.value!=='') data[k]=el.value; });
+    try {
+        const r = await fetch('/api/compliance/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(r=>r.json());
+        if(r.success) toast('Configuração salva','ok');
+        else toast(r.message,'err');
+    } catch(e){ toast('Erro de conexão','err'); }
+}
+
+// ─── SARs ────────────────────────────────────────
+async function carregarSARs() {
+    const el     = document.getElementById('listaSARs');
+    const status = document.getElementById('sar-filtro-status').value;
+    el.innerHTML = '<div class="empty"><i class="fas fa-spinner fa-spin"></i></div>';
+    const params = status ? `?status=${status}` : '';
+    try {
+        const r = await fetch('/api/compliance/sars'+params).then(r=>r.json());
+        const sars = r.sars||[];
+        document.getElementById('tab-cnt-sars').textContent = sars.length;
+        if(!sars.length){ el.innerHTML='<div class="empty"><i class="fas fa-shield-alt"></i><br>Nenhum SAR registrado</div>'; return; }
+        el.innerHTML = sars.map(s=>`
+            <div class="sar-card">
+                <h4>
+                    <span>SAR #${s.id} ${s.cliente_id?`— Cliente #${s.cliente_id}`:''}</span>
+                    <span class="tag tag-${s.status||'rascunho'}">${s.status||'rascunho'}</span>
+                </h4>
+                <p>${s.descricao||'—'}</p>
+                <p><strong>Valor suspeito:</strong> ${s.valor_suspeito?`R$ ${parseFloat(s.valor_suspeito).toLocaleString('pt-BR',{minimumFractionDigits:2})}`:'N/D'} &nbsp;|&nbsp; <strong>Criado por:</strong> ${s.criado_por||'—'} &nbsp;|&nbsp; <strong>Data:</strong> ${s.created_at?new Date(s.created_at).toLocaleDateString('pt-BR'):'—'}</p>
+                <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+                    <select id="sar-status-${s.id}" style="background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:4px 8px;border-radius:4px;font-size:11px;">
+                        <option value="rascunho" ${s.status==='rascunho'?'selected':''}>Rascunho</option>
+                        <option value="revisao" ${s.status==='revisao'?'selected':''}>Em Revisão</option>
+                        <option value="enviado" ${s.status==='enviado'?'selected':''}>Enviado COAF</option>
+                        <option value="arquivado" ${s.status==='arquivado'?'selected':''}>Arquivado</option>
+                    </select>
+                    <button class="btn-act" onclick="atualizarSAR(${s.id})"><i class="fas fa-save"></i> Salvar Status</button>
+                </div>
+            </div>`).join('');
+    } catch(e){ el.innerHTML='<div class="empty">Erro ao carregar</div>'; }
+}
+
+function abrirModalNovoSAR() {
+    document.getElementById('sar-cliente-id').value='';
+    document.getElementById('sar-valor').value='';
+    document.getElementById('sar-desc').value='';
+    document.getElementById('modalSAR').classList.add('open');
+}
+
+async function criarSAR() {
+    const desc  = document.getElementById('sar-desc').value.trim();
+    if(!desc){ toast('Descrição obrigatória','err'); return; }
+    const body  = {
+        descricao: desc,
+        cliente_id: document.getElementById('sar-cliente-id').value||null,
+        valor_suspeito: document.getElementById('sar-valor').value||null
+    };
+    try {
+        const r = await fetch('/api/compliance/sars',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());
+        if(r.success){ toast('SAR criado','ok'); fecharModal('modalSAR'); carregarSARs(); carregarStats(); }
+        else toast(r.message,'err');
+    } catch(e){ toast('Erro','err'); }
+}
+
+async function atualizarSAR(id) {
+    const status = document.getElementById('sar-status-'+id).value;
+    try {
+        const r = await fetch(`/api/compliance/sars/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})}).then(r=>r.json());
+        if(r.success) toast('SAR atualizado','ok');
+        else toast(r.message,'err');
+    } catch(e){ toast('Erro','err'); }
+}
+
+// ─── AUDITORIA ───────────────────────────────────
+async function carregarAudit() {
+    const el   = document.getElementById('listaAudit');
+    const acao = document.getElementById('audit-acao').value;
+    el.innerHTML = '<div class="empty"><i class="fas fa-spinner fa-spin"></i></div>';
+    const params = acao ? `?acao=${acao}` : '';
+    try {
+        const r = await fetch('/api/compliance/audit'+params).then(r=>r.json());
+        const logs = r.logs||[];
+        if(!logs.length){ el.innerHTML='<div class="empty"><i class="fas fa-history"></i><br>Sem registros</div>'; return; }
+        el.innerHTML = '<div style="padding:0 14px">'+logs.map(l=>`
+            <div class="log-item">
+                <span class="ts">${l.created_at?new Date(l.created_at).toLocaleString('pt-BR'):'—'}</span>
+                <span class="acao">${l.acao||'—'}</span>
+                <span class="det">${l.detalhe||''}</span>
+                <span style="color:var(--cor-texto-secundario);font-size:11px;">${l.usuario||''}</span>
+            </div>`).join('')+'</div>';
+    } catch(e){ el.innerHTML='<div class="empty">Erro ao carregar</div>'; }
+}
+
+// ─── Init ────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', ()=>{
+    carregarOrdens();
+    carregarStats();
+    setInterval(()=>{ carregarStats(); }, 30000);
+});
 </script>
 </body>
 </html>

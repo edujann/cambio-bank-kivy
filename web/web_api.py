@@ -11727,6 +11727,316 @@ def admin_confirmar_recebimento(ordem_id):
 
 
 # ============================================
+# COMPLIANCE – GESTÃO CLIENTES / CONFIG / SARS / AUDITORIA
+# ============================================
+
+@app.route('/api/compliance/clientes', methods=['GET'])
+def compliance_listar_clientes():
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r_u = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not r_u.data or r_u.data.get('tipo') not in ('compliance', 'admin'):
+            return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+        q     = (request.args.get('q') or '').strip()
+        risco = (request.args.get('risco') or '').strip()
+        bloq  = request.args.get('bloqueado')
+        base  = supabase.table('clientes_varejo').select('*')
+        if risco:
+            base = base.eq('risk_level', risco)
+        if bloq == '1':
+            base = base.eq('bloqueado', True)
+        elif bloq == '0':
+            base = base.eq('bloqueado', False)
+        if q:
+            seen, data = set(), []
+            for col in ['nome', 'documento', 'telefone', 'email']:
+                res = base.ilike(col, f'*{q}*').limit(100).execute()
+                for item in (res.data or []):
+                    if item['id'] not in seen:
+                        seen.add(item['id'])
+                        data.append(item)
+        else:
+            res  = base.order('nome').limit(200).execute()
+            data = res.data or []
+        return jsonify({'success': True, 'clientes': data})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/compliance/clientes/<int:cliente_id>/bloquear', methods=['PUT'])
+def compliance_bloquear_cliente(cliente_id):
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r_u = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not r_u.data or r_u.data.get('tipo') not in ('compliance', 'admin'):
+            return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+        d      = request.get_json() or {}
+        motivo = (d.get('motivo') or '').strip()
+        supabase.table('clientes_varejo').update({'bloqueado': True, 'motivo_bloqueio': motivo}).eq('id', cliente_id).execute()
+        _compliance_audit(usuario, 'BLOQUEAR_CLIENTE', f'cliente_id={cliente_id} motivo={motivo}')
+        return jsonify({'success': True, 'message': 'Cliente bloqueado.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/compliance/clientes/<int:cliente_id>/desbloquear', methods=['PUT'])
+def compliance_desbloquear_cliente(cliente_id):
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r_u = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not r_u.data or r_u.data.get('tipo') not in ('compliance', 'admin'):
+            return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+        supabase.table('clientes_varejo').update({'bloqueado': False, 'motivo_bloqueio': None}).eq('id', cliente_id).execute()
+        _compliance_audit(usuario, 'DESBLOQUEAR_CLIENTE', f'cliente_id={cliente_id}')
+        return jsonify({'success': True, 'message': 'Cliente desbloqueado.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/compliance/clientes/<int:cliente_id>/risco', methods=['PUT'])
+def compliance_alterar_risco(cliente_id):
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r_u = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not r_u.data or r_u.data.get('tipo') not in ('compliance', 'admin'):
+            return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+        d     = request.get_json() or {}
+        nivel = (d.get('nivel') or '').strip()
+        if nivel not in ('baixo', 'medio', 'alto', 'proibido'):
+            return jsonify({'success': False, 'message': 'Nível inválido'}), 400
+        supabase.table('clientes_varejo').update({'risk_level': nivel}).eq('id', cliente_id).execute()
+        _compliance_audit(usuario, 'ALTERAR_RISCO', f'cliente_id={cliente_id} nivel={nivel}')
+        return jsonify({'success': True, 'message': f'Risco alterado para {nivel}.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/compliance/clientes/<int:cliente_id>/nota', methods=['POST'])
+def compliance_adicionar_nota(cliente_id):
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r_u = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not r_u.data or r_u.data.get('tipo') not in ('compliance', 'admin'):
+            return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+        d    = request.get_json() or {}
+        nota = (d.get('nota') or '').strip()
+        if not nota:
+            return jsonify({'success': False, 'message': 'Nota vazia'}), 400
+        supabase.table('compliance_notas').insert({
+            'cliente_id': cliente_id,
+            'usuario':    usuario,
+            'nota':       nota
+        }).execute()
+        _compliance_audit(usuario, 'NOTA_CLIENTE', f'cliente_id={cliente_id}')
+        return jsonify({'success': True, 'message': 'Nota adicionada.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/compliance/clientes/<int:cliente_id>/notas', methods=['GET'])
+def compliance_listar_notas(cliente_id):
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r_u = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not r_u.data or r_u.data.get('tipo') not in ('compliance', 'admin'):
+            return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+        r = supabase.table('compliance_notas').select('*')\
+            .eq('cliente_id', cliente_id).order('created_at', desc=True).execute()
+        return jsonify({'success': True, 'notas': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/compliance/clientes/<int:cliente_id>/limite', methods=['PUT'])
+def compliance_alterar_limite(cliente_id):
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r_u = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not r_u.data or r_u.data.get('tipo') not in ('compliance', 'admin'):
+            return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+        d      = request.get_json() or {}
+        limite = d.get('limite_mensal')
+        if limite is None:
+            return jsonify({'success': False, 'message': 'Limite não informado'}), 400
+        supabase.table('clientes_varejo').update({'limite_mensal_brl': float(limite)}).eq('id', cliente_id).execute()
+        _compliance_audit(usuario, 'ALTERAR_LIMITE', f'cliente_id={cliente_id} limite={limite}')
+        return jsonify({'success': True, 'message': 'Limite atualizado.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/compliance/clientes/docs-pendentes', methods=['GET'])
+def compliance_docs_pendentes():
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r_u = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not r_u.data or r_u.data.get('tipo') not in ('compliance', 'admin'):
+            return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+        r = supabase.table('clientes_varejo').select('id,nome,documento,risk_level,kyc_tier,kyc_docs_status,created_at')\
+            .neq('kyc_docs_status', 'completo').order('created_at', desc=True).limit(200).execute()
+        return jsonify({'success': True, 'clientes': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ---- AML Config ----
+
+@app.route('/api/compliance/config', methods=['GET'])
+def compliance_get_config():
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r_u = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not r_u.data or r_u.data.get('tipo') not in ('compliance', 'admin'):
+            return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+        r = supabase.table('compliance_config').select('*').order('chave').execute()
+        cfg = {row['chave']: row['valor'] for row in (r.data or [])}
+        return jsonify({'success': True, 'config': cfg})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/compliance/config', methods=['PUT'])
+def compliance_put_config():
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r_u = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not r_u.data or r_u.data.get('tipo') != 'compliance':
+            return jsonify({'success': False, 'message': 'Apenas compliance pode alterar configurações'}), 403
+        d = request.get_json() or {}
+        for chave, valor in d.items():
+            supabase.table('compliance_config').upsert({'chave': chave, 'valor': str(valor), 'atualizado_por': usuario}, on_conflict='chave').execute()
+        _compliance_audit(usuario, 'ALTERAR_CONFIG', str(list(d.keys())))
+        return jsonify({'success': True, 'message': 'Configuração salva.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ---- SARs ----
+
+@app.route('/api/compliance/sars', methods=['GET'])
+def compliance_listar_sars():
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r_u = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not r_u.data or r_u.data.get('tipo') not in ('compliance', 'admin'):
+            return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+        status = request.args.get('status')
+        base   = supabase.table('sars').select('*').order('created_at', desc=True)
+        if status:
+            base = base.eq('status', status)
+        r = base.limit(200).execute()
+        return jsonify({'success': True, 'sars': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/compliance/sars', methods=['POST'])
+def compliance_criar_sar():
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r_u = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not r_u.data or r_u.data.get('tipo') != 'compliance':
+            return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+        d = request.get_json() or {}
+        cliente_id  = d.get('cliente_id')
+        descricao   = (d.get('descricao') or '').strip()
+        valor_suspeito = d.get('valor_suspeito')
+        if not descricao:
+            return jsonify({'success': False, 'message': 'Descrição obrigatória'}), 400
+        ins = supabase.table('sars').insert({
+            'cliente_id':     cliente_id,
+            'descricao':      descricao,
+            'valor_suspeito': valor_suspeito,
+            'criado_por':     usuario,
+            'status':         'rascunho'
+        }).execute()
+        sar_id = ins.data[0]['id'] if ins.data else None
+        _compliance_audit(usuario, 'CRIAR_SAR', f'sar_id={sar_id} cliente_id={cliente_id}')
+        return jsonify({'success': True, 'message': 'SAR criado.', 'sar_id': sar_id})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/compliance/sars/<int:sar_id>', methods=['PUT'])
+def compliance_atualizar_sar(sar_id):
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r_u = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not r_u.data or r_u.data.get('tipo') != 'compliance':
+            return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+        d      = request.get_json() or {}
+        campos = {}
+        for f in ['status', 'descricao', 'valor_suspeito', 'data_envio_coaf']:
+            if f in d:
+                campos[f] = d[f]
+        if not campos:
+            return jsonify({'success': False, 'message': 'Nenhum campo para atualizar'}), 400
+        supabase.table('sars').update(campos).eq('id', sar_id).execute()
+        _compliance_audit(usuario, 'ATUALIZAR_SAR', f'sar_id={sar_id} campos={list(campos.keys())}')
+        return jsonify({'success': True, 'message': 'SAR atualizado.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ---- Auditoria ----
+
+def _compliance_audit(usuario, acao, detalhe=''):
+    try:
+        supabase.table('compliance_audit').insert({
+            'usuario':  usuario,
+            'acao':     acao,
+            'detalhe':  detalhe
+        }).execute()
+    except Exception:
+        pass  # audit failure must never break the main action
+
+
+@app.route('/api/compliance/audit', methods=['GET'])
+def compliance_listar_audit():
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r_u = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not r_u.data or r_u.data.get('tipo') not in ('compliance', 'admin'):
+            return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+        acao  = request.args.get('acao')
+        base  = supabase.table('compliance_audit').select('*').order('created_at', desc=True)
+        if acao:
+            base = base.eq('acao', acao)
+        r = base.limit(500).execute()
+        return jsonify({'success': True, 'logs': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================
 # DESPACHOS
 # ============================================
 
