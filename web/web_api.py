@@ -6128,9 +6128,7 @@ def admin_dashboard():
     return render_template('admin_dashboard.html',
                           usuario=usuario,
                           nome=nome,
-                          email=email,
-                          supabase_url=os.getenv('SUPABASE_URL', ''),
-                          supabase_key=os.getenv('SUPABASE_KEY', ''))
+                          email=email)
 
 @app.route('/api/admin/dashboard')
 def api_admin_dashboard():
@@ -11623,6 +11621,39 @@ def clientes_doc_signed_url(doc_id):
         signed = supabase.storage.from_('kyc-docs').create_signed_url(path, 3600)
         url = signed.get('signedURL') or signed.get('signed_url') or ''
         return jsonify({'success': True, 'url': url})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/trades/recentes', methods=['GET'])
+def admin_trades_recentes():
+    """Polling endpoint para alertas de novas ordens — substitui Supabase Realtime no frontend."""
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r_u = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not r_u.data or r_u.data.get('tipo') != 'admin':
+            return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+        limit      = min(int(request.args.get('limit', 5)), 20)
+        after_time = request.args.get('after_time')  # ISO timestamp do último registro visto
+        q = supabase.table('ordens_captacao')\
+            .select('id,loja,cliente_nome,moeda_entrada,valor_entrada,moeda_saida,valor_saida,status,created_at')\
+            .order('created_at', desc=True).limit(limit)
+        if after_time:
+            q = q.gt('created_at', after_time)
+        r = q.execute()
+        # Mapeia para o formato esperado pelo frontend
+        trades = [{
+            'id':         o.get('id'),
+            'usuario':    o.get('loja') or o.get('cliente_nome') or '—',
+            'operacao':   'ORDEM',
+            'par_moedas': f"{o.get('moeda_entrada','?')}/{o.get('moeda_saida','?')}",
+            'valor':      o.get('valor_entrada', 0),
+            'moeda':      o.get('moeda_entrada', ''),
+            'created_at': o.get('created_at'),
+        } for o in (r.data or [])]
+        return jsonify({'success': True, 'trades': trades})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 

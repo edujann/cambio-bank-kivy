@@ -860,33 +860,27 @@
         });
 
         // ============================================
-        // ALERTAS DE TRADE EM TEMPO REAL (Supabase Realtime)
+        // ALERTAS DE NOVOS TRADES — polling via Flask (sem expor chaves)
         // ============================================
-        function iniciarAlertasCambio() {
-            const SUPA_URL = '{{ supabase_url }}';
-            const SUPA_KEY = '{{ supabase_key }}';
+        let _ultimoTradeTime = null;
 
-            if (!SUPA_URL || !SUPA_KEY || !window.supabase) {
-                console.warn('Supabase Realtime não disponível — alertas desativados.');
-                return;
-            }
+        async function iniciarAlertasCambio() {
+            // Registra o timestamp atual como ponto de partida — só alerta ordens APÓS o login
+            _ultimoTradeTime = new Date().toISOString();
+            // Polling a cada 20 segundos
+            setInterval(verificarNovosTrades, 20000);
+        }
 
-            const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
-
-            sb.channel('admin-trades')
-                .on(
-                    'postgres_changes',
-                    {
-                        event: 'INSERT',
-                        schema: 'public',
-                        table: 'transferencias',
-                        filter: 'tipo=eq.cambio'
-                    },
-                    (payload) => mostrarToastTrade(payload.new)
-                )
-                .subscribe((status) => {
-                    console.log('Supabase Realtime:', status);
-                });
+        async function verificarNovosTrades() {
+            try {
+                const url = '/api/admin/trades/recentes?limit=5' + (_ultimoTradeTime ? `&after_time=${encodeURIComponent(_ultimoTradeTime)}` : '');
+                const r = await fetch(url);
+                const d = await r.json();
+                if (!d.success) return;
+                const novos = d.trades || [];
+                novos.forEach(trade => mostrarToastTrade(trade));
+                if (novos.length) _ultimoTradeTime = novos[0].created_at;
+            } catch(e) {}
         }
 
         function mostrarToastTrade(trade) {
@@ -911,9 +905,9 @@
                         <div style="font-size:12px;color:${cor};font-weight:700;margin-bottom:5px;">
                             <i class="fas fa-exchange-alt"></i> NOVO TRADE — ${tipo}
                         </div>
-                        <div style="font-size:14px;font-weight:600;">${trade.usuario}</div>
+                        <div style="font-size:14px;font-weight:600;">${trade.usuario || '—'}</div>
                         <div style="font-size:13px;color:#8b949e;margin-top:3px;">
-                            ${trade.par_moedas || '-'} &nbsp;•&nbsp; ${parseFloat(trade.valor).toFixed(2)} ${trade.moeda}
+                            ${trade.par_moedas || '-'} &nbsp;•&nbsp; ${parseFloat(trade.valor||0).toFixed(2)} ${trade.moeda||''}
                         </div>
                     </div>
                     <button onclick="document.getElementById('${id}').remove()"
@@ -924,7 +918,6 @@
             setTimeout(() => { const el = document.getElementById(id); if (el) el.remove(); }, 8000);
         }
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/static/js/theme.js"></script>
     <script src="/static/js/conta_search.js"></script>
 </body>
