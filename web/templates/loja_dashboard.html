@@ -922,6 +922,7 @@ async function s1AmlCheck(clienteId, valor, moeda) {
 }
 
 let benefSelecionadoPendente = null;
+const _lojaBenefMap = {};
 
 function toggleS1Benef() {
     const box = document.getElementById('s1BenefBox');
@@ -1070,14 +1071,14 @@ function renderBenefList(tipo, lista) {
             : tipo === 'europe'
             ? [b.iban, b.bic_swift].filter(Boolean).join(' · ')
             : [b.routing_number, b.account_number, b.banco_nome_us].filter(Boolean).join(' · ');
-        const bJson = JSON.stringify(b).replace(/"/g,'&quot;');
-        return `<div class="benef-opt" id="bo-${b.id}" onclick="selecionarBenef('${tipo}','${b.id}',${bJson})">
+        _lojaBenefMap[b.id] = b;
+        return `<div class="benef-opt" id="bo-${b.id}" onclick="selecionarBenef('${tipo}','${b.id}')">
             <div style="flex:1;min-width:0;">
                 <div class="nome">${b.nome} ${b.apelido?`<span style="font-weight:400;color:var(--cor-texto-secundario);">(${b.apelido})</span>`:''}</div>
                 <div class="detalhe">${detalhe}</div>
             </div>
             <div style="display:flex;align-items:center;gap:6px;" onclick="event.stopPropagation()">
-                <button title="Editar" style="background:transparent;border:none;color:var(--cor-texto-secundario);cursor:pointer;padding:4px;" onclick="abrirEditBenef('${tipo}','${b.id}',${bJson})"><i class="fas fa-edit"></i></button>
+                <button title="Editar" style="background:transparent;border:none;color:var(--cor-texto-secundario);cursor:pointer;padding:4px;" onclick="abrirEditBenef('${tipo}','${b.id}')"><i class="fas fa-edit"></i></button>
                 <i class="fas fa-check" style="color:var(--cor-sucesso);display:none;" id="bc-${b.id}"></i>
             </div>
         </div>`;
@@ -1085,6 +1086,7 @@ function renderBenefList(tipo, lista) {
 }
 
 function abrirEditBenef(tipo, id, data) {
+    if (!data) data = _lojaBenefMap[id] || {};
     document.getElementById('eb-id').value    = id;
     document.getElementById('eb-tipo').value  = tipo;
     document.getElementById('eb-nome').value  = data.nome || '';
@@ -1149,6 +1151,7 @@ async function salvarEditBenef() {
 }
 
 function selecionarBenef(tipo, id, data) {
+    if (!data) data = _lojaBenefMap[id] || {};
     benefSelecionado[tipo] = {id, ...data};
     document.querySelectorAll(`#ds-${tipo} .benef-opt`).forEach(el => el.classList.remove('selected'));
     document.querySelectorAll(`#ds-${tipo} .benef-opt i`).forEach(el => el.style.display='none');
