@@ -73,8 +73,8 @@
         /* ── Modal central Nova Ordem ── */
         .drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:900;backdrop-filter:blur(2px);align-items:center;justify-content:center;}
         .drawer-overlay.open{display:flex;}
-        .drawer{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);z-index:901;display:flex;flex-direction:column;width:min(640px,96vw);max-height:92vh;opacity:0;transform:scale(.96);transition:opacity .2s ease,transform .2s ease;pointer-events:none;}
-        .drawer-overlay.open .drawer{opacity:1;transform:scale(1);pointer-events:auto;}
+        .drawer{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);z-index:901;display:flex;flex-direction:column;width:min(640px,96vw);max-height:92vh;opacity:0;transform:scale(.96);transition:opacity .2s ease,transform .2s ease;pointer-events:none;position:relative;}
+        .drawer.open{opacity:1;transform:scale(1);pointer-events:auto;}
         .drawer-hd{padding:18px 22px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;border-radius:var(--borda-radius) var(--borda-radius) 0 0;}
         .drawer-hd h2{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;}
         .drawer-close{background:transparent;border:none;color:var(--cor-texto-secundario);cursor:pointer;font-size:18px;padding:4px;}
