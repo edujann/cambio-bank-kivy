@@ -532,7 +532,13 @@ async function abrirOrdem(id) {
     try {
         const response = await fetch(`/api/compliance/ordens/${id}/detalhes`);
         const data = await response.json();
-        
+
+        // 🔥 DEBUG - Remove depois que funcionar
+        console.log("🔍 DADOS COMPLETOS:", data);
+        console.log("📄 DOCUMENTOS CLIENTE:", data.documentos_cliente);
+        console.log("📄 DOCUMENTOS ORDEM:", data.documentos);        
+
+
         if (!data.success) {
             toast(data.message || 'Erro ao carregar ordem', 'err');
             return;
