@@ -700,15 +700,19 @@ async function carregarDocsPendentes() {
         const list = r.clientes||[];
         document.getElementById('tab-cnt-docs').textContent = list.length;
         if(!list.length){ tb.innerHTML='<tr><td colspan="7" class="empty"><i class="fas fa-check-circle"></i><br>Todos os documentos OK</td></tr>'; return; }
-        tb.innerHTML = list.map(c=>`<tr>
+        const docMap = {doc_photo_id_ok:'Photo ID',doc_address_ok:'Endereço',doc_source_funds_ok:'Origem Fundos',doc_declaration_ok:'Declaração',doc_edd_ok:'EDD'};
+        tb.innerHTML = list.map(c=>{
+            const faltando = Object.entries(docMap).filter(([k])=>!c[k]).map(([,l])=>l);
+            const docsHtml = faltando.map(l=>`<span style="font-size:10px;background:rgba(224,27,36,.1);color:var(--cor-perigo);border-radius:4px;padding:1px 5px;margin:1px;display:inline-block;">${l}</span>`).join('');
+            return `<tr>
             <td><strong>${c.nome||'—'}</strong></td>
             <td>${c.documento||'—'}</td>
             <td><span class="tag tag-${c.risk_level||'baixo'}">${c.risk_level||'baixo'}</span></td>
             <td>Tier ${c.kyc_tier||0}</td>
-            <td><span class="tag tag-pendente">${c.kyc_docs_status||'pendente'}</span></td>
+            <td>${docsHtml||'<span class="tag tag-aprovado">OK</span>'}</td>
             <td>${c.created_at?new Date(c.created_at).toLocaleDateString('pt-BR'):'—'}</td>
             <td><button class="btn-act" onclick="abrirCliente(${c.id})"><i class="fas fa-edit"></i> Gerir</button></td>
-        </tr>`).join('');
+        </tr>`;}).join('');
     } catch(e){ tb.innerHTML='<tr><td colspan="7" class="empty">Erro ao carregar</td></tr>'; }
 }
 
