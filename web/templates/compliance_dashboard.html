@@ -578,8 +578,17 @@ async function abrirOrdem(id) {
         document.getElementById('mo-aml').innerHTML = amlHtml;
         
         // ============================================
-        // DOCUMENTOS KYC DO CLIENTE COM BOTÃO VER
+        // DOCUMENTOS KYC DO CLIENTE COM BOTÕES VER
         // ============================================
+        const documentosCliente = data.documentos_cliente || [];
+
+        // Mapear documentos por tipo para fácil acesso
+        const docsPorTipo = {};
+        for (const doc of documentosCliente) {
+            docsPorTipo[doc.tipo] = doc;
+            console.log(`📄 Documento: ${doc.tipo} - Nome: ${doc.arquivo_nome}`);
+        }
+
         const docsLabels = {
             doc_photo_id_ok: { label: 'Documento com Foto', tipo: 'photo_id' },
             doc_address_ok: { label: 'Comprovante de Residência', tipo: 'proof_address' },
@@ -587,29 +596,35 @@ async function abrirOrdem(id) {
             doc_declaration_ok: { label: 'Declaração', tipo: 'declaration' },
             doc_edd_ok: { label: 'EDD', tipo: 'edd' }
         };
-        
+
         let docsHtml = '';
         if (cliente) {
             for (const [campo, info] of Object.entries(docsLabels)) {
                 const isOk = cliente[campo] === true;
-                // Verificar se existe documento enviado para este tipo
-                const documentoEnviado = documentos.find(doc => doc.tipo === info.tipo);
-                const temDocumento = !!documentoEnviado;
-                const docUrl = documentoEnviado ? (documentoEnviado.signed_url || documentoEnviado.arquivo_url) : '';
+                const doc = docsPorTipo[info.tipo];
+                const temDocumento = !!doc;
+                
+                // 🔥 Construir URL para visualização (usando o storage público ou gerar signed URL)
+                let docUrl = '';
+                if (temDocumento && doc.arquivo_url) {
+                    // Tenta gerar signed URL via endpoint do backend
+                    docUrl = `/api/storage/signed-url?path=${encodeURIComponent(doc.arquivo_url)}`;
+                }
                 
                 docsHtml += `
-                    <div class="doc-row">
-                        <span>${info.label}</span>
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <span>${isOk ? '<i class="fas fa-check-circle" style="color:var(--cor-sucesso)"></i> OK' : '<i class="fas fa-times-circle" style="color:var(--cor-texto-secundario)"></i> Pendente'}</span>
-                            ${temDocumento && docUrl ? `<button class="btn-act" onclick="window.open('${docUrl}', '_blank')" style="padding:2px 8px; font-size:10px;"><i class="fas fa-eye"></i> Ver</button>` : ''}
+                    <div class="doc-row" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--cor-borda);">
+                        <span style="flex: 1; font-size: 13px;">${info.label}</span>
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <span style="font-size: 12px;">${isOk ? '<i class="fas fa-check-circle" style="color:var(--cor-sucesso)"></i> OK' : '<i class="fas fa-times-circle" style="color:var(--cor-texto-secundario)"></i> Pendente'}</span>
+                            ${temDocumento && doc.arquivo_url ? `<button class="btn-act" onclick="verDocumento('${doc.arquivo_url}')" style="padding: 4px 12px; font-size: 11px; cursor: pointer;"><i class="fas fa-eye"></i> Ver</button>` : '<span style="font-size: 11px; color: var(--cor-texto-secundario);">Sem arquivo</span>'}
                         </div>
                     </div>
                 `;
             }
         } else {
-            docsHtml = '<p>Cliente não identificado</p>';
+            docsHtml = '<p style="color:var(--cor-texto-secundario); padding: 10px;">Cliente não identificado</p>';
         }
+
         document.getElementById('mo-docs').innerHTML = docsHtml;
         
         // ============================================
@@ -670,6 +685,35 @@ async function abrirOrdem(id) {
     } catch (error) {
         console.error('❌ Erro ao abrir ordem:', error);
         toast('Erro ao carregar detalhes da ordem', 'err');
+    }
+}
+
+async function verDocumento(caminho) {
+    try {
+        // Mostrar loading (opcional)
+        const btn = event?.target;
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando...';
+            btn.disabled = true;
+        }
+        
+        const response = await fetch(`/api/storage/signed-url?path=${encodeURIComponent(caminho)}`);
+        const data = await response.json();
+        
+        if (data.success && data.url) {
+            window.open(data.url, '_blank');
+        } else {
+            toast('Erro ao carregar documento: ' + (data.message || 'URL não gerada'), 'err');
+        }
+    } catch (error) {
+        console.error('Erro ao abrir documento:', error);
+        toast('Erro ao abrir documento', 'err');
+    } finally {
+        // Restaurar botão (opcional)
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-eye"></i> Ver';
+            btn.disabled = false;
+        }
     }
 }
 

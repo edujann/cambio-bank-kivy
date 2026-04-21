@@ -12363,7 +12363,35 @@ def compliance_rejeitar_ordem(ordem_id):
         print(f"❌ Erro ao rejeitar: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
     
-                
+@app.route('/api/storage/signed-url', methods=['GET'])
+def get_signed_url():
+    """Gera URL assinada para um arquivo no storage"""
+    try:
+        usuario = session.get('username')
+        if not usuario:
+            return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+        
+        caminho = request.args.get('path', '')
+        if not caminho:
+            return jsonify({'success': False, 'message': 'Caminho do arquivo não informado'}), 400
+        
+        # Gerar URL assinada válida por 1 hora (3600 segundos)
+        signed_url = supabase.storage.from_('kyc-docs').create_signed_url(caminho, 3600)
+        
+        # A resposta pode ser um dicionário ou objeto dependendo da versão
+        if isinstance(signed_url, dict):
+            url = signed_url.get('signedURL') or signed_url.get('signedUrl', '')
+        else:
+            url = getattr(signed_url, 'signed_url', '') or getattr(signed_url, 'signedURL', '')
+        
+        if not url:
+            return jsonify({'success': False, 'message': 'Erro ao gerar URL assinada'}), 500
+        
+        return jsonify({'success': True, 'url': url})
+        
+    except Exception as e:
+        print(f"❌ Erro ao gerar signed URL: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500                
 
 # ---- AML Config ----
 
