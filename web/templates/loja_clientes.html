@@ -830,14 +830,26 @@ async function salvarEditBenefDetalhe() {
 // ---- Ver documento KYC (signed URL) ----
 async function verDocKyc(docId) {
     try {
+        // Abre janela imediatamente (antes do await) para evitar bloqueio de popup
+        const win = window.open('', '_blank');
+        if (win) win.document.write('<p style="font-family:sans-serif;padding:20px">A carregar documento...</p>');
         const r = await fetch(`/api/clientes/documentos/${docId}/url`);
         const d = await r.json();
         if (d.success && d.url) {
-            window.open(d.url, '_blank');
+            if (win) win.location.href = d.url;
+            else {
+                // Fallback: link temporário
+                const a = document.createElement('a');
+                a.href = d.url; a.target = '_blank'; a.rel = 'noopener';
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            }
         } else {
+            if (win) win.close();
             toast(d.message || 'Erro ao gerar link', 'err');
         }
-    } catch(e) { toast('Erro de conexão', 'err'); }
+    } catch(e) {
+        toast('Erro de conexão', 'err');
+    }
 }
 
 // ---- Upload KYC ----

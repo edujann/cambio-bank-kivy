@@ -11619,7 +11619,13 @@ def clientes_doc_signed_url(doc_id):
             return jsonify({'success': False, 'message': 'Documento não encontrado'}), 404
         path = r.data['arquivo_url']
         signed = supabase.storage.from_('kyc-docs').create_signed_url(path, 3600)
-        url = signed.get('signedURL') or signed.get('signed_url') or ''
+        # supabase-py retorna dict ou objeto dependendo da versão
+        if isinstance(signed, dict):
+            url = signed.get('signedURL') or signed.get('signed_url') or signed.get('signedUrl') or ''
+        else:
+            url = getattr(signed, 'signed_url', '') or getattr(signed, 'signedURL', '') or str(signed)
+        if not url:
+            return jsonify({'success': False, 'message': f'Não foi possível gerar o link. Resposta: {signed}'}), 500
         return jsonify({'success': True, 'url': url})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
