@@ -11607,7 +11607,7 @@ def clientes_upload_kyc_file(cliente_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-@app.route('/api/clientes/documentos/<int:doc_id>/url', methods=['GET'])
+@app.route('/api/clientes/documentos/<string:doc_id>/url', methods=['GET'])
 def clientes_doc_signed_url(doc_id):
     """Gera signed URL temporária (1h) para visualizar um documento KYC privado."""
     usuario = session.get('username')

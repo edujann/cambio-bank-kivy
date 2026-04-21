@@ -405,7 +405,7 @@ function renderDetalhe(c) {
                         <span><i class="fas fa-${d.ok?'check-circle':'clock'}" style="color:${d.ok?'var(--green)':'var(--yellow)'};margin-right:8px;"></i>${d.label}</span>
                         <div class="doc-status" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                             <span class="badge ${d.ok?'badge-ok':'badge-warn'}">${d.ok?'Validado':'Pendente'}</span>
-                            ${docArquivo?`<button class="btn btn-ghost btn-sm" onclick="verDocKyc(${docArquivo.id})"><i class="fas fa-eye"></i> Ver</button>`:''}
+                            ${docArquivo?`<button class="btn btn-ghost btn-sm" onclick="verDocKyc('${docArquivo.id}')"><i class="fas fa-eye"></i> Ver</button>`:''}
                             ${!d.ok?`<button class="btn btn-ghost btn-sm" onclick="marcarDocOk('${c.id}','${d.key}')"><i class="fas fa-check"></i> Marcar OK</button>`:''}
                         </div>
                     </div>
