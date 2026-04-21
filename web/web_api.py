@@ -12186,6 +12186,156 @@ def compliance_listar_ordens():
         traceback.print_exc()
         return jsonify({'success': False, 'message': str(e)}), 500
 
+@app.route('/api/compliance/ordens/<ordem_id>/detalhes', methods=['GET'])
+def compliance_ordem_detalhes(ordem_id):
+    """Retorna todos os detalhes de uma ordem para análise"""
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        # Buscar ordem
+        r = supabase.table('ordens_captacao').select('*').eq('id', ordem_id).single().execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'Ordem não encontrada'}), 404
+        
+        ordem = r.data
+        
+        # Buscar documentos da ordem (uploads)
+        docs = supabase.table('documentos_kyc')\
+            .select('*')\
+            .eq('ordem_id', ordem_id)\
+            .execute()
+        
+        # Buscar dados do cliente (se tiver cliente_id)
+        cliente = None
+        if ordem.get('cliente_id'):
+            c = supabase.table('clientes_varejo')\
+                .select('*')\
+                .eq('id', ordem['cliente_id'])\
+                .single()\
+                .execute()
+            cliente = c.data if c.data else None
+        
+        # Buscar notas de compliance
+        notas = []
+        if ordem.get('cliente_id'):
+            n = supabase.table('compliance_notas')\
+                .select('*')\
+                .eq('cliente_id', ordem['cliente_id'])\
+                .order('created_at', desc=True)\
+                .execute()
+            notas = n.data or []
+        
+        return jsonify({
+            'success': True,
+            'ordem': ordem,
+            'cliente': cliente,
+            'documentos': docs.data or [],
+            'notas': notas
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar detalhes: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    
+@app.route('/api/compliance/ordens/<ordem_id>/aprovar', methods=['POST'])
+def compliance_aprovar_ordem(ordem_id):
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        dados = request.get_json() or {}
+        observacao = dados.get('observacao', '')
+        
+        # Buscar ordem
+        r = supabase.table('ordens_captacao').select('*').eq('id', ordem_id).single().execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'Ordem não encontrada'}), 404
+        
+        ordem = r.data
+        
+        # Verificar se já foi processada
+        if ordem.get('compliance_status') == 'aprovado':
+            return jsonify({'success': False, 'message': 'Ordem já foi aprovada'}), 400
+        
+        # Definir novo status baseado no pagamento
+        if ordem.get('pagamento_confirmado'):
+            novo_status = 'liberada'
+        else:
+            novo_status = ordem.get('status', 'compliance_review')  # mantém ou muda para 'aguardando_pagamento'
+        
+        # Atualizar ordem
+        supabase.table('ordens_captacao').update({
+            'compliance_status': 'aprovado',
+            'status': novo_status,
+            'compliance_aprovado_por': usuario,
+            'compliance_obs': observacao,
+            'updated_at': datetime.now().isoformat()
+        }).eq('id', ordem_id).execute()
+        
+        # Registrar na auditoria
+        supabase.table('compliance_audit').insert({
+            'usuario': usuario,
+            'acao': 'APROVAR_ORDEM',
+            'detalhe': f'Ordem #{ordem_id[:8]} - Cliente: {ordem.get("cliente_nome")} - Obs: {observacao[:100]}'
+        }).execute()
+        
+        # Se pagamento já foi confirmado, creditar na conta da empresa
+        if ordem.get('pagamento_confirmado'):
+            await_creditar_conta_empresa(ordem, usuario)
+        
+        return jsonify({'success': True, 'message': 'Ordem aprovada com sucesso!'})
+        
+    except Exception as e:
+        print(f"❌ Erro ao aprovar: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/compliance/ordens/<ordem_id>/rejeitar', methods=['POST'])
+def compliance_rejeitar_ordem(ordem_id):
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        dados = request.get_json() or {}
+        motivo = dados.get('motivo', '')
+        
+        if not motivo:
+            return jsonify({'success': False, 'message': 'Motivo da rejeição é obrigatório'}), 400
+        
+        # Buscar ordem
+        r = supabase.table('ordens_captacao').select('*').eq('id', ordem_id).single().execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'Ordem não encontrada'}), 404
+        
+        ordem = r.data
+        
+        # Atualizar ordem para rejeitada/cancelada
+        supabase.table('ordens_captacao').update({
+            'compliance_status': 'rejeitado',
+            'status': 'cancelada',
+            'compliance_aprovado_por': usuario,
+            'compliance_obs': motivo,
+            'updated_at': datetime.now().isoformat()
+        }).eq('id', ordem_id).execute()
+        
+        # Registrar na auditoria
+        supabase.table('compliance_audit').insert({
+            'usuario': usuario,
+            'acao': 'REJEITAR_ORDEM',
+            'detalhe': f'Ordem #{ordem_id[:8]} - Cliente: {ordem.get("cliente_nome")} - Motivo: {motivo[:100]}'
+        }).execute()
+        
+        return jsonify({'success': True, 'message': 'Ordem rejeitada e cancelada.'})
+        
+    except Exception as e:
+        print(f"❌ Erro ao rejeitar: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    
+                
+
 # ---- AML Config ----
 
 @app.route('/api/compliance/config', methods=['GET'])
