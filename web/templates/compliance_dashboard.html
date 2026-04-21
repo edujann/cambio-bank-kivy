@@ -571,27 +571,49 @@ async function abrirOrdem(id) {
             : '<span style="color:var(--cor-sucesso)"><i class="fas fa-check"></i> Sem alertas</span>';
         document.getElementById('mo-aml').innerHTML = amlHtml;
         
-        // Documentos KYC do cliente
+        // ============================================
+        // DOCUMENTOS KYC DO CLIENTE COM BOTÃO VER
+        // ============================================
         const docsLabels = {
-            doc_photo_id_ok: 'Documento com Foto',
-            doc_address_ok: 'Comprovante de Residência',
-            doc_source_funds_ok: 'Origem dos Fundos',
-            doc_declaration_ok: 'Declaração',
-            doc_edd_ok: 'EDD'
+            doc_photo_id_ok: { label: 'Documento com Foto', tipo: 'photo_id' },
+            doc_address_ok: { label: 'Comprovante de Residência', tipo: 'proof_address' },
+            doc_source_funds_ok: { label: 'Origem dos Fundos', tipo: 'source_funds' },
+            doc_declaration_ok: { label: 'Declaração', tipo: 'declaration' },
+            doc_edd_ok: { label: 'EDD', tipo: 'edd' }
         };
         
-        const docsHtml = cliente ? Object.entries(docsLabels).map(([campo, label]) => {
-            const isOk = cliente[campo] === true;
-            return `<div class="doc-row">
-                <span>${label}</span>
-                <span>${isOk ? '<i class="fas fa-check-circle" style="color:var(--cor-sucesso)"></i> OK' : '<i class="fas fa-times-circle" style="color:var(--cor-texto-secundario)"></i> Pendente'}</span>
-            </div>`;
-        }).join('') : '<p>Cliente não identificado</p>';
-        
+        let docsHtml = '';
+        if (cliente) {
+            for (const [campo, info] of Object.entries(docsLabels)) {
+                const isOk = cliente[campo] === true;
+                // Verificar se existe documento enviado para este tipo
+                const documentoEnviado = documentos.find(doc => doc.tipo === info.tipo);
+                const temDocumento = !!documentoEnviado;
+                const docUrl = documentoEnviado ? (documentoEnviado.signed_url || documentoEnviado.arquivo_url) : '';
+                
+                docsHtml += `
+                    <div class="doc-row">
+                        <span>${info.label}</span>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span>${isOk ? '<i class="fas fa-check-circle" style="color:var(--cor-sucesso)"></i> OK' : '<i class="fas fa-times-circle" style="color:var(--cor-texto-secundario)"></i> Pendente'}</span>
+                            ${temDocumento && docUrl ? `<button class="btn-act" onclick="window.open('${docUrl}', '_blank')" style="padding:2px 8px; font-size:10px;"><i class="fas fa-eye"></i> Ver</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+        } else {
+            docsHtml = '<p>Cliente não identificado</p>';
+        }
         document.getElementById('mo-docs').innerHTML = docsHtml;
         
-        // Documentos da ordem
+        // ============================================
+        // DOCUMENTOS DA ORDEM (Proof of Funds)
+        // ============================================
         const ordemDocsHtml = documentos.length ? documentos.map(doc => {
+            // Pular documentos KYC (já mostrados acima)
+            const tiposKYC = ['photo_id', 'proof_address', 'source_funds', 'declaration', 'edd'];
+            if (tiposKYC.includes(doc.tipo)) return '';
+            
             const nome = doc.arquivo_nome || (doc.arquivo_url ? doc.arquivo_url.split('/').pop() : 'documento');
             const data = doc.created_at ? new Date(doc.created_at).toLocaleString('pt-BR') : '';
             const url = doc.signed_url || doc.arquivo_url;
