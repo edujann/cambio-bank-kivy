@@ -11765,7 +11765,7 @@ def compliance_listar_clientes():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-@app.route('/api/compliance/clientes/<int:cliente_id>/bloquear', methods=['PUT'])
+@app.route('/api/compliance/clientes/<string:cliente_id>/bloquear', methods=['PUT'])
 def compliance_bloquear_cliente(cliente_id):
     usuario = session.get('username')
     if not usuario:
@@ -11783,7 +11783,7 @@ def compliance_bloquear_cliente(cliente_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-@app.route('/api/compliance/clientes/<int:cliente_id>/desbloquear', methods=['PUT'])
+@app.route('/api/compliance/clientes/<string:cliente_id>/desbloquear', methods=['PUT'])
 def compliance_desbloquear_cliente(cliente_id):
     usuario = session.get('username')
     if not usuario:
@@ -11799,7 +11799,7 @@ def compliance_desbloquear_cliente(cliente_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-@app.route('/api/compliance/clientes/<int:cliente_id>/risco', methods=['PUT'])
+@app.route('/api/compliance/clientes/<string:cliente_id>/risco', methods=['PUT'])
 def compliance_alterar_risco(cliente_id):
     usuario = session.get('username')
     if not usuario:
@@ -11819,7 +11819,7 @@ def compliance_alterar_risco(cliente_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-@app.route('/api/compliance/clientes/<int:cliente_id>/nota', methods=['POST'])
+@app.route('/api/compliance/clientes/<string:cliente_id>/nota', methods=['POST'])
 def compliance_adicionar_nota(cliente_id):
     usuario = session.get('username')
     if not usuario:
@@ -11843,7 +11843,7 @@ def compliance_adicionar_nota(cliente_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-@app.route('/api/compliance/clientes/<int:cliente_id>/notas', methods=['GET'])
+@app.route('/api/compliance/clientes/<string:cliente_id>/notas', methods=['GET'])
 def compliance_listar_notas(cliente_id):
     usuario = session.get('username')
     if not usuario:
@@ -11859,7 +11859,7 @@ def compliance_listar_notas(cliente_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-@app.route('/api/compliance/clientes/<int:cliente_id>/limite', methods=['PUT'])
+@app.route('/api/compliance/clientes/<string:cliente_id>/limite', methods=['PUT'])
 def compliance_alterar_limite(cliente_id):
     usuario = session.get('username')
     if not usuario:
