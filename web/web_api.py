@@ -11569,12 +11569,16 @@ def clientes_upload_kyc_file(cliente_id):
         conteudo    = arquivo.read()
         content_type = arquivo.content_type or mimetypes.guess_type(arquivo.filename)[0] or 'application/octet-stream'
 
-        upload_resp = supabase.storage.from_('kyc-docs').upload(
-            nome_storage, conteudo,
-            file_options={'content-type': content_type, 'upsert': 'false'}
-        )
-        url_publica = supabase.storage.from_('kyc-docs').get_public_url(nome_storage)
-
+        try:
+            upload_resp = supabase.storage.from_('kyc-docs').upload(
+                nome_storage, conteudo,
+                file_options={'content-type': content_type, 'upsert': 'false'}
+            )
+        except Exception as upload_err:
+            msg = str(upload_err)
+            if 'Bucket not found' in msg:
+                return jsonify({'success': False, 'message': 'Bucket "kyc-docs" não encontrado no Supabase Storage. Crie o bucket em Storage → New bucket → kyc-docs.'}), 500
+            raise
         field_map = {
             'photo_id':      'doc_photo_id_ok',
             'proof_address': 'doc_address_ok',
@@ -11582,13 +11586,14 @@ def clientes_upload_kyc_file(cliente_id):
             'declaration':   'doc_declaration_ok',
             'edd':           'doc_edd_ok',
         }
+        # Salva o path do storage, não a URL (que expiraria)
         r_doc = supabase.table('documentos_kyc').insert({
-            'cliente_id':   cliente_id,
-            'tipo':         tipo_doc,
-            'arquivo_url':  url_publica,
-            'arquivo_nome': arquivo.filename,
-            'observacao':   request.form.get('observacao', ''),
-            'criado_por':   usuario,
+            'cliente_id':    cliente_id,
+            'tipo':          tipo_doc,
+            'arquivo_url':   nome_storage,   # path permanente, URL gerada on-demand
+            'arquivo_nome':  arquivo.filename,
+            'observacao':    request.form.get('observacao', ''),
+            'criado_por':    usuario,
         }).execute()
         doc_id = r_doc.data[0]['id'] if r_doc.data else None
 
@@ -11598,9 +11603,27 @@ def clientes_upload_kyc_file(cliente_id):
                 'updated_at': datetime.now().isoformat()
             }).eq('id', cliente_id).execute()
 
-        return jsonify({'success': True, 'message': 'Documento enviado com sucesso.', 'doc_id': doc_id, 'url': url_publica})
+        return jsonify({'success': True, 'message': 'Documento enviado com sucesso.', 'doc_id': doc_id})
     except Exception as e:
         import traceback; traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/clientes/documentos/<int:doc_id>/url', methods=['GET'])
+def clientes_doc_signed_url(doc_id):
+    """Gera signed URL temporária (1h) para visualizar um documento KYC privado."""
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('documentos_kyc').select('arquivo_url').eq('id', doc_id).single().execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'Documento não encontrado'}), 404
+        path = r.data['arquivo_url']
+        signed = supabase.storage.from_('kyc-docs').create_signed_url(path, 3600)
+        url = signed.get('signedURL') or signed.get('signed_url') or ''
+        return jsonify({'success': True, 'url': url})
+    except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
 

@@ -396,22 +396,25 @@ function renderDetalhe(c) {
 
         <p class="section-label">Documentos KYC</p>
         <div class="doc-list">
-            ${docItems.map(d => `
+            ${docItems.map(d => {
+                const docArquivo = (c.documentos||[]).find(x => x.tipo === d.key);
+                return `
                 <div class="doc-item ${d.ok?'ok':'missing'}" style="flex-direction:column;align-items:stretch;">
                     <div style="display:flex;justify-content:space-between;align-items:center;">
                         <span><i class="fas fa-${d.ok?'check-circle':'clock'}" style="color:${d.ok?'var(--green)':'var(--yellow)'};margin-right:8px;"></i>${d.label}</span>
-                        <div class="doc-status">
+                        <div class="doc-status" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                             <span class="badge ${d.ok?'badge-ok':'badge-warn'}">${d.ok?'Validado':'Pendente'}</span>
+                            ${docArquivo?`<button class="btn btn-ghost btn-sm" onclick="verDocKyc(${docArquivo.id})"><i class="fas fa-eye"></i> Ver</button>`:''}
                             ${!d.ok?`<button class="btn btn-ghost btn-sm" onclick="marcarDocOk('${c.id}','${d.key}')"><i class="fas fa-check"></i> Marcar OK</button>`:''}
                         </div>
                     </div>
-                    ${!d.ok?`<div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap;">
+                    <div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap;">
                         <input type="file" id="kyc-file-${d.key}" accept=".pdf,.jpg,.jpeg,.png,.webp" style="font-size:11px;flex:1;min-width:0;color:var(--cor-texto);">
                         <input type="text" id="kyc-obs-${d.key}" placeholder="Observação (opcional)" style="font-size:11px;padding:4px 8px;border:1px solid var(--cor-borda);border-radius:4px;background:var(--cor-card);color:var(--cor-texto);flex:1;min-width:120px;">
-                        <button id="kyc-btn-${d.key}" class="btn btn-primary btn-sm" onclick="uploadKyc('${c.id}','${d.key}')"><i class="fas fa-upload"></i> Enviar</button>
-                    </div>`:''}
-                </div>
-            `).join('')}
+                        <button id="kyc-btn-${d.key}" class="btn btn-primary btn-sm" onclick="uploadKyc('${c.id}','${d.key}')"><i class="fas fa-upload"></i> ${d.ok?'Substituir':'Enviar'}</button>
+                    </div>
+                </div>`;
+            }).join('')}
         </div>
 
         <p class="section-label" style="margin-top:18px;">Últimas Ordens</p>
@@ -822,6 +825,19 @@ async function salvarEditBenefDetalhe() {
             carregarBenefDetalhe(editBenefClienteId);
         } else toast(d.message,'err');
     } catch(e) { toast('Erro de conexão','err'); }
+}
+
+// ---- Ver documento KYC (signed URL) ----
+async function verDocKyc(docId) {
+    try {
+        const r = await fetch(`/api/clientes/documentos/${docId}/url`);
+        const d = await r.json();
+        if (d.success && d.url) {
+            window.open(d.url, '_blank');
+        } else {
+            toast(d.message || 'Erro ao gerar link', 'err');
+        }
+    } catch(e) { toast('Erro de conexão', 'err'); }
 }
 
 // ---- Upload KYC ----
