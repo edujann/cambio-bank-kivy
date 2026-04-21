@@ -202,7 +202,7 @@
         <div class="stat" onclick="filtrar('','stat-todas')">
             <div class="lbl">Total Ordens</div>
             <div class="val c-azul" id="s-total">—</div>
-            <div class="sub" id="s-total-sub">hoje: —</div>
+            <div class="sub" id="s-total-sub">no filtro ativo</div>
         </div>
         <div class="stat" onclick="filtrar('on_hold','stat-hold')">
             <div class="lbl">On Hold</div>
@@ -220,9 +220,9 @@
             <div class="sub">Aguardando confirmação</div>
         </div>
         <div class="stat" onclick="filtrar('paga','stat-paga')">
-            <div class="lbl">Volume Hoje</div>
+            <div class="lbl">Volume Entrada</div>
             <div class="val c-verde" id="s-vol">—</div>
-            <div class="sub" id="s-vol-moeda">GBP</div>
+            <div class="sub" id="s-vol-moeda">moeda principal</div>
         </div>
     </div>
 
@@ -722,27 +722,22 @@ const fmtD = s => { if(!s)return'—'; try{const[dt,hr]=(s.replace('T',' ').spli
 let ordemAtual = null, parceiros = [], filtroStatus = '', clienteSelecionado = null, destinoAtivo = 'brazil', benefSelecionado = {};
 
 // ══ STATS ══════════════════════════════════════════════════════════
-async function carregarStats() {
-    try {
-        const r = await fetch('/api/loja/ordens');
-        const d = await r.json();
-        if (!d.success) return;
-        const ord = d.ordens;
-        const hoje = new Date().toISOString().slice(0,10);
-        const hj   = ord.filter(o => (o.data||'').slice(0,10) === hoje);
-        const hold = ord.filter(o => o.status === 'on_hold');
-        const lib  = ord.filter(o => o.status === 'liberada');
-        const desp = ord.filter(o => o.status === 'despachada');
-        const volHj = hj.reduce((s,o) => s + parseFloat(o.valor_entrada||0), 0);
-        const moedaVol = hj.length ? (hj[0].moeda_entrada||'GBP') : 'GBP';
-        document.getElementById('s-total').textContent = ord.length;
-        document.getElementById('s-total-sub').textContent = `hoje: ${hj.length}`;
-        document.getElementById('s-hold').textContent = hold.length;
-        document.getElementById('s-lib').textContent  = lib.length;
-        document.getElementById('s-desp').textContent = desp.length;
-        document.getElementById('s-vol').textContent  = fmtN(volHj,0);
-        document.getElementById('s-vol-moeda').textContent = moedaVol + ' hoje';
-    } catch(e){}
+function atualizarStats(ordens) {
+    const hold = ordens.filter(o => o.status === 'on_hold');
+    const lib  = ordens.filter(o => o.status === 'liberada');
+    const desp = ordens.filter(o => o.status === 'despachada');
+    const volTotal = ordens.reduce((s,o) => s + parseFloat(o.valor_entrada||0), 0);
+    // Moeda predominante (a mais frequente hoje)
+    const mCount = {};
+    ordens.forEach(o => { const m = o.moeda_entrada||'GBP'; mCount[m] = (mCount[m]||0) + 1; });
+    const moedaVol = Object.entries(mCount).sort((a,b)=>b[1]-a[1])[0]?.[0] || 'GBP';
+    document.getElementById('s-total').textContent     = ordens.length;
+    document.getElementById('s-total-sub').textContent = `filtro atual`;
+    document.getElementById('s-hold').textContent      = hold.length;
+    document.getElementById('s-lib').textContent       = lib.length;
+    document.getElementById('s-desp').textContent      = desp.length;
+    document.getElementById('s-vol').textContent       = fmtN(volTotal, 0);
+    document.getElementById('s-vol-moeda').textContent = moedaVol;
 }
 
 // ══ ORDENS TABLE ═══════════════════════════════════════════════════
@@ -760,8 +755,10 @@ async function carregarOrdens() {
         if (!d.success || !d.ordens.length) {
             tb.innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-inbox"></i><p>Nenhuma ordem encontrada</p></td></tr>';
             document.getElementById('tbl-count').textContent = '';
+            atualizarStats([]);
             return;
         }
+        atualizarStats(d.ordens);
         document.getElementById('tbl-count').textContent = `(${d.ordens.length})`;
         const destFlag = {brazil:'🇧🇷',europe:'🇪🇺',usa:'🇺🇸'};
         tb.innerHTML = d.ordens.map(o => {
@@ -1288,7 +1285,7 @@ async function criarOrdem() {
         if (d.success) {
             toast(d.message, 'ok');
             if (d.aml_alertas?.length) d.aml_alertas.forEach(a => toast(`AML: ${a}`, 'warn'));
-            setTimeout(()=>{ fecharDrawer(); carregarOrdens(); carregarStats(); }, 800);
+            setTimeout(()=>{ fecharDrawer(); carregarOrdens(); }, 800);
         } else if (d.kyc_blocked) {
             const docLabels = {photo_id:'Photo ID',proof_address:'Proof of Address',source_funds:'Source of Funds',declaration:'Declaration Form',edd:'EDD Documents'};
             const lista = (d.docs_missing||[]).map(k => `<li>${docLabels[k]||k}</li>`).join('');
@@ -1314,7 +1311,7 @@ async function liberarOrdem(id) {
     const r = await fetch(`/api/loja/ordens/${id}/liberar`,{method:'POST'});
     const d = await r.json();
     toast(d.message, d.success?'ok':'err');
-    if (d.success) { carregarOrdens(); carregarStats(); }
+    if (d.success) { carregarOrdens(); }
 }
 
 function abrirDespachar(id) {
@@ -1329,7 +1326,7 @@ async function confirmarDespacho() {
     const r = await fetch(`/api/loja/ordens/${ordemAtual}/despachar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({parceiro_pagador:parceiro})});
     const d = await r.json();
     msg.innerHTML = d.success?`<span style="color:var(--cor-sucesso)">${d.message}</span>`:`<span style="color:var(--cor-perigo)">${d.message}</span>`;
-    if (d.success) { setTimeout(()=>{ fecharModal('modalDespachar'); carregarOrdens(); carregarStats(); },1200); }
+    if (d.success) { setTimeout(()=>{ fecharModal('modalDespachar'); carregarOrdens(); },1200); }
 }
 
 function abrirConfirmar(id, parceiro, valor, moeda, beneficiario) {
@@ -1346,7 +1343,7 @@ async function confirmarPagamento() {
     const r = await fetch(`/api/loja/ordens/${ordemAtual}/confirmar-pagamento`,{method:'POST'});
     const d = await r.json();
     msg.innerHTML = d.success?`<span style="color:var(--cor-sucesso)">${d.message}</span>`:`<span style="color:var(--cor-perigo)">${d.message}</span>`;
-    if (d.success) { setTimeout(()=>{ fecharModal('modalConfirmar'); carregarOrdens(); carregarStats(); },1200); }
+    if (d.success) { setTimeout(()=>{ fecharModal('modalConfirmar'); carregarOrdens(); },1200); }
 }
 
 function fecharModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -1385,8 +1382,12 @@ document.addEventListener('click', e => {
 });
 
 // ══ INIT ════════════════════════════════════════════════════════════
-carregarStats();
-carregarOrdens();
+// Inicializa filtros com a data de hoje
+const _hoje = new Date().toISOString().slice(0,10);
+document.getElementById('filtroDataDe').value  = _hoje;
+document.getElementById('filtroDataAte').value = _hoje;
+
+carregarOrdens();   // stats são calculados dentro de carregarOrdens
 carregarContas();
 carregarParceiros();
 </script>
