@@ -12188,55 +12188,84 @@ def compliance_listar_ordens():
 
 @app.route('/api/compliance/ordens/<ordem_id>/detalhes', methods=['GET'])
 def compliance_ordem_detalhes(ordem_id):
-    """Retorna todos os detalhes de uma ordem para análise"""
+    """Retorna detalhes completos de uma ordem para análise"""
     usuario, tipo, redir = _check_compliance_acesso()
     if redir:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     
     try:
         # Buscar ordem
-        r = supabase.table('ordens_captacao').select('*').eq('id', ordem_id).single().execute()
+        r = supabase.table('ordens_captacao').select('*').eq('id', ordem_id).execute()
         if not r.data:
             return jsonify({'success': False, 'message': 'Ordem não encontrada'}), 404
         
-        ordem = r.data
+        ordem = r.data[0]
         
-        # Buscar documentos da ordem (uploads)
-        docs = supabase.table('documentos_kyc')\
+        # Buscar documentos da ordem (uploads da loja/cliente)
+        docs_ordem = supabase.table('documentos_kyc')\
             .select('*')\
             .eq('ordem_id', ordem_id)\
             .execute()
         
-        # Buscar dados do cliente (se tiver cliente_id)
+        # Buscar dados do cliente
         cliente = None
+        documentos_cliente = []
+        
         if ordem.get('cliente_id'):
-            c = supabase.table('clientes_varejo')\
-                .select('*')\
-                .eq('id', ordem['cliente_id'])\
-                .single()\
-                .execute()
-            cliente = c.data if c.data else None
+            c = supabase.table('clientes_varejo').select('*').eq('id', ordem['cliente_id']).execute()
+            if c.data:
+                cliente = c.data[0]
+                
+                # 🔥 Buscar documentos KYC do cliente (documentos_kyc com cliente_id)
+                docs_cliente = supabase.table('documentos_kyc')\
+                    .select('*')\
+                    .eq('cliente_id', ordem['cliente_id'])\
+                    .execute()
+                
+                # Processar documentos do cliente com URLs assinadas
+                for doc in (docs_cliente.data or []):
+                    caminho = doc.get('arquivo_url')
+                    if caminho:
+                        try:
+                            signed_url = supabase.storage.from_('kyc-docs').create_signed_url(caminho, 3600)
+                            doc['signed_url'] = signed_url.get('signedURL') or signed_url.get('signedUrl', '')
+                        except Exception as e:
+                            print(f"⚠️ Erro ao gerar URL para {caminho}: {e}")
+                            doc['signed_url'] = ''
+                    documentos_cliente.append(doc)
+        
+        # Processar documentos da ordem com URLs assinadas
+        documentos_ordem_com_url = []
+        for doc in (docs_ordem.data or []):
+            caminho = doc.get('arquivo_url')
+            if caminho:
+                try:
+                    signed_url = supabase.storage.from_('kyc-docs').create_signed_url(caminho, 3600)
+                    doc['signed_url'] = signed_url.get('signedURL') or signed_url.get('signedUrl', '')
+                except Exception as e:
+                    print(f"⚠️ Erro ao gerar URL para {caminho}: {e}")
+                    doc['signed_url'] = ''
+            documentos_ordem_com_url.append(doc)
         
         # Buscar notas de compliance
         notas = []
         if ordem.get('cliente_id'):
-            n = supabase.table('compliance_notas')\
-                .select('*')\
-                .eq('cliente_id', ordem['cliente_id'])\
-                .order('created_at', desc=True)\
-                .execute()
+            n = supabase.table('compliance_notas').select('*').eq('cliente_id', ordem['cliente_id']).order('created_at', desc=True).execute()
             notas = n.data or []
         
         return jsonify({
             'success': True,
             'ordem': ordem,
             'cliente': cliente,
-            'documentos': docs.data or [],
+            'documentos': documentos_ordem_com_url,
+            'documentos_cliente': documentos_cliente,  # 🔥 NOVO: documentos KYC do cliente
             'notas': notas
         })
         
     except Exception as e:
         print(f"❌ Erro ao buscar detalhes: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'message': str(e)}), 500
     
 @app.route('/api/compliance/ordens/<ordem_id>/aprovar', methods=['POST'])
