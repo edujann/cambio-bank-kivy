@@ -185,57 +185,53 @@
 
         .admin-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
         }
 
         .admin-card {
             background: var(--cor-card);
             border: 1px solid var(--cor-borda);
-            border-radius: var(--borda-radius);
-            padding: 25px;
+            border-radius: var(--borda-radius-pequeno);
+            padding: 12px 14px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             position: relative;
             overflow: hidden;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
         .admin-card:hover {
             border-color: var(--cor-admin);
-            transform: translateY(-5px);
-            box-shadow: var(--sombra-media);
+            transform: translateY(-2px);
+            box-shadow: var(--sombra-suave);
         }
 
         .admin-card::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--cor-admin), transparent);
+            top: 0; left: 0; bottom: 0;
+            width: 3px;
+            background: var(--cor-admin);
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.2s ease;
         }
 
         .admin-card:hover::before {
             opacity: 1;
         }
 
-        .card-icon.config { 
-            background: rgba(149, 165, 166, 0.15); 
-            color: #95a5a6; 
-        }        
-
         .card-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 16px;
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 20px;
-            font-size: 24px;
+            font-size: 16px;
+            flex-shrink: 0;
         }
 
         .card-icon.clientes { background: rgba(26, 95, 180, 0.15); color: #1a5fb4; }
@@ -248,15 +244,24 @@
         .card-icon.depositos { background: rgba(241, 196, 15, 0.15); color: #f1c40f; }
         .card-icon.config { background: rgba(149, 165, 166, 0.15); color: #95a5a6; }
 
+        .card-text { flex: 1; min-width: 0; }
+
         .card-title {
-            font-size: 18px;
-            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .card-desc {
             color: var(--cor-texto-secundario);
-            font-size: 13px;
-            margin-bottom: 15px;
+            font-size: 11px;
+            margin-bottom: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .card-badge {
@@ -572,140 +577,65 @@
                 </h2>
                 
                 <div class="admin-grid">
-                    <!-- CADASTRAR CLIENTE -->
                     <div class="admin-card" onclick="window.location.href='/admin/cadastrar-cliente'">
-                        <div class="card-icon clientes">
-                            <i class="fas fa-user-plus"></i>
-                        </div>
-                        <h3 class="card-title">Cadastrar Cliente</h3>
-                        <p class="card-desc">Adicionar novo cliente ao sistema</p>
+                        <div class="card-icon clientes"><i class="fas fa-user-plus"></i></div>
+                        <div class="card-text"><h3 class="card-title">Cadastrar Cliente</h3><p class="card-desc">Novo cliente no sistema</p></div>
                     </div>
-
-                    <!-- LISTAR CLIENTES -->
                     <div class="admin-card" onclick="window.location.href='/admin/clientes'">
-                        <div class="card-icon clientes">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <h3 class="card-title">Listar Clientes</h3>
-                        <p class="card-desc">Gerenciar clientes cadastrados</p>
+                        <div class="card-icon clientes"><i class="fas fa-users"></i></div>
+                        <div class="card-text"><h3 class="card-title">Listar Clientes</h3><p class="card-desc">Gerenciar clientes</p></div>
                     </div>
-
-                    <!-- RELATÓRIOS -->
                     <div class="admin-card" onclick="window.location.href='/admin/relatorios'">
-                        <div class="card-icon relatorios">
-                            <i class="fas fa-chart-line"></i>
-                        </div>
-                        <h3 class="card-title">Relatórios</h3>
-                        <p class="card-desc">Financeiros e gerenciais</p>
+                        <div class="card-icon relatorios"><i class="fas fa-chart-line"></i></div>
+                        <div class="card-text"><h3 class="card-title">Relatórios</h3><p class="card-desc">Financeiros e gerenciais</p></div>
                     </div>
-
-                    <!-- GERENCIAR CONTAS -->
                     <div class="admin-card" onclick="window.location.href='/admin/gerenciar-contas'">
-                        <div class="card-icon contas">
-                            <i class="fas fa-coins"></i>
-                        </div>
-                        <h3 class="card-title">Gerenciar Contas</h3>
-                        <p class="card-desc">Contas dos clientes</p>
+                        <div class="card-icon contas"><i class="fas fa-coins"></i></div>
+                        <div class="card-text"><h3 class="card-title">Gerenciar Contas</h3><p class="card-desc">Contas dos clientes</p></div>
                     </div>
-
-                    <!-- GERENCIAR TRANSFERÊNCIAS -->
                     <div class="admin-card" onclick="window.location.href='/admin/transferencias'">
-                        <div class="card-icon transferencias">
-                            <i class="fas fa-globe"></i>
-                        </div>
-                        <h3 class="card-title">Transferências</h3>
-                        <p class="card-desc">Todas as transferências</p>
+                        <div class="card-icon transferencias"><i class="fas fa-globe"></i></div>
+                        <div class="card-text"><h3 class="card-title">Transferências</h3><p class="card-desc">Todas as transferências</p></div>
                     </div>
-
-                    <!-- APROVAR OPERAÇÕES -->
                     <div class="admin-card" onclick="window.location.href='/admin/aprovar-operacoes'">
-                        <div class="card-icon aprovar">
-                            <i class="fas fa-check-double"></i>
-                        </div>
-                        <h3 class="card-title">Aprovar Operações</h3>
-                        <p class="card-desc">Aprovar/recusar transferências pendentes</p>
-                        <div class="card-badge" id="badgeAprovar">-- pendentes</div>
+                        <div class="card-icon aprovar"><i class="fas fa-check-double"></i></div>
+                        <div class="card-text"><h3 class="card-title">Aprovar Operações</h3><p class="card-desc" id="badgeAprovar">Transferências pendentes</p></div>
                     </div>
-
-                    <!-- COTAÇÕES MOEDAS -->
                     <div class="admin-card" onclick="window.location.href='/admin/cotacoes'">
-                        <div class="card-icon cotacoes">
-                            <i class="fas fa-chart-simple"></i>
-                        </div>
-                        <h3 class="card-title">Cotações Moedas</h3>
-                        <p class="card-desc">Spreads, limites, horários</p>
+                        <div class="card-icon cotacoes"><i class="fas fa-chart-simple"></i></div>
+                        <div class="card-text"><h3 class="card-title">Cotações</h3><p class="card-desc">Spreads, limites, horários</p></div>
                     </div>
-
-                    <!-- CONTAS BANCÁRIAS -->
                     <div class="admin-card" onclick="window.location.href='/admin/contas-bancarias'">
-                        <div class="card-icon bancarias">
-                            <i class="fas fa-building"></i>
-                        </div>
-                        <h3 class="card-title">Contas Bancárias</h3>
-                        <p class="card-desc">Contas da empresa</p>
+                        <div class="card-icon bancarias"><i class="fas fa-building"></i></div>
+                        <div class="card-text"><h3 class="card-title">Contas Bancárias</h3><p class="card-desc">Contas da empresa</p></div>
                     </div>
-
-                    <!-- CONFIRMAR DEPÓSITOS -->
                     <div class="admin-card" onclick="window.location.href='/admin/confirmar-depositos'">
-                        <div class="card-icon depositos">
-                            <i class="fas fa-money-bill-wave"></i>
-                        </div>
-                        <h3 class="card-title">Confirmar Depósitos</h3>
-                        <p class="card-desc">Confirmar depósitos de clientes</p>
+                        <div class="card-icon depositos"><i class="fas fa-money-bill-wave"></i></div>
+                        <div class="card-text"><h3 class="card-title">Confirmar Depósitos</h3><p class="card-desc">Depósitos de clientes</p></div>
                     </div>
-
-                    <!-- POSIÇÃO CAMBIAL -->
                     <div class="admin-card" onclick="window.location.href='/admin/posicao-cambial'">
-                        <div class="card-icon" style="background:rgba(46,194,126,.15)">
-                            <i class="fas fa-chart-line" style="color:#2ec27e"></i>
-                        </div>
-                        <h3 class="card-title">Posição Cambial</h3>
-                        <p class="card-desc">Pool, WAC, P&L e painel trader</p>
+                        <div class="card-icon" style="background:rgba(46,194,126,.15)"><i class="fas fa-chart-line" style="color:#2ec27e"></i></div>
+                        <div class="card-text"><h3 class="card-title">Posição Cambial</h3><p class="card-desc">Pool, WAC, P&L</p></div>
                     </div>
-
-                    <!-- CAPTAÇÃO VAREJO -->
                     <div class="admin-card" onclick="window.location.href='/loja/dashboard'">
-                        <div class="card-icon" style="background:rgba(243,156,18,.15)">
-                            <i class="fas fa-store" style="color:#f39c12"></i>
-                        </div>
-                        <h3 class="card-title">Captação Varejo</h3>
-                        <p class="card-desc">Ver ordens das lojas</p>
+                        <div class="card-icon" style="background:rgba(243,156,18,.15)"><i class="fas fa-store" style="color:#f39c12"></i></div>
+                        <div class="card-text"><h3 class="card-title">Captação Varejo</h3><p class="card-desc">Ver ordens das lojas</p></div>
                     </div>
-
-                    <!-- DESPACHOS -->
                     <div class="admin-card" onclick="window.location.href='/admin/despachos'">
-                        <div class="card-icon" style="background:rgba(46,194,126,.15)">
-                            <i class="fas fa-paper-plane" style="color:#2ec27e"></i>
-                        </div>
-                        <h3 class="card-title">Despachos</h3>
-                        <p class="card-desc">Liberar TEDs, criar e gerenciar despachos</p>
+                        <div class="card-icon" style="background:rgba(46,194,126,.15)"><i class="fas fa-paper-plane" style="color:#2ec27e"></i></div>
+                        <div class="card-text"><h3 class="card-title">Despachos</h3><p class="card-desc">TEDs, despachos em bloco</p></div>
                     </div>
-
-                    <!-- GESTÃO DE LOJAS -->
                     <div class="admin-card" onclick="window.location.href='/admin/lojas'">
-                        <div class="card-icon" style="background:rgba(155,89,182,.15)">
-                            <i class="fas fa-store-alt" style="color:#9b59b6"></i>
-                        </div>
-                        <h3 class="card-title">Gestão de Lojas</h3>
-                        <p class="card-desc">Cadastrar e gerenciar lojas parceiras</p>
+                        <div class="card-icon" style="background:rgba(155,89,182,.15)"><i class="fas fa-store-alt" style="color:#9b59b6"></i></div>
+                        <div class="card-text"><h3 class="card-title">Gestão de Lojas</h3><p class="card-desc">Lojas parceiras</p></div>
                     </div>
-
-                    <!-- COMPLIANCE (visualização) -->
                     <div class="admin-card" onclick="window.location.href='/compliance/dashboard'">
-                        <div class="card-icon" style="background:rgba(155,89,182,.15)">
-                            <i class="fas fa-shield-check" style="color:#9b59b6"></i>
-                        </div>
-                        <h3 class="card-title">Compliance (ver)</h3>
-                        <p class="card-desc">Visualizar fila — aprovação só pelo Compliance</p>
+                        <div class="card-icon" style="background:rgba(155,89,182,.15)"><i class="fas fa-shield-check" style="color:#9b59b6"></i></div>
+                        <div class="card-text"><h3 class="card-title">Compliance</h3><p class="card-desc">Visualizar fila de análise</p></div>
                     </div>
-
-                    <!-- CONFIGURAÇÕES -->
                     <div class="admin-card" onclick="window.location.href='/admin/configuracoes'">
-                        <div class="card-icon config">
-                            <i class="fas fa-cog"></i>
-                        </div>
-                        <h3 class="card-title">Configurações</h3>
-                        <p class="card-desc">Sistema e parâmetros</p>
+                        <div class="card-icon config"><i class="fas fa-cog"></i></div>
+                        <div class="card-text"><h3 class="card-title">Configurações</h3><p class="card-desc">Sistema e parâmetros</p></div>
                     </div>
                 </div>
             </section>
