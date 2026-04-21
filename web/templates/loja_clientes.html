@@ -397,12 +397,19 @@ function renderDetalhe(c) {
         <p class="section-label">Documentos KYC</p>
         <div class="doc-list">
             ${docItems.map(d => `
-                <div class="doc-item ${d.ok?'ok':'missing'}">
-                    <span><i class="fas fa-${d.ok?'check-circle':'clock'}" style="color:${d.ok?'var(--green)':'var(--yellow)'};margin-right:8px;"></i>${d.label}</span>
-                    <div class="doc-status">
-                        <span class="badge ${d.ok?'badge-ok':'badge-warn'}">${d.ok?'Validado':'Pendente'}</span>
-                        ${!d.ok?`<button class="btn btn-ghost btn-sm" onclick="marcarDocOk('${c.id}','${d.key}')"><i class="fas fa-check"></i> Marcar OK</button>`:''}
+                <div class="doc-item ${d.ok?'ok':'missing'}" style="flex-direction:column;align-items:stretch;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span><i class="fas fa-${d.ok?'check-circle':'clock'}" style="color:${d.ok?'var(--green)':'var(--yellow)'};margin-right:8px;"></i>${d.label}</span>
+                        <div class="doc-status">
+                            <span class="badge ${d.ok?'badge-ok':'badge-warn'}">${d.ok?'Validado':'Pendente'}</span>
+                            ${!d.ok?`<button class="btn btn-ghost btn-sm" onclick="marcarDocOk('${c.id}','${d.key}')"><i class="fas fa-check"></i> Marcar OK</button>`:''}
+                        </div>
                     </div>
+                    ${!d.ok?`<div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap;">
+                        <input type="file" id="kyc-file-${d.key}" accept=".pdf,.jpg,.jpeg,.png,.webp" style="font-size:11px;flex:1;min-width:0;color:var(--cor-texto);">
+                        <input type="text" id="kyc-obs-${d.key}" placeholder="Observação (opcional)" style="font-size:11px;padding:4px 8px;border:1px solid var(--cor-borda);border-radius:4px;background:var(--cor-card);color:var(--cor-texto);flex:1;min-width:120px;">
+                        <button id="kyc-btn-${d.key}" class="btn btn-primary btn-sm" onclick="uploadKyc('${c.id}','${d.key}')"><i class="fas fa-upload"></i> Enviar</button>
+                    </div>`:''}
                 </div>
             `).join('')}
         </div>
@@ -690,10 +697,14 @@ async function carregarBenefDetalhe(clienteId) {
                 ? [b.iban, b.bic_swift].filter(Boolean).join(' · ')
                 : [b.routing_number, b.account_number, b.banco_nome_us].filter(Boolean).join(' · ');
             const addr = [b.endereco_linha1, b.cidade, b.postcode, b.pais].filter(Boolean).join(', ');
-            return `<div class="doc-item" style="flex-direction:column;align-items:flex-start;gap:4px;">
+            const bJson = JSON.stringify(b).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        return `<div class="doc-item" style="flex-direction:column;align-items:flex-start;gap:4px;">
                 <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
                     <span><strong>${flag[b.tipo]||''} ${b.nome}</strong>${b.apelido?` <span style="color:var(--cor-texto-secundario);font-size:12px;">(${b.apelido})</span>`:''}</span>
-                    <button onclick="removerBenef('${b.id}','${clienteId}')" style="background:transparent;border:none;color:var(--cor-perigo);cursor:pointer;font-size:11px;"><i class="fas fa-trash"></i></button>
+                    <div style="display:flex;gap:6px;align-items:center;">
+                        <button onclick="abrirEditBenefDetalhe('${b.id}','${clienteId}',${bJson})" style="background:transparent;border:none;color:var(--cor-texto-secundario);cursor:pointer;font-size:11px;" title="Editar"><i class="fas fa-edit"></i></button>
+                        <button onclick="removerBenef('${b.id}','${clienteId}')" style="background:transparent;border:none;color:var(--cor-perigo);cursor:pointer;font-size:11px;" title="Remover"><i class="fas fa-trash"></i></button>
+                    </div>
                 </div>
                 ${det?`<div style="font-size:12px;color:var(--cor-texto-secundario);">${det}</div>`:''}
                 ${addr?`<div style="font-size:11px;color:var(--cor-texto-secundario);"><i class="fas fa-map-marker-alt" style="margin-right:3px;"></i>${addr}</div>`:''}
@@ -747,6 +758,95 @@ async function salvarNovoBenefDetalhe() {
     } catch(e) { toast(e.message, 'err'); }
 }
 
+// ---- Editar Beneficiário ----
+let editBenefClienteId = null;
+function abrirEditBenefDetalhe(benefId, clienteId, data) {
+    editBenefClienteId = clienteId;
+    document.getElementById('ebd-id').value    = benefId;
+    document.getElementById('ebd-tipo').value  = data.tipo || 'brazil';
+    document.getElementById('ebd-nome').value  = data.nome || '';
+    document.getElementById('ebd-apelido').value = data.apelido || '';
+    document.getElementById('ebd-end1').value  = data.endereco_linha1 || '';
+    document.getElementById('ebd-end2').value  = data.endereco_linha2 || '';
+    document.getElementById('ebd-cidade').value= data.cidade || '';
+    document.getElementById('ebd-postcode').value = data.postcode || '';
+    document.getElementById('ebd-pais').value  = data.pais || '';
+    document.getElementById('ebd-rel').value   = data.relacionamento || '';
+    // Brazil
+    document.getElementById('ebd-cpf').value   = data.cpf || '';
+    document.getElementById('ebd-banco').value = data.banco_nome || '';
+    document.getElementById('ebd-agencia').value = data.agencia || '';
+    document.getElementById('ebd-conta').value = data.conta || '';
+    if (document.getElementById('ebd-tipo-conta')) document.getElementById('ebd-tipo-conta').value = data.tipo_conta || 'corrente';
+    document.getElementById('ebd-pix').value   = data.pix_chave || '';
+    if (document.getElementById('ebd-pix-tipo')) document.getElementById('ebd-pix-tipo').value = data.pix_tipo || '';
+    // Europe
+    document.getElementById('ebd-iban').value  = data.iban || '';
+    document.getElementById('ebd-bic').value   = data.bic_swift || '';
+    document.getElementById('ebd-banco-eu').value = data.banco_nome_eu || '';
+    document.getElementById('ebd-pais-eu').value  = data.banco_pais || '';
+    // USA
+    document.getElementById('ebd-routing').value = data.routing_number || '';
+    document.getElementById('ebd-account').value = data.account_number || '';
+    if (document.getElementById('ebd-account-tipo')) document.getElementById('ebd-account-tipo').value = data.account_type_us || 'checking';
+    document.getElementById('ebd-swift-us').value = data.swift_us || '';
+    document.getElementById('ebd-banco-us').value = data.banco_nome_us || '';
+    // Toggle sections
+    ['brazil','europe','usa'].forEach(t => {
+        const el = document.getElementById(`ebd-sec-${t}`);
+        if (el) el.style.display = t === data.tipo ? 'block' : 'none';
+    });
+    document.getElementById('ebd-tipo-label').textContent = {brazil:'🇧🇷 Brasil',europe:'🇪🇺 Europa',usa:'🇺🇸 USA'}[data.tipo]||data.tipo;
+    document.getElementById('modalEditBenefDetalhe').classList.add('open');
+}
+async function salvarEditBenefDetalhe() {
+    const id = document.getElementById('ebd-id').value;
+    const get = i => (document.getElementById(i)?.value || '').trim();
+    const payload = {
+        nome: get('ebd-nome'), apelido: get('ebd-apelido'),
+        endereco_linha1: get('ebd-end1'), endereco_linha2: get('ebd-end2'),
+        cidade: get('ebd-cidade'), postcode: get('ebd-postcode'), pais: get('ebd-pais'), relacionamento: get('ebd-rel'),
+        cpf: get('ebd-cpf'), banco_nome: get('ebd-banco'), agencia: get('ebd-agencia'), conta: get('ebd-conta'),
+        tipo_conta: get('ebd-tipo-conta'), pix_chave: get('ebd-pix'), pix_tipo: get('ebd-pix-tipo'),
+        iban: get('ebd-iban'), bic_swift: get('ebd-bic'), banco_nome_eu: get('ebd-banco-eu'), banco_pais: get('ebd-pais-eu'),
+        routing_number: get('ebd-routing'), account_number: get('ebd-account'),
+        account_type_us: get('ebd-account-tipo'), swift_us: get('ebd-swift-us'), banco_nome_us: get('ebd-banco-us'),
+    };
+    if (!payload.nome) { toast('Nome obrigatório', 'err'); return; }
+    try {
+        const r = await fetch(`/api/beneficiarios-de-clientes/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        const d = await r.json();
+        if (d.success) {
+            toast('Beneficiário atualizado!','ok');
+            fecharModal('modalEditBenefDetalhe');
+            carregarBenefDetalhe(editBenefClienteId);
+        } else toast(d.message,'err');
+    } catch(e) { toast('Erro de conexão','err'); }
+}
+
+// ---- Upload KYC ----
+async function uploadKyc(clienteId, tipoDoc) {
+    const input = document.getElementById(`kyc-file-${tipoDoc}`);
+    if (!input || !input.files[0]) { toast('Selecione um arquivo', 'err'); return; }
+    const obs = document.getElementById(`kyc-obs-${tipoDoc}`)?.value || '';
+    const formData = new FormData();
+    formData.append('arquivo', input.files[0]);
+    formData.append('tipo', tipoDoc);
+    formData.append('observacao', obs);
+    const btn = document.getElementById(`kyc-btn-${tipoDoc}`);
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; }
+    try {
+        const r = await fetch(`/api/clientes/${clienteId}/upload-kyc`, {method:'POST', body: formData});
+        const d = await r.json();
+        if (d.success) {
+            toast('Documento enviado com sucesso!', 'ok');
+            input.value = '';
+            verDetalhe(clienteId);
+        } else toast(d.message, 'err');
+    } catch(e) { toast('Erro de conexão', 'err'); }
+    finally { if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-upload"></i> Enviar'; } }
+}
+
 // ---- Utils ----
 function fecharModal(id) {
     document.getElementById(id).classList.remove('open');
@@ -767,10 +867,91 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
         if (e.target === this) this.classList.remove('open');
     });
 });
+document.getElementById('modalEditBenefDetalhe').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+});
 
 // Carga inicial
 _buscar();
 </script>
 <script src="/static/js/theme.js"></script>
+
+<!-- Modal: Editar Beneficiário -->
+<div id="modalEditBenefDetalhe" class="modal-overlay" style="z-index:2000;">
+<div class="modal" style="max-width:620px;max-height:90vh;overflow-y:auto;">
+    <div class="modal-hd">
+        <h3><i class="fas fa-edit"></i> Editar Beneficiário — <span id="ebd-tipo-label"></span></h3>
+        <button class="close-btn" onclick="fecharModal('modalEditBenefDetalhe')"><i class="fas fa-times"></i></button>
+    </div>
+    <input type="hidden" id="ebd-id">
+    <input type="hidden" id="ebd-tipo">
+    <div class="form-grid">
+        <div class="form-group form-full"><label>Nome Completo *</label><input id="ebd-nome" type="text" class="form-control"></div>
+        <div class="form-group form-full"><label>Apelido</label><input id="ebd-apelido" type="text" class="form-control" placeholder="Ex: João - Nubank"></div>
+        <div class="form-group"><label>Endereço Linha 1</label><input id="ebd-end1" type="text" class="form-control"></div>
+        <div class="form-group"><label>Endereço Linha 2</label><input id="ebd-end2" type="text" class="form-control"></div>
+        <div class="form-group"><label>Cidade</label><input id="ebd-cidade" type="text" class="form-control"></div>
+        <div class="form-group"><label>CEP / Postcode</label><input id="ebd-postcode" type="text" class="form-control"></div>
+        <div class="form-group form-full"><label>País</label><input id="ebd-pais" type="text" class="form-control"></div>
+        <div class="form-group form-full">
+            <label>Relacionamento</label>
+            <select id="ebd-rel" class="form-control">
+                <option value="">—</option>
+                <option value="proprio">Próprio</option>
+                <option value="familiar">Familiar</option>
+                <option value="amigo">Amigo</option>
+                <option value="negocio">Negócio</option>
+            </select>
+        </div>
+    </div>
+    <!-- Brasil -->
+    <div id="ebd-sec-brazil">
+        <p class="section-label">Dados Bancários Brasil</p>
+        <div class="form-grid">
+            <div class="form-group"><label>CPF</label><input id="ebd-cpf" type="text" class="form-control" placeholder="000.000.000-00"></div>
+            <div class="form-group"><label>Banco</label><input id="ebd-banco" type="text" class="form-control"></div>
+            <div class="form-group"><label>Agência</label><input id="ebd-agencia" type="text" class="form-control"></div>
+            <div class="form-group"><label>Conta</label><input id="ebd-conta" type="text" class="form-control"></div>
+            <div class="form-group">
+                <label>Tipo Conta</label>
+                <select id="ebd-tipo-conta" class="form-control"><option value="corrente">Corrente</option><option value="poupanca">Poupança</option></select>
+            </div>
+            <div class="form-group"><label>Chave PIX</label><input id="ebd-pix" type="text" class="form-control"></div>
+            <div class="form-group">
+                <label>Tipo PIX</label>
+                <select id="ebd-pix-tipo" class="form-control"><option value="">—</option><option value="cpf">CPF</option><option value="email">Email</option><option value="telefone">Telefone</option><option value="aleatoria">Aleatória</option></select>
+            </div>
+        </div>
+    </div>
+    <!-- Europa -->
+    <div id="ebd-sec-europe" style="display:none;">
+        <p class="section-label">Dados Bancários Europa</p>
+        <div class="form-grid">
+            <div class="form-group form-full"><label>IBAN</label><input id="ebd-iban" type="text" class="form-control"></div>
+            <div class="form-group"><label>BIC / SWIFT</label><input id="ebd-bic" type="text" class="form-control"></div>
+            <div class="form-group"><label>Banco</label><input id="ebd-banco-eu" type="text" class="form-control"></div>
+            <div class="form-group"><label>País do Banco</label><input id="ebd-pais-eu" type="text" class="form-control"></div>
+        </div>
+    </div>
+    <!-- USA -->
+    <div id="ebd-sec-usa" style="display:none;">
+        <p class="section-label">Dados Bancários USA</p>
+        <div class="form-grid">
+            <div class="form-group"><label>Routing Number</label><input id="ebd-routing" type="text" class="form-control"></div>
+            <div class="form-group"><label>Account Number</label><input id="ebd-account" type="text" class="form-control"></div>
+            <div class="form-group">
+                <label>Tipo Conta</label>
+                <select id="ebd-account-tipo" class="form-control"><option value="checking">Checking</option><option value="savings">Savings</option></select>
+            </div>
+            <div class="form-group"><label>SWIFT</label><input id="ebd-swift-us" type="text" class="form-control"></div>
+            <div class="form-group"><label>Banco</label><input id="ebd-banco-us" type="text" class="form-control"></div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="fecharModal('modalEditBenefDetalhe')">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarEditBenefDetalhe()"><i class="fas fa-save"></i> Salvar</button>
+    </div>
+</div>
+</div>
 </body>
 </html>

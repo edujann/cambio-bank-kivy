@@ -11536,6 +11536,74 @@ def clientes_upload_doc(cliente_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+@app.route('/api/clientes/<cliente_id>/upload-kyc', methods=['POST'])
+def clientes_upload_kyc_file(cliente_id):
+    """Upload real de arquivo KYC para Supabase Storage bucket 'kyc-docs'."""
+    usuario, tipo, redir = _check_loja_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    # Compliance também pode fazer upload
+    if not usuario:
+        u = session.get('username')
+        if not u:
+            return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+        usuario = u
+    try:
+        from datetime import datetime
+        import os, mimetypes
+        arquivo = request.files.get('arquivo')
+        tipo_doc = (request.form.get('tipo') or '').strip()
+        valid_tipos = ['photo_id', 'proof_address', 'source_funds', 'declaration', 'edd']
+        if not arquivo:
+            return jsonify({'success': False, 'message': 'Arquivo não enviado'}), 400
+        if tipo_doc not in valid_tipos:
+            return jsonify({'success': False, 'message': 'Tipo de documento inválido'}), 400
+
+        extensao = os.path.splitext(arquivo.filename)[1].lower() or '.bin'
+        extensoes_ok = {'.pdf', '.jpg', '.jpeg', '.png', '.webp', '.heic'}
+        if extensao not in extensoes_ok:
+            return jsonify({'success': False, 'message': f'Formato não permitido: {extensao}. Use PDF, JPG ou PNG.'}), 400
+
+        ts          = datetime.now().strftime('%Y%m%d_%H%M%S')
+        nome_storage = f"{cliente_id}/{tipo_doc}_{ts}{extensao}"
+        conteudo    = arquivo.read()
+        content_type = arquivo.content_type or mimetypes.guess_type(arquivo.filename)[0] or 'application/octet-stream'
+
+        upload_resp = supabase.storage.from_('kyc-docs').upload(
+            nome_storage, conteudo,
+            file_options={'content-type': content_type, 'upsert': 'false'}
+        )
+        url_publica = supabase.storage.from_('kyc-docs').get_public_url(nome_storage)
+
+        field_map = {
+            'photo_id':      'doc_photo_id_ok',
+            'proof_address': 'doc_address_ok',
+            'source_funds':  'doc_source_funds_ok',
+            'declaration':   'doc_declaration_ok',
+            'edd':           'doc_edd_ok',
+        }
+        r_doc = supabase.table('documentos_kyc').insert({
+            'cliente_id':   cliente_id,
+            'tipo':         tipo_doc,
+            'arquivo_url':  url_publica,
+            'arquivo_nome': arquivo.filename,
+            'observacao':   request.form.get('observacao', ''),
+            'criado_por':   usuario,
+        }).execute()
+        doc_id = r_doc.data[0]['id'] if r_doc.data else None
+
+        if field_map.get(tipo_doc):
+            supabase.table('clientes_varejo').update({
+                field_map[tipo_doc]: True,
+                'updated_at': datetime.now().isoformat()
+            }).eq('id', cliente_id).execute()
+
+        return jsonify({'success': True, 'message': 'Documento enviado com sucesso.', 'doc_id': doc_id, 'url': url_publica})
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @app.route('/api/admin/lojas', methods=['GET'])
 def admin_listar_lojas():
     usuario_logado = session.get('username')

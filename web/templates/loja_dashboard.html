@@ -323,6 +323,80 @@
                     <div class="fg"><label>Documento</label><input id="s1NovoDoc" type="text" class="fc" placeholder="Nº passaporte / ID"></div>
                     <div class="fg"><label>Telefone</label><input id="s1NovoTel" type="text" class="fc" placeholder="+44 7xxx…"></div>
                 </div>
+                <!-- Beneficiário durante cadastro rápido -->
+                <div style="margin-top:12px;border-top:1px solid var(--cor-borda);padding-top:12px;">
+                    <button type="button" class="benef-novo-btn" onclick="toggleS1Benef()" id="s1BenefToggleBtn">
+                        <i class="fas fa-plus"></i> Adicionar beneficiário agora (opcional)
+                    </button>
+                    <div id="s1BenefBox" style="display:none;margin-top:10px;">
+                        <div style="display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap;">
+                            <button type="button" class="dest-tab active" data-nbo="brazil" onclick="switchS1BenefTipo('brazil')">🇧🇷 Brasil</button>
+                            <button type="button" class="dest-tab" data-nbo="europe" onclick="switchS1BenefTipo('europe')">🇪🇺 Europa</button>
+                            <button type="button" class="dest-tab" data-nbo="usa" onclick="switchS1BenefTipo('usa')">🇺🇸 USA</button>
+                        </div>
+                        <!-- Campos comuns -->
+                        <div class="grid2">
+                            <div class="fg full"><label>Nome do Beneficiário *</label><input id="nbo-nome" type="text" class="fc" placeholder="Nome completo"></div>
+                            <div class="fg full"><label>Apelido</label><input id="nbo-apelido" type="text" class="fc" placeholder="Ex: João - Nubank"></div>
+                            <div class="fg"><label>Endereço Linha 1</label><input id="nbo-end1" type="text" class="fc" placeholder="Rua, número"></div>
+                            <div class="fg"><label>Cidade</label><input id="nbo-cidade" type="text" class="fc"></div>
+                            <div class="fg"><label>Postcode / CEP</label><input id="nbo-postcode" type="text" class="fc"></div>
+                            <div class="fg"><label>País</label><input id="nbo-pais" type="text" class="fc" placeholder="Brasil, UK…"></div>
+                            <div class="fg">
+                                <label>Relacionamento</label>
+                                <select id="nbo-rel" class="fc">
+                                    <option value="">—</option>
+                                    <option value="proprio">Próprio</option>
+                                    <option value="familiar">Familiar</option>
+                                    <option value="negocio">Negócio</option>
+                                </select>
+                            </div>
+                        </div>
+                        <!-- Brasil -->
+                        <div id="nbo-sec-brazil">
+                            <div class="fsec" style="font-size:11px;margin:8px 0 6px;">Dados Bancários Brasil</div>
+                            <div class="grid2">
+                                <div class="fg"><label>CPF</label><input id="nbo-cpf" type="text" class="fc" placeholder="000.000.000-00"></div>
+                                <div class="fg"><label>Banco</label><input id="nbo-banco" type="text" class="fc" placeholder="Nubank, Itaú…"></div>
+                                <div class="fg"><label>Agência</label><input id="nbo-agencia" type="text" class="fc" placeholder="0001"></div>
+                                <div class="fg"><label>Conta</label><input id="nbo-conta" type="text" class="fc" placeholder="12345-6"></div>
+                                <div class="fg">
+                                    <label>Tipo Conta</label>
+                                    <select id="nbo-tipo-conta" class="fc"><option value="corrente">Corrente</option><option value="poupanca">Poupança</option></select>
+                                </div>
+                                <div class="fg"><label>Chave PIX</label><input id="nbo-pix" type="text" class="fc" placeholder="CPF, email, tel…"></div>
+                                <div class="fg">
+                                    <label>Tipo PIX</label>
+                                    <select id="nbo-pix-tipo" class="fc"><option value="">—</option><option value="cpf">CPF</option><option value="email">Email</option><option value="telefone">Telefone</option><option value="aleatoria">Aleatória</option></select>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Europa -->
+                        <div id="nbo-sec-europe" style="display:none;">
+                            <div class="fsec" style="font-size:11px;margin:8px 0 6px;">Dados Bancários Europa</div>
+                            <div class="grid2">
+                                <div class="fg full"><label>IBAN *</label><input id="nbo-iban" type="text" class="fc" placeholder="GB29 NWBK…"></div>
+                                <div class="fg"><label>BIC / SWIFT</label><input id="nbo-swift" type="text" class="fc" placeholder="NWBKGB2L"></div>
+                                <div class="fg"><label>Banco</label><input id="nbo-banco-eu" type="text" class="fc"></div>
+                                <div class="fg"><label>País do Banco</label><input id="nbo-pais-banco" type="text" class="fc" placeholder="DE, FR, PT…"></div>
+                            </div>
+                        </div>
+                        <!-- USA -->
+                        <div id="nbo-sec-usa" style="display:none;">
+                            <div class="fsec" style="font-size:11px;margin:8px 0 6px;">Dados Bancários USA</div>
+                            <div class="grid2">
+                                <div class="fg"><label>Routing Number</label><input id="nbo-routing" type="text" class="fc" placeholder="021000021"></div>
+                                <div class="fg"><label>Account Number</label><input id="nbo-account" type="text" class="fc" placeholder="000123456789"></div>
+                                <div class="fg">
+                                    <label>Tipo Conta</label>
+                                    <select id="nbo-account-tipo" class="fc"><option value="checking">Checking</option><option value="savings">Savings</option></select>
+                                </div>
+                                <div class="fg"><label>SWIFT</label><input id="nbo-swift-us" type="text" class="fc" placeholder="CHASUS33"></div>
+                                <div class="fg"><label>Banco</label><input id="nbo-banco-us" type="text" class="fc" placeholder="Chase, Wells Fargo…"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div id="s1Msg" class="status-msg" style="margin-top:8px;"></div>
@@ -551,6 +625,77 @@
     </div>
 </div>
 
+<!-- Modal Editar Beneficiário -->
+<div class="modal-ov" id="modalEditBenef">
+    <div class="modal" style="width:min(620px,95vw);max-height:90vh;overflow-y:auto;">
+        <h3><i class="fas fa-edit" style="color:#9b59b6;"></i> Editar Beneficiário</h3>
+        <input type="hidden" id="eb-id">
+        <input type="hidden" id="eb-tipo">
+        <div class="grid2">
+            <div class="fg full"><label>Nome Completo *</label><input id="eb-nome" type="text" class="fc"></div>
+            <div class="fg full"><label>Apelido</label><input id="eb-apelido" type="text" class="fc" placeholder="Ex: João - Nubank"></div>
+            <div class="fg"><label>Endereço Linha 1</label><input id="eb-end1" type="text" class="fc"></div>
+            <div class="fg"><label>Cidade</label><input id="eb-cidade" type="text" class="fc"></div>
+            <div class="fg"><label>Postcode / CEP</label><input id="eb-postcode" type="text" class="fc"></div>
+            <div class="fg"><label>País</label><input id="eb-pais" type="text" class="fc"></div>
+            <div class="fg">
+                <label>Relacionamento</label>
+                <select id="eb-rel" class="fc">
+                    <option value="">—</option>
+                    <option value="proprio">Próprio</option>
+                    <option value="familiar">Familiar</option>
+                    <option value="amigo">Amigo</option>
+                    <option value="negocio">Negócio</option>
+                </select>
+            </div>
+        </div>
+        <!-- Brasil -->
+        <div id="eb-sec-brazil">
+            <div class="fsec" style="font-size:11px;margin:10px 0 6px;">🇧🇷 Dados Bancários Brasil</div>
+            <div class="grid2">
+                <div class="fg"><label>CPF</label><input id="eb-cpf" type="text" class="fc" placeholder="000.000.000-00"></div>
+                <div class="fg"><label>Banco</label><input id="eb-banco" type="text" class="fc"></div>
+                <div class="fg"><label>Agência</label><input id="eb-agencia" type="text" class="fc"></div>
+                <div class="fg"><label>Conta</label><input id="eb-conta" type="text" class="fc"></div>
+                <div class="fg"><label>Tipo Conta</label>
+                    <select id="eb-tipo-conta" class="fc"><option value="corrente">Corrente</option><option value="poupanca">Poupança</option></select>
+                </div>
+                <div class="fg"><label>Chave PIX</label><input id="eb-pix" type="text" class="fc"></div>
+                <div class="fg"><label>Tipo PIX</label>
+                    <select id="eb-pix-tipo" class="fc"><option value="">—</option><option value="cpf">CPF</option><option value="email">Email</option><option value="telefone">Telefone</option><option value="aleatoria">Aleatória</option></select>
+                </div>
+            </div>
+        </div>
+        <!-- Europa -->
+        <div id="eb-sec-europe" style="display:none;">
+            <div class="fsec" style="font-size:11px;margin:10px 0 6px;">🇪🇺 Dados Bancários Europa</div>
+            <div class="grid2">
+                <div class="fg full"><label>IBAN</label><input id="eb-iban" type="text" class="fc"></div>
+                <div class="fg"><label>BIC / SWIFT</label><input id="eb-swift" type="text" class="fc"></div>
+                <div class="fg"><label>Banco</label><input id="eb-banco-eu" type="text" class="fc"></div>
+                <div class="fg"><label>País do Banco</label><input id="eb-pais-banco" type="text" class="fc"></div>
+            </div>
+        </div>
+        <!-- USA -->
+        <div id="eb-sec-usa" style="display:none;">
+            <div class="fsec" style="font-size:11px;margin:10px 0 6px;">🇺🇸 Dados Bancários USA</div>
+            <div class="grid2">
+                <div class="fg"><label>Routing Number</label><input id="eb-routing" type="text" class="fc"></div>
+                <div class="fg"><label>Account Number</label><input id="eb-account" type="text" class="fc"></div>
+                <div class="fg"><label>Tipo Conta</label>
+                    <select id="eb-account-tipo" class="fc"><option value="checking">Checking</option><option value="savings">Savings</option></select>
+                </div>
+                <div class="fg"><label>SWIFT</label><input id="eb-swift-us" type="text" class="fc"></div>
+                <div class="fg"><label>Banco</label><input id="eb-banco-us" type="text" class="fc"></div>
+            </div>
+        </div>
+        <div class="modal-acts">
+            <button class="btn-g" onclick="document.getElementById('modalEditBenef').classList.remove('open')">Cancelar</button>
+            <button class="btn-p" onclick="salvarEditBenef()"><i class="fas fa-save"></i> Salvar</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Confirmar Pagamento -->
 <div class="modal-ov" id="modalConfirmar">
     <div class="modal">
@@ -687,11 +832,19 @@ function irStep(n) {
     document.getElementById('drawerBtnBack').style.display   = n===2 ? 'inline-flex' : 'none';
     document.getElementById('drawerBtnNext').style.display   = n===1 ? 'inline-flex' : 'none';
     document.getElementById('drawerBtnSubmit').style.display = n===2 ? 'inline-flex' : 'none';
-    // step indicator
     const s1 = document.getElementById('step-ind-1');
     const s2 = document.getElementById('step-ind-2');
     if (n===1) { s1.className='step active'; s2.className='step'; }
-    else       { s1.className='step done';   s2.className='step active'; }
+    else {
+        s1.className='step done'; s2.className='step active';
+        // Auto-select beneficiário recém-criado no cadastro rápido
+        if (benefSelecionadoPendente) {
+            const {tipo, data} = benefSelecionadoPendente;
+            trocarDestino(tipo);
+            setTimeout(() => selecionarBenef(tipo, data.id, data), 200);
+            benefSelecionadoPendente = null;
+        }
+    }
 }
 
 // ── Step 1: busca cliente ──
@@ -770,6 +923,26 @@ async function s1AmlCheck(clienteId, valor, moeda) {
     } catch(e){}
 }
 
+let benefSelecionadoPendente = null;
+
+function toggleS1Benef() {
+    const box = document.getElementById('s1BenefBox');
+    const btn = document.getElementById('s1BenefToggleBtn');
+    const open = box.style.display === 'none';
+    box.style.display = open ? 'block' : 'none';
+    btn.innerHTML = open
+        ? '<i class="fas fa-minus"></i> Cancelar beneficiário'
+        : '<i class="fas fa-plus"></i> Adicionar beneficiário agora (opcional)';
+}
+
+function switchS1BenefTipo(tipo) {
+    document.querySelectorAll('[data-nbo]').forEach(b => b.classList.toggle('active', b.dataset.nbo === tipo));
+    ['brazil','europe','usa'].forEach(t => {
+        const el = document.getElementById(`nbo-sec-${t}`);
+        if (el) el.style.display = t === tipo ? 'block' : 'none';
+    });
+}
+
 function s1UsarNovo() {
     document.getElementById('s1Dropdown').style.display = 'none';
     document.getElementById('s1NovoBox').style.display  = 'block';
@@ -788,7 +961,6 @@ function s1LimparCliente() {
 
 async function step1Proximo() {
     const msg = document.getElementById('s1Msg');
-    // Valida: cliente existente ou nome preenchido
     if (!clienteSelecionado) {
         const nome = document.getElementById('s1NovoNome').value.trim();
         if (!nome) {
@@ -797,11 +969,76 @@ async function step1Proximo() {
         }
     }
     msg.innerHTML = '';
-    // Carregar beneficiários se cliente existente
+
+    // Se cliente existente, carregar beneficiários e avançar
     if (clienteSelecionado) {
         await carregarBeneficios(clienteSelecionado.id);
+        // Tentar salvar benef do cadastro rápido se nome preenchido
+        const nomeBenef = (document.getElementById('nbo-nome')?.value || '').trim();
+        if (nomeBenef && document.getElementById('s1BenefBox')?.style.display !== 'none') {
+            await _salvarBenefNovoCliente(clienteSelecionado.id);
+            await carregarBeneficios(clienteSelecionado.id);
+        }
+        irStep(2);
+        return;
     }
-    irStep(2);
+
+    // Criar novo cliente primeiro
+    msg.innerHTML = '<span style="color:var(--cor-texto-secundario)"><i class="fas fa-spinner fa-spin"></i> Salvando cliente...</span>';
+    try {
+        const nome = document.getElementById('s1NovoNome').value.trim();
+        const doc  = document.getElementById('s1NovoDoc').value.trim();
+        const tel  = document.getElementById('s1NovoTel').value.trim();
+        const r = await fetch('/api/clientes', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({nome, documento: doc, telefone: tel})
+        });
+        const d = await r.json();
+        if (!d.success) {
+            msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> ${d.message}</span>`;
+            return;
+        }
+        clienteSelecionado = d.cliente;
+        // Salvar beneficiário se preenchido
+        const nomeBenef = (document.getElementById('nbo-nome')?.value || '').trim();
+        if (nomeBenef && document.getElementById('s1BenefBox')?.style.display !== 'none') {
+            await _salvarBenefNovoCliente(d.cliente.id);
+        }
+        await carregarBeneficios(d.cliente.id);
+        msg.innerHTML = '';
+        irStep(2);
+    } catch(e) {
+        msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Erro: ${e.message}</span>`;
+    }
+}
+
+async function _salvarBenefNovoCliente(clienteId) {
+    const get = id => (document.getElementById(id)?.value || '').trim();
+    const tipoAtivo = document.querySelector('[data-nbo].active')?.dataset.nbo || 'brazil';
+    const nomeBenef = get('nbo-nome');
+    if (!nomeBenef) return;
+    let payload = {
+        tipo: tipoAtivo, nome: nomeBenef, apelido: get('nbo-apelido'),
+        endereco_linha1: get('nbo-end1'), cidade: get('nbo-cidade'),
+        postcode: get('nbo-postcode'), pais: get('nbo-pais'), relacionamento: get('nbo-rel'),
+    };
+    if (tipoAtivo === 'brazil') {
+        Object.assign(payload, {cpf:get('nbo-cpf'),banco_nome:get('nbo-banco'),agencia:get('nbo-agencia'),
+            conta:get('nbo-conta'),tipo_conta:get('nbo-tipo-conta'),pix_chave:get('nbo-pix'),pix_tipo:get('nbo-pix-tipo')});
+    } else if (tipoAtivo === 'europe') {
+        Object.assign(payload, {iban:get('nbo-iban'),bic_swift:get('nbo-swift'),banco_nome_eu:get('nbo-banco-eu'),banco_pais:get('nbo-pais-banco')});
+    } else {
+        Object.assign(payload, {routing_number:get('nbo-routing'),account_number:get('nbo-account'),
+            account_type_us:get('nbo-account-tipo'),swift_us:get('nbo-swift-us'),banco_nome_us:get('nbo-banco-us')});
+    }
+    try {
+        const rb = await fetch(`/api/clientes/${clienteId}/beneficiarios`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        const db = await rb.json();
+        if (db.success && db.beneficiario?.id) {
+            benefSelecionadoPendente = {tipo: tipoAtivo, data: db.beneficiario};
+        }
+    } catch(e) {}
 }
 
 // ── Step 2: destino, taxa, beneficiários ──
@@ -835,14 +1072,82 @@ function renderBenefList(tipo, lista) {
             : tipo === 'europe'
             ? [b.iban, b.bic_swift].filter(Boolean).join(' · ')
             : [b.routing_number, b.account_number, b.banco_nome_us].filter(Boolean).join(' · ');
-        return `<div class="benef-opt" id="bo-${b.id}" onclick="selecionarBenef('${tipo}','${b.id}',${JSON.stringify(b).replace(/"/g,'&quot;')})">
-            <div>
+        const bJson = JSON.stringify(b).replace(/"/g,'&quot;');
+        return `<div class="benef-opt" id="bo-${b.id}" onclick="selecionarBenef('${tipo}','${b.id}',${bJson})">
+            <div style="flex:1;min-width:0;">
                 <div class="nome">${b.nome} ${b.apelido?`<span style="font-weight:400;color:var(--cor-texto-secundario);">(${b.apelido})</span>`:''}</div>
                 <div class="detalhe">${detalhe}</div>
             </div>
-            <i class="fas fa-check" style="color:var(--cor-sucesso);display:none;" id="bc-${b.id}"></i>
+            <div style="display:flex;align-items:center;gap:6px;" onclick="event.stopPropagation()">
+                <button title="Editar" style="background:transparent;border:none;color:var(--cor-texto-secundario);cursor:pointer;padding:4px;" onclick="abrirEditBenef('${tipo}','${b.id}',${bJson})"><i class="fas fa-edit"></i></button>
+                <i class="fas fa-check" style="color:var(--cor-sucesso);display:none;" id="bc-${b.id}"></i>
+            </div>
         </div>`;
     }).join('');
+}
+
+function abrirEditBenef(tipo, id, data) {
+    document.getElementById('eb-id').value    = id;
+    document.getElementById('eb-tipo').value  = tipo;
+    document.getElementById('eb-nome').value  = data.nome || '';
+    document.getElementById('eb-apelido').value = data.apelido || '';
+    document.getElementById('eb-end1').value  = data.endereco_linha1 || '';
+    document.getElementById('eb-cidade').value= data.cidade || '';
+    document.getElementById('eb-postcode').value = data.postcode || '';
+    document.getElementById('eb-pais').value  = data.pais || '';
+    document.getElementById('eb-rel').value   = data.relacionamento || '';
+    // Brazil
+    document.getElementById('eb-cpf').value   = data.cpf || '';
+    document.getElementById('eb-banco').value = data.banco_nome || '';
+    document.getElementById('eb-agencia').value = data.agencia || '';
+    document.getElementById('eb-conta').value = data.conta || '';
+    document.getElementById('eb-tipo-conta').value = data.tipo_conta || 'corrente';
+    document.getElementById('eb-pix').value   = data.pix_chave || '';
+    document.getElementById('eb-pix-tipo').value = data.pix_tipo || '';
+    // Europe
+    document.getElementById('eb-iban').value  = data.iban || '';
+    document.getElementById('eb-swift').value = data.bic_swift || '';
+    document.getElementById('eb-banco-eu').value = data.banco_nome_eu || '';
+    document.getElementById('eb-pais-banco').value = data.banco_pais || '';
+    // USA
+    document.getElementById('eb-routing').value = data.routing_number || '';
+    document.getElementById('eb-account').value = data.account_number || '';
+    document.getElementById('eb-account-tipo').value = data.account_type_us || 'checking';
+    document.getElementById('eb-swift-us').value = data.swift_us || '';
+    document.getElementById('eb-banco-us').value = data.banco_nome_us || '';
+    // Show/hide sections
+    ['brazil','europe','usa'].forEach(t => document.getElementById(`eb-sec-${t}`).style.display = t === tipo ? 'block' : 'none');
+    document.getElementById('modalEditBenef').classList.add('open');
+}
+
+async function salvarEditBenef() {
+    const id   = document.getElementById('eb-id').value;
+    const tipo = document.getElementById('eb-tipo').value;
+    const get  = i => (document.getElementById(i)?.value || '').trim();
+    const payload = {
+        nome: get('eb-nome'), apelido: get('eb-apelido'),
+        endereco_linha1: get('eb-end1'), cidade: get('eb-cidade'),
+        postcode: get('eb-postcode'), pais: get('eb-pais'), relacionamento: get('eb-rel'),
+        cpf: get('eb-cpf'), banco_nome: get('eb-banco'), agencia: get('eb-agencia'),
+        conta: get('eb-conta'), tipo_conta: get('eb-tipo-conta'),
+        pix_chave: get('eb-pix'), pix_tipo: get('eb-pix-tipo'),
+        iban: get('eb-iban'), bic_swift: get('eb-swift'),
+        banco_nome_eu: get('eb-banco-eu'), banco_pais: get('eb-pais-banco'),
+        routing_number: get('eb-routing'), account_number: get('eb-account'),
+        account_type_us: get('eb-account-tipo'), swift_us: get('eb-swift-us'), banco_nome_us: get('eb-banco-us'),
+    };
+    if (!payload.nome) { toast('Nome obrigatório', 'err'); return; }
+    try {
+        const r = await fetch(`/api/beneficiarios-de-clientes/${id}`, {
+            method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+        });
+        const d = await r.json();
+        if (d.success) {
+            toast('Beneficiário atualizado!', 'ok');
+            document.getElementById('modalEditBenef').classList.remove('open');
+            if (clienteSelecionado) await carregarBeneficios(clienteSelecionado.id);
+        } else toast(d.message, 'err');
+    } catch(e) { toast('Erro de conexão', 'err'); }
 }
 
 function selecionarBenef(tipo, id, data) {
