@@ -133,6 +133,66 @@
         .toast.ok{background:var(--cor-sucesso);color:#fff;}
         .toast.err{background:var(--cor-perigo);color:#fff;}
         .toast.info{background:#9b59b6;color:#fff;}
+
+        /* ============================================ */
+        /* NOVAS CLASSES PARA VALIDADE DE DOCUMENTOS     */
+        /* ============================================ */
+        
+        /* Tags de status para documentos */
+        .tag-ok {
+            background: rgba(39, 174, 96, 0.15);
+            color: #27ae60;
+        }
+        
+        .tag-alerta {
+            background: rgba(243, 156, 18, 0.15);
+            color: #f39c12;
+        }
+        
+        .tag-perigo {
+            background: rgba(224, 27, 36, 0.15);
+            color: #e01b24;
+        }
+        
+        .tag-pendente {
+            background: rgba(128, 128, 128, 0.15);
+            color: #7f8c8d;
+        }
+        
+        /* Destaque para documento obrigatório */
+        .doc-row-obrigatorio {
+            border-left: 3px solid #e01b24;
+        }
+        
+        /* Documento expirado */
+        .doc-row-expirado {
+            background: rgba(224, 27, 36, 0.08);
+            border-left: 3px solid #e01b24;
+        }
+        
+        /* Documento próximo do vencimento */
+        .doc-row-proximo {
+            background: rgba(243, 156, 18, 0.08);
+            border-left: 3px solid #f39c12;
+        }
+        
+        /* Documento válido */
+        .doc-row-ok {
+            border-left: 3px solid #27ae60;
+        }
+        
+        /* Proof of Funds destaque */
+        .proof-funds-card {
+            background: rgba(243, 156, 18, 0.08);
+            border-left: 3px solid #f39c12;
+            margin-bottom: 8px;
+        }
+        
+        /* Ícones de status */
+        .status-icon-ok { color: #27ae60; }
+        .status-icon-alerta { color: #f39c12; }
+        .status-icon-perigo { color: #e01b24; }
+        .status-icon-pendente { color: #7f8c8d; }        
     </style>
 </head>
 <body>
@@ -536,8 +596,8 @@ async function abrirOrdem(id) {
         // 🔥 DEBUG - Remove depois que funcionar
         console.log("🔍 DADOS COMPLETOS:", data);
         console.log("📄 DOCUMENTOS CLIENTE:", data.documentos_cliente);
-        console.log("📄 DOCUMENTOS ORDEM:", data.documentos);        
-
+        console.log("📄 DOCUMENTOS ORDEM:", data.documentos);
+        console.log("📅 VALIDADE DOCUMENTOS:", data.documentos_validade);
 
         if (!data.success) {
             toast(data.message || 'Erro ao carregar ordem', 'err');
@@ -548,6 +608,7 @@ async function abrirOrdem(id) {
         const cliente = data.cliente;
         const documentos = data.documentos || [];
         const notas = data.notas || [];
+        const documentosValidade = data.documentos_validade || [];
         
         // Preencher o modal
         document.getElementById('mo-titulo').textContent = `Ordem #${ordem.id.substring(0,8)}`;
@@ -578,7 +639,7 @@ async function abrirOrdem(id) {
         document.getElementById('mo-aml').innerHTML = amlHtml;
         
         // ============================================
-        // DOCUMENTOS KYC DO CLIENTE COM BOTÕES VER
+        // DOCUMENTOS KYC DO CLIENTE COM VALIDADE
         // ============================================
         const documentosCliente = data.documentos_cliente || [];
 
@@ -589,33 +650,88 @@ async function abrirOrdem(id) {
             console.log(`📄 Documento: ${doc.tipo} - Nome: ${doc.arquivo_nome}`);
         }
 
-        const docsLabels = {
-            doc_photo_id_ok: { label: 'Documento com Foto', tipo: 'photo_id' },
-            doc_address_ok: { label: 'Comprovante de Residência', tipo: 'proof_address' },
-            doc_source_funds_ok: { label: 'Origem dos Fundos', tipo: 'source_funds' },
-            doc_declaration_ok: { label: 'Declaração', tipo: 'declaration' },
-            doc_edd_ok: { label: 'EDD', tipo: 'edd' }
-        };
+        // Mapear validade por tipo
+        const validadePorTipo = {};
+        for (const docVal of documentosValidade) {
+            validadePorTipo[docVal.tipo] = docVal;
+        }
+
+        // Configuração dos documentos que serão exibidos
+        const docsConfig = [
+            { campo: 'doc_photo_id_ok', tipo: 'photo_id', label: 'Documento com Foto', obrigatorio: true },
+            { campo: 'doc_address_ok', tipo: 'proof_address', label: 'Comprovante de Residência', obrigatorio: true },
+            { campo: 'doc_declaration_ok', tipo: 'declaration', label: 'Declaração', obrigatorio: false },
+            { campo: 'doc_edd_ok', tipo: 'edd', label: 'EDD', obrigatorio: false }
+        ];
+
+        // Função para obter o texto do status
+        function getStatusText(status, validade, diasRestantes) {
+            switch(status) {
+                case 'expirado':
+                    return `Expirado em ${validade}`;
+                case 'proximo':
+                    return `Vence em ${diasRestantes} dias (${validade})`;
+                case 'ok':
+                    return `Válido até ${validade}`;
+                case 'nao_enviado':
+                    return 'Não enviado';
+                default:
+                    return 'Pendente';
+            }
+        }
 
         let docsHtml = '';
         if (cliente) {
-            for (const [campo, info] of Object.entries(docsLabels)) {
-                const isOk = cliente[campo] === true;
-                const doc = docsPorTipo[info.tipo];
+            for (const config of docsConfig) {
+                const isOk = cliente[config.campo] === true;
+                const validadeInfo = validadePorTipo[config.tipo];
+                const status = validadeInfo ? validadeInfo.status : (isOk ? 'ok' : 'nao_enviado');
+                const validadeText = validadeInfo ? validadeInfo.validade : null;
+                const diasRestantes = validadeInfo ? validadeInfo.dias_restantes : null;
+                
+                // Buscar documento para o botão Ver
+                const doc = docsPorTipo[config.tipo];
                 const temDocumento = !!doc;
                 
-                // 🔥 Construir URL para visualização (usando o storage público ou gerar signed URL)
+                // Construir URL para visualização
                 let docUrl = '';
                 if (temDocumento && doc.arquivo_url) {
-                    // Tenta gerar signed URL via endpoint do backend
                     docUrl = `/api/storage/signed-url?path=${encodeURIComponent(doc.arquivo_url)}`;
+                }
+                
+                // Determinar cor e ícone do status
+                let statusColor = '';
+                let statusIcon = '';
+                let statusText = '';
+                
+                if (status === 'expirado') {
+                    statusColor = 'var(--cor-perigo)';
+                    statusIcon = '<i class="fas fa-exclamation-triangle"></i>';
+                    statusText = getStatusText(status, validadeText, diasRestantes);
+                } else if (status === 'proximo') {
+                    statusColor = 'var(--cor-alerta)';
+                    statusIcon = '<i class="fas fa-clock"></i>';
+                    statusText = getStatusText(status, validadeText, diasRestantes);
+                } else if (status === 'ok') {
+                    statusColor = 'var(--cor-sucesso)';
+                    statusIcon = '<i class="fas fa-check-circle"></i>';
+                    statusText = getStatusText(status, validadeText, diasRestantes);
+                } else {
+                    statusColor = 'var(--cor-texto-secundario)';
+                    statusIcon = '<i class="fas fa-times-circle"></i>';
+                    statusText = getStatusText(status, validadeText, diasRestantes);
                 }
                 
                 docsHtml += `
                     <div class="doc-row" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--cor-borda);">
-                        <span style="flex: 1; font-size: 13px;">${info.label}</span>
+                        <span style="flex: 1; font-size: 13px; font-weight: 500;">
+                            ${config.label}
+                            ${config.obrigatorio ? '<span style="color:var(--cor-perigo); font-size: 10px;">*</span>' : ''}
+                        </span>
                         <div style="display: flex; align-items: center; gap: 15px;">
-                            <span style="font-size: 12px;">${isOk ? '<i class="fas fa-check-circle" style="color:var(--cor-sucesso)"></i> OK' : '<i class="fas fa-times-circle" style="color:var(--cor-texto-secundario)"></i> Pendente'}</span>
+                            <span style="font-size: 12px; color: ${statusColor};">
+                                ${statusIcon} ${statusText}
+                            </span>
                             ${temDocumento && doc.arquivo_url ? `<button class="btn-act" onclick="verDocumento('${doc.arquivo_url}')" style="padding: 4px 12px; font-size: 11px; cursor: pointer;"><i class="fas fa-eye"></i> Ver</button>` : '<span style="font-size: 11px; color: var(--cor-texto-secundario);">Sem arquivo</span>'}
                         </div>
                     </div>
@@ -628,20 +744,27 @@ async function abrirOrdem(id) {
         document.getElementById('mo-docs').innerHTML = docsHtml;
         
         // ============================================
-        // DOCUMENTOS DA ORDEM (Proof of Funds)
+        // DOCUMENTOS DA ORDEM (Proof of Funds e suportes)
         // ============================================
         const ordemDocsHtml = documentos.length ? documentos.map(doc => {
             // Pular documentos KYC (já mostrados acima)
-            const tiposKYC = ['photo_id', 'proof_address', 'source_funds', 'declaration', 'edd'];
+            const tiposKYC = ['photo_id', 'proof_address', 'declaration', 'edd'];
             if (tiposKYC.includes(doc.tipo)) return '';
             
             const nome = doc.arquivo_nome || (doc.arquivo_url ? doc.arquivo_url.split('/').pop() : 'documento');
             const data = doc.created_at ? new Date(doc.created_at).toLocaleString('pt-BR') : '';
             const url = doc.signed_url || doc.arquivo_url;
-            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;background:rgba(128,128,128,.06);border-radius:6px;margin-bottom:4px;">
+            
+            // Se for proof_of_funds_ordem, mostrar destaque
+            const isProofOfFunds = doc.tipo === 'proof_of_funds_ordem';
+            const borderColor = isProofOfFunds ? 'var(--cor-alerta)' : 'rgba(128,128,128,.06)';
+            const iconColor = isProofOfFunds ? 'var(--cor-alerta)' : 'var(--cor-admin)';
+            const titlePrefix = isProofOfFunds ? '📋 PROOF OF FUNDS - ' : '';
+            
+            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:${borderColor};border-radius:6px;margin-bottom:6px;border-left: 3px solid ${borderColor};">
                 <div style="overflow:hidden;">
                     <div style="font-weight:600;font-size:12px;" title="${nome}">
-                        <i class="fas fa-file-alt" style="color:var(--cor-admin);margin-right:4px;"></i>${nome.substring(0, 50)}
+                        <i class="fas fa-file-alt" style="color:${iconColor};margin-right:8px;"></i>${titlePrefix}${nome.substring(0, 50)}
                     </div>
                     <div style="font-size:11px;color:var(--cor-texto-secundario);">${doc.tipo || 'Documento'} — ${data}</div>
                     ${doc.observacao ? `<div style="font-size:11px;color:var(--cor-texto-secundario);font-style:italic;">${doc.observacao}</div>` : ''}
@@ -652,7 +775,9 @@ async function abrirOrdem(id) {
         
         document.getElementById('mo-ordem-docs').innerHTML = ordemDocsHtml;
         
-        // Notas de compliance
+        // ============================================
+        // NOTAS DE COMPLIANCE
+        // ============================================
         const notasHtml = notas.length ? notas.map(n => `
             <div class="nota-item">
                 ${n.nota}
@@ -690,13 +815,7 @@ async function abrirOrdem(id) {
 
 async function verDocumento(caminho) {
     try {
-        // Mostrar loading (opcional)
-        const btn = event?.target;
-        if (btn) {
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando...';
-            btn.disabled = true;
-        }
-        
+        // Mostrar loading no botão (opcional)
         const response = await fetch(`/api/storage/signed-url?path=${encodeURIComponent(caminho)}`);
         const data = await response.json();
         
@@ -708,12 +827,6 @@ async function verDocumento(caminho) {
     } catch (error) {
         console.error('Erro ao abrir documento:', error);
         toast('Erro ao abrir documento', 'err');
-    } finally {
-        // Restaurar botão (opcional)
-        if (btn) {
-            btn.innerHTML = '<i class="fas fa-eye"></i> Ver';
-            btn.disabled = false;
-        }
     }
 }
 

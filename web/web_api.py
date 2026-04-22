@@ -61,6 +61,115 @@ except Exception as e:
     traceback.print_exc()
     supabase = None
 
+# ============================================
+# FUNÇÃO DE VALIDAÇÃO DE DOCUMENTOS
+# ============================================
+
+def verificar_documentos_validos(cliente_id):
+    """
+    Verifica se os documentos do cliente estão dentro da validade.
+    Retorna: (status, mensagem, documentos_expirados)
+    """
+    from datetime import datetime, date
+    
+    try:
+        # Buscar cliente
+        r = supabase.table('clientes_varejo').select('*').eq('id', cliente_id).execute()
+        if not r.data:
+            return False, "Cliente não encontrado", []
+        
+        cliente = r.data[0]
+        hoje = date.today()
+        documentos_expirados = []
+        
+        # 1. Verificar Documento com Foto (ID)
+        if cliente.get('doc_photo_id_ok'):
+            data_validade = cliente.get('doc_photo_id_validade')
+            if data_validade:
+                if isinstance(data_validade, str):
+                    from datetime import datetime
+                    data_validade = datetime.strptime(data_validade, '%Y-%m-%d').date()
+                
+                if data_validade < hoje:
+                    documentos_expirados.append({
+                        'tipo': 'photo_id',
+                        'nome': 'Documento com Foto',
+                        'validade': data_validade.strftime('%d/%m/%Y'),
+                        'status': 'expirado'
+                    })
+        else:
+            documentos_expirados.append({
+                'tipo': 'photo_id',
+                'nome': 'Documento com Foto',
+                'validade': None,
+                'status': 'pendente'
+            })
+        
+        # 2. Verificar Comprovante de Endereço
+        if cliente.get('doc_address_ok'):
+            data_validade = cliente.get('doc_address_validade')
+            if data_validade:
+                if isinstance(data_validade, str):
+                    data_validade = datetime.strptime(data_validade, '%Y-%m-%d').date()
+                
+                if data_validade < hoje:
+                    documentos_expirados.append({
+                        'tipo': 'proof_address',
+                        'nome': 'Comprovante de Endereço',
+                        'validade': data_validade.strftime('%d/%m/%Y'),
+                        'status': 'expirado'
+                    })
+        else:
+            documentos_expirados.append({
+                'tipo': 'proof_address',
+                'nome': 'Comprovante de Endereço',
+                'validade': None,
+                'status': 'pendente'
+            })
+        
+        # 3. Verificar Declaração (se existir)
+        if cliente.get('doc_declaration_ok'):
+            data_validade = cliente.get('doc_declaration_validade')
+            if data_validade:
+                if isinstance(data_validade, str):
+                    data_validade = datetime.strptime(data_validade, '%Y-%m-%d').date()
+                
+                if data_validade < hoje:
+                    documentos_expirados.append({
+                        'tipo': 'declaration',
+                        'nome': 'Declaração',
+                        'validade': data_validade.strftime('%d/%m/%Y'),
+                        'status': 'expirado'
+                    })
+        
+        # 4. Verificar EDD (se existir)
+        if cliente.get('doc_edd_ok'):
+            data_validade = cliente.get('doc_edd_validade')
+            if data_validade:
+                if isinstance(data_validade, str):
+                    data_validade = datetime.strptime(data_validade, '%Y-%m-%d').date()
+                
+                if data_validade < hoje:
+                    documentos_expirados.append({
+                        'tipo': 'edd',
+                        'nome': 'EDD',
+                        'validade': data_validade.strftime('%d/%m/%Y'),
+                        'status': 'expirado'
+                    })
+        
+        # Verificar se há documentos obrigatórios pendentes ou expirados
+        documentos_obrigatorios = ['photo_id', 'proof_address']
+        for doc in documentos_expirados:
+            if doc['tipo'] in documentos_obrigatorios:
+                return False, f"Documento obrigatório {doc['nome']} está {doc['status']}", documentos_expirados
+        
+        return True, "Documentos válidos", documentos_expirados
+        
+    except Exception as e:
+        print(f"❌ Erro ao verificar documentos: {e}")
+        return False, f"Erro na verificação: {str(e)}", []
+
+
 # Cria app Flask
 app = Flask(__name__)
 CORS(app)  # Permite conexão do frontend
@@ -10971,6 +11080,16 @@ def loja_nova_ordem():
             if ins.data:
                 cliente_id = str(ins.data[0]['id'])
 
+        # 🔥 VERIFICAR DOCUMENTOS DO CLIENTE (se cliente_id existe)
+        if cliente_id:
+            docs_validos, msg_docs, docs_expirados = verificar_documentos_validos(cliente_id)
+            if not docs_validos:
+                return jsonify({
+                    'success': False, 
+                    'message': f"❌ Cliente com pendência documental: {msg_docs}",
+                    'documentos_pendentes': docs_expirados
+                }), 403
+
         # AML / KYC check
         aml_alertas = []
         kyc_level_na_ordem = 0
@@ -12194,6 +12313,8 @@ def compliance_ordem_detalhes(ordem_id):
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     
     try:
+        from datetime import datetime, date
+        
         # Buscar ordem
         r = supabase.table('ordens_captacao').select('*').eq('id', ordem_id).execute()
         if not r.data:
@@ -12216,7 +12337,7 @@ def compliance_ordem_detalhes(ordem_id):
             if c.data:
                 cliente = c.data[0]
                 
-                # 🔥 Buscar documentos KYC do cliente (documentos_kyc com cliente_id)
+                # Buscar documentos KYC do cliente (documentos_kyc com cliente_id)
                 docs_cliente = supabase.table('documentos_kyc')\
                     .select('*')\
                     .eq('cliente_id', ordem['cliente_id'])\
@@ -12233,6 +12354,86 @@ def compliance_ordem_detalhes(ordem_id):
                             print(f"⚠️ Erro ao gerar URL para {caminho}: {e}")
                             doc['signed_url'] = ''
                     documentos_cliente.append(doc)
+        
+        # ============================================
+        # VALIDADE DOS DOCUMENTOS (NOVO)
+        # ============================================
+        documentos_validade = []
+        if cliente:
+            hoje = date.today()
+            
+            # Documento com Foto
+            if cliente.get('doc_photo_id_validade'):
+                validade = cliente.get('doc_photo_id_validade')
+                if isinstance(validade, str):
+                    validade = datetime.strptime(validade, '%Y-%m-%d').date()
+                dias_restantes = (validade - hoje).days
+                documentos_validade.append({
+                    'tipo': 'photo_id',
+                    'nome': 'Documento com Foto',
+                    'validade': validade.strftime('%d/%m/%Y'),
+                    'dias_restantes': dias_restantes,
+                    'status': 'ok' if dias_restantes > 30 else 'proximo' if dias_restantes > 0 else 'expirado'
+                })
+            else:
+                documentos_validade.append({
+                    'tipo': 'photo_id',
+                    'nome': 'Documento com Foto',
+                    'validade': None,
+                    'dias_restantes': None,
+                    'status': 'nao_enviado'
+                })
+            
+            # Comprovante de Endereço
+            if cliente.get('doc_address_validade'):
+                validade = cliente.get('doc_address_validade')
+                if isinstance(validade, str):
+                    validade = datetime.strptime(validade, '%Y-%m-%d').date()
+                dias_restantes = (validade - hoje).days
+                documentos_validade.append({
+                    'tipo': 'proof_address',
+                    'nome': 'Comprovante de Endereço',
+                    'validade': validade.strftime('%d/%m/%Y'),
+                    'dias_restantes': dias_restantes,
+                    'status': 'ok' if dias_restantes > 30 else 'proximo' if dias_restantes > 0 else 'expirado'
+                })
+            else:
+                documentos_validade.append({
+                    'tipo': 'proof_address',
+                    'nome': 'Comprovante de Endereço',
+                    'validade': None,
+                    'dias_restantes': None,
+                    'status': 'nao_enviado'
+                })
+            
+            # Declaração (se existir)
+            if cliente.get('doc_declaration_validade'):
+                validade = cliente.get('doc_declaration_validade')
+                if isinstance(validade, str):
+                    validade = datetime.strptime(validade, '%Y-%m-%d').date()
+                dias_restantes = (validade - hoje).days
+                documentos_validade.append({
+                    'tipo': 'declaration',
+                    'nome': 'Declaração',
+                    'validade': validade.strftime('%d/%m/%Y'),
+                    'dias_restantes': dias_restantes,
+                    'status': 'ok' if dias_restantes > 30 else 'proximo' if dias_restantes > 0 else 'expirado'
+                })
+            
+            # EDD (se existir)
+            if cliente.get('doc_edd_validade'):
+                validade = cliente.get('doc_edd_validade')
+                if isinstance(validade, str):
+                    validade = datetime.strptime(validade, '%Y-%m-%d').date()
+                dias_restantes = (validade - hoje).days
+                documentos_validade.append({
+                    'tipo': 'edd',
+                    'nome': 'EDD',
+                    'validade': validade.strftime('%d/%m/%Y'),
+                    'dias_restantes': dias_restantes,
+                    'status': 'ok' if dias_restantes > 30 else 'proximo' if dias_restantes > 0 else 'expirado'
+                })
+        # ============================================
         
         # Processar documentos da ordem com URLs assinadas
         documentos_ordem_com_url = []
@@ -12258,7 +12459,8 @@ def compliance_ordem_detalhes(ordem_id):
             'ordem': ordem,
             'cliente': cliente,
             'documentos': documentos_ordem_com_url,
-            'documentos_cliente': documentos_cliente,  # 🔥 NOVO: documentos KYC do cliente
+            'documentos_cliente': documentos_cliente,
+            'documentos_validade': documentos_validade,  # 🔥 NOVO
             'notas': notas
         })
         
