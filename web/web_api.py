@@ -11214,8 +11214,8 @@ def loja_nova_ordem():
         ins_ordem = supabase.table('ordens_captacao').insert(ordem).execute()
         ordem_id  = str(ins_ordem.data[0]['id']) if ins_ordem.data else None
 
-        # Cash/cartão: creditar conta empresa imediatamente
-        if status == 'liberada' and conta_emp:
+        # Cash/cartão: creditar conta empresa imediatamente (o dinheiro já entrou)
+        if forma != 'transferencia' and conta_emp and valor_e > 0:
             r_ct = supabase.table('contas_bancarias_empresa').select('saldo').eq('numero', conta_emp).single().execute()
             if r_ct.data:
                 novo = float(r_ct.data['saldo'] or 0) + valor_e
@@ -11231,6 +11231,7 @@ def loja_nova_ordem():
                     'executado_por': usuario,
                     'created_at': datetime.now().isoformat()
                 }).execute()
+                print(f"💰 Crédito de {valor_e} {moeda_e} na conta {conta_emp} para ordem {ordem_id}")
 
         msg = f'Ordem criada — {valor_e} {moeda_e} → {valor_s} {moeda_s}'
         return jsonify({'success': True, 'message': msg, 'ordem_id': ordem_id,
