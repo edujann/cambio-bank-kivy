@@ -10965,10 +10965,15 @@ def _check_loja_acesso():
     usuario = session.get('username')
     if not usuario:
         return None, None, redirect('/login')
-    tipo = session.get('tipo', 'cliente')
-    if tipo not in ['loja', 'admin']:
+    try:
+        r = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        tipo = r.data.get('tipo') if r.data else None
+        # 🔥 ADICIONAR 'compliance' PERMITIDO
+        if tipo not in ('loja', 'admin', 'compliance'):
+            return None, None, redirect('/login')
+        return usuario, tipo, None
+    except Exception:
         return None, None, redirect('/login')
-    return usuario, tipo, None
 
 
 @app.route('/loja/dashboard')
@@ -11482,18 +11487,29 @@ HIGH_RISK_COUNTRIES = {
 }
 
 AML_TIERS = [
-    (850,   0, ['basic_info']),
-    (2500,  1, ['photo_id', 'proof_address']),
-    (3500,  2, ['photo_id', 'proof_address', 'source_funds']),
-    (5000,  3, ['photo_id', 'proof_address', 'source_funds', 'declaration', 'edd']),
-    (99999, 4, ['photo_id', 'proof_address', 'source_funds', 'declaration', 'edd']),
+    (850,   0, ['basic_info', 'photo_id']),
+    (2500,  1, ['basic_info', 'photo_id', 'proof_address']),
+    (3500,  2, ['basic_info', 'photo_id', 'proof_address', 'source_funds']),
+    (5000,  3, ['basic_info', 'photo_id', 'proof_address', 'source_funds', 'declaration', 'edd']),
+    (99999, 4, ['basic_info', 'photo_id', 'proof_address', 'source_funds', 'declaration', 'edd']),
 ]
 
 def _aml_required_tier(total_90d):
-    for thr, level, docs in AML_TIERS:
-        if total_90d <= thr:
-            return level, docs
-    return 4, AML_TIERS[-1][2]
+    # Tier 0: ≤ 850 → Basic info + Photo ID
+    if total_90d <= 850:
+        return 0, ['basic_info', 'photo_id']
+    # Tier 1: ≤ 2500 → + Proof of Address
+    elif total_90d <= 2500:
+        return 1, ['basic_info', 'photo_id', 'proof_address']
+    # Tier 2: ≤ 3500 → + Source of Funds
+    elif total_90d <= 3500:
+        return 2, ['basic_info', 'photo_id', 'proof_address', 'source_funds']
+    # Tier 3: ≤ 5000 → + Declaration + EDD
+    elif total_90d <= 5000:
+        return 3, ['basic_info', 'photo_id', 'proof_address', 'source_funds', 'declaration', 'edd']
+    # Tier 4: > 5000 → Todos + EDD Contínuo
+    else:
+        return 4, ['basic_info', 'photo_id', 'proof_address', 'source_funds', 'declaration', 'edd']
 
 def _aml_calc_90d(cliente_id):
     from datetime import datetime, timedelta
@@ -11673,6 +11689,10 @@ def clientes_kyc_check(cliente_id):
         else:
             valor_gbp = valor
         aml = _aml_check_order(cliente_id, valor_gbp)
+        print(f"🔍 [KYC DEBUG] cliente_id={cliente_id}")
+        print(f"🔍 [KYC DEBUG] valor_gbp={valor_gbp}")
+        print(f"🔍 [KYC DEBUG] aml total_90d={aml.get('total_90d')}")
+        print(f"🔍 [KYC DEBUG] aml docs_required={aml.get('docs_required')}")        
         r = supabase.table('clientes_varejo')\
             .select('kyc_level,doc_photo_id_ok,doc_address_ok,doc_source_funds_ok,doc_declaration_ok,doc_edd_ok,pep_flag,sanctions_flag,risk_score')\
             .eq('id', cliente_id).single().execute()
@@ -12171,12 +12191,14 @@ def compliance_alterar_limite(cliente_id):
 
 @app.route('/api/compliance/clientes/docs-pendentes', methods=['GET'])
 def compliance_clientes_docs_pendentes():
-    """Retorna clientes com documentação KYC pendente"""
+    """Retorna clientes com documentação KYC pendente (baseado no Tier AML)"""
     usuario, tipo, redir = _check_compliance_acesso()
     if redir:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     
     try:
+        from datetime import date, timedelta
+        
         # Buscar todos os clientes
         r = supabase.table('clientes_varejo')\
             .select('*')\
@@ -12186,27 +12208,38 @@ def compliance_clientes_docs_pendentes():
         
         clientes = []
         for c in (r.data or []):
-            # Verificar quais documentos estão faltando
+            # Calcular o Tier do cliente baseado no total_90d
+            # Primeiro, calcular o total_90d para este cliente
+            total_90d = _aml_calc_90d(c.get('id'))
+            
+            # Determinar o nível e documentos exigidos
+            level, docs_required = _aml_required_tier(total_90d)
+            
+            # Verificar quais documentos EXIGIDOS estão faltando
             docs_faltando = []
+            for doc in docs_required:
+                if doc == 'basic_info':
+                    continue  # Basic info sempre é considerado OK (dados do cadastro)
+                elif doc == 'photo_id' and not c.get('doc_photo_id_ok'):
+                    docs_faltando.append('photo_id')
+                elif doc == 'proof_address' and not c.get('doc_address_ok'):
+                    docs_faltando.append('proof_address')
+                elif doc == 'source_funds' and not c.get('doc_source_funds_ok'):
+                    docs_faltando.append('source_funds')
+                elif doc == 'declaration' and not c.get('doc_declaration_ok'):
+                    docs_faltando.append('declaration')
+                elif doc == 'edd' and not c.get('doc_edd_ok'):
+                    docs_faltando.append('edd')
             
-            if not c.get('doc_photo_id_ok'):
-                docs_faltando.append('photo_id')
-            if not c.get('doc_address_ok'):
-                docs_faltando.append('proof_address')
-            if not c.get('doc_source_funds_ok'):
-                docs_faltando.append('source_funds')
-            if not c.get('doc_declaration_ok'):
-                docs_faltando.append('declaration')
-            if not c.get('doc_edd_ok'):
-                docs_faltando.append('edd')
-            
-            # Se tiver documentos faltando, incluir na lista
+            # Se tiver documentos exigidos faltando, incluir na lista
             if docs_faltando:
                 c['kyc_docs_status'] = 'pendente'
                 c['docs_faltando'] = docs_faltando
+                c['kyc_level'] = level
+                c['total_90d'] = total_90d
                 clientes.append(c)
         
-        print(f"🔍 [DOCS PENDENTES] Encontrados {len(clientes)} clientes com documentação pendente")
+        print(f"🔍 [DOCS PENDENTES] Encontrados {len(clientes)} clientes com documentação pendente (baseado no Tier)")
         
         return jsonify({
             'success': True,

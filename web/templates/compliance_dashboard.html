@@ -192,7 +192,180 @@
         .status-icon-ok { color: #27ae60; }
         .status-icon-alerta { color: #f39c12; }
         .status-icon-perigo { color: #e01b24; }
-        .status-icon-pendente { color: #7f8c8d; }        
+        .status-icon-pendente { color: #7f8c8d; }   
+        
+        .info-grid-detalhe {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .info-grid-detalhe .full-width {
+            grid-column: span 2;
+        }
+
+        .docs-status {
+            background: rgba(128, 128, 128, 0.05);
+            border-radius: 8px;
+            padding: 8px;
+        }
+
+        .doc-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+
+        .doc-row:last-child {
+            border-bottom: none;
+        }
+        
+        /* ============================================
+        MODAL DE DETALHES DO CLIENTE (COMPLIANCE)
+        ============================================ */
+
+        .aml-panel {
+            background: rgba(128,128,128,.05);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+        }
+
+        .aml-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(128,128,128,.1);
+        }
+
+        .aml-row:last-child {
+            border-bottom: none;
+        }
+
+        .doc-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .doc-item {
+            background: rgba(128,128,128,.04);
+            border: 1px solid var(--cor-borda);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .doc-item.ok {
+            border-left: 3px solid var(--cor-sucesso);
+        }
+
+        .doc-item.missing {
+            border-left: 3px solid var(--cor-alerta);
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .detail-item {
+            background: rgba(128,128,128,.04);
+            border-radius: 6px;
+            padding: 8px 12px;
+        }
+
+        .detail-item label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--cor-texto-secundario);
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .detail-item span {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--cor-texto);
+        }
+
+        .orders-mini {
+            width: 100%;
+            font-size: 12px;
+        }
+
+        .orders-mini th,
+        .orders-mini td {
+            padding: 6px 8px;
+            text-align: left;
+        }
+
+        .badge-ok {
+            background: rgba(46,194,126,.15);
+            color: var(--cor-sucesso);
+        }
+
+        .badge-warn {
+            background: rgba(243,156,18,.15);
+            color: var(--cor-alerta);
+        }
+
+        .badge-danger {
+            background: rgba(224,27,36,.15);
+            color: var(--cor-perigo);
+        }
+
+        .btn-primary.btn-sm,
+        .btn-ghost.btn-sm {
+            padding: 2px 8px;
+            font-size: 11px;
+        }    
+        
+        /* MODAL - VERSÃO FORÇADA */
+        .modal-ov {
+            display: none !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            background: rgba(0, 0, 0, 0.7) !important;
+            z-index: 999999 !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        .modal-ov.open {
+            display: flex !important;
+        }
+
+        .modal-ov .modal {
+            background: var(--cor-card) !important;
+            border-radius: 12px !important;
+            width: 90% !important;
+            max-width: 780px !important;
+            max-height: 90vh !important;
+            overflow-y: auto !important;
+        }
+
+        .modal-ov .modal h3 {
+            color: var(--cor-texto);
+        }
+
+        .modal-ov .modal .modal-body {
+            color: var(--cor-texto);
+        }
+
+        .modal-ov .close-btn {
+            color: var(--cor-texto-secundario);
+        }       
+
     </style>
 </head>
 <body>
@@ -293,10 +466,20 @@
             </div>
             <div class="tbl-wrap">
                 <table>
-                    <thead><tr>
-                        <th>Nome</th><th>Documento</th><th>Risco</th><th>Tier KYC</th><th>Status Docs</th><th>Cadastro</th><th></th>
-                    </tr></thead>
-                    <tbody id="tbDocs"><tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i><br>Carregando...</td></tr></tbody>
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Documento</th>
+                            <th>Risco</th>
+                            <th>Tier KYC</th>
+                            <th>Status Docs</th>
+                            <th>Cadastro</th>
+                            <th>Ações</th>  <!-- 🔥 NOVA COLUNA -->
+                        </tr>
+                    </thead>
+                    <tbody id="tbDocs">
+                        <tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i><br>Carregando...</td></tr>
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -450,23 +633,117 @@
 
 <!-- Modal: Novo SAR -->
 <div class="modal-ov" id="modalSAR">
-<div class="modal">
-    <h3><i class="fas fa-exclamation-triangle c-am"></i> Novo SAR</h3>
-    <div class="form-group">
-        <label>ID do Cliente (opcional)</label>
-        <input type="number" id="sar-cliente-id" placeholder="ID do cliente relacionado">
+    <div class="modal">
+        <h3><i class="fas fa-exclamation-triangle c-am"></i> Novo SAR</h3>
+        <div class="form-group">
+            <label>ID do Cliente (opcional)</label>
+            <input type="number" id="sar-cliente-id" placeholder="ID do cliente relacionado">
+        </div>
+        <div class="form-group">
+            <label>Valor Suspeito (BRL)</label>
+            <input type="number" id="sar-valor" placeholder="0.00">
+        </div>
+        <div class="form-group">
+            <label>Descrição da Atividade Suspeita *</label>
+            <textarea id="sar-desc" placeholder="Descreva detalhadamente a atividade suspeita..." style="min-height:120px;"></textarea>
+        </div>
+        <div class="modal-acts">
+            <button class="btn-ghost" onclick="fecharModal('modalSAR')">Cancelar</button>
+            <button class="btn-primary" onclick="criarSAR()"><i class="fas fa-file-alt"></i> Criar SAR</button>
+        </div>
     </div>
-    <div class="form-group">
-        <label>Valor Suspeito (BRL)</label>
-        <input type="number" id="sar-valor" placeholder="0.00">
+</div>
+
+<!-- Modal: Detalhe do Cliente (Compliance) -->
+<div class="modal-ov" id="modalDetalheCliente">
+    <div class="modal" style="background: var(--cor-card); border-radius: 12px; width: 90%; max-width: 780px; max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--cor-borda);">
+            <h3 id="detalheClienteNome" style="margin: 0; color: var(--cor-texto);"><i class="fas fa-user"></i> Carregando...</h3>
+            <button onclick="fecharModal('modalDetalheCliente')" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--cor-texto-secundario);">&times;</button>
+        </div>
+        <div id="detalheClienteBody" style="padding: 20px; color: var(--cor-texto);">
+            <div style="text-align:center; padding:30px;">
+                <i class="fas fa-spinner fa-spin"></i> Carregando...
+            </div>
+        </div>
     </div>
-    <div class="form-group">
-        <label>Descrição da Atividade Suspeita *</label>
-        <textarea id="sar-desc" placeholder="Descreva detalhadamente a atividade suspeita..." style="min-height:120px;"></textarea>
-    </div>
-    <div class="modal-acts">
-        <button class="btn-ghost" onclick="fecharModal('modalSAR')">Cancelar</button>
-        <button class="btn-primary" onclick="criarSAR()"><i class="fas fa-file-alt"></i> Criar SAR</button>
+</div>
+
+<!-- Modal: Editar Beneficiário (Compliance) -->
+<div class="modal-ov" id="modalEditBenefCompliance" style="z-index:2000;">
+    <div class="modal" style="max-width:620px;max-height:90vh;overflow-y:auto;">
+        <div class="modal-hd">
+            <h3><i class="fas fa-edit"></i> Editar Beneficiário — <span id="ebc-tipo-label"></span></h3>
+            <button class="close-btn" onclick="fecharModal('modalEditBenefCompliance')"><i class="fas fa-times"></i></button>
+        </div>
+        <input type="hidden" id="ebc-id">
+        <input type="hidden" id="ebc-tipo">
+        <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="form-group form-full"><label>Nome Completo *</label><input id="ebc-nome" type="text" class="form-control" style="width:100%;"></div>
+            <div class="form-group form-full"><label>Apelido</label><input id="ebc-apelido" type="text" class="form-control" placeholder="Ex: João - Nubank"></div>
+            <div class="form-group"><label>Endereço Linha 1</label><input id="ebc-end1" type="text" class="form-control"></div>
+            <div class="form-group"><label>Endereço Linha 2</label><input id="ebc-end2" type="text" class="form-control"></div>
+            <div class="form-group"><label>Cidade</label><input id="ebc-cidade" type="text" class="form-control"></div>
+            <div class="form-group"><label>CEP / Postcode</label><input id="ebc-postcode" type="text" class="form-control"></div>
+            <div class="form-group form-full"><label>País</label><input id="ebc-pais" type="text" class="form-control"></div>
+            <div class="form-group form-full">
+                <label>Relacionamento</label>
+                <select id="ebc-rel" class="form-control">
+                    <option value="">—</option>
+                    <option value="proprio">Próprio</option>
+                    <option value="familiar">Familiar</option>
+                    <option value="amigo">Amigo</option>
+                    <option value="negocio">Negócio</option>
+                </select>
+            </div>
+        </div>
+        <!-- Brasil -->
+        <div id="ebc-sec-brazil">
+            <p class="section-label" style="margin-top:12px;">Dados Bancários Brasil</p>
+            <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="form-group"><label>CPF</label><input id="ebc-cpf" type="text" class="form-control" placeholder="000.000.000-00"></div>
+                <div class="form-group"><label>Banco</label><input id="ebc-banco" type="text" class="form-control"></div>
+                <div class="form-group"><label>Agência</label><input id="ebc-agencia" type="text" class="form-control"></div>
+                <div class="form-group"><label>Conta</label><input id="ebc-conta" type="text" class="form-control"></div>
+                <div class="form-group">
+                    <label>Tipo Conta</label>
+                    <select id="ebc-tipo-conta" class="form-control"><option value="corrente">Corrente</option><option value="poupanca">Poupança</option></select>
+                </div>
+                <div class="form-group"><label>Chave PIX</label><input id="ebc-pix" type="text" class="form-control"></div>
+                <div class="form-group">
+                    <label>Tipo PIX</label>
+                    <select id="ebc-pix-tipo" class="form-control"><option value="">—</option><option value="cpf">CPF</option><option value="email">Email</option><option value="telefone">Telefone</option><option value="aleatoria">Aleatória</option></select>
+                </div>
+            </div>
+        </div>
+        <!-- Europa -->
+        <div id="ebc-sec-europe" style="display:none;">
+            <p class="section-label" style="margin-top:12px;">Dados Bancários Europa</p>
+            <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="form-group form-full"><label>IBAN</label><input id="ebc-iban" type="text" class="form-control"></div>
+                <div class="form-group"><label>BIC / SWIFT</label><input id="ebc-bic" type="text" class="form-control"></div>
+                <div class="form-group"><label>Banco</label><input id="ebc-banco-eu" type="text" class="form-control"></div>
+                <div class="form-group"><label>País do Banco</label><input id="ebc-pais-eu" type="text" class="form-control"></div>
+            </div>
+        </div>
+        <!-- USA -->
+        <div id="ebc-sec-usa" style="display:none;">
+            <p class="section-label" style="margin-top:12px;">Dados Bancários USA</p>
+            <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="form-group"><label>Routing Number</label><input id="ebc-routing" type="text" class="form-control"></div>
+                <div class="form-group"><label>Account Number</label><input id="ebc-account" type="text" class="form-control"></div>
+                <div class="form-group">
+                    <label>Tipo Conta</label>
+                    <select id="ebc-account-tipo" class="form-control"><option value="checking">Checking</option><option value="savings">Savings</option></select>
+                </div>
+                <div class="form-group"><label>SWIFT</label><input id="ebc-swift-us" type="text" class="form-control"></div>
+                <div class="form-group"><label>Banco</label><input id="ebc-banco-us" type="text" class="form-control"></div>
+            </div>
+        </div>
+        <div class="modal-footer" style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px; padding-top:12px; border-top:1px solid var(--cor-borda);">
+            <button class="btn-ghost" onclick="fecharModal('modalEditBenefCompliance')">Cancelar</button>
+            <button class="btn-primary" onclick="salvarEditBenefCompliance()"><i class="fas fa-save"></i> Salvar</button>
+        </div>
     </div>
 </div>
 </div>
@@ -973,47 +1250,55 @@ async function adicionarNota() {
 // ─── DOCS PENDENTES ──────────────────────────────
 async function carregarDocsPendentes() {
     const tb = document.getElementById('tbDocs');
-    tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    tb.innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
     try {
-        const r = await fetch('/api/compliance/clientes/docs-pendentes').then(res => res.json());
-        const list = r.clientes || [];
+        const r = await fetch('/api/compliance/clientes/docs-pendentes').then(r=>r.json());
+        const list = r.clientes||[];
         document.getElementById('tab-cnt-docs').textContent = list.length;
         if(!list.length){ 
-            tb.innerHTML='<tr><td colspan="7" class="empty"><i class="fas fa-check-circle"></i><br>Todos os documentos OK</td></tr>'; 
+            tb.innerHTML='<tr><td colspan="8" class="empty"><i class="fas fa-check-circle"></i><br>Todos os documentos OK</td></tr>'; 
             return; 
         }
         
-        const docMap = {
-            doc_photo_id_ok: 'Photo ID',
-            doc_address_ok: 'Endereço',
-            doc_source_funds_ok: 'Origem Fundos',
-            doc_declaration_ok: 'Declaração',
-            doc_edd_ok: 'EDD'
+        const docLabels = {
+            'photo_id': 'Photo ID',
+            'proof_address': 'Proof of Address',
+            'source_funds': 'Source of Funds',
+            'declaration': 'Declaration Form',
+            'edd': 'EDD Documents'
         };
         
         let html = '';
         for (const c of list) {
-            const faltando = [];
-            for (const [campo, label] of Object.entries(docMap)) {
-                if (!c[campo]) faltando.push(label);
-            }
-            const docsHtml = faltando.map(l => `<span style="font-size:10px;background:rgba(224,27,36,.1);color:var(--cor-perigo);border-radius:4px;padding:1px 5px;margin:1px;display:inline-block;">${l}</span>`).join('');
+            // Mostrar apenas os documentos faltando (exigidos pelo Tier)
+            const faltando = (c.docs_faltando || []).map(d => `<span class="aml-pill">${docLabels[d] || d}</span>`).join('');
+            const riscoTag = `<span class="tag tag-${c.risk_level || 'baixo'}">${c.risk_level || 'baixo'}</span>`;
+            const kycTier = c.kyc_level !== undefined ? `Tier ${c.kyc_level}` : '—';
+            const dataCadastro = c.created_at ? new Date(c.created_at).toLocaleDateString('pt-BR') : '—';
+            
             html += `
                 <tr>
                     <td><strong>${c.nome || '—'}</strong></td>
                     <td>${c.documento || '—'}</td>
-                    <td><span class="tag tag-${c.risk_level || 'baixo'}">${c.risk_level || 'baixo'}</span></td>
-                    <td>Tier ${c.kyc_tier || 0}</td>
-                    <td>${docsHtml || '<span class="tag tag-aprovado">OK</span>'}</td>
-                    <td>${c.created_at ? new Date(c.created_at).toLocaleDateString('pt-BR') : '—'}</td>
-                    <td><button class="btn-act" onclick="abrirCliente('${c.id}')"><i class="fas fa-edit"></i> Gerir</button></td>
+                    <td>${riscoTag}</td>
+                    <td>${kycTier}</td>
+                    <td>${faltando || '<span class="tag tag-ok">OK</span>'}</td>
+                    <td>${dataCadastro}</td>
+                    <td>
+                        <button class="btn-act" onclick="abrirCliente('${c.id}')" style="margin-right:5px;">
+                            <i class="fas fa-edit"></i> Gerir
+                        </button>
+                        <button class="btn-act" onclick="verDetalheClienteCompliance('${c.id}')">
+                            <i class="fas fa-info-circle"></i> Detalhes
+                        </button>
+                    </td>
                 </tr>
             `;
         }
         tb.innerHTML = html;
     } catch(e){ 
         console.error(e);
-        tb.innerHTML='<tr><td colspan="7" class="empty">Erro ao carregar</td></tr>'; 
+        tb.innerHTML='</table><td colspan="8" class="empty">Erro ao carregar</td></tr>'; 
     }
 }
 
@@ -1199,6 +1484,432 @@ document.addEventListener('DOMContentLoaded', function() {
     carregarStats();
     setInterval(function() { carregarStats(); }, 30000);
 });
+
+// ============================================
+// FUNÇÕES DE DETALHES DO CLIENTE (COMPLIANCE)
+// ============================================
+
+let clienteAtualCompliance = null;
+let clienteDetalheIdCompliance = null;
+const benefMapCompliance = {};
+
+async function verDetalheClienteCompliance(clienteId) {
+    const modal = document.getElementById('modalDetalheCliente');
+    const bodyEl = document.getElementById('detalheClienteBody');
+    const nomeEl = document.getElementById('detalheClienteNome');
+    
+    if (!modal) return;
+    
+    // Mostrar o modal
+    modal.style.display = 'flex';
+    modal.classList.add('open');
+    
+    if (bodyEl) bodyEl.innerHTML = '<div style="text-align:center;padding:30px;"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
+    if (nomeEl) nomeEl.innerHTML = '<i class="fas fa-user"></i> Carregando...';
+    
+    try {
+        const r = await fetch(`/api/clientes/${clienteId}`);
+        const data = await r.json();
+        if (data.success) {
+            renderDetalheClienteCompliance(data.cliente);
+        } else {
+            toast(data.message, 'err');
+            modal.style.display = 'none';
+            modal.classList.remove('open');
+        }
+    } catch(e) {
+        toast('Erro ao carregar cliente', 'err');
+        modal.style.display = 'none';
+        modal.classList.remove('open');
+    }
+}
+
+function renderDetalheClienteCompliance(c) {
+    alert('Renderizando cliente: ' + c.nome);
+    clienteAtualCompliance = c;
+    document.getElementById('detalheClienteNome').innerHTML = `<i class="fas fa-user"></i> ${c.nome}`;
+    
+    const aml = c.aml || {};
+    const total90 = (c.total_90d_calc || 0).toFixed(2);
+    const kycReq = aml.kyc_level_required || 0;
+    const kycLabels = ['Basic Info apenas', 'Basic Info + Photo ID + Proof of Address',
+        'Basic Info + Photo ID + Address + Source of Funds',
+        'Full KYC + EDD (£3.5k-£5k)', 'Full KYC + EDD (acima £5k)'];
+
+    const docItems = [
+        {key:'photo_id', label:'Photo ID', ok: c.doc_photo_id_ok},
+        {key:'proof_address', label:'Proof of Address', ok: c.doc_address_ok},
+        {key:'source_funds', label:'Source of Funds', ok: c.doc_source_funds_ok},
+        {key:'declaration', label:'Declaration Form', ok: c.doc_declaration_ok},
+        {key:'edd', label:'EDD Documents', ok: c.doc_edd_ok},
+    ];
+
+    const ordensHtml = (c.ordens||[]).slice(0,5).map(o =>
+        `<tr><td>${(o.data||'').substring(0,10)}</td><td>${o.moeda_entrada} ${o.valor_entrada}</td><td>${o.moeda_saida} ${o.valor_saida}</td><td><span class="tag tag-${o.status}">${o.status}</span></td></tr>`
+    ).join('') || '<tr><td colspan="4" style="color:var(--cor-texto-secundario);text-align:center;padding:10px;">Nenhuma ordem</td></tr>';
+
+    const html = `
+        <div class="aml-panel">
+            <div class="aml-row"><span><i class="fas fa-chart-line"></i> Total 90 dias (GBP)</span><strong>£${total90}</strong></div>
+            <div class="aml-row"><span><i class="fas fa-shield-alt"></i> KYC Nível Requerido</span><strong>Nível ${kycReq} — ${kycLabels[kycReq] || ''}</strong></div>
+            <div class="aml-row"><span><i class="fas fa-user-secret"></i> PEP</span><span class="tag ${c.pep_flag?'tag-perigo':'tag-ok'}">${c.pep_flag?'PEP IDENTIFICADO':'Negativo'}</span></div>
+            <div class="aml-row"><span><i class="fas fa-ban"></i> Sanções</span><span class="tag ${c.sanctions_flag?'tag-perigo':'tag-ok'}">${c.sanctions_flag?'SANCTIONED':'Limpo'}</span></div>
+            <div class="aml-row"><span><i class="fas fa-exclamation-triangle"></i> Risco</span><span class="tag ${c.risk_score==='high'?'tag-perigo':'tag-alerta'}">${c.risk_score==='high'?'Alto':'Médio'}</span></div>
+            ${aml.pep_screening?'<div class="aml-row" style="color:var(--cor-alerta);"><i class="fas fa-bell"></i> PEP Screening obrigatório (acumulado ≥ £2.000)</div>':''}
+        </div>
+
+        <p class="section-title" style="margin-top:16px;"><i class="fas fa-file-alt"></i> Documentos KYC</p>
+        <div class="doc-list">
+            ${docItems.map(d => {
+                const docArquivo = (c.documentos||[]).find(x => x.tipo === d.key);
+                return `
+                <div class="doc-item ${d.ok?'ok':'missing'}">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span><i class="fas fa-${d.ok?'check-circle':'clock'}" style="color:${d.ok?'var(--cor-sucesso)':'var(--cor-alerta)'};margin-right:8px;"></i>${d.label}</span>
+                        <div style="display:flex;gap:6px;align-items:center;">
+                            <span class="tag ${d.ok?'tag-ok':'tag-pendente'}">${d.ok?'Validado':'Pendente'}</span>
+                            ${docArquivo?`<button class="btn-act" onclick="verDocKycCompliance('${docArquivo.id}')"><i class="fas fa-eye"></i> Ver</button>`:''}
+                            ${!d.ok?`<button class="btn-act" onclick="marcarDocOkCompliance('${c.id}','${d.key}')"><i class="fas fa-check"></i> Marcar OK</button>`:''}
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap;">
+                        <input type="file" id="kyc-file-${d.key}" accept=".pdf,.jpg,.jpeg,.png,.webp" style="font-size:11px;flex:1;">
+                        <input type="text" id="kyc-obs-${d.key}" placeholder="Observação" style="font-size:11px;padding:4px 8px;border:1px solid var(--cor-borda);border-radius:4px;background:var(--cor-card);color:var(--cor-texto);flex:1;">
+                        <button class="btn-primary btn-sm" onclick="uploadKycCompliance('${c.id}','${d.key}')"><i class="fas fa-upload"></i> ${d.ok?'Substituir':'Enviar'}</button>
+                    </div>
+                </div>`;
+            }).join('')}
+        </div>
+
+        <p class="section-title"><i class="fas fa-history"></i> Últimas Ordens</p>
+        <div class="table-wrap">
+            <table class="orders-mini" style="width:100%;">
+                <thead><tr><th>Data</th><th>Entrada</th><th>Saída</th><th>Status</th></tr></thead>
+                <tbody>${ordensHtml}</tbody>
+            </table>
+        </div>
+
+        <p class="section-title"><i class="fas fa-user-circle"></i> Dados Pessoais</p>
+        <div class="detail-grid">
+            <div class="detail-item"><label>DOB</label><span>${c.data_nascimento||'—'}</span></div>
+            <div class="detail-item"><label>Profissão</label><span>${c.profissao||'—'}</span></div>
+            <div class="detail-item"><label>Email</label><span>${c.email||'—'}</span></div>
+            <div class="detail-item"><label>Tipo Doc</label><span>${c.tipo_documento||'—'}</span></div>
+            <div class="detail-item"><label>Endereço</label><span>${c.endereco||'—'}</span></div>
+            <div class="detail-item"><label>Cidade / Postcode</label><span>${c.cidade||'—'}</span></div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px;margin-bottom:10px;">
+            <p class="section-title" style="margin:0;"><i class="fas fa-user-friends"></i> Beneficiários</p>
+            <button class="btn-primary btn-sm" onclick="abrirNovoBenefCompliance('${c.id}')"><i class="fas fa-plus"></i> Adicionar</button>
+        </div>
+        <div id="benefDetalheListCompliance">Carregando...</div>
+
+        <div id="novoBenefFormCompliance" style="display:none;background:rgba(128,128,128,.04);border:1px solid var(--cor-borda);border-radius:8px;padding:16px;margin-top:10px;">
+            <p class="section-title" style="margin-top:0;">Novo Beneficiário</p>
+            <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="form-group form-full">
+                    <label>Tipo de Destino *</label>
+                    <select id="nbc-tipo" class="form-control" onchange="onNbTipoChangeCompliance()">
+                        <option value="brazil">🇧🇷 Brasil (BRL)</option>
+                        <option value="europe">🇪🇺 Europa (SEPA/IBAN)</option>
+                        <option value="usa">🇺🇸 USA (USD/SWIFT)</option>
+                    </select>
+                </div>
+                <div class="form-group form-full"><label>Nome Completo *</label><input id="nbc-nome" type="text" class="form-control"></div>
+                <div class="form-group form-full"><label>Apelido</label><input id="nbc-apelido" type="text" class="form-control" placeholder="Para identificar facilmente"></div>
+            </div>
+            <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="form-group"><label>Endereço Linha 1</label><input id="nbc-end1" type="text" class="form-control"></div>
+                <div class="form-group"><label>Endereço Linha 2</label><input id="nbc-end2" type="text" class="form-control"></div>
+                <div class="form-group"><label>Cidade</label><input id="nbc-cidade" type="text" class="form-control"></div>
+                <div class="form-group"><label>CEP / Postcode</label><input id="nbc-postcode" type="text" class="form-control"></div>
+                <div class="form-group form-full"><label>País</label><input id="nbc-pais" type="text" class="form-control"></div>
+            </div>
+            <div id="nbc-brazil">
+                <p class="section-title">Dados Bancários Brasil</p>
+                <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div class="form-group"><label>CPF</label><input id="nbc-cpf" type="text" class="form-control"></div>
+                    <div class="form-group"><label>Banco</label><input id="nbc-banco" type="text" class="form-control"></div>
+                    <div class="form-group"><label>Agência</label><input id="nbc-agencia" type="text" class="form-control"></div>
+                    <div class="form-group"><label>Conta</label><input id="nbc-conta" type="text" class="form-control"></div>
+                    <div class="form-group"><label>Tipo Conta</label><select id="nbc-tipo-conta" class="form-control"><option value="corrente">Corrente</option><option value="poupanca">Poupança</option></select></div>
+                    <div class="form-group"><label>Chave PIX</label><input id="nbc-pix" type="text" class="form-control"></div>
+                    <div class="form-group"><label>Tipo PIX</label><select id="nbc-pix-tipo" class="form-control"><option value="">—</option><option value="cpf">CPF</option><option value="email">Email</option><option value="telefone">Telefone</option><option value="aleatoria">Aleatória</option></select></div>
+                </div>
+            </div>
+            <div id="nbc-europe" style="display:none;">
+                <p class="section-title">Dados Bancários Europa</p>
+                <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div class="form-group form-full"><label>IBAN *</label><input id="nbc-iban" type="text" class="form-control"></div>
+                    <div class="form-group"><label>BIC / SWIFT</label><input id="nbc-bic" type="text" class="form-control"></div>
+                    <div class="form-group"><label>Banco</label><input id="nbc-banco-eu" type="text" class="form-control"></div>
+                    <div class="form-group"><label>País do Banco</label><input id="nbc-pais-eu" type="text" class="form-control"></div>
+                </div>
+            </div>
+            <div id="nbc-usa" style="display:none;">
+                <p class="section-title">Dados Bancários USA</p>
+                <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div class="form-group"><label>Routing Number</label><input id="nbc-routing" type="text" class="form-control"></div>
+                    <div class="form-group"><label>Account Number</label><input id="nbc-account" type="text" class="form-control"></div>
+                    <div class="form-group"><label>Tipo Conta</label><select id="nbc-account-tipo" class="form-control"><option value="checking">Checking</option><option value="savings">Savings</option></select></div>
+                    <div class="form-group"><label>SWIFT</label><input id="nbc-swift-us" type="text" class="form-control"></div>
+                    <div class="form-group"><label>Banco</label><input id="nbc-banco-us" type="text" class="form-control"></div>
+                </div>
+            </div>
+            <div class="form-group" style="margin-top:8px;">
+                <label>Relacionamento com o Remetente</label>
+                <select id="nbc-rel" class="form-control">
+                    <option value="">—</option>
+                    <option value="proprio">Próprio (mesma pessoa)</option>
+                    <option value="familiar">Familiar</option>
+                    <option value="amigo">Amigo</option>
+                    <option value="negocio">Negócio / Empresa</option>
+                </select>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:12px;">
+                <button class="btn-primary" onclick="salvarNovoBenefCompliance()"><i class="fas fa-save"></i> Salvar Beneficiário</button>
+                <button class="btn-ghost" onclick="fecharNovoBenefCompliance()">Cancelar</button>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('detalheClienteBody').innerHTML = html;
+    clienteDetalheIdCompliance = c.id;
+    carregarBenefDetalheCompliance(c.id);
+    
+    // 🔥 ADICIONAR ESTAS 4 LINHAS NO FINAL 🔥
+    const modal = document.getElementById('modalDetalheCliente');
+    if (modal) {
+        modal.classList.add('open');
+        modal.style.display = 'flex';
+    }
+}
+
+async function carregarBenefDetalheCompliance(clienteId) {
+    const el = document.getElementById('benefDetalheListCompliance');
+    if (!el) return;
+    try {
+        const r = await fetch(`/api/clientes/${clienteId}/beneficiarios`);
+        const d = await r.json();
+        const lista = d.beneficiarios || [];
+        if (!lista.length) { 
+            el.innerHTML = '<p style="color:var(--cor-texto-secundario);font-size:13px;padding:8px 0;">Nenhum beneficiário cadastrado.</p>'; 
+            return; 
+        }
+        const flag = {brazil:'🇧🇷',europe:'🇪🇺',usa:'🇺🇸'};
+        el.innerHTML = lista.map(b => {
+            benefMapCompliance[b.id] = b;
+            const det = b.tipo === 'brazil'
+                ? [b.banco_nome, b.agencia ? `Ag ${b.agencia}` : '', b.conta, b.pix_chave ? `PIX: ${b.pix_chave}` : ''].filter(Boolean).join(' · ')
+                : b.tipo === 'europe'
+                ? [b.iban, b.bic_swift].filter(Boolean).join(' · ')
+                : [b.routing_number, b.account_number, b.banco_nome_us].filter(Boolean).join(' · ');
+            const addr = [b.endereco_linha1, b.cidade, b.postcode, b.pais].filter(Boolean).join(', ');
+            return `<div class="doc-item" style="flex-direction:column;align-items:flex-start;gap:4px;">
+                <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
+                    <span><strong>${flag[b.tipo]||''} ${b.nome}</strong>${b.apelido?` <span style="color:var(--cor-texto-secundario);font-size:12px;">(${b.apelido})</span>`:''}</span>
+                    <div style="display:flex;gap:6px;">
+                        <button onclick="abrirEditBenefCompliance('${b.id}','${clienteId}')" style="background:transparent;border:none;color:var(--cor-texto-secundario);cursor:pointer;" title="Editar"><i class="fas fa-edit"></i></button>
+                        <button onclick="removerBenefCompliance('${b.id}','${clienteId}')" style="background:transparent;border:none;color:var(--cor-perigo);cursor:pointer;" title="Remover"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+                ${det?`<div style="font-size:12px;color:var(--cor-texto-secundario);">${det}</div>`:''}
+                ${addr?`<div style="font-size:11px;color:var(--cor-texto-secundario);"><i class="fas fa-map-marker-alt"></i> ${addr}</div>`:''}
+            </div>`;
+        }).join('');
+    } catch(e) { 
+        el.innerHTML = '<p style="color:var(--cor-perigo);">Erro ao carregar beneficiários.</p>'; 
+    }
+}
+
+async function removerBenefCompliance(benefId, clienteId) {
+    if (!confirm('Remover este beneficiário?')) return;
+    const r = await fetch(`/api/beneficiarios-de-clientes/${benefId}`, {method:'DELETE'});
+    const d = await r.json();
+    toast(d.message, d.success ? 'ok' : 'err');
+    if (d.success) carregarBenefDetalheCompliance(clienteId);
+}
+
+function abrirNovoBenefCompliance(clienteId) {
+    clienteDetalheIdCompliance = clienteId;
+    document.getElementById('novoBenefFormCompliance').style.display = 'block';
+    document.getElementById('novoBenefFormCompliance').scrollIntoView({behavior:'smooth'});
+    onNbTipoChangeCompliance();
+}
+
+function fecharNovoBenefCompliance() {
+    document.getElementById('novoBenefFormCompliance').style.display = 'none';
+}
+
+function onNbTipoChangeCompliance() {
+    const tipo = document.getElementById('nbc-tipo').value;
+    document.getElementById('nbc-brazil').style.display = tipo === 'brazil' ? 'block' : 'none';
+    document.getElementById('nbc-europe').style.display = tipo === 'europe' ? 'block' : 'none';
+    document.getElementById('nbc-usa').style.display = tipo === 'usa' ? 'block' : 'none';
+}
+
+async function salvarNovoBenefCompliance() {
+    if (!clienteDetalheIdCompliance) return;
+    const get = id => (document.getElementById(id)?.value || '').trim();
+    const tipo = get('nbc-tipo');
+    const nome = get('nbc-nome');
+    if (!nome) { toast('Nome obrigatório', 'err'); return; }
+    const payload = {
+        tipo, nome,
+        apelido: get('nbc-apelido'),
+        endereco_linha1: get('nbc-end1'),
+        endereco_linha2: get('nbc-end2'),
+        cidade: get('nbc-cidade'),
+        postcode: get('nbc-postcode'),
+        pais: get('nbc-pais'),
+        relacionamento: get('nbc-rel'),
+        cpf: get('nbc-cpf'), banco_nome: get('nbc-banco'),
+        agencia: get('nbc-agencia'), conta: get('nbc-conta'),
+        tipo_conta: get('nbc-tipo-conta'),
+        pix_chave: get('nbc-pix'), pix_tipo: get('nbc-pix-tipo'),
+        iban: get('nbc-iban'), bic_swift: get('nbc-bic'),
+        banco_nome_eu: get('nbc-banco-eu'), banco_pais: get('nbc-pais-eu'),
+        routing_number: get('nbc-routing'), account_number: get('nbc-account'),
+        account_type_us: get('nbc-account-tipo'),
+        swift_us: get('nbc-swift-us'), banco_nome_us: get('nbc-banco-us'),
+    };
+    try {
+        const r = await fetch(`/api/clientes/${clienteDetalheIdCompliance}/beneficiarios`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+        const d = await r.json();
+        if (d.success) {
+            toast('Beneficiário salvo!', 'ok');
+            fecharNovoBenefCompliance();
+            carregarBenefDetalheCompliance(clienteDetalheIdCompliance);
+        } else toast(d.message, 'err');
+    } catch(e) { toast(e.message, 'err'); }
+}
+
+function abrirEditBenefCompliance(benefId, clienteId) {
+    const data = benefMapCompliance[benefId] || {};
+    editBenefClienteIdCompliance = clienteId;
+    document.getElementById('ebc-id').value = benefId;
+    document.getElementById('ebc-tipo').value = data.tipo || 'brazil';
+    document.getElementById('ebc-nome').value = data.nome || '';
+    document.getElementById('ebc-apelido').value = data.apelido || '';
+    document.getElementById('ebc-end1').value = data.endereco_linha1 || '';
+    document.getElementById('ebc-end2').value = data.endereco_linha2 || '';
+    document.getElementById('ebc-cidade').value = data.cidade || '';
+    document.getElementById('ebc-postcode').value = data.postcode || '';
+    document.getElementById('ebc-pais').value = data.pais || '';
+    document.getElementById('ebc-rel').value = data.relacionamento || '';
+    document.getElementById('ebc-cpf').value = data.cpf || '';
+    document.getElementById('ebc-banco').value = data.banco_nome || '';
+    document.getElementById('ebc-agencia').value = data.agencia || '';
+    document.getElementById('ebc-conta').value = data.conta || '';
+    document.getElementById('ebc-tipo-conta').value = data.tipo_conta || 'corrente';
+    document.getElementById('ebc-pix').value = data.pix_chave || '';
+    document.getElementById('ebc-pix-tipo').value = data.pix_tipo || '';
+    document.getElementById('ebc-iban').value = data.iban || '';
+    document.getElementById('ebc-bic').value = data.bic_swift || '';
+    document.getElementById('ebc-banco-eu').value = data.banco_nome_eu || '';
+    document.getElementById('ebc-pais-eu').value = data.banco_pais || '';
+    document.getElementById('ebc-routing').value = data.routing_number || '';
+    document.getElementById('ebc-account').value = data.account_number || '';
+    document.getElementById('ebc-account-tipo').value = data.account_type_us || 'checking';
+    document.getElementById('ebc-swift-us').value = data.swift_us || '';
+    document.getElementById('ebc-banco-us').value = data.banco_nome_us || '';
+    
+    document.getElementById('ebc-tipo-label').innerHTML = {brazil:'🇧🇷 Brasil',europe:'🇪🇺 Europa',usa:'🇺🇸 USA'}[data.tipo] || data.tipo;
+    document.getElementById('ebc-sec-brazil').style.display = data.tipo === 'brazil' ? 'block' : 'none';
+    document.getElementById('ebc-sec-europe').style.display = data.tipo === 'europe' ? 'block' : 'none';
+    document.getElementById('ebc-sec-usa').style.display = data.tipo === 'usa' ? 'block' : 'none';
+    document.getElementById('modalEditBenefCompliance').classList.add('open');
+}
+
+let editBenefClienteIdCompliance = null;
+
+async function salvarEditBenefCompliance() {
+    const id = document.getElementById('ebc-id').value;
+    const get = i => (document.getElementById(i)?.value || '').trim();
+    const payload = {
+        nome: get('ebc-nome'), apelido: get('ebc-apelido'),
+        endereco_linha1: get('ebc-end1'), endereco_linha2: get('ebc-end2'),
+        cidade: get('ebc-cidade'), postcode: get('ebc-postcode'), pais: get('ebc-pais'), relacionamento: get('ebc-rel'),
+        cpf: get('ebc-cpf'), banco_nome: get('ebc-banco'), agencia: get('ebc-agencia'), conta: get('ebc-conta'),
+        tipo_conta: get('ebc-tipo-conta'), pix_chave: get('ebc-pix'), pix_tipo: get('ebc-pix-tipo'),
+        iban: get('ebc-iban'), bic_swift: get('ebc-bic'), banco_nome_eu: get('ebc-banco-eu'), banco_pais: get('ebc-pais-eu'),
+        routing_number: get('ebc-routing'), account_number: get('ebc-account'),
+        account_type_us: get('ebc-account-tipo'), swift_us: get('ebc-swift-us'), banco_nome_us: get('ebc-banco-us'),
+    };
+    if (!payload.nome) { toast('Nome obrigatório', 'err'); return; }
+    try {
+        const r = await fetch(`/api/beneficiarios-de-clientes/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+        const d = await r.json();
+        if (d.success) {
+            toast('Beneficiário atualizado!', 'ok');
+            fecharModal('modalEditBenefCompliance');
+            carregarBenefDetalheCompliance(editBenefClienteIdCompliance);
+        } else toast(d.message, 'err');
+    } catch(e) { toast('Erro de conexão', 'err'); }
+}
+
+async function verDocKycCompliance(docId) {
+    try {
+        const win = window.open('', '_blank');
+        if (win) win.document.write('<p style="font-family:sans-serif;padding:20px">A carregar documento...</p>');
+        const r = await fetch(`/api/clientes/documentos/${docId}/url`);
+        const d = await r.json();
+        if (d.success && d.url) {
+            if (win) win.location.href = d.url;
+            else { const a = document.createElement('a'); a.href = d.url; a.target = '_blank'; a.click(); a.remove(); }
+        } else {
+            if (win) win.close();
+            toast(d.message || 'Erro ao gerar link', 'err');
+        }
+    } catch(e) { toast('Erro de conexão', 'err'); }
+}
+
+async function marcarDocOkCompliance(clienteId, tipoDoc) {
+    try {
+        const r = await fetch(`/api/clientes/${clienteId}/documentos`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({tipo: tipoDoc, arquivo_nome: 'Manual validation', observacao: 'Marcado OK pelo compliance'})
+        });
+        const data = await r.json();
+        if (data.success) {
+            toast('Documento marcado como validado', 'ok');
+            verDetalheClienteCompliance(clienteId);
+        } else toast(data.message, 'err');
+    } catch(e) { toast('Erro ao marcar documento', 'err'); }
+}
+
+async function uploadKycCompliance(clienteId, tipoDoc) {
+    const input = document.getElementById(`kyc-file-${tipoDoc}`);
+    if (!input || !input.files[0]) { toast('Selecione um arquivo', 'err'); return; }
+    const obs = document.getElementById(`kyc-obs-${tipoDoc}`)?.value || '';
+    const formData = new FormData();
+    formData.append('arquivo', input.files[0]);
+    formData.append('tipo', tipoDoc);
+    formData.append('observacao', obs);
+    const btn = document.getElementById(`kyc-btn-${tipoDoc}`);
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; }
+    try {
+        const r = await fetch(`/api/clientes/${clienteId}/upload-kyc`, {method:'POST', body: formData});
+        const d = await r.json();
+        if (d.success) {
+            toast('Documento enviado com sucesso!', 'ok');
+            input.value = '';
+            verDetalheClienteCompliance(clienteId);
+        } else toast(d.message, 'err');
+    } catch(e) { toast('Erro de conexão', 'err'); }
+    finally { if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-upload"></i> Enviar'; } }
+}
+
+function editarClienteCompliance() {
+    if (clienteAtualCompliance) {
+        const id = clienteAtualCompliance.id;
+        fecharModal('modalDetalheCliente');
+        editarClienteById(id);
+    }
+}
+
 </script>
 <script src="/static/js/theme.js"></script>
 </body>
