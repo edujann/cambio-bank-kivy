@@ -59,6 +59,7 @@
         .empty{padding:40px;text-align:center;color:var(--cor-texto-secundario);}
         .empty i{font-size:32px;margin-bottom:8px;display:block;}
         .tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+        .tag-compliance_review{background:rgba(155,89,182,.15);color:#9b59b6;}        
         .tag-on_hold{background:rgba(243,156,18,.15);color:var(--cor-alerta);}
         .tag-liberada{background:rgba(26,95,180,.15);color:var(--cor-admin);}
         .tag-despachada{background:rgba(155,89,182,.15);color:#9b59b6;}
@@ -175,6 +176,87 @@
         .t-err{background:rgba(224,27,36,.1);border:1px solid var(--cor-perigo);color:var(--cor-perigo);}
         .t-warn{background:rgba(243,156,18,.1);border:1px solid var(--cor-alerta);color:var(--cor-alerta);}
         @keyframes tIn{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
+
+        /* Modal de confirmação - estilo melhorado */
+        .confirmacao-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .confirmacao-item {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: 8px;
+            padding: 10px 12px;
+        }
+
+        .confirmacao-item .lbl {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--cor-texto-secundario);
+            margin-bottom: 4px;
+        }
+
+        .confirmacao-item .val {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--cor-texto);
+            word-break: break-word;
+        }
+
+        .confirmacao-section {
+            margin-bottom: 20px;
+        }
+
+        .confirmacao-section-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #9b59b6;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid var(--cor-borda);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .confirmacao-section-title i {
+            font-size: 14px;
+        }
+
+        .valor-destaque {
+            color: #27ae60;
+            font-weight: 700;
+        }
+
+        .valor-destaque-envio {
+            color: #e06b00;
+            font-weight: 700;
+        }
+
+        .tag-pagamento {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .tag-pagamento-cash, .tag-pagamento-debito, .tag-pagamento-credito {
+            background: rgba(39, 174, 96, 0.15);
+            color: #27ae60;
+        }
+
+        .tag-pagamento-transferencia {
+            background: rgba(243, 156, 18, 0.15);
+            color: #f39c12;
+        }
+
     </style>
 </head>
 <body>
@@ -319,10 +401,42 @@
             <div id="s1NovoBox" style="display:none;">
                 <div class="fsec">Cadastro Rápido</div>
                 <p style="font-size:12px;color:var(--cor-texto-secundario);margin-bottom:12px;">Cliente não encontrado. Preencha abaixo ou <a href="/loja/clientes" target="_blank" style="color:var(--cor-admin);">faça cadastro completo</a>.</p>
+                
+                <!-- Dados básicos -->
                 <div class="grid2">
                     <div class="fg full"><label>Nome Completo *</label><input id="s1NovoNome" type="text" class="fc" placeholder="Nome do cliente"></div>
                     <div class="fg"><label>Documento</label><input id="s1NovoDoc" type="text" class="fc" placeholder="Nº passaporte / ID"></div>
                     <div class="fg"><label>Telefone</label><input id="s1NovoTel" type="text" class="fc" placeholder="+44 7xxx…"></div>
+                </div>
+                
+                <!-- Documento de Identificação com validade -->
+                <div class="fsec" style="margin-top:15px;"><i class="fas fa-id-card"></i> Documento de Identificação</div>
+                <div class="grid2">
+                    <div class="fg">
+                        <label>Número do Documento</label>
+                        <input id="s1NovoDocNumero" type="text" class="fc" placeholder="Ex: AB123456">
+                    </div>
+                    <div class="fg">
+                        <label>Data de Validade *</label>
+                        <input type="date" id="s1NovoDocValidade" class="fc">
+                        <small style="font-size:10px; color:var(--cor-texto-secundario);">Documento vence nesta data</small>
+                    </div>
+                </div>
+                
+                <!-- Comprovante de Endereço com data do documento -->
+                <div class="fsec" style="margin-top:15px;"><i class="fas fa-home"></i> Comprovante de Endereço</div>
+                <div class="grid2">
+                    <div class="fg">
+                        <label>Data do Comprovante *</label>
+                        <input type="date" id="s1NovoAddrData" class="fc">
+                        <small style="font-size:10px; color:var(--cor-texto-secundario);">Data de emissão do comprovante</small>
+                    </div>
+                    <div class="fg">
+                        <label>Válido até</label>
+                        <div id="s1NovoAddrValidadeMsg" style="font-size:12px; padding:8px; background:rgba(128,128,128,.05); border-radius:6px;">
+                            <span style="color:var(--cor-texto-secundario);">Selecione uma data</span>
+                        </div>
+                    </div>
                 </div>
                 <!-- Beneficiário durante cadastro rápido -->
                 <div style="margin-top:12px;border-top:1px solid var(--cor-borda);padding-top:12px;">
@@ -417,6 +531,13 @@
                 </button>
                 <button class="dest-tab" data-dest="usa" onclick="trocarDestino('usa')">
                     <span class="flag">🇺🇸</span>USA (USD)
+                </button>
+            </div>
+
+            <div id="clienteSelecionadoTopo" style="display:none; background:rgba(155,89,182,.1); padding:10px; border-radius:8px; margin-bottom:15px;">
+                <i class="fas fa-user-check"></i> Cliente: <strong id="clienteNomeTopo"></strong>
+                <button type="button" onclick="trocarCliente()" style="float:right; background:transparent; border:none; cursor:pointer;">
+                    <i class="fas fa-times"></i> Trocar
                 </button>
             </div>
 
@@ -710,6 +831,27 @@
     </div>
 </div>
 
+<!-- Modal Confirmar Criação da Ordem (VERSÃO ESTILIZADA) -->
+<div class="modal-ov" id="modalConfirmarOrdem">
+    <div class="modal" style="width:min(750px, 95vw); max-height:90vh; overflow-y:auto;">
+        <h3 style="display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--cor-borda); padding-bottom:14px; margin-bottom:16px;">
+            <i class="fas fa-clipboard-list" style="color:#9b59b6; font-size:20px;"></i> 
+            <span style="font-size:18px;">Confirmar dados da ordem</span>
+        </h3>
+        
+        <div id="confirmarOrdemDados" style="margin: 0;"></div>
+        
+        <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px; padding-top:16px; border-top:1px solid var(--cor-borda);">
+            <button class="btn-ghost" onclick="fecharModal('modalConfirmarOrdem')" style="padding:8px 20px;">
+                <i class="fas fa-times"></i> Cancelar
+            </button>
+            <button class="btn-primary" onclick="confirmarCriacaoOrdem()" style="background:#27ae60; padding:8px 24px;">
+                <i class="fas fa-check"></i> Confirmar e Criar
+            </button>
+        </div>
+    </div>
+</div>
+
 <div class="toast-c" id="toastC"></div>
 
 <script src="/static/js/theme.js"></script>
@@ -891,6 +1033,14 @@ async function s1SelecionarCliente(c) {
     document.getElementById('s1Dropdown').style.display = 'none';
     document.getElementById('s1ClienteBox').style.display = 'block';
     document.getElementById('s1NovoBox').style.display    = 'none';
+    
+    // 🔥 ADICIONAR ESTAS LINHAS - Mostrar nome no topo do step 2
+    const topoDiv = document.getElementById('clienteSelecionadoTopo');
+    if (topoDiv) {
+        topoDiv.style.display = 'block';
+        document.getElementById('clienteNomeTopo').textContent = c.nome;
+    }
+    
     // AML check com valor zero (overview)
     await s1AmlCheck(c.id, 0, 'GBP');
 }
@@ -902,6 +1052,24 @@ async function s1AmlCheck(clienteId, valor, moeda) {
         const d = await r.json();
         if (!d.success) return;
         const a = d.aml;
+        
+        // 🔥 SALVAR O RESULTADO DO KYC PARA USAR NO STATUS
+        window.ultimoKycCheck = {
+            precisaCompliance: (a.docs_missing?.length > 0) || a.pep_screening || (a.kyc_level_required >= 2),
+            docs_missing: a.docs_missing || [],
+            pep_screening: a.pep_screening,
+            kyc_level: a.kyc_level_required
+        };
+        
+        // 🔥 ADICIONAR AQUI O CONSOLE.LOG
+        console.log("🔍 [KYC] precisaCompliance =", window.ultimoKycCheck.precisaCompliance);
+        console.log("🔍 [KYC] docs_missing:", a.docs_missing);
+        console.log("🔍 [KYC] pep_screening:", a.pep_screening);
+        console.log("🔍 [KYC] kyc_level:", a.kyc_level_required);
+        
+        // 🔥 ATUALIZAR O STATUS PREVIEW
+        atualizarStatusPreview();
+        
         const lvl = ['Básico','Standard ID','Standard + Funds','EDD','EDD Contínuo'][a.kyc_level_required] || `Nível ${a.kyc_level_required}`;
         const cls = a.sanctions_flag ? 'aml-danger' : a.docs_missing?.length ? 'aml-warn' : 'aml-ok';
         let html = `<div class="aml-box ${cls}">
@@ -966,6 +1134,95 @@ async function step1Proximo() {
             msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Selecione ou informe o nome do cliente.</span>';
             return;
         }
+    }
+    msg.innerHTML = '';
+
+    // Se cliente existente, carregar beneficiários e avançar
+    if (clienteSelecionado) {
+        await carregarBeneficios(clienteSelecionado.id);
+        // Tentar salvar benef do cadastro rápido se nome preenchido
+        const nomeBenef = (document.getElementById('nbo-nome')?.value || '').trim();
+        if (nomeBenef && document.getElementById('s1BenefBox')?.style.display !== 'none') {
+            await _salvarBenefNovoCliente(clienteSelecionado.id);
+            await carregarBeneficios(clienteSelecionado.id);
+        }
+        irStep(2);
+        return;
+    }
+
+    // Criar novo cliente primeiro
+    msg.innerHTML = '<span style="color:var(--cor-texto-secundario)"><i class="fas fa-spinner fa-spin"></i> Salvando cliente...</span>';
+    try {
+        const nome = document.getElementById('s1NovoNome').value.trim();
+        const doc  = document.getElementById('s1NovoDoc').value.trim();
+        const tel  = document.getElementById('s1NovoTel').value.trim();
+        
+        // 🔥 NOVOS CAMPOS DE VALIDADE
+        const docValidade = document.getElementById('s1NovoDocValidade').value;
+        const addrData = document.getElementById('s1NovoAddrData').value;
+        
+        // Calcular validade do comprovante de endereço (data do documento + 6 meses)
+        let addrValidade = null;
+        if (addrData) {
+            const dataAddr = new Date(addrData);
+            dataAddr.setMonth(dataAddr.getMonth() + 6);
+            addrValidade = dataAddr.toISOString().split('T')[0];
+        }
+        
+        const payload = {
+            nome: nome,
+            documento: doc,
+            telefone: tel,
+            doc_photo_id_validade: docValidade || null,
+            doc_address_atualizado_em: addrData || null,
+            doc_address_validade: addrValidade || null
+        };
+        
+        const r = await fetch('/api/clientes', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const d = await r.json();
+        if (!d.success) {
+            msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> ${d.message}</span>`;
+            return;
+        }
+        clienteSelecionado = d.cliente;
+        
+        // Mostrar alertas se documentos estiverem vencidos ou próximos
+        if (docValidade) {
+            const dataValidade = new Date(docValidade);
+            const hoje = new Date();
+            const diasRestantes = Math.ceil((dataValidade - hoje) / (1000 * 60 * 60 * 24));
+            if (diasRestantes < 0) {
+                toast(`⚠️ Documento de identificação EXPIRADO! Atualize o cadastro do cliente.`, 'warn');
+            } else if (diasRestantes < 30) {
+                toast(`📅 Documento de identificação vence em ${diasRestantes} dias.`, 'warn');
+            }
+        }
+        
+        if (addrValidade) {
+            const dataValidade = new Date(addrValidade);
+            const hoje = new Date();
+            const diasRestantes = Math.ceil((dataValidade - hoje) / (1000 * 60 * 60 * 24));
+            if (diasRestantes < 0) {
+                toast(`⚠️ Comprovante de endereço EXPIRADO! Atualize o cadastro do cliente.`, 'warn');
+            } else if (diasRestantes < 30) {
+                toast(`📅 Comprovante de endereço vence em ${diasRestantes} dias.`, 'warn');
+            }
+        }
+        
+        // Salvar beneficiário se preenchido
+        const nomeBenef = (document.getElementById('nbo-nome')?.value || '').trim();
+        if (nomeBenef && document.getElementById('s1BenefBox')?.style.display !== 'none') {
+            await _salvarBenefNovoCliente(d.cliente.id);
+        }
+        await carregarBeneficios(d.cliente.id);
+        msg.innerHTML = '';
+        irStep(2);
+    } catch(e) {
+        msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Erro: ${e.message}</span>`;
     }
     msg.innerHTML = '';
 
@@ -1224,75 +1481,301 @@ function calcPreview() {
     const ve = parseFloat(document.getElementById('s2Valor').value)||0;
     const tx = parseFloat(document.getElementById('s2Taxa').value)||0;
     const me = document.getElementById('s2Moeda').value;
-    const fp = document.getElementById('s2Forma').value;
     const box = document.getElementById('previewBox');
     if (!ve||!tx||!me) { box.style.display='none'; return; }
     const vs = ve * tx;
     const mSaida = {brazil:'BRL',europe:'EUR',usa:'USD'}[destinoAtivo]||'BRL';
     const saidaFmt = mSaida==='BRL' ? `R$ ${fmtN(vs,2)}` : `${fmtN(vs,2)} ${mSaida}`;
-    const st = fp==='transferencia' ? 'on_hold' : 'liberada';
+    
+    // 🔥 NÃO ATUALIZAR O STATUS AQUI - deixar para a função atualizarStatusPreview
     box.style.display='block';
     document.getElementById('pv-entrada').textContent = `${fmtN(ve,2)} ${me}`;
     document.getElementById('pv-saida').textContent   = saidaFmt;
     document.getElementById('pv-taxa').textContent    = `${fmtN(tx,4)} ${mSaida}/${me}`;
-    document.getElementById('pv-status').innerHTML    = `<span class="tag tag-${st}">${st}</span>`;
+    
+    // Chamar a função que atualiza o status corretamente
+    atualizarStatusPreview();
 }
 
-// ── Criar ordem ──
+function trocarCliente() {
+    // Limpar cliente selecionado
+    clienteSelecionado = null;
+    
+    // Esconder o topo
+    document.getElementById('clienteSelecionadoTopo').style.display = 'none';
+    document.getElementById('clienteNomeTopo').textContent = '';
+    
+    // Voltar para o step 1
+    irStep(1);
+    
+    // Limpar campos do cliente
+    document.getElementById('s1ClienteId').value = '';
+    document.getElementById('s1ClienteBox').style.display = 'none';
+    document.getElementById('s1AmlBox').innerHTML = '';
+    document.getElementById('s1Busca').value = '';
+    
+    toast('Cliente removido. Selecione outro.', 'info');
+}
+
 async function criarOrdem() {
     const msg = document.getElementById('s2Msg');
-    const btn = document.getElementById('drawerBtnSubmit');
     const mSaida = {brazil:'BRL',europe:'EUR',usa:'USD'}[destinoAtivo]||'BRL';
     const benef = benefSelecionado[destinoAtivo] || {};
+
+    // VALIDAR BENEFICIÁRIO
+    if (!benef.nome) {
+        msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Selecione um beneficiário antes de criar a ordem.</span>';
+        return;
+    }
 
     // Cliente: existente ou novo
     let clienteId = clienteSelecionado?.id || null;
     let clienteNome = clienteSelecionado?.nome || document.getElementById('s1NovoNome').value.trim();
-    let clienteDoc  = clienteSelecionado?.documento || document.getElementById('s1NovoDoc').value.trim();
-    let clienteTel  = clienteSelecionado?.telefone  || document.getElementById('s1NovoTel').value.trim();
+    let clienteDoc = clienteSelecionado?.documento || document.getElementById('s1NovoDoc').value.trim();
+    let clienteTel = clienteSelecionado?.telefone || document.getElementById('s1NovoTel').value.trim();
+    let clienteEmail = clienteSelecionado?.email || '';
 
-    const payload = {
-        cliente_id:       clienteId,
-        cliente_nome:     clienteNome,
-        cliente_doc:      clienteDoc,
-        cliente_telefone: clienteTel,
-        loja:             LOJA,
-        forma_pagamento:  document.getElementById('s2Forma').value,
-        moeda_entrada:    document.getElementById('s2Moeda').value,
-        valor_entrada:    parseFloat(document.getElementById('s2Valor').value)||0,
-        conta_empresa:    document.getElementById('s2Conta').value,
-        taxa_cobrada:     parseFloat(document.getElementById('s2Taxa').value)||0,
-        moeda_saida:      mSaida,
-        tipo_destino:     destinoAtivo,
-        // Beneficiário
-        beneficiario_nome:    benef.nome || '',
-        beneficiario_banco:   benef.banco_nome || benef.banco_nome_eu || benef.banco_nome_us || '',
-        beneficiario_agencia: benef.agencia || '',
-        beneficiario_conta:   benef.conta || benef.account_number || '',
-        beneficiario_cpf:     benef.cpf || '',
-        beneficiario_pix:     benef.pix_chave || '',
-        benef_iban:           benef.iban || '',
-        benef_swift:          benef.bic_swift || benef.swift_us || '',
-        benef_routing:        benef.routing_number || '',
-        observacoes:          document.getElementById('s2Obs').value.trim(),
-    };
-
-    if (!payload.cliente_nome||!payload.forma_pagamento||!payload.moeda_entrada||!payload.valor_entrada||!payload.taxa_cobrada||!payload.conta_empresa) {
-        msg.innerHTML='<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Preencha todos os campos obrigatórios.</span>';
+    // VALIDAR CLIENTE
+    if (!clienteNome) {
+        msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Selecione ou cadastre um cliente.</span>';
         return;
     }
+
+    const valor = parseFloat(document.getElementById('s2Valor').value)||0;
+    const taxa = parseFloat(document.getElementById('s2Taxa').value)||0;
+    const moeda = document.getElementById('s2Moeda').value;
+    const forma = document.getElementById('s2Forma').value;
+    const conta = document.getElementById('s2Conta').value;
+
+    if (!forma || !moeda || !valor || !taxa || !conta) {
+        msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Preencha todos os campos obrigatórios.</span>';
+        return;
+    }
+
+    // Calcular valores
+    const vs = valor * taxa;
+    const saidaFmt = mSaida === 'BRL' ? `R$ ${fmtN(vs,2)}` : `${fmtN(vs,2)} ${mSaida}`;
+    
+    // Formatar dados do beneficiário baseado no tipo de destino
+    let benefDados = '';
+    if (destinoAtivo === 'brazil') {
+        benefDados = `
+            <div class="info-item"><div class="lbl">Banco</div><div class="val">${benef.banco_nome || '—'}</div></div>
+            <div class="info-item"><div class="lbl">Agência</div><div class="val">${benef.agencia || '—'}</div></div>
+            <div class="info-item"><div class="lbl">Conta</div><div class="val">${benef.conta || '—'}</div></div>
+            <div class="info-item"><div class="lbl">CPF</div><div class="val">${benef.cpf || '—'}</div></div>
+            ${benef.pix_chave ? `<div class="info-item"><div class="lbl">PIX</div><div class="val">${benef.pix_chave}</div></div>` : ''}
+        `;
+    } else if (destinoAtivo === 'europe') {
+        benefDados = `
+            <div class="info-item"><div class="lbl">IBAN</div><div class="val">${benef.iban || '—'}</div></div>
+            <div class="info-item"><div class="lbl">BIC / SWIFT</div><div class="val">${benef.bic_swift || '—'}</div></div>
+            <div class="info-item"><div class="lbl">Banco</div><div class="val">${benef.banco_nome_eu || '—'}</div></div>
+            <div class="info-item"><div class="lbl">País do Banco</div><div class="val">${benef.banco_pais || '—'}</div></div>
+        `;
+    } else if (destinoAtivo === 'usa') {
+        benefDados = `
+            <div class="info-item"><div class="lbl">Routing Number</div><div class="val">${benef.routing_number || '—'}</div></div>
+            <div class="info-item"><div class="lbl">Account Number</div><div class="val">${benef.account_number || '—'}</div></div>
+            <div class="info-item"><div class="lbl">Tipo de Conta</div><div class="val">${benef.account_type_us || '—'}</div></div>
+            <div class="info-item"><div class="lbl">SWIFT</div><div class="val">${benef.swift_us || '—'}</div></div>
+            <div class="info-item"><div class="lbl">Banco</div><div class="val">${benef.banco_nome_us || '—'}</div></div>
+        `;
+    }
+    
+    // Montar dados para revisão com layout elegante
+    const getFormaTagClass = (forma) => {
+        if (forma === 'transferencia') return 'tag-pagamento-transferencia';
+        return 'tag-pagamento-cash';
+    };
+
+    const dadosRevisao = `
+        <div class="confirmacao-section">
+            <div class="confirmacao-section-title">
+                <i class="fas fa-user-circle"></i> Dados do Cliente
+            </div>
+            <div class="confirmacao-grid">
+                <div class="confirmacao-item">
+                    <div class="lbl">Nome completo</div>
+                    <div class="val">${clienteNome}</div>
+                </div>
+                <div class="confirmacao-item">
+                    <div class="lbl">Documento</div>
+                    <div class="val">${clienteDoc || '—'}</div>
+                </div>
+                <div class="confirmacao-item">
+                    <div class="lbl">Telefone</div>
+                    <div class="val">${clienteTel || '—'}</div>
+                </div>
+                <div class="confirmacao-item">
+                    <div class="lbl">Email</div>
+                    <div class="val">${clienteEmail || '—'}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="confirmacao-section">
+            <div class="confirmacao-section-title">
+                <i class="fas fa-exchange-alt"></i> Dados da Transação
+            </div>
+            <div class="confirmacao-grid">
+                <div class="confirmacao-item">
+                    <div class="lbl">Forma de Pagamento</div>
+                    <div class="val"><span class="tag-pagamento ${getFormaTagClass(forma)}">${forma}</span></div>
+                </div>
+                <div class="confirmacao-item">
+                    <div class="lbl">Moeda Enviada</div>
+                    <div class="val">${moeda}</div>
+                </div>
+                <div class="confirmacao-item">
+                    <div class="lbl">Valor Enviado</div>
+                    <div class="val valor-destaque-envio">${fmtN(valor,2)} ${moeda}</div>
+                </div>
+                <div class="confirmacao-item">
+                    <div class="lbl">Taxa Aplicada</div>
+                    <div class="val">${fmtN(taxa,4)} ${mSaida}/${moeda}</div>
+                </div>
+                <div class="confirmacao-item">
+                    <div class="lbl">Valor a Receber</div>
+                    <div class="val valor-destaque">${saidaFmt}</div>
+                </div>
+                <div class="confirmacao-item">
+                    <div class="lbl">Conta Empresa</div>
+                    <div class="val">${conta}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="confirmacao-section">
+            <div class="confirmacao-section-title">
+                <i class="fas fa-user-friends"></i> Dados do Beneficiário <span style="font-size:10px; color:var(--cor-texto-secundario);">(${destinoAtivo === 'brazil' ? 'Brasil' : destinoAtivo === 'europe' ? 'Europa' : 'USA'})</span>
+            </div>
+            <div class="confirmacao-grid">
+                <div class="confirmacao-item">
+                    <div class="lbl">Nome</div>
+                    <div class="val"><strong>${benef.nome || '—'}</strong></div>
+                </div>
+                ${benef.apelido ? `<div class="confirmacao-item"><div class="lbl">Apelido</div><div class="val">${benef.apelido}</div></div>` : ''}
+                ${destinoAtivo === 'brazil' ? `
+                    <div class="confirmacao-item"><div class="lbl">Banco</div><div class="val">${benef.banco_nome || '—'}</div></div>
+                    <div class="confirmacao-item"><div class="lbl">Agência</div><div class="val">${benef.agencia || '—'}</div></div>
+                    <div class="confirmacao-item"><div class="lbl">Conta</div><div class="val">${benef.conta || '—'}</div></div>
+                    <div class="confirmacao-item"><div class="lbl">CPF</div><div class="val">${benef.cpf || '—'}</div></div>
+                    ${benef.pix_chave ? `<div class="confirmacao-item"><div class="lbl">PIX</div><div class="val">${benef.pix_chave}</div></div>` : ''}
+                ` : ''}
+                ${destinoAtivo === 'europe' ? `
+                    <div class="confirmacao-item"><div class="lbl">IBAN</div><div class="val">${benef.iban || '—'}</div></div>
+                    <div class="confirmacao-item"><div class="lbl">BIC / SWIFT</div><div class="val">${benef.bic_swift || '—'}</div></div>
+                    <div class="confirmacao-item"><div class="lbl">Banco</div><div class="val">${benef.banco_nome_eu || '—'}</div></div>
+                    <div class="confirmacao-item"><div class="lbl">País do Banco</div><div class="val">${benef.banco_pais || '—'}</div></div>
+                ` : ''}
+                ${destinoAtivo === 'usa' ? `
+                    <div class="confirmacao-item"><div class="lbl">Routing Number</div><div class="val">${benef.routing_number || '—'}</div></div>
+                    <div class="confirmacao-item"><div class="lbl">Account Number</div><div class="val">${benef.account_number || '—'}</div></div>
+                    <div class="confirmacao-item"><div class="lbl">Tipo de Conta</div><div class="val">${benef.account_type_us || '—'}</div></div>
+                    <div class="confirmacao-item"><div class="lbl">SWIFT</div><div class="val">${benef.swift_us || '—'}</div></div>
+                    <div class="confirmacao-item"><div class="lbl">Banco</div><div class="val">${benef.banco_nome_us || '—'}</div></div>
+                ` : ''}
+                ${benef.endereco_linha1 ? `<div class="confirmacao-item" style="grid-column: span 2;"><div class="lbl">Endereço</div><div class="val">${benef.endereco_linha1} ${benef.cidade ? `, ${benef.cidade}` : ''} ${benef.postcode ? `, ${benef.postcode}` : ''}</div></div>` : ''}
+            </div>
+        </div>
+        
+        ${document.getElementById('s2Obs').value.trim() ? `
+        <div class="confirmacao-section">
+            <div class="confirmacao-section-title">
+                <i class="fas fa-pencil-alt"></i> Observações
+            </div>
+            <div class="confirmacao-item" style="background:rgba(128,128,128,.05);">
+                <div class="val" style="font-size:12px; font-weight:normal;">${document.getElementById('s2Obs').value.trim()}</div>
+            </div>
+        </div>
+        ` : ''}
+    `;
+    
+    // Salvar payload para usar na confirmação
+    window._pendingOrdemPayload = {
+        clienteId, clienteNome, clienteDoc, clienteTel,
+        forma, moeda, valor, conta, taxa, mSaida, benef,
+        observacoes: document.getElementById('s2Obs').value.trim()
+    };
+    
+    document.getElementById('confirmarOrdemDados').innerHTML = dadosRevisao;
+    document.getElementById('modalConfirmarOrdem').classList.add('open');
+}
+
+// 🔥 FUNÇÃO PARA CONFIRMAR E ENVIAR A ORDEM
+async function confirmarCriacaoOrdem() {
+    fecharModal('modalConfirmarOrdem');
+    
+    const payload = window._pendingOrdemPayload;
+    if (!payload) return;
+    
+    const msg = document.getElementById('s2Msg');
+    const btn = document.getElementById('drawerBtnSubmit');
+    
     btn.disabled = true;
     msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registrando…';
+    
     try {
-        const r = await fetch('/api/loja/nova-ordem',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        const r = await fetch('/api/loja/nova-ordem', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({
+                cliente_id: payload.clienteId,
+                cliente_nome: payload.clienteNome,
+                cliente_doc: payload.clienteDoc,
+                cliente_telefone: payload.clienteTel,
+                loja: LOJA,
+                forma_pagamento: payload.forma,
+                moeda_entrada: payload.moeda,
+                valor_entrada: payload.valor,
+                conta_empresa: payload.conta,
+                taxa_cobrada: payload.taxa,
+                moeda_saida: payload.mSaida,
+                tipo_destino: destinoAtivo,
+                beneficiario_nome: payload.benef.nome || '',
+                beneficiario_banco: payload.benef.banco_nome || payload.benef.banco_nome_eu || payload.benef.banco_nome_us || '',
+                beneficiario_agencia: payload.benef.agencia || '',
+                beneficiario_conta: payload.benef.conta || payload.benef.account_number || '',
+                beneficiario_cpf: payload.benef.cpf || '',
+                beneficiario_pix: payload.benef.pix_chave || '',
+                benef_iban: payload.benef.iban || '',
+                benef_swift: payload.benef.bic_swift || payload.benef.swift_us || '',
+                benef_routing: payload.benef.routing_number || '',
+                observacoes: payload.observacoes,
+            })
+        });
         const d = await r.json();
+        
         if (d.success) {
             toast(d.message, 'ok');
             if (d.aml_alertas?.length) d.aml_alertas.forEach(a => toast(`AML: ${a}`, 'warn'));
             setTimeout(()=>{ fecharDrawer(); carregarOrdens(); }, 800);
         } else if (d.kyc_blocked && !d.sanctions) {
-            // Guarda payload para reuso no envio com force_compliance_review
-            window._pendingOrderPayload = payload;
+            window._pendingOrderPayload = {
+                cliente_id: payload.clienteId,
+                cliente_nome: payload.clienteNome,
+                cliente_doc: payload.clienteDoc,
+                cliente_telefone: payload.clienteTel,
+                loja: LOJA,
+                forma_pagamento: payload.forma,
+                moeda_entrada: payload.moeda,
+                valor_entrada: payload.valor,
+                conta_empresa: payload.conta,
+                taxa_cobrada: payload.taxa,
+                moeda_saida: payload.mSaida,
+                tipo_destino: destinoAtivo,
+                beneficiario_nome: payload.benef.nome || '',
+                beneficiario_banco: payload.benef.banco_nome || payload.benef.banco_nome_eu || payload.benef.banco_nome_us || '',
+                beneficiario_agencia: payload.benef.agencia || '',
+                beneficiario_conta: payload.benef.conta || payload.benef.account_number || '',
+                beneficiario_cpf: payload.benef.cpf || '',
+                beneficiario_pix: payload.benef.pix_chave || '',
+                benef_iban: payload.benef.iban || '',
+                benef_swift: payload.benef.bic_swift || payload.benef.swift_us || '',
+                benef_routing: payload.benef.routing_number || '',
+                observacoes: payload.observacoes,
+            };
             const docLabels = {photo_id:'Photo ID',proof_address:'Proof of Address',source_funds:'Source of Funds',declaration:'Declaration Form',edd:'EDD Documents'};
             const lista = (d.docs_missing||[]).map(k => `<li>${docLabels[k]||k}</li>`).join('');
             msg.innerHTML = `<div id="kycAlertBox" style="background:rgba(224,107,0,.07);border:1px solid rgba(224,107,0,.4);border-radius:8px;padding:14px;margin-top:8px;">
@@ -1340,6 +1823,12 @@ async function criarOrdemComCompliance() {
     try {
         const r1 = await fetch('/api/loja/nova-ordem',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
         const d1 = await r1.json();
+        
+        // 🔥 DEBUG - Ver no console do navegador
+        console.log("🔍 RESPOSTA COMPLETA:", d1);
+        console.log("🔍 STATUS RECEBIDO:", d1.status);
+        console.log("🔍 AML_ALERTAS:", d1.aml_alertas);
+        
         if (!d1.success) {
             proofMsg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> ${d1.message}</span>`;
             return;
@@ -1350,8 +1839,15 @@ async function criarOrdemComCompliance() {
         const fd = new FormData();
         fd.append('arquivo', proofInput.files[0]);
         fd.append('observacao', 'Proof of Funds — KYC override para análise compliance');
-        const r2 = await fetch(`/api/loja/ordens/${ordemId}/upload-proof`, {method:'POST', body: fd});
+        
+        // 🔥 CORREÇÃO AQUI - Adicionar credentials: 'include'
+        const r2 = await fetch(`/api/loja/ordens/${ordemId}/upload-proof`, {
+            method: 'POST', 
+            body: fd,
+            credentials: 'include'
+        });
         const d2 = await r2.json();
+        
         if (!d2.success) {
             proofMsg.innerHTML = `<span style="color:#e06b00"><i class="fas fa-exclamation-triangle"></i> Ordem criada (${ordemId}), mas falha no upload: ${d2.message}. Envie o documento depois.</span>`;
             setTimeout(()=>{ fecharDrawer(); carregarOrdens(); }, 3000);
@@ -1361,6 +1857,32 @@ async function criarOrdemComCompliance() {
         setTimeout(()=>{ fecharDrawer(); carregarOrdens(); }, 800);
     } catch(e) {
         proofMsg.innerHTML = `<span style="color:var(--cor-perigo)">${e.message}</span>`;
+    }
+}
+
+function atualizarStatusPreview() {
+    const formaPagamento = document.getElementById('s2Forma')?.value;
+    const statusSpan = document.getElementById('pv-status');
+    
+    console.log("🔍 [STATUS] Forma pagamento:", formaPagamento);
+    console.log("🔍 [STATUS] ultimoKycCheck:", window.ultimoKycCheck);
+    
+    if (!statusSpan) return;
+    
+    // Verificar se precisa de compliance review usando a estrutura correta
+    const precisaCompliance = window.ultimoKycCheck?.precisaCompliance === true;
+    
+    console.log("🔍 [STATUS] Precisa compliance:", precisaCompliance);
+    
+    if (precisaCompliance) {
+        console.log("✅ [STATUS] Setando para compliance_review");
+        statusSpan.innerHTML = '<span style="color:#e06b00"><i class="fas fa-clock"></i> compliance_review (aguardando análise)</span>';
+    } else if (formaPagamento === 'transferencia') {
+        console.log("✅ [STATUS] Setando para on_hold");
+        statusSpan.innerHTML = '<span style="color:#f39c12"><i class="fas fa-hourglass-half"></i> on_hold (aguardando pagamento)</span>';
+    } else {
+        console.log("✅ [STATUS] Setando para liberada");
+        statusSpan.innerHTML = '<span style="color:#27ae60"><i class="fas fa-check-circle"></i> liberada</span>';
     }
 }
 
@@ -1446,9 +1968,88 @@ const _hoje = new Date().toISOString().slice(0,10);
 document.getElementById('filtroDataDe').value  = _hoje;
 document.getElementById('filtroDataAte').value = _hoje;
 
-carregarOrdens();   // stats são calculados dentro de carregarOrdens
+carregarOrdens();   // stats são calculadas dentro de carregarOrdens
 carregarContas();
 carregarParceiros();
+
+// ============================================
+// 🔥 ADICIONAR AQUI! - EVENTOS PARA STATUS
+// ============================================
+
+// Quando a forma de pagamento mudar, atualizar o status
+const formaSelect = document.getElementById('s2Forma');
+if (formaSelect) {
+    formaSelect.addEventListener('change', function() {
+        atualizarStatusPreview();
+    });
+}
+
+// Quando o valor mudar, atualizar o status
+const valorInput = document.getElementById('s2Valor');
+if (valorInput) {
+    valorInput.addEventListener('input', function() {
+        atualizarStatusPreview();
+    });
+}
+
+// Quando a moeda mudar, atualizar o status
+const moedaSelect = document.getElementById('s2Moeda');
+if (moedaSelect) {
+    moedaSelect.addEventListener('change', function() {
+        atualizarStatusPreview();
+    });
+}
+
+// Função para calcular validade do comprovante de endereço (6 meses após a data)
+function calcularValidadeEndereco(dataDocumento) {
+    if (!dataDocumento) return null;
+    const data = new Date(dataDocumento);
+    data.setMonth(data.getMonth() + 6);
+    return data.toISOString().split('T')[0];
+}
+
+// Evento para mostrar validade calculada do comprovante
+const addrDataInput = document.getElementById('s1NovoAddrData');
+if (addrDataInput) {
+    addrDataInput.addEventListener('change', function() {
+        const validade = calcularValidadeEndereco(this.value);
+        const msgDiv = document.getElementById('s1NovoAddrValidadeMsg');
+        if (validade && msgDiv) {
+            const dataValidade = new Date(validade);
+            const hoje = new Date();
+            const diasRestantes = Math.ceil((dataValidade - hoje) / (1000 * 60 * 60 * 24));
+            
+            if (diasRestantes < 0) {
+                msgDiv.innerHTML = '<span style="color:var(--cor-perigo);"><i class="fas fa-exclamation-triangle"></i> DOCUMENTO EXPIRADO! Envie um comprovante mais recente.</span>';
+            } else if (diasRestantes < 30) {
+                msgDiv.innerHTML = `<span style="color:var(--cor-alerta);"><i class="fas fa-clock"></i> Vence em ${diasRestantes} dias (${dataValidade.toLocaleDateString('pt-BR')})</span>`;
+            } else {
+                msgDiv.innerHTML = `<span style="color:var(--cor-sucesso);"><i class="fas fa-check-circle"></i> Válido até ${dataValidade.toLocaleDateString('pt-BR')}</span>`;
+            }
+        } else if (msgDiv) {
+            msgDiv.innerHTML = '<span style="color:var(--cor-texto-secundario);">Selecione uma data</span>';
+        }
+    });
+}
+
+// Evento para mostrar alerta se documento ID estiver próximo do vencimento
+const docValidadeInput = document.getElementById('s1NovoDocValidade');
+if (docValidadeInput) {
+    docValidadeInput.addEventListener('change', function() {
+        if (!this.value) return;
+        const dataValidade = new Date(this.value);
+        const hoje = new Date();
+        const diasRestantes = Math.ceil((dataValidade - hoje) / (1000 * 60 * 60 * 24));
+        
+        if (diasRestantes < 0) {
+            toast('⚠️ Documento de identificação EXPIRADO!', 'warn');
+        } else if (diasRestantes < 30) {
+            toast(`📅 Documento de identificação vence em ${diasRestantes} dias.`, 'warn');
+        } else if (diasRestantes < 90) {
+            toast(`📅 Documento de identificação vence em ${diasRestantes} dias. Lembre-se de renovar.`, 'info');
+        }
+    });
+}
 </script>
 </body>
 </html>

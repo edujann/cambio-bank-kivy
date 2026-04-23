@@ -133,3 +133,46 @@
     caret-color: #e0e0e0 !important;
     background-color: #0a0e15 !important;
 }
+
+/* ============================================
+   STATUS TAGS
+   ============================================ */
+
+.tag {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.tag-on_hold {
+    background: rgba(243, 156, 18, 0.15);
+    color: var(--cor-alerta);
+}
+
+.tag-liberada {
+    background: rgba(26, 95, 180, 0.15);
+    color: var(--cor-admin);
+}
+
+.tag-despachada {
+    background: rgba(155, 89, 182, 0.15);
+    color: #9b59b6;
+}
+
+.tag-paga {
+    background: rgba(46, 194, 126, 0.15);
+    color: var(--cor-sucesso);
+}
+
+.tag-cancelada {
+    background: rgba(224, 27, 36, 0.15);
+    color: var(--cor-perigo);
+}
+
+/* 🔥 ADICIONAR ESTA LINHA 🔥 */
+.tag-compliance_review {
+    background: rgba(155, 89, 182, 0.15);
+    color: #9b59b6;
+}

@@ -11170,13 +11170,19 @@ def loja_nova_ordem():
         else:
             compliance_status_val = 'pendente'
 
+        print(f"🔍 DEBUG: forma = {forma}")
+        print(f"🔍 DEBUG: compliance_status_val = {compliance_status_val}")
+        print(f"🔍 DEBUG: aml_alertas = {aml_alertas}")            
+
         # --- status final ---
-        if forma == 'transferencia':
-            status = 'on_hold'
-        elif compliance_status_val == 'aprovado':
-            status = 'liberada'
-        else:
+        # 1. Se precisa de compliance review (documentos pendentes, etc.)
+        if aml_alertas or compliance_status_val == 'pendente':
             status = 'compliance_review'
+        # 2. Se não precisa, define baseado na forma de pagamento
+        elif forma == 'transferencia':
+            status = 'on_hold'
+        else:
+            status = 'liberada'
 
         ordem = {
             'data': datetime.now().isoformat(),
@@ -11214,7 +11220,7 @@ def loja_nova_ordem():
         ins_ordem = supabase.table('ordens_captacao').insert(ordem).execute()
         ordem_id  = str(ins_ordem.data[0]['id']) if ins_ordem.data else None
 
-        # Cash/cartão: creditar conta empresa imediatamente (o dinheiro já entrou)
+        # Cash/cartão: creditar conta empresa imediatamente (independente do status)
         if forma != 'transferencia' and conta_emp and valor_e > 0:
             r_ct = supabase.table('contas_bancarias_empresa').select('saldo').eq('numero', conta_emp).single().execute()
             if r_ct.data:
@@ -11272,9 +11278,11 @@ def loja_listar_ordens():
 @app.route('/api/loja/ordens/<ordem_id>/upload-proof', methods=['POST'])
 def loja_upload_proof_of_funds(ordem_id):
     """Upload de Proof of Funds vinculado a uma ordem — gravado em kyc-docs/ordens/<ordem_id>/"""
-    if 'usuario' not in session:
+    # 🔥 CORREÇÃO: usar 'username' em vez de 'usuario'
+    if 'username' not in session:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
-    usuario = session['usuario']
+    usuario = session['username']
+    
     try:
         arquivo = request.files.get('arquivo')
         if not arquivo or not arquivo.filename:
@@ -11586,6 +11594,8 @@ def clientes_criar():
             'risk_score':      'high' if pais in HIGH_RISK_COUNTRIES else 'medium',
             'pep_flag':        bool(d.get('pep_flag', False)),
             'pep_info':        (d.get('pep_info') or '').strip(),
+            'doc_photo_id_validade': d.get('doc_photo_id_validade') or None,
+            'doc_address_atualizado_em': d.get('doc_address_atualizado_em') or None,            
         }
         # Tenta inserir tudo; se falhar por coluna inexistente, usa só base
         try:
@@ -11633,7 +11643,8 @@ def clientes_atualizar(cliente_id):
         allowed = ['nome','documento','tipo_documento','data_nascimento','telefone','email',
                    'profissao','endereco','cidade','pais_residencia','nacionalidade',
                    'benef_nome','benef_banco','benef_conta','benef_pix','benef_iban','benef_swift',
-                   'observacoes','pep_flag','pep_info','risk_score']
+                   'observacoes','pep_flag','pep_info','risk_score'
+                   'doc_photo_id_validade', 'doc_address_atualizado_em'] 
         payload = {k: d[k] for k in allowed if k in d}
         pais = payload.get('pais_residencia', '')
         if pais and pais.upper() in PROHIBITED_COUNTRIES:
