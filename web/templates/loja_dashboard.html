@@ -2096,34 +2096,8 @@ document.querySelectorAll('.modal-ov').forEach(m => m.addEventListener('click',e
 
 // ══ CONTAS / PARCEIROS ══════════════════════════════════════════════
 async function carregarContas() {
-    try {
-        console.log("🔍 Carregando contas...");
-        const r = await fetch('/api/loja/contas-empresa');
-        const d = await r.json();
-        console.log("📦 Contas recebidas:", d);
-        
-        const sel = document.getElementById('s2Conta');
-        if (!sel) {
-            console.log("❌ Select s2Conta não encontrado!");
-            return;
-        }
-        
-        sel.innerHTML = '<option value="">Selecione a conta…</option>';
-        
-        if (d.success && d.contas && d.contas.length > 0) {
-            d.contas.forEach(c => {
-                sel.innerHTML += `<option value="${c.numero}">${c.numero} — ${c.banco || ''} (${c.moeda})</option>`;
-            });
-            console.log(`✅ ${d.contas.length} contas carregadas!`);
-        } else {
-            sel.innerHTML = '<option value="">Nenhuma conta disponível</option>';
-            console.log("⚠️ Nenhuma conta encontrada");
-        }
-    } catch(e) {
-        console.error("❌ Erro ao carregar contas:", e);
-        const sel = document.getElementById('s2Conta');
-        if (sel) sel.innerHTML = '<option value="">Erro ao carregar contas</option>';
-    }
+    // Apenas mantém compatibilidade — a conta é preenchida automaticamente
+    // pelo autoFetchConfigLoja() quando o atendente seleciona forma/moeda
 }
 async function carregarParceiros() {
     try {

@@ -12357,13 +12357,15 @@ def admin_config_contas_create():
         d = request.get_json() or {}
         # Buscar nome da conta
         conta_nome = d.get('conta_nome', '')
-        if not conta_nome and d.get('conta_numero'):
+        if d.get('conta_numero'):
             try:
                 rc = supabase.table('contas_bancarias_empresa').select('banco,moeda').eq('numero', d['conta_numero']).single().execute()
                 if rc.data:
-                    conta_nome = f"{rc.data['banco']} ({rc.data['moeda']})"
+                    conta_nome = f"{d['conta_numero']} — {rc.data['banco']} ({rc.data['moeda']})"
+                else:
+                    conta_nome = d['conta_numero']
             except Exception:
-                pass
+                conta_nome = d['conta_numero']
         payload = {
             'loja':            d['loja'],
             'forma_pagamento': d['forma_pagamento'],
