@@ -6681,6 +6681,7 @@ def api_admin_criar_conta_bancaria():
         
         # Criar nova conta
         nova_conta = {
+            'id': numero,
             'numero': numero,
             'banco': banco,
             'agencia': agencia,
