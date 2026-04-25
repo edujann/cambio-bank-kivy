@@ -11085,15 +11085,7 @@ def loja_nova_ordem():
             if ins.data:
                 cliente_id = str(ins.data[0]['id'])
 
-        # 🔥 VERIFICAR DOCUMENTOS DO CLIENTE (se cliente_id existe)
-        if cliente_id:
-            docs_validos, msg_docs, docs_expirados = verificar_documentos_validos(cliente_id)
-            if not docs_validos:
-                return jsonify({
-                    'success': False, 
-                    'message': f"❌ Cliente com pendência documental: {msg_docs}",
-                    'documentos_pendentes': docs_expirados
-                }), 403
+        # Verificação documental movida para após o cálculo AML (ver abaixo)
 
         # AML / KYC check
         aml_alertas = []
@@ -11119,7 +11111,8 @@ def loja_nova_ordem():
                         'sanctions': True
                     }), 403
 
-                doc_map = {
+                # Docs já validados pelo compliance
+                doc_validado = {
                     'basic_info':    True,
                     'photo_id':      bool(c.get('doc_photo_id_ok')),
                     'proof_address': bool(c.get('doc_address_ok')),
@@ -11134,17 +11127,51 @@ def loja_nova_ordem():
                     'declaration': 'Declaration Form',
                     'edd': 'EDD Documents',
                 }
-                missing = [doc for doc in aml['docs_required'] if not doc_map.get(doc, False)]
-                if missing and not force_compliance:
-                    missing_str = ', '.join(doc_labels.get(doc, doc) for doc in missing)
+
+                # Docs já enviados pelo atendente (uploaded, ainda não validados)
+                r_uploads = supabase.table('documentos_kyc')\
+                    .select('tipo').eq('cliente_id', str(cliente_id)).execute()
+                uploaded_types = {row['tipo'] for row in (r_uploads.data or [])}
+
+                # Docs por operação (exigem análise manual em cada ordem)
+                ORDER_LEVEL_DOCS = {'source_funds', 'edd', 'declaration'}
+                # Docs de cliente (validados uma vez, reutilizados)
+                CLIENT_LEVEL_DOCS = {'photo_id', 'proof_address'}
+
+                # Docs de operação REALMENTE necessários nesta ordem (tier crossing ou EDD)
+                newly_req = set(aml.get('order_docs_newly_required', []))
+                order_docs_missing = []
+                client_docs_missing = []
+                for doc in aml['docs_required']:
+                    if doc == 'basic_info':
+                        continue
+                    if doc in ORDER_LEVEL_DOCS:
+                        if doc not in newly_req:
+                            # Cliente já estava neste tier — monitoramento contínuo, sem upload
+                            continue
+                        if force_compliance:
+                            aml_alertas.append('KYC_DOC_OPERACAO_PENDENTE_VALIDACAO')
+                        elif doc not in uploaded_types:
+                            order_docs_missing.append(doc)
+                        else:
+                            aml_alertas.append('KYC_DOC_OPERACAO_PENDENTE_VALIDACAO')
+                    elif doc in CLIENT_LEVEL_DOCS:
+                        if doc_validado.get(doc):
+                            continue
+                        elif doc in uploaded_types:
+                            aml_alertas.append('KYC_DOC_CLIENTE_PENDENTE_VALIDACAO')
+                        else:
+                            client_docs_missing.append(doc)
+
+                all_missing = client_docs_missing + order_docs_missing
+                if all_missing and not force_compliance:
+                    labels = ', '.join(doc_labels.get(d, d) for d in all_missing)
                     return jsonify({
                         'success': False,
-                        'message': f'KYC incompleto — documentos pendentes: {missing_str}',
+                        'message': f'Upload obrigatório: {labels}',
                         'kyc_blocked': True,
-                        'docs_missing': missing
+                        'docs_missing': all_missing
                     }), 403
-                if missing and force_compliance:
-                    aml_alertas.append('KYC_INCOMPLETO_PROOF_OF_FUNDS_SOLICITADO')
             except Exception:
                 pass  # falha no KYC check não bloqueia (log apenas)
 
@@ -11175,9 +11202,37 @@ def loja_nova_ordem():
         else:
             compliance_status_val = 'pendente'
 
-        print(f"🔍 DEBUG: forma = {forma}")
-        print(f"🔍 DEBUG: compliance_status_val = {compliance_status_val}")
-        print(f"🔍 DEBUG: aml_alertas = {aml_alertas}")            
+        # --- Detecção de structuring/smurfing ---
+        if cliente_id:
+            struct_alertas = _detect_structuring(cliente_id, valor_gbp)
+            for sa in struct_alertas:
+                codigo = sa['codigo']
+                if codigo not in aml_alertas:
+                    aml_alertas.append(codigo)
+                try:
+                    supabase.table('compliance_audit').insert({
+                        'usuario': usuario,
+                        'acao': 'STRUCTURING_ALERT',
+                        'detalhe': f'[{codigo}] cliente_id={cliente_id} — {sa["detalhe"]}'
+                    }).execute()
+                except Exception:
+                    pass
+
+        # --- Sanctions screening ---
+        if cliente_id and cliente_nome:
+            sanction_hits = _check_sanctions(cliente_id, cliente_nome)
+            if sanction_hits:
+                if 'SANCTIONS_HIT' not in aml_alertas:
+                    aml_alertas.append('SANCTIONS_HIT')
+                try:
+                    listas = ', '.join(set(h['lista'] for h in sanction_hits))
+                    supabase.table('compliance_audit').insert({
+                        'usuario': usuario,
+                        'acao': 'SANCTIONS_ALERT',
+                        'detalhe': f'cliente_id={cliente_id} nome="{cliente_nome}" listas={listas} hits={len(sanction_hits)}'
+                    }).execute()
+                except Exception:
+                    pass
 
         # --- status final ---
         # 1. Se precisa de compliance review (documentos pendentes, etc.)
@@ -11282,20 +11337,23 @@ def loja_listar_ordens():
 
 @app.route('/api/loja/ordens/<ordem_id>/upload-proof', methods=['POST'])
 def loja_upload_proof_of_funds(ordem_id):
-    """Upload de Proof of Funds vinculado a uma ordem — gravado em kyc-docs/ordens/<ordem_id>/"""
-    # 🔥 CORREÇÃO: usar 'username' em vez de 'usuario'
+    """Upload de documento por-operação vinculado a uma ordem (source_funds ou declaration)."""
     if 'username' not in session:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     usuario = session['username']
-    
+
     try:
         arquivo = request.files.get('arquivo')
         if not arquivo or not arquivo.filename:
             return jsonify({'success': False, 'message': 'Nenhum arquivo enviado.'}), 400
 
+        tipo = (request.form.get('tipo') or 'source_funds').strip()
+        if tipo not in ('source_funds', 'declaration', 'edd'):
+            tipo = 'source_funds'
+
         ext = os.path.splitext(arquivo.filename)[1].lower() or '.bin'
         ts  = datetime.now().strftime('%Y%m%d_%H%M%S')
-        path_storage = f"ordens/{ordem_id}/proof_of_funds_{ts}{ext}"
+        path_storage = f"ordens/{ordem_id}/{tipo}_{ts}{ext}"
         conteudo     = arquivo.read()
         ct           = arquivo.content_type or mimetypes.guess_type(arquivo.filename)[0] or 'application/octet-stream'
 
@@ -11310,16 +11368,17 @@ def loja_upload_proof_of_funds(ordem_id):
                 return jsonify({'success': False, 'message': 'Bucket "kyc-docs" não encontrado no Supabase Storage.'}), 500
             raise
 
+        obs_default = {'source_funds': 'Source of Funds — KYC override', 'declaration': 'Declaration Form — KYC override', 'edd': 'EDD — KYC override'}
         r = supabase.table('documentos_kyc').insert({
             'ordem_id':     ordem_id,
-            'tipo':         'proof_of_funds_ordem',
+            'tipo':         tipo,
             'arquivo_url':  path_storage,
             'arquivo_nome': arquivo.filename,
-            'observacao':   request.form.get('observacao', 'Proof of Funds — KYC override'),
+            'observacao':   request.form.get('observacao', obs_default.get(tipo, '')),
             'criado_por':   usuario,
         }).execute()
         doc_id = r.data[0]['id'] if r.data else None
-        return jsonify({'success': True, 'message': 'Proof of Funds enviado.', 'doc_id': doc_id})
+        return jsonify({'success': True, 'message': f'{tipo} enviado.', 'doc_id': doc_id})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
@@ -11486,30 +11545,96 @@ HIGH_RISK_COUNTRIES = {
     'LB','MC','MZ','MM','NA','NP','NG','ZA','SS','SY','VE','VN','YE'
 }
 
+# Limiares de tier usados na detecção de structuring
+AML_TIER_THRESHOLDS = [850, 2500, 3500, 5000]
+
+def _to_gbp(valor, moeda):
+    m = (moeda or '').upper()
+    if m == 'EUR': return float(valor or 0) * 0.86
+    if m == 'USD': return float(valor or 0) * 0.79
+    return float(valor or 0)
+
+def _detect_structuring(cliente_id, valor_nova_ordem_gbp):
+    """
+    Detecta padrões de structuring/smurfing.
+    Retorna lista de alertas encontrados com detalhes.
+    """
+    from datetime import datetime, timedelta
+    alertas = []
+    try:
+        agora = datetime.now()
+        cutoff_7d  = (agora - timedelta(days=7)).isoformat()
+        cutoff_48h = (agora - timedelta(hours=48)).isoformat()
+
+        r = supabase.table('ordens_captacao')\
+            .select('id,valor_entrada,moeda_entrada,data')\
+            .eq('cliente_id', str(cliente_id))\
+            .neq('status', 'cancelada')\
+            .gte('data', cutoff_7d).execute()
+        ordens_7d = r.data or []
+        ordens_48h = [o for o in ordens_7d if o.get('data','') >= cutoff_48h]
+
+        total_7d_gbp = sum(_to_gbp(o['valor_entrada'], o['moeda_entrada']) for o in ordens_7d)
+        total_48h_gbp = sum(_to_gbp(o['valor_entrada'], o['moeda_entrada']) for o in ordens_48h)
+
+        # 1. Alta frequência: 3+ ordens em 7 dias
+        if len(ordens_7d) >= 2:  # 2 existentes + esta = 3
+            alertas.append({
+                'codigo': 'STRUCTURING_HIGH_FREQUENCY',
+                'detalhe': f'{len(ordens_7d)+1} ordens nos últimos 7 dias'
+            })
+
+        # 2. Valor logo abaixo de um limiar (5% abaixo) — clássico structuring
+        for t in AML_TIER_THRESHOLDS:
+            if t * 0.95 <= valor_nova_ordem_gbp < t:
+                alertas.append({
+                    'codigo': 'STRUCTURING_JUST_BELOW_THRESHOLD',
+                    'detalhe': f'Valor £{valor_nova_ordem_gbp:.2f} está logo abaixo do limiar de £{t}'
+                })
+                break
+
+        # 3. Acumulação rápida: ordens em 48h que cruzam um tier juntas
+        total_com_nova = total_48h_gbp + valor_nova_ordem_gbp
+        for t in AML_TIER_THRESHOLDS:
+            if total_48h_gbp < t <= total_com_nova and len(ordens_48h) >= 1:
+                alertas.append({
+                    'codigo': 'STRUCTURING_RAPID_ACCUMULATION',
+                    'detalhe': f'Total £{total_com_nova:.2f} cruza limiar £{t} em menos de 48h com {len(ordens_48h)+1} ordens'
+                })
+                break
+
+        # 4. Fragmentação semanal: 4+ ordens pequenas (< £850 cada) em 7 dias
+        ordens_pequenas_7d = [o for o in ordens_7d if _to_gbp(o['valor_entrada'], o['moeda_entrada']) < 850]
+        if len(ordens_pequenas_7d) >= 3 and valor_nova_ordem_gbp < 850:
+            alertas.append({
+                'codigo': 'STRUCTURING_FRAGMENTATION',
+                'detalhe': f'{len(ordens_pequenas_7d)+1} ordens abaixo de £850 em 7 dias (total: £{total_7d_gbp+valor_nova_ordem_gbp:.2f})'
+            })
+
+    except Exception:
+        pass
+    return alertas
+
+
 AML_TIERS = [
     (850,   0, ['basic_info', 'photo_id']),
     (2500,  1, ['basic_info', 'photo_id', 'proof_address']),
     (3500,  2, ['basic_info', 'photo_id', 'proof_address', 'source_funds']),
-    (5000,  3, ['basic_info', 'photo_id', 'proof_address', 'source_funds', 'declaration', 'edd']),
-    (99999, 4, ['basic_info', 'photo_id', 'proof_address', 'source_funds', 'declaration', 'edd']),
+    (5000,  3, ['basic_info', 'photo_id', 'proof_address', 'source_funds', 'declaration']),
+    (99999, 4, ['basic_info', 'photo_id', 'proof_address', 'source_funds', 'declaration']),
 ]
 
 def _aml_required_tier(total_90d):
-    # Tier 0: ≤ 850 → Basic info + Photo ID
     if total_90d <= 850:
         return 0, ['basic_info', 'photo_id']
-    # Tier 1: ≤ 2500 → + Proof of Address
     elif total_90d <= 2500:
         return 1, ['basic_info', 'photo_id', 'proof_address']
-    # Tier 2: ≤ 3500 → + Source of Funds
     elif total_90d <= 3500:
         return 2, ['basic_info', 'photo_id', 'proof_address', 'source_funds']
-    # Tier 3: ≤ 5000 → + Declaration + EDD
     elif total_90d <= 5000:
-        return 3, ['basic_info', 'photo_id', 'proof_address', 'source_funds', 'declaration', 'edd']
-    # Tier 4: > 5000 → Todos + EDD Contínuo
+        return 3, ['basic_info', 'photo_id', 'proof_address', 'source_funds', 'declaration']
     else:
-        return 4, ['basic_info', 'photo_id', 'proof_address', 'source_funds', 'declaration', 'edd']
+        return 4, ['basic_info', 'photo_id', 'proof_address', 'source_funds', 'declaration']
 
 def _aml_calc_90d(cliente_id):
     from datetime import datetime, timedelta
@@ -11536,17 +11661,213 @@ def _aml_calc_90d(cliente_id):
     except Exception:
         return 0.0
 
+def _normalize_name(name):
+    """Normaliza nome para comparação: lowercase, sem acentos, sem pontuação."""
+    import unicodedata
+    if not name:
+        return ''
+    nfkd = unicodedata.normalize('NFKD', str(name).lower())
+    return ''.join(c for c in nfkd if not unicodedata.combining(c) and (c.isalpha() or c == ' ')).strip()
+
+
+def _sanctions_name_score(name_a, name_b):
+    """Retorna score 0-100 de similaridade entre dois nomes normalizados."""
+    a = _normalize_name(name_a)
+    b = _normalize_name(name_b)
+    if not a or not b:
+        return 0
+    # Exact match
+    if a == b:
+        return 100
+    # One contained in other
+    if a in b or b in a:
+        return 90
+    # Word overlap score
+    words_a = set(a.split())
+    words_b = set(b.split())
+    if not words_a or not words_b:
+        return 0
+    overlap = len(words_a & words_b)
+    union = len(words_a | words_b)
+    return int(overlap / union * 80)
+
+
+def _check_sanctions(cliente_id, nome_cliente):
+    """
+    Verifica cliente contra tabela sanctioned_entities.
+    Retorna lista de hits com score >= 70.
+    Grava hits novos em sanctions_hits.
+    """
+    hits = []
+    try:
+        r = supabase.table('sanctioned_entities').select('*').eq('ativo', True).execute()
+        entities = r.data or []
+    except Exception:
+        return hits
+
+    score_threshold = 70
+    for ent in entities:
+        score = _sanctions_name_score(nome_cliente, ent.get('nome', ''))
+        if score >= score_threshold:
+            hits.append({
+                'entidade_id': ent.get('id'),
+                'nome_entidade': ent.get('nome'),
+                'lista': ent.get('lista', ''),
+                'score': score,
+                'motivo': ent.get('motivo', '')
+            })
+            # Gravar hit se ainda não existe pendente
+            try:
+                existing = supabase.table('sanctions_hits')\
+                    .select('id')\
+                    .eq('cliente_id', str(cliente_id))\
+                    .eq('entidade_id', str(ent.get('id')))\
+                    .eq('status', 'pendente')\
+                    .execute()
+                if not (existing.data or []):
+                    supabase.table('sanctions_hits').insert({
+                        'cliente_id': str(cliente_id),
+                        'entidade_id': str(ent.get('id')),
+                        'nome_cliente': nome_cliente,
+                        'nome_entidade': ent.get('nome'),
+                        'lista': ent.get('lista', ''),
+                        'score': score,
+                        'status': 'pendente'
+                    }).execute()
+            except Exception:
+                pass
+    return hits
+
+
 def _aml_check_order(cliente_id, valor_nova_ordem_gbp):
-    total_90d = _aml_calc_90d(cliente_id) + valor_nova_ordem_gbp
+    total_anterior = _aml_calc_90d(cliente_id)
+    total_90d = total_anterior + valor_nova_ordem_gbp
+    tier_anterior, _ = _aml_required_tier(total_anterior)
     level, docs_req = _aml_required_tier(total_90d)
     pep_screening = total_90d >= 2000
+    # EDD is risk-based, not value-based
+    edd_required = False
+    try:
+        r_c = supabase.table('clientes_varejo')\
+            .select('pep_flag,risk_score,pais_residencia').eq('id', str(cliente_id)).single().execute()
+        if r_c.data:
+            c = r_c.data
+            edd_required = (
+                bool(c.get('pep_flag')) or
+                str(c.get('risk_score', '') or '').lower() in ('high', 'alto') or
+                (c.get('pais_residencia', '') or '') in HIGH_RISK_COUNTRIES
+            )
+    except Exception:
+        pass
+    if edd_required and 'edd' not in docs_req:
+        docs_req = list(docs_req) + ['edd']
+    # Docs de operação exigidos em dois cenários:
+    # 1) Cruzamento de tier pela primeira vez na janela de 90 dias
+    # 2) Valor único da transação acima dos limiares internos (independente do histórico)
+    SINGLE_TX_SOF_THRESHOLD  = 5000   # £5.000 por transação → exige SoF
+    SINGLE_TX_DECL_THRESHOLD = 10000  # £10.000 por transação → exige também Declaration
+    ORDER_LEVEL_MIN_TIER = {'source_funds': 2, 'declaration': 3}
+    order_docs_newly_required = [
+        doc for doc, min_tier in ORDER_LEVEL_MIN_TIER.items()
+        if level >= min_tier and tier_anterior < min_tier
+    ]
+    # Limiar por transação individual
+    if valor_nova_ordem_gbp >= SINGLE_TX_SOF_THRESHOLD and 'source_funds' not in order_docs_newly_required:
+        order_docs_newly_required.append('source_funds')
+    if valor_nova_ordem_gbp >= SINGLE_TX_DECL_THRESHOLD and 'declaration' not in order_docs_newly_required:
+        order_docs_newly_required.append('declaration')
+    if edd_required:
+        if 'edd' not in order_docs_newly_required:
+            order_docs_newly_required.append('edd')
     return {
         'total_90d': total_90d,
+        'tier_anterior': tier_anterior,
         'kyc_level_required': level,
+        'tier_crossed': level > tier_anterior,
         'docs_required': docs_req,
+        'order_docs_newly_required': order_docs_newly_required,
         'pep_screening': pep_screening,
-        'edd_required': level >= 3,
+        'edd_required': edd_required,
     }
+
+
+def _docs_for_level(level):
+    """Retorna a lista de docs exigidos para um tier KYC, sem recalcular total_90d."""
+    level_map = {
+        0: ['photo_id'],
+        1: ['photo_id', 'proof_address'],
+        2: ['photo_id', 'proof_address', 'source_funds'],
+        3: ['photo_id', 'proof_address', 'source_funds', 'declaration'],
+        4: ['photo_id', 'proof_address', 'source_funds', 'declaration'],
+    }
+    return level_map.get(int(level or 0), ['photo_id'])
+
+
+def _promover_ordens_pendentes(cliente_id, usuario='sistema'):
+    """
+    Após validação de documento de cliente, promove automaticamente ordens em
+    compliance_review cujos docs de CLIENTE (photo_id, proof_address, declaration)
+    estejam todos validados E que não exijam source_funds/edd (per-ordem).
+    Retorna o número de ordens promovidas.
+    """
+    ORDER_LEVEL_DOCS = {'source_funds', 'edd', 'declaration'}
+    CLIENT_LEVEL_DOCS = {'photo_id', 'proof_address'}
+    try:
+        r_c = supabase.table('clientes_varejo')\
+            .select('doc_photo_id_ok,doc_address_ok,doc_source_funds_ok,doc_declaration_ok,doc_edd_ok')\
+            .eq('id', str(cliente_id)).single().execute()
+        if not r_c.data:
+            return 0
+        c = r_c.data
+        doc_validado = {
+            'photo_id':      bool(c.get('doc_photo_id_ok')),
+            'proof_address': bool(c.get('doc_address_ok')),
+            'source_funds':  bool(c.get('doc_source_funds_ok')),
+            'declaration':   bool(c.get('doc_declaration_ok')),
+            'edd':           bool(c.get('doc_edd_ok')),
+        }
+
+        r_o = supabase.table('ordens_captacao')\
+            .select('id,kyc_level_na_ordem,pagamento_confirmado')\
+            .eq('cliente_id', str(cliente_id))\
+            .eq('status', 'compliance_review').execute()
+
+        promovidas = 0
+        for ordem in (r_o.data or []):
+            docs_req = _docs_for_level(ordem.get('kyc_level_na_ordem', 0))
+
+            # Se a ordem exige doc por operação → não auto-promover
+            if any(d in ORDER_LEVEL_DOCS for d in docs_req):
+                continue
+
+            # Todos os docs de cliente exigidos precisam estar validados
+            client_docs = [d for d in docs_req if d in CLIENT_LEVEL_DOCS]
+            if not all(doc_validado.get(d, False) for d in client_docs):
+                continue
+
+            novo_status = 'liberada' if ordem.get('pagamento_confirmado') else 'on_hold'
+            supabase.table('ordens_captacao').update({
+                'status': novo_status,
+                'compliance_status': 'aprovado',
+                'compliance_aprovado_por': usuario,
+                'compliance_obs': 'Promovida automaticamente após validação documental',
+            }).eq('id', ordem['id']).execute()
+
+            try:
+                supabase.table('compliance_audit').insert({
+                    'usuario': usuario,
+                    'acao': 'PROMOCAO_AUTOMATICA',
+                    'detalhe': f'Ordem {ordem["id"]} promovida para {novo_status} após validação de docs do cliente {cliente_id}',
+                }).execute()
+            except Exception:
+                pass
+
+            promovidas += 1
+
+        return promovidas
+    except Exception as e:
+        print(f"❌ Erro em _promover_ordens_pendentes: {e}")
+        return 0
 
 
 @app.route('/api/clientes', methods=['GET'])
@@ -11610,8 +11931,11 @@ def clientes_criar():
             'risk_score':      'high' if pais in HIGH_RISK_COUNTRIES else 'medium',
             'pep_flag':        bool(d.get('pep_flag', False)),
             'pep_info':        (d.get('pep_info') or '').strip(),
-            'doc_photo_id_validade': d.get('doc_photo_id_validade') or None,
-            'doc_address_atualizado_em': d.get('doc_address_atualizado_em') or None,            
+            'doc_photo_id_validade':     d.get('doc_photo_id_validade') or None,
+            'doc_address_atualizado_em': d.get('doc_address_atualizado_em') or None,
+            'proof_address_tipo':        (d.get('proof_address_tipo') or '').strip(),
+            'proof_address_tipo_outro':  (d.get('proof_address_tipo_outro') or '').strip(),
+            'proof_address_numero':      (d.get('proof_address_numero') or '').strip(),
         }
         # Tenta inserir tudo; se falhar por coluna inexistente, usa só base
         try:
@@ -11659,8 +11983,9 @@ def clientes_atualizar(cliente_id):
         allowed = ['nome','documento','tipo_documento','data_nascimento','telefone','email',
                    'profissao','endereco','cidade','pais_residencia','nacionalidade',
                    'benef_nome','benef_banco','benef_conta','benef_pix','benef_iban','benef_swift',
-                   'observacoes','pep_flag','pep_info','risk_score'
-                   'doc_photo_id_validade', 'doc_address_atualizado_em'] 
+                   'observacoes','pep_flag','pep_info','risk_score',
+                   'doc_photo_id_validade','doc_address_atualizado_em',
+                   'proof_address_tipo','proof_address_tipo_outro','proof_address_numero']
         payload = {k: d[k] for k in allowed if k in d}
         pais = payload.get('pais_residencia', '')
         if pais and pais.upper() in PROHIBITED_COUNTRIES:
@@ -11697,13 +12022,15 @@ def clientes_kyc_check(cliente_id):
             .select('kyc_level,doc_photo_id_ok,doc_address_ok,doc_source_funds_ok,doc_declaration_ok,doc_edd_ok,pep_flag,sanctions_flag,risk_score')\
             .eq('id', cliente_id).single().execute()
         c = r.data or {}
+        # Docs de operação: exigidos apenas quando cruzam um tier pela primeira vez
+        newly_req = set(aml.get('order_docs_newly_required', []))
         doc_map = {
             'basic_info':    True,
             'photo_id':      c.get('doc_photo_id_ok', False),
             'proof_address': c.get('doc_address_ok', False),
-            'source_funds':  c.get('doc_source_funds_ok', False),
-            'declaration':   c.get('doc_declaration_ok', False),
-            'edd':           c.get('doc_edd_ok', False),
+            'source_funds':  'source_funds' not in newly_req,
+            'declaration':   'declaration' not in newly_req,
+            'edd':           'edd' not in newly_req,
         }
         missing = [d for d in aml['docs_required'] if not doc_map.get(d, False)]
         aml['docs_ok'] = len(missing) == 0
@@ -11760,7 +12087,7 @@ def clientes_upload_kyc_file(cliente_id):
     usuario, tipo, redir = _check_loja_acesso()
     if redir:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
-    # Compliance também pode fazer upload
+    
     if not usuario:
         u = session.get('username')
         if not u:
@@ -11788,40 +12115,61 @@ def clientes_upload_kyc_file(cliente_id):
         content_type = arquivo.content_type or mimetypes.guess_type(arquivo.filename)[0] or 'application/octet-stream'
 
         try:
-            upload_resp = supabase.storage.from_('kyc-docs').upload(
+            supabase.storage.from_('kyc-docs').upload(
                 nome_storage, conteudo,
                 file_options={'content-type': content_type, 'upsert': 'false'}
             )
         except Exception as upload_err:
             msg = str(upload_err)
             if 'Bucket not found' in msg:
-                return jsonify({'success': False, 'message': 'Bucket "kyc-docs" não encontrado no Supabase Storage. Crie o bucket em Storage → New bucket → kyc-docs.'}), 500
+                return jsonify({'success': False, 'message': 'Bucket "kyc-docs" não encontrado no Supabase Storage.'}), 500
             raise
-        field_map = {
-            'photo_id':      'doc_photo_id_ok',
-            'proof_address': 'doc_address_ok',
-            'source_funds':  'doc_source_funds_ok',
-            'declaration':   'doc_declaration_ok',
-            'edd':           'doc_edd_ok',
-        }
-        # Salva o path do storage, não a URL (que expiraria)
+
+        # 🔥 NÃO MARCAR COMO OK! Apenas registrar o documento como pendente
         r_doc = supabase.table('documentos_kyc').insert({
             'cliente_id':    cliente_id,
             'tipo':          tipo_doc,
-            'arquivo_url':   nome_storage,   # path permanente, URL gerada on-demand
+            'arquivo_url':   nome_storage,
             'arquivo_nome':  arquivo.filename,
             'observacao':    request.form.get('observacao', ''),
             'criado_por':    usuario,
+            'validado':      False,  # 🔥 NOVO CAMPO: False = aguardando validação
+            'validado_em':   None,
+            'validado_por':  None
         }).execute()
         doc_id = r_doc.data[0]['id'] if r_doc.data else None
 
-        if field_map.get(tipo_doc):
-            supabase.table('clientes_varejo').update({
-                field_map[tipo_doc]: True,
-                'updated_at': datetime.now().isoformat()
-            }).eq('id', cliente_id).execute()
+        # Se o cliente já tinha este doc validado, resetar para pendente (renovação)
+        CLIENT_FIELD_RESET = {
+            'photo_id':      'doc_photo_id_ok',
+            'proof_address': 'doc_address_ok',
+        }
+        renovacao = False
+        if tipo_doc in CLIENT_FIELD_RESET:
+            rc = supabase.table('clientes_varejo')\
+                .select(CLIENT_FIELD_RESET[tipo_doc])\
+                .eq('id', cliente_id).single().execute()
+            if rc.data and rc.data.get(CLIENT_FIELD_RESET[tipo_doc]):
+                supabase.table('clientes_varejo').update({
+                    CLIENT_FIELD_RESET[tipo_doc]: False,
+                    'updated_at': datetime.now().isoformat()
+                }).eq('id', cliente_id).execute()
+                renovacao = True
 
-        return jsonify({'success': True, 'message': 'Documento enviado com sucesso.', 'doc_id': doc_id})
+        acao_audit = 'RENOVACAO_DOCUMENTO_KYC' if renovacao else 'UPLOAD_DOCUMENTO_KYC'
+        msg_audit  = f'Renovação: cliente {cliente_id} enviou novo {tipo_doc} — validação resetada' if renovacao \
+                     else f'Cliente {cliente_id} enviou documento {tipo_doc} - ID: {doc_id}'
+        supabase.table('compliance_audit').insert({
+            'usuario': usuario,
+            'acao': acao_audit,
+            'detalhe': msg_audit
+        }).execute()
+
+        msg_resp = ('Documento de renovação enviado. Compliance será notificado para revalidar.'
+                    if renovacao else
+                    'Documento enviado. Aguardando validação do compliance.')
+        return jsonify({'success': True, 'message': msg_resp, 'doc_id': doc_id,
+                        'pending_validation': True, 'renovacao': renovacao})
     except Exception as e:
         import traceback; traceback.print_exc()
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -11880,6 +12228,221 @@ def admin_trades_recentes():
             'created_at': o.get('created_at'),
         } for o in (r.data or [])]
         return jsonify({'success': True, 'trades': trades})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ════════════════════════════════════════════════════
+# TAXAS & CONTAS DA LOJA
+# ════════════════════════════════════════════════════
+
+@app.route('/admin/taxas-loja')
+def admin_taxas_loja_page():
+    usuario = session.get('username')
+    if not usuario:
+        return redirect('/login')
+    return render_template('admin_taxas_loja.html', usuario=usuario)
+
+
+def _check_admin_acesso():
+    usuario = session.get('username')
+    if not usuario:
+        return None, redirect('/login')
+    try:
+        r = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not r.data or r.data.get('tipo') != 'admin':
+            return None, redirect('/login')
+        return usuario, None
+    except Exception:
+        return None, redirect('/login')
+
+
+# ── Taxas ──
+
+@app.route('/api/admin/config/taxas', methods=['GET'])
+def admin_config_taxas_list():
+    usuario, redir = _check_admin_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('config_taxas_loja').select('*').order('moeda_entrada').execute()
+        return jsonify({'success': True, 'taxas': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/config/taxas', methods=['POST'])
+def admin_config_taxas_create():
+    usuario, redir = _check_admin_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        d = request.get_json() or {}
+        payload = {
+            'moeda_entrada': d['moeda_entrada'].upper(),
+            'moeda_saida':   d['moeda_saida'].upper(),
+            'taxa_base':     float(d['taxa_base']),
+            'spread_min':    float(d.get('spread_min', 0.05)),
+            'spread_max':    float(d.get('spread_max', 0.05)),
+            'ativo':         True,
+            'atualizado_por': usuario,
+            'updated_at':    'now()'
+        }
+        r = supabase.table('config_taxas_loja').upsert(payload, on_conflict='moeda_entrada,moeda_saida').execute()
+        return jsonify({'success': True, 'message': 'Taxa salva.', 'taxa': r.data[0] if r.data else {}})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/config/taxas/<int:taxa_id>', methods=['DELETE'])
+def admin_config_taxas_delete(taxa_id):
+    usuario, redir = _check_admin_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        supabase.table('config_taxas_loja').delete().eq('id', taxa_id).execute()
+        return jsonify({'success': True, 'message': 'Taxa excluída.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/config/taxas/<int:taxa_id>', methods=['PUT'])
+def admin_config_taxas_update(taxa_id):
+    usuario, redir = _check_admin_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        d = request.get_json() or {}
+        campos = {'atualizado_por': usuario, 'updated_at': 'now()'}
+        for f in ['taxa_base', 'spread_min', 'spread_max', 'ativo']:
+            if f in d:
+                campos[f] = float(d[f]) if f != 'ativo' else bool(d[f])
+        for f in ['moeda_entrada', 'moeda_saida']:
+            if f in d and d[f]:
+                campos[f] = str(d[f]).upper()
+        supabase.table('config_taxas_loja').update(campos).eq('id', taxa_id).execute()
+        return jsonify({'success': True, 'message': 'Taxa atualizada.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ── Contas por forma de pagamento ──
+
+@app.route('/api/admin/config/contas-loja', methods=['GET'])
+def admin_config_contas_list():
+    usuario, redir = _check_admin_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('config_contas_loja').select('*').order('loja').execute()
+        # Enriquecer com dados da conta
+        contas_emp = supabase.table('contas_bancarias_empresa').select('numero,banco,moeda').execute()
+        mapa_contas = {c['numero']: c for c in (contas_emp.data or [])}
+        for row in (r.data or []):
+            info = mapa_contas.get(row.get('conta_numero'), {})
+            row['conta_banco'] = info.get('banco', '')
+            row['conta_moeda'] = info.get('moeda', '')
+        return jsonify({'success': True, 'contas': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/config/contas-loja', methods=['POST'])
+def admin_config_contas_create():
+    usuario, redir = _check_admin_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        d = request.get_json() or {}
+        # Buscar nome da conta
+        conta_nome = d.get('conta_nome', '')
+        if not conta_nome and d.get('conta_numero'):
+            try:
+                rc = supabase.table('contas_bancarias_empresa').select('banco,moeda').eq('numero', d['conta_numero']).single().execute()
+                if rc.data:
+                    conta_nome = f"{rc.data['banco']} ({rc.data['moeda']})"
+            except Exception:
+                pass
+        payload = {
+            'loja':            d['loja'],
+            'forma_pagamento': d['forma_pagamento'],
+            'conta_numero':    d['conta_numero'],
+            'conta_nome':      conta_nome,
+            'ativo':           True,
+            'atualizado_por':  usuario,
+            'updated_at':      'now()'
+        }
+        r = supabase.table('config_contas_loja').upsert(payload, on_conflict='loja,forma_pagamento').execute()
+        return jsonify({'success': True, 'message': 'Conta configurada.', 'conta': r.data[0] if r.data else {}})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/config/contas-loja/<int:conta_id>', methods=['PUT'])
+def admin_config_contas_update(conta_id):
+    usuario, redir = _check_admin_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        d = request.get_json() or {}
+        campos = {'atualizado_por': usuario, 'updated_at': 'now()'}
+        for f in ['conta_numero', 'conta_nome', 'ativo']:
+            if f in d:
+                campos[f] = d[f]
+        supabase.table('config_contas_loja').update(campos).eq('id', conta_id).execute()
+        return jsonify({'success': True, 'message': 'Conta atualizada.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ── Endpoints de leitura para a loja ──
+
+@app.route('/api/loja/config/taxa', methods=['GET'])
+def loja_config_taxa():
+    if not session.get('username'):
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    me = (request.args.get('moeda_entrada') or '').upper()
+    ms = (request.args.get('moeda_saida') or '').upper()
+    if not me or not ms:
+        return jsonify({'success': False, 'message': 'moeda_entrada e moeda_saida obrigatórios'}), 400
+    try:
+        r = supabase.table('config_taxas_loja').select('*')\
+            .eq('moeda_entrada', me).eq('moeda_saida', ms).eq('ativo', True).single().execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': f'Taxa não configurada para {me}→{ms}'}), 404
+        return jsonify({'success': True, 'taxa': r.data})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/loja/config/conta', methods=['GET'])
+def loja_config_conta():
+    if not session.get('username'):
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    loja  = request.args.get('loja', '')
+    forma = request.args.get('forma', '')
+    if not forma:
+        return jsonify({'success': False, 'message': 'forma obrigatório'}), 400
+    try:
+        q = supabase.table('config_contas_loja').select('*').eq('forma_pagamento', forma).eq('ativo', True)
+        if loja:
+            q = q.eq('loja', loja)
+        r = q.limit(1).execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': f'Conta não configurada para {forma}'}), 404
+        return jsonify({'success': True, 'conta': r.data[0]})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/contas-empresa-lista', methods=['GET'])
+def admin_contas_empresa_lista():
+    """Lista simplificada de contas da empresa para seletores."""
+    if not session.get('username'):
+        return jsonify({'success': False}), 401
+    try:
+        r = supabase.table('contas_bancarias_empresa').select('numero,banco,moeda,agencia').order('moeda').execute()
+        return jsonify({'success': True, 'contas': r.data or []})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
@@ -11996,6 +12559,137 @@ def compliance_aprovar(ordem_id):
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
+@app.route('/api/compliance/documentos/aprovar', methods=['POST'])
+def compliance_aprovar_documento():
+    """Compliance aprova um documento KYC"""
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        from datetime import datetime
+        
+        dados = request.get_json()
+        doc_id = dados.get('doc_id')
+        observacao = dados.get('observacao', '')
+        
+        if not doc_id:
+            return jsonify({'success': False, 'message': 'ID do documento não informado'}), 400
+        
+        # Buscar o documento
+        r = supabase.table('documentos_kyc').select('*').eq('id', doc_id).single().execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'Documento não encontrado'}), 404
+        
+        doc = r.data
+        cliente_id = doc.get('cliente_id')
+        tipo_doc = doc.get('tipo')
+
+        # proof_of_funds_ordem is a legacy tipo — treat as source_funds
+        if tipo_doc == 'proof_of_funds_ordem':
+            tipo_doc = 'source_funds'
+
+        # Docs validados uma vez no nível do cliente
+        CLIENT_LEVEL_FIELD_MAP = {
+            'photo_id': 'doc_photo_id_ok',
+            'proof_address': 'doc_address_ok',
+        }
+        # Docs validados por ordem (não actualizam o cliente)
+        ORDER_LEVEL_TIPOS = {'source_funds', 'declaration', 'edd'}
+        VALID_TIPOS = set(CLIENT_LEVEL_FIELD_MAP) | ORDER_LEVEL_TIPOS
+
+        if tipo_doc not in VALID_TIPOS:
+            return jsonify({'success': False, 'message': f'Tipo de documento inválido: {tipo_doc}'}), 400
+
+        # Atualizar o documento como validado
+        supabase.table('documentos_kyc').update({
+            'validado': True,
+            'validado_em': datetime.now().isoformat(),
+            'validado_por': usuario,
+            'observacao': observacao or doc.get('observacao', '')
+        }).eq('id', doc_id).execute()
+
+        promovidas = 0
+        if tipo_doc in CLIENT_LEVEL_FIELD_MAP and cliente_id:
+            # Marcar como OK no cliente apenas para docs de nível cliente
+            supabase.table('clientes_varejo').update({
+                CLIENT_LEVEL_FIELD_MAP[tipo_doc]: True,
+                'updated_at': datetime.now().isoformat()
+            }).eq('id', cliente_id).execute()
+            # Verificar se há ordens pendentes que podem ser promovidas automaticamente
+            promovidas = _promover_ordens_pendentes(cliente_id, usuario)
+
+        # Registrar na auditoria
+        supabase.table('compliance_audit').insert({
+            'usuario': usuario,
+            'acao': 'APROVAR_DOCUMENTO_KYC',
+            'detalhe': f'Documento {tipo_doc} do cliente {cliente_id} aprovado. Obs: {observacao[:100] if observacao else "Sem observação"}'
+        }).execute()
+
+        msg = 'Documento aprovado com sucesso!'
+        if promovidas:
+            msg += f' {promovidas} ordem(ns) promovida(s) automaticamente.'
+        return jsonify({'success': True, 'message': msg, 'ordens_promovidas': promovidas})
+        
+    except Exception as e:
+        print(f"❌ Erro ao aprovar documento: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/compliance/documentos/rejeitar', methods=['POST'])
+def compliance_rejeitar_documento():
+    """Compliance rejeita um documento KYC"""
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    try:
+        from datetime import datetime
+        
+        dados = request.get_json()
+        doc_id = dados.get('doc_id')
+        motivo = dados.get('motivo', '')
+        
+        if not doc_id:
+            return jsonify({'success': False, 'message': 'ID do documento não informado'}), 400
+        
+        if not motivo:
+            return jsonify({'success': False, 'message': 'Motivo da rejeição é obrigatório'}), 400
+        
+        # Buscar o documento
+        r = supabase.table('documentos_kyc').select('*').eq('id', doc_id).single().execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'Documento não encontrado'}), 404
+        
+        doc = r.data
+        cliente_id = doc.get('cliente_id')
+        tipo_doc = doc.get('tipo')
+        
+        # Atualizar o documento como rejeitado (manter validado = False)
+        supabase.table('documentos_kyc').update({
+            'validado': False,
+            'observacao': f"REJEITADO: {motivo}",
+            'updated_at': datetime.now().isoformat()
+        }).eq('id', doc_id).execute()
+        
+        # NÃO marcar como OK no cliente (permanece False)
+        
+        # Registrar na auditoria
+        supabase.table('compliance_audit').insert({
+            'usuario': usuario,
+            'acao': 'REJEITAR_DOCUMENTO_KYC',
+            'detalhe': f'Documento {tipo_doc} do cliente {cliente_id} rejeitado. Motivo: {motivo[:100]}'
+        }).execute()
+        
+        return jsonify({'success': True, 'message': 'Documento rejeitado. Cliente precisa enviar um novo.'})
+        
+    except Exception as e:
+        print(f"❌ Erro ao rejeitar documento: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/api/compliance/ordens/<ordem_id>/rejeitar', methods=['POST'])
 def compliance_rejeitar(ordem_id):
@@ -12216,20 +12910,16 @@ def compliance_clientes_docs_pendentes():
             level, docs_required = _aml_required_tier(total_90d)
             
             # Verificar quais documentos EXIGIDOS estão faltando
+            # Apenas docs de nível cliente (source_funds, declaration, edd são por-ordem)
+            CLIENT_LEVEL = {'photo_id', 'proof_address'}
             docs_faltando = []
             for doc in docs_required:
-                if doc == 'basic_info':
-                    continue  # Basic info sempre é considerado OK (dados do cadastro)
-                elif doc == 'photo_id' and not c.get('doc_photo_id_ok'):
+                if doc not in CLIENT_LEVEL:
+                    continue
+                if doc == 'photo_id' and not c.get('doc_photo_id_ok'):
                     docs_faltando.append('photo_id')
                 elif doc == 'proof_address' and not c.get('doc_address_ok'):
                     docs_faltando.append('proof_address')
-                elif doc == 'source_funds' and not c.get('doc_source_funds_ok'):
-                    docs_faltando.append('source_funds')
-                elif doc == 'declaration' and not c.get('doc_declaration_ok'):
-                    docs_faltando.append('declaration')
-                elif doc == 'edd' and not c.get('doc_edd_ok'):
-                    docs_faltando.append('edd')
             
             # Se tiver documentos exigidos faltando, incluir na lista
             if docs_faltando:
@@ -12245,23 +12935,162 @@ def compliance_clientes_docs_pendentes():
             'success': True,
             'clientes': clientes
         })
-        
     except Exception as e:
-        print(f"❌ Erro em compliance/clientes/docs-pendentes: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/compliance/alertas/structuring', methods=['GET'])
+def compliance_alertas_structuring():
+    """Clientes com padrões de structuring/smurfing detectados nos últimos 30 dias."""
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        from datetime import datetime, timedelta
+        cutoff = (datetime.now() - timedelta(days=30)).isoformat()
+        r = supabase.table('compliance_audit')\
+            .select('detalhe,created_at')\
+            .eq('acao', 'STRUCTURING_ALERT')\
+            .gte('created_at', cutoff)\
+            .order('created_at', desc=True).execute()
+
+        # Agregar por cliente
+        from collections import defaultdict
+        por_cliente = defaultdict(list)
+        for row in (r.data or []):
+            det = row.get('detalhe', '')
+            # Extrair cliente_id do detalhe
+            import re
+            m = re.search(r'cliente_id=([\w-]+)', det)
+            if m:
+                por_cliente[m.group(1)].append({
+                    'codigo': det.split(']')[0].replace('[','').strip() if ']' in det else 'STRUCTURING',
+                    'detalhe': det.split('—')[-1].strip() if '—' in det else det,
+                    'data': row.get('created_at', '')
+                })
+
+        if not por_cliente:
+            return jsonify({'success': True, 'clientes': []})
+
+        # Buscar dados dos clientes
+        ids = list(por_cliente.keys())
+        rc = supabase.table('clientes_varejo')\
+            .select('id,nome,documento,risk_score,pep_flag')\
+            .in_('id', ids).execute()
+        clientes_map = {str(c['id']): c for c in (rc.data or [])}
+
+        # Buscar ordens recentes (30 dias) para cada cliente
+        from datetime import datetime, timedelta
+        cutoff_ordens = (datetime.now() - timedelta(days=30)).date().isoformat()
+        ordens_map = {}
+        if ids:
+            try:
+                ro = supabase.table('ordens_captacao')\
+                    .select('id,cliente_id,valor_entrada,moeda_entrada')\
+                    .in_('cliente_id', ids)\
+                    .gte('data', cutoff_ordens)\
+                    .neq('status', 'cancelada').execute()
+                for o in (ro.data or []):
+                    cid_o = str(o['cliente_id'])
+                    ordens_map.setdefault(cid_o, []).append(o)
+            except Exception:
+                pass
+
+        resultado = []
+        for cid, alertas in por_cliente.items():
+            c = clientes_map.get(cid, {})
+            ordens_cliente = ordens_map.get(cid, [])
+            total_gbp = sum(
+                _to_gbp(o.get('valor_entrada', 0), o.get('moeda_entrada', 'GBP'))
+                for o in ordens_cliente
+            )
+            ordens_ids_str = ', '.join(str(o['id'])[:8] for o in ordens_cliente[:10])
+            resultado.append({
+                'cliente_id': cid,
+                'nome': c.get('nome', 'Desconhecido'),
+                'documento': c.get('documento', '—'),
+                'risk_score': c.get('risk_score', '—'),
+                'pep_flag': c.get('pep_flag', False),
+                'alertas': alertas,
+                'total_alertas': len(alertas),
+                'ultimo_alerta': alertas[0]['data'] if alertas else '',
+                'total_gbp_30d': round(total_gbp, 2),
+                'ordens_ids': ordens_ids_str,
+            })
+        resultado.sort(key=lambda x: x['ultimo_alerta'], reverse=True)
+        return jsonify({'success': True, 'clientes': resultado})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/compliance/documentos/expirando', methods=['GET'])
+def compliance_documentos_expirando():
+    """Clientes com Photo ID ou Proof of Address expirando em até 60 dias ou já expirados."""
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        from datetime import date, timedelta
+        hoje = date.today()
+        aviso_ate = hoje + timedelta(days=60)
+
+        r = supabase.table('clientes_varejo')\
+            .select('id,nome,documento,doc_photo_id_ok,doc_photo_id_validade,doc_address_ok,doc_address_validade,risk_score')\
+            .order('nome').execute()
+
+        resultado = []
+        for c in (r.data or []):
+            docs_alerta = []
+            for campo_ok, campo_val, label in [
+                ('doc_photo_id_ok',  'doc_photo_id_validade',  'Photo ID'),
+                ('doc_address_ok',   'doc_address_validade',   'Proof of Address'),
+            ]:
+                if not c.get(campo_ok):
+                    continue  # não validado, já aparece em docs-pendentes
+                val_raw = c.get(campo_val)
+                if not val_raw:
+                    continue
+                try:
+                    val = val_raw if isinstance(val_raw, date) else date.fromisoformat(str(val_raw)[:10])
+                    dias = (val - hoje).days
+                    if dias <= 60:
+                        status = 'expirado' if dias < 0 else ('critico' if dias <= 14 else 'aviso')
+                        docs_alerta.append({
+                            'tipo': campo_val.replace('doc_','').replace('_validade',''),
+                            'label': label,
+                            'validade': val.strftime('%d/%m/%Y'),
+                            'dias_restantes': dias,
+                            'status': status,
+                        })
+                except Exception:
+                    pass
+            if docs_alerta:
+                resultado.append({
+                    'cliente_id': c['id'],
+                    'nome': c.get('nome', '—'),
+                    'documento': c.get('documento', '—'),
+                    'risk_score': c.get('risk_score', '—'),
+                    'docs_alerta': docs_alerta,
+                    'pior_status': 'expirado' if any(d['status']=='expirado' for d in docs_alerta)
+                                   else 'critico' if any(d['status']=='critico' for d in docs_alerta)
+                                   else 'aviso',
+                })
+        resultado.sort(key=lambda x: ['expirado','critico','aviso'].index(x['pior_status']))
+        return jsonify({'success': True, 'clientes': resultado})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @app.route('/api/compliance/ordens', methods=['GET'])
 def compliance_listar_ordens():
     usuario, tipo, redir = _check_compliance_acesso()
     if redir:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
-        # Buscar ordens pendentes
+        # Buscar todas as ordens em compliance_review (independente do compliance_status)
         r = supabase.table('ordens_captacao')\
             .select('*')\
-            .eq('compliance_status', 'pendente')\
-            .not_.in_('status', ['liberada', 'cancelada'])\
+            .eq('status', 'compliance_review')\
             .order('created_at', desc=False)\
             .execute()
         
@@ -12430,10 +13259,21 @@ def compliance_ordem_detalhes(ordem_id):
                 })
             
             # Comprovante de Endereço
-            if cliente.get('doc_address_validade'):
-                validade = cliente.get('doc_address_validade')
-                if isinstance(validade, str):
-                    validade = datetime.strptime(validade, '%Y-%m-%d').date()
+            # Campo de validade: doc_address_validade (direto) ou calculado a partir de doc_address_atualizado_em + 6 meses
+            addr_validade_raw = cliente.get('doc_address_validade') or None
+            if not addr_validade_raw and cliente.get('doc_address_atualizado_em'):
+                try:
+                    data_doc = datetime.strptime(str(cliente['doc_address_atualizado_em'])[:10], '%Y-%m-%d').date()
+                    m = data_doc.month + 6
+                    y = data_doc.year + (m - 1) // 12
+                    m = (m - 1) % 12 + 1
+                    import calendar
+                    d_max = calendar.monthrange(y, m)[1]
+                    addr_validade_raw = data_doc.replace(year=y, month=m, day=min(data_doc.day, d_max)).strftime('%Y-%m-%d')
+                except Exception:
+                    pass
+            if addr_validade_raw:
+                validade = addr_validade_raw if isinstance(addr_validade_raw, date) else datetime.strptime(str(addr_validade_raw)[:10], '%Y-%m-%d').date()
                 dias_restantes = (validade - hoje).days
                 documentos_validade.append({
                     'tipo': 'proof_address',
@@ -12442,14 +13282,7 @@ def compliance_ordem_detalhes(ordem_id):
                     'dias_restantes': dias_restantes,
                     'status': 'ok' if dias_restantes > 30 else 'proximo' if dias_restantes > 0 else 'expirado'
                 })
-            else:
-                documentos_validade.append({
-                    'tipo': 'proof_address',
-                    'nome': 'Comprovante de Endereço',
-                    'validade': None,
-                    'dias_restantes': None,
-                    'status': 'nao_enviado'
-                })
+            # se não há data registrada, não adiciona entry → frontend mostra 'ok' simples (isOk) ou 'aguardando'
             
             # Declaração (se existir)
             if cliente.get('doc_declaration_validade'):
@@ -12698,27 +13531,50 @@ def compliance_criar_sar():
     if tipo != 'compliance':
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
     try:
+        from datetime import datetime as _dt, timedelta as _td
         d = request.get_json() or {}
         cliente_id  = d.get('cliente_id')
-        descricao   = (d.get('descricao') or '').strip()
-        valor_suspeito = d.get('valor_suspeito')
-        if not descricao:
+        detalhes    = (d.get('descricao') or '').strip()
+        valor       = d.get('valor_suspeito')
+        alerta_id   = d.get('alerta_id')
+        ordens_ids  = d.get('ordens_ids', '')
+        if not detalhes:
             return jsonify({'success': False, 'message': 'Descrição obrigatória'}), 400
+        data_limite = (_dt.now() + _td(days=7)).strftime('%Y-%m-%d')
+        hoje        = _dt.now().strftime('%Y-%m-%d')
+
+        # Buscar nome do cliente se cliente_id fornecido
+        cliente_nome = ''
+        if cliente_id:
+            try:
+                rc = supabase.table('clientes_varejo').select('nome').eq('id', str(cliente_id)).single().execute()
+                cliente_nome = rc.data.get('nome', '') if rc.data else ''
+            except Exception:
+                pass
+
         ins = supabase.table('sars').insert({
-            'cliente_id':     cliente_id,
-            'descricao':      descricao,
-            'valor_suspeito': valor_suspeito,
-            'criado_por':     usuario,
-            'status':         'rascunho'
+            'cliente_id':        cliente_id,
+            'cliente_nome':      cliente_nome,
+            'detalhes':          detalhes,
+            'valor':             valor,
+            'moeda':             'GBP',
+            'motivo':            'Structuring/AML Alert',
+            'data_ocorrencia':   hoje,
+            'criado_por':        usuario,
+            'status':            'rascunho',
+            'alerta_id':         alerta_id,
+            'ordens_ids':        ordens_ids,
+            'data_limite_envio': data_limite
         }).execute()
+
         sar_id = ins.data[0]['id'] if ins.data else None
-        _compliance_audit(usuario, 'CRIAR_SAR', f'sar_id={sar_id} cliente_id={cliente_id}')
+        _compliance_audit(usuario, 'CRIAR_SAR', f'sar_id={sar_id} cliente_id={cliente_id} alerta_id={alerta_id}')
         return jsonify({'success': True, 'message': 'SAR criado.', 'sar_id': sar_id})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-@app.route('/api/compliance/sars/<int:sar_id>', methods=['PUT'])
+@app.route('/api/compliance/sars/<sar_id>', methods=['PUT'])
 def compliance_atualizar_sar(sar_id):
     usuario, tipo, redir = _check_compliance_acesso()
     if redir:
@@ -12728,14 +13584,131 @@ def compliance_atualizar_sar(sar_id):
     try:
         d      = request.get_json() or {}
         campos = {}
-        for f in ['status', 'descricao', 'valor_suspeito', 'data_envio_coaf']:
-            if f in d:
-                campos[f] = d[f]
+        # mapa: chave enviada pelo frontend → coluna real na tabela
+        mapa = {
+            'status':           'status',
+            'descricao':        'detalhes',
+            'valor_suspeito':   'valor',
+            'data_envio_nca':   'data_envio_nca',
+            'numero_ref_nca':   'numero_ref_nca',
+            'ordens_ids':       'ordens_ids',
+            'data_limite_envio':'data_limite_envio',
+        }
+        for chave_front, col_real in mapa.items():
+            if chave_front in d:
+                campos[col_real] = d[chave_front]
         if not campos:
             return jsonify({'success': False, 'message': 'Nenhum campo para atualizar'}), 400
         supabase.table('sars').update(campos).eq('id', sar_id).execute()
         _compliance_audit(usuario, 'ATUALIZAR_SAR', f'sar_id={sar_id} campos={list(campos.keys())}')
         return jsonify({'success': True, 'message': 'SAR atualizado.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ---- Sanctions Screening ----
+
+@app.route('/api/compliance/sanctions/alertas', methods=['GET'])
+def compliance_sanctions_alertas():
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        status_f = request.args.get('status', 'pendente')
+        base = supabase.table('sanctions_hits').select('*').order('created_at', desc=True)
+        if status_f:
+            base = base.eq('status', status_f)
+        r = base.limit(200).execute()
+        hits = r.data or []
+        # Enriquecer com nome do cliente
+        for h in hits:
+            try:
+                rc = supabase.table('clientes_varejo').select('nome,email').eq('id', str(h['cliente_id'])).single().execute()
+                h['cliente_nome'] = rc.data.get('nome') if rc.data else h.get('nome_cliente', '')
+                h['cliente_email'] = rc.data.get('email', '') if rc.data else ''
+            except Exception:
+                h['cliente_nome'] = h.get('nome_cliente', '')
+                h['cliente_email'] = ''
+        return jsonify({'success': True, 'hits': hits})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/compliance/sanctions/review/<hit_id>', methods=['POST'])
+def compliance_sanctions_review(hit_id):
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    if tipo != 'compliance':
+        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+    try:
+        d = request.get_json() or {}
+        novo_status = d.get('status')  # 'confirmado' ou 'falso_positivo'
+        if novo_status not in ('confirmado', 'falso_positivo'):
+            return jsonify({'success': False, 'message': 'Status inválido'}), 400
+        from datetime import datetime as _dt
+        supabase.table('sanctions_hits').update({
+            'status': novo_status,
+            'reviewed_by': usuario,
+            'reviewed_at': _dt.now().isoformat()
+        }).eq('id', hit_id).execute()
+        _compliance_audit(usuario, 'SANCTIONS_REVIEW', f'hit_id={hit_id} status={novo_status}')
+        return jsonify({'success': True, 'message': f'Hit marcado como {novo_status}.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/compliance/sanctions/entities', methods=['GET'])
+def compliance_sanctions_listar_entities():
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('sanctioned_entities').select('*').order('created_at', desc=True).execute()
+        return jsonify({'success': True, 'entities': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/compliance/sanctions/entities', methods=['POST'])
+def compliance_sanctions_add_entity():
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    if tipo != 'compliance':
+        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+    try:
+        d = request.get_json() or {}
+        nome = (d.get('nome') or '').strip()
+        if not nome:
+            return jsonify({'success': False, 'message': 'Nome obrigatório'}), 400
+        ins = supabase.table('sanctioned_entities').insert({
+            'nome': nome,
+            'tipo': d.get('tipo', 'individual'),
+            'lista': d.get('lista', 'MANUAL'),
+            'pais': d.get('pais', ''),
+            'motivo': d.get('motivo', ''),
+            'ativo': True,
+            'adicionado_por': usuario
+        }).execute()
+        eid = ins.data[0]['id'] if ins.data else None
+        _compliance_audit(usuario, 'ADD_SANCTIONS_ENTITY', f'nome="{nome}" lista={d.get("lista","MANUAL")}')
+        return jsonify({'success': True, 'message': 'Entidade adicionada.', 'id': eid})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/compliance/sanctions/entities/<entity_id>', methods=['DELETE'])
+def compliance_sanctions_remove_entity(entity_id):
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    if tipo != 'compliance':
+        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+    try:
+        supabase.table('sanctioned_entities').update({'ativo': False}).eq('id', entity_id).execute()
+        _compliance_audit(usuario, 'REMOVE_SANCTIONS_ENTITY', f'entity_id={entity_id}')
+        return jsonify({'success': True, 'message': 'Entidade removida.'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
@@ -12782,6 +13755,116 @@ def admin_listar_despachos():
         r = supabase.table('despachos').select('*').order('created_at', desc=True).limit(200).execute()
         return jsonify({'success': True, 'despachos': r.data or []})
     except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/ordens/consulta', methods=['GET'])
+def ordens_consulta():
+    """Busca de ordens para histórico — acessível por loja e compliance."""
+    if 'username' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    usuario  = session['username']
+    tipo_usr = session.get('tipo', '')
+    try:
+        q_text   = request.args.get('q', '').strip()
+        status_f = request.args.get('status', '')
+        data_de  = request.args.get('data_de', '')
+        data_ate = request.args.get('data_ate', '')
+        loja_f   = request.args.get('loja', '')
+
+        q = supabase.table('ordens_captacao').select('*').order('data', desc=True).limit(300)
+        if tipo_usr == 'loja':
+            q = q.eq('loja', usuario)
+        elif loja_f:
+            q = q.eq('loja', loja_f)
+        if status_f:
+            q = q.eq('status', status_f)
+        if data_de:
+            q = q.gte('data', data_de)
+        if data_ate:
+            q = q.lte('data', data_ate + 'T23:59:59')
+
+        r = q.execute()
+        ordens = r.data or []
+        if q_text:
+            ql = q_text.lower()
+            ordens = [o for o in ordens if
+                ql in (o.get('cliente_nome') or '').lower() or
+                ql in (o.get('cliente_doc') or '').lower() or
+                ql in str(o.get('id', '')).lower()]
+
+        return jsonify({'success': True, 'ordens': ordens, 'total': len(ordens)})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/ordens/<ordem_id>/detalhes-completos', methods=['GET'])
+def ordem_detalhes_completos(ordem_id):
+    """Detalhes completos de uma ordem com cliente e docs para histórico/auditoria."""
+    if 'username' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    usuario  = session['username']
+    tipo_usr = session.get('tipo', '')
+    try:
+        r = supabase.table('ordens_captacao').select('*').eq('id', ordem_id).single().execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'Ordem não encontrada'}), 404
+        ordem = r.data
+
+        if tipo_usr == 'loja' and ordem.get('loja') != usuario:
+            return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+
+        cliente = None
+        if ordem.get('cliente_id'):
+            rc = supabase.table('clientes_varejo').select('*').eq('id', ordem['cliente_id']).single().execute()
+            cliente = rc.data
+
+        # Docs por ordem_id (proof_of_funds_ordem — enviado via force_compliance)
+        r_do = supabase.table('documentos_kyc').select('*').eq('ordem_id', ordem_id).execute()
+        docs_ordem = r_do.data or []
+
+        # Docs do cliente: todos os registros com cliente_id, mais recente por tipo
+        # source_funds e edd são por-operação mas gravados com cliente_id apenas
+        CLIENT_TIPOS = {'photo_id', 'proof_address'}
+        ORDER_TIPOS  = {'source_funds', 'edd', 'declaration'}
+        docs_cliente = []
+        if ordem.get('cliente_id'):
+            r_dc = supabase.table('documentos_kyc').select('*')\
+                .eq('cliente_id', str(ordem['cliente_id']))\
+                .order('created_at', desc=True).execute()
+            seen_cli = set()
+            seen_ord = set()
+            for doc in (r_dc.data or []):
+                t = doc.get('tipo')
+                if t in CLIENT_TIPOS and t not in seen_cli:
+                    seen_cli.add(t)
+                    docs_cliente.append(doc)
+                elif t in ORDER_TIPOS and t not in seen_ord:
+                    seen_ord.add(t)
+                    docs_ordem.append(doc)
+
+        def signed(doc):
+            path = doc.get('arquivo_url', '')
+            if path:
+                try:
+                    s = supabase.storage.from_('kyc-docs').create_signed_url(path, 3600)
+                    if isinstance(s, dict):
+                        doc['url'] = s.get('signedURL') or s.get('signedUrl') or s.get('signed_url') or ''
+                    else:
+                        doc['url'] = getattr(s, 'signed_url', '') or getattr(s, 'signedURL', '') or ''
+                except Exception:
+                    doc['url'] = ''
+            return doc
+
+        return jsonify({
+            'success': True,
+            'ordem':        ordem,
+            'cliente':      cliente,
+            'docs_ordem':   [signed(d) for d in docs_ordem],
+            'docs_cliente': [signed(d) for d in docs_cliente],
+        })
+    except Exception as e:
+        import traceback; traceback.print_exc()
         return jsonify({'success': False, 'message': str(e)}), 500
 
 

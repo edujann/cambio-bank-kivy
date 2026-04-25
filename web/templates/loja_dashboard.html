@@ -309,6 +309,14 @@
         </div>
     </div>
 
+    <!-- Tabs principais -->
+    <div style="display:flex;gap:0;border-bottom:2px solid var(--cor-borda);margin-bottom:20px;">
+        <div id="tab-ativas" class="fpill active" style="border-radius:0;border:none;border-bottom:2px solid var(--cor-admin);margin-bottom:-2px;padding:8px 18px;font-size:13px;cursor:pointer;" onclick="switchMainTab('ativas')"><i class="fas fa-list" style="margin-right:6px;"></i>Ordens Ativas</div>
+        <div id="tab-historico" class="fpill" style="border-radius:0;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;padding:8px 18px;font-size:13px;cursor:pointer;" onclick="switchMainTab('historico')"><i class="fas fa-history" style="margin-right:6px;"></i>Histórico</div>
+    </div>
+
+    <!-- PAINEL: Ordens Ativas -->
+    <div id="panel-ativas">
     <!-- Action bar -->
     <div class="action-bar">
         <button class="btn-nova" onclick="abrirDrawer()">
@@ -347,6 +355,55 @@
                     <tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>
                 </tbody>
             </table>
+        </div>
+    </div>
+    </div><!-- /panel-ativas -->
+
+    <!-- PAINEL: Histórico -->
+    <div id="panel-historico" style="display:none;">
+        <div style="background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:14px 16px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
+            <input id="hist-q" type="text" placeholder="Cliente, documento ou nº ordem..." class="date-input" style="flex:1;min-width:200px;padding:7px 11px;">
+            <select id="hist-status" class="date-input" style="min-width:140px;">
+                <option value="">Todos os status</option>
+                <option value="compliance_review">Compliance Review</option>
+                <option value="on_hold">On Hold</option>
+                <option value="liberada">Liberada</option>
+                <option value="despachada">Despachada</option>
+                <option value="paga">Paga</option>
+                <option value="cancelada">Cancelada</option>
+            </select>
+            <input id="hist-de" type="date" class="date-input" title="De">
+            <input id="hist-ate" type="date" class="date-input" title="Até">
+            <button class="btn-nova" style="padding:7px 16px;font-size:13px;" onclick="buscarHistorico()"><i class="fas fa-search"></i> Buscar</button>
+        </div>
+        <div class="tbl-card">
+            <div class="tbl-hd">
+                <h3><i class="fas fa-history"></i> Resultados <span id="hist-count" style="font-size:12px;color:var(--cor-texto-secundario);font-weight:400;margin-left:4px;"></span></h3>
+            </div>
+            <div class="tbl-wrap">
+                <table>
+                    <thead><tr>
+                        <th>Data</th><th>Cliente</th><th>Entrada</th><th>Saída</th>
+                        <th>Destino</th><th>Status</th><th>Parceiro</th><th></th>
+                    </tr></thead>
+                    <tbody id="hist-body">
+                        <tr><td colspan="8" class="empty" style="color:var(--cor-texto-secundario);">Use os filtros acima para buscar ordens.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div><!-- /panel-historico -->
+</div>
+
+<!-- Modal: Detalhe da Ordem (Histórico) -->
+<div class="modal-ov" id="modalDetalheOrdem">
+    <div class="modal" style="width:min(700px,96vw);padding:0;">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;">
+            <h3 style="margin:0;font-size:15px;display:flex;align-items:center;gap:8px;"><i class="fas fa-file-alt" style="color:var(--cor-admin);"></i> <span id="deo-titulo">Ordem</span></h3>
+            <button onclick="fecharModal('modalDetalheOrdem')" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--cor-texto-secundario);">&times;</button>
+        </div>
+        <div id="deo-body" style="padding:20px;overflow-y:auto;max-height:75vh;">
+            <div style="text-align:center;padding:30px;color:var(--cor-texto-secundario);"><i class="fas fa-spinner fa-spin"></i></div>
         </div>
     </div>
 </div>
@@ -546,7 +603,7 @@
             <div class="grid3">
                 <div class="fg">
                     <label>Forma Pagamento *</label>
-                    <select id="s2Forma" class="fc" onchange="calcPreview()">
+                    <select id="s2Forma" class="fc" onchange="calcPreview(); autoFetchConfigLoja()">
                         <option value="">Selecione…</option>
                         <option value="cash">Cash</option>
                         <option value="debito">Cartão Débito</option>
@@ -556,7 +613,7 @@
                 </div>
                 <div class="fg">
                     <label>Moeda Recebida *</label>
-                    <select id="s2Moeda" class="fc" onchange="calcPreview()">
+                    <select id="s2Moeda" class="fc" onchange="calcPreview(); autoFetchConfigLoja()">
                         <option value="">Selecione…</option>
                         <option value="GBP">GBP — Libra</option>
                         <option value="USD">USD — Dólar</option>
@@ -571,11 +628,19 @@
             <div class="grid2">
                 <div class="fg">
                     <label>Conta Empresa (recebe) *</label>
-                    <select id="s2Conta" class="fc"><option value="">Carregando…</option></select>
+                    <select id="s2Conta" class="fc"><option value="">Selecione forma e moeda…</option></select>
+                    <div id="s2ContaInfo" style="display:none;font-size:11px;color:var(--cor-texto-secundario);margin-top:4px;"></div>
                 </div>
                 <div class="fg">
                     <label id="s2TaxaLabel">Taxa Cobrada *</label>
-                    <input id="s2Taxa" type="number" step="0.0001" class="fc" placeholder="Ex: 6.50" oninput="calcPreview()">
+                    <div style="display:flex;gap:6px;align-items:center;">
+                        <button type="button" id="s2TaxaDown" onclick="ajustarTaxa(-1)" title="Diminuir spread"
+                            style="width:32px;height:38px;border:1px solid var(--cor-borda);background:var(--cor-card);color:var(--cor-texto);border-radius:6px;cursor:pointer;font-size:16px;flex-shrink:0;">▼</button>
+                        <input id="s2Taxa" type="number" step="0.0001" class="fc" placeholder="Ex: 6.50" oninput="calcPreview()" style="flex:1;text-align:center;">
+                        <button type="button" id="s2TaxaUp" onclick="ajustarTaxa(+1)" title="Aumentar spread"
+                            style="width:32px;height:38px;border:1px solid var(--cor-borda);background:var(--cor-card);color:var(--cor-texto);border-radius:6px;cursor:pointer;font-size:16px;flex-shrink:0;">▲</button>
+                    </div>
+                    <div id="s2TaxaInfo" style="display:none;font-size:11px;color:var(--cor-texto-secundario);margin-top:4px;text-align:center;"></div>
                 </div>
             </div>
 
@@ -940,6 +1005,8 @@ function abrirDrawer() {
     resetDrawer();
     document.getElementById('drawerOverlay').classList.add('open');
     document.getElementById('drawer').classList.add('open');
+    carregarContas();     // 🔥 ADICIONAR ESTA LINHA
+    carregarParceiros();  // 🔥 ADICIONAR ESTA LINHA
 }
 function fecharDrawer() {
     document.getElementById('drawerOverlay').classList.remove('open');
@@ -956,13 +1023,17 @@ function resetDrawer() {
     document.getElementById('s1NovoBox').style.display = 'none';
     document.getElementById('s1AmlBox').innerHTML = '';
     document.getElementById('s1Msg').innerHTML = '';
-    ['s2Forma','s2Moeda','s2Conta'].forEach(id => document.getElementById(id).value = '');
+    ['s2Forma','s2Moeda'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('s2Conta').innerHTML = '<option value="">Selecione forma e moeda…</option>';
+    document.getElementById('s2ContaInfo').style.display = 'none';
+    document.getElementById('s2TaxaInfo').style.display = 'none';
     document.getElementById('s2Valor').value = '';
     document.getElementById('s2Taxa').value = '';
     document.getElementById('s2Obs').value = '';
     document.getElementById('s2Msg').innerHTML = '';
     document.getElementById('s2AmlBox').innerHTML = '';
     document.getElementById('previewBox').style.display = 'none';
+    _taxaConfig = null;
     trocarDestino('brazil');
 }
 
@@ -1070,18 +1141,25 @@ async function s1AmlCheck(clienteId, valor, moeda) {
         // 🔥 ATUALIZAR O STATUS PREVIEW
         atualizarStatusPreview();
         
-        const lvl = ['Básico','Standard ID','Standard + Funds','EDD','EDD Contínuo'][a.kyc_level_required] || `Nível ${a.kyc_level_required}`;
+        const lvl = ['Básico','Standard ID','Standard + Funds','Full KYC','Full KYC Contínuo'][a.kyc_level_required] || `Nível ${a.kyc_level_required}`;
         const cls = a.sanctions_flag ? 'aml-danger' : a.docs_missing?.length ? 'aml-warn' : 'aml-ok';
         let html = `<div class="aml-box ${cls}">
             <div class="aml-row"><span>Total 90 dias</span><span>£${fmtN(a.total_90d,2)}</span></div>
             <div class="aml-row"><span>KYC requerido</span><span class="aml-tag ${a.docs_ok?'aml-t-ok':'aml-t-warn'}">${lvl}</span></div>`;
+        if (a.tier_crossed) html += `<div class="aml-row" style="color:var(--cor-alerta);font-size:12px;"><i class="fas fa-level-up-alt"></i> Cruzamento de tier (Tier ${a.tier_anterior} → ${a.kyc_level_required})</div>`;
         if (a.pep_flag) html += `<div class="aml-row"><span>PEP</span><span class="aml-tag aml-t-danger">PEP IDENTIFICADO</span></div>`;
         if (a.sanctions_flag) html += `<div class="aml-row"><span>Sanções</span><span class="aml-tag aml-t-danger">SANCTIONED — NÃO PROCESSAR</span></div>`;
         if (a.pep_screening) html += `<div class="aml-row" style="color:var(--cor-alerta);font-size:12px;"><i class="fas fa-bell"></i> PEP Screening obrigatório (acumulado ≥ £2.000)</div>`;
         if (a.docs_missing?.length) {
-            html += `<div class="missing-docs"><strong style="color:var(--cor-alerta);font-size:12px;">Documentos pendentes:</strong>`;
-            const labels = {photo_id:'Photo ID',proof_address:'Proof of Address',source_funds:'Source of Funds',declaration:'Declaration Form',edd:'EDD Documents'};
-            a.docs_missing.forEach(doc => html += `<div class="missing-doc-item"><i class="fas fa-exclamation-circle"></i> ${labels[doc]||doc}</div>`);
+            const docLabels = {photo_id:'Photo ID',proof_address:'Proof of Address',source_funds:'Source of Funds',declaration:'Declaration Form',edd:'EDD Documents'};
+            const sofByValue  = a.docs_missing.includes('source_funds') && !a.tier_crossed;
+            const declByValue = a.docs_missing.includes('declaration') && !a.tier_crossed;
+            html += `<div class="missing-docs"><strong style="color:var(--cor-alerta);font-size:12px;">Documentos necessários:</strong>`;
+            a.docs_missing.forEach(doc => {
+                const byValue = (doc === 'source_funds' && sofByValue) || (doc === 'declaration' && declByValue);
+                const hint = byValue ? ' <span style="font-size:10px;opacity:.7;">(valor único ≥ £' + (doc==='declaration'?'10.000':'5.000') + ')</span>' : '';
+                html += `<div class="missing-doc-item"><i class="fas fa-exclamation-circle"></i> ${docLabels[doc]||doc}${hint}</div>`;
+            });
             html += '</div>';
         }
         html += '</div>';
@@ -1306,6 +1384,7 @@ function trocarDestino(dest) {
     // Atualizar label da taxa
     const labels = {brazil:'Taxa (BRL por unidade)', europe:'Taxa (EUR por unidade)', usa:'Taxa (USD por unidade)'};
     document.getElementById('s2TaxaLabel').textContent = labels[dest] + ' *';
+    autoFetchConfigLoja();
     calcPreview();
 }
 
@@ -1463,6 +1542,78 @@ async function salvarNovoBenef(tipo) {
 
 // ── AML check no step 2 (debounced) ──
 let amlTimer2;
+// ── Config Loja: taxa e conta automáticas ──
+let _taxaConfig = null; // { taxa_base, spread_min, spread_max, spread_passo }
+
+async function autoFetchConfigLoja() {
+    const moeda = document.getElementById('s2Moeda').value;
+    const forma  = document.getElementById('s2Forma').value;
+    const lojaId = window._lojaId || null;
+
+    // Reset UI
+    const taxaInfo = document.getElementById('s2TaxaInfo');
+    const contaInfo = document.getElementById('s2ContaInfo');
+    _taxaConfig = null;
+
+    if (moeda) {
+        try {
+            const destMoeda = {brazil:'BRL', europe:'EUR', usa:'USD'}[destinoAtivo] || 'BRL';
+            const r = await fetch(`/api/loja/config/taxa?moeda_entrada=${moeda}&moeda_saida=${destMoeda}`);
+            const d = await r.json();
+            if (d.taxa) {
+                _taxaConfig = d.taxa;
+                const base = parseFloat(d.taxa.taxa_base);
+                const rangeMin = (base - parseFloat(d.taxa.spread_min)).toFixed(4);
+                const rangeMax = (base + parseFloat(d.taxa.spread_max)).toFixed(4);
+                document.getElementById('s2Taxa').value = base.toFixed(4);
+                taxaInfo.style.display = 'block';
+                taxaInfo.innerHTML = `Base: <strong>${base.toFixed(4)}</strong> &nbsp;|&nbsp; Faixa negociável: [${rangeMin} – ${rangeMax}]`;
+            } else {
+                document.getElementById('s2Taxa').value = '';
+                taxaInfo.style.display = 'none';
+            }
+        } catch(e) {
+            taxaInfo.style.display = 'none';
+        }
+        calcPreview();
+    }
+
+    if (forma) {
+        try {
+            const params = lojaId ? `loja=${lojaId}&forma=${forma}` : `forma=${forma}`;
+            const r = await fetch(`/api/loja/config/conta?${params}`);
+            const d = await r.json();
+            const sel = document.getElementById('s2Conta');
+            if (d.conta) {
+                const label = d.conta.conta_nome || d.conta.conta_numero || 'Conta configurada';
+                sel.innerHTML = `<option value="${d.conta.conta_numero}">${label}</option>`;
+                contaInfo.style.display = 'block';
+                contaInfo.innerHTML = `<i class="fas fa-check-circle" style="color:var(--cor-sucesso)"></i> Preenchida automaticamente`;
+            } else {
+                sel.innerHTML = '<option value="">Nenhuma conta configurada para esta forma</option>';
+                contaInfo.style.display = 'none';
+            }
+        } catch(e) {
+            contaInfo.style.display = 'none';
+        }
+    }
+}
+
+function ajustarTaxa(direcao) {
+    if (!_taxaConfig) return;
+    const el    = document.getElementById('s2Taxa');
+    const base  = parseFloat(_taxaConfig.taxa_base);
+    const passo = 0.01;
+    const min   = base - parseFloat(_taxaConfig.spread_min);
+    const max   = base + parseFloat(_taxaConfig.spread_max);
+    let atual   = parseFloat(el.value) || base;
+    atual = Math.round((atual + direcao * passo) * 100000) / 100000;
+    if (atual < min) atual = Math.round(min * 100000) / 100000;
+    if (atual > max) atual = Math.round(max * 100000) / 100000;
+    el.value = atual.toFixed(4);
+    calcPreview();
+}
+
 async function s2AmlCheck() {
     if (!clienteSelecionado) return;
     clearTimeout(amlTimer2);
@@ -1777,13 +1928,25 @@ async function confirmarCriacaoOrdem() {
                 observacoes: payload.observacoes,
             };
             const docLabels = {photo_id:'Photo ID',proof_address:'Proof of Address',source_funds:'Source of Funds',declaration:'Declaration Form',edd:'EDD Documents'};
-            const lista = (d.docs_missing||[]).map(k => `<li>${docLabels[k]||k}</li>`).join('');
+            const missingDocs = d.docs_missing || [];
+            const lista = missingDocs.map(k => `<li>${docLabels[k]||k}</li>`).join('');
+            const needsSoF = missingDocs.includes('source_funds');
+            const needsDecl = missingDocs.includes('declaration');
+            const sofBlock = needsSoF ? `
+                <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Source of Funds <span style="color:var(--cor-perigo)">*</span></label>
+                <input type="file" id="proofOfFundsFile" accept=".pdf,.jpg,.jpeg,.png" style="font-size:12px;width:100%;margin-bottom:10px;">` : '';
+            const declBlock = needsDecl ? `
+                <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;margin-top:6px;">Declaration Form <span style="color:var(--cor-perigo)">*</span></label>
+                <input type="file" id="declarationFormFile" accept=".pdf,.jpg,.jpeg,.png" style="font-size:12px;width:100%;margin-bottom:10px;">` : '';
+            const docInfo = (needsSoF || needsDecl)
+                ? `<p style="font-size:12px;color:var(--cor-texto-secundario);margin:4px 0 10px;">Faça o upload dos documentos abaixo para criar a ordem com revisão pelo Compliance.</p>`
+                : `<p style="font-size:12px;color:var(--cor-texto-secundario);margin:4px 0 10px;">Crie a ordem — será enviada para revisão pelo Compliance.</p>`;
             msg.innerHTML = `<div id="kycAlertBox" style="background:rgba(224,107,0,.07);border:1px solid rgba(224,107,0,.4);border-radius:8px;padding:14px;margin-top:8px;">
                 <strong style="color:#e06b00;display:flex;align-items:center;gap:6px;"><i class="fas fa-exclamation-triangle"></i> KYC incompleto — documentos pendentes</strong>
                 ${lista ? `<ul style="margin:8px 0 8px 16px;color:#c05000;font-size:12px;line-height:1.8;">${lista}</ul>` : ''}
-                <p style="font-size:12px;color:var(--cor-texto-secundario);margin:4px 0 10px;">Faça o upload do <strong>Proof of Funds</strong> para criar a ordem com revisão pelo Compliance.</p>
-                <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Proof of Funds <span style="color:var(--cor-perigo)">*</span></label>
-                <input type="file" id="proofOfFundsFile" accept=".pdf,.jpg,.jpeg,.png" style="font-size:12px;width:100%;margin-bottom:10px;">
+                ${docInfo}
+                ${sofBlock}
+                ${declBlock}
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
                     <button onclick="criarOrdemComCompliance()" style="flex:1;background:#e06b00;color:#fff;border:none;border-radius:6px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">
                         <i class="fas fa-shield-alt"></i> Criar com Análise Compliance
@@ -1812,10 +1975,15 @@ async function confirmarCriacaoOrdem() {
 }
 
 async function criarOrdemComCompliance() {
-    const proofInput = document.getElementById('proofOfFundsFile');
-    const proofMsg   = document.getElementById('proofUploadMsg');
-    if (!proofInput || !proofInput.files[0]) {
-        proofMsg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Selecione o arquivo de Proof of Funds.</span>';
+    const sofInput  = document.getElementById('proofOfFundsFile');
+    const declInput = document.getElementById('declarationFormFile');
+    const proofMsg  = document.getElementById('proofUploadMsg');
+    if (sofInput && !sofInput.files[0]) {
+        proofMsg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Selecione o arquivo de Source of Funds.</span>';
+        return;
+    }
+    if (declInput && !declInput.files[0]) {
+        proofMsg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Selecione o arquivo de Declaration Form.</span>';
         return;
     }
     proofMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando ordem…';
@@ -1823,36 +1991,32 @@ async function criarOrdemComCompliance() {
     try {
         const r1 = await fetch('/api/loja/nova-ordem',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
         const d1 = await r1.json();
-        
-        // 🔥 DEBUG - Ver no console do navegador
-        console.log("🔍 RESPOSTA COMPLETA:", d1);
-        console.log("🔍 STATUS RECEBIDO:", d1.status);
-        console.log("🔍 AML_ALERTAS:", d1.aml_alertas);
-        
         if (!d1.success) {
             proofMsg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> ${d1.message}</span>`;
             return;
         }
         const ordemId = d1.ordem_id;
-        // Upload do proof of funds
-        proofMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando Proof of Funds…';
-        const fd = new FormData();
-        fd.append('arquivo', proofInput.files[0]);
-        fd.append('observacao', 'Proof of Funds — KYC override para análise compliance');
-        
-        // 🔥 CORREÇÃO AQUI - Adicionar credentials: 'include'
-        const r2 = await fetch(`/api/loja/ordens/${ordemId}/upload-proof`, {
-            method: 'POST', 
-            body: fd,
-            credentials: 'include'
-        });
-        const d2 = await r2.json();
-        
-        if (!d2.success) {
-            proofMsg.innerHTML = `<span style="color:#e06b00"><i class="fas fa-exclamation-triangle"></i> Ordem criada (${ordemId}), mas falha no upload: ${d2.message}. Envie o documento depois.</span>`;
-            setTimeout(()=>{ fecharDrawer(); carregarOrdens(); }, 3000);
-            return;
+
+        async function uploadDoc(input, tipo, label) {
+            if (!input || !input.files[0]) return true;
+            proofMsg.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Enviando ${label}…`;
+            const fd = new FormData();
+            fd.append('arquivo', input.files[0]);
+            fd.append('tipo', tipo);
+            const r = await fetch(`/api/loja/ordens/${ordemId}/upload-proof`, {method:'POST', body:fd, credentials:'include'});
+            const d = await r.json();
+            if (!d.success) {
+                proofMsg.innerHTML = `<span style="color:#e06b00"><i class="fas fa-exclamation-triangle"></i> Ordem criada (${ordemId}), mas falha no upload de ${label}: ${d.message}. Envie depois.</span>`;
+                return false;
+            }
+            return true;
         }
+
+        const ok1 = await uploadDoc(sofInput, 'source_funds', 'Source of Funds');
+        if (!ok1) { setTimeout(()=>{ fecharDrawer(); carregarOrdens(); }, 3000); return; }
+        const ok2 = await uploadDoc(declInput, 'declaration', 'Declaration Form');
+        if (!ok2) { setTimeout(()=>{ fecharDrawer(); carregarOrdens(); }, 3000); return; }
+
         toast(`Ordem ${ordemId} criada — aguardando análise do Compliance`, 'warn');
         setTimeout(()=>{ fecharDrawer(); carregarOrdens(); }, 800);
     } catch(e) {
@@ -1932,19 +2096,65 @@ document.querySelectorAll('.modal-ov').forEach(m => m.addEventListener('click',e
 
 // ══ CONTAS / PARCEIROS ══════════════════════════════════════════════
 async function carregarContas() {
-    const r = await fetch('/api/loja/contas-empresa');
-    const d = await r.json();
-    const sel = document.getElementById('s2Conta');
-    sel.innerHTML = '<option value="">Selecione a conta…</option>';
-    (d.contas||[]).forEach(c => sel.innerHTML += `<option value="${c.numero}">${c.numero} — ${c.banco||''} (${c.moeda})</option>`);
+    try {
+        console.log("🔍 Carregando contas...");
+        const r = await fetch('/api/loja/contas-empresa');
+        const d = await r.json();
+        console.log("📦 Contas recebidas:", d);
+        
+        const sel = document.getElementById('s2Conta');
+        if (!sel) {
+            console.log("❌ Select s2Conta não encontrado!");
+            return;
+        }
+        
+        sel.innerHTML = '<option value="">Selecione a conta…</option>';
+        
+        if (d.success && d.contas && d.contas.length > 0) {
+            d.contas.forEach(c => {
+                sel.innerHTML += `<option value="${c.numero}">${c.numero} — ${c.banco || ''} (${c.moeda})</option>`;
+            });
+            console.log(`✅ ${d.contas.length} contas carregadas!`);
+        } else {
+            sel.innerHTML = '<option value="">Nenhuma conta disponível</option>';
+            console.log("⚠️ Nenhuma conta encontrada");
+        }
+    } catch(e) {
+        console.error("❌ Erro ao carregar contas:", e);
+        const sel = document.getElementById('s2Conta');
+        if (sel) sel.innerHTML = '<option value="">Erro ao carregar contas</option>';
+    }
 }
 async function carregarParceiros() {
-    const r = await fetch('/api/loja/parceiros');
-    const d = await r.json();
-    parceiros = d.parceiros || [];
-    const sel = document.getElementById('parceiroSelect');
-    sel.innerHTML = '<option value="">Selecione…</option>';
-    parceiros.forEach(p => sel.innerHTML += `<option value="${p.username}">${p.nome} (${p.username})</option>`);
+    try {
+        console.log("🔍 Carregando parceiros...");
+        const r = await fetch('/api/loja/parceiros');
+        const d = await r.json();
+        console.log("📦 Parceiros recebidos:", d);
+        
+        parceiros = d.parceiros || [];
+        const sel = document.getElementById('parceiroSelect');
+        if (!sel) {
+            console.log("❌ Select parceiroSelect não encontrado!");
+            return;
+        }
+        
+        sel.innerHTML = '<option value="">Selecione…</option>';
+        
+        if (d.success && d.parceiros && d.parceiros.length > 0) {
+            d.parceiros.forEach(p => {
+                sel.innerHTML += `<option value="${p.username}">${p.nome} (${p.username})</option>`;
+            });
+            console.log(`✅ ${d.parceiros.length} parceiros carregados!`);
+        } else {
+            sel.innerHTML = '<option value="">Nenhum parceiro disponível</option>';
+            console.log("⚠️ Nenhum parceiro encontrado");
+        }
+    } catch(e) {
+        console.error("❌ Erro ao carregar parceiros:", e);
+        const sel = document.getElementById('parceiroSelect');
+        if (sel) sel.innerHTML = '<option value="">Erro ao carregar parceiros</option>';
+    }
 }
 
 // ══ TOAST ═══════════════════════════════════════════════════════════
@@ -2049,6 +2259,135 @@ if (docValidadeInput) {
             toast(`📅 Documento de identificação vence em ${diasRestantes} dias. Lembre-se de renovar.`, 'info');
         }
     });
+}
+
+// ══ ABAS PRINCIPAIS ══════════════════════════════════════════════
+function switchMainTab(nome) {
+    document.getElementById('panel-ativas').style.display   = nome === 'ativas'    ? 'block' : 'none';
+    document.getElementById('panel-historico').style.display = nome === 'historico' ? 'block' : 'none';
+    ['ativas','historico'].forEach(t => {
+        const el = document.getElementById(`tab-${t}`);
+        const ativo = t === nome;
+        el.style.borderBottomColor = ativo ? 'var(--cor-admin)' : 'transparent';
+        el.classList.toggle('active', ativo);
+    });
+}
+
+// ══ HISTÓRICO ════════════════════════════════════════════════════
+const DOC_LABELS = {photo_id:'Photo ID', proof_address:'Proof of Address', source_funds:'Source of Funds', declaration:'Declaration Form', edd:'EDD', proof_of_funds_ordem:'Proof of Funds (Ordem)'};
+
+async function buscarHistorico() {
+    const tb = document.getElementById('hist-body');
+    tb.innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    const q      = encodeURIComponent(document.getElementById('hist-q').value.trim());
+    const status = document.getElementById('hist-status').value;
+    const de     = document.getElementById('hist-de').value;
+    const ate    = document.getElementById('hist-ate').value;
+    let url = `/api/ordens/consulta?q=${q}&status=${status}`;
+    if (de)  url += `&data_de=${de}`;
+    if (ate) url += `&data_ate=${ate}`;
+    try {
+        const r = await fetch(url);
+        const d = await r.json();
+        if (!d.success) { tb.innerHTML = `<tr><td colspan="8" style="color:var(--cor-perigo);padding:16px;">${d.message}</td></tr>`; return; }
+        document.getElementById('hist-count').textContent = `(${d.total})`;
+        if (!d.ordens.length) {
+            tb.innerHTML = '<tr><td colspan="8" class="empty">Nenhuma ordem encontrada.</td></tr>'; return;
+        }
+        tb.innerHTML = d.ordens.map(o => {
+            const flag = ({brazil:'🇧🇷',europe:'🇪🇺',usa:'🇺🇸'})[o.tipo_destino||'brazil']||'🇧🇷';
+            const saida = o.moeda_saida==='BRL' ? `R$ ${fmtN(o.valor_saida,2)}` : `${fmtN(o.valor_saida,2)} ${o.moeda_saida||'BRL'}`;
+            return `<tr>
+                <td>${fmtD(o.data)}</td>
+                <td style="font-weight:600;">${o.cliente_nome||'—'}</td>
+                <td class="mono">${fmtN(o.valor_entrada,2)} ${o.moeda_entrada||''}</td>
+                <td class="mono c-verde">${saida}</td>
+                <td>${flag} ${o.tipo_destino||'brazil'}</td>
+                <td><span class="tag tag-${o.status}">${o.status}</span></td>
+                <td>${o.parceiro_pagador||'—'}</td>
+                <td><button class="btn-act" onclick="abrirDetalheOrdem('${o.id}')"><i class="fas fa-eye"></i> Ver</button></td>
+            </tr>`;
+        }).join('');
+    } catch(e) { tb.innerHTML = `<tr><td colspan="8" style="color:var(--cor-perigo);padding:16px;">${e.message}</td></tr>`; }
+}
+
+async function abrirDetalheOrdem(id) {
+    document.getElementById('deo-titulo').textContent = `Ordem #${id.substring(0,8)}`;
+    document.getElementById('deo-body').innerHTML = '<div style="text-align:center;padding:30px;"><i class="fas fa-spinner fa-spin"></i></div>';
+    document.getElementById('modalDetalheOrdem').classList.add('open');
+    try {
+        const r = await fetch(`/api/ordens/${id}/detalhes-completos`);
+        const d = await r.json();
+        if (!d.success) { document.getElementById('deo-body').innerHTML = `<p style="color:var(--cor-perigo);">${d.message}</p>`; return; }
+        renderDetalheOrdem(d);
+    } catch(e) { document.getElementById('deo-body').innerHTML = `<p style="color:var(--cor-perigo);">${e.message}</p>`; }
+}
+
+function renderBeneficiarioLoja(o) {
+    if (!o.beneficiario_nome && !o.benef_iban && !o.beneficiario_pix) return '';
+    const row = (lbl, val) => val ? `<div style="background:rgba(128,128,128,.06);border-radius:6px;padding:9px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:2px;">${lbl}</div><div style="font-size:13px;font-weight:600;">${val}</div></div>` : '';
+    let campos = row('Nome', o.beneficiario_nome);
+    if (o.tipo_destino === 'brazil') {
+        campos += row('Banco', o.beneficiario_banco);
+        campos += row('Agência', o.beneficiario_agencia);
+        campos += row('Conta', o.beneficiario_conta);
+        campos += row('CPF/CNPJ', o.beneficiario_cpf);
+        campos += row('PIX', o.beneficiario_pix);
+    } else if (o.tipo_destino === 'europe') {
+        campos += row('IBAN', o.benef_iban);
+        campos += row('BIC/SWIFT', o.benef_swift);
+        campos += row('Banco', o.beneficiario_banco);
+    } else if (o.tipo_destino === 'usa') {
+        campos += row('Routing Number', o.benef_routing);
+        campos += row('Account Number', o.beneficiario_conta);
+        campos += row('SWIFT', o.benef_swift);
+        campos += row('Banco', o.beneficiario_banco);
+    }
+    if (!campos) return '';
+    return `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#27ae60;margin-bottom:8px;margin-top:4px;">Beneficiário</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">${campos}</div>`;
+}
+
+function renderDetalheOrdem(d) {
+    const o = d.ordem, c = d.cliente||{};
+    const flag = ({brazil:'🇧🇷',europe:'🇪🇺',usa:'🇺🇸'})[o.tipo_destino||'brazil']||'🇧🇷';
+    const saida = o.moeda_saida==='BRL' ? `R$ ${fmtN(o.valor_saida,2)}` : `${fmtN(o.valor_saida,2)} ${o.moeda_saida||'BRL'}`;
+
+    const docsClienteHtml = d.docs_cliente.length ? d.docs_cliente.map(doc => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:rgba(128,128,128,.04);border-radius:5px;margin-bottom:5px;border-left:3px solid var(--cor-admin);">
+            <div><div style="font-size:12px;font-weight:600;"><i class="fas fa-id-card" style="color:var(--cor-admin);margin-right:6px;"></i>${DOC_LABELS[doc.tipo]||doc.tipo}</div>
+            <div style="font-size:11px;color:var(--cor-texto-secundario);">${doc.arquivo_nome||''} — ${doc.created_at?new Date(doc.created_at).toLocaleDateString('pt-BR'):''}</div></div>
+            ${doc.url ? `<a href="${doc.url}" target="_blank" class="btn-act" style="white-space:nowrap;"><i class="fas fa-eye"></i> Ver</a>` : '<span style="font-size:11px;color:var(--cor-texto-secundario);">URL indisponível</span>'}
+        </div>`) .join('') : '<p style="font-size:12px;color:var(--cor-texto-secundario);">Nenhum documento de cliente registrado no momento da ordem.</p>';
+
+    const docsOrdemHtml = d.docs_ordem.length ? d.docs_ordem.map(doc => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:rgba(243,156,18,.04);border-radius:5px;margin-bottom:5px;border-left:3px solid var(--cor-alerta);">
+            <div><div style="font-size:12px;font-weight:600;"><i class="fas fa-file-alt" style="color:var(--cor-alerta);margin-right:6px;"></i>${DOC_LABELS[doc.tipo]||doc.tipo}</div>
+            <div style="font-size:11px;color:var(--cor-texto-secundario);">${doc.arquivo_nome||''} — ${doc.created_at?new Date(doc.created_at).toLocaleDateString('pt-BR'):''}</div></div>
+            ${doc.url ? `<a href="${doc.url}" target="_blank" class="btn-act" style="white-space:nowrap;"><i class="fas fa-eye"></i> Ver</a>` : '<span style="font-size:11px;color:var(--cor-texto-secundario);">URL indisponível</span>'}
+        </div>`).join('') : '<p style="font-size:12px;color:var(--cor-texto-secundario);">Nenhum documento de suporte vinculado a esta ordem.</p>';
+
+    document.getElementById('deo-body').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:10px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:3px;">Data</div><div style="font-size:13px;font-weight:600;">${fmtD(o.data)}</div></div>
+            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:10px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:3px;">Status</div><div><span class="tag tag-${o.status}">${o.status}</span></div></div>
+            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:10px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:3px;">Entrada</div><div style="font-size:13px;font-weight:600;">${fmtN(o.valor_entrada,2)} ${o.moeda_entrada||''}</div></div>
+            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:10px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:3px;">Saída</div><div style="font-size:13px;font-weight:600;color:var(--cor-sucesso);">${saida}</div></div>
+            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:10px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:3px;">Destino</div><div style="font-size:13px;font-weight:600;">${flag} ${o.beneficiario_nome||'—'}</div></div>
+            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:10px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:3px;">Forma Pgto</div><div style="font-size:13px;font-weight:600;">${o.forma_pagamento||'—'}</div></div>
+        </div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--cor-texto-secundario);margin-bottom:8px;margin-top:4px;">Cliente</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:9px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:2px;">Nome</div><div style="font-size:13px;font-weight:600;">${c.nome||o.cliente_nome||'—'}</div></div>
+            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:9px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:2px;">Documento</div><div style="font-size:13px;">${c.documento||o.cliente_doc||'—'}</div></div>
+            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:9px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:2px;">Telefone</div><div style="font-size:13px;">${c.telefone||o.cliente_telefone||'—'}</div></div>
+            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:9px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:2px;">País</div><div style="font-size:13px;">${c.pais_residencia||'—'}</div></div>
+        </div>
+        ${renderBeneficiarioLoja(o)}
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--cor-admin);margin-bottom:8px;">Documentos do Cliente <span style="font-size:10px;font-weight:400;color:var(--cor-texto-secundario);">(vigentes no momento da ordem)</span></div>
+        ${docsClienteHtml}
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--cor-alerta);margin-bottom:8px;margin-top:14px;">Documentos de Suporte da Ordem</div>
+        ${docsOrdemHtml}
+    `;
 }
 </script>
 </body>

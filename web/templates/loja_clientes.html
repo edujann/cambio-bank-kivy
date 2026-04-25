@@ -227,13 +227,36 @@
 
             <p class="section-label" style="margin-top:4px;color:var(--cor-texto-secundario);font-size:10px;border:none;padding:0;">Os beneficiários são gerenciados na tela de detalhe do cliente após o cadastro.</p>
 
-            <!-- 🔥 COMPROVANTE DE ENDEREÇO 🔥 -->
+            <!-- COMPROVANTE DE ENDEREÇO -->
             <p class="section-label">Comprovante de Endereço</p>
             <div class="form-grid">
                 <div class="form-group">
-                    <label>Data do Comprovante *</label>
+                    <label>Tipo de Comprovante *</label>
+                    <select id="cAddrTipo" class="form-control" onchange="onAddrTipoChange()">
+                        <option value="">Selecionar...</option>
+                        <option value="bank_statement">Bank Statement</option>
+                        <option value="council_tax">Council Tax Bill</option>
+                        <option value="utility_bill">Utility Bill (Gas/Electric/Water)</option>
+                        <option value="tv_licence">TV Licence</option>
+                        <option value="hmrc_letter">HMRC Letter</option>
+                        <option value="tenancy_agreement">Tenancy Agreement</option>
+                        <option value="mortgage_statement">Mortgage Statement</option>
+                        <option value="gp_letter">GP / NHS Letter</option>
+                        <option value="other">Outro...</option>
+                    </select>
+                </div>
+                <div class="form-group" id="cAddrTipoOutroGroup" style="display:none;">
+                    <label>Especificar tipo</label>
+                    <input type="text" id="cAddrTipoOutro" class="form-control" placeholder="Descreva o tipo de comprovante">
+                </div>
+                <div class="form-group">
+                    <label>Número / Referência do Documento</label>
+                    <input type="text" id="cAddrNumero" class="form-control" placeholder="Ex: número da conta, ref. da fatura">
+                </div>
+                <div class="form-group">
+                    <label>Data de Emissão do Comprovante *</label>
                     <input type="date" id="cAddrData" class="form-control">
-                    <small style="font-size:10px; color:var(--muted);">Data de emissão do comprovante</small>
+                    <small style="font-size:10px; color:var(--muted);">Deve ter no máximo 3 meses</small>
                 </div>
                 <div class="form-group">
                     <label>Válido até</label>
@@ -596,6 +619,14 @@ function onPaisChange() {
     if (sel.value !== 'OTHER') outro.value = '';
 }
 
+function onAddrTipoChange() {
+    const sel = document.getElementById('cAddrTipo');
+    const grp = document.getElementById('cAddrTipoOutroGroup');
+    const inp = document.getElementById('cAddrTipoOutro');
+    if (sel.value === 'other') { grp.style.display = 'block'; }
+    else { grp.style.display = 'none'; inp.value = ''; }
+}
+
 function editarCliente() {
     if (clienteAtual) editarClienteById(clienteAtual.id, clienteAtual);
 }
@@ -606,7 +637,7 @@ function abrirModalNovo() {
     document.getElementById('clienteId').value = '';
     document.getElementById('modalClienteTitulo').innerHTML = '<i class="fas fa-user-plus"></i> Novo Cliente';
     ['cNome','cDob','cTelefone','cEmail','cProfissao','cNacionalidade','cEndereco','cCidade',
-     'cDocumento','cPepInfo','cPaisOutro','cDocValidade','cAddrData'].forEach(id => {  // ← adicionar 'cDocValidade','cAddrData'
+     'cDocumento','cPepInfo','cPaisOutro','cDocValidade','cAddrData','cAddrNumero','cAddrTipoOutro'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
@@ -677,6 +708,11 @@ function editarClienteById(id) {
     document.getElementById('cPepFlag').value = c.pep_flag ? 'true' : 'false';
     document.getElementById('cRiskScore').value = c.risk_score || 'medium';
     document.getElementById('cPepInfo').value = c.pep_info || c.observacoes || '';
+    // Proof of address extra fields
+    document.getElementById('cAddrTipo').value = c.proof_address_tipo || '';
+    document.getElementById('cAddrNumero').value = c.proof_address_numero || '';
+    document.getElementById('cAddrTipoOutro').value = c.proof_address_tipo_outro || '';
+    onAddrTipoChange();
     document.getElementById('modalCliente').classList.add('open');
 }
 
@@ -704,8 +740,11 @@ async function salvarCliente() {
         risk_score: document.getElementById('cRiskScore').value,
         pep_info: document.getElementById('cPepInfo').value.trim(),
         observacoes: document.getElementById('cPepInfo').value.trim(),
-        doc_photo_id_validade: document.getElementById('cDocValidade').value || null,
-        doc_address_atualizado_em: document.getElementById('cAddrData').value || null        
+        doc_photo_id_validade:     document.getElementById('cDocValidade').value || null,
+        doc_address_atualizado_em: document.getElementById('cAddrData').value || null,
+        proof_address_tipo:        document.getElementById('cAddrTipo').value || null,
+        proof_address_tipo_outro:  document.getElementById('cAddrTipoOutro').value.trim() || null,
+        proof_address_numero:      document.getElementById('cAddrNumero').value.trim() || null,
     };
     try {
         const url = id ? `/api/clientes/${id}` : '/api/clientes';
@@ -928,7 +967,11 @@ async function uploadKyc(clienteId, tipoDoc) {
         const r = await fetch(`/api/clientes/${clienteId}/upload-kyc`, {method:'POST', body: formData});
         const d = await r.json();
         if (d.success) {
-            toast('Documento enviado com sucesso!', 'ok');
+            if (d.renovacao) {
+                toast('Documento de renovação enviado — aguardando revalidação pelo Compliance.', 'warn');
+            } else {
+                toast('Documento enviado — aguardando validação do Compliance.', 'ok');
+            }
             input.value = '';
             verDetalhe(clienteId);
         } else toast(d.message, 'err');

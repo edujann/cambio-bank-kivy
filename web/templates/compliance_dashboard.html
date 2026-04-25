@@ -8,35 +8,49 @@
     <link rel="stylesheet" href="/static/css/theme.css">
     <style>
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
-        body{background:var(--cor-fundo);color:var(--cor-texto);min-height:100vh;}
-        .page{max-width:1280px;margin:0 auto;padding:20px;}
+        body{background:var(--cor-fundo);color:var(--cor-texto);min-height:100vh;overflow-x:hidden;}
 
-        /* Header */
-        .hd{display:flex;justify-content:space-between;align-items:center;padding:14px 0;margin-bottom:20px;border-bottom:1px solid var(--cor-borda);flex-wrap:wrap;gap:10px;}
-        .logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;}
+        /* ── Top Bar ── */
+        .top-bar{position:sticky;top:0;z-index:200;height:54px;background:var(--cor-card);border-bottom:1px solid var(--cor-borda);display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:10px;}
+        .logo{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700;}
         .logo i{color:#9b59b6;}
         .logo-text{background:linear-gradient(90deg,#9b59b6,#c39bd3);-webkit-background-clip:text;background-clip:text;color:transparent;}
-        .hd-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-        .btn-hd{background:rgba(155,89,182,.12);border:1px solid #9b59b6;color:#9b59b6;padding:6px 13px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+        .hd-right{display:flex;align-items:center;gap:8px;}
+        .btn-hd{background:rgba(155,89,182,.12);border:1px solid #9b59b6;color:#9b59b6;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
         .btn-hd:hover{background:rgba(155,89,182,.25);}
         .btn-hd-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
         .btn-hd-ghost:hover{border-color:#9b59b6;color:#9b59b6;}
         .badge-user{background:rgba(155,89,182,.15);color:#9b59b6;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;}
 
+        /* ── Main layout ── */
+        .main-layout{display:flex;min-height:calc(100vh - 54px);}
+
+        /* ── Sidebar ── */
+        .sidebar{width:210px;min-width:210px;background:var(--cor-card);border-right:1px solid var(--cor-borda);padding:12px 0 24px;position:sticky;top:54px;height:calc(100vh - 54px);overflow-y:auto;display:flex;flex-direction:column;}
+        .sidebar::-webkit-scrollbar{width:4px;}
+        .sidebar::-webkit-scrollbar-thumb{background:rgba(155,89,182,.3);border-radius:2px;}
+        .nav-section-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--cor-texto-secundario);padding:14px 18px 5px;opacity:.7;}
+        .nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;font-weight:600;color:var(--cor-texto-secundario);cursor:pointer;border-left:3px solid transparent;transition:.15s;user-select:none;}
+        .nav-item i{width:16px;text-align:center;font-size:13px;}
+        .nav-item:hover{color:#9b59b6;background:rgba(155,89,182,.06);}
+        .nav-item.active{color:#9b59b6;background:rgba(155,89,182,.1);border-left-color:#9b59b6;}
+        .nav-badge{margin-left:auto;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;min-width:18px;text-align:center;background:#9b59b6;}
+        .nav-divider{height:1px;background:var(--cor-borda);margin:8px 14px;}
+
+        /* ── Content area ── */
+        .content-area{flex:1;min-width:0;padding:20px 22px;overflow-x:hidden;}
+
         /* Stats */
-        .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px;}
-        .stat{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:13px 16px;}
-        .stat .lbl{font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;}
+        .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;}
+        .stat{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:12px 14px;}
+        .stat .lbl{font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
         .stat .val{font-size:22px;font-weight:700;}
         .c-roxo{color:#9b59b6;} .c-am{color:var(--cor-alerta);} .c-verde{color:var(--cor-sucesso);} .c-perigo{color:var(--cor-perigo);} .c-azul{color:var(--cor-admin);}
 
-        /* Tabs */
-        .tabs{display:flex;gap:2px;border-bottom:2px solid var(--cor-borda);margin-bottom:20px;overflow-x:auto;}
-        .tab{padding:10px 18px;font-size:13px;font-weight:600;color:var(--cor-texto-secundario);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;display:flex;align-items:center;gap:6px;transition:.15s;}
-        .tab:hover{color:#9b59b6;}
-        .tab.active{color:#9b59b6;border-bottom-color:#9b59b6;}
+        /* Panels */
         .tab-panel{display:none;}
         .tab-panel.active{display:block;}
+        /* cnt-badge kept for backwards compat in any inline use */
         .cnt-badge{background:#9b59b6;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;}
 
         /* Cards / Table */
@@ -60,6 +74,9 @@
         .tag-compliance_review{background:rgba(155,89,182,.15);color:#9b59b6;}
         .tag-liberada{background:rgba(26,95,180,.15);color:var(--cor-admin);}
         .tag-cancelada{background:rgba(224,27,36,.15);color:var(--cor-perigo);}
+        .tag-despachada{background:rgba(41,128,185,.15);color:#2980b9;}
+        .tag-paga{background:rgba(39,174,96,.15);color:var(--cor-sucesso);}
+        .tag-rascunho{background:rgba(128,128,128,.15);color:var(--cor-texto-secundario);}
         .tag-bloqueado{background:rgba(224,27,36,.15);color:var(--cor-perigo);}
         .tag-ativo{background:rgba(39,174,96,.15);color:var(--cor-sucesso);}
         .tag-alto{background:rgba(224,27,36,.15);color:var(--cor-perigo);}
@@ -369,44 +386,89 @@
     </style>
 </head>
 <body>
-<div class="page">
 
-    <!-- Header -->
-    <div class="hd">
-        <div class="logo">
-            <i class="fas fa-shield-alt"></i>
-            <span class="logo-text">Compliance</span>
-            <span style="font-size:12px;color:var(--cor-texto-secundario);font-weight:400">— Cambio Bank</span>
+<!-- ── Top Bar ── -->
+<div class="top-bar">
+    <div class="logo">
+        <i class="fas fa-shield-alt"></i>
+        <span class="logo-text">Compliance</span>
+        <span style="font-size:12px;color:var(--cor-texto-secundario);font-weight:400;">— Cambio Bank</span>
+    </div>
+    <div class="hd-right">
+        <span class="badge-user"><i class="fas fa-user-shield"></i> {{ usuario }}</span>
+        {% if session.get('tipo') == 'admin' %}
+        <a href="/admin/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-cog"></i> Admin</a>
+        {% endif %}
+        <button id="btnTheme" class="btn-hd btn-hd-ghost" onclick="toggleTheme()" title="Alternar tema"><i class="fas fa-moon"></i></button>
+        <a href="/logout" class="btn-hd btn-hd-ghost"><i class="fas fa-sign-out-alt"></i> Sair</a>
+    </div>
+</div>
+
+<!-- ── Main Layout ── -->
+<div class="main-layout">
+
+    <!-- ── Sidebar ── -->
+    <nav class="sidebar">
+        <div class="nav-section-lbl">Principal</div>
+        <div class="nav-item active" data-tab="ordens" onclick="showTab('ordens')">
+            <i class="fas fa-file-alt"></i> Ordens
+            <span class="nav-badge" id="tab-cnt-ordens">0</span>
         </div>
-        <div class="hd-right">
-            <span class="badge-user"><i class="fas fa-user-shield"></i> {{ usuario }}</span>
-            {% if session.get('tipo') == 'admin' %}
-            <a href="/admin/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-cog"></i> Admin</a>
-            {% endif %}
-            <button id="btnTheme" class="btn-hd btn-hd-ghost" onclick="toggleTheme()" title="Alternar tema"><i class="fas fa-moon"></i></button>
-            <a href="/logout" class="btn-hd btn-hd-ghost"><i class="fas fa-sign-out-alt"></i> Sair</a>
+        <div class="nav-item" data-tab="clientes" onclick="showTab('clientes')">
+            <i class="fas fa-users"></i> Clientes
         </div>
-    </div>
+        <div class="nav-item" data-tab="consulta" onclick="showTab('consulta')">
+            <i class="fas fa-search"></i> Consulta
+        </div>
 
-    <!-- Stats -->
-    <div class="stats" id="statsRow">
-        <div class="stat"><div class="lbl">Pendentes Compliance</div><div class="val c-roxo" id="st-pendentes">—</div></div>
-        <div class="stat"><div class="lbl">Aguardando Pagamento</div><div class="val c-am" id="st-on-hold">—</div></div>
-        <div class="stat"><div class="lbl">PEP / Alto Risco</div><div class="val c-perigo" id="st-pep">—</div></div>
-        <div class="stat"><div class="lbl">Clientes Bloqueados</div><div class="val c-perigo" id="st-bloq">—</div></div>
-        <div class="stat"><div class="lbl">Docs Pendentes</div><div class="val c-am" id="st-docs">—</div></div>
-        <div class="stat"><div class="lbl">SARs Abertos</div><div class="val c-roxo" id="st-sars">—</div></div>
-    </div>
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Documentos</div>
+        <div class="nav-item" data-tab="docs" onclick="showTab('docs')">
+            <i class="fas fa-folder-open"></i> Docs Pendentes
+            <span class="nav-badge" id="tab-cnt-docs">0</span>
+        </div>
+        <div class="nav-item" data-tab="expirando" onclick="showTab('expirando')">
+            <i class="fas fa-id-card"></i> Docs a Vencer
+            <span class="nav-badge" id="tab-cnt-expirando" style="background:#e67e22;">0</span>
+        </div>
 
-    <!-- Tabs -->
-    <div class="tabs">
-        <div class="tab active" onclick="showTab('ordens')"><i class="fas fa-file-alt"></i> Ordens <span class="cnt-badge" id="tab-cnt-ordens">0</span></div>
-        <div class="tab" onclick="showTab('clientes')"><i class="fas fa-users"></i> Clientes</div>
-        <div class="tab" onclick="showTab('docs')"><i class="fas fa-folder-open"></i> Docs Pendentes <span class="cnt-badge" id="tab-cnt-docs">0</span></div>
-        <div class="tab" onclick="showTab('regras')"><i class="fas fa-sliders-h"></i> Regras AML</div>
-        <div class="tab" onclick="showTab('sars')"><i class="fas fa-exclamation-triangle"></i> SARs <span class="cnt-badge" id="tab-cnt-sars">0</span></div>
-        <div class="tab" onclick="showTab('audit')"><i class="fas fa-history"></i> Auditoria</div>
-    </div>
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Alertas AML</div>
+        <div class="nav-item" data-tab="structuring" onclick="showTab('structuring')">
+            <i class="fas fa-project-diagram"></i> Structuring
+            <span class="nav-badge" id="tab-cnt-structuring" style="background:#c0392b;">0</span>
+        </div>
+        <div class="nav-item" data-tab="sanctions" onclick="showTab('sanctions')">
+            <i class="fas fa-ban"></i> Sanctions
+            <span class="nav-badge" id="tab-cnt-sanctions" style="background:#8e44ad;">0</span>
+        </div>
+        <div class="nav-item" data-tab="sars" onclick="showTab('sars')">
+            <i class="fas fa-exclamation-triangle"></i> SARs
+            <span class="nav-badge" id="tab-cnt-sars">0</span>
+        </div>
+
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Configuração</div>
+        <div class="nav-item" data-tab="regras" onclick="showTab('regras')">
+            <i class="fas fa-sliders-h"></i> Regras AML
+        </div>
+        <div class="nav-item" data-tab="audit" onclick="showTab('audit')">
+            <i class="fas fa-history"></i> Auditoria
+        </div>
+    </nav>
+
+    <!-- ── Content Area ── -->
+    <div class="content-area">
+
+        <!-- Stats -->
+        <div class="stats" id="statsRow">
+            <div class="stat"><div class="lbl">Pendentes Compliance</div><div class="val c-roxo" id="st-pendentes">—</div></div>
+            <div class="stat"><div class="lbl">Aguard. Pagamento</div><div class="val c-am" id="st-on-hold">—</div></div>
+            <div class="stat"><div class="lbl">PEP / Alto Risco</div><div class="val c-perigo" id="st-pep">—</div></div>
+            <div class="stat"><div class="lbl">Clientes Bloqueados</div><div class="val c-perigo" id="st-bloq">—</div></div>
+            <div class="stat"><div class="lbl">Docs Pendentes</div><div class="val c-am" id="st-docs">—</div></div>
+            <div class="stat"><div class="lbl">SARs Abertos</div><div class="val c-roxo" id="st-sars">—</div></div>
+        </div>
 
     <!-- TAB: ORDENS -->
     <div class="tab-panel active" id="panel-ordens">
@@ -485,6 +547,68 @@
         </div>
     </div>
 
+    <!-- TAB: STRUCTURING -->
+    <div class="tab-panel" id="panel-structuring">
+        <div class="tbl-card">
+            <div class="tbl-hd">
+                <h3><i class="fas fa-project-diagram" style="color:#c0392b;"></i> Alertas de Structuring / Smurfing</h3>
+                <button class="btn-primary" onclick="carregarStructuring()"><i class="fas fa-sync-alt"></i> Atualizar</button>
+            </div>
+            <div style="padding:12px 16px;background:rgba(192,57,43,.06);border-bottom:1px solid rgba(192,57,43,.15);font-size:12px;color:var(--cor-texto-secundario);">
+                <i class="fas fa-info-circle" style="color:#c0392b;"></i>
+                Clientes com padrões suspeitos detectados nos últimos 30 dias: alta frequência de ordens, valores logo abaixo dos limiares ou acumulação rápida em 48h.
+            </div>
+            <div class="tbl-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Documento</th>
+                            <th>Risco</th>
+                            <th>Alertas (30d)</th>
+                            <th>Último Alerta</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbStructuring">
+                        <tr><td colspan="6" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: DOCS A VENCER -->
+    <div class="tab-panel" id="panel-expirando">
+        <div class="tbl-card">
+            <div class="tbl-hd">
+                <h3><i class="fas fa-id-card" style="color:#e67e22;"></i> Documentos a Vencer / Expirados</h3>
+                <button class="btn-primary" onclick="carregarExpirando()"><i class="fas fa-sync-alt"></i> Atualizar</button>
+            </div>
+            <div style="padding:12px 16px;background:rgba(230,126,34,.06);border-bottom:1px solid rgba(230,126,34,.2);font-size:12px;color:var(--cor-texto-secundario);">
+                <i class="fas fa-info-circle" style="color:#e67e22;"></i>
+                Photo ID e Proof of Address com validade nos próximos 60 dias ou já expirados. Contate o cliente para renovação antes de processar novas ordens.
+            </div>
+            <div class="tbl-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Documento</th>
+                            <th>Photo ID</th>
+                            <th>Proof of Address</th>
+                            <th>Risco</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbExpirando">
+                        <tr><td colspan="6" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- TAB: REGRAS AML -->
     <div class="tab-panel" id="panel-regras">
         <div class="tbl-card">
@@ -510,15 +634,67 @@
         </div>
     </div>
 
+    <!-- TAB: SANCTIONS -->
+    <div class="tab-panel" id="panel-sanctions">
+        <div style="padding:10px 14px;background:rgba(142,68,173,.08);border-bottom:1px solid rgba(142,68,173,.2);font-size:12px;color:var(--cor-texto-secundario);margin-bottom:12px;border-radius:var(--borda-radius);">
+            <i class="fas fa-info-circle" style="color:#8e44ad;"></i>
+            Verificação automática contra listas OFSI, OFAC, UN e EU a cada nova ordem. Hits pendentes requerem revisão antes de liberar a ordem.
+        </div>
+        <!-- Hits pendentes -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <h3 style="font-size:13px;font-weight:700;margin:0;">Alertas Pendentes</h3>
+            <div style="display:flex;gap:6px;">
+                <select id="sanctions-filtro-status" onchange="carregarSanctions()" style="background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:4px 8px;border-radius:4px;font-size:12px;">
+                    <option value="pendente">Pendente</option>
+                    <option value="confirmado">Confirmado</option>
+                    <option value="falso_positivo">Falso Positivo</option>
+                    <option value="">Todos</option>
+                </select>
+                <button class="btn-primary" onclick="carregarSanctions()"><i class="fas fa-sync-alt"></i></button>
+            </div>
+        </div>
+        <div id="listaSanctionsHits" class="tbl-card" style="margin-bottom:18px;"></div>
+
+        <!-- Lista negra manual -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <h3 style="font-size:13px;font-weight:700;margin:0;"><i class="fas fa-list" style="color:#8e44ad;"></i> Lista de Entidades Sancionadas</h3>
+            <button class="btn-primary" onclick="toggleAddEntity()"><i class="fas fa-plus"></i> Adicionar</button>
+        </div>
+        <div id="addEntityForm" style="display:none;background:var(--cor-card);border:1px solid rgba(142,68,173,.3);border-radius:var(--borda-radius);padding:14px;margin-bottom:12px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+                <div><label style="font-size:11px;color:var(--cor-texto-secundario);">Nome *</label><input id="ent-nome" type="text" class="config-input" placeholder="Nome completo"></div>
+                <div><label style="font-size:11px;color:var(--cor-texto-secundario);">Tipo</label>
+                    <select id="ent-tipo" class="config-input"><option value="individual">Individual</option><option value="entity">Entidade</option></select>
+                </div>
+                <div><label style="font-size:11px;color:var(--cor-texto-secundario);">Lista</label>
+                    <select id="ent-lista" class="config-input"><option value="OFSI">OFSI (UK)</option><option value="OFAC">OFAC (US)</option><option value="UN">UN</option><option value="EU">EU</option><option value="MANUAL">Manual</option></select>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px;margin-bottom:8px;">
+                <div><label style="font-size:11px;color:var(--cor-texto-secundario);">País</label><input id="ent-pais" type="text" class="config-input" placeholder="GB, US, IR..."></div>
+                <div><label style="font-size:11px;color:var(--cor-texto-secundario);">Motivo / Regime</label><input id="ent-motivo" type="text" class="config-input" placeholder="Ex: Terrorismo, Proliferação nuclear..."></div>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+                <button class="btn-ghost" onclick="toggleAddEntity()">Cancelar</button>
+                <button class="btn-primary" onclick="salvarEntity()"><i class="fas fa-save"></i> Salvar</button>
+            </div>
+        </div>
+        <div id="listaSanctionsEntities" class="tbl-card"></div>
+    </div>
+
     <!-- TAB: SARs -->
     <div class="tab-panel" id="panel-sars">
+        <div style="padding:10px 14px;background:rgba(231,76,60,.06);border-bottom:1px solid rgba(231,76,60,.2);font-size:12px;color:var(--cor-texto-secundario);margin-bottom:12px;border-radius:var(--borda-radius);">
+            <i class="fas fa-info-circle" style="color:#e74c3c;"></i>
+            UK MSB: SARs devem ser enviados à <strong>NCA</strong> (National Crime Agency) via <strong>SARs Online</strong> em até 7 dias após detectar atividade suspeita.
+        </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
             <div class="filters" style="margin:0">
                 <select id="sar-filtro-status">
                     <option value="">Todos</option>
                     <option value="rascunho">Rascunho</option>
                     <option value="revisao">Em Revisão</option>
-                    <option value="enviado">Enviado ao COAF</option>
+                    <option value="enviado">Enviado à NCA</option>
                     <option value="arquivado">Arquivado</option>
                 </select>
                 <button class="btn-primary" onclick="carregarSARs()"><i class="fas fa-sync-alt"></i></button>
@@ -550,7 +726,57 @@
         </div>
     </div>
 
-</div><!-- /page -->
+    <!-- TAB: CONSULTA -->
+    <div class="tab-panel" id="panel-consulta">
+        <div class="filters" style="background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:14px 16px;margin-bottom:14px;">
+            <input id="con-q" type="text" placeholder="Cliente, documento ou nº ordem..." style="flex:1;min-width:200px;">
+            <select id="con-status">
+                <option value="">Todos os status</option>
+                <option value="compliance_review">Compliance Review</option>
+                <option value="on_hold">On Hold</option>
+                <option value="liberada">Liberada</option>
+                <option value="despachada">Despachada</option>
+                <option value="paga">Paga</option>
+                <option value="cancelada">Cancelada</option>
+            </select>
+            <input id="con-de" type="date" title="De">
+            <input id="con-ate" type="date" title="Até">
+            <button class="btn-primary" onclick="buscarConsulta()"><i class="fas fa-search"></i> Buscar</button>
+        </div>
+        <div class="tbl-card">
+            <div class="tbl-hd">
+                <h3><i class="fas fa-search c-roxo"></i> Resultados <span id="con-count" style="font-size:12px;color:var(--cor-texto-secundario);font-weight:400;margin-left:4px;"></span></h3>
+            </div>
+            <div class="tbl-wrap">
+                <table>
+                    <thead><tr>
+                        <th>Data</th><th>Cliente</th><th>Entrada</th><th>Saída</th>
+                        <th>Destino</th><th>Status</th><th>Loja</th><th></th>
+                    </tr></thead>
+                    <tbody id="con-body">
+                        <tr><td colspan="8" class="empty">Use os filtros acima para buscar ordens.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    </div><!-- /content-area -->
+</div><!-- /main-layout -->
+
+<!-- Modal: Detalhe Consulta -->
+<div class="modal-ov" id="modalConsulta">
+<div class="modal" style="width:min(700px,96vw);padding:0;">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;">
+        <h3 style="margin:0;font-size:15px;display:flex;align-items:center;gap:8px;"><i class="fas fa-file-alt" style="color:#9b59b6;"></i> <span id="con-titulo">Ordem</span></h3>
+        <button onclick="fecharModal('modalConsulta')" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--cor-texto-secundario);">&times;</button>
+    </div>
+    <div id="con-body-modal" style="padding:20px;overflow-y:auto;max-height:75vh;">
+        <div style="text-align:center;padding:30px;"><i class="fas fa-spinner fa-spin"></i></div>
+    </div>
+    <div id="con-modal-acts" style="padding:14px 20px;border-top:1px solid var(--cor-borda);display:flex;justify-content:flex-end;gap:8px;"></div>
+</div>
+</div>
 
 <!-- Modal: Análise de Ordem -->
 <div class="modal-ov" id="modalOrdem">
@@ -576,6 +802,8 @@
     <div id="mo-docs"></div>
     <div class="section-title">Documentos da Ordem <span style="font-size:11px;font-weight:400;color:var(--cor-texto-secundario);">(Proof of Funds e suportes)</span></div>
     <div id="mo-ordem-docs" style="font-size:13px;min-height:28px;"><span style="color:var(--cor-texto-secundario);font-size:12px;"><i class="fas fa-spinner fa-spin"></i> Carregando…</span></div>
+    <div class="section-title">Checklist Compliance</div>
+    <div id="mo-checklist" style="margin-bottom:10px;"></div>
     <div class="section-title">Notas de Compliance</div>
     <div class="notas-list" id="mo-notas-list"></div>
     <div class="form-group" style="margin-top:10px;">
@@ -633,19 +861,29 @@
 
 <!-- Modal: Novo SAR -->
 <div class="modal-ov" id="modalSAR">
-    <div class="modal">
-        <h3><i class="fas fa-exclamation-triangle c-am"></i> Novo SAR</h3>
-        <div class="form-group">
-            <label>ID do Cliente (opcional)</label>
-            <input type="number" id="sar-cliente-id" placeholder="ID do cliente relacionado">
+    <div class="modal" style="max-width:560px;">
+        <h3><i class="fas fa-exclamation-triangle c-am"></i> Novo SAR — NCA</h3>
+        <div style="font-size:11px;color:var(--cor-texto-secundario);margin-bottom:12px;background:rgba(231,76,60,.06);padding:8px 10px;border-radius:6px;">
+            Suspicious Activity Report para a National Crime Agency (NCA) do Reino Unido. Prazo legal: 7 dias a partir da suspeita.
+        </div>
+        <input type="hidden" id="sar-alerta-id">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="form-group">
+                <label>ID do Cliente (opcional)</label>
+                <input type="number" id="sar-cliente-id" placeholder="ID do cliente">
+            </div>
+            <div class="form-group">
+                <label>Valor Suspeito (GBP £)</label>
+                <input type="number" id="sar-valor" placeholder="0.00" step="0.01">
+            </div>
         </div>
         <div class="form-group">
-            <label>Valor Suspeito (BRL)</label>
-            <input type="number" id="sar-valor" placeholder="0.00">
+            <label>Ordens Vinculadas (IDs separados por vírgula)</label>
+            <input type="text" id="sar-ordens" placeholder="ex: abc123, def456">
         </div>
         <div class="form-group">
             <label>Descrição da Atividade Suspeita *</label>
-            <textarea id="sar-desc" placeholder="Descreva detalhadamente a atividade suspeita..." style="min-height:120px;"></textarea>
+            <textarea id="sar-desc" placeholder="Descreva detalhadamente a atividade suspeita, padrões observados, contexto..." style="min-height:130px;"></textarea>
         </div>
         <div class="modal-acts">
             <button class="btn-ghost" onclick="fecharModal('modalSAR')">Cancelar</button>
@@ -760,19 +998,22 @@
 const IS_COMPLIANCE = window.IS_COMPLIANCE;
 const USER_TIPO = window.USER_TIPO;
 
-// ─── Tabs ────────────────────────────────────────
+// ─── Navigation ──────────────────────────────────
 function showTab(name) {
-    document.querySelectorAll('.tab').forEach((t,i)=>t.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-    const tabs = ['ordens','clientes','docs','regras','sars','audit'];
-    const idx = tabs.indexOf(name);
-    if(idx>=0) document.querySelectorAll('.tab')[idx].classList.add('active');
-    document.getElementById('panel-'+name).classList.add('active');
-    if(name==='ordens') carregarOrdens();
-    else if(name==='docs') carregarDocsPendentes();
-    else if(name==='regras') carregarConfig();
-    else if(name==='sars') carregarSARs();
-    else if(name==='audit') carregarAudit();
+    document.querySelectorAll('.nav-item').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    const navItem = document.querySelector(`.nav-item[data-tab="${name}"]`);
+    if (navItem) navItem.classList.add('active');
+    const panel = document.getElementById('panel-' + name);
+    if (panel) panel.classList.add('active');
+    if (name === 'ordens') carregarOrdens();
+    else if (name === 'docs') carregarDocsPendentes();
+    else if (name === 'structuring') carregarStructuring();
+    else if (name === 'expirando') carregarExpirando();
+    else if (name === 'sanctions') carregarSanctions();
+    else if (name === 'regras') carregarConfig();
+    else if (name === 'sars') carregarSARs();
+    else if (name === 'audit') carregarAudit();
 }
 
 // ─── Toast ───────────────────────────────────────
@@ -792,11 +1033,12 @@ function fecharModal(id) {
 // ─── Stats ───────────────────────────────────────
 async function carregarStats() {
     try {
-        const [rO, rC, rD, rS] = await Promise.all([
+        const [rO, rC, rD, rS, rSanc] = await Promise.all([
             fetch('/api/compliance/ordens').then(r=>r.json()),
             fetch('/api/compliance/clientes?bloqueado=1').then(r=>r.json()),
             fetch('/api/compliance/clientes/docs-pendentes').then(r=>r.json()),
             fetch('/api/compliance/sars?status=rascunho').then(r=>r.json()),
+            fetch('/api/compliance/sanctions/alertas?status=pendente').then(r=>r.json()),
         ]);
         const ordens = rO.ordens||[];
         document.getElementById('st-pendentes').textContent = ordens.filter(o=>o.compliance_status==='pendente').length;
@@ -808,6 +1050,8 @@ async function carregarStats() {
         document.getElementById('tab-cnt-sars').textContent = (rS.sars||[]).length;
         document.getElementById('tab-cnt-docs').textContent = (rD.clientes||[]).length;
         document.getElementById('tab-cnt-ordens').textContent = ordens.length;
+        const sanctionsPendentes = (rSanc.hits||[]).length;
+        document.getElementById('tab-cnt-sanctions').textContent = sanctionsPendentes;
     } catch(e){ console.error('Stats error:', e); }
 }
 
@@ -836,7 +1080,11 @@ function renderOrdens(list) {
     
     let html = '';
     for (const o of list) {
-        const alertas = (o.aml_alertas || []).map(a => `<span class="aml-pill">${a}</span>`).join('');
+        const _amlList = o.aml_alertas
+            ? (Array.isArray(o.aml_alertas) ? o.aml_alertas : String(o.aml_alertas).split(','))
+                .map(a => a.trim()).filter(Boolean)
+            : [];
+        const alertas = _amlList.map(a => `<span class="aml-pill">${a}</span>`).join(' ');
         const pgtoIco = o.pagamento_confirmado ? '<i class="fas fa-check-circle flag-ok" title="Confirmado"></i>' : '<i class="fas fa-clock flag-pend" title="Aguardando"></i>';
         const compTag = `<span class="tag tag-${o.compliance_status || 'pendente'}">${o.compliance_status || 'pendente'}</span>`;
         const dt = o.created_at ? new Date(o.created_at).toLocaleDateString('pt-BR') : '—';
@@ -909,9 +1157,16 @@ async function abrirOrdem(id) {
         document.getElementById('mo-status').innerHTML = `<span class="tag tag-${ordem.status}">${ordem.status}</span>`;
         
         // Alertas AML
-        const alertas = ordem.aml_alertas ? ordem.aml_alertas.split(',') : [];
-        const amlHtml = alertas.length 
-            ? alertas.map(a => `<span class="aml-pill">${a.trim()}</span>`).join(' ')
+        const alertas = ordem.aml_alertas ? ordem.aml_alertas.split(',').map(a=>a.trim()).filter(Boolean) : [];
+        const amlHtml = alertas.length
+            ? alertas.map(a => {
+                const info = AML_DESCRICOES[a];
+                if (info) return `<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 10px;background:rgba(230,126,34,.07);border-left:3px solid ${info.color};border-radius:0 6px 6px 0;margin-bottom:6px;">
+                    <i class="fas ${info.icon}" style="color:${info.color};margin-top:2px;min-width:14px;"></i>
+                    <div><div style="font-weight:600;font-size:12px;color:${info.color};">${info.label}</div>
+                    <div style="font-size:11px;color:var(--cor-texto-secundario);margin-top:2px;">${info.desc}</div></div></div>`;
+                return `<span class="aml-pill">${a}</span>`;
+              }).join('')
             : '<span style="color:var(--cor-sucesso)"><i class="fas fa-check"></i> Sem alertas</span>';
         document.getElementById('mo-aml').innerHTML = amlHtml;
         
@@ -933,12 +1188,10 @@ async function abrirOrdem(id) {
             validadePorTipo[docVal.tipo] = docVal;
         }
 
-        // Configuração dos documentos que serão exibidos
+        // Configuração dos documentos que serão exibidos (apenas nível cliente)
         const docsConfig = [
             { campo: 'doc_photo_id_ok', tipo: 'photo_id', label: 'Documento com Foto', obrigatorio: true },
             { campo: 'doc_address_ok', tipo: 'proof_address', label: 'Comprovante de Residência', obrigatorio: true },
-            { campo: 'doc_declaration_ok', tipo: 'declaration', label: 'Declaração', obrigatorio: false },
-            { campo: 'doc_edd_ok', tipo: 'edd', label: 'EDD', obrigatorio: false }
         ];
 
         // Função para obter o texto do status
@@ -961,56 +1214,73 @@ async function abrirOrdem(id) {
         if (cliente) {
             for (const config of docsConfig) {
                 const isOk = cliente[config.campo] === true;
-                const validadeInfo = validadePorTipo[config.tipo];
-                const status = validadeInfo ? validadeInfo.status : (isOk ? 'ok' : 'nao_enviado');
-                const validadeText = validadeInfo ? validadeInfo.validade : null;
-                const diasRestantes = validadeInfo ? validadeInfo.dias_restantes : null;
-                
-                // Buscar documento para o botão Ver
                 const doc = docsPorTipo[config.tipo];
                 const temDocumento = !!doc;
-                
-                // Construir URL para visualização
-                let docUrl = '';
-                if (temDocumento && doc.arquivo_url) {
-                    docUrl = `/api/storage/signed-url?path=${encodeURIComponent(doc.arquivo_url)}`;
+                const pendente = temDocumento && !isOk;
+
+                // Status: validado / aguardando / expirado / proximo / não enviado
+                const validadeInfo = validadePorTipo[config.tipo];
+                let status, statusColor, statusIcon, statusText;
+
+                if (isOk && validadeInfo && validadeInfo.status !== 'nao_enviado') {
+                    status = validadeInfo.status;
+                } else if (isOk) {
+                    status = 'ok';
+                } else if (temDocumento) {
+                    status = 'aguardando';
+                } else {
+                    status = 'nao_enviado';
                 }
-                
-                // Determinar cor e ícone do status
-                let statusColor = '';
-                let statusIcon = '';
-                let statusText = '';
-                
+
                 if (status === 'expirado') {
                     statusColor = 'var(--cor-perigo)';
                     statusIcon = '<i class="fas fa-exclamation-triangle"></i>';
-                    statusText = getStatusText(status, validadeText, diasRestantes);
+                    statusText = `Expirado em ${validadeInfo.validade}`;
                 } else if (status === 'proximo') {
                     statusColor = 'var(--cor-alerta)';
                     statusIcon = '<i class="fas fa-clock"></i>';
-                    statusText = getStatusText(status, validadeText, diasRestantes);
+                    statusText = `Vence em ${validadeInfo.dias_restantes} dias (${validadeInfo.validade})`;
                 } else if (status === 'ok') {
                     statusColor = 'var(--cor-sucesso)';
                     statusIcon = '<i class="fas fa-check-circle"></i>';
-                    statusText = getStatusText(status, validadeText, diasRestantes);
+                    statusText = validadeInfo ? `Válido até ${validadeInfo.validade}` : 'Validado';
+                } else if (status === 'aguardando') {
+                    statusColor = 'var(--cor-alerta)';
+                    statusIcon = '<i class="fas fa-hourglass-half"></i>';
+                    statusText = 'Aguardando validação';
                 } else {
                     statusColor = 'var(--cor-texto-secundario)';
                     statusIcon = '<i class="fas fa-times-circle"></i>';
-                    statusText = getStatusText(status, validadeText, diasRestantes);
+                    statusText = 'Não enviado';
                 }
-                
+
+                const borderLeft = isOk ? '3px solid var(--cor-sucesso)' :
+                                   pendente ? '3px solid var(--cor-alerta)' :
+                                   '3px solid var(--cor-borda)';
+
                 docsHtml += `
-                    <div class="doc-row" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--cor-borda);">
-                        <span style="flex: 1; font-size: 13px; font-weight: 500;">
-                            ${config.label}
-                            ${config.obrigatorio ? '<span style="color:var(--cor-perigo); font-size: 10px;">*</span>' : ''}
-                        </span>
-                        <div style="display: flex; align-items: center; gap: 15px;">
-                            <span style="font-size: 12px; color: ${statusColor};">
-                                ${statusIcon} ${statusText}
+                    <div style="padding:10px 12px;margin-bottom:6px;border-radius:6px;background:rgba(128,128,128,.04);border-left:${borderLeft};">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span style="font-size:13px;font-weight:600;">
+                                <i class="fas fa-${isOk ? 'check-circle' : (pendente ? 'hourglass-half' : 'circle')}"
+                                   style="color:${statusColor};margin-right:7px;"></i>
+                                ${config.label}
+                                ${config.obrigatorio ? '<span style="color:var(--cor-perigo);font-size:10px;margin-left:2px;">*</span>' : ''}
                             </span>
-                            ${temDocumento && doc.arquivo_url ? `<button class="btn-act" onclick="verDocumento('${doc.arquivo_url}')" style="padding: 4px 12px; font-size: 11px; cursor: pointer;"><i class="fas fa-eye"></i> Ver</button>` : '<span style="font-size: 11px; color: var(--cor-texto-secundario);">Sem arquivo</span>'}
+                            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                                <span style="font-size:11px;color:${statusColor};">${statusIcon} ${statusText}</span>
+                                ${temDocumento ? `<button class="btn-act" onclick="verDocKycCompliance('${doc.id}')" style="white-space:nowrap;"><i class="fas fa-eye"></i> Ver</button>` : '<span style="font-size:11px;color:var(--cor-texto-secundario);">Sem arquivo</span>'}
+                            </div>
                         </div>
+                        ${pendente ? `
+                        <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end;">
+                            <button class="btn-danger" style="padding:5px 14px;font-size:12px;" onclick="rejeitarDocumentoCompliance('${doc.id}')">
+                                <i class="fas fa-times"></i> Rejeitar
+                            </button>
+                            <button class="btn-success" style="padding:5px 14px;font-size:12px;" onclick="aprovarDocumentoCompliance('${doc.id}')">
+                                <i class="fas fa-check"></i> Aprovar
+                            </button>
+                        </div>` : ''}
                     </div>
                 `;
             }
@@ -1023,35 +1293,119 @@ async function abrirOrdem(id) {
         // ============================================
         // DOCUMENTOS DA ORDEM (Proof of Funds e suportes)
         // ============================================
-        const ordemDocsHtml = documentos.length ? documentos.map(doc => {
-            // Pular documentos KYC (já mostrados acima)
-            const tiposKYC = ['photo_id', 'proof_address', 'declaration', 'edd'];
-            if (tiposKYC.includes(doc.tipo)) return '';
-            
+        const ORDER_DOC_LABELS = {
+            source_funds: 'Source of Funds', declaration: 'Declaration Form',
+            edd: 'EDD', proof_of_funds_ordem: 'Proof of Funds'
+        };
+        const tiposClienteKYC = ['photo_id', 'proof_address'];
+        const ordemDocsHtml = documentos.filter(doc => !tiposClienteKYC.includes(doc.tipo)).length
+        ? documentos.filter(doc => !tiposClienteKYC.includes(doc.tipo)).map(doc => {
             const nome = doc.arquivo_nome || (doc.arquivo_url ? doc.arquivo_url.split('/').pop() : 'documento');
             const data = doc.created_at ? new Date(doc.created_at).toLocaleString('pt-BR') : '';
             const url = doc.signed_url || doc.arquivo_url;
-            
-            // Se for proof_of_funds_ordem, mostrar destaque
-            const isProofOfFunds = doc.tipo === 'proof_of_funds_ordem';
-            const borderColor = isProofOfFunds ? 'var(--cor-alerta)' : 'rgba(128,128,128,.06)';
-            const iconColor = isProofOfFunds ? 'var(--cor-alerta)' : 'var(--cor-admin)';
-            const titlePrefix = isProofOfFunds ? '📋 PROOF OF FUNDS - ' : '';
-            
-            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:${borderColor};border-radius:6px;margin-bottom:6px;border-left: 3px solid ${borderColor};">
-                <div style="overflow:hidden;">
-                    <div style="font-weight:600;font-size:12px;" title="${nome}">
-                        <i class="fas fa-file-alt" style="color:${iconColor};margin-right:8px;"></i>${titlePrefix}${nome.substring(0, 50)}
+            const tipoLabel = ORDER_DOC_LABELS[doc.tipo] || doc.tipo;
+            const isValidado = doc.validado === true;
+            const isRejeitado = !isValidado && (doc.observacao||'').startsWith('REJEITADO');
+            const isPendente = !isValidado && !isRejeitado && !!doc.id;
+            const borderColor = isValidado ? 'var(--cor-sucesso)' : isRejeitado ? 'var(--cor-perigo)' : 'var(--cor-alerta)';
+            const statusIcon = isValidado ? '<i class="fas fa-check-circle" style="color:var(--cor-sucesso);"></i> Aprovado'
+                             : isRejeitado ? '<i class="fas fa-times-circle" style="color:var(--cor-perigo);"></i> Rejeitado'
+                             : '<i class="fas fa-hourglass-half" style="color:var(--cor-alerta);"></i> Aguardando validação';
+            return `<div style="padding:10px 12px;margin-bottom:8px;border-radius:6px;background:rgba(128,128,128,.04);border-left:3px solid ${borderColor};">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+                    <div>
+                        <div style="font-weight:600;font-size:13px;"><i class="fas fa-file-invoice" style="margin-right:6px;color:var(--cor-alerta);"></i>${tipoLabel} — ${nome.substring(0,50)}</div>
+                        <div style="font-size:11px;color:var(--cor-texto-secundario);margin-top:2px;">${statusIcon} · ${data}</div>
+                        ${doc.observacao ? `<div style="font-size:11px;color:var(--cor-texto-secundario);font-style:italic;">${doc.observacao}</div>` : ''}
                     </div>
-                    <div style="font-size:11px;color:var(--cor-texto-secundario);">${doc.tipo || 'Documento'} — ${data}</div>
-                    ${doc.observacao ? `<div style="font-size:11px;color:var(--cor-texto-secundario);font-style:italic;">${doc.observacao}</div>` : ''}
+                    <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                        ${url ? `<a href="${url}" target="_blank" class="btn-act" style="white-space:nowrap;"><i class="fas fa-eye"></i> Ver</a>` : ''}
+                        ${isPendente ? `
+                        <button class="btn-success" style="padding:4px 10px;font-size:11px;white-space:nowrap;" onclick="aprovarDocumentoCompliance('${doc.id}')"><i class="fas fa-check"></i> Aprovar</button>
+                        <button class="btn-danger" style="padding:4px 10px;font-size:11px;white-space:nowrap;" onclick="rejeitarDocumentoCompliance('${doc.id}')"><i class="fas fa-times"></i> Rejeitar</button>` : ''}
+                    </div>
                 </div>
-                ${url ? `<a href="${url}" target="_blank" class="btn-act" style="margin-left:10px;"><i class="fas fa-eye"></i> Ver</a>` : '<span style="font-size:11px;">URL indisponível</span>'}
             </div>`;
-        }).join('') : '<span style="color:var(--cor-texto-secundario);font-size:12px;">Nenhum documento anexado a esta ordem.</span>';
+        }).join('')
+        : '<span style="color:var(--cor-texto-secundario);font-size:12px;">Nenhum documento anexado a esta ordem.</span>';
         
         document.getElementById('mo-ordem-docs').innerHTML = ordemDocsHtml;
-        
+
+        // ============================================
+        // CHECKLIST COMPLIANCE
+        // ============================================
+        const ordemDocs = documentos.filter(doc => !['photo_id','proof_address'].includes(doc.tipo));
+        const alertasList = ordem.aml_alertas ? ordem.aml_alertas.split(',').map(a=>a.trim()).filter(Boolean) : [];
+        const temPEP = alertasList.includes('PEP_SCREENING_REQUIRED');
+        const pepNeg = cliente && !cliente.pep_flag;
+
+        // Docs do cliente: photo_id e proof_address
+        const docCliMap = {};
+        for (const d of (data.documentos_cliente || [])) docCliMap[d.tipo] = d;
+        const photoOk = cliente && cliente.doc_photo_id_ok;
+        const addrOk  = cliente && cliente.doc_address_ok;
+
+        // Docs da ordem: source_funds, declaration, edd
+        const ordemDocMap = {};
+        for (const d of ordemDocs) {
+            const t = d.tipo === 'proof_of_funds_ordem' ? 'source_funds' : d.tipo;
+            if (!ordemDocMap[t] || d.validado) ordemDocMap[t] = d;
+        }
+        const docsReq = [];
+        const kyc = ordem.kyc_level_na_ordem || 0;
+        if (kyc >= 1) docsReq.push('photo_id');
+        if (kyc >= 1) docsReq.push('proof_address');
+        if (kyc >= 2) docsReq.push('source_funds');
+        if (kyc >= 3) docsReq.push('declaration');
+        if (alertasList.includes('HIGH_RISK_COUNTRY_EDD') || alertasList.includes('CASH_EDD')) docsReq.push('edd');
+
+        const checkItem = (ok, label, hint) => `
+            <div style="display:flex;align-items:flex-start;gap:10px;padding:7px 10px;border-radius:6px;background:${ok?'rgba(39,174,96,.07)':'rgba(230,126,34,.06)'};margin-bottom:5px;">
+                <i class="fas ${ok?'fa-check-circle':'fa-exclamation-circle'}" style="color:${ok?'var(--cor-sucesso)':'var(--cor-alerta)'};margin-top:2px;"></i>
+                <div>
+                    <div style="font-size:12px;font-weight:600;color:${ok?'var(--cor-sucesso)':'var(--cor-texto)'};">${label}</div>
+                    ${hint?`<div style="font-size:11px;color:var(--cor-texto-secundario);margin-top:1px;">${hint}</div>`:''}
+                </div>
+            </div>`;
+
+        const DOC_LABELS_CK = {photo_id:'Photo ID', proof_address:'Proof of Address', source_funds:'Source of Funds', declaration:'Declaration Form', edd:'EDD'};
+        let checklistItems = '';
+        let tudoOk = true;
+
+        // PEP screening
+        if (temPEP) {
+            const pepOk = pepNeg;
+            if (!pepOk) tudoOk = false;
+            checklistItems += checkItem(pepOk, 'PEP Screening', pepOk
+                ? 'Cliente verificado — não consta em listas PEP'
+                : 'Verifique o status PEP do cliente antes de aprovar');
+        }
+
+        // Docs requeridos
+        for (const tipo of docsReq) {
+            if (tipo === 'photo_id') {
+                if (!tudoOk || !photoOk) tudoOk = false;
+                checklistItems += checkItem(photoOk, DOC_LABELS_CK[tipo],
+                    photoOk ? 'Validado pelo compliance' : 'Pendente de aprovação — ver aba Gerir Cliente');
+            } else if (tipo === 'proof_address') {
+                if (!addrOk) tudoOk = false;
+                checklistItems += checkItem(addrOk, DOC_LABELS_CK[tipo],
+                    addrOk ? 'Validado pelo compliance' : 'Pendente de aprovação — ver aba Gerir Cliente');
+            } else {
+                const doc = ordemDocMap[tipo];
+                const ok = doc && doc.validado === true;
+                if (!ok) tudoOk = false;
+                checklistItems += checkItem(ok, DOC_LABELS_CK[tipo] || tipo,
+                    ok ? 'Documento aprovado'
+                       : doc ? 'Documento enviado — clique Aprovar na seção acima'
+                              : 'Documento não enviado — solicite ao atendente');
+            }
+        }
+
+        if (!checklistItems) checklistItems = checkItem(true, 'Sem documentos adicionais requeridos', 'Ordem de baixo valor — KYC básico');
+
+        document.getElementById('mo-checklist').innerHTML = checklistItems;
+
         // ============================================
         // NOTAS DE COMPLIANCE
         // ============================================
@@ -1061,21 +1415,25 @@ async function abrirOrdem(id) {
                 <div class="meta">${n.usuario || n.criado_por || '—'} — ${new Date(n.created_at).toLocaleString('pt-BR')}</div>
             </div>
         `).join('') : '<p style="font-size:12px;color:var(--cor-texto-secundario);">Sem notas registradas.</p>';
-        
+
         document.getElementById('mo-notas-list').innerHTML = notasHtml;
-        
+
         // Limpar observação
         document.getElementById('mo-obs').value = '';
         document.getElementById('mo-id').value = id;
-        
+
         // Configurar botões de ação
         const acts = document.getElementById('mo-acts');
-        
+
         if (USER_TIPO === 'compliance' && ordem.compliance_status === 'pendente') {
+            const aprTooltip = !tudoOk ? 'title="Conclua o checklist antes de aprovar"' : '';
             acts.innerHTML = `
                 <button class="btn-ghost" onclick="fecharModal('modalOrdem')">Fechar</button>
                 <button class="btn-danger" onclick="acao('rejeitar', '${id}')"><i class="fas fa-times"></i> Rejeitar</button>
-                <button class="btn-success" onclick="acao('aprovar', '${id}')"><i class="fas fa-check"></i> Aprovar</button>
+                <button class="btn-success" onclick="acao('aprovar', '${id}')" ${aprTooltip}
+                    style="${!tudoOk?'opacity:.55;':''}">
+                    <i class="fas fa-check"></i> Aprovar Ordem ${!tudoOk?'<i class="fas fa-lock" style="font-size:10px;margin-left:4px;"></i>':''}
+                </button>
             `;
         } else {
             acts.innerHTML = '<button class="btn-ghost" onclick="fecharModal(\'modalOrdem\')">Fechar</button>';
@@ -1166,7 +1524,7 @@ async function buscarClientes() {
                     <td>${c.kyc_docs_status || '—'}</td>
                     <td>${bloqTag}</td>
                     <td>${limite}</td>
-                    <td><button class="btn-act" onclick="abrirCliente('${c.id}')"><i class="fas fa-edit"></i> Gerir</button></td>
+                    <td><button class="btn-act" onclick="verDetalheClienteCompliance('${c.id}')"><i class="fas fa-edit"></i> Gerir</button></td>
                 </tr>
             `;
         }
@@ -1211,40 +1569,64 @@ async function abrirCliente(id) {
     } catch(e){ toast('Erro ao carregar cliente','err'); }
 }
 
+async function carregarNotasGc(clienteId) {
+    const el = document.getElementById('mc-notas-list');
+    if (!el) return;
+    try {
+        const r = await fetch(`/api/compliance/clientes/${clienteId}/notas`);
+        const d = await r.json();
+        const notas = d.notas || [];
+        el.innerHTML = notas.length
+            ? notas.map(n => `<div class="nota-item">${n.nota}<div class="meta">${n.usuario} — ${new Date(n.created_at).toLocaleString('pt-BR')}</div></div>`).join('')
+            : '<p style="font-size:12px;color:var(--cor-texto-secundario);">Sem notas.</p>';
+    } catch(e) { el.innerHTML = '<p style="color:var(--cor-perigo);font-size:12px;">Erro ao carregar notas.</p>'; }
+}
+
+async function adicionarNotaGc() {
+    const id   = document.getElementById('mc-id').value;
+    const nota = document.getElementById('mc-nova-nota').value.trim();
+    if (!nota) { toast('Digite uma nota', 'err'); return; }
+    try {
+        const r = await fetch(`/api/compliance/clientes/${id}/nota`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nota})});
+        const d = await r.json();
+        if (d.success) { toast('Nota adicionada', 'ok'); document.getElementById('mc-nova-nota').value = ''; carregarNotasGc(id); }
+        else toast(d.message, 'err');
+    } catch(e) { toast('Erro', 'err'); }
+}
+
 async function salvarAlteracoesCliente() {
     const id     = document.getElementById('mc-id').value;
     const risco  = document.getElementById('mc-novo-risco').value;
     const limite = document.getElementById('mc-limite').value;
     try {
-        await fetch(`/api/compliance/clientes/${id}/risco`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({nivel:risco})});
-        if(limite) await fetch(`/api/compliance/clientes/${id}/limite`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({limite_mensal:parseFloat(limite)})});
-        toast('Alterações salvas','ok');
-        fecharModal('modalCliente');
+        await fetch(`/api/compliance/clientes/${id}/risco`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nivel:risco})});
+        if (limite) await fetch(`/api/compliance/clientes/${id}/limite`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({limite_mensal:parseFloat(limite)})});
+        toast('Alterações salvas', 'ok');
         buscarClientes();
-    } catch(e){ toast('Erro ao salvar','err'); }
+        await verDetalheClienteCompliance(id);
+        switchGcTab('acoes');
+    } catch(e) { toast('Erro ao salvar', 'err'); }
 }
 
 async function toggleBloquearCliente() {
-    const id      = document.getElementById('mc-id').value;
+    const id        = document.getElementById('mc-id').value;
     const bloqueado = document.getElementById('mc-bloqueado').value === '1';
-    const motivo  = document.getElementById('mc-motivo-bloq').value.trim();
-    const url     = bloqueado ? `/api/compliance/clientes/${id}/desbloquear` : `/api/compliance/clientes/${id}/bloquear`;
+    const motivo    = document.getElementById('mc-motivo-bloq').value.trim();
+    const url       = bloqueado ? `/api/compliance/clientes/${id}/desbloquear` : `/api/compliance/clientes/${id}/bloquear`;
     try {
-        const r = await fetch(url, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({motivo})}).then(res => res.json());
-        if(r.success){ toast(r.message,'ok'); fecharModal('modalCliente'); buscarClientes(); carregarStats(); }
-        else toast(r.message,'err');
-    } catch(e){ toast('Erro de conexão','err'); }
+        const r = await fetch(url, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({motivo})});
+        const d = await r.json();
+        if (d.success) {
+            toast(d.message, 'ok');
+            buscarClientes(); carregarStats();
+            await verDetalheClienteCompliance(id);
+            switchGcTab('acoes');
+        } else toast(d.message, 'err');
+    } catch(e) { toast('Erro de conexão', 'err'); }
 }
 
 async function adicionarNota() {
-    const id   = document.getElementById('mc-id').value;
-    const nota = document.getElementById('mc-nova-nota').value.trim();
-    if(!nota){ toast('Digite uma nota','err'); return; }
-    try {
-        const r = await fetch(`/api/compliance/clientes/${id}/nota`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nota})}).then(res => res.json());
-        if(r.success){ toast('Nota adicionada','ok'); document.getElementById('mc-nova-nota').value = ''; abrirCliente(id); }
-        else toast(r.message,'err');
-    } catch(e){ toast('Erro','err'); }
+    adicionarNotaGc();
 }
 
 // ─── DOCS PENDENTES ──────────────────────────────
@@ -1285,11 +1667,8 @@ async function carregarDocsPendentes() {
                     <td>${faltando || '<span class="tag tag-ok">OK</span>'}</td>
                     <td>${dataCadastro}</td>
                     <td>
-                        <button class="btn-act" onclick="abrirCliente('${c.id}')" style="margin-right:5px;">
-                            <i class="fas fa-edit"></i> Gerir
-                        </button>
                         <button class="btn-act" onclick="verDetalheClienteCompliance('${c.id}')">
-                            <i class="fas fa-info-circle"></i> Detalhes
+                            <i class="fas fa-edit"></i> Gerir
                         </button>
                     </td>
                 </tr>
@@ -1299,6 +1678,116 @@ async function carregarDocsPendentes() {
     } catch(e){ 
         console.error(e);
         tb.innerHTML='</table><td colspan="8" class="empty">Erro ao carregar</td></tr>'; 
+    }
+}
+
+// ─── STRUCTURING ─────────────────────────────────
+async function carregarStructuring() {
+    const tb = document.getElementById('tbStructuring');
+    tb.innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    try {
+        const r = await fetch('/api/compliance/alertas/structuring').then(r=>r.json());
+        const list = r.clientes || [];
+        document.getElementById('tab-cnt-structuring').textContent = list.length;
+        if (!list.length) {
+            tb.innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-check-circle"></i><br>Nenhum padrão suspeito detectado nos últimos 30 dias</td></tr>';
+            return;
+        }
+        const STRUCT_LABELS = {
+            'STRUCTURING_HIGH_FREQUENCY':     { icon:'fa-tachometer-alt', label:'Alta Frequência', color:'#e67e22' },
+            'STRUCTURING_JUST_BELOW_THRESHOLD':{ icon:'fa-arrow-down',    label:'Valor Abaixo do Limiar', color:'#c0392b' },
+            'STRUCTURING_RAPID_ACCUMULATION': { icon:'fa-bolt',           label:'Acumulação Rápida (48h)', color:'#c0392b' },
+            'STRUCTURING_FRAGMENTATION':      { icon:'fa-cut',            label:'Fragmentação', color:'#8e44ad' },
+        };
+        let html = '';
+        for (const c of list) {
+            const risco = c.risk_score || '—';
+            const ult = c.ultimo_alerta ? new Date(c.ultimo_alerta).toLocaleString('pt-BR') : '—';
+            // Agrupar alertas por código
+            const codigos = [...new Set(c.alertas.map(a=>a.codigo))];
+            const pills = codigos.map(cod => {
+                const info = STRUCT_LABELS[cod] || {icon:'fa-exclamation', label:cod, color:'#666'};
+                return `<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(192,57,43,.1);color:${info.color};border:1px solid ${info.color}40;border-radius:12px;padding:2px 8px;font-size:11px;font-weight:600;margin:1px;">
+                    <i class="fas ${info.icon}" style="font-size:9px;"></i>${info.label}</span>`;
+            }).join('');
+            html += `<tr>
+                <td><strong>${c.nome}</strong>${c.pep_flag?'<span class="aml-pill" style="margin-left:4px;font-size:10px;">PEP</span>':''}</td>
+                <td>${c.documento}</td>
+                <td><span class="tag tag-${risco}">${risco}</span></td>
+                <td>${pills}</td>
+                <td style="font-size:11px;color:var(--cor-texto-secundario);">${ult}</td>
+                <td style="white-space:nowrap;">
+                    <button class="btn-act" onclick="verDetalheClienteCompliance('${c.cliente_id}')"><i class="fas fa-user-shield"></i> Gerir</button>
+                    <button class="btn-act" style="background:rgba(231,76,60,.15);color:#c0392b;" data-cid="${c.cliente_id}" data-cnome="${c.nome.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}" data-codigos="${codigos.join(',')}" data-valor="${c.total_gbp_30d||0}" data-ordens="${(c.ordens_ids||'').replace(/"/g,'&quot;')}" onclick="abrirSARDeStructuring(this)"><i class="fas fa-file-alt"></i> SAR</button>
+                </td>
+            </tr>`;
+        }
+        tb.innerHTML = html;
+    } catch(e) {
+        tb.innerHTML = '<tr><td colspan="6" class="empty">Erro ao carregar</td></tr>';
+    }
+}
+
+function abrirSARDeStructuring(btn) {
+    const clienteId   = btn.dataset.cid;
+    const clienteNome = btn.dataset.cnome;
+    const codigos     = (btn.dataset.codigos || '').split(',').filter(Boolean);
+    const valorGbp    = parseFloat(btn.dataset.valor || 0).toFixed(2);
+    const ordensIds   = btn.dataset.ordens || '';
+    const labelMap = {
+        'STRUCTURING_HIGH_FREQUENCY':      'High frequency of orders (3+ in 7 days)',
+        'STRUCTURING_JUST_BELOW_THRESHOLD':'Values just below KYC threshold',
+        'STRUCTURING_RAPID_ACCUMULATION':  'Rapid accumulation within 48 hours',
+        'STRUCTURING_FRAGMENTATION':       'Transaction fragmentation (4+ orders below £850 in 7 days)'
+    };
+    const patterns = codigos.map(c => labelMap[c] || c).join('; ');
+    const desc = `Client: ${clienteNome} (ID: ${clienteId})\n\nSuspicious patterns detected: ${patterns}\n\nTotal transaction volume (last 30 days): £${valorGbp}\n\nPlease provide a detailed description of the suspicious activity observed, including relevant dates, amounts, and any additional information for the NCA.`;
+    showTab('sars');
+    abrirModalNovoSAR(clienteId, null, desc, valorGbp, ordensIds);
+}
+
+// ─── DOCS A VENCER ────────────────────────────────
+async function carregarExpirando() {
+    const tb = document.getElementById('tbExpirando');
+    tb.innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    try {
+        const r = await fetch('/api/compliance/documentos/expirando').then(r=>r.json());
+        const list = r.clientes || [];
+        document.getElementById('tab-cnt-expirando').textContent = list.length;
+        if (!list.length) {
+            tb.innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-check-circle"></i><br>Todos os documentos válidos por mais de 60 dias</td></tr>';
+            return;
+        }
+        const docCell = (docs, tipo) => {
+            const d = docs.find(x => x.tipo.includes(tipo));
+            if (!d) return '<span style="font-size:11px;color:var(--cor-texto-secundario);">—</span>';
+            const colors = {expirado:'var(--cor-perigo)', critico:'#c0392b', aviso:'var(--cor-alerta)'};
+            const icons  = {expirado:'fa-times-circle', critico:'fa-exclamation-triangle', aviso:'fa-clock'};
+            const texts  = {
+                expirado: `Expirado em ${d.validade}`,
+                critico:  `⚠ Vence em ${d.dias_restantes}d (${d.validade})`,
+                aviso:    `Vence em ${d.dias_restantes}d (${d.validade})`
+            };
+            return `<span style="color:${colors[d.status]};font-size:12px;font-weight:600;">
+                <i class="fas ${icons[d.status]}"></i> ${texts[d.status]}</span>`;
+        };
+        let html = '';
+        for (const c of list) {
+            const rowBg = c.pior_status==='expirado' ? 'rgba(192,57,43,.05)' : c.pior_status==='critico' ? 'rgba(192,57,43,.03)' : '';
+            html += `<tr style="background:${rowBg}">
+                <td><strong>${c.nome}</strong></td>
+                <td>${c.documento}</td>
+                <td>${docCell(c.docs_alerta, 'photo_id')}</td>
+                <td>${docCell(c.docs_alerta, 'address')}</td>
+                <td><span class="tag tag-${c.risk_score||'baixo'}">${c.risk_score||'—'}</span></td>
+                <td style="white-space:nowrap;">
+                    <button class="btn-act" onclick="verDetalheClienteCompliance('${c.cliente_id}')"><i class="fas fa-user-edit"></i> Gerir</button>
+                </td>
+            </tr>`;
+        }
+        tb.innerHTML = html;
+    } catch(e) {
+        tb.innerHTML = '<tr><td colspan="6" class="empty">Erro ao carregar</td></tr>';
     }
 }
 
@@ -1356,6 +1845,111 @@ async function salvarConfig() {
     } catch(e){ toast('Erro de conexão', 'err'); }
 }
 
+// ─── Sanctions ───────────────────────────────────
+async function carregarSanctions() {
+    const elHits = document.getElementById('listaSanctionsHits');
+    const elEnts = document.getElementById('listaSanctionsEntities');
+    if(!elHits) return;
+    const statusF = document.getElementById('sanctions-filtro-status')?.value || 'pendente';
+    elHits.innerHTML = '<div class="empty"><i class="fas fa-spinner fa-spin"></i></div>';
+    try {
+        const [rH, rE] = await Promise.all([
+            fetch(`/api/compliance/sanctions/alertas?status=${statusF}`).then(r=>r.json()),
+            fetch('/api/compliance/sanctions/entities').then(r=>r.json())
+        ]);
+        // Hits
+        const hits = rH.hits || [];
+        const pendentes = hits.filter(h=>h.status==='pendente').length;
+        document.getElementById('tab-cnt-sanctions').textContent = pendentes;
+        if(!hits.length){
+            elHits.innerHTML = '<div class="empty"><i class="fas fa-shield-alt"></i><br>Nenhum alerta encontrado</div>';
+        } else {
+            let html = '<table><thead><tr><th>Cliente</th><th>Entidade Sancionada</th><th>Lista</th><th>Score</th><th>Motivo</th><th>Status</th><th>Ações</th></tr></thead><tbody>';
+            for(const h of hits){
+                const statusColor = h.status==='pendente' ? '#8e44ad' : h.status==='confirmado' ? '#c0392b' : '#27ae60';
+                html += `<tr>
+                    <td><strong>${h.cliente_nome||h.nome_cliente||'—'}</strong><br><span style="font-size:11px;color:var(--cor-texto-secundario);">ID ${h.cliente_id}</span></td>
+                    <td>${h.nome_entidade||'—'}</td>
+                    <td><span class="tag" style="background:rgba(142,68,173,.15);color:#8e44ad;">${h.lista||'—'}</span></td>
+                    <td style="font-weight:700;color:${h.score>=90?'#c0392b':'#e67e22'};">${h.score}%</td>
+                    <td style="font-size:11px;color:var(--cor-texto-secundario);">${h.motivo||'—'}</td>
+                    <td><span class="tag" style="background:rgba(0,0,0,.1);color:${statusColor};">${h.status}</span></td>
+                    <td style="white-space:nowrap;">
+                        ${h.status==='pendente' ? `
+                        <button class="btn-act" style="background:rgba(192,57,43,.15);color:#c0392b;" onclick="reviewSanction(${h.id},'confirmado')"><i class="fas fa-exclamation-circle"></i> Confirmar</button>
+                        <button class="btn-act" style="background:rgba(39,174,96,.15);color:#27ae60;" onclick="reviewSanction(${h.id},'falso_positivo')"><i class="fas fa-check"></i> Falso +</button>
+                        ` : '—'}
+                    </td>
+                </tr>`;
+            }
+            html += '</tbody></table>';
+            elHits.innerHTML = '<div class="tbl-wrap">' + html + '</div>';
+        }
+        // Entities
+        const ents = rE.entities || [];
+        if(!ents.length){
+            elEnts.innerHTML = '<div class="empty" style="padding:12px;"><i class="fas fa-list"></i><br>Nenhuma entidade cadastrada</div>';
+        } else {
+            let ehtml = '<div class="tbl-wrap"><table><thead><tr><th>Nome</th><th>Tipo</th><th>Lista</th><th>País</th><th>Motivo</th><th></th></tr></thead><tbody>';
+            for(const e of ents){
+                ehtml += `<tr>
+                    <td><strong>${e.nome}</strong></td>
+                    <td>${e.tipo||'—'}</td>
+                    <td><span class="tag" style="background:rgba(142,68,173,.15);color:#8e44ad;">${e.lista||'—'}</span></td>
+                    <td>${e.pais||'—'}</td>
+                    <td style="font-size:11px;color:var(--cor-texto-secundario);">${e.motivo||'—'}</td>
+                    <td style="white-space:nowrap;"><button class="btn-act" style="color:#c0392b;" onclick="removerEntity(${e.id})"><i class="fas fa-trash"></i></button></td>
+                </tr>`;
+            }
+            ehtml += '</tbody></table></div>';
+            elEnts.innerHTML = ehtml;
+        }
+    } catch(e){ console.error(e); elHits.innerHTML = '<div class="empty">Erro ao carregar</div>'; }
+}
+
+async function reviewSanction(hitId, novoStatus) {
+    try {
+        const r = await fetch(`/api/compliance/sanctions/review/${hitId}`, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({status: novoStatus})
+        }).then(res=>res.json());
+        if(r.success){ toast(novoStatus==='confirmado' ? 'Hit confirmado — considere abrir SAR' : 'Marcado como falso positivo', 'ok'); carregarSanctions(); }
+        else toast(r.message,'err');
+    } catch(e){ toast('Erro','err'); }
+}
+
+function toggleAddEntity() {
+    const f = document.getElementById('addEntityForm');
+    f.style.display = f.style.display==='none' ? 'block' : 'none';
+}
+
+async function salvarEntity() {
+    const nome = document.getElementById('ent-nome').value.trim();
+    if(!nome){ toast('Nome obrigatório','err'); return; }
+    try {
+        const r = await fetch('/api/compliance/sanctions/entities', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+                nome, tipo: document.getElementById('ent-tipo').value,
+                lista: document.getElementById('ent-lista').value,
+                pais: document.getElementById('ent-pais').value,
+                motivo: document.getElementById('ent-motivo').value
+            })
+        }).then(res=>res.json());
+        if(r.success){ toast('Entidade adicionada','ok'); toggleAddEntity(); carregarSanctions(); }
+        else toast(r.message,'err');
+    } catch(e){ toast('Erro','err'); }
+}
+
+async function removerEntity(id) {
+    if(!confirm('Remover esta entidade da lista?')) return;
+    try {
+        const r = await fetch(`/api/compliance/sanctions/entities/${id}`, {method:'DELETE'}).then(res=>res.json());
+        if(r.success){ toast('Entidade removida','ok'); carregarSanctions(); }
+        else toast(r.message,'err');
+    } catch(e){ toast('Erro','err'); }
+}
+
 // ─── SARs ────────────────────────────────────────
 async function carregarSARs() {
     const el = document.getElementById('listaSARs');
@@ -1365,45 +1959,59 @@ async function carregarSARs() {
     try {
         const r = await fetch('/api/compliance/sars' + params).then(res => res.json());
         const sars = r.sars || [];
-        document.getElementById('tab-cnt-sars').textContent = sars.length;
-        if(!sars.length){ 
-            el.innerHTML = '<div class="empty"><i class="fas fa-shield-alt"></i><br>Nenhum SAR registrado</div>'; 
-            return; 
+        const abertos = sars.filter(s=>s.status==='rascunho'||s.status==='revisao').length;
+        document.getElementById('tab-cnt-sars').textContent = abertos;
+        if(!sars.length){
+            el.innerHTML = '<div class="empty"><i class="fas fa-shield-alt"></i><br>Nenhum SAR registrado</div>';
+            return;
         }
-        
         let html = '';
         for (const s of sars) {
+            const deadline = s.data_limite_envio ? new Date(s.data_limite_envio) : null;
+            const hoje = new Date();
+            const diasRestantes = deadline ? Math.ceil((deadline - hoje) / 86400000) : null;
+            const deadlineHtml = deadline ? `<span style="color:${diasRestantes<=0?'#c0392b':diasRestantes<=3?'#e67e22':'#27ae60'};font-weight:700;">Prazo NCA: ${deadline.toLocaleDateString('pt-BR')} ${diasRestantes<=0?'⚠️ VENCIDO':diasRestantes<=3?`(${diasRestantes}d)`:''}` + '</span>' : '';
+            const ncaRef = s.numero_ref_nca ? `<span style="font-size:11px;color:var(--cor-texto-secundario);">Ref NCA: ${s.numero_ref_nca}</span>` : '';
             html += `
                 <div class="sar-card">
                     <h4>
-                        <span>SAR #${s.id} ${s.cliente_id ? `— Cliente #${s.cliente_id}` : ''}</span>
-                        <span class="tag tag-${s.status || 'rascunho'}">${s.status || 'rascunho'}</span>
+                        <span>SAR #${s.id} ${s.cliente_nome ? `— ${s.cliente_nome}` : (s.cliente_id ? `— Cliente #${s.cliente_id}` : '')} ${ncaRef}</span>
+                        <span class="tag tag-${s.status || 'rascunho'}">${s.status === 'enviado' ? 'Enviado à NCA' : (s.status || 'rascunho')}</span>
                     </h4>
-                    <p>${s.descricao || '—'}</p>
-                    <p><strong>Valor suspeito:</strong> ${s.valor_suspeito ? `R$ ${parseFloat(s.valor_suspeito).toLocaleString('pt-BR',{minimumFractionDigits:2})}` : 'N/D'} &nbsp;|&nbsp; <strong>Criado por:</strong> ${s.criado_por || '—'} &nbsp;|&nbsp; <strong>Data:</strong> ${s.created_at ? new Date(s.created_at).toLocaleDateString('pt-BR') : '—'}</p>
-                    <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+                    <p>${s.detalhes || '—'}</p>
+                    <p>
+                        <strong>Valor suspeito:</strong> ${s.valor ? `£${parseFloat(s.valor).toLocaleString('pt-BR',{minimumFractionDigits:2})}` : 'N/D'}
+                        &nbsp;|&nbsp; <strong>Criado por:</strong> ${s.criado_por || '—'}
+                        &nbsp;|&nbsp; <strong>Data:</strong> ${s.created_at ? new Date(s.created_at).toLocaleDateString('pt-BR') : '—'}
+                        ${s.ordens_ids ? `&nbsp;|&nbsp; <strong>Ordens:</strong> ${s.ordens_ids}` : ''}
+                    </p>
+                    ${deadlineHtml ? `<p>${deadlineHtml}</p>` : ''}
+                    <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
                         <select id="sar-status-${s.id}" style="background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:4px 8px;border-radius:4px;font-size:11px;">
-                            <option value="rascunho" ${s.status === 'rascunho' ? 'selected' : ''}>Rascunho</option>
-                            <option value="revisao" ${s.status === 'revisao' ? 'selected' : ''}>Em Revisão</option>
-                            <option value="enviado" ${s.status === 'enviado' ? 'selected' : ''}>Enviado COAF</option>
-                            <option value="arquivado" ${s.status === 'arquivado' ? 'selected' : ''}>Arquivado</option>
+                            <option value="rascunho" ${s.status==='rascunho'?'selected':''}>Rascunho</option>
+                            <option value="revisao" ${s.status==='revisao'?'selected':''}>Em Revisão</option>
+                            <option value="enviado" ${s.status==='enviado'?'selected':''}>Enviado à NCA</option>
+                            <option value="arquivado" ${s.status==='arquivado'?'selected':''}>Arquivado</option>
                         </select>
-                        <button class="btn-act" onclick="atualizarSAR('${s.id}')"><i class="fas fa-save"></i> Salvar Status</button>
+                        <input type="text" id="sar-ref-${s.id}" value="${s.numero_ref_nca||''}" placeholder="Ref NCA (após envio)" style="background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:4px 8px;border-radius:4px;font-size:11px;width:160px;">
+                        <button class="btn-act" onclick="atualizarSAR('${s.id}')"><i class="fas fa-save"></i> Salvar</button>
                     </div>
                 </div>
             `;
         }
         el.innerHTML = html;
-    } catch(e){ 
+    } catch(e){
         console.error(e);
-        el.innerHTML = '<div class="empty">Erro ao carregar</div>'; 
+        el.innerHTML = '<div class="empty">Erro ao carregar</div>';
     }
 }
 
-function abrirModalNovoSAR() {
-    document.getElementById('sar-cliente-id').value = '';
-    document.getElementById('sar-valor').value = '';
-    document.getElementById('sar-desc').value = '';
+function abrirModalNovoSAR(clienteId, alertaId, descricaoPre, valorPre, ordensPre) {
+    document.getElementById('sar-cliente-id').value = clienteId || '';
+    document.getElementById('sar-alerta-id').value = alertaId || '';
+    document.getElementById('sar-valor').value = valorPre || '';
+    document.getElementById('sar-ordens').value = ordensPre || '';
+    document.getElementById('sar-desc').value = descricaoPre || '';
     document.getElementById('modalSAR').classList.add('open');
 }
 
@@ -1413,7 +2021,9 @@ async function criarSAR() {
     const body = {
         descricao: desc,
         cliente_id: document.getElementById('sar-cliente-id').value || null,
-        valor_suspeito: document.getElementById('sar-valor').value || null
+        valor_suspeito: document.getElementById('sar-valor').value || null,
+        alerta_id: document.getElementById('sar-alerta-id').value || null,
+        ordens_ids: document.getElementById('sar-ordens').value || ''
     };
     try {
         const r = await fetch('/api/compliance/sars', {
@@ -1421,11 +2031,11 @@ async function criarSAR() {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(body)
         }).then(res => res.json());
-        if(r.success){ 
-            toast('SAR criado', 'ok'); 
-            fecharModal('modalSAR'); 
-            carregarSARs(); 
-            carregarStats(); 
+        if(r.success){
+            toast('SAR criado — prazo de 7 dias iniciado', 'ok');
+            fecharModal('modalSAR');
+            carregarSARs();
+            carregarStats();
         } else {
             toast(r.message, 'err');
         }
@@ -1434,11 +2044,17 @@ async function criarSAR() {
 
 async function atualizarSAR(id) {
     const status = document.getElementById('sar-status-'+id).value;
+    const numero_ref_nca = (document.getElementById('sar-ref-'+id)?.value || '').trim();
+    if (status === 'enviado' && !numero_ref_nca) {
+        toast('Preencha o número de referência da NCA antes de marcar como Enviado', 'err');
+        document.getElementById('sar-ref-'+id)?.focus();
+        return;
+    }
     try {
         const r = await fetch(`/api/compliance/sars/${id}`, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({status})
+            body: JSON.stringify({status, numero_ref_nca})
         }).then(res => res.json());
         if(r.success) toast('SAR atualizado', 'ok');
         else toast(r.message, 'err');
@@ -1482,6 +2098,10 @@ async function carregarAudit() {
 document.addEventListener('DOMContentLoaded', function() {
     carregarOrdens();
     carregarStats();
+    carregarDocsPendentes();
+    carregarStructuring();
+    carregarExpirando();
+    carregarSanctions();
     setInterval(function() { carregarStats(); }, 30000);
 });
 
@@ -1511,6 +2131,7 @@ async function verDetalheClienteCompliance(clienteId) {
         const r = await fetch(`/api/clientes/${clienteId}`);
         const data = await r.json();
         if (data.success) {
+            clienteAtualCompliance = data.cliente;
             renderDetalheClienteCompliance(data.cliente);
         } else {
             toast(data.message, 'err');
@@ -1524,165 +2145,416 @@ async function verDetalheClienteCompliance(clienteId) {
     }
 }
 
+// Função auxiliar para verificar se há documento pendente de validação
+function temDocumentoPendente(cliente, tipo) {
+    return (cliente.documentos || []).some(doc => doc.tipo === tipo && doc.validado === false);
+}
+
+function switchGcTab(tab) {
+    ['dados','docs','benef','ordens','acoes'].forEach(t => {
+        document.getElementById(`gc-panel-${t}`).style.display = t === tab ? 'block' : 'none';
+        const btn = document.getElementById(`gc-tab-${t}`);
+        if (btn) {
+            btn.style.borderBottomColor = t === tab ? '#9b59b6' : 'transparent';
+            btn.style.color = t === tab ? '#9b59b6' : 'var(--cor-texto-secundario)';
+        }
+    });
+}
+
 function renderDetalheClienteCompliance(c) {
-    alert('Renderizando cliente: ' + c.nome);
     clienteAtualCompliance = c;
     document.getElementById('detalheClienteNome').innerHTML = `<i class="fas fa-user"></i> ${c.nome}`;
-    
+
     const aml = c.aml || {};
     const total90 = (c.total_90d_calc || 0).toFixed(2);
     const kycReq = aml.kyc_level_required || 0;
-    const kycLabels = ['Basic Info apenas', 'Basic Info + Photo ID + Proof of Address',
+    const kycLabels = ['Basic Info apenas','Basic Info + Photo ID + Proof of Address',
         'Basic Info + Photo ID + Address + Source of Funds',
-        'Full KYC + EDD (£3.5k-£5k)', 'Full KYC + EDD (acima £5k)'];
+        'Full KYC + EDD (£3.5k–£5k)','Full KYC + EDD (acima £5k)'];
 
-    const docItems = [
-        {key:'photo_id', label:'Photo ID', ok: c.doc_photo_id_ok},
-        {key:'proof_address', label:'Proof of Address', ok: c.doc_address_ok},
-        {key:'source_funds', label:'Source of Funds', ok: c.doc_source_funds_ok},
-        {key:'declaration', label:'Declaration Form', ok: c.doc_declaration_ok},
-        {key:'edd', label:'EDD Documents', ok: c.doc_edd_ok},
-    ];
-
-    const ordensHtml = (c.ordens||[]).slice(0,5).map(o =>
-        `<tr><td>${(o.data||'').substring(0,10)}</td><td>${o.moeda_entrada} ${o.valor_entrada}</td><td>${o.moeda_saida} ${o.valor_saida}</td><td><span class="tag tag-${o.status}">${o.status}</span></td></tr>`
-    ).join('') || '<tr><td colspan="4" style="color:var(--cor-texto-secundario);text-align:center;padding:10px;">Nenhuma ordem</td></tr>';
-
-    const html = `
+    /* ── AML PANEL ── */
+    const amlHtml = `
         <div class="aml-panel">
             <div class="aml-row"><span><i class="fas fa-chart-line"></i> Total 90 dias (GBP)</span><strong>£${total90}</strong></div>
-            <div class="aml-row"><span><i class="fas fa-shield-alt"></i> KYC Nível Requerido</span><strong>Nível ${kycReq} — ${kycLabels[kycReq] || ''}</strong></div>
+            <div class="aml-row"><span><i class="fas fa-shield-alt"></i> KYC Nível Requerido</span><strong>Nível ${kycReq} — ${kycLabels[kycReq]||''}</strong></div>
             <div class="aml-row"><span><i class="fas fa-user-secret"></i> PEP</span><span class="tag ${c.pep_flag?'tag-perigo':'tag-ok'}">${c.pep_flag?'PEP IDENTIFICADO':'Negativo'}</span></div>
             <div class="aml-row"><span><i class="fas fa-ban"></i> Sanções</span><span class="tag ${c.sanctions_flag?'tag-perigo':'tag-ok'}">${c.sanctions_flag?'SANCTIONED':'Limpo'}</span></div>
             <div class="aml-row"><span><i class="fas fa-exclamation-triangle"></i> Risco</span><span class="tag ${c.risk_score==='high'?'tag-perigo':'tag-alerta'}">${c.risk_score==='high'?'Alto':'Médio'}</span></div>
             ${aml.pep_screening?'<div class="aml-row" style="color:var(--cor-alerta);"><i class="fas fa-bell"></i> PEP Screening obrigatório (acumulado ≥ £2.000)</div>':''}
-        </div>
+        </div>`;
 
-        <p class="section-title" style="margin-top:16px;"><i class="fas fa-file-alt"></i> Documentos KYC</p>
-        <div class="doc-list">
-            ${docItems.map(d => {
-                const docArquivo = (c.documentos||[]).find(x => x.tipo === d.key);
-                return `
-                <div class="doc-item ${d.ok?'ok':'missing'}">
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <span><i class="fas fa-${d.ok?'check-circle':'clock'}" style="color:${d.ok?'var(--cor-sucesso)':'var(--cor-alerta)'};margin-right:8px;"></i>${d.label}</span>
-                        <div style="display:flex;gap:6px;align-items:center;">
-                            <span class="tag ${d.ok?'tag-ok':'tag-pendente'}">${d.ok?'Validado':'Pendente'}</span>
-                            ${docArquivo?`<button class="btn-act" onclick="verDocKycCompliance('${docArquivo.id}')"><i class="fas fa-eye"></i> Ver</button>`:''}
-                            ${!d.ok?`<button class="btn-act" onclick="marcarDocOkCompliance('${c.id}','${d.key}')"><i class="fas fa-check"></i> Marcar OK</button>`:''}
-                        </div>
+    /* ── TAB: DADOS ── */
+    const fld = (id, lbl, val, type='text') =>
+        `<div class="form-group"><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">${lbl}</label>
+         <input id="gc-${id}" type="${type}" value="${(val||'').toString().replace(/"/g,'&quot;')}" style="width:100%;padding:6px 9px;border:1px solid var(--cor-borda);border-radius:5px;background:var(--cor-card);color:var(--cor-texto);font-size:13px;"></div>`;
+    const sel = (id, lbl, val, opts) =>
+        `<div class="form-group"><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">${lbl}</label>
+         <select id="gc-${id}" style="width:100%;padding:6px 9px;border:1px solid var(--cor-borda);border-radius:5px;background:var(--cor-card);color:var(--cor-texto);font-size:13px;">${opts.map(o=>`<option value="${o.v}"${o.v==val?' selected':''}>${o.l}</option>`).join('')}</select></div>`;
+
+    const dadosHtml = `
+        ${amlHtml}
+        <p class="section-title" style="margin-top:14px;"><i class="fas fa-user-edit"></i> Dados Pessoais</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            ${fld('nome','Nome Completo',c.nome)}
+            ${fld('data_nascimento','Data Nascimento',c.data_nascimento,'date')}
+            ${fld('telefone','Telefone',c.telefone)}
+            ${fld('email','Email',c.email,'email')}
+            ${fld('profissao','Profissão',c.profissao)}
+            ${fld('nacionalidade','Nacionalidade',c.nacionalidade)}
+            ${fld('pais_residencia','País Residência',c.pais_residencia)}
+            ${fld('endereco','Endereço',c.endereco)}
+            ${fld('cidade','Cidade / Postcode',c.cidade)}
+        </div>
+        <p class="section-title" style="margin-top:14px;"><i class="fas fa-id-card"></i> Documento de Identidade</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            ${sel('tipo_documento','Tipo de Documento',c.tipo_documento,[
+                {v:'uk_driving_license',l:'UK Driving Licence'},
+                {v:'uk_provisional',l:'UK Provisional Licence'},
+                {v:'passport_eu',l:'EU/Non-UK Passport + UK Visa'},
+                {v:'passport_non_eu',l:'Non-EU Passport + UK Valid Visa'},
+                {v:'travel_document',l:'Travel Document'},
+                {v:'uk_visa_work',l:'UK Visa with Work Permit'}
+            ])}
+            ${fld('documento','Número do Documento',c.documento)}
+            ${fld('doc_photo_id_validade','Validade do Documento',c.doc_photo_id_validade,'date')}
+        </div>
+        <p class="section-title" style="margin-top:14px;"><i class="fas fa-home"></i> Comprovante de Endereço</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="form-group"><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Tipo de Comprovante</label>
+            <select id="gc-proof_address_tipo" onchange="onGcProofAddressTipoChange()" style="width:100%;padding:6px 9px;border:1px solid var(--cor-borda);border-radius:5px;background:var(--cor-card);color:var(--cor-texto);font-size:13px;">
+                <option value="">Selecionar...</option>
+                <option value="bank_statement" ${c.proof_address_tipo==='bank_statement'?'selected':''}>Bank Statement</option>
+                <option value="council_tax" ${c.proof_address_tipo==='council_tax'?'selected':''}>Council Tax Bill</option>
+                <option value="utility_bill" ${c.proof_address_tipo==='utility_bill'?'selected':''}>Utility Bill (Gas/Electric/Water)</option>
+                <option value="tv_licence" ${c.proof_address_tipo==='tv_licence'?'selected':''}>TV Licence</option>
+                <option value="hmrc_letter" ${c.proof_address_tipo==='hmrc_letter'?'selected':''}>HMRC Letter</option>
+                <option value="tenancy_agreement" ${c.proof_address_tipo==='tenancy_agreement'?'selected':''}>Tenancy Agreement</option>
+                <option value="mortgage_statement" ${c.proof_address_tipo==='mortgage_statement'?'selected':''}>Mortgage Statement</option>
+                <option value="gp_letter" ${c.proof_address_tipo==='gp_letter'?'selected':''}>GP / NHS Letter</option>
+                <option value="other" ${c.proof_address_tipo==='other'?'selected':''}>Outro...</option>
+            </select></div>
+            <div id="gc-proof_address_tipo_outro_group" style="${c.proof_address_tipo==='other'?'':'display:none;'}">
+                ${fld('proof_address_tipo_outro','Especificar tipo',c.proof_address_tipo_outro)}
+            </div>
+            ${fld('proof_address_numero','Número / Referência',c.proof_address_numero)}
+            ${fld('doc_address_atualizado_em','Data de Emissão',c.doc_address_atualizado_em,'date')}
+        </div>
+        <p class="section-title" style="margin-top:14px;"><i class="fas fa-shield-alt"></i> AML / Compliance</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            ${sel('pep_flag','PEP',c.pep_flag?'true':'false',[{v:'false',l:'Negativo'},{v:'true',l:'PEP Identificado'}])}
+            ${sel('risk_score','Risk Score',c.risk_score||'medium',[{v:'low',l:'Baixo'},{v:'medium',l:'Médio'},{v:'high',l:'Alto'}])}
+            <div class="form-group" style="grid-column:span 2"><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Info PEP</label>
+            <input id="gc-pep_info" value="${(c.pep_info||'').replace(/"/g,'&quot;')}" style="width:100%;padding:6px 9px;border:1px solid var(--cor-borda);border-radius:5px;background:var(--cor-card);color:var(--cor-texto);font-size:13px;"></div>
+            <div class="form-group" style="grid-column:span 2"><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Observações</label>
+            <textarea id="gc-observacoes" rows="2" style="width:100%;padding:6px 9px;border:1px solid var(--cor-borda);border-radius:5px;background:var(--cor-card);color:var(--cor-texto);font-size:13px;resize:vertical;">${c.observacoes||''}</textarea></div>
+        </div>
+        <div style="margin-top:14px;display:flex;gap:8px;">
+            <button class="btn-success" onclick="salvarClienteCompliance('${c.id}')"><i class="fas fa-save"></i> Salvar Alterações</button>
+        </div>`;
+
+    /* ── TAB: DOCUMENTOS ── */
+    const DOC_TIPOS = [
+        {key:'photo_id',     label:'Photo ID',        ok: c.doc_photo_id_ok},
+        {key:'proof_address',label:'Proof of Address', ok: c.doc_address_ok},
+        {key:'source_funds', label:'Source of Funds',  ok: c.doc_source_funds_ok},
+        {key:'declaration',  label:'Declaration Form', ok: c.doc_declaration_ok},
+        {key:'edd',          label:'EDD Documents',    ok: c.doc_edd_ok},
+    ];
+    const docsHtml = DOC_TIPOS.map(tipo => {
+        const todosDoTipo = (c.documentos||[]).filter(d => d.tipo === tipo.key)
+                                              .sort((a,b) => b.created_at > a.created_at ? 1 : -1);
+        const statusTag = tipo.ok
+            ? `<span class="tag tag-ok">Validado</span>`
+            : todosDoTipo.length ? `<span class="tag tag-alerta">Aguardando Validação</span>`
+                                 : `<span class="tag tag-pendente">Não enviado</span>`;
+        const docsListHtml = todosDoTipo.map(doc => {
+            const pendente = !doc.validado;
+            const data = doc.created_at ? new Date(doc.created_at).toLocaleDateString('pt-BR') : '';
+            const cor = doc.validado ? 'var(--cor-sucesso)' : 'var(--cor-alerta)';
+            const ico = doc.validado ? 'check-circle' : 'hourglass-half';
+            return `<div style="border-left:3px solid ${cor};padding:8px 10px;background:rgba(128,128,128,.04);border-radius:0 5px 5px 0;margin-bottom:6px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+                    <div>
+                        <i class="fas fa-${ico}" style="color:${cor};margin-right:5px;"></i>
+                        <span style="font-size:12px;font-weight:600;">${doc.validado?'Aprovado':'Pendente'}</span>
+                        <span style="font-size:11px;color:var(--cor-texto-secundario);margin-left:6px;">${data}</span>
+                        ${doc.observacao?`<span style="font-size:11px;color:var(--cor-texto-secundario);margin-left:6px;">— ${doc.observacao}</span>`:''}
+                        ${doc.validado_por?`<span style="font-size:10px;color:var(--cor-texto-secundario);display:block;margin-top:1px;">por ${doc.validado_por}</span>`:''}
                     </div>
-                    <div style="display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap;">
-                        <input type="file" id="kyc-file-${d.key}" accept=".pdf,.jpg,.jpeg,.png,.webp" style="font-size:11px;flex:1;">
-                        <input type="text" id="kyc-obs-${d.key}" placeholder="Observação" style="font-size:11px;padding:4px 8px;border:1px solid var(--cor-borda);border-radius:4px;background:var(--cor-card);color:var(--cor-texto);flex:1;">
-                        <button class="btn-primary btn-sm" onclick="uploadKycCompliance('${c.id}','${d.key}')"><i class="fas fa-upload"></i> ${d.ok?'Substituir':'Enviar'}</button>
+                    <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                        <button class="btn-act" onclick="verDocKycCompliance('${doc.id}')"><i class="fas fa-eye"></i> Ver</button>
+                        ${pendente?`
+                        <button class="btn-success" style="padding:4px 10px;font-size:11px;" onclick="aprovarDocumentoCompliance('${doc.id}')"><i class="fas fa-check"></i> Aprovar</button>
+                        <button class="btn-danger" style="padding:4px 10px;font-size:11px;" onclick="rejeitarDocumentoCompliance('${doc.id}')"><i class="fas fa-times"></i> Rejeitar</button>`:''}
                     </div>
-                </div>`;
-            }).join('')}
-        </div>
+                </div>
+            </div>`;
+        }).join('') || `<p style="font-size:12px;color:var(--cor-texto-secundario);padding:4px 0;">Nenhum documento enviado.</p>`;
 
-        <p class="section-title"><i class="fas fa-history"></i> Últimas Ordens</p>
-        <div class="table-wrap">
-            <table class="orders-mini" style="width:100%;">
-                <thead><tr><th>Data</th><th>Entrada</th><th>Saída</th><th>Status</th></tr></thead>
-                <tbody>${ordensHtml}</tbody>
-            </table>
-        </div>
+        return `<div style="border:1px solid var(--cor-borda);border-radius:7px;padding:12px 14px;margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <span style="font-weight:700;font-size:13px;">${tipo.label}</span>${statusTag}
+            </div>
+            ${docsListHtml}
+            <details style="margin-top:8px;">
+                <summary style="font-size:11px;color:var(--cor-texto-secundario);cursor:pointer;user-select:none;"><i class="fas fa-upload" style="margin-right:4px;"></i>${todosDoTipo.length?'Enviar novo / substituir':'Enviar documento'}</summary>
+                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px;">
+                    <input type="file" id="kyc-file-${tipo.key}" accept=".pdf,.jpg,.jpeg,.png,.webp" style="font-size:11px;flex:1;min-width:140px;">
+                    <input type="text" id="kyc-obs-${tipo.key}" placeholder="Observação (opcional)" style="font-size:11px;padding:5px 8px;border:1px solid var(--cor-borda);border-radius:4px;background:var(--cor-card);color:var(--cor-texto);flex:1;min-width:140px;">
+                    <button id="kyc-btn-${tipo.key}" class="btn-primary" style="font-size:11px;padding:5px 12px;white-space:nowrap;" onclick="uploadKycCompliance('${c.id}','${tipo.key}')"><i class="fas fa-upload"></i> Enviar</button>
+                </div>
+            </details>
+        </div>`;
+    }).join('');
 
-        <p class="section-title"><i class="fas fa-user-circle"></i> Dados Pessoais</p>
-        <div class="detail-grid">
-            <div class="detail-item"><label>DOB</label><span>${c.data_nascimento||'—'}</span></div>
-            <div class="detail-item"><label>Profissão</label><span>${c.profissao||'—'}</span></div>
-            <div class="detail-item"><label>Email</label><span>${c.email||'—'}</span></div>
-            <div class="detail-item"><label>Tipo Doc</label><span>${c.tipo_documento||'—'}</span></div>
-            <div class="detail-item"><label>Endereço</label><span>${c.endereco||'—'}</span></div>
-            <div class="detail-item"><label>Cidade / Postcode</label><span>${c.cidade||'—'}</span></div>
-        </div>
+    /* ── TAB: ORDENS ── */
+    const ordensHtml = (c.ordens||[]).map(o => {
+        const flag = ({brazil:'🇧🇷',europe:'🇪🇺',usa:'🇺🇸'})[o.tipo_destino||'']||'';
+        const lbl = CON_STATUS_LABELS[o.status]||o.status;
+        return `<tr>
+            <td>${(o.data||'').substring(0,10)}</td>
+            <td>${fmtVal(o.valor_entrada,o.moeda_entrada)}</td>
+            <td>${fmtVal(o.valor_saida,o.moeda_saida)}</td>
+            <td>${flag} ${o.beneficiario_nome||'—'}</td>
+            <td><span class="tag tag-${o.status}">${lbl}</span></td>
+            <td><button class="btn-act" style="font-size:11px;padding:3px 8px;white-space:nowrap;" onclick="abrirOrdem('${o.id}')"><i class="fas fa-eye"></i></button></td>
+        </tr>`;
+    }).join('') || '<tr><td colspan="6" class="empty">Nenhuma ordem.</td></tr>';
 
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px;margin-bottom:10px;">
-            <p class="section-title" style="margin:0;"><i class="fas fa-user-friends"></i> Beneficiários</p>
+    /* ── BENEFICIÁRIOS tab HTML (form inline) ── */
+    const benefHtml = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-size:13px;font-weight:600;">Beneficiários cadastrados</span>
             <button class="btn-primary btn-sm" onclick="abrirNovoBenefCompliance('${c.id}')"><i class="fas fa-plus"></i> Adicionar</button>
         </div>
-        <div id="benefDetalheListCompliance">Carregando...</div>
-
-        <div id="novoBenefFormCompliance" style="display:none;background:rgba(128,128,128,.04);border:1px solid var(--cor-borda);border-radius:8px;padding:16px;margin-top:10px;">
+        <div id="benefDetalheListCompliance"><i class="fas fa-spinner fa-spin"></i></div>
+        <div id="novoBenefFormCompliance" style="display:none;background:rgba(128,128,128,.04);border:1px solid var(--cor-borda);border-radius:8px;padding:16px;margin-top:12px;">
             <p class="section-title" style="margin-top:0;">Novo Beneficiário</p>
-            <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                <div class="form-group form-full">
-                    <label>Tipo de Destino *</label>
-                    <select id="nbc-tipo" class="form-control" onchange="onNbTipoChangeCompliance()">
-                        <option value="brazil">🇧🇷 Brasil (BRL)</option>
-                        <option value="europe">🇪🇺 Europa (SEPA/IBAN)</option>
-                        <option value="usa">🇺🇸 USA (USD/SWIFT)</option>
-                    </select>
-                </div>
-                <div class="form-group form-full"><label>Nome Completo *</label><input id="nbc-nome" type="text" class="form-control"></div>
-                <div class="form-group form-full"><label>Apelido</label><input id="nbc-apelido" type="text" class="form-control" placeholder="Para identificar facilmente"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div style="grid-column:span 2"><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Tipo de Destino *</label>
+                <select id="nbc-tipo" class="form-control" onchange="onNbTipoChangeCompliance()">
+                    <option value="brazil">🇧🇷 Brasil (BRL)</option>
+                    <option value="europe">🇪🇺 Europa (SEPA/IBAN)</option>
+                    <option value="usa">🇺🇸 USA (USD/SWIFT)</option>
+                </select></div>
+                <div style="grid-column:span 2"><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Nome Completo *</label><input id="nbc-nome" type="text" class="form-control"></div>
+                <div style="grid-column:span 2"><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Apelido</label><input id="nbc-apelido" type="text" class="form-control" placeholder="Para identificar facilmente"></div>
+                <div><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Endereço Linha 1</label><input id="nbc-end1" type="text" class="form-control"></div>
+                <div><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Endereço Linha 2</label><input id="nbc-end2" type="text" class="form-control"></div>
+                <div><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Cidade</label><input id="nbc-cidade" type="text" class="form-control"></div>
+                <div><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">CEP / Postcode</label><input id="nbc-postcode" type="text" class="form-control"></div>
+                <div style="grid-column:span 2"><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">País</label><input id="nbc-pais" type="text" class="form-control"></div>
             </div>
-            <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                <div class="form-group"><label>Endereço Linha 1</label><input id="nbc-end1" type="text" class="form-control"></div>
-                <div class="form-group"><label>Endereço Linha 2</label><input id="nbc-end2" type="text" class="form-control"></div>
-                <div class="form-group"><label>Cidade</label><input id="nbc-cidade" type="text" class="form-control"></div>
-                <div class="form-group"><label>CEP / Postcode</label><input id="nbc-postcode" type="text" class="form-control"></div>
-                <div class="form-group form-full"><label>País</label><input id="nbc-pais" type="text" class="form-control"></div>
-            </div>
-            <div id="nbc-brazil">
+            <div id="nbc-brazil" style="margin-top:10px;">
                 <p class="section-title">Dados Bancários Brasil</p>
-                <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                    <div class="form-group"><label>CPF</label><input id="nbc-cpf" type="text" class="form-control"></div>
-                    <div class="form-group"><label>Banco</label><input id="nbc-banco" type="text" class="form-control"></div>
-                    <div class="form-group"><label>Agência</label><input id="nbc-agencia" type="text" class="form-control"></div>
-                    <div class="form-group"><label>Conta</label><input id="nbc-conta" type="text" class="form-control"></div>
-                    <div class="form-group"><label>Tipo Conta</label><select id="nbc-tipo-conta" class="form-control"><option value="corrente">Corrente</option><option value="poupanca">Poupança</option></select></div>
-                    <div class="form-group"><label>Chave PIX</label><input id="nbc-pix" type="text" class="form-control"></div>
-                    <div class="form-group"><label>Tipo PIX</label><select id="nbc-pix-tipo" class="form-control"><option value="">—</option><option value="cpf">CPF</option><option value="email">Email</option><option value="telefone">Telefone</option><option value="aleatoria">Aleatória</option></select></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">CPF</label><input id="nbc-cpf" type="text" class="form-control"></div>
+                    <div><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Banco</label><input id="nbc-banco" type="text" class="form-control"></div>
+                    <div><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Agência</label><input id="nbc-agencia" type="text" class="form-control"></div>
+                    <div><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Conta</label><input id="nbc-conta" type="text" class="form-control"></div>
+                    <div><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Tipo Conta</label><select id="nbc-tipo-conta" class="form-control"><option value="corrente">Corrente</option><option value="poupanca">Poupança</option></select></div>
+                    <div><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Chave PIX</label><input id="nbc-pix" type="text" class="form-control"></div>
+                    <div><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Tipo PIX</label><select id="nbc-pix-tipo" class="form-control"><option value="">—</option><option value="cpf">CPF</option><option value="email">Email</option><option value="telefone">Telefone</option><option value="aleatoria">Aleatória</option></select></div>
                 </div>
             </div>
-            <div id="nbc-europe" style="display:none;">
+            <div id="nbc-europe" style="display:none;margin-top:10px;">
                 <p class="section-title">Dados Bancários Europa</p>
-                <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                    <div class="form-group form-full"><label>IBAN *</label><input id="nbc-iban" type="text" class="form-control"></div>
-                    <div class="form-group"><label>BIC / SWIFT</label><input id="nbc-bic" type="text" class="form-control"></div>
-                    <div class="form-group"><label>Banco</label><input id="nbc-banco-eu" type="text" class="form-control"></div>
-                    <div class="form-group"><label>País do Banco</label><input id="nbc-pais-eu" type="text" class="form-control"></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div style="grid-column:span 2"><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">IBAN *</label><input id="nbc-iban" type="text" class="form-control"></div>
+                    <div><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">BIC / SWIFT</label><input id="nbc-bic" type="text" class="form-control"></div>
+                    <div><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Banco</label><input id="nbc-banco-eu" type="text" class="form-control"></div>
+                    <div><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">País do Banco</label><input id="nbc-pais-eu" type="text" class="form-control"></div>
                 </div>
             </div>
-            <div id="nbc-usa" style="display:none;">
+            <div id="nbc-usa" style="display:none;margin-top:10px;">
                 <p class="section-title">Dados Bancários USA</p>
-                <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                    <div class="form-group"><label>Routing Number</label><input id="nbc-routing" type="text" class="form-control"></div>
-                    <div class="form-group"><label>Account Number</label><input id="nbc-account" type="text" class="form-control"></div>
-                    <div class="form-group"><label>Tipo Conta</label><select id="nbc-account-tipo" class="form-control"><option value="checking">Checking</option><option value="savings">Savings</option></select></div>
-                    <div class="form-group"><label>SWIFT</label><input id="nbc-swift-us" type="text" class="form-control"></div>
-                    <div class="form-group"><label>Banco</label><input id="nbc-banco-us" type="text" class="form-control"></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Routing Number</label><input id="nbc-routing" type="text" class="form-control"></div>
+                    <div><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Account Number</label><input id="nbc-account" type="text" class="form-control"></div>
+                    <div><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Tipo Conta</label><select id="nbc-account-tipo" class="form-control"><option value="checking">Checking</option><option value="savings">Savings</option></select></div>
+                    <div><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">SWIFT</label><input id="nbc-swift-us" type="text" class="form-control"></div>
+                    <div><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Banco</label><input id="nbc-banco-us" type="text" class="form-control"></div>
                 </div>
             </div>
-            <div class="form-group" style="margin-top:8px;">
-                <label>Relacionamento com o Remetente</label>
-                <select id="nbc-rel" class="form-control">
-                    <option value="">—</option>
-                    <option value="proprio">Próprio (mesma pessoa)</option>
-                    <option value="familiar">Familiar</option>
-                    <option value="amigo">Amigo</option>
-                    <option value="negocio">Negócio / Empresa</option>
-                </select>
-            </div>
+            <div style="margin-top:10px;"><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Relacionamento</label>
+            <select id="nbc-rel" class="form-control">
+                <option value="">—</option><option value="proprio">Próprio</option>
+                <option value="familiar">Familiar</option><option value="amigo">Amigo</option>
+                <option value="negocio">Negócio / Empresa</option>
+            </select></div>
             <div style="display:flex;gap:8px;margin-top:12px;">
-                <button class="btn-primary" onclick="salvarNovoBenefCompliance()"><i class="fas fa-save"></i> Salvar Beneficiário</button>
+                <button class="btn-primary" onclick="salvarNovoBenefCompliance()"><i class="fas fa-save"></i> Salvar</button>
                 <button class="btn-ghost" onclick="fecharNovoBenefCompliance()">Cancelar</button>
             </div>
+        </div>`;
+
+    /* ── TAB: AÇÕES ── */
+    const risco = c.risk_level || c.risk_score || 'medio';
+    const bloqueado = c.bloqueado;
+    const acoesHtml = `
+        <input type="hidden" id="mc-id" value="${c.id}">
+        <input type="hidden" id="mc-bloqueado" value="${bloqueado?'1':'0'}">
+
+        <div class="section-title" style="margin-top:0;"><i class="fas fa-tachometer-alt"></i> Alterar Risco</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+            <div>
+                <label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Nível de Risco</label>
+                <select id="mc-novo-risco" style="width:100%;padding:6px 9px;border:1px solid var(--cor-borda);border-radius:5px;background:var(--cor-card);color:var(--cor-texto);font-size:13px;">
+                    <option value="baixo" ${risco==='baixo'?'selected':''}>Baixo</option>
+                    <option value="medio" ${risco==='medio'||risco==='medium'?'selected':''}>Médio</option>
+                    <option value="alto"  ${risco==='alto'||risco==='high'?'selected':''}>Alto</option>
+                    <option value="proibido" ${risco==='proibido'?'selected':''}>Proibido</option>
+                </select>
+            </div>
+            <div>
+                <label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Limite Mensal (BRL)</label>
+                <input id="mc-limite" type="number" value="${c.limite_mensal_brl||''}" placeholder="Ex: 10000" style="width:100%;padding:6px 9px;border:1px solid var(--cor-borda);border-radius:5px;background:var(--cor-card);color:var(--cor-texto);font-size:13px;">
+            </div>
         </div>
+        <button class="btn-primary" onclick="salvarAlteracoesCliente()"><i class="fas fa-save"></i> Salvar Risco / Limite</button>
+
+        <div class="section-title" style="margin-top:18px;"><i class="fas fa-ban"></i> Bloqueio</div>
+        <div style="margin-bottom:10px;">
+            <label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Motivo</label>
+            <input id="mc-motivo-bloq" type="text" value="${(c.motivo_bloqueio||'').replace(/"/g,'&quot;')}" placeholder="Motivo do bloqueio" style="width:100%;padding:6px 9px;border:1px solid var(--cor-borda);border-radius:5px;background:var(--cor-card);color:var(--cor-texto);font-size:13px;">
+        </div>
+        <button id="mc-btn-bloquear" class="${bloqueado?'btn-success':'btn-danger'}" onclick="toggleBloquearCliente()">
+            <i class="fas fa-${bloqueado?'unlock':'lock'}"></i> ${bloqueado?'Desbloquear':'Bloquear'} Cliente
+        </button>
+
+        <div class="section-title" style="margin-top:18px;"><i class="fas fa-sticky-note"></i> Notas de Compliance</div>
+        <div id="mc-notas-list" style="margin-bottom:10px;"><i class="fas fa-spinner fa-spin" style="color:var(--cor-texto-secundario);"></i></div>
+        <label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Nova Nota</label>
+        <textarea id="mc-nova-nota" rows="2" placeholder="Adicionar nota..." style="width:100%;padding:6px 9px;border:1px solid var(--cor-borda);border-radius:5px;background:var(--cor-card);color:var(--cor-texto);font-size:13px;resize:vertical;margin-bottom:6px;"></textarea>
+        <button class="btn-primary" onclick="adicionarNotaGc()"><i class="fas fa-plus"></i> Adicionar Nota</button>
     `;
-    
-    document.getElementById('detalheClienteBody').innerHTML = html;
+
+    /* ── MONTAR MODAL ── */
+    const tabStyle = 'padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;background:none;border:none;border-bottom:2px solid transparent;color:var(--cor-texto-secundario);white-space:nowrap;';
+    document.getElementById('detalheClienteBody').innerHTML = `
+        <div style="display:flex;gap:0;border-bottom:2px solid var(--cor-borda);margin-bottom:16px;overflow-x:auto;">
+            <button id="gc-tab-dados"   style="${tabStyle}" onclick="switchGcTab('dados')"  ><i class="fas fa-user"></i> Dados</button>
+            <button id="gc-tab-docs"    style="${tabStyle}" onclick="switchGcTab('docs')"   ><i class="fas fa-file-alt"></i> Documentos</button>
+            <button id="gc-tab-benef"   style="${tabStyle}" onclick="switchGcTab('benef')"  ><i class="fas fa-users"></i> Beneficiários</button>
+            <button id="gc-tab-ordens"  style="${tabStyle}" onclick="switchGcTab('ordens')" ><i class="fas fa-history"></i> Ordens</button>
+            <button id="gc-tab-acoes"   style="${tabStyle}" onclick="switchGcTab('acoes')"  ><i class="fas fa-sliders-h"></i> Ações</button>
+        </div>
+        <div id="gc-panel-dados">${dadosHtml}</div>
+        <div id="gc-panel-docs"   style="display:none;">${docsHtml}</div>
+        <div id="gc-panel-benef"  style="display:none;">${benefHtml}</div>
+        <div id="gc-panel-ordens" style="display:none;">
+            <div class="tbl-wrap"><table style="width:100%;font-size:12px;">
+                <thead><tr><th>Data</th><th>Entrada</th><th>Saída</th><th>Destino</th><th>Status</th><th></th></tr></thead>
+                <tbody>${ordensHtml}</tbody>
+            </table></div>
+        </div>
+        <div id="gc-panel-acoes"  style="display:none;">${acoesHtml}</div>
+    `;
+
+    switchGcTab('dados');
     clienteDetalheIdCompliance = c.id;
     carregarBenefDetalheCompliance(c.id);
-    
-    // 🔥 ADICIONAR ESTAS 4 LINHAS NO FINAL 🔥
+    carregarNotasGc(c.id);
+
     const modal = document.getElementById('modalDetalheCliente');
-    if (modal) {
-        modal.classList.add('open');
-        modal.style.display = 'flex';
+    if (modal) { modal.classList.add('open'); modal.style.display = 'flex'; }
+}
+
+function onGcProofAddressTipoChange() {
+    const val = document.getElementById('gc-proof_address_tipo')?.value;
+    const grp = document.getElementById('gc-proof_address_tipo_outro_group');
+    if (grp) grp.style.display = val === 'other' ? 'block' : 'none';
+}
+
+async function salvarClienteCompliance(clienteId) {
+    const get = id => document.getElementById(`gc-${id}`)?.value ?? '';
+    const payload = {
+        nome:                    get('nome'),
+        documento:               get('documento'),
+        tipo_documento:          get('tipo_documento'),
+        data_nascimento:         get('data_nascimento') || null,
+        telefone:                get('telefone'),
+        email:                   get('email'),
+        profissao:               get('profissao'),
+        nacionalidade:           get('nacionalidade'),
+        pais_residencia:         get('pais_residencia'),
+        endereco:                get('endereco'),
+        cidade:                  get('cidade'),
+        doc_photo_id_validade:   get('doc_photo_id_validade') || null,
+        doc_address_atualizado_em: get('doc_address_atualizado_em') || null,
+        proof_address_tipo:      get('proof_address_tipo'),
+        proof_address_tipo_outro: get('proof_address_tipo_outro'),
+        proof_address_numero:    get('proof_address_numero'),
+        pep_flag:                get('pep_flag') === 'true',
+        pep_info:                get('pep_info'),
+        risk_score:              get('risk_score'),
+        observacoes:             get('observacoes'),
+    };
+    try {
+        const r = await fetch(`/api/clientes/${clienteId}`, {
+            method: 'PUT',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const d = await r.json();
+        if (d.success) {
+            toast('Cliente atualizado com sucesso!', 'ok');
+            verDetalheClienteCompliance(clienteId);
+        } else toast(d.message || 'Erro ao salvar', 'err');
+    } catch(e) { toast('Erro de conexão', 'err'); }
+}
+
+async function aprovarDocumentoCompliance(docId) {
+    if (!confirm('Aprovar este documento?')) return;
+    try {
+        const r = await fetch('/api/compliance/documentos/aprovar', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({doc_id: docId})
+        });
+        const data = await r.json();
+        if (data.success) {
+            toast(data.message, 'ok');
+            const ordemId = document.getElementById('mo-id')?.value;
+            if (ordemId && document.getElementById('modalOrdem')?.classList.contains('open')) {
+                abrirOrdem(ordemId);
+            } else if (clienteAtualCompliance) {
+                await verDetalheClienteCompliance(clienteAtualCompliance.id);
+                switchGcTab('docs');
+            }
+            if (data.ordens_promovidas > 0) carregarOrdens();
+        } else {
+            toast(data.message, 'err');
+        }
+    } catch(e) {
+        toast('Erro ao aprovar documento', 'err');
+    }
+}
+
+async function rejeitarDocumentoCompliance(docId) {
+    const motivo = prompt('Motivo da rejeição:');
+    if (!motivo) return;
+    try {
+        const r = await fetch('/api/compliance/documentos/rejeitar', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({doc_id: docId, motivo: motivo})
+        });
+        const data = await r.json();
+        if (data.success) {
+            toast(data.message, 'ok');
+            const ordemId = document.getElementById('mo-id')?.value;
+            if (ordemId && document.getElementById('modalOrdem')?.classList.contains('open')) {
+                abrirOrdem(ordemId);
+            } else if (clienteAtualCompliance) {
+                await verDetalheClienteCompliance(clienteAtualCompliance.id);
+                switchGcTab('docs');
+            }
+        } else {
+            toast(data.message, 'err');
+        }
+    } catch(e) {
+        toast('Erro ao rejeitar documento', 'err');
     }
 }
 
@@ -1908,6 +2780,291 @@ function editarClienteCompliance() {
         fecharModal('modalDetalheCliente');
         editarClienteById(id);
     }
+}
+
+/* ── Beneficiário ───────────────────────────────────────────── */
+
+function renderBeneficiario(o) {
+    if (!o.beneficiario_nome && !o.benef_iban && !o.beneficiario_pix) return '';
+    const row = (lbl, val) => val ? `<div class="info-item"><div class="lbl">${lbl}</div><div class="val">${val}</div></div>` : '';
+    let campos = row('Nome', o.beneficiario_nome);
+    if (o.tipo_destino === 'brazil') {
+        campos += row('Banco', o.beneficiario_banco);
+        campos += row('Agência', o.beneficiario_agencia);
+        campos += row('Conta', o.beneficiario_conta);
+        campos += row('CPF/CNPJ', o.beneficiario_cpf);
+        campos += row('PIX', o.beneficiario_pix);
+    } else if (o.tipo_destino === 'europe') {
+        campos += row('IBAN', o.benef_iban);
+        campos += row('BIC/SWIFT', o.benef_swift);
+        campos += row('Banco', o.beneficiario_banco);
+    } else if (o.tipo_destino === 'usa') {
+        campos += row('Routing Number', o.benef_routing);
+        campos += row('Account Number', o.beneficiario_conta);
+        campos += row('SWIFT', o.benef_swift);
+        campos += row('Banco', o.beneficiario_banco);
+    }
+    if (!campos) return '';
+    return `<div class="section-title"><i class="fas fa-user-tie" style="color:#27ae60;margin-right:4px;"></i>Beneficiário</div><div class="info-grid">${campos}</div>`;
+}
+
+/* ── Consulta de Ordens ─────────────────────────────────────── */
+
+const AML_DESCRICOES = {
+    'PEP_SCREENING_REQUIRED': {
+        icon: 'fa-user-secret', color: '#e67e22',
+        label: 'PEP Screening Obrigatório',
+        desc: 'Acumulado ≥ £2.000 — confirme que o cliente não consta em listas PEP antes de aprovar. Verifique o campo PEP na aba Dados do cliente.'
+    },
+    'KYC_DOC_OPERACAO_PENDENTE_VALIDACAO': {
+        icon: 'fa-file-upload', color: '#e67e22',
+        label: 'Documentos da Operação Aguardando Validação',
+        desc: 'Source of Funds e/ou Declaration Form foram enviados e aguardam sua análise abaixo.'
+    },
+    'KYC_DOC_CLIENTE_PENDENTE_VALIDACAO': {
+        icon: 'fa-id-card', color: '#e67e22',
+        label: 'Documentos do Cliente Aguardando Validação',
+        desc: 'Photo ID ou Proof of Address foram enviados e aguardam aprovação.'
+    },
+    'HIGH_RISK_COUNTRY_EDD': {
+        icon: 'fa-globe', color: '#c0392b',
+        label: 'País de Alto Risco',
+        desc: 'O país de destino está na lista de alto risco. EDD (Enhanced Due Diligence) é obrigatório.'
+    },
+    'CASH_EDD': {
+        icon: 'fa-money-bill', color: '#c0392b',
+        label: 'Transação em Dinheiro — EDD',
+        desc: 'Pagamento em cash requer Enhanced Due Diligence.'
+    },
+    'KYC_MONITORAMENTO_CONTINUO': {
+        icon: 'fa-search', color: '#2980b9',
+        label: 'Monitoramento Contínuo',
+        desc: 'Cliente já atingiu este tier KYC anteriormente. Documentos de operação já foram entregues. Esta ordem requer apenas revisão de monitoramento.'
+    },
+    'STRUCTURING_HIGH_FREQUENCY': {
+        icon: 'fa-tachometer-alt', color: '#c0392b',
+        label: 'Alerta: Alta Frequência de Ordens',
+        desc: '3 ou mais ordens nos últimos 7 dias. Possível structuring — verifique o padrão de transações do cliente.'
+    },
+    'STRUCTURING_JUST_BELOW_THRESHOLD': {
+        icon: 'fa-arrow-down', color: '#c0392b',
+        label: 'Alerta: Valor Logo Abaixo do Limiar',
+        desc: 'Valor desta ordem está dentro de 5% abaixo de um limiar KYC. Padrão clássico de structuring — investigue a intenção.'
+    },
+    'STRUCTURING_RAPID_ACCUMULATION': {
+        icon: 'fa-bolt', color: '#c0392b',
+        label: 'Alerta: Acumulação Rápida (48h)',
+        desc: 'Múltiplas ordens em menos de 48h que juntas cruzam um limiar. Revise com atenção antes de aprovar.'
+    },
+    'STRUCTURING_FRAGMENTATION': {
+        icon: 'fa-cut', color: '#8e44ad',
+        label: 'Alerta: Fragmentação de Valores',
+        desc: '4 ou mais ordens abaixo de £850 em 7 dias. Possível fragmentação deliberada para evitar KYC.'
+    },
+    'SANCTIONS_HIT': {
+        icon: 'fa-ban', color: '#8e44ad',
+        label: 'ALERTA: Possível Match em Lista de Sanções',
+        desc: 'Nome do cliente tem similaridade com entidade em lista de sanções (OFSI/OFAC/UN/EU). NÃO processe esta ordem sem revisar na aba Sanctions e confirmar como falso positivo.'
+    },
+};
+
+const CON_DOC_LABELS = {
+    photo_id: 'Foto ID',
+    proof_address: 'Comprovante de Endereço',
+    source_funds: 'Source of Funds',
+    declaration: 'Declaração',
+    edd: 'EDD'
+};
+
+const CON_STATUS_LABELS = {
+    rascunho: 'Rascunho', aguardando_pagamento: 'Aguard. Pagamento',
+    paga: 'Paga', compliance_review: 'Compliance Review',
+    on_hold: 'On Hold', liberada: 'Liberada',
+    despachada: 'Despachada', cancelada: 'Cancelada'
+};
+
+async function buscarConsulta() {
+    const q = document.getElementById('con-q').value.trim();
+    const status = document.getElementById('con-status').value;
+    const de = document.getElementById('con-de').value;
+    const ate = document.getElementById('con-ate').value;
+    const tbody = document.getElementById('con-body');
+    const countEl = document.getElementById('con-count');
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (status) params.set('status', status);
+    if (de) params.set('data_de', de);
+    if (ate) params.set('data_ate', ate);
+    try {
+        const r = await fetch('/api/ordens/consulta?' + params.toString());
+        const d = await r.json();
+        if (!d.success) { tbody.innerHTML = `<tr><td colspan="8" class="empty">${d.message||'Erro'}</td></tr>`; return; }
+        const ordens = d.ordens || [];
+        countEl.textContent = ordens.length ? `(${ordens.length} resultado${ordens.length!==1?'s':''})` : '';
+        if (!ordens.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">Nenhuma ordem encontrada.</td></tr>'; return; }
+        const destFlag = {brazil:'🇧🇷 Brasil', europe:'🇪🇺 Europa', usa:'🇺🇸 USA'};
+        tbody.innerHTML = ordens.map(o => {
+            const dataStr = o.data ? o.data.substring(0,10) : '—';
+            const entrada = fmtVal(o.valor_entrada, o.moeda_entrada);
+            const saida = fmtVal(o.valor_saida, o.moeda_saida);
+            const statusLbl = CON_STATUS_LABELS[o.status] || o.status;
+            const destino = destFlag[o.tipo_destino] || o.pais_destino || '—';
+            return `<tr>
+                <td>${dataStr}</td>
+                <td>${o.cliente_nome||'—'}</td>
+                <td>${entrada}</td><td>${saida}</td>
+                <td>${destino}</td>
+                <td><span class="tag tag-${o.status}">${statusLbl}</span></td>
+                <td style="font-size:12px">${o.loja||'—'}</td>
+                <td><button class="btn-primary" style="font-size:11px;padding:4px 10px;white-space:nowrap;" onclick="abrirConsultaOrdem('${o.id}')"><i class="fas fa-eye"></i> Ver</button></td>
+            </tr>`;
+        }).join('');
+    } catch(e) { tbody.innerHTML = '<tr><td colspan="8" class="empty">Erro de conexão.</td></tr>'; }
+}
+
+async function abrirConsultaOrdem(id) {
+    document.getElementById('con-titulo').textContent = 'Carregando...';
+    document.getElementById('con-body-modal').innerHTML = '<div style="text-align:center;padding:30px;"><i class="fas fa-spinner fa-spin"></i></div>';
+    document.getElementById('con-modal-acts').innerHTML = '';
+    document.getElementById('modalConsulta').classList.add('open');
+    try {
+        const r = await fetch(`/api/ordens/${id}/detalhes-completos`);
+        const d = await r.json();
+        if (!d.success) { document.getElementById('con-body-modal').innerHTML = `<p style="color:var(--cor-perigo)">${d.message||'Erro'}</p>`; return; }
+        renderConsultaOrdem(d);
+    } catch(e) { document.getElementById('con-body-modal').innerHTML = '<p style="color:var(--cor-perigo)">Erro de conexão.</p>'; }
+}
+
+function renderConsultaOrdem(d) {
+    const o = d.ordem;
+    const c = d.cliente || {};
+    const docsCliente = d.docs_cliente || [];
+    const docsOrdem = d.docs_ordem || [];
+    const statusLbl = CON_STATUS_LABELS[o.status] || o.status;
+    document.getElementById('con-titulo').textContent = `Ordem #${(o.id||'').substring(0,8)}`;
+
+    const infoRow = (label, val) => `<div class="info-item"><div class="lbl">${label}</div><div class="val">${val||'—'}</div></div>`;
+    const statusBadge = `<span class="tag tag-${o.status}">${statusLbl}</span>`;
+
+    const entrada = fmtVal(o.valor_entrada, o.moeda_entrada);
+    const saida = fmtVal(o.valor_saida, o.moeda_saida);
+    const dataStr = o.data ? o.data.substring(0,10) : '—';
+
+    const amlList = typeof o.aml_alertas === 'string'
+        ? o.aml_alertas.split(',').map(s=>s.trim()).filter(Boolean)
+        : (o.aml_alertas || []);
+    const alertas = amlList.length
+        ? amlList.map(a => {
+            const info = AML_DESCRICOES[a];
+            if (info) return `<div style="display:flex;gap:10px;align-items:flex-start;padding:7px 10px;background:rgba(230,126,34,.07);border-left:3px solid ${info.color};border-radius:0 6px 6px 0;margin-bottom:5px;">
+                <i class="fas ${info.icon}" style="color:${info.color};margin-top:2px;min-width:14px;"></i>
+                <div><div style="font-weight:600;font-size:12px;color:${info.color};">${info.label}</div>
+                <div style="font-size:11px;color:var(--cor-texto-secundario);margin-top:1px;">${info.desc}</div></div></div>`;
+            return `<span class="aml-pill">${a}</span>`;
+          }).join('')
+        : '<span style="color:var(--cor-texto-secundario);font-size:12px;">Nenhum alerta</span>';
+
+    const renderDoc = (doc, borderColor) => {
+        const label = CON_DOC_LABELS[doc.tipo] || doc.tipo;
+        const viewBtn = doc.url
+            ? `<a href="${doc.url}" target="_blank" style="font-size:11px;color:#2980b9;text-decoration:none;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-eye"></i> Ver</a>`
+            : '<span style="font-size:11px;color:var(--cor-texto-secundario)">Sem URL</span>';
+        const dataDoc = doc.created_at ? doc.created_at.substring(0,10) : '';
+        return `<div style="border-left:3px solid ${borderColor};padding:8px 12px;background:var(--cor-fundo);border-radius:0 6px 6px 0;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <div style="font-weight:600;font-size:13px;">${label}</div>
+                ${dataDoc ? `<div style="font-size:11px;color:var(--cor-texto-secundario);">${dataDoc}</div>` : ''}
+                ${doc.observacao ? `<div style="font-size:11px;color:var(--cor-texto-secundario);">${doc.observacao}</div>` : ''}
+            </div>
+            ${viewBtn}
+        </div>`;
+    };
+
+    const docsClienteHtml = docsCliente.length
+        ? docsCliente.map(doc => renderDoc(doc, '#2980b9')).join('')
+        : '<p style="font-size:12px;color:var(--cor-texto-secundario);">Nenhum documento de cliente no momento da ordem.</p>';
+
+    const docsOrdemHtml = docsOrdem.length
+        ? docsOrdem.map(doc => renderDoc(doc, '#e67e22')).join('')
+        : '<p style="font-size:12px;color:var(--cor-texto-secundario);">Nenhum documento de operação.</p>';
+
+    document.getElementById('con-body-modal').innerHTML = `
+        <div class="section-title" style="margin-top:0;">Dados da Ordem</div>
+        <div class="info-grid">
+            ${infoRow('Data', dataStr)}
+            ${infoRow('Entrada', entrada)}
+            ${infoRow('Saída', saida)}
+            ${infoRow('Destino', {brazil:'🇧🇷 Brasil',europe:'🇪🇺 Europa',usa:'🇺🇸 USA'}[o.tipo_destino] || o.pais_destino)}
+            ${infoRow('Forma Pgto', o.forma_pagamento)}
+            ${infoRow('Loja', o.loja)}
+            ${infoRow('Status', statusBadge)}
+            ${infoRow('KYC Level', o.kyc_level_na_ordem != null ? `Tier ${o.kyc_level_na_ordem}` : '—')}
+        </div>
+        <div class="section-title">Alertas AML</div>
+        <div style="padding:8px;background:rgba(128,128,128,.05);border-radius:6px;min-height:32px;">${alertas}</div>
+        <div class="section-title">Cliente</div>
+        <div class="info-grid">
+            ${infoRow('Nome', c.nome||o.cliente_nome)}
+            ${infoRow('Documento', c.documento||o.cliente_doc)}
+            ${infoRow('Email', c.email)}
+            ${infoRow('Telefone', c.telefone||o.cliente_telefone)}
+            ${infoRow('Nacionalidade', c.nacionalidade)}
+            ${infoRow('País Residência', c.pais_residencia)}
+        </div>
+        ${renderBeneficiario(o)}
+        <div class="section-title"><i class="fas fa-id-card" style="color:#2980b9;margin-right:4px;"></i>Docs do Cliente</div>
+        ${docsClienteHtml}
+        <div class="section-title" style="margin-top:14px;"><i class="fas fa-file-invoice" style="color:#e67e22;margin-right:4px;"></i>Docs da Operação</div>
+        ${docsOrdemHtml}
+    `;
+
+    const actsEl = document.getElementById('con-modal-acts');
+    if (o.status === 'compliance_review') {
+        actsEl.innerHTML = `
+            <button class="btn-danger" onclick="rejeitarOrdemConsulta('${o.id}')"><i class="fas fa-times"></i> Rejeitar Ordem</button>
+            <button class="btn-success" onclick="aprovarOrdemConsulta('${o.id}')"><i class="fas fa-check"></i> Aprovar Ordem</button>
+        `;
+    } else {
+        actsEl.innerHTML = `<button class="btn-secondary" onclick="fecharModal('modalConsulta')">Fechar</button>`;
+    }
+}
+
+async function aprovarOrdemConsulta(ordemId) {
+    if (!confirm('Confirma aprovação desta ordem?')) return;
+    try {
+        const r = await fetch(`/api/compliance/ordens/${ordemId}/aprovar`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({})
+        });
+        const d = await r.json();
+        if (d.success) {
+            toast('Ordem aprovada com sucesso!', 'ok');
+            fecharModal('modalConsulta');
+            buscarConsulta();
+            carregarOrdens();
+        } else toast(d.message || 'Erro ao aprovar', 'err');
+    } catch(e) { toast('Erro de conexão', 'err'); }
+}
+
+async function rejeitarOrdemConsulta(ordemId) {
+    const motivo = prompt('Motivo da rejeição (obrigatório):');
+    if (!motivo || !motivo.trim()) return;
+    try {
+        const r = await fetch(`/api/compliance/ordens/${ordemId}/rejeitar`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({motivo: motivo.trim()})
+        });
+        const d = await r.json();
+        if (d.success) {
+            toast('Ordem rejeitada.', 'ok');
+            fecharModal('modalConsulta');
+            buscarConsulta();
+            carregarOrdens();
+        } else toast(d.message || 'Erro ao rejeitar', 'err');
+    } catch(e) { toast('Erro de conexão', 'err'); }
 }
 
 </script>

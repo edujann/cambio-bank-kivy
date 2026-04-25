@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cambio Bank — Taxas & Contas Loja</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+        body{background:var(--cor-fundo);color:var(--cor-texto);min-height:100vh;}
+        .page{max-width:1100px;margin:0 auto;padding:24px 20px;}
+
+        /* Header */
+        .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid var(--cor-borda);}
+        .hd-left{display:flex;align-items:center;gap:12px;}
+        .hd-left h1{font-size:20px;font-weight:700;}
+        .hd-left i{color:var(--cor-admin);font-size:22px;}
+        .btn-back{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;}
+        .btn-back:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+
+        /* Sections */
+        .section{margin-bottom:32px;}
+        .section-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+        .section-hd h2{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;}
+        .section-hd h2 i{color:var(--cor-admin);}
+
+        /* Card */
+        .card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;overflow:hidden;}
+        table{width:100%;border-collapse:collapse;font-size:13px;}
+        th{background:rgba(128,128,128,.05);color:var(--cor-texto-secundario);padding:10px 14px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;}
+        td{padding:11px 14px;border-top:1px solid var(--cor-borda);vertical-align:middle;}
+        tr:hover td{background:rgba(128,128,128,.03);}
+        .empty{padding:40px;text-align:center;color:var(--cor-texto-secundario);}
+
+        /* Form panel */
+        .form-panel{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;padding:18px 20px;margin-bottom:14px;}
+        .form-panel h3{font-size:13px;font-weight:700;margin-bottom:14px;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.4px;}
+        .form-grid{display:grid;gap:12px;}
+        .form-grid-2{grid-template-columns:1fr 1fr;}
+        .form-grid-3{grid-template-columns:1fr 1fr 1fr;}
+        .form-grid-4{grid-template-columns:1fr 1fr 1fr 1fr;}
+        .fg label{display:block;font-size:11px;font-weight:600;color:var(--cor-texto-secundario);margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px;}
+        .fg input,.fg select{width:100%;background:rgba(128,128,128,.06);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:8px 11px;border-radius:8px;font-size:13px;}
+        .fg input:focus,.fg select:focus{outline:none;border-color:var(--cor-admin);}
+
+        /* Buttons */
+        .btn-primary{background:var(--cor-admin);border:none;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;}
+        .btn-primary:hover{opacity:.88;}
+        .btn-act{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;white-space:nowrap;}
+        .btn-act:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+        .btn-danger{background:transparent;border:1px solid var(--cor-perigo);color:var(--cor-perigo);padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;}
+
+        /* Tags */
+        .tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+        .tag-ativo{background:rgba(46,194,126,.15);color:#2ec27e;}
+        .tag-inativo{background:rgba(224,27,36,.15);color:#e01b24;}
+        .spread-info{font-size:11px;color:var(--cor-texto-secundario);}
+
+        /* Toast */
+        .toast{position:fixed;bottom:20px;right:20px;padding:11px 18px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transform:translateY(12px);transition:.3s;pointer-events:none;}
+        .toast.show{opacity:1;transform:translateY(0);}
+        .toast.ok{background:#2ec27e;color:#fff;}
+        .toast.err{background:#e01b24;color:#fff;}
+
+        /* Inline edit */
+        .val-edit{display:inline-flex;align-items:center;gap:6px;}
+        .val-edit input{width:90px;background:rgba(128,128,128,.06);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:4px 8px;border-radius:6px;font-size:13px;}
+
+        @media(max-width:700px){
+            .form-grid-3,.form-grid-4{grid-template-columns:1fr 1fr;}
+            .form-grid-2{grid-template-columns:1fr;}
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <!-- Header -->
+    <div class="hd">
+        <div class="hd-left">
+            <i class="fas fa-sliders-h"></i>
+            <div>
+                <h1>Taxas & Contas — Loja</h1>
+                <div style="font-size:12px;color:var(--cor-texto-secundario);margin-top:2px;">Configurações aplicadas automaticamente na criação de ordens</div>
+            </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+            <button id="btnTheme" onclick="toggleTheme()" class="btn-back" title="Alternar tema">
+                <i class="fas fa-sun"></i>
+            </button>
+            <a href="/admin/dashboard" class="btn-back"><i class="fas fa-arrow-left"></i> Admin</a>
+        </div>
+    </div>
+
+    <!-- ── TAXAS ── -->
+    <div class="section">
+        <div class="section-hd">
+            <h2><i class="fas fa-percentage"></i> Taxas de Câmbio</h2>
+            <button class="btn-primary" onclick="toggleFormTaxa()"><i class="fas fa-plus"></i> Nova Taxa</button>
+        </div>
+
+        <!-- Form nova/editar taxa -->
+        <div class="form-panel" id="formTaxaPanel" style="display:none;">
+            <h3><i class="fas fa-edit"></i> <span id="formTaxaTitulo">Nova Taxa</span></h3>
+            <input type="hidden" id="ft-id">
+            <div class="form-grid form-grid-2" style="margin-bottom:12px;">
+                <div class="fg">
+                    <label>Moeda Entrada</label>
+                    <select id="ft-me">
+                        <option value="GBP">GBP — Libra Esterlina</option>
+                        <option value="USD">USD — Dólar</option>
+                        <option value="EUR">EUR — Euro</option>
+                    </select>
+                </div>
+                <div class="fg">
+                    <label>Moeda Saída</label>
+                    <select id="ft-ms">
+                        <option value="BRL">BRL — Real</option>
+                        <option value="USD">USD — Dólar</option>
+                        <option value="EUR">EUR — Euro</option>
+                        <option value="GBP">GBP — Libra</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-grid form-grid-3">
+                <div class="fg">
+                    <label>Taxa Base</label>
+                    <input type="number" id="ft-taxa" step="0.0001" placeholder="Ex: 6.5000">
+                </div>
+                <div class="fg">
+                    <label>Spread Mín (▼ atendente pode baixar)</label>
+                    <input type="number" id="ft-smin" step="0.0001" placeholder="Ex: 0.05" value="0.05">
+                </div>
+                <div class="fg">
+                    <label>Spread Máx (▲ atendente pode subir)</label>
+                    <input type="number" id="ft-smax" step="0.0001" placeholder="Ex: 0.05" value="0.05">
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end;">
+                <button class="btn-act" onclick="toggleFormTaxa()">Cancelar</button>
+                <button class="btn-primary" onclick="salvarTaxa()"><i class="fas fa-save"></i> Salvar Taxa</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Par</th>
+                        <th>Taxa Base</th>
+                        <th>Spread Atendente</th>
+                        <th>Faixa Permitida</th>
+                        <th>Status</th>
+                        <th>Atualizado por</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="tbTaxas">
+                    <tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ── CONTAS POR FORMA DE PAGAMENTO ── -->
+    <div class="section">
+        <div class="section-hd">
+            <h2><i class="fas fa-university"></i> Contas por Forma de Pagamento</h2>
+            <button class="btn-primary" onclick="toggleFormConta()"><i class="fas fa-plus"></i> Configurar Conta</button>
+        </div>
+
+        <div class="form-panel" id="formContaPanel" style="display:none;">
+            <h3><i class="fas fa-edit"></i> <span id="formContaTitulo">Configurar Conta</span></h3>
+            <input type="hidden" id="fc-id">
+            <div class="form-grid form-grid-3">
+                <div class="fg">
+                    <label>Loja</label>
+                    <select id="fc-loja">
+                        <option value="">Carregando...</option>
+                    </select>
+                </div>
+                <div class="fg">
+                    <label>Forma de Pagamento</label>
+                    <select id="fc-forma">
+                        <option value="cash">Cash</option>
+                        <option value="debito">Cartão Débito</option>
+                        <option value="credito">Cartão Crédito</option>
+                        <option value="transferencia">Transferência</option>
+                    </select>
+                </div>
+                <div class="fg">
+                    <label>Conta Empresa (Destino)</label>
+                    <select id="fc-conta">
+                        <option value="">Carregando...</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end;">
+                <button class="btn-act" onclick="toggleFormConta()">Cancelar</button>
+                <button class="btn-primary" onclick="salvarConta()"><i class="fas fa-save"></i> Salvar Configuração</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Loja</th>
+                        <th>Forma Pagamento</th>
+                        <th>Conta Destino</th>
+                        <th>Banco / Moeda</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="tbContas">
+                    <tr><td colspan="6" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const FORMA_LABELS = {cash:'Cash',debito:'Cartão Débito',credito:'Cartão Crédito',transferencia:'Transferência'};
+
+function toast(msg, tipo='ok') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = `toast ${tipo} show`;
+    setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ── TAXAS ──────────────────────────────────────────
+
+function toggleFormTaxa(taxa) {
+    const p = document.getElementById('formTaxaPanel');
+    if (taxa) {
+        document.getElementById('formTaxaTitulo').textContent = 'Editar Taxa';
+        document.getElementById('ft-id').value   = taxa.id;
+        document.getElementById('ft-me').value   = taxa.moeda_entrada;
+        document.getElementById('ft-ms').value   = taxa.moeda_saida;
+        document.getElementById('ft-taxa').value = taxa.taxa_base;
+        document.getElementById('ft-smin').value = taxa.spread_min;
+        document.getElementById('ft-smax').value = taxa.spread_max;
+        p.style.display = 'block';
+        p.scrollIntoView({behavior:'smooth', block:'nearest'});
+    } else {
+        const visible = p.style.display !== 'none';
+        p.style.display = visible ? 'none' : 'block';
+        if (!visible) {
+            document.getElementById('formTaxaTitulo').textContent = 'Nova Taxa';
+            document.getElementById('ft-id').value   = '';
+            document.getElementById('ft-me').value   = 'GBP';
+            document.getElementById('ft-ms').value   = 'BRL';
+            document.getElementById('ft-taxa').value = '';
+            document.getElementById('ft-smin').value = '0.05';
+            document.getElementById('ft-smax').value = '0.05';
+            document.getElementById('ft-me').disabled = false;
+            document.getElementById('ft-ms').disabled = false;
+        }
+    }
+}
+
+async function carregarTaxas() {
+    const tb = document.getElementById('tbTaxas');
+    try {
+        const r = await fetch('/api/admin/config/taxas').then(r=>r.json());
+        const taxas = r.taxas || [];
+        if (!taxas.length) {
+            tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-percentage"></i><br>Nenhuma taxa configurada</td></tr>';
+            return;
+        }
+        tb.innerHTML = taxas.map(t => {
+            const min = (parseFloat(t.taxa_base) - parseFloat(t.spread_min)).toFixed(4);
+            const max = (parseFloat(t.taxa_base) + parseFloat(t.spread_max)).toFixed(4);
+            const upd = t.updated_at ? new Date(t.updated_at).toLocaleString('pt-BR') : '—';
+            return `<tr>
+                <td><strong>${t.moeda_entrada} → ${t.moeda_saida}</strong></td>
+                <td style="font-size:16px;font-weight:700;color:var(--cor-admin);">${parseFloat(t.taxa_base).toFixed(4)}</td>
+                <td>
+                    <span style="color:#e01b24;">▼ ${parseFloat(t.spread_min).toFixed(4)}</span>
+                    &nbsp;/&nbsp;
+                    <span style="color:#2ec27e;">▲ ${parseFloat(t.spread_max).toFixed(4)}</span>
+                </td>
+                <td class="spread-info">${min} – ${max}</td>
+                <td><span class="tag tag-${t.ativo?'ativo':'inativo'}">${t.ativo?'Ativo':'Inativo'}</span></td>
+                <td style="font-size:11px;color:var(--cor-texto-secundario);">${t.atualizado_por||'—'}<br>${upd}</td>
+                <td style="white-space:nowrap;">
+                    <button class="btn-act" onclick='toggleFormTaxa(${JSON.stringify(t)})'><i class="fas fa-edit"></i> Editar</button>
+                    <button class="btn-danger" onclick="toggleAtivoTaxa(${t.id},${!t.ativo})">${t.ativo?'Desativar':'Ativar'}</button>
+                    <button class="btn-danger" onclick="excluirTaxa(${t.id},'${t.moeda_entrada}→${t.moeda_saida}')" style="border-color:#666;color:#888;margin-left:2px;" title="Excluir"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`;
+        }).join('');
+    } catch(e) {
+        tb.innerHTML = '<tr><td colspan="7" class="empty">Erro ao carregar</td></tr>';
+    }
+}
+
+async function salvarTaxa() {
+    const id    = document.getElementById('ft-id').value;
+    const taxa  = parseFloat(document.getElementById('ft-taxa').value);
+    const smin  = parseFloat(document.getElementById('ft-smin').value);
+    const smax  = parseFloat(document.getElementById('ft-smax').value);
+    if (!taxa || isNaN(taxa)) { toast('Informe a taxa base','err'); return; }
+    if (isNaN(smin) || isNaN(smax)) { toast('Informe os spreads','err'); return; }
+    try {
+        let r;
+        const me = document.getElementById('ft-me').value;
+        const ms = document.getElementById('ft-ms').value;
+        if (!me || !ms) { toast('Selecione as moedas', 'err'); return; }
+        const payload = {moeda_entrada: me, moeda_saida: ms, taxa_base: taxa, spread_min: smin, spread_max: smax};
+        if (id) {
+            r = await fetch(`/api/admin/config/taxas/${id}`, {
+                method:'PUT', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify(payload)
+            }).then(res=>res.json());
+        } else {
+            r = await fetch('/api/admin/config/taxas', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify(payload)
+            }).then(res=>res.json());
+        }
+        if (r.success) { toast('Taxa salva com sucesso','ok'); toggleFormTaxa(); carregarTaxas(); }
+        else toast(r.message,'err');
+    } catch(e) { toast('Erro de conexão','err'); }
+}
+
+async function toggleAtivoTaxa(id, ativo) {
+    try {
+        const r = await fetch(`/api/admin/config/taxas/${id}`, {
+            method:'PUT', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ativo})
+        }).then(res=>res.json());
+        if (r.success) { toast(ativo?'Taxa ativada':'Taxa desativada','ok'); carregarTaxas(); }
+        else toast(r.message,'err');
+    } catch(e) { toast('Erro','err'); }
+}
+
+async function excluirTaxa(id, par) {
+    if (!confirm(`Excluir taxa ${par}? Esta ação não pode ser desfeita.`)) return;
+    try {
+        const r = await fetch(`/api/admin/config/taxas/${id}`, {method:'DELETE'}).then(res=>res.json());
+        if (r.success) { toast('Taxa excluída','ok'); carregarTaxas(); }
+        else toast(r.message,'err');
+    } catch(e) { toast('Erro','err'); }
+}
+
+// ── CONTAS ─────────────────────────────────────────
+
+async function carregarSelectores() {
+    try {
+        const [rL, rC] = await Promise.all([
+            fetch('/api/admin/lojas').then(r=>r.json()),
+            fetch('/api/admin/contas-empresa-lista').then(r=>r.json())
+        ]);
+        const selLoja = document.getElementById('fc-loja');
+        selLoja.innerHTML = (rL.lojas||[]).map(l=>`<option value="${l.codigo||l.id}">${l.nome||l.codigo}</option>`).join('');
+
+        const selConta = document.getElementById('fc-conta');
+        selConta.innerHTML = (rC.contas||[]).map(c=>`<option value="${c.numero}">${c.banco} — ${c.moeda} (${c.numero})</option>`).join('');
+    } catch(e) { console.error(e); }
+}
+
+function toggleFormConta(cfg) {
+    const p = document.getElementById('formContaPanel');
+    if (cfg) {
+        document.getElementById('formContaTitulo').textContent = 'Editar Configuração';
+        document.getElementById('fc-id').value    = cfg.id;
+        document.getElementById('fc-loja').value  = cfg.loja;
+        document.getElementById('fc-forma').value = cfg.forma_pagamento;
+        document.getElementById('fc-conta').value = cfg.conta_numero;
+        p.style.display = 'block';
+        p.scrollIntoView({behavior:'smooth', block:'nearest'});
+    } else {
+        const visible = p.style.display !== 'none';
+        p.style.display = visible ? 'none' : 'block';
+        if (!visible) {
+            document.getElementById('formContaTitulo').textContent = 'Configurar Conta';
+            document.getElementById('fc-id').value = '';
+        }
+    }
+}
+
+async function carregarContas() {
+    const tb = document.getElementById('tbContas');
+    try {
+        const r = await fetch('/api/admin/config/contas-loja').then(r=>r.json());
+        const contas = r.contas || [];
+        if (!contas.length) {
+            tb.innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-university"></i><br>Nenhuma conta configurada</td></tr>';
+            return;
+        }
+        tb.innerHTML = contas.map(c => `<tr>
+            <td><strong>${c.loja}</strong></td>
+            <td>${FORMA_LABELS[c.forma_pagamento]||c.forma_pagamento}</td>
+            <td style="font-family:monospace;font-size:12px;">${c.conta_numero}</td>
+            <td>${c.conta_banco||c.conta_nome||'—'} ${c.conta_moeda?`<span class="tag" style="background:rgba(26,95,180,.15);color:var(--cor-admin);">${c.conta_moeda}</span>`:''}</td>
+            <td><span class="tag tag-${c.ativo?'ativo':'inativo'}">${c.ativo?'Ativo':'Inativo'}</span></td>
+            <td style="white-space:nowrap;">
+                <button class="btn-act" onclick='toggleFormConta(${JSON.stringify(c)})'><i class="fas fa-edit"></i> Editar</button>
+                <button class="btn-danger" onclick="toggleAtivoConta(${c.id},${!c.ativo})">${c.ativo?'Desativar':'Ativar'}</button>
+            </td>
+        </tr>`).join('');
+    } catch(e) {
+        tb.innerHTML = '<tr><td colspan="6" class="empty">Erro ao carregar</td></tr>';
+    }
+}
+
+async function salvarConta() {
+    const id    = document.getElementById('fc-id').value;
+    const loja  = document.getElementById('fc-loja').value;
+    const forma = document.getElementById('fc-forma').value;
+    const conta = document.getElementById('fc-conta').value;
+    if (!loja||!forma||!conta) { toast('Preencha todos os campos','err'); return; }
+    try {
+        let r;
+        if (id) {
+            r = await fetch(`/api/admin/config/contas-loja/${id}`, {
+                method:'PUT', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({conta_numero: conta})
+            }).then(res=>res.json());
+        } else {
+            r = await fetch('/api/admin/config/contas-loja', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({loja, forma_pagamento: forma, conta_numero: conta})
+            }).then(res=>res.json());
+        }
+        if (r.success) { toast('Configuração salva','ok'); toggleFormConta(); carregarContas(); }
+        else toast(r.message,'err');
+    } catch(e) { toast('Erro de conexão','err'); }
+}
+
+async function toggleAtivoConta(id, ativo) {
+    try {
+        const r = await fetch(`/api/admin/config/contas-loja/${id}`, {
+            method:'PUT', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ativo})
+        }).then(res=>res.json());
+        if (r.success) { toast(ativo?'Ativado':'Desativado','ok'); carregarContas(); }
+        else toast(r.message,'err');
+    } catch(e) { toast('Erro','err'); }
+}
+
+// ── Init ───────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    carregarTaxas();
+    carregarContas();
+    carregarSelectores();
+});
+</script>
+<script src="/static/js/theme.js"></script>
+</body>
+</html>
