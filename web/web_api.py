@@ -11316,11 +11316,14 @@ def loja_listar_ordens():
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
         status_f   = request.args.get('status', '')
+        status_in  = request.args.get('status_in', '')
         loja_f     = request.args.get('loja', '')
         data_de    = request.args.get('data_de', '')
         data_ate   = request.args.get('data_ate', '')
         q = supabase.table('ordens_captacao').select('*').order('data', desc=True).limit(500)
-        if status_f:
+        if status_in:
+            q = q.in_('status', status_in.split(','))
+        elif status_f:
             q = q.eq('status', status_f)
         if tipo == 'loja' and not loja_f:
             q = q.eq('loja', usuario)
@@ -12718,6 +12721,102 @@ def compliance_rejeitar(ordem_id):
 
 
 # ── Confirmar pagamento (on_hold → libera se compliance ok) ──
+
+@app.route('/admin/conciliacao')
+def admin_conciliacao_page():
+    usuario, redir = _check_admin_acesso()
+    if redir: return redir
+    return render_template('admin_conciliacao.html', usuario=usuario)
+
+
+@app.route('/api/admin/conciliacao/pendentes', methods=['GET'])
+def admin_conciliacao_pendentes():
+    usuario, redir = _check_admin_acesso()
+    if redir: return jsonify({'success': False}), 401
+    try:
+        r = supabase.table('ordens_captacao').select('*')\
+            .eq('forma_pagamento', 'transferencia')\
+            .eq('pagamento_confirmado', False)\
+            .in_('status', ['on_hold', 'compliance_review'])\
+            .order('data', desc=False).execute()
+        return jsonify({'success': True, 'ordens': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/conciliacao/contas', methods=['GET'])
+def admin_conciliacao_contas():
+    usuario, redir = _check_admin_acesso()
+    if redir: return jsonify({'success': False}), 401
+    try:
+        contas = supabase.table('contas_bancarias_empresa').select('*').order('moeda').execute()
+        pendentes = supabase.table('ordens_captacao').select('conta_empresa,valor_entrada,moeda_entrada')\
+            .eq('forma_pagamento', 'transferencia')\
+            .eq('pagamento_confirmado', False)\
+            .in_('status', ['on_hold', 'compliance_review']).execute()
+        # Agrupar pendentes por conta
+        pend_map = {}
+        for o in (pendentes.data or []):
+            k = o.get('conta_empresa', '')
+            pend_map[k] = pend_map.get(k, 0) + float(o.get('valor_entrada', 0))
+        result = []
+        for c in (contas.data or []):
+            num = c.get('numero', '')
+            result.append({**c, 'pendente_entrada': round(pend_map.get(num, 0), 2),
+                           'saldo_esperado': round(float(c.get('saldo', 0)) + pend_map.get(num, 0), 2)})
+        return jsonify({'success': True, 'contas': result})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/conciliacao/confirmar', methods=['POST'])
+def admin_conciliacao_confirmar():
+    usuario, redir = _check_admin_acesso()
+    if redir: return jsonify({'success': False}), 401
+    try:
+        d = request.get_json() or {}
+        ids = d.get('ids', [])
+        if not ids:
+            return jsonify({'success': False, 'message': 'Nenhuma ordem selecionada'}), 400
+        confirmadas, mensagens = 0, []
+        for ordem_id in ids:
+            r_ord = supabase.table('ordens_captacao').select('*').eq('id', ordem_id).single().execute()
+            if not r_ord.data: continue
+            o = r_ord.data
+            novo_status = 'liberada' if o.get('compliance_status') == 'aprovado' else 'compliance_review'
+            supabase.table('ordens_captacao').update({
+                'pagamento_confirmado': True,
+                'status': novo_status,
+                'confirmado_por': usuario,
+                'updated_at': datetime.now().isoformat()
+            }).eq('id', ordem_id).execute()
+            if novo_status == 'liberada':
+                conta_emp = o.get('conta_empresa')
+                valor_e   = float(o.get('valor_entrada', 0))
+                if conta_emp:
+                    r_ct = supabase.table('contas_bancarias_empresa').select('saldo').eq('numero', conta_emp).single().execute()
+                    if r_ct.data:
+                        novo_saldo = float(r_ct.data['saldo'] or 0) + valor_e
+                        supabase.table('contas_bancarias_empresa').update({'saldo': novo_saldo}).eq('numero', conta_emp).execute()
+            confirmadas += 1
+        return jsonify({'success': True, 'message': f'{confirmadas} ordem(ns) confirmada(s).', 'confirmadas': confirmadas})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/conciliacao/historico', methods=['GET'])
+def admin_conciliacao_historico():
+    usuario, redir = _check_admin_acesso()
+    if redir: return jsonify({'success': False}), 401
+    try:
+        r = supabase.table('ordens_captacao').select('*')\
+            .eq('forma_pagamento', 'transferencia')\
+            .eq('pagamento_confirmado', True)\
+            .order('updated_at', desc=True).limit(100).execute()
+        return jsonify({'success': True, 'ordens': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 
 @app.route('/api/admin/ordens/<ordem_id>/confirmar-recebimento', methods=['POST'])
 def admin_confirmar_recebimento(ordem_id):

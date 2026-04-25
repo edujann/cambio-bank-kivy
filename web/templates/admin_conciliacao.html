@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cambio Bank — Conciliação Bancária</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+        body{background:var(--cor-fundo);color:var(--cor-texto);min-height:100vh;}
+        .page{max-width:1300px;margin:0 auto;padding:24px 20px;}
+
+        /* Header */
+        .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid var(--cor-borda);flex-wrap:wrap;gap:10px;}
+        .hd-left{display:flex;align-items:center;gap:12px;}
+        .hd-left i{color:var(--cor-sucesso);font-size:22px;}
+        .hd-left h1{font-size:20px;font-weight:700;}
+        .hd-left p{font-size:12px;color:var(--cor-texto-secundario);margin-top:2px;}
+        .hd-right{display:flex;align-items:center;gap:8px;}
+        .btn-back{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;}
+        .btn-back:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+
+        /* Stats */
+        .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px;}
+        .stat{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;padding:16px;}
+        .stat .lbl{font-size:11px;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
+        .stat .val{font-size:24px;font-weight:700;}
+        .stat .sub{font-size:11px;color:var(--cor-texto-secundario);margin-top:3px;}
+        .c-verde{color:var(--cor-sucesso);} .c-am{color:var(--cor-alerta);} .c-azul{color:var(--cor-admin);}
+
+        /* Section */
+        .section{margin-bottom:28px;}
+        .section-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+        .section-hd h2{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;}
+        .section-hd h2 i{color:var(--cor-admin);}
+
+        /* Card/Table */
+        .card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;overflow:hidden;}
+        .tbl-wrap{overflow-x:auto;}
+        table{width:100%;border-collapse:collapse;font-size:13px;}
+        th{background:rgba(128,128,128,.05);color:var(--cor-texto-secundario);padding:10px 12px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;}
+        th.check-col{width:40px;text-align:center;}
+        td{padding:11px 12px;border-top:1px solid var(--cor-borda);vertical-align:middle;white-space:nowrap;}
+        tr:hover td{background:rgba(128,128,128,.03);}
+        tr.sel td{background:rgba(46,194,126,.05);}
+        .empty{padding:40px;text-align:center;color:var(--cor-texto-secundario);}
+        .empty i{font-size:32px;margin-bottom:8px;display:block;}
+        .cb{width:16px;height:16px;cursor:pointer;accent-color:var(--cor-sucesso);}
+        .mono{font-family:monospace;}
+
+        /* Tags */
+        .tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+        .tag-on_hold{background:rgba(243,156,18,.15);color:var(--cor-alerta);}
+        .tag-compliance_review{background:rgba(155,89,182,.15);color:#9b59b6;}
+        .tag-comp-ok{background:rgba(46,194,126,.15);color:var(--cor-sucesso);}
+        .tag-comp-pend{background:rgba(243,156,18,.12);color:var(--cor-alerta);}
+        .tag-confirmado{background:rgba(46,194,126,.15);color:var(--cor-sucesso);}
+
+        /* Action bar */
+        .action-bar{background:rgba(46,194,126,.08);border:1px solid var(--cor-sucesso);border-radius:8px;padding:10px 16px;display:none;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;}
+        .action-bar.visible{display:flex;}
+        .action-info{font-size:13px;font-weight:600;color:var(--cor-sucesso);}
+        .action-total{font-size:13px;color:var(--cor-texto-secundario);}
+        .btn-confirm{background:var(--cor-sucesso);color:#fff;border:none;padding:9px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px;}
+        .btn-confirm:hover{opacity:.88;}
+        .btn-clear{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:9px 14px;border-radius:8px;font-size:13px;cursor:pointer;}
+        .btn-clear:hover{border-color:var(--cor-perigo);color:var(--cor-perigo);}
+
+        /* Contas grid */
+        .contas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;}
+        .conta-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;padding:16px;}
+        .conta-card .numero{font-size:12px;font-family:monospace;color:var(--cor-texto-secundario);margin-bottom:4px;}
+        .conta-card .banco{font-size:14px;font-weight:700;margin-bottom:12px;}
+        .conta-card .moeda-badge{display:inline-block;background:rgba(26,95,180,.12);color:var(--cor-admin);font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;margin-left:6px;}
+        .conta-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid var(--cor-borda);font-size:12px;}
+        .conta-row .rlbl{color:var(--cor-texto-secundario);}
+        .conta-row .rval{font-weight:600;font-family:monospace;}
+        .conta-row.esperado .rval{color:var(--cor-sucesso);}
+        .conta-row.pendente .rval{color:var(--cor-alerta);}
+
+        /* Tabs */
+        .tabs{display:flex;gap:0;border-bottom:2px solid var(--cor-borda);margin-bottom:16px;}
+        .tab{padding:9px 18px;cursor:pointer;font-size:13px;font-weight:600;color:var(--cor-texto-secundario);border-bottom:2px solid transparent;margin-bottom:-2px;display:flex;align-items:center;gap:6px;white-space:nowrap;}
+        .tab.active{color:var(--cor-admin);border-bottom-color:var(--cor-admin);}
+        .tab-panel{display:none;}
+        .tab-panel.active{display:block;}
+        .badge{background:var(--cor-admin);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;}
+
+        /* Toast */
+        .toast{position:fixed;bottom:20px;right:20px;padding:11px 18px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transform:translateY(12px);transition:.3s;pointer-events:none;}
+        .toast.show{opacity:1;transform:translateY(0);}
+        .toast.ok{background:#2ec27e;color:#fff;}
+        .toast.err{background:#e01b24;color:#fff;}
+
+        @media(max-width:700px){.contas-grid{grid-template-columns:1fr;}}
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <!-- Header -->
+    <div class="hd">
+        <div class="hd-left">
+            <i class="fas fa-balance-scale"></i>
+            <div>
+                <h1>Conciliação Bancária</h1>
+                <p>Confirme as transferências (TEDs) recebidas nas contas da empresa</p>
+            </div>
+        </div>
+        <div class="hd-right">
+            <button id="btnTheme" onclick="toggleTheme()" class="btn-back" title="Alternar tema"><i class="fas fa-sun"></i></button>
+            <a href="/admin/dashboard" class="btn-back"><i class="fas fa-arrow-left"></i> Admin</a>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats">
+        <div class="stat">
+            <div class="lbl">Pendentes</div>
+            <div class="val c-am" id="st-pend">—</div>
+            <div class="sub">transferências a confirmar</div>
+        </div>
+        <div class="stat">
+            <div class="lbl">Total Pendente</div>
+            <div class="val c-am" id="st-val">—</div>
+            <div class="sub">valor a entrar nas contas</div>
+        </div>
+        <div class="stat">
+            <div class="lbl">Confirmadas Hoje</div>
+            <div class="val c-verde" id="st-hoje">—</div>
+            <div class="sub">TEDs confirmados hoje</div>
+        </div>
+        <div class="stat">
+            <div class="lbl">Contas Ativas</div>
+            <div class="val c-azul" id="st-contas">—</div>
+            <div class="sub">contas da empresa</div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <div class="tab active" onclick="showTab('pendentes')"><i class="fas fa-clock"></i> Pendentes <span class="badge" id="badge-pend">0</span></div>
+        <div class="tab" onclick="showTab('contas')"><i class="fas fa-university"></i> Posição das Contas</div>
+        <div class="tab" onclick="showTab('historico')"><i class="fas fa-history"></i> Histórico</div>
+    </div>
+
+    <!-- TAB: PENDENTES -->
+    <div class="tab-panel active" id="tab-pendentes">
+        <div class="action-bar" id="actionBar">
+            <div>
+                <div class="action-info"><i class="fas fa-check-square"></i> <span id="selCount">0</span> ordem(ns) selecionada(s)</div>
+                <div class="action-total">Total: <strong id="selTotal">—</strong></div>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button class="btn-clear" onclick="limparSelecao()"><i class="fas fa-times"></i> Limpar</button>
+                <button class="btn-confirm" onclick="confirmarSelecionadas()"><i class="fas fa-check-double"></i> Confirmar TEDs Selecionados</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="tbl-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="check-col"><input type="checkbox" class="cb" id="cbTodos" onclick="toggleTodos(this)"></th>
+                            <th>Data</th>
+                            <th>Cliente</th>
+                            <th>Loja</th>
+                            <th>Entrada</th>
+                            <th>Conta Destino</th>
+                            <th>Status Ordem</th>
+                            <th>Compliance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbPend">
+                        <tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: CONTAS -->
+    <div class="tab-panel" id="tab-contas">
+        <div class="contas-grid" id="contasGrid">
+            <div style="padding:40px;text-align:center;color:var(--cor-texto-secundario);"><i class="fas fa-spinner fa-spin"></i></div>
+        </div>
+    </div>
+
+    <!-- TAB: HISTÓRICO -->
+    <div class="tab-panel" id="tab-historico">
+        <div class="card">
+            <div class="tbl-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data Ordem</th>
+                            <th>Cliente</th>
+                            <th>Loja</th>
+                            <th>Entrada</th>
+                            <th>Conta</th>
+                            <th>Status</th>
+                            <th>Confirmado por</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbHist">
+                        <tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+let _pendentes = [];
+let _selecionados = new Set();
+
+function toast(msg, tipo='ok') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = `toast ${tipo} show`;
+    setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+function showTab(name) {
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', t.onclick.toString().includes(`'${name}'`)));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(`tab-${name}`).classList.add('active');
+    if (name === 'contas')   carregarContas();
+    if (name === 'historico') carregarHistorico();
+}
+
+function fmtD(s) {
+    if (!s) return '—';
+    const d = new Date(s);
+    return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+}
+function fmtN(v, dec=2) {
+    if (v == null || v === '') return '—';
+    return parseFloat(v).toLocaleString('pt-BR', {minimumFractionDigits:dec, maximumFractionDigits:dec});
+}
+
+// ── PENDENTES ──────────────────────────────────────────────────────
+
+async function carregarPendentes() {
+    const tb = document.getElementById('tbPend');
+    tb.innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    try {
+        const d = await fetch('/api/admin/conciliacao/pendentes').then(r=>r.json());
+        _pendentes = d.ordens || [];
+        _selecionados.clear();
+        atualizarActionBar();
+
+        const hoje = new Date().toISOString().slice(0,10);
+        document.getElementById('st-pend').textContent  = _pendentes.length;
+        document.getElementById('badge-pend').textContent = _pendentes.length;
+
+        // Total pendente por moeda
+        const totais = {};
+        _pendentes.forEach(o => {
+            const m = o.moeda_entrada || 'GBP';
+            totais[m] = (totais[m] || 0) + parseFloat(o.valor_entrada || 0);
+        });
+        const totStr = Object.entries(totais).map(([m,v]) => `${fmtN(v,2)} ${m}`).join(' | ');
+        document.getElementById('st-val').textContent = totStr || '0';
+
+        if (!_pendentes.length) {
+            tb.innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-check-circle" style="color:var(--cor-sucesso)"></i><p>Nenhuma transferência pendente de confirmação</p></td></tr>';
+            return;
+        }
+
+        tb.innerHTML = _pendentes.map(o => {
+            const compOk = o.compliance_status === 'aprovado';
+            return `<tr id="row-${o.id}" onclick="toggleRow('${o.id}',event)">
+                <td class="check-col" onclick="event.stopPropagation()">
+                    <input type="checkbox" class="cb" id="cb-${o.id}" onchange="toggleSel('${o.id}')">
+                </td>
+                <td>${fmtD(o.data)}</td>
+                <td style="font-weight:600;">${o.cliente_nome||'—'}</td>
+                <td>${o.loja||'—'}</td>
+                <td class="mono"><strong>${fmtN(o.valor_entrada,2)}</strong> ${o.moeda_entrada||''}</td>
+                <td class="mono" style="font-size:12px;">${o.conta_empresa||'—'}</td>
+                <td><span class="tag tag-${o.status}">${o.status}</span></td>
+                <td><span class="tag ${compOk?'tag-comp-ok':'tag-comp-pend'}">${compOk?'✅ Aprovado':'⏳ Pendente'}</span></td>
+            </tr>`;
+        }).join('');
+    } catch(e) {
+        tb.innerHTML = `<tr><td colspan="8" style="color:var(--cor-perigo);padding:20px;">${e.message}</td></tr>`;
+    }
+}
+
+function toggleRow(id, e) {
+    if (e.target.type === 'checkbox') return;
+    const cb = document.getElementById(`cb-${id}`);
+    cb.checked = !cb.checked;
+    toggleSel(id);
+}
+
+function toggleSel(id) {
+    const cb = document.getElementById(`cb-${id}`);
+    const row = document.getElementById(`row-${id}`);
+    if (cb.checked) { _selecionados.add(id); row.classList.add('sel'); }
+    else            { _selecionados.delete(id); row.classList.remove('sel'); }
+    atualizarActionBar();
+}
+
+function toggleTodos(cbAll) {
+    _pendentes.forEach(o => {
+        const cb = document.getElementById(`cb-${o.id}`);
+        const row = document.getElementById(`row-${o.id}`);
+        if (cb) {
+            cb.checked = cbAll.checked;
+            if (cbAll.checked) { _selecionados.add(o.id); row.classList.add('sel'); }
+            else               { _selecionados.delete(o.id); row.classList.remove('sel'); }
+        }
+    });
+    atualizarActionBar();
+}
+
+function limparSelecao() {
+    _selecionados.clear();
+    document.querySelectorAll('.cb').forEach(cb => cb.checked = false);
+    document.querySelectorAll('tr.sel').forEach(r => r.classList.remove('sel'));
+    atualizarActionBar();
+}
+
+function atualizarActionBar() {
+    const bar = document.getElementById('actionBar');
+    const n = _selecionados.size;
+    bar.classList.toggle('visible', n > 0);
+    document.getElementById('selCount').textContent = n;
+    // Calcular total selecionado por moeda
+    const totais = {};
+    _pendentes.filter(o => _selecionados.has(o.id)).forEach(o => {
+        const m = o.moeda_entrada || 'GBP';
+        totais[m] = (totais[m] || 0) + parseFloat(o.valor_entrada || 0);
+    });
+    const totStr = Object.entries(totais).map(([m,v]) => `${fmtN(v,2)} ${m}`).join(' + ');
+    document.getElementById('selTotal').textContent = totStr || '—';
+}
+
+async function confirmarSelecionadas() {
+    if (!_selecionados.size) return;
+    const ids = [..._selecionados];
+    const n = ids.length;
+    if (!confirm(`Confirmar recebimento de ${n} transferência(s) nas contas da empresa?`)) return;
+    try {
+        const r = await fetch('/api/admin/conciliacao/confirmar', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ids})
+        }).then(r=>r.json());
+        if (r.success) {
+            toast(r.message, 'ok');
+            carregarPendentes();
+            carregarStats();
+        } else {
+            toast(r.message, 'err');
+        }
+    } catch(e) { toast('Erro de conexão', 'err'); }
+}
+
+// ── CONTAS ─────────────────────────────────────────────────────────
+
+async function carregarContas() {
+    const grid = document.getElementById('contasGrid');
+    grid.innerHTML = '<div style="padding:40px;text-align:center;"><i class="fas fa-spinner fa-spin"></i></div>';
+    try {
+        const d = await fetch('/api/admin/conciliacao/contas').then(r=>r.json());
+        const contas = d.contas || [];
+        document.getElementById('st-contas').textContent = contas.length;
+        if (!contas.length) {
+            grid.innerHTML = '<div style="padding:40px;text-align:center;color:var(--cor-texto-secundario);">Nenhuma conta encontrada</div>';
+            return;
+        }
+        grid.innerHTML = contas.map(c => `
+            <div class="conta-card">
+                <div class="numero">${c.numero}</div>
+                <div class="banco">${c.banco||'—'} <span class="moeda-badge">${c.moeda}</span></div>
+                <div class="conta-row">
+                    <span class="rlbl">Saldo Atual</span>
+                    <span class="rval">${fmtN(c.saldo,2)} ${c.moeda}</span>
+                </div>
+                <div class="conta-row pendente">
+                    <span class="rlbl"><i class="fas fa-clock"></i> Entradas Pendentes</span>
+                    <span class="rval">+ ${fmtN(c.pendente_entrada,2)} ${c.moeda}</span>
+                </div>
+                <div class="conta-row esperado">
+                    <span class="rlbl"><i class="fas fa-arrow-trend-up"></i> Saldo Esperado</span>
+                    <span class="rval">${fmtN(c.saldo_esperado,2)} ${c.moeda}</span>
+                </div>
+            </div>
+        `).join('');
+    } catch(e) {
+        grid.innerHTML = `<div style="color:var(--cor-perigo);padding:20px;">${e.message}</div>`;
+    }
+}
+
+// ── HISTÓRICO ──────────────────────────────────────────────────────
+
+async function carregarHistorico() {
+    const tb = document.getElementById('tbHist');
+    tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    try {
+        const d = await fetch('/api/admin/conciliacao/historico').then(r=>r.json());
+        const lista = d.ordens || [];
+        if (!lista.length) {
+            tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-history"></i><p>Nenhuma confirmação registrada</p></td></tr>';
+            return;
+        }
+        tb.innerHTML = lista.map(o => `<tr>
+            <td>${fmtD(o.data)}</td>
+            <td style="font-weight:600;">${o.cliente_nome||'—'}</td>
+            <td>${o.loja||'—'}</td>
+            <td class="mono">${fmtN(o.valor_entrada,2)} ${o.moeda_entrada||''}</td>
+            <td class="mono" style="font-size:12px;">${o.conta_empresa||'—'}</td>
+            <td><span class="tag tag-${o.status}">${o.status}</span></td>
+            <td style="font-size:12px;color:var(--cor-texto-secundario);">${o.confirmado_por||'—'}</td>
+        </tr>`).join('');
+    } catch(e) {
+        tb.innerHTML = `<tr><td colspan="7" style="color:var(--cor-perigo);padding:20px;">${e.message}</td></tr>`;
+    }
+}
+
+// ── STATS ──────────────────────────────────────────────────────────
+
+async function carregarStats() {
+    try {
+        const hoje = new Date().toISOString().slice(0,10);
+        const hist = await fetch('/api/admin/conciliacao/historico').then(r=>r.json());
+        const hojeCount = (hist.ordens||[]).filter(o => (o.updated_at||'').slice(0,10) === hoje).length;
+        document.getElementById('st-hoje').textContent = hojeCount;
+    } catch(e) {}
+}
+
+// ── INIT ───────────────────────────────────────────────────────────
+carregarPendentes();
+carregarStats();
+</script>
+<script src="/static/js/theme.js"></script>
+</body>
+</html>

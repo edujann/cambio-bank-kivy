@@ -355,13 +355,13 @@ async function carregarStats() {
     try {
         const [rLib, rHold, rComp, rDesp] = await Promise.all([
             fetch('/api/admin/ordens/liberadas'),
-            fetch('/api/loja/ordens?status=on_hold'),
+            fetch('/api/loja/ordens?status_in=on_hold,compliance_review'),
             fetch('/api/compliance/ordens'),
             fetch('/api/admin/despachos'),
         ]);
         const [dLib, dHold, dComp, dDesp] = await Promise.all([rLib.json(), rHold.json(), rComp.json(), rDesp.json()]);
         const lib = dLib.ordens || [];
-        const hold = dHold.ordens || [];
+        const hold = (dHold.ordens || []).filter(o => o.forma_pagamento === 'transferencia' && !o.pagamento_confirmado);
         const comp = dComp.ordens || [];
         const hoje = new Date().toISOString().slice(0,10);
         const despHoje = (dDesp.despachos||[]).filter(d => (d.created_at||'').slice(0,10) === hoje);
@@ -475,9 +475,10 @@ async function carregarOnHold() {
     const tb = document.getElementById('holdBody');
     tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
     try {
-        const r = await fetch('/api/loja/ordens?status=on_hold');
+        // Inclui compliance_review pois transferências com AML também precisam de confirmação de TED
+        const r = await fetch('/api/loja/ordens?status_in=on_hold,compliance_review');
         const d = await r.json();
-        const lista = d.ordens || [];
+        const lista = (d.ordens || []).filter(o => o.forma_pagamento === 'transferencia' && !o.pagamento_confirmado);
         document.getElementById('tbl-hold-count').textContent = `(${lista.length})`;
         if (!lista.length) {
             tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-inbox"></i><p>Nenhuma ordem on hold</p></td></tr>';
@@ -493,7 +494,7 @@ async function carregarOnHold() {
                 <td class="mono c-verde">${o.moeda_saida==='BRL'?'R$ ':''}${fmtN(o.valor_saida)} ${o.moeda_saida||''}</td>
                 <td class="${compCls}" style="font-size:12px;">${compTxt}</td>
                 <td>${o.loja||'—'}</td>
-                <td><button class="btn-act g" onclick="confirmarRecebimento('${o.id}')"><i class="fas fa-check"></i> Confirmar TED</button></td>
+                <td style="font-size:11px;color:var(--cor-texto-secundario);"><i class="fas fa-university"></i> Conciliação Bancária</td>
             </tr>`;
         }).join('');
     } catch(e) {

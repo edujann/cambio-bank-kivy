@@ -323,7 +323,7 @@
             <i class="fas fa-plus"></i> Nova Ordem
         </button>
         <div class="filters-wrap">
-            <button class="fpill active" data-status="" onclick="filtrar('',this)">Todas</button>
+            <button class="fpill active" data-status="" onclick="filtrar('',this)">Ativas</button>
             <button class="fpill" data-status="on_hold" onclick="filtrar('on_hold',this)">On Hold</button>
             <button class="fpill" data-status="liberada" onclick="filtrar('liberada',this)">Liberadas</button>
             <button class="fpill" data-status="despachada" onclick="filtrar('despachada',this)">Despachadas</button>
@@ -949,12 +949,22 @@ function atualizarStats(ordens) {
 }
 
 // ══ ORDENS TABLE ═══════════════════════════════════════════════════
+const STATUS_ATIVOS = 'liberada,on_hold,compliance_review,despachada';
+
 async function carregarOrdens() {
     const de  = document.getElementById('filtroDataDe').value;
     const ate = document.getElementById('filtroDataAte').value;
-    let url = `/api/loja/ordens?status=${filtroStatus}`;
-    if (de)  url += `&data_de=${de}`;
-    if (ate) url += `&data_ate=${ate}`;
+    // Sem filtro de status específico: sempre mostra as 4 ordens ativas sem restrição de data
+    let url;
+    if (!filtroStatus || filtroStatus === '') {
+        url = `/api/loja/ordens?status_in=${STATUS_ATIVOS}`;
+        if (de)  url += `&data_de=${de}`;
+        if (ate) url += `&data_ate=${ate}`;
+    } else {
+        url = `/api/loja/ordens?status=${filtroStatus}`;
+        if (de)  url += `&data_de=${de}`;
+        if (ate) url += `&data_ate=${ate}`;
+    }
     const tb = document.getElementById('ordensBody');
     tb.innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
     try {
@@ -2147,10 +2157,7 @@ document.addEventListener('click', e => {
 });
 
 // ══ INIT ════════════════════════════════════════════════════════════
-// Inicializa filtros com a data de hoje
-const _hoje = new Date().toISOString().slice(0,10);
-document.getElementById('filtroDataDe').value  = _hoje;
-document.getElementById('filtroDataAte').value = _hoje;
+// Datas vazias por padrão — ordens ativas aparecem sempre independente de data
 
 carregarOrdens();   // stats são calculadas dentro de carregarOrdens
 carregarContas();
