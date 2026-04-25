@@ -1157,7 +1157,7 @@ async function abrirOrdem(id) {
         document.getElementById('mo-status').innerHTML = `<span class="tag tag-${ordem.status}">${ordem.status}</span>`;
         
         // Alertas AML
-        const alertas = ordem.aml_alertas ? ordem.aml_alertas.split(',').map(a=>a.trim()).filter(Boolean) : [];
+        const alertas = Array.isArray(ordem.aml_alertas) ? ordem.aml_alertas : String(ordem.aml_alertas||'').split(',').map(a=>a.trim()).filter(Boolean);
         const amlHtml = alertas.length
             ? alertas.map(a => {
                 const info = AML_DESCRICOES[a];
@@ -1335,7 +1335,7 @@ async function abrirOrdem(id) {
         // CHECKLIST COMPLIANCE
         // ============================================
         const ordemDocs = documentos.filter(doc => !['photo_id','proof_address'].includes(doc.tipo));
-        const alertasList = ordem.aml_alertas ? ordem.aml_alertas.split(',').map(a=>a.trim()).filter(Boolean) : [];
+        const alertasList = Array.isArray(ordem.aml_alertas) ? ordem.aml_alertas : String(ordem.aml_alertas||'').split(',').map(a=>a.trim()).filter(Boolean);
         const temPEP = alertasList.includes('PEP_SCREENING_REQUIRED');
         const pepNeg = cliente && !cliente.pep_flag;
 
@@ -2951,9 +2951,7 @@ function renderConsultaOrdem(d) {
     const saida = fmtVal(o.valor_saida, o.moeda_saida);
     const dataStr = o.data ? o.data.substring(0,10) : '—';
 
-    const amlList = typeof o.aml_alertas === 'string'
-        ? o.aml_alertas.split(',').map(s=>s.trim()).filter(Boolean)
-        : (o.aml_alertas || []);
+    const amlList = Array.isArray(o.aml_alertas) ? o.aml_alertas : String(o.aml_alertas||'').split(',').map(s=>s.trim()).filter(Boolean);
     const alertas = amlList.length
         ? amlList.map(a => {
             const info = AML_DESCRICOES[a];

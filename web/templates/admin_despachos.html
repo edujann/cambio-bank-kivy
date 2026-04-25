@@ -524,7 +524,7 @@ async function carregarCompliance() {
             return;
         }
         tb.innerHTML = lista.map(o => {
-            const alertas = (o.aml_alertas||'').split(',').filter(Boolean);
+            const alertas = Array.isArray(o.aml_alertas) ? o.aml_alertas : String(o.aml_alertas||'').split(',').map(s=>s.trim()).filter(Boolean);
             const amlHtml = alertas.map(a => `<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(243,156,18,.15);color:var(--cor-alerta);margin:1px;">${amlLabels[a]||a}</span>`).join('');
             const pgtoHtml = o.pagamento_confirmado
                 ? `<span class="flag-pgto-ok"><i class="fas fa-check-circle"></i> Confirmado</span>`
