@@ -724,27 +724,40 @@
                 const cambioText = cliente.cambio_liberado ? 'Liberado' : 'Bloqueado';
                 row.insertCell(4).innerHTML = `<span class="status-badge ${cambioClass}">${cambioText}</span>`;
                 
-                // Contas
-                row.insertCell(5).innerHTML = `<button class="btn-acao btn-contas" onclick="verContas('${cliente.username}')" title="Ver contas">
-                    <i class="fas fa-wallet"></i> ${cliente.total_contas || 0}
-                </button>`;
-                
-                // 🔥 AÇÕES - BOTÕES 🔥
+                // Contas — usa data-* para evitar XSS em onclick
+                const contasBtn = document.createElement('button');
+                contasBtn.className = 'btn-acao btn-contas';
+                contasBtn.title = 'Ver contas';
+                contasBtn.dataset.username = cliente.username;
+                contasBtn.innerHTML = `<i class="fas fa-wallet"></i> ${Number(cliente.total_contas) || 0}`;
+                contasBtn.addEventListener('click', () => verContas(contasBtn.dataset.username));
+                row.insertCell(5).appendChild(contasBtn);
+
+                // Ações
                 const acoesCell = row.insertCell(6);
-                acoesCell.innerHTML = `
-                    <button class="btn-acao btn-detalhes" onclick="verDetalhes('${cliente.username}')" title="Ver detalhes">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="btn-acao btn-editar" onclick="editarCliente('${cliente.username}')" title="Editar">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn-acao btn-cambio" onclick="toggleCambio('${cliente.username}', ${cliente.cambio_liberado})" title="${cliente.cambio_liberado ? 'Bloquear câmbio' : 'Liberar câmbio'}">
-                        <i class="fas fa-exchange-alt"></i>
-                    </button>
-                    <button class="btn-acao btn-bloquear" onclick="toggleStatus('${cliente.username}', '${cliente.status}')" title="${cliente.status === 'bloqueado' ? 'Ativar' : 'Bloquear'}">
-                        <i class="fas fa-${cliente.status === 'bloqueado' ? 'check-circle' : 'ban'}"></i>
-                    </button>
-                `;
+                const btnDet = document.createElement('button');
+                btnDet.className = 'btn-acao btn-detalhes'; btnDet.title = 'Ver detalhes';
+                btnDet.innerHTML = '<i class="fas fa-eye"></i>';
+                btnDet.addEventListener('click', () => verDetalhes(cliente.username));
+
+                const btnEd = document.createElement('button');
+                btnEd.className = 'btn-acao btn-editar'; btnEd.title = 'Editar';
+                btnEd.innerHTML = '<i class="fas fa-edit"></i>';
+                btnEd.addEventListener('click', () => editarCliente(cliente.username));
+
+                const btnCambio = document.createElement('button');
+                btnCambio.className = 'btn-acao btn-cambio';
+                btnCambio.title = cliente.cambio_liberado ? 'Bloquear câmbio' : 'Liberar câmbio';
+                btnCambio.innerHTML = '<i class="fas fa-exchange-alt"></i>';
+                btnCambio.addEventListener('click', () => toggleCambio(cliente.username, cliente.cambio_liberado));
+
+                const btnBlq = document.createElement('button');
+                btnBlq.className = 'btn-acao btn-bloquear';
+                btnBlq.title = cliente.status === 'bloqueado' ? 'Ativar' : 'Bloquear';
+                btnBlq.innerHTML = `<i class="fas fa-${cliente.status === 'bloqueado' ? 'check-circle' : 'ban'}"></i>`;
+                btnBlq.addEventListener('click', () => toggleStatus(cliente.username, cliente.status));
+
+                [btnDet, btnEd, btnCambio, btnBlq].forEach(b => acoesCell.appendChild(b));
             }
             
             atualizarPaginacao();

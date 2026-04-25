@@ -11,14 +11,18 @@ import hashlib
 import re
 import random
 import threading
-from datetime import datetime, timezone  # ← CORRETO: import único  
+import logging
+from datetime import datetime, timezone
+from functools import wraps
+from collections import defaultdict
+import time
 
 # ============================================
 # IMPORTS DE TERCEIROS
 # ============================================
 import requests
-import pytz 
-from flask import Flask, jsonify, request, render_template, send_from_directory, redirect, session
+import pytz
+from flask import Flask, jsonify, request, render_template, send_from_directory, redirect, session, abort
 from flask_cors import CORS
 from dotenv import load_dotenv
 
@@ -42,23 +46,14 @@ try:
     supabase_url = os.getenv('SUPABASE_URL')
     supabase_key = os.getenv('SUPABASE_KEY')
     
-    print(f"DEBUG: Tentando conectar ao Supabase...")
-    print(f"DEBUG: URL: {supabase_url}")
-    print(f"DEBUG: Key (início): {supabase_key[:30] if supabase_key else 'None'}...")
-    
     if supabase_url and supabase_key:
         supabase = create_client(supabase_url, supabase_key)
         print("✅ Conectado ao Supabase!")
-        print(f"DEBUG: Conexão bem-sucedida!")
     else:
-        print("⚠️  Variáveis do Supabase não encontradas")
-        print(f"DEBUG: URL existe: {bool(supabase_url)}")
-        print(f"DEBUG: Key existe: {bool(supabase_key)}")
+        print("⚠️  Variáveis SUPABASE_URL / SUPABASE_KEY não encontradas no .env")
         supabase = None
 except Exception as e:
     print(f"❌ Erro ao conectar ao Supabase: {e}")
-    import traceback
-    traceback.print_exc()
     supabase = None
 
 # ============================================
@@ -172,11 +167,69 @@ def verificar_documentos_validos(cliente_id):
 
 # Cria app Flask
 app = Flask(__name__)
-CORS(app)  # Permite conexão do frontend
 
-# ✅ ADICIONE ESTAS 2 LINHAS PARA CONFIGURAR SESSÕES
-import secrets
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', secrets.token_hex(32))
+# Secret key — DEVE ser definida via env var em produção
+import secrets as _secrets
+app.secret_key = os.environ.get('FLASK_SECRET_KEY') or _secrets.token_hex(32)
+
+# Cookies de sessão seguros
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_ENV') == 'production'
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10 MB máximo por request
+
+# CORS — permite apenas origens conhecidas
+_cors_origins = os.environ.get('CORS_ORIGINS', 'http://localhost:5000').split(',')
+CORS(app, origins=_cors_origins, supports_credentials=True)
+
+# Logger de segurança
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+_sec_log = logging.getLogger('security')
+
+_IS_DEBUG = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+
+def _err(e, context=''):
+    """Loga o erro internamente e retorna mensagem segura para o cliente."""
+    _sec_log.error(f"Erro interno [{context}]: {e}", exc_info=False)
+    if _IS_DEBUG:
+        return str(e)
+    return "Erro interno. Tente novamente."
+
+# Rate limiter simples em memória (por IP)
+_rate_store: dict = defaultdict(list)
+_RATE_WINDOW = 60   # segundos
+_RATE_MAX_LOGIN = 10  # tentativas de login por minuto por IP
+
+def _rate_limit_login():
+    """Retorna True se o IP excedeu o limite de tentativas de login."""
+    ip = request.remote_addr or 'unknown'
+    now = time.time()
+    calls = _rate_store[ip]
+    # Remove registros antigos
+    _rate_store[ip] = [t for t in calls if now - t < _RATE_WINDOW]
+    if len(_rate_store[ip]) >= _RATE_MAX_LOGIN:
+        _sec_log.warning(f"Rate limit atingido para IP {ip}")
+        return True
+    _rate_store[ip].append(now)
+    return False
+
+# Security headers em todas as respostas
+@app.after_request
+def set_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Permissions-Policy'] = 'geolocation=(), microphone=()'
+    # CSP básica — permite CDN usadas nos templates
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+        "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; "
+        "img-src 'self' data: blob:; "
+        "connect-src 'self';"
+    )
+    return response
 # ============================================
 # ENDPOINTS BÁSICOS (VAMOS COMEÇAR COM ESTES)
 # ============================================
@@ -258,11 +311,8 @@ def test_supabase():
             }
         })
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": "❌ Erro ao acessar Supabase",
-            "error": str(e)
-        }), 500
+        _sec_log.error(f"Erro ao testar Supabase: {e}")
+        return jsonify({"success": False, "message": "Erro ao acessar banco de dados"}), 500
 
 # ============================================
 # CONFIGURAÇÃO DO SERVIDOR
@@ -271,82 +321,68 @@ def test_supabase():
 @app.route('/api/login', methods=['POST'])
 def login():
     """Autentica um usuário"""
+    if _rate_limit_login():
+        return jsonify({"success": False, "message": "Muitas tentativas. Aguarde um momento."}), 429
+
     if supabase is None:
-        return jsonify({
-            "success": False,
-            "message": "Sistema indisponível"
-        }), 500
-    
+        return jsonify({"success": False, "message": "Sistema indisponível"}), 500
+
     try:
         dados = request.json
-        
+
         if not dados:
-            return jsonify({
-                "success": False,
-                "message": "Dados de login não fornecidos"
-            }), 400
-        
-        usuario = dados.get('usuario')
-        senha = dados.get('senha')
-        
+            return jsonify({"success": False, "message": "Dados de login não fornecidos"}), 400
+
+        usuario = dados.get('usuario', '').strip()
+        senha = dados.get('senha', '')
+
         if not usuario or not senha:
-            return jsonify({
-                "success": False,
-                "message": "Usuário e senha são obrigatórios"
-            }), 400
-        
-        # 🔐 Calcula o hash SHA-256 da senha fornecida
+            return jsonify({"success": False, "message": "Usuário e senha são obrigatórios"}), 400
+
+        # Valida tamanho para evitar abuso
+        if len(usuario) > 100 or len(senha) > 200:
+            return jsonify({"success": False, "message": "Usuário ou senha inválidos"}), 401
+
         senha_hash = hashlib.sha256(senha.encode()).hexdigest()
-        
-        # 🔍 Busca o usuário no Supabase
+
         response = supabase.table('usuarios')\
             .select('*')\
             .eq('username', usuario)\
             .eq('senha_hash', senha_hash)\
             .execute()
-        
-        if not response.data or len(response.data) == 0:
-            return jsonify({
-                "success": False,
-                "message": "Usuário ou senha inválidos"
-            }), 401
-        
+
+        if not response.data:
+            _sec_log.warning(f"Falha de login para usuário '{usuario}' IP={request.remote_addr}")
+            return jsonify({"success": False, "message": "Usuário ou senha inválidos"}), 401
+
         usuario_data = response.data[0]
 
-        # 🔥 🔥 🔥 VERIFICAR SE O USUÁRIO ESTÁ BLOQUEADO 🔥 🔥 🔥
-        status = usuario_data.get('status', 'ativo')
-        if status == 'bloqueado':
-            return jsonify({
-                "success": False,
-                "message": "Usuário bloqueado! Entre em contato com o administrador."
-            }), 401        
-        
-        # 🚫 Remove a senha da resposta por segurança
-        if 'senha_hash' in usuario_data:
-            del usuario_data['senha_hash']
-        
-        # ✅ CRÍTICO: Salva o usuário na SESSÃO Flask
+        if usuario_data.get('status') == 'bloqueado':
+            _sec_log.warning(f"Login bloqueado para '{usuario}'")
+            return jsonify({"success": False, "message": "Usuário bloqueado. Entre em contato com o administrador."}), 401
+
+        # Remove campos sensíveis da resposta
+        usuario_data.pop('senha_hash', None)
+
+        session.clear()
         session['username'] = usuario_data['username']
         session['nome'] = usuario_data.get('nome', usuario_data['username'])
-        session['email'] = usuario_data.get('email', f"{usuario_data['username']}@exemplo.com")
+        session['email'] = usuario_data.get('email', '')
         session['user_id'] = usuario_data['id']
-        session['tipo'] = usuario_data.get('tipo', 'cliente')  # 🔥 ADICIONE ESTA LINHA!
-        
-        print(f"✅ Login: {usuario} - Tipo: {session['tipo']}")  # 🔥 ADICIONE ESTA LINHA (DEBUG)
-        
+        session['tipo'] = usuario_data.get('tipo', 'cliente')
+
+        _sec_log.info(f"Login OK: {usuario} tipo={session['tipo']} IP={request.remote_addr}")
+
         return jsonify({
             "success": True,
             "message": "Login realizado com sucesso",
             "usuario": usuario_data,
-            "tipo": usuario_data.get('tipo', 'cliente')  # 🔥 ADICIONE ESTA LINHA!
+            "tipo": usuario_data.get('tipo', 'cliente')
         })
-        
+
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": "Erro ao processar login",
-            "error": str(e)
-        }), 500
+        _sec_log.error(f"Erro no login: {e}")
+        return jsonify({"success": False, "message": "Erro interno. Tente novamente."}), 500
 
 # ============================================
 # FUÇÃO PARA OS EXTRATOS USAREM EM CASO DE ESTORNO
@@ -686,7 +722,7 @@ def dashboard_data(username):
         return jsonify({
             "success": False,
             "message": "Erro ao buscar dados do dashboard",
-            "error": str(e)
+            "error": _err(e)
         }), 500
     
 @app.route('/api/dashboard/saldos')
@@ -728,7 +764,7 @@ def get_dashboard_saldos():
         print(f"❌ Erro no dashboard: {e}")
         return jsonify({
             "success": False,
-            "message": f"Erro ao carregar dashboard: {str(e)}"
+            "message": _err(e)
         }), 500
 
 @app.route('/logout')
@@ -1084,8 +1120,7 @@ def criar_transferencia_cliente():
                     
             except Exception as upload_error:
                 print(f"⚠️  Erro ao processar upload da invoice: {upload_error}")
-                import traceback
-                traceback.print_exc()
+                _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
                 # NÃO LANÇAR ERRO - A TRANSFERÊNCIA JÁ FOI CRIADA!
                 print(f"⚠️  Continuando sem invoice...")
             
@@ -1110,11 +1145,10 @@ def criar_transferencia_cliente():
             
     except Exception as e:
         print(f"❌❌❌ ERRO CRÍTICO NA API criar_transferencia: {e}")
-        import traceback
-        traceback.print_exc()
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         return jsonify({
                 "success": False,
-                "message": f"Erro interno: {str(e)}"
+                "message": _err(e)
         }), 500
     
 @app.route('/api/transferencias/<transferencia_id>/invoice/upload', methods=['POST'])
@@ -1232,9 +1266,8 @@ def upload_invoice_nova_transferencia(transferencia_id):
         
     except Exception as e:
         print(f"❌ [UPLOAD-NOVA] Erro: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': f'Erro interno: {str(e)}'}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({'error': _err(e)}), 500
     
 @app.route('/api/user')
 def get_user_info():
@@ -1279,7 +1312,7 @@ def get_user_info():
         print(f"❌ Erro ao buscar usuário do Supabase: {e}")
         return jsonify({
             "success": False,
-            "message": f"Erro ao carregar dados do usuário: {str(e)}"
+            "message": _err(e)
         }), 500
 
 @app.route('/api/user/contas')
@@ -1318,7 +1351,7 @@ def get_user_contas():
         print(f"❌ Erro ao buscar contas do Supabase: {e}")
         return jsonify({
             "success": False,
-            "message": f"Erro ao carregar contas: {str(e)}",
+            "message": _err(e),
             "contas": []
         }), 500
 
@@ -1408,11 +1441,10 @@ def get_beneficiarios():
                 
     except Exception as e:
         print(f"❌ Erro em /api/beneficiarios: {e}")
-        import traceback
-        traceback.print_exc()
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         return jsonify({
             "success": False,
-            "message": f"Erro ao processar beneficiários: {str(e)}",
+            "message": _err(e),
             "beneficiarios": []
         }), 500
 
@@ -1454,11 +1486,10 @@ def get_beneficiario_detalhe(benef_id):
             
     except Exception as e:
         print(f"❌ Erro ao buscar beneficiário {benef_id}: {e}")
-        import traceback
-        traceback.print_exc()
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         return jsonify({
             "success": False,
-            "message": f"Erro ao carregar beneficiário: {str(e)}"
+            "message": _err(e)
         }), 500
 
 @app.route('/transferencia')
@@ -1563,7 +1594,7 @@ def handle_beneficiarios():
         return jsonify({
             "success": False,
             "message": "Erro ao processar beneficiários",
-            "error": str(e)
+            "error": _err(e)
         }), 500
 
 # ============================================================================
@@ -1613,7 +1644,7 @@ def get_user_info_web():
         print(f"❌ Erro ao buscar usuário do Supabase: {e}")
         return jsonify({
             "success": False,
-            "message": f"Erro ao carregar dados do usuário: {str(e)}"
+            "message": _err(e)
         }), 500
     
 @app.route('/api/user/contas')
@@ -1926,8 +1957,7 @@ def api_transferencias_internacionais():
         
     except Exception as e:
         print(f"❌ [API] Erro: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         return jsonify([])
     
 # === ENDPOINT ESPECÍFICO PARA PDF ===
@@ -2030,8 +2060,7 @@ def transferencia_completa(transferencia_id):
         
     except Exception as e:
         print(f"❌ [PDF API] Erro: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         return jsonify({'error': 'Erro interno do servidor'}), 500
     
 @app.route('/api/transferencias/<transferencia_id>/invoice/verificar')
@@ -2081,7 +2110,7 @@ def verificar_invoice(transferencia_id):
             
     except Exception as e:
         print(f"❌ [VERIFICAR] Erro: {e}")
-        return jsonify({'available': False, 'error': str(e)}), 500
+        return jsonify({'available': False, 'error': _err(e)}), 500
 
 @app.route('/api/transferencias/<transferencia_id>/upload-invoice', methods=['POST'])
 def upload_invoice_web(transferencia_id):
@@ -2223,9 +2252,8 @@ def upload_invoice_web(transferencia_id):
         
     except Exception as e:
         print(f"❌ [UPLOAD-WEB] Erro: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': f'Erro interno: {str(e)}'}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({'error': _err(e)}), 500
 
 @app.route('/api/transferencias/<transferencia_id>/invoice')
 def download_invoice(transferencia_id):
@@ -2299,9 +2327,8 @@ def download_invoice(transferencia_id):
         
     except Exception as e:
         print(f"❌ [DOWNLOAD] Erro: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({'error': _err(e)}), 500
 
 # ROTA ALTERNATIVA PARA VERIFICAR DISPONIBILIDADE DA INVOICE
 @app.route('/api/transferencias/<transferencia_id>/invoice/reenviar', methods=['POST'])
@@ -2450,9 +2477,8 @@ def reenviar_invoice(transferencia_id):
         
     except Exception as e:
         print(f"❌ [REENVIO-WEB] Erro: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': f'Erro interno: {str(e)}'}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({'error': _err(e)}), 500
 
 @app.route('/api/transferencias/<transferencia_id>/invoice/status')
 def check_invoice_status(transferencia_id):
@@ -2562,9 +2588,8 @@ def check_invoice_status(transferencia_id):
         
     except Exception as e:
         print(f"❌ [STATUS] Erro: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'available': False, 'error': str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({'available': False, 'error': _err(e)}), 500
     
 @app.route('/api/test-storage-simple')
 def test_storage_simple():
@@ -2595,7 +2620,7 @@ def test_storage_simple():
         except Exception as e:
             return jsonify({
                 'success': False,
-                'message': f'Erro ao acessar bucket: {str(e)}',
+                'message': _err(e),
                 'error_type': str(type(e).__name__)
             })
             
@@ -2786,11 +2811,10 @@ def editar_beneficiario(benef_id):
             
     except Exception as e:
         print(f"❌ Erro em editar_beneficiario: {e}")
-        import traceback
-        traceback.print_exc()
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         return jsonify({
             "success": False,
-            "message": f"Erro interno: {str(e)}"
+            "message": _err(e)
         }), 500
     
 @app.route('/api/beneficiarios/<int:benef_id>', methods=['DELETE'])
@@ -2845,11 +2869,10 @@ def excluir_beneficiario(benef_id):
             
     except Exception as e:
         print(f"❌ Erro em excluir_beneficiario: {e}")
-        import traceback
-        traceback.print_exc()
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         return jsonify({
             "success": False,
-            "message": f"Erro interno: {str(e)}"
+            "message": _err(e)
         }), 500
     
 @app.route('/api/beneficiarios/<int:benef_id>', methods=['DELETE'])
@@ -2907,11 +2930,10 @@ def excluir_beneficiario_api(benef_id):
             
     except Exception as e:
         print(f"❌ Erro em excluir_beneficiario_api: {e}")
-        import traceback
-        traceback.print_exc()
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         return jsonify({
             "success": False,
-            "message": f"Erro interno: {str(e)}"
+            "message": _err(e)
         }), 500
 
 @app.route('/api/beneficiarios/<int:benef_id>', methods=['PUT'])
@@ -3013,11 +3035,10 @@ def editar_beneficiario_api(benef_id):
             
     except Exception as e:
         print(f"❌ Erro em editar_beneficiario_api: {e}")
-        import traceback
-        traceback.print_exc()
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         return jsonify({
             "success": False,
-            "message": f"Erro interno: {str(e)}"
+            "message": _err(e)
         }), 500
     
 # ============================================
@@ -3108,12 +3129,11 @@ def obter_contas_usuario():
         
     except Exception as e:
         print(f"❌ [CONTAS] ERRO: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         
         return jsonify({
             "success": False,
-            "message": f"Erro ao buscar contas: {str(e)}"
+            "message": _err(e)
         }), 500
 
 # 🔥 FUNÇÃO AUXILIAR: Buscar transferências da conta
@@ -3515,11 +3535,10 @@ def exportar_extrato_pdf():
         
     except Exception as e:
         print(f"❌ [PDF] Erro: {e}")
-        import traceback
-        traceback.print_exc()
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         return jsonify({
             "success": False,
-            "message": f"Erro ao gerar PDF: {str(e)}"
+            "message": _err(e)
         }), 500
 
 @app.route('/api/debug/contas')
@@ -3545,7 +3564,7 @@ def debug_contas():
         })
         
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": _err(e)}), 500
     
 @app.route('/api/extrato_kivy')
 def obter_extrato_kivy():
@@ -4860,11 +4879,10 @@ def obter_extrato_kivy():
         
     except Exception as e:
         print(f"❌ [EXTRATO KIVY] ERRO: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         return jsonify({
             "success": False,
-            "message": f"Erro ao buscar extrato: {str(e)}"
+            "message": _err(e)
         }), 500
 
 
@@ -5029,8 +5047,7 @@ def obter_cotacao_simples(par_moedas):
         
     except Exception as e:
         print(f"❌ Erro crítico em obter_cotacao_simples: {e}")
-        import traceback
-        traceback.print_exc()
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         return 1.0
 
 def obter_spread_cliente(usuario, par_moedas):
@@ -5274,8 +5291,7 @@ def api_pares_disponiveis(usuario):
         
     except Exception as e:
         print(f"❌ Erro em api_pares_disponiveis: {e}")
-        import traceback
-        traceback.print_exc()
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         return jsonify({
             'success': False,
             'error': str(e),
@@ -5370,8 +5386,7 @@ def api_calcular_cambio():
         
     except Exception as e:
         print(f"❌ Erro em api_calcular_cambio: {e}")
-        import traceback
-        traceback.print_exc()
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         return jsonify({
             'success': False,
             'error': str(e)
@@ -5445,8 +5460,7 @@ def api_cotacao():
         
     except Exception as e:
         print(f"❌ Erro em api_cotacao: {e}")
-        import traceback
-        traceback.print_exc()
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         return jsonify({
             'success': False,
             'error': str(e)
@@ -5589,7 +5603,7 @@ def api_uso_diario(usuario):
 
         return jsonify({'success': True, 'usado': usado, 'limite': limite})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/historico-cambio/<usuario>')
@@ -5608,7 +5622,7 @@ def api_historico_cambio(usuario):
             .execute()
         return jsonify({'success': True, 'trades': res.data or []})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/notificacoes/cambio')
@@ -5627,7 +5641,7 @@ def api_admin_notificacoes_cambio():
         res = query.order('created_at', desc=True).limit(20).execute()
         return jsonify({'success': True, 'trades': res.data or []})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/verificar-saldos/<usuario>', methods=['POST'])
@@ -5873,8 +5887,7 @@ def api_executar_cambio():
         
     except Exception as e:
         print(f"❌ Erro ao executar câmbio: {e}")
-        import traceback
-        traceback.print_exc()
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         return jsonify({
             'success': False,
             'error': str(e)
@@ -6175,8 +6188,7 @@ def perfil():
         
     except Exception as e:
         print(f"❌ Erro ao carregar perfil: {e}")
-        import traceback
-        traceback.print_exc()
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         # Fallback seguro
         return render_template('perfil.html',
                              usuario=usuario,
@@ -6320,9 +6332,8 @@ def api_admin_dashboard():
         
     except Exception as e:
         print(f"❌ Erro no admin dashboard: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 # ============================================
@@ -6408,7 +6419,7 @@ def api_admin_clientes():
         
     except Exception as e:
         print(f"❌ Erro ao listar clientes: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/clientes/<username>/toggle-cambio', methods=['POST'])
@@ -6471,7 +6482,7 @@ def api_admin_toggle_cambio(username):
         
     except Exception as e:
         print(f"❌ Erro ao alterar permissão de câmbio: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
     
 @app.route('/api/admin/clientes/toggle-status', methods=['POST'])
 def api_admin_toggle_status():
@@ -6525,7 +6536,7 @@ def api_admin_toggle_status():
         
     except Exception as e:
         print(f"❌ Erro ao alterar status: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
     
 
 # ============================================
@@ -6631,7 +6642,7 @@ def api_admin_contas_bancarias():
         
     except Exception as e:
         print(f"❌ Erro ao buscar contas bancárias: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/contas-bancarias', methods=['POST'])
@@ -6709,7 +6720,7 @@ def api_admin_criar_conta_bancaria():
         
     except Exception as e:
         print(f"❌ Erro ao criar conta bancária: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/contas-bancarias/deposito', methods=['POST'])
@@ -6799,7 +6810,7 @@ def api_admin_deposito_conta():
         
     except Exception as e:
         print(f"❌ Erro ao realizar depósito: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/contas-bancarias/saque', methods=['POST'])
@@ -6894,7 +6905,7 @@ def api_admin_saque_conta():
         
     except Exception as e:
         print(f"❌ Erro ao realizar saque: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/contas-bancarias/ajuste', methods=['POST'])
@@ -7003,7 +7014,7 @@ def api_admin_ajuste_saldo():
         
     except Exception as e:
         print(f"❌ Erro ao realizar ajuste: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/contas-bancarias/cambio', methods=['POST'])
@@ -7127,7 +7138,7 @@ def api_admin_cambio_contas():
         
     except Exception as e:
         print(f"❌ Erro ao realizar câmbio: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 # ============================================
@@ -7872,9 +7883,8 @@ def api_admin_extrato_conta():
         
     except Exception as e:
         print(f"❌ Erro ao buscar extrato: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/gerenciar-contas/extrato-kivy', methods=['POST'])
@@ -8506,11 +8516,10 @@ def api_admin_extrato_kivy():
         
     except Exception as e:
         print(f"❌ [EXTRATO ADMIN KIVY] ERRO: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         return jsonify({
             "success": False,
-            "message": f"Erro ao buscar extrato: {str(e)}"
+            "message": _err(e)
         }), 500
 
 # ============================================
@@ -8618,9 +8627,8 @@ def api_admin_aprovar_operacoes():
         
     except Exception as e:
         print(f"❌ Erro ao buscar operações: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 def processar_transferencia_sync(transf):
@@ -8755,7 +8763,7 @@ def api_admin_aprovar_transferencia():
         
     except Exception as e:
         print(f"❌ Erro ao aprovar transferência: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/aprovar-operacoes/recusar', methods=['POST'])
@@ -8849,7 +8857,7 @@ def api_admin_recusar_transferencia():
         
     except Exception as e:
         print(f"❌ Erro ao recusar transferência: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/aprovar-operacoes/concluir', methods=['POST'])
@@ -8951,7 +8959,7 @@ def api_admin_concluir_transferencia():
         
     except Exception as e:
         print(f"❌ Erro ao concluir transferência: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/aprovar-operacoes/concluir-swift', methods=['POST'])
@@ -9055,7 +9063,7 @@ def api_admin_concluir_transferencia_swift():
         
     except Exception as e:
         print(f"❌ Erro ao concluir transferência internacional: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/aprovar-operacoes/detalhes/<transferencia_id>', methods=['GET'])
@@ -9145,7 +9153,7 @@ def api_admin_detalhes_transferencia(transferencia_id):
         
     except Exception as e:
         print(f"❌ Erro ao buscar detalhes: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/aprovar-operacoes/invoice/<transferencia_id>', methods=['GET'])
@@ -9182,7 +9190,7 @@ def api_admin_invoice_info(transferencia_id):
         
     except Exception as e:
         print(f"❌ Erro ao buscar invoice: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/aprovar-operacoes/invoice/<transferencia_id>/download', methods=['GET'])
@@ -9248,7 +9256,7 @@ def api_admin_invoice_download(transferencia_id):
         
     except Exception as e:
         print(f"❌ Erro ao baixar invoice: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": _err(e)}), 500
 
 
 @app.route('/api/admin/aprovar-operacoes/invoice/aprovar', methods=['POST'])
@@ -9309,7 +9317,7 @@ def api_admin_invoice_aprovar():
         
     except Exception as e:
         print(f"❌ Erro ao aprovar invoice: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/aprovar-operacoes/invoice/recusar', methods=['POST'])
@@ -9385,7 +9393,7 @@ def api_admin_invoice_recusar():
         
     except Exception as e:
         print(f"❌ Erro ao recusar invoice: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
     
 
 # ============================================
@@ -9480,7 +9488,7 @@ def api_admin_cliente_contas(username):
         
     except Exception as e:
         print(f"❌ Erro ao buscar contas do cliente: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/confirmar-deposito', methods=['POST'])
@@ -9670,9 +9678,8 @@ def api_admin_confirmar_deposito():
         
     except Exception as e:
         print(f"❌ Erro ao confirmar depósito: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({"success": False, "message": _err(e)}), 500
     
 
 # ============================================
@@ -9778,7 +9785,7 @@ def api_admin_cliente_detalhes(username):
         
     except Exception as e:
         print(f"❌ Erro ao buscar detalhes do cliente: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/contas-contabeis', methods=['GET'])
@@ -9825,7 +9832,7 @@ def api_admin_contas_contabeis():
         
     except Exception as e:
         print(f"❌ Erro ao buscar contas contábeis: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/gerenciar-contas/ajuste', methods=['POST'])
@@ -9942,9 +9949,8 @@ def api_admin_gerenciar_ajuste():
         
     except Exception as e:
         print(f"❌ Erro ao realizar ajuste: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/gerenciar-contas/cambio', methods=['POST'])
@@ -10094,9 +10100,8 @@ def api_admin_gerenciar_cambio():
         
     except Exception as e:
         print(f"❌ Erro ao realizar câmbio: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/gerenciar-contas/extrato', methods=['POST'])
@@ -10234,9 +10239,8 @@ def api_admin_gerenciar_extrato():
         
     except Exception as e:
         print(f"❌ Erro ao buscar extrato: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/gerenciar-contas/despesa', methods=['POST'])
@@ -10351,9 +10355,8 @@ def api_admin_gerenciar_despesa():
         
     except Exception as e:
         print(f"❌ Erro ao lançar despesa: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/gerenciar-contas/receita', methods=['POST'])
@@ -10464,9 +10467,8 @@ def api_admin_gerenciar_receita():
         
     except Exception as e:
         print(f"❌ Erro ao lançar receita: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/gerenciar-contas/transferencia', methods=['POST'])
@@ -10697,9 +10699,8 @@ def api_admin_gerenciar_transferencia():
         
     except Exception as e:
         print(f"❌ Erro ao realizar transferência: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 # ============================================
 # FUNÇÕES AUXILIARES PARA ESTORNOS
@@ -10815,7 +10816,7 @@ def verificar_senha_admin():
             
     except Exception as e:
         print(f"❌ Erro ao verificar senha: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 # ============================================
 # ENDPOINT PARA BUSCAR TRANSAÇÃO POR ID
@@ -10952,9 +10953,8 @@ def buscar_transacao_por_id():
         
     except Exception as e:
         print(f"❌ Erro ao buscar transação: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({"success": False, "message": _err(e)}), 500
                     
 # ============================================
 # FUNÇÃO PRINCIPAL DE ESTORNO
@@ -11003,7 +11003,7 @@ def loja_contas_empresa():
         r = supabase.table('contas_bancarias_empresa').select('numero, banco, moeda, saldo').order('moeda').execute()
         return jsonify({'success': True, 'contas': r.data or []})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/loja/parceiros', methods=['GET'])
@@ -11015,7 +11015,7 @@ def loja_parceiros():
         r = supabase.table('usuarios').select('username, nome').eq('tipo', 'cliente').order('nome').execute()
         return jsonify({'success': True, 'parceiros': r.data or []})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/loja/clientes/buscar', methods=['GET'])
@@ -11038,7 +11038,7 @@ def loja_buscar_cliente():
         data.sort(key=lambda x: x.get('nome', ''))
         return jsonify({'success': True, 'clientes': data[:10]})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/loja/nova-ordem', methods=['POST'])
@@ -11305,8 +11305,8 @@ def loja_nova_ordem():
                         'status': status, 'valor_saida': valor_s,
                         'aml_alertas': aml_alertas, 'kyc_level': kyc_level_na_ordem})
     except Exception as e:
-        import traceback; traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/loja/ordens', methods=['GET'])
@@ -11336,7 +11336,7 @@ def loja_listar_ordens():
         r = q.execute()
         return jsonify({'success': True, 'ordens': r.data or []})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/loja/ordens/<ordem_id>/upload-proof', methods=['POST'])
@@ -11384,7 +11384,7 @@ def loja_upload_proof_of_funds(ordem_id):
         doc_id = r.data[0]['id'] if r.data else None
         return jsonify({'success': True, 'message': f'{tipo} enviado.', 'doc_id': doc_id})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/loja/ordens/<ordem_id>/documentos', methods=['GET'])
@@ -11407,7 +11407,7 @@ def loja_ordem_documentos(ordem_id):
             docs.append({**doc, 'signed_url': url})
         return jsonify({'success': True, 'documentos': docs})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/loja/ordens/<ordem_id>/liberar', methods=['POST'])
@@ -11451,8 +11451,8 @@ def loja_liberar_ordem(ordem_id):
 
         return jsonify({'success': True, 'message': 'Ordem liberada e conta creditada.'})
     except Exception as e:
-        import traceback; traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/loja/ordens/<ordem_id>/despachar', methods=['POST'])
@@ -11478,7 +11478,7 @@ def loja_despachar_ordem(ordem_id):
         }).eq('id', ordem_id).execute()
         return jsonify({'success': True, 'message': f'Ordem despachada para {parceiro}.'})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/loja/ordens/<ordem_id>/confirmar-pagamento', methods=['POST'])
@@ -11532,8 +11532,8 @@ def loja_confirmar_pagamento(ordem_id):
 
         return jsonify({'success': True, 'message': 'Pagamento confirmado. Extrato do parceiro atualizado.'})
     except Exception as e:
-        import traceback; traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 # ============================================
@@ -11895,7 +11895,7 @@ def clientes_listar():
         r = supabase.table('clientes_varejo').select('*').order('nome').limit(50).execute()
         return jsonify({'success': True, 'clientes': r.data or []})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/clientes', methods=['POST'])
@@ -11948,8 +11948,8 @@ def clientes_criar():
             r = supabase.table('clientes_varejo').insert(base).execute()
         return jsonify({'success': True, 'cliente': r.data[0] if r.data else {}, 'message': 'Cliente cadastrado com sucesso.'})
     except Exception as e:
-        import traceback; traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/clientes/<cliente_id>', methods=['GET'])
@@ -11973,7 +11973,7 @@ def clientes_detalhe(cliente_id):
         c['ordens'] = ordens_r.data or []
         return jsonify({'success': True, 'cliente': c})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/clientes/<cliente_id>', methods=['PUT'])
@@ -12000,7 +12000,7 @@ def clientes_atualizar(cliente_id):
         r = supabase.table('clientes_varejo').update(payload).eq('id', cliente_id).execute()
         return jsonify({'success': True, 'message': 'Cliente atualizado.', 'cliente': r.data[0] if r.data else {}})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/clientes/<cliente_id>/kyc-check', methods=['GET'])
@@ -12044,7 +12044,7 @@ def clientes_kyc_check(cliente_id):
         aml['can_proceed'] = len(missing) == 0 and not c.get('sanctions_flag', False)
         return jsonify({'success': True, 'aml': aml})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/clientes/<cliente_id>/documentos', methods=['POST'])
@@ -12082,7 +12082,7 @@ def clientes_upload_doc(cliente_id):
             }).eq('id', cliente_id).execute()
         return jsonify({'success': True, 'message': 'Documento registrado.', 'doc_id': doc_id})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/clientes/<cliente_id>/upload-kyc', methods=['POST'])
@@ -12175,8 +12175,8 @@ def clientes_upload_kyc_file(cliente_id):
         return jsonify({'success': True, 'message': msg_resp, 'doc_id': doc_id,
                         'pending_validation': True, 'renovacao': renovacao})
     except Exception as e:
-        import traceback; traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/clientes/documentos/<string:doc_id>/url', methods=['GET'])
@@ -12200,7 +12200,7 @@ def clientes_doc_signed_url(doc_id):
             return jsonify({'success': False, 'message': f'Não foi possível gerar o link. Resposta: {signed}'}), 500
         return jsonify({'success': True, 'url': url})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/trades/recentes', methods=['GET'])
@@ -12233,7 +12233,7 @@ def admin_trades_recentes():
         } for o in (r.data or [])]
         return jsonify({'success': True, 'trades': trades})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 # ════════════════════════════════════════════════════
@@ -12272,7 +12272,7 @@ def admin_config_taxas_list():
         r = supabase.table('config_taxas_loja').select('*').order('moeda_entrada').execute()
         return jsonify({'success': True, 'taxas': r.data or []})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/config/taxas', methods=['POST'])
@@ -12295,7 +12295,7 @@ def admin_config_taxas_create():
         r = supabase.table('config_taxas_loja').upsert(payload, on_conflict='moeda_entrada,moeda_saida').execute()
         return jsonify({'success': True, 'message': 'Taxa salva.', 'taxa': r.data[0] if r.data else {}})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/config/taxas/<int:taxa_id>', methods=['DELETE'])
@@ -12307,7 +12307,7 @@ def admin_config_taxas_delete(taxa_id):
         supabase.table('config_taxas_loja').delete().eq('id', taxa_id).execute()
         return jsonify({'success': True, 'message': 'Taxa excluída.'})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/config/taxas/<int:taxa_id>', methods=['PUT'])
@@ -12327,7 +12327,7 @@ def admin_config_taxas_update(taxa_id):
         supabase.table('config_taxas_loja').update(campos).eq('id', taxa_id).execute()
         return jsonify({'success': True, 'message': 'Taxa atualizada.'})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 # ── Contas por forma de pagamento ──
@@ -12348,7 +12348,7 @@ def admin_config_contas_list():
             row['conta_moeda'] = info.get('moeda', '')
         return jsonify({'success': True, 'contas': r.data or []})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/config/contas-loja', methods=['POST'])
@@ -12381,7 +12381,7 @@ def admin_config_contas_create():
         r = supabase.table('config_contas_loja').upsert(payload, on_conflict='loja,forma_pagamento').execute()
         return jsonify({'success': True, 'message': 'Conta configurada.', 'conta': r.data[0] if r.data else {}})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/config/contas-loja/<int:conta_id>', methods=['PUT'])
@@ -12398,7 +12398,7 @@ def admin_config_contas_update(conta_id):
         supabase.table('config_contas_loja').update(campos).eq('id', conta_id).execute()
         return jsonify({'success': True, 'message': 'Conta atualizada.'})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 # ── Endpoints de leitura para a loja ──
@@ -12418,7 +12418,7 @@ def loja_config_taxa():
             return jsonify({'success': False, 'message': f'Taxa não configurada para {me}→{ms}'}), 404
         return jsonify({'success': True, 'taxa': r.data})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/loja/config/conta', methods=['GET'])
@@ -12438,7 +12438,7 @@ def loja_config_conta():
             return jsonify({'success': False, 'message': f'Conta não configurada para {forma}'}), 404
         return jsonify({'success': True, 'conta': r.data[0]})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/contas-empresa-lista', methods=['GET'])
@@ -12450,7 +12450,7 @@ def admin_contas_empresa_lista():
         r = supabase.table('contas_bancarias_empresa').select('numero,banco,moeda,agencia').order('moeda').execute()
         return jsonify({'success': True, 'contas': r.data or []})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/lojas', methods=['GET'])
@@ -12462,7 +12462,7 @@ def admin_listar_lojas():
         r = supabase.table('lojas').select('*').order('nome').execute()
         return jsonify({'success': True, 'lojas': r.data or []})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/lojas', methods=['POST'])
@@ -12485,7 +12485,7 @@ def admin_criar_loja():
         }).execute()
         return jsonify({'success': True, 'loja': r.data[0] if r.data else {}, 'message': 'Loja criada.'})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/lojas/<loja_id>', methods=['PUT'])
@@ -12500,7 +12500,7 @@ def admin_atualizar_loja(loja_id):
         r = supabase.table('lojas').update(payload).eq('id', loja_id).execute()
         return jsonify({'success': True, 'message': 'Loja atualizada.', 'loja': r.data[0] if r.data else {}})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 # ============================================
@@ -12563,7 +12563,7 @@ def compliance_aprovar(ordem_id):
         supabase.table('ordens_captacao').update(upd).eq('id', ordem_id).execute()
         return jsonify({'success': True, 'message': 'Ordem aprovada pelo compliance.', 'novo_status': novo_status})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 @app.route('/api/compliance/documentos/aprovar', methods=['POST'])
 def compliance_aprovar_documento():
@@ -12639,9 +12639,8 @@ def compliance_aprovar_documento():
         
     except Exception as e:
         print(f"❌ Erro ao aprovar documento: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/compliance/documentos/rejeitar', methods=['POST'])
@@ -12693,9 +12692,8 @@ def compliance_rejeitar_documento():
         
     except Exception as e:
         print(f"❌ Erro ao rejeitar documento: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 @app.route('/api/compliance/ordens/<ordem_id>/rejeitar', methods=['POST'])
 def compliance_rejeitar(ordem_id):
@@ -12717,7 +12715,7 @@ def compliance_rejeitar(ordem_id):
         }).eq('id', ordem_id).execute()
         return jsonify({'success': True, 'message': 'Ordem rejeitada.'})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 # ── Confirmar pagamento (on_hold → libera se compliance ok) ──
@@ -12741,7 +12739,7 @@ def admin_conciliacao_pendentes():
             .order('data', desc=False).execute()
         return jsonify({'success': True, 'ordens': r.data or []})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/conciliacao/contas', methods=['GET'])
@@ -12766,7 +12764,7 @@ def admin_conciliacao_contas():
                            'saldo_esperado': round(float(c.get('saldo', 0)) + pend_map.get(num, 0), 2)})
         return jsonify({'success': True, 'contas': result})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/conciliacao/confirmar', methods=['POST'])
@@ -12801,7 +12799,7 @@ def admin_conciliacao_confirmar():
             confirmadas += 1
         return jsonify({'success': True, 'message': f'{confirmadas} ordem(ns) confirmada(s).', 'confirmadas': confirmadas})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/conciliacao/historico', methods=['GET'])
@@ -12815,7 +12813,7 @@ def admin_conciliacao_historico():
             .order('updated_at', desc=True).limit(100).execute()
         return jsonify({'success': True, 'ordens': r.data or []})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/ordens/<ordem_id>/confirmar-recebimento', methods=['POST'])
@@ -12851,7 +12849,7 @@ def admin_confirmar_recebimento(ordem_id):
         msg = 'Pagamento confirmado — ordem liberada.' if novo_status == 'liberada' else 'Pagamento confirmado — aguardando compliance.'
         return jsonify({'success': True, 'message': msg, 'novo_status': novo_status})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 # ============================================
@@ -12887,7 +12885,7 @@ def compliance_listar_clientes():
             data = res.data or []
         return jsonify({'success': True, 'clientes': data})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/compliance/clientes/<string:cliente_id>/bloquear', methods=['PUT'])
@@ -12902,7 +12900,7 @@ def compliance_bloquear_cliente(cliente_id):
         _compliance_audit(usuario, 'BLOQUEAR_CLIENTE', f'cliente_id={cliente_id} motivo={motivo}')
         return jsonify({'success': True, 'message': 'Cliente bloqueado.'})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/compliance/clientes/<string:cliente_id>/desbloquear', methods=['PUT'])
@@ -12915,7 +12913,7 @@ def compliance_desbloquear_cliente(cliente_id):
         _compliance_audit(usuario, 'DESBLOQUEAR_CLIENTE', f'cliente_id={cliente_id}')
         return jsonify({'success': True, 'message': 'Cliente desbloqueado.'})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/compliance/clientes/<string:cliente_id>/risco', methods=['PUT'])
@@ -12932,7 +12930,7 @@ def compliance_alterar_risco(cliente_id):
         _compliance_audit(usuario, 'ALTERAR_RISCO', f'cliente_id={cliente_id} nivel={nivel}')
         return jsonify({'success': True, 'message': f'Risco alterado para {nivel}.'})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/compliance/clientes/<string:cliente_id>/nota', methods=['POST'])
@@ -12953,7 +12951,7 @@ def compliance_adicionar_nota(cliente_id):
         _compliance_audit(usuario, 'NOTA_CLIENTE', f'cliente_id={cliente_id}')
         return jsonify({'success': True, 'message': 'Nota adicionada.'})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/compliance/clientes/<string:cliente_id>/notas', methods=['GET'])
@@ -12966,7 +12964,7 @@ def compliance_listar_notas(cliente_id):
             .eq('cliente_id', cliente_id).order('created_at', desc=True).execute()
         return jsonify({'success': True, 'notas': r.data or []})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/compliance/clientes/<string:cliente_id>/limite', methods=['PUT'])
@@ -12983,7 +12981,7 @@ def compliance_alterar_limite(cliente_id):
         _compliance_audit(usuario, 'ALTERAR_LIMITE', f'cliente_id={cliente_id} limite={limite}')
         return jsonify({'success': True, 'message': 'Limite atualizado.'})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 @app.route('/api/compliance/clientes/docs-pendentes', methods=['GET'])
 def compliance_clientes_docs_pendentes():
@@ -13038,7 +13036,7 @@ def compliance_clientes_docs_pendentes():
             'clientes': clientes
         })
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/compliance/alertas/structuring', methods=['GET'])
@@ -13122,7 +13120,7 @@ def compliance_alertas_structuring():
         resultado.sort(key=lambda x: x['ultimo_alerta'], reverse=True)
         return jsonify({'success': True, 'clientes': resultado})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/compliance/documentos/expirando', methods=['GET'])
@@ -13180,7 +13178,7 @@ def compliance_documentos_expirando():
         resultado.sort(key=lambda x: ['expirado','critico','aviso'].index(x['pior_status']))
         return jsonify({'success': True, 'clientes': resultado})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/compliance/ordens', methods=['GET'])
@@ -13277,9 +13275,8 @@ def compliance_listar_ordens():
         
     except Exception as e:
         print(f"❌ Erro compliance/ordens: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 @app.route('/api/compliance/ordens/<ordem_id>/detalhes', methods=['GET'])
 def compliance_ordem_detalhes(ordem_id):
@@ -13446,9 +13443,8 @@ def compliance_ordem_detalhes(ordem_id):
         
     except Exception as e:
         print(f"❌ Erro ao buscar detalhes: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({'success': False, 'message': _err(e)}), 500
     
 @app.route('/api/compliance/ordens/<ordem_id>/aprovar', methods=['POST'])
 def compliance_aprovar_ordem(ordem_id):
@@ -13501,7 +13497,7 @@ def compliance_aprovar_ordem(ordem_id):
         
     except Exception as e:
         print(f"❌ Erro ao aprovar: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 @app.route('/api/compliance/ordens/<ordem_id>/rejeitar', methods=['POST'])
 def compliance_rejeitar_ordem(ordem_id):
@@ -13543,7 +13539,7 @@ def compliance_rejeitar_ordem(ordem_id):
         
     except Exception as e:
         print(f"❌ Erro ao rejeitar: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
     
 @app.route('/api/storage/signed-url', methods=['GET'])
 def get_signed_url():
@@ -13573,7 +13569,7 @@ def get_signed_url():
         
     except Exception as e:
         print(f"❌ Erro ao gerar signed URL: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500                
+        return jsonify({'success': False, 'message': _err(e)}), 500                
 
 # ---- AML Config ----
 
@@ -13587,7 +13583,7 @@ def compliance_get_config():
         cfg = {row['chave']: row['valor'] for row in (r.data or [])}
         return jsonify({'success': True, 'config': cfg})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/compliance/config', methods=['PUT'])
@@ -13604,7 +13600,7 @@ def compliance_put_config():
         _compliance_audit(usuario, 'ALTERAR_CONFIG', str(list(d.keys())))
         return jsonify({'success': True, 'message': 'Configuração salva.'})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 # ---- SARs ----
@@ -13622,7 +13618,7 @@ def compliance_listar_sars():
         r = base.limit(200).execute()
         return jsonify({'success': True, 'sars': r.data or []})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/compliance/sars', methods=['POST'])
@@ -13673,7 +13669,7 @@ def compliance_criar_sar():
         _compliance_audit(usuario, 'CRIAR_SAR', f'sar_id={sar_id} cliente_id={cliente_id} alerta_id={alerta_id}')
         return jsonify({'success': True, 'message': 'SAR criado.', 'sar_id': sar_id})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/compliance/sars/<sar_id>', methods=['PUT'])
@@ -13705,7 +13701,7 @@ def compliance_atualizar_sar(sar_id):
         _compliance_audit(usuario, 'ATUALIZAR_SAR', f'sar_id={sar_id} campos={list(campos.keys())}')
         return jsonify({'success': True, 'message': 'SAR atualizado.'})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 # ---- Sanctions Screening ----
@@ -13733,7 +13729,7 @@ def compliance_sanctions_alertas():
                 h['cliente_email'] = ''
         return jsonify({'success': True, 'hits': hits})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/compliance/sanctions/review/<hit_id>', methods=['POST'])
@@ -13757,7 +13753,7 @@ def compliance_sanctions_review(hit_id):
         _compliance_audit(usuario, 'SANCTIONS_REVIEW', f'hit_id={hit_id} status={novo_status}')
         return jsonify({'success': True, 'message': f'Hit marcado como {novo_status}.'})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/compliance/sanctions/entities', methods=['GET'])
@@ -13769,7 +13765,7 @@ def compliance_sanctions_listar_entities():
         r = supabase.table('sanctioned_entities').select('*').order('created_at', desc=True).execute()
         return jsonify({'success': True, 'entities': r.data or []})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/compliance/sanctions/entities', methods=['POST'])
@@ -13797,7 +13793,7 @@ def compliance_sanctions_add_entity():
         _compliance_audit(usuario, 'ADD_SANCTIONS_ENTITY', f'nome="{nome}" lista={d.get("lista","MANUAL")}')
         return jsonify({'success': True, 'message': 'Entidade adicionada.', 'id': eid})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/compliance/sanctions/entities/<entity_id>', methods=['DELETE'])
@@ -13812,7 +13808,7 @@ def compliance_sanctions_remove_entity(entity_id):
         _compliance_audit(usuario, 'REMOVE_SANCTIONS_ENTITY', f'entity_id={entity_id}')
         return jsonify({'success': True, 'message': 'Entidade removida.'})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 # ---- Auditoria ----
@@ -13841,7 +13837,7 @@ def compliance_listar_audit():
         r = base.limit(500).execute()
         return jsonify({'success': True, 'logs': r.data or []})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 # ============================================
@@ -13857,7 +13853,7 @@ def admin_listar_despachos():
         r = supabase.table('despachos').select('*').order('created_at', desc=True).limit(200).execute()
         return jsonify({'success': True, 'despachos': r.data or []})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/ordens/consulta', methods=['GET'])
@@ -13897,7 +13893,7 @@ def ordens_consulta():
 
         return jsonify({'success': True, 'ordens': ordens, 'total': len(ordens)})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/ordens/<ordem_id>/detalhes-completos', methods=['GET'])
@@ -13966,8 +13962,8 @@ def ordem_detalhes_completos(ordem_id):
             'docs_cliente': [signed(d) for d in docs_cliente],
         })
     except Exception as e:
-        import traceback; traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/despachos', methods=['POST'])
@@ -14023,7 +14019,7 @@ def admin_criar_despacho():
             'despacho_numero': despacho_num,
         })
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/despachos/<despacho_id>/confirmar-pago', methods=['POST'])
@@ -14042,7 +14038,7 @@ def admin_despacho_confirmar_pago(despacho_id):
         supabase.table('despachos').update({'status': 'pago'}).eq('id', despacho_id).execute()
         return jsonify({'success': True, 'message': 'Despacho confirmado como pago.'})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/ordens/liberadas', methods=['GET'])
@@ -14068,7 +14064,7 @@ def admin_listar_ordens_liberadas():
         r = query.order('data', desc=False).limit(500).execute()
         return jsonify({'success': True, 'ordens': r.data or []})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 # ============================================
@@ -14092,7 +14088,7 @@ def beneficiarios_listar(cliente_id):
         r = q.execute()
         return jsonify({'success': True, 'beneficiarios': r.data or []})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/clientes/<cliente_id>/beneficiarios', methods=['POST'])
@@ -14145,8 +14141,8 @@ def beneficiarios_criar(cliente_id):
         r = supabase.table('beneficiarios_de_clientes').insert(payload).execute()
         return jsonify({'success': True, 'beneficiario': r.data[0] if r.data else {}, 'message': 'Beneficiário salvo.'})
     except Exception as e:
-        import traceback; traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/beneficiarios-de-clientes/<benef_id>', methods=['PUT'])
@@ -14165,7 +14161,7 @@ def beneficiarios_atualizar(benef_id):
         r = supabase.table('beneficiarios_de_clientes').update(payload).eq('id', benef_id).execute()
         return jsonify({'success': True, 'message': 'Beneficiário atualizado.', 'beneficiario': r.data[0] if r.data else {}})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/beneficiarios-de-clientes/<benef_id>', methods=['DELETE'])
@@ -14177,7 +14173,7 @@ def beneficiarios_remover(benef_id):
         supabase.table('beneficiarios_de_clientes').update({'ativo': False}).eq('id', benef_id).execute()
         return jsonify({'success': True, 'message': 'Beneficiário removido.'})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 # ============================================
@@ -14242,7 +14238,7 @@ def lookup_conta():
 
     except Exception as e:
         print(f"❌ Erro lookup_conta: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 # ============================================
 
@@ -14872,9 +14868,8 @@ def estornar_transacao():
         
     except Exception as e:
         print(f"❌ Erro ao estornar transação: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({"success": False, "message": _err(e)}), 500
     
 @app.route('/api/admin/transacoes/deletar', methods=['DELETE'])
 def deletar_transacao():
@@ -15075,9 +15070,8 @@ def deletar_transacao():
         
     except Exception as e:
         print(f"❌ Erro ao deletar transação: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({"success": False, "message": _err(e)}), 500
     
 @app.route('/api/admin/transacoes/verificar-estornado', methods=['POST'])
 def verificar_estornado():
@@ -15125,7 +15119,7 @@ def verificar_estornado():
         
     except Exception as e:
         print(f"❌ Erro ao verificar estorno: {e}")
-        return jsonify({"isEstornada": False, "error": str(e)}), 500
+        return jsonify({"isEstornada": False, "error": _err(e)}), 500
 
 
 # ============================================
@@ -15211,7 +15205,7 @@ def api_admin_relatorios_categorias():
         
     except Exception as e:
         print(f"❌ Erro ao buscar categorias: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/relatorios/mensal', methods=['POST'])
@@ -15376,9 +15370,8 @@ def api_admin_relatorios_mensal():
         
     except Exception as e:
         print(f"❌ Erro ao gerar relatório mensal: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/relatorios/comparativo', methods=['POST'])
@@ -15541,9 +15534,8 @@ def api_admin_relatorios_comparativo():
         
     except Exception as e:
         print(f"❌ Erro ao gerar comparativo: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/relatorios/anual', methods=['POST'])
@@ -15635,9 +15627,8 @@ def api_admin_relatorios_anual():
         
     except Exception as e:
         print(f"❌ Erro ao gerar evolução anual: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/taxas-referencia', methods=['GET'])
@@ -15670,7 +15661,7 @@ def api_admin_taxas_referencia():
 
     except Exception as e:
         print(f"❌ Erro em taxas-referencia: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/relatorios/dre', methods=['POST'])
@@ -15761,9 +15752,8 @@ def api_admin_relatorios_dre():
 
     except Exception as e:
         print(f"❌ Erro ao gerar DRE: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 # ============================================
@@ -15857,7 +15847,7 @@ def api_admin_configuracoes_get():
         
     except Exception as e:
         print(f"❌ Erro ao buscar configurações: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/configuracoes', methods=['POST'])
@@ -15926,9 +15916,8 @@ def api_admin_configuracoes_post():
         
     except Exception as e:
         print(f"❌ Erro ao salvar configurações: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 
@@ -16061,7 +16050,7 @@ def api_admin_cotacoes_clientes():
         
     except Exception as e:
         print(f"❌ Erro ao buscar clientes: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/cotacoes/cliente/<username>', methods=['GET'])
@@ -16144,7 +16133,7 @@ def api_admin_cotacoes_cliente(username):
         
     except Exception as e:
         print(f"❌ Erro ao buscar cliente: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/cotacoes/spread', methods=['POST'])
@@ -16217,7 +16206,7 @@ def api_admin_cotacoes_spread():
         
     except Exception as e:
         print(f"❌ Erro ao salvar spread: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/cotacoes/template', methods=['POST'])
@@ -16294,7 +16283,7 @@ def api_admin_cotacoes_template():
         
     except Exception as e:
         print(f"❌ Erro ao aplicar template: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/cotacoes/permissao', methods=['POST'])
@@ -16363,7 +16352,7 @@ def api_admin_cotacoes_permissao():
         
     except Exception as e:
         print(f"❌ Erro ao alterar permissão: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/cotacoes/limite', methods=['POST'])
@@ -16429,7 +16418,7 @@ def api_admin_cotacoes_limite():
         
     except Exception as e:
         print(f"❌ Erro ao alterar limite: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/cotacoes/horario', methods=['POST'])
@@ -16497,7 +16486,7 @@ def api_admin_cotacoes_horario():
         
     except Exception as e:
         print(f"❌ Erro ao salvar horário: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/cotacoes/salvar-tudo', methods=['POST'])
@@ -16657,7 +16646,7 @@ def api_admin_cotacoes_salvar_tudo():
         
     except Exception as e:
         print(f"❌ Erro ao salvar configurações: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/cotacoes/exportar', methods=['GET'])
@@ -16736,7 +16725,7 @@ def api_admin_cotacoes_exportar():
         
     except Exception as e:
         print(f"❌ Erro ao exportar configurações: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 # ============================================
@@ -16982,9 +16971,8 @@ def api_admin_cadastrar_cliente():
         
     except Exception as e:
         print(f"❌ Erro ao cadastrar cliente: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 # ============================================
@@ -17191,7 +17179,7 @@ def api_admin_transferencias():
         
     except Exception as e:
         print(f"❌ Erro ao buscar transferências: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/transferencias/<transferencia_id>', methods=['GET'])
@@ -17317,9 +17305,8 @@ def api_admin_transferencia_detalhes(transferencia_id):
         
     except Exception as e:
         print(f"❌ Erro ao buscar detalhes da transferência: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({"success": False, "message": _err(e)}), 500
 
 
 @app.route('/api/admin/transferencias/<transferencia_id>/invoice', methods=['GET'])
@@ -17366,7 +17353,7 @@ def api_admin_transferencia_invoice(transferencia_id):
             file_data = supabase.storage.from_("invoices").download(caminho_arquivo)
         except Exception as e:
             print(f"❌ Erro ao baixar do storage: {e}")
-            return jsonify({"error": f"Erro ao baixar arquivo: {str(e)}"}), 404
+            return jsonify({"error": _err(e)}), 404
         
         if not file_data:
             return jsonify({"error": "Arquivo não encontrado no storage"}), 404
@@ -17396,9 +17383,8 @@ def api_admin_transferencia_invoice(transferencia_id):
         
     except Exception as e:
         print(f"❌ Erro ao baixar invoice: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({"error": _err(e)}), 500
 
 
 @app.route('/api/cotacoes/atualizadas', methods=['GET'])
@@ -17670,8 +17656,8 @@ def fx_pool():
         ultimo_reset = _fx_ultimo_reset()
         return jsonify({'success': True, 'pool': resultado, 'rates': rates, 'ultimo_reset': ultimo_reset})
     except Exception as e:
-        import traceback; traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/fx/pool/reset', methods=['POST'])
@@ -17685,7 +17671,7 @@ def fx_pool_reset():
         }).execute()
         return jsonify({'success': True, 'message': 'Pool zerado com sucesso. Histórico preservado.'})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/fx/pl', methods=['GET'])
@@ -17760,8 +17746,8 @@ def fx_pl():
             'trades': trades_pl, 'posicoes_abertas': posicoes, 'rates': rates
         })
     except Exception as e:
-        import traceback; traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/fx/trader', methods=['GET'])
@@ -17824,8 +17810,8 @@ def fx_trader():
         return jsonify({'success': True, 'pedidos': pedidos, 'rates': rates,
                         'wac': {m: round(v, 6) for m, v in wac.items()}})
     except Exception as e:
-        import traceback; traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/fx/compra', methods=['POST'])
@@ -17909,8 +17895,8 @@ def fx_registrar_compra():
             'transferencia_id': tid,
         })
     except Exception as e:
-        import traceback; traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/fx/cliente-contas', methods=['GET'])
@@ -17924,7 +17910,7 @@ def fx_cliente_contas():
         r = supabase.table('contas').select('id, moeda, saldo').eq('cliente_username', username).execute()
         return jsonify({'success': True, 'contas': r.data or []})
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/admin/fx/venda', methods=['POST'])
@@ -18131,21 +18117,15 @@ def fx_registrar_venda():
             'wac_gbp': wac_gbp,
         })
     except Exception as e:
-        import traceback; traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
-    debug = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
-    
-    print("=" * 50)
-    print("🚀 INICIANDO API FLASK DO CAMBIO BANK")
-    print("=" * 50)
-    print(f"📡 URL: http://localhost:{port}")
-    print(f"🏠 Home: http://localhost:{port}/")
-    print(f"📊 Status: http://localhost:{port}/api/status")
-    print(f"🔗 Supabase: http://localhost:{port}/api/test-supabase")
-    print("=" * 50)
-    
+    # Debug deve ser False em produção — controlado pelo .env
+    debug = _IS_DEBUG
+    if debug:
+        print("⚠️  Modo DEBUG ativo — não use em produção!")
+    print(f"🚀 Cambio Bank API iniciando na porta {port} (debug={debug})")
     app.run(debug=debug, port=port)
