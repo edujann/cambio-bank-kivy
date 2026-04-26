@@ -71,7 +71,8 @@ async function carregarLojas() {
         const d = await r.json();
         const grid = document.getElementById('lojasGrid');
         if (!d.success || !d.lojas.length) {
-            grid.innerHTML = '<div class="empty"><i class="fas fa-exclamation-circle"></i><br>Nenhuma loja disponível. Contacte o administrador.</div>';
+            const detalhe = d.message ? `<br><small style="font-size:11px;opacity:.7;">${d.message}</small>` : '';
+            grid.innerHTML = `<div class="empty"><i class="fas fa-exclamation-circle"></i><br>Nenhuma loja disponível. Contacte o administrador.${detalhe}</div>`;
             return;
         }
         grid.innerHTML = d.lojas.map(l => {

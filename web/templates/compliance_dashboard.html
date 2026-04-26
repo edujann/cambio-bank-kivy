@@ -751,7 +751,7 @@
                 <table>
                     <thead><tr>
                         <th>Data</th><th>Cliente</th><th>Entrada</th><th>Saída</th>
-                        <th>Destino</th><th>Status</th><th>Loja</th><th></th>
+                        <th>Destino</th><th>Status</th><th>Branch</th><th></th>
                     </tr></thead>
                     <tbody id="con-body">
                         <tr><td colspan="8" class="empty">Use os filtros acima para buscar ordens.</td></tr>
@@ -788,7 +788,7 @@
         <div class="info-item"><div class="lbl">Entrada</div><div class="val" id="mo-entrada">—</div></div>
         <div class="info-item"><div class="lbl">Saída</div><div class="val" id="mo-saida">—</div></div>
         <div class="info-item"><div class="lbl">Forma Pagamento</div><div class="val" id="mo-forma">—</div></div>
-        <div class="info-item"><div class="lbl">Loja</div><div class="val" id="mo-loja">—</div></div>
+        <div class="info-item"><div class="lbl">Branch</div><div class="val" id="mo-loja">—</div></div>
     </div>
     <div class="section-title">Status</div>
     <div class="info-grid" style="grid-template-columns:1fr 1fr 1fr">
@@ -802,6 +802,8 @@
     <div id="mo-docs"></div>
     <div class="section-title">Documentos da Ordem <span style="font-size:11px;font-weight:400;color:var(--cor-texto-secundario);">(Proof of Funds e suportes)</span></div>
     <div id="mo-ordem-docs" style="font-size:13px;min-height:28px;"><span style="color:var(--cor-texto-secundario);font-size:12px;"><i class="fas fa-spinner fa-spin"></i> Carregando…</span></div>
+    <div class="section-title"><i class="fas fa-paperclip" style="color:var(--cor-sucesso);margin-right:4px;"></i> Comprovantes de Pagamento</div>
+    <div id="mo-comprovantes" style="font-size:13px;min-height:28px;"><span style="color:var(--cor-texto-secundario);font-size:12px;"><i class="fas fa-spinner fa-spin"></i> Carregando…</span></div>
     <div class="section-title">Checklist Compliance</div>
     <div id="mo-checklist" style="margin-bottom:10px;"></div>
     <div class="section-title">Notas de Compliance</div>
@@ -867,6 +869,7 @@
             Suspicious Activity Report para a National Crime Agency (NCA) do Reino Unido. Prazo legal: 7 dias a partir da suspeita.
         </div>
         <input type="hidden" id="sar-alerta-id">
+        <input type="hidden" id="sar-ctx-cliente-id">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
             <div class="form-group">
                 <label>ID do Cliente (opcional)</label>
@@ -884,6 +887,22 @@
         <div class="form-group">
             <label>Descrição da Atividade Suspeita *</label>
             <textarea id="sar-desc" placeholder="Descreva detalhadamente a atividade suspeita, padrões observados, contexto..." style="min-height:130px;"></textarea>
+        </div>
+        <!-- Decisão sobre ordens (visível apenas quando vem do contexto structuring) -->
+        <div id="sar-decisao-section" style="display:none;background:rgba(231,76,60,.06);border:1px solid rgba(231,76,60,.2);border-radius:6px;padding:10px 12px;margin-bottom:12px;">
+            <div style="font-size:12px;font-weight:700;margin-bottom:8px;"><i class="fas fa-gavel"></i> Decisão sobre as ordens em análise</div>
+            <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;cursor:pointer;">
+                <input type="radio" name="sar-decisao" value="apenas_sar" checked style="margin-top:2px;">
+                <span><strong>Apenas registrar SAR</strong> — manter ordens em análise para revisão posterior</span>
+            </label>
+            <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;cursor:pointer;">
+                <input type="radio" name="sar-decisao" value="sar_liberar" style="margin-top:2px;">
+                <span style="color:var(--cor-sucesso);"><strong>SAR + Liberar ordens</strong> — <em>file and continue</em> (NCA): reportar sem bloquear a transação</span>
+            </label>
+            <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;cursor:pointer;">
+                <input type="radio" name="sar-decisao" value="sar_bloquear" style="margin-top:2px;">
+                <span style="color:var(--cor-perigo);"><strong>SAR + Bloquear cliente + Rejeitar todas as ordens</strong></span>
+            </label>
         </div>
         <div class="modal-acts">
             <button class="btn-ghost" onclick="fecharModal('modalSAR')">Cancelar</button>
@@ -1431,6 +1450,9 @@ async function abrirOrdem(id) {
 
         document.getElementById('mo-notas-list').innerHTML = notasHtml;
 
+        // Comprovantes de pagamento
+        _carregarComprovantesEl(id, 'mo-comprovantes');
+
         // Limpar observação
         document.getElementById('mo-obs').value = '';
         document.getElementById('mo-id').value = id;
@@ -1447,6 +1469,20 @@ async function abrirOrdem(id) {
                     style="${!tudoOk?'opacity:.55;':''}">
                     <i class="fas fa-check"></i> Aprovar Ordem ${!tudoOk?'<i class="fas fa-lock" style="font-size:10px;margin-left:4px;"></i>':''}
                 </button>
+            `;
+        } else if (ordem.compliance_status === 'aprovado') {
+            acts.innerHTML = `
+                <button class="btn-ghost" onclick="fecharModal('modalOrdem')">Fechar</button>
+                <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--cor-sucesso);padding:6px 10px;background:rgba(46,194,126,.08);border-radius:6px;border:1px solid rgba(46,194,126,.25);">
+                    <i class="fas fa-check-circle"></i> Aprovado pelo compliance — aguardando confirmação de pagamento (admin)
+                </div>
+            `;
+        } else if (ordem.compliance_status === 'rejeitado') {
+            acts.innerHTML = `
+                <button class="btn-ghost" onclick="fecharModal('modalOrdem')">Fechar</button>
+                <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--cor-perigo);padding:6px 10px;background:rgba(224,27,36,.08);border-radius:6px;border:1px solid rgba(224,27,36,.25);">
+                    <i class="fas fa-times-circle"></i> Rejeitado pelo compliance
+                </div>
             `;
         } else {
             acts.innerHTML = '<button class="btn-ghost" onclick="fecharModal(\'modalOrdem\')">Fechar</button>';
@@ -1749,7 +1785,8 @@ async function carregarStructuring() {
                 <td style="font-size:11px;color:var(--cor-texto-secundario);">${ult}</td>
                 <td style="white-space:nowrap;">
                     <button class="btn-act" onclick="verDetalheClienteCompliance('${c.cliente_id}')"><i class="fas fa-user-shield"></i> Gerir</button>
-                    <button class="btn-act" style="background:rgba(231,76,60,.15);color:#c0392b;" data-cid="${c.cliente_id}" data-cnome="${c.nome.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}" data-codigos="${codigos.join(',')}" data-valor="${c.total_gbp_30d||0}" data-ordens="${(c.ordens_ids||'').replace(/"/g,'&quot;')}" onclick="abrirSARDeStructuring(this)"><i class="fas fa-file-alt"></i> SAR</button>
+                    <button class="btn-act" style="background:rgba(39,174,96,.15);color:#27ae60;white-space:nowrap;" data-cid="${c.cliente_id}" data-cnome="${c.nome.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}" onclick="liberarOrdensFalsoPositivo(this)"><i class="fas fa-check-circle"></i> Liberar</button>
+                    <button class="btn-act" style="background:rgba(231,76,60,.15);color:#c0392b;white-space:nowrap;" data-cid="${c.cliente_id}" data-cnome="${c.nome.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}" data-codigos="${codigos.join(',')}" data-valor="${c.total_gbp_30d||0}" data-ordens="${(c.ordens_ids||'').replace(/"/g,'&quot;')}" onclick="abrirSARDeStructuring(this)"><i class="fas fa-file-alt"></i> SAR</button>
                 </td>
             </tr>`;
         }
@@ -1773,8 +1810,31 @@ function abrirSARDeStructuring(btn) {
     };
     const patterns = codigos.map(c => labelMap[c] || c).join('; ');
     const desc = `Client: ${clienteNome} (ID: ${clienteId})\n\nSuspicious patterns detected: ${patterns}\n\nTotal transaction volume (last 30 days): £${valorGbp}\n\nPlease provide a detailed description of the suspicious activity observed, including relevant dates, amounts, and any additional information for the NCA.`;
-    showTab('sars');
     abrirModalNovoSAR(clienteId, null, desc, valorGbp, ordensIds);
+    // mostrar seção de decisão e guardar contexto
+    document.getElementById('sar-ctx-cliente-id').value = clienteId;
+    document.getElementById('sar-decisao-section').style.display = 'block';
+    document.querySelector('input[name="sar-decisao"][value="apenas_sar"]').checked = true;
+}
+
+async function liberarOrdensFalsoPositivo(btn) {
+    const clienteId   = btn.dataset.cid;
+    const clienteNome = btn.dataset.cnome;
+    if (!confirm(`Confirmar: liberar todas as ordens em análise de "${clienteNome}" como FALSO POSITIVO?\n\nNenhum SAR será criado.`)) return;
+    try {
+        const r = await fetch(`/api/compliance/cliente/${clienteId}/acao-ordens`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ acao: 'aprovar', motivo: 'Falso positivo — structuring não confirmado' })
+        }).then(res => res.json());
+        if (r.success) {
+            toast(`${r.message} — ordens liberadas`, 'ok');
+            carregarStructuring();
+            carregarStats();
+        } else {
+            toast(r.message || 'Erro', 'err');
+        }
+    } catch(e) { toast('Erro de conexão', 'err'); }
 }
 
 // ─── DOCS A VENCER ────────────────────────────────
@@ -2043,6 +2103,8 @@ function abrirModalNovoSAR(clienteId, alertaId, descricaoPre, valorPre, ordensPr
     document.getElementById('sar-valor').value = valorPre || '';
     document.getElementById('sar-ordens').value = ordensPre || '';
     document.getElementById('sar-desc').value = descricaoPre || '';
+    document.getElementById('sar-ctx-cliente-id').value = '';
+    document.getElementById('sar-decisao-section').style.display = 'none';
     document.getElementById('modalSAR').classList.add('open');
 }
 
@@ -2062,14 +2124,36 @@ async function criarSAR() {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(body)
         }).then(res => res.json());
-        if(r.success){
-            toast('SAR criado — prazo de 7 dias iniciado', 'ok');
-            fecharModal('modalSAR');
-            carregarSARs();
-            carregarStats();
-        } else {
-            toast(r.message, 'err');
+        if (!r.success) { toast(r.message, 'err'); return; }
+
+        toast('SAR criado — prazo de 7 dias iniciado', 'ok');
+        fecharModal('modalSAR');
+
+        // Executar decisão sobre ordens se contexto structuring
+        const ctxClienteId = document.getElementById('sar-ctx-cliente-id').value;
+        const decisao = document.querySelector('input[name="sar-decisao"]:checked')?.value || 'apenas_sar';
+        document.getElementById('sar-decisao-section').style.display = 'none';
+        document.getElementById('sar-ctx-cliente-id').value = '';
+
+        if (ctxClienteId && decisao !== 'apenas_sar') {
+            const acao = decisao === 'sar_liberar' ? 'aprovar' : 'rejeitar';
+            const bloquear = decisao === 'sar_bloquear';
+            const rAcao = await fetch(`/api/compliance/cliente/${ctxClienteId}/acao-ordens`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ acao, bloquear_cliente: bloquear, motivo: 'SAR registrado — decisão automática' })
+            }).then(res => res.json());
+            if (rAcao.success) {
+                const msg = decisao === 'sar_liberar'
+                    ? `${rAcao.message} liberada(s) — file and continue`
+                    : `${rAcao.message} rejeitada(s) + cliente bloqueado`;
+                toast(msg, decisao === 'sar_liberar' ? 'ok' : 'warn');
+            }
+            carregarStructuring();
         }
+
+        carregarSARs();
+        carregarStats();
     } catch(e){ toast('Erro', 'err'); }
 }
 
@@ -2090,6 +2174,30 @@ async function atualizarSAR(id) {
         if(r.success) toast('SAR atualizado', 'ok');
         else toast(r.message, 'err');
     } catch(e){ toast('Erro', 'err'); }
+}
+
+// ─── HELPER: carregar comprovantes em qualquer elemento ──────────────
+async function _carregarComprovantesEl(ordemId, elId) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.innerHTML = '<span style="font-size:12px;color:var(--cor-texto-secundario);"><i class="fas fa-spinner fa-spin"></i> Carregando…</span>';
+    try {
+        const d = await fetch(`/api/admin/ordens/${ordemId}/comprovantes`).then(r => r.json());
+        const comps = d.comprovantes || [];
+        if (!comps.length) {
+            el.innerHTML = '<p style="font-size:12px;color:var(--cor-texto-secundario);margin:4px 0;">Nenhum comprovante anexado.</p>';
+            return;
+        }
+        el.innerHTML = comps.map((c, i) => `
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--cor-borda);">
+                <i class="fas fa-file-alt" style="color:var(--cor-sucesso);"></i>
+                <span style="flex:1;font-size:12px;">${c.arquivo_nome || 'Comprovante ' + (i+1)}</span>
+                <span style="font-size:10px;color:var(--cor-texto-secundario);">${c.criado_por||''} ${(c.criado_em||'').slice(0,10)}</span>
+                ${c.arquivo_url ? `<a href="/api/comprovantes/view?path=${encodeURIComponent(c.arquivo_url)}" target="_blank" class="btn-act" style="text-decoration:none;white-space:nowrap;"><i class="fas fa-eye"></i> Ver</a>` : ''}
+            </div>`).join('');
+    } catch(e) {
+        el.innerHTML = '<p style="font-size:12px;color:var(--cor-perigo);">Erro ao carregar comprovantes.</p>';
+    }
 }
 
 // ─── AUDITORIA ───────────────────────────────────

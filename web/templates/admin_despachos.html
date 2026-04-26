@@ -336,21 +336,43 @@
 
 <!-- Modal Baixa de Pagamento -->
 <div class="modal-ov" id="modalBaixa">
-    <div class="modal" style="max-width:520px;">
+    <div class="modal" style="max-width:540px;">
         <h3><i class="fas fa-check-double" style="color:var(--cor-sucesso)"></i> Confirmar Pagamento</h3>
         <div id="baixaOrdemInfo"></div>
-        <div id="baixaComprovantesExist" style="display:none;margin-bottom:12px;">
-            <div style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Comprovantes já anexados</div>
-            <div id="baixaComprovantesLista"></div>
+
+        <!-- Painel pós-confirmação (oculto até confirmar) -->
+        <div id="baixaPosConfirmacao" style="display:none;">
+            <div style="background:rgba(39,174,96,.08);border:1px solid rgba(39,174,96,.3);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;">
+                <i class="fas fa-check-circle" style="color:var(--cor-sucesso);"></i> <strong>Pagamento confirmado.</strong> Adicione mais comprovantes se necessário.
+            </div>
+            <div style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Comprovantes anexados</div>
+            <div id="baixaComprovantesPosList" style="margin-bottom:10px;"></div>
+            <div class="fg" style="margin-bottom:4px;">
+                <label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);">Adicionar mais comprovantes</label>
+                <input type="file" id="baixaFilePosConf" accept="image/*,.pdf" multiple style="width:100%;padding:6px;border:1px solid var(--cor-borda);border-radius:6px;background:var(--cor-card);color:var(--cor-texto);font-size:12px;cursor:pointer;">
+            </div>
+            <div class="form-msg" id="baixaPosMsg" style="margin-top:4px;min-height:16px;font-size:12px;"></div>
+            <div class="modal-acts">
+                <button class="btn-g" onclick="fecharModal('modalBaixa');carregarBaixa();">Fechar</button>
+                <button class="btn-p" onclick="uploadBaixaPosConf()"><i class="fas fa-upload"></i> Enviar Comprovante</button>
+            </div>
         </div>
-        <div class="fg" style="margin-bottom:4px;">
-            <label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);">Comprovante(s) — opcional, múltiplos permitidos</label>
-            <input type="file" id="baixaFile" accept="image/*,.pdf" multiple style="width:100%;padding:6px;border:1px solid var(--cor-borda);border-radius:6px;background:var(--cor-card);color:var(--cor-texto);font-size:12px;cursor:pointer;">
-        </div>
-        <div class="form-msg" id="baixaMsg" style="margin-top:8px;min-height:18px;font-size:12px;"></div>
-        <div class="modal-acts">
-            <button class="btn-g" onclick="fecharModal('modalBaixa')">Cancelar</button>
-            <button class="btn-p" id="btnConfBaixa" onclick="confirmarPagamentoOrdem()"><i class="fas fa-check-double"></i> Confirmar Pago</button>
+
+        <!-- Painel de confirmação (visível antes de confirmar) -->
+        <div id="baixaConfPanel">
+            <div id="baixaComprovantesExist" style="display:none;margin-bottom:12px;">
+                <div style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Comprovantes já anexados</div>
+                <div id="baixaComprovantesLista"></div>
+            </div>
+            <div class="fg" style="margin-bottom:4px;">
+                <label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);">Comprovante(s) — opcional, múltiplos permitidos</label>
+                <input type="file" id="baixaFile" accept="image/*,.pdf" multiple style="width:100%;padding:6px;border:1px solid var(--cor-borda);border-radius:6px;background:var(--cor-card);color:var(--cor-texto);font-size:12px;cursor:pointer;">
+            </div>
+            <div class="form-msg" id="baixaMsg" style="margin-top:8px;min-height:18px;font-size:12px;"></div>
+            <div class="modal-acts">
+                <button class="btn-g" onclick="fecharModal('modalBaixa')">Cancelar</button>
+                <button class="btn-p" id="btnConfBaixa" onclick="confirmarPagamentoOrdem()"><i class="fas fa-check-double"></i> Confirmar Pago</button>
+            </div>
         </div>
     </div>
 </div>
@@ -777,7 +799,9 @@ async function carregarBaixa() {
                                     <button class="btn-act g" style="margin-right:4px;" onclick="abrirModalBaixa('${o.id}')">
                                         <i class="fas fa-check-double"></i> Confirmar Pago
                                     </button>
-                                    ${o.tem_comprovante ? `<button class="btn-act" onclick="verComprovantes('${o.id}')"><i class="fas fa-paperclip"></i></button>` : ''}
+                                    <button class="btn-act" onclick="verComprovantes('${o.id}')" title="Ver / Adicionar comprovantes">
+                                        <i class="fas fa-paperclip"></i>${o.tem_comprovante ? ' ✓' : ''}
+                                    </button>
                                 </td>
                             </tr>`).join('')}
                         </tbody>
@@ -791,20 +815,53 @@ async function carregarBaixa() {
     }
 }
 
+function _infoCell(lbl, val) {
+    if (!val) return '';
+    return `<div><span style="color:var(--cor-texto-secundario);font-size:10px;text-transform:uppercase;letter-spacing:.4px;">${lbl}</span><br><strong>${val}</strong></div>`;
+}
+
 function abrirModalBaixa(ordemId) {
     _baixaOrdemAtual = _baixaOrdens[ordemId];
     if (!_baixaOrdemAtual) return;
     const o = _baixaOrdemAtual;
+
+    // Dados de destino por tipo
+    let destHtml = '';
+    const dest = o.tipo_destino || 'brazil';
+    const bancoAgencia = [o.beneficiario_banco, o.beneficiario_agencia ? `Ag. ${o.beneficiario_agencia}` : ''].filter(Boolean).join(' · ');
+    if (dest === 'brazil') {
+        if (o.beneficiario_pix) {
+            destHtml = _infoCell('Chave PIX', o.beneficiario_pix)
+                     + _infoCell('Banco / Agência', bancoAgencia)
+                     + _infoCell('Conta', o.beneficiario_conta);
+        } else {
+            destHtml = _infoCell('Banco / Agência', bancoAgencia || '—')
+                     + _infoCell('Conta', o.beneficiario_conta);
+        }
+    } else if (dest === 'europe') {
+        destHtml = _infoCell('Banco', o.beneficiario_banco || o.benef_banco_eu)
+                 + _infoCell('IBAN', o.benef_iban)
+                 + _infoCell('BIC/SWIFT', o.benef_swift || o.benef_routing);
+    } else if (dest === 'usa') {
+        destHtml = _infoCell('Banco', o.beneficiario_banco || o.benef_banco_us)
+                 + _infoCell('Routing Number', o.benef_routing)
+                 + _infoCell('Account', o.beneficiario_conta || o.benef_conta);
+    }
+
     document.getElementById('baixaOrdemInfo').innerHTML = `
         <div style="background:var(--cor-bg);border:1px solid var(--cor-borda);border-radius:8px;padding:12px 14px;margin-bottom:14px;">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;">
-                <div><span style="color:var(--cor-texto-secundario);font-size:10px;text-transform:uppercase;letter-spacing:.4px;">Cliente</span><br><strong>${o.cliente_nome || '—'}</strong></div>
-                <div><span style="color:var(--cor-texto-secundario);font-size:10px;text-transform:uppercase;letter-spacing:.4px;">Banco Destino</span><br><strong>${o.beneficiario_banco || o.tipo_destino || '—'}</strong></div>
-                <div><span style="color:var(--cor-texto-secundario);font-size:10px;text-transform:uppercase;letter-spacing:.4px;">Valor Entrada</span><br><strong>${fmtN(o.valor_entrada)} ${o.moeda_entrada || ''}</strong></div>
+                ${_infoCell('Cliente', o.cliente_nome)}
+                ${_infoCell('Beneficiário', o.beneficiario_nome)}
+                ${_infoCell('Valor Entrada', fmtN(o.valor_entrada) + ' ' + (o.moeda_entrada || ''))}
                 <div><span style="color:var(--cor-texto-secundario);font-size:10px;text-transform:uppercase;letter-spacing:.4px;">Valor Saída</span><br><strong style="color:var(--cor-sucesso)">${fmtN(o.valor_saida)} ${o.moeda_saida || ''}</strong></div>
-                ${o.beneficiario_conta ? `<div style="grid-column:1/-1;"><span style="color:var(--cor-texto-secundario);font-size:10px;text-transform:uppercase;letter-spacing:.4px;">Conta</span><br><strong>${o.beneficiario_conta}</strong></div>` : ''}
+                ${destHtml}
             </div>
         </div>`;
+
+    // resetar painéis
+    document.getElementById('baixaConfPanel').style.display = '';
+    document.getElementById('baixaPosConfirmacao').style.display = 'none';
     document.getElementById('baixaComprovantesExist').style.display = 'none';
     document.getElementById('baixaFile').value = '';
     document.getElementById('baixaMsg').innerHTML = '';
@@ -821,24 +878,48 @@ async function confirmarPagamentoOrdem() {
     msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Confirmando…';
     try {
         const files = document.getElementById('baixaFile').files;
-        // Primeiro arquivo vai com a confirmação, os demais em chamadas separadas
         const fd = new FormData();
         if (files.length > 0) fd.append('arquivo', files[0]);
         const r = await fetch(`/api/admin/ordens/${_baixaOrdemAtual.id}/confirmar-pagamento`, {method:'POST', body:fd});
         const d = await r.json();
         if (!d.success) { msg.innerHTML = `<span style="color:var(--cor-perigo);">${d.message}</span>`; btn.disabled = false; return; }
+        // Demais arquivos selecionados já vão junto
         for (let i = 1; i < files.length; i++) {
             const fd2 = new FormData();
             fd2.append('arquivo', files[i]);
             await fetch(`/api/admin/ordens/${_baixaOrdemAtual.id}/comprovantes`, {method:'POST', body:fd2});
         }
         toast(`Pagamento confirmado — ${_baixaOrdemAtual.cliente_nome || 'ordem'}`, 'ok');
-        fecharModal('modalBaixa');
-        carregarBaixa();
         carregarStats();
+        // Transitar para painel pós-confirmação (sem fechar o modal)
+        document.getElementById('baixaConfPanel').style.display = 'none';
+        document.getElementById('baixaPosConfirmacao').style.display = '';
+        document.getElementById('baixaFilePosConf').value = '';
+        document.getElementById('baixaPosMsg').innerHTML = '';
+        _carregarComprovantesNoModal(_baixaOrdemAtual.id, 'baixaComprovantesPosList', null);
     } catch(e) {
         msg.innerHTML = `<span style="color:var(--cor-perigo);">${e.message}</span>`;
         btn.disabled = false;
+    }
+}
+
+async function uploadBaixaPosConf() {
+    if (!_baixaOrdemAtual) return;
+    const files = document.getElementById('baixaFilePosConf').files;
+    const msg   = document.getElementById('baixaPosMsg');
+    if (!files.length) { msg.innerHTML = '<span style="color:var(--cor-alerta);">Selecione um arquivo.</span>'; return; }
+    msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando…';
+    try {
+        for (const f of files) {
+            const fd = new FormData();
+            fd.append('arquivo', f);
+            await fetch(`/api/admin/ordens/${_baixaOrdemAtual.id}/comprovantes`, {method:'POST', body:fd});
+        }
+        document.getElementById('baixaFilePosConf').value = '';
+        msg.innerHTML = '<span style="color:var(--cor-sucesso);">Comprovante(s) adicionado(s).</span>';
+        _carregarComprovantesNoModal(_baixaOrdemAtual.id, 'baixaComprovantesPosList', null);
+    } catch(e) {
+        msg.innerHTML = `<span style="color:var(--cor-perigo);">${e.message}</span>`;
     }
 }
 
@@ -864,7 +945,7 @@ async function _carregarComprovantesNoModal(ordemId, listaElId, wrapElId) {
                 <i class="fas fa-file-alt" style="color:var(--cor-admin);"></i>
                 <span style="flex:1;font-size:12px;">${c.arquivo_nome || `Comprovante ${i+1}`}</span>
                 <span style="font-size:10px;color:var(--cor-texto-secundario);">${c.criado_por || ''} ${(c.criado_em||'').slice(0,10)}</span>
-                ${c.signed_url ? `<a href="${c.signed_url}" target="_blank" class="btn-act" style="text-decoration:none;"><i class="fas fa-eye"></i></a>` : ''}
+                ${c.arquivo_url ? `<a href="/api/comprovantes/view?path=${encodeURIComponent(c.arquivo_url)}" target="_blank" class="btn-act" style="text-decoration:none;"><i class="fas fa-eye"></i></a>` : ''}
             </div>`).join('');
         if (wrapElId) document.getElementById(wrapElId).style.display = '';
     } catch(e) { console.error(e); }
