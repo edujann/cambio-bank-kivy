@@ -106,7 +106,7 @@
         .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
         .full{grid-column:1/-1;}
         .fc-search-wrap{position:relative;}
-        .fc-dropdown{position:absolute;top:100%;left:0;right:0;background:var(--cor-card);border:1px solid var(--cor-admin);border-radius:var(--borda-radius-pequeno);z-index:200;max-height:220px;overflow-y:auto;display:none;box-shadow:0 8px 24px rgba(0,0,0,.3);}
+        .fc-dropdown{position:fixed;background:var(--cor-card);border:1px solid var(--cor-admin);border-radius:var(--borda-radius-pequeno);z-index:9999;max-height:260px;overflow-y:auto;display:none;box-shadow:0 8px 24px rgba(0,0,0,.4);}
         .fc-dd-item{padding:10px 13px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--cor-borda);}
         .fc-dd-item:last-child{border-bottom:none;}
         .fc-dd-item:hover{background:rgba(26,95,180,.1);}
@@ -267,10 +267,11 @@
         <div class="logo">
             <i class="fas fa-store"></i>
             <span class="logo-text">Cambio Bank</span>
-            <span class="loja-tag">/ {{ loja|upper }}</span>
+            <span class="loja-tag">/ {{ loja_nome|upper }}</span>
         </div>
         <div class="hd-right">
             <span style="font-size:12px;color:var(--cor-texto-secundario);">{{ usuario }}</span>
+            <a href="/loja/selecionar" class="btn-hd btn-hd-ghost" title="Trocar loja"><i class="fas fa-exchange-alt"></i> Trocar Loja</a>
             <a href="/loja/clientes" class="btn-hd"><i class="fas fa-users"></i> Clientes</a>
             {% if tipo == 'admin' %}
             <a href="/admin/dashboard" class="btn-hd"><i class="fas fa-shield-alt"></i> Admin</a>
@@ -409,7 +410,7 @@
 </div>
 
 <!-- ══════════════════════ DRAWER: Nova Ordem ══════════════════════ -->
-<div class="drawer-overlay" id="drawerOverlay" onclick="if(event.target===this)fecharDrawer()">
+<div class="drawer-overlay" id="drawerOverlay" onclick="void(0)">
 <div class="drawer" id="drawer">
     <div class="drawer-hd">
         <h2><i class="fas fa-plus-circle c-azul"></i> Nova Ordem</h2>
@@ -931,7 +932,7 @@ let ordemAtual = null, parceiros = [], filtroStatus = '', clienteSelecionado = n
 
 // ══ STATS ══════════════════════════════════════════════════════════
 function atualizarStats(ordens) {
-    const hold = ordens.filter(o => o.status === 'on_hold');
+    const hold = ordens.filter(o => (o.status === 'on_hold' || o.status === 'compliance_review') && o.forma_pagamento === 'transferencia' && !o.pagamento_confirmado);
     const lib  = ordens.filter(o => o.status === 'liberada');
     const desp = ordens.filter(o => o.status === 'despachada');
     const volTotal = ordens.reduce((s,o) => s + parseFloat(o.valor_entrada||0), 0);
@@ -961,7 +962,10 @@ async function carregarOrdens() {
         if (de)  url += `&data_de=${de}`;
         if (ate) url += `&data_ate=${ate}`;
     } else {
-        url = `/api/loja/ordens?status=${filtroStatus}`;
+        const statusParam = filtroStatus === 'on_hold'
+            ? `status_in=on_hold,compliance_review`
+            : `status=${filtroStatus}`;
+        url = `/api/loja/ordens?${statusParam}`;
         if (de)  url += `&data_de=${de}`;
         if (ate) url += `&data_ate=${ate}`;
     }
@@ -970,16 +974,21 @@ async function carregarOrdens() {
     try {
         const r = await fetch(url);
         const d = await r.json();
-        if (!d.success || !d.ordens.length) {
+        let ordens = d.ordens || [];
+        // Filtro on_hold: só transferências aguardando pagamento (igual admin_despachos)
+        if (filtroStatus === 'on_hold') {
+            ordens = ordens.filter(o => o.forma_pagamento === 'transferencia' && !o.pagamento_confirmado);
+        }
+        if (!d.success || !ordens.length) {
             tb.innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-inbox"></i><p>Nenhuma ordem encontrada</p></td></tr>';
             document.getElementById('tbl-count').textContent = '';
             atualizarStats([]);
             return;
         }
         atualizarStats(d.ordens);
-        document.getElementById('tbl-count').textContent = `(${d.ordens.length})`;
+        document.getElementById('tbl-count').textContent = `(${ordens.length})`;
         const destFlag = {brazil:'🇧🇷',europe:'🇪🇺',usa:'🇺🇸'};
-        tb.innerHTML = d.ordens.map(o => {
+        tb.innerHTML = ordens.map(o => {
             const flag = destFlag[o.tipo_destino||'brazil'] || '🇧🇷';
             const saidaFmt = o.moeda_saida === 'BRL'
                 ? `R$ ${fmtN(o.valor_saida,2)}`
@@ -1070,6 +1079,16 @@ function irStep(n) {
 
 // ── Step 1: busca cliente ──
 let s1Timer;
+function s1PosicionarDropdown() {
+    const input = document.getElementById('s1Busca');
+    const dd    = document.getElementById('s1Dropdown');
+    if (dd.parentElement !== document.body) document.body.appendChild(dd);
+    const rect  = input.getBoundingClientRect();
+    dd.style.top   = rect.bottom + 4 + 'px';
+    dd.style.left  = rect.left + 'px';
+    dd.style.width = rect.width + 'px';
+}
+
 async function s1BuscarCliente() {
     clearTimeout(s1Timer);
     const q = document.getElementById('s1Busca').value.trim();
@@ -1081,13 +1100,13 @@ async function s1BuscarCliente() {
             const d = await r.json();
             if (!d.success) {
                 dd.innerHTML = `<div class="fc-dd-item" style="color:var(--cor-perigo);font-size:12px;"><i class="fas fa-exclamation-circle"></i> Erro: ${d.message}</div>`;
-                dd.style.display = 'block';
+                s1PosicionarDropdown(); dd.style.display = 'block';
                 return;
             }
             const lista = d.clientes || [];
             if (!lista.length) {
                 dd.innerHTML = `<div class="fc-dd-item" onclick="s1UsarNovo()"><i class="fas fa-user-plus"></i> Nenhum resultado para "<strong>${q}</strong>" — cadastrar novo</div>`;
-                dd.style.display = 'block';
+                s1PosicionarDropdown(); dd.style.display = 'block';
                 return;
             }
             dd.innerHTML = lista.map(c => `
@@ -1096,10 +1115,10 @@ async function s1BuscarCliente() {
                     <div class="sub">${c.documento||''} ${c.telefone||''}</div>
                 </div>`).join('') +
                 `<div class="fc-dd-item" style="border-top:1px solid var(--cor-borda);" onclick="s1UsarNovo()"><i class="fas fa-user-plus"></i> Cadastrar novo cliente</div>`;
-            dd.style.display = 'block';
+            s1PosicionarDropdown(); dd.style.display = 'block';
         } catch(e) {
             dd.innerHTML = `<div class="fc-dd-item" style="color:var(--cor-perigo);font-size:12px;">${e.message}</div>`;
-            dd.style.display = 'block';
+            s1PosicionarDropdown(); dd.style.display = 'block';
         }
     }, 300);
 }
@@ -1558,7 +1577,7 @@ let _taxaConfig = null; // { taxa_base, spread_min, spread_max, spread_passo }
 async function autoFetchConfigLoja() {
     const moeda = document.getElementById('s2Moeda').value;
     const forma  = document.getElementById('s2Forma').value;
-    const lojaId = window._lojaId || null;
+    const lojaId = window._lojaId || LOJA || null;
 
     // Reset UI
     const taxaInfo = document.getElementById('s2TaxaInfo');
@@ -2102,7 +2121,7 @@ async function confirmarPagamento() {
 }
 
 function fecharModal(id) { document.getElementById(id).classList.remove('open'); }
-document.querySelectorAll('.modal-ov').forEach(m => m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); }));
+// Fechar clicando fora desabilitado — evita perda de dados em formulários
 
 // ══ CONTAS / PARCEIROS ══════════════════════════════════════════════
 async function carregarContas() {
@@ -2370,6 +2389,28 @@ function renderDetalheOrdem(d) {
         ${docsOrdemHtml}
     `;
 }
+
+// ══ AUTO-ABRIR ORDEM APÓS NOVO CADASTRO ═══════════════════════════
+(async function() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('new_order') !== '1') return;
+    const clienteId   = params.get('cliente_id');
+    const clienteNome = params.get('cliente_nome');
+    if (!clienteId) return;
+    // Limpar URL sem recarregar
+    window.history.replaceState({}, '', '/loja/dashboard');
+    // Buscar dados completos do cliente
+    try {
+        const r = await fetch(`/api/clientes/${clienteId}`);
+        const d = await r.json();
+        const c = d.cliente || { id: clienteId, nome: clienteNome, documento: '', telefone: '' };
+        abrirDrawer();
+        // Pequeno delay para o drawer renderizar
+        setTimeout(() => { s1SelecionarCliente(c); }, 150);
+    } catch(e) {
+        abrirDrawer();
+    }
+})();
 </script>
 </body>
 </html>

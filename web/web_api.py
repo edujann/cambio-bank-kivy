@@ -10966,15 +10966,83 @@ def _check_loja_acesso():
     usuario = session.get('username')
     if not usuario:
         return None, None, redirect('/login')
-    try:
-        r = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
-        tipo = r.data.get('tipo') if r.data else None
-        # 🔥 ADICIONAR 'compliance' PERMITIDO
-        if tipo not in ('loja', 'admin', 'compliance'):
+    # Fast path: session já tem o tipo (definido no login)
+    tipo = session.get('tipo', '')
+    if tipo not in ('loja', 'admin', 'compliance'):
+        # Fallback: consultar DB (sessões antigas sem 'tipo' na cookie)
+        try:
+            r = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+            tipo = r.data.get('tipo') if r.data else None
+            if tipo not in ('loja', 'admin', 'compliance'):
+                return None, None, redirect('/login')
+            session['tipo'] = tipo
+        except Exception:
             return None, None, redirect('/login')
-        return usuario, tipo, None
-    except Exception:
-        return None, None, redirect('/login')
+    # Admin entra direto — ordens dele vão para escritorio_central
+    if tipo == 'admin' and not session.get('loja'):
+        session['loja'] = 'escritorio_central'
+        session['loja_nome'] = 'Escritório Central'
+    # Operador de loja sem loja selecionada vai para tela de seleção
+    if tipo == 'loja' and not session.get('loja'):
+        return None, None, redirect('/loja/selecionar')
+    return usuario, tipo, None
+
+
+@app.route('/loja/selecionar')
+def loja_selecionar_page():
+    usuario = session.get('username')
+    if not usuario:
+        return redirect('/login')
+    return render_template('loja_selecionar.html', usuario=usuario)
+
+
+@app.route('/api/loja/lojas-permitidas', methods=['GET'])
+def loja_lojas_permitidas():
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('usuarios').select('tipo,lojas_permitidas').eq('username', usuario).single().execute()
+        tipo = r.data.get('tipo') if r.data else None
+        if tipo == 'admin':
+            # Admin vê todas as lojas ativas
+            rl = supabase.table('lojas').select('*').eq('ativa', True).order('nome').execute()
+        else:
+            codigos = r.data.get('lojas_permitidas') or []
+            if not codigos:
+                return jsonify({'success': True, 'lojas': []})
+            rl = supabase.table('lojas').select('*').in_('codigo', codigos).eq('ativa', True).order('nome').execute()
+        return jsonify({'success': True, 'lojas': rl.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/loja/selecionar', methods=['POST'])
+def loja_selecionar():
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        d = request.get_json()
+        codigo = (d.get('codigo') or '').strip()
+        if not codigo:
+            return jsonify({'success': False, 'message': 'Código da loja obrigatório'}), 400
+        # Validar que o usuário tem acesso a essa loja
+        ru = supabase.table('usuarios').select('tipo,lojas_permitidas').eq('username', usuario).single().execute()
+        tipo = ru.data.get('tipo') if ru.data else None
+        if tipo != 'admin':
+            permitidas = ru.data.get('lojas_permitidas') or []
+            if codigo not in permitidas:
+                return jsonify({'success': False, 'message': 'Acesso negado a esta loja'}), 403
+        # Buscar nome da loja
+        rl = supabase.table('lojas').select('nome,codigo').eq('codigo', codigo).single().execute()
+        if not rl.data:
+            return jsonify({'success': False, 'message': 'Loja não encontrada'}), 404
+        session['loja'] = codigo
+        session['loja_nome'] = rl.data.get('nome', codigo)
+        return jsonify({'success': True, 'loja': codigo, 'loja_nome': rl.data.get('nome', codigo)})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/loja/dashboard')
@@ -10982,8 +11050,9 @@ def loja_dashboard():
     usuario, tipo, redir = _check_loja_acesso()
     if redir:
         return redir
-    loja = session.get('loja', usuario)
-    return render_template('loja_dashboard.html', usuario=usuario, tipo=tipo, loja=loja)
+    loja = session.get('loja')
+    loja_nome = session.get('loja_nome', loja)
+    return render_template('loja_dashboard.html', usuario=usuario, tipo=tipo, loja=loja, loja_nome=loja_nome)
 
 
 @app.route('/loja/clientes')
@@ -11056,7 +11125,7 @@ def loja_nova_ordem():
         taxa         = float(d.get('taxa_cobrada', 0))
         moeda_s      = d.get('moeda_saida', 'BRL').upper()
         conta_emp    = d.get('conta_empresa', '')
-        loja         = d.get('loja', usuario)
+        loja         = session.get('loja') or 'escritorio_central'
 
         if not all([forma, moeda_e, valor_e, taxa, conta_emp]):
             return jsonify({'success': False, 'message': 'Campos obrigatórios faltando'}), 400
@@ -11325,10 +11394,10 @@ def loja_listar_ordens():
             q = q.in_('status', status_in.split(','))
         elif status_f:
             q = q.eq('status', status_f)
-        if tipo == 'loja' and not loja_f:
-            q = q.eq('loja', usuario)
-        elif loja_f:
-            q = q.eq('loja', loja_f)
+        loja_sessao = session.get('loja', '')
+        if tipo != 'admin':
+            q = q.eq('loja', loja_sessao or usuario)
+        # admin sem filtro explícito vê tudo
         if data_de:
             q = q.gte('data', data_de)
         if data_ate:
@@ -11880,6 +11949,7 @@ def clientes_listar():
     if redir:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
+        from datetime import datetime, timedelta
         q = request.args.get('q', '').strip()
         if q:
             seen, data = set(), []
@@ -11891,9 +11961,43 @@ def clientes_listar():
                         seen.add(item['id'])
                         data.append(item)
             data.sort(key=lambda x: x.get('nome', ''))
-            return jsonify({'success': True, 'clientes': data[:50]})
-        r = supabase.table('clientes_varejo').select('*').order('nome').limit(50).execute()
-        return jsonify({'success': True, 'clientes': r.data or []})
+            data = data[:50]
+        else:
+            r = supabase.table('clientes_varejo').select('*').order('nome').limit(50).execute()
+            data = r.data or []
+
+        if data:
+            ids = [c['id'] for c in data]
+
+            # docs enviados
+            uploads = supabase.table('documentos_kyc').select('cliente_id,tipo').in_('cliente_id', ids).execute()
+            uploaded_map = {}
+            for row in (uploads.data or []):
+                uploaded_map.setdefault(row['cliente_id'], set()).add(row['tipo'])
+
+            # volume 90 dias em batch
+            cutoff = (datetime.now() - timedelta(days=90)).date().isoformat()
+            ordens_r = supabase.table('ordens_captacao')\
+                .select('cliente_id,valor_entrada,moeda_entrada')\
+                .in_('cliente_id', ids)\
+                .neq('status', 'cancelada')\
+                .gte('data', cutoff).execute()
+            volume_map = {}
+            for o in (ordens_r.data or []):
+                cid = o['cliente_id']
+                v   = float(o.get('valor_entrada') or 0)
+                m   = (o.get('moeda_entrada') or '').upper()
+                if m == 'GBP':   gbp = v
+                elif m == 'EUR': gbp = v * 0.86
+                elif m == 'USD': gbp = v * 0.79
+                else:            gbp = v
+                volume_map[cid] = round(volume_map.get(cid, 0.0) + gbp, 2)
+
+            for c in data:
+                c['docs_uploaded'] = list(uploaded_map.get(c['id'], []))
+                c['total_90d']     = volume_map.get(c['id'], 0.0)
+
+        return jsonify({'success': True, 'clientes': data})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
 
@@ -12441,6 +12545,107 @@ def loja_config_conta():
         return jsonify({'success': False, 'message': _err(e)}), 500
 
 
+# ── Gestão de Usuários do Sistema ──
+
+@app.route('/admin/usuarios')
+def admin_usuarios_page():
+    usuario = session.get('username')
+    if not usuario:
+        return redirect('/login')
+    r = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+    if not r.data or r.data.get('tipo') != 'admin':
+        return redirect('/admin/dashboard')
+    return render_template('admin_usuarios.html', usuario=usuario)
+
+
+@app.route('/api/admin/usuarios', methods=['GET'])
+def admin_listar_usuarios():
+    if not session.get('username'):
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('usuarios')\
+            .select('id,username,nome,email,tipo,status,lojas_permitidas')\
+            .in_('tipo', ['admin', 'loja', 'compliance'])\
+            .order('tipo').order('username').execute()
+        return jsonify({'success': True, 'usuarios': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/admin/usuarios', methods=['POST'])
+def admin_criar_usuario():
+    if not session.get('username'):
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        d = request.get_json()
+        username = (d.get('username') or '').strip().lower()
+        nome     = (d.get('nome') or '').strip()
+        email    = (d.get('email') or '').strip()
+        tipo     = (d.get('tipo') or '').strip()
+        senha    = d.get('senha', '')
+        lojas    = d.get('lojas_permitidas', [])
+
+        if not all([username, nome, tipo, senha]):
+            return jsonify({'success': False, 'message': 'Username, nome, tipo e senha são obrigatórios'}), 400
+        if tipo not in ('admin', 'loja', 'compliance'):
+            return jsonify({'success': False, 'message': 'Tipo inválido'}), 400
+        if len(senha) < 8:
+            return jsonify({'success': False, 'message': 'Senha deve ter no mínimo 8 caracteres'}), 400
+
+        # Verificar se username já existe
+        existe = supabase.table('usuarios').select('id').eq('username', username).execute()
+        if existe.data:
+            return jsonify({'success': False, 'message': f'Username "{username}" já está em uso'}), 400
+
+        senha_hash = hashlib.sha256(senha.encode()).hexdigest()
+        payload = {
+            'username': username,
+            'nome': nome,
+            'email': email or None,
+            'tipo': tipo,
+            'senha_hash': senha_hash,
+            'status': 'ativo',
+            'lojas_permitidas': lojas if tipo == 'loja' else [],
+        }
+        r = supabase.table('usuarios').insert(payload).execute()
+        return jsonify({'success': True, 'message': f'Usuário {username} criado com sucesso.', 'usuario': r.data[0] if r.data else {}})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/admin/usuarios/<usuario_id>', methods=['PUT'])
+def admin_atualizar_usuario(usuario_id):
+    if not session.get('username'):
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        d = request.get_json()
+        payload = {}
+        if 'nome'   in d: payload['nome']   = (d['nome'] or '').strip()
+        if 'email'  in d: payload['email']  = (d['email'] or '').strip() or None
+        if 'tipo'   in d:
+            if d['tipo'] not in ('admin', 'loja', 'compliance'):
+                return jsonify({'success': False, 'message': 'Tipo inválido'}), 400
+            payload['tipo'] = d['tipo']
+        if 'status' in d:
+            if d['status'] not in ('ativo', 'bloqueado'):
+                return jsonify({'success': False, 'message': 'Status inválido'}), 400
+            payload['status'] = d['status']
+        if 'lojas_permitidas' in d:
+            payload['lojas_permitidas'] = d['lojas_permitidas'] if payload.get('tipo', '') == 'loja' or d.get('tipo') == 'loja' else []
+        if 'senha' in d and d['senha']:
+            if len(d['senha']) < 8:
+                return jsonify({'success': False, 'message': 'Senha deve ter no mínimo 8 caracteres'}), 400
+            payload['senha_hash'] = hashlib.sha256(d['senha'].encode()).hexdigest()
+
+        if not payload:
+            return jsonify({'success': False, 'message': 'Nada para atualizar'}), 400
+
+        r = supabase.table('usuarios').update(payload).eq('id', usuario_id).execute()
+        return jsonify({'success': True, 'message': 'Usuário atualizado.', 'usuario': r.data[0] if r.data else {}})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
 @app.route('/api/admin/contas-empresa-lista', methods=['GET'])
 def admin_contas_empresa_lista():
     """Lista simplificada de contas da empresa para seletores."""
@@ -12477,7 +12682,7 @@ def admin_criar_loja():
             return jsonify({'success': False, 'message': 'Nome obrigatório'}), 400
         r = supabase.table('lojas').insert({
             'nome': nome,
-            'codigo': (d.get('codigo') or '').strip().upper() or None,
+            'codigo': ((d.get('codigo') or '').strip().lower().replace(' ', '_').replace('-', '_')) or None,
             'endereco': (d.get('endereco') or '').strip(),
             'cidade': (d.get('cidade') or '').strip(),
             'telefone': (d.get('telefone') or '').strip(),
@@ -12495,8 +12700,10 @@ def admin_atualizar_loja(loja_id):
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
         d = request.get_json()
-        allowed = ['nome','codigo','endereco','cidade','telefone','responsavel','ativa']
+        allowed = ['nome','endereco','cidade','telefone','responsavel','ativa']
         payload = {k: d[k] for k in allowed if k in d}
+        if 'codigo' in d:
+            payload['codigo'] = d['codigo'].strip().lower().replace(' ', '_').replace('-', '_')
         r = supabase.table('lojas').update(payload).eq('id', loja_id).execute()
         return jsonify({'success': True, 'message': 'Loja atualizada.', 'loja': r.data[0] if r.data else {}})
     except Exception as e:
@@ -12511,11 +12718,17 @@ def _check_compliance_acesso():
     usuario = session.get('username')
     if not usuario:
         return None, None, redirect('/login')
+    # Fast path: session já tem o tipo (definido no login)
+    tipo = session.get('tipo', '')
+    if tipo in ('compliance', 'admin'):
+        return usuario, tipo, None
+    # Fallback: consultar DB (sessões antigas sem 'tipo' na cookie)
     try:
         r = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
         tipo = r.data.get('tipo') if r.data else None
         if tipo not in ('compliance', 'admin'):
             return None, None, redirect('/login')
+        session['tipo'] = tipo  # gravar para próximas chamadas
         return usuario, tipo, None
     except Exception:
         return None, None, redirect('/login')
@@ -12595,14 +12808,14 @@ def compliance_aprovar_documento():
         if tipo_doc == 'proof_of_funds_ordem':
             tipo_doc = 'source_funds'
 
-        # Docs validados uma vez no nível do cliente
         CLIENT_LEVEL_FIELD_MAP = {
-            'photo_id': 'doc_photo_id_ok',
+            'photo_id':      'doc_photo_id_ok',
             'proof_address': 'doc_address_ok',
+            'source_funds':  'doc_source_funds_ok',
+            'declaration':   'doc_declaration_ok',
+            'edd':           'doc_edd_ok',
         }
-        # Docs validados por ordem (não actualizam o cliente)
-        ORDER_LEVEL_TIPOS = {'source_funds', 'declaration', 'edd'}
-        VALID_TIPOS = set(CLIENT_LEVEL_FIELD_MAP) | ORDER_LEVEL_TIPOS
+        VALID_TIPOS = set(CLIENT_LEVEL_FIELD_MAP)
 
         if tipo_doc not in VALID_TIPOS:
             return jsonify({'success': False, 'message': f'Tipo de documento inválido: {tipo_doc}'}), 400
@@ -12616,13 +12829,11 @@ def compliance_aprovar_documento():
         }).eq('id', doc_id).execute()
 
         promovidas = 0
-        if tipo_doc in CLIENT_LEVEL_FIELD_MAP and cliente_id:
-            # Marcar como OK no cliente apenas para docs de nível cliente
+        if cliente_id:
             supabase.table('clientes_varejo').update({
                 CLIENT_LEVEL_FIELD_MAP[tipo_doc]: True,
                 'updated_at': datetime.now().isoformat()
             }).eq('id', cliente_id).execute()
-            # Verificar se há ordens pendentes que podem ser promovidas automaticamente
             promovidas = _promover_ordens_pendentes(cliente_id, usuario)
 
         # Registrar na auditoria
@@ -12867,7 +13078,7 @@ def compliance_listar_clientes():
         bloq  = request.args.get('bloqueado')
         base  = supabase.table('clientes_varejo').select('*')
         if risco:
-            base = base.eq('risk_level', risco)
+            base = base.eq('risk_score', risco)
         if bloq == '1':
             base = base.eq('bloqueado', True)
         elif bloq == '0':
@@ -12883,6 +13094,48 @@ def compliance_listar_clientes():
         else:
             res  = base.order('nome').limit(200).execute()
             data = res.data or []
+
+        # Batch-compute total_90d to determine AML tier and kyc_docs_status
+        ids = [c['id'] for c in data]
+        volume_map = {}
+        if ids:
+            from datetime import datetime, timedelta
+            cutoff = (datetime.now() - timedelta(days=90)).date().isoformat()
+            ordens_r = supabase.table('ordens_captacao')\
+                .select('cliente_id,valor_entrada,moeda_entrada')\
+                .in_('cliente_id', ids)\
+                .neq('status', 'cancelada')\
+                .gte('data', cutoff)\
+                .execute()
+            for o in (ordens_r.data or []):
+                cid = o['cliente_id']
+                v   = float(o.get('valor_entrada') or 0)
+                m   = (o.get('moeda_entrada') or '').upper()
+                if m == 'GBP':   gbp = v
+                elif m == 'EUR': gbp = v * 0.86
+                elif m == 'USD': gbp = v * 0.79
+                else:            gbp = v
+                volume_map[cid] = round(volume_map.get(cid, 0.0) + gbp, 2)
+
+        DOC_OK_FIELDS = {
+            'photo_id':      'doc_photo_id_ok',
+            'proof_address': 'doc_address_ok',
+            'source_funds':  'doc_source_funds_ok',
+            'declaration':   'doc_declaration_ok',
+        }
+        for c in data:
+            total_90d = volume_map.get(c['id'], 0.0)
+            c['total_90d'] = total_90d
+            tier, docs_required = _aml_required_tier(total_90d)
+            c['kyc_level'] = tier
+            required_docs = [d for d in docs_required if d != 'basic_info']
+            validated = sum(1 for d in required_docs if c.get(DOC_OK_FIELDS.get(d, ''), False))
+            total_req = len(required_docs)
+            if total_req == 0 or validated == total_req:
+                c['kyc_docs_status'] = f'T{tier} OK'
+            else:
+                c['kyc_docs_status'] = f'T{tier} {validated}/{total_req}'
+
         return jsonify({'success': True, 'clientes': data})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
@@ -12926,7 +13179,7 @@ def compliance_alterar_risco(cliente_id):
         nivel = (d.get('nivel') or '').strip()
         if nivel not in ('baixo', 'medio', 'alto', 'proibido'):
             return jsonify({'success': False, 'message': 'Nível inválido'}), 400
-        supabase.table('clientes_varejo').update({'risk_level': nivel}).eq('id', cliente_id).execute()
+        supabase.table('clientes_varejo').update({'risk_score': nivel, 'updated_at': datetime.now().isoformat()}).eq('id', cliente_id).execute()
         _compliance_audit(usuario, 'ALTERAR_RISCO', f'cliente_id={cliente_id} nivel={nivel}')
         return jsonify({'success': True, 'message': f'Risco alterado para {nivel}.'})
     except Exception as e:
@@ -13871,10 +14124,10 @@ def ordens_consulta():
         loja_f   = request.args.get('loja', '')
 
         q = supabase.table('ordens_captacao').select('*').order('data', desc=True).limit(300)
-        if tipo_usr == 'loja':
-            q = q.eq('loja', usuario)
-        elif loja_f:
-            q = q.eq('loja', loja_f)
+        loja_sessao = session.get('loja', '')
+        if tipo_usr != 'admin':
+            q = q.eq('loja', loja_sessao or usuario)
+        # admin vê tudo
         if status_f:
             q = q.eq('status', status_f)
         if data_de:
@@ -14037,6 +14290,127 @@ def admin_despacho_confirmar_pago(despacho_id):
             supabase.table('ordens_captacao').update({'status': 'paga'}).eq('id', lnk['ordem_id']).execute()
         supabase.table('despachos').update({'status': 'pago'}).eq('id', despacho_id).execute()
         return jsonify({'success': True, 'message': 'Despacho confirmado como pago.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/admin/ordens/despachadas', methods=['GET'])
+def admin_listar_ordens_despachadas():
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('ordens_captacao').select('*').eq('status', 'despachada').order('data', desc=False).limit(500).execute()
+        ordens = r.data or []
+        if ordens:
+            ids = [o['id'] for o in ordens]
+            links_r = supabase.table('despacho_ordens').select('ordem_id,despacho_id').in_('ordem_id', ids).execute()
+            links = links_r.data or []
+            desp_ids = list({l['despacho_id'] for l in links})
+            despachos = {}
+            if desp_ids:
+                dr = supabase.table('despachos').select('*').in_('id', desp_ids).execute()
+                for d in (dr.data or []):
+                    despachos[d['id']] = d
+            ordem_despacho = {l['ordem_id']: despachos.get(l['despacho_id'], {}) for l in links}
+            comp_r = supabase.table('comprovantes_pagamento').select('ordem_id').in_('ordem_id', ids).execute()
+            comp_set = {c['ordem_id'] for c in (comp_r.data or [])}
+            for o in ordens:
+                o['despacho'] = ordem_despacho.get(o['id'], {})
+                o['tem_comprovante'] = o['id'] in comp_set
+        return jsonify({'success': True, 'ordens': ordens})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/admin/ordens/<ordem_id>/confirmar-pagamento', methods=['POST'])
+def admin_confirmar_pagamento_ordem(ordem_id):
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        tipo = session.get('tipo', '')
+        if tipo != 'admin':
+            r_u = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+            tipo = (r_u.data or {}).get('tipo')
+            if tipo != 'admin':
+                return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+        r_ord = supabase.table('ordens_captacao').select('id,status').eq('id', ordem_id).single().execute()
+        if not r_ord.data:
+            return jsonify({'success': False, 'message': 'Ordem não encontrada'}), 404
+        if r_ord.data['status'] != 'despachada':
+            return jsonify({'success': False, 'message': f'Ordem já está como "{r_ord.data["status"]}"'}), 400
+        arquivo = request.files.get('arquivo')
+        if arquivo and arquivo.filename:
+            arquivo_bytes = arquivo.read()
+            arquivo_nome = arquivo.filename
+            ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+            caminho = f"comprovantes/{ordem_id}/{ts}_{arquivo_nome}"
+            try:
+                supabase.storage.from_('invoices').upload(caminho, arquivo_bytes)
+            except Exception:
+                ct = getattr(arquivo, 'content_type', None) or 'application/octet-stream'
+                supabase.storage.from_('invoices').upload(caminho, arquivo_bytes, {'content-type': ct})
+            supabase.table('comprovantes_pagamento').insert({
+                'ordem_id':    ordem_id,
+                'arquivo_url': caminho,
+                'arquivo_nome': arquivo_nome,
+                'criado_por':  usuario,
+            }).execute()
+        supabase.table('ordens_captacao').update({
+            'status':     'paga',
+            'updated_at': datetime.now().isoformat(),
+        }).eq('id', ordem_id).execute()
+        return jsonify({'success': True, 'message': 'Pagamento confirmado.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/admin/ordens/<ordem_id>/comprovantes', methods=['GET'])
+def admin_listar_comprovantes(ordem_id):
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('comprovantes_pagamento').select('*').eq('ordem_id', ordem_id).order('criado_em').execute()
+        comps = r.data or []
+        for c in comps:
+            if c.get('arquivo_url'):
+                try:
+                    signed = supabase.storage.from_('invoices').create_signed_url(c['arquivo_url'], 3600)
+                    c['signed_url'] = signed.get('signedURL') or signed.get('signedUrl') or ''
+                except Exception:
+                    c['signed_url'] = ''
+        return jsonify({'success': True, 'comprovantes': comps})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/admin/ordens/<ordem_id>/comprovantes', methods=['POST'])
+def admin_upload_comprovante(ordem_id):
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        arquivo = request.files.get('arquivo')
+        if not arquivo or not arquivo.filename:
+            return jsonify({'success': False, 'message': 'Nenhum arquivo enviado'}), 400
+        arquivo_bytes = arquivo.read()
+        arquivo_nome  = arquivo.filename
+        ts     = datetime.now().strftime('%Y%m%d_%H%M%S')
+        caminho = f"comprovantes/{ordem_id}/{ts}_{arquivo_nome}"
+        try:
+            supabase.storage.from_('invoices').upload(caminho, arquivo_bytes)
+        except Exception:
+            ct = getattr(arquivo, 'content_type', None) or 'application/octet-stream'
+            supabase.storage.from_('invoices').upload(caminho, arquivo_bytes, {'content-type': ct})
+        supabase.table('comprovantes_pagamento').insert({
+            'ordem_id':    ordem_id,
+            'arquivo_url': caminho,
+            'arquivo_nome': arquivo_nome,
+            'criado_por':  usuario,
+        }).execute()
+        return jsonify({'success': True, 'message': 'Comprovante adicionado.'})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
 

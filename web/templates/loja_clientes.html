@@ -225,8 +225,6 @@
                 </div>
             </div>
 
-            <p class="section-label" style="margin-top:4px;color:var(--cor-texto-secundario);font-size:10px;border:none;padding:0;">Os beneficiários são gerenciados na tela de detalhe do cliente após o cadastro.</p>
-
             <!-- COMPROVANTE DE ENDEREÇO -->
             <p class="section-label">Comprovante de Endereço</p>
             <div class="form-grid">
@@ -266,8 +264,6 @@
                 </div>
             </div>
 
-            <p class="section-label" style="margin-top:4px;color:var(--cor-texto-secundario);font-size:10px;border:none;padding:0;">Os beneficiários são gerenciados na tela de detalhe do cliente após o cadastro.</p>
-
             <p class="section-label">Flags AML</p>
             <div class="form-grid">
                 <div class="form-group">
@@ -289,10 +285,201 @@
                     <input type="text" id="cPepInfo" class="form-control" placeholder="Descrição se PEP ou observações gerais">
                 </div>
             </div>
-        </div>
+
+            <!-- BENEFICIÁRIO -->
+            <p class="section-label" style="margin-top:16px;">Beneficiário <span style="font-weight:400;font-size:11px;color:var(--cor-texto-secundario);">(opcional)</span></p>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Tipo de Destino</label>
+                    <select id="nc-benef-tipo" class="form-control" onchange="onNcBenefTipoChange()">
+                        <option value="">Sem beneficiário agora</option>
+                        <option value="brazil">🇧🇷 Brasil (BRL)</option>
+                        <option value="europe">🇪🇺 Europa (EUR/SEPA)</option>
+                        <option value="usa">🇺🇸 USA (USD/SWIFT)</option>
+                    </select>
+                </div>
+            </div>
+            <div id="nc-benef-fields" style="display:none;">
+            <div class="form-grid">
+                <div class="form-group"><label>Nome do Beneficiário *</label><input id="nc-benef-nome" type="text" class="form-control" placeholder="Nome completo"></div>
+                <div class="form-group"><label>Apelido / Referência</label><input id="nc-benef-apelido" type="text" class="form-control" placeholder="Ex: Conta Principal"></div>
+                <div class="form-group"><label>Relacionamento</label>
+                    <select id="nc-benef-rel" class="form-control">
+                        <option value="">—</option>
+                        <option value="self">Própria conta</option>
+                        <option value="spouse">Cônjuge</option>
+                        <option value="parent">Pai/Mãe</option>
+                        <option value="child">Filho/a</option>
+                        <option value="sibling">Irmão/ã</option>
+                        <option value="friend">Amigo/a</option>
+                        <option value="business">Negócio</option>
+                        <option value="other">Outro</option>
+                    </select>
+                </div>
+            </div>
+            <!-- Endereço do beneficiário -->
+            <div class="form-grid">
+                <div class="form-group"><label>Endereço Linha 1</label><input id="nc-end1" type="text" class="form-control" placeholder="Número, rua"></div>
+                <div class="form-group"><label>Endereço Linha 2</label><input id="nc-end2" type="text" class="form-control" placeholder="Complemento, bairro"></div>
+                <div class="form-group"><label>Cidade</label><input id="nc-cidade" type="text" class="form-control"></div>
+                <div class="form-group"><label>CEP / Postcode</label><input id="nc-postcode" type="text" class="form-control"></div>
+                <div class="form-group form-full"><label>País</label><input id="nc-pais-benef" type="text" class="form-control" placeholder="ex: Brasil, Portugal, UK"></div>
+            </div>
+            <!-- Brasil -->
+            <div id="nc-sec-brazil" style="display:none;">
+                <div class="form-grid">
+                    <div class="form-group"><label>CPF</label><input id="nc-cpf" type="text" class="form-control" placeholder="000.000.000-00"></div>
+                    <div class="form-group"><label>Estado (UF)</label>
+                        <select id="nc-estado-br" class="form-control">
+                            <option value="">Selecione...</option>
+                            <option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option>
+                            <option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option>
+                            <option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option>
+                            <option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+                            <option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option>
+                            <option>SE</option><option>TO</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Banco</label>
+                        <select id="nc-banco-sel" class="form-control" onchange="onBancoChange('nc')">
+                            <option value="">Selecione...</option>
+                            <option value="001|Banco do Brasil">001 — Banco do Brasil</option>
+                            <option value="033|Santander">033 — Santander</option>
+                            <option value="104|Caixa Econômica Federal">104 — Caixa Econômica Federal</option>
+                            <option value="237|Bradesco">237 — Bradesco</option>
+                            <option value="341|Itaú">341 — Itaú</option>
+                            <option value="260|Nubank">260 — Nubank</option>
+                            <option value="290|PagBank">290 — PagBank</option>
+                            <option value="323|Mercado Pago">323 — Mercado Pago</option>
+                            <option value="077|Inter">077 — Inter</option>
+                            <option value="336|C6 Bank">336 — C6 Bank</option>
+                            <option value="212|Banco Original">212 — Banco Original</option>
+                            <option value="756|Sicoob">756 — Sicoob</option>
+                            <option value="748|Sicredi">748 — Sicredi</option>
+                            <option value="041|Banrisul">041 — Banrisul</option>
+                            <option value="004|BNB">004 — BNB</option>
+                            <option value="021|Banestes">021 — Banestes</option>
+                            <option value="422|Safra">422 — Safra</option>
+                            <option value="070|BRB">070 — BRB</option>
+                            <option value="655|Votorantim (Neon)">655 — Votorantim (Neon)</option>
+                            <option value="380|PicPay">380 — PicPay</option>
+                            <option value="outro|">Outro Banco</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="nc-banco-outro-group" style="display:none;"><label>Nome do Banco</label><input id="nc-banco" type="text" class="form-control" placeholder="Nome do banco"></div>
+                    <div class="form-group"><label>Agência</label><input id="nc-agencia" type="text" class="form-control" placeholder="0001"></div>
+                    <div class="form-group"><label>Conta</label><input id="nc-conta" type="text" class="form-control" placeholder="12345-6"></div>
+                    <div class="form-group"><label>Tipo Conta</label>
+                        <select id="nc-tipo-conta" class="form-control"><option value="corrente">Corrente</option><option value="poupanca">Poupança</option></select>
+                    </div>
+                    <div class="form-group"><label>Chave PIX</label><input id="nc-pix" type="text" class="form-control" placeholder="CPF, email, tel ou aleatória"></div>
+                    <div class="form-group"><label>Tipo PIX</label>
+                        <select id="nc-pix-tipo" class="form-control"><option value="">—</option><option value="cpf">CPF</option><option value="email">Email</option><option value="telefone">Telefone</option><option value="aleatoria">Aleatória</option></select>
+                    </div>
+                </div>
+            </div>
+            <!-- Europa -->
+            <div id="nc-sec-europe" style="display:none;">
+                <div class="form-grid">
+                    <div class="form-group form-full"><label>IBAN *</label><input id="nc-iban" type="text" class="form-control" placeholder="GB29 NWBK 6016 1331 9268 19"></div>
+                    <div class="form-group"><label>BIC / SWIFT</label><input id="nc-bic" type="text" class="form-control" placeholder="NWBKGB2L"></div>
+                    <div class="form-group"><label>Banco</label><input id="nc-banco-eu" type="text" class="form-control"></div>
+                    <div class="form-group"><label>País do Banco</label><input id="nc-pais-eu" type="text" class="form-control" placeholder="DE, FR, PT…"></div>
+                    <div class="form-group"><label>Endereço Linha 1</label><input id="nc-eu-end1" type="text" class="form-control" placeholder="Número, rua"></div>
+                    <div class="form-group"><label>Endereço Linha 2</label><input id="nc-eu-end2" type="text" class="form-control" placeholder="Complemento, bairro"></div>
+                    <div class="form-group"><label>Cidade</label><input id="nc-eu-cidade" type="text" class="form-control"></div>
+                    <div class="form-group"><label>CEP / Postcode</label><input id="nc-eu-postcode" type="text" class="form-control"></div>
+                    <div class="form-group form-full"><label>País</label><input id="nc-eu-pais" type="text" class="form-control" placeholder="ex: Alemanha, França, Portugal"></div>
+                </div>
+            </div>
+            <!-- USA -->
+            <div id="nc-sec-usa" style="display:none;">
+                <div class="form-grid">
+                    <div class="form-group"><label>Routing Number</label><input id="nc-routing" type="text" class="form-control" placeholder="021000021"></div>
+                    <div class="form-group"><label>Account Number</label><input id="nc-account" type="text" class="form-control" placeholder="000123456789"></div>
+                    <div class="form-group"><label>Tipo Conta</label>
+                        <select id="nc-account-tipo" class="form-control"><option value="checking">Checking</option><option value="savings">Savings</option></select>
+                    </div>
+                    <div class="form-group"><label>State</label>
+                        <select id="nc-state-us" class="form-control">
+                            <option value="">Select...</option>
+                            <option>AL</option><option>AK</option><option>AZ</option><option>AR</option><option>CA</option>
+                            <option>CO</option><option>CT</option><option>DE</option><option>FL</option><option>GA</option>
+                            <option>HI</option><option>ID</option><option>IL</option><option>IN</option><option>IA</option>
+                            <option>KS</option><option>KY</option><option>LA</option><option>ME</option><option>MD</option>
+                            <option>MA</option><option>MI</option><option>MN</option><option>MS</option><option>MO</option>
+                            <option>MT</option><option>NE</option><option>NV</option><option>NH</option><option>NJ</option>
+                            <option>NM</option><option>NY</option><option>NC</option><option>ND</option><option>OH</option>
+                            <option>OK</option><option>OR</option><option>PA</option><option>RI</option><option>SC</option>
+                            <option>SD</option><option>TN</option><option>TX</option><option>UT</option><option>VT</option>
+                            <option>VA</option><option>WA</option><option>WV</option><option>WI</option><option>WY</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>SWIFT</label><input id="nc-swift-us" type="text" class="form-control" placeholder="CHASUS33"></div>
+                    <div class="form-group"><label>Banco</label><input id="nc-banco-us" type="text" class="form-control" placeholder="Chase, Wells Fargo…"></div>
+                    <div class="form-group"><label>Endereço Linha 1</label><input id="nc-us-end1" type="text" class="form-control" placeholder="Street address"></div>
+                    <div class="form-group"><label>Endereço Linha 2</label><input id="nc-us-end2" type="text" class="form-control" placeholder="Apt, suite, etc."></div>
+                    <div class="form-group"><label>Cidade</label><input id="nc-us-cidade" type="text" class="form-control"></div>
+                    <div class="form-group"><label>ZIP Code</label><input id="nc-us-zip" type="text" class="form-control"></div>
+                </div>
+            </div>
+            </div><!-- fim nc-benef-fields -->
+
+            <!-- UPLOADS KYC -->
+            <p class="section-label" style="margin-top:16px;">Documentos KYC <span style="font-weight:400;font-size:11px;color:var(--cor-texto-secundario);">(opcional — pode fazer depois)</span></p>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="background:rgba(128,128,128,.05);border:1px solid var(--cor-borda);border-radius:6px;padding:10px 12px;">
+                    <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px;">Photo ID</label>
+                    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                        <input type="file" id="nc-doc-photo_id" accept=".pdf,.jpg,.jpeg,.png,.webp" style="font-size:12px;flex:1;min-width:0;color:var(--cor-texto);">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="ncUploadDoc('photo_id',this)"><i class="fas fa-upload"></i> Enviar</button>
+                    </div>
+                    <div id="nc-doc-status-photo_id" style="font-size:11px;margin-top:4px;min-height:14px;"></div>
+                </div>
+                <div style="background:rgba(128,128,128,.05);border:1px solid var(--cor-borda);border-radius:6px;padding:10px 12px;">
+                    <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px;">Proof of Address</label>
+                    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                        <input type="file" id="nc-doc-proof_address" accept=".pdf,.jpg,.jpeg,.png,.webp" style="font-size:12px;flex:1;min-width:0;color:var(--cor-texto);">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="ncUploadDoc('proof_address',this)"><i class="fas fa-upload"></i> Enviar</button>
+                    </div>
+                    <div id="nc-doc-status-proof_address" style="font-size:11px;margin-top:4px;min-height:14px;"></div>
+                </div>
+                <div style="background:rgba(128,128,128,.05);border:1px solid var(--cor-borda);border-radius:6px;padding:10px 12px;">
+                    <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px;">Source of Funds</label>
+                    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                        <input type="file" id="nc-doc-source_funds" accept=".pdf,.jpg,.jpeg,.png,.webp" style="font-size:12px;flex:1;min-width:0;color:var(--cor-texto);">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="ncUploadDoc('source_funds',this)"><i class="fas fa-upload"></i> Enviar</button>
+                    </div>
+                    <div id="nc-doc-status-source_funds" style="font-size:11px;margin-top:4px;min-height:14px;"></div>
+                </div>
+                <div style="background:rgba(128,128,128,.05);border:1px solid var(--cor-borda);border-radius:6px;padding:10px 12px;">
+                    <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px;">Declaration Form</label>
+                    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                        <input type="file" id="nc-doc-declaration" accept=".pdf,.jpg,.jpeg,.png,.webp" style="font-size:12px;flex:1;min-width:0;color:var(--cor-texto);">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="ncUploadDoc('declaration',this)"><i class="fas fa-upload"></i> Enviar</button>
+                    </div>
+                    <div id="nc-doc-status-declaration" style="font-size:11px;margin-top:4px;min-height:14px;"></div>
+                </div>
+            </div>
+            <div id="nc-upload-status" style="font-size:12px;min-height:16px;color:var(--cor-texto-secundario);margin-top:4px;"></div>
+
+            <!-- Banner de sucesso fase 2 -->
+            <div id="nc-saved-banner" style="display:none;margin-top:12px;padding:12px 16px;background:rgba(46,194,126,.12);border:1px solid var(--cor-sucesso);border-radius:8px;font-size:13px;color:var(--cor-sucesso);">
+                <i class="fas fa-check-circle"></i> <strong>Cliente salvo com sucesso!</strong>
+                Agora pode fazer o upload dos documentos KYC acima ou fechar o formulário.
+            </div>
+        </div><!-- fim modal-body -->
+
         <div class="modal-footer">
-            <button class="btn btn-ghost" onclick="fecharModal('modalCliente')">Cancelar</button>
-            <button class="btn btn-primary" onclick="salvarCliente()"><i class="fas fa-save"></i> Salvar</button>
+            <div id="nc-footer-fase1" style="display:flex;gap:8px;align-items:center;flex:1;justify-content:flex-end;">
+                <button class="btn btn-ghost" onclick="fecharModal('modalCliente')">Cancelar</button>
+                <button class="btn btn-primary" onclick="salvarCliente(false)"><i class="fas fa-save"></i> Salvar</button>
+                <button class="btn btn-primary" style="background:var(--cor-sucesso);" onclick="salvarCliente(true)"><i class="fas fa-file-invoice-dollar"></i> Salvar e Criar Ordem</button>
+            </div>
+            <div id="nc-footer-fase2" style="display:none;gap:8px;align-items:center;flex:1;justify-content:flex-end;">
+                <button class="btn btn-ghost" onclick="fecharModal('modalCliente')"><i class="fas fa-times"></i> Fechar</button>
+                <button class="btn btn-primary" style="background:var(--cor-sucesso);" onclick="ncCriarOrdemAposSalvar()"><i class="fas fa-file-invoice-dollar"></i> Criar Ordem</button>
+            </div>
         </div>
     </div>
 </div>
@@ -352,16 +539,19 @@ function renderTabela(clientes) {
         const flags = [];
         if (c.pep_flag) flags.push('<span class="badge badge-danger">PEP</span>');
         if (c.sanctions_flag) flags.push('<span class="badge badge-danger">SANCOES</span>');
+        const uploaded = c.docs_uploaded || [];
         const docs = [
-            {ok: c.doc_photo_id_ok, label: 'ID'},
-            {ok: c.doc_address_ok, label: 'Addr'},
-            {ok: c.doc_source_funds_ok, label: 'SoF'},
-            {ok: c.doc_declaration_ok, label: 'Decl'},
-            {ok: c.doc_edd_ok, label: 'EDD'},
+            {ok: c.doc_photo_id_ok,      uploaded: uploaded.includes('photo_id'),      label: 'ID'},
+            {ok: c.doc_address_ok,       uploaded: uploaded.includes('proof_address'),  label: 'Addr'},
+            {ok: c.doc_source_funds_ok,  uploaded: uploaded.includes('source_funds'),   label: 'SoF'},
+            {ok: c.doc_declaration_ok,   uploaded: uploaded.includes('declaration'),    label: 'Decl'},
+            {ok: c.doc_edd_ok,           uploaded: uploaded.includes('edd'),            label: 'EDD'},
         ];
-        const dotsHtml = '<div class="kyc-dots">' + docs.map(d =>
-            `<div class="kyc-dot ${d.ok ? 'ok' : ''}" title="${d.label}: ${d.ok ? 'OK' : 'Pendente'}"></div>`
-        ).join('') + '</div>';
+        const dotsHtml = '<div class="kyc-dots">' + docs.map(d => {
+            const cls   = d.ok ? 'ok' : d.uploaded ? 'warn' : '';
+            const title = d.ok ? `${d.label}: Validado` : d.uploaded ? `${d.label}: Enviado — aguardando validação` : `${d.label}: Pendente`;
+            return `<div class="kyc-dot ${cls}" title="${title}"></div>`;
+        }).join('') + '</div>';
         const total90 = parseFloat(c.total_90d || 0).toFixed(0);
         return `<tr>
             <td style="font-weight:600;">${c.nome}</td>
@@ -454,7 +644,7 @@ function renderDetalhe(c) {
                         <div class="doc-status" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                             <span class="badge ${d.ok?'badge-ok':'badge-warn'}">${d.ok?'Validado':'Pendente'}</span>
                             ${docArquivo?`<button class="btn btn-ghost btn-sm" onclick="verDocKyc('${docArquivo.id}')"><i class="fas fa-eye"></i> Ver</button>`:''}
-                            ${!d.ok?`<button class="btn btn-ghost btn-sm" onclick="marcarDocOk('${c.id}','${d.key}')"><i class="fas fa-check"></i> Marcar OK</button>`:''}
+
                         </div>
                     </div>
                     <div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap;">
@@ -519,7 +709,49 @@ function renderDetalhe(c) {
                 <p class="section-label">Dados Bancários Brasil</p>
                 <div class="form-grid">
                     <div class="form-group"><label>CPF</label><input id="nb-cpf" type="text" class="form-control" placeholder="000.000.000-00"></div>
-                    <div class="form-group"><label>Banco</label><input id="nb-banco" type="text" class="form-control" placeholder="Ex: Nubank, Itaú"></div>
+                    <div class="form-group">
+                        <label>Estado (UF)</label>
+                        <select id="nb-estado-br" class="form-control">
+                            <option value="">Selecione...</option>
+                            <option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option>
+                            <option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option>
+                            <option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option>
+                            <option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+                            <option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option>
+                            <option>SE</option><option>TO</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Banco</label>
+                        <select id="nb-banco-sel" class="form-control" onchange="onBancoChange('nb')">
+                            <option value="">Selecione...</option>
+                            <option value="001|Banco do Brasil">001 — Banco do Brasil</option>
+                            <option value="033|Santander">033 — Santander</option>
+                            <option value="104|Caixa Econômica Federal">104 — Caixa Econômica Federal</option>
+                            <option value="237|Bradesco">237 — Bradesco</option>
+                            <option value="341|Itaú">341 — Itaú</option>
+                            <option value="260|Nubank">260 — Nubank</option>
+                            <option value="290|PagBank">290 — PagBank</option>
+                            <option value="323|Mercado Pago">323 — Mercado Pago</option>
+                            <option value="077|Inter">077 — Inter</option>
+                            <option value="336|C6 Bank">336 — C6 Bank</option>
+                            <option value="212|Banco Original">212 — Banco Original</option>
+                            <option value="756|Sicoob">756 — Sicoob</option>
+                            <option value="748|Sicredi">748 — Sicredi</option>
+                            <option value="041|Banrisul">041 — Banrisul</option>
+                            <option value="004|BNB">004 — BNB</option>
+                            <option value="021|Banestes">021 — Banestes</option>
+                            <option value="422|Safra">422 — Safra</option>
+                            <option value="070|BRB">070 — BRB</option>
+                            <option value="655|Votorantim (Neon)">655 — Votorantim (Neon)</option>
+                            <option value="380|PicPay">380 — PicPay</option>
+                            <option value="outro|">Outro Banco</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="nb-banco-outro-group" style="display:none;">
+                        <label>Nome do Banco</label>
+                        <input id="nb-banco" type="text" class="form-control" placeholder="Digite o nome do banco">
+                    </div>
                     <div class="form-group"><label>Agência</label><input id="nb-agencia" type="text" class="form-control" placeholder="0001"></div>
                     <div class="form-group"><label>Conta</label><input id="nb-conta" type="text" class="form-control" placeholder="12345-6"></div>
                     <div class="form-group">
@@ -565,6 +797,22 @@ function renderDetalhe(c) {
                         <select id="nb-account-tipo" class="form-control">
                             <option value="checking">Checking</option>
                             <option value="savings">Savings</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>State</label>
+                        <select id="nb-state-us" class="form-control">
+                            <option value="">Select...</option>
+                            <option>AL</option><option>AK</option><option>AZ</option><option>AR</option><option>CA</option>
+                            <option>CO</option><option>CT</option><option>DE</option><option>FL</option><option>GA</option>
+                            <option>HI</option><option>ID</option><option>IL</option><option>IN</option><option>IA</option>
+                            <option>KS</option><option>KY</option><option>LA</option><option>ME</option><option>MD</option>
+                            <option>MA</option><option>MI</option><option>MN</option><option>MS</option><option>MO</option>
+                            <option>MT</option><option>NE</option><option>NV</option><option>NH</option><option>NJ</option>
+                            <option>NM</option><option>NY</option><option>NC</option><option>ND</option><option>OH</option>
+                            <option>OK</option><option>OR</option><option>PA</option><option>RI</option><option>SC</option>
+                            <option>SD</option><option>TN</option><option>TX</option><option>UT</option><option>VT</option>
+                            <option>VA</option><option>WA</option><option>WV</option><option>WI</option><option>WY</option>
                         </select>
                     </div>
                     <div class="form-group"><label>SWIFT</label><input id="nb-swift-us" type="text" class="form-control" placeholder="CHASUS33"></div>
@@ -651,6 +899,11 @@ function abrirModalNovo() {
     const msgDiv = document.getElementById('cAddrValidadeMsg');
     if (msgDiv) msgDiv.innerHTML = '<span style="color:var(--muted);">Selecione uma data</span>';
     
+    // Resetar fase 2
+    document.getElementById('nc-saved-banner').style.display = 'none';
+    document.getElementById('nc-footer-fase1').style.display = 'flex';
+    document.getElementById('nc-footer-fase2').style.display = 'none';
+
     document.getElementById('modalCliente').classList.add('open');
 }
 
@@ -716,7 +969,16 @@ function editarClienteById(id) {
     document.getElementById('modalCliente').classList.add('open');
 }
 
-async function salvarCliente() {
+function onNcBenefTipoChange() {
+    const tipo = document.getElementById('nc-benef-tipo').value;
+    document.getElementById('nc-benef-fields').style.display = tipo ? '' : 'none';
+    ['brazil','europe','usa'].forEach(t => {
+        const el = document.getElementById(`nc-sec-${t}`);
+        if (el) el.style.display = t === tipo ? '' : 'none';
+    });
+}
+
+async function salvarCliente(criarOrdem = false) {
     const id = document.getElementById('clienteId').value;
     const nome = document.getElementById('cNome').value.trim();
     if (!nome) { toast('Nome obrigatório', 'err'); return; }
@@ -751,20 +1013,142 @@ async function salvarCliente() {
         const method = id ? 'PUT' : 'POST';
         const r = await fetch(url, {method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
         const data = await r.json();
-        if (data.success) {
-            toast(data.message, 'ok');
+        if (!data.success) { toast(data.message, 'err'); return; }
+
+        const clienteId   = data.cliente?.id || id;
+        const clienteNome = data.cliente?.nome || nome;
+        toast(data.message, 'ok');
+
+        // Salvar beneficiário se preenchido
+        const benefTipo = document.getElementById('nc-benef-tipo').value;
+        const benefNome = document.getElementById('nc-benef-nome')?.value.trim();
+        if (benefTipo && benefNome) {
+            const get = i => (document.getElementById(i)?.value || '').trim();
+            const bPayload = {
+                tipo: benefTipo, nome: benefNome,
+                apelido: get('nc-benef-apelido'), relacionamento: get('nc-benef-rel'),
+                endereco_linha1: get('nc-end1'), endereco_linha2: get('nc-end2'),
+                cidade: get('nc-cidade'), postcode: get('nc-postcode'), pais: get('nc-pais-benef'),
+                // Brazil
+                cpf: get('nc-cpf'), estado: get('nc-estado-br'),
+                banco_codigo: (document.getElementById('nc-banco-sel')?.value.split('|')[0] === 'outro' ? '' : document.getElementById('nc-banco-sel')?.value.split('|')[0] || ''),
+                banco_nome: get('nc-banco'),
+                agencia: get('nc-agencia'), conta: get('nc-conta'),
+                tipo_conta: get('nc-tipo-conta'),
+                pix_chave: get('nc-pix'), pix_tipo: get('nc-pix-tipo'),
+                // Europe
+                iban: get('nc-iban'), bic_swift: get('nc-bic'),
+                banco_nome_eu: get('nc-banco-eu'), banco_pais: get('nc-pais-eu'),
+                endereco_linha1_eu: get('nc-eu-end1'), endereco_linha2_eu: get('nc-eu-end2'),
+                cidade_eu: get('nc-eu-cidade'), postcode_eu: get('nc-eu-postcode'), pais_eu: get('nc-eu-pais'),
+                // USA
+                routing_number: get('nc-routing'), account_number: get('nc-account'),
+                account_type_us: get('nc-account-tipo'),
+                state_us: get('nc-state-us'),
+                swift_us: get('nc-swift-us'), banco_nome_us: get('nc-banco-us'),
+                endereco_linha1_us: get('nc-us-end1'), endereco_linha2_us: get('nc-us-end2'),
+                cidade_us: get('nc-us-cidade'), zip_us: get('nc-us-zip'),
+            };
+            await fetch(`/api/clientes/${clienteId}/beneficiarios`, {
+                method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(bPayload)
+            });
+        }
+
+        const isNovo = !id;
+
+        if (criarOrdem) {
             fecharModal('modalCliente');
+            window.location.href = `/loja/dashboard?new_order=1&cliente_id=${clienteId}&cliente_nome=${encodeURIComponent(clienteNome)}`;
+            return;
+        }
+
+        if (isNovo) {
+            // Fase 2: mantém modal aberto, ativa uploads
+            document.getElementById('clienteId').value = clienteId;
+            document.getElementById('nc-saved-banner').style.display = '';
+            document.getElementById('nc-footer-fase1').style.display = 'none';
+            document.getElementById('nc-footer-fase2').style.display = 'flex';
+            document.getElementById('nc-saved-banner').scrollIntoView({behavior:'smooth', block:'nearest'});
             _buscar();
         } else {
-            toast(data.message, 'err');
+            fecharModal('modalCliente');
+            _buscar();
         }
     } catch(e) {
         toast('Erro ao salvar cliente', 'err');
     }
 }
 
+function ncCriarOrdemAposSalvar() {
+    const clienteId   = document.getElementById('clienteId').value;
+    const clienteNome = document.getElementById('cNome').value.trim();
+    fecharModal('modalCliente');
+    window.location.href = `/loja/dashboard?new_order=1&cliente_id=${clienteId}&cliente_nome=${encodeURIComponent(clienteNome)}`;
+}
+
+async function ncUploadDoc(tipo, btn) {
+    const fileInput = document.getElementById(`nc-doc-${tipo}`);
+    const statusEl  = document.getElementById(`nc-doc-status-${tipo}`);
+    if (!fileInput?.files?.length) { toast('Selecione um arquivo primeiro', 'err'); return; }
+    const clienteId = document.getElementById('clienteId').value;
+    if (!clienteId) { toast('Salve o cliente primeiro para fazer o upload individual', 'warn'); return; }
+    btn.disabled = true;
+    statusEl.textContent = 'Enviando...';
+    statusEl.style.color = 'var(--cor-texto-secundario)';
+    try {
+        const fd = new FormData();
+        fd.append('arquivo', fileInput.files[0]);
+        fd.append('tipo', tipo);
+        const r = await fetch(`/api/clientes/${clienteId}/upload-kyc`, {method:'POST', body: fd});
+        const d = await r.json();
+        if (d.success) {
+            statusEl.textContent = '✓ Enviado com sucesso';
+            statusEl.style.color = 'var(--cor-sucesso)';
+            fileInput.value = '';
+        } else {
+            statusEl.textContent = 'Erro: ' + (d.message || 'falha no envio');
+            statusEl.style.color = 'var(--cor-perigo)';
+        }
+    } catch(e) {
+        statusEl.textContent = 'Erro ao enviar';
+        statusEl.style.color = 'var(--cor-perigo)';
+    }
+    btn.disabled = false;
+}
+
 // ---- Beneficiários no detalhe ----
 let clienteDetalheId = null;
+
+function onBancoChange(prefix) {
+    const sel = document.getElementById(`${prefix}-banco-sel`);
+    const outroGroup = document.getElementById(`${prefix}-banco-outro-group`);
+    const val = sel.value;
+    if (val === 'outro|') {
+        outroGroup.style.display = '';
+        document.getElementById(`${prefix}-banco`).value = '';
+    } else {
+        outroGroup.style.display = 'none';
+        if (val) {
+            const [codigo, nome] = val.split('|');
+            document.getElementById(`${prefix}-banco`).value = nome;
+        }
+    }
+}
+
+function setBancoSelect(prefix, codigo, nome) {
+    const sel = document.getElementById(`${prefix}-banco-sel`);
+    const outroGroup = document.getElementById(`${prefix}-banco-outro-group`);
+    if (!codigo && !nome) return;
+    const opt = Array.from(sel.options).find(o => o.value.startsWith(codigo + '|'));
+    if (opt) {
+        sel.value = opt.value;
+        outroGroup.style.display = 'none';
+    } else {
+        sel.value = 'outro|';
+        outroGroup.style.display = '';
+        document.getElementById(`${prefix}-banco`).value = nome || '';
+    }
+}
 
 function abrirNovoBenef(clienteId) {
     clienteDetalheId = clienteId;
@@ -835,9 +1219,12 @@ async function salvarNovoBenefDetalhe() {
         pais: get('nb-pais'),
         relacionamento: get('nb-rel'),
         // Brazil
-        cpf: get('nb-cpf'), banco_nome: get('nb-banco'),
+        cpf: get('nb-cpf'),
+        banco_codigo: (document.getElementById('nb-banco-sel').value.split('|')[0] === 'outro' ? '' : document.getElementById('nb-banco-sel').value.split('|')[0]),
+        banco_nome: get('nb-banco'),
         agencia: get('nb-agencia'), conta: get('nb-conta'),
         tipo_conta: get('nb-tipo-conta'),
+        estado: get('nb-estado-br'),
         pix_chave: get('nb-pix'), pix_tipo: get('nb-pix-tipo'),
         // Europe
         iban: get('nb-iban'), bic_swift: get('nb-bic'),
@@ -845,6 +1232,7 @@ async function salvarNovoBenefDetalhe() {
         // USA
         routing_number: get('nb-routing'), account_number: get('nb-account'),
         account_type_us: get('nb-account-tipo'),
+        state_us: get('nb-state-us'),
         swift_us: get('nb-swift-us'), banco_nome_us: get('nb-banco-us'),
     };
     try {
@@ -877,12 +1265,13 @@ function abrirEditBenefDetalhe(benefId, clienteId) {
     document.getElementById('ebd-rel').value   = data.relacionamento || '';
     // Brazil
     document.getElementById('ebd-cpf').value   = data.cpf || '';
-    document.getElementById('ebd-banco').value = data.banco_nome || '';
+    setBancoSelect('ebd', data.banco_codigo || '', data.banco_nome || '');
     document.getElementById('ebd-agencia').value = data.agencia || '';
     document.getElementById('ebd-conta').value = data.conta || '';
     if (document.getElementById('ebd-tipo-conta')) document.getElementById('ebd-tipo-conta').value = data.tipo_conta || 'corrente';
     document.getElementById('ebd-pix').value   = data.pix_chave || '';
     if (document.getElementById('ebd-pix-tipo')) document.getElementById('ebd-pix-tipo').value = data.pix_tipo || '';
+    document.getElementById('ebd-estado-br').value = data.estado || '';
     // Europe
     document.getElementById('ebd-iban').value  = data.iban || '';
     document.getElementById('ebd-bic').value   = data.bic_swift || '';
@@ -892,6 +1281,7 @@ function abrirEditBenefDetalhe(benefId, clienteId) {
     document.getElementById('ebd-routing').value = data.routing_number || '';
     document.getElementById('ebd-account').value = data.account_number || '';
     if (document.getElementById('ebd-account-tipo')) document.getElementById('ebd-account-tipo').value = data.account_type_us || 'checking';
+    document.getElementById('ebd-state-us').value = data.state_us || '';
     document.getElementById('ebd-swift-us').value = data.swift_us || '';
     document.getElementById('ebd-banco-us').value = data.banco_nome_us || '';
     // Toggle sections
@@ -909,11 +1299,13 @@ async function salvarEditBenefDetalhe() {
         nome: get('ebd-nome'), apelido: get('ebd-apelido'),
         endereco_linha1: get('ebd-end1'), endereco_linha2: get('ebd-end2'),
         cidade: get('ebd-cidade'), postcode: get('ebd-postcode'), pais: get('ebd-pais'), relacionamento: get('ebd-rel'),
-        cpf: get('ebd-cpf'), banco_nome: get('ebd-banco'), agencia: get('ebd-agencia'), conta: get('ebd-conta'),
-        tipo_conta: get('ebd-tipo-conta'), pix_chave: get('ebd-pix'), pix_tipo: get('ebd-pix-tipo'),
+        cpf: get('ebd-cpf'),
+        banco_codigo: (document.getElementById('ebd-banco-sel').value.split('|')[0] === 'outro' ? '' : document.getElementById('ebd-banco-sel').value.split('|')[0]),
+        banco_nome: get('ebd-banco'), agencia: get('ebd-agencia'), conta: get('ebd-conta'),
+        tipo_conta: get('ebd-tipo-conta'), estado: get('ebd-estado-br'), pix_chave: get('ebd-pix'), pix_tipo: get('ebd-pix-tipo'),
         iban: get('ebd-iban'), bic_swift: get('ebd-bic'), banco_nome_eu: get('ebd-banco-eu'), banco_pais: get('ebd-pais-eu'),
         routing_number: get('ebd-routing'), account_number: get('ebd-account'),
-        account_type_us: get('ebd-account-tipo'), swift_us: get('ebd-swift-us'), banco_nome_us: get('ebd-banco-us'),
+        account_type_us: get('ebd-account-tipo'), state_us: get('ebd-state-us'), swift_us: get('ebd-swift-us'), banco_nome_us: get('ebd-banco-us'),
     };
     if (!payload.nome) { toast('Nome obrigatório', 'err'); return; }
     try {
@@ -1027,12 +1419,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Fechar modal clicando fora
-document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', function(e) {
-        if (e.target === this) this.classList.remove('open');
-    });
-});
+// Fechar clicando fora desabilitado — evita perda de dados em formulários
 // Carga inicial
 _buscar();
 </script>
@@ -1071,7 +1458,49 @@ _buscar();
         <p class="section-label">Dados Bancários Brasil</p>
         <div class="form-grid">
             <div class="form-group"><label>CPF</label><input id="ebd-cpf" type="text" class="form-control" placeholder="000.000.000-00"></div>
-            <div class="form-group"><label>Banco</label><input id="ebd-banco" type="text" class="form-control"></div>
+            <div class="form-group">
+                <label>Estado (UF)</label>
+                <select id="ebd-estado-br" class="form-control">
+                    <option value="">Selecione...</option>
+                    <option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option>
+                    <option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option>
+                    <option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option>
+                    <option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+                    <option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option>
+                    <option>SE</option><option>TO</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Banco</label>
+                <select id="ebd-banco-sel" class="form-control" onchange="onBancoChange('ebd')">
+                    <option value="">Selecione...</option>
+                    <option value="001|Banco do Brasil">001 — Banco do Brasil</option>
+                    <option value="033|Santander">033 — Santander</option>
+                    <option value="104|Caixa Econômica Federal">104 — Caixa Econômica Federal</option>
+                    <option value="237|Bradesco">237 — Bradesco</option>
+                    <option value="341|Itaú">341 — Itaú</option>
+                    <option value="260|Nubank">260 — Nubank</option>
+                    <option value="290|PagBank">290 — PagBank</option>
+                    <option value="323|Mercado Pago">323 — Mercado Pago</option>
+                    <option value="077|Inter">077 — Inter</option>
+                    <option value="336|C6 Bank">336 — C6 Bank</option>
+                    <option value="212|Banco Original">212 — Banco Original</option>
+                    <option value="756|Sicoob">756 — Sicoob</option>
+                    <option value="748|Sicredi">748 — Sicredi</option>
+                    <option value="041|Banrisul">041 — Banrisul</option>
+                    <option value="004|BNB">004 — BNB</option>
+                    <option value="021|Banestes">021 — Banestes</option>
+                    <option value="422|Safra">422 — Safra</option>
+                    <option value="070|BRB">070 — BRB</option>
+                    <option value="655|Votorantim (Neon)">655 — Votorantim (Neon)</option>
+                    <option value="380|PicPay">380 — PicPay</option>
+                    <option value="outro|">Outro Banco</option>
+                </select>
+            </div>
+            <div class="form-group" id="ebd-banco-outro-group" style="display:none;">
+                <label>Nome do Banco</label>
+                <input id="ebd-banco" type="text" class="form-control" placeholder="Digite o nome do banco">
+            </div>
             <div class="form-group"><label>Agência</label><input id="ebd-agencia" type="text" class="form-control"></div>
             <div class="form-group"><label>Conta</label><input id="ebd-conta" type="text" class="form-control"></div>
             <div class="form-group">
@@ -1104,6 +1533,22 @@ _buscar();
             <div class="form-group">
                 <label>Tipo Conta</label>
                 <select id="ebd-account-tipo" class="form-control"><option value="checking">Checking</option><option value="savings">Savings</option></select>
+            </div>
+            <div class="form-group">
+                <label>State</label>
+                <select id="ebd-state-us" class="form-control">
+                    <option value="">Select...</option>
+                    <option>AL</option><option>AK</option><option>AZ</option><option>AR</option><option>CA</option>
+                    <option>CO</option><option>CT</option><option>DE</option><option>FL</option><option>GA</option>
+                    <option>HI</option><option>ID</option><option>IL</option><option>IN</option><option>IA</option>
+                    <option>KS</option><option>KY</option><option>LA</option><option>ME</option><option>MD</option>
+                    <option>MA</option><option>MI</option><option>MN</option><option>MS</option><option>MO</option>
+                    <option>MT</option><option>NE</option><option>NV</option><option>NH</option><option>NJ</option>
+                    <option>NM</option><option>NY</option><option>NC</option><option>ND</option><option>OH</option>
+                    <option>OK</option><option>OR</option><option>PA</option><option>RI</option><option>SC</option>
+                    <option>SD</option><option>TN</option><option>TX</option><option>UT</option><option>VT</option>
+                    <option>VA</option><option>WA</option><option>WV</option><option>WI</option><option>WY</option>
+                </select>
             </div>
             <div class="form-group"><label>SWIFT</label><input id="ebd-swift-us" type="text" class="form-control"></div>
             <div class="form-group"><label>Banco</label><input id="ebd-banco-us" type="text" class="form-control"></div>

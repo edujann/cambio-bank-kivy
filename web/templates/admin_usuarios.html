@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cambio Bank — Gestão de Usuários</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+        body{background:var(--cor-fundo);color:var(--cor-texto);min-height:100vh;}
+        .page{max-width:1100px;margin:0 auto;padding:20px;}
+
+        .hd{display:flex;justify-content:space-between;align-items:center;padding:16px 0;margin-bottom:22px;border-bottom:1px solid var(--cor-borda);flex-wrap:wrap;gap:10px;}
+        .logo{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:700;}
+        .logo i{color:var(--cor-admin);font-size:22px;}
+        .logo-text{background:linear-gradient(90deg,var(--cor-admin),#2d8fff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+        .hd-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+        .btn-hd{background:rgba(26,95,180,.12);border:1px solid var(--cor-admin);color:var(--cor-admin);padding:6px 13px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+        .btn-hd:hover{background:rgba(26,95,180,.25);}
+        .btn-hd-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-hd-ghost:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+
+        .sec-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+        .sec-hd h2{font-size:16px;font-weight:600;}
+
+        .btn-novo{background:var(--cor-admin);color:#fff;border:none;padding:8px 16px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;}
+        .btn-novo:hover{opacity:.9;}
+
+        .card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);overflow:hidden;}
+
+        table{width:100%;border-collapse:collapse;}
+        th{background:var(--cor-fundo);padding:10px 14px;font-size:12px;font-weight:600;text-align:left;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--cor-borda);}
+        td{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--cor-borda);}
+        tr:last-child td{border-bottom:none;}
+        tr:hover td{background:rgba(26,95,180,.04);}
+
+        .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+        .badge-admin{background:rgba(231,76,60,.15);color:#e74c3c;}
+        .badge-loja{background:rgba(26,95,180,.15);color:var(--cor-admin);}
+        .badge-compliance{background:rgba(155,89,182,.15);color:#9b59b6;}
+        .badge-ativo{background:rgba(46,194,126,.15);color:var(--cor-sucesso);}
+        .badge-bloqueado{background:rgba(231,76,60,.15);color:var(--cor-perigo);}
+
+        .acoes{display:flex;gap:6px;}
+        .btn-act{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:4px 10px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:12px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;}
+        .btn-act:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+        .btn-act.danger:hover{border-color:var(--cor-perigo);color:var(--cor-perigo);}
+
+        .empty{text-align:center;padding:40px;color:var(--cor-texto-secundario);}
+        .empty i{font-size:32px;margin-bottom:8px;display:block;}
+
+        /* Modal */
+        .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;}
+        .overlay.open{display:flex;}
+        .modal{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:28px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;}
+        .modal h3{font-size:16px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:8px;}
+        .modal h3 i{color:var(--cor-admin);}
+
+        .form-group{margin-bottom:14px;}
+        .form-group label{display:block;font-size:12px;font-weight:600;color:var(--cor-texto-secundario);margin-bottom:5px;text-transform:uppercase;}
+        .form-group input, .form-group select{width:100%;padding:9px 12px;border:1px solid var(--cor-borda);border-radius:var(--borda-radius-pequeno);background:var(--cor-fundo);color:var(--cor-texto);font-size:13px;}
+        .form-group input:focus, .form-group select:focus{outline:none;border-color:var(--cor-admin);}
+        .form-group .hint{font-size:11px;color:var(--cor-texto-secundario);margin-top:4px;}
+
+        .lojas-check{display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;border:1px solid var(--cor-borda);border-radius:var(--borda-radius-pequeno);padding:8px;}
+        .lojas-check label{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:3px 4px;border-radius:4px;}
+        .lojas-check label:hover{background:rgba(26,95,180,.06);}
+        .lojas-check input[type=checkbox]{width:14px;height:14px;accent-color:var(--cor-admin);}
+
+        .modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--cor-borda);}
+        .btn-cancel{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:8px 16px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:13px;}
+        .btn-cancel:hover{border-color:var(--cor-perigo);color:var(--cor-perigo);}
+        .btn-save{background:var(--cor-admin);color:#fff;border:none;padding:8px 20px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:13px;font-weight:600;}
+        .btn-save:hover{opacity:.9;}
+
+        .msg-form{font-size:12px;margin-top:10px;min-height:18px;}
+
+        .loading{text-align:center;padding:20px;color:var(--cor-texto-secundario);}
+    </style>
+</head>
+<body>
+<div class="page">
+    <!-- Header -->
+    <div class="hd">
+        <div class="logo">
+            <i class="fas fa-university"></i>
+            <span class="logo-text">Cambio Bank</span>
+            <span style="font-size:13px;color:var(--cor-texto-secundario);font-weight:400;margin-left:4px;">/ Gestão de Usuários</span>
+        </div>
+        <div class="hd-right">
+            <span style="font-size:12px;color:var(--cor-texto-secundario);">{{ usuario }}</span>
+            <a href="/admin/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-arrow-left"></i> Admin</a>
+            <button id="btnTheme" class="btn-hd btn-hd-ghost" onclick="toggleTheme()" title="Alternar tema"><i class="fas fa-moon"></i></button>
+            <a href="/logout" class="btn-hd btn-hd-ghost"><i class="fas fa-sign-out-alt"></i> Sair</a>
+        </div>
+    </div>
+
+    <!-- Conteúdo -->
+    <div class="sec-hd">
+        <h2><i class="fas fa-users" style="margin-right:7px;color:var(--cor-admin);"></i>Usuários do Sistema <span id="totalCount" style="font-size:13px;color:var(--cor-texto-secundario);font-weight:400;"></span></h2>
+        <button class="btn-novo" onclick="abrirModal()"><i class="fas fa-plus"></i> Novo Usuário</button>
+    </div>
+
+    <div class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Usuário</th>
+                    <th>Nome</th>
+                    <th>E-mail</th>
+                    <th>Tipo</th>
+                    <th>Status</th>
+                    <th>Lojas</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="tbUsuarios">
+                <tr><td colspan="7" class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal criar/editar usuário -->
+<div class="overlay" id="modalOverlay">
+    <div class="modal">
+        <h3><i class="fas fa-user-plus"></i> <span id="modalTitulo">Novo Usuário</span></h3>
+
+        <div class="form-group">
+            <label>Username *</label>
+            <input type="text" id="fUsername" placeholder="ex: joao.silva" autocomplete="off">
+            <div class="hint">Letras minúsculas, números e pontos. Usado no login.</div>
+        </div>
+        <div class="form-group">
+            <label>Nome completo *</label>
+            <input type="text" id="fNome" placeholder="ex: João Silva">
+        </div>
+        <div class="form-group">
+            <label>E-mail</label>
+            <input type="email" id="fEmail" placeholder="ex: joao@empresa.com">
+        </div>
+        <div class="form-group">
+            <label>Tipo *</label>
+            <select id="fTipo" onchange="onTipoChange()">
+                <option value="">Selecione...</option>
+                <option value="loja">Operador de Loja</option>
+                <option value="compliance">Compliance</option>
+                <option value="admin">Admin</option>
+            </select>
+        </div>
+        <div class="form-group" id="grupoLojas" style="display:none;">
+            <label>Lojas permitidas</label>
+            <div class="lojas-check" id="lojasCheck">
+                <div style="color:var(--cor-texto-secundario);font-size:12px;">Carregando lojas...</div>
+            </div>
+            <div class="hint">Selecione as lojas/call centers que este operador pode acessar.</div>
+        </div>
+        <div class="form-group">
+            <label id="lblSenha">Senha *</label>
+            <input type="password" id="fSenha" placeholder="Mínimo 8 caracteres" autocomplete="new-password">
+            <div class="hint" id="hintSenha">Deixe em branco para não alterar.</div>
+        </div>
+
+        <div class="msg-form" id="msgForm"></div>
+
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+            <button class="btn-save" onclick="salvarUsuario()"><i class="fas fa-save"></i> Salvar</button>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/theme.js"></script>
+<script>
+let editandoId = null;
+let todasLojas = [];
+
+async function carregarUsuarios() {
+    try {
+        const r = await fetch('/api/admin/usuarios');
+        const d = await r.json();
+        const tb = document.getElementById('tbUsuarios');
+        if (!d.success || !d.usuarios.length) {
+            tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-users"></i><p>Nenhum usuário cadastrado.</p></td></tr>';
+            return;
+        }
+        document.getElementById('totalCount').textContent = `(${d.usuarios.length})`;
+        tb.innerHTML = d.usuarios.map(u => {
+            const tipo = u.tipo || '';
+            const badgeTipo = `<span class="badge badge-${tipo}">${tipo}</span>`;
+            const badgeStatus = u.status === 'bloqueado'
+                ? `<span class="badge badge-bloqueado"><i class="fas fa-lock"></i> Bloqueado</span>`
+                : `<span class="badge badge-ativo"><i class="fas fa-check"></i> Ativo</span>`;
+            const lojas = (u.lojas_permitidas || []).join(', ') || '—';
+            const btnBloquear = u.status === 'bloqueado'
+                ? `<button class="btn-act" onclick="toggleStatus('${u.id}','ativo')"><i class="fas fa-unlock"></i> Desbloquear</button>`
+                : `<button class="btn-act danger" onclick="toggleStatus('${u.id}','bloqueado')"><i class="fas fa-lock"></i> Bloquear</button>`;
+            return `<tr>
+                <td style="font-weight:600;font-family:monospace;">${u.username}</td>
+                <td>${u.nome || '—'}</td>
+                <td style="color:var(--cor-texto-secundario);">${u.email || '—'}</td>
+                <td>${badgeTipo}</td>
+                <td>${badgeStatus}</td>
+                <td style="font-size:12px;color:var(--cor-texto-secundario);">${lojas}</td>
+                <td><div class="acoes">
+                    <button class="btn-act" onclick="abrirEditar(${JSON.stringify(u).replace(/"/g,'&quot;')})"><i class="fas fa-edit"></i> Editar</button>
+                    ${btnBloquear}
+                </div></td>
+            </tr>`;
+        }).join('');
+    } catch(e) {
+        document.getElementById('tbUsuarios').innerHTML = `<tr><td colspan="7" style="color:var(--cor-perigo);padding:20px;">${e.message}</td></tr>`;
+    }
+}
+
+async function carregarLojas() {
+    if (todasLojas.length) return;
+    try {
+        const r = await fetch('/api/admin/lojas');
+        const d = await r.json();
+        todasLojas = d.lojas || [];
+    } catch(e) { todasLojas = []; }
+}
+
+function renderLojasCheck(selecionadas = []) {
+    const el = document.getElementById('lojasCheck');
+    if (!todasLojas.length) {
+        el.innerHTML = '<div style="color:var(--cor-texto-secundario);font-size:12px;">Nenhuma loja cadastrada.</div>';
+        return;
+    }
+    el.innerHTML = todasLojas.map(l =>
+        `<label>
+            <input type="checkbox" value="${l.codigo}" ${selecionadas.includes(l.codigo) ? 'checked' : ''}>
+            ${l.nome} <span style="color:var(--cor-texto-secundario);font-size:11px;">(${l.codigo})</span>
+        </label>`
+    ).join('');
+}
+
+function onTipoChange() {
+    const tipo = document.getElementById('fTipo').value;
+    const grupoLojas = document.getElementById('grupoLojas');
+    if (tipo === 'loja') {
+        grupoLojas.style.display = '';
+        carregarLojas().then(() => renderLojasCheck([]));
+    } else {
+        grupoLojas.style.display = 'none';
+    }
+}
+
+function abrirModal() {
+    editandoId = null;
+    document.getElementById('modalTitulo').textContent = 'Novo Usuário';
+    document.getElementById('fUsername').value = '';
+    document.getElementById('fUsername').disabled = false;
+    document.getElementById('fNome').value = '';
+    document.getElementById('fEmail').value = '';
+    document.getElementById('fTipo').value = '';
+    document.getElementById('fSenha').value = '';
+    document.getElementById('lblSenha').textContent = 'Senha *';
+    document.getElementById('hintSenha').style.display = 'none';
+    document.getElementById('grupoLojas').style.display = 'none';
+    document.getElementById('msgForm').textContent = '';
+    document.getElementById('modalOverlay').classList.add('open');
+}
+
+async function abrirEditar(u) {
+    editandoId = u.id;
+    document.getElementById('modalTitulo').textContent = 'Editar Usuário';
+    document.getElementById('fUsername').value = u.username;
+    document.getElementById('fUsername').disabled = true;
+    document.getElementById('fNome').value = u.nome || '';
+    document.getElementById('fEmail').value = u.email || '';
+    document.getElementById('fTipo').value = u.tipo || '';
+    document.getElementById('fSenha').value = '';
+    document.getElementById('lblSenha').textContent = 'Nova Senha';
+    document.getElementById('hintSenha').style.display = '';
+    document.getElementById('msgForm').textContent = '';
+
+    if (u.tipo === 'loja') {
+        document.getElementById('grupoLojas').style.display = '';
+        await carregarLojas();
+        renderLojasCheck(u.lojas_permitidas || []);
+    } else {
+        document.getElementById('grupoLojas').style.display = 'none';
+    }
+    document.getElementById('modalOverlay').classList.add('open');
+}
+
+function fecharModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+}
+
+function getLojasSelected() {
+    return Array.from(document.querySelectorAll('#lojasCheck input[type=checkbox]:checked')).map(c => c.value);
+}
+
+async function salvarUsuario() {
+    const msg = document.getElementById('msgForm');
+    msg.textContent = '';
+    const username = document.getElementById('fUsername').value.trim();
+    const nome     = document.getElementById('fNome').value.trim();
+    const email    = document.getElementById('fEmail').value.trim();
+    const tipo     = document.getElementById('fTipo').value;
+    const senha    = document.getElementById('fSenha').value;
+
+    if (!nome || !tipo) { msg.innerHTML = '<span style="color:var(--cor-perigo)">Nome e tipo são obrigatórios.</span>'; return; }
+    if (!editandoId && (!username || !senha)) { msg.innerHTML = '<span style="color:var(--cor-perigo)">Username e senha são obrigatórios.</span>'; return; }
+    if (senha && senha.length < 8) { msg.innerHTML = '<span style="color:var(--cor-perigo)">Senha deve ter no mínimo 8 caracteres.</span>'; return; }
+
+    const payload = { nome, email, tipo, lojas_permitidas: tipo === 'loja' ? getLojasSelected() : [] };
+    if (!editandoId) payload.username = username;
+    if (senha) payload.senha = senha;
+
+    try {
+        const url    = editandoId ? `/api/admin/usuarios/${editandoId}` : '/api/admin/usuarios';
+        const method = editandoId ? 'PUT' : 'POST';
+        const r = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        const d = await r.json();
+        if (d.success) {
+            fecharModal();
+            carregarUsuarios();
+        } else {
+            msg.innerHTML = `<span style="color:var(--cor-perigo)">${d.message}</span>`;
+        }
+    } catch(e) {
+        msg.innerHTML = `<span style="color:var(--cor-perigo)">${e.message}</span>`;
+    }
+}
+
+async function toggleStatus(id, novoStatus) {
+    const acao = novoStatus === 'bloqueado' ? 'bloquear' : 'desbloquear';
+    if (!confirm(`Deseja ${acao} este usuário?`)) return;
+    try {
+        const r = await fetch(`/api/admin/usuarios/${id}`, {
+            method: 'PUT',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ status: novoStatus })
+        });
+        const d = await r.json();
+        if (d.success) carregarUsuarios();
+        else alert(d.message);
+    } catch(e) { alert(e.message); }
+}
+
+document.getElementById('modalOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('modalOverlay')) fecharModal();
+});
+
+carregarUsuarios();
+</script>
+</body>
+</html>

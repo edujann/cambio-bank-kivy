@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cambio Bank — Selecionar Loja</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+        body{background:var(--cor-fundo);color:var(--cor-texto);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+
+        .card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:36px 40px;width:100%;max-width:520px;box-shadow:0 4px 24px rgba(0,0,0,.12);}
+
+        .logo{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:700;margin-bottom:8px;}
+        .logo i{color:var(--cor-admin);font-size:24px;}
+        .logo-text{background:linear-gradient(90deg,var(--cor-admin),#2d8fff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+
+        .subtitle{color:var(--cor-texto-secundario);font-size:13px;margin-bottom:28px;}
+
+        h2{font-size:16px;font-weight:600;margin-bottom:16px;color:var(--cor-texto);}
+
+        .lojas-grid{display:flex;flex-direction:column;gap:10px;}
+
+        .loja-btn{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--cor-borda);border-radius:var(--borda-radius);cursor:pointer;background:var(--cor-fundo);transition:.15s;text-align:left;width:100%;color:var(--cor-texto);}
+        .loja-btn:hover{border-color:var(--cor-admin);background:rgba(26,95,180,.06);}
+        .loja-btn .icon{width:38px;height:38px;border-radius:50%;background:rgba(26,95,180,.12);display:flex;align-items:center;justify-content:center;color:var(--cor-admin);font-size:16px;flex-shrink:0;}
+        .loja-btn .info{flex:1;}
+        .loja-btn .nome{font-weight:600;font-size:14px;}
+        .loja-btn .detalhe{font-size:12px;color:var(--cor-texto-secundario);margin-top:2px;}
+        .loja-btn .arrow{color:var(--cor-texto-secundario);font-size:13px;}
+        .loja-btn:hover .arrow{color:var(--cor-admin);}
+
+        .loja-btn.call-center .icon{background:rgba(155,89,182,.12);color:#9b59b6;}
+        .loja-btn.call-center:hover{border-color:#9b59b6;background:rgba(155,89,182,.06);}
+
+        .empty{text-align:center;color:var(--cor-texto-secundario);padding:24px;font-size:13px;}
+
+        .footer{margin-top:24px;text-align:center;}
+        .btn-sair{background:transparent;border:none;color:var(--cor-texto-secundario);cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:6px;}
+        .btn-sair:hover{color:var(--cor-perigo);}
+
+        .loading{text-align:center;padding:24px;color:var(--cor-texto-secundario);}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="logo">
+            <i class="fas fa-university"></i>
+            <span class="logo-text">Cambio Bank</span>
+        </div>
+        <div class="subtitle">Olá, <strong>{{ usuario }}</strong>. Selecione onde você está operando hoje.</div>
+
+        <h2><i class="fas fa-store" style="margin-right:6px;color:var(--cor-admin);"></i>Ponto de Atendimento</h2>
+
+        <div class="lojas-grid" id="lojasGrid">
+            <div class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>
+        </div>
+
+        <div class="footer">
+            <a href="/logout" class="btn-sair"><i class="fas fa-sign-out-alt"></i> Sair</a>
+        </div>
+    </div>
+
+<script>
+const USUARIO = '{{ usuario }}';
+
+async function carregarLojas() {
+    try {
+        const r = await fetch('/api/loja/lojas-permitidas');
+        const d = await r.json();
+        const grid = document.getElementById('lojasGrid');
+        if (!d.success || !d.lojas.length) {
+            grid.innerHTML = '<div class="empty"><i class="fas fa-exclamation-circle"></i><br>Nenhuma loja disponível. Contacte o administrador.</div>';
+            return;
+        }
+        grid.innerHTML = d.lojas.map(l => {
+            const isCC = (l.codigo||'').toLowerCase().includes('call') || (l.tipo||'') === 'call_center';
+            const icon = isCC ? 'fas fa-headset' : 'fas fa-store';
+            const cls  = isCC ? 'loja-btn call-center' : 'loja-btn';
+            const detalhe = [l.cidade, l.endereco].filter(Boolean).join(' — ') || l.codigo || '';
+            return `<button class="${cls}" onclick="selecionar('${l.codigo}','${l.nome.replace(/'/g,"\\'")}')">
+                <div class="icon"><i class="${icon}"></i></div>
+                <div class="info">
+                    <div class="nome">${l.nome}</div>
+                    ${detalhe ? `<div class="detalhe">${detalhe}</div>` : ''}
+                </div>
+                <i class="fas fa-chevron-right arrow"></i>
+            </button>`;
+        }).join('');
+    } catch(e) {
+        document.getElementById('lojasGrid').innerHTML = `<div class="empty">${e.message}</div>`;
+    }
+}
+
+async function selecionar(codigo, nome) {
+    try {
+        const r = await fetch('/api/loja/selecionar', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({codigo})
+        });
+        const d = await r.json();
+        if (d.success) {
+            window.location.href = '/loja/dashboard';
+        } else {
+            alert(d.message || 'Erro ao selecionar loja.');
+        }
+    } catch(e) {
+        alert(e.message);
+    }
+}
+
+carregarLojas();
+</script>
+</body>
+</html>

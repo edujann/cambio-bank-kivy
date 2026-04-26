@@ -779,7 +779,7 @@
 </div>
 
 <!-- Modal: Análise de Ordem -->
-<div class="modal-ov" id="modalOrdem">
+<div class="modal-ov" id="modalOrdem" style="z-index:1100;">
 <div class="modal">
     <h3><i class="fas fa-file-alt c-roxo"></i> <span id="mo-titulo">Ordem #</span></h3>
     <div class="info-grid">
@@ -1027,7 +1027,13 @@ function toast(msg, tipo='ok') {
 
 function fecharModal(id) {
     const modal = document.getElementById(id);
-    if(modal) modal.classList.remove('open');
+    if (modal) modal.classList.remove('open');
+    // Se fechou o modal de ordem e ele foi aberto a partir do cliente, reabrir o cliente
+    if (id === 'modalOrdem' && _ordemAbertoDeCliente) {
+        _ordemAbertoDeCliente = false;
+        const mc = document.getElementById('modalDetalheCliente');
+        if (mc) mc.classList.add('open');
+    }
 }
 
 // ─── Stats ───────────────────────────────────────
@@ -1035,16 +1041,17 @@ async function carregarStats() {
     try {
         const [rO, rC, rD, rS, rSanc] = await Promise.all([
             fetch('/api/compliance/ordens').then(r=>r.json()),
-            fetch('/api/compliance/clientes?bloqueado=1').then(r=>r.json()),
+            fetch('/api/compliance/clientes').then(r=>r.json()),
             fetch('/api/compliance/clientes/docs-pendentes').then(r=>r.json()),
             fetch('/api/compliance/sars?status=rascunho').then(r=>r.json()),
             fetch('/api/compliance/sanctions/alertas?status=pendente').then(r=>r.json()),
         ]);
         const ordens = rO.ordens||[];
+        const todosClientes = rC.clientes||[];
         document.getElementById('st-pendentes').textContent = ordens.filter(o=>o.compliance_status==='pendente').length;
         document.getElementById('st-on-hold').textContent   = ordens.filter(o=>!o.pagamento_confirmado).length;
-        document.getElementById('st-pep').textContent       = ordens.filter(o=>(o.aml_alertas||[]).length>0).length;
-        document.getElementById('st-bloq').textContent      = (rC.clientes||[]).length;
+        document.getElementById('st-pep').textContent       = todosClientes.filter(c => c.pep_flag || ['alto','high','proibido'].includes(_normRisco(c.risk_score))).length;
+        document.getElementById('st-bloq').textContent      = todosClientes.filter(c => c.bloqueado).length;
         document.getElementById('st-docs').textContent      = (rD.clientes||[]).length;
         document.getElementById('st-sars').textContent      = (rS.sars||[]).length;
         document.getElementById('tab-cnt-sars').textContent = (rS.sars||[]).length;
@@ -1111,8 +1118,14 @@ function fmtVal(v,m){
     return `${parseFloat(v).toLocaleString('pt-BR',{minimumFractionDigits:2})} ${m || ''}`; 
 }
 
+let _ordemAbertoDeCliente = false;
+
 async function abrirOrdem(id) {
     console.log("🔍 Buscando detalhes da ordem:", id);
+    // Se o modal de cliente está aberto, fecha-o temporariamente
+    const modalCliente = document.getElementById('modalDetalheCliente');
+    _ordemAbertoDeCliente = modalCliente && modalCliente.classList.contains('open');
+    if (_ordemAbertoDeCliente) modalCliente.classList.remove('open');
     
     try {
         const response = await fetch(`/api/compliance/ordens/${id}/detalhes`);
@@ -1493,6 +1506,9 @@ async function acao(tipo, id) {
 }
 
 // ─── CLIENTES ────────────────────────────────────
+const _RISCO_MAP = {high:'alto', medium:'medio', low:'baixo', alto:'alto', medio:'medio', baixo:'baixo', proibido:'proibido'};
+function _normRisco(v) { return _RISCO_MAP[(v||'').toLowerCase()] || 'baixo'; }
+
 async function buscarClientes() {
     const q    = document.getElementById('cli-busca').value.trim();
     const risco= document.getElementById('cli-risco').value;
@@ -1514,14 +1530,18 @@ async function buscarClientes() {
         let html = '';
         for (const c of list) {
             const bloqTag = c.bloqueado ? '<span class="tag tag-bloqueado">Bloqueado</span>' : '<span class="tag tag-ativo">Ativo</span>';
-            const riscoTag = `<span class="tag tag-${c.risk_level || 'baixo'}">${c.risk_level || 'baixo'}</span>`;
+            const riscoTag = `<span class="tag tag-${_normRisco(c.risk_score)}">${_normRisco(c.risk_score)}</span>`;
             const limite = c.limite_mensal_brl ? `R$ ${parseFloat(c.limite_mensal_brl).toLocaleString('pt-BR',{minimumFractionDigits:2})}` : '—';
+            const kycStatus = c.kyc_docs_status || '—';
+            const kycOk = kycStatus.endsWith('OK');
+            const kycTag = kycStatus === '—' ? '—'
+                : `<span class="tag ${kycOk ? 'tag-ativo' : 'tag-medio'}">${kycStatus}</span>`;
             html += `
                 <tr>
                     <td><strong>${c.nome || '—'}</strong></td>
                     <td>${c.documento || '—'}</td>
                     <td>${riscoTag}</td>
-                    <td>${c.kyc_docs_status || '—'}</td>
+                    <td>${kycTag}</td>
                     <td>${bloqTag}</td>
                     <td>${limite}</td>
                     <td><button class="btn-act" onclick="verDetalheClienteCompliance('${c.id}')"><i class="fas fa-edit"></i> Gerir</button></td>
@@ -1570,7 +1590,8 @@ async function abrirCliente(id) {
 }
 
 async function carregarNotasGc(clienteId) {
-    const el = document.getElementById('mc-notas-list');
+    const panel = document.getElementById('gc-panel-acoes');
+    const el = panel ? panel.querySelector('[id="mc-notas-list"]') : document.getElementById('mc-notas-list');
     if (!el) return;
     try {
         const r = await fetch(`/api/compliance/clientes/${clienteId}/notas`);
@@ -1583,36 +1604,46 @@ async function carregarNotasGc(clienteId) {
 }
 
 async function adicionarNotaGc() {
-    const id   = document.getElementById('mc-id').value;
-    const nota = document.getElementById('mc-nova-nota').value.trim();
+    const id   = clienteAtualCompliance?.id || clienteDetalheIdCompliance;
+    const nota = ((_gcAcoesEl('mc-nova-nota') || {}).value || '').trim();
     if (!nota) { toast('Digite uma nota', 'err'); return; }
     try {
         const r = await fetch(`/api/compliance/clientes/${id}/nota`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nota})});
         const d = await r.json();
-        if (d.success) { toast('Nota adicionada', 'ok'); document.getElementById('mc-nova-nota').value = ''; carregarNotasGc(id); }
+        if (d.success) { toast('Nota adicionada', 'ok'); const na = _gcAcoesEl('mc-nova-nota'); if(na) na.value = ''; carregarNotasGc(id); }
         else toast(d.message, 'err');
     } catch(e) { toast('Erro', 'err'); }
 }
 
+function _gcAcoesEl(localId) {
+    const panel = document.getElementById('gc-panel-acoes');
+    return panel ? panel.querySelector(`[id="${localId}"]`) : null;
+}
 async function salvarAlteracoesCliente() {
-    const id     = document.getElementById('mc-id').value;
-    const risco  = document.getElementById('mc-novo-risco').value;
-    const limite = document.getElementById('mc-limite').value;
+    const id    = clienteAtualCompliance?.id || clienteDetalheIdCompliance;
+    const risco = (_gcAcoesEl('mc-novo-risco') || {}).value || 'baixo';
+    const limite = (_gcAcoesEl('mc-limite') || {}).value || '';
+    if (!id) { toast('Nenhum cliente selecionado', 'err'); return; }
     try {
-        await fetch(`/api/compliance/clientes/${id}/risco`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nivel:risco})});
-        if (limite) await fetch(`/api/compliance/clientes/${id}/limite`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({limite_mensal:parseFloat(limite)})});
+        const rR = await fetch(`/api/compliance/clientes/${id}/risco`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nivel:risco})});
+        const rD = await rR.json();
+        if (!rD.success) { toast(rD.message || 'Erro ao salvar risco', 'err'); return; }
+        if (limite) {
+            const lR = await fetch(`/api/compliance/clientes/${id}/limite`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({limite_mensal:parseFloat(limite)})});
+            const lD = await lR.json();
+            if (!lD.success) { toast(lD.message || 'Erro ao salvar limite', 'err'); return; }
+        }
         toast('Alterações salvas', 'ok');
         buscarClientes();
-        await verDetalheClienteCompliance(id);
-        switchGcTab('acoes');
-    } catch(e) { toast('Erro ao salvar', 'err'); }
+    } catch(e) { toast('Erro ao salvar: ' + e.message, 'err'); }
 }
 
 async function toggleBloquearCliente() {
-    const id        = document.getElementById('mc-id').value;
-    const bloqueado = document.getElementById('mc-bloqueado').value === '1';
-    const motivo    = document.getElementById('mc-motivo-bloq').value.trim();
-    const url       = bloqueado ? `/api/compliance/clientes/${id}/desbloquear` : `/api/compliance/clientes/${id}/bloquear`;
+    const id        = clienteAtualCompliance?.id || clienteDetalheIdCompliance;
+    const bloqueado = (_gcAcoesEl('mc-bloqueado') || {}).value === '1';
+    const motivo    = ((_gcAcoesEl('mc-motivo-bloq') || {}).value || '').trim();
+    if (!id) { toast('Nenhum cliente selecionado', 'err'); return; }
+    const url = bloqueado ? `/api/compliance/clientes/${id}/desbloquear` : `/api/compliance/clientes/${id}/bloquear`;
     try {
         const r = await fetch(url, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({motivo})});
         const d = await r.json();
@@ -2179,7 +2210,7 @@ function renderDetalheClienteCompliance(c) {
             <div class="aml-row"><span><i class="fas fa-shield-alt"></i> KYC Nível Requerido</span><strong>Nível ${kycReq} — ${kycLabels[kycReq]||''}</strong></div>
             <div class="aml-row"><span><i class="fas fa-user-secret"></i> PEP</span><span class="tag ${c.pep_flag?'tag-perigo':'tag-ok'}">${c.pep_flag?'PEP IDENTIFICADO':'Negativo'}</span></div>
             <div class="aml-row"><span><i class="fas fa-ban"></i> Sanções</span><span class="tag ${c.sanctions_flag?'tag-perigo':'tag-ok'}">${c.sanctions_flag?'SANCTIONED':'Limpo'}</span></div>
-            <div class="aml-row"><span><i class="fas fa-exclamation-triangle"></i> Risco</span><span class="tag ${c.risk_score==='high'?'tag-perigo':'tag-alerta'}">${c.risk_score==='high'?'Alto':'Médio'}</span></div>
+            <div class="aml-row"><span><i class="fas fa-exclamation-triangle"></i> Risco</span><span class="tag tag-${_normRisco(c.risk_score)}">${_normRisco(c.risk_score)}</span></div>
             ${aml.pep_screening?'<div class="aml-row" style="color:var(--cor-alerta);"><i class="fas fa-bell"></i> PEP Screening obrigatório (acumulado ≥ £2.000)</div>':''}
         </div>`;
 
@@ -2196,7 +2227,7 @@ function renderDetalheClienteCompliance(c) {
         <p class="section-title" style="margin-top:14px;"><i class="fas fa-user-edit"></i> Dados Pessoais</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
             ${fld('nome','Nome Completo',c.nome)}
-            ${fld('data_nascimento','Data Nascimento',c.data_nascimento,'date')}
+            ${fld('data_nascimento','Data Nascimento',(c.data_nascimento||'').slice(0,10),'date')}
             ${fld('telefone','Telefone',c.telefone)}
             ${fld('email','Email',c.email,'email')}
             ${fld('profissao','Profissão',c.profissao)}
@@ -2389,7 +2420,7 @@ function renderDetalheClienteCompliance(c) {
         </div>`;
 
     /* ── TAB: AÇÕES ── */
-    const risco = c.risk_level || c.risk_score || 'medio';
+    const risco = _normRisco(c.risk_score);
     const bloqueado = c.bloqueado;
     const acoesHtml = `
         <input type="hidden" id="mc-id" value="${c.id}">
