@@ -42,19 +42,48 @@ load_dotenv()
 # ============================================
 try:
     from supabase import create_client  # ← AGORA AQUI (após dotenv)
-    
+
     supabase_url = os.getenv('SUPABASE_URL')
     supabase_key = os.getenv('SUPABASE_KEY')
-    
+
     if supabase_url and supabase_key:
         supabase = create_client(supabase_url, supabase_key)
-        print("✅ Conectado ao Supabase!")
+        # Desabilita HTTP/2 no cliente postgrest para evitar ConnectionTerminated
+        try:
+            import httpx as _httpx
+            _old = supabase.postgrest.session
+            supabase.postgrest.session = _httpx.Client(
+                base_url=str(_old.base_url),
+                headers=dict(_old.headers),
+                http2=False,
+            )
+            print("✅ Conectado ao Supabase! (HTTP/1.1)")
+        except Exception as _e:
+            print(f"✅ Conectado ao Supabase! (HTTP/2 — {_e})")
     else:
         print("⚠️  Variáveis SUPABASE_URL / SUPABASE_KEY não encontradas no .env")
         supabase = None
 except Exception as e:
     print(f"❌ Erro ao conectar ao Supabase: {e}")
     supabase = None
+
+def _reconnect_supabase():
+    """Reconecta ao Supabase após ConnectionTerminated (HTTP/2 stale connection)."""
+    global supabase
+    try:
+        supabase = create_client(supabase_url, supabase_key)
+    except Exception as ex:
+        _sec_log.error(f'Falha ao reconectar Supabase: {ex}')
+
+def _sbx(fn):
+    """Executa fn(supabase) com retry automático em ConnectionTerminated."""
+    try:
+        return fn(supabase)
+    except Exception as e:
+        if 'ConnectionTerminated' in str(e) or 'RemoteProtocolError' in str(e):
+            _reconnect_supabase()
+            return fn(supabase)
+        raise
 
 # ============================================
 # FUNÇÃO DE VALIDAÇÃO DE DOCUMENTOS
@@ -212,6 +241,12 @@ def _rate_limit_login():
         return True
     _rate_store[ip].append(now)
     return False
+
+# Reconectar Supabase se a conexão HTTP/2 foi encerrada na requisição anterior
+@app.teardown_request
+def _teardown_supabase(exc):
+    if exc is not None and ('ConnectionTerminated' in str(exc) or 'RemoteProtocolError' in str(exc)):
+        _reconnect_supabase()
 
 # Security headers em todas as respostas
 @app.after_request
@@ -11002,16 +11037,15 @@ def loja_lojas_permitidas():
     if not usuario:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
-        r = supabase.table('usuarios').select('tipo,lojas_permitidas').eq('username', usuario).single().execute()
+        r  = _sbx(lambda sb: sb.table('usuarios').select('tipo,lojas_permitidas').eq('username', usuario).single().execute())
         tipo = r.data.get('tipo') if r.data else None
         if tipo == 'admin':
-            # Admin vê todas as lojas ativas
-            rl = supabase.table('lojas').select('*').eq('ativa', True).order('nome').execute()
+            rl = _sbx(lambda sb: sb.table('lojas').select('*').eq('ativa', True).order('nome').execute())
         else:
             codigos = r.data.get('lojas_permitidas') or []
             if not codigos:
                 return jsonify({'success': True, 'lojas': []})
-            rl = supabase.table('lojas').select('*').in_('codigo', codigos).eq('ativa', True).order('nome').execute()
+            rl = _sbx(lambda sb: sb.table('lojas').select('*').in_('codigo', codigos).eq('ativa', True).order('nome').execute())
         return jsonify({'success': True, 'lojas': rl.data or []})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
@@ -13440,14 +13474,28 @@ def compliance_listar_ordens():
     if redir:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
-        # Buscar todas as ordens em compliance_review (independente do compliance_status)
+        # Todas em compliance_review; filtrar aprovadas/rejeitadas em Python (NULL-safe)
         r = supabase.table('ordens_captacao')\
             .select('*')\
             .eq('status', 'compliance_review')\
             .order('created_at', desc=False)\
             .execute()
-        
-        ordens = r.data or []
+
+        # Auto-repair: promover ordens aprovadas/rejeitadas travadas em compliance_review
+        for o in (r.data or []):
+            cs = o.get('compliance_status')
+            if cs == 'aprovado':
+                novo_st = 'liberada' if o.get('pagamento_confirmado') else 'on_hold'
+                supabase.table('ordens_captacao').update({
+                    'status': novo_st, 'updated_at': datetime.now().isoformat()
+                }).eq('id', o['id']).execute()
+            elif cs == 'rejeitado':
+                supabase.table('ordens_captacao').update({
+                    'status': 'cancelada', 'updated_at': datetime.now().isoformat()
+                }).eq('id', o['id']).execute()
+
+        ordens = [o for o in (r.data or [])
+                  if o.get('compliance_status') not in ('aprovado', 'rejeitado')]
         
         # 🔥 FORMATAR os dados para o frontend
         ordens_formatadas = []
@@ -13699,6 +13747,25 @@ def compliance_ordem_detalhes(ordem_id):
         _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         return jsonify({'success': False, 'message': _err(e)}), 500
     
+def _creditar_conta_empresa(ordem, usuario='sistema'):
+    """Credita o valor de entrada na conta da empresa ao liberar uma ordem."""
+    try:
+        conta_emp = ordem.get('conta_empresa')
+        valor_e   = float(ordem.get('valor_entrada') or 0)
+        moeda_e   = ordem.get('moeda_entrada', 'GBP')
+        if not conta_emp or valor_e <= 0:
+            return
+        r_ct = supabase.table('contas_bancarias_empresa').select('saldo').eq('numero', conta_emp).single().execute()
+        if r_ct.data:
+            novo_saldo = float(r_ct.data['saldo'] or 0) + valor_e
+            supabase.table('contas_bancarias_empresa').update({'saldo': novo_saldo}).eq('numero', conta_emp).execute()
+    except Exception as e:
+        _sec_log.error(f'_creditar_conta_empresa: {e}')
+
+# alias para compatibilidade com chamadas existentes
+await_creditar_conta_empresa = _creditar_conta_empresa
+
+
 @app.route('/api/compliance/ordens/<ordem_id>/aprovar', methods=['POST'])
 def compliance_aprovar_ordem(ordem_id):
     usuario, tipo, redir = _check_compliance_acesso()
@@ -13794,6 +13861,62 @@ def compliance_rejeitar_ordem(ordem_id):
         print(f"❌ Erro ao rejeitar: {e}")
         return jsonify({'success': False, 'message': _err(e)}), 500
     
+@app.route('/api/compliance/cliente/<cliente_id>/acao-ordens', methods=['POST'])
+def compliance_acao_ordens_cliente(cliente_id):
+    """Aprova ou rejeita em lote todas as ordens compliance_review de um cliente."""
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        d = request.get_json() or {}
+        acao = d.get('acao')  # 'aprovar' | 'rejeitar'
+        motivo = (d.get('motivo') or '').strip() or 'Ação em lote via Structuring'
+        if acao not in ('aprovar', 'rejeitar'):
+            return jsonify({'success': False, 'message': 'Ação inválida'}), 400
+
+        r = supabase.table('ordens_captacao')\
+            .select('id,status,pagamento_confirmado,compliance_status')\
+            .eq('cliente_id', str(cliente_id))\
+            .eq('status', 'compliance_review')\
+            .execute()
+        ordens = [o for o in (r.data or [])
+                  if o.get('compliance_status') not in ('aprovado', 'rejeitado')]
+
+        processadas = 0
+        for o in ordens:
+            if acao == 'aprovar':
+                novo_status = 'liberada' if o.get('pagamento_confirmado') else 'on_hold'
+                supabase.table('ordens_captacao').update({
+                    'status': novo_status,
+                    'compliance_status': 'aprovado',
+                    'compliance_aprovado_por': usuario,
+                    'updated_at': datetime.now().isoformat()
+                }).eq('id', o['id']).execute()
+                if novo_status == 'liberada':
+                    ro = supabase.table('ordens_captacao').select('*').eq('id', o['id']).single().execute()
+                    if ro.data:
+                        await_creditar_conta_empresa(ro.data, usuario)
+            else:
+                supabase.table('ordens_captacao').update({
+                    'status': 'cancelada',
+                    'compliance_status': 'rejeitado',
+                    'compliance_aprovado_por': usuario,
+                    'observacoes': motivo,
+                    'updated_at': datetime.now().isoformat()
+                }).eq('id', o['id']).execute()
+            processadas += 1
+
+        if acao == 'rejeitar' and d.get('bloquear_cliente'):
+            supabase.table('clientes_varejo').update({
+                'bloqueado': True, 'updated_at': datetime.now().isoformat()
+            }).eq('id', str(cliente_id)).execute()
+
+        return jsonify({'success': True, 'processadas': processadas,
+                        'message': f'{processadas} ordem(ns) {"aprovada(s)" if acao == "aprovar" else "rejeitada(s)"}'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
 @app.route('/api/storage/signed-url', methods=['GET'])
 def get_signed_url():
     """Gera URL assinada para um arquivo no storage"""
@@ -14162,7 +14285,7 @@ def ordem_detalhes_completos(ordem_id):
             return jsonify({'success': False, 'message': 'Ordem não encontrada'}), 404
         ordem = r.data
 
-        if tipo_usr == 'loja' and ordem.get('loja') != usuario:
+        if tipo_usr == 'loja' and ordem.get('loja') != session.get('loja'):
             return jsonify({'success': False, 'message': 'Sem permissão'}), 403
 
         cliente = None
@@ -14346,11 +14469,8 @@ def admin_confirmar_pagamento_ordem(ordem_id):
             arquivo_nome = arquivo.filename
             ts = datetime.now().strftime('%Y%m%d_%H%M%S')
             caminho = f"comprovantes/{ordem_id}/{ts}_{arquivo_nome}"
-            try:
-                supabase.storage.from_('invoices').upload(caminho, arquivo_bytes)
-            except Exception:
-                ct = getattr(arquivo, 'content_type', None) or 'application/octet-stream'
-                supabase.storage.from_('invoices').upload(caminho, arquivo_bytes, {'content-type': ct})
+            ct = getattr(arquivo, 'content_type', None) or 'application/octet-stream'
+            supabase.storage.from_('invoices').upload(caminho, arquivo_bytes, {'content-type': ct})
             supabase.table('comprovantes_pagamento').insert({
                 'ordem_id':    ordem_id,
                 'arquivo_url': caminho,
@@ -14364,6 +14484,34 @@ def admin_confirmar_pagamento_ordem(ordem_id):
         return jsonify({'success': True, 'message': 'Pagamento confirmado.'})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/comprovantes/view')
+def comprovante_view():
+    """Proxy para servir comprovante com Content-Type correto (evita raw bytes no browser)."""
+    if 'username' not in session:
+        return 'Não autenticado', 401
+    path = request.args.get('path', '')
+    if not path:
+        return 'Caminho inválido', 400
+    try:
+        import mimetypes, requests as _req
+        signed = supabase.storage.from_('invoices').create_signed_url(path, 60)
+        url = signed.get('signedURL') or signed.get('signedUrl') or ''
+        if not url:
+            return 'URL não gerada', 500
+        resp = _req.get(url, timeout=30)
+        ext = path.rsplit('.', 1)[-1].lower() if '.' in path else ''
+        ct = mimetypes.types_map.get('.' + ext) or resp.headers.get('Content-Type', 'application/octet-stream')
+        nome = path.rsplit('/', 1)[-1]
+        from flask import Response
+        return Response(
+            resp.content,
+            content_type=ct,
+            headers={'Content-Disposition': f'inline; filename="{nome}"'}
+        )
+    except Exception as e:
+        return str(e), 500
 
 
 @app.route('/api/admin/ordens/<ordem_id>/comprovantes', methods=['GET'])
@@ -14399,11 +14547,8 @@ def admin_upload_comprovante(ordem_id):
         arquivo_nome  = arquivo.filename
         ts     = datetime.now().strftime('%Y%m%d_%H%M%S')
         caminho = f"comprovantes/{ordem_id}/{ts}_{arquivo_nome}"
-        try:
-            supabase.storage.from_('invoices').upload(caminho, arquivo_bytes)
-        except Exception:
-            ct = getattr(arquivo, 'content_type', None) or 'application/octet-stream'
-            supabase.storage.from_('invoices').upload(caminho, arquivo_bytes, {'content-type': ct})
+        ct = getattr(arquivo, 'content_type', None) or 'application/octet-stream'
+        supabase.storage.from_('invoices').upload(caminho, arquivo_bytes, {'content-type': ct})
         supabase.table('comprovantes_pagamento').insert({
             'ordem_id':    ordem_id,
             'arquivo_url': caminho,
