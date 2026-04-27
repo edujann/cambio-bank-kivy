@@ -11584,6 +11584,53 @@ def loja_despachar_ordem(ordem_id):
         return jsonify({'success': False, 'message': _err(e)}), 500
 
 
+def _despacho_numero_para_ordem(ordem_id):
+    """Retorna o número do despacho associado a uma ordem, ou None."""
+    try:
+        lnk = supabase.table('despacho_ordens').select('despacho_id').eq('ordem_id', ordem_id).limit(1).execute()
+        if not lnk.data:
+            return None
+        desp_id = lnk.data[0]['despacho_id']
+        d = supabase.table('despachos').select('numero').eq('id', desp_id).single().execute()
+        return d.data.get('numero') if d.data else None
+    except Exception:
+        return None
+
+
+def _debitar_parceiro(ordem, ordem_id, usuario):
+    """Debita a conta do parceiro pagador e registra no extrato com descrição padronizada."""
+    import random
+    parceiro = ordem.get('parceiro_pagador')
+    valor_s  = float(ordem.get('valor_saida', 0))
+    moeda_s  = ordem.get('moeda_saida', 'BRL')
+    if not parceiro or not valor_s:
+        return
+    benef_nome  = ordem.get('beneficiario_nome', '') or ''
+    benef_banco = ordem.get('beneficiario_banco', '') or ''
+    desp_num    = _despacho_numero_para_ordem(ordem_id)
+    partes = [f"Despacho #{desp_num}" if desp_num else None, benef_nome or None, benef_banco or None]
+    banco_origem = ' - '.join(p for p in partes if p) or f"Ordem {ordem_id[:8]}"
+    contas_p = supabase.table('contas').select('id,saldo,moeda')\
+        .eq('cliente_username', parceiro).eq('moeda', moeda_s).execute()
+    if not contas_p.data:
+        return
+    ct = contas_p.data[0]
+    novo_saldo = float(ct['saldo'] or 0) + valor_s
+    supabase.table('contas').update({'saldo': novo_saldo}).eq('id', ct['id']).execute()
+    supabase.table('transferencias').insert({
+        'id': f"{random.randint(100000,999999)}_cap",
+        'tipo': 'deposito', 'status': 'completed',
+        'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        'moeda': moeda_s, 'valor': valor_s,
+        'conta_destinatario': ct['id'],
+        'cliente': parceiro,
+        'banco_origem': banco_origem,
+        'descricao': banco_origem,
+        'executado_por': usuario,
+        'created_at': datetime.now().isoformat()
+    }).execute()
+
+
 @app.route('/api/loja/ordens/<ordem_id>/confirmar-pagamento', methods=['POST'])
 def loja_confirmar_pagamento(ordem_id):
     usuario, tipo, redir = _check_loja_acesso()
@@ -11591,18 +11638,12 @@ def loja_confirmar_pagamento(ordem_id):
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
         from datetime import datetime
-        import random
         r = supabase.table('ordens_captacao').select('*').eq('id', ordem_id).single().execute()
         if not r.data:
             return jsonify({'success': False, 'message': 'Ordem não encontrada'}), 404
         o = r.data
         if o['status'] != 'despachada':
             return jsonify({'success': False, 'message': 'Ordem não está despachada'}), 400
-
-        parceiro  = o.get('parceiro_pagador')
-        valor_s   = float(o.get('valor_saida', 0))
-        moeda_s   = o.get('moeda_saida', 'BRL')
-        cliente_n = o.get('cliente_nome', '')
 
         supabase.table('ordens_captacao').update({
             'status': 'paga',
@@ -11611,27 +11652,7 @@ def loja_confirmar_pagamento(ordem_id):
             'updated_at': datetime.now().isoformat()
         }).eq('id', ordem_id).execute()
 
-        # Debitar BRL da conta do parceiro e registrar no extrato
-        if parceiro and valor_s:
-            contas_p = supabase.table('contas')\
-                .select('id, saldo, moeda')\
-                .eq('cliente_username', parceiro)\
-                .eq('moeda', moeda_s).execute()
-            if contas_p.data:
-                ct = contas_p.data[0]
-                novo_saldo = float(ct['saldo'] or 0) + valor_s
-                supabase.table('contas').update({'saldo': novo_saldo}).eq('id', ct['id']).execute()
-                supabase.table('transferencias').insert({
-                    'id': f"{random.randint(100000,999999)}_cap",
-                    'tipo': 'deposito', 'status': 'completed',
-                    'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    'moeda': moeda_s, 'valor': valor_s,
-                    'conta_destinatario': ct['id'],
-                    'cliente': parceiro,
-                    'descricao': f"Captação varejo - pagamento BRL ao beneficiário - {cliente_n} - Ordem {ordem_id}",
-                    'executado_por': usuario,
-                    'created_at': datetime.now().isoformat()
-                }).execute()
+        _debitar_parceiro(o, ordem_id, usuario)
 
         return jsonify({'success': True, 'message': 'Pagamento confirmado. Extrato do parceiro atualizado.'})
     except Exception as e:
@@ -12940,6 +12961,61 @@ def compliance_rejeitar_documento():
         _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         return jsonify({'success': False, 'message': _err(e)}), 500
 
+
+@app.route('/api/compliance/documentos/deletar', methods=['POST'])
+def compliance_deletar_documento():
+    """Compliance deleta um documento KYC enviado incorretamente."""
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        dados = request.get_json()
+        doc_id = dados.get('doc_id')
+        if not doc_id:
+            return jsonify({'success': False, 'message': 'ID do documento não informado'}), 400
+
+        r = supabase.table('documentos_kyc').select('*').eq('id', doc_id).single().execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'Documento não encontrado'}), 404
+        doc = r.data
+        cliente_id = doc.get('cliente_id')
+        tipo_doc   = doc.get('tipo')
+        arquivo_url = doc.get('arquivo_url') or ''
+
+        # Remover da tabela
+        supabase.table('documentos_kyc').delete().eq('id', doc_id).execute()
+
+        # Se era photo_id ou proof_address aprovado, resetar flag do cliente
+        FLAG_MAP = {'photo_id': 'doc_photo_id_ok', 'proof_address': 'doc_address_ok'}
+        if tipo_doc in FLAG_MAP and cliente_id:
+            # Verificar se ainda existe outro doc válido do mesmo tipo
+            restantes = supabase.table('documentos_kyc').select('id,validado')\
+                .eq('cliente_id', str(cliente_id)).eq('tipo', tipo_doc).execute()
+            tem_valido = any(d.get('validado') for d in (restantes.data or []))
+            if not tem_valido:
+                supabase.table('clientes_varejo').update({
+                    FLAG_MAP[tipo_doc]: False,
+                    'updated_at': datetime.now().isoformat()
+                }).eq('id', str(cliente_id)).execute()
+
+        # Tentar remover do storage (não bloquear se falhar)
+        if arquivo_url:
+            try:
+                supabase.storage.from_('documentos-kyc').remove([arquivo_url])
+            except Exception:
+                pass
+
+        supabase.table('compliance_audit').insert({
+            'usuario': usuario,
+            'acao': 'DELETAR_DOCUMENTO_KYC',
+            'detalhe': f'Documento {tipo_doc} (id:{doc_id}) do cliente {cliente_id} deletado por {usuario}'
+        }).execute()
+
+        return jsonify({'success': True, 'message': 'Documento removido com sucesso.'})
+    except Exception as e:
+        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
 @app.route('/api/compliance/ordens/<ordem_id>/rejeitar', methods=['POST'])
 def compliance_rejeitar(ordem_id):
     usuario, tipo, redir = _check_compliance_acesso()
@@ -13033,14 +13109,15 @@ def admin_conciliacao_confirmar():
                 'confirmado_por': usuario,
                 'updated_at': datetime.now().isoformat()
             }).eq('id', ordem_id).execute()
-            if novo_status == 'liberada':
-                conta_emp = o.get('conta_empresa')
-                valor_e   = float(o.get('valor_entrada', 0))
-                if conta_emp:
-                    r_ct = supabase.table('contas_bancarias_empresa').select('saldo').eq('numero', conta_emp).single().execute()
-                    if r_ct.data:
-                        novo_saldo = float(r_ct.data['saldo'] or 0) + valor_e
-                        supabase.table('contas_bancarias_empresa').update({'saldo': novo_saldo}).eq('numero', conta_emp).execute()
+            # Creditar conta sempre que o pagamento é confirmado
+            # (o dinheiro chegou independentemente do estado de compliance)
+            conta_emp = o.get('conta_empresa')
+            valor_e   = float(o.get('valor_entrada', 0))
+            if conta_emp and valor_e > 0:
+                r_ct = supabase.table('contas_bancarias_empresa').select('saldo').eq('numero', conta_emp).single().execute()
+                if r_ct.data:
+                    novo_saldo = float(r_ct.data['saldo'] or 0) + valor_e
+                    supabase.table('contas_bancarias_empresa').update({'saldo': novo_saldo}).eq('numero', conta_emp).execute()
             confirmadas += 1
         return jsonify({'success': True, 'message': f'{confirmadas} ordem(ns) confirmada(s).', 'confirmadas': confirmadas})
     except Exception as e:
@@ -14458,11 +14535,12 @@ def admin_confirmar_pagamento_ordem(ordem_id):
             tipo = (r_u.data or {}).get('tipo')
             if tipo != 'admin':
                 return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-        r_ord = supabase.table('ordens_captacao').select('id,status').eq('id', ordem_id).single().execute()
+        r_ord = supabase.table('ordens_captacao').select('*').eq('id', ordem_id).single().execute()
         if not r_ord.data:
             return jsonify({'success': False, 'message': 'Ordem não encontrada'}), 404
-        if r_ord.data['status'] != 'despachada':
-            return jsonify({'success': False, 'message': f'Ordem já está como "{r_ord.data["status"]}"'}), 400
+        o = r_ord.data
+        if o['status'] != 'despachada':
+            return jsonify({'success': False, 'message': f'Ordem já está como "{o["status"]}"'}), 400
         arquivo = request.files.get('arquivo')
         if arquivo and arquivo.filename:
             arquivo_bytes = arquivo.read()
@@ -14481,6 +14559,7 @@ def admin_confirmar_pagamento_ordem(ordem_id):
             'status':     'paga',
             'updated_at': datetime.now().isoformat(),
         }).eq('id', ordem_id).execute()
+        _debitar_parceiro(o, ordem_id, usuario)
         return jsonify({'success': True, 'message': 'Pagamento confirmado.'})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
@@ -18041,13 +18120,21 @@ def _fx_ultimo_reset():
     return None
 
 
+def _norm_dt(s):
+    """Normaliza timestamp para 'YYYY-MM-DD HH:MM:SS' — remove timezone e T vs espaço."""
+    return str(s or '')[:19].replace('T', ' ')
+
+
 def _fx_wac(compras_data, vendas_data=None, since=None):
     """Calcula WAC atual em GBP por moeda processando compras e vendas cronologicamente.
+    Suporta posição curta (short): venda antes da compra resulta em saldo negativo.
     Se 'since' for informado, considera apenas registros a partir dessa data."""
+    since_n = _norm_dt(since)
     events = []
     for c in (compras_data or []):
-        dt = c.get('data') or c.get('created_at') or ''
-        if since and dt < since:
+        dt       = c.get('data') or c.get('created_at') or ''
+        dt_cmp   = c.get('created_at') or c.get('data') or ''
+        if since_n and _norm_dt(dt_cmp) < since_n:
             continue
         events.append({
             'tipo': 'compra',
@@ -18057,8 +18144,9 @@ def _fx_wac(compras_data, vendas_data=None, since=None):
             'taxa_gbp': float(c.get('taxa_em_gbp') or 0)
         })
     for v in (vendas_data or []):
-        dt = v.get('data') or v.get('created_at') or ''
-        if since and dt < since:
+        dt       = v.get('data') or v.get('created_at') or ''
+        dt_cmp   = v.get('created_at') or v.get('data') or ''
+        if since_n and _norm_dt(dt_cmp) < since_n:
             continue
         events.append({
             'tipo': 'venda',
@@ -18072,13 +18160,33 @@ def _fx_wac(compras_data, vendas_data=None, since=None):
         m = e['moeda']
         if m not in state:
             state[m] = {'saldo': 0.0, 'custo_gbp': 0.0}
+        s = state[m]
         if e['tipo'] == 'compra':
-            state[m]['saldo']     += e['valor']
-            state[m]['custo_gbp'] += e['valor'] * e['taxa_gbp']
-        else:
-            wac_atual = state[m]['custo_gbp'] / state[m]['saldo'] if state[m]['saldo'] > 0 else 0
-            state[m]['custo_gbp'] = max(0.0, state[m]['custo_gbp'] - e['valor'] * wac_atual)
-            state[m]['saldo']     = max(0.0, state[m]['saldo'] - e['valor'])
+            if s['saldo'] < 0:
+                # Cobrir posição curta: compra absorve o short primeiro
+                cobertura = min(e['valor'], abs(s['saldo']))
+                s['saldo'] += cobertura
+                restante = e['valor'] - cobertura
+                if restante > 0:
+                    # Excedente inicia posição longa
+                    s['saldo']     += restante
+                    s['custo_gbp'] += restante * e['taxa_gbp']
+            else:
+                s['saldo']     += e['valor']
+                s['custo_gbp'] += e['valor'] * e['taxa_gbp']
+        else:  # venda
+            if s['saldo'] > 0:
+                wac_atual = s['custo_gbp'] / s['saldo']
+                vendido_long = min(e['valor'], s['saldo'])
+                s['custo_gbp'] -= vendido_long * wac_atual
+                s['saldo']     -= vendido_long
+                short_adicional = e['valor'] - vendido_long
+                if short_adicional > 0:
+                    # Venda além do estoque — entra em short (custo_gbp permanece 0)
+                    s['saldo'] -= short_adicional
+            else:
+                # Já em short ou zerado — estende posição curta
+                s['saldo'] -= e['valor']
     wac = {m: (s['custo_gbp'] / s['saldo'] if s['saldo'] > 0 else 0) for m, s in state.items()}
     vol = {m: s['saldo'] for m, s in state.items()}
     return wac, vol
@@ -18132,7 +18240,7 @@ def fx_pool():
         rates = _fx_get_rates()
         since   = _fx_ultimo_reset()
         compras = supabase.table('pool_compras').select('*').order('data').execute()
-        vendas  = supabase.table('pool_vendas').select('moeda, valor_vendido, data').order('data').execute()
+        vendas  = supabase.table('pool_vendas').select('moeda, valor_vendido, data, created_at').order('data').execute()
         wac, vol = _fx_wac(compras.data, vendas.data, since=since)
         contas = supabase.table('contas_bancarias_empresa').select('numero, moeda, saldo').execute()
         saldos = {}
@@ -18160,6 +18268,7 @@ def fx_pool():
             saldo = saldos.get(moeda, 0)
             comp = comprometidos.get(moeda, 0)
             saldo_pool = vol.get(moeda, 0)
+            is_short = saldo_pool < 0
             resultado.append({
                 'moeda': moeda,
                 'total_pool': round(saldo_pool, 2),
@@ -18171,6 +18280,7 @@ def fx_pool():
                 'saldo_empresa': round(saldo, 2),
                 'comprometido': round(comp, 2),
                 'disponivel': round(saldo - comp, 2),
+                'short': is_short,
             })
         ultimo_reset = _fx_ultimo_reset()
         return jsonify({'success': True, 'pool': resultado, 'rates': rates, 'ultimo_reset': ultimo_reset})
@@ -18201,7 +18311,7 @@ def fx_pl():
         rates = _fx_get_rates()
         since   = _fx_ultimo_reset()
         compras = supabase.table('pool_compras').select('moeda_comprada, valor_comprado, taxa_em_gbp, data').execute()
-        vendas  = supabase.table('pool_vendas').select('moeda, valor_vendido, data').order('data').execute()
+        vendas  = supabase.table('pool_vendas').select('moeda, valor_vendido, data, created_at').order('data').execute()
         wac, _ = _fx_wac(compras.data, vendas.data, since=since)
         trades = supabase.table('transferencias')\
             .select('*').eq('tipo', 'cambio').eq('status', 'completed')\
@@ -18277,7 +18387,7 @@ def fx_trader():
         rates = _fx_get_rates()
         since   = _fx_ultimo_reset()
         compras = supabase.table('pool_compras').select('moeda_comprada, valor_comprado, taxa_em_gbp, data').execute()
-        vendas  = supabase.table('pool_vendas').select('moeda, valor_vendido, data').order('data').execute()
+        vendas  = supabase.table('pool_vendas').select('moeda, valor_vendido, data, created_at').order('data').execute()
         wac, _ = _fx_wac(compras.data, vendas.data, since=since)
         contas = supabase.table('contas_bancarias_empresa').select('moeda, saldo').execute()
         saldos = {}
@@ -18367,7 +18477,7 @@ def fx_registrar_compra():
         from datetime import datetime
         import random
         pool_rec = {
-            'data': datetime.now().isoformat(),
+            'data': datetime.utcnow().isoformat(),
             'moeda_comprada': moeda_c,
             'valor_comprado': valor_c,
             'moeda_paga': moeda_p,
@@ -18467,7 +18577,7 @@ def fx_registrar_venda():
         # WAC atual do pool (descontando vendas já realizadas, desde último reset)
         since_reset = _fx_ultimo_reset()
         compras  = supabase.table('pool_compras').select('moeda_comprada, valor_comprado, taxa_em_gbp, data').order('data').execute()
-        vendas_pool = supabase.table('pool_vendas').select('moeda, valor_vendido, data').order('data').execute()
+        vendas_pool = supabase.table('pool_vendas').select('moeda, valor_vendido, data, created_at').order('data').execute()
         wac_dict, _ = _fx_wac(compras.data, vendas_pool.data, since=since_reset)
         wac_gbp  = wac_dict.get(moeda_vendida, 0)
 
@@ -18548,7 +18658,7 @@ def fx_registrar_venda():
 
         # 4. Registrar pool_vendas
         pool_venda = {
-            'data': datetime.now().isoformat(),
+            'data': datetime.utcnow().isoformat(),
             'moeda': moeda_vendida,
             'valor_vendido': valor_vendido,
             'valor_recebido': valor_recebido,

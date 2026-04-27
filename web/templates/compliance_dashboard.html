@@ -1301,7 +1301,7 @@ async function abrirOrdem(id) {
                             </span>
                             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                                 <span style="font-size:11px;color:${statusColor};">${statusIcon} ${statusText}</span>
-                                ${temDocumento ? `<button class="btn-act" onclick="verDocKycCompliance('${doc.id}')" style="white-space:nowrap;"><i class="fas fa-eye"></i> Ver</button>` : '<span style="font-size:11px;color:var(--cor-texto-secundario);">Sem arquivo</span>'}
+                                ${temDocumento ? `<button class="btn-act" onclick="verDocKycCompliance('${doc.id}')" style="white-space:nowrap;"><i class="fas fa-eye"></i> Ver</button><button class="btn-act" onclick="deletarDocumentoCompliance('${doc.id}')" style="white-space:nowrap;border-color:rgba(231,76,60,.4);color:var(--cor-perigo);"><i class="fas fa-trash"></i></button>` : '<span style="font-size:11px;color:var(--cor-texto-secundario);">Sem arquivo</span>'}
                             </div>
                         </div>
                         ${pendente ? `
@@ -1355,6 +1355,7 @@ async function abrirOrdem(id) {
                         ${isPendente ? `
                         <button class="btn-success" style="padding:4px 10px;font-size:11px;white-space:nowrap;" onclick="aprovarDocumentoCompliance('${doc.id}')"><i class="fas fa-check"></i> Aprovar</button>
                         <button class="btn-danger" style="padding:4px 10px;font-size:11px;white-space:nowrap;" onclick="rejeitarDocumentoCompliance('${doc.id}')"><i class="fas fa-times"></i> Rejeitar</button>` : ''}
+                        <button class="btn-act" style="padding:4px 10px;font-size:11px;white-space:nowrap;border-color:rgba(231,76,60,.4);color:var(--cor-perigo);" onclick="deletarDocumentoCompliance('${doc.id}')"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
             </div>`;
@@ -2425,6 +2426,7 @@ function renderDetalheClienteCompliance(c) {
                         ${pendente?`
                         <button class="btn-success" style="padding:4px 10px;font-size:11px;" onclick="aprovarDocumentoCompliance('${doc.id}')"><i class="fas fa-check"></i> Aprovar</button>
                         <button class="btn-danger" style="padding:4px 10px;font-size:11px;" onclick="rejeitarDocumentoCompliance('${doc.id}')"><i class="fas fa-times"></i> Rejeitar</button>`:''}
+                        <button class="btn-act" style="padding:4px 10px;font-size:11px;border-color:rgba(231,76,60,.4);color:var(--cor-perigo);" onclick="deletarDocumentoCompliance('${doc.id}')"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
             </div>`;
@@ -2694,6 +2696,32 @@ async function rejeitarDocumentoCompliance(docId) {
         }
     } catch(e) {
         toast('Erro ao rejeitar documento', 'err');
+    }
+}
+
+async function deletarDocumentoCompliance(docId) {
+    if (!confirm('Tem a certeza que quer deletar este documento? Esta ação não pode ser desfeita.')) return;
+    try {
+        const r = await fetch('/api/compliance/documentos/deletar', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({doc_id: docId})
+        });
+        const data = await r.json();
+        if (data.success) {
+            toast(data.message, 'ok');
+            const ordemId = document.getElementById('mo-id')?.value;
+            if (ordemId && document.getElementById('modalOrdem')?.classList.contains('open')) {
+                abrirOrdem(ordemId);
+            } else if (clienteAtualCompliance) {
+                await verDetalheClienteCompliance(clienteAtualCompliance.id);
+                switchGcTab('docs');
+            }
+        } else {
+            toast(data.message || 'Erro ao deletar documento', 'err');
+        }
+    } catch(e) {
+        toast('Erro ao deletar documento', 'err');
     }
 }
 

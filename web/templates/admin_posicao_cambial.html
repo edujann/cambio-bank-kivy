@@ -437,19 +437,26 @@
                 const barColor = pct > 60 ? 'var(--cor-sucesso)' : pct > 30 ? 'var(--cor-alerta)' : 'var(--cor-perigo)';
                 const diff = p.market_gbp - p.wac_gbp;
                 const diffPct = p.wac_gbp > 0 ? (diff / p.wac_gbp * 100) : 0;
+                const isShort = p.short || p.total_pool < 0;
+                const badgeHtml = isShort
+                    ? `<span class="pool-badge" style="background:rgba(231,76,60,.15);color:var(--cor-perigo);border:1px solid rgba(231,76,60,.3);">⚠ Posição Curta</span>`
+                    : `<span class="pool-badge">${p.num_compras || 0} compras</span>`;
+                const wacHtml = isShort
+                    ? `<div class="pool-row"><span class="pool-lbl">WAC</span><span class="pool-val" style="color:var(--cor-texto-secundario);font-style:italic;">Aguardando cobertura</span></div>`
+                    : `<div class="pool-row"><span class="pool-lbl">WAC (GBP/unit)</span><span class="pool-val azul">${fmtNum(p.wac_gbp,6)}</span></div>
+                       <div class="pool-row"><span class="pool-lbl">WAC (USD/unit)</span><span class="pool-val">${fmtNum(p.wac_usd,6)}</span></div>
+                       <div class="pool-row"><span class="pool-lbl">WAC (BRL/unit)</span><span class="pool-val">${fmtNum(p.wac_brl,4)}</span></div>
+                       <div class="pool-row"><span class="pool-lbl">Mercado atual (GBP)</span><span class="pool-val ${diff>=0?'verde':'vermelho'}">${fmtNum(p.market_gbp,6)} <small>(${diff>=0?'+':''}${fmtNum(diffPct,2)}%)</small></span></div>`;
                 return `
-                <div class="pool-card">
+                <div class="pool-card" style="${isShort ? 'border-color:rgba(231,76,60,.35);' : ''}">
                     <div class="pool-card-header">
                         <span class="pool-moeda">${p.moeda}</span>
-                        <span class="pool-badge">${p.num_compras || 0} compras</span>
+                        ${badgeHtml}
                     </div>
                     <div class="pool-body">
-                        <div class="pool-row"><span class="pool-lbl">WAC (GBP/unit)</span><span class="pool-val azul">${fmtNum(p.wac_gbp,6)}</span></div>
-                        <div class="pool-row"><span class="pool-lbl">WAC (USD/unit)</span><span class="pool-val">${fmtNum(p.wac_usd,6)}</span></div>
-                        <div class="pool-row"><span class="pool-lbl">WAC (BRL/unit)</span><span class="pool-val">${fmtNum(p.wac_brl,4)}</span></div>
-                        <div class="pool-row"><span class="pool-lbl">Mercado atual (GBP)</span><span class="pool-val ${diff>=0?'verde':'vermelho'}">${fmtNum(p.market_gbp,6)} <small>(${diff>=0?'+':''}${fmtNum(diffPct,2)}%)</small></span></div>
+                        ${wacHtml}
                         <hr class="pool-sep">
-                        <div class="pool-row"><span class="pool-lbl">Total comprado pool</span><span class="pool-val">${fmtNum(p.total_pool,2)} ${p.moeda}</span></div>
+                        <div class="pool-row"><span class="pool-lbl">Posição pool</span><span class="pool-val ${isShort?'vermelho':''}">  ${fmtNum(p.total_pool,2)} ${p.moeda}</span></div>
                         <div class="pool-row"><span class="pool-lbl">Saldo empresa</span><span class="pool-val">${fmtNum(p.saldo_empresa,2)} ${p.moeda}</span></div>
                         <div class="pool-row"><span class="pool-lbl">Comprometido</span><span class="pool-val amarelo">${fmtNum(p.comprometido,2)} ${p.moeda}</span></div>
                         <div class="pool-row"><span class="pool-lbl">Disponível</span><span class="pool-val ${p.disponivel>=0?'verde':'vermelho'}">${fmtNum(p.disponivel,2)} ${p.moeda}</span></div>
@@ -562,10 +569,10 @@
             const data = await res.json();
             if (data.success) {
                 msg.innerHTML = `<span style="color:var(--cor-sucesso)"><i class="fas fa-check-circle"></i> ${data.message}</span>`;
-                // Limpar form
                 ['cMoedaC','cValorC','cMoedaP','cValorP','cTaxa','cGbpRate','cFornecedor','cObs'].forEach(id => document.getElementById(id).value = '');
                 document.getElementById('previewBox').style.display = 'none';
                 document.getElementById('gbpRateRow').classList.remove('visible');
+                carregarPool();
             } else {
                 msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> ${data.message}</span>`;
             }
@@ -826,6 +833,7 @@
                 msg.innerHTML = `<span style="color:var(--cor-sucesso)"><i class="fas fa-check-circle"></i> ${d.message}</span>`;
                 ['vValor','vTaxaRec','vTaxaGBPRec','vOrdemId','vObs'].forEach(id => document.getElementById(id).value = '');
                 document.getElementById('vPreviewBox').style.display = 'none';
+                carregarPool();
             } else {
                 msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-times-circle"></i> ${d.message}</span>`;
             }
