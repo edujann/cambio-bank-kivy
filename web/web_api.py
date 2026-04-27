@@ -13118,6 +13118,19 @@ def admin_conciliacao_confirmar():
                 if r_ct.data:
                     novo_saldo = float(r_ct.data['saldo'] or 0) + valor_e
                     supabase.table('contas_bancarias_empresa').update({'saldo': novo_saldo}).eq('numero', conta_emp).execute()
+                transacao_id = f"{random.randint(100000, 999999)}_conc"
+                supabase.table('transferencias').insert({
+                    'id': transacao_id,
+                    'tipo': 'deposito',
+                    'status': 'completed',
+                    'data': datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+                    'moeda': o.get('moeda_entrada', 'GBP'),
+                    'valor': valor_e,
+                    'conta_destinatario': conta_emp,
+                    'descricao': f"Transferência Confirmada — {o.get('cliente_nome', '—')} — Ordem {ordem_id[:8]}",
+                    'executado_por': usuario,
+                    'created_at': datetime.utcnow().isoformat()
+                }).execute()
             confirmadas += 1
         return jsonify({'success': True, 'message': f'{confirmadas} ordem(ns) confirmada(s).', 'confirmadas': confirmadas})
     except Exception as e:
