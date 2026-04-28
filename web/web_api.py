@@ -199,7 +199,7 @@ app = Flask(__name__)
 
 # Secret key — DEVE ser definida via env var em produção
 import secrets as _secrets
-app.secret_key = os.environ.get('FLASK_SECRET_KEY') or _secrets.token_hex(32)
+app.secret_key = os.environ['FLASK_SECRET_KEY']  # Obrigatório — app falha explicitamente se não definido
 
 # Cookies de sessão seguros
 app.config['SESSION_COOKIE_HTTPONLY'] = True
