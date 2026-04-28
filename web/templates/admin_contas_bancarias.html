@@ -595,6 +595,57 @@
                 text-align: center;
             }
         }
+
+        /* FILTRO POR BANCO */
+        .filtro-container {
+            background: rgba(26, 95, 180, 0.05);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .filtro-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            color: var(--cor-texto-secundario);
+            font-size: 13px;
+        }
+
+        .filtro-label i {
+            color: var(--cor-admin);
+        }
+
+        .select-filtro {
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            color: var(--cor-texto);
+            padding: 10px 12px;
+            width: 100%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .select-filtro:focus {
+            outline: none;
+            border-color: var(--cor-admin);
+            box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2);
+        }
+
+        .filtro-info {
+            font-size: 12px;
+            color: var(--cor-texto-secundario);
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        .filtro-info i {
+            margin-right: 5px;
+        }
+
     </style>
 </head>
 <body>
@@ -663,6 +714,20 @@
                 <div class="form-card">
                     <h3 class="form-title">Ajuste de Saldo em Conta Bancária</h3>
                     
+                    <!-- FILTRO POR BANCO -->
+                    <div class="filtro-container">
+                        <div class="filtro-label">
+                            <i class="fas fa-building"></i>
+                            <span>Filtrar por Banco</span>
+                        </div>
+                        <select id="filtroBancoAjuste" class="select-filtro" onchange="filtrarContasPorBancoAjuste()">
+                            <option value="TODOS">🏦 TODOS OS BANCOS</option>
+                        </select>
+                        <div class="filtro-info" id="filtroInfoAjuste">
+                            <i class="fas fa-info-circle"></i> Selecione um banco para filtrar as contas
+                        </div>
+                    </div>
+                    
                     <div class="form-group">
                         <label>Selecione a Conta</label>
                         <select id="ajusteConta" class="form-control">
@@ -699,6 +764,20 @@
             <div id="tab-cambio" class="tab-content">
                 <div class="form-card">
                     <h3 class="form-title">Câmbio entre Contas Bancárias</h3>
+                    
+                    <!-- FILTRO POR BANCO -->
+                    <div class="filtro-container">
+                        <div class="filtro-label">
+                            <i class="fas fa-building"></i>
+                            <span>Filtrar por Banco</span>
+                        </div>
+                        <select id="filtroBancoCambio" class="select-filtro" onchange="filtrarContasPorBanco()">
+                            <option value="TODOS">🏦 TODOS OS BANCOS</option>
+                        </select>
+                        <div class="filtro-info" id="filtroInfoCambio">
+                            <i class="fas fa-info-circle"></i> Selecione um banco para filtrar as contas
+                        </div>
+                    </div>
                     
                     <div class="form-group">
                         <label>Conta Origem</label>
@@ -858,6 +937,18 @@
         let contaSelecionada = null;
 
         // ============================================
+        // VARIÁVEIS PARA FILTRO DE BANCO
+        // ============================================
+        let bancosDisponiveis = [];
+        let contasOriginais = [];
+        let bancoFiltroAtual = 'TODOS';
+
+        // ============================================
+        // VARIÁVEIS PARA FILTRO DE BANCO - AJUSTE
+        // ============================================
+        let bancoFiltroAtualAjuste = 'TODOS';
+
+        // ============================================
         // INICIALIZAÇÃO
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
@@ -890,8 +981,13 @@
                 console.log('📊 Dados recebidos:', data);
                 
                 if (data.success) {
+                    // Guardar contas originais (cópia)
+                    contasOriginais = JSON.parse(JSON.stringify(data.contas));
                     contas = data.contas;
                     console.log(`✅ ${contas.length} contas carregadas`);
+                    
+                    // Extrair bancos únicos para o filtro
+                    extrairBancosUnicos();
                     
                     // Mostrar primeiras contas para debug
                     if (contas.length > 0) {
@@ -901,6 +997,8 @@
                     atualizarTotais(data.totais);
                     renderizarContas();
                     atualizarSelectsContas();
+                    atualizarFiltroBanco();      // Para aba de câmbio
+                    atualizarFiltroBancoAjuste(); // Para aba de ajuste
                 } else {
                     console.error('❌ Erro da API:', data.message);
                     document.getElementById('contasGrid').innerHTML = `<div class="loading"><p>❌ ${data.message}</p></div>`;
@@ -1285,7 +1383,7 @@
                 alert('❌ Erro ao executar ajuste!');
             }
         }
-
+      
         // ============================================
         // CÂMBIO ENTRE CONTAS
         // ============================================
@@ -1406,6 +1504,147 @@
                 console.error('❌ Erro:', error);
                 alert('❌ Erro ao executar câmbio!');
             }
+        }
+
+        // ============================================
+        // FUNÇÕES PARA FILTRO DE BANCO
+        // ============================================
+        
+        function extrairBancosUnicos() {
+            const bancosSet = new Set();
+            bancosSet.add('TODOS');
+            
+            for (const conta of contas) {
+                if (conta.banco && conta.banco.trim()) {
+                    bancosSet.add(conta.banco);
+                }
+            }
+            
+            bancosDisponiveis = Array.from(bancosSet);
+            console.log('🏦 Bancos disponíveis:', bancosDisponiveis);
+        }
+        
+        function atualizarFiltroBanco() {
+            const selectFiltro = document.getElementById('filtroBancoCambio');
+            if (!selectFiltro) return;
+            
+            let optionsHtml = '<option value="TODOS">🏦 TODOS OS BANCOS</option>';
+            
+            for (const banco of bancosDisponiveis) {
+                if (banco !== 'TODOS') {
+                    const contasDoBanco = contasOriginais.filter(c => c.banco === banco);
+                    const qtd = contasDoBanco.length;
+                    optionsHtml += `<option value="${escapeHtml(banco)}">🏦 ${escapeHtml(banco)} (${qtd} conta${qtd !== 1 ? 's' : ''})</option>`;
+                }
+            }
+            
+            selectFiltro.innerHTML = optionsHtml;
+            console.log(`✅ Filtro de banco atualizado com ${bancosDisponiveis.length - 1} bancos`);
+        }
+        
+        function filtrarContasPorBanco() {
+            const selectFiltro = document.getElementById('filtroBancoCambio');
+            bancoFiltroAtual = selectFiltro.value;
+            
+            console.log(`🔍 Filtrando contas por banco: "${bancoFiltroAtual}"`);
+            
+            if (bancoFiltroAtual === 'TODOS') {
+                contas = JSON.parse(JSON.stringify(contasOriginais));
+            } else {
+                contas = contasOriginais.filter(conta => conta.banco === bancoFiltroAtual);
+            }
+            
+            console.log(`📊 Contas após filtro: ${contas.length} (de ${contasOriginais.length} total)`);
+            
+            // Atualizar tudo que depende das contas
+            atualizarSelectsContas();
+            
+            // Atualizar informação no filtro
+            const filtroInfo = document.getElementById('filtroInfoCambio');
+            if (filtroInfo) {
+                if (bancoFiltroAtual === 'TODOS') {
+                    filtroInfo.innerHTML = `<i class="fas fa-info-circle"></i> Mostrando todas as ${contas.length} contas de todos os bancos`;
+                } else {
+                    filtroInfo.innerHTML = `<i class="fas fa-check-circle"></i> Mostrando ${contas.length} conta(s) do banco "${bancoFiltroAtual}"`;
+                }
+            }
+            
+            // Limpar campos de seleção
+            document.getElementById('cambioContaOrigem').value = '';
+            document.getElementById('cambioContaDestino').value = '';
+            
+            // Recalcular conversão se houver taxa
+            calcularConversao();
+        }
+
+        // ============================================
+        // FUNÇÕES PARA FILTRO DE BANCO - AJUSTE
+        // ============================================
+        
+        function atualizarFiltroBancoAjuste() {
+            const selectFiltro = document.getElementById('filtroBancoAjuste');
+            if (!selectFiltro) return;
+            
+            let optionsHtml = '<option value="TODOS">🏦 TODOS OS BANCOS</option>';
+            
+            for (const banco of bancosDisponiveis) {
+                if (banco !== 'TODOS') {
+                    const contasDoBanco = contasOriginais.filter(c => c.banco === banco);
+                    const qtd = contasDoBanco.length;
+                    optionsHtml += `<option value="${escapeHtml(banco)}">🏦 ${escapeHtml(banco)} (${qtd} conta${qtd !== 1 ? 's' : ''})</option>`;
+                }
+            }
+            
+            selectFiltro.innerHTML = optionsHtml;
+            console.log(`✅ Filtro de banco (ajuste) atualizado com ${bancosDisponiveis.length - 1} bancos`);
+        }
+        
+        function filtrarContasPorBancoAjuste() {
+            const selectFiltro = document.getElementById('filtroBancoAjuste');
+            bancoFiltroAtualAjuste = selectFiltro.value;
+            
+            console.log(`🔍 Filtrando contas (ajuste) por banco: "${bancoFiltroAtualAjuste}"`);
+            
+            let contasFiltradas;
+            if (bancoFiltroAtualAjuste === 'TODOS') {
+                contasFiltradas = JSON.parse(JSON.stringify(contasOriginais));
+            } else {
+                contasFiltradas = contasOriginais.filter(conta => conta.banco === bancoFiltroAtualAjuste);
+            }
+            
+            console.log(`📊 Contas após filtro (ajuste): ${contasFiltradas.length} (de ${contasOriginais.length} total)`);
+            
+            // Atualizar apenas o select de ajuste
+            atualizarSelectAjuste(contasFiltradas);
+            
+            // Atualizar informação no filtro
+            const filtroInfo = document.getElementById('filtroInfoAjuste');
+            if (filtroInfo) {
+                if (bancoFiltroAtualAjuste === 'TODOS') {
+                    filtroInfo.innerHTML = `<i class="fas fa-info-circle"></i> Mostrando todas as ${contasFiltradas.length} contas de todos os bancos`;
+                } else {
+                    filtroInfo.innerHTML = `<i class="fas fa-check-circle"></i> Mostrando ${contasFiltradas.length} conta(s) do banco "${bancoFiltroAtualAjuste}"`;
+                }
+            }
+            
+            // Limpar o select
+            document.getElementById('ajusteConta').value = '';
+        }
+        
+        function atualizarSelectAjuste(contasParaMostrar) {
+            const selectAjuste = document.getElementById('ajusteConta');
+            if (!selectAjuste) return;
+            
+            let optionsHtml = '<option value="">Selecione uma conta...</option>';
+            
+            for (const conta of contasParaMostrar) {
+                const simbolo = obterSimboloMoeda(conta.moeda);
+                const saldoFormatado = formatarValor(conta.saldo);
+                optionsHtml += `<option value="${escapeHtml(conta.numero)}">${escapeHtml(conta.numero)} | ${escapeHtml(conta.banco)} | ${conta.moeda} | Saldo: ${simbolo} ${saldoFormatado}</option>`;
+            }
+            
+            selectAjuste.innerHTML = optionsHtml;
+            console.log(`✅ Select de ajuste atualizado com ${contasParaMostrar.length} opções`);
         }
 
         // ============================================
