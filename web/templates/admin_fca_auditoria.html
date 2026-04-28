@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FCA Audit — MLR 2017</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+        body{background:var(--cor-fundo);color:var(--cor-texto);min-height:100vh;}
+
+        .top-bar{position:sticky;top:0;z-index:200;height:54px;background:var(--cor-card);border-bottom:1px solid var(--cor-borda);display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:10px;}
+        .logo{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700;}
+        .logo i{color:var(--cor-primaria);}
+        .logo-text{background:linear-gradient(90deg,var(--cor-primaria),#2d8fff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+        .btn-back{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:5px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;}
+        .btn-back:hover{border-color:var(--cor-primaria);color:var(--cor-primaria);}
+        .btn-theme{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:5px 10px;border-radius:6px;cursor:pointer;font-size:12px;}
+
+        .page{max-width:1200px;margin:0 auto;padding:24px 20px;}
+
+        /* MLR banner */
+        .mlr-banner{background:rgba(26,95,180,.07);border:1px solid rgba(26,95,180,.25);border-radius:var(--borda-radius);padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;font-size:12px;color:var(--cor-texto-secundario);}
+        .mlr-banner strong{color:var(--cor-primaria);}
+
+        /* Report type tabs */
+        .report-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;}
+        .rtab{padding:8px 16px;border-radius:6px;border:1px solid var(--cor-borda);background:var(--cor-card);color:var(--cor-texto-secundario);cursor:pointer;font-size:12px;font-weight:600;transition:.15s;display:flex;align-items:center;gap:6px;}
+        .rtab:hover{border-color:var(--cor-primaria);color:var(--cor-primaria);}
+        .rtab.active{background:var(--cor-primaria);color:#fff;border-color:var(--cor-primaria);}
+
+        /* Filters card */
+        .filters-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:16px;margin-bottom:16px;}
+        .filters-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:end;}
+        .field label{display:block;font-size:11px;color:var(--cor-texto-secundario);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+        .field input,.field select{width:100%;background:var(--cor-fundo);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:7px 10px;border-radius:6px;font-size:13px;}
+        .field input:focus,.field select:focus{outline:none;border-color:var(--cor-primaria);}
+
+        /* Buttons */
+        .btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:.15s;}
+        .btn-primary{background:var(--cor-primaria);color:#fff;}
+        .btn-primary:hover{opacity:.88;}
+        .btn-success{background:rgba(46,194,126,.15);color:var(--cor-sucesso);border:1px solid var(--cor-sucesso);}
+        .btn-success:hover{background:rgba(46,194,126,.25);}
+        .btn-ghost{background:transparent;color:var(--cor-texto-secundario);border:1px solid var(--cor-borda);}
+        .btn-ghost:hover{border-color:var(--cor-primaria);color:var(--cor-primaria);}
+        .btn:disabled{opacity:.45;cursor:not-allowed;}
+
+        /* Results card */
+        .results-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);overflow:hidden;}
+        .results-hd{padding:12px 16px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+        .results-hd h3{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px;}
+        .rec-count{font-size:12px;color:var(--cor-texto-secundario);}
+
+        .tbl-wrap{overflow-x:auto;max-height:520px;overflow-y:auto;}
+        table{width:100%;border-collapse:collapse;font-size:12px;}
+        th{background:var(--cor-fundo);color:var(--cor-texto-secundario);padding:8px 10px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;position:sticky;top:0;z-index:1;}
+        td{padding:7px 10px;border-top:1px solid var(--cor-borda);vertical-align:middle;white-space:nowrap;}
+        tr:hover td{background:rgba(128,128,128,.03);}
+        .empty{padding:48px;text-align:center;color:var(--cor-texto-secundario);}
+        .empty i{font-size:32px;margin-bottom:10px;display:block;opacity:.4;}
+
+        /* Tags */
+        .tag{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;}
+        .tag-ok{background:rgba(46,194,126,.15);color:var(--cor-sucesso);}
+        .tag-err{background:rgba(224,27,36,.15);color:var(--cor-perigo);}
+        .tag-warn{background:rgba(243,156,18,.15);color:var(--cor-alerta);}
+        .tag-info{background:rgba(26,95,180,.15);color:var(--cor-primaria);}
+        .tag-purple{background:rgba(155,89,182,.15);color:#9b59b6;}
+
+        /* Toast */
+        #toastContainer{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:99999;pointer-events:none;}
+        .toast-item{padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;pointer-events:auto;}
+        .toast-ok{background:#1a3d2b;border:1px solid var(--cor-sucesso);color:var(--cor-sucesso);}
+        .toast-err{background:#3d1a1a;border:1px solid var(--cor-perigo);color:var(--cor-perigo);}
+        .toast-info{background:#1a2a3d;border:1px solid var(--cor-primaria);color:var(--cor-primaria);}
+
+        /* Print styles */
+        @media print {
+            .top-bar,.report-tabs,.filters-card,.btn,.mlr-banner{display:none!important;}
+            body{background:#fff;color:#000;}
+            .results-card{border:1px solid #ccc;}
+            th{background:#f0f0f0!important;color:#333!important;}
+            td{color:#000!important;}
+            .tbl-wrap{max-height:none!important;overflow:visible!important;}
+            .print-header{display:block!important;}
+        }
+        .print-header{display:none;margin-bottom:16px;}
+        .print-header h2{font-size:16px;font-weight:700;}
+        .print-header p{font-size:12px;color:#666;margin-top:4px;}
+
+        @media(max-width:600px){.filters-grid{grid-template-columns:1fr 1fr;}}
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <div class="logo">
+        <i class="fas fa-file-contract"></i>
+        <span class="logo-text">Auditoria FCA — MLR 2017</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:12px;color:var(--cor-texto-secundario);">{{ usuario }}</span>
+        <button id="btnTheme" onclick="toggleTheme()" title="Alternar tema" class="btn-theme"><i class="fas fa-sun"></i></button>
+        <a href="/admin/dashboard" class="btn-back"><i class="fas fa-arrow-left"></i> Dashboard</a>
+    </div>
+</div>
+
+<div id="toastContainer"></div>
+
+<div class="page">
+
+    <div class="mlr-banner">
+        <i class="fas fa-info-circle" style="color:var(--cor-primaria);font-size:16px;flex-shrink:0;"></i>
+        <div>
+            <strong>Money Laundering Regulations 2017 (MLR 2017)</strong> — Records must be retained for <strong>5 years</strong> from the end of the business relationship or transaction date. These exports are suitable for FCA supervisory visits and internal audits.
+        </div>
+    </div>
+
+    <!-- Report type tabs -->
+    <div class="report-tabs">
+        <div class="rtab active" onclick="selectReport('transactions')" id="rtab-transactions">
+            <i class="fas fa-exchange-alt"></i> Transaction Register
+        </div>
+        <div class="rtab" onclick="selectReport('cdd')" id="rtab-cdd">
+            <i class="fas fa-id-card"></i> Customer Due Diligence
+        </div>
+        <div class="rtab" onclick="selectReport('screening')" id="rtab-screening">
+            <i class="fas fa-search"></i> Sanctions Screening Log
+        </div>
+        <div class="rtab" onclick="selectReport('highvalue')" id="rtab-highvalue">
+            <i class="fas fa-exclamation-triangle"></i> High-Value Transactions
+        </div>
+        <div class="rtab" onclick="selectReport('pep')" id="rtab-pep">
+            <i class="fas fa-user-tie"></i> PEP & Sanctions Flags
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-card">
+        <div class="filters-grid">
+            <div class="field">
+                <label>Date From</label>
+                <input type="date" id="dataDE" />
+            </div>
+            <div class="field">
+                <label>Date To</label>
+                <input type="date" id="dataATE" />
+            </div>
+            <div class="field" id="filterStatusWrap">
+                <label>Status</label>
+                <select id="filterStatus">
+                    <option value="">All</option>
+                    <option value="paga">Paid</option>
+                    <option value="liberada">Released</option>
+                    <option value="despachada">Dispatched</option>
+                    <option value="compliance_review">Compliance Review</option>
+                    <option value="cancelada">Cancelled</option>
+                    <option value="on_hold">On Hold</option>
+                </select>
+            </div>
+            <div class="field" id="filterResultadoWrap" style="display:none;">
+                <label>Screening Result</label>
+                <select id="filterResultado">
+                    <option value="">All</option>
+                    <option value="hit">Hit</option>
+                    <option value="possible">Possible</option>
+                    <option value="clear">Clear</option>
+                </select>
+            </div>
+            <div class="field" style="display:flex;align-items:flex-end;gap:6px;">
+                <button class="btn btn-primary" onclick="gerarRelatorio()" style="flex:1;">
+                    <i class="fas fa-search"></i> Generate
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div class="results-card">
+        <div class="results-hd">
+            <h3 id="resultTitle"><i class="fas fa-table"></i> Transaction Register</h3>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <span class="rec-count" id="recCount"></span>
+                <button class="btn btn-ghost" onclick="window.print()" id="btnPrint" style="display:none;">
+                    <i class="fas fa-print"></i> Print / PDF
+                </button>
+                <button class="btn btn-success" onclick="exportCSV()" id="btnExport" style="display:none;">
+                    <i class="fas fa-file-csv"></i> Export CSV
+                </button>
+            </div>
+        </div>
+
+        <!-- Print header (visible only on print) -->
+        <div class="print-header" style="padding:16px 16px 0;">
+            <h2 id="printTitle">FCA Audit Report — Transaction Register</h2>
+            <p id="printMeta"></p>
+        </div>
+
+        <div id="tableArea">
+            <div class="empty">
+                <i class="fas fa-file-contract"></i>
+                Select a report type and click <strong>Generate</strong>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="/static/js/theme.js"></script>
+<script>
+let currentReport = 'transactions';
+let currentData   = [];
+let currentCols   = [];
+
+// ── Default dates: last 90 days ───────────────────────────
+(function() {
+    const now  = new Date();
+    const from = new Date(now - 90 * 86400000);
+    document.getElementById('dataATE').value = now.toISOString().slice(0,10);
+    document.getElementById('dataDE').value  = from.toISOString().slice(0,10);
+})();
+
+function toast(msg, type='info') {
+    const c = document.getElementById('toastContainer');
+    const d = document.createElement('div');
+    d.className = `toast-item toast-${type}`;
+    d.textContent = msg;
+    c.appendChild(d);
+    setTimeout(() => d.remove(), 4000);
+}
+
+function selectReport(type) {
+    currentReport = type;
+    document.querySelectorAll('.rtab').forEach(t => t.classList.remove('active'));
+    document.getElementById('rtab-' + type).classList.add('active');
+
+    // Show/hide filters
+    const isScreening = type === 'screening';
+    document.getElementById('filterStatusWrap').style.display    = isScreening ? 'none' : '';
+    document.getElementById('filterResultadoWrap').style.display = isScreening ? '' : 'none';
+
+    const titles = {
+        transactions: 'Transaction Register',
+        cdd:          'Customer Due Diligence Register',
+        screening:    'Sanctions Screening Log',
+        highvalue:    'High-Value Transactions (≥ £1,000)',
+        pep:          'PEP & Sanctions Flags Register',
+    };
+    document.getElementById('resultTitle').innerHTML = `<i class="fas fa-table"></i> ${titles[type]}`;
+    document.getElementById('tableArea').innerHTML = '<div class="empty"><i class="fas fa-file-contract"></i>Click <strong>Generate</strong> to load data</div>';
+    document.getElementById('btnExport').style.display = 'none';
+    document.getElementById('btnPrint').style.display  = 'none';
+    document.getElementById('recCount').textContent = '';
+    currentData = [];
+}
+
+async function gerarRelatorio() {
+    const de  = document.getElementById('dataDE').value;
+    const ate = document.getElementById('dataATE').value;
+    if (!de || !ate) { toast('Select date range', 'err'); return; }
+
+    document.getElementById('tableArea').innerHTML = '<div class="empty"><i class="fas fa-spinner fa-spin" style="font-size:28px;"></i><br>Loading...</div>';
+    document.getElementById('btnExport').style.display = 'none';
+    document.getElementById('btnPrint').style.display  = 'none';
+
+    const params = new URLSearchParams({
+        tipo:      currentReport,
+        data_de:   de,
+        data_ate:  ate,
+        status:    document.getElementById('filterStatus').value,
+        resultado: document.getElementById('filterResultado').value,
+    });
+
+    try {
+        const d = await fetch(`/api/admin/fca/report?${params}`).then(r => r.json());
+        if (!d.success) { toast(d.message || 'Error', 'err'); document.getElementById('tableArea').innerHTML = '<div class="empty">Error loading data</div>'; return; }
+
+        currentData = d.rows || [];
+        currentCols = d.cols || [];
+
+        document.getElementById('recCount').textContent = `${currentData.length} record(s)`;
+        document.getElementById('printMeta').textContent =
+            `Period: ${de} to ${ate} | Generated: ${new Date().toLocaleString('en-GB')} | User: {{ usuario }}`;
+
+        if (!currentData.length) {
+            document.getElementById('tableArea').innerHTML = '<div class="empty"><i class="fas fa-search"></i><br>No records found for the selected period</div>';
+            return;
+        }
+
+        let html = '<div class="tbl-wrap"><table><thead><tr>';
+        for (const col of currentCols) html += `<th>${col.label}</th>`;
+        html += '</tr></thead><tbody>';
+
+        for (const row of currentData) {
+            html += '<tr>';
+            for (const col of currentCols) {
+                const val = row[col.key];
+                html += `<td>${formatCell(col.key, val)}</td>`;
+            }
+            html += '</tr>';
+        }
+        html += '</tbody></table></div>';
+        document.getElementById('tableArea').innerHTML = html;
+        document.getElementById('btnExport').style.display = '';
+        document.getElementById('btnPrint').style.display  = '';
+
+    } catch(e) {
+        document.getElementById('tableArea').innerHTML = '<div class="empty">Request failed</div>';
+        toast('Request failed', 'err');
+    }
+}
+
+function formatCell(key, val) {
+    if (val === null || val === undefined || val === '') return '<span style="color:var(--cor-texto-secundario);">—</span>';
+
+    // Booleans
+    if (key === 'pep_flag' || key === 'sanctions_flag')
+        return val ? '<span class="tag tag-err">YES</span>' : '<span class="tag tag-ok">NO</span>';
+
+    // Status
+    if (key === 'status') {
+        const map = {paga:'tag-ok',liberada:'tag-info',despachada:'tag-purple',compliance_review:'tag-warn',cancelada:'tag-err',on_hold:'tag-warn'};
+        return `<span class="tag ${map[val]||'tag-info'}">${val}</span>`;
+    }
+
+    // Screening result
+    if (key === 'resultado') {
+        if (val==='hit')      return '<span class="tag tag-err">HIT</span>';
+        if (val==='possible') return '<span class="tag tag-warn">POSSIBLE</span>';
+        return '<span class="tag tag-ok">CLEAR</span>';
+    }
+
+    // Risk score
+    if (key === 'risk_score') {
+        if (val==='high')   return '<span class="tag tag-err">High</span>';
+        if (val==='medium') return '<span class="tag tag-warn">Medium</span>';
+        return '<span class="tag tag-ok">Low</span>';
+    }
+
+    // AML alerts
+    if (key === 'aml_alertas' && val)
+        return `<span style="font-size:11px;color:var(--cor-alerta);">${val}</span>`;
+
+    // Dates
+    if ((key.includes('data') || key.includes('_at') || key.includes('created')) && val.includes('T'))
+        return new Date(val).toLocaleString('en-GB', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+
+    // Numbers
+    if (key.includes('valor') || key.includes('score_pct'))
+        return `<strong>${parseFloat(val).toLocaleString('en-GB', {minimumFractionDigits:2,maximumFractionDigits:2})}</strong>`;
+
+    return String(val).substring(0, 80);
+}
+
+function exportCSV() {
+    if (!currentData.length) return;
+    const titles = {transactions:'Transaction_Register',cdd:'CDD_Register',screening:'Screening_Log',highvalue:'High_Value_Transactions',pep:'PEP_Sanctions_Register'};
+    const de  = document.getElementById('dataDE').value;
+    const ate = document.getElementById('dataATE').value;
+
+    let csv = currentCols.map(c => `"${c.label}"`).join(',') + '\n';
+    for (const row of currentData) {
+        csv += currentCols.map(c => {
+            const v = row[c.key];
+            if (v === null || v === undefined) return '""';
+            return `"${String(v).replace(/"/g,'""')}"`;
+        }).join(',') + '\n';
+    }
+
+    const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `LinkInternational_${titles[currentReport]}_${de}_${ate}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('CSV exported successfully', 'ok');
+}
+</script>
+</body>
+</html>

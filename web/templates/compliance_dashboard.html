@@ -145,11 +145,12 @@
         .log-item .det{color:var(--cor-texto-secundario);}
 
         /* Toast */
-        .toast{position:fixed;bottom:20px;right:20px;padding:11px 18px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transform:translateY(12px);transition:.3s;pointer-events:none;}
+        .toast{position:fixed;bottom:20px;right:20px;padding:11px 18px;border-radius:8px;font-size:13px;font-weight:600;z-index:99999;opacity:0;transform:translateY(12px);transition:.3s;pointer-events:none;}
         .toast.show{opacity:1;transform:translateY(0);}
         .toast.ok{background:var(--cor-sucesso);color:#fff;}
         .toast.err{background:var(--cor-perigo);color:#fff;}
         .toast.info{background:#9b59b6;color:#fff;}
+        .toast.warn{background:var(--cor-alerta);color:#fff;}
 
         /* ============================================ */
         /* NOVAS CLASSES PARA VALIDADE DE DOCUMENTOS     */
@@ -454,6 +455,14 @@
         </div>
         <div class="nav-item" data-tab="audit" onclick="showTab('audit')">
             <i class="fas fa-history"></i> Auditoria
+        </div>
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Ferramentas</div>
+        <div class="nav-item" onclick="window.location.href='/admin/fca-auditoria'">
+            <i class="fas fa-file-contract"></i> Auditoria FCA
+        </div>
+        <div class="nav-item" onclick="window.location.href='/admin/aml'">
+            <i class="fas fa-shield-virus"></i> Gestão AML
         </div>
     </nav>
 
@@ -2340,10 +2349,14 @@ function renderDetalheClienteCompliance(c) {
             ${fld('telefone','Telefone',c.telefone)}
             ${fld('email','Email',c.email,'email')}
             ${fld('profissao','Profissão',c.profissao)}
-            ${fld('nacionalidade','Nacionalidade',c.nacionalidade)}
+            <div class="form-group"><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Nacionalidade</label>
+             <div id="nat-wrap-gc-nacionalidade" style="position:relative;"></div>
+             <input type="hidden" id="gc-nacionalidade"></div>
             ${fld('pais_residencia','País Residência',c.pais_residencia)}
             ${fld('endereco','Endereço',c.endereco)}
-            ${fld('cidade','Cidade / Postcode',c.cidade)}
+            ${fld('cidade','Cidade',c.cidade)}
+            <div class="form-group"><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Postcode</label>
+             <input id="gc-postcode" type="text" value="${(c.postcode||'').replace(/"/g,'&quot;')}" style="width:100%;padding:6px 9px;border:1px solid var(--cor-borda);border-radius:5px;background:var(--cor-card);color:var(--cor-texto);font-size:13px;"></div>
         </div>
         <p class="section-title" style="margin-top:14px;"><i class="fas fa-id-card"></i> Documento de Identidade</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -2352,8 +2365,6 @@ function renderDetalheClienteCompliance(c) {
                 {v:'uk_provisional',l:'UK Provisional Licence'},
                 {v:'passport_eu',l:'EU/Non-UK Passport + UK Visa'},
                 {v:'passport_non_eu',l:'Non-EU Passport + UK Valid Visa'},
-                {v:'travel_document',l:'Travel Document'},
-                {v:'uk_visa_work',l:'UK Visa with Work Permit'}
             ])}
             ${fld('documento','Número do Documento',c.documento)}
             ${fld('doc_photo_id_validade','Validade do Documento',c.doc_photo_id_validade,'date')}
@@ -2592,6 +2603,9 @@ function renderDetalheClienteCompliance(c) {
         <div id="gc-panel-acoes"  style="display:none;">${acoesHtml}</div>
     `;
 
+    initNationalitySelect('nat-wrap-gc-nacionalidade', 'gc-nacionalidade', c.nacionalidade || '', {
+        inputStyle: 'width:100%;padding:6px 9px;border:1px solid var(--cor-borda);border-radius:5px;background:var(--cor-card);color:var(--cor-texto);font-size:13px;'
+    });
     switchGcTab('dados');
     clienteDetalheIdCompliance = c.id;
     carregarBenefDetalheCompliance(c.id);
@@ -2621,6 +2635,7 @@ async function salvarClienteCompliance(clienteId) {
         pais_residencia:         get('pais_residencia'),
         endereco:                get('endereco'),
         cidade:                  get('cidade'),
+        postcode:                document.getElementById('gc-postcode')?.value ?? '',
         doc_photo_id_validade:   get('doc_photo_id_validade') || null,
         doc_address_atualizado_em: get('doc_address_atualizado_em') || null,
         proof_address_tipo:      get('proof_address_tipo'),
@@ -3234,5 +3249,8 @@ async function rejeitarOrdemConsulta(ordemId) {
 
 </script>
 <script src="/static/js/theme.js"></script>
+<script src="/static/js/nationality_select.js"></script>
+<script>
+</script>
 </body>
 </html>

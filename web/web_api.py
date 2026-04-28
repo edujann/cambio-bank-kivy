@@ -292,6 +292,20 @@ def api_info():
         }
     })
 
+
+@app.route('/api/cep/<cep>')
+def consultar_cep(cep):
+    digits = ''.join(c for c in cep if c.isdigit())
+    if len(digits) != 8:
+        return jsonify({'erro': True, 'message': 'CEP inválido'}), 400
+    try:
+        r = requests.get(f'https://viacep.com.br/ws/{digits}/json/', timeout=5)
+        data = r.json()
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'erro': True, 'message': str(e)}), 500
+
+
 @app.route('/api/status')
 def status():
     """Endpoint de status do sistema"""
@@ -12057,6 +12071,624 @@ def clientes_listar():
         return jsonify({'success': False, 'message': _err(e)}), 500
 
 
+# ============================================================
+#  AML SANCTIONS SCREENING MODULE
+#  Option B — free public lists (OFAC SDN, HM Treasury, UN)
+#
+#  MIGRATION GUIDE (when switching to a paid provider):
+#    1. Replace the body of  _screening_provider()  below.
+#    2. Adjust the returned dict keys to match the new schema.
+#    3. Everything else (screening_check, logging, endpoints) stays untouched.
+# ============================================================
+
+import unicodedata, difflib, xml.etree.ElementTree as _ET, csv, io as _io
+
+def _sn_norm(name: str) -> str:
+    """Normalize a name for fuzzy comparison."""
+    n = unicodedata.normalize('NFKD', name or '')
+    n = ''.join(c for c in n if not unicodedata.combining(c))
+    n = n.lower()
+    n = ''.join(c if c.isalpha() or c.isspace() else ' ' for c in n)
+    return ' '.join(sorted(n.split()))   # token-sort
+
+
+def _sn_sim(a: str, b: str) -> float:
+    return difflib.SequenceMatcher(None, a, b).ratio()
+
+
+# -------------------------------------------------------
+#  _screening_provider  — THE SINGLE MIGRATION POINT
+#  Returns dict: { 'hit': bool, 'score': float 0-1,
+#                  'matches': [ {source, name, country, program, score} ] }
+#  Input: name (str), threshold (float 0-1)
+# -------------------------------------------------------
+def _check_pep_opensanctions(name: str, threshold: float = 0.82) -> list:
+    """
+    PEP check via OpenSanctions real-time API (700k+ entries, no local storage).
+    Free for development/non-commercial. For commercial production use, set
+    OPENSANCTIONS_API_KEY in environment or upgrade to paid plan at opensanctions.org.
+
+    MIGRATION POINT: to switch to a paid provider for PEPs, replace this function.
+    """
+    import requests as _req, os as _os
+    api_key = _os.environ.get('OPENSANCTIONS_API_KEY', '')
+    headers = {'Authorization': f'ApiKey {api_key}'} if api_key else {}
+    try:
+        resp = _req.post(
+            'https://api.opensanctions.org/match/peps',
+            headers=headers,
+            json={'queries': {'entity': {'schema': 'Person', 'properties': {'name': [name]}}}},
+            timeout=8,
+        )
+        if resp.status_code == 402:
+            return [{'source': 'PEP/OpenSanctions', 'name': name, 'country': None,
+                     'program': 'API key required for commercial use', 'score': 0.0}]
+        resp.raise_for_status()
+        data = resp.json()
+        results = data.get('responses', {}).get('entity', {}).get('results', [])
+        pep_matches = []
+        for r in results:
+            score = r.get('score', 0.0)
+            if score < threshold:
+                continue
+            props = r.get('properties', {})
+            pep_matches.append({
+                'source':  'PEP/OpenSanctions',
+                'name':    (props.get('name') or [name])[0],
+                'country': ', '.join(props.get('nationality') or props.get('country') or []) or None,
+                'program': ', '.join(props.get('position') or []) or None,
+                'score':   round(score, 4),
+            })
+        return pep_matches
+    except Exception:
+        return []
+
+
+def _screening_provider(name: str, threshold: float = 0.82) -> dict:
+    """
+    Free-list provider (OFAC + HMT + UN locally) + PEP check via OpenSanctions API.
+    Replace this function body to switch to a paid provider (e.g. ComplyAdvantage,
+    Dow Jones, LexisNexis) — keep the return contract unchanged.
+    """
+    normed = _sn_norm(name)
+    if not normed:
+        return {'hit': False, 'score': 0.0, 'matches': []}
+
+    # --- Part 1: local sanctions lists (OFAC + HMT + UN) ---
+    tokens = [t for t in normed.split() if len(t) > 2]
+    try:
+        if tokens:
+            tsquery = ' | '.join(tokens)
+            cand_r = supabase.table('sanctions_list')\
+                .select('source,full_name,aliases,country,program')\
+                .text_search('full_name', tsquery, config='simple')\
+                .limit(2000).execute()
+            entries = cand_r.data or []
+        else:
+            entries = []
+    except Exception:
+        entries = []
+        offset = 0
+        while True:
+            try:
+                r = supabase.table('sanctions_list')\
+                    .select('source,full_name,aliases,country,program')\
+                    .range(offset, offset + 999).execute()
+                batch = r.data or []
+                entries.extend(batch)
+                if len(batch) < 1000:
+                    break
+                offset += 1000
+            except Exception:
+                break
+
+    matches = []
+    for entry in entries:
+        candidates = [entry.get('full_name', '')]
+        aliases_raw = entry.get('aliases') or ''
+        if aliases_raw:
+            candidates += [a.strip() for a in aliases_raw.split('|') if a.strip()]
+        best = 0.0
+        for cand in candidates:
+            s = _sn_sim(normed, _sn_norm(cand))
+            if s > best:
+                best = s
+        if best >= threshold:
+            matches.append({
+                'source':  entry.get('source'),
+                'name':    entry.get('full_name'),
+                'country': entry.get('country'),
+                'program': entry.get('program'),
+                'score':   round(best, 4),
+            })
+
+    # --- Part 2: PEP check via OpenSanctions API ---
+    pep_matches = _check_pep_opensanctions(name, threshold)
+    matches.extend(pep_matches)
+
+    matches.sort(key=lambda x: -x['score'])
+    hit = bool(matches)
+    top_score = matches[0]['score'] if matches else 0.0
+    return {'hit': hit, 'score': top_score, 'matches': matches[:10]}
+
+
+def _send_compliance_alert(nome: str, matches: list, cliente_id=None) -> None:
+    """
+    Send email alert to compliance officer when a sanctions/PEP hit is detected.
+    Runs in a background thread so it never blocks client creation.
+    Configure via env vars: MAIL_SMTP_HOST, MAIL_SMTP_PORT, MAIL_USERNAME,
+    MAIL_PASSWORD, MAIL_FROM, COMPLIANCE_EMAIL.
+    """
+    import smtplib, os as _os
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+
+    smtp_host  = _os.environ.get('MAIL_SMTP_HOST', '')
+    smtp_port  = int(_os.environ.get('MAIL_SMTP_PORT', 587))
+    mail_user  = _os.environ.get('MAIL_USERNAME', '')
+    mail_pass  = _os.environ.get('MAIL_PASSWORD', '')
+    mail_from  = _os.environ.get('MAIL_FROM', mail_user)
+    mail_to    = [e.strip() for e in _os.environ.get('COMPLIANCE_EMAIL', '').split(',') if e.strip()]
+
+    if not all([smtp_host, mail_user, mail_pass, mail_to]):
+        return  # email not configured — skip silently
+
+    top = matches[0] if matches else {}
+    top_source  = top.get('source', '—')
+    top_score   = int(round(top.get('score', 0) * 100))
+    top_program = top.get('program') or '—'
+
+    rows_html = ''.join(
+        f"<tr><td>{m.get('source','—')}</td><td>{m.get('name','—')}</td>"
+        f"<td>{m.get('country') or '—'}</td><td>{m.get('program') or '—'}</td>"
+        f"<td><strong>{int(round(m.get('score',0)*100))}%</strong></td></tr>"
+        for m in matches[:5]
+    )
+
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+      <div style="background:#8e44ad;padding:16px 24px;border-radius:8px 8px 0 0;">
+        <h2 style="color:#fff;margin:0;">&#x26A0;&#xFE0F; Sanctions / PEP Alert</h2>
+        <p style="color:#ddd;margin:4px 0 0;font-size:13px;">Link International — Compliance System</p>
+      </div>
+      <div style="background:#f9f9f9;padding:20px 24px;border:1px solid #ddd;border-top:none;">
+        <p style="font-size:15px;">A potential match was detected during client screening:</p>
+        <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+          <tr><td style="padding:6px 0;color:#666;width:140px;">Client Name</td>
+              <td style="padding:6px 0;font-weight:bold;">{nome}</td></tr>
+          <tr><td style="padding:6px 0;color:#666;">Client ID</td>
+              <td style="padding:6px 0;">{str(cliente_id) if cliente_id else 'Not yet assigned'}</td></tr>
+          <tr><td style="padding:6px 0;color:#666;">Top Match Source</td>
+              <td style="padding:6px 0;"><span style="background:#8e44ad;color:#fff;padding:2px 8px;border-radius:10px;font-size:12px;">{top_source}</span></td></tr>
+          <tr><td style="padding:6px 0;color:#666;">Score</td>
+              <td style="padding:6px 0;font-weight:bold;color:#c0392b;">{top_score}%</td></tr>
+          <tr><td style="padding:6px 0;color:#666;">Programme</td>
+              <td style="padding:6px 0;">{top_program}</td></tr>
+        </table>
+        <h4 style="margin:16px 0 8px;color:#333;">All Matches ({len(matches)})</h4>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr style="background:#eee;">
+            <th style="padding:6px;text-align:left;">Source</th>
+            <th style="padding:6px;text-align:left;">Name</th>
+            <th style="padding:6px;text-align:left;">Country</th>
+            <th style="padding:6px;text-align:left;">Programme</th>
+            <th style="padding:6px;text-align:left;">Score</th>
+          </tr></thead>
+          <tbody>{rows_html}</tbody>
+        </table>
+        <div style="margin-top:20px;padding:12px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;font-size:13px;">
+          <strong>Action Required:</strong> Please review this client in the Compliance Dashboard and mark as
+          <em>Confirmed Hit</em> or <em>False Positive</em> before processing any transactions.
+        </div>
+      </div>
+      <div style="background:#eee;padding:10px 24px;border-radius:0 0 8px 8px;font-size:11px;color:#999;text-align:center;">
+        Link International &mdash; AML Compliance System &mdash; This is an automated alert.
+      </div>
+    </div>
+    """
+
+    def _send():
+        try:
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = f'[SANCTIONS ALERT] {nome} — {top_source} {top_score}% match'
+            msg['From']    = mail_from
+            msg['To']      = ', '.join(mail_to)
+            msg.attach(MIMEText(html, 'html'))
+            with smtplib.SMTP(smtp_host, smtp_port) as s:
+                s.ehlo()
+                s.starttls()
+                s.login(mail_user, mail_pass)
+                s.sendmail(mail_from, mail_to, msg.as_string())
+        except Exception as exc:
+            _sec_log.warning(f'Compliance alert email failed: {exc}')
+
+    threading.Thread(target=_send, daemon=True).start()
+
+
+def screening_check(cliente_id, nome: str, screened_by: str = 'system') -> dict:
+    """
+    Run sanctions screening at two thresholds:
+      - PRIMARY (≥0.82): confirmed hit — sanctions_flag=True, blocks orders, email alert
+      - SECONDARY (0.70–0.82): possible match — review_flag only, email advisory, doesn't block
+    Returns provider result dict augmented with 'resultado' and 'possible_matches' keys.
+    """
+    # Run at lower threshold to catch near-matches too
+    result_low  = _screening_provider(nome, threshold=0.70)
+    result_high = _screening_provider(nome, threshold=0.82)
+
+    matches_high   = result_high.get('matches', [])
+    matches_low    = [m for m in result_low.get('matches', [])
+                      if m.get('score', 0) < 0.82]   # only the 0.70–0.82 range
+
+    confirmed_hit  = result_high['hit']
+    possible_hit   = bool(matches_low) and not confirmed_hit
+
+    if confirmed_hit:
+        resultado = 'hit'
+    elif possible_hit:
+        resultado = 'possible'
+    else:
+        resultado = 'clear'
+
+    all_matches = matches_high + matches_low
+
+    # Log to screening_log
+    try:
+        supabase.table('screening_log').insert({
+            'cliente_id':      str(cliente_id) if cliente_id else None,
+            'nome_pesquisado': nome,
+            'resultado':       resultado,
+            'matches':         all_matches,
+            'screened_by':     screened_by,
+        }).execute()
+    except Exception:
+        pass
+
+    # Confirmed hit: insert into sanctions_hits + send alert email
+    if confirmed_hit:
+        for m in matches_high:
+            try:
+                supabase.table('sanctions_hits').insert({
+                    'cliente_id':    str(cliente_id) if cliente_id else 'manual',
+                    'nome_cliente':  nome,
+                    'nome_entidade': m.get('name'),
+                    'lista':         m.get('source'),
+                    'score':         int(round(m.get('score', 0) * 100)),
+                    'motivo':        m.get('program'),
+                    'status':        'pendente',
+                }).execute()
+            except Exception:
+                pass
+        _send_compliance_alert(nome, matches_high, cliente_id)
+
+    # Possible hit (70–82%): insert as review_needed + send advisory email
+    elif possible_hit:
+        for m in matches_low:
+            try:
+                supabase.table('sanctions_hits').insert({
+                    'cliente_id':    str(cliente_id) if cliente_id else 'manual',
+                    'nome_cliente':  nome,
+                    'nome_entidade': m.get('name'),
+                    'lista':         m.get('source'),
+                    'score':         int(round(m.get('score', 0) * 100)),
+                    'motivo':        f"[POSSIBLE MATCH – review required] {m.get('program') or ''}",
+                    'status':        'pendente',
+                }).execute()
+            except Exception:
+                pass
+        _send_compliance_alert(nome, matches_low, cliente_id)
+
+    result_high['resultado']        = resultado
+    result_high['possible_matches'] = matches_low
+    return result_high
+
+
+# ---- List updaters ----------------------------------------
+
+def _sanctions_batch_insert(rows: list[dict], source: str):
+    """Upsert rows into sanctions_list in batches of 200."""
+    # Delete existing entries for this source first
+    try:
+        supabase.table('sanctions_list').delete().eq('source', source).execute()
+    except Exception:
+        pass
+    for i in range(0, len(rows), 200):
+        batch = rows[i:i+200]
+        try:
+            supabase.table('sanctions_list').insert(batch).execute()
+        except Exception:
+            pass
+
+
+def _update_ofac() -> int:
+    """Download OFAC SDN XML and load into sanctions_list."""
+    import requests as _req
+    url = 'https://www.treasury.gov/ofac/downloads/sdn.xml'
+    r = _req.get(url, timeout=30)
+    r.raise_for_status()
+    root = _ET.fromstring(r.content)
+    ns = {'o': 'https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/XML'}
+    rows = []
+    for entry in root.findall('.//o:sdnEntry', ns):
+        etype = (entry.findtext('o:sdnType', default='', namespaces=ns) or '').strip()
+        entity_type = 'individual' if etype.upper() in ('INDIVIDUAL', 'IND') else 'entity'
+        last  = (entry.findtext('o:lastName',  default='', namespaces=ns) or '').strip()
+        first = (entry.findtext('o:firstName', default='', namespaces=ns) or '').strip()
+        full  = f'{first} {last}'.strip() if first else last
+        if not full:
+            continue
+        aliases = []
+        for aka in entry.findall('.//o:aka', ns):
+            al = (aka.findtext('o:lastName', default='', namespaces=ns) or '').strip()
+            af = (aka.findtext('o:firstName', default='', namespaces=ns) or '').strip()
+            a  = f'{af} {al}'.strip() if af else al
+            if a:
+                aliases.append(a)
+        programs = [p.text for p in entry.findall('.//o:program', ns) if p.text]
+        rows.append({
+            'source':      'OFAC',
+            'entity_type': entity_type,
+            'full_name':   full,
+            'aliases':     '|'.join(aliases) if aliases else None,
+            'country':     None,
+            'program':     ', '.join(programs) if programs else None,
+            'raw_id':      entry.findtext('o:uid', default='', namespaces=ns),
+        })
+    _sanctions_batch_insert(rows, 'OFAC')
+    return len(rows)
+
+
+def _update_hmt() -> int:
+    """Download UK FCDO sanctions list (CSV, migrated from HMT/OFSI Jan 2026)."""
+    import requests as _req
+    url = 'https://sanctionslist.fcdo.gov.uk/docs/UK-Sanctions-List.csv'
+    r = _req.get(url, timeout=60)
+    r.raise_for_status()
+    text = r.content.decode('utf-8-sig', errors='replace')
+    # First line is a report-date header, not column names — skip it
+    lines = text.splitlines()
+    csv_start = next((i for i, l in enumerate(lines) if l.startswith('Last Updated')), 1)
+    reader = csv.DictReader(_io.StringIO('\n'.join(lines[csv_start:])))
+    rows = []
+    seen = set()
+    for row in reader:
+        name6 = (row.get('Name 6') or '').strip()
+        if not name6:
+            continue
+        name1 = (row.get('Name 1') or '').strip()
+        name2 = (row.get('Name 2') or '').strip()
+        name3 = (row.get('Name 3') or '').strip()
+        full  = ' '.join(p for p in [name1, name2, name3, name6] if p)
+        if not full or full in seen:
+            continue
+        seen.add(full)
+        entity_raw = (row.get('Type of entity') or '').strip().lower()
+        entity_type = 'individual' if entity_raw in ('individual', '') else 'entity'
+        country = (row.get('Nationality(/ies)') or row.get('Address Country') or '').strip() or None
+        rows.append({
+            'source':      'HMT',
+            'entity_type': entity_type,
+            'full_name':   full,
+            'aliases':     None,
+            'country':     country,
+            'program':     (row.get('Regime Name') or '').strip() or None,
+            'raw_id':      (row.get('Unique ID') or '').strip() or None,
+        })
+    _sanctions_batch_insert(rows, 'HMT')
+    return len(rows)
+
+
+def _update_un() -> int:
+    """Download UN consolidated list (XML) and load into sanctions_list."""
+    import requests as _req
+    url = 'https://scsanctions.un.org/resources/xml/en/consolidated.xml'
+    r = _req.get(url, timeout=30)
+    r.raise_for_status()
+    root = _ET.fromstring(r.content)
+    rows = []
+    for ind in root.findall('.//INDIVIDUAL'):
+        first = (ind.findtext('FIRST_NAME') or '').strip()
+        second = (ind.findtext('SECOND_NAME') or '').strip()
+        third  = (ind.findtext('THIRD_NAME') or '').strip()
+        full   = ' '.join(p for p in [first, second, third] if p)
+        if not full:
+            continue
+        aliases = []
+        for aka in ind.findall('.//ALIAS'):
+            qn = (aka.findtext('QUALITY') or '').lower()
+            an = ' '.join(p for p in [
+                (aka.findtext('FIRST_NAME') or '').strip(),
+                (aka.findtext('SECOND_NAME') or '').strip(),
+                (aka.findtext('THIRD_NAME') or '').strip(),
+            ] if p)
+            if an and qn in ('good quality', 'a.k.a.', ''):
+                aliases.append(an)
+        nationality = (ind.findtext('.//NATIONALITY/VALUE') or '').strip() or None
+        rows.append({
+            'source':      'UN',
+            'entity_type': 'individual',
+            'full_name':   full,
+            'aliases':     '|'.join(aliases) if aliases else None,
+            'country':     nationality,
+            'program':     None,
+            'raw_id':      (ind.findtext('DATAID') or '').strip() or None,
+        })
+    for ent in root.findall('.//ENTITY'):
+        name = (ent.findtext('FIRST_NAME') or '').strip()
+        if not name:
+            continue
+        aliases = []
+        for aka in ent.findall('.//ALIAS'):
+            an = (aka.findtext('ALIAS_NAME') or '').strip()
+            if an:
+                aliases.append(an)
+        rows.append({
+            'source':      'UN',
+            'entity_type': 'entity',
+            'full_name':   name,
+            'aliases':     '|'.join(aliases) if aliases else None,
+            'country':     None,
+            'program':     None,
+            'raw_id':      (ent.findtext('DATAID') or '').strip() or None,
+        })
+    _sanctions_batch_insert(rows, 'UN')
+    return len(rows)
+
+
+# ---- Admin endpoints --------------------------------------
+
+@app.route('/api/admin/sanctions/update', methods=['POST'])
+def sanctions_update():
+    usuario, redir = _check_admin_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    source = (request.get_json() or {}).get('source', 'all').upper()
+    results = {}
+    errors  = {}
+    if source in ('ALL', 'OFAC'):
+        try:    results['OFAC'] = _update_ofac()
+        except Exception as e: errors['OFAC'] = str(e)
+    if source in ('ALL', 'HMT'):
+        try:    results['HMT'] = _update_hmt()
+        except Exception as e: errors['HMT'] = str(e)
+    if source in ('ALL', 'UN'):
+        try:    results['UN'] = _update_un()
+        except Exception as e: errors['UN'] = str(e)
+    return jsonify({'success': True, 'loaded': results, 'errors': errors})
+
+
+@app.route('/api/admin/sanctions/stats', methods=['GET'])
+def sanctions_stats():
+    usuario, tipo, redir = _check_loja_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        cnt, last_updated = {}, {}
+        for src in ('OFAC', 'HMT', 'UN'):
+            r = supabase.table('sanctions_list').select('id,created_at', count='exact')\
+                .eq('source', src).order('created_at', desc=True).limit(1).execute()
+            cnt[src] = r.count or 0
+            if r.data:
+                from datetime import datetime as _dt2
+                raw = r.data[0].get('created_at','')
+                try:
+                    dt = _dt2.fromisoformat(raw.replace('Z','+00:00'))
+                    last_updated[src] = dt.strftime('%d %b %Y %H:%M')
+                except Exception:
+                    last_updated[src] = raw[:16]
+        recent_r = supabase.table('screening_log')\
+            .select('nome_pesquisado,resultado,screened_by,created_at')\
+            .order('created_at', desc=True).limit(20).execute()
+        return jsonify({'success': True, 'totals_by_source': cnt, 'last_updated': last_updated, 'recent_screenings': recent_r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/admin/sanctions/screen', methods=['POST'])
+def sanctions_screen():
+    usuario, tipo, redir = _check_loja_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    d = request.get_json() or {}
+    nome = (d.get('nome') or '').strip()
+    if not nome:
+        return jsonify({'success': False, 'message': 'Nome obrigatório'}), 400
+    result = screening_check(d.get('cliente_id'), nome, screened_by=usuario)
+    return jsonify({'success': True, **result})
+
+# ---- AML management page & config endpoints ---------------
+
+@app.route('/admin/aml')
+def admin_aml():
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return redirect('/login')
+    return render_template('admin_aml.html', usuario=usuario, is_compliance=(tipo == 'compliance'))
+
+
+@app.route('/api/admin/aml/config', methods=['GET'])
+def aml_config_get():
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        import os as _os
+        # Read emails from DB config if stored, fallback to env
+        emails_env = [e.strip() for e in _os.environ.get('COMPLIANCE_EMAIL','').split(',') if e.strip()]
+        try:
+            r = supabase.table('configuracoes').select('valor').eq('chave','aml_compliance_emails').single().execute()
+            emails = (r.data or {}).get('valor', ','.join(emails_env)).split(',') if r.data else emails_env
+            emails = [e.strip() for e in emails if e.strip()]
+        except Exception:
+            emails = emails_env
+        try:
+            r2 = supabase.table('configuracoes').select('valor').eq('chave','aml_threshold').single().execute()
+            threshold = int((r2.data or {}).get('valor', 82))
+        except Exception:
+            threshold = 82
+        return jsonify({'success': True, 'compliance_emails': emails, 'threshold': threshold})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/admin/aml/config', methods=['POST'])
+def aml_config_save():
+    usuario, redir = _check_admin_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Acesso negado'}), 403
+    try:
+        d = request.get_json() or {}
+        emails = [e.strip().lower() for e in (d.get('compliance_emails') or []) if e.strip()]
+        threshold = max(60, min(99, int(d.get('threshold', 82))))
+        for chave, valor in [('aml_compliance_emails', ','.join(emails)), ('aml_threshold', str(threshold))]:
+            try:
+                supabase.table('configuracoes').upsert({'chave': chave, 'valor': valor}, on_conflict='chave').execute()
+            except Exception:
+                supabase.table('configuracoes').insert({'chave': chave, 'valor': valor}).execute()
+        _compliance_audit(usuario, 'AML_CONFIG_UPDATE', f'emails={emails} threshold={threshold}')
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/admin/aml/rescreen', methods=['POST'])
+def aml_rescreen_now():
+    usuario, redir = _check_admin_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Acesso negado'}), 403
+    try:
+        offset, total, hits = 0, 0, 0
+        while True:
+            r = supabase.table('clientes_varejo').select('id,nome').range(offset, offset + 99).execute()
+            batch = r.data or []
+            if not batch:
+                break
+            for c in batch:
+                nome = (c.get('nome') or '').strip()
+                if not nome:
+                    continue
+                try:
+                    result = screening_check(c['id'], nome, screened_by=f'admin:{usuario}')
+                    if result.get('resultado') == 'hit':
+                        hits += 1
+                        supabase.table('clientes_varejo').update({'sanctions_flag': True}).eq('id', c['id']).execute()
+                except Exception:
+                    pass
+                total += 1
+            if len(batch) < 100:
+                break
+            offset += 100
+        _compliance_audit(usuario, 'MANUAL_RESCREEN', f'total={total} hits={hits}')
+        return jsonify({'success': True, 'total': total, 'hits': hits})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ============================================================
+#  END SANCTIONS MODULE
+# ============================================================
+
+
 @app.route('/api/clientes', methods=['POST'])
 def clientes_criar():
     usuario, tipo, redir = _check_loja_acesso()
@@ -12073,6 +12705,11 @@ def clientes_criar():
         if pais in PROHIBITED_COUNTRIES:
             return jsonify({'success': False, 'message': f'País {pais} está na lista de países proibidos (AML policy).'}), 403
 
+        # Sanctions screening (non-blocking — result stored in screening_log)
+        sn = screening_check(None, nome, screened_by=usuario)
+        resultado_sn = sn.get('resultado', 'clear')
+        sn_flag = resultado_sn == 'hit'
+
         # Campos base — existem em qualquer versão da tabela
         base = {
             'nome':       nome,
@@ -12088,12 +12725,14 @@ def clientes_criar():
             'profissao':       (d.get('profissao') or '').strip(),
             'endereco':        (d.get('endereco') or '').strip(),
             'cidade':          (d.get('cidade') or '').strip(),
+            'postcode':        (d.get('postcode') or '').strip(),
             'pais_residencia': pais,
             'nacionalidade':   (d.get('nacionalidade') or '').strip(),
             'observacoes':     (d.get('observacoes') or '').strip(),
             'risk_score':      'high' if pais in HIGH_RISK_COUNTRIES else 'medium',
             'pep_flag':        bool(d.get('pep_flag', False)),
             'pep_info':        (d.get('pep_info') or '').strip(),
+            'sanctions_flag':  sn_flag,
             'doc_photo_id_validade':     d.get('doc_photo_id_validade') or None,
             'doc_address_atualizado_em': d.get('doc_address_atualizado_em') or None,
             'proof_address_tipo':        (d.get('proof_address_tipo') or '').strip(),
@@ -12105,7 +12744,23 @@ def clientes_criar():
             r = supabase.table('clientes_varejo').insert({**base, **extras}).execute()
         except Exception:
             r = supabase.table('clientes_varejo').insert(base).execute()
-        return jsonify({'success': True, 'cliente': r.data[0] if r.data else {}, 'message': 'Cliente cadastrado com sucesso.'})
+        # Update screening_log with the real cliente_id
+        novo_id = (r.data[0] if r.data else {}).get('id')
+        if novo_id:
+            try:
+                supabase.table('screening_log')\
+                    .update({'cliente_id': str(novo_id)})\
+                    .eq('nome_pesquisado', nome).eq('screened_by', usuario)\
+                    .is_('cliente_id', 'null').execute()
+            except Exception:
+                pass
+        if resultado_sn == 'hit':
+            sn_warning = ' ALERTA: match confirmado em lista de sanções — revisar no compliance antes de processar ordens.'
+        elif resultado_sn == 'possible':
+            sn_warning = ' ATENÇÃO: possível match em lista de sanções — revisão recomendada.'
+        else:
+            sn_warning = ''
+        return jsonify({'success': True, 'cliente': r.data[0] if r.data else {}, 'message': f'Cliente cadastrado com sucesso.{sn_warning}', 'sanctions': sn})
     except Exception as e:
         _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         return jsonify({'success': False, 'message': _err(e)}), 500
@@ -12144,7 +12799,7 @@ def clientes_atualizar(cliente_id):
         from datetime import datetime
         d = request.get_json()
         allowed = ['nome','documento','tipo_documento','data_nascimento','telefone','email',
-                   'profissao','endereco','cidade','pais_residencia','nacionalidade',
+                   'profissao','endereco','cidade','postcode','pais_residencia','nacionalidade',
                    'benef_nome','benef_banco','benef_conta','benef_pix','benef_iban','benef_swift',
                    'observacoes','pep_flag','pep_info','risk_score',
                    'doc_photo_id_validade','doc_address_atualizado_em',
@@ -12155,9 +12810,21 @@ def clientes_atualizar(cliente_id):
             return jsonify({'success': False, 'message': f'País {pais} é proibido (AML policy).'}), 403
         if pais and pais.upper() in HIGH_RISK_COUNTRIES and 'risk_score' not in payload:
             payload['risk_score'] = 'high'
+        # Re-screen if name changed
+        sn_resultado = 'clear'
+        if 'nome' in payload:
+            sn = screening_check(cliente_id, payload['nome'], screened_by=usuario)
+            sn_resultado = sn.get('resultado', 'clear')
+            payload['sanctions_flag'] = sn_resultado == 'hit'
         payload['updated_at'] = datetime.now().isoformat()
         r = supabase.table('clientes_varejo').update(payload).eq('id', cliente_id).execute()
-        return jsonify({'success': True, 'message': 'Cliente atualizado.', 'cliente': r.data[0] if r.data else {}})
+        if sn_resultado == 'hit':
+            sn_warning = ' ALERTA: match confirmado em lista de sanções — revisar no compliance antes de processar ordens.'
+        elif sn_resultado == 'possible':
+            sn_warning = ' ATENÇÃO: possível match em lista de sanções — revisão recomendada.'
+        else:
+            sn_warning = ''
+        return jsonify({'success': True, 'message': f'Cliente atualizado.{sn_warning}', 'cliente': r.data[0] if r.data else {}})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
 
@@ -14216,8 +14883,29 @@ def compliance_sanctions_review(hit_id):
             'reviewed_by': usuario,
             'reviewed_at': _dt.now().isoformat()
         }).eq('id', hit_id).execute()
+
+        # Se confirmado: atualizar sanctions_flag no cliente para bloquear futuras ordens
+        # Se falso positivo: limpar sanctions_flag
+        try:
+            hit_r = supabase.table('sanctions_hits').select('cliente_id').eq('id', hit_id).single().execute()
+            cliente_id = (hit_r.data or {}).get('cliente_id')
+            if cliente_id and cliente_id != 'manual':
+                if novo_status == 'confirmado':
+                    supabase.table('clientes_varejo').update({'sanctions_flag': True}).eq('id', cliente_id).execute()
+                elif novo_status == 'falso_positivo':
+                    # Only clear flag if no other confirmed hits remain
+                    outros = supabase.table('sanctions_hits')\
+                        .select('id').eq('cliente_id', cliente_id)\
+                        .eq('status', 'confirmado').execute()
+                    if not (outros.data or []):
+                        supabase.table('clientes_varejo').update({'sanctions_flag': False}).eq('id', cliente_id).execute()
+        except Exception:
+            pass
+
         _compliance_audit(usuario, 'SANCTIONS_REVIEW', f'hit_id={hit_id} status={novo_status}')
-        return jsonify({'success': True, 'message': f'Hit marcado como {novo_status}.'})
+        msg = 'Hit confirmado — sanctions_flag activado. Ordens bloqueadas.' if novo_status == 'confirmado' \
+              else 'Marcado como falso positivo — sanctions_flag removido.'
+        return jsonify({'success': True, 'message': msg})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
 
@@ -18763,11 +19451,288 @@ def fx_registrar_venda():
         return jsonify({'success': False, 'message': _err(e)}), 500
 
 
+# ============================================================
+#  SCHEDULED JOBS — sanctions list update + client re-screening
+# ============================================================
+
+def _job_update_sanctions_lists():
+    """Weekly job: refresh OFAC, HMT and UN sanctions lists."""
+    print('⏰ [scheduler] Updating sanctions lists...')
+    results, errors = {}, {}
+    for src, fn in [('OFAC', _update_ofac), ('HMT', _update_hmt), ('UN', _update_un)]:
+        try:
+            results[src] = fn()
+            print(f'  ✅ {src}: {results[src]} entries loaded')
+        except Exception as e:
+            errors[src] = str(e)
+            print(f'  ❌ {src}: {e}')
+    try:
+        _compliance_audit('scheduler', 'SANCTIONS_LIST_UPDATE',
+                          f'loaded={results} errors={errors}')
+    except Exception:
+        pass
+
+
+def _job_rescreening_clientes():
+    """Weekly job: re-screen all active clients against latest sanctions lists."""
+    print('⏰ [scheduler] Starting weekly client re-screening...')
+    try:
+        offset, total, hits = 0, 0, 0
+        while True:
+            r = supabase.table('clientes_varejo')\
+                .select('id,nome')\
+                .range(offset, offset + 99).execute()
+            batch = r.data or []
+            if not batch:
+                break
+            for c in batch:
+                try:
+                    result = screening_check(c['id'], c['nome'], screened_by='scheduler')
+                    if result.get('hit'):
+                        hits += 1
+                        supabase.table('clientes_varejo')\
+                            .update({'sanctions_flag': True})\
+                            .eq('id', c['id']).execute()
+                except Exception:
+                    pass
+                total += 1
+            if len(batch) < 100:
+                break
+            offset += 100
+        print(f'  ✅ Re-screening complete: {total} clients checked, {hits} hits found')
+        try:
+            _compliance_audit('scheduler', 'RESCREENING_COMPLETE',
+                              f'total={total} hits={hits}')
+        except Exception:
+            pass
+    except Exception as e:
+        print(f'  ❌ Re-screening failed: {e}')
+
+
+def _start_scheduler():
+    from apscheduler.schedulers.background import BackgroundScheduler
+    from apscheduler.triggers.cron import CronTrigger
+    scheduler = BackgroundScheduler(timezone='Europe/London')
+    # Every Monday at 06:00 London time — update lists
+    scheduler.add_job(_job_update_sanctions_lists, CronTrigger(day_of_week='mon', hour=6, minute=0),
+                      id='update_sanctions', replace_existing=True)
+    # Every Monday at 07:00 London time — re-screen all clients (after lists are fresh)
+    scheduler.add_job(_job_rescreening_clientes, CronTrigger(day_of_week='mon', hour=7, minute=0),
+                      id='rescreening_clientes', replace_existing=True)
+    scheduler.start()
+    print('⏰ Scheduler started — sanctions update: Mon 06:00, re-screening: Mon 07:00 (London)')
+    return scheduler
+
+
+# ============================================================
+#  FCA AUDIT — MLR 2017
+# ============================================================
+
+@app.route('/admin/fca-auditoria')
+def admin_fca_auditoria():
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return redirect('/login')
+    return render_template('admin_fca_auditoria.html', usuario=usuario)
+
+
+@app.route('/api/admin/fca/report', methods=['GET'])
+def api_fca_report():
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        tipo     = request.args.get('tipo', 'transactions')
+        data_de  = request.args.get('data_de', '')
+        data_ate = request.args.get('data_ate', '')
+        status_f = request.args.get('status', '')
+        result_f = request.args.get('resultado', '')
+
+        # Normalise date range
+        if data_ate:
+            data_ate_full = data_ate + 'T23:59:59'
+        else:
+            data_ate_full = ''
+
+        # ── 1. Transaction Register ──────────────────────────
+        if tipo in ('transactions', 'highvalue'):
+            q = supabase.table('ordens_captacao')\
+                .select('id,data,status,cliente_id,cliente_nome,cliente_doc,loja,'
+                        'forma_pagamento,moeda_entrada,valor_entrada,taxa_cobrada,'
+                        'moeda_saida,valor_saida,tipo_destino,pais_destino,'
+                        'beneficiario_nome,beneficiario_banco,beneficiario_conta,'
+                        'beneficiario_cpf,beneficiario_pix,benef_iban,benef_swift,'
+                        'kyc_level_na_ordem,aml_alertas,criado_por,observacoes')\
+                .order('data', desc=True)
+            if data_de:
+                q = q.gte('data', data_de)
+            if data_ate_full:
+                q = q.lte('data', data_ate_full)
+            if status_f:
+                q = q.eq('status', status_f)
+            r = q.limit(5000).execute()
+            rows_raw = r.data or []
+
+            if tipo == 'highvalue':
+                rows_raw = [o for o in rows_raw if float(o.get('valor_entrada') or 0) >= 1000]
+
+            cols = [
+                {'key':'data',              'label':'Date / Time'},
+                {'key':'id',                'label':'Reference'},
+                {'key':'cliente_nome',      'label':'Customer Name'},
+                {'key':'cliente_doc',       'label':'Document'},
+                {'key':'loja',              'label':'Branch'},
+                {'key':'forma_pagamento',   'label':'Payment Method'},
+                {'key':'moeda_entrada',     'label':'Currency In'},
+                {'key':'valor_entrada',     'label':'Amount In'},
+                {'key':'taxa_cobrada',      'label':'Rate'},
+                {'key':'moeda_saida',       'label':'Currency Out'},
+                {'key':'valor_saida',       'label':'Amount Out'},
+                {'key':'pais_destino',      'label':'Destination Country'},
+                {'key':'beneficiario_nome', 'label':'Beneficiary Name'},
+                {'key':'beneficiario_banco','label':'Beneficiary Bank'},
+                {'key':'beneficiario_conta','label':'Account / PIX'},
+                {'key':'benef_iban',        'label':'IBAN'},
+                {'key':'benef_swift',       'label':'SWIFT/BIC'},
+                {'key':'status',            'label':'Status'},
+                {'key':'kyc_level_na_ordem','label':'KYC Level'},
+                {'key':'aml_alertas',       'label':'AML Alerts'},
+                {'key':'criado_por',        'label':'Processed By'},
+            ]
+            return jsonify({'success': True, 'rows': rows_raw, 'cols': cols})
+
+        # ── 2. Customer Due Diligence ────────────────────────
+        if tipo == 'cdd':
+            q = supabase.table('clientes_varejo')\
+                .select('id,nome,documento,tipo_documento,data_nascimento,telefone,email,'
+                        'endereco,cidade,postcode,pais_residencia,nacionalidade,'
+                        'risk_score,pep_flag,sanctions_flag,kyc_level,'
+                        'doc_photo_id_ok,doc_address_ok,doc_source_funds_ok,'
+                        'doc_declaration_ok,doc_edd_ok,criado_por,created_at')\
+                .order('created_at', desc=True)
+            if data_de:
+                q = q.gte('created_at', data_de)
+            if data_ate_full:
+                q = q.lte('created_at', data_ate_full)
+            r = q.limit(5000).execute()
+            cols = [
+                {'key':'created_at',        'label':'Registration Date'},
+                {'key':'id',                'label':'Customer ID'},
+                {'key':'nome',              'label':'Full Name'},
+                {'key':'tipo_documento',    'label':'Doc Type'},
+                {'key':'documento',         'label':'Document Number'},
+                {'key':'data_nascimento',   'label':'Date of Birth'},
+                {'key':'nacionalidade',     'label':'Nationality'},
+                {'key':'pais_residencia',   'label':'Country of Residence'},
+                {'key':'endereco',          'label':'Address'},
+                {'key':'cidade',            'label':'City'},
+                {'key':'postcode',          'label':'Postcode'},
+                {'key':'risk_score',        'label':'Risk Score'},
+                {'key':'pep_flag',          'label':'PEP'},
+                {'key':'sanctions_flag',    'label':'Sanctions Flag'},
+                {'key':'kyc_level',         'label':'KYC Level'},
+                {'key':'doc_photo_id_ok',   'label':'Photo ID Verified'},
+                {'key':'doc_address_ok',    'label':'Address Verified'},
+                {'key':'doc_source_funds_ok','label':'Source of Funds'},
+                {'key':'doc_declaration_ok','label':'Declaration'},
+                {'key':'doc_edd_ok',        'label':'EDD'},
+                {'key':'criado_por',        'label':'Registered By'},
+            ]
+            return jsonify({'success': True, 'rows': r.data or [], 'cols': cols})
+
+        # ── 3. Sanctions Screening Log ───────────────────────
+        if tipo == 'screening':
+            q = supabase.table('screening_log')\
+                .select('created_at,nome_pesquisado,resultado,screened_by,cliente_id,matches')\
+                .order('created_at', desc=True)
+            if data_de:
+                q = q.gte('created_at', data_de)
+            if data_ate_full:
+                q = q.lte('created_at', data_ate_full)
+            if result_f:
+                q = q.eq('resultado', result_f)
+            r = q.limit(5000).execute()
+            rows_raw = r.data or []
+            # Flatten matches for CSV friendliness
+            for row in rows_raw:
+                matches = row.get('matches') or []
+                if matches:
+                    top = matches[0]
+                    row['top_match_name']    = top.get('name', '')
+                    row['top_match_source']  = top.get('source', '')
+                    row['top_match_program'] = top.get('program', '')
+                    row['score_pct']         = round(top.get('score', 0) * 100, 1)
+                else:
+                    row['top_match_name'] = row['top_match_source'] = row['top_match_program'] = ''
+                    row['score_pct'] = ''
+                del row['matches']
+            cols = [
+                {'key':'created_at',        'label':'Date / Time'},
+                {'key':'cliente_id',        'label':'Customer ID'},
+                {'key':'nome_pesquisado',   'label':'Name Screened'},
+                {'key':'resultado',         'label':'Result'},
+                {'key':'top_match_name',    'label':'Matched Entity'},
+                {'key':'top_match_source',  'label':'List Source'},
+                {'key':'top_match_program', 'label':'Programme'},
+                {'key':'score_pct',         'label':'Score %'},
+                {'key':'screened_by',       'label':'Screened By'},
+            ]
+            return jsonify({'success': True, 'rows': rows_raw, 'cols': cols})
+
+        # ── 4. PEP & Sanctions Flags ─────────────────────────
+        if tipo == 'pep':
+            q = supabase.table('clientes_varejo')\
+                .select('id,nome,documento,data_nascimento,nacionalidade,'
+                        'pais_residencia,pep_flag,pep_info,sanctions_flag,'
+                        'risk_score,created_at,criado_por')
+            # Filter only flagged clients
+            r_pep = supabase.table('clientes_varejo')\
+                .select('id,nome,documento,data_nascimento,nacionalidade,'
+                        'pais_residencia,pep_flag,pep_info,sanctions_flag,'
+                        'risk_score,created_at,criado_por')\
+                .eq('pep_flag', True).execute()
+            r_san = supabase.table('clientes_varejo')\
+                .select('id,nome,documento,data_nascimento,nacionalidade,'
+                        'pais_residencia,pep_flag,pep_info,sanctions_flag,'
+                        'risk_score,created_at,criado_por')\
+                .eq('sanctions_flag', True).execute()
+            seen = set()
+            rows_raw = []
+            for row in (r_pep.data or []) + (r_san.data or []):
+                if row['id'] not in seen:
+                    seen.add(row['id'])
+                    rows_raw.append(row)
+            cols = [
+                {'key':'created_at',     'label':'Registration Date'},
+                {'key':'id',             'label':'Customer ID'},
+                {'key':'nome',           'label':'Full Name'},
+                {'key':'documento',      'label':'Document'},
+                {'key':'data_nascimento','label':'Date of Birth'},
+                {'key':'nacionalidade',  'label':'Nationality'},
+                {'key':'pais_residencia','label':'Country'},
+                {'key':'pep_flag',       'label':'PEP'},
+                {'key':'pep_info',       'label':'PEP Details'},
+                {'key':'sanctions_flag', 'label':'Sanctions Flag'},
+                {'key':'risk_score',     'label':'Risk Score'},
+                {'key':'criado_por',     'label':'Registered By'},
+            ]
+            return jsonify({'success': True, 'rows': rows_raw, 'cols': cols})
+
+        return jsonify({'success': False, 'message': 'Unknown report type'}), 400
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+# ============================================================
+#  END FCA AUDIT
+# ============================================================
+
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
-    # Debug deve ser False em produção — controlado pelo .env
     debug = _IS_DEBUG
     if debug:
         print("⚠️  Modo DEBUG ativo — não use em produção!")
+    _start_scheduler()
     print(f"🚀 Cambio Bank API iniciando na porta {port} (debug={debug})")
     app.run(debug=debug, port=port)

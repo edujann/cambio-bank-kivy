@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AML Management — Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+        body{background:var(--cor-fundo);color:var(--cor-texto);min-height:100vh;}
+
+        .top-bar{position:sticky;top:0;z-index:200;height:54px;background:var(--cor-card);border-bottom:1px solid var(--cor-borda);display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:10px;}
+        .logo{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700;}
+        .logo i{color:var(--cor-perigo);}
+        .logo-text{background:linear-gradient(90deg,var(--cor-perigo),#e67e22);-webkit-background-clip:text;background-clip:text;color:transparent;}
+        .btn-back{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:5px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;}
+        .btn-back:hover{border-color:var(--cor-primaria);color:var(--cor-primaria);}
+
+        .page{max-width:1100px;margin:0 auto;padding:24px 20px;}
+
+        /* Section headers */
+        .sec-title{font-size:14px;font-weight:700;color:var(--cor-texto);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+        .sec-title i{color:var(--cor-perigo);}
+
+        /* Cards grid */
+        .grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:24px;}
+        .grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px;margin-bottom:24px;}
+
+        .card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:16px;}
+        .card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+        .card-hd h3{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;}
+
+        /* Source cards */
+        .source-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;background:rgba(224,27,36,.12);color:var(--cor-perigo);}
+        .source-count{font-size:28px;font-weight:700;color:var(--cor-texto);margin:6px 0 2px;}
+        .source-meta{font-size:11px;color:var(--cor-texto-secundario);}
+        .source-updated{font-size:11px;color:var(--cor-sucesso);margin-top:4px;}
+
+        /* Buttons */
+        .btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:.15s;}
+        .btn-primary{background:var(--cor-primaria);color:#fff;}
+        .btn-primary:hover{opacity:.88;}
+        .btn-danger{background:rgba(224,27,36,.15);color:var(--cor-perigo);border:1px solid var(--cor-perigo);}
+        .btn-danger:hover{background:rgba(224,27,36,.25);}
+        .btn-success{background:rgba(46,194,126,.15);color:var(--cor-sucesso);border:1px solid var(--cor-sucesso);}
+        .btn-success:hover{background:rgba(46,194,126,.25);}
+        .btn-ghost{background:transparent;color:var(--cor-texto-secundario);border:1px solid var(--cor-borda);}
+        .btn-ghost:hover{border-color:var(--cor-primaria);color:var(--cor-primaria);}
+        .btn-sm{padding:4px 10px;font-size:11px;}
+        .btn:disabled{opacity:.45;cursor:not-allowed;}
+
+        /* Form inputs */
+        .field{margin-bottom:12px;}
+        .field label{display:block;font-size:11px;color:var(--cor-texto-secundario);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+        .field input,.field select,.field textarea{width:100%;background:var(--cor-fundo);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:8px 10px;border-radius:6px;font-size:13px;}
+        .field input:focus,.field select:focus{outline:none;border-color:var(--cor-primaria);}
+        .field .hint{font-size:11px;color:var(--cor-texto-secundario);margin-top:4px;}
+
+        /* Table */
+        .tbl-wrap{overflow-x:auto;}
+        table{width:100%;border-collapse:collapse;font-size:13px;}
+        th{background:rgba(128,128,128,.05);color:var(--cor-texto-secundario);padding:8px 12px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;}
+        td{padding:8px 12px;border-top:1px solid var(--cor-borda);vertical-align:middle;}
+        tr:hover td{background:rgba(128,128,128,.03);}
+        .empty{padding:32px;text-align:center;color:var(--cor-texto-secundario);}
+        .empty i{font-size:28px;margin-bottom:8px;display:block;opacity:.5;}
+
+        /* Tags */
+        .tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;}
+        .tag-ok{background:rgba(46,194,126,.15);color:var(--cor-sucesso);}
+        .tag-err{background:rgba(224,27,36,.15);color:var(--cor-perigo);}
+        .tag-run{background:rgba(243,156,18,.15);color:var(--cor-alerta);}
+
+        /* Alert bar */
+        .alert-bar{background:rgba(243,156,18,.08);border:1px solid rgba(243,156,18,.3);border-radius:var(--borda-radius);padding:10px 14px;font-size:12px;color:var(--cor-alerta);margin-bottom:20px;display:flex;align-items:center;gap:8px;}
+
+        /* Progress overlay */
+        #overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+        #overlay.show{display:flex;}
+        #overlay .spin{font-size:36px;color:#fff;animation:spin 1s linear infinite;}
+        #overlay p{color:#fff;font-size:15px;font-weight:600;}
+        @keyframes spin{to{transform:rotate(360deg)}}
+
+        /* Toast */
+        #toastContainer{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:99999;pointer-events:none;}
+        .toast-item{padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;pointer-events:auto;animation:fadeIn .2s ease;}
+        .toast-ok{background:#1a3d2b;border:1px solid var(--cor-sucesso);color:var(--cor-sucesso);}
+        .toast-err{background:#3d1a1a;border:1px solid var(--cor-perigo);color:var(--cor-perigo);}
+        .toast-info{background:#1a2a3d;border:1px solid var(--cor-primaria);color:var(--cor-primaria);}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+        /* Schedule display */
+        .schedule-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--cor-borda);}
+        .schedule-row:last-child{border-bottom:none;}
+        .schedule-label{font-size:13px;font-weight:600;}
+        .schedule-val{font-size:13px;color:var(--cor-texto-secundario);}
+
+        /* Email chips */
+        .email-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+        .email-chip{background:rgba(26,95,180,.12);border:1px solid rgba(26,95,180,.3);color:var(--cor-primaria);padding:3px 10px;border-radius:12px;font-size:12px;display:flex;align-items:center;gap:6px;}
+        .email-chip button{background:none;border:none;cursor:pointer;color:var(--cor-perigo);padding:0;font-size:11px;line-height:1;}
+
+        @media(max-width:600px){.grid-3,.grid-2{grid-template-columns:1fr;}}
+    </style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="top-bar">
+    <div class="logo">
+        <i class="fas fa-shield-virus"></i>
+        <span class="logo-text">AML Management</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:12px;color:var(--cor-texto-secundario);">{{ usuario }}</span>
+        <button id="btnTheme" onclick="toggleTheme()" title="Alternar tema" style="background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:5px 10px;border-radius:6px;cursor:pointer;font-size:12px;"><i class="fas fa-sun"></i></button>
+        <a href="{{ '/compliance/dashboard' if is_compliance else '/admin/dashboard' }}" class="btn-back"><i class="fas fa-arrow-left"></i> Dashboard</a>
+    </div>
+</div>
+
+<!-- Loading overlay -->
+<div id="overlay">
+    <i class="fas fa-spinner spin"></i>
+    <p id="overlayMsg">Processing...</p>
+</div>
+
+<div id="toastContainer"></div>
+
+<div class="page">
+
+    <!-- SANCTIONS LISTS STATUS -->
+    <div class="sec-title"><i class="fas fa-list-ul"></i> Sanctions Lists Status</div>
+    <div class="grid-3" id="listasStatus">
+        <div class="card" style="text-align:center;color:var(--cor-texto-secundario);padding:32px;">
+            <i class="fas fa-spinner fa-spin" style="font-size:22px;"></i>
+        </div>
+    </div>
+
+    <!-- ACTIONS (admin only) -->
+    {% if not is_compliance %}
+    <div class="grid-2">
+        <!-- Update lists -->
+        <div class="card">
+            <div class="card-hd">
+                <h3><i class="fas fa-download" style="color:var(--cor-primaria);"></i> Update Sanctions Lists</h3>
+            </div>
+            <p style="font-size:12px;color:var(--cor-texto-secundario);margin-bottom:14px;">
+                Download and reload entries from OFAC, HMT/FCDO and UN. Previous data is replaced. Takes 30–60 seconds.
+            </p>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                <button class="btn btn-ghost btn-sm" onclick="updateLists('OFAC')"><i class="fas fa-flag-usa"></i> OFAC only</button>
+                <button class="btn btn-ghost btn-sm" onclick="updateLists('HMT')"><i class="fas fa-flag"></i> HMT/FCDO only</button>
+                <button class="btn btn-ghost btn-sm" onclick="updateLists('UN')"><i class="fas fa-globe"></i> UN only</button>
+                <button class="btn btn-primary btn-sm" onclick="updateLists('ALL')"><i class="fas fa-sync-alt"></i> Update All Lists</button>
+            </div>
+        </div>
+
+        <!-- Re-screening -->
+        <div class="card">
+            <div class="card-hd">
+                <h3><i class="fas fa-search" style="color:var(--cor-sucesso);"></i> Client Re-Screening</h3>
+            </div>
+            <p style="font-size:12px;color:var(--cor-texto-secundario);margin-bottom:14px;">
+                Run sanctions + PEP screening against all active clients. Hits update <code>sanctions_flag</code> and appear in Compliance Dashboard. Runs automatically every Monday 07:00 (London).
+            </p>
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-success btn-sm" onclick="runRescreening()"><i class="fas fa-play"></i> Run Now</button>
+            </div>
+            <div id="rescreenStatus" style="margin-top:10px;font-size:12px;color:var(--cor-texto-secundario);"></div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- SCHEDULE + CONFIG -->
+    <div class="grid-2">
+        <!-- Schedule -->
+        <div class="card">
+            <div class="card-hd">
+                <h3><i class="fas fa-clock" style="color:var(--cor-alerta);"></i> Automatic Schedule</h3>
+                <span style="font-size:11px;color:var(--cor-texto-secundario);">London time</span>
+            </div>
+            <div class="schedule-row">
+                <div>
+                    <div class="schedule-label"><i class="fas fa-download" style="font-size:11px;color:var(--cor-primaria);"></i> List Update</div>
+                    <div class="schedule-val">Every Monday at 06:00</div>
+                </div>
+                <span class="tag tag-ok">Active</span>
+            </div>
+            <div class="schedule-row">
+                <div>
+                    <div class="schedule-label"><i class="fas fa-search" style="font-size:11px;color:var(--cor-sucesso);"></i> Client Re-Screening</div>
+                    <div class="schedule-val">Every Monday at 07:00</div>
+                </div>
+                <span class="tag tag-ok">Active</span>
+            </div>
+            <div style="margin-top:12px;padding:10px;background:rgba(243,156,18,.07);border-radius:6px;font-size:11px;color:var(--cor-alerta);">
+                <i class="fas fa-info-circle"></i>
+                Re-screening runs 1 hour after list update to ensure fresh data is used.
+            </div>
+        </div>
+
+        <!-- Alert config -->
+        <div class="card">
+            <div class="card-hd">
+                <h3><i class="fas fa-bell" style="color:var(--cor-alerta);"></i> Alert Configuration</h3>
+            </div>
+            <div class="field">
+                <label>Compliance Emails</label>
+                <div class="email-list" id="emailList"></div>
+                {% if not is_compliance %}
+                <div style="display:flex;gap:6px;margin-top:8px;">
+                    <input type="email" id="newEmailInput" placeholder="Add email address..." style="flex:1;background:var(--cor-fundo);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:6px 10px;border-radius:6px;font-size:12px;">
+                    <button class="btn btn-ghost btn-sm" onclick="addEmail()"><i class="fas fa-plus"></i></button>
+                </div>
+                {% endif %}
+                <div class="hint">Alerts are sent to all these addresses on every hit.</div>
+            </div>
+            <div class="field">
+                <label>Fuzzy Match Threshold</label>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <input type="range" id="thresholdRange" min="60" max="99" value="82" style="flex:1;accent-color:var(--cor-primaria);" oninput="document.getElementById('thresholdVal').textContent=this.value+'%'" {% if is_compliance %}disabled{% endif %}>
+                    <span id="thresholdVal" style="font-size:14px;font-weight:700;color:var(--cor-primaria);min-width:40px;">82%</span>
+                </div>
+                <div class="hint">Minimum similarity score to flag as a match. Lower = more alerts (more false positives).</div>
+            </div>
+            {% if not is_compliance %}
+            <button class="btn btn-primary btn-sm" onclick="saveConfig()"><i class="fas fa-save"></i> Save Settings</button>
+            {% else %}
+            <div style="font-size:11px;color:var(--cor-texto-secundario);margin-top:8px;"><i class="fas fa-lock"></i> Modo leitura — apenas administradores podem alterar configurações</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- RECENT SCREENINGS -->
+    <div class="sec-title" style="margin-top:8px;"><i class="fas fa-history"></i> Recent Screenings</div>
+    <div class="card" style="margin-bottom:24px;">
+        <div class="card-hd">
+            <h3>Last 20 screenings</h3>
+            <button class="btn btn-ghost btn-sm" onclick="carregarStats()"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+        <div id="tabelaScreenings">
+            <div class="empty"><i class="fas fa-spinner fa-spin"></i></div>
+        </div>
+    </div>
+
+    <!-- MANUAL SCREEN -->
+    <div class="sec-title"><i class="fas fa-search"></i> Manual Screen</div>
+    <div class="card" style="margin-bottom:24px;">
+        <p style="font-size:12px;color:var(--cor-texto-secundario);margin-bottom:12px;">Check any name against all sanctions lists and PEP database instantly.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input type="text" id="manualNome" placeholder="Full name to screen..." style="flex:1;min-width:200px;background:var(--cor-fundo);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:8px 12px;border-radius:6px;font-size:13px;">
+            <button class="btn btn-primary" onclick="manualScreen()"><i class="fas fa-search"></i> Screen</button>
+        </div>
+        <div id="manualResult" style="margin-top:14px;"></div>
+    </div>
+
+</div><!-- /page -->
+
+<script src="/static/js/theme.js"></script>
+<script>
+// ── Config state ──────────────────────────────────────────
+let configEmails = [];
+let configThreshold = 82;
+
+function toast(msg, type='info') {
+    const c = document.getElementById('toastContainer');
+    const d = document.createElement('div');
+    d.className = `toast-item toast-${type}`;
+    d.textContent = msg;
+    c.appendChild(d);
+    setTimeout(() => d.remove(), 4000);
+}
+
+function overlay(show, msg='Processing...') {
+    document.getElementById('overlay').classList.toggle('show', show);
+    document.getElementById('overlayMsg').textContent = msg;
+}
+
+// ── Load page ─────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+    carregarStats();
+    carregarConfig();
+});
+
+async function carregarStats() {
+    try {
+        const d = await fetch('/api/admin/sanctions/stats').then(r => r.json());
+        if (!d.success) return;
+
+        // Lists status cards
+        const totals = d.totals_by_source || {};
+        const lastUpdated = d.last_updated || {};
+        const sources = [
+            { key:'OFAC', label:'OFAC (US)', flag:'fas fa-flag-usa', color:'#e01b24' },
+            { key:'HMT',  label:'HMT/FCDO (UK)', flag:'fas fa-flag', color:'#1a5fb4' },
+            { key:'UN',   label:'UN',  flag:'fas fa-globe', color:'#f39c12' },
+        ];
+        document.getElementById('listasStatus').innerHTML = sources.map(s => `
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+                    <span class="source-badge">${s.key}</span>
+                    <i class="${s.flag}" style="color:${s.color};font-size:18px;opacity:.7;"></i>
+                </div>
+                <div class="source-count">${(totals[s.key]||0).toLocaleString()}</div>
+                <div class="source-meta">${s.label}</div>
+                <div class="source-updated" id="upd-${s.key}">
+                    ${lastUpdated[s.key] ? '✓ Updated '+lastUpdated[s.key] : '<span style="color:var(--cor-alerta)">Not loaded yet</span>'}
+                </div>
+            </div>
+        `).join('');
+
+        // Recent screenings table
+        const rows = d.recent_screenings || [];
+        if (!rows.length) {
+            document.getElementById('tabelaScreenings').innerHTML = '<div class="empty"><i class="fas fa-search"></i><br>No screenings yet</div>';
+            return;
+        }
+        let html = '<div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Result</th><th>Screened By</th><th>Date</th></tr></thead><tbody>';
+        for (const r of rows) {
+            const isHit = r.resultado === 'hit';
+            html += `<tr>
+                <td><strong>${r.nome_pesquisado}</strong></td>
+                <td><span class="tag ${isHit ? 'tag-err' : 'tag-ok'}">${isHit ? '⚠ HIT' : '✓ Clear'}</span></td>
+                <td style="color:var(--cor-texto-secundario);font-size:12px;">${r.screened_by||'—'}</td>
+                <td style="color:var(--cor-texto-secundario);font-size:12px;">${new Date(r.created_at).toLocaleString('en-GB')}</td>
+            </tr>`;
+        }
+        html += '</tbody></table></div>';
+        document.getElementById('tabelaScreenings').innerHTML = html;
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+async function carregarConfig() {
+    try {
+        const d = await fetch('/api/admin/aml/config').then(r => r.json());
+        if (!d.success) return;
+        configEmails = d.compliance_emails || [];
+        configThreshold = d.threshold || 82;
+        document.getElementById('thresholdRange').value = configThreshold;
+        document.getElementById('thresholdVal').textContent = configThreshold + '%';
+        renderEmailChips();
+    } catch(e) {}
+}
+
+// ── Email chips ───────────────────────────────────────────
+function renderEmailChips() {
+    document.getElementById('emailList').innerHTML = configEmails.map((e,i) => `
+        <div class="email-chip">
+            <i class="fas fa-envelope" style="font-size:10px;"></i>${e}
+            <button onclick="removeEmail(${i})" title="Remove"><i class="fas fa-times"></i></button>
+        </div>
+    `).join('') || '<span style="font-size:12px;color:var(--cor-texto-secundario);">No emails configured</span>';
+}
+
+function addEmail() {
+    const inp = document.getElementById('newEmailInput');
+    const val = inp.value.trim().toLowerCase();
+    if (!val || !val.includes('@')) { toast('Invalid email', 'err'); return; }
+    if (configEmails.includes(val)) { toast('Already added', 'err'); return; }
+    configEmails.push(val);
+    inp.value = '';
+    renderEmailChips();
+}
+
+function removeEmail(idx) {
+    configEmails.splice(idx, 1);
+    renderEmailChips();
+}
+
+async function saveConfig() {
+    const threshold = parseInt(document.getElementById('thresholdRange').value);
+    try {
+        const d = await fetch('/api/admin/aml/config', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ compliance_emails: configEmails, threshold })
+        }).then(r => r.json());
+        if (d.success) toast('Settings saved', 'ok');
+        else toast(d.message || 'Error saving', 'err');
+    } catch(e) { toast('Error', 'err'); }
+}
+
+// ── Update lists ──────────────────────────────────────────
+async function updateLists(source) {
+    overlay(true, `Downloading ${source} list(s)... please wait`);
+    try {
+        const d = await fetch('/api/admin/sanctions/update', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({source})
+        }).then(r => r.json());
+        overlay(false);
+        if (d.success) {
+            const loaded = Object.entries(d.loaded||{}).map(([k,v])=>`${k}: ${v.toLocaleString()}`).join(', ');
+            const errors = Object.entries(d.errors||{}).map(([k,v])=>`${k}: ${v}`).join(', ');
+            if (loaded) toast(`✓ Loaded — ${loaded}`, 'ok');
+            if (errors) toast(`⚠ Errors — ${errors}`, 'err');
+            carregarStats();
+        } else {
+            toast(d.message || 'Error', 'err');
+        }
+    } catch(e) { overlay(false); toast('Request failed', 'err'); }
+}
+
+// ── Re-screening ──────────────────────────────────────────
+async function runRescreening() {
+    if (!confirm('Run re-screening for ALL active clients now? This may take several minutes.')) return;
+    overlay(true, 'Running client re-screening... this may take a few minutes');
+    const el = document.getElementById('rescreenStatus');
+    try {
+        const d = await fetch('/api/admin/aml/rescreen', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'}
+        }).then(r => r.json());
+        overlay(false);
+        if (d.success) {
+            el.innerHTML = `<span style="color:var(--cor-sucesso);">✓ Done — ${d.total} clients checked, ${d.hits} hits found</span>`;
+            toast(`Re-screening complete: ${d.hits} hits found`, 'ok');
+            carregarStats();
+        } else {
+            el.innerHTML = `<span style="color:var(--cor-perigo);">${d.message}</span>`;
+            toast(d.message || 'Error', 'err');
+        }
+    } catch(e) { overlay(false); toast('Request failed', 'err'); }
+}
+
+// ── Manual screen ─────────────────────────────────────────
+async function manualScreen() {
+    const nome = document.getElementById('manualNome').value.trim();
+    if (!nome) { toast('Enter a name', 'err'); return; }
+    const el = document.getElementById('manualResult');
+    el.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Screening...';
+    try {
+        const d = await fetch('/api/admin/sanctions/screen', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({nome})
+        }).then(r => r.json());
+        if (!d.success) { el.innerHTML = `<span style="color:var(--cor-perigo);">${d.message}</span>`; return; }
+
+        if (!d.hit) {
+            el.innerHTML = `<div style="background:rgba(46,194,126,.08);border:1px solid var(--cor-sucesso);border-radius:8px;padding:12px 16px;color:var(--cor-sucesso);font-weight:600;">
+                <i class="fas fa-check-circle"></i> No matches found — Clear
+            </div>`;
+            return;
+        }
+        let html = `<div style="background:rgba(224,27,36,.07);border:1px solid var(--cor-perigo);border-radius:8px;padding:12px 16px;margin-bottom:10px;color:var(--cor-perigo);font-weight:600;">
+            <i class="fas fa-exclamation-triangle"></i> HIT — ${d.matches.length} match(es) found (top score: ${Math.round(d.score*100)}%)
+        </div>
+        <div class="tbl-wrap"><table>
+            <thead><tr><th>Source</th><th>Name on List</th><th>Country</th><th>Programme</th><th>Score</th></tr></thead><tbody>`;
+        for (const m of d.matches) {
+            const sc = Math.round(m.score*100);
+            html += `<tr>
+                <td><span class="tag" style="background:rgba(224,27,36,.12);color:var(--cor-perigo);">${m.source}</span></td>
+                <td><strong>${m.name||'—'}</strong></td>
+                <td style="font-size:12px;">${m.country||'—'}</td>
+                <td style="font-size:12px;color:var(--cor-texto-secundario);">${m.program||'—'}</td>
+                <td><strong style="color:${sc>=90?'var(--cor-perigo)':'var(--cor-alerta)'};">${sc}%</strong></td>
+            </tr>`;
+        }
+        html += '</tbody></table></div>';
+        el.innerHTML = html;
+    } catch(e) { el.innerHTML = '<span style="color:var(--cor-perigo);">Request failed</span>'; }
+}
+
+// Enter key on manual screen
+document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.activeElement.id === 'manualNome') manualScreen();
+});
+</script>
+</body>
+</html>
