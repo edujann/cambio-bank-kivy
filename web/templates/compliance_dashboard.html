@@ -2333,9 +2333,15 @@ function renderDetalheClienteCompliance(c) {
         </div>`;
 
     /* ── TAB: DADOS ── */
-    const fld = (id, lbl, val, type='text') =>
-        `<div class="form-group"><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">${lbl}</label>
-         <input id="gc-${id}" type="${type}" value="${(val||'').toString().replace(/"/g,'&quot;')}" style="width:100%;padding:6px 9px;border:1px solid var(--cor-borda);border-radius:5px;background:var(--cor-card);color:var(--cor-texto);font-size:13px;"></div>`;
+    const fld = (id, lbl, val, type='text') => {
+        let displayVal = (val || '').toString().replace(/"/g, '&quot;');
+        // Se for campo de data, extrair apenas a parte da data (antes do T)
+        if (type === 'date' && displayVal && displayVal.includes('T')) {
+            displayVal = displayVal.split('T')[0];
+        }
+        return `<div class="form-group"><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">${lbl}</label>
+         <input id="gc-${id}" type="${type}" value="${displayVal}" style="width:100%;padding:6px 9px;border:1px solid var(--cor-borda);border-radius:5px;background:var(--cor-card);color:var(--cor-texto);font-size:13px;"></div>`;
+    };
     const sel = (id, lbl, val, opts) =>
         `<div class="form-group"><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">${lbl}</label>
          <select id="gc-${id}" style="width:100%;padding:6px 9px;border:1px solid var(--cor-borda);border-radius:5px;background:var(--cor-card);color:var(--cor-texto);font-size:13px;">${opts.map(o=>`<option value="${o.v}"${o.v==val?' selected':''}>${o.l}</option>`).join('')}</select></div>`;
@@ -2388,7 +2394,7 @@ function renderDetalheClienteCompliance(c) {
                 ${fld('proof_address_tipo_outro','Especificar tipo',c.proof_address_tipo_outro)}
             </div>
             ${fld('proof_address_numero','Número / Referência',c.proof_address_numero)}
-            ${fld('doc_address_atualizado_em','Data de Emissão',c.doc_address_atualizado_em,'date')}
+            ${fld('doc_address_atualizado_em','Data de Emissão',c.doc_address_atualizado_em ? c.doc_address_atualizado_em.split('T')[0] : '','date')}
         </div>
         <p class="section-title" style="margin-top:14px;"><i class="fas fa-shield-alt"></i> AML / Compliance</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -2396,13 +2402,17 @@ function renderDetalheClienteCompliance(c) {
             ${sel('risk_score','Risk Score',c.risk_score||'medium',[{v:'low',l:'Baixo'},{v:'medium',l:'Médio'},{v:'high',l:'Alto'}])}
             <div class="form-group" style="grid-column:span 2"><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Info PEP</label>
             <input id="gc-pep_info" value="${(c.pep_info||'').replace(/"/g,'&quot;')}" style="width:100%;padding:6px 9px;border:1px solid var(--cor-borda);border-radius:5px;background:var(--cor-card);color:var(--cor-texto);font-size:13px;"></div>
+            <div class="form-group" style="grid-column:span 2">
+                <label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Data de Fim do Cargo (PEP)</label>
+                <input id="gc-pep_end_date" type="date" value="${c.pep_end_date ? c.pep_end_date.split('T')[0] : ''}" style="width:100%;padding:6px 9px;border:1px solid var(--cor-borda);border-radius:5px;background:var(--cor-card);color:var(--cor-texto);font-size:13px;">
+                <small style="font-size:10px; color:var(--cor-texto-secundario);">Preencha se o cliente SAIR do cargo. Deixe em branco para cálculo automático (12 meses após cadastro como PEP).</small>
+            </div>
             <div class="form-group" style="grid-column:span 2"><label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:3px;">Observações</label>
             <textarea id="gc-observacoes" rows="2" style="width:100%;padding:6px 9px;border:1px solid var(--cor-borda);border-radius:5px;background:var(--cor-card);color:var(--cor-texto);font-size:13px;resize:vertical;">${c.observacoes||''}</textarea></div>
         </div>
         <div style="margin-top:14px;display:flex;gap:8px;">
             <button class="btn-success" onclick="salvarClienteCompliance('${c.id}')"><i class="fas fa-save"></i> Salvar Alterações</button>
         </div>`;
-
     /* ── TAB: DOCUMENTOS ── */
     const DOC_TIPOS = [
         {key:'photo_id',     label:'Photo ID',        ok: c.doc_photo_id_ok},
@@ -2645,6 +2655,7 @@ async function salvarClienteCompliance(clienteId) {
         pep_info:                get('pep_info'),
         risk_score:              get('risk_score'),
         observacoes:             get('observacoes'),
+        pep_end_date:            document.getElementById('gc-pep_end_date')?.value || null,
     };
     try {
         const r = await fetch(`/api/clientes/${clienteId}`, {

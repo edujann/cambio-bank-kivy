@@ -131,18 +131,39 @@ def verificar_documentos_validos(cliente_id):
         
         # 2. Verificar Comprovante de Endereço
         if cliente.get('doc_address_ok'):
+            from datetime import timedelta
+            data_limite_3_meses = hoje - timedelta(days=90)
+            documento_expirado = False
+            data_validade_str = None
+            
+            # Verificar data de validade (se existir)
             data_validade = cliente.get('doc_address_validade')
             if data_validade:
                 if isinstance(data_validade, str):
                     data_validade = datetime.strptime(data_validade, '%Y-%m-%d').date()
+                data_validade_str = data_validade.strftime('%d/%m/%Y')
                 
                 if data_validade < hoje:
-                    documentos_expirados.append({
-                        'tipo': 'proof_address',
-                        'nome': 'Comprovante de Endereço',
-                        'validade': data_validade.strftime('%d/%m/%Y'),
-                        'status': 'expirado'
-                    })
+                    documento_expirado = True
+            
+            # 🔥 Verificar data do último upload (máximo 3 meses)
+            if not documento_expirado:
+                data_atualizacao = cliente.get('doc_address_atualizado_em')
+                if data_atualizacao:
+                    if isinstance(data_atualizacao, str):
+                        data_atualizacao = datetime.strptime(data_atualizacao[:10], '%Y-%m-%d').date()
+                    
+                    if data_atualizacao < data_limite_3_meses:
+                        documento_expirado = True
+                        data_validade_str = data_atualizacao.strftime('%d/%m/%Y')
+            
+            if documento_expirado:
+                documentos_expirados.append({
+                    'tipo': 'proof_address',
+                    'nome': 'Comprovante de Endereço',
+                    'validade': data_validade_str if data_validade_str else 'N/A',
+                    'status': 'expirado'
+                })
         else:
             documentos_expirados.append({
                 'tipo': 'proof_address',
@@ -8883,11 +8904,14 @@ def api_admin_recusar_transferencia():
         from datetime import datetime
         data_recusa = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
+        motivo_cliente = "Não foi possível processar sua solicitação. Entre em contato com o suporte."
+
         update_data = {
             'status': 'rejected',
             'executado_por': usuario,
             'data_recusa': data_recusa,
-            'motivo_recusa': motivo
+            'motivo_recusa': motivo_cliente,  # ← Mensagem genérica para o cliente
+            'motivo_interno': motivo          # ← Salvar motivo real para auditoria (opcional)
         }
         
         update_response = supabase.table('transferencias')\
@@ -9412,8 +9436,12 @@ def api_admin_invoice_recusar():
         # Atualizar status da invoice
         from datetime import datetime
         invoice_info['status'] = 'rejected'
-        invoice_info['motivo_recusa'] = motivo
+        invoice_info['motivo_recusa'] = "O documento enviado não atende aos requisitos. Envie um novo documento seguindo as instruções."
+        invoice_info['motivo_interno'] = motivo  # ← Motivo real para auditoria
         invoice_info['data_recusa'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # 🔒 Log do motivo real para auditoria
+        print(f"🔒 [AUDIT] Invoice da transferência {transferencia_id} recusada. Motivo interno: {motivo}")
         
         # Opcional: deletar arquivo do storage
         caminho_arquivo = invoice_info.get('caminho_arquivo')
@@ -9432,7 +9460,7 @@ def api_admin_invoice_recusar():
             .execute()
         
         if update_response.data:
-            print(f"✅ Invoice da transferência {transferencia_id} recusada por {usuario}. Motivo: {motivo}")
+            print(f"✅ Invoice da transferência {transferencia_id} recusada por {usuario}")
             return jsonify({
                 "success": True,
                 "message": "Invoice recusada com sucesso!"
@@ -12755,9 +12783,9 @@ def clientes_criar():
             except Exception:
                 pass
         if resultado_sn == 'hit':
-            sn_warning = ' ALERTA: match confirmado em lista de sanções — revisar no compliance antes de processar ordens.'
+            sn_warning = ' Cadastro realizado. Aguarde análise do compliance.'
         elif resultado_sn == 'possible':
-            sn_warning = ' ATENÇÃO: possível match em lista de sanções — revisão recomendada.'
+            sn_warning = ' Cadastro realizado. Aguarde análise do compliance.'
         else:
             sn_warning = ''
         return jsonify({'success': True, 'cliente': r.data[0] if r.data else {}, 'message': f'Cliente cadastrado com sucesso.{sn_warning}', 'sanctions': sn})
@@ -12776,6 +12804,19 @@ def clientes_detalhe(cliente_id):
         if not r.data:
             return jsonify({'success': False, 'message': 'Cliente não encontrado'}), 404
         c = r.data
+        
+        # 🔥 FORMATAR DATAS - remover timestamp (manter apenas YYYY-MM-DD)
+        if c.get('doc_address_atualizado_em'):
+            c['doc_address_atualizado_em'] = c['doc_address_atualizado_em'][:10] if 'T' in c['doc_address_atualizado_em'] else c['doc_address_atualizado_em']
+        if c.get('doc_photo_id_validade'):
+            c['doc_photo_id_validade'] = c['doc_photo_id_validade'][:10] if 'T' in c['doc_photo_id_validade'] else c['doc_photo_id_validade']
+        if c.get('pep_end_date'):
+            c['pep_end_date'] = c['pep_end_date'][:10] if 'T' in c['pep_end_date'] else c['pep_end_date']
+        if c.get('doc_declaration_validade'):
+            c['doc_declaration_validade'] = c['doc_declaration_validade'][:10] if 'T' in c['doc_declaration_validade'] else c['doc_declaration_validade']
+        if c.get('doc_edd_validade'):
+            c['doc_edd_validade'] = c['doc_edd_validade'][:10] if 'T' in c['doc_edd_validade'] else c['doc_edd_validade']
+        
         c['total_90d_calc'] = _aml_calc_90d(cliente_id)
         aml = _aml_check_order(cliente_id, 0)
         c['aml'] = aml
@@ -12801,7 +12842,7 @@ def clientes_atualizar(cliente_id):
         allowed = ['nome','documento','tipo_documento','data_nascimento','telefone','email',
                    'profissao','endereco','cidade','postcode','pais_residencia','nacionalidade',
                    'benef_nome','benef_banco','benef_conta','benef_pix','benef_iban','benef_swift',
-                   'observacoes','pep_flag','pep_info','risk_score',
+                   'observacoes','pep_flag','pep_info','pep_end_date','risk_score',
                    'doc_photo_id_validade','doc_address_atualizado_em',
                    'proof_address_tipo','proof_address_tipo_outro','proof_address_numero']
         payload = {k: d[k] for k in allowed if k in d}
@@ -12819,9 +12860,9 @@ def clientes_atualizar(cliente_id):
         payload['updated_at'] = datetime.now().isoformat()
         r = supabase.table('clientes_varejo').update(payload).eq('id', cliente_id).execute()
         if sn_resultado == 'hit':
-            sn_warning = ' ALERTA: match confirmado em lista de sanções — revisar no compliance antes de processar ordens.'
+            sn_warning = ' Cadastro atualizado. Aguarde análise do compliance.'
         elif sn_resultado == 'possible':
-            sn_warning = ' ATENÇÃO: possível match em lista de sanções — revisão recomendada.'
+            sn_warning = ' Cadastro atualizado. Aguarde análise do compliance.'
         else:
             sn_warning = ''
         return jsonify({'success': True, 'message': f'Cliente atualizado.{sn_warning}', 'cliente': r.data[0] if r.data else {}})
@@ -13695,12 +13736,21 @@ def compliance_rejeitar(ordem_id):
         motivo = (d.get('motivo') or '').strip()
         if not motivo:
             return jsonify({'success': False, 'message': 'Informe o motivo da rejeição.'}), 400
+        
+        # 🔥 Mensagem genérica para o cliente (se for exposta)
+        motivo_cliente = "Sua solicitação não pôde ser processada. Entre em contato com o suporte."
+        
         supabase.table('ordens_captacao').update({
             'compliance_status': 'rejeitado',
             'status': 'cancelada',
             'compliance_aprovado_por': usuario,
-            'compliance_obs': motivo,
+            'compliance_obs': motivo_cliente,  # ← Mensagem genérica para APIs do cliente
+            'compliance_motivo_interno': motivo  # ← Motivo real para auditoria (precisa criar coluna)
         }).eq('id', ordem_id).execute()
+        
+        # 🔒 Log do motivo real para auditoria
+        print(f"🔒 [AUDIT] Ordem {ordem_id} rejeitada por {usuario}. Motivo interno: {motivo}")
+        
         return jsonify({'success': True, 'message': 'Ordem rejeitada.'})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
@@ -19726,6 +19776,45 @@ def api_fca_report():
 # ============================================================
 #  END FCA AUDIT
 # ============================================================
+
+def is_pep_active(cliente_id):
+    """
+    Verifica se o cliente ainda deve ser tratado como PEP
+    Retorna True se ainda é PEP, False se já expirou
+    """
+    try:
+        response = supabase.table('clientes_varejo')\
+            .select('pep_flag, pep_end_date, created_at, updated_at')\
+            .eq('id', cliente_id)\
+            .single()\
+            .execute()
+        
+        if not response.data or not response.data.get('pep_flag'):
+            return False
+        
+        from datetime import date, timedelta
+        
+        # 1. Se tem data de fim manual, usa ela
+        pep_end_date = response.data.get('pep_end_date')
+        if pep_end_date:
+            if isinstance(pep_end_date, str):
+                pep_end_date = date.fromisoformat(pep_end_date)
+            return date.today() <= pep_end_date
+        
+        # 2. Cálculo automático: 12 meses após a data que foi marcado como PEP
+        data_referencia = response.data.get('updated_at') or response.data.get('created_at')
+        
+        if data_referencia:
+            if isinstance(data_referencia, str):
+                data_referencia = date.fromisoformat(data_referencia[:10])
+            data_limite = data_referencia + timedelta(days=365)
+            return date.today() <= data_limite
+        
+        return True  # Fallback: considera PEP ativo
+        
+    except Exception as e:
+        print(f"⚠️ Erro ao verificar PEP: {e}")
+        return True
 
 
 if __name__ == '__main__':
