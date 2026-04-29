@@ -13010,6 +13010,14 @@ def clientes_upload_kyc_file(cliente_id):
         }).execute()
         doc_id = r_doc.data[0]['id'] if r_doc.data else None
 
+        # 🔥 Atualizar a data do último upload do comprovante de endereço
+        if tipo_doc == 'proof_address':
+            from datetime import datetime
+            supabase.table('clientes_varejo').update({
+                'doc_address_atualizado_em': datetime.now().strftime('%Y-%m-%d')
+            }).eq('id', cliente_id).execute()
+            print(f"✅ Data de atualização do comprovante salva: {datetime.now().strftime('%Y-%m-%d')}")
+
         # Se o cliente já tinha este doc validado, resetar para pendente (renovação)
         CLIENT_FIELD_RESET = {
             'photo_id':      'doc_photo_id_ok',
