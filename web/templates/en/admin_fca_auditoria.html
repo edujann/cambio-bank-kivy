@@ -91,7 +91,7 @@
         .print-header p{font-size:12px;color:#666;margin-top:4px;}
 
         @media(max-width:600px){.filters-grid{grid-template-columns:1fr 1fr;}}
-
+        
         /* Language selector */
         .lang-switch {
             display: flex;
@@ -123,7 +123,6 @@
             background: rgba(128, 128, 128, 0.1);
             color: var(--cor-texto);
         }
-
     </style>
 </head>
 <body>
@@ -131,7 +130,7 @@
 <div class="top-bar">
     <div class="logo">
         <i class="fas fa-file-contract"></i>
-        <span class="logo-text">Auditoria FCA — MLR 2017</span>
+        <span class="logo-text">FCA Audit — MLR 2017</span>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
         <span style="font-size:12px;color:var(--cor-texto-secundario);">{{ usuario }}</span>
@@ -140,7 +139,7 @@
             <a href="/language/pt" class="lang-btn {% if current_lang == 'pt' %}active{% endif %}">PT</a>
             <a href="/language/en" class="lang-btn {% if current_lang == 'en' %}active{% endif %}">EN</a>
         </div>
-        <button id="btnTheme" onclick="toggleTheme()" title="Alternar tema" class="btn-theme"><i class="fas fa-sun"></i></button>
+        <button id="btnTheme" onclick="toggleTheme()" title="Toggle theme" class="btn-theme"><i class="fas fa-sun"></i></button>
         <a href="/admin/dashboard" class="btn-back"><i class="fas fa-arrow-left"></i> Dashboard</a>
     </div>
 </div>
@@ -353,14 +352,50 @@ async function gerarRelatorio() {
 function formatCell(key, val) {
     if (val === null || val === undefined || val === '') return '<span style="color:var(--cor-texto-secundario);">—</span>';
 
+    // Payment Method
+    if (key === 'forma_pagamento' || key === 'payment_method') {
+        const map = {
+            'debito': 'Debit',
+            'credito': 'Credit',
+            'cash': 'Cash',
+            'transferencia': 'Transfer',
+            'pix': 'PIX',
+            'boleto': 'Boleto'
+        };
+        return map[val] || val || '—';
+    }
+
     // Booleans
     if (key === 'pep_flag' || key === 'sanctions_flag')
         return val ? '<span class="tag tag-err">YES</span>' : '<span class="tag tag-ok">NO</span>';
 
     // Status
     if (key === 'status') {
-        const map = {paga:'tag-ok',liberada:'tag-info',despachada:'tag-purple',compliance_review:'tag-warn',cancelada:'tag-err',on_hold:'tag-warn'};
-        return `<span class="tag ${map[val]||'tag-info'}">${val}</span>`;
+        const statusLabels = {
+            'rascunho': 'Draft',
+            'aguardando_pagamento': 'Awaiting Payment',
+            'paga': 'Paid',
+            'compliance_review': 'Compliance Review',
+            'on_hold': 'On Hold',
+            'liberada': 'Released',
+            'despachada': 'Dispatched',
+            'cancelada': 'Cancelled',
+            'rejeitada': 'Rejected'
+        };
+        const statusClasses = {
+            'paga': 'tag-ok',
+            'liberada': 'tag-info',
+            'despachada': 'tag-purple',
+            'compliance_review': 'tag-warn',
+            'cancelada': 'tag-err',
+            'on_hold': 'tag-warn',
+            'rascunho': 'tag-warn',
+            'aguardando_pagamento': 'tag-warn',
+            'rejeitada': 'tag-err'
+        };
+        const label = statusLabels[val] || val;
+        const cls = statusClasses[val] || 'tag-info';
+        return `<span class="tag ${cls}">${label}</span>`;
     }
 
     // Screening result

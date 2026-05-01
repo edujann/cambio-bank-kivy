@@ -214,6 +214,126 @@ def verificar_documentos_validos(cliente_id):
         print(f"❌ Erro ao verificar documentos: {e}")
         return False, f"Erro na verificação: {str(e)}", []
 
+# ============================================
+# FUNÇÕES DE CONGELAMENTO DE CLIENTE (B2B)
+# ============================================
+
+def is_cliente_congelado(cliente_username):
+    """Verifica se o cliente B2B está com ativos congelados"""
+    try:
+        response = supabase.table('usuarios')\
+            .select('ativos_congelados')\
+            .eq('username', cliente_username)\
+            .single()\
+            .execute()
+        
+        return response.data.get('ativos_congelados', False) if response.data else False
+    except Exception as e:
+        print(f"⚠️ Erro ao verificar congelamento do cliente {cliente_username}: {e}")
+        return False
+
+def congelar_cliente(cliente_username, motivo, usuario):
+    """Congela TODAS as contas de um cliente B2B"""
+    from datetime import datetime
+    
+    # 1. Marcar o cliente (usuário) como congelado
+    supabase.table('usuarios').update({
+        'ativos_congelados': True,
+        'motivo_congelamento_cliente': motivo,
+        'data_congelamento_cliente': datetime.now().isoformat()
+    }).eq('username', cliente_username).execute()
+    
+    # 2. Congelar todas as contas do cliente
+    response = supabase.table('contas')\
+        .select('id')\
+        .eq('cliente_username', cliente_username)\
+        .eq('ativa', True)\
+        .execute()
+    
+    contas_congeladas = 0
+    for conta in (response.data or []):
+        supabase.table('contas').update({
+            'ativos_congelados': True,
+            'motivo_congelamento': motivo,
+            'data_congelamento': datetime.now().isoformat()
+        }).eq('id', conta['id']).execute()
+        contas_congeladas += 1
+    
+    print(f"🔒 Cliente {cliente_username} e suas {contas_congeladas} contas congeladas por {usuario}")
+    return True
+
+def descongelar_cliente(cliente_username, usuario):
+    """Descongela TODAS as contas de um cliente B2B"""
+    from datetime import datetime
+    
+    # 1. Desmarcar o cliente
+    supabase.table('usuarios').update({
+        'ativos_congelados': False,
+        'motivo_congelamento_cliente': None,
+        'data_congelamento_cliente': None
+    }).eq('username', cliente_username).execute()
+    
+    # 2. Descongelar todas as contas
+    response = supabase.table('contas')\
+        .select('id')\
+        .eq('cliente_username', cliente_username)\
+        .execute()
+    
+    contas_descongeladas = 0
+    for conta in (response.data or []):
+        supabase.table('contas').update({
+            'ativos_congelados': False,
+            'motivo_congelamento': None,
+            'data_congelamento': None
+        }).eq('id', conta['id']).execute()
+        contas_descongeladas += 1
+    
+    print(f"🔓 Cliente {cliente_username} e suas {contas_descongeladas} contas descongeladas por {usuario}")
+    return True
+
+def is_conta_congelada(conta_id):
+    """Verifica se os ativos da conta estão congelados"""
+    try:
+        response = supabase.table('contas')\
+            .select('ativos_congelados')\
+            .eq('id', conta_id)\
+            .single()\
+            .execute()
+        
+        if response.data:
+            return response.data.get('ativos_congelados', False)
+        return False
+    except Exception as e:
+        print(f"⚠️ Erro ao verificar congelamento da conta {conta_id}: {e}")
+        return False
+
+def congelar_conta(conta_id, motivo, usuario):
+    """Congela uma conta (bloqueia transferências)"""
+    from datetime import datetime
+    
+    response = supabase.table('contas').update({
+        'ativos_congelados': True,
+        'motivo_congelamento': motivo,
+        'data_congelamento': datetime.now().isoformat()
+    }).eq('id', conta_id).execute()
+    
+    if response.data:
+        print(f"🔒 Conta {conta_id} congelada por {usuario}")
+        return True
+    return False
+
+def descongelar_conta(conta_id, usuario):
+    """Descongela uma conta"""
+    response = supabase.table('contas').update({
+        'ativos_congelados': False,
+        'motivo_congelamento': None,
+        'data_congelamento': None
+    }).eq('id', conta_id).execute()
+    
+    if response.data:
+        print(f"🔓 Conta {conta_id} descongelada por {usuario}")
+        return True
+    return False
 
 # Cria app Flask
 app = Flask(__name__)
@@ -237,6 +357,91 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(mess
 _sec_log = logging.getLogger('security')
 
 _IS_DEBUG = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+
+# ============================================
+# SUPORTE A IDIOMAS (PT/EN) - VERSÃO SIMPLIFICADA
+# ============================================
+
+# Idiomas suportados
+SUPPORTED_LANGUAGES = ['pt', 'en']
+DEFAULT_LANGUAGE = 'pt'
+
+def get_language():
+    """Retorna o idioma atual da sessão"""
+    lang = session.get('language', DEFAULT_LANGUAGE)
+    return lang if lang in SUPPORTED_LANGUAGES else DEFAULT_LANGUAGE
+
+def render_with_lang(template_name, **kwargs):
+    """
+    Renderiza um template no idioma correto.
+    Se existir versão em inglês na pasta en/, usa ela.
+    Caso contrário, usa o template original (português).
+    """
+    from flask import render_template, current_app
+    import os
+    
+    lang = get_language()
+    
+    # Adiciona variáveis de idioma aos kwargs
+    kwargs['current_lang'] = lang
+    kwargs['is_pt'] = (lang == 'pt')
+    kwargs['is_en'] = (lang == 'en')
+    
+    # Se for português, usa o template original (sem mudar nada)
+    if lang == 'pt':
+        return render_template(template_name, **kwargs)
+    
+    # Se for inglês, tenta usar a versão traduzida
+    en_template = f'en/{template_name}'
+    
+    try:
+        # Verifica se o template em inglês existe no sistema de arquivos
+        template_folder = current_app.root_path + '/templates'
+        en_template_path = os.path.join(template_folder, en_template)
+        
+        if os.path.exists(en_template_path):
+            return render_template(en_template, **kwargs)
+        else:
+            # Template em inglês não existe, fallback para português
+            print(f"⚠️ Template em inglês não encontrado: {en_template}, usando português")
+            return render_template(template_name, **kwargs)
+    except Exception as e:
+        # Qualquer erro, fallback para português
+        print(f"⚠️ Erro ao carregar template em inglês: {e}, usando português")
+        return render_template(template_name, **kwargs)
+
+
+# ============================================
+# ROTA PARA ALTERAR IDIOMA
+# ============================================
+
+@app.route('/language/<lang>')
+def set_language(lang):
+    """Altera o idioma da interface"""
+    if lang in SUPPORTED_LANGUAGES:
+        session['language'] = lang
+        print(f"✅ Idioma alterado para: {lang}")
+    
+    # Volta para a página anterior ou dashboard
+    referer = request.headers.get('Referer')
+    if referer:
+        return redirect(referer)
+    return redirect('/dashboard')
+
+
+# ============================================
+# COMPONENTE DO SELETOR DE IDIOMA (para incluir nos templates)
+# ============================================
+
+def get_language_selector_html():
+    """Retorna o HTML do seletor de idioma para incluir nos templates"""
+    current = get_language()
+    return f'''
+    <div class="lang-switch">
+        <a href="/language/pt" class="lang-btn {"active" if current == "pt" else ""}" data-lang="pt">🇧🇷 PT</a>
+        <a href="/language/en" class="lang-btn {"active" if current == "en" else ""}" data-lang="en">🇬🇧 EN</a>
+    </div>
+    '''
 
 def _err(e, context=''):
     """Loga o erro internamente e retorna mensagem segura para o cliente."""
@@ -656,7 +861,7 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
 @app.route('/login')
 def pagina_login():
     """Página de login"""
-    return render_template('login.html')
+    return render_with_lang('login.html')
 
 @app.route('/dashboard')
 def dashboard():
@@ -712,7 +917,7 @@ def dashboard():
     }
     
     print(f"📊 Dashboard para {usuario}: {beneficiarios_count} beneficiários")
-    return render_template('dashboard.html', **dados)
+    return render_with_lang('dashboard.html', **dados)
 
 @app.route('/static/<path:path>')
 def servir_estaticos(path):
@@ -867,7 +1072,7 @@ def get_transacoes():
 
 @app.route('/teste')
 def teste():
-    return render_template('teste.html')
+    return render_with_lang('teste.html')
 
 @app.after_request
 def add_header(response):
@@ -915,7 +1120,15 @@ def criar_transferencia_cliente():
         
         # ✅ Verificar quem está logado (SESSÃO)
         usuario_logado = session.get('username')
-        
+
+        # ✅ Verificar se o cliente está congelado
+        if is_cliente_congelado(usuario_logado):
+            print(f"❌ Cliente {usuario_logado} está congelado! Transferência bloqueada.")
+            return jsonify({
+                "success": False,
+                "message": "Operação não disponível no momento. Entre em contato com o suporte."
+            }), 403
+
         if not usuario_logado:
             print(f"❌ USUÁRIO NÃO AUTENTICADO NA SESSÃO")
             return jsonify({
@@ -932,6 +1145,14 @@ def criar_transferencia_cliente():
                     "success": False,
                     "message": f"Campo '{campo}' é obrigatório"
                 }), 400
+        
+        # 🔥 NOVO: Verificar se a conta está congelada
+        if is_conta_congelada(dados['conta_origem']):
+            print(f"❌ Conta {dados['conta_origem']} está congelada! Transferência bloqueada.")
+            return jsonify({
+                "success": False,
+                "message": "Operação não disponível no momento. Entre em contato com o suporte."
+            }), 403
         
         # ✅ Usar usuário da sessão
         dados['usuario'] = usuario_logado
@@ -1593,7 +1814,7 @@ def tela_transferencia():
         print(f"⚠️  Erro ao buscar usuário em /transferencia: {e}")
     
     # Passa variáveis para o template (igual ao dashboard!)
-    return render_template('transferencia.html', 
+    return render_with_lang('transferencia.html', 
                           usuario=usuario,
                           nome=nome,
                           email=email)
@@ -1864,7 +2085,7 @@ def minhas_transferencias():
         print(f"⚠️  Erro ao buscar usuário: {e}")
     
     # Renderizar template
-    return render_template('minhas_transferencias.html',
+    return render_with_lang('minhas_transferencias.html',
                          usuario=usuario,
                          nome=nome,
                          email=email)
@@ -2777,7 +2998,7 @@ def meus_beneficiarios():
     except Exception as e:
         print(f"⚠️  Erro ao buscar usuário: {e}")
     
-    return render_template('meus_beneficiarios.html',
+    return render_with_lang('meus_beneficiarios.html',
                          usuario=usuario,
                          nome=nome,
                          email=email)
@@ -3125,7 +3346,7 @@ def meu_extrato():
         return redirect('/login')
     
     # Passar dados do usuário para o template
-    return render_template('meu_extrato.html', 
+    return render_with_lang('meu_extrato.html', 
                          usuario=usuario,
                          nome=nome,
                          data_atual=datetime.now().strftime("%d/%m/%Y"))
@@ -5208,7 +5429,7 @@ def cambio_moedas():
     print(f"💰 Câmbio para {usuario}: liberado={cambio_liberado}, tipo={tipo_cliente}")
     
     # 🔥 PASSAR USUÁRIO CORRETO PARA O TEMPLATE
-    return render_template('cambio_moedas.html',
+    return render_with_lang('cambio_moedas.html',
                           usuario=usuario,  # ← CRÍTICO: passar o nome de usuário
                           email=email,
                           nome=nome,
@@ -5783,12 +6004,37 @@ def api_executar_cambio():
     
     data = request.json
     usuario = data.get('usuario')
+    # 🔥 Verificar se o cliente está congelado
+    if is_cliente_congelado(usuario):
+        print(f"🚫 Cliente {usuario} está congelado! Câmbio bloqueado.")
+        return jsonify({
+            'success': False,
+            'error': 'Operação não disponível no momento. Entre em contato com o suporte.',
+            'codigo': 'CLIENTE_CONGELADO'
+        }), 403    
     tipo_operacao = data.get('tipoOperacao')
     valor_pagar = data.get('valorPagar')
     valor_receber = data.get('valorReceber')
     moeda_pagar = data.get('moedaPagar')
     moeda_receber = data.get('moedaReceber')
     cotacao_cliente = data.get('cotacaoDireta')
+    
+    # 🔥 🔥 🔥 VERIFICAR SE O CLIENTE TEM ALGUMA CONTA CONGELADA
+    response_todas_contas = supabase.table('contas')\
+        .select('id, moeda, ativos_congelados')\
+        .eq('cliente_username', usuario)\
+        .eq('ativa', True)\
+        .execute()
+    
+    if response_todas_contas.data:
+        for conta in response_todas_contas.data:
+            if conta.get('ativos_congelados'):
+                print(f"🚫 Cliente {usuario} tem conta congelada: {conta['id']} ({conta['moeda']}) - Câmbio bloqueado")
+                return jsonify({
+                    'success': False,
+                    'error': 'Operação não disponível no momento. Entre em contato com o suporte.',
+                    'codigo': 'CONTA_CONGELADA'
+                }), 403
     
     print(f"💰 Executando operação REAL de câmbio:")
     print(f"   Usuário: {usuario}")
@@ -5888,6 +6134,15 @@ def api_executar_cambio():
                 'success': False,
                 'error': f'Conta não encontrada: {moeda_pagar} ou {moeda_receber}'
             })
+        
+        # 🔥 NOVO: Verificar se a conta de pagamento está congelada
+        if is_conta_congelada(conta_pagar):
+            print(f"❌ Conta {conta_pagar} está congelada! Câmbio bloqueado.")
+            return jsonify({
+                'success': False,
+                'error': 'Operação não disponível no momento. Entre em contato com o suporte.',
+                'codigo': 'CONTA_CONGELADA'
+            }), 403
         
         # 🔥 2. CALCULAR NOVOS SALDOS
         saldo_pagar_depois = saldo_pagar_antes - float(valor_pagar)
@@ -6248,7 +6503,7 @@ def perfil():
                 contas_por_moeda[moeda] = []
             contas_por_moeda[moeda].append(conta)
         
-        return render_template('perfil.html',
+        return render_with_lang('perfil.html',
                              usuario=usuario,
                              dados=dados_formatados,
                              contas=contas,
@@ -6260,7 +6515,7 @@ def perfil():
         print(f"❌ Erro ao carregar perfil: {e}")
         _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         # Fallback seguro
-        return render_template('perfil.html',
+        return render_with_lang('perfil.html',
                              usuario=usuario,
                              dados={'username': usuario, 'nome': usuario.upper()},
                              contas=[],
@@ -6316,7 +6571,7 @@ def admin_dashboard():
     except:
         pass
     
-    return render_template('admin_dashboard.html',
+    return render_with_lang('admin_dashboard.html',
                           usuario=usuario,
                           nome=nome,
                           email=email)
@@ -6428,7 +6683,7 @@ def admin_clientes():
     if not user_check.data or user_check.data.get('tipo') != 'admin':
         return redirect('/dashboard')
     
-    return render_template('admin_clientes.html',
+    return render_with_lang('admin_clientes.html',
                           usuario=usuario,
                           nome="Administrador")
 
@@ -6652,7 +6907,7 @@ def admin_contas_bancarias():
     except:
         pass
     
-    return render_template('admin_contas_bancarias.html',
+    return render_with_lang('admin_contas_bancarias.html',
                           usuario=usuario,
                           nome=nome,
                           email=email)
@@ -7248,7 +7503,7 @@ def admin_extrato_conta():
         if response.data:
             conta_info = response.data
     
-    return render_template('admin_extrato_conta.html',
+    return render_with_lang('admin_extrato_conta.html',
                           usuario=usuario,
                           conta_numero=conta_numero,
                           conta_info=conta_info)
@@ -8635,7 +8890,7 @@ def admin_aprovar_operacoes():
     except:
         pass
     
-    return render_template('admin_aprovar_operacoes.html',
+    return render_with_lang('admin_aprovar_operacoes.html',
                           usuario=usuario,
                           nome=nome,
                           email=email)
@@ -9516,7 +9771,7 @@ def admin_confirmar_depositos():
     except:
         pass
     
-    return render_template('admin_confirmar_depositos.html',
+    return render_with_lang('admin_confirmar_depositos.html',
                           usuario=usuario,
                           nome=nome,
                           email=email)
@@ -9802,7 +10057,7 @@ def admin_gerenciar_contas():
     except:
         pass
     
-    return render_template('admin_gerenciar_contas.html',
+    return render_with_lang('admin_gerenciar_contas.html',
                           usuario=usuario,
                           nome=nome,
                           email=email)
@@ -11070,7 +11325,7 @@ def loja_selecionar_page():
     usuario = session.get('username')
     if not usuario:
         return redirect('/login')
-    return render_template('loja_selecionar.html', usuario=usuario)
+    return render_with_lang('loja_selecionar.html', usuario=usuario)
 
 
 @app.route('/api/loja/lojas-permitidas', methods=['GET'])
@@ -11128,7 +11383,7 @@ def loja_dashboard():
         return redir
     loja = session.get('loja')
     loja_nome = session.get('loja_nome', loja)
-    return render_template('loja_dashboard.html', usuario=usuario, tipo=tipo, loja=loja, loja_nome=loja_nome)
+    return render_with_lang('loja_dashboard.html', usuario=usuario, tipo=tipo, loja=loja, loja_nome=loja_nome)
 
 
 @app.route('/loja/clientes')
@@ -11136,7 +11391,7 @@ def loja_clientes():
     usuario, tipo, redir = _check_loja_acesso()
     if redir:
         return redir
-    return render_template('loja_clientes.html', usuario=usuario, tipo=tipo)
+    return render_with_lang('loja_clientes.html', usuario=usuario, tipo=tipo)
 
 
 @app.route('/api/loja/contas-empresa', methods=['GET'])
@@ -12631,7 +12886,7 @@ def admin_aml():
     usuario, tipo, redir = _check_compliance_acesso()
     if redir:
         return redirect('/login')
-    return render_template('admin_aml.html', usuario=usuario, is_compliance=(tipo == 'compliance'))
+    return render_with_lang('admin_aml.html', usuario=usuario, is_compliance=(tipo == 'compliance'))
 
 
 @app.route('/api/admin/aml/config', methods=['GET'])
@@ -13120,7 +13375,7 @@ def admin_taxas_loja_page():
     usuario = session.get('username')
     if not usuario:
         return redirect('/login')
-    return render_template('admin_taxas_loja.html', usuario=usuario)
+    return render_with_lang('admin_taxas_loja.html', usuario=usuario)
 
 
 def _check_admin_acesso():
@@ -13326,7 +13581,7 @@ def admin_usuarios_page():
     r = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
     if not r.data or r.data.get('tipo') != 'admin':
         return redirect('/admin/dashboard')
-    return render_template('admin_usuarios.html', usuario=usuario)
+    return render_with_lang('admin_usuarios.html', usuario=usuario)
 
 
 @app.route('/api/admin/usuarios', methods=['GET'])
@@ -13517,7 +13772,7 @@ def compliance_dashboard():
             return redirect('/login')
     except Exception:
         return redirect('/login')
-    return render_template('compliance_dashboard.html', usuario=usuario, tipo=tipo)
+    return render_with_lang('compliance_dashboard.html', usuario=usuario, tipo=tipo)
 
 
 
@@ -13770,7 +14025,7 @@ def compliance_rejeitar(ordem_id):
 def admin_conciliacao_page():
     usuario, redir = _check_admin_acesso()
     if redir: return redir
-    return render_template('admin_conciliacao.html', usuario=usuario)
+    return render_with_lang('admin_conciliacao.html', usuario=usuario)
 
 
 @app.route('/api/admin/conciliacao/pendentes', methods=['GET'])
@@ -16522,7 +16777,7 @@ def admin_relatorios():
     except:
         pass
     
-    return render_template('admin_relatorios.html',
+    return render_with_lang('admin_relatorios.html',
                           usuario=usuario,
                           nome=nome,
                           email=email)
@@ -17136,7 +17391,7 @@ def admin_configuracoes():
         if not user_check.data or user_check.data.get('tipo') != 'admin':
             return redirect('/dashboard')
     
-    return render_template('admin_configuracoes.html',
+    return render_with_lang('admin_configuracoes.html',
                           usuario=usuario,
                           nome=usuario.upper(),
                           email=f'{usuario}@exemplo.com')
@@ -17321,7 +17576,7 @@ def admin_cotacoes():
     except:
         pass
     
-    return render_template('admin_cotacoes.html',
+    return render_with_lang('admin_cotacoes.html',
                           usuario=usuario,
                           nome=nome,
                           email=email)
@@ -18128,7 +18383,7 @@ def admin_cadastrar_cliente():
     except:
         pass
     
-    return render_template('admin_cadastrar_cliente.html',
+    return render_with_lang('admin_cadastrar_cliente.html',
                           usuario=usuario,
                           nome=nome,
                           email=email)
@@ -18136,7 +18391,7 @@ def admin_cadastrar_cliente():
 
 @app.route('/api/admin/cadastrar-cliente', methods=['POST'])
 def api_admin_cadastrar_cliente():
-    """Cadastra um novo cliente no sistema"""
+    """Cadastra um novo cliente no sistema (PF ou PJ)"""
     try:
         usuario = session.get('username')
         
@@ -18156,36 +18411,61 @@ def api_admin_cadastrar_cliente():
         
         dados = request.get_json()
         
-        # Extrair dados
-        nome = dados.get('nome', '').strip()
+        # Identificar tipo de pessoa (F = Fisica, J = Juridica)
+        tipo_pessoa = dados.get('tipo_pessoa', 'F')
+        
+        # ============================================
+        # EXTRAIR DADOS
+        # ============================================
+        
+        if tipo_pessoa == 'F':
+            nome = dados.get('nome', '').strip()
+            documento = dados.get('documento', '').strip()
+            data_nascimento = dados.get('data_nascimento', None)
+            razao_social = nome  # Para compatibilidade
+        else:  # tipo_pessoa == 'J'
+            razao_social = dados.get('razao_social', '').strip()
+            nome_fantasia = dados.get('nome_fantasia', '').strip()
+            documento = dados.get('crn', '').strip()  # CRN como documento principal
+            data_incorporacao = dados.get('data_incorporacao', None)
+            nome = razao_social if not nome_fantasia else nome_fantasia
+        
+        # Campos comuns
         username = dados.get('username', '').strip().lower()
         email = dados.get('email', '').strip().lower()
         senha = dados.get('senha', '')
         telefone = dados.get('telefone', '').strip()
-        documento = dados.get('documento', '').strip()
         endereco = dados.get('endereco', '').strip()
         cidade = dados.get('cidade', '').strip()
         estado = dados.get('estado', '').strip()
         cep = dados.get('cep', '').strip()
-        pais = dados.get('pais', 'Brasil').strip()
+        pais = dados.get('pais', 'GB').strip()
         moedas = dados.get('moedas', [])
         
-        # Validar campos obrigatórios
-        if not nome:
-            return jsonify({"success": False, "message": "Nome é obrigatório"}), 400
+        # Campos específicos para PJ
+        utr = dados.get('utr', '').strip()
+        vat = dados.get('vat', '').strip()
+        capital_social = dados.get('capital_social', None)
+        website = dados.get('website', '').strip()
+        postcode = dados.get('postcode', '').strip()
+        pais_constituicao = dados.get('pais_constituicao', 'GB').strip()
+        ubos = dados.get('ubos', [])
+        
+        # ============================================
+        # VALIDAÇÕES
+        # ============================================
+        
+        import re
         
         if not username:
             return jsonify({"success": False, "message": "Usuário é obrigatório"}), 400
         
-        # Validar username (apenas letras, números, ponto e underscore)
-        import re
         if not re.match(r'^[a-zA-Z0-9._]+$', username):
             return jsonify({"success": False, "message": "Usuário inválido! Use apenas letras, números, ponto ou underscore."}), 400
         
         if not email:
             return jsonify({"success": False, "message": "Email é obrigatório"}), 400
         
-        # Validar email
         if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
             return jsonify({"success": False, "message": "Email inválido!"}), 400
         
@@ -18197,6 +18477,27 @@ def api_admin_cadastrar_cliente():
         
         if not moedas or len(moedas) == 0:
             return jsonify({"success": False, "message": "Selecione pelo menos uma moeda"}), 400
+        
+        # Validações específicas por tipo
+        if tipo_pessoa == 'F':
+            if not nome:
+                return jsonify({"success": False, "message": "Nome é obrigatório"}), 400
+            if not documento:
+                return jsonify({"success": False, "message": "Documento (Passport/BRP/NINO) é obrigatório"}), 400
+        else:
+            if not razao_social:
+                return jsonify({"success": False, "message": "Razão Social é obrigatória"}), 400
+            if not documento:
+                return jsonify({"success": False, "message": "Company Registration Number (CRN) é obrigatório"}), 400
+            
+            # Validar UBOs
+            if ubos:
+                total_participacao = sum(float(ubo.get('participacao', 0)) for ubo in ubos)
+                if total_participacao > 100.01:
+                    return jsonify({
+                        "success": False, 
+                        "message": f"A soma das participações dos UBOs é {total_participacao}%, não pode ultrapassar 100%!"
+                    }), 400
         
         from datetime import datetime
         import hashlib
@@ -18220,20 +18521,32 @@ def api_admin_cadastrar_cliente():
         if check_email.data:
             return jsonify({"success": False, "message": f"Email '{email}' já está cadastrado!"}), 400
         
+        # Para PJ, verificar se CRN já existe
+        if tipo_pessoa == 'J':
+            check_crn = supabase.table('usuarios')\
+                .select('crn')\
+                .eq('crn', documento)\
+                .execute()
+            
+            if check_crn.data:
+                return jsonify({"success": False, "message": f"CRN '{documento}' já está cadastrado!"}), 400
+        
         # Gerar hash da senha
         senha_hash = hashlib.sha256(senha.encode()).hexdigest()
         
-        # Gerar hash do documento (se fornecido)
+        # Gerar hash do documento
         documento_hash = None
         if documento:
             documento_limpo = re.sub(r'[^a-zA-Z0-9]', '', documento)
             documento_hash = hashlib.sha256(documento_limpo.encode()).hexdigest()
         
-        # Criar contas para cada moeda selecionada
+        # ============================================
+        # CRIAR CONTAS BANCÁRIAS
+        # ============================================
+        
         contas_criadas = []
         
         for moeda in moedas:
-            # Gerar número de conta único (9 dígitos)
             while True:
                 numero_conta = str(random.randint(100000000, 999999999))
                 check_conta = supabase.table('contas')\
@@ -18243,7 +18556,6 @@ def api_admin_cadastrar_cliente():
                 if not check_conta.data:
                     break
             
-            # Criar conta no Supabase
             conta_data = {
                 'id': numero_conta,
                 'moeda': moeda,
@@ -18264,8 +18576,12 @@ def api_admin_cadastrar_cliente():
         if not contas_criadas:
             return jsonify({"success": False, "message": "Erro ao criar contas bancárias"}), 500
         
-        # Criar usuário no Supabase
+        # ============================================
+        # CRIAR USUÁRIO
+        # ============================================
+        
         usuario_data = {
+            # Campos existentes
             'username': username,
             'senha_hash': senha_hash,
             'nome': nome,
@@ -18276,54 +18592,98 @@ def api_admin_cadastrar_cliente():
             'cidade': cidade if cidade else None,
             'cep': cep if cep else None,
             'estado': estado if estado else None,
-            'pais': pais if pais else None,
+            'pais': pais if pais else 'GB',
             'tipo': 'cliente',
             'data_cadastro': datetime.now().isoformat(),
             'created_at': datetime.now().isoformat(),
             'contas': contas_criadas,
             'status': 'ativo',
             'verificado': True,
-            'cambio_liberado': False,  # 🔥 Câmbio desabilitado por padrão
-            'codigo_verificacao': ''
+            'cambio_liberado': False,
+            'codigo_verificacao': '',
+            
+            # NOVOS CAMPOS
+            'tipo_pessoa': tipo_pessoa,
+            'razao_social': razao_social if tipo_pessoa == 'J' else None,
+            'nome_fantasia': nome_fantasia if tipo_pessoa == 'J' else None,
+            'crn': documento if tipo_pessoa == 'J' else None,
+            'utr': utr if utr else None,
+            'vat': vat if vat else None,
+            'data_incorporacao': data_incorporacao if tipo_pessoa == 'J' else None,
+            'capital_social': float(capital_social) if capital_social else None,
+            'website': website if website else None,
+            'postcode': postcode if postcode else None,
+            'pais_constituicao': pais_constituicao if tipo_pessoa == 'J' else None,
+            'data_nascimento': data_nascimento if tipo_pessoa == 'F' else None
         }
         
         user_response = supabase.table('usuarios').insert(usuario_data).execute()
         
         if not user_response.data:
-            # Se falhou, tentar remover as contas criadas (rollback)
             for conta in contas_criadas:
                 supabase.table('contas').delete().eq('id', conta).execute()
             return jsonify({"success": False, "message": "Erro ao criar usuário"}), 500
         
-        # 🔥 Criar configuração de permissão de câmbio (desabilitado)
+        # ============================================
+        # SALVAR UBOS (se for PJ)
+        # ============================================
+        
+        cliente_id = user_response.data[0].get('id')
+        
+        if tipo_pessoa == 'J' and ubos and cliente_id:
+            for ubo in ubos:
+                ubo_data = {
+                    'cliente_id': cliente_id,
+                    'nome_completo': ubo.get('nome', '').strip(),
+                    'participacao': float(ubo.get('participacao', 0)),
+                    'data_nascimento': ubo.get('data_nascimento', None),
+                    'nacionalidade': ubo.get('nacionalidade', ''),
+                    'pais_residencia': ubo.get('pais_residencia', ''),
+                    'doc_tipo': ubo.get('doc_tipo', ''),
+                    'doc_numero': ubo.get('doc_numero', ''),
+                    'criado_por': usuario,
+                    'created_at': datetime.now().isoformat()
+                }
+                
+                if ubo_data['nome_completo']:
+                    supabase.table('ubos').insert(ubo_data).execute()
+                    print(f"✅ UBO {ubo_data['nome_completo']} ({ubo_data['participacao']}%) salvo para {username}")
+        
+        # ============================================
+        # CONFIGURAÇÕES
+        # ============================================
+        
         config_data = {
             'tipo_config': 'permissoes',
             'cliente_username': username,
-            'valor_config': False,  # Câmbio desabilitado
+            'valor_config': False,
             'data_atualizacao': datetime.now().isoformat(),
             'created_at': datetime.now().isoformat()
         }
         supabase.table('config_cotacoes').insert(config_data).execute()
         
-        # 🔥 Criar configuração de limite padrão
         limite_data = {
             'tipo_config': 'limites',
             'cliente_username': username,
-            'valor_config': 10000.00,  # Limite padrão de US$ 10.000
+            'valor_config': 10000.00,
             'data_atualizacao': datetime.now().isoformat(),
             'created_at': datetime.now().isoformat()
         }
         supabase.table('config_cotacoes').insert(limite_data).execute()
         
-        print(f"✅ Cliente {username} cadastrado com sucesso por {usuario}")
+        print(f"✅ {'Cliente' if tipo_pessoa == 'F' else 'Empresa'} {username} cadastrado com sucesso por {usuario}")
+        print(f"   Tipo: {'PF' if tipo_pessoa == 'F' else 'PJ'}")
         print(f"   Contas criadas: {', '.join(contas_criadas)}")
         print(f"   Moedas: {', '.join(moedas)}")
+        if tipo_pessoa == 'J' and ubos:
+            print(f"   UBOs: {len(ubos)} cadastrados")
         
         return jsonify({
             "success": True,
-            "message": f"Cliente {nome} cadastrado com sucesso!",
+            "message": f"{'Cliente' if tipo_pessoa == 'F' else 'Empresa'} {nome} cadastrado com sucesso!",
             "contas": contas_criadas,
-            "moedas": moedas
+            "moedas": moedas,
+            "tipo_pessoa": tipo_pessoa
         })
         
     except Exception as e:
@@ -18375,7 +18735,7 @@ def admin_transferencias():
     except:
         pass
     
-    return render_template('admin_transferencias.html',
+    return render_with_lang('admin_transferencias.html',
                           usuario=usuario,
                           nome=nome,
                           email=email)
@@ -18962,7 +19322,7 @@ def admin_despachos_page():
             return redirect('/login')
     except:
         return redirect('/login')
-    return render_template('admin_despachos.html', usuario=usuario)
+    return render_with_lang('admin_despachos.html', usuario=usuario)
 
 
 @app.route('/admin/lojas')
@@ -18976,7 +19336,7 @@ def admin_lojas_page():
             return redirect('/login')
     except:
         return redirect('/login')
-    return render_template('admin_lojas.html', usuario=usuario)
+    return render_with_lang('admin_lojas.html', usuario=usuario)
 
 
 @app.route('/admin/posicao-cambial')
@@ -18988,7 +19348,7 @@ def admin_posicao_cambial():
         ck = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
         if not ck.data or ck.data.get('tipo') != 'admin':
             return redirect('/login')
-    return render_template('admin_posicao_cambial.html', usuario=usuario)
+    return render_with_lang('admin_posicao_cambial.html', usuario=usuario)
 
 
 @app.route('/api/admin/fx/pool', methods=['GET'])
@@ -19591,7 +19951,7 @@ def admin_fca_auditoria():
     usuario, tipo, redir = _check_compliance_acesso()
     if redir:
         return redirect('/login')
-    return render_template('admin_fca_auditoria.html', usuario=usuario)
+    return render_with_lang('admin_fca_auditoria.html', usuario=usuario)
 
 
 @app.route('/api/admin/fca/report', methods=['GET'])
@@ -19824,6 +20184,189 @@ def is_pep_active(cliente_id):
         print(f"⚠️ Erro ao verificar PEP: {e}")
         return True
 
+# ============================================
+# ADMIN - CONGELAMENTO DE CONTAS
+# ============================================
+
+@app.route('/api/admin/contas/<conta_id>/congelar', methods=['POST'])
+def api_admin_congelar_conta(conta_id):
+    """Endpoint para admin congelar uma conta"""
+    try:
+        usuario = session.get('username')
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Verificar se é admin
+        user_check = supabase.table('usuarios')\
+            .select('tipo')\
+            .eq('username', usuario)\
+            .single()\
+            .execute()
+        
+        if not user_check.data or user_check.data.get('tipo') != 'admin':
+            return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        dados = request.get_json()
+        motivo = dados.get('motivo', '').strip()
+        
+        if not motivo:
+            return jsonify({"success": False, "message": "Motivo do congelamento é obrigatório"}), 400
+        
+        if congelar_conta(conta_id, motivo, usuario):
+            return jsonify({
+                "success": True,
+                "message": f"Conta {conta_id} congelada com sucesso!"
+            })
+        else:
+            return jsonify({"success": False, "message": "Erro ao congelar conta"}), 500
+            
+    except Exception as e:
+        print(f"❌ Erro ao congelar conta: {e}")
+        return jsonify({"success": False, "message": _err(e)}), 500
+
+
+@app.route('/api/admin/contas/<conta_id>/descongelar', methods=['POST'])
+def api_admin_descongelar_conta(conta_id):
+    """Endpoint para admin descongelar uma conta"""
+    try:
+        usuario = session.get('username')
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Verificar se é admin
+        user_check = supabase.table('usuarios')\
+            .select('tipo')\
+            .eq('username', usuario)\
+            .single()\
+            .execute()
+        
+        if not user_check.data or user_check.data.get('tipo') != 'admin':
+            return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        if descongelar_conta(conta_id, usuario):
+            return jsonify({
+                "success": True,
+                "message": f"Conta {conta_id} descongelada com sucesso!"
+            })
+        else:
+            return jsonify({"success": False, "message": "Erro ao descongelar conta"}), 500
+            
+    except Exception as e:
+        print(f"❌ Erro ao descongelar conta: {e}")
+        return jsonify({"success": False, "message": _err(e)}), 500
+
+
+@app.route('/api/admin/contas/congeladas', methods=['GET'])
+def api_admin_contas_congeladas():
+    """Retorna lista de contas congeladas"""
+    try:
+        usuario = session.get('username')
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Verificar se é admin
+        user_check = supabase.table('usuarios')\
+            .select('tipo')\
+            .eq('username', usuario)\
+            .single()\
+            .execute()
+        
+        if not user_check.data or user_check.data.get('tipo') != 'admin':
+            return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        # Buscar contas congeladas
+        response = supabase.table('contas')\
+            .select('id, cliente_username, cliente_nome, moeda, saldo, motivo_congelamento, data_congelamento')\
+            .eq('ativos_congelados', True)\
+            .execute()
+        
+        contas = []
+        for conta in (response.data or []):
+            contas.append({
+                'numero': conta.get('id'),
+                'cliente': conta.get('cliente_username'),
+                'cliente_nome': conta.get('cliente_nome'),
+                'moeda': conta.get('moeda'),
+                'saldo': float(conta.get('saldo', 0)),
+                'motivo': conta.get('motivo_congelamento'),
+                'data_congelamento': conta.get('data_congelamento')
+            })
+        
+        return jsonify({
+            "success": True,
+            "contas_congeladas": contas,
+            "total": len(contas)
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar contas congeladas: {e}")
+        return jsonify({"success": False, "message": _err(e)}), 500
+
+@app.route('/api/admin/clientes/<username>/congelar', methods=['POST'])
+def api_admin_congelar_cliente(username):
+    """Congela TODAS as contas de um cliente B2B"""
+    try:
+        usuario = session.get('username')
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Verificar se é admin
+        user_check = supabase.table('usuarios')\
+            .select('tipo')\
+            .eq('username', usuario)\
+            .single()\
+            .execute()
+        
+        if not user_check.data or user_check.data.get('tipo') != 'admin':
+            return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        dados = request.get_json()
+        motivo = dados.get('motivo', '').strip()
+        
+        if not motivo:
+            return jsonify({"success": False, "message": "Motivo do congelamento é obrigatório"}), 400
+        
+        if congelar_cliente(username, motivo, usuario):
+            return jsonify({
+                "success": True,
+                "message": f"Cliente {username} e todas as suas contas foram congelados com sucesso!"
+            })
+        else:
+            return jsonify({"success": False, "message": "Erro ao congelar cliente"}), 500
+            
+    except Exception as e:
+        print(f"❌ Erro ao congelar cliente: {e}")
+        return jsonify({"success": False, "message": _err(e)}), 500
+
+@app.route('/api/admin/clientes/<username>/descongelar', methods=['POST'])
+def api_admin_descongelar_cliente(username):
+    """Descongela TODAS as contas de um cliente B2B"""
+    try:
+        usuario = session.get('username')
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # Verificar se é admin
+        user_check = supabase.table('usuarios')\
+            .select('tipo')\
+            .eq('username', usuario)\
+            .single()\
+            .execute()
+        
+        if not user_check.data or user_check.data.get('tipo') != 'admin':
+            return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
+        if descongelar_cliente(username, usuario):
+            return jsonify({
+                "success": True,
+                "message": f"Cliente {username} e todas as suas contas foram descongelados com sucesso!"
+            })
+        else:
+            return jsonify({"success": False, "message": "Erro ao descongelar cliente"}), 500
+            
+    except Exception as e:
+        print(f"❌ Erro ao descongelar cliente: {e}")
+        return jsonify({"success": False, "message": _err(e)}), 500        
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))

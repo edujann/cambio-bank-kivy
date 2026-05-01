@@ -394,6 +394,22 @@
                 max-width: 100%;
             }
         }
+
+        /* Botões de congelamento */
+        .btn-congelar, .btn-descongelar {
+            background: transparent;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 4px 6px;
+            margin: 0 2px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        .btn-congelar { color: #e74c3c; }
+        .btn-congelar:hover { background: rgba(231, 76, 60, 0.2); }
+        .btn-descongelar { color: #2ecc71; }
+        .btn-descongelar:hover { background: rgba(46, 204, 113, 0.2); }        
     </style>
 </head>
 <body>
@@ -627,13 +643,19 @@
 
         async function calcularTotalContas() {
             try {
-                const response = await fetch('/api/admin/contas');
+                // 🔥 CORREÇÃO: Usar a rota correta
+                const response = await fetch('/api/admin/contas-bancarias');
                 const data = await response.json();
-                if (data.success) {
-                    document.getElementById('totalContas').textContent = data.total || 0;
+                if (data.success && data.contas) {
+                    document.getElementById('totalContas').textContent = data.contas.length || 0;
+                } else {
+                    // Fallback: calcular via clientes
+                    document.getElementById('totalContas').textContent = clientes.reduce((sum, c) => sum + (c.total_contas || 0), 0);
                 }
             } catch (error) {
                 console.error('Erro ao calcular total de contas:', error);
+                // Fallback silencioso
+                document.getElementById('totalContas').textContent = '?';
             }
         }
 
@@ -724,14 +746,46 @@
                 const cambioText = cliente.cambio_liberado ? 'Liberado' : 'Bloqueado';
                 row.insertCell(4).innerHTML = `<span class="status-badge ${cambioClass}">${cambioText}</span>`;
                 
-                // Contas — usa data-* para evitar XSS em onclick
+                // Container para botões de contas
+                const contasContainer = document.createElement('div');
+                contasContainer.style.display = 'flex';
+                contasContainer.style.gap = '5px';
+                contasContainer.style.alignItems = 'center';
+
+                // Botão ver contas
                 const contasBtn = document.createElement('button');
                 contasBtn.className = 'btn-acao btn-contas';
                 contasBtn.title = 'Ver contas';
                 contasBtn.dataset.username = cliente.username;
                 contasBtn.innerHTML = `<i class="fas fa-wallet"></i> ${Number(cliente.total_contas) || 0}`;
                 contasBtn.addEventListener('click', () => verContas(contasBtn.dataset.username));
-                row.insertCell(5).appendChild(contasBtn);
+                contasContainer.appendChild(contasBtn);
+
+                // Botão congelar (será visível apenas quando necessário)
+                const congelarBtn = document.createElement('button');
+                congelarBtn.className = 'btn-acao btn-congelar';
+                congelarBtn.title = 'Congelar conta';
+                congelarBtn.dataset.username = cliente.username;
+                congelarBtn.innerHTML = '<i class="fas fa-lock"></i>';
+                congelarBtn.style.display = 'none'; // Começa oculto
+                congelarBtn.addEventListener('click', () => abrirModalCongelar(cliente.username));
+                contasContainer.appendChild(congelarBtn);
+
+                // Botão descongelar (será visível apenas quando necessário)
+                const descongelarBtn = document.createElement('button');
+                descongelarBtn.className = 'btn-acao btn-descongelar';
+                descongelarBtn.title = 'Descongelar conta';
+                descongelarBtn.dataset.username = cliente.username;
+                descongelarBtn.innerHTML = '<i class="fas fa-lock-open"></i>';
+                descongelarBtn.style.display = 'none'; // Começa oculto
+                descongelarBtn.addEventListener('click', () => abrirModalDescongelar(cliente.username));
+                contasContainer.appendChild(descongelarBtn);
+
+                row.insertCell(5).appendChild(contasContainer);
+
+                // Armazenar referências para atualização posterior
+                if (!window.botoesCongelamento) window.botoesCongelamento = {};
+                window.botoesCongelamento[cliente.username] = { congelarBtn, descongelarBtn };
 
                 // Ações
                 const acoesCell = row.insertCell(6);
@@ -761,6 +815,7 @@
             }
             
             atualizarPaginacao();
+            carregarStatusContas();
         }
 
         // ============================================
@@ -1067,6 +1122,186 @@
                 if (e.key === 'Enter') buscarClientes();
             });
         });
+
+        // ============================================
+        // FUNÇÕES DE CONGELAMENTO DE CONTAS
+        // ============================================
+
+        async function abrirModalCongelar(username) {
+            // Buscar contas do cliente
+            try {
+                const response = await fetch(`/api/admin/clientes/${username}/detalhes`);
+                const data = await response.json();
+                
+                if (data.success && data.contas && data.contas.length > 0) {
+                    // Criar modal para selecionar qual conta congelar
+                    let contasHtml = '<div class="info-card"><strong>Selecione a conta para congelar:</strong></div>';
+                    
+                    for (const conta of data.contas) {
+                        const statusTexto = conta.ativa ? 'Ativa' : 'Inativa';
+                        contasHtml += `
+                            <div class="info-card" style="cursor: pointer; margin-bottom: 10px;" onclick="confirmarCongelar('${username}', '${conta.numero}', '${conta.moeda}')">
+                                <strong>Conta: ${conta.numero}</strong><br>
+                                Moeda: ${conta.moeda}<br>
+                                Saldo: ${formatarValor(conta.saldo)} ${conta.moeda}<br>
+                                Status: ${statusTexto}<br>
+                                <span style="color: #e74c3c; font-size: 12px;">🔒 Clique para congelar esta conta</span>
+                            </div>
+                        `;
+                    }
+                    
+                    document.getElementById('modalContasBody').innerHTML = contasHtml;
+                    document.getElementById('modalContas').classList.add('active');
+                    window.contaCongelarUsername = username;
+                } else {
+                    alert('Cliente não possui contas!');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao carregar contas!');
+            }
+        }
+
+        async function confirmarCongelar(username, contaId, moeda) {
+            const motivo = prompt(`🔒 CONGELAR CONTA\n\nCliente: ${username}\nConta: ${contaId}\nMoeda: ${moeda}\n\nMotivo do congelamento:`);
+            if (!motivo) return;
+            
+            try {
+                const response = await fetch(`/api/admin/contas/${contaId}/congelar`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ motivo: motivo })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Conta ${contaId} congelada com sucesso!`);
+                    fecharModalContas();
+                    
+                    // Atualizar os botões para este cliente
+                    await atualizarBotoesCongelamento(username);
+                } else {
+                    alert(`❌ ${data.message}`);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao congelar conta!');
+            }
+        }
+
+        async function abrirModalDescongelar(username) {
+            // Buscar contas congeladas deste cliente
+            try {
+                const response = await fetch('/api/admin/contas/congeladas');
+                const data = await response.json();
+                
+                const contasCongeladas = (data.contas_congeladas || []).filter(c => c.cliente === username);
+                
+                if (contasCongeladas.length === 0) {
+                    alert('Este cliente não possui contas congeladas!');
+                    return;
+                }
+                
+                let contasHtml = '<div class="info-card"><strong>Contas congeladas deste cliente:</strong></div>';
+                
+                for (const conta of contasCongeladas) {
+                    contasHtml += `
+                        <div class="info-card" style="cursor: pointer; margin-bottom: 10px;" onclick="confirmarDescongelar('${username}', '${conta.numero}', '${conta.moeda}')">
+                            <strong>Conta: ${conta.numero}</strong><br>
+                            Moeda: ${conta.moeda}<br>
+                            Saldo: ${formatarValor(conta.saldo)} ${conta.moeda}<br>
+                            Motivo: ${conta.motivo || '-'}<br>
+                            <span style="color: #2ecc71; font-size: 12px;">🔓 Clique para descongelar esta conta</span>
+                        </div>
+                    `;
+                }
+                
+                document.getElementById('modalContasBody').innerHTML = contasHtml;
+                document.getElementById('modalContas').classList.add('active');
+                window.contaDescongelarUsername = username;
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao carregar contas congeladas!');
+            }
+        }
+
+        async function confirmarDescongelar(username, contaId, moeda) {
+            if (!confirm(`🔓 DESCONGELAR CONTA\n\nCliente: ${username}\nConta: ${contaId}\nMoeda: ${moeda}\n\nDeseja descongelar esta conta?`)) return;
+            
+            try {
+                const response = await fetch(`/api/admin/contas/${contaId}/descongelar`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Conta ${contaId} descongelada com sucesso!`);
+                    fecharModalContas();
+                    
+                    // Atualizar os botões para este cliente
+                    await atualizarBotoesCongelamento(username);
+                } else {
+                    alert(`❌ ${data.message}`);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao descongelar conta!');
+            }
+        }
+
+        async function atualizarBotoesCongelamento(username) {
+            // Buscar contas congeladas
+            const response = await fetch('/api/admin/contas/congeladas');
+            const data = await response.json();
+            
+            const contasCongeladas = (data.contas_congeladas || []).filter(c => c.cliente === username);
+            const temContaCongelada = contasCongeladas.length > 0;
+            
+            const botoes = window.botoesCongelamento?.[username];
+            if (botoes) {
+                if (temContaCongelada) {
+                    botoes.congelarBtn.style.display = 'none';
+                    botoes.descongelarBtn.style.display = 'inline-block';
+                } else {
+                    botoes.congelarBtn.style.display = 'inline-block';
+                    botoes.descongelarBtn.style.display = 'none';
+                }
+            }
+        }
+
+        // Carregar status das contas ao iniciar
+        async function carregarStatusContas() {
+            try {
+                const response = await fetch('/api/admin/contas/congeladas');
+                const data = await response.json();
+                
+                const contasCongeladas = data.contas_congeladas || [];
+                
+                // Criar um mapa de cliente -> tem conta congelada
+                const clienteTemContaCongelada = {};
+                for (const conta of contasCongeladas) {
+                    if (conta.cliente) {
+                        clienteTemContaCongelada[conta.cliente] = true;
+                    }
+                }
+                
+                // Atualizar botões
+                for (const [username, botoes] of Object.entries(window.botoesCongelamento || {})) {
+                    if (clienteTemContaCongelada[username]) {
+                        botoes.congelarBtn.style.display = 'none';
+                        botoes.descongelarBtn.style.display = 'inline-block';
+                    } else {
+                        botoes.congelarBtn.style.display = 'inline-block';
+                        botoes.descongelarBtn.style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao carregar status:', error);
+            }
+        }        
     </script>
 </body>
 </html>

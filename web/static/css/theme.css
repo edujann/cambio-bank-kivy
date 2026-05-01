@@ -200,3 +200,117 @@
     background: rgba(155, 89, 182, 0.15);
     color: #9b59b6;
 }
+
+/* ============================================
+   SELETOR DE IDIOMA - ALINHADO COM USER MENU
+   ============================================ */
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-direction: row;
+}
+
+.lang-switch {
+    display: flex;
+    gap: 5px;
+    background: var(--cor-card);
+    border: 1px solid var(--cor-borda);
+    border-radius: 20px;
+    padding: 4px;
+}
+
+.lang-btn {
+    padding: 6px 16px;
+    border: none;
+    background: transparent;
+    color: var(--cor-texto-secundario);
+    text-decoration: none;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.lang-btn.active {
+    background: var(--cor-admin);
+    color: white;
+}
+
+.lang-btn:hover:not(.active) {
+    background: rgba(26, 95, 180, 0.2);
+    color: var(--cor-texto);
+}
+
+.user-menu {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--cor-card);
+    border-radius: var(--borda-radius-pequeno);
+    border: 1px solid var(--cor-borda);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.header-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* Responsivo para mobile */
+@media (max-width: 768px) {
+    .header-right {
+        gap: 8px;
+    }
+    
+    .lang-btn {
+        padding: 4px 10px;
+        font-size: 11px;
+    }
+    
+    .user-menu {
+        padding: 6px 12px;
+    }
+}
+
+/* ============================================
+   SELETOR DE IDIOMA - PILL MINIMALISTA
+   ============================================ */
+
+.lang-switch {
+    display: flex;
+    background: rgba(128, 128, 128, 0.1);
+    border-radius: 30px;
+    padding: 2px;
+}
+
+.lang-btn {
+    padding: 4px 14px;
+    border: none;
+    background: transparent;
+    color: var(--cor-texto-secundario);
+    text-decoration: none;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+}
+
+.lang-btn.active {
+    background: var(--cor-admin);
+    color: white;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.lang-btn:hover:not(.active) {
+    background: rgba(128, 128, 128, 0.1);
+    color: var(--cor-texto);
+}

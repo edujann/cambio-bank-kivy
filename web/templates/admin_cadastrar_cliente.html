@@ -3,700 +3,815 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏦 Cambio Bank - Cadastrar Cliente</title>
+    <title>🏦 Cambio Bank - Register Client / Cadastrar Cliente</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/theme.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background: var(--cor-fundo);
-            color: var(--cor-texto);
-            min-height: 100vh;
-        }
-
-        .app-container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: var(--cor-fundo); color: var(--cor-texto); min-height: 100vh; }
+        .app-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
 
         /* HEADER */
-        .app-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px 0;
-            margin-bottom: 30px;
-            border-bottom: 1px solid var(--cor-borda);
-            flex-wrap: wrap;
-            gap: 15px;
-        }
+        .app-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; margin-bottom: 30px; border-bottom: 1px solid var(--cor-borda); flex-wrap: wrap; gap: 15px; }
+        .logo { display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: bold; }
+        .logo i { color: var(--cor-admin); font-size: 28px; }
+        .logo-text { background: linear-gradient(90deg, var(--cor-admin), #2d8fff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .badge-admin { background: var(--cor-admin); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-left: 10px; }
+        .page-title { font-size: 20px; font-weight: bold; }
+        .btn-voltar { background: transparent; border: 1px solid var(--cor-borda); color: var(--cor-texto); padding: 10px 20px; border-radius: var(--borda-radius-pequeno); cursor: pointer; transition: all 0.3s ease; }
+        .btn-voltar:hover { border-color: var(--cor-admin); color: var(--cor-admin); transform: translateY(-2px); }
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 24px;
-            font-weight: bold;
-        }
+        /* LANGUAGE SWITCHER */
+        .lang-switch { display: flex; gap: 5px; background: var(--cor-card); border: 1px solid var(--cor-borda); border-radius: 20px; padding: 4px; }
+        .lang-btn { padding: 6px 20px; border: none; background: transparent; color: var(--cor-texto-secundario); cursor: pointer; border-radius: 16px; font-size: 13px; font-weight: 600; transition: all 0.3s ease; }
+        .lang-btn.active { background: var(--cor-admin); color: white; }
+        .lang-btn:hover:not(.active) { background: rgba(26, 95, 180, 0.2); }
 
-        .logo i {
-            color: var(--cor-admin);
-            font-size: 28px;
-        }
+        /* FORM */
+        .form-container { background: var(--cor-card); border: 1px solid var(--cor-borda); border-radius: var(--borda-radius); padding: 30px; }
 
-        .logo-text {
-            background: linear-gradient(90deg, var(--cor-admin), #2d8fff);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
+        /* PERSON TYPE SELECTOR */
+        .person-type-selector { display: flex; gap: 20px; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid var(--cor-borda); }
+        .person-type-btn { flex: 1; padding: 15px; background: var(--cor-fundo); border: 2px solid var(--cor-borda); border-radius: var(--borda-radius-pequeno); cursor: pointer; text-align: center; transition: all 0.3s ease; font-weight: 600; }
+        .person-type-btn i { font-size: 24px; margin-right: 10px; }
+        .person-type-btn.active { border-color: var(--cor-admin); background: rgba(26, 95, 180, 0.1); color: var(--cor-admin); }
 
-        .badge-admin {
-            background: var(--cor-admin);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-left: 10px;
-        }
+        /* FORM ELEMENTS */
+        .form-row { margin-bottom: 20px; }
+        .form-row label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--cor-texto-secundario); }
+        .form-row label i { margin-right: 8px; color: var(--cor-admin); }
+        .form-row label .required { color: var(--cor-perigo); margin-left: 4px; }
+        .form-control { width: 100%; padding: 12px 15px; background: var(--cor-fundo); border: 1px solid var(--cor-borda); border-radius: var(--borda-radius-pequeno); color: var(--cor-texto); font-size: 14px; transition: all 0.3s ease; }
+        .form-control:focus { outline: none; border-color: var(--cor-admin); box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2); }
+        .form-row-duas-colunas { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .form-row-tres-colunas { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
 
-        .page-title {
-            font-size: 20px;
-            font-weight: bold;
-        }
+        /* MOEDAS */
+        .moedas-group { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px; }
+        .moeda-checkbox { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px 20px; background: var(--cor-fundo); border: 1px solid var(--cor-borda); border-radius: var(--borda-radius-pequeno); transition: all 0.3s ease; }
+        .moeda-checkbox:hover { border-color: var(--cor-admin); }
+        .moeda-checkbox.selected { background: var(--cor-admin); border-color: var(--cor-admin); color: white; }
+        .moeda-checkbox input { display: none; }
+        .moeda-simbolo { font-size: 18px; font-weight: bold; }
 
-        .btn-voltar {
-            background: transparent;
-            border: 1px solid var(--cor-borda);
-            color: var(--cor-texto);
-            padding: 10px 20px;
-            border-radius: var(--borda-radius-pequeno);
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
+        /* UBO SECTION */
+        .ubo-section { margin-top: 30px; padding-top: 20px; border-top: 2px solid var(--cor-borda); }
+        .ubo-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .ubo-list { margin-bottom: 15px; }
+        .ubo-card { background: var(--cor-fundo); border: 1px solid var(--cor-borda); border-radius: var(--borda-radius-pequeno); padding: 15px; margin-bottom: 10px; position: relative; }
+        .ubo-card h4 { font-size: 14px; margin-bottom: 10px; }
+        .ubo-card .remove-ubo { position: absolute; top: 10px; right: 10px; background: none; border: none; color: var(--cor-perigo); cursor: pointer; }
+        .btn-add-ubo { background: transparent; border: 1px dashed var(--cor-admin); color: var(--cor-admin); padding: 10px; border-radius: var(--borda-radius-pequeno); cursor: pointer; width: 100%; transition: all 0.3s ease; }
+        .btn-add-ubo:hover { background: rgba(26, 95, 180, 0.1); }
 
-        .btn-voltar:hover {
-            border-color: var(--cor-admin);
-            color: var(--cor-admin);
-            transform: translateY(-2px);
-        }
-
-        /* FORMULÁRIO */
-        .form-container {
-            background: var(--cor-card);
-            border: 1px solid var(--cor-borda);
-            border-radius: var(--borda-radius);
-            padding: 30px;
-        }
-
-        .form-row {
-            margin-bottom: 20px;
-        }
-
-        .form-row label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: var(--cor-texto-secundario);
-        }
-
-        .form-row label i {
-            margin-right: 8px;
-            color: var(--cor-admin);
-        }
-
-        .form-row label .required {
-            color: var(--cor-perigo);
-            margin-left: 4px;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 12px 15px;
-            background: var(--cor-fundo);
-            border: 1px solid var(--cor-borda);
-            border-radius: var(--borda-radius-pequeno);
-            color: var(--cor-texto);
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--cor-admin);
-            box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2);
-        }
-
-        .form-row-duas-colunas {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        .form-row-tres-colunas {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 20px;
-        }
-
-        /* MOEDAS CHECKBOX */
-        .moedas-group {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            margin-top: 10px;
-        }
-
-        .moeda-checkbox {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            padding: 10px 20px;
-            background: var(--cor-fundo);
-            border: 1px solid var(--cor-borda);
-            border-radius: var(--borda-radius-pequeno);
-            transition: all 0.3s ease;
-        }
-
-        .moeda-checkbox:hover {
-            border-color: var(--cor-admin);
-        }
-
-        .moeda-checkbox.selected {
-            background: var(--cor-admin);
-            border-color: var(--cor-admin);
-            color: white;
-        }
-
-        .moeda-checkbox input {
-            display: none;
-        }
-
-        .moeda-simbolo {
-            font-size: 18px;
-            font-weight: bold;
-        }
-
-        /* BOTÕES */
-        .btn-actions {
-            display: flex;
-            gap: 15px;
-            margin-top: 30px;
-        }
-
-        .btn-submit {
-            flex: 1;
-            background: var(--cor-sucesso);
-            color: white;
-            border: none;
-            padding: 14px 24px;
-            border-radius: var(--borda-radius-pequeno);
-            font-weight: 600;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-submit:hover {
-            background: #239b56;
-            transform: translateY(-2px);
-            box-shadow: var(--sombra-suave);
-        }
-
-        .btn-clear {
-            flex: 1;
-            background: var(--cor-alerta);
-            color: white;
-            border: none;
-            padding: 14px 24px;
-            border-radius: var(--borda-radius-pequeno);
-            font-weight: 600;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-clear:hover {
-            background: #e67e22;
-            transform: translateY(-2px);
-        }
+        /* BUTTONS */
+        .btn-actions { display: flex; gap: 15px; margin-top: 30px; }
+        .btn-submit { flex: 1; background: var(--cor-sucesso); color: white; border: none; padding: 14px 24px; border-radius: var(--borda-radius-pequeno); font-weight: 600; font-size: 16px; cursor: pointer; transition: all 0.3s ease; }
+        .btn-submit:hover { background: #239b56; transform: translateY(-2px); box-shadow: var(--sombra-suave); }
+        .btn-clear { flex: 1; background: var(--cor-alerta); color: white; border: none; padding: 14px 24px; border-radius: var(--borda-radius-pequeno); font-weight: 600; font-size: 16px; cursor: pointer; transition: all 0.3s ease; }
+        .btn-clear:hover { background: #e67e22; transform: translateY(-2px); }
 
         /* MODAL */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 1000; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--cor-card); border: 1px solid var(--cor-borda); border-radius: var(--borda-radius); width: 90%; max-width: 500px; }
+        .modal-header { padding: 20px; border-bottom: 1px solid var(--cor-borda); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h3 { color: var(--cor-admin); }
+        .modal-close { background: none; border: none; color: var(--cor-texto-secundario); font-size: 24px; cursor: pointer; }
+        .modal-body { padding: 20px; }
+        .modal-footer { padding: 20px; border-top: 1px solid var(--cor-borda); display: flex; justify-content: flex-end; gap: 10px; }
+        .btn-modal { padding: 10px 20px; border: none; border-radius: var(--borda-radius-pequeno); cursor: pointer; }
+        .btn-modal-primary { background: var(--cor-admin); color: white; }
 
-        .modal.active {
-            display: flex;
-        }
+        .info-card { background: rgba(26, 95, 180, 0.1); border: 1px solid var(--cor-admin); border-radius: var(--borda-radius-pequeno); padding: 15px; margin-bottom: 20px; text-align: center; }
+        .info-card i { margin-right: 8px; }
 
-        .modal-content {
-            background: var(--cor-card);
-            border: 1px solid var(--cor-borda);
-            border-radius: var(--borda-radius);
-            width: 90%;
-            max-width: 450px;
-        }
-
-        .modal-header {
-            padding: 20px;
-            border-bottom: 1px solid var(--cor-borda);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-header h3 {
-            color: var(--cor-admin);
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            color: var(--cor-texto-secundario);
-            font-size: 24px;
-            cursor: pointer;
-        }
-
-        .modal-body {
-            padding: 20px;
-        }
-
-        .modal-footer {
-            padding: 20px;
-            border-top: 1px solid var(--cor-borda);
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-        }
-
-        .btn-modal {
-            padding: 10px 20px;
-            border: none;
-            border-radius: var(--borda-radius-pequeno);
-            cursor: pointer;
-        }
-
-        .btn-modal-primary {
-            background: var(--cor-admin);
-            color: white;
-        }
-
-        .btn-modal-secondary {
-            background: transparent;
-            border: 1px solid var(--cor-borda);
-            color: var(--cor-texto);
-        }
-
-        /* INFO */
-        .info-card {
-            background: rgba(26, 95, 180, 0.1);
-            border: 1px solid var(--cor-admin);
-            border-radius: var(--borda-radius-pequeno);
-            padding: 15px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .info-card i {
-            color: var(--cor-admin);
-            margin-right: 8px;
-        }
-
-        /* RESPONSIVIDADE */
         @media (max-width: 768px) {
-            .form-row-duas-colunas,
-            .form-row-tres-colunas {
-                grid-template-columns: 1fr;
-            }
-            
-            .btn-actions {
-                flex-direction: column;
-            }
+            .form-row-duas-colunas, .form-row-tres-colunas { grid-template-columns: 1fr; }
+            .btn-actions { flex-direction: column; }
+            .person-type-selector { flex-direction: column; gap: 10px; }
         }
     </style>
 </head>
 <body>
-    <div class="app-container">
-        <!-- HEADER -->
-        <header class="app-header">
-            <div class="logo">
-                <i class="fas fa-university"></i>
-                <span class="logo-text">CAMBIO BANK</span>
-                <span class="badge-admin">ADMIN</span>
+<div class="app-container">
+    <header class="app-header">
+        <div class="logo">
+            <i class="fas fa-university"></i>
+            <span class="logo-text">CAMBIO BANK</span>
+            <span class="badge-admin">ADMIN</span>
+        </div>
+        <h1 class="page-title" data-pt="CADASTRAR CLIENTE" data-en="REGISTER CLIENT">CADASTRAR CLIENTE</h1>
+        <div style="display: flex; gap: 10px;">
+            <div class="lang-switch">
+                <button class="lang-btn active" data-lang="pt" onclick="setLanguage('pt')">🇧🇷 PT</button>
+                <button class="lang-btn" data-lang="en" onclick="setLanguage('en')">🇬🇧 EN</button>
             </div>
-            
-            <h1 class="page-title">CADASTRAR CLIENTE</h1>
-            
-            <button id="btnTheme" onclick="toggleTheme()" class="btn-voltar" title="Alternar tema" style="padding:8px 12px;"><i class="fas fa-sun"></i></button>
-            <button id="btnTheme" onclick="toggleTheme()" class="btn-voltar" title="Alternar tema" style="padding:8px 12px;"><i class="fas fa-sun"></i></button>
+            <button id="btnTheme" onclick="toggleTheme()" class="btn-voltar" style="padding:8px 12px;"><i class="fas fa-sun"></i></button>
             <button class="btn-voltar" onclick="window.location.href='/admin/dashboard'">
-                <i class="fas fa-arrow-left"></i> Voltar
+                <i class="fas fa-arrow-left"></i> <span data-pt="Voltar" data-en="Back">Voltar</span>
             </button>
-        </header>
+        </div>
+    </header>
 
-        <!-- FORMULÁRIO -->
-        <div class="form-container">
-            <div class="info-card">
-                <i class="fas fa-info-circle"></i> Preencha os dados abaixo para cadastrar um novo cliente
+    <div class="form-container">
+        <div class="person-type-selector">
+            <div class="person-type-btn active" data-type="individual" onclick="setPersonType('individual')">
+                <i class="fas fa-user"></i> <span data-pt="Pessoa Física" data-en="Individual">Pessoa Física</span>
             </div>
+            <div class="person-type-btn" data-type="corporate" onclick="setPersonType('corporate')">
+                <i class="fas fa-building"></i> <span data-pt="Pessoa Jurídica" data-en="Corporate">Pessoa Jurídica</span>
+            </div>
+        </div>
 
-            <!-- DADOS PESSOAIS -->
+        <!-- INDIVIDUAL FORM (B2C) -->
+        <div id="individualForm">
             <div class="form-row-duas-colunas">
                 <div class="form-row">
-                    <label><i class="fas fa-user"></i> Nome Completo <span class="required">*</span></label>
-                    <input type="text" id="nome" class="form-control" placeholder="Ex: João Silva">
+                    <label><i class="fas fa-user"></i> <span data-pt="Nome Completo" data-en="Full Name">Nome Completo</span> <span class="required">*</span></label>
+                    <input type="text" id="nomeCompleto" class="form-control" placeholder="Ex: João Silva">
                 </div>
                 <div class="form-row">
-                    <label><i class="fas fa-at"></i> Usuário <span class="required">*</span></label>
-                    <input type="text" id="username" class="form-control" placeholder="Ex: joao.silva">
+                    <label><i class="fas fa-at"></i> <span data-pt="Usuário" data-en="Username">Usuário</span> <span class="required">*</span></label>
+                    <input type="text" id="usernameInd" class="form-control" placeholder="Ex: joao.silva">
                 </div>
             </div>
 
             <div class="form-row-duas-colunas">
                 <div class="form-row">
                     <label><i class="fas fa-envelope"></i> Email <span class="required">*</span></label>
-                    <input type="email" id="email" class="form-control" placeholder="Ex: joao@empresa.com">
+                    <input type="email" id="emailInd" class="form-control" placeholder="Ex: joao@email.com">
                 </div>
                 <div class="form-row">
-                    <label><i class="fas fa-phone"></i> Telefone</label>
-                    <input type="text" id="telefone" class="form-control" placeholder="Ex: (11) 99999-9999">
+                    <label><i class="fas fa-phone"></i> <span data-pt="Telefone" data-en="Phone">Telefone</span></label>
+                    <input type="text" id="telefoneInd" class="form-control" placeholder="Ex: 07700 900000">
                 </div>
             </div>
 
             <div class="form-row-duas-colunas">
                 <div class="form-row">
-                    <label><i class="fas fa-lock"></i> Senha <span class="required">*</span></label>
-                    <input type="password" id="senha" class="form-control" placeholder="Mínimo 8 caracteres">
+                    <label><i class="fas fa-passport"></i> <span data-pt="Documento (Passport/BRP/NINO)" data-en="Document (Passport/BRP/NINO)">Documento</span> <span class="required">*</span></label>
+                    <input type="text" id="documentoInd" class="form-control" placeholder="Ex: 123456789">
                 </div>
                 <div class="form-row">
-                    <label><i class="fas fa-lock"></i> Confirmar Senha <span class="required">*</span></label>
-                    <input type="password" id="confirmarSenha" class="form-control" placeholder="Digite a senha novamente">
+                    <label><i class="fas fa-calendar-alt"></i> <span data-pt="Data de Nascimento" data-en="Date of Birth">Data de Nascimento</span></label>
+                    <input type="date" id="dobInd" class="form-control">
                 </div>
             </div>
 
-            <!-- DOCUMENTO -->
-            <div class="form-row">
-                <label><i class="fas fa-id-card"></i> Documento (CPF/CNPJ)</label>
-                <input type="text" id="documento" class="form-control" placeholder="Ex: 12.345.678/0001-90 ou 123.456.789-00">
+            <div class="form-row-duas-colunas">
+                <div class="form-row">
+                    <label><i class="fas fa-lock"></i> <span data-pt="Senha" data-en="Password">Senha</span> <span class="required">*</span></label>
+                    <input type="password" id="senhaInd" class="form-control" placeholder="Mínimo 8 caracteres">
+                </div>
+                <div class="form-row">
+                    <label><i class="fas fa-lock"></i> <span data-pt="Confirmar Senha" data-en="Confirm Password">Confirmar Senha</span> <span class="required">*</span></label>
+                    <input type="password" id="confirmarSenhaInd" class="form-control" placeholder="Digite a senha novamente">
+                </div>
+            </div>
+        </div>
+
+        <!-- CORPORATE FORM (B2B) -->
+        <div id="corporateForm" style="display: none;">
+            <div class="form-row-duas-colunas">
+                <div class="form-row">
+                    <label><i class="fas fa-building"></i> <span data-pt="Razão Social" data-en="Legal Entity Name">Razão Social</span> <span class="required">*</span></label>
+                    <input type="text" id="razaoSocial" class="form-control" placeholder="Ex: Link World Money Ltd">
+                </div>
+                <div class="form-row">
+                    <label><i class="fas fa-trademark"></i> <span data-pt="Nome Fantasia" data-en="Trading Name">Nome Fantasia</span></label>
+                    <input type="text" id="nomeFantasia" class="form-control" placeholder="Ex: Link World Money">
+                </div>
             </div>
 
-            <!-- ENDEREÇO -->
-            <div class="form-row">
-                <label><i class="fas fa-map-marker-alt"></i> Endereço</label>
-                <input type="text" id="endereco" class="form-control" placeholder="Ex: Av. Paulista, 1000">
+            <div class="form-row-duas-colunas">
+                <div class="form-row">
+                    <label><i class="fas fa-at"></i> <span data-pt="Usuário" data-en="Username">Usuário</span> <span class="required">*</span></label>
+                    <input type="text" id="usernameCorp" class="form-control" placeholder="Ex: linkworldmoney">
+                </div>
+                <div class="form-row">
+                    <label><i class="fas fa-envelope"></i> Email <span class="required">*</span></label>
+                    <input type="email" id="emailCorp" class="form-control" placeholder="Ex: compliance@linkworldmoney.com">
+                </div>
             </div>
 
             <div class="form-row-tres-colunas">
                 <div class="form-row">
-                    <label><i class="fas fa-city"></i> Cidade</label>
-                    <input type="text" id="cidade" class="form-control" placeholder="Ex: São Paulo">
+                    <label><i class="fas fa-registered"></i> <span data-pt="Company Registration Number (CRN)" data-en="Company Registration Number (CRN)">CRN</span> <span class="required">*</span></label>
+                    <input type="text" id="crn" class="form-control" placeholder="Ex: 12345678">
                 </div>
                 <div class="form-row">
-                    <label><i class="fas fa-map-pin"></i> Estado</label>
-                    <input type="text" id="estado" class="form-control" placeholder="Ex: SP">
+                    <label><i class="fas fa-file-invoice"></i> <span data-pt="UTR (HMRC)" data-en="UTR (HMRC)">UTR</span></label>
+                    <input type="text" id="utr" class="form-control" placeholder="Ex: 1234567890">
                 </div>
                 <div class="form-row">
-                    <label><i class="fas fa-mail-bulk"></i> CEP</label>
-                    <input type="text" id="cep" class="form-control" placeholder="Ex: 01234-567">
+                    <label><i class="fas fa-chart-line"></i> <span data-pt="VAT Number" data-en="VAT Number">VAT Number</span></label>
+                    <input type="text" id="vat" class="form-control" placeholder="Ex: GB123456789">
+                </div>
+            </div>
+
+            <div class="form-row-duas-colunas">
+                <div class="form-row">
+                    <label><i class="fas fa-calendar-alt"></i> <span data-pt="Data de Incorporação" data-en="Date of Incorporation">Data de Incorporação</span></label>
+                    <input type="date" id="dataIncorporacao" class="form-control">
+                </div>
+                <div class="form-row">
+                    <label><i class="fas fa-pound-sign"></i> <span data-pt="Capital Social (£)" data-en="Share Capital (£)">Capital Social (£)</span></label>
+                    <input type="text" id="capitalSocial" class="form-control" placeholder="Ex: 10000">
+                </div>
+            </div>
+
+            <div class="form-row-duas-colunas">
+                <div class="form-row">
+                    <label><i class="fas fa-phone"></i> <span data-pt="Telefone" data-en="Phone">Telefone</span></label>
+                    <input type="text" id="telefoneCorp" class="form-control" placeholder="Ex: 020 1234 5678">
+                </div>
+                <div class="form-row">
+                    <label><i class="fas fa-globe"></i> <span data-pt="Website" data-en="Website">Website</span></label>
+                    <input type="text" id="website" class="form-control" placeholder="Ex: www.linkworldmoney.com">
+                </div>
+            </div>
+
+            <!-- UBOs SECTION -->
+            <div class="ubo-section">
+                <div class="ubo-header">
+                    <h3><i class="fas fa-users"></i> <span data-pt="Beneficiários Finais (UBO - ≥25%)" data-en="Ultimate Beneficial Owners (≥25%)">Beneficiários Finais (UBO - ≥25%)</span></h3>
+                    <button type="button" class="btn-add-ubo" onclick="adicionarUbo()">
+                        <i class="fas fa-plus"></i> <span data-pt="Adicionar UBO" data-en="Add UBO">Adicionar UBO</span>
+                    </button>
+                </div>
+                <div id="ubosList" class="ubo-list"></div>
+                <small style="color: var(--cor-texto-secundario);" data-pt="Informe todas as pessoas físicas que possuem 25% ou mais da empresa" data-en="List all individuals who own 25% or more of the company">Informe todas as pessoas físicas que possuem 25% ou mais da empresa</small>
+            </div>
+
+            <!-- ENDEREÇO DA EMPRESA -->
+            <div class="form-row">
+                <label><i class="fas fa-map-marker-alt"></i> <span data-pt="Endereço Registrado" data-en="Registered Address">Endereço Registrado</span></label>
+                <input type="text" id="enderecoCorp" class="form-control" placeholder="Ex: Suite 410, Cumberland House, Scrubs Lane, London, NW10 6RF">
+            </div>
+
+            <div class="form-row-duas-colunas">
+                <div class="form-row">
+                    <label><i class="fas fa-city"></i> <span data-pt="Cidade" data-en="City">Cidade</span></label>
+                    <input type="text" id="cidadeCorp" class="form-control" placeholder="Ex: London">
+                </div>
+                <div class="form-row">
+                    <label><i class="fas fa-mail-bulk"></i> <span data-pt="Postcode" data-en="Postcode">Postcode</span></label>
+                    <input type="text" id="postcodeCorp" class="form-control" placeholder="Ex: NW10 6RF">
                 </div>
             </div>
 
             <div class="form-row">
-                <label><i class="fas fa-globe"></i> País</label>
-                <input type="text" id="pais" class="form-control" placeholder="Ex: Brasil" value="Brasil">
+                <label><i class="fas fa-globe"></i> <span data-pt="País de Constituição" data-en="Country of Incorporation">País de Constituição</span></label>
+                <select id="paisCorp" class="form-control">
+                    <option value="GB">🇬🇧 United Kingdom</option>
+                    <option value="US">🇺🇸 United States</option>
+                    <option value="IE">🇮🇪 Ireland</option>
+                    <option value="DE">🇩🇪 Germany</option>
+                    <option value="FR">🇫🇷 France</option>
+                    <option value="NL">🇳🇱 Netherlands</option>
+                    <option value="LU">🇱🇺 Luxembourg</option>
+                </select>
             </div>
 
-            <!-- MOEDAS SELECIONADAS -->
-            <div class="form-row">
-                <label><i class="fas fa-coins"></i> Moedas para as Contas <span class="required">*</span></label>
-                <div class="moedas-group" id="moedasGroup">
-                    <div class="moeda-checkbox" data-moeda="USD" onclick="toggleMoeda(this)">
-                        <span class="moeda-simbolo">$</span>
-                        <span>USD</span>
-                        <input type="checkbox" value="USD">
-                    </div>
-                    <div class="moeda-checkbox" data-moeda="EUR" onclick="toggleMoeda(this)">
-                        <span class="moeda-simbolo">€</span>
-                        <span>EUR</span>
-                        <input type="checkbox" value="EUR">
-                    </div>
-                    <div class="moeda-checkbox" data-moeda="GBP" onclick="toggleMoeda(this)">
-                        <span class="moeda-simbolo">£</span>
-                        <span>GBP</span>
-                        <input type="checkbox" value="GBP">
-                    </div>
-                    <div class="moeda-checkbox" data-moeda="BRL" onclick="toggleMoeda(this)">
-                        <span class="moeda-simbolo">R$</span>
-                        <span>BRL</span>
-                        <input type="checkbox" value="BRL">
-                    </div>
+            <div class="form-row-duas-colunas">
+                <div class="form-row">
+                    <label><i class="fas fa-lock"></i> <span data-pt="Senha" data-en="Password">Senha</span> <span class="required">*</span></label>
+                    <input type="password" id="senhaCorp" class="form-control" placeholder="Mínimo 8 caracteres">
                 </div>
-                <small style="color: var(--cor-texto-secundario);">Selecione pelo menos uma moeda</small>
-            </div>
-
-            <!-- BOTÕES -->
-            <div class="btn-actions">
-                <button class="btn-clear" onclick="limparFormulario()">
-                    <i class="fas fa-eraser"></i> Limpar
-                </button>
-                <button class="btn-submit" onclick="cadastrarCliente()">
-                    <i class="fas fa-user-plus"></i> Cadastrar Cliente
-                </button>
+                <div class="form-row">
+                    <label><i class="fas fa-lock"></i> <span data-pt="Confirmar Senha" data-en="Confirm Password">Confirmar Senha</span> <span class="required">*</span></label>
+                    <input type="password" id="confirmarSenhaCorp" class="form-control" placeholder="Digite a senha novamente">
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- MODAL SUCESSO -->
-    <div id="modalSucesso" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-check-circle"></i> Cliente Cadastrado</h3>
-                <button class="modal-close" onclick="fecharModalSucesso()">&times;</button>
+        <!-- MOEDAS (comum a ambos) -->
+        <div class="form-row" style="margin-top: 20px;">
+            <label><i class="fas fa-coins"></i> <span data-pt="Moedas para as Contas" data-en="Account Currencies">Moedas para as Contas</span> <span class="required">*</span></label>
+            <div class="moedas-group" id="moedasGroup">
+                <div class="moeda-checkbox" data-moeda="USD" onclick="toggleMoeda(this)">
+                    <span class="moeda-simbolo">$</span>
+                    <span>USD</span>
+                    <input type="checkbox" value="USD">
+                </div>
+                <div class="moeda-checkbox" data-moeda="EUR" onclick="toggleMoeda(this)">
+                    <span class="moeda-simbolo">€</span>
+                    <span>EUR</span>
+                    <input type="checkbox" value="EUR">
+                </div>
+                <div class="moeda-checkbox" data-moeda="GBP" onclick="toggleMoeda(this)">
+                    <span class="moeda-simbolo">£</span>
+                    <span>GBP</span>
+                    <input type="checkbox" value="GBP">
+                </div>
+                <div class="moeda-checkbox" data-moeda="BRL" onclick="toggleMoeda(this)">
+                    <span class="moeda-simbolo">R$</span>
+                    <span>BRL</span>
+                    <input type="checkbox" value="BRL">
+                </div>
             </div>
-            <div class="modal-body" id="modalSucessoBody">
-                <!-- Conteúdo dinâmico -->
-            </div>
-            <div class="modal-footer">
-                <button class="btn-modal btn-modal-primary" onclick="fecharModalSucesso()">OK</button>
-            </div>
+            <small style="color: var(--cor-texto-secundario);"><span data-pt="Selecione pelo menos uma moeda" data-en="Select at least one currency">Selecione pelo menos uma moeda</span></small>
+        </div>
+
+        <div class="btn-actions">
+            <button class="btn-clear" onclick="limparFormulario()">
+                <i class="fas fa-eraser"></i> <span data-pt="Limpar" data-en="Clear">Limpar</span>
+            </button>
+            <button class="btn-submit" onclick="cadastrarCliente()">
+                <i class="fas fa-user-plus"></i> <span data-pt="Cadastrar Cliente" data-en="Register Client">Cadastrar Cliente</span>
+            </button>
         </div>
     </div>
+</div>
 
-    <!-- MODAL ERRO -->
-    <div id="modalErro" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-times-circle"></i> Erro</h3>
-                <button class="modal-close" onclick="fecharModalErro()">&times;</button>
-            </div>
-            <div class="modal-body" id="modalErroBody">
-                <!-- Conteúdo dinâmico -->
-            </div>
-            <div class="modal-footer">
-                <button class="btn-modal btn-modal-primary" onclick="fecharModalErro()">OK</button>
-            </div>
+<!-- MODAL SUCESSO -->
+<div id="modalSucesso" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-check-circle"></i> <span data-pt="Cliente Cadastrado" data-en="Client Registered">Cliente Cadastrado</span></h3>
+            <button class="modal-close" onclick="fecharModalSucesso()">&times;</button>
+        </div>
+        <div class="modal-body" id="modalSucessoBody"></div>
+        <div class="modal-footer">
+            <button class="btn-modal btn-modal-primary" onclick="fecharModalSucesso()">OK</button>
         </div>
     </div>
+</div>
 
-    <script src="/static/js/theme.js"></script>
-    <script src="/static/js/conta_search.js"></script>
-    <script>
-        // ============================================
-        // MOEDAS
-        // ============================================
-        function toggleMoeda(element) {
-            const checkbox = element.querySelector('input');
-            checkbox.checked = !checkbox.checked;
-            
-            if (checkbox.checked) {
-                element.classList.add('selected');
-            } else {
-                element.classList.remove('selected');
-            }
+<!-- MODAL ERRO -->
+<div id="modalErro" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-times-circle"></i> <span data-pt="Erro" data-en="Error">Erro</span></h3>
+            <button class="modal-close" onclick="fecharModalErro()">&times;</button>
+        </div>
+        <div class="modal-body" id="modalErroBody"></div>
+        <div class="modal-footer">
+            <button class="btn-modal btn-modal-primary" onclick="fecharModalErro()">OK</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ============================================
+    // VARIÁVEIS GLOBAIS
+    // ============================================
+    let currentPersonType = 'individual';
+    let currentLanguage = 'pt';
+    let uboIdCounter = 0;
+
+    // ============================================
+    // TRADUÇÕES
+    // ============================================
+    function setLanguage(lang) {
+        currentLanguage = lang;
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.lang === lang);
+        });
+        
+        document.querySelectorAll('[data-pt][data-en]').forEach(el => {
+            el.textContent = lang === 'pt' ? el.dataset.pt : el.dataset.en;
+        });
+        
+        updatePlaceholders();
+    }
+
+    function updatePlaceholders() {
+        // Individual form placeholders
+        if (currentLanguage === 'pt') {
+            document.getElementById('nomeCompleto')?.setAttribute('placeholder', 'Ex: João Silva');
+            document.getElementById('usernameInd')?.setAttribute('placeholder', 'Ex: joao.silva');
+            document.getElementById('emailInd')?.setAttribute('placeholder', 'Ex: joao@email.com');
+            document.getElementById('telefoneInd')?.setAttribute('placeholder', 'Ex: 07700 900000');
+            document.getElementById('documentoInd')?.setAttribute('placeholder', 'Ex: 123456789');
+            document.getElementById('senhaInd')?.setAttribute('placeholder', 'Mínimo 8 caracteres');
+            document.getElementById('confirmarSenhaInd')?.setAttribute('placeholder', 'Digite a senha novamente');
+            // Corporate form placeholders
+            document.getElementById('razaoSocial')?.setAttribute('placeholder', 'Ex: Link World Money Ltd');
+            document.getElementById('nomeFantasia')?.setAttribute('placeholder', 'Ex: Link World Money');
+            document.getElementById('usernameCorp')?.setAttribute('placeholder', 'Ex: linkworldmoney');
+            document.getElementById('emailCorp')?.setAttribute('placeholder', 'Ex: compliance@linkworldmoney.com');
+            document.getElementById('crn')?.setAttribute('placeholder', 'Ex: 12345678');
+            document.getElementById('utr')?.setAttribute('placeholder', 'Ex: 1234567890');
+            document.getElementById('vat')?.setAttribute('placeholder', 'Ex: GB123456789');
+            document.getElementById('capitalSocial')?.setAttribute('placeholder', 'Ex: 10000');
+            document.getElementById('telefoneCorp')?.setAttribute('placeholder', 'Ex: 020 1234 5678');
+            document.getElementById('website')?.setAttribute('placeholder', 'Ex: www.linkworldmoney.com');
+            document.getElementById('enderecoCorp')?.setAttribute('placeholder', 'Ex: Suite 410, Cumberland House, Scrubs Lane, London, NW10 6RF');
+            document.getElementById('cidadeCorp')?.setAttribute('placeholder', 'Ex: London');
+            document.getElementById('postcodeCorp')?.setAttribute('placeholder', 'Ex: NW10 6RF');
+            document.getElementById('senhaCorp')?.setAttribute('placeholder', 'Mínimo 8 caracteres');
+            document.getElementById('confirmarSenhaCorp')?.setAttribute('placeholder', 'Digite a senha novamente');
+        } else {
+            document.getElementById('nomeCompleto')?.setAttribute('placeholder', 'Ex: John Smith');
+            document.getElementById('usernameInd')?.setAttribute('placeholder', 'Ex: john.smith');
+            document.getElementById('emailInd')?.setAttribute('placeholder', 'Ex: john@email.com');
+            document.getElementById('telefoneInd')?.setAttribute('placeholder', 'Ex: 07700 900000');
+            document.getElementById('documentoInd')?.setAttribute('placeholder', 'Ex: 123456789');
+            document.getElementById('senhaInd')?.setAttribute('placeholder', 'Minimum 8 characters');
+            document.getElementById('confirmarSenhaInd')?.setAttribute('placeholder', 'Re-enter password');
+            document.getElementById('razaoSocial')?.setAttribute('placeholder', 'Ex: Link World Money Ltd');
+            document.getElementById('nomeFantasia')?.setAttribute('placeholder', 'Ex: Link World Money');
+            document.getElementById('usernameCorp')?.setAttribute('placeholder', 'Ex: linkworldmoney');
+            document.getElementById('emailCorp')?.setAttribute('placeholder', 'Ex: compliance@linkworldmoney.com');
+            document.getElementById('crn')?.setAttribute('placeholder', 'Ex: 12345678');
+            document.getElementById('utr')?.setAttribute('placeholder', 'Ex: 1234567890');
+            document.getElementById('vat')?.setAttribute('placeholder', 'Ex: GB123456789');
+            document.getElementById('capitalSocial')?.setAttribute('placeholder', 'Ex: 10000');
+            document.getElementById('telefoneCorp')?.setAttribute('placeholder', 'Ex: 020 1234 5678');
+            document.getElementById('website')?.setAttribute('placeholder', 'Ex: www.linkworldmoney.com');
+            document.getElementById('enderecoCorp')?.setAttribute('placeholder', 'Ex: Suite 410, Cumberland House, Scrubs Lane, London, NW10 6RF');
+            document.getElementById('cidadeCorp')?.setAttribute('placeholder', 'Ex: London');
+            document.getElementById('postcodeCorp')?.setAttribute('placeholder', 'Ex: NW10 6RF');
+            document.getElementById('senhaCorp')?.setAttribute('placeholder', 'Minimum 8 characters');
+            document.getElementById('confirmarSenhaCorp')?.setAttribute('placeholder', 'Re-enter password');
         }
+    }
 
-        function getMoedasSelecionadas() {
-            const moedas = [];
-            document.querySelectorAll('#moedasGroup .moeda-checkbox input:checked').forEach(cb => {
-                moedas.push(cb.value);
+    // ============================================
+    // PERSON TYPE TOGGLE
+    // ============================================
+    function setPersonType(type) {
+        currentPersonType = type;
+        document.querySelectorAll('.person-type-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.type === type);
+        });
+        
+        document.getElementById('individualForm').style.display = type === 'individual' ? 'block' : 'none';
+        document.getElementById('corporateForm').style.display = type === 'corporate' ? 'block' : 'none';
+    }
+
+    // ============================================
+    // MOEDAS
+    // ============================================
+    function toggleMoeda(element) {
+        const checkbox = element.querySelector('input');
+        checkbox.checked = !checkbox.checked;
+        element.classList.toggle('selected', checkbox.checked);
+    }
+
+    function getMoedasSelecionadas() {
+        const moedas = [];
+        document.querySelectorAll('#moedasGroup .moeda-checkbox input:checked').forEach(cb => {
+            moedas.push(cb.value);
+        });
+        return moedas;
+    }
+
+    // ============================================
+    // UBOS
+    // ============================================
+    function adicionarUbo() {
+        uboIdCounter++;
+        const uboId = uboIdCounter;
+        
+        const uboHtml = `
+            <div class="ubo-card" id="ubo-${uboId}">
+                <button type="button" class="remove-ubo" onclick="removerUbo(${uboId})">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div class="form-row-duas-colunas">
+                    <div class="form-row">
+                        <label><span data-pt="Nome Completo" data-en="Full Name">Nome Completo</span> *</label>
+                        <input type="text" class="form-control ubo-nome" placeholder="Ex: John Smith">
+                    </div>
+                    <div class="form-row">
+                        <label><span data-pt="Participação (%)" data-en="Ownership (%)">Participação (%)</span> *</label>
+                        <input type="number" class="form-control ubo-participacao" step="0.01" placeholder="Ex: 25">
+                    </div>
+                </div>
+                <div class="form-row-tres-colunas">
+                    <div class="form-row">
+                        <label><span data-pt="Data de Nascimento" data-en="Date of Birth">Data de Nascimento</span></label>
+                        <input type="date" class="form-control ubo-data-nascimento">
+                    </div>
+                    <div class="form-row">
+                        <label><span data-pt="Nacionalidade" data-en="Nationality">Nacionalidade</span></label>
+                        <input type="text" class="form-control ubo-nacionalidade" placeholder="Ex: British">
+                    </div>
+                    <div class="form-row">
+                        <label><span data-pt="País de Residência" data-en="Country of Residence">País de Residência</span></label>
+                        <input type="text" class="form-control ubo-pais-residencia" placeholder="Ex: UK">
+                    </div>
+                </div>
+                <div class="form-row-duas-colunas">
+                    <div class="form-row">
+                        <label><span data-pt="Tipo de Documento" data-en="Document Type">Tipo de Documento</span></label>
+                        <select class="form-control ubo-doc-tipo">
+                            <option value="passport">Passport</option>
+                            <option value="driving_licence">Driving Licence</option>
+                            <option value="national_id">National ID Card</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label><span data-pt="Número do Documento" data-en="Document Number">Número do Documento</span></label>
+                        <input type="text" class="form-control ubo-doc-numero">
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('ubosList').insertAdjacentHTML('beforeend', uboHtml);
+        
+        if (currentLanguage === 'en') {
+            updatePlaceholders();
+        }
+    }
+
+    function removerUbo(id) {
+        const element = document.getElementById(`ubo-${id}`);
+        if (element) element.remove();
+    }
+
+    function getUbosData() {
+        const ubos = [];
+        document.querySelectorAll('.ubo-card').forEach(card => {
+            ubos.push({
+                nome: card.querySelector('.ubo-nome')?.value || '',
+                participacao: parseFloat(card.querySelector('.ubo-participacao')?.value) || 0,
+                data_nascimento: card.querySelector('.ubo-data-nascimento')?.value || null,
+                nacionalidade: card.querySelector('.ubo-nacionalidade')?.value || '',
+                pais_residencia: card.querySelector('.ubo-pais-residencia')?.value || '',
+                doc_tipo: card.querySelector('.ubo-doc-tipo')?.value || '',
+                doc_numero: card.querySelector('.ubo-doc-numero')?.value || ''
             });
-            return moedas;
+        });
+        return ubos;
+    }
+
+    // ============================================
+    // VALIDAÇÃO
+    // ============================================
+    function validarFormulario() {
+        const moedas = getMoedasSelecionadas();
+        if (moedas.length === 0) {
+            mostrarErro(currentLanguage === 'pt' 
+                ? 'Selecione pelo menos uma moeda para criar as contas!' 
+                : 'Select at least one currency for the accounts!');
+            return false;
         }
 
-        // ============================================
-        // VALIDAÇÃO
-        // ============================================
-        function validarCampos() {
-            const nome = document.getElementById('nome').value.trim();
-            const username = document.getElementById('username').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const senha = document.getElementById('senha').value;
-            const confirmarSenha = document.getElementById('confirmarSenha').value;
-            const moedas = getMoedasSelecionadas();
-            
+        if (currentPersonType === 'individual') {
+            const nome = document.getElementById('nomeCompleto').value.trim();
+            const username = document.getElementById('usernameInd').value.trim();
+            const email = document.getElementById('emailInd').value.trim();
+            const senha = document.getElementById('senhaInd').value;
+            const confirmar = document.getElementById('confirmarSenhaInd').value;
+            const documento = document.getElementById('documentoInd').value.trim();
+
             if (!nome) {
-                mostrarErro('Informe o nome completo do cliente!');
+                mostrarErro(currentLanguage === 'pt' ? 'Informe o nome completo!' : 'Please enter the full name!');
                 return false;
             }
-            
             if (!username) {
-                mostrarErro('Informe o nome de usuário!');
+                mostrarErro(currentLanguage === 'pt' ? 'Informe o nome de usuário!' : 'Please enter a username!');
                 return false;
             }
-            
-            // Validar username (apenas letras, números, ponto e underscore)
-            const usernameRegex = /^[a-zA-Z0-9._]+$/;
-            if (!usernameRegex.test(username)) {
-                mostrarErro('Usuário inválido! Use apenas letras, números, ponto ou underscore.');
-                return false;
-            }
-            
             if (!email) {
-                mostrarErro('Informe o email do cliente!');
+                mostrarErro(currentLanguage === 'pt' ? 'Informe o email!' : 'Please enter an email!');
                 return false;
             }
-            
-            // Validar email
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                mostrarErro('Email inválido! Use o formato: nome@empresa.com');
+            if (!documento) {
+                mostrarErro(currentLanguage === 'pt' ? 'Informe o documento (Passport/BRP/NINO)!' : 'Please enter the document (Passport/BRP/NINO)!');
                 return false;
             }
-            
             if (!senha) {
-                mostrarErro('Informe uma senha para o cliente!');
+                mostrarErro(currentLanguage === 'pt' ? 'Informe uma senha!' : 'Please enter a password!');
                 return false;
             }
-            
             if (senha.length < 8) {
-                mostrarErro('A senha deve ter no mínimo 8 caracteres!');
+                mostrarErro(currentLanguage === 'pt' ? 'A senha deve ter no mínimo 8 caracteres!' : 'Password must be at least 8 characters!');
                 return false;
             }
-            
-            if (senha !== confirmarSenha) {
-                mostrarErro('As senhas não coincidem!');
+            if (senha !== confirmar) {
+                mostrarErro(currentLanguage === 'pt' ? 'As senhas não coincidem!' : 'Passwords do not match!');
                 return false;
             }
-            
-            if (moedas.length === 0) {
-                mostrarErro('Selecione pelo menos uma moeda para criar as contas!');
+        } else {
+            const razaoSocial = document.getElementById('razaoSocial').value.trim();
+            const username = document.getElementById('usernameCorp').value.trim();
+            const email = document.getElementById('emailCorp').value.trim();
+            const crn = document.getElementById('crn').value.trim();
+            const senha = document.getElementById('senhaCorp').value;
+            const confirmar = document.getElementById('confirmarSenhaCorp').value;
+
+            if (!razaoSocial) {
+                mostrarErro(currentLanguage === 'pt' ? 'Informe a Razão Social!' : 'Please enter the Legal Entity Name!');
                 return false;
             }
-            
-            return true;
+            if (!username) {
+                mostrarErro(currentLanguage === 'pt' ? 'Informe o nome de usuário!' : 'Please enter a username!');
+                return false;
+            }
+            if (!email) {
+                mostrarErro(currentLanguage === 'pt' ? 'Informe o email!' : 'Please enter an email!');
+                return false;
+            }
+            if (!crn) {
+                mostrarErro(currentLanguage === 'pt' ? 'Informe o Company Registration Number (CRN)!' : 'Please enter the Company Registration Number (CRN)!');
+                return false;
+            }
+            if (!senha) {
+                mostrarErro(currentLanguage === 'pt' ? 'Informe uma senha!' : 'Please enter a password!');
+                return false;
+            }
+            if (senha.length < 8) {
+                mostrarErro(currentLanguage === 'pt' ? 'A senha deve ter no mínimo 8 caracteres!' : 'Password must be at least 8 characters!');
+                return false;
+            }
+            if (senha !== confirmar) {
+                mostrarErro(currentLanguage === 'pt' ? 'As senhas não coincidem!' : 'Passwords do not match!');
+                return false;
+            }
+
+            const ubos = getUbosData();
+            const totalParticipacao = ubos.reduce((sum, ubo) => sum + ubo.participacao, 0);
+            if (ubos.length > 0 && totalParticipacao > 100.01) {
+                mostrarErro(currentLanguage === 'pt' 
+                    ? `A soma das participações dos UBOs é ${totalParticipacao}%, não pode ultrapassar 100%!` 
+                    : `Total UBO ownership is ${totalParticipacao}%, cannot exceed 100%!`);
+                return false;
+            }
         }
 
-        // ============================================
-        // CADASTRAR CLIENTE
-        // ============================================
-        async function cadastrarCliente() {
-            if (!validarCampos()) return;
-            
-            const dados = {
-                nome: document.getElementById('nome').value.trim(),
-                username: document.getElementById('username').value.trim(),
-                email: document.getElementById('email').value.trim(),
-                senha: document.getElementById('senha').value,
-                telefone: document.getElementById('telefone').value.trim(),
-                documento: document.getElementById('documento').value.trim(),
-                endereco: document.getElementById('endereco').value.trim(),
-                cidade: document.getElementById('cidade').value.trim(),
-                estado: document.getElementById('estado').value.trim(),
-                cep: document.getElementById('cep').value.trim(),
-                pais: document.getElementById('pais').value.trim() || 'Brasil',
-                moedas: getMoedasSelecionadas()
+        return true;
+    }
+
+    // ============================================
+    // CADASTRAR CLIENTE
+    // ============================================
+    async function cadastrarCliente() {
+        if (!validarFormulario()) return;
+
+        const moedas = getMoedasSelecionadas();
+        let dados = { tipo_pessoa: currentPersonType === 'individual' ? 'F' : 'J', moedas };
+
+        if (currentPersonType === 'individual') {
+            dados = {
+                ...dados,
+                nome: document.getElementById('nomeCompleto').value.trim(),
+                username: document.getElementById('usernameInd').value.trim(),
+                email: document.getElementById('emailInd').value.trim(),
+                senha: document.getElementById('senhaInd').value,
+                telefone: document.getElementById('telefoneInd').value.trim(),
+                documento: document.getElementById('documentoInd').value.trim(),
+                data_nascimento: document.getElementById('dobInd').value || null,
+                endereco: null,
+                cidade: null,
+                estado: null,
+                cep: null,
+                pais: 'GB'
             };
+        } else {
+            dados = {
+                ...dados,
+                razao_social: document.getElementById('razaoSocial').value.trim(),
+                nome_fantasia: document.getElementById('nomeFantasia').value.trim(),
+                username: document.getElementById('usernameCorp').value.trim(),
+                email: document.getElementById('emailCorp').value.trim(),
+                senha: document.getElementById('senhaCorp').value,
+                telefone: document.getElementById('telefoneCorp').value.trim(),
+                crn: document.getElementById('crn').value.trim(),
+                utr: document.getElementById('utr').value.trim(),
+                vat: document.getElementById('vat').value.trim(),
+                data_incorporacao: document.getElementById('dataIncorporacao').value || null,
+                capital_social: document.getElementById('capitalSocial').value.replace(/[^0-9.]/g, '') || null,
+                website: document.getElementById('website').value.trim(),
+                endereco: document.getElementById('enderecoCorp').value.trim(),
+                cidade: document.getElementById('cidadeCorp').value.trim(),
+                postcode: document.getElementById('postcodeCorp').value.trim(),
+                pais_constituicao: document.getElementById('paisCorp').value,
+                ubos: getUbosData()
+            };
+        }
+
+        const btn = document.querySelector('.btn-submit');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + (currentLanguage === 'pt' ? 'Cadastrando...' : 'Registering...');
+        btn.disabled = true;
+
+        try {
+            const response = await fetch('/api/admin/cadastrar-cliente', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dados)
+            });
             
-            // Mostrar loading no botão
-            const btn = document.querySelector('.btn-submit');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cadastrando...';
-            btn.disabled = true;
+            const data = await response.json();
             
-            try {
-                const response = await fetch('/api/admin/cadastrar-cliente', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(dados)
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    const modalBody = document.getElementById('modalSucessoBody');
+            if (data.success) {
+                const modalBody = document.getElementById('modalSucessoBody');
+                if (currentPersonType === 'individual') {
                     modalBody.innerHTML = `
                         <div class="info-card" style="background: rgba(46, 194, 126, 0.1); border-color: var(--cor-sucesso);">
-                            <i class="fas fa-check-circle"></i> Cliente cadastrado com sucesso!
+                            <i class="fas fa-check-circle"></i> ${currentLanguage === 'pt' ? 'Cliente cadastrado com sucesso!' : 'Client registered successfully!'}
                         </div>
-                        <p><strong>Cliente:</strong> ${escapeHtml(dados.nome)}</p>
-                        <p><strong>Usuário:</strong> ${escapeHtml(dados.username)}</p>
+                        <p><strong>${currentLanguage === 'pt' ? 'Cliente' : 'Client'}:</strong> ${escapeHtml(dados.nome)}</p>
+                        <p><strong>${currentLanguage === 'pt' ? 'Usuário' : 'Username'}:</strong> ${escapeHtml(dados.username)}</p>
                         <p><strong>Email:</strong> ${escapeHtml(dados.email)}</p>
-                        <p><strong>Moedas:</strong> ${dados.moedas.join(', ')}</p>
-                        <p style="color: var(--cor-sucesso); margin-top: 10px;">✅ Contas criadas com saldo zero</p>
-                        <p style="color: var(--cor-alerta);">⚠️ Câmbio desabilitado - Ative na tela de Cotações Moedas</p>
+                        <p><strong>${currentLanguage === 'pt' ? 'Moedas' : 'Currencies'}:</strong> ${dados.moedas.join(', ')}</p>
+                        <p style="color: var(--cor-sucesso); margin-top: 10px;">✅ ${currentLanguage === 'pt' ? 'Contas criadas com saldo zero' : 'Accounts created with zero balance'}</p>
+                        <p style="color: var(--cor-alerta);">⚠️ ${currentLanguage === 'pt' ? 'Câmbio desabilitado - Ative na tela de Cotações Moedas' : 'FX trading disabled - Enable in FX Rates page'}</p>
                     `;
-                    document.getElementById('modalSucesso').classList.add('active');
-                    limparFormulario();
                 } else {
-                    mostrarErro(data.message || 'Erro ao cadastrar cliente!');
+                    modalBody.innerHTML = `
+                        <div class="info-card" style="background: rgba(46, 194, 126, 0.1); border-color: var(--cor-sucesso);">
+                            <i class="fas fa-check-circle"></i> ${currentLanguage === 'pt' ? 'Empresa cadastrada com sucesso!' : 'Company registered successfully!'}
+                        </div>
+                        <p><strong>${currentLanguage === 'pt' ? 'Razão Social' : 'Legal Entity'}:</strong> ${escapeHtml(dados.razao_social)}</p>
+                        <p><strong>${currentLanguage === 'pt' ? 'Usuário' : 'Username'}:</strong> ${escapeHtml(dados.username)}</p>
+                        <p><strong>CRN:</strong> ${escapeHtml(dados.crn)}</p>
+                        <p><strong>${currentLanguage === 'pt' ? 'Moedas' : 'Currencies'}:</strong> ${dados.moedas.join(', ')}</p>
+                        <p><strong>${currentLanguage === 'pt' ? 'UBOs cadastrados' : 'UBOs registered'}:</strong> ${dados.ubos.length}</p>
+                        <p style="color: var(--cor-sucesso); margin-top: 10px;">✅ ${currentLanguage === 'pt' ? 'Contas criadas com saldo zero' : 'Accounts created with zero balance'}</p>
+                        <p style="color: var(--cor-alerta);">⚠️ ${currentLanguage === 'pt' ? 'Câmbio desabilitado - Ative na tela de Cotações Moedas' : 'FX trading disabled - Enable in FX Rates page'}</p>
+                    `;
                 }
-            } catch (error) {
-                console.error('Erro:', error);
-                mostrarErro('Erro ao conectar com o servidor!');
-            } finally {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
+                document.getElementById('modalSucesso').classList.add('active');
+                limparFormulario();
+            } else {
+                mostrarErro(data.message || (currentLanguage === 'pt' ? 'Erro ao cadastrar cliente!' : 'Error registering client!'));
             }
+        } catch (error) {
+            console.error('Erro:', error);
+            mostrarErro(currentLanguage === 'pt' ? 'Erro ao conectar com o servidor!' : 'Error connecting to server!');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
         }
+    }
 
-        // ============================================
-        // LIMPAR FORMULÁRIO
-        // ============================================
-        function limparFormulario() {
-            document.getElementById('nome').value = '';
-            document.getElementById('username').value = '';
-            document.getElementById('email').value = '';
-            document.getElementById('senha').value = '';
-            document.getElementById('confirmarSenha').value = '';
-            document.getElementById('telefone').value = '';
-            document.getElementById('documento').value = '';
-            document.getElementById('endereco').value = '';
-            document.getElementById('cidade').value = '';
-            document.getElementById('estado').value = '';
-            document.getElementById('cep').value = '';
-            document.getElementById('pais').value = 'Brasil';
-            
-            // Resetar moedas
-            document.querySelectorAll('#moedasGroup .moeda-checkbox').forEach(el => {
-                const checkbox = el.querySelector('input');
-                checkbox.checked = false;
-                el.classList.remove('selected');
-            });
-        }
+    // ============================================
+    // LIMPAR FORMULÁRIO
+    // ============================================
+    function limparFormulario() {
+        // Individual
+        document.getElementById('nomeCompleto').value = '';
+        document.getElementById('usernameInd').value = '';
+        document.getElementById('emailInd').value = '';
+        document.getElementById('senhaInd').value = '';
+        document.getElementById('confirmarSenhaInd').value = '';
+        document.getElementById('telefoneInd').value = '';
+        document.getElementById('documentoInd').value = '';
+        document.getElementById('dobInd').value = '';
+        
+        // Corporate
+        document.getElementById('razaoSocial').value = '';
+        document.getElementById('nomeFantasia').value = '';
+        document.getElementById('usernameCorp').value = '';
+        document.getElementById('emailCorp').value = '';
+        document.getElementById('senhaCorp').value = '';
+        document.getElementById('confirmarSenhaCorp').value = '';
+        document.getElementById('telefoneCorp').value = '';
+        document.getElementById('crn').value = '';
+        document.getElementById('utr').value = '';
+        document.getElementById('vat').value = '';
+        document.getElementById('dataIncorporacao').value = '';
+        document.getElementById('capitalSocial').value = '';
+        document.getElementById('website').value = '';
+        document.getElementById('enderecoCorp').value = '';
+        document.getElementById('cidadeCorp').value = '';
+        document.getElementById('postcodeCorp').value = '';
+        document.getElementById('paisCorp').value = 'GB';
+        
+        // UBOs
+        document.getElementById('ubosList').innerHTML = '';
+        uboIdCounter = 0;
+        
+        // Moedas
+        document.querySelectorAll('#moedasGroup .moeda-checkbox').forEach(el => {
+            const checkbox = el.querySelector('input');
+            checkbox.checked = false;
+            el.classList.remove('selected');
+        });
+    }
 
-        // ============================================
-        // MODAIS
-        // ============================================
-        function fecharModalSucesso() {
-            document.getElementById('modalSucesso').classList.remove('active');
-            window.location.href = '/admin/dashboard';
-        }
+    // ============================================
+    // MODAIS
+    // ============================================
+    function fecharModalSucesso() {
+        document.getElementById('modalSucesso').classList.remove('active');
+        window.location.href = '/admin/dashboard';
+    }
 
-        function fecharModalErro() {
-            document.getElementById('modalErro').classList.remove('active');
-        }
+    function fecharModalErro() {
+        document.getElementById('modalErro').classList.remove('active');
+    }
 
-        function mostrarErro(mensagem) {
-            const modalBody = document.getElementById('modalErroBody');
-            modalBody.innerHTML = `<div class="info-card" style="background: rgba(224, 27, 36, 0.1); border-color: var(--cor-perigo);">${escapeHtml(mensagem)}</div>`;
-            document.getElementById('modalErro').classList.add('active');
-        }
+    function mostrarErro(mensagem) {
+        const modalBody = document.getElementById('modalErroBody');
+        modalBody.innerHTML = `<div class="info-card" style="background: rgba(224, 27, 36, 0.1); border-color: var(--cor-perigo);">${escapeHtml(mensagem)}</div>`;
+        document.getElementById('modalErro').classList.add('active');
+    }
 
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-    </script>
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+</script>
+<script src="/static/js/theme.js"></script>
 </body>
 </html>

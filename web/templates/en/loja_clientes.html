@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cambio Bank — Clientes</title>
+    <title>Cambio Bank — Customers</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/theme.css">
     <style>
@@ -96,78 +96,74 @@
             <div class="logo">
                 <i class="fas fa-university"></i>
                 <span class="logo-text">Cambio Bank</span>
-                <span style="color:var(--muted);font-size:14px;font-weight:400;">/ Clientes</span>
+                <span style="color:var(--muted);font-size:14px;font-weight:400;">/ Customers</span>
             </div>
-            
-            <!-- SELETOR DE IDIOMA -->
             <div class="lang-switch">
                 <a href="/language/pt" class="lang-btn {% if current_lang == 'pt' %}active{% endif %}">PT</a>
                 <a href="/language/en" class="lang-btn {% if current_lang == 'en' %}active{% endif %}">EN</a>
             </div>
         </div>
-        
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <a href="/loja/dashboard" class="btn btn-ghost btn-sm"><i class="fas fa-arrow-left"></i> Voltar</a>
-            <button class="btn btn-primary" onclick="abrirModalNovo()"><i class="fas fa-user-plus"></i> Novo Cliente</button>
+            <a href="/loja/dashboard" class="btn btn-ghost btn-sm"><i class="fas fa-arrow-left"></i> Back</a>
+            <button class="btn btn-primary" onclick="abrirModalNovo()"><i class="fas fa-user-plus"></i> New Customer</button>
         </div>
     </div>
 
-    <!-- Search -->
     <div class="search-bar">
-        <input type="text" id="searchInput" class="search-input" placeholder="Buscar por nome, documento, telefone ou email..." oninput="buscarClientes()">
-        <button class="btn btn-ghost" onclick="buscarClientes()"><i class="fas fa-search"></i> Buscar</button>
+        <input type="text" id="searchInput" class="search-input" placeholder="Search by name, document, phone or email..." oninput="buscarClientes()">
+        <button class="btn btn-ghost" onclick="buscarClientes()"><i class="fas fa-search"></i> Search</button>
     </div>
 
-    <!-- Tabela de clientes -->
+    <!-- Customer Table -->
     <div class="section">
         <div class="section-hd">
-            <h3><i class="fas fa-users"></i> Clientes Cadastrados</h3>
+            <h3><i class="fas fa-users"></i> Registered Customers</h3>
             <span id="totalClientes" style="font-size:12px;color:var(--muted);">—</span>
         </div>
         <div class="table-wrap">
             <table>
                 <thead>
                     <tr>
-                        <th>Nome</th>
-                        <th>Documento</th>
-                        <th>Telefone</th>
-                        <th>País</th>
+                        <th>Name</th>
+                        <th>Document</th>
+                        <th>Phone</th>
+                        <th>Country</th>
                         <th>KYC Docs</th>
-                        <th>Risco</th>
+                        <th>Risk</th>
                         <th>90d (GBP)</th>
                         <th>Flags</th>
                         <th></th>
                     </tr>
                 </thead>
                 <tbody id="tbClientes">
-                    <tr><td colspan="9" class="no-data"><i class="fas fa-spinner fa-spin"></i> Carregando...</td></tr>
+                    <tr><td colspan="9" class="no-data"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
 
-<!-- Modal: Novo/Editar Cliente -->
+<!-- Modal: New/Edit Customer -->
 <div class="modal-overlay" id="modalCliente">
     <div class="modal">
         <div class="modal-hd">
-            <h3 id="modalClienteTitulo"><i class="fas fa-user-plus"></i> Novo Cliente</h3>
+            <h3 id="modalClienteTitulo"><i class="fas fa-user-plus"></i> New Customer</h3>
             <button class="close-btn" onclick="fecharModal('modalCliente')"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body" style="padding:20px;">
             <input type="hidden" id="clienteId">
-            <p class="section-label">Dados Pessoais</p>
+            <p class="section-label">Personal Details</p>
             <div class="form-grid">
                 <div class="form-group form-full">
-                    <label>Nome Completo *</label>
-                    <input type="text" id="cNome" class="form-control" placeholder="Nome completo">
+                    <label>Full Name *</label>
+                    <input type="text" id="cNome" class="form-control" placeholder="Full name">
                 </div>
                 <div class="form-group">
-                    <label>Data de Nascimento</label>
+                    <label>Date of Birth</label>
                     <input type="date" id="cDob" class="form-control">
                 </div>
                 <div class="form-group">
-                    <label>Telefone</label>
+                    <label>Phone</label>
                     <input type="text" id="cTelefone" class="form-control" placeholder="+44 7xxx xxxxxx">
                 </div>
                 <div class="form-group">
@@ -175,35 +171,35 @@
                     <input type="email" id="cEmail" class="form-control">
                 </div>
                 <div class="form-group">
-                    <label>Profissão</label>
+                    <label>Profession</label>
                     <input type="text" id="cProfissao" class="form-control">
                 </div>
                 <div class="form-group">
-                    <label>Nacionalidade</label>
+                    <label>Nationality</label>
                     <div id="nat-wrap-cNacionalidade"></div>
                     <input type="hidden" id="cNacionalidade">
                 </div>
                 <div class="form-group">
-                    <label>País de Residência</label>
+                    <label>Country of Residence</label>
                     <select id="cPais" class="form-control" onchange="onPaisChange()">
-                        <option value="GB">Reino Unido (GB)</option>
-                        <option value="BR">Brasil (BR)</option>
+                        <option value="GB">United Kingdom (GB)</option>
+                        <option value="BR">Brazil (BR)</option>
                         <option value="PT">Portugal (PT)</option>
-                        <option value="US">Estados Unidos (US)</option>
-                        <option value="DE">Alemanha (DE)</option>
-                        <option value="FR">França (FR)</option>
-                        <option value="IT">Itália (IT)</option>
-                        <option value="ES">Espanha (ES)</option>
-                        <option value="OTHER">Outro...</option>
+                        <option value="US">United States (US)</option>
+                        <option value="DE">Germany (DE)</option>
+                        <option value="FR">France (FR)</option>
+                        <option value="IT">Italy (IT)</option>
+                        <option value="ES">Spain (ES)</option>
+                        <option value="OTHER">Other...</option>
                     </select>
-                    <input type="text" id="cPaisOutro" class="form-control" placeholder="Nome do país" style="display:none;margin-top:6px;">
+                    <input type="text" id="cPaisOutro" class="form-control" placeholder="Country name" style="display:none;margin-top:6px;">
                 </div>
                 <div class="form-group">
-                    <label>Endereço (Linha 1)</label>
-                    <input type="text" id="cEndereco" class="form-control" placeholder="Número, rua">
+                    <label>Address (Line 1)</label>
+                    <input type="text" id="cEndereco" class="form-control" placeholder="Street, number">
                 </div>
                 <div class="form-group">
-                    <label>Cidade</label>
+                    <label>City</label>
                     <input type="text" id="cCidade" class="form-control" placeholder="London">
                 </div>
                 <div class="form-group">
@@ -212,13 +208,13 @@
                 </div>
             </div>
 
-            <!-- Documento de Identidade -->
-            <p class="section-label">Documento de Identidade</p>
+            <!-- Identity Document -->
+            <p class="section-label">Identity Document</p>
             <div class="form-grid">
                 <div class="form-group">
-                    <label>Tipo de Documento</label>
+                    <label>Document Type</label>
                     <select id="cTipoDoc" class="form-control">
-                        <option value="">Selecionar...</option>
+                        <option value="">Select...</option>
                         <option value="uk_driving_license">UK Driving Licence</option>
                         <option value="uk_provisional">UK Provisional Licence</option>
                         <option value="passport_eu">EU/Non-UK Passport + UK Visa</option>
@@ -226,24 +222,24 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Número do Documento</label>
-                    <input type="text" id="cDocumento" class="form-control" placeholder="Número">
+                    <label>Document Number</label>
+                    <input type="text" id="cDocumento" class="form-control" placeholder="Number">
                 </div>
-                <!-- 🔥 NOVOS CAMPOS 🔥 -->
+                <!-- 🔥 NEW FIELDS 🔥 -->
                 <div class="form-group">
-                    <label>Data de Validade do Documento *</label>
+                    <label>Document Expiry Date *</label>
                     <input type="date" id="cDocValidade" class="form-control">
-                    <small style="font-size:10px; color:var(--muted);">Documento vence nesta data</small>
+                    <small style="font-size:10px; color:var(--muted);">Document expires on this date</small>
                 </div>
             </div>
 
-            <!-- COMPROVANTE DE ENDEREÇO -->
-            <p class="section-label">Comprovante de Endereço</p>
+            <!-- PROOF OF ADDRESS -->
+            <p class="section-label">Proof of Address</p>
             <div class="form-grid">
                 <div class="form-group">
-                    <label>Tipo de Comprovante *</label>
+                    <label>Document Type *</label>
                     <select id="cAddrTipo" class="form-control" onchange="onAddrTipoChange()">
-                        <option value="">Selecionar...</option>
+                        <option value="">Select...</option>
                         <option value="bank_statement">Bank Statement</option>
                         <option value="council_tax">Council Tax Bill</option>
                         <option value="utility_bill">Utility Bill (Gas/Electric/Water)</option>
@@ -252,93 +248,93 @@
                         <option value="tenancy_agreement">Tenancy Agreement</option>
                         <option value="mortgage_statement">Mortgage Statement</option>
                         <option value="gp_letter">GP / NHS Letter</option>
-                        <option value="other">Outro...</option>
+                        <option value="other">Other...</option>
                     </select>
                 </div>
                 <div class="form-group" id="cAddrTipoOutroGroup" style="display:none;">
-                    <label>Especificar tipo</label>
-                    <input type="text" id="cAddrTipoOutro" class="form-control" placeholder="Descreva o tipo de comprovante">
+                    <label>Specify type</label>
+                    <input type="text" id="cAddrTipoOutro" class="form-control" placeholder="Describe the document type">
                 </div>
                 <div class="form-group">
-                    <label>Número / Referência do Documento</label>
-                    <input type="text" id="cAddrNumero" class="form-control" placeholder="Ex: número da conta, ref. da fatura">
+                    <label>Document Number / Reference</label>
+                    <input type="text" id="cAddrNumero" class="form-control" placeholder="Ex: account number, invoice ref">
                 </div>
                 <div class="form-group">
-                    <label>Data de Emissão do Comprovante *</label>
+                    <label>Document Issue Date *</label>
                     <input type="date" id="cAddrData" class="form-control">
-                    <small style="font-size:10px; color:var(--muted);">Deve ter no máximo 3 meses</small>
+                    <small style="font-size:10px; color:var(--muted);">Must be within 3 months</small>
                 </div>
                 <div class="form-group">
-                    <label>Válido até</label>
+                    <label>Valid until</label>
                     <div id="cAddrValidadeMsg" style="font-size:12px; padding:10px; background:rgba(128,128,128,.08); border-radius:6px;">
-                        <span style="color:var(--muted);">Selecione uma data</span>
+                        <span style="color:var(--muted);">Select a date</span>
                     </div>
                 </div>
             </div>
 
-            <p class="section-label">Flags AML</p>
+            <p class="section-label">AML Flags</p>
             <div class="form-grid">
                 <div class="form-group">
                     <label>PEP (Politically Exposed Person)</label>
                     <select id="cPepFlag" class="form-control">
-                        <option value="false">Não</option>
-                        <option value="true">Sim — PEP identificado</option>
+                        <option value="false">No</option>
+                        <option value="true">Yes — PEP identified</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Nível de Risco</label>
+                    <label>Risk Level</label>
                     <select id="cRiskScore" class="form-control">
-                        <option value="medium">Médio (padrão)</option>
-                        <option value="high">Alto</option>
+                        <option value="medium">Medium (default)</option>
+                        <option value="high">High</option>
                     </select>
                 </div>
                 <div class="form-group form-full">
-                    <label>Info PEP / Observações</label>
-                    <input type="text" id="cPepInfo" class="form-control" placeholder="Descrição se PEP ou observações gerais">
+                    <label>PEP Info / Observations</label>
+                    <input type="text" id="cPepInfo" class="form-control" placeholder="Description if PEP or general observations">
                 </div>
             </div>
 
-            <!-- BENEFICIÁRIO -->
-            <p class="section-label" style="margin-top:16px;">Beneficiário <span style="font-weight:400;font-size:11px;color:var(--cor-texto-secundario);">(opcional)</span></p>
+            <!-- BENEFICIARY -->
+            <p class="section-label" style="margin-top:16px;">Beneficiary <span style="font-weight:400;font-size:11px;color:var(--cor-texto-secundario);">(optional)</span></p>
             <div class="form-grid">
                 <div class="form-group">
-                    <label>Tipo de Destino</label>
+                    <label>Destination Type</label>
                     <select id="nc-benef-tipo" class="form-control" onchange="onNcBenefTipoChange()">
-                        <option value="">Sem beneficiário agora</option>
-                        <option value="brazil">🇧🇷 Brasil (BRL)</option>
-                        <option value="europe">🇪🇺 Europa (EUR/SEPA)</option>
+                        <option value="">No beneficiary now</option>
+                        <option value="brazil">🇧🇷 Brazil (BRL)</option>
+                        <option value="europe">🇪🇺 Europe (EUR/SEPA)</option>
                         <option value="usa">🇺🇸 USA (USD/SWIFT)</option>
                     </select>
                 </div>
             </div>
             <div id="nc-benef-fields" style="display:none;">
             <div class="form-grid">
-                <div class="form-group"><label>Nome do Beneficiário *</label><input id="nc-benef-nome" type="text" class="form-control" placeholder="Nome completo"></div>
-                <div class="form-group"><label>Apelido / Referência</label><input id="nc-benef-apelido" type="text" class="form-control" placeholder="Ex: Conta Principal"></div>
-                <div class="form-group"><label>Relacionamento</label>
+                <div class="form-group"><label>Beneficiary Name *</label><input id="nc-benef-nome" type="text" class="form-control" placeholder="Full name"></div>
+                <div class="form-group"><label>Nickname / Reference</label><input id="nc-benef-apelido" type="text" class="form-control" placeholder="Ex: Main Account"></div>
+                <div class="form-group"><label>Relationship</label>
                     <select id="nc-benef-rel" class="form-control">
                         <option value="">—</option>
-                        <option value="self">Própria conta</option>
-                        <option value="spouse">Cônjuge</option>
-                        <option value="parent">Pai/Mãe</option>
-                        <option value="child">Filho/a</option>
-                        <option value="sibling">Irmão/ã</option>
-                        <option value="friend">Amigo/a</option>
-                        <option value="business">Negócio</option>
-                        <option value="other">Outro</option>
+                        <option value="self">Own account</option>
+                        <option value="spouse">Spouse</option>
+                        <option value="parent">Parent</option>
+                        <option value="child">Child</option>
+                        <option value="sibling">Sibling</option>
+                        <option value="friend">Friend</option>
+                        <option value="business">Business</option>
+                        <option value="other">Other</option>
                     </select>
                 </div>
             </div>
-            <!-- Endereço do beneficiário -->
+            <!-- Beneficiary Address -->
             <div class="form-grid">
-                <div class="form-group"><label>Endereço Linha 1</label><input id="nc-end1" type="text" class="form-control" placeholder="Número, rua"></div>
-                <div class="form-group"><label>Endereço Linha 2</label><input id="nc-end2" type="text" class="form-control" placeholder="Complemento, bairro"></div>
-                <div class="form-group"><label>Cidade</label><input id="nc-cidade" type="text" class="form-control"></div>
-                <div class="form-group"><label>CEP / Postcode</label><input id="nc-postcode" type="text" class="form-control" onblur="if(document.getElementById('nc-benef-tipo').value==='brazil') buscarCep(this.value,{cidade:'nc-cidade',estado:'nc-estado-br',end1:'nc-end1',end2:'nc-end2',pais:'nc-pais-benef'})"></div>
+                <div class="form-group"><label>Address Line 1</label><input id="nc-end1" type="text" class="form-control" placeholder="Street, number"></div>
+                <div class="form-group"><label>Address Line 2</label><input id="nc-end2" type="text" class="form-control" placeholder="Complement, neighborhood"></div>
+                <div class="form-group"><label>City</label><input id="nc-cidade" type="text" class="form-control"></div>
+                <div class="form-group"><label>Postcode / ZIP</label><input id="nc-postcode" type="text" class="form-control" onblur="if(document.getElementById('nc-benef-tipo').value==='brazil') buscarCep(this.value,{cidade:'nc-cidade',estado:'nc-estado-br',end1:'nc-end1',end2:'nc-end2',pais:'nc-pais-benef'})"></div>
                 <div class="form-group" id="nc-estado-br-group" style="display:none;">
-                    <label>Estado (UF)</label>
+                    <label>State</label>
                     <select id="nc-estado-br" class="form-control">
-                        <option value="">Selecione...</option>
+                        <option value="">Select...</option>
                         <option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option>
                         <option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option>
                         <option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option>
@@ -347,15 +343,15 @@
                         <option>SE</option><option>TO</option>
                     </select>
                 </div>
-                <div class="form-group form-full"><label>País</label><input id="nc-pais-benef" type="text" class="form-control" placeholder="ex: Brasil, Portugal, UK"></div>
+                <div class="form-group form-full"><label>Country</label><input id="nc-pais-benef" type="text" class="form-control" placeholder="ex: Brazil, Portugal, UK"></div>
             </div>
-            <!-- Brasil -->
+            <!-- Brazil -->
             <div id="nc-sec-brazil" style="display:none;">
                 <div class="form-grid">
-                    <div class="form-group"><label>CPF / CNPJ</label><input id="nc-cpf" type="text" class="form-control" placeholder="000.000.000-00 ou 00.000.000/0001-00" onblur="onCpfCnpjBlur(this)"></div>
-                    <div class="form-group"><label>Banco</label>
+                    <div class="form-group"><label>CPF / CNPJ</label><input id="nc-cpf" type="text" class="form-control" placeholder="000.000.000-00 or 00.000.000/0001-00" onblur="onCpfCnpjBlur(this)"></div>
+                    <div class="form-group"><label>Bank</label>
                         <select id="nc-banco-sel" class="form-control" onchange="onBancoChange('nc')">
-                            <option value="">Selecione...</option>
+                            <option value="">Select...</option>
                             <option value="001|Banco do Brasil">001 — Banco do Brasil</option>
                             <option value="212|Banco Original">212 — Banco Original</option>
                             <option value="021|Banestes">021 — Banestes</option>
@@ -376,33 +372,33 @@
                             <option value="756|Sicoob">756 — Sicoob</option>
                             <option value="748|Sicredi">748 — Sicredi</option>
                             <option value="655|Votorantim (Neon)">655 — Votorantim (Neon)</option>
-                            <option value="outro|">Outro Banco</option>
+                            <option value="outro|">Other Bank</option>
                         </select>
                     </div>
-                    <div class="form-group" id="nc-banco-outro-group" style="display:none;"><label>Nome do Banco</label><input id="nc-banco" type="text" class="form-control" placeholder="Nome do banco"></div>
-                    <div class="form-group"><label>Agência</label><input id="nc-agencia" type="text" class="form-control" placeholder="0001"></div>
-                    <div class="form-group"><label>Conta</label><input id="nc-conta" type="text" class="form-control" placeholder="12345-6"></div>
-                    <div class="form-group"><label>Tipo Conta</label>
-                        <select id="nc-tipo-conta" class="form-control"><option value="corrente">Corrente</option><option value="poupanca">Poupança</option></select>
+                    <div class="form-group" id="nc-banco-outro-group" style="display:none;"><label>Bank Name</label><input id="nc-banco" type="text" class="form-control" placeholder="Bank name"></div>
+                    <div class="form-group"><label>Branch</label><input id="nc-agencia" type="text" class="form-control" placeholder="0001"></div>
+                    <div class="form-group"><label>Account</label><input id="nc-conta" type="text" class="form-control" placeholder="12345-6"></div>
+                    <div class="form-group"><label>Account Type</label>
+                        <select id="nc-tipo-conta" class="form-control"><option value="corrente">Current</option><option value="poupanca">Savings</option></select>
                     </div>
-                    <div class="form-group"><label>Chave PIX</label><input id="nc-pix" type="text" class="form-control" placeholder="CPF, email, tel ou aleatória"></div>
-                    <div class="form-group"><label>Tipo PIX</label>
-                        <select id="nc-pix-tipo" class="form-control"><option value="">—</option><option value="cpf">CPF</option><option value="email">Email</option><option value="telefone">Telefone</option><option value="aleatoria">Aleatória</option></select>
+                    <div class="form-group"><label>PIX Key</label><input id="nc-pix" type="text" class="form-control" placeholder="CPF, email, phone or random"></div>
+                    <div class="form-group"><label>PIX Type</label>
+                        <select id="nc-pix-tipo" class="form-control"><option value="">—</option><option value="cpf">CPF</option><option value="email">Email</option><option value="telefone">Phone</option><option value="aleatoria">Random</option></select>
                     </div>
                 </div>
             </div>
-            <!-- Europa -->
+            <!-- Europe -->
             <div id="nc-sec-europe" style="display:none;">
                 <div class="form-grid">
                     <div class="form-group form-full"><label>IBAN *</label><input id="nc-iban" type="text" class="form-control" placeholder="GB29 NWBK 6016 1331 9268 19"></div>
                     <div class="form-group"><label>BIC / SWIFT</label><input id="nc-bic" type="text" class="form-control" placeholder="NWBKGB2L"></div>
-                    <div class="form-group"><label>Banco</label><input id="nc-banco-eu" type="text" class="form-control"></div>
-                    <div class="form-group"><label>País do Banco</label><input id="nc-pais-eu" type="text" class="form-control" placeholder="DE, FR, PT…"></div>
-                    <div class="form-group"><label>Endereço Linha 1</label><input id="nc-eu-end1" type="text" class="form-control" placeholder="Número, rua"></div>
-                    <div class="form-group"><label>Endereço Linha 2</label><input id="nc-eu-end2" type="text" class="form-control" placeholder="Complemento, bairro"></div>
-                    <div class="form-group"><label>Cidade</label><input id="nc-eu-cidade" type="text" class="form-control"></div>
-                    <div class="form-group"><label>CEP / Postcode</label><input id="nc-eu-postcode" type="text" class="form-control"></div>
-                    <div class="form-group form-full"><label>País</label><input id="nc-eu-pais" type="text" class="form-control" placeholder="ex: Alemanha, França, Portugal"></div>
+                    <div class="form-group"><label>Bank</label><input id="nc-banco-eu" type="text" class="form-control"></div>
+                    <div class="form-group"><label>Bank Country</label><input id="nc-pais-eu" type="text" class="form-control" placeholder="DE, FR, PT…"></div>
+                    <div class="form-group"><label>Address Line 1</label><input id="nc-eu-end1" type="text" class="form-control" placeholder="Street, number"></div>
+                    <div class="form-group"><label>Address Line 2</label><input id="nc-eu-end2" type="text" class="form-control" placeholder="Complement, neighborhood"></div>
+                    <div class="form-group"><label>City</label><input id="nc-eu-cidade" type="text" class="form-control"></div>
+                    <div class="form-group"><label>Postcode / ZIP</label><input id="nc-eu-postcode" type="text" class="form-control"></div>
+                    <div class="form-group form-full"><label>Country</label><input id="nc-eu-pais" type="text" class="form-control" placeholder="ex: Germany, France, Portugal"></div>
                 </div>
             </div>
             <!-- USA -->
@@ -410,7 +406,7 @@
                 <div class="form-grid">
                     <div class="form-group"><label>Routing Number</label><input id="nc-routing" type="text" class="form-control" placeholder="021000021"></div>
                     <div class="form-group"><label>Account Number</label><input id="nc-account" type="text" class="form-control" placeholder="000123456789"></div>
-                    <div class="form-group"><label>Tipo Conta</label>
+                    <div class="form-group"><label>Account Type</label>
                         <select id="nc-account-tipo" class="form-control"><option value="checking">Checking</option><option value="savings">Savings</option></select>
                     </div>
                     <div class="form-group"><label>State</label>
@@ -429,23 +425,23 @@
                         </select>
                     </div>
                     <div class="form-group"><label>SWIFT</label><input id="nc-swift-us" type="text" class="form-control" placeholder="CHASUS33"></div>
-                    <div class="form-group"><label>Banco</label><input id="nc-banco-us" type="text" class="form-control" placeholder="Chase, Wells Fargo…"></div>
-                    <div class="form-group"><label>Endereço Linha 1</label><input id="nc-us-end1" type="text" class="form-control" placeholder="Street address"></div>
-                    <div class="form-group"><label>Endereço Linha 2</label><input id="nc-us-end2" type="text" class="form-control" placeholder="Apt, suite, etc."></div>
-                    <div class="form-group"><label>Cidade</label><input id="nc-us-cidade" type="text" class="form-control"></div>
+                    <div class="form-group"><label>Bank</label><input id="nc-banco-us" type="text" class="form-control" placeholder="Chase, Wells Fargo…"></div>
+                    <div class="form-group"><label>Address Line 1</label><input id="nc-us-end1" type="text" class="form-control" placeholder="Street address"></div>
+                    <div class="form-group"><label>Address Line 2</label><input id="nc-us-end2" type="text" class="form-control" placeholder="Apt, suite, etc."></div>
+                    <div class="form-group"><label>City</label><input id="nc-us-cidade" type="text" class="form-control"></div>
                     <div class="form-group"><label>ZIP Code</label><input id="nc-us-zip" type="text" class="form-control"></div>
                 </div>
             </div>
-            </div><!-- fim nc-benef-fields -->
+            </div><!-- end nc-benef-fields -->
 
-            <!-- UPLOADS KYC -->
-            <p class="section-label" style="margin-top:16px;">Documentos KYC <span style="font-weight:400;font-size:11px;color:var(--cor-texto-secundario);">(opcional — pode fazer depois)</span></p>
+            <!-- KYC UPLOADS -->
+            <p class="section-label" style="margin-top:16px;">KYC Documents <span style="font-weight:400;font-size:11px;color:var(--cor-texto-secundario);">(optional — can be done later)</span></p>
             <div style="display:flex;flex-direction:column;gap:8px;">
                 <div style="background:rgba(128,128,128,.05);border:1px solid var(--cor-borda);border-radius:6px;padding:10px 12px;">
                     <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px;">Photo ID</label>
                     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                         <input type="file" id="nc-doc-photo_id" accept=".pdf,.jpg,.jpeg,.png,.webp" style="font-size:12px;flex:1;min-width:0;color:var(--cor-texto);">
-                        <button type="button" class="btn btn-primary btn-sm" onclick="ncUploadDoc('photo_id',this)"><i class="fas fa-upload"></i> Enviar</button>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="ncUploadDoc('photo_id',this)"><i class="fas fa-upload"></i> Upload</button>
                     </div>
                     <div id="nc-doc-status-photo_id" style="font-size:11px;margin-top:4px;min-height:14px;"></div>
                 </div>
@@ -453,7 +449,7 @@
                     <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px;">Proof of Address</label>
                     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                         <input type="file" id="nc-doc-proof_address" accept=".pdf,.jpg,.jpeg,.png,.webp" style="font-size:12px;flex:1;min-width:0;color:var(--cor-texto);">
-                        <button type="button" class="btn btn-primary btn-sm" onclick="ncUploadDoc('proof_address',this)"><i class="fas fa-upload"></i> Enviar</button>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="ncUploadDoc('proof_address',this)"><i class="fas fa-upload"></i> Upload</button>
                     </div>
                     <div id="nc-doc-status-proof_address" style="font-size:11px;margin-top:4px;min-height:14px;"></div>
                 </div>
@@ -461,7 +457,7 @@
                     <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px;">Source of Funds</label>
                     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                         <input type="file" id="nc-doc-source_funds" accept=".pdf,.jpg,.jpeg,.png,.webp" style="font-size:12px;flex:1;min-width:0;color:var(--cor-texto);">
-                        <button type="button" class="btn btn-primary btn-sm" onclick="ncUploadDoc('source_funds',this)"><i class="fas fa-upload"></i> Enviar</button>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="ncUploadDoc('source_funds',this)"><i class="fas fa-upload"></i> Upload</button>
                     </div>
                     <div id="nc-doc-status-source_funds" style="font-size:11px;margin-top:4px;min-height:14px;"></div>
                 </div>
@@ -469,46 +465,46 @@
                     <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px;">Declaration Form</label>
                     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                         <input type="file" id="nc-doc-declaration" accept=".pdf,.jpg,.jpeg,.png,.webp" style="font-size:12px;flex:1;min-width:0;color:var(--cor-texto);">
-                        <button type="button" class="btn btn-primary btn-sm" onclick="ncUploadDoc('declaration',this)"><i class="fas fa-upload"></i> Enviar</button>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="ncUploadDoc('declaration',this)"><i class="fas fa-upload"></i> Upload</button>
                     </div>
                     <div id="nc-doc-status-declaration" style="font-size:11px;margin-top:4px;min-height:14px;"></div>
                 </div>
             </div>
             <div id="nc-upload-status" style="font-size:12px;min-height:16px;color:var(--cor-texto-secundario);margin-top:4px;"></div>
 
-            <!-- Banner de sucesso fase 2 -->
+            <!-- Success banner phase 2 -->
             <div id="nc-saved-banner" style="display:none;margin-top:12px;padding:12px 16px;background:rgba(46,194,126,.12);border:1px solid var(--cor-sucesso);border-radius:8px;font-size:13px;color:var(--cor-sucesso);">
-                <i class="fas fa-check-circle"></i> <strong>Cliente salvo com sucesso!</strong>
-                Agora pode fazer o upload dos documentos KYC acima ou fechar o formulário.
+                <i class="fas fa-check-circle"></i> <strong>Customer saved successfully!</strong>
+                You can now upload KYC documents above or close the form.
             </div>
-        </div><!-- fim modal-body -->
+        </div><!-- end modal-body -->
 
         <div class="modal-footer">
             <div id="nc-footer-fase1" style="display:flex;gap:8px;align-items:center;flex:1;justify-content:flex-end;">
-                <button class="btn btn-ghost" onclick="fecharModal('modalCliente')">Cancelar</button>
-                <button class="btn btn-primary" onclick="salvarCliente(false)"><i class="fas fa-save"></i> Salvar</button>
-                <button class="btn btn-primary" style="background:var(--cor-sucesso);" onclick="salvarCliente(true)"><i class="fas fa-file-invoice-dollar"></i> Salvar e Criar Ordem</button>
+                <button class="btn btn-ghost" onclick="fecharModal('modalCliente')">Cancel</button>
+                <button class="btn btn-primary" onclick="salvarCliente(false)"><i class="fas fa-save"></i> Save</button>
+                <button class="btn btn-primary" style="background:var(--cor-sucesso);" onclick="salvarCliente(true)"><i class="fas fa-file-invoice-dollar"></i> Save & Create Order</button>
             </div>
             <div id="nc-footer-fase2" style="display:none;gap:8px;align-items:center;flex:1;justify-content:flex-end;">
-                <button class="btn btn-ghost" onclick="fecharModal('modalCliente')"><i class="fas fa-times"></i> Fechar</button>
-                <button class="btn btn-primary" style="background:var(--cor-sucesso);" onclick="ncCriarOrdemAposSalvar()"><i class="fas fa-file-invoice-dollar"></i> Criar Ordem</button>
+                <button class="btn btn-ghost" onclick="fecharModal('modalCliente')"><i class="fas fa-times"></i> Close</button>
+                <button class="btn btn-primary" style="background:var(--cor-sucesso);" onclick="ncCriarOrdemAposSalvar()"><i class="fas fa-file-invoice-dollar"></i> Create Order</button>
             </div>
         </div>
     </div>
 </div>
 
-    <!-- Modal: Detalhe do Cliente -->
+    <!-- Modal: Customer Details -->
     <div class="modal-overlay" id="modalDetalhe">
         <div class="modal" style="max-width:780px;">
             <div class="modal-hd">
                 <h3 id="detalheNome"><i class="fas fa-user"></i> —</h3>
                 <div style="display:flex;gap:8px;">
-                    <button class="btn btn-ghost btn-sm" id="btnEditarDetalhe" onclick="editarCliente()"><i class="fas fa-edit"></i> Editar</button>
+                    <button class="btn btn-ghost btn-sm" id="btnEditarDetalhe" onclick="editarCliente()"><i class="fas fa-edit"></i> Edit</button>
                     <button class="close-btn" onclick="fecharModal('modalDetalhe')"><i class="fas fa-times"></i></button>
                 </div>
             </div>
             <div class="modal-body" id="detalheBody">
-                <div style="text-align:center;padding:30px;color:var(--muted);">Carregando...</div>
+                <div style="text-align:center;padding:30px;color:var(--muted);">Loading...</div>
             </div>
         </div>
     </div>
@@ -516,10 +512,11 @@
     <!-- Toast container -->
     <div class="toast" id="toastContainer"></div>
 
+
     <script>
     let clienteAtual = null;
 
-    // ---- Busca ----
+    // ---- Search ----
     let searchTimer;
     function buscarClientes() {
         clearTimeout(searchTimer);
@@ -533,25 +530,25 @@
             const data = await r.json();
             if (data.success) renderTabela(data.clientes);
         } catch(e) {
-            toast('Erro ao buscar clientes', 'err');
+            toast('Error searching customers', 'err');
         }
     }
 
     function renderTabela(clientes) {
         const tb = document.getElementById('tbClientes');
-        document.getElementById('totalClientes').textContent = `${clientes.length} cliente(s)`;
+        document.getElementById('totalClientes').textContent = `${clientes.length} customer(s)`;
         if (!clientes.length) {
-            tb.innerHTML = '<tr><td colspan="9" class="no-data">Nenhum cliente encontrado</td></tr>';
+            tb.innerHTML = '<tr><td colspan="9" class="no-data">No customers found</td></tr>';
             return;
         }
         tb.innerHTML = clientes.map(c => {
             _clientMap[c.id] = c;
             const risco = c.risk_score === 'high'
-                ? `<span class="badge badge-danger"><i class="fas fa-exclamation-triangle"></i> Alto</span>`
-                : `<span class="badge badge-warn">Médio</span>`;
+                ? `<span class="badge badge-danger"><i class="fas fa-exclamation-triangle"></i> High</span>`
+                : `<span class="badge badge-warn">Medium</span>`;
             const flags = [];
             if (c.pep_flag) flags.push('<span class="badge badge-danger">PEP</span>');
-            if (c.sanctions_flag) flags.push('<span class="badge badge-danger">SANCOES</span>');
+            if (c.sanctions_flag) flags.push('<span class="badge badge-danger">SANCTIONS</span>');
             const uploaded = c.docs_uploaded || [];
             const docs = [
                 {ok: c.doc_photo_id_ok,      uploaded: uploaded.includes('photo_id'),      label: 'ID'},
@@ -562,7 +559,7 @@
             ];
             const dotsHtml = '<div class="kyc-dots">' + docs.map(d => {
                 const cls   = d.ok ? 'ok' : d.uploaded ? 'warn' : '';
-                const title = d.ok ? `${d.label}: Validado` : d.uploaded ? `${d.label}: Enviado — aguardando validação` : `${d.label}: Pendente`;
+                const title = d.ok ? `${d.label}: Validated` : d.uploaded ? `${d.label}: Uploaded — awaiting validation` : `${d.label}: Pending`;
                 return `<div class="kyc-dot ${cls}" title="${title}"></div>`;
             }).join('') + '</div>';
             const total90 = parseFloat(c.total_90d || 0).toFixed(0);
@@ -583,10 +580,10 @@
         }).join('');
     }
 
-    // ---- Detalhe ----
+    // ---- Details ----
     async function verDetalhe(id) {
         document.getElementById('detalheBody').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);"><i class="fas fa-spinner fa-spin"></i></div>';
-        document.getElementById('detalheNome').innerHTML = '<i class="fas fa-user"></i> Carregando...';
+        document.getElementById('detalheNome').innerHTML = '<i class="fas fa-user"></i> Loading...';
         document.getElementById('modalDetalhe').classList.add('open');
         document.getElementById('btnEditarDetalhe').setAttribute('data-id', id);
         try {
@@ -595,7 +592,7 @@
             if (data.success) renderDetalhe(data.cliente);
             else toast(data.message, 'err');
         } catch(e) {
-            toast('Erro ao carregar cliente', 'err');
+            toast('Error loading customer', 'err');
         }
     }
 
@@ -605,9 +602,9 @@
         const aml = c.aml || {};
         const total90 = (c.total_90d_calc || 0).toFixed(2);
         const kycReq = aml.kyc_level_required || 0;
-        const kycLabels = ['Basic Info apenas', 'Basic Info + Photo ID + Proof of Address',
+        const kycLabels = ['Basic Info only', 'Basic Info + Photo ID + Proof of Address',
             'Basic Info + Photo ID + Address + Source of Funds',
-            'Full KYC + EDD (£3.5k-£5k)', 'Full KYC + EDD (acima £5k)'];
+            'Full KYC + EDD (£3.5k-£5k)', 'Full KYC + EDD (above £5k)'];
 
         const docItems = [
             {key:'photo_id', label:'Photo ID', ok: c.doc_photo_id_ok},
@@ -618,35 +615,39 @@
         ];
 
         const ordensHtml = (c.ordens||[]).slice(0,5).map(o =>
-            `<tr><td>${(o.data||'').substring(0,10)}</td><td>${o.moeda_entrada} ${o.valor_entrada}</td><td>${o.moeda_saida} ${o.valor_saida}</td><td><span class="badge badge-${o.status==='paga'?'ok':o.status==='cancelada'?'danger':'warn'}">${o.status}</span></td></tr>`
-        ).join('') || '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:10px;">Nenhuma ordem</td></tr>';
+            `<tr><td style="padding:7px 10px;">${(o.data||'').substring(0,10)}</td>
+             <td style="padding:7px 10px;">${o.moeda_entrada} ${o.valor_entrada}</td>
+             <td style="padding:7px 10px;">${o.moeda_saida} ${o.valor_saida}</td>
+             <td style="padding:7px 10px;"><span class="badge badge-${o.status==='paga'?'ok':o.status==='cancelada'?'danger':'warn'}">${o.status}</span></td>
+             </tr>`
+        ).join('') || '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:10px;">No orders</td></tr>';
 
         document.getElementById('detalheBody').innerHTML = `
             <div class="aml-panel">
                 <div class="aml-row">
-                    <span><i class="fas fa-chart-line" style="color:var(--blue);margin-right:6px;"></i> Total 90 dias (GBP)</span>
+                    <span><i class="fas fa-chart-line" style="color:var(--blue);margin-right:6px;"></i> 90-day total (GBP)</span>
                     <strong>£${total90}</strong>
                 </div>
                 <div class="aml-row">
-                    <span><i class="fas fa-shield-alt" style="color:var(--blue);margin-right:6px;"></i> KYC Nível Requerido</span>
-                    <strong>Nível ${kycReq} — ${kycLabels[kycReq] || ''}</strong>
+                    <span><i class="fas fa-shield-alt" style="color:var(--blue);margin-right:6px;"></i> KYC Level Required</span>
+                    <strong>Level ${kycReq} — ${kycLabels[kycReq] || ''}</strong>
                 </div>
                 <div class="aml-row">
                     <span><i class="fas fa-user-secret" style="color:${c.pep_flag?'var(--red)':'var(--muted)'};margin-right:6px;"></i> PEP</span>
-                    <span class="badge ${c.pep_flag?'badge-danger':'badge-ok'}">${c.pep_flag?'PEP IDENTIFICADO':'Negativo'}</span>
+                    <span class="badge ${c.pep_flag?'badge-danger':'badge-ok'}">${c.pep_flag?'PEP IDENTIFIED':'Negative'}</span>
                 </div>
                 <div class="aml-row">
-                    <span><i class="fas fa-ban" style="color:${c.sanctions_flag?'var(--red)':'var(--muted)'};margin-right:6px;"></i> Sanções</span>
-                    <span class="badge ${c.sanctions_flag?'badge-danger':'badge-ok'}">${c.sanctions_flag?'SANCTIONED':'Limpo'}</span>
+                    <span><i class="fas fa-ban" style="color:${c.sanctions_flag?'var(--red)':'var(--muted)'};margin-right:6px;"></i> Sanctions</span>
+                    <span class="badge ${c.sanctions_flag?'badge-danger':'badge-ok'}">${c.sanctions_flag?'SANCTIONED':'Clear'}</span>
                 </div>
                 <div class="aml-row">
-                    <span><i class="fas fa-exclamation-triangle" style="color:var(--yellow);margin-right:6px;"></i> Risco</span>
-                    <span class="badge ${c.risk_score==='high'?'badge-danger':'badge-warn'}">${c.risk_score==='high'?'Alto':'Médio'}</span>
+                    <span><i class="fas fa-exclamation-triangle" style="color:var(--yellow);margin-right:6px;"></i> Risk</span>
+                    <span class="badge ${c.risk_score==='high'?'badge-danger':'badge-warn'}">${c.risk_score==='high'?'High':'Medium'}</span>
                 </div>
-                ${aml.pep_screening?'<div class="aml-row" style="color:var(--yellow);"><i class="fas fa-bell" style="margin-right:6px;"></i> PEP Screening obrigatório (acumulado ≥ £2.000)</div>':''}
+                ${aml.pep_screening?'<div class="aml-row" style="color:var(--yellow);"><i class="fas fa-bell" style="margin-right:6px;"></i> PEP Screening required (accumulated ≥ £2,000)</div>':''}
             </div>
 
-            <p class="section-label">Documentos KYC</p>
+            <p class="section-label">KYC Documents</p>
             <div class="doc-list">
                 ${docItems.map(d => {
                     const docArquivo = (c.documentos||[]).find(x => x.tipo === d.key);
@@ -655,69 +656,68 @@
                         <div style="display:flex;justify-content:space-between;align-items:center;">
                             <span><i class="fas fa-${d.ok?'check-circle':'clock'}" style="color:${d.ok?'var(--green)':'var(--yellow)'};margin-right:8px;"></i>${d.label}</span>
                             <div class="doc-status" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-                                <span class="badge ${d.ok?'badge-ok':'badge-warn'}">${d.ok?'Validado':'Pendente'}</span>
-                                ${docArquivo?`<button class="btn btn-ghost btn-sm" onclick="verDocKyc('${docArquivo.id}')"><i class="fas fa-eye"></i> Ver</button>`:''}
-
+                                <span class="badge ${d.ok?'badge-ok':'badge-warn'}">${d.ok?'Validated':'Pending'}</span>
+                                ${docArquivo?`<button class="btn btn-ghost btn-sm" onclick="verDocKyc('${docArquivo.id}')"><i class="fas fa-eye"></i> View</button>`:''}
                             </div>
                         </div>
                         <div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap;">
                             <input type="file" id="kyc-file-${d.key}" accept=".pdf,.jpg,.jpeg,.png,.webp" style="font-size:11px;flex:1;min-width:0;color:var(--cor-texto);">
-                            <input type="text" id="kyc-obs-${d.key}" placeholder="Observação (opcional)" style="font-size:11px;padding:4px 8px;border:1px solid var(--cor-borda);border-radius:4px;background:var(--cor-card);color:var(--cor-texto);flex:1;min-width:120px;">
-                            <button id="kyc-btn-${d.key}" class="btn btn-primary btn-sm" onclick="uploadKyc('${c.id}','${d.key}')"><i class="fas fa-upload"></i> ${d.ok?'Substituir':'Enviar'}</button>
+                            <input type="text" id="kyc-obs-${d.key}" placeholder="Observation (optional)" style="font-size:11px;padding:4px 8px;border:1px solid var(--cor-borda);border-radius:4px;background:var(--cor-card);color:var(--cor-texto);flex:1;min-width:120px;">
+                            <button id="kyc-btn-${d.key}" class="btn btn-primary btn-sm" onclick="uploadKyc('${c.id}','${d.key}')"><i class="fas fa-upload"></i> ${d.ok?'Replace':'Upload'}</button>
                         </div>
                     </div>`;
                 }).join('')}
             </div>
 
-            <p class="section-label" style="margin-top:18px;">Últimas Ordens</p>
+            <p class="section-label" style="margin-top:18px;">Recent Orders</p>
             <div class="table-wrap">
                 <table class="orders-mini">
-                    <thead><tr><th>Data</th><th>Entrada</th><th>Saída</th><th>Status</th></tr></thead>
+                    <thead><tr><th style="padding:7px 10px;">Date</th><th style="padding:7px 10px;">Inbound</th><th style="padding:7px 10px;">Outbound</th><th style="padding:7px 10px;">Status</th></tr></thead>
                     <tbody>${ordensHtml}</tbody>
                 </table>
             </div>
 
-            <p class="section-label" style="margin-top:18px;">Dados Pessoais</p>
+            <p class="section-label" style="margin-top:18px;">Personal Details</p>
             <div class="detail-grid">
                 <div class="detail-item"><label>DOB</label><span>${c.data_nascimento||'—'}</span></div>
-                <div class="detail-item"><label>Profissão</label><span>${c.profissao||'—'}</span></div>
+                <div class="detail-item"><label>Profession</label><span>${c.profissao||'—'}</span></div>
                 <div class="detail-item"><label>Email</label><span>${c.email||'—'}</span></div>
-                <div class="detail-item"><label>Tipo Doc</label><span>${c.tipo_documento||'—'}</span></div>
-                <div class="detail-item"><label>Endereço</label><span>${c.endereco||'—'}</span></div>
-                <div class="detail-item"><label>Cidade / Postcode</label><span>${c.cidade||'—'}</span></div>
+                <div class="detail-item"><label>Document Type</label><span>${c.tipo_documento||'—'}</span></div>
+                <div class="detail-item"><label>Address</label><span>${c.endereco||'—'}</span></div>
+                <div class="detail-item"><label>City / Postcode</label><span>${c.cidade||'—'}</span></div>
             </div>
 
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px;margin-bottom:10px;">
-                <p class="section-label" style="margin:0;">Beneficiários</p>
-                <button class="btn btn-ghost btn-sm" onclick="abrirNovoBenef('${c.id}')"><i class="fas fa-plus"></i> Adicionar</button>
+                <p class="section-label" style="margin:0;">Beneficiaries</p>
+                <button class="btn btn-ghost btn-sm" onclick="abrirNovoBenef('${c.id}')"><i class="fas fa-plus"></i> Add</button>
             </div>
-            <div id="benefDetalheList">Carregando...</div>
+            <div id="benefDetalheList">Loading...</div>
 
             <div id="novoBenefForm" style="display:none;background:rgba(128,128,128,.04);border:1px solid var(--cor-borda);border-radius:var(--borda-radius-pequeno);padding:16px;margin-top:10px;">
-                <p class="section-label" style="margin-top:0;">Novo Beneficiário</p>
+                <p class="section-label" style="margin-top:0;">New Beneficiary</p>
                 <div class="form-grid">
                     <div class="form-group form-full">
-                        <label>Tipo de Destino *</label>
+                        <label>Destination Type *</label>
                         <select id="nb-tipo" class="form-control" onchange="onNbTipoChange()">
-                            <option value="brazil">🇧🇷 Brasil (BRL)</option>
-                            <option value="europe">🇪🇺 Europa (SEPA/IBAN)</option>
+                            <option value="brazil">🇧🇷 Brazil (BRL)</option>
+                            <option value="europe">🇪🇺 Europe (SEPA/IBAN)</option>
                             <option value="usa">🇺🇸 USA (USD/SWIFT)</option>
                         </select>
                     </div>
-                    <div class="form-group form-full"><label>Nome Completo *</label><input id="nb-nome" type="text" class="form-control"></div>
-                    <div class="form-group form-full"><label>Apelido (ex: João - Nubank)</label><input id="nb-apelido" type="text" class="form-control" placeholder="Para identificar facilmente"></div>
+                    <div class="form-group form-full"><label>Full Name *</label><input id="nb-nome" type="text" class="form-control"></div>
+                    <div class="form-group form-full"><label>Nickname (ex: John - Nubank)</label><input id="nb-apelido" type="text" class="form-control" placeholder="Easy to identify"></div>
                 </div>
 
-                <!-- Endereço (comum a todos) -->
+                <!-- Common Address -->
                 <div class="form-grid">
-                    <div class="form-group"><label>Endereço Linha 1</label><input id="nb-end1" type="text" class="form-control" placeholder="Número, rua"></div>
-                    <div class="form-group"><label>Endereço Linha 2</label><input id="nb-end2" type="text" class="form-control" placeholder="Complemento, bairro"></div>
-                    <div class="form-group"><label>Cidade</label><input id="nb-cidade" type="text" class="form-control"></div>
-                    <div class="form-group"><label>CEP / Postcode</label><input id="nb-postcode" type="text" class="form-control" onblur="if(document.getElementById('nb-tipo').value==='brazil') buscarCep(this.value,{cidade:'nb-cidade',estado:'nb-estado-br',end1:'nb-end1',end2:'nb-end2',pais:'nb-pais'})"></div>
+                    <div class="form-group"><label>Address Line 1</label><input id="nb-end1" type="text" class="form-control" placeholder="Street, number"></div>
+                    <div class="form-group"><label>Address Line 2</label><input id="nb-end2" type="text" class="form-control" placeholder="Complement, neighborhood"></div>
+                    <div class="form-group"><label>City</label><input id="nb-cidade" type="text" class="form-control"></div>
+                    <div class="form-group"><label>Postcode / ZIP</label><input id="nb-postcode" type="text" class="form-control" onblur="if(document.getElementById('nb-tipo').value==='brazil') buscarCep(this.value,{cidade:'nb-cidade',estado:'nb-estado-br',end1:'nb-end1',end2:'nb-end2',pais:'nb-pais'})"></div>
                     <div class="form-group" id="nb-estado-br-group" style="display:none;">
-                        <label>Estado (UF)</label>
+                        <label>State</label>
                         <select id="nb-estado-br" class="form-control">
-                            <option value="">Selecione...</option>
+                            <option value="">Select...</option>
                             <option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option>
                             <option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option>
                             <option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option>
@@ -726,18 +726,18 @@
                             <option>SE</option><option>TO</option>
                         </select>
                     </div>
-                    <div class="form-group form-full"><label>País</label><input id="nb-pais" type="text" class="form-control" placeholder="ex: Brasil, Portugal, UK"></div>
+                    <div class="form-group form-full"><label>Country</label><input id="nb-pais" type="text" class="form-control" placeholder="ex: Brazil, Portugal, UK"></div>
                 </div>
 
-                <!-- Brasil -->
+                <!-- Brazil -->
                 <div id="nb-brazil">
-                    <p class="section-label">Dados Bancários Brasil</p>
+                    <p class="section-label">Brazil Banking Details</p>
                     <div class="form-grid">
-                        <div class="form-group"><label>CPF / CNPJ</label><input id="nb-cpf" type="text" class="form-control" placeholder="000.000.000-00 ou 00.000.000/0001-00" onblur="onCpfCnpjBlur(this)"></div>
+                        <div class="form-group"><label>CPF / CNPJ</label><input id="nb-cpf" type="text" class="form-control" placeholder="000.000.000-00 or 00.000.000/0001-00" onblur="onCpfCnpjBlur(this)"></div>
                         <div class="form-group">
-                            <label>Banco</label>
+                            <label>Bank</label>
                             <select id="nb-banco-sel" class="form-control" onchange="onBancoChange('nb')">
-                                <option value="">Selecione...</option>
+                                <option value="">Select...</option>
                                 <option value="001|Banco do Brasil">001 — Banco do Brasil</option>
                                 <option value="212|Banco Original">212 — Banco Original</option>
                                 <option value="021|Banestes">021 — Banestes</option>
@@ -758,55 +758,55 @@
                                 <option value="756|Sicoob">756 — Sicoob</option>
                                 <option value="748|Sicredi">748 — Sicredi</option>
                                 <option value="655|Votorantim (Neon)">655 — Votorantim (Neon)</option>
-                                <option value="outro|">Outro Banco</option>
+                                <option value="outro|">Other Bank</option>
                             </select>
                         </div>
                         <div class="form-group" id="nb-banco-outro-group" style="display:none;">
-                            <label>Nome do Banco</label>
-                            <input id="nb-banco" type="text" class="form-control" placeholder="Digite o nome do banco">
+                            <label>Bank Name</label>
+                            <input id="nb-banco" type="text" class="form-control" placeholder="Enter bank name">
                         </div>
-                        <div class="form-group"><label>Agência</label><input id="nb-agencia" type="text" class="form-control" placeholder="0001"></div>
-                        <div class="form-group"><label>Conta</label><input id="nb-conta" type="text" class="form-control" placeholder="12345-6"></div>
+                        <div class="form-group"><label>Branch</label><input id="nb-agencia" type="text" class="form-control" placeholder="0001"></div>
+                        <div class="form-group"><label>Account</label><input id="nb-conta" type="text" class="form-control" placeholder="12345-6"></div>
                         <div class="form-group">
-                            <label>Tipo de Conta</label>
+                            <label>Account Type</label>
                             <select id="nb-tipo-conta" class="form-control">
-                                <option value="corrente">Corrente</option>
-                                <option value="poupanca">Poupança</option>
+                                <option value="corrente">Current</option>
+                                <option value="poupanca">Savings</option>
                             </select>
                         </div>
-                        <div class="form-group"><label>Chave PIX</label><input id="nb-pix" type="text" class="form-control" placeholder="CPF, email, tel ou aleatória"></div>
+                        <div class="form-group"><label>PIX Key</label><input id="nb-pix" type="text" class="form-control" placeholder="CPF, email, phone or random"></div>
                         <div class="form-group">
-                            <label>Tipo PIX</label>
+                            <label>PIX Type</label>
                             <select id="nb-pix-tipo" class="form-control">
                                 <option value="">—</option>
                                 <option value="cpf">CPF</option>
                                 <option value="email">Email</option>
-                                <option value="telefone">Telefone</option>
-                                <option value="aleatoria">Chave Aleatória</option>
+                                <option value="telefone">Phone</option>
+                                <option value="aleatoria">Random Key</option>
                             </select>
                         </div>
                     </div>
                 </div>
 
-                <!-- Europa -->
+                <!-- Europe -->
                 <div id="nb-europe" style="display:none;">
-                    <p class="section-label">Dados Bancários Europa</p>
+                    <p class="section-label">Europe Banking Details</p>
                     <div class="form-grid">
                         <div class="form-group form-full"><label>IBAN *</label><input id="nb-iban" type="text" class="form-control" placeholder="GB29 NWBK 6016 1331 9268 19"></div>
                         <div class="form-group"><label>BIC / SWIFT</label><input id="nb-bic" type="text" class="form-control" placeholder="NWBKGB2L"></div>
-                        <div class="form-group"><label>Banco</label><input id="nb-banco-eu" type="text" class="form-control"></div>
-                        <div class="form-group"><label>País do Banco</label><input id="nb-pais-eu" type="text" class="form-control" placeholder="DE, FR, PT…"></div>
+                        <div class="form-group"><label>Bank</label><input id="nb-banco-eu" type="text" class="form-control"></div>
+                        <div class="form-group"><label>Bank Country</label><input id="nb-pais-eu" type="text" class="form-control" placeholder="DE, FR, PT…"></div>
                     </div>
                 </div>
 
                 <!-- USA -->
                 <div id="nb-usa" style="display:none;">
-                    <p class="section-label">Dados Bancários USA</p>
+                    <p class="section-label">USA Banking Details</p>
                     <div class="form-grid">
                         <div class="form-group"><label>Routing Number</label><input id="nb-routing" type="text" class="form-control" placeholder="021000021"></div>
                         <div class="form-group"><label>Account Number</label><input id="nb-account" type="text" class="form-control" placeholder="000123456789"></div>
                         <div class="form-group">
-                            <label>Tipo de Conta</label>
+                            <label>Account Type</label>
                             <select id="nb-account-tipo" class="form-control">
                                 <option value="checking">Checking</option>
                                 <option value="savings">Savings</option>
@@ -829,24 +829,24 @@
                             </select>
                         </div>
                         <div class="form-group"><label>SWIFT</label><input id="nb-swift-us" type="text" class="form-control" placeholder="CHASUS33"></div>
-                        <div class="form-group"><label>Banco</label><input id="nb-banco-us" type="text" class="form-control" placeholder="Chase, Wells Fargo…"></div>
+                        <div class="form-group"><label>Bank</label><input id="nb-banco-us" type="text" class="form-control" placeholder="Chase, Wells Fargo…"></div>
                     </div>
                 </div>
 
                 <div class="form-group" style="margin-top:8px;">
-                    <label>Relacionamento com o Remetente</label>
+                    <label>Relationship with Sender</label>
                     <select id="nb-rel" class="form-control">
                         <option value="">—</option>
-                        <option value="proprio">Próprio (mesma pessoa)</option>
-                        <option value="familiar">Familiar</option>
-                        <option value="amigo">Amigo</option>
-                        <option value="negocio">Negócio / Empresa</option>
+                        <option value="proprio">Self (same person)</option>
+                        <option value="familiar">Family</option>
+                        <option value="amigo">Friend</option>
+                        <option value="negocio">Business / Company</option>
                     </select>
                 </div>
 
                 <div style="display:flex;gap:8px;margin-top:12px;">
-                    <button class="btn btn-primary" onclick="salvarNovoBenefDetalhe()"><i class="fas fa-save"></i> Salvar Beneficiário</button>
-                    <button class="btn btn-ghost" onclick="fecharNovoBenef()">Cancelar</button>
+                    <button class="btn btn-primary" onclick="salvarNovoBenefDetalhe()"><i class="fas fa-save"></i> Save Beneficiary</button>
+                    <button class="btn btn-ghost" onclick="fecharNovoBenef()">Cancel</button>
                 </div>
             </div>
         `;
@@ -859,17 +859,17 @@
             const r = await fetch(`/api/clientes/${clienteId}/documentos`, {
                 method: 'POST',
                 headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({tipo: tipoDoc, arquivo_nome: 'Manual validation', observacao: 'Marcado OK pelo operador'})
+                body: JSON.stringify({tipo: tipoDoc, arquivo_nome: 'Manual validation', observacao: 'Marked OK by operator'})
             });
             const data = await r.json();
             if (data.success) {
-                toast('Documento marcado como validado', 'ok');
+                toast('Document marked as validated', 'ok');
                 verDetalhe(clienteId);
             } else {
                 toast(data.message, 'err');
             }
         } catch(e) {
-            toast('Erro ao marcar documento', 'err');
+            toast('Error marking document', 'err');
         }
     }
 
@@ -892,11 +892,11 @@
         if (clienteAtual) editarClienteById(clienteAtual.id, clienteAtual);
     }
 
-    // ---- Novo / Editar ----
+    // ---- New / Edit ----
     function abrirModalNovo() {
         clienteAtual = null;
         document.getElementById('clienteId').value = '';
-        document.getElementById('modalClienteTitulo').innerHTML = '<i class="fas fa-user-plus"></i> Novo Cliente';
+        document.getElementById('modalClienteTitulo').innerHTML = '<i class="fas fa-user-plus"></i> New Customer';
         ['cNome','cDob','cTelefone','cEmail','cProfissao','cNacionalidade','cEndereco','cCidade','cPostcode',
         'cDocumento','cPepInfo','cPaisOutro','cDocValidade','cAddrData','cAddrNumero','cAddrTipoOutro'].forEach(id => {
             const el = document.getElementById(id);
@@ -909,11 +909,11 @@
         document.getElementById('cPepFlag').value = 'false';
         document.getElementById('cRiskScore').value = 'medium';
         
-        // 🔥 Limpar mensagem de validade
+        // Clear validity message
         const msgDiv = document.getElementById('cAddrValidadeMsg');
-        if (msgDiv) msgDiv.innerHTML = '<span style="color:var(--muted);">Selecione uma data</span>';
+        if (msgDiv) msgDiv.innerHTML = '<span style="color:var(--muted);">Select a date</span>';
         
-        // Resetar fase 2
+        // Reset phase 2
         document.getElementById('nc-saved-banner').style.display = 'none';
         document.getElementById('nc-footer-fase1').style.display = 'flex';
         document.getElementById('nc-footer-fase2').style.display = 'none';
@@ -925,7 +925,7 @@
         const c = _clientMap[id] || {};
         fecharModal('modalDetalhe');
         document.getElementById('clienteId').value = id;
-        document.getElementById('modalClienteTitulo').innerHTML = '<i class="fas fa-edit"></i> Editar Cliente';
+        document.getElementById('modalClienteTitulo').innerHTML = '<i class="fas fa-edit"></i> Edit Customer';
         document.getElementById('cNome').value = c.nome || '';
         document.getElementById('cDob').value = c.data_nascimento || '';
         document.getElementById('cTelefone').value = c.telefone || '';
@@ -936,11 +936,11 @@
         document.getElementById('cCidade').value = c.cidade || '';
         document.getElementById('cPostcode').value = c.postcode || '';
         
-        // 🔥 ADICIONAR ESTAS LINHAS 🔥
+        // Add these lines
         document.getElementById('cDocValidade').value = c.doc_photo_id_validade || '';
         document.getElementById('cAddrData').value = c.doc_address_atualizado_em || '';
         
-        // Atualizar a mensagem de validade do comprovante
+        // Update address validity message
         if (c.doc_address_atualizado_em) {
             const validade = calcularValidadeEndereco(c.doc_address_atualizado_em);
             const msgDiv = document.getElementById('cAddrValidadeMsg');
@@ -950,16 +950,16 @@
                 const diasRestantes = Math.ceil((dataValidade - hoje) / (1000 * 60 * 60 * 24));
                 
                 if (diasRestantes < 0) {
-                    msgDiv.innerHTML = '<span style="color:var(--cor-perigo);"><i class="fas fa-exclamation-triangle"></i> EXPIRADO! Envie um comprovante mais recente.</span>';
+                    msgDiv.innerHTML = '<span style="color:var(--cor-perigo);"><i class="fas fa-exclamation-triangle"></i> EXPIRED! Submit a more recent proof.</span>';
                 } else if (diasRestantes < 30) {
-                    msgDiv.innerHTML = `<span style="color:var(--cor-alerta);"><i class="fas fa-clock"></i> Vence em ${diasRestantes} dias (${dataValidade.toLocaleDateString('pt-BR')})</span>`;
+                    msgDiv.innerHTML = `<span style="color:var(--cor-alerta);"><i class="fas fa-clock"></i> Expires in ${diasRestantes} days (${dataValidade.toLocaleDateString('pt-BR')})</span>`;
                 } else {
-                    msgDiv.innerHTML = `<span style="color:var(--cor-sucesso);"><i class="fas fa-check-circle"></i> Válido até ${dataValidade.toLocaleDateString('pt-BR')}</span>`;
+                    msgDiv.innerHTML = `<span style="color:var(--cor-sucesso);"><i class="fas fa-check-circle"></i> Valid until ${dataValidade.toLocaleDateString('pt-BR')}</span>`;
                 }
             }
         }
         
-        // País (código existente)
+        // Country (existing code)
         const paisSel = document.getElementById('cPais');
         const paisOutro = document.getElementById('cPaisOutro');
         const paises = Array.from(paisSel.options).map(o => o.value);
@@ -1017,7 +1017,7 @@
         const ok = validarCpfCnpj(v);
         if (ok === false) {
             el.style.borderColor = 'var(--cor-perigo)';
-            toast('CPF / CNPJ inválido', 'err');
+            toast('Invalid CPF / CNPJ', 'err');
         } else {
             el.style.borderColor = '';
         }
@@ -1026,14 +1026,14 @@
     async function buscarCep(cep, ids) {
         const digits = cep.replace(/\D/g, '');
         if (!digits) return;
-        if (digits.length !== 8) { toast('CEP inválido — deve ter 8 dígitos', 'warn'); return; }
+        if (digits.length !== 8) { toast('Invalid postcode — must be 8 digits', 'warn'); return; }
         try {
             const r = await fetch(`/api/cep/${digits}`);
             const d = await r.json();
-            if (d.erro) { toast('CEP não encontrado', 'warn'); return; }
+            if (d.erro) { toast('Postcode not found', 'warn'); return; }
             const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
             if (ids.cidade)  set(ids.cidade,  d.localidade);
-            if (ids.pais)    set(ids.pais, 'Brasil');
+            if (ids.pais)    set(ids.pais, 'Brazil');
             if (ids.estado)  { const sel = document.getElementById(ids.estado); if (sel && d.uf) sel.value = d.uf; }
             if (ids.end1 && d.logradouro) {
                 const el = document.getElementById(ids.end1);
@@ -1060,7 +1060,7 @@
     async function salvarCliente(criarOrdem = false) {
         const id = document.getElementById('clienteId').value;
         const nome = document.getElementById('cNome').value.trim();
-        if (!nome) { toast('Nome obrigatório', 'err'); return; }
+        if (!nome) { toast('Name required', 'err'); return; }
         const paisSel = document.getElementById('cPais').value;
         const paisFinal = paisSel === 'OTHER'
             ? (document.getElementById('cPaisOutro').value.trim().toUpperCase().slice(0,2) || 'XX')
@@ -1099,7 +1099,7 @@
             const clienteNome = data.cliente?.nome || nome;
             toast(data.message, 'ok');
 
-            // Salvar beneficiário se preenchido
+            // Save beneficiary if filled
             const benefTipo = document.getElementById('nc-benef-tipo').value;
             const benefNome = document.getElementById('nc-benef-nome')?.value.trim();
             if (benefTipo && benefNome) {
@@ -1143,7 +1143,7 @@
             }
 
             if (isNovo) {
-                // Fase 2: mantém modal aberto, ativa uploads
+                // Phase 2: keep modal open, activate uploads
                 document.getElementById('clienteId').value = clienteId;
                 document.getElementById('nc-saved-banner').style.display = '';
                 document.getElementById('nc-footer-fase1').style.display = 'none';
@@ -1155,7 +1155,7 @@
                 _buscar();
             }
         } catch(e) {
-            toast('Erro ao salvar cliente', 'err');
+            toast('Error saving customer', 'err');
         }
     }
 
@@ -1169,11 +1169,11 @@
     async function ncUploadDoc(tipo, btn) {
         const fileInput = document.getElementById(`nc-doc-${tipo}`);
         const statusEl  = document.getElementById(`nc-doc-status-${tipo}`);
-        if (!fileInput?.files?.length) { toast('Selecione um arquivo primeiro', 'err'); return; }
+        if (!fileInput?.files?.length) { toast('Select a file first', 'err'); return; }
         const clienteId = document.getElementById('clienteId').value;
-        if (!clienteId) { toast('Salve o cliente primeiro para fazer o upload individual', 'warn'); return; }
+        if (!clienteId) { toast('Save the customer first to upload individual documents', 'warn'); return; }
         btn.disabled = true;
-        statusEl.textContent = 'Enviando...';
+        statusEl.textContent = 'Uploading...';
         statusEl.style.color = 'var(--cor-texto-secundario)';
         try {
             const fd = new FormData();
@@ -1182,21 +1182,21 @@
             const r = await fetch(`/api/clientes/${clienteId}/upload-kyc`, {method:'POST', body: fd});
             const d = await r.json();
             if (d.success) {
-                statusEl.textContent = '✓ Enviado com sucesso';
+                statusEl.textContent = '✓ Uploaded successfully';
                 statusEl.style.color = 'var(--cor-sucesso)';
                 fileInput.value = '';
             } else {
-                statusEl.textContent = 'Erro: ' + (d.message || 'falha no envio');
+                statusEl.textContent = 'Error: ' + (d.message || 'upload failed');
                 statusEl.style.color = 'var(--cor-perigo)';
             }
         } catch(e) {
-            statusEl.textContent = 'Erro ao enviar';
+            statusEl.textContent = 'Error uploading';
             statusEl.style.color = 'var(--cor-perigo)';
         }
         btn.disabled = false;
     }
 
-    // ---- Beneficiários no detalhe ----
+    // ---- Beneficiaries in detail ----
     let clienteDetalheId = null;
 
     function onBancoChange(prefix) {
@@ -1253,11 +1253,11 @@
             const r = await fetch(`/api/clientes/${clienteId}/beneficiarios`);
             const d = await r.json();
             const lista = d.beneficiarios || [];
-            if (!lista.length) { el.innerHTML = '<p style="color:var(--cor-texto-secundario);font-size:13px;padding:8px 0;">Nenhum beneficiário cadastrado.</p>'; return; }
+            if (!lista.length) { el.innerHTML = '<p style="color:var(--cor-texto-secundario);font-size:13px;padding:8px 0;">No beneficiaries registered.</p>'; return; }
             const flag = {brazil:'🇧🇷',europe:'🇪🇺',usa:'🇺🇸'};
             el.innerHTML = lista.map(b => {
                 const det = b.tipo === 'brazil'
-                    ? [b.banco_nome, b.agencia ? `Ag ${b.agencia}` : '', b.conta, b.pix_chave ? `PIX: ${b.pix_chave}` : ''].filter(Boolean).join(' · ')
+                    ? [b.banco_nome, b.agencia ? `Branch ${b.agencia}` : '', b.conta, b.pix_chave ? `PIX: ${b.pix_chave}` : ''].filter(Boolean).join(' · ')
                     : b.tipo === 'europe'
                     ? [b.iban, b.bic_swift].filter(Boolean).join(' · ')
                     : [b.routing_number, b.account_number, b.banco_nome_us].filter(Boolean).join(' · ');
@@ -1267,18 +1267,18 @@
                     <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
                         <span><strong>${flag[b.tipo]||''} ${b.nome}</strong>${b.apelido?` <span style="color:var(--cor-texto-secundario);font-size:12px;">(${b.apelido})</span>`:''}</span>
                         <div style="display:flex;gap:6px;align-items:center;">
-                            <button onclick="abrirEditBenefDetalhe('${b.id}','${clienteId}')" style="background:transparent;border:none;color:var(--cor-texto-secundario);cursor:pointer;font-size:11px;" title="Editar"><i class="fas fa-edit"></i></button>
-                            <button onclick="removerBenef('${b.id}','${clienteId}')" style="background:transparent;border:none;color:var(--cor-perigo);cursor:pointer;font-size:11px;" title="Remover"><i class="fas fa-trash"></i></button>
+                            <button onclick="abrirEditBenefDetalhe('${b.id}','${clienteId}')" style="background:transparent;border:none;color:var(--cor-texto-secundario);cursor:pointer;font-size:11px;" title="Edit"><i class="fas fa-edit"></i></button>
+                            <button onclick="removerBenef('${b.id}','${clienteId}')" style="background:transparent;border:none;color:var(--cor-perigo);cursor:pointer;font-size:11px;" title="Remove"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
                     ${det?`<div style="font-size:12px;color:var(--cor-texto-secundario);">${det}</div>`:''}
                     ${addr?`<div style="font-size:11px;color:var(--cor-texto-secundario);"><i class="fas fa-map-marker-alt" style="margin-right:3px;"></i>${addr}</div>`:''}
                 </div>`;
             }).join('');
-        } catch(e) { el.innerHTML = '<p style="color:var(--cor-perigo);">Erro ao carregar beneficiários.</p>'; }
+        } catch(e) { el.innerHTML = '<p style="color:var(--cor-perigo);">Error loading beneficiaries.</p>'; }
     }
     async function removerBenef(benefId, clienteId) {
-        if (!confirm('Remover este beneficiário?')) return;
+        if (!confirm('Remove this beneficiary?')) return;
         const r = await fetch(`/api/beneficiarios-de-clientes/${benefId}`, {method:'DELETE'});
         const d = await r.json();
         toast(d.message, d.success ? 'ok' : 'err');
@@ -1289,7 +1289,7 @@
         const get = id => (document.getElementById(id)?.value || '').trim();
         const tipo = get('nb-tipo');
         const nome = get('nb-nome');
-        if (!nome) { toast('Nome obrigatório', 'err'); return; }
+        if (!nome) { toast('Name required', 'err'); return; }
         const payload = {
             tipo, nome,
             apelido: get('nb-apelido'),
@@ -1320,14 +1320,14 @@
             const r = await fetch(`/api/clientes/${clienteDetalheId}/beneficiarios`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
             const d = await r.json();
             if (d.success) {
-                toast('Beneficiário salvo!', 'ok');
+                toast('Beneficiary saved!', 'ok');
                 fecharNovoBenef();
                 carregarBenefDetalhe(clienteDetalheId);
             } else toast(d.message, 'err');
         } catch(e) { toast(e.message, 'err'); }
     }
 
-    // ---- Editar Beneficiário ----
+    // ---- Edit Beneficiary ----
     let editBenefClienteId = null;
     const _benefMap = {};
     const _clientMap = {};
@@ -1372,7 +1372,7 @@
         });
         const ebdEstadoGrp = document.getElementById('ebd-estado-br-group');
         if (ebdEstadoGrp) ebdEstadoGrp.style.display = data.tipo === 'brazil' ? '' : 'none';
-        document.getElementById('ebd-tipo-label').textContent = {brazil:'🇧🇷 Brasil',europe:'🇪🇺 Europa',usa:'🇺🇸 USA'}[data.tipo]||data.tipo;
+        document.getElementById('ebd-tipo-label').textContent = {brazil:'🇧🇷 Brazil',europe:'🇪🇺 Europe',usa:'🇺🇸 USA'}[data.tipo]||data.tipo;
         document.getElementById('modalEditBenefDetalhe').classList.add('open');
     }
     async function salvarEditBenefDetalhe() {
@@ -1390,47 +1390,47 @@
             routing_number: get('ebd-routing'), account_number: get('ebd-account'),
             account_type_us: get('ebd-account-tipo'), state_us: get('ebd-state-us'), swift_us: get('ebd-swift-us'), banco_nome_us: get('ebd-banco-us'),
         };
-        if (!payload.nome) { toast('Nome obrigatório', 'err'); return; }
+        if (!payload.nome) { toast('Name required', 'err'); return; }
         try {
             const r = await fetch(`/api/beneficiarios-de-clientes/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
             const d = await r.json();
             if (d.success) {
-                toast('Beneficiário atualizado!','ok');
+                toast('Beneficiary updated!','ok');
                 fecharModal('modalEditBenefDetalhe');
                 carregarBenefDetalhe(editBenefClienteId);
             } else toast(d.message,'err');
-        } catch(e) { toast('Erro de conexão','err'); }
+        } catch(e) { toast('Connection error','err'); }
     }
 
-    // ---- Ver documento KYC (signed URL) ----
+    // ---- View KYC document (signed URL) ----
     async function verDocKyc(docId) {
         try {
-            // Abre janela imediatamente (antes do await) para evitar bloqueio de popup
+            // Open window immediately (before await) to avoid popup blocker
             const win = window.open('', '_blank');
-            if (win) win.document.write('<p style="font-family:sans-serif;padding:20px">A carregar documento...</p>');
+            if (win) win.document.write('<p style="font-family:sans-serif;padding:20px">Loading document...</p>');
             const r = await fetch(`/api/clientes/documentos/${docId}/url`);
             const d = await r.json();
             if (d.success && d.url) {
                 if (win) win.location.href = d.url;
                 else {
-                    // Fallback: link temporário
+                    // Fallback: temporary link
                     const a = document.createElement('a');
                     a.href = d.url; a.target = '_blank'; a.rel = 'noopener';
                     document.body.appendChild(a); a.click(); document.body.removeChild(a);
                 }
             } else {
                 if (win) win.close();
-                toast(d.message || 'Erro ao gerar link', 'err');
+                toast(d.message || 'Error generating link', 'err');
             }
         } catch(e) {
-            toast('Erro de conexão', 'err');
+            toast('Connection error', 'err');
         }
     }
 
     // ---- Upload KYC ----
     async function uploadKyc(clienteId, tipoDoc) {
         const input = document.getElementById(`kyc-file-${tipoDoc}`);
-        if (!input || !input.files[0]) { toast('Selecione um arquivo', 'err'); return; }
+        if (!input || !input.files[0]) { toast('Select a file', 'err'); return; }
         const obs = document.getElementById(`kyc-obs-${tipoDoc}`)?.value || '';
         const formData = new FormData();
         formData.append('arquivo', input.files[0]);
@@ -1443,15 +1443,15 @@
             const d = await r.json();
             if (d.success) {
                 if (d.renovacao) {
-                    toast('Documento de renovação enviado — aguardando revalidação pelo Compliance.', 'warn');
+                    toast('Renewal document sent — awaiting Compliance revalidation.', 'warn');
                 } else {
-                    toast('Documento enviado — aguardando validação do Compliance.', 'ok');
+                    toast('Document uploaded — awaiting Compliance validation.', 'ok');
                 }
                 input.value = '';
                 verDetalhe(clienteId);
             } else toast(d.message, 'err');
-        } catch(e) { toast('Erro de conexão', 'err'); }
-        finally { if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-upload"></i> Enviar'; } }
+        } catch(e) { toast('Connection error', 'err'); }
+        finally { if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-upload"></i> Upload'; } }
     }
 
     // ---- Utils ----
@@ -1468,7 +1468,7 @@
         setTimeout(() => el.remove(), 4000);
     }
 
-    // Função para calcular validade do comprovante de endereço (6 meses após a data)
+    // Function to calculate address proof validity (6 months after document date)
     function calcularValidadeEndereco(dataDocumento) {
         if (!dataDocumento) return null;
         const data = new Date(dataDocumento);
@@ -1476,7 +1476,7 @@
         return data.toISOString().split('T')[0];
     }
 
-    // Evento para mostrar validade calculada do comprovante
+    // Event to show calculated address validity
     document.addEventListener('DOMContentLoaded', function() {
         const addrDataInput = document.getElementById('cAddrData');
         if (addrDataInput) {
@@ -1489,21 +1489,21 @@
                     const diasRestantes = Math.ceil((dataValidade - hoje) / (1000 * 60 * 60 * 24));
                     
                     if (diasRestantes < 0) {
-                        msgDiv.innerHTML = '<span style="color:var(--cor-perigo);"><i class="fas fa-exclamation-triangle"></i> EXPIRADO! Envie um comprovante mais recente.</span>';
+                        msgDiv.innerHTML = '<span style="color:var(--cor-perigo);"><i class="fas fa-exclamation-triangle"></i> EXPIRED! Submit a more recent proof.</span>';
                     } else if (diasRestantes < 30) {
-                        msgDiv.innerHTML = `<span style="color:var(--cor-alerta);"><i class="fas fa-clock"></i> Vence em ${diasRestantes} dias (${dataValidade.toLocaleDateString('pt-BR')})</span>`;
+                        msgDiv.innerHTML = `<span style="color:var(--cor-alerta);"><i class="fas fa-clock"></i> Expires in ${diasRestantes} days (${dataValidade.toLocaleDateString('pt-BR')})</span>`;
                     } else {
-                        msgDiv.innerHTML = `<span style="color:var(--cor-sucesso);"><i class="fas fa-check-circle"></i> Válido até ${dataValidade.toLocaleDateString('pt-BR')}</span>`;
+                        msgDiv.innerHTML = `<span style="color:var(--cor-sucesso);"><i class="fas fa-check-circle"></i> Valid until ${dataValidade.toLocaleDateString('pt-BR')}</span>`;
                     }
                 } else if (msgDiv) {
-                    msgDiv.innerHTML = '<span style="color:var(--muted);">Selecione uma data</span>';
+                    msgDiv.innerHTML = '<span style="color:var(--muted);">Select a date</span>';
                 }
             });
         }
     });
 
-    // Fechar clicando fora desabilitado — evita perda de dados em formulários
-    // Carga inicial
+    // Close outside click disabled — prevent data loss in forms
+    // Initial load
     _buscar();
     </script>
     <script src="/static/js/theme.js"></script>
@@ -1512,29 +1512,30 @@
     document.addEventListener('DOMContentLoaded', () => {
         initNationalitySelect('nat-wrap-cNacionalidade', 'cNacionalidade', '', {inputClass:'form-control'});
     });
+
     </script>
 
-    <!-- Modal: Editar Beneficiário -->
+    <!-- Modal: Edit Beneficiary -->
     <div id="modalEditBenefDetalhe" class="modal-overlay" style="z-index:2000;">
     <div class="modal" style="max-width:620px;max-height:90vh;overflow-y:auto;">
         <div class="modal-hd">
-            <h3><i class="fas fa-edit"></i> Editar Beneficiário — <span id="ebd-tipo-label"></span></h3>
+            <h3><i class="fas fa-edit"></i> Edit Beneficiary — <span id="ebd-tipo-label"></span></h3>
             <button class="close-btn" onclick="fecharModal('modalEditBenefDetalhe')"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body" style="padding:20px;">
             <input type="hidden" id="ebd-id">
             <input type="hidden" id="ebd-tipo">
             <div class="form-grid">
-                <div class="form-group form-full"><label>Nome Completo *</label><input id="ebd-nome" type="text" class="form-control"></div>
-                <div class="form-group form-full"><label>Apelido</label><input id="ebd-apelido" type="text" class="form-control" placeholder="Ex: João - Nubank"></div>
-                <div class="form-group"><label>Endereço Linha 1</label><input id="ebd-end1" type="text" class="form-control"></div>
-                <div class="form-group"><label>Endereço Linha 2</label><input id="ebd-end2" type="text" class="form-control"></div>
-                <div class="form-group"><label>Cidade</label><input id="ebd-cidade" type="text" class="form-control"></div>
-                <div class="form-group"><label>CEP / Postcode</label><input id="ebd-postcode" type="text" class="form-control" onblur="if(document.getElementById('ebd-tipo').value==='brazil') buscarCep(this.value,{cidade:'ebd-cidade',estado:'ebd-estado-br',end1:'ebd-end1',end2:'ebd-end2',pais:'ebd-pais'})"></div>
+                <div class="form-group form-full"><label>Full Name *</label><input id="ebd-nome" type="text" class="form-control"></div>
+                <div class="form-group form-full"><label>Nickname</label><input id="ebd-apelido" type="text" class="form-control" placeholder="Ex: John - Nubank"></div>
+                <div class="form-group"><label>Address Line 1</label><input id="ebd-end1" type="text" class="form-control"></div>
+                <div class="form-group"><label>Address Line 2</label><input id="ebd-end2" type="text" class="form-control"></div>
+                <div class="form-group"><label>City</label><input id="ebd-cidade" type="text" class="form-control"></div>
+                <div class="form-group"><label>Postcode / ZIP</label><input id="ebd-postcode" type="text" class="form-control" onblur="if(document.getElementById('ebd-tipo').value==='brazil') buscarCep(this.value,{cidade:'ebd-cidade',estado:'ebd-estado-br',end1:'ebd-end1',end2:'ebd-end2',pais:'ebd-pais'})"></div>
                 <div class="form-group" id="ebd-estado-br-group" style="display:none;">
-                    <label>Estado</label>
+                    <label>State</label>
                     <select id="ebd-estado-br" class="form-control">
-                        <option value="">Selecione...</option>
+                        <option value="">Select...</option>
                         <option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option>
                         <option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option>
                         <option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option>
@@ -1543,27 +1544,27 @@
                         <option>SE</option><option>TO</option>
                     </select>
                 </div>
-                <div class="form-group form-full"><label>País</label><input id="ebd-pais" type="text" class="form-control"></div>
+                <div class="form-group form-full"><label>Country</label><input id="ebd-pais" type="text" class="form-control"></div>
                 <div class="form-group form-full">
-                    <label>Relacionamento</label>
+                    <label>Relationship</label>
                     <select id="ebd-rel" class="form-control">
                         <option value="">—</option>
-                        <option value="proprio">Próprio</option>
-                        <option value="familiar">Familiar</option>
-                        <option value="amigo">Amigo</option>
-                        <option value="negocio">Negócio</option>
+                        <option value="proprio">Self</option>
+                        <option value="familiar">Family</option>
+                        <option value="amigo">Friend</option>
+                        <option value="negocio">Business</option>
                     </select>
                 </div>
             </div>
-            <!-- Brasil -->
+            <!-- Brazil -->
             <div id="ebd-sec-brazil">
-                <p class="section-label">Dados Bancários Brasil</p>
+                <p class="section-label">Brazil Banking Details</p>
                 <div class="form-grid">
-                    <div class="form-group"><label>CPF / CNPJ</label><input id="ebd-cpf" type="text" class="form-control" placeholder="000.000.000-00 ou 00.000.000/0001-00" onblur="onCpfCnpjBlur(this)"></div>
+                    <div class="form-group"><label>CPF / CNPJ</label><input id="ebd-cpf" type="text" class="form-control" placeholder="000.000.000-00 or 00.000.000/0001-00" onblur="onCpfCnpjBlur(this)"></div>
                     <div class="form-group">
-                        <label>Banco</label>
+                        <label>Bank</label>
                         <select id="ebd-banco-sel" class="form-control" onchange="onBancoChange('ebd')">
-                            <option value="">Selecione...</option>
+                            <option value="">Select...</option>
                             <option value="001|Banco do Brasil">001 — Banco do Brasil</option>
                             <option value="033|Santander">033 — Santander</option>
                             <option value="104|Caixa Econômica Federal">104 — Caixa Econômica Federal</option>
@@ -1584,50 +1585,50 @@
                             <option value="070|BRB">070 — BRB</option>
                             <option value="655|Votorantim (Neon)">655 — Votorantim (Neon)</option>
                             <option value="380|PicPay">380 — PicPay</option>
-                            <option value="outro|">Outro Banco</option>
+                            <option value="outro|">Other Bank</option>
                         </select>
                     </div>
                     <div class="form-group" id="ebd-banco-outro-group" style="display:none;">
-                        <label>Nome do Banco</label>
-                        <input id="ebd-banco" type="text" class="form-control" placeholder="Digite o nome do banco">
+                        <label>Bank Name</label>
+                        <input id="ebd-banco" type="text" class="form-control" placeholder="Enter bank name">
                     </div>
-                    <div class="form-group"><label>Agência</label><input id="ebd-agencia" type="text" class="form-control"></div>
-                    <div class="form-group"><label>Conta</label><input id="ebd-conta" type="text" class="form-control"></div>
+                    <div class="form-group"><label>Branch</label><input id="ebd-agencia" type="text" class="form-control"></div>
+                    <div class="form-group"><label>Account</label><input id="ebd-conta" type="text" class="form-control"></div>
                     <div class="form-group">
-                        <label>Tipo de Conta</label>
-                        <select id="ebd-tipo-conta" class="form-control"><option value="corrente">Corrente</option><option value="poupanca">Poupança</option></select>
+                        <label>Account Type</label>
+                        <select id="ebd-tipo-conta" class="form-control"><option value="corrente">Current</option><option value="poupanca">Savings</option></select>
                     </div>
-                    <div class="form-group"><label>Chave PIX</label><input id="ebd-pix" type="text" class="form-control"></div>
+                    <div class="form-group"><label>PIX Key</label><input id="ebd-pix" type="text" class="form-control"></div>
                     <div class="form-group">
-                        <label>Tipo PIX</label>
-                        <select id="ebd-pix-tipo" class="form-control"><option value="">—</option><option value="cpf">CPF</option><option value="email">Email</option><option value="telefone">Telefone</option><option value="aleatoria">Aleatória</option></select>
+                        <label>PIX Type</label>
+                        <select id="ebd-pix-tipo" class="form-control"><option value="">—</option><option value="cpf">CPF</option><option value="email">Email</option><option value="telefone">Phone</option><option value="aleatoria">Random</option></select>
                     </div>
                 </div>
             </div>
-            <!-- Europa -->
+            <!-- Europe -->
             <div id="ebd-sec-europe" style="display:none;">
-                <p class="section-label">Dados Bancários Europa</p>
+                <p class="section-label">Europe Banking Details</p>
                 <div class="form-grid">
                     <div class="form-group form-full"><label>IBAN</label><input id="ebd-iban" type="text" class="form-control"></div>
                     <div class="form-group"><label>BIC / SWIFT</label><input id="ebd-bic" type="text" class="form-control"></div>
-                    <div class="form-group"><label>Banco</label><input id="ebd-banco-eu" type="text" class="form-control"></div>
-                    <div class="form-group"><label>País do Banco</label><input id="ebd-pais-eu" type="text" class="form-control"></div>
+                    <div class="form-group"><label>Bank</label><input id="ebd-banco-eu" type="text" class="form-control"></div>
+                    <div class="form-group"><label>Bank Country</label><input id="ebd-pais-eu" type="text" class="form-control"></div>
                 </div>
             </div>
             <!-- USA -->
             <div id="ebd-sec-usa" style="display:none;">
-                <p class="section-label">Dados Bancários USA</p>
+                <p class="section-label">USA Banking Details</p>
                 <div class="form-grid">
                     <div class="form-group"><label>Routing Number</label><input id="ebd-routing" type="text" class="form-control"></div>
                     <div class="form-group"><label>Account Number</label><input id="ebd-account" type="text" class="form-control"></div>
                     <div class="form-group">
-                        <label>Tipo de Conta</label>
+                        <label>Account Type</label>
                         <select id="ebd-account-tipo" class="form-control"><option value="checking">Checking</option><option value="savings">Savings</option></select>
                     </div>
                     <div class="form-group">
-                        <label>Estado</label>
+                        <label>State</label>
                         <select id="ebd-state-us" class="form-control">
-                            <option value="">Selecione...</option>
+                            <option value="">Select...</option>
                             <option>AL</option><option>AK</option><option>AZ</option><option>AR</option><option>CA</option>
                             <option>CO</option><option>CT</option><option>DE</option><option>FL</option><option>GA</option>
                             <option>HI</option><option>ID</option><option>IL</option><option>IN</option><option>IA</option>
@@ -1641,15 +1642,15 @@
                         </select>
                     </div>
                     <div class="form-group"><label>SWIFT</label><input id="ebd-swift-us" type="text" class="form-control"></div>
-                    <div class="form-group"><label>Banco</label><input id="ebd-banco-us" type="text" class="form-control"></div>
+                    <div class="form-group"><label>Bank</label><input id="ebd-banco-us" type="text" class="form-control"></div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-ghost" onclick="fecharModal('modalEditBenefDetalhe')">Cancelar</button>
-                <button class="btn btn-primary" onclick="salvarEditBenefDetalhe()"><i class="fas fa-save"></i> Salvar</button>
+                <button class="btn btn-ghost" onclick="fecharModal('modalEditBenefDetalhe')">Cancel</button>
+                <button class="btn btn-primary" onclick="salvarEditBenefDetalhe()"><i class="fas fa-save"></i> Save</button>
             </div>
         </div>
     </div>
-    </div>
+    </div> 
     </body>
     </html>

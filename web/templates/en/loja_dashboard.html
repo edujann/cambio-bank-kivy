@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cambio Bank — Loja</title>
+    <title>Cambio Bank — Store</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/theme.css">
     <style>
@@ -177,7 +177,7 @@
         .t-warn{background:rgba(243,156,18,.1);border:1px solid var(--cor-alerta);color:var(--cor-alerta);}
         @keyframes tIn{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
 
-        /* Modal de confirmação - estilo melhorado */
+        /* Confirmation modal */
         .confirmacao-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -271,7 +271,7 @@
                 <span class="loja-tag">/ {{ loja_nome|upper }}</span>
             </div>
             
-            <!-- SELETOR DE IDIOMA -->
+            <!-- LANGUAGE SELECTOR -->
             <div class="lang-switch">
                 <a href="/language/pt" class="lang-btn {% if current_lang == 'pt' %}active{% endif %}">PT</a>
                 <a href="/language/en" class="lang-btn {% if current_lang == 'en' %}active{% endif %}">EN</a>
@@ -280,86 +280,86 @@
         
         <div class="hd-right">
             <span style="font-size:12px;color:var(--cor-texto-secundario);">{{ usuario }}</span>
-            <a href="/loja/selecionar" class="btn-hd btn-hd-ghost" title="Trocar loja"><i class="fas fa-exchange-alt"></i> Trocar Loja</a>
-            <a href="/loja/clientes" class="btn-hd"><i class="fas fa-users"></i> Clientes</a>
+            <a href="/loja/selecionar" class="btn-hd btn-hd-ghost" title="Switch Store"><i class="fas fa-exchange-alt"></i> Switch Store</a>
+            <a href="/loja/clientes" class="btn-hd"><i class="fas fa-users"></i> Customers</a>
             {% if tipo == 'admin' %}
             <a href="/admin/dashboard" class="btn-hd"><i class="fas fa-shield-alt"></i> Admin</a>
             {% endif %}
-            <button id="btnTheme" class="btn-hd btn-hd-ghost" onclick="toggleTheme()" title="Alternar tema"><i class="fas fa-moon"></i></button>
-            <a href="/logout" class="btn-hd btn-hd-ghost"><i class="fas fa-sign-out-alt"></i> Sair</a>
+            <button id="btnTheme" class="btn-hd btn-hd-ghost" onclick="toggleTheme()" title="Toggle theme"><i class="fas fa-moon"></i></button>
+            <a href="/logout" class="btn-hd btn-hd-ghost"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </div>
     </div>
 
-    <!-- Stats cards (clicáveis para filtrar) -->
+    <!-- Stats cards (clickable to filter) -->
     <div class="stats" id="statsGrid">
         <div class="stat" onclick="filtrar('','stat-todas')">
-            <div class="lbl">Total Ordens</div>
+            <div class="lbl">Total Orders</div>
             <div class="val c-azul" id="s-total">—</div>
-            <div class="sub" id="s-total-sub">no filtro ativo</div>
+            <div class="sub" id="s-total-sub">in active filter</div>
         </div>
         <div class="stat" onclick="filtrar('on_hold','stat-hold')">
             <div class="lbl">On Hold</div>
             <div class="val c-am" id="s-hold">—</div>
-            <div class="sub">Aguardando Bank Transfer</div>
+            <div class="sub">Awaiting Bank Transfer</div>
         </div>
         <div class="stat" onclick="filtrar('liberada','stat-lib')">
-            <div class="lbl">Liberadas</div>
+            <div class="lbl">Released</div>
             <div class="val c-azul" id="s-lib">—</div>
-            <div class="sub">Prontas p/ despachar</div>
+            <div class="sub">Ready to dispatch</div>
         </div>
         <div class="stat" onclick="filtrar('despachada','stat-desp')">
-            <div class="lbl">Despachadas</div>
+            <div class="lbl">Dispatched</div>
             <div class="val c-roxo" id="s-desp">—</div>
-            <div class="sub">Aguardando confirmação</div>
+            <div class="sub">Awaiting confirmation</div>
         </div>
         <div class="stat" onclick="filtrar('paga','stat-paga')">
-            <div class="lbl">Volume Entrada</div>
+            <div class="lbl">Inbound Volume</div>
             <div class="val c-verde" id="s-vol">—</div>
-            <div class="sub" id="s-vol-moeda">moeda principal</div>
+            <div class="sub" id="s-vol-moeda">main currency</div>
         </div>
     </div>
 
-    <!-- Tabs principais -->
+    <!-- Main Tabs -->
     <div style="display:flex;gap:0;border-bottom:2px solid var(--cor-borda);margin-bottom:20px;">
-        <div id="tab-ativas" class="fpill active" style="border-radius:0;border:none;border-bottom:2px solid var(--cor-admin);margin-bottom:-2px;padding:8px 18px;font-size:13px;cursor:pointer;" onclick="switchMainTab('ativas')"><i class="fas fa-list" style="margin-right:6px;"></i>Ordens Ativas</div>
-        <div id="tab-historico" class="fpill" style="border-radius:0;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;padding:8px 18px;font-size:13px;cursor:pointer;" onclick="switchMainTab('historico')"><i class="fas fa-history" style="margin-right:6px;"></i>Histórico</div>
+        <div id="tab-ativas" class="fpill active" style="border-radius:0;border:none;border-bottom:2px solid var(--cor-admin);margin-bottom:-2px;padding:8px 18px;font-size:13px;cursor:pointer;" onclick="switchMainTab('ativas')"><i class="fas fa-list" style="margin-right:6px;"></i>Active Orders</div>
+        <div id="tab-historico" class="fpill" style="border-radius:0;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;padding:8px 18px;font-size:13px;cursor:pointer;" onclick="switchMainTab('historico')"><i class="fas fa-history" style="margin-right:6px;"></i>History</div>
     </div>
 
-    <!-- PAINEL: Ordens Ativas -->
+    <!-- PANEL: Active Orders -->
     <div id="panel-ativas">
     <!-- Action bar -->
     <div class="action-bar">
         <button class="btn-nova" onclick="abrirDrawer()">
-            <i class="fas fa-plus"></i> Nova Ordem
+            <i class="fas fa-plus"></i> New Order
         </button>
         <div class="filters-wrap">
-            <button class="fpill active" data-status="" onclick="filtrar('',this)">Ativas</button>
+            <button class="fpill active" data-status="" onclick="filtrar('',this)">Active</button>
             <button class="fpill" data-status="on_hold" onclick="filtrar('on_hold',this)">On Hold</button>
-            <button class="fpill" data-status="liberada" onclick="filtrar('liberada',this)">Liberadas</button>
-            <button class="fpill" data-status="despachada" onclick="filtrar('despachada',this)">Despachadas</button>
-            <button class="fpill" data-status="paga" onclick="filtrar('paga',this)">Pagas</button>
-            <input type="date" id="filtroDataDe" class="date-input" title="De" onchange="carregarOrdens()">
-            <input type="date" id="filtroDataAte" class="date-input" title="Até" onchange="carregarOrdens()">
+            <button class="fpill" data-status="liberada" onclick="filtrar('liberada',this)">Released</button>
+            <button class="fpill" data-status="despachada" onclick="filtrar('despachada',this)">Dispatched</button>
+            <button class="fpill" data-status="paga" onclick="filtrar('paga',this)">Paid</button>
+            <input type="date" id="filtroDataDe" class="date-input" title="From" onchange="carregarOrdens()">
+            <input type="date" id="filtroDataAte" class="date-input" title="To" onchange="carregarOrdens()">
         </div>
     </div>
 
     <!-- Orders table -->
     <div class="tbl-card">
         <div class="tbl-hd">
-            <h3><i class="fas fa-list"></i> Ordens <span id="tbl-count" style="color:var(--cor-texto-secundario);font-weight:400;margin-left:4px;font-size:12px;"></span></h3>
+            <h3><i class="fas fa-list"></i> Orders <span id="tbl-count" style="color:var(--cor-texto-secundario);font-weight:400;margin-left:4px;font-size:12px;"></span></h3>
             <button class="btn-hd btn-hd-ghost" onclick="carregarOrdens()"><i class="fas fa-sync-alt"></i></button>
         </div>
         <div class="tbl-wrap">
             <table>
                 <thead><tr>
-                    <th>Data</th>
-                    <th>Cliente</th>
-                    <th>Entrada</th>
-                    <th>Saída</th>
-                    <th>Destino</th>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>Inbound</th>
+                    <th>Outbound</th>
+                    <th>Destination</th>
                     <th>Status</th>
                     <th>Branch</th>
-                    <th>Ações</th>
+                    <th>Actions</th>
                 </tr></thead>
                 <tbody id="ordensBody">
                     <tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>
@@ -369,35 +369,35 @@
     </div>
     </div><!-- /panel-ativas -->
 
-    <!-- PAINEL: Histórico -->
+    <!-- PANEL: History -->
     <div id="panel-historico" style="display:none;">
         <div style="background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:14px 16px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
-            <input id="hist-q" type="text" placeholder="Cliente, documento ou nº ordem..." class="date-input" style="flex:1;min-width:200px;padding:7px 11px;">
+            <input id="hist-q" type="text" placeholder="Customer, document or order number..." class="date-input" style="flex:1;min-width:200px;padding:7px 11px;">
             <select id="hist-status" class="date-input" style="min-width:140px;">
-                <option value="">Todos os status</option>
+                <option value="">All status</option>
                 <option value="compliance_review">Compliance Review</option>
                 <option value="on_hold">On Hold</option>
-                <option value="liberada">Liberada</option>
-                <option value="despachada">Despachada</option>
-                <option value="paga">Paga</option>
-                <option value="cancelada">Cancelada</option>
+                <option value="liberada">Released</option>
+                <option value="despachada">Dispatched</option>
+                <option value="paga">Paid</option>
+                <option value="cancelada">Cancelled</option>
             </select>
-            <input id="hist-de" type="date" class="date-input" title="De">
-            <input id="hist-ate" type="date" class="date-input" title="Até">
-            <button class="btn-nova" style="padding:7px 16px;font-size:13px;" onclick="buscarHistorico()"><i class="fas fa-search"></i> Buscar</button>
+            <input id="hist-de" type="date" class="date-input" title="From">
+            <input id="hist-ate" type="date" class="date-input" title="To">
+            <button class="btn-nova" style="padding:7px 16px;font-size:13px;" onclick="buscarHistorico()"><i class="fas fa-search"></i> Search</button>
         </div>
         <div class="tbl-card">
             <div class="tbl-hd">
-                <h3><i class="fas fa-history"></i> Resultados <span id="hist-count" style="font-size:12px;color:var(--cor-texto-secundario);font-weight:400;margin-left:4px;"></span></h3>
+                <h3><i class="fas fa-history"></i> Results <span id="hist-count" style="font-size:12px;color:var(--cor-texto-secundario);font-weight:400;margin-left:4px;"></span></h3>
             </div>
             <div class="tbl-wrap">
                 <table>
                     <thead><tr>
-                        <th>Data</th><th>Cliente</th><th>Entrada</th><th>Saída</th>
-                        <th>Destino</th><th>Status</th><th>Branch</th><th></th>
+                        <th>Date</th><th>Customer</th><th>Inbound</th><th>Outbound</th>
+                        <th>Destination</th><th>Status</th><th>Branch</th><th></th>
                     </tr></thead>
                     <tbody id="hist-body">
-                        <tr><td colspan="8" class="empty" style="color:var(--cor-texto-secundario);">Use os filtros acima para buscar ordens.</td></tr>
+                        <tr><td colspan="8" class="empty" style="color:var(--cor-texto-secundario);">Use filters above to search orders.</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -405,11 +405,11 @@
     </div><!-- /panel-historico -->
 </div>
 
-<!-- Modal: Detalhe da Ordem (Histórico) -->
+<!-- Modal: Order Details (History) -->
 <div class="modal-ov" id="modalDetalheOrdem">
     <div class="modal" style="width:min(700px,96vw);padding:0;">
         <div style="padding:16px 20px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;">
-            <h3 style="margin:0;font-size:15px;display:flex;align-items:center;gap:8px;"><i class="fas fa-file-alt" style="color:var(--cor-admin);"></i> <span id="deo-titulo">Ordem</span></h3>
+            <h3 style="margin:0;font-size:15px;display:flex;align-items:center;gap:8px;"><i class="fas fa-file-alt" style="color:var(--cor-admin);"></i> <span id="deo-titulo">Order</span></h3>
             <button onclick="fecharModal('modalDetalheOrdem')" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--cor-texto-secundario);">&times;</button>
         </div>
         <div id="deo-body" style="padding:20px;overflow-y:auto;max-height:75vh;">
@@ -418,11 +418,11 @@
     </div>
 </div>
 
-<!-- ══════════════════════ DRAWER: Nova Ordem ══════════════════════ -->
+<!-- ══════════════════════ DRAWER: New Order ══════════════════════ -->
 <div class="drawer-overlay" id="drawerOverlay" onclick="void(0)">
 <div class="drawer" id="drawer">
     <div class="drawer-hd">
-        <h2><i class="fas fa-plus-circle c-azul"></i> Nova Ordem</h2>
+        <h2><i class="fas fa-plus-circle c-azul"></i> New Order</h2>
         <button class="drawer-close" onclick="fecharDrawer()"><i class="fas fa-times"></i></button>
     </div>
     <div class="drawer-body">
@@ -431,150 +431,150 @@
         <div class="steps">
             <div class="step active" id="step-ind-1">
                 <div class="step-circle">1</div>
-                <span class="step-label">Cliente</span>
+                <span class="step-label">Customer</span>
                 <div class="step-line"></div>
             </div>
             <div class="step" id="step-ind-2">
                 <div class="step-circle">2</div>
-                <span class="step-label">Transação</span>
+                <span class="step-label">Transaction</span>
             </div>
         </div>
 
-        <!-- ── STEP 1: Cliente ── -->
+        <!-- ── STEP 1: Customer ── -->
         <div id="step1">
-            <div class="fsec"><i class="fas fa-user"></i> Buscar Cliente</div>
+            <div class="fsec"><i class="fas fa-user"></i> Find Customer</div>
             <div class="fg fc-search-wrap">
-                <label>Nome, documento ou telefone</label>
-                <input id="s1Busca" type="text" class="fc" placeholder="Digite para buscar…" oninput="s1BuscarCliente()" autocomplete="off">
+                <label>Name, document or phone</label>
+                <input id="s1Busca" type="text" class="fc" placeholder="Type to search…" oninput="s1BuscarCliente()" autocomplete="off">
                 <div class="fc-dropdown" id="s1Dropdown"></div>
                 <input type="hidden" id="s1ClienteId">
             </div>
 
-            <!-- Cliente selecionado -->
+            <!-- Selected customer -->
             <div id="s1ClienteBox" style="display:none;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
                     <strong id="s1ClienteNome" style="font-size:15px;"></strong>
-                    <button style="background:transparent;border:none;color:var(--cor-texto-secundario);cursor:pointer;font-size:12px;" onclick="s1LimparCliente()"><i class="fas fa-times"></i> Trocar</button>
+                    <button style="background:transparent;border:none;color:var(--cor-texto-secundario);cursor:pointer;font-size:12px;" onclick="s1LimparCliente()"><i class="fas fa-times"></i> Change</button>
                 </div>
                 <div class="grid2" style="margin-bottom:10px;">
                     <div style="font-size:12px;color:var(--cor-texto-secundario);">Doc: <span id="s1ClienteDoc" style="color:var(--cor-texto);">—</span></div>
-                    <div style="font-size:12px;color:var(--cor-texto-secundario);">Tel: <span id="s1ClienteTel" style="color:var(--cor-texto);">—</span></div>
+                    <div style="font-size:12px;color:var(--cor-texto-secundario);">Phone: <span id="s1ClienteTel" style="color:var(--cor-texto);">—</span></div>
                 </div>
-                <!-- AML check (carregado após selecionar) -->
+                <!-- AML check (loaded after selection) -->
                 <div id="s1AmlBox"></div>
             </div>
 
-            <!-- Novo cliente rápido -->
+            <!-- Quick new customer -->
             <div id="s1NovoBox" style="display:none;">
-                <div class="fsec">Cadastro Rápido</div>
-                <p style="font-size:12px;color:var(--cor-texto-secundario);margin-bottom:12px;">Cliente não encontrado. Preencha abaixo ou <a href="/loja/clientes" target="_blank" style="color:var(--cor-admin);">faça cadastro completo</a>.</p>
+                <div class="fsec">Quick Registration</div>
+                <p style="font-size:12px;color:var(--cor-texto-secundario);margin-bottom:12px;">Customer not found. Fill below or <a href="/loja/clientes" target="_blank" style="color:var(--cor-admin);">complete registration</a>.</p>
                 
-                <!-- Dados básicos -->
+                <!-- Basic info -->
                 <div class="grid2">
-                    <div class="fg full"><label>Nome Completo *</label><input id="s1NovoNome" type="text" class="fc" placeholder="Nome do cliente"></div>
-                    <div class="fg"><label>Documento</label><input id="s1NovoDoc" type="text" class="fc" placeholder="Nº passaporte / ID"></div>
-                    <div class="fg"><label>Telefone</label><input id="s1NovoTel" type="text" class="fc" placeholder="+44 7xxx…"></div>
+                    <div class="fg full"><label>Full Name *</label><input id="s1NovoNome" type="text" class="fc" placeholder="Customer name"></div>
+                    <div class="fg"><label>Document</label><input id="s1NovoDoc" type="text" class="fc" placeholder="Passport / ID number"></div>
+                    <div class="fg"><label>Phone</label><input id="s1NovoTel" type="text" class="fc" placeholder="+44 7xxx…"></div>
                 </div>
                 
-                <!-- Documento de Identificação com validade -->
-                <div class="fsec" style="margin-top:15px;"><i class="fas fa-id-card"></i> Documento de Identificação</div>
+                <!-- Identification Document with expiry -->
+                <div class="fsec" style="margin-top:15px;"><i class="fas fa-id-card"></i> Identification Document</div>
                 <div class="grid2">
                     <div class="fg">
-                        <label>Número do Documento</label>
+                        <label>Document Number</label>
                         <input id="s1NovoDocNumero" type="text" class="fc" placeholder="Ex: AB123456">
                     </div>
                     <div class="fg">
-                        <label>Data de Validade *</label>
+                        <label>Expiry Date *</label>
                         <input type="date" id="s1NovoDocValidade" class="fc">
-                        <small style="font-size:10px; color:var(--cor-texto-secundario);">Documento vence nesta data</small>
+                        <small style="font-size:10px; color:var(--cor-texto-secundario);">Document expires on this date</small>
                     </div>
                 </div>
                 
-                <!-- Comprovante de Endereço com data do documento -->
-                <div class="fsec" style="margin-top:15px;"><i class="fas fa-home"></i> Comprovante de Endereço</div>
+                <!-- Proof of Address with document date -->
+                <div class="fsec" style="margin-top:15px;"><i class="fas fa-home"></i> Proof of Address</div>
                 <div class="grid2">
                     <div class="fg">
-                        <label>Data do Comprovante *</label>
+                        <label>Document Date *</label>
                         <input type="date" id="s1NovoAddrData" class="fc">
-                        <small style="font-size:10px; color:var(--cor-texto-secundario);">Data de emissão do comprovante</small>
+                        <small style="font-size:10px; color:var(--cor-texto-secundario);">Document issue date</small>
                     </div>
                     <div class="fg">
-                        <label>Válido até</label>
+                        <label>Valid until</label>
                         <div id="s1NovoAddrValidadeMsg" style="font-size:12px; padding:8px; background:rgba(128,128,128,.05); border-radius:6px;">
-                            <span style="color:var(--cor-texto-secundario);">Selecione uma data</span>
+                            <span style="color:var(--cor-texto-secundario);">Select a date</span>
                         </div>
                     </div>
                 </div>
-                <!-- Beneficiário durante cadastro rápido -->
+                <!-- Beneficiary during quick registration -->
                 <div style="margin-top:12px;border-top:1px solid var(--cor-borda);padding-top:12px;">
                     <button type="button" class="benef-novo-btn" onclick="toggleS1Benef()" id="s1BenefToggleBtn">
-                        <i class="fas fa-plus"></i> Adicionar beneficiário agora (opcional)
+                        <i class="fas fa-plus"></i> Add beneficiary now (optional)
                     </button>
                     <div id="s1BenefBox" style="display:none;margin-top:10px;">
                         <div style="display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap;">
-                            <button type="button" class="dest-tab active" data-nbo="brazil" onclick="switchS1BenefTipo('brazil')">🇧🇷 Brasil</button>
-                            <button type="button" class="dest-tab" data-nbo="europe" onclick="switchS1BenefTipo('europe')">🇪🇺 Europa</button>
+                            <button type="button" class="dest-tab active" data-nbo="brazil" onclick="switchS1BenefTipo('brazil')">🇧🇷 Brazil</button>
+                            <button type="button" class="dest-tab" data-nbo="europe" onclick="switchS1BenefTipo('europe')">🇪🇺 Europe</button>
                             <button type="button" class="dest-tab" data-nbo="usa" onclick="switchS1BenefTipo('usa')">🇺🇸 USA</button>
                         </div>
-                        <!-- Campos comuns -->
+                        <!-- Common fields -->
                         <div class="grid2">
-                            <div class="fg full"><label>Nome do Beneficiário *</label><input id="nbo-nome" type="text" class="fc" placeholder="Nome completo"></div>
-                            <div class="fg full"><label>Apelido</label><input id="nbo-apelido" type="text" class="fc" placeholder="Ex: João - Nubank"></div>
-                            <div class="fg"><label>Endereço Linha 1</label><input id="nbo-end1" type="text" class="fc" placeholder="Rua, número"></div>
-                            <div class="fg"><label>Cidade</label><input id="nbo-cidade" type="text" class="fc"></div>
+                            <div class="fg full"><label>Beneficiary Name *</label><input id="nbo-nome" type="text" class="fc" placeholder="Full name"></div>
+                            <div class="fg full"><label>Nickname</label><input id="nbo-apelido" type="text" class="fc" placeholder="Ex: John - Nubank"></div>
+                            <div class="fg"><label>Address Line 1</label><input id="nbo-end1" type="text" class="fc" placeholder="Street, number"></div>
+                            <div class="fg"><label>City</label><input id="nbo-cidade" type="text" class="fc"></div>
                             <div class="fg"><label>Postcode / CEP</label><input id="nbo-postcode" type="text" class="fc"></div>
-                            <div class="fg"><label>País</label><input id="nbo-pais" type="text" class="fc" placeholder="Brasil, UK…"></div>
+                            <div class="fg"><label>Country</label><input id="nbo-pais" type="text" class="fc" placeholder="Brazil, UK…"></div>
                             <div class="fg">
-                                <label>Relacionamento</label>
+                                <label>Relationship</label>
                                 <select id="nbo-rel" class="fc">
                                     <option value="">—</option>
-                                    <option value="proprio">Próprio</option>
-                                    <option value="familiar">Familiar</option>
-                                    <option value="negocio">Negócio</option>
+                                    <option value="proprio">Own</option>
+                                    <option value="familiar">Family</option>
+                                    <option value="negocio">Business</option>
                                 </select>
                             </div>
                         </div>
-                        <!-- Brasil -->
+                        <!-- Brazil -->
                         <div id="nbo-sec-brazil">
-                            <div class="fsec" style="font-size:11px;margin:8px 0 6px;">Dados Bancários Brasil</div>
+                            <div class="fsec" style="font-size:11px;margin:8px 0 6px;">Brazil Banking Details</div>
                             <div class="grid2">
                                 <div class="fg"><label>CPF</label><input id="nbo-cpf" type="text" class="fc" placeholder="000.000.000-00"></div>
-                                <div class="fg"><label>Banco</label><input id="nbo-banco" type="text" class="fc" placeholder="Nubank, Itaú…"></div>
-                                <div class="fg"><label>Agência</label><input id="nbo-agencia" type="text" class="fc" placeholder="0001"></div>
-                                <div class="fg"><label>Conta</label><input id="nbo-conta" type="text" class="fc" placeholder="12345-6"></div>
+                                <div class="fg"><label>Bank</label><input id="nbo-banco" type="text" class="fc" placeholder="Nubank, Itaú…"></div>
+                                <div class="fg"><label>Branch</label><input id="nbo-agencia" type="text" class="fc" placeholder="0001"></div>
+                                <div class="fg"><label>Account</label><input id="nbo-conta" type="text" class="fc" placeholder="12345-6"></div>
                                 <div class="fg">
-                                    <label>Tipo Conta</label>
-                                    <select id="nbo-tipo-conta" class="fc"><option value="corrente">Corrente</option><option value="poupanca">Poupança</option></select>
+                                    <label>Account Type</label>
+                                    <select id="nbo-tipo-conta" class="fc"><option value="corrente">Current</option><option value="poupanca">Savings</option></select>
                                 </div>
-                                <div class="fg"><label>Chave PIX</label><input id="nbo-pix" type="text" class="fc" placeholder="CPF, email, tel…"></div>
+                                <div class="fg"><label>PIX Key</label><input id="nbo-pix" type="text" class="fc" placeholder="CPF, email, phone…"></div>
                                 <div class="fg">
-                                    <label>Tipo PIX</label>
-                                    <select id="nbo-pix-tipo" class="fc"><option value="">—</option><option value="cpf">CPF</option><option value="email">Email</option><option value="telefone">Telefone</option><option value="aleatoria">Aleatória</option></select>
+                                    <label>PIX Type</label>
+                                    <select id="nbo-pix-tipo" class="fc"><option value="">—</option><option value="cpf">CPF</option><option value="email">Email</option><option value="telefone">Phone</option><option value="aleatoria">Random</option></select>
                                 </div>
                             </div>
                         </div>
-                        <!-- Europa -->
+                        <!-- Europe -->
                         <div id="nbo-sec-europe" style="display:none;">
-                            <div class="fsec" style="font-size:11px;margin:8px 0 6px;">Dados Bancários Europa</div>
+                            <div class="fsec" style="font-size:11px;margin:8px 0 6px;">Europe Banking Details</div>
                             <div class="grid2">
                                 <div class="fg full"><label>IBAN *</label><input id="nbo-iban" type="text" class="fc" placeholder="GB29 NWBK…"></div>
                                 <div class="fg"><label>BIC / SWIFT</label><input id="nbo-swift" type="text" class="fc" placeholder="NWBKGB2L"></div>
-                                <div class="fg"><label>Banco</label><input id="nbo-banco-eu" type="text" class="fc"></div>
-                                <div class="fg"><label>País do Banco</label><input id="nbo-pais-banco" type="text" class="fc" placeholder="DE, FR, PT…"></div>
+                                <div class="fg"><label>Bank</label><input id="nbo-banco-eu" type="text" class="fc"></div>
+                                <div class="fg"><label>Bank Country</label><input id="nbo-pais-banco" type="text" class="fc" placeholder="DE, FR, PT…"></div>
                             </div>
                         </div>
                         <!-- USA -->
                         <div id="nbo-sec-usa" style="display:none;">
-                            <div class="fsec" style="font-size:11px;margin:8px 0 6px;">Dados Bancários USA</div>
+                            <div class="fsec" style="font-size:11px;margin:8px 0 6px;">USA Banking Details</div>
                             <div class="grid2">
                                 <div class="fg"><label>Routing Number</label><input id="nbo-routing" type="text" class="fc" placeholder="021000021"></div>
                                 <div class="fg"><label>Account Number</label><input id="nbo-account" type="text" class="fc" placeholder="000123456789"></div>
                                 <div class="fg">
-                                    <label>Tipo Conta</label>
+                                    <label>Account Type</label>
                                     <select id="nbo-account-tipo" class="fc"><option value="checking">Checking</option><option value="savings">Savings</option></select>
                                 </div>
                                 <div class="fg"><label>SWIFT</label><input id="nbo-swift-us" type="text" class="fc" placeholder="CHASUS33"></div>
-                                <div class="fg"><label>Banco</label><input id="nbo-banco-us" type="text" class="fc" placeholder="Chase, Wells Fargo…"></div>
+                                <div class="fg"><label>Bank</label><input id="nbo-banco-us" type="text" class="fc" placeholder="Chase, Wells Fargo…"></div>
                             </div>
                         </div>
                     </div>
@@ -584,17 +584,17 @@
             <div id="s1Msg" class="status-msg" style="margin-top:8px;"></div>
         </div>
 
-        <!-- ── STEP 2: Transação ── -->
+        <!-- ── STEP 2: Transaction ── -->
         <div id="step2" style="display:none;">
 
-            <!-- Destino -->
-            <div class="fsec"><i class="fas fa-globe"></i> Destino</div>
+            <!-- Destination -->
+            <div class="fsec"><i class="fas fa-globe"></i> Destination</div>
             <div class="dest-tabs">
                 <button class="dest-tab active" data-dest="brazil" onclick="trocarDestino('brazil')">
-                    <span class="flag">🇧🇷</span>Brasil (BRL)
+                    <span class="flag">🇧🇷</span>Brazil (BRL)
                 </button>
                 <button class="dest-tab" data-dest="europe" onclick="trocarDestino('europe')">
-                    <span class="flag">🇪🇺</span>Europa (EUR)
+                    <span class="flag">🇪🇺</span>Europe (EUR)
                 </button>
                 <button class="dest-tab" data-dest="usa" onclick="trocarDestino('usa')">
                     <span class="flag">🇺🇸</span>USA (USD)
@@ -602,89 +602,89 @@
             </div>
 
             <div id="clienteSelecionadoTopo" style="display:none; background:rgba(155,89,182,.1); padding:10px; border-radius:8px; margin-bottom:15px;">
-                <i class="fas fa-user-check"></i> Cliente: <strong id="clienteNomeTopo"></strong>
+                <i class="fas fa-user-check"></i> Customer: <strong id="clienteNomeTopo"></strong>
                 <button type="button" onclick="trocarCliente()" style="float:right; background:transparent; border:none; cursor:pointer;">
-                    <i class="fas fa-times"></i> Trocar
+                    <i class="fas fa-times"></i> Change
                 </button>
             </div>
 
-            <!-- Captação -->
-            <div class="fsec"><i class="fas fa-money-bill-wave"></i> Captação</div>
+            <!-- Collection -->
+            <div class="fsec"><i class="fas fa-money-bill-wave"></i> Collection</div>
             <div class="grid3">
                 <div class="fg">
-                    <label>Forma Pagamento *</label>
+                    <label>Payment Method *</label>
                     <select id="s2Forma" class="fc" onchange="calcPreview(); autoFetchConfigLoja()">
-                        <option value="">Selecione…</option>
+                        <option value="">Select…</option>
                         <option value="cash">Cash</option>
-                        <option value="debito">Cartão Débito</option>
-                        <option value="credito">Cartão Crédito</option>
-                        <option value="transferencia">Transferência</option>
+                        <option value="debito">Debit Card</option>
+                        <option value="credito">Credit Card</option>
+                        <option value="transferencia">Bank Transfer</option>
                     </select>
                 </div>
                 <div class="fg">
-                    <label>Moeda Recebida *</label>
+                    <label>Currency Received *</label>
                     <select id="s2Moeda" class="fc" onchange="calcPreview(); autoFetchConfigLoja()">
-                        <option value="">Selecione…</option>
-                        <option value="GBP">GBP — Libra</option>
-                        <option value="USD">USD — Dólar</option>
+                        <option value="">Select…</option>
+                        <option value="GBP">GBP — Pound Sterling</option>
+                        <option value="USD">USD — US Dollar</option>
                         <option value="EUR">EUR — Euro</option>
                     </select>
                 </div>
                 <div class="fg">
-                    <label>Valor Recebido *</label>
+                    <label>Amount Received *</label>
                     <input id="s2Valor" type="number" step="0.01" class="fc" placeholder="Ex: 500" oninput="calcPreview(); s2AmlCheck()">
                 </div>
             </div>
             <div class="grid2">
                 <div class="fg">
-                    <label>Conta Empresa (recebe) *</label>
-                    <select id="s2Conta" class="fc"><option value="">Selecione forma e moeda…</option></select>
+                    <label>Company Account (receives) *</label>
+                    <select id="s2Conta" class="fc"><option value="">Select payment method and currency…</option></select>
                     <div id="s2ContaInfo" style="display:none;font-size:11px;color:var(--cor-texto-secundario);margin-top:4px;"></div>
                 </div>
                 <div class="fg">
-                    <label id="s2TaxaLabel">Taxa Cobrada *</label>
+                    <label id="s2TaxaLabel">Exchange Rate *</label>
                     <div style="display:flex;gap:6px;align-items:center;">
-                        <button type="button" id="s2TaxaDown" onclick="ajustarTaxa(-1)" title="Diminuir spread"
+                        <button type="button" id="s2TaxaDown" onclick="ajustarTaxa(-1)" title="Decrease spread"
                             style="width:32px;height:38px;border:1px solid var(--cor-borda);background:var(--cor-card);color:var(--cor-texto);border-radius:6px;cursor:pointer;font-size:16px;flex-shrink:0;">▼</button>
                         <input id="s2Taxa" type="number" step="0.0001" class="fc" placeholder="Ex: 6.50" oninput="calcPreview()" style="flex:1;text-align:center;">
-                        <button type="button" id="s2TaxaUp" onclick="ajustarTaxa(+1)" title="Aumentar spread"
+                        <button type="button" id="s2TaxaUp" onclick="ajustarTaxa(+1)" title="Increase spread"
                             style="width:32px;height:38px;border:1px solid var(--cor-borda);background:var(--cor-card);color:var(--cor-texto);border-radius:6px;cursor:pointer;font-size:16px;flex-shrink:0;">▲</button>
                     </div>
                     <div id="s2TaxaInfo" style="display:none;font-size:11px;color:var(--cor-texto-secundario);margin-top:4px;text-align:center;"></div>
                 </div>
             </div>
 
-            <!-- AML check em step 2 (atualizado ao mudar valor) -->
+            <!-- AML check in step 2 -->
             <div id="s2AmlBox"></div>
 
-            <!-- Beneficiário -->
-            <div class="fsec"><i class="fas fa-user-friends"></i> Beneficiário</div>
+            <!-- Beneficiary -->
+            <div class="fsec"><i class="fas fa-user-friends"></i> Beneficiary</div>
 
             <!-- BRAZIL beneficiaries -->
             <div class="dest-section active" id="ds-brazil">
                 <div id="benef-list-brazil" class="benef-list"></div>
-                <button class="benef-novo-btn" onclick="toggleNovoBenef('brazil')"><i class="fas fa-plus"></i> Novo beneficiário Brasil</button>
+                <button class="benef-novo-btn" onclick="toggleNovoBenef('brazil')"><i class="fas fa-plus"></i> New Brazil beneficiary</button>
                 <div class="benef-form" id="benef-form-brazil">
                     <div class="grid2">
-                        <div class="fg full"><label>Nome Completo *</label><input id="bb-nome" type="text" class="fc"></div>
-                        <div class="fg full"><label>Apelido (ex: João - Nubank)</label><input id="bb-apelido" type="text" class="fc" placeholder="Para identificar facilmente"></div>
-                        <div class="fg"><label>Relacionamento</label>
+                        <div class="fg full"><label>Full Name *</label><input id="bb-nome" type="text" class="fc"></div>
+                        <div class="fg full"><label>Nickname (ex: John - Nubank)</label><input id="bb-apelido" type="text" class="fc" placeholder="Easy to identify"></div>
+                        <div class="fg"><label>Relationship</label>
                             <select id="bb-rel" class="fc">
                                 <option value="">—</option>
-                                <option value="self">Própria conta</option>
-                                <option value="spouse">Cônjuge</option>
-                                <option value="parent">Pai/Mãe</option>
-                                <option value="child">Filho/a</option>
-                                <option value="sibling">Irmão/ã</option>
-                                <option value="friend">Amigo/a</option>
-                                <option value="business">Negócio</option>
-                                <option value="other">Outro</option>
+                                <option value="self">My own account</option>
+                                <option value="spouse">Spouse</option>
+                                <option value="parent">Parent</option>
+                                <option value="child">Child</option>
+                                <option value="sibling">Sibling</option>
+                                <option value="friend">Friend</option>
+                                <option value="business">Business</option>
+                                <option value="other">Other</option>
                             </select>
                         </div>
                         <div class="fg"><label>CPF / CNPJ</label><input id="bb-cpf" type="text" class="fc" placeholder="000.000.000-00"></div>
-                        <div class="fg"><label>Banco</label>
+                        <div class="fg"><label>Bank</label>
                             <select id="bb-banco-sel" class="fc" onchange="onBancoChange('bb')">
-                                <option value="">Selecione...</option>
+                                <option value="">Select...</option>
                                 <option value="001|Banco do Brasil">001 — Banco do Brasil</option>
                                 <option value="212|Banco Original">212 — Banco Original</option>
                                 <option value="021|Banestes">021 — Banestes</option>
@@ -705,36 +705,36 @@
                                 <option value="756|Sicoob">756 — Sicoob</option>
                                 <option value="748|Sicredi">748 — Sicredi</option>
                                 <option value="655|Votorantim (Neon)">655 — Votorantim (Neon)</option>
-                                <option value="outro|">Outro Banco</option>
+                                <option value="outro|">Other Bank</option>
                             </select>
                         </div>
-                        <div class="fg" id="bb-banco-outro-group" style="display:none;"><label>Nome do Banco</label><input id="bb-banco" type="text" class="fc" placeholder="Nome do banco"></div>
+                        <div class="fg" id="bb-banco-outro-group" style="display:none;"><label>Bank Name</label><input id="bb-banco" type="text" class="fc" placeholder="Bank name"></div>
                         <input type="hidden" id="bb-banco-hidden">
-                        <div class="fg"><label>Agência</label><input id="bb-agencia" type="text" class="fc" placeholder="0001"></div>
-                        <div class="fg"><label>Conta</label><input id="bb-conta" type="text" class="fc" placeholder="12345-6"></div>
-                        <div class="fg"><label>Tipo de Conta</label>
+                        <div class="fg"><label>Branch</label><input id="bb-agencia" type="text" class="fc" placeholder="0001"></div>
+                        <div class="fg"><label>Account</label><input id="bb-conta" type="text" class="fc" placeholder="12345-6"></div>
+                        <div class="fg"><label>Account Type</label>
                             <select id="bb-tipo-conta" class="fc">
-                                <option value="corrente">Corrente</option>
-                                <option value="poupanca">Poupança</option>
+                                <option value="corrente">Current</option>
+                                <option value="poupanca">Savings</option>
                             </select>
                         </div>
-                        <div class="fg"><label>Chave PIX</label><input id="bb-pix" type="text" class="fc" placeholder="CPF, email, tel ou aleatória"></div>
-                        <div class="fg"><label>Tipo PIX</label>
+                        <div class="fg"><label>PIX Key</label><input id="bb-pix" type="text" class="fc" placeholder="CPF, email, phone or random"></div>
+                        <div class="fg"><label>PIX Type</label>
                             <select id="bb-pix-tipo" class="fc">
                                 <option value="">—</option>
                                 <option value="cpf">CPF</option>
                                 <option value="email">Email</option>
-                                <option value="telefone">Telefone</option>
-                                <option value="aleatoria">Chave Aleatória</option>
+                                <option value="telefone">Phone</option>
+                                <option value="aleatoria">Random Key</option>
                             </select>
                         </div>
-                        <div class="fg"><label>Endereço Linha 1</label><input id="bb-end1" type="text" class="fc" placeholder="Número, rua"></div>
-                        <div class="fg"><label>Endereço Linha 2</label><input id="bb-end2" type="text" class="fc" placeholder="Complemento, bairro"></div>
-                        <div class="fg"><label>Cidade</label><input id="bb-cidade" type="text" class="fc"></div>
-                        <div class="fg"><label>CEP</label><input id="bb-postcode" type="text" class="fc" placeholder="00000-000" onblur="buscarCep(this.value,{cidade:'bb-cidade',estado:'bb-estado-br',end1:'bb-end1',end2:'bb-end2',pais:'bb-pais'})"></div>
-                        <div class="fg"><label>Estado (UF)</label>
+                        <div class="fg"><label>Address Line 1</label><input id="bb-end1" type="text" class="fc" placeholder="Street, number"></div>
+                        <div class="fg"><label>Address Line 2</label><input id="bb-end2" type="text" class="fc" placeholder="Complement, neighborhood"></div>
+                        <div class="fg"><label>City</label><input id="bb-cidade" type="text" class="fc"></div>
+                        <div class="fg"><label>Postcode</label><input id="bb-postcode" type="text" class="fc" placeholder="00000-000" onblur="buscarCep(this.value,{cidade:'bb-cidade',estado:'bb-estado-br',end1:'bb-end1',end2:'bb-end2',pais:'bb-pais'})"></div>
+                        <div class="fg"><label>State</label>
                             <select id="bb-estado-br" class="fc">
-                                <option value="">Selecione...</option>
+                                <option value="">Select...</option>
                                 <option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option>
                                 <option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option>
                                 <option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option>
@@ -743,78 +743,78 @@
                                 <option>SE</option><option>TO</option>
                             </select>
                         </div>
-                        <div class="fg"><label>País</label><input id="bb-pais" type="text" class="fc" value="Brasil" placeholder="Brasil"></div>
+                        <div class="fg"><label>Country</label><input id="bb-pais" type="text" class="fc" value="Brazil" placeholder="Brazil"></div>
                     </div>
-                    <button class="btn-p" style="margin-top:4px;font-size:13px;padding:8px 16px;" onclick="salvarNovoBenef('brazil')"><i class="fas fa-save"></i> Salvar beneficiário</button>
+                    <button class="btn-p" style="margin-top:4px;font-size:13px;padding:8px 16px;" onclick="salvarNovoBenef('brazil')"><i class="fas fa-save"></i> Save beneficiary</button>
                 </div>
             </div>
 
             <!-- EUROPE beneficiaries -->
             <div class="dest-section" id="ds-europe">
                 <div id="benef-list-europe" class="benef-list"></div>
-                <button class="benef-novo-btn" onclick="toggleNovoBenef('europe')"><i class="fas fa-plus"></i> Novo beneficiário Europa</button>
+                <button class="benef-novo-btn" onclick="toggleNovoBenef('europe')"><i class="fas fa-plus"></i> New Europe beneficiary</button>
                 <div class="benef-form" id="benef-form-europe">
                     <div class="grid2">
-                        <div class="fg full"><label>Nome Completo *</label><input id="be-nome" type="text" class="fc"></div>
-                        <div class="fg full"><label>Apelido</label><input id="be-apelido" type="text" class="fc" placeholder="Para identificar facilmente"></div>
-                        <div class="fg"><label>Relacionamento</label>
+                        <div class="fg full"><label>Full Name *</label><input id="be-nome" type="text" class="fc"></div>
+                        <div class="fg full"><label>Nickname</label><input id="be-apelido" type="text" class="fc" placeholder="Easy to identify"></div>
+                        <div class="fg"><label>Relationship</label>
                             <select id="be-rel" class="fc">
                                 <option value="">—</option>
-                                <option value="self">Própria conta</option>
-                                <option value="spouse">Cônjuge</option>
-                                <option value="parent">Pai/Mãe</option>
-                                <option value="child">Filho/a</option>
-                                <option value="sibling">Irmão/ã</option>
-                                <option value="friend">Amigo/a</option>
-                                <option value="business">Negócio</option>
-                                <option value="other">Outro</option>
+                                <option value="self">My own account</option>
+                                <option value="spouse">Spouse</option>
+                                <option value="parent">Parent</option>
+                                <option value="child">Child</option>
+                                <option value="sibling">Sibling</option>
+                                <option value="friend">Friend</option>
+                                <option value="business">Business</option>
+                                <option value="other">Other</option>
                             </select>
                         </div>
                         <div class="fg full"><label>IBAN *</label><input id="be-iban" type="text" class="fc" placeholder="GB29 NWBK 6016 1331 9268 19"></div>
                         <div class="fg"><label>BIC / SWIFT</label><input id="be-swift" type="text" class="fc" placeholder="NWBKGB2L"></div>
-                        <div class="fg"><label>Banco</label><input id="be-banco" type="text" class="fc"></div>
-                        <div class="fg"><label>País do Banco</label><input id="be-pais" type="text" class="fc" placeholder="DE, FR, PT…"></div>
-                        <div class="fg"><label>Endereço Linha 1</label><input id="be-end1" type="text" class="fc"></div>
-                        <div class="fg"><label>Endereço Linha 2</label><input id="be-end2" type="text" class="fc"></div>
-                        <div class="fg"><label>Cidade</label><input id="be-cidade" type="text" class="fc"></div>
+                        <div class="fg"><label>Bank</label><input id="be-banco" type="text" class="fc"></div>
+                        <div class="fg"><label>Bank Country</label><input id="be-pais" type="text" class="fc" placeholder="DE, FR, PT…"></div>
+                        <div class="fg"><label>Address Line 1</label><input id="be-end1" type="text" class="fc"></div>
+                        <div class="fg"><label>Address Line 2</label><input id="be-end2" type="text" class="fc"></div>
+                        <div class="fg"><label>City</label><input id="be-cidade" type="text" class="fc"></div>
                         <div class="fg"><label>Postcode</label><input id="be-postcode" type="text" class="fc"></div>
-                        <div class="fg full"><label>País</label><input id="be-pais-benef" type="text" class="fc" placeholder="ex: Alemanha, França, Portugal"></div>
+                        <div class="fg full"><label>Country</label><input id="be-pais-benef" type="text" class="fc" placeholder="ex: Germany, France, Portugal"></div>
                     </div>
-                    <button class="btn-p" style="margin-top:4px;font-size:13px;padding:8px 16px;" onclick="salvarNovoBenef('europe')"><i class="fas fa-save"></i> Salvar beneficiário</button>
+                    <button class="btn-p" style="margin-top:4px;font-size:13px;padding:8px 16px;" onclick="salvarNovoBenef('europe')"><i class="fas fa-save"></i> Save beneficiary</button>
                 </div>
             </div>
 
             <!-- USA beneficiaries -->
             <div class="dest-section" id="ds-usa">
                 <div id="benef-list-usa" class="benef-list"></div>
-                <button class="benef-novo-btn" onclick="toggleNovoBenef('usa')"><i class="fas fa-plus"></i> Novo beneficiário USA</button>
+                <button class="benef-novo-btn" onclick="toggleNovoBenef('usa')"><i class="fas fa-plus"></i> New USA beneficiary</button>
                 <div class="benef-form" id="benef-form-usa">
                     <div class="grid2">
-                        <div class="fg full"><label>Nome Completo *</label><input id="bu-nome" type="text" class="fc"></div>
-                        <div class="fg full"><label>Apelido</label><input id="bu-apelido" type="text" class="fc" placeholder="Para identificar facilmente"></div>
-                        <div class="fg"><label>Relacionamento</label>
+                        <div class="fg full"><label>Full Name *</label><input id="bu-nome" type="text" class="fc"></div>
+                        <div class="fg full"><label>Nickname</label><input id="bu-apelido" type="text" class="fc" placeholder="Easy to identify"></div>
+                        <div class="fg"><label>Relationship</label>
                             <select id="bu-rel" class="fc">
                                 <option value="">—</option>
-                                <option value="self">Própria conta</option>
-                                <option value="spouse">Cônjuge</option>
-                                <option value="parent">Pai/Mãe</option>
-                                <option value="child">Filho/a</option>
-                                <option value="sibling">Irmão/ã</option>
-                                <option value="friend">Amigo/a</option>
-                                <option value="business">Negócio</option>
-                                <option value="other">Outro</option>
+                                <option value="self">My own account</option>
+                                <option value="spouse">Spouse</option>
+                                <option value="parent">Parent</option>
+                                <option value="child">Child</option>
+                                <option value="sibling">Sibling</option>
+                                <option value="friend">Friend</option>
+                                <option value="business">Business</option>
+                                <option value="other">Other</option>
                             </select>
                         </div>
                         <div class="fg"><label>Routing Number</label><input id="bu-routing" type="text" class="fc" placeholder="021000021"></div>
                         <div class="fg"><label>Account Number</label><input id="bu-account" type="text" class="fc" placeholder="000123456789"></div>
-                        <div class="fg"><label>Tipo de Conta</label>
+                        <div class="fg"><label>Account Type</label>
                             <select id="bu-tipo" class="fc">
                                 <option value="checking">Checking</option>
                                 <option value="savings">Savings</option>
                             </select>
                         </div>
                         <div class="fg"><label>SWIFT</label><input id="bu-swift" type="text" class="fc" placeholder="CHASUS33"></div>
-                        <div class="fg"><label>Banco</label><input id="bu-banco" type="text" class="fc" placeholder="Chase, Wells Fargo…"></div>
+                        <div class="fg"><label>Bank</label><input id="bu-banco" type="text" class="fc" placeholder="Chase, Wells Fargo…"></div>
                         <div class="fg"><label>State</label>
                             <select id="bu-state" class="fc">
                                 <option value="">Select...</option>
@@ -830,26 +830,26 @@
                                 <option>VA</option><option>WA</option><option>WV</option><option>WI</option><option>WY</option>
                             </select>
                         </div>
-                        <div class="fg"><label>Endereço Linha 1</label><input id="bu-end1" type="text" class="fc" placeholder="Street address"></div>
-                        <div class="fg"><label>Endereço Linha 2</label><input id="bu-end2" type="text" class="fc" placeholder="Apt, suite, etc."></div>
-                        <div class="fg"><label>Cidade</label><input id="bu-cidade" type="text" class="fc"></div>
+                        <div class="fg"><label>Address Line 1</label><input id="bu-end1" type="text" class="fc" placeholder="Street address"></div>
+                        <div class="fg"><label>Address Line 2</label><input id="bu-end2" type="text" class="fc" placeholder="Apt, suite, etc."></div>
+                        <div class="fg"><label>City</label><input id="bu-cidade" type="text" class="fc"></div>
                         <div class="fg"><label>ZIP Code</label><input id="bu-postcode" type="text" class="fc" placeholder="10001"></div>
                     </div>
-                    <button class="btn-p" style="margin-top:4px;font-size:13px;padding:8px 16px;" onclick="salvarNovoBenef('usa')"><i class="fas fa-save"></i> Salvar beneficiário</button>
+                    <button class="btn-p" style="margin-top:4px;font-size:13px;padding:8px 16px;" onclick="salvarNovoBenef('usa')"><i class="fas fa-save"></i> Save beneficiary</button>
                 </div>
             </div>
 
             <!-- Preview -->
             <div class="preview" id="previewBox" style="display:none;">
-                <div class="prow"><span style="color:var(--cor-texto-secundario)">Cliente envia:</span><span id="pv-entrada" style="font-weight:600;"></span></div>
-                <div class="prow"><span style="color:var(--cor-texto-secundario)">Cliente recebe:</span><span id="pv-saida" style="font-weight:600;color:var(--cor-sucesso);"></span></div>
-                <div class="prow"><span style="color:var(--cor-texto-secundario)">Taxa aplicada:</span><span id="pv-taxa"></span></div>
-                <div class="prow prow-total"><span>Status inicial:</span><span id="pv-status"></span></div>
+                <div class="prow"><span style="color:var(--cor-texto-secundario)">Customer sends:</span><span id="pv-entrada" style="font-weight:600;"></span></div>
+                <div class="prow"><span style="color:var(--cor-texto-secundario)">Customer receives:</span><span id="pv-saida" style="font-weight:600;color:var(--cor-sucesso);"></span></div>
+                <div class="prow"><span style="color:var(--cor-texto-secundario)">Rate applied:</span><span id="pv-taxa"></span></div>
+                <div class="prow prow-total"><span>Initial status:</span><span id="pv-status"></span></div>
             </div>
 
             <div class="fg">
-                <label>Observações</label>
-                <input id="s2Obs" type="text" class="fc" placeholder="Opcional">
+                <label>Observations</label>
+                <input id="s2Obs" type="text" class="fc" placeholder="Optional">
             </div>
 
             <div id="s2Msg" class="status-msg"></div>
@@ -857,133 +857,133 @@
     </div>
 
     <div class="drawer-footer">
-        <button class="btn-g" id="drawerBtnBack" onclick="irStep(1)" style="display:none;"><i class="fas fa-arrow-left"></i> Voltar</button>
+        <button class="btn-g" id="drawerBtnBack" onclick="irStep(1)" style="display:none;"><i class="fas fa-arrow-left"></i> Back</button>
         <div style="display:flex;gap:10px;margin-left:auto;">
-            <button class="btn-g" onclick="fecharDrawer()">Cancelar</button>
-            <button class="btn-p" id="drawerBtnNext" onclick="step1Proximo()"><i class="fas fa-arrow-right"></i> Próximo</button>
-            <button class="btn-p" id="drawerBtnSubmit" style="display:none;" onclick="criarOrdem()"><i class="fas fa-check"></i> Registrar Ordem</button>
+            <button class="btn-g" onclick="fecharDrawer()">Cancel</button>
+            <button class="btn-p" id="drawerBtnNext" onclick="step1Proximo()"><i class="fas fa-arrow-right"></i> Next</button>
+            <button class="btn-p" id="drawerBtnSubmit" style="display:none;" onclick="criarOrdem()"><i class="fas fa-check"></i> Register Order</button>
         </div>
     </div>
 </div>
 </div>
 
-<!-- Modal Despachar -->
+<!-- Modal Dispatch -->
 <div class="modal-ov" id="modalDespachar">
     <div class="modal">
-        <h3><i class="fas fa-paper-plane c-azul"></i> Despachar Ordem</h3>
-        <p style="color:var(--cor-texto-secundario);font-size:13px;margin-bottom:14px;">Selecione o parceiro que vai pagar no destino:</p>
+        <h3><i class="fas fa-paper-plane c-azul"></i> Dispatch Order</h3>
+        <p style="color:var(--cor-texto-secundario);font-size:13px;margin-bottom:14px;">Select the partner who will pay at destination:</p>
         <div class="fg">
-            <label>Parceiro Pagador *</label>
-            <select id="parceiroSelect" class="fc"><option value="">Carregando…</option></select>
+            <label>Payment Partner *</label>
+            <select id="parceiroSelect" class="fc"><option value="">Loading…</option></select>
         </div>
         <div class="modal-acts">
-            <button class="btn-g" onclick="fecharModal('modalDespachar')">Cancelar</button>
-            <button class="btn-p" onclick="confirmarDespacho()"><i class="fas fa-paper-plane"></i> Despachar</button>
+            <button class="btn-g" onclick="fecharModal('modalDespachar')">Cancel</button>
+            <button class="btn-p" onclick="confirmarDespacho()"><i class="fas fa-paper-plane"></i> Dispatch</button>
         </div>
         <div id="despacharMsg" style="margin-top:10px;font-size:13px;"></div>
     </div>
 </div>
 
-<!-- Modal Editar Beneficiário -->
+<!-- Modal Edit Beneficiary -->
 <div class="modal-ov" id="modalEditBenef">
     <div class="modal" style="width:min(620px,95vw);max-height:90vh;overflow-y:auto;">
-        <h3><i class="fas fa-edit" style="color:#9b59b6;"></i> Editar Beneficiário</h3>
+        <h3><i class="fas fa-edit" style="color:#9b59b6;"></i> Edit Beneficiary</h3>
         <input type="hidden" id="eb-id">
         <input type="hidden" id="eb-tipo">
         <div class="grid2">
-            <div class="fg full"><label>Nome Completo *</label><input id="eb-nome" type="text" class="fc"></div>
-            <div class="fg full"><label>Apelido</label><input id="eb-apelido" type="text" class="fc" placeholder="Ex: João - Nubank"></div>
-            <div class="fg"><label>Endereço Linha 1</label><input id="eb-end1" type="text" class="fc"></div>
-            <div class="fg"><label>Cidade</label><input id="eb-cidade" type="text" class="fc"></div>
+            <div class="fg full"><label>Full Name *</label><input id="eb-nome" type="text" class="fc"></div>
+            <div class="fg full"><label>Nickname</label><input id="eb-apelido" type="text" class="fc" placeholder="Ex: John - Nubank"></div>
+            <div class="fg"><label>Address Line 1</label><input id="eb-end1" type="text" class="fc"></div>
+            <div class="fg"><label>City</label><input id="eb-cidade" type="text" class="fc"></div>
             <div class="fg"><label>Postcode / CEP</label><input id="eb-postcode" type="text" class="fc"></div>
-            <div class="fg"><label>País</label><input id="eb-pais" type="text" class="fc"></div>
+            <div class="fg"><label>Country</label><input id="eb-pais" type="text" class="fc"></div>
             <div class="fg">
-                <label>Relacionamento</label>
+                <label>Relationship</label>
                 <select id="eb-rel" class="fc">
                     <option value="">—</option>
-                    <option value="proprio">Próprio</option>
-                    <option value="familiar">Familiar</option>
-                    <option value="amigo">Amigo</option>
-                    <option value="negocio">Negócio</option>
+                    <option value="proprio">Own</option>
+                    <option value="familiar">Family</option>
+                    <option value="amigo">Friend</option>
+                    <option value="negocio">Business</option>
                 </select>
             </div>
         </div>
-        <!-- Brasil -->
+        <!-- Brazil -->
         <div id="eb-sec-brazil">
-            <div class="fsec" style="font-size:11px;margin:10px 0 6px;">🇧🇷 Dados Bancários Brasil</div>
+            <div class="fsec" style="font-size:11px;margin:10px 0 6px;">🇧🇷 Brazil Banking Details</div>
             <div class="grid2">
                 <div class="fg"><label>CPF</label><input id="eb-cpf" type="text" class="fc" placeholder="000.000.000-00"></div>
-                <div class="fg"><label>Banco</label><input id="eb-banco" type="text" class="fc"></div>
-                <div class="fg"><label>Agência</label><input id="eb-agencia" type="text" class="fc"></div>
-                <div class="fg"><label>Conta</label><input id="eb-conta" type="text" class="fc"></div>
-                <div class="fg"><label>Tipo Conta</label>
-                    <select id="eb-tipo-conta" class="fc"><option value="corrente">Corrente</option><option value="poupanca">Poupança</option></select>
+                <div class="fg"><label>Bank</label><input id="eb-banco" type="text" class="fc"></div>
+                <div class="fg"><label>Branch</label><input id="eb-agencia" type="text" class="fc"></div>
+                <div class="fg"><label>Account</label><input id="eb-conta" type="text" class="fc"></div>
+                <div class="fg"><label>Account Type</label>
+                    <select id="eb-tipo-conta" class="fc"><option value="corrente">Current</option><option value="poupanca">Savings</option></select>
                 </div>
-                <div class="fg"><label>Chave PIX</label><input id="eb-pix" type="text" class="fc"></div>
-                <div class="fg"><label>Tipo PIX</label>
-                    <select id="eb-pix-tipo" class="fc"><option value="">—</option><option value="cpf">CPF</option><option value="email">Email</option><option value="telefone">Telefone</option><option value="aleatoria">Aleatória</option></select>
+                <div class="fg"><label>PIX Key</label><input id="eb-pix" type="text" class="fc"></div>
+                <div class="fg"><label>PIX Type</label>
+                    <select id="eb-pix-tipo" class="fc"><option value="">—</option><option value="cpf">CPF</option><option value="email">Email</option><option value="telefone">Phone</option><option value="aleatoria">Random</option></select>
                 </div>
             </div>
         </div>
-        <!-- Europa -->
+        <!-- Europe -->
         <div id="eb-sec-europe" style="display:none;">
-            <div class="fsec" style="font-size:11px;margin:10px 0 6px;">🇪🇺 Dados Bancários Europa</div>
+            <div class="fsec" style="font-size:11px;margin:10px 0 6px;">🇪🇺 Europe Banking Details</div>
             <div class="grid2">
                 <div class="fg full"><label>IBAN</label><input id="eb-iban" type="text" class="fc"></div>
                 <div class="fg"><label>BIC / SWIFT</label><input id="eb-swift" type="text" class="fc"></div>
-                <div class="fg"><label>Banco</label><input id="eb-banco-eu" type="text" class="fc"></div>
-                <div class="fg"><label>País do Banco</label><input id="eb-pais-banco" type="text" class="fc"></div>
+                <div class="fg"><label>Bank</label><input id="eb-banco-eu" type="text" class="fc"></div>
+                <div class="fg"><label>Bank Country</label><input id="eb-pais-banco" type="text" class="fc"></div>
             </div>
         </div>
         <!-- USA -->
         <div id="eb-sec-usa" style="display:none;">
-            <div class="fsec" style="font-size:11px;margin:10px 0 6px;">🇺🇸 Dados Bancários USA</div>
+            <div class="fsec" style="font-size:11px;margin:10px 0 6px;">🇺🇸 USA Banking Details</div>
             <div class="grid2">
                 <div class="fg"><label>Routing Number</label><input id="eb-routing" type="text" class="fc"></div>
                 <div class="fg"><label>Account Number</label><input id="eb-account" type="text" class="fc"></div>
-                <div class="fg"><label>Tipo Conta</label>
+                <div class="fg"><label>Account Type</label>
                     <select id="eb-account-tipo" class="fc"><option value="checking">Checking</option><option value="savings">Savings</option></select>
                 </div>
                 <div class="fg"><label>SWIFT</label><input id="eb-swift-us" type="text" class="fc"></div>
-                <div class="fg"><label>Banco</label><input id="eb-banco-us" type="text" class="fc"></div>
+                <div class="fg"><label>Bank</label><input id="eb-banco-us" type="text" class="fc"></div>
             </div>
         </div>
         <div class="modal-acts">
-            <button class="btn-g" onclick="document.getElementById('modalEditBenef').classList.remove('open')">Cancelar</button>
-            <button class="btn-p" onclick="salvarEditBenef()"><i class="fas fa-save"></i> Salvar</button>
+            <button class="btn-g" onclick="document.getElementById('modalEditBenef').classList.remove('open')">Cancel</button>
+            <button class="btn-p" onclick="salvarEditBenef()"><i class="fas fa-save"></i> Save</button>
         </div>
     </div>
 </div>
 
-<!-- Modal Confirmar Pagamento -->
+<!-- Modal Confirm Payment -->
 <div class="modal-ov" id="modalConfirmar">
     <div class="modal">
-        <h3><i class="fas fa-check-circle c-verde"></i> Confirmar Pagamento</h3>
+        <h3><i class="fas fa-check-circle c-verde"></i> Confirm Payment</h3>
         <div id="confirmarInfo" style="background:rgba(46,194,126,.06);border:1px solid rgba(46,194,126,.2);border-radius:8px;padding:12px;font-size:13px;margin-bottom:4px;line-height:1.8;"></div>
         <div class="modal-acts">
-            <button class="btn-g" onclick="fecharModal('modalConfirmar')">Cancelar</button>
-            <button class="btn-p" style="background:var(--cor-sucesso);" onclick="confirmarPagamento()"><i class="fas fa-check"></i> Confirmar</button>
+            <button class="btn-g" onclick="fecharModal('modalConfirmar')">Cancel</button>
+            <button class="btn-p" style="background:var(--cor-sucesso);" onclick="confirmarPagamento()"><i class="fas fa-check"></i> Confirm</button>
         </div>
         <div id="confirmarMsg" style="margin-top:10px;font-size:13px;"></div>
     </div>
 </div>
 
-<!-- Modal Confirmar Criação da Ordem (VERSÃO ESTILIZADA) -->
+<!-- Modal Confirm Order Creation (Styled) -->
 <div class="modal-ov" id="modalConfirmarOrdem">
     <div class="modal" style="width:min(750px, 95vw); max-height:90vh; overflow-y:auto;">
         <h3 style="display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--cor-borda); padding-bottom:14px; margin-bottom:16px;">
             <i class="fas fa-clipboard-list" style="color:#9b59b6; font-size:20px;"></i> 
-            <span style="font-size:18px;">Confirmar dados da ordem</span>
+            <span style="font-size:18px;">Confirm order details</span>
         </h3>
         
         <div id="confirmarOrdemDados" style="margin: 0;"></div>
         
         <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px; padding-top:16px; border-top:1px solid var(--cor-borda);">
             <button class="btn-ghost" onclick="fecharModal('modalConfirmarOrdem')" style="padding:8px 20px;">
-                <i class="fas fa-times"></i> Cancelar
+                <i class="fas fa-times"></i> Cancel
             </button>
             <button class="btn-primary" onclick="confirmarCriacaoOrdem()" style="background:#27ae60; padding:8px 24px;">
-                <i class="fas fa-check"></i> Confirmar e Criar
+                <i class="fas fa-check"></i> Confirm & Create
             </button>
         </div>
     </div>
@@ -1001,18 +1001,34 @@ const fmtD = s => { if(!s)return'—'; try{const[dt,hr]=(s.replace('T',' ').spli
 
 let ordemAtual = null, parceiros = [], filtroStatus = '', clienteSelecionado = null, destinoAtivo = 'brazil', benefSelecionado = {};
 
+// Mapeamento de status para inglês
+const STATUS_TRANSLATIONS = {
+    'rascunho': 'Draft',
+    'aguardando_pagamento': 'Awaiting Payment',
+    'paga': 'Paid',
+    'compliance_review': 'Compliance Review',
+    'on_hold': 'On Hold',
+    'liberada': 'Released',
+    'despachada': 'Dispatched',
+    'cancelada': 'Cancelled',
+    'rejeitada': 'Rejected'
+};
+
+function translateStatus(status) {
+    return STATUS_TRANSLATIONS[status] || status;
+}   
+
 // ══ STATS ══════════════════════════════════════════════════════════
 function atualizarStats(ordens) {
     const hold = ordens.filter(o => (o.status === 'on_hold' || o.status === 'compliance_review') && o.forma_pagamento === 'transferencia' && !o.pagamento_confirmado);
     const lib  = ordens.filter(o => o.status === 'liberada');
     const desp = ordens.filter(o => o.status === 'despachada');
     const volTotal = ordens.reduce((s,o) => s + parseFloat(o.valor_entrada||0), 0);
-    // Moeda predominante (a mais frequente hoje)
     const mCount = {};
     ordens.forEach(o => { const m = o.moeda_entrada||'GBP'; mCount[m] = (mCount[m]||0) + 1; });
     const moedaVol = Object.entries(mCount).sort((a,b)=>b[1]-a[1])[0]?.[0] || 'GBP';
     document.getElementById('s-total').textContent     = ordens.length;
-    document.getElementById('s-total-sub').textContent = `filtro atual`;
+    document.getElementById('s-total-sub').textContent = `current filter`;
     document.getElementById('s-hold').textContent      = hold.length;
     document.getElementById('s-lib').textContent       = lib.length;
     document.getElementById('s-desp').textContent      = desp.length;
@@ -1026,7 +1042,6 @@ const STATUS_ATIVOS = 'liberada,on_hold,compliance_review,despachada';
 async function carregarOrdens() {
     const de  = document.getElementById('filtroDataDe').value;
     const ate = document.getElementById('filtroDataAte').value;
-    // Sem filtro de status específico: sempre mostra as 4 ordens ativas sem restrição de data
     let url;
     if (!filtroStatus || filtroStatus === '') {
         url = `/api/loja/ordens?status_in=${STATUS_ATIVOS}`;
@@ -1041,17 +1056,16 @@ async function carregarOrdens() {
         if (ate) url += `&data_ate=${ate}`;
     }
     const tb = document.getElementById('ordensBody');
-    tb.innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    tb.innerHTML = '</tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
     try {
         const r = await fetch(url);
         const d = await r.json();
         let ordens = d.ordens || [];
-        // Filtro on_hold: só transferências aguardando pagamento (igual admin_despachos)
         if (filtroStatus === 'on_hold') {
             ordens = ordens.filter(o => o.forma_pagamento === 'transferencia' && !o.pagamento_confirmado);
         }
         if (!d.success || !ordens.length) {
-            tb.innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-inbox"></i><p>Nenhuma ordem encontrada</p></td></tr>';
+            tb.innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-inbox"></i><p>No orders found</p></td></tr>';
             document.getElementById('tbl-count').textContent = '';
             atualizarStats([]);
             return;
@@ -1066,9 +1080,9 @@ async function carregarOrdens() {
                 : `${fmtN(o.valor_saida,2)} ${o.moeda_saida||'BRL'}`;
             let acoes = '';
             if (IS_ADMIN) {
-                if (o.status==='on_hold')    acoes=`<button class="btn-act g" onclick="liberarOrdem('${o.id}')"><i class="fas fa-unlock"></i> Liberar</button>`;
-                else if (o.status==='liberada')  acoes=`<button class="btn-act" onclick="abrirDespachar('${o.id}')"><i class="fas fa-paper-plane"></i> Despachar</button>`;
-                else if (o.status==='despachada') acoes=`<button class="btn-act g" onclick="abrirConfirmar('${o.id}','${o.parceiro_pagador||''}',${o.valor_saida||0},'${o.moeda_saida||'BRL'}','${(o.beneficiario_nome||'').replace(/'/g,"\\'")}')"><i class="fas fa-check"></i> Confirmar Pgto</button>`;
+                if (o.status==='on_hold')    acoes=`<button class="btn-act g" onclick="liberarOrdem('${o.id}')"><i class="fas fa-unlock"></i> Release</button>`;
+                else if (o.status==='liberada')  acoes=`<button class="btn-act" onclick="abrirDespachar('${o.id}')"><i class="fas fa-paper-plane"></i> Dispatch</button>`;
+                else if (o.status==='despachada') acoes=`<button class="btn-act g" onclick="abrirConfirmar('${o.id}','${o.parceiro_pagador||''}',${o.valor_saida||0},'${o.moeda_saida||'BRL'}','${(o.beneficiario_nome||'').replace(/'/g,"\\'")}')"><i class="fas fa-check"></i> Confirm Payment</button>`;
             }
             return `<tr>
                 <td>${fmtD(o.data)}</td>
@@ -1076,10 +1090,10 @@ async function carregarOrdens() {
                 <td class="mono">${fmtN(o.valor_entrada,2)} ${o.moeda_entrada||''}</td>
                 <td class="mono c-verde">${saidaFmt}</td>
                 <td><span class="dest-flag">${flag}</span>${o.beneficiario_nome||'—'}</td>
-                <td><span class="tag tag-${o.status}">${o.status}</span></td>
+                <td><span class="tag tag-${o.status}">${translateStatus(o.status)}</span></td>
                 <td>${o.loja||'—'}</td>
                 <td>${acoes}</td>
-            </tr>`;
+            </table>`;
         }).join('');
     } catch(e) { tb.innerHTML=`<tr><td colspan="8" style="color:var(--cor-perigo);padding:20px;">${e.message}</td></tr>`; }
 }
@@ -1095,8 +1109,8 @@ function abrirDrawer() {
     resetDrawer();
     document.getElementById('drawerOverlay').classList.add('open');
     document.getElementById('drawer').classList.add('open');
-    carregarContas();     // 🔥 ADICIONAR ESTA LINHA
-    carregarParceiros();  // 🔥 ADICIONAR ESTA LINHA
+    carregarContas();
+    carregarParceiros();
 }
 function fecharDrawer() {
     document.getElementById('drawerOverlay').classList.remove('open');
@@ -1114,7 +1128,7 @@ function resetDrawer() {
     document.getElementById('s1AmlBox').innerHTML = '';
     document.getElementById('s1Msg').innerHTML = '';
     ['s2Forma','s2Moeda'].forEach(id => document.getElementById(id).value = '');
-    document.getElementById('s2Conta').innerHTML = '<option value="">Selecione forma e moeda…</option>';
+    document.getElementById('s2Conta').innerHTML = '<option value="">Select payment method and currency…</option>';
     document.getElementById('s2ContaInfo').style.display = 'none';
     document.getElementById('s2TaxaInfo').style.display = 'none';
     document.getElementById('s2Valor').value = '';
@@ -1138,7 +1152,6 @@ function irStep(n) {
     if (n===1) { s1.className='step active'; s2.className='step'; }
     else {
         s1.className='step done'; s2.className='step active';
-        // Auto-select beneficiário recém-criado no cadastro rápido
         if (benefSelecionadoPendente) {
             const {tipo, data} = benefSelecionadoPendente;
             trocarDestino(tipo);
@@ -1148,7 +1161,7 @@ function irStep(n) {
     }
 }
 
-// ── Step 1: busca cliente ──
+// ── Step 1: search customer ──
 let s1Timer;
 function s1PosicionarDropdown() {
     const input = document.getElementById('s1Busca');
@@ -1170,13 +1183,13 @@ async function s1BuscarCliente() {
             const r = await fetch(`/api/clientes?q=${encodeURIComponent(q)}`);
             const d = await r.json();
             if (!d.success) {
-                dd.innerHTML = `<div class="fc-dd-item" style="color:var(--cor-perigo);font-size:12px;"><i class="fas fa-exclamation-circle"></i> Erro: ${d.message}</div>`;
+                dd.innerHTML = `<div class="fc-dd-item" style="color:var(--cor-perigo);font-size:12px;"><i class="fas fa-exclamation-circle"></i> Error: ${d.message}</div>`;
                 s1PosicionarDropdown(); dd.style.display = 'block';
                 return;
             }
             const lista = d.clientes || [];
             if (!lista.length) {
-                dd.innerHTML = `<div class="fc-dd-item" onclick="s1UsarNovo()"><i class="fas fa-user-plus"></i> Nenhum resultado para "<strong>${q}</strong>" — cadastrar novo</div>`;
+                dd.innerHTML = `<div class="fc-dd-item" onclick="s1UsarNovo()"><i class="fas fa-user-plus"></i> No results for "<strong>${q}</strong>" — register new</div>`;
                 s1PosicionarDropdown(); dd.style.display = 'block';
                 return;
             }
@@ -1185,7 +1198,7 @@ async function s1BuscarCliente() {
                     <div>${c.nome}</div>
                     <div class="sub">${c.documento||''} ${c.telefone||''}</div>
                 </div>`).join('') +
-                `<div class="fc-dd-item" style="border-top:1px solid var(--cor-borda);" onclick="s1UsarNovo()"><i class="fas fa-user-plus"></i> Cadastrar novo cliente</div>`;
+                `<div class="fc-dd-item" style="border-top:1px solid var(--cor-borda);" onclick="s1UsarNovo()"><i class="fas fa-user-plus"></i> Register new customer</div>`;
             s1PosicionarDropdown(); dd.style.display = 'block';
         } catch(e) {
             dd.innerHTML = `<div class="fc-dd-item" style="color:var(--cor-perigo);font-size:12px;">${e.message}</div>`;
@@ -1205,14 +1218,12 @@ async function s1SelecionarCliente(c) {
     document.getElementById('s1ClienteBox').style.display = 'block';
     document.getElementById('s1NovoBox').style.display    = 'none';
     
-    // 🔥 ADICIONAR ESTAS LINHAS - Mostrar nome no topo do step 2
     const topoDiv = document.getElementById('clienteSelecionadoTopo');
     if (topoDiv) {
         topoDiv.style.display = 'block';
         document.getElementById('clienteNomeTopo').textContent = c.nome;
     }
     
-    // AML check com valor zero (overview)
     await s1AmlCheck(c.id, 0, 'GBP');
 }
 
@@ -1224,7 +1235,6 @@ async function s1AmlCheck(clienteId, valor, moeda) {
         if (!d.success) return;
         const a = d.aml;
         
-        // 🔥 SALVAR O RESULTADO DO KYC PARA USAR NO STATUS
         window.ultimoKycCheck = {
             precisaCompliance: (a.docs_missing?.length > 0) || a.pep_screening || (a.kyc_level_required >= 2),
             docs_missing: a.docs_missing || [],
@@ -1232,32 +1242,30 @@ async function s1AmlCheck(clienteId, valor, moeda) {
             kyc_level: a.kyc_level_required
         };
         
-        // 🔥 ADICIONAR AQUI O CONSOLE.LOG
         console.log("🔍 [KYC] precisaCompliance =", window.ultimoKycCheck.precisaCompliance);
         console.log("🔍 [KYC] docs_missing:", a.docs_missing);
         console.log("🔍 [KYC] pep_screening:", a.pep_screening);
         console.log("🔍 [KYC] kyc_level:", a.kyc_level_required);
         
-        // 🔥 ATUALIZAR O STATUS PREVIEW
         atualizarStatusPreview();
         
-        const lvl = ['Básico','Standard ID','Standard + Funds','Full KYC','Full KYC Contínuo'][a.kyc_level_required] || `Nível ${a.kyc_level_required}`;
+        const lvl = ['Basic','Standard ID','Standard + Funds','Full KYC','Full KYC Continuous'][a.kyc_level_required] || `Level ${a.kyc_level_required}`;
         const cls = a.sanctions_flag ? 'aml-danger' : a.docs_missing?.length ? 'aml-warn' : 'aml-ok';
         let html = `<div class="aml-box ${cls}">
-            <div class="aml-row"><span>Total 90 dias</span><span>£${fmtN(a.total_90d,2)}</span></div>
-            <div class="aml-row"><span>KYC requerido</span><span class="aml-tag ${a.docs_ok?'aml-t-ok':'aml-t-warn'}">${lvl}</span></div>`;
-        if (a.tier_crossed) html += `<div class="aml-row" style="color:var(--cor-alerta);font-size:12px;"><i class="fas fa-level-up-alt"></i> Cruzamento de tier (Tier ${a.tier_anterior} → ${a.kyc_level_required})</div>`;
-        if (a.pep_flag) html += `<div class="aml-row"><span>PEP</span><span class="aml-tag aml-t-danger">PEP IDENTIFICADO</span></div>`;
-        if (a.sanctions_flag) html += `<div class="aml-row"><span>Sanções</span><span class="aml-tag aml-t-danger">SANCTIONED — NÃO PROCESSAR</span></div>`;
-        if (a.pep_screening) html += `<div class="aml-row" style="color:var(--cor-alerta);font-size:12px;"><i class="fas fa-bell"></i> PEP Screening obrigatório (acumulado ≥ £2.000)</div>`;
+            <div class="aml-row"><span>90-day total</span><span>£${fmtN(a.total_90d,2)}</span></div>
+            <div class="aml-row"><span>KYC required</span><span class="aml-tag ${a.docs_ok?'aml-t-ok':'aml-t-warn'}">${lvl}</span></div>`;
+        if (a.tier_crossed) html += `<div class="aml-row" style="color:var(--cor-alerta);font-size:12px;"><i class="fas fa-level-up-alt"></i> Tier crossing (Tier ${a.tier_anterior} → ${a.kyc_level_required})</div>`;
+        if (a.pep_flag) html += `<div class="aml-row"><span>PEP</span><span class="aml-tag aml-t-danger">PEP IDENTIFIED</span></div>`;
+        if (a.sanctions_flag) html += `<div class="aml-row"><span>Sanctions</span><span class="aml-tag aml-t-danger">SANCTIONED — DO NOT PROCESS</span></div>`;
+        if (a.pep_screening) html += `<div class="aml-row" style="color:var(--cor-alerta);font-size:12px;"><i class="fas fa-bell"></i> PEP Screening required (accumulated ≥ £2,000)</div>`;
         if (a.docs_missing?.length) {
             const docLabels = {photo_id:'Photo ID',proof_address:'Proof of Address',source_funds:'Source of Funds',declaration:'Declaration Form',edd:'EDD Documents'};
             const sofByValue  = a.docs_missing.includes('source_funds') && !a.tier_crossed;
             const declByValue = a.docs_missing.includes('declaration') && !a.tier_crossed;
-            html += `<div class="missing-docs"><strong style="color:var(--cor-alerta);font-size:12px;">Documentos necessários:</strong>`;
+            html += `<div class="missing-docs"><strong style="color:var(--cor-alerta);font-size:12px;">Documents required:</strong>`;
             a.docs_missing.forEach(doc => {
                 const byValue = (doc === 'source_funds' && sofByValue) || (doc === 'declaration' && declByValue);
-                const hint = byValue ? ' <span style="font-size:10px;opacity:.7;">(valor único ≥ £' + (doc==='declaration'?'10.000':'5.000') + ')</span>' : '';
+                const hint = byValue ? ' <span style="font-size:10px;opacity:.7;">(single transaction ≥ £' + (doc==='declaration'?'10,000':'5,000') + ')</span>' : '';
                 html += `<div class="missing-doc-item"><i class="fas fa-exclamation-circle"></i> ${docLabels[doc]||doc}${hint}</div>`;
             });
             html += '</div>';
@@ -1276,8 +1284,8 @@ function toggleS1Benef() {
     const open = box.style.display === 'none';
     box.style.display = open ? 'block' : 'none';
     btn.innerHTML = open
-        ? '<i class="fas fa-minus"></i> Cancelar beneficiário'
-        : '<i class="fas fa-plus"></i> Adicionar beneficiário agora (opcional)';
+        ? '<i class="fas fa-minus"></i> Cancel beneficiary'
+        : '<i class="fas fa-plus"></i> Add beneficiary now (optional)';
 }
 
 function switchS1BenefTipo(tipo) {
@@ -1309,16 +1317,14 @@ async function step1Proximo() {
     if (!clienteSelecionado) {
         const nome = document.getElementById('s1NovoNome').value.trim();
         if (!nome) {
-            msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Selecione ou informe o nome do cliente.</span>';
+            msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Select or enter customer name.</span>';
             return;
         }
     }
     msg.innerHTML = '';
 
-    // Se cliente existente, carregar beneficiários e avançar
     if (clienteSelecionado) {
         await carregarBeneficios(clienteSelecionado.id);
-        // Tentar salvar benef do cadastro rápido se nome preenchido
         const nomeBenef = (document.getElementById('nbo-nome')?.value || '').trim();
         if (nomeBenef && document.getElementById('s1BenefBox')?.style.display !== 'none') {
             await _salvarBenefNovoCliente(clienteSelecionado.id);
@@ -1328,18 +1334,15 @@ async function step1Proximo() {
         return;
     }
 
-    // Criar novo cliente primeiro
-    msg.innerHTML = '<span style="color:var(--cor-texto-secundario)"><i class="fas fa-spinner fa-spin"></i> Salvando cliente...</span>';
+    msg.innerHTML = '<span style="color:var(--cor-texto-secundario)"><i class="fas fa-spinner fa-spin"></i> Saving customer...</span>';
     try {
         const nome = document.getElementById('s1NovoNome').value.trim();
         const doc  = document.getElementById('s1NovoDoc').value.trim();
         const tel  = document.getElementById('s1NovoTel').value.trim();
         
-        // 🔥 NOVOS CAMPOS DE VALIDADE
         const docValidade = document.getElementById('s1NovoDocValidade').value;
         const addrData = document.getElementById('s1NovoAddrData').value;
         
-        // Calcular validade do comprovante de endereço (data do documento + 6 meses)
         let addrValidade = null;
         if (addrData) {
             const dataAddr = new Date(addrData);
@@ -1368,15 +1371,14 @@ async function step1Proximo() {
         }
         clienteSelecionado = d.cliente;
         
-        // Mostrar alertas se documentos estiverem vencidos ou próximos
         if (docValidade) {
             const dataValidade = new Date(docValidade);
             const hoje = new Date();
             const diasRestantes = Math.ceil((dataValidade - hoje) / (1000 * 60 * 60 * 24));
             if (diasRestantes < 0) {
-                toast(`⚠️ Documento de identificação EXPIRADO! Atualize o cadastro do cliente.`, 'warn');
+                toast(`⚠️ Identification document EXPIRED! Update customer registration.`, 'warn');
             } else if (diasRestantes < 30) {
-                toast(`📅 Documento de identificação vence em ${diasRestantes} dias.`, 'warn');
+                toast(`📅 Identification document expires in ${diasRestantes} days.`, 'warn');
             }
         }
         
@@ -1385,13 +1387,12 @@ async function step1Proximo() {
             const hoje = new Date();
             const diasRestantes = Math.ceil((dataValidade - hoje) / (1000 * 60 * 60 * 24));
             if (diasRestantes < 0) {
-                toast(`⚠️ Comprovante de endereço EXPIRADO! Atualize o cadastro do cliente.`, 'warn');
+                toast(`⚠️ Proof of address EXPIRED! Update customer registration.`, 'warn');
             } else if (diasRestantes < 30) {
-                toast(`📅 Comprovante de endereço vence em ${diasRestantes} dias.`, 'warn');
+                toast(`📅 Proof of address expires in ${diasRestantes} days.`, 'warn');
             }
         }
         
-        // Salvar beneficiário se preenchido
         const nomeBenef = (document.getElementById('nbo-nome')?.value || '').trim();
         if (nomeBenef && document.getElementById('s1BenefBox')?.style.display !== 'none') {
             await _salvarBenefNovoCliente(d.cliente.id);
@@ -1400,50 +1401,7 @@ async function step1Proximo() {
         msg.innerHTML = '';
         irStep(2);
     } catch(e) {
-        msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Erro: ${e.message}</span>`;
-    }
-    msg.innerHTML = '';
-
-    // Se cliente existente, carregar beneficiários e avançar
-    if (clienteSelecionado) {
-        await carregarBeneficios(clienteSelecionado.id);
-        // Tentar salvar benef do cadastro rápido se nome preenchido
-        const nomeBenef = (document.getElementById('nbo-nome')?.value || '').trim();
-        if (nomeBenef && document.getElementById('s1BenefBox')?.style.display !== 'none') {
-            await _salvarBenefNovoCliente(clienteSelecionado.id);
-            await carregarBeneficios(clienteSelecionado.id);
-        }
-        irStep(2);
-        return;
-    }
-
-    // Criar novo cliente primeiro
-    msg.innerHTML = '<span style="color:var(--cor-texto-secundario)"><i class="fas fa-spinner fa-spin"></i> Salvando cliente...</span>';
-    try {
-        const nome = document.getElementById('s1NovoNome').value.trim();
-        const doc  = document.getElementById('s1NovoDoc').value.trim();
-        const tel  = document.getElementById('s1NovoTel').value.trim();
-        const r = await fetch('/api/clientes', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({nome, documento: doc, telefone: tel})
-        });
-        const d = await r.json();
-        if (!d.success) {
-            msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> ${d.message}</span>`;
-            return;
-        }
-        clienteSelecionado = d.cliente;
-        // Salvar beneficiário se preenchido
-        const nomeBenef = (document.getElementById('nbo-nome')?.value || '').trim();
-        if (nomeBenef && document.getElementById('s1BenefBox')?.style.display !== 'none') {
-            await _salvarBenefNovoCliente(d.cliente.id);
-        }
-        await carregarBeneficios(d.cliente.id);
-        msg.innerHTML = '';
-        irStep(2);
-    } catch(e) {
-        msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Erro: ${e.message}</span>`;
+        msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Error: ${e.message}</span>`;
     }
 }
 
@@ -1475,14 +1433,13 @@ async function _salvarBenefNovoCliente(clienteId) {
     } catch(e) {}
 }
 
-// ── Step 2: destino, taxa, beneficiários ──
+// ── Step 2: destination, rate, beneficiaries ──
 function trocarDestino(dest) {
     destinoAtivo = dest;
     document.querySelectorAll('.dest-tab').forEach(t => t.classList.toggle('active', t.dataset.dest === dest));
     document.querySelectorAll('.dest-section').forEach(s => s.classList.toggle('active', s.id === `ds-${dest}`));
     benefSelecionado[dest] = benefSelecionado[dest] || null;
-    // Atualizar label da taxa
-    const labels = {brazil:'Taxa (BRL por unidade)', europe:'Taxa (EUR por unidade)', usa:'Taxa (USD por unidade)'};
+    const labels = {brazil:'Rate (BRL per unit)', europe:'Rate (EUR per unit)', usa:'Rate (USD per unit)'};
     document.getElementById('s2TaxaLabel').textContent = labels[dest] + ' *';
     autoFetchConfigLoja();
     calcPreview();
@@ -1514,7 +1471,7 @@ function renderBenefList(tipo, lista) {
                 <div class="detalhe">${detalhe}</div>
             </div>
             <div style="display:flex;align-items:center;gap:6px;" onclick="event.stopPropagation()">
-                <button title="Editar" style="background:transparent;border:none;color:var(--cor-texto-secundario);cursor:pointer;padding:4px;" onclick="abrirEditBenef('${tipo}','${b.id}')"><i class="fas fa-edit"></i></button>
+                <button title="Edit" style="background:transparent;border:none;color:var(--cor-texto-secundario);cursor:pointer;padding:4px;" onclick="abrirEditBenef('${tipo}','${b.id}')"><i class="fas fa-edit"></i></button>
                 <i class="fas fa-check" style="color:var(--cor-sucesso);display:none;" id="bc-${b.id}"></i>
             </div>
         </div>`;
@@ -1532,7 +1489,6 @@ function abrirEditBenef(tipo, id, data) {
     document.getElementById('eb-postcode').value = data.postcode || '';
     document.getElementById('eb-pais').value  = data.pais || '';
     document.getElementById('eb-rel').value   = data.relacionamento || '';
-    // Brazil
     document.getElementById('eb-cpf').value   = data.cpf || '';
     document.getElementById('eb-banco').value = data.banco_nome || '';
     document.getElementById('eb-agencia').value = data.agencia || '';
@@ -1540,18 +1496,15 @@ function abrirEditBenef(tipo, id, data) {
     document.getElementById('eb-tipo-conta').value = data.tipo_conta || 'corrente';
     document.getElementById('eb-pix').value   = data.pix_chave || '';
     document.getElementById('eb-pix-tipo').value = data.pix_tipo || '';
-    // Europe
     document.getElementById('eb-iban').value  = data.iban || '';
     document.getElementById('eb-swift').value = data.bic_swift || '';
     document.getElementById('eb-banco-eu').value = data.banco_nome_eu || '';
     document.getElementById('eb-pais-banco').value = data.banco_pais || '';
-    // USA
     document.getElementById('eb-routing').value = data.routing_number || '';
     document.getElementById('eb-account').value = data.account_number || '';
     document.getElementById('eb-account-tipo').value = data.account_type_us || 'checking';
     document.getElementById('eb-swift-us').value = data.swift_us || '';
     document.getElementById('eb-banco-us').value = data.banco_nome_us || '';
-    // Show/hide sections
     ['brazil','europe','usa'].forEach(t => document.getElementById(`eb-sec-${t}`).style.display = t === tipo ? 'block' : 'none');
     document.getElementById('modalEditBenef').classList.add('open');
 }
@@ -1572,18 +1525,18 @@ async function salvarEditBenef() {
         routing_number: get('eb-routing'), account_number: get('eb-account'),
         account_type_us: get('eb-account-tipo'), swift_us: get('eb-swift-us'), banco_nome_us: get('eb-banco-us'),
     };
-    if (!payload.nome) { toast('Nome obrigatório', 'err'); return; }
+    if (!payload.nome) { toast('Name required', 'err'); return; }
     try {
         const r = await fetch(`/api/beneficiarios-de-clientes/${id}`, {
             method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
         });
         const d = await r.json();
         if (d.success) {
-            toast('Beneficiário atualizado!', 'ok');
+            toast('Beneficiary updated!', 'ok');
             document.getElementById('modalEditBenef').classList.remove('open');
             if (clienteSelecionado) await carregarBeneficios(clienteSelecionado.id);
         } else toast(d.message, 'err');
-    } catch(e) { toast('Erro de conexão', 'err'); }
+    } catch(e) { toast('Connection error', 'err'); }
 }
 
 function selecionarBenef(tipo, id, data) {
@@ -1617,11 +1570,11 @@ async function buscarCep(cep, ids) {
         if (d.erro) return;
         const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
         if (ids.cidade)  set(ids.cidade, d.localidade);
-        if (ids.pais)    set(ids.pais, 'Brasil');
+        if (ids.pais)    set(ids.pais, 'Brazil');
         if (ids.estado)  { const sel = document.getElementById(ids.estado); if (sel && d.uf) sel.value = d.uf; }
         if (ids.end1 && d.logradouro) { const el = document.getElementById(ids.end1); if (el && !el.value) el.value = d.logradouro; }
         if (ids.end2 && d.bairro)     { const el = document.getElementById(ids.end2); if (el && !el.value) el.value = d.bairro; }
-    } catch(e) { /* silently ignore */ }
+    } catch(e) { }
 }
 
 function toggleNovoBenef(tipo) {
@@ -1630,7 +1583,7 @@ function toggleNovoBenef(tipo) {
 }
 
 async function salvarNovoBenef(tipo) {
-    if (!clienteSelecionado) { toast('Selecione um cliente primeiro', 'err'); return; }
+    if (!clienteSelecionado) { toast('Select a customer first', 'err'); return; }
     const get = id => (document.getElementById(id)?.value || '').trim();
     let payload = { tipo, nome: '' };
     if (tipo === 'brazil') {
@@ -1642,7 +1595,7 @@ async function salvarNovoBenef(tipo) {
             pix_chave: get('bb-pix'), pix_tipo: get('bb-pix-tipo'),
             endereco_linha1: get('bb-end1'), endereco_linha2: get('bb-end2'),
             cidade: get('bb-cidade'), estado: get('bb-estado-br'),
-            postcode: get('bb-postcode'), pais: get('bb-pais') || 'Brasil',
+            postcode: get('bb-postcode'), pais: get('bb-pais') || 'Brazil',
             relacionamento: get('bb-rel') };
     } else if (tipo === 'europe') {
         payload = { tipo, nome: get('be-nome'), apelido: get('be-apelido'),
@@ -1661,12 +1614,12 @@ async function salvarNovoBenef(tipo) {
             cidade: get('bu-cidade'), postcode: get('bu-postcode'),
             relacionamento: get('bu-rel') };
     }
-    if (!payload.nome) { toast('Nome do beneficiário obrigatório', 'err'); return; }
+    if (!payload.nome) { toast('Beneficiary name required', 'err'); return; }
     try {
         const r = await fetch(`/api/clientes/${clienteSelecionado.id}/beneficiarios`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
         const d = await r.json();
         if (d.success) {
-            toast('Beneficiário salvo!', 'ok');
+            toast('Beneficiary saved!', 'ok');
             document.getElementById(`benef-form-${tipo}`).classList.remove('open');
             await carregarBeneficios(clienteSelecionado.id);
             if (d.beneficiario?.id) selecionarBenef(tipo, d.beneficiario.id, d.beneficiario);
@@ -1674,17 +1627,15 @@ async function salvarNovoBenef(tipo) {
     } catch(e) { toast(e.message,'err'); }
 }
 
-// ── AML check no step 2 (debounced) ──
+// ── AML check in step 2 (debounced) ──
 let amlTimer2;
-// ── Config Loja: taxa e conta automáticas ──
-let _taxaConfig = null; // { taxa_base, spread_min, spread_max, spread_passo }
+let _taxaConfig = null;
 
 async function autoFetchConfigLoja() {
     const moeda = document.getElementById('s2Moeda').value;
     const forma  = document.getElementById('s2Forma').value;
     const lojaId = window._lojaId || LOJA || null;
 
-    // Reset UI
     const taxaInfo = document.getElementById('s2TaxaInfo');
     const contaInfo = document.getElementById('s2ContaInfo');
     _taxaConfig = null;
@@ -1701,7 +1652,7 @@ async function autoFetchConfigLoja() {
                 const rangeMax = (base + parseFloat(d.taxa.spread_max)).toFixed(4);
                 document.getElementById('s2Taxa').value = base.toFixed(4);
                 taxaInfo.style.display = 'block';
-                taxaInfo.innerHTML = `Base: <strong>${base.toFixed(4)}</strong> &nbsp;|&nbsp; Faixa negociável: [${rangeMin} – ${rangeMax}]`;
+                taxaInfo.innerHTML = `Base: <strong>${base.toFixed(4)}</strong> &nbsp;|&nbsp; Negotiable range: [${rangeMin} – ${rangeMax}]`;
             } else {
                 document.getElementById('s2Taxa').value = '';
                 taxaInfo.style.display = 'none';
@@ -1719,12 +1670,12 @@ async function autoFetchConfigLoja() {
             const d = await r.json();
             const sel = document.getElementById('s2Conta');
             if (d.conta) {
-                const label = d.conta.conta_nome || d.conta.conta_numero || 'Conta configurada';
+                const label = d.conta.conta_nome || d.conta.conta_numero || 'Configured account';
                 sel.innerHTML = `<option value="${d.conta.conta_numero}">${label}</option>`;
                 contaInfo.style.display = 'block';
-                contaInfo.innerHTML = `<i class="fas fa-check-circle" style="color:var(--cor-sucesso)"></i> Preenchida automaticamente`;
+                contaInfo.innerHTML = `<i class="fas fa-check-circle" style="color:var(--cor-sucesso)"></i> Auto-filled`;
             } else {
-                sel.innerHTML = '<option value="">Nenhuma conta configurada para esta forma</option>';
+                sel.innerHTML = '<option value="">No account configured for this method</option>';
                 contaInfo.style.display = 'none';
             }
         } catch(e) {
@@ -1755,7 +1706,6 @@ async function s2AmlCheck() {
         const valor = parseFloat(document.getElementById('s2Valor').value)||0;
         const moeda = document.getElementById('s2Moeda').value || 'GBP';
         await s1AmlCheck(clienteSelecionado.id, valor, moeda);
-        // Atualiza step 2 aml box também
         const box2 = document.getElementById('s2AmlBox');
         box2.innerHTML = document.getElementById('s1AmlBox').innerHTML;
     }, 500);
@@ -1772,34 +1722,24 @@ function calcPreview() {
     const mSaida = {brazil:'BRL',europe:'EUR',usa:'USD'}[destinoAtivo]||'BRL';
     const saidaFmt = mSaida==='BRL' ? `R$ ${fmtN(vs,2)}` : `${fmtN(vs,2)} ${mSaida}`;
     
-    // 🔥 NÃO ATUALIZAR O STATUS AQUI - deixar para a função atualizarStatusPreview
     box.style.display='block';
     document.getElementById('pv-entrada').textContent = `${fmtN(ve,2)} ${me}`;
     document.getElementById('pv-saida').textContent   = saidaFmt;
     document.getElementById('pv-taxa').textContent    = `${fmtN(tx,4)} ${mSaida}/${me}`;
     
-    // Chamar a função que atualiza o status corretamente
     atualizarStatusPreview();
 }
 
 function trocarCliente() {
-    // Limpar cliente selecionado
     clienteSelecionado = null;
-    
-    // Esconder o topo
     document.getElementById('clienteSelecionadoTopo').style.display = 'none';
     document.getElementById('clienteNomeTopo').textContent = '';
-    
-    // Voltar para o step 1
     irStep(1);
-    
-    // Limpar campos do cliente
     document.getElementById('s1ClienteId').value = '';
     document.getElementById('s1ClienteBox').style.display = 'none';
     document.getElementById('s1AmlBox').innerHTML = '';
     document.getElementById('s1Busca').value = '';
-    
-    toast('Cliente removido. Selecione outro.', 'info');
+    toast('Customer removed. Select another.', 'info');
 }
 
 async function criarOrdem() {
@@ -1807,22 +1747,19 @@ async function criarOrdem() {
     const mSaida = {brazil:'BRL',europe:'EUR',usa:'USD'}[destinoAtivo]||'BRL';
     const benef = benefSelecionado[destinoAtivo] || {};
 
-    // VALIDAR BENEFICIÁRIO
     if (!benef.nome) {
-        msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Selecione um beneficiário antes de criar a ordem.</span>';
+        msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Select a beneficiary before creating the order.</span>';
         return;
     }
 
-    // Cliente: existente ou novo
     let clienteId = clienteSelecionado?.id || null;
     let clienteNome = clienteSelecionado?.nome || document.getElementById('s1NovoNome').value.trim();
     let clienteDoc = clienteSelecionado?.documento || document.getElementById('s1NovoDoc').value.trim();
     let clienteTel = clienteSelecionado?.telefone || document.getElementById('s1NovoTel').value.trim();
     let clienteEmail = clienteSelecionado?.email || '';
 
-    // VALIDAR CLIENTE
     if (!clienteNome) {
-        msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Selecione ou cadastre um cliente.</span>';
+        msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Select or register a customer.</span>';
         return;
     }
 
@@ -1833,42 +1770,13 @@ async function criarOrdem() {
     const conta = document.getElementById('s2Conta').value;
 
     if (!forma || !moeda || !valor || !taxa || !conta) {
-        msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Preencha todos os campos obrigatórios.</span>';
+        msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Fill in all required fields.</span>';
         return;
     }
 
-    // Calcular valores
     const vs = valor * taxa;
     const saidaFmt = mSaida === 'BRL' ? `R$ ${fmtN(vs,2)}` : `${fmtN(vs,2)} ${mSaida}`;
     
-    // Formatar dados do beneficiário baseado no tipo de destino
-    let benefDados = '';
-    if (destinoAtivo === 'brazil') {
-        benefDados = `
-            <div class="info-item"><div class="lbl">Banco</div><div class="val">${benef.banco_nome || '—'}</div></div>
-            <div class="info-item"><div class="lbl">Agência</div><div class="val">${benef.agencia || '—'}</div></div>
-            <div class="info-item"><div class="lbl">Conta</div><div class="val">${benef.conta || '—'}</div></div>
-            <div class="info-item"><div class="lbl">CPF</div><div class="val">${benef.cpf || '—'}</div></div>
-            ${benef.pix_chave ? `<div class="info-item"><div class="lbl">PIX</div><div class="val">${benef.pix_chave}</div></div>` : ''}
-        `;
-    } else if (destinoAtivo === 'europe') {
-        benefDados = `
-            <div class="info-item"><div class="lbl">IBAN</div><div class="val">${benef.iban || '—'}</div></div>
-            <div class="info-item"><div class="lbl">BIC / SWIFT</div><div class="val">${benef.bic_swift || '—'}</div></div>
-            <div class="info-item"><div class="lbl">Banco</div><div class="val">${benef.banco_nome_eu || '—'}</div></div>
-            <div class="info-item"><div class="lbl">País do Banco</div><div class="val">${benef.banco_pais || '—'}</div></div>
-        `;
-    } else if (destinoAtivo === 'usa') {
-        benefDados = `
-            <div class="info-item"><div class="lbl">Routing Number</div><div class="val">${benef.routing_number || '—'}</div></div>
-            <div class="info-item"><div class="lbl">Account Number</div><div class="val">${benef.account_number || '—'}</div></div>
-            <div class="info-item"><div class="lbl">Tipo de Conta</div><div class="val">${benef.account_type_us || '—'}</div></div>
-            <div class="info-item"><div class="lbl">SWIFT</div><div class="val">${benef.swift_us || '—'}</div></div>
-            <div class="info-item"><div class="lbl">Banco</div><div class="val">${benef.banco_nome_us || '—'}</div></div>
-        `;
-    }
-    
-    // Montar dados para revisão com layout elegante
     const getFormaTagClass = (forma) => {
         if (forma === 'transferencia') return 'tag-pagamento-transferencia';
         return 'tag-pagamento-cash';
@@ -1877,19 +1785,19 @@ async function criarOrdem() {
     const dadosRevisao = `
         <div class="confirmacao-section">
             <div class="confirmacao-section-title">
-                <i class="fas fa-user-circle"></i> Dados do Cliente
+                <i class="fas fa-user-circle"></i> Customer Details
             </div>
             <div class="confirmacao-grid">
                 <div class="confirmacao-item">
-                    <div class="lbl">Nome completo</div>
+                    <div class="lbl">Full Name</div>
                     <div class="val">${clienteNome}</div>
                 </div>
                 <div class="confirmacao-item">
-                    <div class="lbl">Documento</div>
+                    <div class="lbl">Document</div>
                     <div class="val">${clienteDoc || '—'}</div>
                 </div>
                 <div class="confirmacao-item">
-                    <div class="lbl">Telefone</div>
+                    <div class="lbl">Phone</div>
                     <div class="val">${clienteTel || '—'}</div>
                 </div>
                 <div class="confirmacao-item">
@@ -1901,31 +1809,31 @@ async function criarOrdem() {
         
         <div class="confirmacao-section">
             <div class="confirmacao-section-title">
-                <i class="fas fa-exchange-alt"></i> Dados da Transação
+                <i class="fas fa-exchange-alt"></i> Transaction Details
             </div>
             <div class="confirmacao-grid">
                 <div class="confirmacao-item">
-                    <div class="lbl">Forma de Pagamento</div>
+                    <div class="lbl">Payment Method</div>
                     <div class="val"><span class="tag-pagamento ${getFormaTagClass(forma)}">${forma}</span></div>
                 </div>
                 <div class="confirmacao-item">
-                    <div class="lbl">Moeda Enviada</div>
+                    <div class="lbl">Currency Sent</div>
                     <div class="val">${moeda}</div>
                 </div>
                 <div class="confirmacao-item">
-                    <div class="lbl">Valor Enviado</div>
+                    <div class="lbl">Amount Sent</div>
                     <div class="val valor-destaque-envio">${fmtN(valor,2)} ${moeda}</div>
                 </div>
                 <div class="confirmacao-item">
-                    <div class="lbl">Taxa Aplicada</div>
+                    <div class="lbl">Exchange Rate</div>
                     <div class="val">${fmtN(taxa,4)} ${mSaida}/${moeda}</div>
                 </div>
                 <div class="confirmacao-item">
-                    <div class="lbl">Valor a Receber</div>
+                    <div class="lbl">Amount to Receive</div>
                     <div class="val valor-destaque">${saidaFmt}</div>
                 </div>
                 <div class="confirmacao-item">
-                    <div class="lbl">Conta Empresa</div>
+                    <div class="lbl">Company Account</div>
                     <div class="val">${conta}</div>
                 </div>
             </div>
@@ -1933,42 +1841,42 @@ async function criarOrdem() {
         
         <div class="confirmacao-section">
             <div class="confirmacao-section-title">
-                <i class="fas fa-user-friends"></i> Dados do Beneficiário <span style="font-size:10px; color:var(--cor-texto-secundario);">(${destinoAtivo === 'brazil' ? 'Brasil' : destinoAtivo === 'europe' ? 'Europa' : 'USA'})</span>
+                <i class="fas fa-user-friends"></i> Beneficiary Details <span style="font-size:10px; color:var(--cor-texto-secundario);">(${destinoAtivo === 'brazil' ? 'Brazil' : destinoAtivo === 'europe' ? 'Europe' : 'USA'})</span>
             </div>
             <div class="confirmacao-grid">
                 <div class="confirmacao-item">
-                    <div class="lbl">Nome</div>
+                    <div class="lbl">Name</div>
                     <div class="val"><strong>${benef.nome || '—'}</strong></div>
                 </div>
-                ${benef.apelido ? `<div class="confirmacao-item"><div class="lbl">Apelido</div><div class="val">${benef.apelido}</div></div>` : ''}
+                ${benef.apelido ? `<div class="confirmacao-item"><div class="lbl">Nickname</div><div class="val">${benef.apelido}</div></div>` : ''}
                 ${destinoAtivo === 'brazil' ? `
-                    <div class="confirmacao-item"><div class="lbl">Banco</div><div class="val">${benef.banco_nome || '—'}</div></div>
-                    <div class="confirmacao-item"><div class="lbl">Agência</div><div class="val">${benef.agencia || '—'}</div></div>
-                    <div class="confirmacao-item"><div class="lbl">Conta</div><div class="val">${benef.conta || '—'}</div></div>
+                    <div class="confirmacao-item"><div class="lbl">Bank</div><div class="val">${benef.banco_nome || '—'}</div></div>
+                    <div class="confirmacao-item"><div class="lbl">Branch</div><div class="val">${benef.agencia || '—'}</div></div>
+                    <div class="confirmacao-item"><div class="lbl">Account</div><div class="val">${benef.conta || '—'}</div></div>
                     <div class="confirmacao-item"><div class="lbl">CPF</div><div class="val">${benef.cpf || '—'}</div></div>
                     ${benef.pix_chave ? `<div class="confirmacao-item"><div class="lbl">PIX</div><div class="val">${benef.pix_chave}</div></div>` : ''}
                 ` : ''}
                 ${destinoAtivo === 'europe' ? `
                     <div class="confirmacao-item"><div class="lbl">IBAN</div><div class="val">${benef.iban || '—'}</div></div>
                     <div class="confirmacao-item"><div class="lbl">BIC / SWIFT</div><div class="val">${benef.bic_swift || '—'}</div></div>
-                    <div class="confirmacao-item"><div class="lbl">Banco</div><div class="val">${benef.banco_nome_eu || '—'}</div></div>
-                    <div class="confirmacao-item"><div class="lbl">País do Banco</div><div class="val">${benef.banco_pais || '—'}</div></div>
+                    <div class="confirmacao-item"><div class="lbl">Bank</div><div class="val">${benef.banco_nome_eu || '—'}</div></div>
+                    <div class="confirmacao-item"><div class="lbl">Bank Country</div><div class="val">${benef.banco_pais || '—'}</div></div>
                 ` : ''}
                 ${destinoAtivo === 'usa' ? `
                     <div class="confirmacao-item"><div class="lbl">Routing Number</div><div class="val">${benef.routing_number || '—'}</div></div>
                     <div class="confirmacao-item"><div class="lbl">Account Number</div><div class="val">${benef.account_number || '—'}</div></div>
-                    <div class="confirmacao-item"><div class="lbl">Tipo de Conta</div><div class="val">${benef.account_type_us || '—'}</div></div>
+                    <div class="confirmacao-item"><div class="lbl">Account Type</div><div class="val">${benef.account_type_us || '—'}</div></div>
                     <div class="confirmacao-item"><div class="lbl">SWIFT</div><div class="val">${benef.swift_us || '—'}</div></div>
-                    <div class="confirmacao-item"><div class="lbl">Banco</div><div class="val">${benef.banco_nome_us || '—'}</div></div>
+                    <div class="confirmacao-item"><div class="lbl">Bank</div><div class="val">${benef.banco_nome_us || '—'}</div></div>
                 ` : ''}
-                ${benef.endereco_linha1 ? `<div class="confirmacao-item" style="grid-column: span 2;"><div class="lbl">Endereço</div><div class="val">${benef.endereco_linha1} ${benef.cidade ? `, ${benef.cidade}` : ''} ${benef.postcode ? `, ${benef.postcode}` : ''}</div></div>` : ''}
+                ${benef.endereco_linha1 ? `<div class="confirmacao-item" style="grid-column: span 2;"><div class="lbl">Address</div><div class="val">${benef.endereco_linha1} ${benef.cidade ? `, ${benef.cidade}` : ''} ${benef.postcode ? `, ${benef.postcode}` : ''}</div></div>` : ''}
             </div>
         </div>
         
         ${document.getElementById('s2Obs').value.trim() ? `
         <div class="confirmacao-section">
             <div class="confirmacao-section-title">
-                <i class="fas fa-pencil-alt"></i> Observações
+                <i class="fas fa-pencil-alt"></i> Observations
             </div>
             <div class="confirmacao-item" style="background:rgba(128,128,128,.05);">
                 <div class="val" style="font-size:12px; font-weight:normal;">${document.getElementById('s2Obs').value.trim()}</div>
@@ -1977,7 +1885,6 @@ async function criarOrdem() {
         ` : ''}
     `;
     
-    // Salvar payload para usar na confirmação
     window._pendingOrdemPayload = {
         clienteId, clienteNome, clienteDoc, clienteTel,
         forma, moeda, valor, conta, taxa, mSaida, benef,
@@ -1988,7 +1895,6 @@ async function criarOrdem() {
     document.getElementById('modalConfirmarOrdem').classList.add('open');
 }
 
-// 🔥 FUNÇÃO PARA CONFIRMAR E ENVIAR A ORDEM
 async function confirmarCriacaoOrdem() {
     fecharModal('modalConfirmarOrdem');
     
@@ -1999,7 +1905,7 @@ async function confirmarCriacaoOrdem() {
     const btn = document.getElementById('drawerBtnSubmit');
     
     btn.disabled = true;
-    msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registrando…';
+    msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registering…';
     
     try {
         const r = await fetch('/api/loja/nova-ordem', {
@@ -2073,20 +1979,20 @@ async function confirmarCriacaoOrdem() {
                 <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;margin-top:6px;">Declaration Form <span style="color:var(--cor-perigo)">*</span></label>
                 <input type="file" id="declarationFormFile" accept=".pdf,.jpg,.jpeg,.png" style="font-size:12px;width:100%;margin-bottom:10px;">` : '';
             const docInfo = (needsSoF || needsDecl)
-                ? `<p style="font-size:12px;color:var(--cor-texto-secundario);margin:4px 0 10px;">Faça o upload dos documentos abaixo para criar a ordem com revisão pelo Compliance.</p>`
-                : `<p style="font-size:12px;color:var(--cor-texto-secundario);margin:4px 0 10px;">Crie a ordem — será enviada para revisão pelo Compliance.</p>`;
+                ? `<p style="font-size:12px;color:var(--cor-texto-secundario);margin:4px 0 10px;">Upload the documents below to create the order for Compliance review.</p>`
+                : `<p style="font-size:12px;color:var(--cor-texto-secundario);margin:4px 0 10px;">Create order — will be sent for Compliance review.</p>`;
             msg.innerHTML = `<div id="kycAlertBox" style="background:rgba(224,107,0,.07);border:1px solid rgba(224,107,0,.4);border-radius:8px;padding:14px;margin-top:8px;">
-                <strong style="color:#e06b00;display:flex;align-items:center;gap:6px;"><i class="fas fa-exclamation-triangle"></i> KYC incompleto — documentos pendentes</strong>
+                <strong style="color:#e06b00;display:flex;align-items:center;gap:6px;"><i class="fas fa-exclamation-triangle"></i> Incomplete KYC — pending documents</strong>
                 ${lista ? `<ul style="margin:8px 0 8px 16px;color:#c05000;font-size:12px;line-height:1.8;">${lista}</ul>` : ''}
                 ${docInfo}
                 ${sofBlock}
                 ${declBlock}
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
                     <button onclick="criarOrdemComCompliance()" style="flex:1;background:#e06b00;color:#fff;border:none;border-radius:6px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">
-                        <i class="fas fa-shield-alt"></i> Criar com Análise Compliance
+                        <i class="fas fa-shield-alt"></i> Create with Compliance Review
                     </button>
                     <a href="/loja/clientes" target="_blank" style="flex:1;text-align:center;background:transparent;border:1px solid var(--cor-borda);border-radius:6px;padding:8px 12px;font-size:12px;color:var(--cor-admin);text-decoration:none;white-space:nowrap;">
-                        <i class="fas fa-user-edit"></i> Completar KYC
+                        <i class="fas fa-user-edit"></i> Complete KYC
                     </a>
                 </div>
                 <div id="proofUploadMsg" style="margin-top:8px;font-size:12px;"></div>
@@ -2094,8 +2000,8 @@ async function confirmarCriacaoOrdem() {
             btn.disabled = false;
         } else if (d.kyc_blocked && d.sanctions) {
             msg.innerHTML = `<div style="background:rgba(224,27,36,.08);border:1px solid rgba(224,27,36,.4);border-radius:8px;padding:12px;margin-top:8px;">
-                <strong style="color:var(--cor-perigo);display:flex;align-items:center;gap:6px;"><i class="fas fa-ban"></i> Ordem BLOQUEADA — Cliente em lista de sanções</strong>
-                <p style="font-size:12px;margin:6px 0 0;">Contacte o MLRO imediatamente. Esta ordem não pode ser processada.</p>
+                <strong style="color:var(--cor-perigo);display:flex;align-items:center;gap:6px;"><i class="fas fa-ban"></i> Order BLOCKED — Customer on sanctions list</strong>
+                <p style="font-size:12px;margin:6px 0 0;">Contact MLRO immediately. This order cannot be processed.</p>
             </div>`;
             btn.disabled = false;
         } else {
@@ -2113,14 +2019,14 @@ async function criarOrdemComCompliance() {
     const declInput = document.getElementById('declarationFormFile');
     const proofMsg  = document.getElementById('proofUploadMsg');
     if (sofInput && !sofInput.files[0]) {
-        proofMsg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Selecione o arquivo de Source of Funds.</span>';
+        proofMsg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Select Source of Funds file.</span>';
         return;
     }
     if (declInput && !declInput.files[0]) {
-        proofMsg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Selecione o arquivo de Declaration Form.</span>';
+        proofMsg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Select Declaration Form file.</span>';
         return;
     }
-    proofMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando ordem…';
+    proofMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating order…';
     const payload = {...(window._pendingOrderPayload||{}), force_compliance_review: true};
     try {
         const r1 = await fetch('/api/loja/nova-ordem',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
@@ -2133,14 +2039,14 @@ async function criarOrdemComCompliance() {
 
         async function uploadDoc(input, tipo, label) {
             if (!input || !input.files[0]) return true;
-            proofMsg.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Enviando ${label}…`;
+            proofMsg.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Uploading ${label}…`;
             const fd = new FormData();
             fd.append('arquivo', input.files[0]);
             fd.append('tipo', tipo);
             const r = await fetch(`/api/loja/ordens/${ordemId}/upload-proof`, {method:'POST', body:fd, credentials:'include'});
             const d = await r.json();
             if (!d.success) {
-                proofMsg.innerHTML = `<span style="color:#e06b00"><i class="fas fa-exclamation-triangle"></i> Ordem criada (${ordemId}), mas falha no upload de ${label}: ${d.message}. Envie depois.</span>`;
+                proofMsg.innerHTML = `<span style="color:#e06b00"><i class="fas fa-exclamation-triangle"></i> Order created (${ordemId}), but ${label} upload failed: ${d.message}. Upload later.</span>`;
                 return false;
             }
             return true;
@@ -2151,7 +2057,7 @@ async function criarOrdemComCompliance() {
         const ok2 = await uploadDoc(declInput, 'declaration', 'Declaration Form');
         if (!ok2) { setTimeout(()=>{ fecharDrawer(); carregarOrdens(); }, 3000); return; }
 
-        toast(`Ordem ${ordemId} criada — aguardando análise do Compliance`, 'warn');
+        toast(`Order ${ordemId} created — awaiting Compliance analysis`, 'warn');
         setTimeout(()=>{ fecharDrawer(); carregarOrdens(); }, 800);
     } catch(e) {
         proofMsg.innerHTML = `<span style="color:var(--cor-perigo)">${e.message}</span>`;
@@ -2162,31 +2068,22 @@ function atualizarStatusPreview() {
     const formaPagamento = document.getElementById('s2Forma')?.value;
     const statusSpan = document.getElementById('pv-status');
     
-    console.log("🔍 [STATUS] Forma pagamento:", formaPagamento);
-    console.log("🔍 [STATUS] ultimoKycCheck:", window.ultimoKycCheck);
-    
     if (!statusSpan) return;
     
-    // Verificar se precisa de compliance review usando a estrutura correta
     const precisaCompliance = window.ultimoKycCheck?.precisaCompliance === true;
     
-    console.log("🔍 [STATUS] Precisa compliance:", precisaCompliance);
-    
     if (precisaCompliance) {
-        console.log("✅ [STATUS] Setando para compliance_review");
-        statusSpan.innerHTML = '<span style="color:#e06b00"><i class="fas fa-clock"></i> compliance_review (aguardando análise)</span>';
+        statusSpan.innerHTML = '<span style="color:#e06b00"><i class="fas fa-clock"></i> compliance_review (awaiting analysis)</span>';
     } else if (formaPagamento === 'transferencia') {
-        console.log("✅ [STATUS] Setando para on_hold");
-        statusSpan.innerHTML = '<span style="color:#f39c12"><i class="fas fa-hourglass-half"></i> on_hold (aguardando pagamento)</span>';
+        statusSpan.innerHTML = '<span style="color:#f39c12"><i class="fas fa-hourglass-half"></i> on_hold (awaiting payment)</span>';
     } else {
-        console.log("✅ [STATUS] Setando para liberada");
-        statusSpan.innerHTML = '<span style="color:#27ae60"><i class="fas fa-check-circle"></i> liberada</span>';
+        statusSpan.innerHTML = '<span style="color:#27ae60"><i class="fas fa-check-circle"></i> released</span>';
     }
 }
 
-// ══ AÇÕES ADMIN ════════════════════════════════════════════════════
+// ══ ADMIN ACTIONS ════════════════════════════════════════════════════
 async function liberarOrdem(id) {
-    if (!confirm('Confirmar que o dinheiro chegou e liberar esta ordem?')) return;
+    if (!confirm('Confirm payment received and release this order?')) return;
     const r = await fetch(`/api/loja/ordens/${id}/liberar`,{method:'POST'});
     const d = await r.json();
     toast(d.message, d.success?'ok':'err');
@@ -2201,7 +2098,7 @@ function abrirDespachar(id) {
 async function confirmarDespacho() {
     const parceiro = document.getElementById('parceiroSelect').value;
     const msg = document.getElementById('despacharMsg');
-    if (!parceiro) { msg.innerHTML='<span style="color:var(--cor-perigo)">Selecione um parceiro.</span>'; return; }
+    if (!parceiro) { msg.innerHTML='<span style="color:var(--cor-perigo)">Select a partner.</span>'; return; }
     const r = await fetch(`/api/loja/ordens/${ordemAtual}/despachar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({parceiro_pagador:parceiro})});
     const d = await r.json();
     msg.innerHTML = d.success?`<span style="color:var(--cor-sucesso)">${d.message}</span>`:`<span style="color:var(--cor-perigo)">${d.message}</span>`;
@@ -2212,9 +2109,9 @@ function abrirConfirmar(id, parceiro, valor, moeda, beneficiario) {
     ordemAtual = id;
     document.getElementById('confirmarMsg').innerHTML = '';
     document.getElementById('confirmarInfo').innerHTML =
-        `<div><strong>Parceiro:</strong> ${parceiro}</div>
-         <div><strong>Valor a debitar:</strong> ${moeda==='BRL'?'R$':''} ${fmtN(valor,2)} ${moeda}</div>
-         <div><strong>Beneficiário:</strong> ${beneficiario||'—'}</div>`;
+        `<div><strong>Partner:</strong> ${parceiro}</div>
+         <div><strong>Amount to debit:</strong> ${moeda==='BRL'?'R$':''} ${fmtN(valor,2)} ${moeda}</div>
+         <div><strong>Beneficiary:</strong> ${beneficiario||'—'}</div>`;
     document.getElementById('modalConfirmar').classList.add('open');
 }
 async function confirmarPagamento() {
@@ -2226,42 +2123,27 @@ async function confirmarPagamento() {
 }
 
 function fecharModal(id) { document.getElementById(id).classList.remove('open'); }
-// Fechar clicando fora desabilitado — evita perda de dados em formulários
 
-// ══ CONTAS / PARCEIROS ══════════════════════════════════════════════
-async function carregarContas() {
-    // Apenas mantém compatibilidade — a conta é preenchida automaticamente
-    // pelo autoFetchConfigLoja() quando o atendente seleciona forma/moeda
-}
+// ══ ACCOUNTS / PARTNERS ══════════════════════════════════════════════
+async function carregarContas() { }
 async function carregarParceiros() {
     try {
-        console.log("🔍 Carregando parceiros...");
         const r = await fetch('/api/loja/parceiros');
         const d = await r.json();
-        console.log("📦 Parceiros recebidos:", d);
-        
         parceiros = d.parceiros || [];
         const sel = document.getElementById('parceiroSelect');
-        if (!sel) {
-            console.log("❌ Select parceiroSelect não encontrado!");
-            return;
-        }
-        
-        sel.innerHTML = '<option value="">Selecione…</option>';
-        
+        if (!sel) return;
+        sel.innerHTML = '<option value="">Select…</option>';
         if (d.success && d.parceiros && d.parceiros.length > 0) {
             d.parceiros.forEach(p => {
                 sel.innerHTML += `<option value="${p.username}">${p.nome} (${p.username})</option>`;
             });
-            console.log(`✅ ${d.parceiros.length} parceiros carregados!`);
         } else {
-            sel.innerHTML = '<option value="">Nenhum parceiro disponível</option>';
-            console.log("⚠️ Nenhum parceiro encontrado");
+            sel.innerHTML = '<option value="">No partners available</option>';
         }
     } catch(e) {
-        console.error("❌ Erro ao carregar parceiros:", e);
         const sel = document.getElementById('parceiroSelect');
-        if (sel) sel.innerHTML = '<option value="">Erro ao carregar parceiros</option>';
+        if (sel) sel.innerHTML = '<option value="">Error loading partners</option>';
     }
 }
 
@@ -2275,23 +2157,20 @@ function toast(msg, tipo='ok') {
     setTimeout(()=>el.remove(), 4500);
 }
 
-// ══ CLICK FORA busca ════════════════════════════════════════════════
+// ══ CLICK OUTSIDE search ════════════════════════════════════════════
 document.addEventListener('click', e => {
     if (!e.target.closest('.fc-search-wrap')) document.getElementById('s1Dropdown').style.display='none';
 });
 
 // ══ INIT ════════════════════════════════════════════════════════════
-// Datas vazias por padrão — ordens ativas aparecem sempre independente de data
-
-carregarOrdens();   // stats são calculadas dentro de carregarOrdens
+carregarOrdens();
 carregarContas();
 carregarParceiros();
 
 // ============================================
-// 🔥 ADICIONAR AQUI! - EVENTOS PARA STATUS
+// STATUS EVENT LISTENERS
 // ============================================
 
-// Quando a forma de pagamento mudar, atualizar o status
 const formaSelect = document.getElementById('s2Forma');
 if (formaSelect) {
     formaSelect.addEventListener('change', function() {
@@ -2299,7 +2178,6 @@ if (formaSelect) {
     });
 }
 
-// Quando o valor mudar, atualizar o status
 const valorInput = document.getElementById('s2Valor');
 if (valorInput) {
     valorInput.addEventListener('input', function() {
@@ -2307,7 +2185,6 @@ if (valorInput) {
     });
 }
 
-// Quando a moeda mudar, atualizar o status
 const moedaSelect = document.getElementById('s2Moeda');
 if (moedaSelect) {
     moedaSelect.addEventListener('change', function() {
@@ -2315,7 +2192,6 @@ if (moedaSelect) {
     });
 }
 
-// Função para calcular validade do comprovante de endereço (6 meses após a data)
 function calcularValidadeEndereco(dataDocumento) {
     if (!dataDocumento) return null;
     const data = new Date(dataDocumento);
@@ -2323,7 +2199,6 @@ function calcularValidadeEndereco(dataDocumento) {
     return data.toISOString().split('T')[0];
 }
 
-// Evento para mostrar validade calculada do comprovante
 const addrDataInput = document.getElementById('s1NovoAddrData');
 if (addrDataInput) {
     addrDataInput.addEventListener('change', function() {
@@ -2335,19 +2210,18 @@ if (addrDataInput) {
             const diasRestantes = Math.ceil((dataValidade - hoje) / (1000 * 60 * 60 * 24));
             
             if (diasRestantes < 0) {
-                msgDiv.innerHTML = '<span style="color:var(--cor-perigo);"><i class="fas fa-exclamation-triangle"></i> DOCUMENTO EXPIRADO! Envie um comprovante mais recente.</span>';
+                msgDiv.innerHTML = '<span style="color:var(--cor-perigo);"><i class="fas fa-exclamation-triangle"></i> DOCUMENT EXPIRED! Submit a more recent proof.</span>';
             } else if (diasRestantes < 30) {
-                msgDiv.innerHTML = `<span style="color:var(--cor-alerta);"><i class="fas fa-clock"></i> Vence em ${diasRestantes} dias (${dataValidade.toLocaleDateString('pt-BR')})</span>`;
+                msgDiv.innerHTML = `<span style="color:var(--cor-alerta);"><i class="fas fa-clock"></i> Expires in ${diasRestantes} days (${dataValidade.toLocaleDateString('pt-BR')})</span>`;
             } else {
-                msgDiv.innerHTML = `<span style="color:var(--cor-sucesso);"><i class="fas fa-check-circle"></i> Válido até ${dataValidade.toLocaleDateString('pt-BR')}</span>`;
+                msgDiv.innerHTML = `<span style="color:var(--cor-sucesso);"><i class="fas fa-check-circle"></i> Valid until ${dataValidade.toLocaleDateString('pt-BR')}</span>`;
             }
         } else if (msgDiv) {
-            msgDiv.innerHTML = '<span style="color:var(--cor-texto-secundario);">Selecione uma data</span>';
+            msgDiv.innerHTML = '<span style="color:var(--cor-texto-secundario);">Select a date</span>';
         }
     });
 }
 
-// Evento para mostrar alerta se documento ID estiver próximo do vencimento
 const docValidadeInput = document.getElementById('s1NovoDocValidade');
 if (docValidadeInput) {
     docValidadeInput.addEventListener('change', function() {
@@ -2357,16 +2231,16 @@ if (docValidadeInput) {
         const diasRestantes = Math.ceil((dataValidade - hoje) / (1000 * 60 * 60 * 24));
         
         if (diasRestantes < 0) {
-            toast('⚠️ Documento de identificação EXPIRADO!', 'warn');
+            toast('⚠️ Identification document EXPIRED!', 'warn');
         } else if (diasRestantes < 30) {
-            toast(`📅 Documento de identificação vence em ${diasRestantes} dias.`, 'warn');
+            toast(`📅 Identification document expires in ${diasRestantes} days.`, 'warn');
         } else if (diasRestantes < 90) {
-            toast(`📅 Documento de identificação vence em ${diasRestantes} dias. Lembre-se de renovar.`, 'info');
+            toast(`📅 Identification document expires in ${diasRestantes} days. Remember to renew.`, 'info');
         }
     });
 }
 
-// ══ ABAS PRINCIPAIS ══════════════════════════════════════════════
+// ══ MAIN TABS ══════════════════════════════════════════════
 function switchMainTab(nome) {
     document.getElementById('panel-ativas').style.display   = nome === 'ativas'    ? 'block' : 'none';
     document.getElementById('panel-historico').style.display = nome === 'historico' ? 'block' : 'none';
@@ -2378,8 +2252,8 @@ function switchMainTab(nome) {
     });
 }
 
-// ══ HISTÓRICO ════════════════════════════════════════════════════
-const DOC_LABELS = {photo_id:'Photo ID', proof_address:'Proof of Address', source_funds:'Source of Funds', declaration:'Declaration Form', edd:'EDD', proof_of_funds_ordem:'Proof of Funds (Ordem)'};
+// ══ HISTORY ════════════════════════════════════════════════════
+const DOC_LABELS = {photo_id:'Photo ID', proof_address:'Proof of Address', source_funds:'Source of Funds', declaration:'Declaration Form', edd:'EDD', proof_of_funds_ordem:'Proof of Funds (Order)'};
 
 async function buscarHistorico() {
     const tb = document.getElementById('hist-body');
@@ -2394,30 +2268,30 @@ async function buscarHistorico() {
     try {
         const r = await fetch(url);
         const d = await r.json();
-        if (!d.success) { tb.innerHTML = `<tr><td colspan="8" style="color:var(--cor-perigo);padding:16px;">${d.message}</td></tr>`; return; }
+        if (!d.success) { tb.innerHTML = `<td><td colspan="8" style="color:var(--cor-perigo);padding:16px;">${d.message}</div></tr>`; return; }
         document.getElementById('hist-count').textContent = `(${d.total})`;
         if (!d.ordens.length) {
-            tb.innerHTML = '<tr><td colspan="8" class="empty">Nenhuma ordem encontrada.</td></tr>'; return;
+            tb.innerHTML = '<tr><td colspan="8" class="empty">No orders found. </div>'; return;
         }
         tb.innerHTML = d.ordens.map(o => {
             const flag = ({brazil:'🇧🇷',europe:'🇪🇺',usa:'🇺🇸'})[o.tipo_destino||'brazil']||'🇧🇷';
             const saida = o.moeda_saida==='BRL' ? `R$ ${fmtN(o.valor_saida,2)}` : `${fmtN(o.valor_saida,2)} ${o.moeda_saida||'BRL'}`;
             return `<tr>
-                <td>${fmtD(o.data)}</td>
-                <td style="font-weight:600;">${o.cliente_nome||'—'}</td>
-                <td class="mono">${fmtN(o.valor_entrada,2)} ${o.moeda_entrada||''}</td>
-                <td class="mono c-verde">${saida}</td>
-                <td>${flag} ${o.tipo_destino||'brazil'}</td>
-                <td><span class="tag tag-${o.status}">${o.status}</span></td>
-                <td>${o.loja||'—'}</td>
-                <td><button class="btn-act" onclick="abrirDetalheOrdem('${o.id}')"><i class="fas fa-eye"></i> Ver</button></td>
+                <td>${fmtD(o.data)}</div>
+                <td style="font-weight:600;">${o.cliente_nome||'—'}</div>
+                <td class="mono">${fmtN(o.valor_entrada,2)} ${o.moeda_entrada||''}</div>
+                <td class="mono c-verde">${saida}</div>
+                <td>${flag} ${o.tipo_destino||'brazil'}</div>
+                <td><span class="tag tag-${o.status}">${translateStatus(o.status)}</span></div>
+                <td>${o.loja||'—'}</div>
+                <td><button class="btn-act" onclick="abrirDetalheOrdem('${o.id}')"><i class="fas fa-eye"></i> View</button></div>
             </tr>`;
         }).join('');
-    } catch(e) { tb.innerHTML = `<tr><td colspan="8" style="color:var(--cor-perigo);padding:16px;">${e.message}</td></tr>`; }
+    } catch(e) { tb.innerHTML = `<tr><td colspan="8" style="color:var(--cor-perigo);padding:16px;">${e.message}</div></td>`; }
 }
 
 async function abrirDetalheOrdem(id) {
-    document.getElementById('deo-titulo').textContent = `Ordem #${id.substring(0,8)}`;
+    document.getElementById('deo-titulo').textContent = `Order #${id.substring(0,8)}`;
     document.getElementById('deo-body').innerHTML = '<div style="text-align:center;padding:30px;"><i class="fas fa-spinner fa-spin"></i></div>';
     document.getElementById('modalDetalheOrdem').classList.add('open');
     try {
@@ -2436,43 +2310,43 @@ async function _carregarDeoComprovantes(ordemId) {
         const d = await fetch(`/api/admin/ordens/${ordemId}/comprovantes`).then(r => r.json());
         const comps = d.comprovantes || [];
         if (!comps.length) {
-            el.innerHTML = '<p style="font-size:12px;color:var(--cor-texto-secundario);margin:4px 0;">Nenhum comprovante anexado.</p>';
+            el.innerHTML = '<p style="font-size:12px;color:var(--cor-texto-secundario);margin:4px 0;">No payment proof attached.</p>';
             return;
         }
         el.innerHTML = comps.map((c, i) => `
             <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--cor-borda);">
                 <i class="fas fa-file-alt" style="color:var(--cor-sucesso);"></i>
-                <span style="flex:1;font-size:12px;">${c.arquivo_nome || 'Comprovante ' + (i+1)}</span>
+                <span style="flex:1;font-size:12px;">${c.arquivo_nome || 'Payment Proof ' + (i+1)}</span>
                 <span style="font-size:10px;color:var(--cor-texto-secundario);">${c.criado_por||''} ${(c.criado_em||'').slice(0,10)}</span>
-                ${c.arquivo_url ? `<a href="/api/comprovantes/view?path=${encodeURIComponent(c.arquivo_url)}" target="_blank" class="btn-act" style="text-decoration:none;white-space:nowrap;"><i class="fas fa-eye"></i> Ver</a>` : ''}
+                ${c.arquivo_url ? `<a href="/api/comprovantes/view?path=${encodeURIComponent(c.arquivo_url)}" target="_blank" class="btn-act" style="text-decoration:none;white-space:nowrap;"><i class="fas fa-eye"></i> View</a>` : ''}
             </div>`).join('');
     } catch(e) {
-        el.innerHTML = '<p style="font-size:12px;color:var(--cor-perigo);">Erro ao carregar comprovantes.</p>';
+        el.innerHTML = '<p style="font-size:12px;color:var(--cor-perigo);">Error loading payment proofs.</p>';
     }
 }
 
 function renderBeneficiarioLoja(o) {
     if (!o.beneficiario_nome && !o.benef_iban && !o.beneficiario_pix) return '';
     const row = (lbl, val) => val ? `<div style="background:rgba(128,128,128,.06);border-radius:6px;padding:9px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:2px;">${lbl}</div><div style="font-size:13px;font-weight:600;">${val}</div></div>` : '';
-    let campos = row('Nome', o.beneficiario_nome);
+    let campos = row('Name', o.beneficiario_nome);
     if (o.tipo_destino === 'brazil') {
-        campos += row('Banco', o.beneficiario_banco);
-        campos += row('Agência', o.beneficiario_agencia);
-        campos += row('Conta', o.beneficiario_conta);
+        campos += row('Bank', o.beneficiario_banco);
+        campos += row('Branch', o.beneficiario_agencia);
+        campos += row('Account', o.beneficiario_conta);
         campos += row('CPF/CNPJ', o.beneficiario_cpf);
         campos += row('PIX', o.beneficiario_pix);
     } else if (o.tipo_destino === 'europe') {
         campos += row('IBAN', o.benef_iban);
         campos += row('BIC/SWIFT', o.benef_swift);
-        campos += row('Banco', o.beneficiario_banco);
+        campos += row('Bank', o.beneficiario_banco);
     } else if (o.tipo_destino === 'usa') {
         campos += row('Routing Number', o.benef_routing);
         campos += row('Account Number', o.beneficiario_conta);
         campos += row('SWIFT', o.benef_swift);
-        campos += row('Banco', o.beneficiario_banco);
+        campos += row('Bank', o.beneficiario_banco);
     }
     if (!campos) return '';
-    return `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#27ae60;margin-bottom:8px;margin-top:4px;">Beneficiário</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">${campos}</div>`;
+    return `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#27ae60;margin-bottom:8px;margin-top:4px;">Beneficiary</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">${campos}</div>`;
 }
 
 function renderDetalheOrdem(d) {
@@ -2484,58 +2358,55 @@ function renderDetalheOrdem(d) {
         <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:rgba(128,128,128,.04);border-radius:5px;margin-bottom:5px;border-left:3px solid var(--cor-admin);">
             <div><div style="font-size:12px;font-weight:600;"><i class="fas fa-id-card" style="color:var(--cor-admin);margin-right:6px;"></i>${DOC_LABELS[doc.tipo]||doc.tipo}</div>
             <div style="font-size:11px;color:var(--cor-texto-secundario);">${doc.arquivo_nome||''} — ${doc.created_at?new Date(doc.created_at).toLocaleDateString('pt-BR'):''}</div></div>
-            ${doc.url ? `<a href="${doc.url}" target="_blank" class="btn-act" style="white-space:nowrap;"><i class="fas fa-eye"></i> Ver</a>` : '<span style="font-size:11px;color:var(--cor-texto-secundario);">URL indisponível</span>'}
-        </div>`) .join('') : '<p style="font-size:12px;color:var(--cor-texto-secundario);">Nenhum documento de cliente registrado no momento da ordem.</p>';
+            ${doc.url ? `<a href="${doc.url}" target="_blank" class="btn-act" style="white-space:nowrap;"><i class="fas fa-eye"></i> View</a>` : '<span style="font-size:11px;color:var(--cor-texto-secundario);">URL unavailable</span>'}
+        </div>`) .join('') : '<p style="font-size:12px;color:var(--cor-texto-secundario);">No customer documents recorded at order time.</p>';
 
     const docsOrdemHtml = d.docs_ordem.length ? d.docs_ordem.map(doc => `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:rgba(243,156,18,.04);border-radius:5px;margin-bottom:5px;border-left:3px solid var(--cor-alerta);">
             <div><div style="font-size:12px;font-weight:600;"><i class="fas fa-file-alt" style="color:var(--cor-alerta);margin-right:6px;"></i>${DOC_LABELS[doc.tipo]||doc.tipo}</div>
             <div style="font-size:11px;color:var(--cor-texto-secundario);">${doc.arquivo_nome||''} — ${doc.created_at?new Date(doc.created_at).toLocaleDateString('pt-BR'):''}</div></div>
-            ${doc.url ? `<a href="${doc.url}" target="_blank" class="btn-act" style="white-space:nowrap;"><i class="fas fa-eye"></i> Ver</a>` : '<span style="font-size:11px;color:var(--cor-texto-secundario);">URL indisponível</span>'}
-        </div>`).join('') : '<p style="font-size:12px;color:var(--cor-texto-secundario);">Nenhum documento de suporte vinculado a esta ordem.</p>';
+            ${doc.url ? `<a href="${doc.url}" target="_blank" class="btn-act" style="white-space:nowrap;"><i class="fas fa-eye"></i> View</a>` : '<span style="font-size:11px;color:var(--cor-texto-secundario);">URL unavailable</span>'}
+        </div>`).join('') : '<p style="font-size:12px;color:var(--cor-texto-secundario);">No supporting documents attached to this order.</p>';
 
     document.getElementById('deo-body').innerHTML = `
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
-            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:10px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:3px;">Data</div><div style="font-size:13px;font-weight:600;">${fmtD(o.data)}</div></div>
+            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:10px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:3px;">Date</div><div style="font-size:13px;font-weight:600;">${fmtD(o.data)}</div></div>
             <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:10px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:3px;">Status</div><div><span class="tag tag-${o.status}">${o.status}</span></div></div>
-            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:10px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:3px;">Entrada</div><div style="font-size:13px;font-weight:600;">${fmtN(o.valor_entrada,2)} ${o.moeda_entrada||''}</div></div>
-            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:10px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:3px;">Saída</div><div style="font-size:13px;font-weight:600;color:var(--cor-sucesso);">${saida}</div></div>
-            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:10px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:3px;">Destino</div><div style="font-size:13px;font-weight:600;">${flag} ${o.beneficiario_nome||'—'}</div></div>
-            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:10px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:3px;">Forma Pgto</div><div style="font-size:13px;font-weight:600;">${o.forma_pagamento||'—'}</div></div>
+            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:10px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:3px;">Inbound</div><div style="font-size:13px;font-weight:600;">${fmtN(o.valor_entrada,2)} ${o.moeda_entrada||''}</div></div>
+            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:10px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:3px;">Outbound</div><div style="font-size:13px;font-weight:600;color:var(--cor-sucesso);">${saida}</div></div>
+            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:10px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:3px;">Destination</div><div style="font-size:13px;font-weight:600;">${flag} ${o.beneficiario_nome||'—'}</div></div>
+            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:10px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:3px;">Payment Method</div><div style="font-size:13px;font-weight:600;">${o.forma_pagamento||'—'}</div></div>
         </div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--cor-texto-secundario);margin-bottom:8px;margin-top:4px;">Cliente</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--cor-texto-secundario);margin-bottom:8px;margin-top:4px;">Customer</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
-            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:9px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:2px;">Nome</div><div style="font-size:13px;font-weight:600;">${c.nome||o.cliente_nome||'—'}</div></div>
-            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:9px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:2px;">Documento</div><div style="font-size:13px;">${c.documento||o.cliente_doc||'—'}</div></div>
-            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:9px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:2px;">Telefone</div><div style="font-size:13px;">${c.telefone||o.cliente_telefone||'—'}</div></div>
-            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:9px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:2px;">País</div><div style="font-size:13px;">${c.pais_residencia||'—'}</div></div>
+            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:9px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:2px;">Name</div><div style="font-size:13px;font-weight:600;">${c.nome||o.cliente_nome||'—'}</div></div>
+            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:9px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:2px;">Document</div><div style="font-size:13px;">${c.documento||o.cliente_doc||'—'}</div></div>
+            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:9px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:2px;">Phone</div><div style="font-size:13px;">${c.telefone||o.cliente_telefone||'—'}</div></div>
+            <div style="background:rgba(128,128,128,.06);border-radius:6px;padding:9px 12px;"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;margin-bottom:2px;">Country</div><div style="font-size:13px;">${c.pais_residencia||'—'}</div></div>
         </div>
         ${renderBeneficiarioLoja(o)}
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--cor-admin);margin-bottom:8px;">Documentos do Cliente <span style="font-size:10px;font-weight:400;color:var(--cor-texto-secundario);">(vigentes no momento da ordem)</span></div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--cor-admin);margin-bottom:8px;">Customer Documents <span style="font-size:10px;font-weight:400;color:var(--cor-texto-secundario);">(valid at order time)</span></div>
         ${docsClienteHtml}
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--cor-alerta);margin-bottom:8px;margin-top:14px;">Documentos de Suporte da Ordem</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--cor-alerta);margin-bottom:8px;margin-top:14px;">Order Support Documents</div>
         ${docsOrdemHtml}
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--cor-sucesso);margin-bottom:8px;margin-top:14px;"><i class="fas fa-paperclip"></i> Comprovantes de Pagamento</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--cor-sucesso);margin-bottom:8px;margin-top:14px;"><i class="fas fa-paperclip"></i> Payment Proofs</div>
         <div id="deo-comprovantes"><span style="font-size:12px;color:var(--cor-texto-secundario);"><i class="fas fa-spinner fa-spin"></i></span></div>
     `;
 }
 
-// ══ AUTO-ABRIR ORDEM APÓS NOVO CADASTRO ═══════════════════════════
+// ══ AUTO-OPEN ORDER AFTER NEW REGISTRATION ═══════════════════════════
 (async function() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('new_order') !== '1') return;
     const clienteId   = params.get('cliente_id');
     const clienteNome = params.get('cliente_nome');
     if (!clienteId) return;
-    // Limpar URL sem recarregar
     window.history.replaceState({}, '', '/loja/dashboard');
-    // Buscar dados completos do cliente
     try {
         const r = await fetch(`/api/clientes/${clienteId}`);
         const d = await r.json();
         const c = d.cliente || { id: clienteId, nome: clienteNome, documento: '', telefone: '' };
         abrirDrawer();
-        // Pequeno delay para o drawer renderizar
         setTimeout(() => { s1SelecionarCliente(c); }, 150);
     } catch(e) {
         abrirDrawer();
