@@ -20636,6 +20636,21 @@ def _b2b_acesso():
         return None, None, redirect('/login')
 
 
+def _acesso_cliente_b2b():
+    """Returns (username, cliente_b2b_id, None) if logged-in user is a B2B client
+    linked to a clientes_b2b record. Used to allow clients to access their own documents."""
+    username = session.get('username')
+    if not username or session.get('tipo') != 'cliente':
+        return None, None, True
+    try:
+        r = supabase.table('clientes_b2b').select('id').eq('usuario_username', username).limit(1).execute()
+        if not r.data:
+            return None, None, True
+        return username, r.data[0]['id'], None
+    except Exception:
+        return None, None, True
+
+
 def _calcular_score_b2b(cliente, criterios, thresholds, overrides):
     """Calculate risk score for a B2B client. Returns (score, nivel, criterios_resultado, overrides_activos)."""
     # Check hard overrides first
@@ -21460,7 +21475,12 @@ def api_b2b_pessoa_atualizar(pessoa_id):
 @app.route('/api/compliance/b2b/clientes/<client_id>/documentos', methods=['GET'])
 def api_b2b_documentos_list(client_id):
     usuario, tipo, redir = _b2b_acesso()
-    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    if redir:
+        # Aceitar também o próprio cliente B2B acessando seus documentos
+        cli_user, cli_b2b_id, err = _acesso_cliente_b2b()
+        if err or cli_b2b_id != client_id:
+            return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+        usuario = cli_user
     try:
         result = supabase.table('documentos_b2b').select('*').eq('cliente_b2b_id', client_id).order('tipo_documento').execute()
         docs = result.data or []
@@ -21554,7 +21574,15 @@ def _b2b_calc_expiry(tipo_documento, data_documento_str, now_dt):
 @app.route('/api/compliance/b2b/documentos/<doc_id>/upload', methods=['POST'])
 def api_b2b_documento_upload(doc_id):
     usuario, tipo, redir = _b2b_acesso()
-    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    if redir:
+        cli_user, cli_b2b_id, err = _acesso_cliente_b2b()
+        if err:
+            return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+        # Verifica que o documento pertence ao cliente logado (após buscar abaixo)
+        usuario = cli_user
+        _cli_b2b_id_check = cli_b2b_id
+    else:
+        _cli_b2b_id_check = None
     try:
         if 'file' not in request.files:
             return jsonify({'success': False, 'message': 'No file provided'}), 400
@@ -21567,8 +21595,11 @@ def api_b2b_documento_upload(doc_id):
         doc_r = supabase.table('documentos_b2b').select('cliente_b2b_id,tipo_documento').eq('id', doc_id).single().execute()
         if not doc_r.data:
             return jsonify({'success': False, 'message': 'Document not found'}), 404
-        client_id     = doc_r.data['cliente_b2b_id']
+        client_id      = doc_r.data['cliente_b2b_id']
         tipo_documento = doc_r.data.get('tipo_documento', '')
+        # Garante que cliente só envia documentos do seu próprio processo
+        if _cli_b2b_id_check and _cli_b2b_id_check != client_id:
+            return jsonify({'success': False, 'message': 'Unauthorized'}), 401
         ext  = os.path.splitext(f.filename)[1].lower()
         path = f"b2b/{client_id}/{doc_id}{ext}"
         ct   = f.content_type or 'application/octet-stream'
@@ -21596,11 +21627,19 @@ def api_b2b_documento_upload(doc_id):
 @app.route('/api/compliance/b2b/documentos/<doc_id>/download', methods=['GET'])
 def api_b2b_documento_download(doc_id):
     usuario, tipo, redir = _b2b_acesso()
-    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    if redir:
+        cli_user, cli_b2b_id, err = _acesso_cliente_b2b()
+        if err:
+            return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+        _cli_b2b_id_check = cli_b2b_id
+    else:
+        _cli_b2b_id_check = None
     try:
-        doc_r = supabase.table('documentos_b2b').select('storage_path').eq('id', doc_id).single().execute()
+        doc_r = supabase.table('documentos_b2b').select('storage_path,cliente_b2b_id').eq('id', doc_id).single().execute()
         if not doc_r.data or not doc_r.data.get('storage_path'):
             return jsonify({'success': False, 'message': 'No file uploaded yet'}), 404
+        if _cli_b2b_id_check and _cli_b2b_id_check != doc_r.data.get('cliente_b2b_id'):
+            return jsonify({'success': False, 'message': 'Unauthorized'}), 401
         path = doc_r.data['storage_path']
         signed = supabase.storage.from_('documentos-b2b').create_signed_url(path, 300)
         url = signed.get('signedURL') or signed.get('signedUrl') or ''
