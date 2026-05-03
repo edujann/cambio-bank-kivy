@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EDD Cases — B2B Compliance</title>
+    <script>(function(){ document.documentElement.setAttribute('data-theme', localStorage.getItem('theme')||'light'); })();</script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        :root[data-theme="light"]{
+            --cor-fundo:#f5ede0;--cor-card:#ffffff;--cor-borda:rgba(210,185,130,.4);
+            --cor-texto:#1a1200;--cor-texto-secundario:#9a8560;
+            --cor-primaria:#c8920a;--cor-admin:#c8920a;
+            --cor-sucesso:#1a7a52;--cor-alerta:#b87200;--cor-perigo:#c02020;
+            --sombra-suave:0 2px 8px rgba(160,110,0,.10),0 1px 3px rgba(0,0,0,.04);
+            --sombra-media:0 6px 22px rgba(160,110,0,.13),0 2px 8px rgba(0,0,0,.05);
+            --borda-radius:14px;--borda-radius-pequeno:10px;
+        }
+        :root[data-theme="dark"]{
+            --cor-fundo:#110f08;--cor-card:#191611;--cor-borda:#2d2819;
+            --cor-texto:#e0e0e0;--cor-texto-secundario:#8b949e;
+            --cor-primaria:#d29e00;--cor-admin:#d29e00;
+            --cor-sucesso:#2ec27e;--cor-alerta:#f39c12;--cor-perigo:#e01b24;
+            --sombra-suave:0 4px 6px rgba(0,0,0,.30);
+            --sombra-media:0 8px 16px rgba(0,0,0,.40);
+            --borda-radius:14px;--borda-radius-pequeno:10px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+        body{background-color:#f5ede0;background-image:radial-gradient(ellipse at 15% 15%,rgba(210,158,0,.10) 0%,transparent 55%),radial-gradient(ellipse at 85% 85%,rgba(180,120,0,.08) 0%,transparent 55%),linear-gradient(150deg,#f8f2e6 0%,#fdf9f2 45%,#ede3cf 100%);background-attachment:fixed;color:var(--cor-texto);min-height:100vh;overflow-x:hidden;}
+        body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(180,130,0,.055) 1px,transparent 1px);background-size:30px 30px;pointer-events:none;z-index:0;}
+        html[data-theme="dark"] body{background-color:#110f08;background-image:linear-gradient(135deg,#110f08 0%,#1f1a10 100%);}
+        html[data-theme="dark"] body::before{display:none;}
+        .top-bar{position:sticky;top:0;z-index:200;height:54px;background:var(--cor-card);border-bottom:1px solid var(--cor-borda);display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:10px;box-shadow:var(--sombra-suave);}
+        .logo-text{background:linear-gradient(135deg,#7a5800,#c8920a 45%,#a07000);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800;font-size:17px;}
+        .logo-text span{font-weight:400;}
+        .badge-b2b{background:rgba(200,146,10,.15);border:1px solid rgba(200,146,10,.4);color:var(--cor-admin);font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;letter-spacing:.5px;text-transform:uppercase;}
+        .hd-right{display:flex;align-items:center;gap:8px;}
+        .btn-hd{background:rgba(200,146,10,.12);border:1px solid var(--cor-admin);color:var(--cor-admin);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:.15s;}
+        .btn-hd:hover{background:rgba(200,146,10,.25);}
+        .btn-hd-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-hd-ghost:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+        .badge-user{background:rgba(200,146,10,.1);color:var(--cor-admin);padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;}
+        .main-layout{display:flex;min-height:calc(100vh - 54px);position:relative;z-index:1;}
+        .sidebar{width:215px;min-width:215px;background:var(--cor-card);border-right:1px solid var(--cor-borda);padding:12px 0 24px;position:sticky;top:54px;height:calc(100vh - 54px);overflow-y:auto;display:flex;flex-direction:column;}
+        .sidebar::-webkit-scrollbar{width:4px;}
+        .sidebar::-webkit-scrollbar-thumb{background:rgba(200,146,10,.3);border-radius:2px;}
+        .nav-section-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--cor-texto-secundario);padding:14px 18px 5px;opacity:.7;}
+        .nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;font-weight:600;color:var(--cor-texto-secundario);cursor:pointer;border-left:3px solid transparent;transition:.15s;user-select:none;text-decoration:none;}
+        .nav-item i{width:16px;text-align:center;font-size:13px;}
+        .nav-item:hover{color:var(--cor-admin);background:rgba(200,146,10,.06);}
+        .nav-item.active{color:var(--cor-admin);background:rgba(200,146,10,.1);border-left-color:var(--cor-admin);}
+        .nav-badge{margin-left:auto;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;min-width:18px;text-align:center;background:var(--cor-perigo);}
+        .nav-divider{height:1px;background:var(--cor-borda);margin:8px 14px;}
+        .content-area{flex:1;min-width:0;padding:24px;overflow-x:hidden;}
+        .page-header{margin-bottom:24px;}
+        .page-header h1{font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+        .page-header h1 i{color:var(--cor-admin);}
+        .page-header p{color:var(--cor-texto-secundario);font-size:13px;}
+        .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:28px;}
+        .kpi{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;transition:.2s;box-shadow:var(--sombra-suave);}
+        .kpi:hover{border-color:rgba(200,146,10,.4);transform:translateY(-2px);}
+        .kpi-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:12px;}
+        .kpi-lbl{font-size:11px;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+        .kpi-val{font-size:28px;font-weight:700;line-height:1;}
+        .kpi-sub{font-size:11px;color:var(--cor-texto-secundario);margin-top:6px;}
+        .kpi-stripe{position:absolute;top:0;left:0;right:0;height:3px;}
+        .tbl-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;overflow:hidden;margin-bottom:18px;box-shadow:var(--sombra-suave);}
+        .card-hd{padding:14px 18px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+        .card-hd h3{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;}
+        .card-hd h3 i{color:var(--cor-admin);}
+        .filter-bar{padding:12px 16px;border-bottom:1px solid var(--cor-borda);display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+        .filter-bar input,.filter-bar select{background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:6px 10px;border-radius:8px;font-size:12px;font-family:inherit;outline:none;}
+        .filter-bar input:focus,.filter-bar select:focus{border-color:var(--cor-admin);}
+        .tbl-wrap{overflow-x:auto;}
+        table{width:100%;border-collapse:collapse;font-size:13px;}
+        th{background:rgba(128,128,128,.05);color:var(--cor-texto-secundario);padding:8px 14px;text-align:left;font-weight:600;font-size:11px;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px;}
+        td{padding:10px 14px;border-top:1px solid var(--cor-borda);vertical-align:middle;}
+        tr:hover td{background:rgba(200,146,10,.02);}
+        .empty{padding:40px;text-align:center;color:var(--cor-texto-secundario);}
+        .empty i{font-size:32px;margin-bottom:8px;display:block;opacity:.4;}
+        .tag{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+        .tag-aberto{background:rgba(192,32,32,.12);color:var(--cor-perigo);}
+        .tag-em_analise{background:rgba(184,114,0,.12);color:var(--cor-alerta);}
+        .tag-fechado,.tag-concluido{background:rgba(26,122,82,.12);color:var(--cor-sucesso);}
+        .tag-high,.tag-critico{background:rgba(192,32,32,.12);color:var(--cor-perigo);}
+        .tag-medium{background:rgba(184,114,0,.12);color:var(--cor-alerta);}
+        .tag-low{background:rgba(26,122,82,.12);color:var(--cor-sucesso);}
+        .btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:inherit;text-decoration:none;transition:.15s;white-space:nowrap;}
+        .btn-gold{background:linear-gradient(135deg,#96700a,#c8920a 45%,#d4a820);color:#1a0d00;box-shadow:0 2px 8px rgba(160,110,0,.2);}
+        .btn-gold:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(160,110,0,.3);}
+        .btn-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-ghost:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+        .btn-danger{background:rgba(192,32,32,.12);border:1px solid rgba(192,32,32,.3);color:var(--cor-perigo);}
+        .btn-danger:hover{background:rgba(192,32,32,.2);}
+        .dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0;}
+        .dot-high{background:var(--cor-perigo);}
+        .dot-medium{background:var(--cor-alerta);}
+        .dot-low{background:var(--cor-sucesso);}
+        .modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;}
+        .modal-backdrop.show{display:flex;}
+        .modal{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:16px;padding:28px;width:100%;max-width:520px;box-shadow:var(--sombra-media);position:relative;}
+        .modal h3{font-size:16px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:8px;}
+        .modal h3 i{color:var(--cor-admin);}
+        .form-group{margin-bottom:14px;}
+        .form-group label{display:block;font-size:12px;font-weight:600;color:var(--cor-texto-secundario);margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px;}
+        .form-control{width:100%;padding:9px 12px;background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:8px;color:var(--cor-texto);font-size:13px;font-family:inherit;outline:none;transition:.15s;}
+        .form-control:focus{border-color:var(--cor-admin);}
+        textarea.form-control{resize:vertical;min-height:80px;}
+        .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .fa-spin{animation:spin 1s linear infinite}
+        @media(max-width:768px){.sidebar{display:none}.content-area{padding:16px}}
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span class="logo-text"><strong>Link</strong> <span>international</span></span>
+            <span class="badge-b2b">B2B Compliance</span>
+        </div>
+        <div class="hd-right">
+            <a href="/language/{{ 'pt' if current_lang == 'en' else 'en' }}" class="btn-hd btn-hd-ghost"><i class="fas fa-globe"></i> {{ 'PT' if current_lang == 'en' else 'EN' }}</a>
+            <button class="btn-hd btn-hd-ghost" id="btnTheme" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+            <span class="badge-user"><i class="fas fa-user-shield"></i> {{ usuario }}</span>
+            <a href="/admin/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-arrow-left"></i> Admin</a>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <nav class="sidebar">
+            <div class="nav-section-lbl">Overview</div>
+            <a href="/compliance/b2b/dashboard" class="nav-item"><i class="fas fa-gauge-high"></i> Dashboard</a>
+            <a href="/compliance/b2b/clientes" class="nav-item"><i class="fas fa-building"></i> Clients</a>
+            <a href="/compliance/b2b/clientes/novo" class="nav-item"><i class="fas fa-plus-circle"></i> New Onboarding</a>
+            <div class="nav-divider"></div>
+            <div class="nav-section-lbl">Compliance</div>
+            <a href="/compliance/b2b/edd" class="nav-item active"><i class="fas fa-magnifying-glass-chart"></i> EDD Cases</a>
+            <a href="/compliance/b2b/alertas" class="nav-item"><i class="fas fa-bell"></i> Alerts</a>
+            <a href="/compliance/b2b/screening" class="nav-item"><i class="fas fa-shield-halved"></i> Screening</a>
+            <div class="nav-divider"></div>
+            <div class="nav-section-lbl">Operations</div>
+            <a href="/compliance/b2b/beneficiarios" class="nav-item"><i class="fas fa-users"></i> Beneficiaries</a>
+            <a href="/compliance/b2b/limites" class="nav-item"><i class="fas fa-sliders"></i> Limits</a>
+            <a href="/compliance/b2b/risk-config" class="nav-item"><i class="fas fa-gear"></i> Risk Config</a>
+        </nav>
+
+        <div class="content-area">
+            <div class="page-header">
+                <h1><i class="fas fa-magnifying-glass-chart"></i> EDD Cases</h1>
+                <p>Enhanced Due Diligence — manage and track all open investigation cases</p>
+            </div>
+
+            <div class="kpi-grid">
+                <div class="kpi">
+                    <div class="kpi-stripe" style="background:var(--cor-admin);"></div>
+                    <div class="kpi-icon" style="background:rgba(200,146,10,.1);color:var(--cor-admin);"><i class="fas fa-folder-open"></i></div>
+                    <div class="kpi-lbl">Total Cases</div>
+                    <div class="kpi-val" id="kpi-total">—</div>
+                    <div class="kpi-sub">All time</div>
+                </div>
+                <div class="kpi">
+                    <div class="kpi-stripe" style="background:var(--cor-perigo);"></div>
+                    <div class="kpi-icon" style="background:rgba(192,32,32,.1);color:var(--cor-perigo);"><i class="fas fa-circle-exclamation"></i></div>
+                    <div class="kpi-lbl">Open</div>
+                    <div class="kpi-val" id="kpi-open">—</div>
+                    <div class="kpi-sub">Awaiting action</div>
+                </div>
+                <div class="kpi">
+                    <div class="kpi-stripe" style="background:var(--cor-alerta);"></div>
+                    <div class="kpi-icon" style="background:rgba(184,114,0,.1);color:var(--cor-alerta);"><i class="fas fa-spinner"></i></div>
+                    <div class="kpi-lbl">In Analysis</div>
+                    <div class="kpi-val" id="kpi-analysis">—</div>
+                    <div class="kpi-sub">Under review</div>
+                </div>
+                <div class="kpi">
+                    <div class="kpi-stripe" style="background:var(--cor-sucesso);"></div>
+                    <div class="kpi-icon" style="background:rgba(26,122,82,.1);color:var(--cor-sucesso);"><i class="fas fa-check-circle"></i></div>
+                    <div class="kpi-lbl">Completed</div>
+                    <div class="kpi-val" id="kpi-done">—</div>
+                    <div class="kpi-sub">Resolved</div>
+                </div>
+            </div>
+
+            <div class="tbl-card">
+                <div class="card-hd">
+                    <h3><i class="fas fa-magnifying-glass-chart"></i> EDD Case List</h3>
+                    <button class="btn btn-gold" onclick="openNewModal()"><i class="fas fa-plus"></i> New EDD Case</button>
+                </div>
+                <div class="filter-bar">
+                    <input type="text" id="searchInput" placeholder="Client name / trigger..." style="flex:1;min-width:180px;" oninput="applyFilters()">
+                    <select id="statusFilter" onchange="applyFilters()">
+                        <option value="">All Statuses</option>
+                        <option value="aberto">Open</option>
+                        <option value="em_analise">In Analysis</option>
+                        <option value="concluido">Completed</option>
+                        <option value="fechado">Closed</option>
+                    </select>
+                </div>
+                <div class="tbl-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Client</th>
+                                <th>Trigger / Reason</th>
+                                <th>Priority</th>
+                                <th>Assigned To</th>
+                                <th>Opened</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="eddTbody">
+                            <tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i>Loading cases...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New EDD Modal -->
+    <div class="modal-backdrop" id="newEddModal" onclick="handleBackdropClick(event,'newEddModal')">
+        <div class="modal">
+            <h3><i class="fas fa-plus-circle"></i> New EDD Case</h3>
+            <div class="form-group">
+                <label>Client ID</label>
+                <input type="text" class="form-control" id="f-client-id" placeholder="Enter B2B client ID">
+            </div>
+            <div class="form-group">
+                <label>Trigger / Reason</label>
+                <textarea class="form-control" id="f-gatilho" placeholder="Describe the trigger or reason for EDD..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Priority</label>
+                <select class="form-control" id="f-prioridade">
+                    <option value="high">High</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="low">Low</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Assigned To</label>
+                <input type="text" class="form-control" id="f-responsavel" placeholder="Analyst name">
+            </div>
+            <div class="form-group">
+                <label>Due Date</label>
+                <input type="date" class="form-control" id="f-due-date">
+            </div>
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea class="form-control" id="f-notas" placeholder="Additional notes..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeModal('newEddModal')">Cancel</button>
+                <button class="btn btn-gold" id="btnCreate" onclick="createEDD()"><i class="fas fa-save"></i> Create Case</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme(){
+            var next = document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';
+            document.documentElement.setAttribute('data-theme',next);
+            localStorage.setItem('theme',next);
+            var ic=document.querySelector('#btnTheme i');
+            if(ic) ic.className=next==='light'?'fas fa-moon':'fas fa-sun';
+        }
+        document.addEventListener('DOMContentLoaded',function(){
+            var t=document.documentElement.getAttribute('data-theme')||'light';
+            var ic=document.querySelector('#btnTheme i');
+            if(ic) ic.className=t==='light'?'fas fa-moon':'fas fa-sun';
+            loadEDD();
+        });
+
+        var allCases = [];
+
+        function loadEDD(){
+            fetch('/api/compliance/b2b/edd')
+                .then(function(r){ return r.json(); })
+                .then(function(data){
+                    allCases = Array.isArray(data) ? data : (data.cases || data.data || []);
+                    updateKPIs();
+                    renderTable(allCases);
+                })
+                .catch(function(){
+                    document.getElementById('eddTbody').innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-triangle-exclamation"></i>Failed to load cases</td></tr>';
+                });
+        }
+
+        function updateKPIs(){
+            var total = allCases.length;
+            var open = allCases.filter(function(c){ return c.status === 'aberto'; }).length;
+            var analysis = allCases.filter(function(c){ return c.status === 'em_analise'; }).length;
+            var done = allCases.filter(function(c){ return c.status === 'concluido' || c.status === 'fechado'; }).length;
+            document.getElementById('kpi-total').textContent = total;
+            document.getElementById('kpi-open').textContent = open;
+            document.getElementById('kpi-analysis').textContent = analysis;
+            document.getElementById('kpi-done').textContent = done;
+        }
+
+        function applyFilters(){
+            var q = document.getElementById('searchInput').value.toLowerCase();
+            var st = document.getElementById('statusFilter').value;
+            var filtered = allCases.filter(function(c){
+                var matchQ = !q || (c.client_nome||'').toLowerCase().includes(q) || (c.gatilho||'').toLowerCase().includes(q);
+                var matchSt = !st || c.status === st;
+                return matchQ && matchSt;
+            });
+            renderTable(filtered);
+        }
+
+        function renderTable(cases){
+            var tbody = document.getElementById('eddTbody');
+            if(!cases.length){
+                tbody.innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-magnifying-glass"></i>No cases found</td></tr>';
+                return;
+            }
+            tbody.innerHTML = cases.map(function(c){
+                return '<tr>' +
+                    '<td><strong>' + esc(c.client_nome || c.client_b2b_id || '—') + '</strong></td>' +
+                    '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + esc(c.gatilho||'') + '">' + esc(c.gatilho || '—') + '</td>' +
+                    '<td>' + priorityBadge(c.prioridade) + '</td>' +
+                    '<td>' + esc(c.responsavel || '—') + '</td>' +
+                    '<td style="white-space:nowrap;">' + fmtDate(c.created_at) + '</td>' +
+                    '<td style="white-space:nowrap;">' + fmtDate(c.data_vencimento) + '</td>' +
+                    '<td>' + statusTag(c.status) + '</td>' +
+                    '<td style="white-space:nowrap;">' +
+                        '<a href="/compliance/b2b/clientes/' + esc(c.client_b2b_id||c.id||'') + '" class="btn btn-ghost" style="font-size:11px;padding:4px 10px;"><i class="fas fa-eye"></i> View</a>' +
+                    '</td>' +
+                '</tr>';
+            }).join('');
+        }
+
+        function priorityBadge(p){
+            var map = {high:'dot-high',medium:'dot-medium',low:'dot-low'};
+            var cls = map[p] || 'dot-medium';
+            var label = p ? p.charAt(0).toUpperCase()+p.slice(1) : '—';
+            return '<span style="display:inline-flex;align-items:center;gap:5px;"><span class="dot ' + cls + '"></span>' + esc(label) + '</span>';
+        }
+
+        function statusTag(s){
+            var map = {aberto:'tag-aberto',em_analise:'tag-em_analise',concluido:'tag-concluido',fechado:'tag-fechado'};
+            var labels = {aberto:'Open',em_analise:'In Analysis',concluido:'Completed',fechado:'Closed'};
+            var cls = map[s] || 'tag-em_analise';
+            return '<span class="tag ' + cls + '">' + esc(labels[s] || s || '—') + '</span>';
+        }
+
+        function fmtDate(d){
+            if(!d) return '—';
+            var dt = new Date(d);
+            if(isNaN(dt)) return d;
+            return dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+        }
+
+        function openNewModal(){
+            document.getElementById('newEddModal').classList.add('show');
+        }
+
+        function closeModal(id){
+            document.getElementById(id).classList.remove('show');
+        }
+
+        function handleBackdropClick(e, id){
+            if(e.target === document.getElementById(id)) closeModal(id);
+        }
+
+        function createEDD(){
+            var clientId = document.getElementById('f-client-id').value.trim();
+            var gatilho = document.getElementById('f-gatilho').value.trim();
+            var prioridade = document.getElementById('f-prioridade').value;
+            var responsavel = document.getElementById('f-responsavel').value.trim();
+            var dueDate = document.getElementById('f-due-date').value;
+            var notas = document.getElementById('f-notas').value.trim();
+            if(!clientId || !gatilho){
+                alert('Client ID and Trigger / Reason are required.');
+                return;
+            }
+            var btn = document.getElementById('btnCreate');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            var body = {
+                client_b2b_id: clientId,
+                gatilho: gatilho,
+                prioridade: prioridade,
+                responsavel: responsavel,
+                data_vencimento: dueDate || null,
+                notas: notas
+            };
+            fetch('/api/compliance/b2b/edd', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify(body)
+            })
+            .then(function(r){ return r.json(); })
+            .then(function(){
+                closeModal('newEddModal');
+                document.getElementById('f-client-id').value='';
+                document.getElementById('f-gatilho').value='';
+                document.getElementById('f-prioridade').value='medium';
+                document.getElementById('f-responsavel').value='';
+                document.getElementById('f-due-date').value='';
+                document.getElementById('f-notas').value='';
+                loadEDD();
+            })
+            .catch(function(){ alert('Error creating EDD case. Please try again.'); })
+            .finally(function(){
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Create Case';
+            });
+        }
+
+        function esc(s){
+            if(s == null) return '';
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+    </script>
+</body>
+</html>

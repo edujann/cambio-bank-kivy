@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <script>(function(){ document.documentElement.setAttribute('data-theme', localStorage.getItem('theme')||'light'); })();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link International — B2B Clients</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        :root[data-theme="light"]{--cor-fundo:#f5ede0;--cor-card:#ffffff;--cor-borda:rgba(210,185,130,.4);--cor-texto:#1a1200;--cor-texto-secundario:#9a8560;--cor-primaria:#c8920a;--cor-admin:#c8920a;--cor-sucesso:#1a7a52;--cor-alerta:#b87200;--cor-perigo:#c02020;--sombra-suave:0 2px 8px rgba(160,110,0,.10),0 1px 3px rgba(0,0,0,.04);--sombra-media:0 6px 22px rgba(160,110,0,.13),0 2px 8px rgba(0,0,0,.05);--borda-radius:14px;--borda-radius-pequeno:10px;}
+        :root[data-theme="dark"]{--cor-fundo:#110f08;--cor-card:#191611;--cor-borda:#2d2819;--cor-texto:#e0e0e0;--cor-texto-secundario:#8b949e;--cor-primaria:#d29e00;--cor-admin:#d29e00;--cor-sucesso:#2ec27e;--cor-alerta:#f39c12;--cor-perigo:#e01b24;--sombra-suave:0 4px 6px rgba(0,0,0,.30);--sombra-media:0 8px 16px rgba(0,0,0,.40);--borda-radius:14px;--borda-radius-pequeno:10px;}
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+        body{background-color:#f5ede0;background-image:radial-gradient(ellipse at 15% 15%,rgba(210,158,0,.10) 0%,transparent 55%),radial-gradient(ellipse at 85% 85%,rgba(180,120,0,.08) 0%,transparent 55%),linear-gradient(150deg,#f8f2e6 0%,#fdf9f2 45%,#ede3cf 100%);background-attachment:fixed;color:var(--cor-texto);min-height:100vh;overflow-x:hidden;}
+        body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(180,130,0,.055) 1px,transparent 1px);background-size:30px 30px;pointer-events:none;z-index:0;}
+        html[data-theme="dark"] body{background-color:#110f08;background-image:linear-gradient(135deg,#110f08 0%,#1f1a10 100%);}
+        html[data-theme="dark"] body::before{display:none;}
+        .top-bar{position:sticky;top:0;z-index:200;height:54px;background:var(--cor-card);border-bottom:1px solid var(--cor-borda);display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:10px;}
+        .logo{display:flex;align-items:center;gap:10px;font-size:17px;}
+        .logo-text{background:linear-gradient(90deg,#b78700,#eeb600);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800;}
+        .logo-text span{font-weight:400;}
+        .badge-b2b{background:rgba(210,158,0,.15);border:1px solid rgba(210,158,0,.4);color:#d29e00;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;letter-spacing:.5px;text-transform:uppercase;}
+        .hd-right{display:flex;align-items:center;gap:8px;}
+        .btn-hd{background:rgba(210,158,0,.12);border:1px solid #d29e00;color:#d29e00;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:.15s;}
+        .btn-hd:hover{background:rgba(210,158,0,.25);}
+        .btn-hd-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-hd-ghost:hover{border-color:#d29e00;color:#d29e00;}
+        .badge-user{background:rgba(210,158,0,.1);color:#d29e00;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;}
+        .main-layout{display:flex;min-height:calc(100vh - 54px);position:relative;z-index:1;}
+        .sidebar{width:215px;min-width:215px;background:var(--cor-card);border-right:1px solid var(--cor-borda);padding:12px 0 24px;position:sticky;top:54px;height:calc(100vh - 54px);overflow-y:auto;}
+        .sidebar::-webkit-scrollbar{width:4px;}
+        .sidebar::-webkit-scrollbar-thumb{background:rgba(210,158,0,.3);border-radius:2px;}
+        .nav-section-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--cor-texto-secundario);padding:14px 18px 5px;opacity:.7;}
+        .nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;font-weight:600;color:var(--cor-texto-secundario);cursor:pointer;border-left:3px solid transparent;transition:.15s;text-decoration:none;}
+        .nav-item i{width:16px;text-align:center;font-size:13px;}
+        .nav-item:hover{color:#d29e00;background:rgba(210,158,0,.06);}
+        .nav-item.active{color:#d29e00;background:rgba(210,158,0,.1);border-left-color:#d29e00;}
+        .nav-badge{margin-left:auto;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;min-width:18px;text-align:center;background:#e01b24;}
+        .nav-divider{height:1px;background:var(--cor-borda);margin:8px 14px;}
+        .content-area{flex:1;min-width:0;padding:24px;overflow-x:hidden;}
+        .page-header{margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;}
+        .page-header-left h1{font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+        .page-header-left h1 i{color:#d29e00;}
+        .page-header-left p{color:var(--cor-texto-secundario);font-size:13px;}
+
+        /* Filters bar */
+        .filters-bar{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+        .search-wrap{flex:1;min-width:220px;position:relative;}
+        .search-wrap i{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--cor-texto-secundario);font-size:13px;}
+        .search-wrap input{width:100%;padding:8px 12px 8px 34px;background:#1f1a10;border:1px solid var(--cor-borda);border-radius:8px;color:var(--cor-texto);font-size:13px;}
+        .search-wrap input:focus{outline:none;border-color:#d29e00;}
+        .filter-sel{padding:8px 12px;background:#1f1a10;border:1px solid var(--cor-borda);border-radius:8px;color:var(--cor-texto);font-size:13px;cursor:pointer;}
+        .filter-sel:focus{outline:none;border-color:#d29e00;}
+
+        /* Table card */
+        .tbl-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;overflow:hidden;}
+        .card-hd{padding:14px 18px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;gap:8px;}
+        .card-hd h3{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;}
+        .card-hd h3 i{color:#d29e00;}
+        .tbl-wrap{overflow-x:auto;}
+        table{width:100%;border-collapse:collapse;font-size:13px;}
+        th{background:rgba(128,128,128,.05);color:var(--cor-texto-secundario);padding:9px 14px;text-align:left;font-weight:600;font-size:11px;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px;}
+        td{padding:10px 14px;border-top:1px solid var(--cor-borda);vertical-align:middle;}
+        tr:hover td{background:rgba(210,158,0,.02);}
+        .empty{padding:48px;text-align:center;color:var(--cor-texto-secundario);}
+        .empty i{font-size:36px;margin-bottom:10px;display:block;opacity:.3;}
+
+        /* Tags */
+        .tag{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+        .tag-ativo{background:rgba(46,194,126,.12);color:#2ec27e;}
+        .tag-em_onboarding{background:rgba(243,156,18,.12);color:#f39c12;}
+        .tag-aguardando_revisao{background:rgba(210,158,0,.15);color:#d29e00;}
+        .tag-rejeitado{background:rgba(224,27,36,.12);color:#e01b24;}
+        .tag-suspenso{background:rgba(224,27,36,.12);color:#e01b24;}
+        .tag-encerrado{background:rgba(128,128,128,.12);color:#888;}
+        .tag-low{background:rgba(46,194,126,.12);color:#2ec27e;}
+        .tag-medium{background:rgba(243,156,18,.12);color:#f39c12;}
+        .tag-high{background:rgba(224,27,36,.12);color:#e01b24;}
+
+        /* Buttons */
+        .btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;text-decoration:none;transition:.15s;white-space:nowrap;}
+        .btn-gold{background:linear-gradient(90deg,#b78700,#d29e00);color:#1a1200;}
+        .btn-gold:hover{opacity:.9;}
+        .btn-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-ghost:hover{border-color:#d29e00;color:#d29e00;}
+        .btn-sm{padding:4px 10px;font-size:11px;}
+        .btn-danger-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-danger-ghost:hover{border-color:#e01b24;color:#e01b24;}
+
+        /* Pagination */
+        .pagination{display:flex;align-items:center;justify-content:center;gap:6px;padding:16px;}
+        .page-btn{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:5px 11px;border-radius:6px;cursor:pointer;font-size:12px;transition:.15s;}
+        .page-btn:hover,.page-btn.active{border-color:#d29e00;color:#d29e00;}
+        .page-info{font-size:12px;color:var(--cor-texto-secundario);margin:0 8px;}
+
+        @keyframes spin{to{transform:rotate(360deg);}}
+        .fa-spin{animation:spin 1s linear infinite;}
+        @media(max-width:768px){.sidebar{display:none;}}
+        #btnTheme{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:0;border-radius:6px;cursor:pointer;font-size:14px;display:inline-flex;align-items:center;justify-content:center;height:30px;width:30px;transition:.15s;}
+        #btnTheme:hover{border-color:#d29e00;color:#d29e00;}
+        [data-theme="light"] input,[data-theme="light"] select,[data-theme="light"] textarea{background:var(--cor-card)!important;color:var(--cor-texto)!important;border-color:var(--cor-borda)!important;}
+        [data-theme="light"] input::placeholder{color:var(--cor-texto-secundario)!important;}
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <div class="logo">
+        <span class="logo-text"><strong>Link</strong><span> international</span></span>
+        <div class="badge-b2b">B2B Compliance</div>
+    </div>
+    <div class="hd-right">
+        <span class="badge-user"><i class="fas fa-user-shield" style="margin-right:4px"></i>{{ usuario }}</span>
+        <a href="/language/{{ 'pt' if current_lang == 'en' else 'en' }}" class="btn-hd btn-hd-ghost" title="Switch language"><i class="fas fa-globe"></i> {{ 'PT' if current_lang == 'en' else 'EN' }}</a>
+        <button id="btnTheme" onclick="toggleTheme()" title="Toggle theme"><i class="fas fa-sun"></i></button>
+        <a href="/compliance/b2b/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-gauge-high"></i> Dashboard</a>
+        <a href="/admin/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-grid-2"></i> Admin</a>
+    </div>
+</div>
+
+<div class="main-layout">
+    <nav class="sidebar">
+        <div class="nav-section-lbl">Overview</div>
+        <a class="nav-item" href="/compliance/b2b/dashboard"><i class="fas fa-gauge-high"></i> Dashboard</a>
+        <a class="nav-item active" href="/compliance/b2b/clientes"><i class="fas fa-building"></i> Clients</a>
+        <a class="nav-item" href="/compliance/b2b/clientes/novo"><i class="fas fa-plus-circle"></i> New Onboarding</a>
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Compliance</div>
+        <a class="nav-item" href="/compliance/b2b/edd"><i class="fas fa-magnifying-glass-chart"></i> EDD Cases</a>
+        <a class="nav-item" href="/compliance/b2b/alertas"><i class="fas fa-bell"></i> Alerts</a>
+        <a class="nav-item" href="/compliance/b2b/screening"><i class="fas fa-shield-halved"></i> Screening</a>
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Operations</div>
+        <a class="nav-item" href="/compliance/b2b/beneficiarios"><i class="fas fa-users"></i> Beneficiaries</a>
+        <a class="nav-item" href="/compliance/b2b/limites"><i class="fas fa-sliders"></i> Limits</a>
+        <a class="nav-item" href="/compliance/b2b/risk-config"><i class="fas fa-gear"></i> Risk Config</a>
+    </nav>
+
+    <div class="content-area">
+        <div class="page-header">
+            <div class="page-header-left">
+                <h1><i class="fas fa-building"></i> B2B Clients</h1>
+                <p>All corporate clients under KYB / AML management</p>
+            </div>
+            <a href="/compliance/b2b/clientes/novo" class="btn btn-gold"><i class="fas fa-plus"></i> New Onboarding</a>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-bar">
+            <div class="search-wrap">
+                <i class="fas fa-search"></i>
+                <input type="text" id="search" placeholder="Search by company name or reg. number…" oninput="debounceLoad()">
+            </div>
+            <select class="filter-sel" id="fStatus" onchange="loadClients(1)">
+                <option value="">All statuses</option>
+                <option value="em_onboarding">Onboarding</option>
+                <option value="aguardando_revisao">Awaiting Review</option>
+                <option value="ativo">Active</option>
+                <option value="suspenso">Suspended</option>
+                <option value="rejeitado">Rejected</option>
+                <option value="encerrado">Closed</option>
+            </select>
+            <select class="filter-sel" id="fRisk" onchange="loadClients(1)">
+                <option value="">All risk levels</option>
+                <option value="low">Low risk</option>
+                <option value="medium">Medium risk</option>
+                <option value="high">High risk</option>
+            </select>
+            <select class="filter-sel" id="fOrder" onchange="loadClients(1)">
+                <option value="recente">Most recent</option>
+                <option value="nome">Company name</option>
+                <option value="risco_asc">Risk ↑</option>
+                <option value="risco_desc">Risk ↓</option>
+                <option value="revisao">Review due</option>
+            </select>
+        </div>
+
+        <div class="tbl-card">
+            <div class="card-hd">
+                <h3><i class="fas fa-list"></i> <span id="totalLabel">Clients</span></h3>
+            </div>
+            <div class="tbl-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Company</th>
+                            <th>Reg. Number</th>
+                            <th>Country</th>
+                            <th>Industry</th>
+                            <th>Risk</th>
+                            <th>Score</th>
+                            <th>Status</th>
+                            <th>Daily Limit</th>
+                            <th>Monthly Limit</th>
+                            <th>Review Due</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="clientsBody">
+                        <tr><td colspan="11" class="empty"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination" id="pagination" style="display:none"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+let debounceTimer = null;
+let currentPage = 1;
+const PER_PAGE = 20;
+
+const statusMap = {ativo:'Active',em_onboarding:'Onboarding',aguardando_revisao:'Awaiting Review',rejeitado:'Rejected',suspenso:'Suspended',encerrado:'Closed'};
+const riskMap = {low:'Low',medium:'Medium',high:'High'};
+const tagHtml = (v, map) => `<span class="tag tag-${v}">${map[v] || v}</span>`;
+const fmtGBP = n => n == null ? '—' : '£' + Number(n).toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:0});
+const fmtDate = s => s ? new Date(s).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+
+function debounceLoad() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => loadClients(1), 350);
+}
+
+async function loadClients(page) {
+    page = page || currentPage;
+    currentPage = page;
+    const body = document.getElementById('clientsBody');
+    body.innerHTML = '<tr><td colspan="11" class="empty"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr>';
+
+    const q = new URLSearchParams({
+        page,
+        limit: PER_PAGE,
+        q: document.getElementById('search').value || '',
+        status: document.getElementById('fStatus').value || '',
+        risco: document.getElementById('fRisk').value || '',
+        order: document.getElementById('fOrder').value || 'recente'
+    });
+
+    try {
+        const r = await fetch('/api/compliance/b2b/clientes?' + q);
+        const d = await r.json();
+        if (!d.success) throw new Error(d.message || 'Error');
+
+        document.getElementById('totalLabel').textContent = `${d.total || 0} client${d.total !== 1 ? 's' : ''}`;
+
+        if (!d.clientes.length) {
+            body.innerHTML = '<tr><td colspan="11" class="empty"><i class="fas fa-building"></i>No clients found.<br><a href="/compliance/b2b/clientes/novo" class="btn btn-gold btn-sm" style="margin-top:12px"><i class="fas fa-plus"></i> Start first onboarding</a></td></tr>';
+            document.getElementById('pagination').style.display = 'none';
+            return;
+        }
+
+        body.innerHTML = d.clientes.map(c => {
+            const overdue = c.proxima_revisao_em && new Date(c.proxima_revisao_em) < new Date();
+            return `<tr>
+                <td>
+                    <a href="/compliance/b2b/clientes/${c.id}" style="color:var(--cor-texto);text-decoration:none;font-weight:600">${c.razao_social}</a>
+                    <br><small style="color:var(--cor-texto-secundario);font-size:11px">${c.nome_comercial || c.tipo_entidade || ''}</small>
+                </td>
+                <td style="font-family:monospace;font-size:12px">${c.numero_registro || '—'}</td>
+                <td style="font-size:12px">${c.pais_registro || '—'}</td>
+                <td style="font-size:12px;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.setor_atividade || '—'}</td>
+                <td>${tagHtml(c.nivel_risco || 'medium', riskMap)}</td>
+                <td style="font-size:13px;font-weight:700;color:${scoreColor(c.score_risco)}">${c.score_risco != null ? c.score_risco : '—'}</td>
+                <td>${tagHtml(c.status || 'em_onboarding', statusMap)}</td>
+                <td>${fmtGBP(c.limite_diario)}</td>
+                <td>${fmtGBP(c.limite_mensal)}</td>
+                <td style="color:${overdue ? '#e01b24' : 'inherit'};font-size:12px">${fmtDate(c.proxima_revisao_em)}${overdue ? ' <i class="fas fa-circle-exclamation" style="color:#e01b24"></i>' : ''}</td>
+                <td style="white-space:nowrap">
+                    ${c.status === 'em_onboarding'
+                        ? `<a href="/compliance/b2b/clientes/novo?continuar=${c.id}" class="btn btn-sm" style="background:linear-gradient(135deg,#96700a,#c8920a);color:#1a0d00;margin-right:4px;white-space:nowrap"><i class="fas fa-pen-to-square"></i> Continue</a>`
+                        : ''}
+                    <a href="/compliance/b2b/clientes/${c.id}" class="btn btn-ghost btn-sm"><i class="fas fa-eye"></i> View</a>
+                </td>
+            </tr>`;
+        }).join('');
+
+        renderPagination(d.total, page);
+    } catch(e) {
+        body.innerHTML = `<tr><td colspan="11" class="empty"><i class="fas fa-exclamation-triangle"></i>${e.message}</td></tr>`;
+    }
+}
+
+function scoreColor(s) {
+    if (s == null) return 'inherit';
+    if (s <= 32) return '#2ec27e';
+    if (s <= 46) return '#f39c12';
+    return '#e01b24';
+}
+
+function renderPagination(total, page) {
+    const pages = Math.ceil(total / PER_PAGE);
+    const el = document.getElementById('pagination');
+    if (pages <= 1) { el.style.display = 'none'; return; }
+    el.style.display = 'flex';
+    let html = `<button class="page-btn" onclick="loadClients(${page-1})" ${page===1?'disabled':''}>‹ Prev</button>`;
+    for (let i = Math.max(1, page-2); i <= Math.min(pages, page+2); i++) {
+        html += `<button class="page-btn${i===page?' active':''}" onclick="loadClients(${i})">${i}</button>`;
+    }
+    html += `<button class="page-btn" onclick="loadClients(${page+1})" ${page===pages?'disabled':''}>Next ›</button>`;
+    html += `<span class="page-info">Page ${page} of ${pages} · ${total} total</span>`;
+    el.innerHTML = html;
+}
+
+// Pre-apply status from URL query param
+(function() {
+    const p = new URLSearchParams(window.location.search);
+    if (p.get('status')) document.getElementById('fStatus').value = p.get('status');
+    if (p.get('risco')) document.getElementById('fRisk').value = p.get('risco');
+})();
+
+loadClients(1);
+</script>
+<script>
+function toggleTheme(){var next=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',next);localStorage.setItem('theme',next);var ic=document.querySelector('#btnTheme i');if(ic)ic.className=next==='light'?'fas fa-moon':'fas fa-sun';}
+document.addEventListener('DOMContentLoaded',function(){var t=document.documentElement.getAttribute('data-theme')||'light';var ic=document.querySelector('#btnTheme i');if(ic)ic.className=t==='light'?'fas fa-moon':'fas fa-sun';});
+</script>
+</body>
+</html>

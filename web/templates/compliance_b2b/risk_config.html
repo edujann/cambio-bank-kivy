@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <script>(function(){ document.documentElement.setAttribute('data-theme', localStorage.getItem('theme')||'light'); })();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link International — Risk Criteria Configuration</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        :root[data-theme="light"]{--cor-fundo:#f5ede0;--cor-card:#ffffff;--cor-borda:rgba(210,185,130,.4);--cor-texto:#1a1200;--cor-texto-secundario:#9a8560;--cor-primaria:#c8920a;--cor-admin:#c8920a;--cor-sucesso:#1a7a52;--cor-alerta:#b87200;--cor-perigo:#c02020;--sombra-suave:0 2px 8px rgba(160,110,0,.10),0 1px 3px rgba(0,0,0,.04);--sombra-media:0 6px 22px rgba(160,110,0,.13),0 2px 8px rgba(0,0,0,.05);--borda-radius:14px;--borda-radius-pequeno:10px;}
+        :root[data-theme="dark"]{--cor-fundo:#110f08;--cor-card:#191611;--cor-borda:#2d2819;--cor-texto:#e0e0e0;--cor-texto-secundario:#8b949e;--cor-primaria:#d29e00;--cor-admin:#d29e00;--cor-sucesso:#2ec27e;--cor-alerta:#f39c12;--cor-perigo:#e01b24;--sombra-suave:0 4px 6px rgba(0,0,0,.30);--sombra-media:0 8px 16px rgba(0,0,0,.40);--borda-radius:14px;--borda-radius-pequeno:10px;}
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+        body{background-color:#f5ede0;background-image:radial-gradient(ellipse at 15% 15%,rgba(210,158,0,.10) 0%,transparent 55%),radial-gradient(ellipse at 85% 85%,rgba(180,120,0,.08) 0%,transparent 55%),linear-gradient(150deg,#f8f2e6 0%,#fdf9f2 45%,#ede3cf 100%);background-attachment:fixed;color:var(--cor-texto);min-height:100vh;overflow-x:hidden;}
+        body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(180,130,0,.055) 1px,transparent 1px);background-size:30px 30px;pointer-events:none;z-index:0;}
+        html[data-theme="dark"] body{background-color:#110f08;background-image:linear-gradient(135deg,#110f08 0%,#1f1a10 100%);}
+        html[data-theme="dark"] body::before{display:none;}
+        .top-bar{position:sticky;top:0;z-index:200;height:54px;background:var(--cor-card);border-bottom:1px solid var(--cor-borda);display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:10px;}
+        .logo{display:flex;align-items:center;gap:10px;font-size:17px;}
+        .logo-text{background:linear-gradient(90deg,#b78700,#eeb600);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800;}
+        .logo-text span{font-weight:400;}
+        .badge-b2b{background:rgba(210,158,0,.15);border:1px solid rgba(210,158,0,.4);color:#d29e00;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;letter-spacing:.5px;text-transform:uppercase;}
+        .hd-right{display:flex;align-items:center;gap:8px;}
+        .btn-hd{background:rgba(210,158,0,.12);border:1px solid #d29e00;color:#d29e00;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:.15s;}
+        .btn-hd:hover{background:rgba(210,158,0,.25);}
+        .btn-hd-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-hd-ghost:hover{border-color:#d29e00;color:#d29e00;}
+        .badge-user{background:rgba(210,158,0,.1);color:#d29e00;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;}
+
+        .main-layout{display:flex;min-height:calc(100vh - 54px);position:relative;z-index:1;}
+        .sidebar{width:215px;min-width:215px;background:var(--cor-card);border-right:1px solid var(--cor-borda);padding:12px 0 24px;position:sticky;top:54px;height:calc(100vh - 54px);overflow-y:auto;}
+        .nav-section-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--cor-texto-secundario);padding:14px 18px 5px;opacity:.7;}
+        .nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;font-weight:600;color:var(--cor-texto-secundario);cursor:pointer;border-left:3px solid transparent;transition:.15s;text-decoration:none;}
+        .nav-item i{width:16px;text-align:center;font-size:13px;}
+        .nav-item:hover{color:#d29e00;background:rgba(210,158,0,.06);}
+        .nav-item.active{color:#d29e00;background:rgba(210,158,0,.1);border-left-color:#d29e00;}
+        .nav-divider{height:1px;background:var(--cor-borda);margin:8px 14px;}
+        .content-area{flex:1;min-width:0;padding:24px;overflow-x:hidden;}
+        .page-header{margin-bottom:24px;}
+        .page-header h1{font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+        .page-header h1 i{color:#d29e00;}
+        .page-header p{color:var(--cor-texto-secundario);font-size:13px;}
+
+        /* Info banner */
+        .info-banner{background:rgba(210,158,0,.08);border:1px solid rgba(210,158,0,.25);border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;gap:12px;align-items:flex-start;font-size:13px;color:var(--cor-texto-secundario);}
+        .info-banner i{color:#d29e00;margin-top:2px;flex-shrink:0;}
+
+        /* Score band config */
+        .bands-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;padding:20px;margin-bottom:20px;}
+        .bands-card h3{font-size:13px;font-weight:700;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+        .bands-card h3 i{color:#d29e00;}
+        .bands-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px;}
+        .band-box{border-radius:10px;padding:16px;text-align:center;}
+        .band-box.low{background:rgba(46,194,126,.08);border:1px solid rgba(46,194,126,.25);}
+        .band-box.medium{background:rgba(243,156,18,.08);border:1px solid rgba(243,156,18,.25);}
+        .band-box.high{background:rgba(224,27,36,.08);border:1px solid rgba(224,27,36,.25);}
+        .band-lbl{font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:8px;}
+        .band-box.low .band-lbl{color:#2ec27e;}
+        .band-box.medium .band-lbl{color:#f39c12;}
+        .band-box.high .band-lbl{color:#e01b24;}
+        .band-range{font-size:18px;font-weight:700;margin-bottom:8px;}
+        .band-input{display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;color:var(--cor-texto-secundario);}
+        .band-input input{width:70px;padding:6px 10px;background:#1f1a10;border:1px solid var(--cor-borda);border-radius:6px;color:var(--cor-texto);font-size:13px;text-align:center;}
+        .band-input input:focus{outline:none;border-color:#d29e00;}
+
+        /* Criteria blocks */
+        .block-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;margin-bottom:16px;overflow:hidden;}
+        .block-hd{padding:14px 18px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;gap:8px;background:rgba(255,255,255,.02);}
+        .block-hd h3{font-size:13px;font-weight:700;display:flex;align-items:center;gap:9px;}
+        .block-hd h3 i{color:#d29e00;}
+        .block-score{font-size:12px;color:var(--cor-texto-secundario);}
+
+        /* Criteria rows */
+        .crit-row{display:grid;grid-template-columns:32px 1fr 80px 80px 80px 80px 80px;align-items:center;gap:10px;padding:12px 18px;border-top:1px solid var(--cor-borda);transition:.15s;}
+        .crit-row:hover{background:rgba(210,158,0,.02);}
+        .crit-toggle{display:flex;align-items:center;justify-content:center;}
+        .toggle{position:relative;width:28px;height:16px;display:inline-block;}
+        .toggle input{opacity:0;width:0;height:0;}
+        .slider{position:absolute;inset:0;background:#3a3020;border-radius:8px;cursor:pointer;transition:.2s;}
+        .slider::before{content:'';position:absolute;left:2px;top:2px;width:12px;height:12px;background:#888;border-radius:50%;transition:.2s;}
+        .toggle input:checked + .slider{background:rgba(46,194,126,.3);}
+        .toggle input:checked + .slider::before{background:#2ec27e;transform:translateX(12px);}
+        .crit-name{font-size:13px;font-weight:600;}
+        .crit-name small{font-size:11px;color:var(--cor-texto-secundario);font-weight:400;display:block;}
+        .crit-peso{text-align:center;}
+        .crit-peso input{width:55px;padding:5px;background:#1f1a10;border:1px solid var(--cor-borda);border-radius:6px;color:var(--cor-texto);font-size:12px;text-align:center;}
+        .crit-peso input:focus{outline:none;border-color:#d29e00;}
+        .label-cell{font-size:11px;padding:4px 8px;border-radius:6px;text-align:center;}
+        .label-low{background:rgba(46,194,126,.1);color:#2ec27e;}
+        .label-medium{background:rgba(243,156,18,.1);color:#f39c12;}
+        .label-high{background:rgba(224,27,36,.1);color:#e01b24;}
+        .crit-hd-row{display:grid;grid-template-columns:32px 1fr 80px 80px 80px 80px 80px;gap:10px;padding:8px 18px;background:rgba(128,128,128,.04);border-top:1px solid var(--cor-borda);}
+        .crit-hd-row span{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--cor-texto-secundario);text-align:center;}
+        .crit-hd-row span:nth-child(2){text-align:left;}
+
+        /* Overrides */
+        .override-row{display:flex;align-items:flex-start;gap:14px;padding:14px 18px;border-top:1px solid var(--cor-borda);}
+        .override-info{flex:1;}
+        .override-name{font-size:13px;font-weight:700;margin-bottom:2px;}
+        .override-desc{font-size:11px;color:var(--cor-texto-secundario);}
+
+        /* Save bar */
+        .save-bar{position:sticky;bottom:0;background:var(--cor-card);border-top:1px solid var(--cor-borda);padding:14px 24px;display:flex;justify-content:space-between;align-items:center;z-index:100;}
+        .save-bar-left{font-size:13px;color:var(--cor-texto-secundario);display:flex;align-items:center;gap:8px;}
+        .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:.15s;white-space:nowrap;}
+        .btn-gold{background:linear-gradient(90deg,#b78700,#d29e00);color:#1a1200;}
+        .btn-gold:hover{opacity:.9;}
+        .btn-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-ghost:hover{border-color:#d29e00;color:#d29e00;}
+
+        /* Toast */
+        .toast{position:fixed;bottom:80px;right:24px;background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:10px;padding:12px 18px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:9999;transform:translateY(20px);opacity:0;transition:.3s;display:flex;align-items:center;gap:10px;}
+        .toast.show{transform:translateY(0);opacity:1;}
+        .toast.success{border-color:#2ec27e;color:#2ec27e;}
+        .toast.error{border-color:#e01b24;color:#e01b24;}
+
+        @keyframes spin{to{transform:rotate(360deg);}}
+        .fa-spin{animation:spin 1s linear infinite;}
+        @media(max-width:768px){.sidebar{display:none;}.bands-grid{grid-template-columns:1fr;}}
+        #btnTheme{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:0;border-radius:6px;cursor:pointer;font-size:14px;display:inline-flex;align-items:center;justify-content:center;height:30px;width:30px;transition:.15s;}
+        #btnTheme:hover{border-color:#d29e00;color:#d29e00;}
+        [data-theme="light"] input,[data-theme="light"] select,[data-theme="light"] textarea{background:var(--cor-card)!important;color:var(--cor-texto)!important;border-color:var(--cor-borda)!important;}
+        [data-theme="light"] input::placeholder{color:var(--cor-texto-secundario)!important;}
+        [data-theme="light"] .band-input input{background:var(--cor-fundo)!important;}
+        [data-theme="light"] .crit-peso input{background:var(--cor-fundo)!important;}
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <div class="logo">
+        <span class="logo-text"><strong>Link</strong><span> international</span></span>
+        <div class="badge-b2b">B2B Compliance</div>
+    </div>
+    <div class="hd-right">
+        <span class="badge-user"><i class="fas fa-user-shield" style="margin-right:4px"></i>{{ usuario }}</span>
+        <a href="/language/{{ 'pt' if current_lang == 'en' else 'en' }}" class="btn-hd btn-hd-ghost" title="Switch language"><i class="fas fa-globe"></i> {{ 'PT' if current_lang == 'en' else 'EN' }}</a>
+        <button id="btnTheme" onclick="toggleTheme()" title="Toggle theme"><i class="fas fa-sun"></i></button>
+        <a href="/compliance/b2b/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-gauge-high"></i> Dashboard</a>
+        <a href="/admin/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-grid-2"></i> Admin</a>
+    </div>
+</div>
+
+<div class="main-layout">
+    <nav class="sidebar">
+        <div class="nav-section-lbl">Overview</div>
+        <a class="nav-item" href="/compliance/b2b/dashboard"><i class="fas fa-gauge-high"></i> Dashboard</a>
+        <a class="nav-item" href="/compliance/b2b/clientes"><i class="fas fa-building"></i> Clients</a>
+        <a class="nav-item" href="/compliance/b2b/clientes/novo"><i class="fas fa-plus-circle"></i> New Onboarding</a>
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Compliance</div>
+        <a class="nav-item" href="/compliance/b2b/edd"><i class="fas fa-magnifying-glass-chart"></i> EDD Cases</a>
+        <a class="nav-item" href="/compliance/b2b/alertas"><i class="fas fa-bell"></i> Alerts</a>
+        <a class="nav-item" href="/compliance/b2b/screening"><i class="fas fa-shield-halved"></i> Screening</a>
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Operations</div>
+        <a class="nav-item" href="/compliance/b2b/beneficiarios"><i class="fas fa-users"></i> Beneficiaries</a>
+        <a class="nav-item" href="/compliance/b2b/limites"><i class="fas fa-sliders"></i> Limits</a>
+        <a class="nav-item active" href="/compliance/b2b/risk-config"><i class="fas fa-gear"></i> Risk Config</a>
+    </nav>
+
+    <div class="content-area">
+        <div class="page-header">
+            <h1><i class="fas fa-sliders"></i> Risk Criteria Configuration</h1>
+            <p>Adjust scoring weights and thresholds. All changes are logged in the audit trail.</p>
+        </div>
+
+        <div class="info-banner">
+            <i class="fas fa-circle-info"></i>
+            <div>
+                <strong>Scoring model:</strong> Each criterion is scored 1 (Low) · 2 (Medium) · 3 (High). The weight field multiplies the raw score.
+                Total score range: <strong>20–60</strong>. Thresholds define the boundary between risk bands.
+                <strong>Automatic High-Risk Overrides</strong> bypass the score and force High Risk regardless of total.
+            </div>
+        </div>
+
+        <!-- SCORE BANDS -->
+        <div class="bands-card">
+            <h3><i class="fas fa-chart-bar"></i> Score Thresholds</h3>
+            <div class="bands-grid">
+                <div class="band-box low">
+                    <div class="band-lbl">Low Risk</div>
+                    <div class="band-range">20 – <span id="displayLowMax">32</span></div>
+                    <div class="band-input">Max score: <input type="number" id="lowMax" value="32" min="20" max="59" oninput="updateBandDisplay()"></div>
+                </div>
+                <div class="band-box medium">
+                    <div class="band-lbl">Medium Risk</div>
+                    <div class="band-range"><span id="displayMedMin">33</span> – <span id="displayMedMax">46</span></div>
+                    <div class="band-input">Max score: <input type="number" id="medMax" value="46" min="21" max="59" oninput="updateBandDisplay()"></div>
+                </div>
+                <div class="band-box high">
+                    <div class="band-lbl">High Risk</div>
+                    <div class="band-range"><span id="displayHighMin">47</span> – 60</div>
+                    <div style="font-size:12px;color:var(--cor-texto-secundario);margin-top:4px">Anything above Medium max</div>
+                </div>
+            </div>
+            <p style="font-size:12px;color:var(--cor-texto-secundario)">Tip: Low max must be less than Medium max. Recommended defaults: Low ≤32, Medium ≤46.</p>
+        </div>
+
+        <!-- CRITERIA -->
+        <div id="criteriaContainer">
+            <div style="text-align:center;padding:40px;color:var(--cor-texto-secundario)"><i class="fas fa-spinner fa-spin" style="font-size:20px"></i><br><br>Loading criteria…</div>
+        </div>
+
+        <!-- OVERRIDES -->
+        <div class="block-card" id="overridesCard" style="margin-top:4px">
+            <div class="block-hd">
+                <h3><i class="fas fa-triangle-exclamation"></i> Automatic High-Risk Overrides</h3>
+                <span class="block-score">These flags force High Risk — score is ignored</span>
+            </div>
+            <div id="overridesList">
+                <div style="text-align:center;padding:24px;color:var(--cor-texto-secundario)"><i class="fas fa-spinner fa-spin"></i></div>
+            </div>
+        </div>
+
+        <div style="height:80px"></div><!-- spacer for sticky save bar -->
+    </div>
+</div>
+
+<!-- STICKY SAVE BAR -->
+<div class="save-bar">
+    <div class="save-bar-left">
+        <i class="fas fa-info-circle" style="color:#d29e00"></i>
+        All changes are recorded in the compliance audit trail.
+    </div>
+    <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="loadAll()"><i class="fas fa-rotate-left"></i> Reset</button>
+        <button class="btn btn-gold" onclick="saveAll()"><i class="fas fa-save"></i> Save All Changes</button>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+let criteriaData = [];
+let overridesData = [];
+
+const BLOCK_ICONS = {A:'fa-globe',B:'fa-building',C:'fa-money-bill-wave',D:'fa-shield-halved'};
+const BLOCK_NAMES = {A:'A — Country & Geography',B:'B — Business & Structure',C:'C — Transaction Profile',D:'D — Customer & AML History'};
+
+async function loadAll() {
+    try {
+        const [rc, ro, rt] = await Promise.all([
+            fetch('/api/compliance/b2b/risk-config/criterios').then(r => r.json()),
+            fetch('/api/compliance/b2b/risk-config/overrides').then(r => r.json()),
+            fetch('/api/compliance/b2b/risk-config/thresholds').then(r => r.json()),
+        ]);
+
+        if (rt.success && rt.thresholds) {
+            document.getElementById('lowMax').value = rt.thresholds.low_max;
+            document.getElementById('medMax').value = rt.thresholds.medium_max;
+            updateBandDisplay();
+        }
+
+        if (rc.success) {
+            criteriaData = rc.criterios;
+            renderCriteria(criteriaData);
+        }
+
+        if (ro.success) {
+            overridesData = ro.overrides;
+            renderOverrides(overridesData);
+        }
+    } catch(e) {
+        showToast('Error loading configuration: ' + e.message, 'error');
+    }
+}
+
+function updateBandDisplay() {
+    const low = parseInt(document.getElementById('lowMax').value) || 32;
+    const med = parseInt(document.getElementById('medMax').value) || 46;
+    document.getElementById('displayLowMax').textContent = low;
+    document.getElementById('displayMedMin').textContent = low + 1;
+    document.getElementById('displayMedMax').textContent = med;
+    document.getElementById('displayHighMin').textContent = med + 1;
+}
+
+function renderCriteria(criterios) {
+    const blocks = {};
+    criterios.forEach(c => {
+        if (!blocks[c.bloco]) blocks[c.bloco] = [];
+        blocks[c.bloco].push(c);
+    });
+
+    const sorted = Object.keys(blocks).sort();
+    document.getElementById('criteriaContainer').innerHTML = sorted.map(bloco => {
+        const rows = blocks[bloco].sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+        const blockMax = rows.reduce((s, r) => s + (r.ativo ? 3 * (r.peso || 1) : 0), 0);
+        return `
+        <div class="block-card">
+            <div class="block-hd">
+                <h3><i class="fas ${BLOCK_ICONS[bloco] || 'fa-circle'}"></i> ${BLOCK_NAMES[bloco] || 'Block ' + bloco}</h3>
+                <span class="block-score">${rows.filter(r=>r.ativo).length} active criteria · max ${blockMax} pts</span>
+            </div>
+            <div class="crit-hd-row">
+                <span>On</span>
+                <span>Criterion</span>
+                <span>Weight</span>
+                <span>1 = Low</span>
+                <span>2 = Medium</span>
+                <span>3 = High</span>
+                <span>Max pts</span>
+            </div>
+            ${rows.map(c => `
+            <div class="crit-row" id="crit-row-${c.id}">
+                <div class="crit-toggle">
+                    <label class="toggle">
+                        <input type="checkbox" data-id="${c.id}" data-field="ativo" ${c.ativo ? 'checked' : ''} onchange="onCritChange(this)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="crit-name">
+                    ${c.nome}
+                    <small>${c.codigo || ''}</small>
+                </div>
+                <div class="crit-peso">
+                    <input type="number" data-id="${c.id}" data-field="peso" value="${c.peso || 1}" min="1" max="5" oninput="onCritChange(this)" style="width:55px">
+                </div>
+                <div class="label-cell label-low">${c.label_low || 'Low'}</div>
+                <div class="label-cell label-medium">${c.label_medium || 'Medium'}</div>
+                <div class="label-cell label-high">${c.label_high || 'High'}</div>
+                <div style="text-align:center;font-size:13px;font-weight:700;color:${c.ativo?'#d29e00':'var(--cor-texto-secundario)'}">
+                    ${c.ativo ? 3 * (c.peso || 1) : 0}
+                </div>
+            </div>`).join('')}
+        </div>`;
+    }).join('');
+}
+
+function onCritChange(el) {
+    const id = el.dataset.id;
+    const field = el.dataset.field;
+    const val = el.type === 'checkbox' ? el.checked : parseFloat(el.value) || 1;
+    criteriaData = criteriaData.map(c => c.id == id ? {...c, [field]: val} : c);
+    // update max pts display
+    const row = criteriaData.find(c => c.id == id);
+    if (row) {
+        const rowEl = document.getElementById('crit-row-' + id);
+        if (rowEl) {
+            const maxCell = rowEl.querySelector('div:last-child');
+            if (maxCell) {
+                maxCell.textContent = row.ativo ? 3 * (row.peso || 1) : 0;
+                maxCell.style.color = row.ativo ? '#d29e00' : 'var(--cor-texto-secundario)';
+            }
+        }
+    }
+}
+
+function renderOverrides(overrides) {
+    const descMap = {
+        pep_activo: 'Client is an active PEP or has a PEP in a controlling position',
+        sanctions_confirmed: 'Confirmed sanctions match for the company or any controlling person',
+        fatf_blacklist: 'Company domiciled in or primarily operating from a FATF black-listed or high-risk jurisdiction',
+        shell_company: 'Client identified or suspected as a shell company with no genuine business activity',
+        sof_recusa: 'Client refused to provide adequate source of funds / source of wealth documentation',
+    };
+    document.getElementById('overridesList').innerHTML = overrides.map(o => `
+        <div class="override-row">
+            <label class="toggle" style="margin-top:4px">
+                <input type="checkbox" data-id="${o.id}" ${o.ativo ? 'checked' : ''} onchange="onOverrideChange(this)">
+                <span class="slider"></span>
+            </label>
+            <div class="override-info">
+                <div class="override-name">${o.nome} <span style="font-family:monospace;font-size:11px;color:var(--cor-texto-secundario);margin-left:6px">${o.codigo}</span></div>
+                <div class="override-desc">${descMap[o.codigo] || o.nome}</div>
+            </div>
+        </div>`).join('');
+}
+
+function onOverrideChange(el) {
+    const id = el.dataset.id;
+    overridesData = overridesData.map(o => o.id == id ? {...o, ativo: el.checked} : o);
+}
+
+async function saveAll() {
+    const low = parseInt(document.getElementById('lowMax').value);
+    const med = parseInt(document.getElementById('medMax').value);
+
+    if (low >= med) {
+        showToast('Low max must be less than Medium max', 'error');
+        return;
+    }
+    if (low < 20 || med > 59) {
+        showToast('Thresholds must be between 20 and 59', 'error');
+        return;
+    }
+
+    try {
+        const [r1, r2, r3] = await Promise.all([
+            fetch('/api/compliance/b2b/risk-config/thresholds', {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({low_max: low, medium_max: med})
+            }).then(r => r.json()),
+
+            fetch('/api/compliance/b2b/risk-config/criterios', {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({criterios: criteriaData.map(c => ({id:c.id, peso:c.peso, ativo:c.ativo}))})
+            }).then(r => r.json()),
+
+            fetch('/api/compliance/b2b/risk-config/overrides', {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({overrides: overridesData.map(o => ({id:o.id, ativo:o.ativo}))})
+            }).then(r => r.json()),
+        ]);
+
+        if (r1.success && r2.success && r3.success) {
+            showToast('Risk configuration saved successfully', 'success');
+        } else {
+            showToast('Some changes could not be saved. Check console.', 'error');
+            console.error(r1, r2, r3);
+        }
+    } catch(e) {
+        showToast('Error saving: ' + e.message, 'error');
+    }
+}
+
+function showToast(msg, type) {
+    const el = document.getElementById('toast');
+    el.className = 'toast ' + type;
+    el.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${msg}`;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+loadAll();
+</script>
+<script>
+function toggleTheme(){var next=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',next);localStorage.setItem('theme',next);var ic=document.querySelector('#btnTheme i');if(ic)ic.className=next==='light'?'fas fa-moon':'fas fa-sun';}
+document.addEventListener('DOMContentLoaded',function(){var t=document.documentElement.getAttribute('data-theme')||'light';var ic=document.querySelector('#btnTheme i');if(ic)ic.className=t==='light'?'fas fa-moon':'fas fa-sun';});
+</script>
+</body>
+</html>

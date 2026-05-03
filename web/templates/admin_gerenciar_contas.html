@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏦 Cambio Bank - Gerenciar Contas</title>
+    <title>Link International — Gerenciar Contas</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/theme.css">
     <style>
@@ -15,13 +15,13 @@
         }
 
         :root {
-            --cor-fundo: #0a0e15;
-            --cor-card: #0d1117;
-            --cor-borda: #1e232e;
+            --cor-fundo: #110f08;
+            --cor-card: #191611;
+            --cor-borda: #2d2819;
             --cor-texto: #e0e0e0;
             --cor-texto-secundario: #8b949e;
-            --cor-primaria: #1a5fb4;
-            --cor-admin: #1a5fb4;
+            --cor-primaria: #d29e00;
+            --cor-admin: #d29e00;
             --cor-sucesso: #2ec27e;
             --cor-alerta: #f39c12;
             --cor-perigo: #e01b24;
@@ -68,8 +68,9 @@
             font-size: 28px;
         }
 
+        .logo-text strong { font-weight: 800; }
         .logo-text {
-            background: linear-gradient(90deg, var(--cor-admin), #2d8fff);
+            background: linear-gradient(90deg, #b78700, #eeb600);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
@@ -88,7 +89,21 @@
         .page-title {
             font-size: 20px;
             font-weight: bold;
+            flex: 1;
+            text-align: center;
+            background: linear-gradient(90deg, #b78700, #eeb600);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
         }
+        .app-header .page-title {
+            background: linear-gradient(90deg, #b78700, #eeb600);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        :root[data-theme="light"] { --cor-primaria: #d29e00; --cor-admin: #d29e00; }
+        .btn-hd:hover { background: rgba(210, 158, 0, 0.25); }
 
         .btn-voltar {
             background: transparent;
@@ -126,6 +141,9 @@
             font-size: 13px;
             font-weight: 600;
             color: var(--cor-texto-secundario);
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
             cursor: pointer;
             transition: all 0.3s ease;
             border-radius: 8px 8px 0 0;
@@ -133,7 +151,7 @@
 
         .tab-btn:hover {
             color: var(--cor-texto);
-            background: rgba(26, 95, 180, 0.1);
+            background: rgba(210, 158, 0, 0.1);
         }
 
         .tab-btn.active {
@@ -199,7 +217,7 @@
         }
 
         .cliente-card:hover {
-            background: rgba(26, 95, 180, 0.05);
+            background: rgba(210, 158, 0, 0.05);
         }
 
         .cliente-info {
@@ -240,7 +258,7 @@
         }
 
         .btn-gerenciar:hover {
-            background: #2d8fff;
+            background: #eeb600;
             transform: translateY(-2px);
         }
 
@@ -294,7 +312,7 @@
         .form-control:focus {
             outline: none;
             border-color: var(--cor-admin);
-            box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2);
+            box-shadow: 0 0 0 2px rgba(210, 158, 0, 0.2);
         }
 
         select.form-control {
@@ -343,7 +361,7 @@
             background: var(--cor-admin);
             border-color: var(--cor-admin);
             color: white;
-            box-shadow: 0 2px 8px rgba(26, 95, 180, 0.3);
+            box-shadow: 0 2px 8px rgba(210, 158, 0, 0.3);
         }
 
         /* Botão DÉBITO - padrão (inativo) */
@@ -369,7 +387,7 @@
 
         /* INFO CONVERSÃO */
         .info-conversao {
-            background: rgba(26, 95, 180, 0.1);
+            background: rgba(210, 158, 0, 0.1);
             border: 1px solid var(--cor-admin);
             border-radius: var(--borda-radius-pequeno);
             padding: 15px;
@@ -393,7 +411,7 @@
         }
 
         .btn-submit:hover {
-            background: #2d8fff;
+            background: #eeb600;
             transform: translateY(-2px);
             box-shadow: var(--sombra-suave);
         }
@@ -434,14 +452,14 @@
         }
 
         .extrato-tabela th {
-            background: rgba(26, 95, 180, 0.1);
+            background: rgba(210, 158, 0, 0.1);
             color: var(--cor-admin);
             font-weight: 600;
             font-size: 13px;
         }
 
         .extrato-tabela tr:hover {
-            background: rgba(26, 95, 180, 0.05);
+            background: rgba(210, 158, 0, 0.05);
         }
 
         .credito {
@@ -603,7 +621,7 @@
             transition: all 0.3s ease;
         }
         .btn-detalhe:hover {
-            background: #2d8fff;
+            background: #eeb600;
             transform: translateY(-2px);
         }
         .modal-detalhes {
@@ -637,7 +655,7 @@
             background: var(--cor-card, #1e2636);
             z-index: 1;
         }
-        .modal-detalhes .modal-header h3 { color: var(--cor-admin, #1a5fb4); font-size: 16px; }
+        .modal-detalhes .modal-header h3 { color: var(--cor-admin, #d29e00); font-size: 16px; }
         .modal-detalhes .modal-close {
             background: none; border: none;
             color: var(--cor-texto-secundario, #aaa);
@@ -654,12 +672,12 @@
         .detalhe-grupo-gc {
             margin-bottom: 16px;
             padding: 14px;
-            background: rgba(26,95,180,0.06);
+            background: rgba(210,158,0,0.06);
             border-radius: 6px;
-            border-left: 3px solid var(--cor-admin, #1a5fb4);
+            border-left: 3px solid var(--cor-admin, #d29e00);
         }
         .detalhe-grupo-gc h4 {
-            color: var(--cor-admin, #1a5fb4);
+            color: var(--cor-admin, #d29e00);
             margin-bottom: 10px;
             font-size: 13px;
         }
@@ -680,7 +698,7 @@
             font-weight: 600;
         }
         .detalhe-valor-gc { flex: 1; color: var(--cor-texto, #eee); word-break: break-all; }
-        .detalhe-valor-gc strong { color: var(--cor-admin, #1a5fb4); }
+        .detalhe-valor-gc strong { color: var(--cor-admin, #d29e00); }
         .detalhe-valor-gc.mono { font-family: monospace; font-size: 12px; }
         .status-gc {
             display: inline-block;
@@ -700,30 +718,29 @@
         <!-- HEADER -->
         <header class="app-header">
             <div class="logo">
-                <i class="fas fa-university"></i>
-                <span class="logo-text">CAMBIO BANK</span>
+                <span class="logo-text"><strong>Link</strong> international</span>
                 <span class="badge-admin">ADMIN</span>
             </div>
             
             <h1 class="page-title">GERENCIAR CONTAS</h1>
             
-            <button id="btnTheme" onclick="toggleTheme()" class="btn-voltar" title="Alternar tema" style="padding:8px 12px;"><i class="fas fa-sun"></i></button>
-            <button class="btn-voltar" onclick="window.location.href='/admin/dashboard'">
-                <i class="fas fa-arrow-left"></i> Voltar
-            </button>
+            <div class="hd-right">
+                <button id="btnTheme" onclick="toggleTheme()" class="btn-hd btn-hd-ghost" title="Alternar tema"><i class="fas fa-sun"></i></button>
+                <button class="btn-hd btn-hd-ghost" onclick="window.location.href='/admin/dashboard'"><i class="fas fa-arrow-left"></i> Voltar</button>
+            </div>
         </header>
 
         <!-- TABS -->
         <div class="tabs-container">
             <div class="tabs-header">
-                <button class="tab-btn active" data-tab="tab-clientes">👥 Lista de Clientes</button>
-                <button class="tab-btn" data-tab="tab-ajuste">💰 Ajustar Saldos</button>
-                <button class="tab-btn" data-tab="tab-cambio">💱 Câmbio entre Moedas</button>
-                <button class="tab-btn" data-tab="tab-extrato">📊 Extratos</button>
-                <button class="tab-btn" data-tab="tab-despesas">📉 Despesas</button>
-                <button class="tab-btn" data-tab="tab-receitas">📈 Receitas</button>
-                <button class="tab-btn" data-tab="tab-transferencias">🔄 Transferências</button>
-                <button class="tab-btn" data-tab="tab-estornos">🔄 Estornos/Deleções</button>
+                <button class="tab-btn active" data-tab="tab-clientes"><i class="fas fa-users"></i> Lista de Clientes</button>
+                <button class="tab-btn" data-tab="tab-ajuste"><i class="fas fa-coins"></i> Ajustar Saldos</button>
+                <button class="tab-btn" data-tab="tab-cambio"><i class="fas fa-exchange-alt"></i> Câmbio entre Moedas</button>
+                <button class="tab-btn" data-tab="tab-extrato"><i class="fas fa-chart-bar"></i> Extratos</button>
+                <button class="tab-btn" data-tab="tab-despesas"><i class="fas fa-arrow-trend-down"></i> Despesas</button>
+                <button class="tab-btn" data-tab="tab-receitas"><i class="fas fa-arrow-trend-up"></i> Receitas</button>
+                <button class="tab-btn" data-tab="tab-transferencias"><i class="fas fa-globe"></i> Transferências</button>
+                <button class="tab-btn" data-tab="tab-estornos"><i class="fas fa-rotate-left"></i> Estornos/Deleções</button>
             </div>
 
             <!-- ============================================
@@ -1061,7 +1078,7 @@
                     
                     <!-- ÁREA DE DETALHES DA TRANSAÇÃO -->
                     <div id="detalhesTransacaoContainer" style="display: none; margin-top: 30px;">
-                        <div class="info-conversao" id="detalhesTransacaoContent" style="background: rgba(26, 95, 180, 0.1);">
+                        <div class="info-conversao" id="detalhesTransacaoContent" style="background: rgba(210, 158, 0, 0.1);">
                             <!-- Conteúdo dinâmico -->
                         </div>
                         
@@ -3041,7 +3058,7 @@
                     <strong style="color: #f39c12;">❌ Não é permitido estornar transferências internacionais já CONCLUÍDAS!</strong>
                 </div>
                 
-                <div style="background: rgba(26, 95, 180, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <div style="background: rgba(210, 158, 0, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
                     <p style="margin-bottom: 10px;"><strong>📋 Para estornar uma transferência internacional, ela deve estar com status:</strong></p>
                     <ul style="margin-left: 20px; color: var(--cor-texto-secundario);">
                         <li>🟡 <strong style="color: #f39c12;">PENDENTE</strong> (pending/solicitada)</li>

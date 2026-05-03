@@ -374,11 +374,9 @@
             
             <h1 class="page-title">CONFIGURAÇÕES</h1>
             
-            <div style="display: flex; gap: 10px;">
-                <button class="btn-theme" id="btnTheme" onclick="toggleTheme()">
-                    <i class="fas fa-sun"></i>
-                </button>
-                <button class="btn-voltar" onclick="window.location.href='/admin/dashboard'">
+            <div class="hd-right">
+                <button id="btnTheme" onclick="toggleTheme()" class="btn-hd btn-hd-ghost" title="Alternar tema"><i class="fas fa-sun"></i></button>
+                <button class="btn-hd btn-hd-ghost" onclick="window.location.href='/admin/dashboard'">
                     <i class="fas fa-arrow-left"></i> Voltar
                 </button>
             </div>

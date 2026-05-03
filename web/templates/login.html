@@ -1,156 +1,450 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏦 Cambio Bank - Login</title>
-    <link rel="stylesheet" href="/static/css/login.css">
+    <title>Link International — Sign In</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background-color: #f5ede0;
+            background-image:
+                radial-gradient(ellipse at 15% 15%, rgba(210,158,0,.10) 0%, transparent 55%),
+                radial-gradient(ellipse at 85% 85%, rgba(180,120,0,.08) 0%, transparent 55%),
+                linear-gradient(150deg, #f8f2e6 0%, #fdf9f2 45%, #ede3cf 100%);
+        }
+
+        /* Subtle dot grid */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: radial-gradient(circle, rgba(180,130,0,.055) 1px, transparent 1px);
+            background-size: 30px 30px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .page-wrap {
+            width: 100%;
+            max-width: 430px;
+            position: relative;
+            z-index: 1;
+            animation: fadeUp .65s cubic-bezier(.22,1,.36,1) both;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(28px) scale(.98); }
+            to   { opacity: 1; transform: translateY(0)    scale(1); }
+        }
+
+        /* ── Card ── */
+        .card {
+            background: #ffffff;
+            border-radius: 22px;
+            padding: 52px 46px 44px;
+            border: 1px solid rgba(210,185,130,.35);
+            box-shadow:
+                0 2px 0 rgba(255,220,100,.25) inset,
+                0 28px 72px rgba(160,110,0,.11),
+                0 4px 18px rgba(0,0,0,.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Gold top bar */
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #7a5c00 0%, #c8920a 30%, #f0c840 55%, #c8920a 75%, #7a5c00 100%);
+        }
+
+        /* Corner glow */
+        .card::after {
+            content: '';
+            position: absolute;
+            top: -80px; right: -80px;
+            width: 220px; height: 220px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(210,158,0,.07) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        /* ── Logo ── */
+        .logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .wordmark {
+            font-size: 36px;
+            font-weight: 300;
+            letter-spacing: -.5px;
+            line-height: 1;
+            background: linear-gradient(135deg, #7a5800, #c8920a 45%, #a07000);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .wordmark strong { font-weight: 800; }
+
+        .logo-rule {
+            width: 44px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #d4a017, transparent);
+            margin: 0 auto 10px;
+        }
+
+        .tagline {
+            font-size: 11px;
+            color: #9a8560;
+            letter-spacing: 2.2px;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        /* ── Form ── */
+        .field {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .field i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+            color: #c0a870;
+            transition: color .2s;
+            pointer-events: none;
+        }
+
+        .field:focus-within i { color: #c8920a; }
+
+        .field input {
+            width: 100%;
+            padding: 14px 15px 14px 44px;
+            background: #fdfaf4;
+            border: 1.5px solid #e2d5b8;
+            border-radius: 11px;
+            font-size: 15px;
+            color: #1a1200;
+            font-family: inherit;
+            transition: border-color .2s, box-shadow .2s, background .2s;
+        }
+
+        .field input::placeholder { color: #b8a880; }
+
+        .field input:focus {
+            outline: none;
+            border-color: #c8920a;
+            background: #fffdf8;
+            box-shadow: 0 0 0 3.5px rgba(200,146,10,.12);
+        }
+
+        /* Autofill override */
+        .field input:-webkit-autofill,
+        .field input:-webkit-autofill:focus {
+            -webkit-box-shadow: 0 0 0 1000px #fdfaf4 inset !important;
+            -webkit-text-fill-color: #1a1200 !important;
+            transition: background-color 5000s;
+        }
+
+        /* ── Sign In button ── */
+        .btn-signin {
+            width: 100%;
+            padding: 15px;
+            margin-top: 6px;
+            background: linear-gradient(135deg, #96700a 0%, #c8920a 45%, #d4a820 100%);
+            color: #1a0d00;
+            border: none;
+            border-radius: 11px;
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: .3px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+            transition: transform .22s, box-shadow .22s;
+            box-shadow: 0 4px 18px rgba(180,120,0,.28), 0 1px 0 rgba(255,225,100,.35) inset;
+        }
+
+        /* Shine overlay */
+        .btn-signin::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,.18) 0%, transparent 55%);
+            border-radius: inherit;
+        }
+
+        .btn-signin:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(180,120,0,.35), 0 1px 0 rgba(255,225,100,.35) inset;
+        }
+
+        .btn-signin:active:not(:disabled) { transform: translateY(0); }
+
+        .btn-signin:disabled {
+            opacity: .65;
+            cursor: not-allowed;
+        }
+
+        /* ── Form footer ── */
+        .form-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 18px;
+            padding-top: 18px;
+            border-top: 1px solid #ede4cc;
+            gap: 10px;
+        }
+
+        .forgot-link {
+            font-size: 13px;
+            color: #c8920a;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color .2s;
+        }
+        .forgot-link:hover { color: #96700a; text-decoration: underline; }
+
+        #statusMsg {
+            font-size: 12.5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            min-height: 20px;
+            color: #9a8560;
+        }
+        #statusMsg.error   { color: #b03020; }
+        #statusMsg.success { color: #2a8a5e; }
+        #statusMsg.loading { color: #c8920a; }
+
+        /* ── Trust badges ── */
+        .trust-row {
+            display: flex;
+            justify-content: center;
+            gap: 0;
+            margin-top: 32px;
+            padding-top: 28px;
+            border-top: 1px solid #ede4cc;
+        }
+
+        .trust-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+            padding: 0 8px;
+            border-right: 1px solid #ede4cc;
+        }
+
+        .trust-item:last-child { border-right: none; }
+
+        .trust-item i {
+            font-size: 20px;
+            color: #c8920a;
+            opacity: .85;
+        }
+
+        .trust-item span {
+            font-size: 10.5px;
+            color: #9a8560;
+            text-align: center;
+            font-weight: 500;
+            letter-spacing: .3px;
+            line-height: 1.3;
+        }
+
+        /* ── Page footer ── */
+        .page-footer {
+            text-align: center;
+            margin-top: 22px;
+            color: #9a8560;
+            font-size: 12px;
+            animation: fadeUp .65s .12s cubic-bezier(.22,1,.36,1) both;
+        }
+
+        #apiStatus {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        #apiStatus::before {
+            content: '';
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #c0b080;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        #apiStatus.online::before  { background: #2a8a5e; box-shadow: 0 0 5px rgba(42,138,94,.4); }
+        #apiStatus.offline::before { background: #b03020; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .fa-spin { animation: spin 1s linear infinite; }
+
+        @media (max-width: 480px) {
+            .card { padding: 40px 24px 36px; }
+            .wordmark { font-size: 30px; }
+            .trust-row { gap: 0; }
+        }
+    </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-card">
+    <div class="page-wrap">
+        <div class="card">
+
             <!-- Logo -->
             <div class="logo">
-                <i class="fas fa-university"></i>
-                <h1>Cambio Bank</h1>
-                <p class="tagline">Sistema de Câmbio Internacional</p>
+                <div class="wordmark"><strong>Link</strong> international</div>
+                <div class="logo-rule"></div>
+                <div class="tagline">International Money Transfers</div>
             </div>
 
-            <!-- Formulário de Login -->
-            <form id="loginForm" class="login-form">
-                <div class="input-group">
+            <!-- Form -->
+            <form id="loginForm">
+                <div class="field">
                     <i class="fas fa-user"></i>
-                    <input type="text" id="username" placeholder="Usuário" required>
+                    <input type="text" id="username" placeholder="Username" required autocomplete="username">
                 </div>
-                
-                <div class="input-group">
+                <div class="field">
                     <i class="fas fa-lock"></i>
-                    <input type="password" id="password" placeholder="Senha" required>
+                    <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
                 </div>
 
-                <button type="submit" class="btn-login" id="btnLogin">
-                    <i class="fas fa-sign-in-alt"></i>
-                    <span>Entrar</span>
+                <button type="submit" class="btn-signin" id="btnLogin">
+                    <i class="fas fa-arrow-right-to-bracket"></i>
+                    <span>Sign In</span>
                 </button>
 
                 <div class="form-footer">
-                    <a href="#" class="forgot-link">Esqueceu a senha?</a>
-                    <div class="status" id="statusMessage"></div>
+                    <a href="#" class="forgot-link">Forgot password?</a>
+                    <div id="statusMsg"></div>
                 </div>
             </form>
 
-            <!-- Informações do sistema -->
-            <div class="system-info">
-                <p><i class="fas fa-shield-alt"></i> Sistema 100% seguro</p>
-                <p><i class="fas fa-sync-alt"></i> Dados em tempo real</p>
-                <p><i class="fas fa-globe"></i> Transferências internacionais</p>
+            <!-- Trust badges -->
+            <div class="trust-row">
+                <div class="trust-item">
+                    <i class="fas fa-shield-halved"></i>
+                    <span>FCA<br>Regulated</span>
+                </div>
+                <div class="trust-item">
+                    <i class="fas fa-lock"></i>
+                    <span>256-bit<br>SSL</span>
+                </div>
+                <div class="trust-item">
+                    <i class="fas fa-globe"></i>
+                    <span>Multi-currency<br>Transfers</span>
+                </div>
+                <div class="trust-item">
+                    <i class="fas fa-clock-rotate-left"></i>
+                    <span>Real-time<br>Rates</span>
+                </div>
             </div>
-        </div>
 
-        <!-- Rodapé -->
-        <footer class="login-footer">
-            <p>© 2024 Cambio Bank • v2.1.0 • <span id="apiStatus">Conectando...</span></p>
+        </div><!-- /card -->
+
+        <footer class="page-footer">
+            © 2025 Link International &nbsp;·&nbsp; v2.1.0 &nbsp;·&nbsp; <span id="apiStatus">Connecting…</span>
         </footer>
     </div>
 
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const loginForm = document.getElementById('loginForm');
-        const statusMessage = document.getElementById('statusMessage');
-        const btnLogin = document.getElementById('btnLogin');
-        
-        // Verifica status da API
-        async function verificarAPI() {
+    (function () {
+        const form      = document.getElementById('loginForm');
+        const btnLogin  = document.getElementById('btnLogin');
+        const statusMsg = document.getElementById('statusMsg');
+        const apiStatus = document.getElementById('apiStatus');
+
+        async function checkAPI() {
             try {
-                const response = await fetch('/api/status');
-                const apiStatus = document.getElementById('apiStatus');
-                
-                if (response.ok) {
-                    apiStatus.textContent = '● Online';
-                    apiStatus.className = 'online';
-                } else {
-                    apiStatus.textContent = '● Offline';
-                    apiStatus.className = 'offline';
-                }
-            } catch (error) {
-                document.getElementById('apiStatus').textContent = '● Offline';
-                document.getElementById('apiStatus').className = 'offline';
+                const r = await fetch('/api/status');
+                apiStatus.textContent = r.ok ? 'Online' : 'Offline';
+                apiStatus.className   = r.ok ? 'online' : 'offline';
+            } catch {
+                apiStatus.textContent = 'Offline';
+                apiStatus.className   = 'offline';
             }
         }
-        
-        // Envia login
-        loginForm.addEventListener('submit', async function(e) {
+
+        function setStatus(msg, type) {
+            statusMsg.textContent = msg;
+            statusMsg.className   = type;
+        }
+
+        form.addEventListener('submit', async function (e) {
             e.preventDefault();
-            
-            const username = document.getElementById('username').value;
+
+            const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
-            
-            // Validação básica
+
             if (!username || !password) {
-                mostrarStatus('Preencha todos os campos', 'error');
+                setStatus('Please fill in all fields.', 'error');
                 return;
             }
-            
-            // Mostra loading
+
             btnLogin.disabled = true;
-            btnLogin.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Entrando...</span>';
-            mostrarStatus('Verificando credenciais...', 'loading');
-            
+            btnLogin.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Signing in…</span>';
+            setStatus('Verifying…', 'loading');
+
             try {
-                // Envia para API
-                const response = await fetch('/api/login', {
+                const r = await fetch('/api/login', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        usuario: username,
-                        senha: password
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ usuario: username, senha: password })
                 });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    mostrarStatus('Login realizado com sucesso!', 'success');
-                    
-                    // 🔥 REDIRECIONAMENTO CORRETO
+                const d = await r.json();
+
+                if (d.success) {
+                    setStatus('Login successful!', 'success');
                     setTimeout(() => {
-                        if (data.tipo === 'admin') {
-                            window.location.href = '/admin/dashboard';
-                        } else if (data.tipo === 'loja') {
-                            window.location.href = '/loja/dashboard';
-                        } else if (data.tipo === 'compliance') {
-                            window.location.href = '/compliance/dashboard';
-                        } else {
-                            window.location.href = `/dashboard?usuario=${encodeURIComponent(username)}`;
-                        }
-                    }, 1000);
-                    
+                        if      (d.tipo === 'admin')      window.location.href = '/admin/dashboard';
+                        else if (d.tipo === 'loja')       window.location.href = '/loja/dashboard';
+                        else if (d.tipo === 'compliance') window.location.href = '/compliance/dashboard';
+                        else                              window.location.href = `/dashboard?usuario=${encodeURIComponent(username)}`;
+                    }, 900);
                 } else {
-                    mostrarStatus(data.message || 'Usuário ou senha inválidos', 'error');
+                    setStatus(d.message || 'Invalid username or password.', 'error');
                     btnLogin.disabled = false;
-                    btnLogin.innerHTML = '<i class="fas fa-sign-in-alt"></i><span>Entrar</span>';
+                    btnLogin.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i><span>Sign In</span>';
                 }
-                
-            } catch (error) {
-                mostrarStatus('Erro de conexão com o servidor', 'error');
+            } catch {
+                setStatus('Connection error. Please try again.', 'error');
                 btnLogin.disabled = false;
-                btnLogin.innerHTML = '<i class="fas fa-sign-in-alt"></i><span>Entrar</span>';
+                btnLogin.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i><span>Sign In</span>';
             }
         });
-        
-        function mostrarStatus(mensagem, tipo) {
-            statusMessage.textContent = mensagem;
-            statusMessage.className = 'status ' + tipo;
-        }
-        
-        // Verifica API ao carregar
-        verificarAPI();
-        setInterval(verificarAPI, 30000); // Verifica a cada 30 segundos
-    });
-    </script>
 
+        checkAPI();
+        setInterval(checkAPI, 30000);
+    })();
+    </script>
 </body>
 </html>

@@ -401,11 +401,7 @@
         {% if session.get('tipo') == 'admin' %}
         <a href="/admin/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-cog"></i> Admin</a>
         {% endif %}
-        <!-- LANGUAGE SELECTOR -->
-        <div class="lang-switch" style="display: flex; gap: 4px;">
-            <a href="/language/pt" class="lang-btn" style="padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 12px; font-weight: 600; background: rgba(155,89,182,.12); color: #9b59b6;">PT</a>
-            <a href="/language/en" class="lang-btn" style="padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 12px; font-weight: 600; background: #9b59b6; color: white;">EN</a>
-        </div>
+        <a href="/language/{{ 'pt' if current_lang == 'en' else 'en' }}" class="btn-hd btn-hd-ghost"><i class="fas fa-globe"></i> {{ 'PT' if current_lang == 'en' else 'EN' }}</a>
         <button id="btnTheme" class="btn-hd btn-hd-ghost" onclick="toggleTheme()" title="Toggle theme"><i class="fas fa-moon"></i></button>
         <a href="/logout" class="btn-hd btn-hd-ghost"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>

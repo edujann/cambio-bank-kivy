@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <script>(function(){ document.documentElement.setAttribute('data-theme', localStorage.getItem('theme')||'light'); })();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link International — B2B Client</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        :root[data-theme="light"]{--cor-fundo:#f5ede0;--cor-card:#ffffff;--cor-borda:rgba(210,185,130,.4);--cor-texto:#1a1200;--cor-texto-secundario:#9a8560;--cor-primaria:#c8920a;--cor-admin:#c8920a;--cor-sucesso:#1a7a52;--cor-alerta:#b87200;--cor-perigo:#c02020;--sombra-suave:0 2px 8px rgba(160,110,0,.10),0 1px 3px rgba(0,0,0,.04);--sombra-media:0 6px 22px rgba(160,110,0,.13),0 2px 8px rgba(0,0,0,.05);--borda-radius:14px;--borda-radius-pequeno:10px;}
+        :root[data-theme="dark"]{--cor-fundo:#110f08;--cor-card:#191611;--cor-borda:#2d2819;--cor-texto:#e0e0e0;--cor-texto-secundario:#8b949e;--cor-primaria:#d29e00;--cor-admin:#d29e00;--cor-sucesso:#2ec27e;--cor-alerta:#f39c12;--cor-perigo:#e01b24;--sombra-suave:0 4px 6px rgba(0,0,0,.30);--sombra-media:0 8px 16px rgba(0,0,0,.40);--borda-radius:14px;--borda-radius-pequeno:10px;}
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+        body{background-color:#f5ede0;background-image:radial-gradient(ellipse at 15% 15%,rgba(210,158,0,.10) 0%,transparent 55%),radial-gradient(ellipse at 85% 85%,rgba(180,120,0,.08) 0%,transparent 55%),linear-gradient(150deg,#f8f2e6 0%,#fdf9f2 45%,#ede3cf 100%);background-attachment:fixed;color:var(--cor-texto);min-height:100vh;overflow-x:hidden;}
+        body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(180,130,0,.055) 1px,transparent 1px);background-size:30px 30px;pointer-events:none;z-index:0;}
+        html[data-theme="dark"] body{background-color:#110f08;background-image:linear-gradient(135deg,#110f08 0%,#1f1a10 100%);}
+        html[data-theme="dark"] body::before{display:none;}
+        .top-bar{position:sticky;top:0;z-index:200;height:54px;background:var(--cor-card);border-bottom:1px solid var(--cor-borda);display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:10px;}
+        .logo{display:flex;align-items:center;gap:10px;font-size:17px;}
+        .logo-text{background:linear-gradient(90deg,#b78700,#eeb600);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800;}
+        .logo-text span{font-weight:400;}
+        .badge-b2b{background:rgba(210,158,0,.15);border:1px solid rgba(210,158,0,.4);color:#d29e00;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;letter-spacing:.5px;text-transform:uppercase;}
+        .hd-right{display:flex;align-items:center;gap:8px;}
+        .btn-hd{background:rgba(210,158,0,.12);border:1px solid #d29e00;color:#d29e00;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:.15s;}
+        .btn-hd:hover{background:rgba(210,158,0,.25);}
+        .btn-hd-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-hd-ghost:hover{border-color:#d29e00;color:#d29e00;}
+        .badge-user{background:rgba(210,158,0,.1);color:#d29e00;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;}
+
+        /* Layout */
+        .main-layout{display:flex;min-height:calc(100vh - 54px);position:relative;z-index:1;}
+        .sidebar{width:215px;min-width:215px;background:var(--cor-card);border-right:1px solid var(--cor-borda);padding:12px 0 24px;position:sticky;top:54px;height:calc(100vh - 54px);overflow-y:auto;}
+        .sidebar::-webkit-scrollbar{width:4px;}
+        .sidebar::-webkit-scrollbar-thumb{background:rgba(210,158,0,.3);border-radius:2px;}
+        .nav-section-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--cor-texto-secundario);padding:14px 18px 5px;opacity:.7;}
+        .nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;font-weight:600;color:var(--cor-texto-secundario);cursor:pointer;border-left:3px solid transparent;transition:.15s;text-decoration:none;}
+        .nav-item i{width:16px;text-align:center;font-size:13px;}
+        .nav-item:hover{color:#d29e00;background:rgba(210,158,0,.06);}
+        .nav-item.active{color:#d29e00;background:rgba(210,158,0,.1);border-left-color:#d29e00;}
+        .nav-divider{height:1px;background:var(--cor-borda);margin:8px 14px;}
+        .content-area{flex:1;min-width:0;padding:24px;overflow-x:hidden;}
+
+        /* Client header */
+        .client-header{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;padding:20px 24px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;}
+        .client-header-left{display:flex;align-items:flex-start;gap:16px;}
+        .client-avatar{width:56px;height:56px;border-radius:14px;background:rgba(210,158,0,.12);border:1px solid rgba(210,158,0,.3);display:flex;align-items:center;justify-content:center;font-size:24px;color:#d29e00;flex-shrink:0;}
+        .client-name{font-size:20px;font-weight:700;margin-bottom:4px;}
+        .client-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--cor-texto-secundario);}
+        .client-meta span{display:flex;align-items:center;gap:5px;}
+        .client-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+        /* Tags */
+        .tag{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+        .tag-ativo{background:rgba(46,194,126,.12);color:#2ec27e;}
+        .tag-em_onboarding{background:rgba(243,156,18,.12);color:#f39c12;}
+        .tag-aguardando_revisao{background:rgba(210,158,0,.15);color:#d29e00;}
+        .tag-rejeitado{background:rgba(224,27,36,.12);color:#e01b24;}
+        .tag-suspenso{background:rgba(224,27,36,.12);color:#e01b24;}
+        .tag-encerrado{background:rgba(128,128,128,.12);color:#888;}
+        .tag-low{background:rgba(46,194,126,.12);color:#2ec27e;}
+        .tag-medium{background:rgba(243,156,18,.12);color:#f39c12;}
+        .tag-high{background:rgba(224,27,36,.12);color:#e01b24;}
+        .tag-aprovado{background:rgba(46,194,126,.12);color:#2ec27e;}
+        .tag-pendente{background:rgba(243,156,18,.12);color:#f39c12;}
+        .tag-em_revisao{background:rgba(53,132,228,.12);color:#3584e4;}
+        .tag-recusado{background:rgba(224,27,36,.12);color:#e01b24;}
+        .tag-expirado{background:rgba(224,27,36,.12);color:#e01b24;}
+        .tag-aberto{background:rgba(224,27,36,.12);color:#e01b24;}
+        .tag-em_analise{background:rgba(243,156,18,.12);color:#f39c12;}
+        .tag-fechado{background:rgba(128,128,128,.12);color:#888;}
+        .tag-confirmado{background:rgba(224,27,36,.12);color:#e01b24;}
+        .tag-nao_confirmado,.tag-nao,.tag-none{background:rgba(46,194,126,.12);color:#2ec27e;}
+        .tag-possivel{background:rgba(243,156,18,.12);color:#f39c12;}
+
+        /* Tab bar */
+        .tab-bar{display:flex;gap:4px;border-bottom:2px solid var(--cor-borda);margin-bottom:20px;overflow-x:auto;padding-bottom:0;}
+        .tab-btn{padding:8px 16px;font-size:13px;font-weight:600;color:var(--cor-texto-secundario);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:.15s;display:flex;align-items:center;gap:7px;}
+        .tab-btn:hover{color:#d29e00;}
+        .tab-btn.active{color:#d29e00;border-bottom-color:#d29e00;}
+        .tab-panel{display:none;}
+        .tab-panel.active{display:block;}
+
+        /* Cards & grid */
+        .info-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;padding:20px;margin-bottom:16px;}
+        .info-card h3{font-size:13px;font-weight:700;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+        .info-card h3 i{color:#d29e00;}
+        .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;}
+        .info-field{display:flex;flex-direction:column;gap:3px;}
+        .info-label{font-size:11px;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.4px;}
+        .info-value{font-size:13px;font-weight:600;word-break:break-word;}
+        .info-value a{color:#d29e00;text-decoration:none;}
+        .info-value a:hover{text-decoration:underline;}
+
+        /* Limit cards */
+        .limits-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:16px;}
+        .limit-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;padding:18px;text-align:center;}
+        .limit-card .lbl{font-size:11px;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
+        .limit-card .val{font-size:22px;font-weight:700;color:#d29e00;}
+        .limit-card .sub{font-size:11px;color:var(--cor-texto-secundario);margin-top:4px;}
+
+        /* Risk score meter */
+        .risk-meter{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;padding:20px;margin-bottom:16px;}
+        .risk-meter h3{font-size:13px;font-weight:700;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+        .risk-meter h3 i{color:#d29e00;}
+        .score-display{display:flex;align-items:center;gap:24px;margin-bottom:20px;}
+        .score-circle{width:80px;height:80px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:4px solid;}
+        .score-num{font-size:26px;font-weight:800;line-height:1;}
+        .score-max{font-size:11px;color:var(--cor-texto-secundario);}
+        .score-info{flex:1;}
+        .score-level{font-size:18px;font-weight:700;margin-bottom:4px;}
+        .score-bar-wrap{background:rgba(255,255,255,.06);border-radius:4px;height:8px;margin-top:8px;}
+        .score-bar-fill{height:100%;border-radius:4px;transition:.6s;}
+        .criteria-list{display:flex;flex-direction:column;gap:8px;}
+        .crit-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--cor-borda);border-radius:8px;font-size:12px;}
+        .crit-name{flex:1;color:var(--cor-texto-secundario);}
+        .crit-val{font-weight:700;padding:2px 8px;border-radius:12px;font-size:11px;}
+        .crit-val-1{background:rgba(46,194,126,.12);color:#2ec27e;}
+        .crit-val-2{background:rgba(243,156,18,.12);color:#f39c12;}
+        .crit-val-3{background:rgba(224,27,36,.12);color:#e01b24;}
+        .override-flag{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:8px;font-size:12px;font-weight:600;background:rgba(224,27,36,.12);color:#e01b24;margin-bottom:6px;}
+
+        /* Table */
+        .tbl-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;overflow:hidden;margin-bottom:16px;}
+        .card-hd{padding:14px 18px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+        .card-hd h3{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;}
+        .card-hd h3 i{color:#d29e00;}
+        .tbl-wrap{overflow-x:auto;}
+        table{width:100%;border-collapse:collapse;font-size:13px;}
+        th{background:rgba(128,128,128,.05);color:var(--cor-texto-secundario);padding:8px 14px;text-align:left;font-weight:600;font-size:11px;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px;}
+        td{padding:10px 14px;border-top:1px solid var(--cor-borda);vertical-align:middle;}
+        tr:hover td{background:rgba(210,158,0,.02);}
+        .empty{padding:32px;text-align:center;color:var(--cor-texto-secundario);}
+        .empty i{font-size:28px;margin-bottom:8px;display:block;opacity:.3;}
+
+        /* Buttons */
+        .btn{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;text-decoration:none;transition:.15s;white-space:nowrap;}
+        .btn-gold{background:linear-gradient(90deg,#b78700,#d29e00);color:#1a1200;}
+        .btn-gold:hover{opacity:.9;transform:translateY(-1px);}
+        .btn-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-ghost:hover{border-color:#d29e00;color:#d29e00;}
+        .btn-success{background:rgba(46,194,126,.15);border:1px solid #2ec27e;color:#2ec27e;}
+        .btn-success:hover{background:rgba(46,194,126,.25);}
+        .btn-danger{background:rgba(224,27,36,.15);border:1px solid #e01b24;color:#e01b24;}
+        .btn-danger:hover{background:rgba(224,27,36,.25);}
+        .btn-sm{padding:4px 10px;font-size:11px;}
+
+        /* Approval panel */
+        .approval-banner{background:rgba(210,158,0,.08);border:1px solid rgba(210,158,0,.3);border-radius:12px;padding:18px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+        .approval-banner-left{display:flex;align-items:center;gap:12px;}
+        .approval-banner-left i{color:#d29e00;font-size:20px;}
+        .approval-banner h4{font-size:14px;font-weight:700;margin-bottom:2px;}
+        .approval-banner p{font-size:12px;color:var(--cor-texto-secundario);}
+        .approval-banner-right{display:flex;gap:8px;}
+
+        /* Timeline */
+        .timeline{display:flex;flex-direction:column;gap:0;}
+        .tl-item{display:flex;gap:14px;padding:12px 0;position:relative;}
+        .tl-item:not(:last-child)::after{content:'';position:absolute;left:15px;top:36px;bottom:0;width:2px;background:var(--cor-borda);}
+        .tl-dot{width:32px;height:32px;border-radius:50%;border:2px solid var(--cor-borda);background:var(--cor-card);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;z-index:1;}
+        .tl-dot-gold{border-color:#d29e00;color:#d29e00;}
+        .tl-dot-verde{border-color:#2ec27e;color:#2ec27e;}
+        .tl-dot-red{border-color:#e01b24;color:#e01b24;}
+        .tl-content{flex:1;padding-top:6px;}
+        .tl-title{font-size:13px;font-weight:600;margin-bottom:2px;}
+        .tl-meta{font-size:11px;color:var(--cor-texto-secundario);}
+
+        /* Modal */
+        .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center;padding:20px;}
+        .modal-overlay.open{display:flex;}
+        .modal{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:16px;padding:28px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;}
+        .modal h3{font-size:16px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+        .modal h3 i{color:#d29e00;}
+        .form-group{margin-bottom:14px;}
+        .form-group label{display:block;font-size:12px;color:var(--cor-texto-secundario);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;}
+        .form-group input,.form-group select,.form-group textarea{width:100%;padding:10px 12px;background:#1f1a10;border:1px solid var(--cor-borda);border-radius:8px;color:var(--cor-texto);font-size:13px;}
+        .form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:#d29e00;}
+        .form-group textarea{resize:vertical;min-height:80px;}
+        .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;}
+
+        @keyframes spin{to{transform:rotate(360deg);}}
+        .fa-spin{animation:spin 1s linear infinite;}
+        @media(max-width:768px){.sidebar{display:none;}.two-col{grid-template-columns:1fr;}}
+        #btnTheme{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:0;border-radius:6px;cursor:pointer;font-size:14px;display:inline-flex;align-items:center;justify-content:center;height:30px;width:30px;transition:.15s;}
+        #btnTheme:hover{border-color:#d29e00;color:#d29e00;}
+        [data-theme="light"] input,[data-theme="light"] select,[data-theme="light"] textarea{background:var(--cor-card)!important;color:var(--cor-texto)!important;border-color:var(--cor-borda)!important;}
+        [data-theme="light"] input::placeholder{color:var(--cor-texto-secundario)!important;}
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <div class="logo">
+        <span class="logo-text"><strong>Link</strong><span> international</span></span>
+        <div class="badge-b2b">B2B Compliance</div>
+    </div>
+    <div class="hd-right">
+        <span class="badge-user"><i class="fas fa-user-shield" style="margin-right:4px"></i>{{ usuario }}</span>
+        <a href="/language/{{ 'pt' if current_lang == 'en' else 'en' }}" class="btn-hd btn-hd-ghost" title="Switch language"><i class="fas fa-globe"></i> {{ 'PT' if current_lang == 'en' else 'EN' }}</a>
+        <button id="btnTheme" onclick="toggleTheme()" title="Toggle theme"><i class="fas fa-sun"></i></button>
+        <a href="/compliance/b2b/clientes" class="btn-hd btn-hd-ghost"><i class="fas fa-arrow-left"></i> Clients</a>
+        <a href="/compliance/b2b/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-gauge-high"></i> Dashboard</a>
+    </div>
+</div>
+
+<div class="main-layout">
+    <nav class="sidebar">
+        <div class="nav-section-lbl">Overview</div>
+        <a class="nav-item" href="/compliance/b2b/dashboard"><i class="fas fa-gauge-high"></i> Dashboard</a>
+        <a class="nav-item active" href="/compliance/b2b/clientes"><i class="fas fa-building"></i> Clients</a>
+        <a class="nav-item" href="/compliance/b2b/clientes/novo"><i class="fas fa-plus-circle"></i> New Onboarding</a>
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Compliance</div>
+        <a class="nav-item" href="/compliance/b2b/edd"><i class="fas fa-magnifying-glass-chart"></i> EDD Cases</a>
+        <a class="nav-item" href="/compliance/b2b/alertas"><i class="fas fa-bell"></i> Alerts</a>
+        <a class="nav-item" href="/compliance/b2b/screening"><i class="fas fa-shield-halved"></i> Screening</a>
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Operations</div>
+        <a class="nav-item" href="/compliance/b2b/beneficiarios"><i class="fas fa-users"></i> Beneficiaries</a>
+        <a class="nav-item" href="/compliance/b2b/limites"><i class="fas fa-sliders"></i> Limits</a>
+        <a class="nav-item" href="/compliance/b2b/risk-config"><i class="fas fa-gear"></i> Risk Config</a>
+    </nav>
+
+    <div class="content-area">
+
+        <!-- CLIENT HEADER (populated by JS) -->
+        <div class="client-header" id="clientHeader">
+            <div class="client-header-left">
+                <div class="client-avatar" id="clientAvatar"><i class="fas fa-spinner fa-spin"></i></div>
+                <div>
+                    <div class="client-name" id="clientName">Loading…</div>
+                    <div class="client-meta" id="clientMeta"></div>
+                </div>
+            </div>
+            <div class="client-actions" id="clientActions"></div>
+        </div>
+
+        <!-- APPROVAL BANNER (shown when awaiting_revisao) -->
+        <div class="approval-banner" id="approvalBanner" style="display:none">
+            <div class="approval-banner-left">
+                <i class="fas fa-clock"></i>
+                <div>
+                    <h4>Awaiting MLRO Approval</h4>
+                    <p>This client has completed onboarding and is pending compliance review and final approval.</p>
+                </div>
+            </div>
+            <div class="approval-banner-right">
+                <button class="btn btn-danger btn-sm" onclick="openModal('reject')"><i class="fas fa-times-circle"></i> Reject</button>
+                <button class="btn btn-success btn-sm" onclick="openModal('approve')"><i class="fas fa-check-circle"></i> Approve</button>
+            </div>
+        </div>
+
+        <!-- TABS -->
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="showTab('overview')"><i class="fas fa-circle-info"></i> Overview</button>
+            <button class="tab-btn" onclick="showTab('kyb')"><i class="fas fa-id-card"></i> KYB Data</button>
+            <button class="tab-btn" onclick="showTab('pessoas')"><i class="fas fa-users"></i> Directors / UBOs</button>
+            <button class="tab-btn" onclick="showTab('docs')"><i class="fas fa-folder-open"></i> Documents</button>
+            <button class="tab-btn" onclick="showTab('risco')"><i class="fas fa-chart-bar"></i> Risk Score</button>
+            <button class="tab-btn" onclick="showTab('limites')"><i class="fas fa-scale-balanced"></i> Limits</button>
+            <button class="tab-btn" onclick="showTab('beneficiarios')"><i class="fas fa-money-bill-transfer"></i> Beneficiaries</button>
+            <button class="tab-btn" onclick="showTab('edd')"><i class="fas fa-magnifying-glass-chart"></i> EDD</button>
+            <button class="tab-btn" onclick="showTab('historico')"><i class="fas fa-clock-rotate-left"></i> History</button>
+        </div>
+
+        <!-- OVERVIEW -->
+        <div class="tab-panel active" id="panel-overview">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div class="info-card">
+                    <h3><i class="fas fa-building"></i> Company Information</h3>
+                    <div class="info-grid" id="ovCompany"></div>
+                </div>
+                <div class="info-card">
+                    <h3><i class="fas fa-location-dot"></i> Address</h3>
+                    <div class="info-grid" id="ovAddress"></div>
+                </div>
+            </div>
+            <div class="info-card">
+                <h3><i class="fas fa-link"></i> External References</h3>
+                <div class="info-grid" id="ovRefs"></div>
+            </div>
+            <div class="info-card">
+                <h3><i class="fas fa-notes-medical"></i> Compliance Notes</h3>
+                <div id="ovNotes" style="font-size:13px;color:var(--cor-texto-secundario);line-height:1.6"></div>
+                <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="openModal('notes')"><i class="fas fa-edit"></i> Edit notes</button>
+            </div>
+        </div>
+
+        <!-- KYB DATA -->
+        <div class="tab-panel" id="panel-kyb">
+            <div class="info-card">
+                <h3><i class="fas fa-briefcase"></i> Business Details</h3>
+                <div class="info-grid" id="kybBusiness"></div>
+            </div>
+            <div class="info-card">
+                <h3><i class="fas fa-money-bill-trend-up"></i> Payment Profile</h3>
+                <div class="info-grid" id="kybPayment"></div>
+            </div>
+        </div>
+
+        <!-- DIRECTORS / UBOs -->
+        <div class="tab-panel" id="panel-pessoas">
+            <div class="tbl-card">
+                <div class="card-hd">
+                    <h3><i class="fas fa-users"></i> Controlling Persons</h3>
+                    <button class="btn btn-ghost btn-sm" onclick="openModal('pessoa')"><i class="fas fa-plus"></i> Add person</button>
+                </div>
+                <div class="tbl-wrap">
+                    <table>
+                        <thead><tr>
+                            <th>Name</th><th>Role</th><th>DOB</th><th>Nationality</th><th>PEP</th><th>Sanctions</th><th>Verified</th><th></th>
+                        </tr></thead>
+                        <tbody id="pessoasBody"><tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- DOCUMENTS -->
+        <div class="tab-panel" id="panel-docs">
+            <div class="tbl-card">
+                <div class="card-hd">
+                    <h3><i class="fas fa-folder-open"></i> Document Checklist</h3>
+                </div>
+                <div class="tbl-wrap">
+                    <table>
+                        <thead><tr>
+                            <th>Document</th><th>Required</th><th>Status</th><th>File</th><th>Uploaded</th><th>Expires</th><th></th>
+                        </tr></thead>
+                        <tbody id="docsBody"><tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- RISK SCORE -->
+        <div class="tab-panel" id="panel-risco">
+            <div class="risk-meter">
+                <h3><i class="fas fa-chart-bar"></i> Risk Assessment</h3>
+                <div class="score-display">
+                    <div class="score-circle" id="scoreCircle">
+                        <div class="score-num" id="scoreNum">—</div>
+                        <div class="score-max">/60</div>
+                    </div>
+                    <div class="score-info">
+                        <div class="score-level" id="scoreLevel">—</div>
+                        <div style="font-size:12px;color:var(--cor-texto-secundario)" id="scoreMeta"></div>
+                        <div class="score-bar-wrap"><div class="score-bar-fill" id="scoreBarFill" style="width:0%;background:#d29e00"></div></div>
+                    </div>
+                </div>
+                <div id="overrideFlags" style="margin-bottom:12px"></div>
+                <div class="criteria-list" id="criteriaList"></div>
+                <div style="margin-top:14px;display:flex;gap:8px;">
+                    <button class="btn btn-ghost btn-sm" onclick="recalcScore()"><i class="fas fa-calculator"></i> Recalculate score</button>
+                    <button class="btn btn-ghost btn-sm" onclick="openModal('risco_obs')"><i class="fas fa-edit"></i> Add MLRO note</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- LIMITS -->
+        <div class="tab-panel" id="panel-limites">
+            <div class="limits-grid" id="limitsGrid">
+                <div class="limit-card"><div class="lbl">Per Transaction</div><div class="val" id="limTx">—</div><div class="sub">max single payment</div></div>
+                <div class="limit-card"><div class="lbl">Daily Limit</div><div class="val" id="limDaily">—</div><div class="sub">GBP equivalent</div></div>
+                <div class="limit-card"><div class="lbl">Monthly Limit</div><div class="val" id="limMonthly">—</div><div class="sub">GBP equivalent</div></div>
+                <div class="limit-card"><div class="lbl">Annual Turnover</div><div class="val" id="limTurnover">—</div><div class="sub">declared by client</div></div>
+            </div>
+            <div class="info-card">
+                <h3><i class="fas fa-edit"></i> Set / Update Limits</h3>
+                <p style="font-size:12px;color:var(--cor-texto-secundario);margin-bottom:16px">Only compliance officers may set final limits. Suggested values are derived from declared turnover.</p>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+                    <div class="form-group">
+                        <label>Per Transaction (£)</label>
+                        <input type="number" id="inLimTx" placeholder="e.g. 50000">
+                    </div>
+                    <div class="form-group">
+                        <label>Daily Limit (£)</label>
+                        <input type="number" id="inLimDaily" placeholder="e.g. 150000">
+                    </div>
+                    <div class="form-group">
+                        <label>Monthly Limit (£)</label>
+                        <input type="number" id="inLimMonthly" placeholder="e.g. 500000">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Reason / Justification</label>
+                    <textarea id="inLimReason" placeholder="Describe the justification for these limits…"></textarea>
+                </div>
+                <button class="btn btn-gold" onclick="saveLimits()"><i class="fas fa-save"></i> Save limits</button>
+            </div>
+            <div class="tbl-card">
+                <div class="card-hd"><h3><i class="fas fa-clock-rotate-left"></i> Limit History</h3></div>
+                <div class="tbl-wrap">
+                    <table>
+                        <thead><tr><th>Date</th><th>Changed By</th><th>Per Tx</th><th>Daily</th><th>Monthly</th><th>Reason</th></tr></thead>
+                        <tbody id="limHistBody"><tr><td colspan="6" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- BENEFICIARIES -->
+        <div class="tab-panel" id="panel-beneficiarios">
+            <div class="tbl-card">
+                <div class="card-hd">
+                    <h3><i class="fas fa-money-bill-transfer"></i> Beneficiaries</h3>
+                </div>
+                <div class="tbl-wrap">
+                    <table>
+                        <thead><tr>
+                            <th>Name / Account</th><th>Country</th><th>Currency</th><th>Country Risk</th><th>Sanctions</th><th>Tx Limit</th><th>Status</th><th>Notes</th>
+                        </tr></thead>
+                        <tbody id="benefBody"><tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- EDD -->
+        <div class="tab-panel" id="panel-edd">
+            <div class="card-hd" style="background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px 12px 0 0;padding:14px 18px;display:flex;justify-content:space-between;align-items:center">
+                <h3 style="font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px"><i class="fas fa-magnifying-glass-chart" style="color:#d29e00"></i> EDD Cases</h3>
+                <button class="btn btn-ghost btn-sm" onclick="openModal('edd')"><i class="fas fa-plus"></i> Open EDD case</button>
+            </div>
+            <div class="tbl-wrap" style="background:var(--cor-card);border:1px solid var(--cor-borda);border-top:none;border-radius:0 0 12px 12px">
+                <table>
+                    <thead><tr><th>Trigger</th><th>Opened</th><th>Assigned</th><th>Status</th><th>Closed</th><th></th></tr></thead>
+                    <tbody id="eddBody"><tr><td colspan="6" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- HISTORY -->
+        <div class="tab-panel" id="panel-historico">
+            <div class="info-card">
+                <h3><i class="fas fa-clock-rotate-left"></i> Activity Timeline</h3>
+                <div class="timeline" id="timeline">
+                    <div style="text-align:center;padding:24px;color:var(--cor-texto-secundario)"><i class="fas fa-spinner fa-spin"></i></div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /content-area -->
+</div><!-- /main-layout -->
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal" id="modalBox">
+        <!-- populated by JS -->
+    </div>
+</div>
+
+<script>
+const CLIENT_ID = '{{ client_id }}';
+const USUARIO = '{{ usuario }}';
+let clientData = null;
+
+const fmt = n => n == null ? '—' : Number(n).toLocaleString('en-GB');
+const fmtGBP = n => n == null ? '—' : '£' + Number(n).toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:0});
+const fmtDate = s => s ? new Date(s).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+const fmtDT = s => s ? new Date(s).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+const tagHtml = (v, map) => `<span class="tag tag-${v}">${map[v] || v}</span>`;
+const val = (v, fallback='—') => v || fallback;
+
+const statusMap = {ativo:'Active',em_onboarding:'Onboarding',aguardando_revisao:'Awaiting Review',rejeitado:'Rejected',suspenso:'Suspended',encerrado:'Closed'};
+const riskMap = {low:'Low',medium:'Medium',high:'High'};
+const docStatusMap = {pendente:'Pending',em_revisao:'Under Review',aprovado:'Approved',recusado:'Refused',expirado:'Expired'};
+
+function showTab(name) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    event.currentTarget.classList.add('active');
+    // lazy-load tabs
+    if (name === 'pessoas') loadPessoas();
+    if (name === 'docs') loadDocs();
+    if (name === 'limites') loadLimits();
+    if (name === 'beneficiarios') loadBenef();
+    if (name === 'edd') loadEdd();
+    if (name === 'historico') loadTimeline();
+}
+
+// ── Load main client data ──
+async function loadClient() {
+    try {
+        const r = await fetch(`/api/compliance/b2b/clientes/${CLIENT_ID}`);
+        const d = await r.json();
+        if (!d.success) { alert(d.message || 'Error loading client'); return; }
+        clientData = d.cliente;
+        renderHeader(clientData);
+        renderOverview(clientData);
+        renderKyb(clientData);
+        renderRisco(clientData);
+    } catch(e) {
+        document.getElementById('clientName').textContent = 'Error loading client';
+    }
+}
+
+function renderHeader(c) {
+    document.getElementById('clientName').textContent = c.razao_social;
+    document.getElementById('clientMeta').innerHTML = `
+        <span>${tagHtml(c.nivel_risco || 'medium', riskMap)}</span>
+        <span>${tagHtml(c.status || 'em_onboarding', statusMap)}</span>
+        <span><i class="fas fa-building"></i> ${val(c.tipo_entidade)}</span>
+        <span><i class="fas fa-flag"></i> ${val(c.pais_registro)}</span>
+        <span><i class="fas fa-hashtag"></i> ${val(c.numero_registro)}</span>
+    `;
+    document.getElementById('clientAvatar').innerHTML = `<i class="fas fa-building"></i>`;
+
+    const actions = [];
+    if (c.status === 'aguardando_revisao') {
+        document.getElementById('approvalBanner').style.display = 'flex';
+    }
+    if (c.status === 'ativo') {
+        actions.push(`<button class="btn btn-danger btn-sm" onclick="openModal('suspend')"><i class="fas fa-ban"></i> Suspend</button>`);
+    }
+    if (c.status === 'suspenso') {
+        actions.push(`<button class="btn btn-success btn-sm" onclick="setStatus('ativo')"><i class="fas fa-check"></i> Reactivate</button>`);
+    }
+    actions.push(`<button class="btn btn-ghost btn-sm" onclick="openModal('edd')"><i class="fas fa-magnifying-glass-chart"></i> Open EDD</button>`);
+    document.getElementById('clientActions').innerHTML = actions.join('');
+}
+
+function renderOverview(c) {
+    document.getElementById('ovCompany').innerHTML = fields([
+        ['Company Name', c.razao_social],
+        ['Trading Name', c.nome_comercial],
+        ['Entity Type', c.tipo_entidade],
+        ['Registration Number', c.numero_registro],
+        ['Registration Country', c.pais_registro],
+        ['Incorporated Date', fmtDate(c.data_constituicao)],
+        ['Industry / SIC', c.setor_atividade],
+        ['Website', c.website ? `<a href="${c.website}" target="_blank">${c.website}</a>` : '—'],
+        ['Phone', c.telefone],
+        ['Email', c.email],
+    ]);
+    document.getElementById('ovAddress').innerHTML = fields([
+        ['Address Line 1', c.endereco_linha1],
+        ['Address Line 2', c.endereco_linha2],
+        ['City', c.cidade],
+        ['Postcode', c.cep],
+        ['Country', c.pais],
+        ['Registered Address', c.endereco_registrado || 'Same as above'],
+    ]);
+    document.getElementById('ovRefs').innerHTML = fields([
+        ['CreditSafe Ref', c.creditsafe_ref],
+        ['ShuftiPro Ref', c.shuttipro_ref],
+        ['CheckMarble Ref', c.checkmarble_ref],
+        ['FCA Register No.', c.fca_registro_numero],
+        ['VAT Number', c.numero_vat],
+        ['Account Manager', c.account_manager_username],
+        ['Onboarding Officer', c.onboarding_por],
+        ['MLRO Approved By', c.aprovado_por],
+        ['MLRO Approval Date', fmtDate(c.aprovado_em)],
+        ['Next Review Due', fmtDate(c.proxima_revisao_em)],
+    ]);
+    const notes = c.notas_compliance || '<span style="opacity:.5">No compliance notes recorded.</span>';
+    document.getElementById('ovNotes').innerHTML = notes;
+}
+
+function renderKyb(c) {
+    const pepEmpMap = {nao:'No',none:'No',sim:'Yes',possivel:'Possible',confirmado:'Confirmed'};
+    const sancEmpMap = {nao:'No',none:'No',possivel:'Possible',confirmado:'Confirmed'};
+    document.getElementById('kybBusiness').innerHTML = fields([
+        ['Industry / SIC', c.setor_atividade],
+        ['Annual Turnover', fmtGBP(c.faturamento_anual)],
+        ['FCA Registration No.', c.fca_registro_numero],
+        ['VAT Number', c.numero_vat],
+        ['Business Description', c.descricao_negocio],
+        ['Company PEP Status', pepEmpMap[c.pep_empresa] || c.pep_empresa],
+        ['Company Sanctions', sancEmpMap[c.sancoes_empresa] || c.sancoes_empresa],
+        ['PEP / Sanctions Notes', c.pep_notas],
+    ]);
+    document.getElementById('kybPayment').innerHTML = fields([
+        ['Payment Purpose', c.finalidade_pagamento],
+        ['Expected Monthly Volume', fmtGBP(c.volume_mensal_esperado)],
+        ['Monthly Frequency', c.frequencia_mensal_esperada],
+        ['Average Transaction', fmtGBP(c.ticket_medio_esperado)],
+        ['Destination Countries', c.paises_destino],
+        ['Currencies Used', c.moedas_utilizadas],
+        ['Source of Funds', c.fonte_recursos],
+        ['Source of Funds Detail', c.fonte_recursos_detalhes],
+        ['Originating Bank', c.banco_origem],
+        ['Countries of Origin', c.paises_origem],
+    ]);
+}
+
+function renderRisco(c) {
+    const score = c.score_risco;
+    const nivel = c.nivel_risco || 'medium';
+    const colors = {low:'#2ec27e', medium:'#f39c12', high:'#e01b24'};
+    const color = colors[nivel] || '#f39c12';
+    document.getElementById('scoreNum').textContent = score ?? '—';
+    document.getElementById('scoreLevel').textContent = riskMap[nivel];
+    document.getElementById('scoreLevel').style.color = color;
+    document.getElementById('scoreCircle').style.borderColor = color;
+    document.getElementById('scoreMeta').textContent = score ? `Score ${score}/60 — assessed ${fmtDate(c.score_calculado_em)}` : 'Not yet scored';
+    const pct = score ? Math.min(100, ((score - 20) / 40) * 100) : 0;
+    document.getElementById('scoreBarFill').style.width = pct + '%';
+    document.getElementById('scoreBarFill').style.background = color;
+
+    // overrides
+    const overrides = c.overrides_activos || [];
+    if (overrides.length) {
+        document.getElementById('overrideFlags').innerHTML = overrides.map(o =>
+            `<div class="override-flag"><i class="fas fa-triangle-exclamation"></i> ${o}</div>`).join('');
+    }
+
+    // criteria breakdown
+    const criterios = c.criterios_score || [];
+    if (criterios.length) {
+        document.getElementById('criteriaList').innerHTML = criterios.map(cr => `
+            <div class="crit-row">
+                <span class="crit-name">${cr.bloco}: ${cr.nome}</span>
+                <span class="crit-val crit-val-${cr.valor}">${cr.valor === 1 ? 'Low' : cr.valor === 2 ? 'Medium' : 'High'} (${cr.valor})</span>
+            </div>`).join('');
+    } else {
+        document.getElementById('criteriaList').innerHTML = '<div style="text-align:center;color:var(--cor-texto-secundario);padding:16px;font-size:12px"><i class="fas fa-calculator" style="margin-right:6px"></i>Score not yet calculated. Click "Recalculate" to score this client.</div>';
+    }
+}
+
+function fields(pairs) {
+    return pairs.map(([label, value]) => `
+        <div class="info-field">
+            <div class="info-label">${label}</div>
+            <div class="info-value">${value || '<span style="opacity:.4">—</span>'}</div>
+        </div>`).join('');
+}
+
+// ── Pessoas ──
+async function loadPessoas() {
+    const tbody = document.getElementById('pessoasBody');
+    if (tbody.dataset.loaded) return;
+    tbody.innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    try {
+        const r = await fetch(`/api/compliance/b2b/clientes/${CLIENT_ID}/pessoas`);
+        const d = await r.json();
+        if (!d.success || !d.pessoas.length) {
+            tbody.innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-users"></i>No controlling persons recorded.</td></tr>';
+            return;
+        }
+        const pepMap = {nao:'No',none:'No',sim:'Yes',possivel:'Possible',confirmado:'Confirmed'};
+        const sancMap = {nao_confirmado:'Not confirmed',nao:'Not confirmed',none:'Not confirmed',possivel:'Possible',confirmado:'Confirmed'};
+        tbody.innerHTML = d.pessoas.map(p => `<tr>
+            <td><strong>${p.nome_completo}</strong><br><small style="color:var(--cor-texto-secundario)">${p.email || ''}</small></td>
+            <td style="font-size:12px">${p.cargo || '—'}</td>
+            <td style="font-size:12px">${fmtDate(p.data_nascimento)}</td>
+            <td style="font-size:12px">${p.nacionalidade || '—'}</td>
+            <td>${tagHtml(p.pep_status || 'nao', {...pepMap, none:'No'})}</td>
+            <td>${tagHtml(p.sancoes_status || 'nao_confirmado', {...sancMap, nao:'Not confirmed', none:'Not confirmed'})}</td>
+            <td style="font-size:12px">${p.identidade_verificada ? '<span style="color:#2ec27e"><i class="fas fa-check-circle"></i> Yes</span>' : '<span style="color:#f39c12"><i class="fas fa-clock"></i> Pending</span>'}</td>
+            <td><button class="btn btn-ghost btn-sm" onclick="openModalPessoa(${JSON.stringify(p).replace(/"/g,'&quot;')})"><i class="fas fa-edit"></i></button></td>
+        </tr>`).join('');
+        tbody.dataset.loaded = '1';
+    } catch(e) {
+        tbody.innerHTML = `<tr><td colspan="8" class="empty"><i class="fas fa-exclamation-triangle"></i>${e.message}</td></tr>`;
+    }
+}
+
+// ── Documents ──
+const _docTypes = {};
+async function loadDocs() {
+    const tbody = document.getElementById('docsBody');
+    if (tbody.dataset.loaded) return;
+    tbody.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    try {
+        const r = await fetch(`/api/compliance/b2b/clientes/${CLIENT_ID}/documentos`);
+        const d = await r.json();
+        if (!d.success || !d.documentos.length) {
+            tbody.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-folder-open"></i>No documents found.</td></tr>';
+            return;
+        }
+        d.documentos.forEach(doc => { _docTypes[doc.id] = doc.tipo_documento; });
+        tbody.innerHTML = d.documentos.map(doc => {
+            const overdue = doc.expira_em && new Date(doc.expira_em) < new Date();
+            const hasFile = !!doc.storage_path;
+            const fileCell = hasFile
+                ? `<span style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;display:inline-block" title="${doc.arquivo_nome||''}">${doc.arquivo_nome||'file'}</span>`
+                : '<span style="color:var(--text-muted);font-size:11px">—</span>';
+            return `<tr>
+                <td><strong>${doc.tipo_documento}</strong></td>
+                <td style="text-align:center">${doc.obrigatorio ? '<i class="fas fa-asterisk" style="color:#e01b24;font-size:10px"></i>' : ''}</td>
+                <td>${tagHtml(doc.status || 'pendente', docStatusMap)}</td>
+                <td>${fileCell}</td>
+                <td style="font-size:12px">${fmtDate(doc.recebido_em)}</td>
+                <td style="font-size:12px;color:${overdue?'#e01b24':'inherit'}">${fmtDate(doc.expira_em)}</td>
+                <td style="white-space:nowrap">
+                    <input type="file" id="file-${doc.id}" style="display:none" onchange="uploadDoc('${doc.id}',this)">
+                    <button class="btn btn-ghost btn-sm" title="Upload" onclick="prepareUpload('${doc.id}')"><i class="fas fa-upload"></i></button>
+                    ${hasFile ? `<button class="btn btn-ghost btn-sm" title="View ${doc.arquivo_nome||''}" onclick="viewDoc('${doc.id}')"><i class="fas fa-eye"></i></button>` : ''}
+                    <button class="btn btn-ghost btn-sm" title="Approve" onclick="updateDoc('${doc.id}','aprovado')"><i class="fas fa-check"></i></button>
+                    <button class="btn btn-ghost btn-sm" title="Reject" onclick="updateDoc('${doc.id}','recusado')"><i class="fas fa-times"></i></button>
+                </td>
+            </tr>`;
+        }).join('');
+        tbody.dataset.loaded = '1';
+    } catch(e) {
+        tbody.innerHTML = `<tr><td colspan="7" class="empty">${e.message}</td></tr>`;
+    }
+}
+
+// doc types that require manual date before upload
+const _DOC_DATE_TYPE = {
+    'Proof of Registered Address':              'doc',
+    'Bank Statement (last 3 months)':           'doc',
+    'Business Bank Reference Letter':           'doc',
+    'Director ID (Passport or Driving Licence)':'expiry',
+    'UBO ID Documents':                         'expiry',
+};
+const _pendingDate = {};
+
+function prepareUpload(docId) {
+    const docType = _docTypes[docId] || '';
+    const req = _DOC_DATE_TYPE[docType];
+    if (!req) { document.getElementById('file-' + docId).click(); return; }
+    const label = req === 'expiry'
+        ? 'Enter the expiry date as shown on the ID document:'
+        : 'Enter the date printed on the document:';
+    const box = document.getElementById('modalBox');
+    box.innerHTML = `
+        <h3><i class="fas fa-calendar-alt"></i> Document Date Required</h3>
+        <p style="font-size:13px;margin:8px 0 16px">${label}</p>
+        <div class="form-group">
+            <label>Date</label>
+            <input type="date" id="_docDateInput" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border)">
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+            <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-gold" onclick="_confirmDateUpload('${docId}')"><i class="fas fa-arrow-right"></i> Continue</button>
+        </div>`;
+    document.getElementById('modalOverlay').classList.add('open');
+}
+
+function _confirmDateUpload(docId) {
+    const val = document.getElementById('_docDateInput').value;
+    if (!val) { alert('Please select a date.'); return; }
+    _pendingDate[docId] = val;
+    closeModal();
+    document.getElementById('file-' + docId).click();
+}
+
+async function uploadDoc(docId, input) {
+    if (!input.files.length) return;
+    const file = input.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+    if (_pendingDate[docId]) {
+        formData.append('data_documento', _pendingDate[docId]);
+        delete _pendingDate[docId];
+    }
+    try {
+        const r = await fetch(`/api/compliance/b2b/documentos/${docId}/upload`, {method: 'POST', body: formData});
+        const d = await r.json();
+        if (d.success) {
+            document.getElementById('docsBody').dataset.loaded = '';
+            loadDocs();
+        } else alert(d.message);
+    } catch(e) { alert(e.message); }
+    input.value = '';
+}
+
+async function viewDoc(docId) {
+    try {
+        const r = await fetch(`/api/compliance/b2b/documentos/${docId}/download`);
+        const d = await r.json();
+        if (d.success && d.url) window.open(d.url, '_blank');
+        else alert(d.message || 'Could not get file URL');
+    } catch(e) { alert(e.message); }
+}
+
+// ── Limits ──
+async function loadLimits() {
+    try {
+        if (!clientData) return;
+        const c = clientData;
+        document.getElementById('limTx').textContent = fmtGBP(c.limite_por_transacao);
+        document.getElementById('limDaily').textContent = fmtGBP(c.limite_diario);
+        document.getElementById('limMonthly').textContent = fmtGBP(c.limite_mensal);
+        document.getElementById('limTurnover').textContent = fmtGBP(c.faturamento_anual);
+        document.getElementById('inLimTx').value = c.limite_por_transacao || '';
+        document.getElementById('inLimDaily').value = c.limite_diario || '';
+        document.getElementById('inLimMonthly').value = c.limite_mensal || '';
+
+        const r = await fetch(`/api/compliance/b2b/clientes/${CLIENT_ID}/limites-historico`);
+        const d = await r.json();
+        const tbody = document.getElementById('limHistBody');
+        if (!d.success || !d.historico.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-clock-rotate-left"></i>No limit changes recorded.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = d.historico.map(h => `<tr>
+            <td style="font-size:12px">${fmtDT(h.criado_em)}</td>
+            <td style="font-size:12px">${h.alterado_por}</td>
+            <td>${fmtGBP(h.limite_por_transacao)}</td>
+            <td>${fmtGBP(h.limite_diario)}</td>
+            <td>${fmtGBP(h.limite_mensal)}</td>
+            <td style="font-size:12px;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${h.motivo || '—'}</td>
+        </tr>`).join('');
+    } catch(e) { console.error(e); }
+}
+
+async function saveLimits() {
+    const body = {
+        limite_por_transacao: parseFloat(document.getElementById('inLimTx').value) || null,
+        limite_diario: parseFloat(document.getElementById('inLimDaily').value) || null,
+        limite_mensal: parseFloat(document.getElementById('inLimMonthly').value) || null,
+        motivo: document.getElementById('inLimReason').value.trim()
+    };
+    if (!body.motivo) { alert('Please provide a justification for the limit change.'); return; }
+    try {
+        const r = await fetch(`/api/compliance/b2b/clientes/${CLIENT_ID}/limites`, {
+            method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
+        });
+        const d = await r.json();
+        if (d.success) {
+            alert('Limits saved successfully.');
+            document.getElementById('limHistBody').dataset.loaded = '';
+            await loadClient();
+            loadLimits();
+        } else alert(d.message || 'Error saving limits');
+    } catch(e) { alert(e.message); }
+}
+
+// ── Beneficiaries ──
+async function loadBenef() {
+    const tbody = document.getElementById('benefBody');
+    if (tbody.dataset.loaded) return;
+    tbody.innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    try {
+        const r = await fetch(`/api/compliance/b2b/clientes/${CLIENT_ID}/beneficiarios`);
+        const d = await r.json();
+        if (!d.success || !d.beneficiarios.length) {
+            tbody.innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-money-bill-transfer"></i>No beneficiaries registered.</td></tr>';
+            return;
+        }
+        const bstMap = {aprovado:'Approved',pendente:'Pending',recusado:'Refused'};
+        const prMap = {low:'Low',medium:'Medium',high:'High'};
+        tbody.innerHTML = d.beneficiarios.map(b => `<tr>
+            <td><strong>${b.nome_beneficiario || b.nome}</strong><br><small style="color:var(--cor-texto-secundario);font-family:monospace;font-size:11px">${b.numero_conta || ''} ${b.swift_bic || ''}</small></td>
+            <td style="font-size:12px">${b.pais_destino || b.pais || '—'}</td>
+            <td style="font-size:12px">${b.moeda || '—'}</td>
+            <td>${tagHtml(b.risco_pais || 'medium', prMap)}</td>
+            <td style="text-align:center">${b.sanctions_flag ? '<i class="fas fa-triangle-exclamation" style="color:#e01b24" title="Sanctions flag"></i>' : '<i class="fas fa-check" style="color:#2ec27e"></i>'}</td>
+            <td>${fmtGBP(b.limite_por_transacao)}</td>
+            <td>${tagHtml(b.status || 'pendente', bstMap)}</td>
+            <td style="font-size:11px;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.notas_compliance || '—'}</td>
+        </tr>`).join('');
+        tbody.dataset.loaded = '1';
+    } catch(e) {
+        tbody.innerHTML = `<tr><td colspan="8" class="empty">${e.message}</td></tr>`;
+    }
+}
+
+// ── EDD ──
+async function loadEdd() {
+    const tbody = document.getElementById('eddBody');
+    if (tbody.dataset.loaded) return;
+    tbody.innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    try {
+        const r = await fetch(`/api/compliance/b2b/edd?cliente_id=${CLIENT_ID}`);
+        const d = await r.json();
+        const eddMap = {aberto:'Open',em_analise:'In Analysis',fechado:'Closed'};
+        if (!d.success || !d.cases.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-magnifying-glass-chart"></i>No EDD cases.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = d.cases.map(c => `<tr>
+            <td style="font-size:12px">${c.gatilho || '—'}</td>
+            <td style="font-size:12px">${fmtDate(c.criado_em)}</td>
+            <td style="font-size:12px">${c.atribuido_a || 'Unassigned'}</td>
+            <td>${tagHtml(c.status || 'aberto', eddMap)}</td>
+            <td style="font-size:12px">${fmtDate(c.fechado_em)}</td>
+            <td><a href="/compliance/b2b/edd/${c.id}" class="btn btn-ghost btn-sm"><i class="fas fa-eye"></i></a></td>
+        </tr>`).join('');
+        tbody.dataset.loaded = '1';
+    } catch(e) {
+        tbody.innerHTML = `<tr><td colspan="6" class="empty">${e.message}</td></tr>`;
+    }
+}
+
+// ── Timeline ──
+async function loadTimeline() {
+    const el = document.getElementById('timeline');
+    try {
+        const r = await fetch(`/api/compliance/b2b/clientes/${CLIENT_ID}/historico`);
+        const d = await r.json();
+        if (!d.success || !d.eventos.length) {
+            el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--cor-texto-secundario)">No history recorded.</div>';
+            return;
+        }
+        const iconMap = {criado:'fa-plus',aprovado:'fa-check',rejeitado:'fa-times',limite_alterado:'fa-scale-balanced',edd_aberto:'fa-magnifying-glass-chart',documento:'fa-file',nota:'fa-note-sticky'};
+        const colorMap = {criado:'tl-dot-gold',aprovado:'tl-dot-verde',rejeitado:'tl-dot-red',limite_alterado:'tl-dot-gold'};
+        el.innerHTML = d.eventos.map(ev => `
+            <div class="tl-item">
+                <div class="tl-dot ${colorMap[ev.tipo] || 'tl-dot-gold'}"><i class="fas ${iconMap[ev.tipo] || 'fa-circle'}" style="font-size:11px"></i></div>
+                <div class="tl-content">
+                    <div class="tl-title">${ev.descricao}</div>
+                    <div class="tl-meta">${ev.usuario || '—'} · ${fmtDT(ev.criado_em)}</div>
+                </div>
+            </div>`).join('');
+    } catch(e) {
+        el.innerHTML = `<div style="text-align:center;padding:24px;color:var(--cor-texto-secundario)">${e.message}</div>`;
+    }
+}
+
+// ── Recalc score ──
+async function recalcScore() {
+    try {
+        const r = await fetch(`/api/compliance/b2b/clientes/${CLIENT_ID}/recalc-score`, {method:'POST'});
+        const d = await r.json();
+        if (d.success) {
+            await loadClient();
+        } else alert(d.message || 'Error recalculating score');
+    } catch(e) { alert(e.message); }
+}
+
+// ── Update doc ──
+async function updateDoc(docId, status) {
+    try {
+        const r = await fetch(`/api/compliance/b2b/documentos/${docId}`, {
+            method: 'PATCH', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({status})
+        });
+        const d = await r.json();
+        if (d.success) {
+            document.getElementById('docsBody').dataset.loaded = '';
+            loadDocs();
+        } else alert(d.message);
+    } catch(e) { alert(e.message); }
+}
+
+// ── Approve / Reject ──
+function openModal(type) {
+    const box = document.getElementById('modalBox');
+    const overlay = document.getElementById('modalOverlay');
+
+    const templates = {
+        approve: `<h3><i class="fas fa-check-circle"></i> Approve Client</h3>
+            <p style="font-size:13px;color:var(--cor-texto-secundario);margin-bottom:16px">Approving this client will activate their account and allow transactions up to the defined limits.</p>
+            <div class="form-group"><label>MLRO Notes</label><textarea id="mlApproveNotes" placeholder="Add approval notes (optional)…"></textarea></div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-success" onclick="doApprove()"><i class="fas fa-check-circle"></i> Confirm Approval</button>
+            </div>`,
+        reject: `<h3><i class="fas fa-times-circle"></i> Reject Client</h3>
+            <p style="font-size:13px;color:var(--cor-texto-secundario);margin-bottom:16px">Rejecting this client will prevent them from transacting. This action is logged in the audit trail.</p>
+            <div class="form-group"><label>Reason for rejection *</label><textarea id="mlRejectReason" placeholder="Provide a clear reason for rejection…" required></textarea></div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-danger" onclick="doReject()"><i class="fas fa-times-circle"></i> Confirm Rejection</button>
+            </div>`,
+        suspend: `<h3><i class="fas fa-ban"></i> Suspend Client</h3>
+            <p style="font-size:13px;color:var(--cor-texto-secundario);margin-bottom:16px">This will block all new transactions for this client immediately.</p>
+            <div class="form-group"><label>Reason *</label><textarea id="mlSuspendReason" placeholder="Reason for suspension…" required></textarea></div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-danger" onclick="doSetStatus('suspenso','mlSuspendReason')"><i class="fas fa-ban"></i> Suspend</button>
+            </div>`,
+        notes: `<h3><i class="fas fa-note-sticky"></i> Compliance Notes</h3>
+            <div class="form-group"><label>Notes</label><textarea id="mlNotes" style="min-height:120px">${clientData?.notas_compliance || ''}</textarea></div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-gold" onclick="saveNotes()"><i class="fas fa-save"></i> Save</button>
+            </div>`,
+        edd: `<h3><i class="fas fa-magnifying-glass-chart"></i> Open EDD Case</h3>
+            <div class="form-group"><label>Trigger / Reason</label><textarea id="eddGatilho" placeholder="Describe the trigger for this EDD review…"></textarea></div>
+            <div class="form-group"><label>Assign to</label><input type="text" id="eddAssign" value="${USUARIO}" placeholder="Username"></div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-gold" onclick="doOpenEdd()"><i class="fas fa-plus"></i> Open Case</button>
+            </div>`,
+        risco_obs: `<h3><i class="fas fa-edit"></i> MLRO Risk Note</h3>
+            <div class="form-group"><label>Note</label><textarea id="riscoObs" placeholder="MLRO assessment note…"></textarea></div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-gold" onclick="saveRiscoObs()"><i class="fas fa-save"></i> Save</button>
+            </div>`,
+        pessoa: `<h3><i class="fas fa-user-plus"></i> Add Controlling Person</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="form-group"><label>Full Name *</label><input type="text" id="pNome" placeholder="Full legal name"></div>
+                <div class="form-group"><label>Role / Title *</label><select id="pCargo"><option value="">Select role…</option><option>Director</option><option>UBO (≥25%)</option><option>Authorized Signatory</option><option>Company Secretary</option><option>Beneficial Owner</option><option>Shareholder (≥25%)</option><option>Partner</option></select></div>
+                <div class="form-group"><label>Date of Birth</label><input type="date" id="pDob"></div>
+                <div class="form-group"><label>Nationality</label><input type="text" id="pNac" placeholder="e.g. British"></div>
+                <div class="form-group"><label>ID / Passport No.</label><input type="text" id="pId" placeholder="Document number"></div>
+                <div class="form-group"><label>Ownership %</label><input type="number" id="pOwn" placeholder="e.g. 30" min="0" max="100"></div>
+            </div>
+            <div class="form-group"><label>Email</label><input type="email" id="pEmail"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="form-group"><label>PEP Status</label><select id="pPep"><option value="nao">No</option><option value="possivel">Possible</option><option value="sim">Yes</option><option value="confirmado">Confirmed</option></select></div>
+                <div class="form-group"><label>Sanctions Status</label><select id="pSanc"><option value="nao_confirmado">Not confirmed</option><option value="possivel">Possible</option><option value="confirmado">Confirmed</option></select></div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-gold" onclick="savePessoa(null)"><i class="fas fa-save"></i> Add</button>
+            </div>`
+    };
+    box.innerHTML = templates[type] || '<p>Unknown action</p>';
+    overlay.classList.add('open');
+}
+
+function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+}
+
+function openModalPessoa(p) {
+    const roles = ['Director','UBO (≥25%)','Authorized Signatory','Company Secretary','Beneficial Owner','Shareholder (≥25%)','Partner'];
+    const cargoOpts = roles.map(r => `<option value="${r}"${p.cargo===r?' selected':''}>${r}</option>`).join('');
+    const pepSel = (v) => ({nao:'nao',none:'nao',sim:'sim',possivel:'possivel',confirmado:'confirmado'}[v]||'nao');
+    const sancSel = (v) => ({nao:'nao_confirmado',none:'nao_confirmado',nao_confirmado:'nao_confirmado',possivel:'possivel',confirmado:'confirmado'}[v]||'nao_confirmado');
+    const box = document.getElementById('modalBox');
+    box.innerHTML = `<h3><i class="fas fa-user-edit"></i> Edit Controlling Person</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="form-group"><label>Full Name *</label><input type="text" id="pNome" value="${p.nome_completo||''}"></div>
+            <div class="form-group"><label>Role / Title *</label><select id="pCargo"><option value="">Select role…</option>${cargoOpts}</select></div>
+            <div class="form-group"><label>Date of Birth</label><input type="date" id="pDob" value="${p.data_nascimento||''}"></div>
+            <div class="form-group"><label>Nationality</label><input type="text" id="pNac" value="${p.nacionalidade||''}"></div>
+            <div class="form-group"><label>ID / Passport No.</label><input type="text" id="pId" value="${p.numero_identificacao||''}"></div>
+            <div class="form-group"><label>Ownership %</label><input type="number" id="pOwn" value="${p.percentual_participacao||''}" min="0" max="100"></div>
+        </div>
+        <div class="form-group"><label>Email</label><input type="email" id="pEmail" value="${p.email||''}"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="form-group"><label>PEP Status</label><select id="pPep">
+                <option value="nao"${pepSel(p.pep_status)==='nao'?' selected':''}>No</option>
+                <option value="possivel"${pepSel(p.pep_status)==='possivel'?' selected':''}>Possible</option>
+                <option value="sim"${pepSel(p.pep_status)==='sim'?' selected':''}>Yes</option>
+                <option value="confirmado"${pepSel(p.pep_status)==='confirmado'?' selected':''}>Confirmed</option>
+            </select></div>
+            <div class="form-group"><label>Sanctions Status</label><select id="pSanc">
+                <option value="nao_confirmado"${sancSel(p.sancoes_status)==='nao_confirmado'?' selected':''}>Not confirmed</option>
+                <option value="possivel"${sancSel(p.sancoes_status)==='possivel'?' selected':''}>Possible</option>
+                <option value="confirmado"${sancSel(p.sancoes_status)==='confirmado'?' selected':''}>Confirmed</option>
+            </select></div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-gold" onclick="savePessoa('${p.id}')"><i class="fas fa-save"></i> Save</button>
+        </div>`;
+    document.getElementById('modalOverlay').classList.add('open');
+}
+
+async function doApprove() {
+    const notes = document.getElementById('mlApproveNotes').value.trim();
+    try {
+        const r = await fetch(`/api/compliance/b2b/clientes/${CLIENT_ID}/aprovar`, {
+            method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({notas: notes})
+        });
+        const d = await r.json();
+        if (d.success) { closeModal(); location.reload(); } else alert(d.message);
+    } catch(e) { alert(e.message); }
+}
+
+async function doReject() {
+    const reason = document.getElementById('mlRejectReason').value.trim();
+    if (!reason) { alert('Please provide a reason.'); return; }
+    try {
+        const r = await fetch(`/api/compliance/b2b/clientes/${CLIENT_ID}/rejeitar`, {
+            method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({motivo: reason})
+        });
+        const d = await r.json();
+        if (d.success) { closeModal(); location.reload(); } else alert(d.message);
+    } catch(e) { alert(e.message); }
+}
+
+async function doSetStatus(status, reasonFieldId) {
+    const reason = reasonFieldId ? document.getElementById(reasonFieldId)?.value.trim() : '';
+    if (reasonFieldId && !reason) { alert('Please provide a reason.'); return; }
+    try {
+        const r = await fetch(`/api/compliance/b2b/clientes/${CLIENT_ID}/status`, {
+            method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({status, motivo: reason})
+        });
+        const d = await r.json();
+        if (d.success) { closeModal(); location.reload(); } else alert(d.message);
+    } catch(e) { alert(e.message); }
+}
+
+async function saveNotes() {
+    const notes = document.getElementById('mlNotes').value.trim();
+    try {
+        const r = await fetch(`/api/compliance/b2b/clientes/${CLIENT_ID}/notas`, {
+            method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({notas: notes})
+        });
+        const d = await r.json();
+        if (d.success) { closeModal(); clientData.notas_compliance = notes; document.getElementById('ovNotes').textContent = notes || '—'; } else alert(d.message);
+    } catch(e) { alert(e.message); }
+}
+
+async function doOpenEdd() {
+    const gatilho = document.getElementById('eddGatilho').value.trim();
+    const atribuido = document.getElementById('eddAssign').value.trim();
+    if (!gatilho) { alert('Please describe the EDD trigger.'); return; }
+    try {
+        const r = await fetch(`/api/compliance/b2b/edd`, {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({cliente_b2b_id: CLIENT_ID, gatilho, atribuido_a: atribuido})
+        });
+        const d = await r.json();
+        if (d.success) { closeModal(); document.getElementById('eddBody').dataset.loaded = ''; } else alert(d.message);
+    } catch(e) { alert(e.message); }
+}
+
+async function savePessoa(pessoaId) {
+    const body = {
+        nome_completo: document.getElementById('pNome').value.trim(),
+        cargo: document.getElementById('pCargo').value.trim(),
+        data_nascimento: document.getElementById('pDob').value || null,
+        nacionalidade: document.getElementById('pNac').value.trim(),
+        numero_identificacao: document.getElementById('pId').value.trim(),
+        percentual_participacao: parseFloat(document.getElementById('pOwn').value) || null,
+        email: document.getElementById('pEmail').value.trim(),
+        pep_status: document.getElementById('pPep').value,
+        sancoes_status: document.getElementById('pSanc').value,
+    };
+    if (!body.nome_completo || !body.cargo) { alert('Name and role are required.'); return; }
+    try {
+        const url    = pessoaId ? `/api/compliance/b2b/pessoas/${pessoaId}` : `/api/compliance/b2b/clientes/${CLIENT_ID}/pessoas`;
+        const method = pessoaId ? 'PATCH' : 'POST';
+        const r = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        const d = await r.json();
+        if (d.success) { closeModal(); document.getElementById('pessoasBody').dataset.loaded = ''; loadPessoas(); } else alert(d.message);
+    } catch(e) { alert(e.message); }
+}
+
+// ── Init ──
+loadClient();
+</script>
+<script>
+function toggleTheme(){var next=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',next);localStorage.setItem('theme',next);var ic=document.querySelector('#btnTheme i');if(ic)ic.className=next==='light'?'fas fa-moon':'fas fa-sun';}
+document.addEventListener('DOMContentLoaded',function(){var t=document.documentElement.getAttribute('data-theme')||'light';var ic=document.querySelector('#btnTheme i');if(ic)ic.className=t==='light'?'fas fa-moon':'fas fa-sun';});
+</script>
+</body>
+</html>

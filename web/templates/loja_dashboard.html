@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cambio Bank — Loja</title>
+    <title>Link International — Loja</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/theme.css">
     <style>
+        :root{--cor-fundo:#110f08;--cor-card:#191611;--cor-borda:#2d2819;--cor-primaria:#d29e00;--cor-admin:#d29e00;}
+        :root[data-theme="light"]{--cor-primaria:#d29e00;--cor-admin:#d29e00;}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
         body{background:var(--cor-fundo);color:var(--cor-texto);min-height:100vh;}
 
@@ -17,11 +19,12 @@
         .hd{display:flex;justify-content:space-between;align-items:center;padding:16px 0;margin-bottom:22px;border-bottom:1px solid var(--cor-borda);flex-wrap:wrap;gap:10px;}
         .logo{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:700;}
         .logo i{color:var(--cor-admin);font-size:22px;}
-        .logo-text{background:linear-gradient(90deg,var(--cor-admin),#2d8fff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+        .logo-text strong{font-weight:800;}
+        .logo-text{background:linear-gradient(90deg,#b78700,#eeb600);-webkit-background-clip:text;background-clip:text;color:transparent;}
         .loja-tag{font-size:13px;color:var(--cor-texto-secundario);font-weight:400;margin-left:4px;}
         .hd-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-        .btn-hd{background:rgba(26,95,180,.12);border:1px solid var(--cor-admin);color:var(--cor-admin);padding:6px 13px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
-        .btn-hd:hover{background:rgba(26,95,180,.25);}
+        .btn-hd{background:rgba(210,158,0,.12);border:1px solid var(--cor-admin);color:var(--cor-admin);padding:6px 13px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+        .btn-hd:hover{background:rgba(210,158,0,.25);}
         .btn-hd-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
         .btn-hd-ghost:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
 
@@ -29,7 +32,7 @@
         .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:22px;}
         .stat{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:14px 16px;cursor:pointer;transition:.15s;}
         .stat:hover{border-color:var(--cor-admin);}
-        .stat.active-filter{border-color:var(--cor-admin);background:rgba(26,95,180,.08);}
+        .stat.active-filter{border-color:var(--cor-admin);background:rgba(210,158,0,.08);}
         .stat .lbl{font-size:11px;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
         .stat .val{font-size:22px;font-weight:700;}
         .stat .sub{font-size:11px;color:var(--cor-texto-secundario);margin-top:3px;}
@@ -39,10 +42,10 @@
         /* ── Action bar ── */
         .action-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
         .btn-nova{background:var(--cor-admin);color:#fff;border:none;padding:10px 22px;border-radius:var(--borda-radius-pequeno);font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:.15s;}
-        .btn-nova:hover{background:#1c71d8;}
+        .btn-nova:hover{background:#eeb600;}
         .filters-wrap{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
         .fpill{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:5px 13px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:600;transition:.15s;white-space:nowrap;}
-        .fpill.active,.fpill:hover{background:rgba(26,95,180,.12);border-color:var(--cor-admin);color:var(--cor-admin);}
+        .fpill.active,.fpill:hover{background:rgba(210,158,0,.12);border-color:var(--cor-admin);color:var(--cor-admin);}
         .date-input{background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:5px 10px;border-radius:var(--borda-radius-pequeno);font-size:12px;outline:none;}
         .date-input:focus{border-color:var(--cor-admin);}
 
@@ -61,7 +64,7 @@
         .tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
         .tag-compliance_review{background:rgba(155,89,182,.15);color:#9b59b6;}        
         .tag-on_hold{background:rgba(243,156,18,.15);color:var(--cor-alerta);}
-        .tag-liberada{background:rgba(26,95,180,.15);color:var(--cor-admin);}
+        .tag-liberada{background:rgba(210,158,0,.15);color:var(--cor-admin);}
         .tag-despachada{background:rgba(155,89,182,.15);color:#9b59b6;}
         .tag-paga{background:rgba(46,194,126,.15);color:var(--cor-sucesso);}
         .tag-cancelada{background:rgba(224,27,36,.15);color:var(--cor-perigo);}
@@ -109,7 +112,7 @@
         .fc-dropdown{position:fixed;background:var(--cor-card);border:1px solid var(--cor-admin);border-radius:var(--borda-radius-pequeno);z-index:9999;max-height:260px;overflow-y:auto;display:none;box-shadow:0 8px 24px rgba(0,0,0,.4);}
         .fc-dd-item{padding:10px 13px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--cor-borda);}
         .fc-dd-item:last-child{border-bottom:none;}
-        .fc-dd-item:hover{background:rgba(26,95,180,.1);}
+        .fc-dd-item:hover{background:rgba(210,158,0,.1);}
         .fc-dd-item .sub{font-size:11px;color:var(--cor-texto-secundario);margin-top:2px;}
 
         /* ── AML panel ── */
@@ -130,7 +133,7 @@
         .dest-tabs{display:flex;gap:8px;margin-bottom:16px;}
         .dest-tab{flex:1;padding:10px 8px;border:2px solid var(--cor-borda);border-radius:var(--borda-radius-pequeno);cursor:pointer;text-align:center;font-size:13px;font-weight:600;color:var(--cor-texto-secundario);background:transparent;transition:.15s;}
         .dest-tab:hover{border-color:var(--cor-admin);}
-        .dest-tab.active{border-color:var(--cor-admin);color:var(--cor-admin);background:rgba(26,95,180,.08);}
+        .dest-tab.active{border-color:var(--cor-admin);color:var(--cor-admin);background:rgba(210,158,0,.08);}
         .dest-tab .flag{font-size:20px;display:block;margin-bottom:3px;}
         .dest-section{display:none;}
         .dest-section.active{display:block;}
@@ -139,7 +142,7 @@
         .benef-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
         .benef-opt{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border:1px solid var(--cor-borda);border-radius:var(--borda-radius-pequeno);cursor:pointer;transition:.15s;font-size:13px;}
         .benef-opt:hover{border-color:var(--cor-admin);}
-        .benef-opt.selected{border-color:var(--cor-admin);background:rgba(26,95,180,.08);}
+        .benef-opt.selected{border-color:var(--cor-admin);background:rgba(210,158,0,.08);}
         .benef-opt .nome{font-weight:600;}
         .benef-opt .detalhe{font-size:11px;color:var(--cor-texto-secundario);margin-top:1px;}
         .benef-novo-btn{background:transparent;border:1px dashed var(--cor-borda);color:var(--cor-texto-secundario);width:100%;padding:9px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;transition:.15s;}
@@ -266,16 +269,11 @@
     <div class="hd">
         <div style="display: flex; align-items: center; gap: 15px;">
             <div class="logo">
-                <i class="fas fa-store"></i>
-                <span class="logo-text">Cambio Bank</span>
+                <span class="logo-text"><strong>Link</strong> international</span>
                 <span class="loja-tag">/ {{ loja_nome|upper }}</span>
             </div>
             
-            <!-- SELETOR DE IDIOMA -->
-            <div class="lang-switch">
-                <a href="/language/pt" class="lang-btn {% if current_lang == 'pt' %}active{% endif %}">PT</a>
-                <a href="/language/en" class="lang-btn {% if current_lang == 'en' %}active{% endif %}">EN</a>
-            </div>
+            <a href="/language/{{ 'pt' if current_lang == 'en' else 'en' }}" class="btn-hd btn-hd-ghost"><i class="fas fa-globe"></i> {{ 'PT' if current_lang == 'en' else 'EN' }}</a>
         </div>
         
         <div class="hd-right">

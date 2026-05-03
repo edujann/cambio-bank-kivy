@@ -112,10 +112,10 @@
         <i class="fas fa-shield-virus"></i>
         <span class="logo-text">AML Management</span>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;">
+    <div class="hd-right">
         <span style="font-size:12px;color:var(--cor-texto-secundario);">{{ usuario }}</span>
-        <button id="btnTheme" onclick="toggleTheme()" title="Alternar tema" style="background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:5px 10px;border-radius:6px;cursor:pointer;font-size:12px;"><i class="fas fa-sun"></i></button>
-        <a href="{{ '/compliance/dashboard' if is_compliance else '/admin/dashboard' }}" class="btn-back"><i class="fas fa-arrow-left"></i> Dashboard</a>
+        <button id="btnTheme" onclick="toggleTheme()" class="btn-hd btn-hd-ghost" title="Alternar tema"><i class="fas fa-sun"></i></button>
+        <a href="{{ '/compliance/dashboard' if is_compliance else '/admin/dashboard' }}" class="btn-hd btn-hd-ghost"><i class="fas fa-arrow-left"></i> Dashboard</a>
     </div>
 </div>
 
