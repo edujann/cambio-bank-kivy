@@ -908,59 +908,84 @@ def servir_estaticos(path):
 
 @app.route('/api/dashboard/<username>')
 def dashboard_data(username):
-    """Retorna dados para o dashboard do usuário"""
+    """Retorna dados para o dashboard do usuário - APENAS ADMIN"""
     if supabase is None:
         return jsonify({"success": False, "message": "Sistema indisponível"}), 500
     
     try:
-        # 1. Busca dados do usuário
-        usuario_res = supabase.table('usuarios')\
+        # 🔥 VERIFICAÇÃO DE SEGURANÇA
+        usuario_logado = session.get('username')
+        tipo_logado = session.get('tipo')
+        
+        # Se não for admin, só pode ver seus próprios dados
+        if tipo_logado != 'admin' and usuario_logado != username:
+            return jsonify({
+                "success": False, 
+                "message": "Acesso negado. Você não tem permissão para ver dados de outro usuário."
+            }), 403
+        
+        # 🔥 MIGRADO: converter username para user_id
+        user_response = supabase.table('usuarios')\
             .select('id, username, nome, email, tipo, status, cambio_liberado, contas')\
             .eq('username', username)\
             .single()\
             .execute()
         
-        if not usuario_res.data:
+        if not user_response.data:
             return jsonify({"success": False, "message": "Usuário não encontrado"}), 404
         
-        usuario = usuario_res.data
+        usuario = user_response.data
+        user_id = usuario.get('id')
         
-        # 2. Busca saldo das contas REAIS do Supabase
+        # Buscar contas
         saldo_total = 0
         
-        # Busca TODAS as contas ativas do usuário
         contas_res = supabase.table('contas')\
-            .select('id, saldo, moeda, cliente_username, cliente_nome, ativa')\
-            .eq('cliente_username', username)\
+            .select('id, saldo, moeda, cliente_id, cliente_nome, ativa')\
+            .eq('cliente_id', user_id)\
             .eq('ativa', True)\
             .execute()
         
         if contas_res.data:
             contas_detalhes = contas_res.data
-            
-            # Calcula saldo total
             for conta in contas_detalhes:
                 try:
                     saldo_total += float(conta.get('saldo', 0))
                 except (ValueError, TypeError):
-                    saldo_total += 0  # Se saldo for inválido, ignora
+                    saldo_total += 0
         else:
             contas_detalhes = []
         
-        # 3. Busca últimas transferências INTERNACIONAIS (5 mais recentes)
+        # Buscar transferências
         transferencias_res = supabase.table('transferencias')\
             .select('id, tipo, status, data, moeda, valor, conta_remetente, conta_destinatario, descricao, cliente, usuario, beneficiario, cidade, pais, invoice_info')\
             .eq('tipo', 'transferencia_internacional')\
-            .eq('cliente', username)\
+            .eq('cliente_id', user_id)\
             .order('data', desc=True)\
             .limit(5)\
             .execute()
         
-        # 4. Conta beneficiários
+        # Fallback para dados antigos
+        if not transferencias_res.data:
+            transferencias_res = supabase.table('transferencias')\
+                .select('*')\
+                .eq('tipo', 'transferencia_internacional')\
+                .eq('cliente', username)\
+                .order('data', desc=True)\
+                .limit(5)\
+                .execute()
+        
+        # Buscar beneficiários
         beneficiarios_res = supabase.table('beneficiarios')\
             .select('id, nome, banco, swift, iban, ativo')\
-            .eq('cliente_username', username)\
+            .eq('cliente_id', user_id)\
             .execute()
+        
+        if not beneficiarios_res.data:
+            beneficiarios_res = supabase.table('beneficiarios')\
+                .select('*')\
+                .eq('cliente_username', username)\
+                .execute()
         
         return jsonify({
             "success": True,
@@ -969,7 +994,7 @@ def dashboard_data(username):
                 "saldo_total": saldo_total,
                 "contas": contas_detalhes,
                 "quantidade_contas": len(contas_detalhes),
-                "ultimas_transferencias": transferencias_res.data,
+                "ultimas_transferencias": transferencias_res.data or [],
                 "quantidade_beneficiarios": len(beneficiarios_res.data) if beneficiarios_res.data else 0,
                 "beneficiarios": beneficiarios_res.data if beneficiarios_res.data else []
             }
@@ -2099,15 +2124,30 @@ def minhas_transferencias():
 def api_transferencias_internacionais():
     """API para buscar transferências internacionais do usuário logado"""
     
-    if 'username' not in session:  # ✅ CORRIGIDO
+    # ✅ MIGRADO: usar user_id em vez de username
+    user_id = session.get('user_id')
+    username = session.get('username')
+    
+    if not user_id and username:
+        # Fallback: buscar user_id pelo username
+        user_response = supabase.table('usuarios')\
+            .select('id')\
+            .eq('username', username)\
+            .single()\
+            .execute()
+        if user_response.data:
+            user_id = user_response.data['id']
+            session['user_id'] = user_id
+    
+    if not user_id:
         return jsonify({'error': 'Não autenticado'}), 401
     
-    usuario_nome = session['username']  # ✅ CORRIGIDO
-    print(f"🔍 [API] Buscando transferências internacionais para: {usuario_nome}")
+    usuario_nome = username  # manter para logs e compatibilidade
+    print(f"🔍 [API] Buscando transferências internacionais para: {usuario_nome} (ID: {user_id})")
     
     try:
-        # 1. BUSCAR O USUÁRIO E SUAS CONTAS
-        user_response = supabase.table('usuarios').select('contas').eq('username', usuario_nome).execute()
+        # 1. BUSCAR O USUÁRIO E SUAS CONTAS (MIGRADO: usar user_id)
+        user_response = supabase.table('usuarios').select('contas').eq('id', user_id).execute()
         
         if not user_response.data:
             print(f"❌ [API] Usuário não encontrado na tabela usuarios")
@@ -2120,20 +2160,35 @@ def api_transferencias_internacionais():
         todas_transferencias = []
         ids_ja_adicionados = set()
         
-        # ESTRATÉGIA 1: Buscar pelo campo 'cliente'
-        print(f"🔍 Buscando pelo campo 'cliente' = {usuario_nome}")
+        # ESTRATÉGIA 1: Buscar pelo campo 'cliente_id' (MIGRADO: usar cliente_id)
+        print(f"🔍 Buscando pelo campo 'cliente_id' = {user_id}")
         response_cliente = supabase.table('transferencias').select(
             '*'
-        ).eq('cliente', usuario_nome).execute()
+        ).eq('cliente_id', user_id).execute()
         
         if response_cliente.data:
             for transf in response_cliente.data:
                 if transf['id'] not in ids_ja_adicionados:
                     todas_transferencias.append(transf)
                     ids_ja_adicionados.add(transf['id'])
-            print(f"✅ Encontradas {len(response_cliente.data)} pelo campo 'cliente'")
+            print(f"✅ Encontradas {len(response_cliente.data)} pelo campo 'cliente_id'")
         
-        # ESTRATÉGIA 2: Buscar pelo campo 'usuario'
+        # ESTRATÉGIA 2: Buscar pelo campo 'cliente' (string) - manter para compatibilidade
+        print(f"🔍 Buscando pelo campo 'cliente' = {usuario_nome}")
+        response_cliente_str = supabase.table('transferencias').select(
+            '*'
+        ).eq('cliente', usuario_nome).execute()
+        
+        if response_cliente_str.data:
+            novas = 0
+            for transf in response_cliente_str.data:
+                if transf['id'] not in ids_ja_adicionados:
+                    todas_transferencias.append(transf)
+                    ids_ja_adicionados.add(transf['id'])
+                    novas += 1
+            print(f"✅ Encontradas {novas} pelo campo 'cliente' (string)")
+        
+        # ESTRATÉGIA 3: Buscar pelo campo 'usuario' (string) - manter para compatibilidade
         print(f"🔍 Buscando pelo campo 'usuario' = {usuario_nome}")
         response_usuario = supabase.table('transferencias').select(
             '*'
@@ -2146,9 +2201,9 @@ def api_transferencias_internacionais():
                     todas_transferencias.append(transf)
                     ids_ja_adicionados.add(transf['id'])
                     novas += 1
-            print(f"✅ Encontradas {novas} pelo campo 'usuario' (total únicas)")
+            print(f"✅ Encontradas {novas} pelo campo 'usuario'")
         
-        # ESTRATÉGIA 3: Buscar pelas contas do usuário
+        # ESTRATÉGIA 4: Buscar pelas contas do usuário
         for conta in contas_usuario:
             print(f"🔍 Buscando pela conta '{conta}'")
             response_conta = supabase.table('transferencias').select(
@@ -2166,13 +2221,12 @@ def api_transferencias_internacionais():
         
         print(f"📊 [API] Total de transferências únicas encontradas: {len(todas_transferencias)}")
         
-        # 3. FILTRAR APENAS INTERNACIONAIS
+        # 3. FILTRAR APENAS INTERNACIONAIS (mantido igual)
         transferencias_internacionais = []
         
         for transf in todas_transferencias:
             tipo = transf.get('tipo', '')
             
-            # VERIFICAR SE É INTERNACIONAL
             is_internacional = (
                 tipo == 'transferencia_internacional' or
                 'internacional' in str(tipo).lower() or
@@ -2186,20 +2240,13 @@ def api_transferencias_internacionais():
         
         print(f"🎯 [API] Transferências internacionais filtradas: {len(transferencias_internacionais)}")
         
-        # 4. LOG DETALHADO
+        # 4. LOG DETALHADO (mantido)
         if transferencias_internacionais:
             print(f"📋 TRANSFERÊNCIAS INTERNACIONAIS ENCONTRADAS:")
             for i, t in enumerate(transferencias_internacionais):
                 print(f"   {i+1}. ID: {t.get('id')}")
-                print(f"      Tipo: {t.get('tipo')}")
-                print(f"      Status: {t.get('status')}")
-                print(f"      Cliente: {t.get('cliente')}")
-                print(f"      Usuário: {t.get('usuario')}")
-                print(f"      Conta: {t.get('conta_remetente')}")
-                print(f"      Beneficiário: {t.get('beneficiario')}")
-                print(f"      Valor: {t.get('valor')} {t.get('moeda')}")
         
-        # 5. FORMATAR RESPOSTA
+        # 5. FORMATAR RESPOSTA (mantido igual)
         resultado = []
         for t in transferencias_internacionais:
             invoice_info = t.get('invoice_info') or {}
@@ -2209,11 +2256,9 @@ def api_transferencias_internacionais():
                 'tipo': t.get('tipo'),
                 'status': t.get('status'),
                 'beneficiario': t.get('beneficiario'),
-                # 🔍 CAMPOS DO BENEFICIÁRIO (FALTANDOS)
                 'endereco_beneficiario': t.get('endereco_beneficiario', ''),
                 'cidade': t.get('cidade', ''),
                 'pais': t.get('pais', ''),
-                # 🔍 CAMPOS DO BANCO (FALTANDOS)
                 'nome_banco': t.get('nome_banco', ''),
                 'endereco_banco': t.get('endereco_banco', ''),
                 'cidade_banco': t.get('cidade_banco', ''),
@@ -2221,26 +2266,18 @@ def api_transferencias_internacionais():
                 'codigo_swift': t.get('codigo_swift', ''),
                 'iban_account': t.get('iban_account', ''),
                 'aba_routing': t.get('aba_routing', ''),
-
-                # 🔥 CAMPOS SWIFT:
-                'dados_swift_pagamento': t.get('dados_swift_pagamento', {}),  # ← FALTANDO!
-                'data_conclusao': t.get('data_conclusao'),  # ← Para mostrar data completed
-
-                # 🔍 INFORMAÇÕES FINANCEIRAS
+                'dados_swift_pagamento': t.get('dados_swift_pagamento', {}),
+                'data_conclusao': t.get('data_conclusao'),
                 'valor': float(t['valor']) if t.get('valor') else 0,
                 'moeda': t.get('moeda', 'USD'),
-                # 🔍 DATAS E TEMPOS
                 'data': t.get('data') or t.get('data_solicitacao') or t.get('created_at'),
                 'created_at': t.get('created_at'),
-                # 🔍 INFORMAÇÕES ADICIONAIS
                 'finalidade': t.get('finalidade', ''),
                 'descricao': t.get('descricao', ''),
-                # 🔍 INFORMAÇÕES DA CONTA
                 'conta_remetente': t.get('conta_remetente', ''),
                 'cliente': t.get('cliente', ''),
                 'usuario': t.get('usuario', ''),
                 'solicitado_por': t.get('solicitado_por', ''),
-                # 🔍 INVOICE/COMPROVANTES
                 'invoice': bool(invoice_info),
                 'invoice_status': invoice_info.get('status') if isinstance(invoice_info, dict) else None,
                 'invoice_recusada': t.get('status') == 'rejected' or 
@@ -3359,17 +3396,31 @@ def meu_extrato():
 def obter_contas_usuario():
     """Obtém contas REAIS do usuário logado - VERSÃO CORRIGIDA"""
     try:
-        usuario = session.get('username')
-        if not usuario:
+        # 🔥 MIGRADO: usar user_id em vez de username
+        user_id = session.get('user_id')
+        username = session.get('username')
+        
+        # Fallback para sessões antigas
+        if not user_id and username:
+            user_response = supabase.table('usuarios')\
+                .select('id')\
+                .eq('username', username)\
+                .single()\
+                .execute()
+            if user_response.data:
+                user_id = user_response.data['id']
+                session['user_id'] = user_id
+        
+        if not user_id:
             print("❌ [CONTAS] Usuário não autenticado")
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
-        print(f"✅ [CONTAS] Usuário autenticado: {usuario}")
+        print(f"✅ [CONTAS] Usuário autenticado: {username} (ID: {user_id})")
         
-        # 🔥 CORREÇÃO: Usando a coluna CORRETA 'cliente_username' SEM .or_()
+        # 🔥 MIGRADO: usar cliente_id em vez de cliente_username
         response = supabase.table('contas')\
-            .select('id, moeda, saldo, cliente_username, cliente_nome, data_criacao, ativa, created_at')\
-            .eq('cliente_username', usuario)\
+            .select('id, moeda, saldo, cliente_id, cliente_nome, data_criacao, ativa, created_at')\
+            .eq('cliente_id', user_id)\
             .execute()
         
         print(f"📊 [CONTAS] Query executada. Resultados: {len(response.data)}")
@@ -3378,10 +3429,7 @@ def obter_contas_usuario():
         for conta in response.data:
             print(f"📊 [CONTAS] Processando conta ID: {conta.get('id')}")
             
-            # O campo 'id' é o número da conta
             numero_conta = conta.get('id', '')
-            
-            # Converter saldo
             saldo = conta.get('saldo')
             saldo_float = 0.0
             if saldo is not None:
@@ -3395,31 +3443,28 @@ def obter_contas_usuario():
                 'moeda': conta.get('moeda', 'USD'),
                 'saldo': saldo_float,
                 'cliente_nome': conta.get('cliente_nome', ''),
-                'cliente_username': conta.get('cliente_username', ''),
+                'cliente_id': conta.get('cliente_id', ''),
                 'data_criacao': conta.get('data_criacao', ''),
                 'ativa': conta.get('ativa', True),
                 'id_supabase': conta.get('id')
             })
         
-        print(f"✅ [CONTAS] Retornando {len(contas)} contas para {usuario}")
+        print(f"✅ [CONTAS] Retornando {len(contas)} contas para {username}")
         
-        # Se não encontrar contas
         if not contas:
-            print(f"⚠️ [CONTAS] Nenhuma conta encontrada para {usuario}")
-            
+            print(f"⚠️ [CONTAS] Nenhuma conta encontrada para {username}")
             return jsonify({
                 "success": True,
                 "contas": [],
                 "total": 0,
-                "message": f"Nenhuma conta cadastrada para {usuario}",
-                "sugestao": "Cadastre contas no Supabase com 'cliente_username' igual ao usuário"
+                "message": f"Nenhuma conta cadastrada para {username}"
             })
         
         return jsonify({
             "success": True,
             "contas": contas,
             "total": len(contas),
-            "usuario": usuario
+            "usuario": username
         })
         
     except Exception as e:
@@ -3865,8 +3910,22 @@ def debug_contas():
 def obter_extrato_kivy():
     """Obtém extrato com EXATAMENTE a mesma lógica do Kivy"""
     try:
-        usuario = session.get('username')
-        if not usuario:
+        # 🔥 MIGRADO: usar user_id em vez de username
+        user_id = session.get('user_id')
+        username = session.get('username')  # ← ESSA LINHA É CRÍTICA
+        
+        # Fallback para sessões antigas
+        if not user_id and username:
+            user_response = supabase.table('usuarios')\
+                .select('id')\
+                .eq('username', username)\
+                .single()\
+                .execute()
+            if user_response.data:
+                user_id = user_response.data['id']
+                session['user_id'] = user_id
+        
+        if not user_id:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
         # Parâmetros
@@ -3878,7 +3937,7 @@ def obter_extrato_kivy():
         if not conta_num:
             return jsonify({"success": False, "message": "Conta não especificada"}), 400
         
-        print(f"📊 [EXTRATO KIVY] Usuário: {usuario}, Conta: {conta_num}, Período: {periodo}")
+        print(f"📊 [EXTRATO KIVY] Usuário: {username}, Conta: {conta_num}, Período: {periodo}")
         
         # 🔥 FUNÇÃO AUXILIAR PARA BUSCAR NOMES (IGUAL AO KIVY)
         def obter_nome_cliente_por_conta(conta_numero):
@@ -3907,7 +3966,7 @@ def obter_extrato_kivy():
         conta_response = supabase.table('contas')\
             .select('*')\
             .eq('id', conta_num)\
-            .eq('cliente_username', usuario)\
+            .eq('cliente_id', user_id)\
             .execute()
         
         if not conta_response.data:
@@ -5169,7 +5228,7 @@ def obter_extrato_kivy():
             "moeda": moeda,
             "periodo": periodo,
             "conta": conta_num,
-            "usuario": usuario
+            "usuario": username
         })
         
     except Exception as e:
@@ -5398,7 +5457,23 @@ def verificar_horario_comercial(usuario=None):
 @app.route('/cambio-moedas')
 def cambio_moedas():
     """Tela de compra e venda de moedas - VERSÃO ATUALIZADA"""
-    usuario = session.get('username')
+    # 🔥 MIGRADO: usar user_id em vez de username
+    user_id = session.get('user_id')
+    username = session.get('username')
+
+    # Fallback para sessões antigas
+    if not user_id and username:
+        user_response = supabase.table('usuarios')\
+            .select('id')\
+            .eq('username', username)\
+            .single()\
+            .execute()
+        if user_response.data:
+            user_id = user_response.data['id']
+            session['user_id'] = user_id
+
+    if not user_id:
+        return jsonify({"success": False, "message": "Não autenticado"}), 401
     
     if not usuario:
         return redirect('/login')
