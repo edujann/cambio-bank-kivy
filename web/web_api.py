@@ -986,26 +986,40 @@ def dashboard_data(username):
 def get_dashboard_saldos():
     """Retorna saldos REAIS para o dashboard"""
     try:
-        # ✅ Pega usuário da SESSÃO (correto!)
-        usuario = session.get('username')
+        # ✅ Pega user_id da SESSÃO (MIGRADO: username -> user_id)
+        user_id = session.get('user_id')
         
-        if not usuario:
-            return jsonify({
-                "success": False,
-                "message": "Usuário não autenticado"
-            }), 401
+        if not user_id:
+            # Fallback: tenta buscar pelo username (para sessões antigas)
+            username = session.get('username')
+            if username:
+                user_response = supabase.table('usuarios')\
+                    .select('id')\
+                    .eq('username', username)\
+                    .single()\
+                    .execute()
+                if user_response.data:
+                    user_id = user_response.data['id']
+                    session['user_id'] = user_id
+            if not user_id:
+                return jsonify({
+                    "success": False,
+                    "message": "Usuário não autenticado"
+                }), 401
         
-        # Buscar contas do usuário
+        # Buscar contas do usuário (MIGRADO: cliente_username -> cliente_id)
         contas_response = supabase.table('contas')\
             .select('moeda, saldo, cliente_nome')\
-            .eq('cliente_username', usuario)\
+            .eq('cliente_id', user_id)\
             .eq('ativa', True)\
             .execute()
         
-        # Buscar últimas transferências
+        # 🔥 ATENÇÃO: Esta query ainda usa 'usuario' (outra coluna)
+        # 'usuario' é quem fez a solicitação (pode ser diferente do dono da conta)
+        # Por enquanto vamos manter como está, pois é outra migração
         transferencias_response = supabase.table('transferencias')\
             .select('id, tipo, data, valor, moeda, status, descricao, beneficiario')\
-            .eq('usuario', usuario)\
+            .eq('usuario', session.get('username'))\
             .order('data', desc=True)\
             .limit(5)\
             .execute()
@@ -1014,7 +1028,7 @@ def get_dashboard_saldos():
             "success": True,
             "contas": contas_response.data if contas_response.data else [],
             "ultimas_transferencias": transferencias_response.data if transferencias_response.data else [],
-            "usuario": usuario
+            "usuario": session.get('username')
         })
         
     except Exception as e:
@@ -1100,10 +1114,25 @@ def criar_transferencia_cliente():
                 "message": "Formato de requisição inválido"
             }), 400
         
-        # ✅ Verificar quem está logado (SESSÃO)
-        usuario_logado = session.get('username')
+        # ✅ MIGRADO: Usar user_id em vez de username
+        user_id = session.get('user_id')
+        username = session.get('username')  # manter para compatibilidade com outras funções
+        
+        if not user_id and username:
+            # Fallback: buscar user_id pelo username
+            user_response = supabase.table('usuarios')\
+                .select('id')\
+                .eq('username', username)\
+                .single()\
+                .execute()
+            if user_response.data:
+                user_id = user_response.data['id']
+                session['user_id'] = user_id
 
-        # ✅ Verificar se o cliente está congelado
+        usuario_logado = username  # manter variável para compatibilidade com código abaixo
+        usuario_logado_id = user_id
+
+        # ✅ Verificar se o cliente está congelado (esta função ainda usa username - manter)
         if is_cliente_congelado(usuario_logado):
             print(f"❌ Cliente {usuario_logado} está congelado! Transferência bloqueada.")
             return jsonify({
@@ -1111,7 +1140,7 @@ def criar_transferencia_cliente():
                 "message": "Operação não disponível no momento. Entre em contato com o suporte."
             }), 403
 
-        if not usuario_logado:
+        if not usuario_logado or not usuario_logado_id:
             print(f"❌ USUÁRIO NÃO AUTENTICADO NA SESSÃO")
             return jsonify({
                 "success": False,
@@ -1146,23 +1175,23 @@ def criar_transferencia_cliente():
         print(f"   valor: '{dados['valor']}'")
         print(f"   moeda: '{dados['moeda']}'")
         
-        # ✅ Buscar conta CORRETAMENTE
-        print(f"\n🔍 Buscando conta: '{dados['conta_origem']}' para usuário: '{usuario_logado}'")
+        # ✅ MIGRADO: Buscar conta usando cliente_id
+        print(f"\n🔍 Buscando conta: '{dados['conta_origem']}' para user_id: '{usuario_logado_id}'")
 
         response_conta = supabase.table('contas')\
-            .select('id, saldo, cliente_username, moeda')\
+            .select('id, saldo, cliente_id, moeda')\
             .eq('id', dados['conta_origem'])\
-            .eq('cliente_username', usuario_logado)\
+            .eq('cliente_id', usuario_logado_id)\
             .eq('ativa', True)\
             .execute()
 
         if not response_conta.data:
             print(f"❌ Conta não encontrada ou não pertence ao usuário")
             
-            # Listar contas disponíveis para debug
+            # Listar contas disponíveis para debug (MIGRADO)
             contas_disponiveis = supabase.table('contas')\
                 .select('id, saldo, moeda')\
-                .eq('cliente_username', usuario_logado)\
+                .eq('cliente_id', usuario_logado_id)\
                 .eq('ativa', True)\
                 .execute()
             
@@ -1210,7 +1239,7 @@ def criar_transferencia_cliente():
         transferencia_id = f"{random.randint(100000, 999999)}"
         agora = datetime.now()
         
-        # Preparar dados para Supabase
+        # Preparar dados para Supabase (mantém campos existentes por compatibilidade)
         dados_supabase = {
             'id': transferencia_id,
             'tipo': 'transferencia_internacional',
@@ -1222,6 +1251,7 @@ def criar_transferencia_cliente():
             'descricao': dados.get('descricao', ''),
             'usuario': usuario_logado,
             'cliente': usuario_logado,
+            'cliente_id': usuario_logado_id,  # NOVO: adicionar cliente_id
             'beneficiario': dados['beneficiario'],
             'endereco_beneficiario': dados.get('endereco_beneficiario', ''),
             'cidade': dados.get('cidade', ''),
@@ -1269,13 +1299,10 @@ def criar_transferencia_cliente():
             else:
                 print(f"⚠️ Transferência salva mas erro ao atualizar saldo")
             
-            # 🔥 🔥 🔥 NOVO: SALVAR BENEFICIÁRIO SE CHECKBOX MARCADO 🔥 🔥 🔥
+            # 🔥 SALVAR BENEFICIÁRIO SE CHECKBOX MARCADO (MIGRADO)
             try:
-                # Verificar se o checkbox 'salvar_beneficiario' foi marcado
-                # Pode vir como boolean (True/False) ou string ("true"/"false")
                 salvar_beneficiario = dados.get('salvar_beneficiario', False)
                 
-                # Converter para boolean se for string
                 if isinstance(salvar_beneficiario, str):
                     salvar_beneficiario = salvar_beneficiario.lower() in ['true', '1', 'yes', 'on']
                 
@@ -1284,7 +1311,6 @@ def criar_transferencia_cliente():
                 if salvar_beneficiario:
                     print(f"💾 Salvando beneficiário para {usuario_logado}...")
                     
-                    # Preparar dados do beneficiário
                     dados_beneficiario = {
                         'nome': dados.get('beneficiario', '').strip(),
                         'endereco': dados.get('endereco_beneficiario', '').strip(),
@@ -1297,12 +1323,10 @@ def criar_transferencia_cliente():
                         'swift': dados.get('codigo_swift', '').strip(),
                         'iban': dados.get('iban_account', '').strip(),
                         'aba': dados.get('aba_routing', '').strip(),
-                        'cliente_username': usuario_logado,
-                        'cliente_id': session.get('user_id'),
+                        'cliente_id': usuario_logado_id,  # MIGRADO: usar cliente_id
                         'ativo': True
                     }
                     
-                    # Verificar campos mínimos
                     if dados_beneficiario['nome'] and dados_beneficiario['banco'] and dados_beneficiario['swift']:
                         response_benef = supabase.table('beneficiarios').insert(dados_beneficiario).execute()
                         
@@ -1317,54 +1341,41 @@ def criar_transferencia_cliente():
                         
             except Exception as benef_error:
                 print(f"⚠️ Erro ao salvar beneficiário: {benef_error}")
-                # Não interrompe o fluxo principal
                 print(f"⚠️ Continuando sem salvar beneficiário...")
             
-            # 🔥 🔥 🔥 NOVO: PROCESSAR UPLOAD DA INVOICE SE EXISTIR 🔥 🔥 🔥
+            # PROCESSAR UPLOAD DA INVOICE (mantido igual)
             try:
-                # Verificar se há arquivo na requisição
                 if 'file' in request.files:
                     arquivo = request.files['file']
                     
                     if arquivo and arquivo.filename != '':
-                        print(f"\n📁 📁 📁 PROCESSANDO UPLOAD DE INVOICE NA CRIAÇÃO 📁 📁 📁")
+                        print(f"\n📁 PROCESSANDO UPLOAD DE INVOICE NA CRIAÇÃO")
                         print(f"   Nome do arquivo: {arquivo.filename}")
-                        print(f"   Tipo: {arquivo.content_type}")
-                        print(f"   Tamanho: {arquivo.content_length} bytes")
                         
-                        # Validar arquivo
                         nome_arquivo = arquivo.filename
                         extensao = nome_arquivo.lower().split('.')[-1] if '.' in nome_arquivo else ''
                         
                         extensoes_permitidas = ['pdf', 'jpg', 'jpeg', 'png']
                         if extensao not in extensoes_permitidas:
-                            print(f"⚠️  Extensão não permitida: .{extensao}")
+                            print(f"⚠️ Extensão não permitida: .{extensao}")
                         elif arquivo.content_length > 5 * 1024 * 1024:
-                            print(f"⚠️  Arquivo muito grande: {arquivo.content_length} bytes")
+                            print(f"⚠️ Arquivo muito grande: {arquivo.content_length} bytes")
                         else:
-                            # Criar nome único
                             import time
                             timestamp = str(int(time.time() * 1000))
                             nome_base = nome_arquivo.rsplit('.', 1)[0]
                             novo_nome = f"{timestamp}_{nome_base}.{extensao}"
                             caminho_supabase = f"transferencias/{transferencia_id}/{novo_nome}"
                             
-                            print(f"📤 Caminho no storage: {caminho_supabase}")
-                            
-                            # Ler bytes do arquivo
-                            arquivo.seek(0)  # Garantir que estamos no início
+                            arquivo.seek(0)
                             arquivo_bytes = arquivo.read()
                             
-                            print(f"🔼 Fazendo upload de {len(arquivo_bytes)} bytes...")
-                            
-                            # Fazer upload para o Supabase Storage
                             upload_response = supabase.storage.from_("invoices")\
                                 .upload(caminho_supabase, arquivo_bytes)
                             
                             if upload_response:
-                                print(f"✅✅✅ UPLOAD DA INVOICE REALIZADO COM SUCESSO!")
+                                print(f"✅ UPLOAD DA INVOICE REALIZADO!")
                                 
-                                # Atualizar invoice_info na transferência
                                 nova_invoice_info = {
                                     'status': 'pending',
                                     'data_upload': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -1374,36 +1385,22 @@ def criar_transferencia_cliente():
                                     'tipo': arquivo.content_type or f'application/{extensao}'
                                 }
                                 
-                                print(f"📝 Invoice info para salvar: {nova_invoice_info}")
-                                
-                                update_invoice_response = supabase.table('transferencias')\
+                                supabase.table('transferencias')\
                                     .update({'invoice_info': nova_invoice_info})\
                                     .eq('id', transferencia_id)\
                                     .execute()
-                                
-                                if update_invoice_response.data:
-                                    print(f"✅✅✅ INVOICE INFO SALVA NO BANCO DE DADOS!")
-                                else:
-                                    print(f"⚠️  Invoice salva no storage mas erro ao atualizar banco")
-                            else:
-                                print(f"❌ Erro ao fazer upload da invoice para o storage")
                     else:
-                        print(f"ℹ️  Nenhum arquivo enviado ou nome vazio")
+                        print(f"ℹ️ Nenhum arquivo enviado ou nome vazio")
                 else:
-                    print(f"ℹ️  Nenhum arquivo 'file' na requisição")
+                    print(f"ℹ️ Nenhum arquivo 'file' na requisição")
                     
             except Exception as upload_error:
-                print(f"⚠️  Erro ao processar upload da invoice: {upload_error}")
-                _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
-                # NÃO LANÇAR ERRO - A TRANSFERÊNCIA JÁ FOI CRIADA!
-                print(f"⚠️  Continuando sem invoice...")
+                print(f"⚠️ Erro ao processar upload da invoice: {upload_error}")
             
-            print(f"\n🎉🎉🎉 PROCESSO DE CRIAÇÃO COMPLETO CONCLUÍDO! 🎉🎉🎉")
+            print(f"\n🎉 PROCESSO DE CRIAÇÃO COMPLETO CONCLUÍDO!")
             print(f"📊 Transferência ID: {transferencia_id}")
             print(f"💰 Valor: {valor_transferencia} {dados['moeda']}")
             print(f"👤 Usuário: {usuario_logado}")
-            
-            # 🔥 🔥 🔥 FIM DO PROCESSAMENTO DA INVOICE 🔥 🔥 🔥
             
             return jsonify({
                 "success": True,
@@ -1588,24 +1585,35 @@ def get_user_info():
             "success": False,
             "message": _err(e)
         }), 500
-
 @app.route('/api/user/contas')
 def get_user_contas():
     """Retorna contas REAIS do usuário logado"""
     try:
-        # ✅ Pega usuário da SESSÃO (correto!)
-        usuario = session.get('username')
+        # ✅ Pega user_id da SESSÃO (MIGRADO: username -> user_id)
+        user_id = session.get('user_id')
         
-        if not usuario:
-            return jsonify({
-                "success": False,
-                "message": "Usuário não autenticado",
-                "contas": []
-            }), 401
+        if not user_id:
+            # Fallback: tenta buscar pelo username (para sessões antigas)
+            username = session.get('username')
+            if username:
+                user_response = supabase.table('usuarios')\
+                    .select('id')\
+                    .eq('username', username)\
+                    .single()\
+                    .execute()
+                if user_response.data:
+                    user_id = user_response.data['id']
+                    session['user_id'] = user_id
+            if not user_id:
+                return jsonify({
+                    "success": False,
+                    "message": "Usuário não autenticado",
+                    "contas": []
+                }), 401
         
         response = supabase.table('contas')\
-            .select('id, moeda, saldo, cliente_username, cliente_nome, ativa')\
-            .eq('cliente_username', usuario)\
+            .select('id, moeda, saldo, cliente_id, cliente_nome, ativa')\
+            .eq('cliente_id', user_id)\
             .eq('ativa', True)\
             .execute()
         
@@ -1628,20 +1636,33 @@ def get_user_contas():
             "message": _err(e),
             "contas": []
         }), 500
-
+    
 @app.route('/api/beneficiarios', methods=['GET', 'POST'])  # ← ADICIONAR POST AQUI!
 def get_beneficiarios():
     """Retorna beneficiários REAIS do usuário logado (GET) ou cria novo (POST)"""
     try:
-        # ✅ Pega usuário da SESSÃO (correto!)
-        usuario = session.get('username')
+        # ✅ Pega user_id da SESSÃO (MIGRADO: username -> user_id)
+        user_id = session.get('user_id')
         
-        if not usuario:
-            return jsonify({
-                "success": False,
-                "message": "Usuário não autenticado",
-                "beneficiarios": []
-            }), 401
+        if not user_id:
+            # Fallback: tenta buscar pelo username (para sessões antigas)
+            username = session.get('username')
+            if username:
+                # Buscar o user_id pelo username
+                user_response = supabase.table('usuarios')\
+                    .select('id')\
+                    .eq('username', username)\
+                    .single()\
+                    .execute()
+                if user_response.data:
+                    user_id = user_response.data['id']
+                    session['user_id'] = user_id  # atualiza sessão
+            if not user_id:
+                return jsonify({
+                    "success": False,
+                    "message": "Usuário não autenticado",
+                    "beneficiarios": []
+                }), 401
         
         # ********** SE FOR POST **********
         if request.method == 'POST':
@@ -1658,7 +1679,7 @@ def get_beneficiarios():
             if not dados.get('swift'):
                 return jsonify({"success": False, "message": "Código SWIFT é obrigatório"}), 400
             
-            # Preparar dados para inserção
+            # Preparar dados para inserção (MIGRADO: cliente_username -> cliente_id)
             novo_beneficiario = {
                 'nome': dados['nome'],
                 'banco': dados['banco'],
@@ -1670,8 +1691,7 @@ def get_beneficiarios():
                 'endereco_banco': dados.get('endereco_banco', ''),
                 'cidade_banco': dados.get('cidade_banco', ''),
                 'pais_banco': dados.get('pais_banco', ''),
-                'cliente_username': usuario,
-                'cliente_id': session.get('user_id'),
+                'cliente_id': user_id,  # MIGRADO: cliente_username -> cliente_id
                 'ativo': True,
             }
             
@@ -1698,7 +1718,7 @@ def get_beneficiarios():
         else:  # GET
             response = supabase.table('beneficiarios')\
                 .select('id, nome, endereco, cidade, pais, banco, swift, iban, aba, cidade_banco, pais_banco, endereco_banco')\
-                .eq('cliente_username', usuario)\
+                .eq('cliente_id', user_id)\
                 .eq('ativo', True)\
                 .execute()
             
