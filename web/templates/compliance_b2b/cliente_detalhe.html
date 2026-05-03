@@ -407,9 +407,9 @@
                 <div class="tbl-wrap">
                     <table>
                         <thead><tr>
-                            <th>Name / Account</th><th>Country</th><th>Currency</th><th>Country Risk</th><th>Sanctions</th><th>Tx Limit</th><th>Status</th><th>Notes</th>
+                            <th>Name / Account</th><th>Country</th><th>Currency</th><th>Country Risk</th><th>Sanctions</th><th>Tx Limit</th><th>Status</th><th>Notes</th><th></th>
                         </tr></thead>
-                        <tbody id="benefBody"><tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr></tbody>
+                        <tbody id="benefBody"><tr><td colspan="9" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -835,19 +835,66 @@ async function loadBenef() {
         const bstMap = {aprovado:'Approved',pendente:'Pending',recusado:'Refused'};
         const prMap = {low:'Low',medium:'Medium',high:'High'};
         tbody.innerHTML = d.beneficiarios.map(b => `<tr>
-            <td><strong>${b.nome_beneficiario || b.nome}</strong><br><small style="color:var(--cor-texto-secundario);font-family:monospace;font-size:11px">${b.numero_conta || ''} ${b.swift_bic || ''}</small></td>
+            <td><strong>${b.nome_beneficiario || b.nome || '—'}</strong><br><small style="color:var(--cor-texto-secundario);font-family:monospace;font-size:11px">${b.numero_conta || ''} ${b.swift_bic ? '· ' + b.swift_bic : ''}</small></td>
             <td style="font-size:12px">${b.pais_destino || b.pais || '—'}</td>
             <td style="font-size:12px">${b.moeda || '—'}</td>
             <td>${tagHtml(b.risco_pais || 'medium', prMap)}</td>
             <td style="text-align:center">${b.sanctions_flag ? '<i class="fas fa-triangle-exclamation" style="color:#e01b24" title="Sanctions flag"></i>' : '<i class="fas fa-check" style="color:#2ec27e"></i>'}</td>
-            <td>${fmtGBP(b.limite_por_transacao)}</td>
+            <td style="font-size:12px">${fmtGBP(b.limite_por_transacao)}</td>
             <td>${tagHtml(b.status || 'pendente', bstMap)}</td>
-            <td style="font-size:11px;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.notas_compliance || '—'}</td>
+            <td style="font-size:11px;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${b.notas_compliance || ''}">${b.notas_compliance || '—'}</td>
+            <td style="white-space:nowrap">
+                <button class="btn btn-ghost btn-sm" title="Approve" onclick="approveBenef('${b.id}')"><i class="fas fa-check"></i></button>
+                <button class="btn btn-ghost btn-sm" title="Reject" onclick="rejectBenef('${b.id}')"><i class="fas fa-times"></i></button>
+            </td>
         </tr>`).join('');
         tbody.dataset.loaded = '1';
     } catch(e) {
         tbody.innerHTML = `<tr><td colspan="8" class="empty">${e.message}</td></tr>`;
     }
+}
+
+async function approveBenef(id) {
+    try {
+        const r = await fetch(`/api/compliance/b2b/beneficiarios/${id}`, {
+            method: 'PATCH', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({status: 'aprovado'})
+        });
+        const d = await r.json();
+        if (d.success) { document.getElementById('benefBody').dataset.loaded = ''; loadBenef(); }
+        else alert(d.message);
+    } catch(e) { alert(e.message); }
+}
+
+function rejectBenef(id) {
+    const box = document.getElementById('modalBox');
+    box.innerHTML = `
+        <h3><i class="fas fa-times-circle"></i> Reject Beneficiary</h3>
+        <p style="font-size:13px;margin:8px 0 14px">Provide a reason for rejecting this beneficiary:</p>
+        <div class="form-group">
+            <label>Reason / Notes *</label>
+            <textarea id="_benefRejectNotes" rows="3" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);resize:vertical"></textarea>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+            <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-danger" onclick="_confirmRejectBenef('${id}')"><i class="fas fa-times"></i> Reject</button>
+        </div>`;
+    document.getElementById('modalOverlay').classList.add('open');
+}
+
+async function _confirmRejectBenef(id) {
+    const notes = document.getElementById('_benefRejectNotes').value.trim();
+    if (!notes) { alert('Please provide a reason.'); return; }
+    closeModal();
+    try {
+        const r = await fetch(`/api/compliance/b2b/beneficiarios/${id}`, {
+            method: 'PATCH', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({status: 'recusado', notas_compliance: notes})
+        });
+        const d = await r.json();
+        if (d.success) { document.getElementById('benefBody').dataset.loaded = ''; loadBenef(); }
+        else alert(d.message);
+    } catch(e) { alert(e.message); }
 }
 
 // ── EDD ──

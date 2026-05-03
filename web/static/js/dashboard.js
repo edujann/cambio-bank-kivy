@@ -183,7 +183,6 @@ async function carregarDashboard() {
                 // 🔥 NOVO: Configura event listeners AGORA que o DOM está visível
                 configurarEventListeners();
                 
-                mostrarNotificacao('Bem-vindo!', 'Dashboard carregado com sucesso.', 'success', 3000);
                 console.log('✅ DEBUG [15]: Dashboard visível!');
             }, 500);
             

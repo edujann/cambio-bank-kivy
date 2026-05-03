@@ -16,24 +16,64 @@
     <link rel="stylesheet" href="/static/css/theme.css">
     
     <!-- CSS ESPECÍFICO DO CABEÇALHO/FOOTER DA TRANSFERÊNCIA -->
+    <script>
+        (function(){
+            var t = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
     <style>
-    :root{--cor-fundo:#110f08;--cor-card:#191611;--cor-borda:#2d2819;--cor-primaria:#d29e00;--cor-admin:#d29e00;}
-    :root[data-theme="light"]{--cor-primaria:#d29e00;--cor-admin:#d29e00;}
-    .logo-text strong{font-weight:800;}
-    .logo-text{background:linear-gradient(90deg,#b78700,#eeb600);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:20px;font-weight:400;letter-spacing:.5px;}
+    /* ============================================================
+       VARIÁVEIS DE TEMA
+       ============================================================ */
+    :root, :root[data-theme="light"] {
+        --cor-fundo:            #f8f5ee;
+        --cor-card:             #ffffff;
+        --cor-borda:            #e8dfc8;
+        --cor-primaria:         #d29e00;
+        --cor-admin:            #d29e00;
+        --cor-texto:            #1a1d24;
+        --cor-texto-secundario: #6b7280;
+        --cor-card-hover:       #f5f0e8;
+        --borda-radius-pequeno: 8px;
+    }
 
-    /* CABEÇALHO ESPECÍFICO PARA TRANSFERÊNCIA */
+    :root[data-theme="dark"] {
+        --cor-fundo:            #110f08;
+        --cor-card:             #191611;
+        --cor-borda:            #2d2819;
+        --cor-primaria:         #d29e00;
+        --cor-admin:            #d29e00;
+        --cor-texto:            #e0e0e0;
+        --cor-texto-secundario: #9ca3af;
+        --cor-card-hover:       #221f14;
+        --borda-radius-pequeno: 8px;
+    }
+
+    .logo-text strong { font-weight: 800; }
+    .logo-text {
+        background: linear-gradient(90deg, #b78700, #eeb600);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        font-size: 20px;
+        font-weight: 400;
+        letter-spacing: .5px;
+    }
+
+    /* ============================================================
+       CABEÇALHO
+       ============================================================ */
     .main-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 20px 30px; /* ← JÁ TEM */
+        padding: 16px 30px;
         background: var(--cor-card);
         border-bottom: 1px solid var(--cor-borda);
         position: sticky;
         top: 0;
         z-index: 100;
-        /* ADICIONE: */
         max-width: 1400px;
         margin: 0 auto;
         width: 100%;
@@ -45,87 +85,50 @@
         gap: 20px;
     }
 
-    .logo {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        font-size: 20px;
-        font-weight: bold;
-    }
-
-    .logo i {
-        color: var(--cor-primaria);
-        font-size: 24px;
-    }
-
-    .logo h1 {
-        font-size: 20px;
-        font-weight: bold;
-        background: linear-gradient(90deg, #b78700, #eeb600);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-    }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo i { color: var(--cor-primaria); font-size: 22px; }
 
     .user-info {
         display: flex;
         align-items: center;
         gap: 10px;
-        color: var(--cor-texto);
+        font-size: 14px;
+        color: var(--cor-texto-secundario);
     }
+
+    .user-info span:first-child { color: var(--cor-primaria); font-weight: 600; }
+    .user-info i { color: var(--cor-primaria); }
 
     .btn-back {
         background: transparent;
         border: 1px solid var(--cor-borda);
         color: var(--cor-texto);
-        padding: 8px 16px;
+        padding: 7px 16px;
         border-radius: var(--borda-radius-pequeno);
         text-decoration: none;
         display: flex;
         align-items: center;
         gap: 8px;
-        transition: all 0.3s ease;
+        transition: all 0.25s ease;
+        font-size: 14px;
     }
 
     .btn-back:hover {
         border-color: var(--cor-primaria);
-        background: rgba(210, 158, 0, 0.1);
-    }
-
-    /* FOOTER ESPECÍFICO */
-    .main-footer {
-        margin-top: 40px;
-        padding: 20px 30px;
-        border-top: 1px solid var(--cor-borda) !important;
-        background-color: var(--cor-fundo) !important;
-        text-align: center;
-        color: var(--cor-texto-secundario);
-        /* ADICIONE: */
-        max-width: 1400px;
-        margin: 20px auto 0;
-        width: 100%;
-    }
-
-    .footer-links a {
-        color: var(--cor-texto-secundario);
-        text-decoration: none;
-        margin: 0 10px;
-    }
-
-    .footer-links a:hover {
         color: var(--cor-primaria);
+        background: rgba(210, 158, 0, 0.08);
     }
 
-    /* NAVEGAÇÃO (BREADCRUMB) */
+    /* ============================================================
+       BREADCRUMB
+       ============================================================ */
     .page-nav {
-        padding: 15px 30px; /* ← JÁ TEM */
-        background: rgba(255, 255, 255, 0.02);
+        padding: 12px 30px;
         border-bottom: 1px solid var(--cor-borda);
         display: flex;
         align-items: center;
         gap: 10px;
-        font-size: 14px;
-        /* ADICIONE: */
+        font-size: 13px;
         max-width: 1400px;
         margin: 0 auto;
         width: 100%;
@@ -137,20 +140,12 @@
         display: flex;
         align-items: center;
         gap: 6px;
+        transition: color 0.2s;
     }
 
-    .page-nav a:hover {
-        color: var(--cor-primaria);
-    }
-
-    .page-nav i {
-        font-size: 12px;
-    }
-
-    .page-nav .fa-chevron-right {
-        color: var(--cor-texto-secundario);
-        opacity: 0.5;
-    }
+    .page-nav a:hover { color: var(--cor-primaria); }
+    .page-nav i { font-size: 11px; }
+    .page-nav .fa-chevron-right { opacity: 0.4; }
 
     .current-page {
         color: var(--cor-texto);
@@ -160,46 +155,205 @@
         gap: 6px;
     }
 
-    /* TÍTULO DA PÁGINA */
+    /* ============================================================
+       TÍTULO DA PÁGINA
+       ============================================================ */
     .page-header {
-        padding: 30px 30px 20px;
-        text-align: center; /* ← ADICIONE ESTA LINHA */
-        max-width: 1200px; /* ← ADICIONE ESTA LINHA */
-        margin: 0 auto; /* ← ADICIONE ESTA LINHA */
+        padding: 28px 30px 18px;
+        text-align: center;
+        max-width: 1200px;
+        margin: 0 auto;
     }
 
     .page-header h2 {
-        font-size: 28px;
-        margin-bottom: 10px;
-        color: var(--cor-texto);
+        font-size: 26px;
+        margin-bottom: 8px;
+        background: linear-gradient(90deg, #b78700, #eeb600);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
         display: flex;
         align-items: center;
         gap: 12px;
-        justify-content: center; /* ← ADICIONE ESTA LINHA */
-    }
-
-    .page-header h2 i {
-        color: var(--cor-primaria);
+        justify-content: center;
     }
 
     .page-subtitle {
         color: var(--cor-texto-secundario);
-        font-size: 16px;
+        font-size: 15px;
         margin: 0;
     }
 
-    /* BOTÕES (ESTILO DO DASHBOARD) */
+    /* ============================================================
+       LAYOUT
+       ============================================================ */
+    .content-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        width: 100%;
+        padding: 0 20px;
+    }
+
+    /* ============================================================
+       FORMULÁRIO - CAMPOS DE ENTRADA
+       ============================================================ */
+    .form-control,
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    input[type="password"],
+    select,
+    textarea {
+        width: 100%;
+        padding: 11px 14px;
+        background-color: var(--cor-card) !important;
+        color: var(--cor-texto) !important;
+        border: 1px solid var(--cor-borda) !important;
+        border-radius: var(--borda-radius-pequeno) !important;
+        font-size: 14px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        caret-color: var(--cor-texto);
+    }
+
+    .form-control:focus,
+    input:focus,
+    select:focus,
+    textarea:focus {
+        outline: none !important;
+        border-color: var(--cor-primaria) !important;
+        box-shadow: 0 0 0 3px rgba(210, 158, 0, 0.14) !important;
+        background-color: var(--cor-card) !important;
+        color: var(--cor-texto) !important;
+    }
+
+    .form-control:hover,
+    input:hover,
+    select:hover,
+    textarea:hover {
+        border-color: var(--cor-primaria) !important;
+        background-color: var(--cor-card) !important;
+        color: var(--cor-texto) !important;
+    }
+
+    ::placeholder {
+        color: var(--cor-texto-secundario) !important;
+        opacity: 0.7;
+    }
+
+    select option {
+        background-color: var(--cor-card);
+        color: var(--cor-texto);
+    }
+
+    select.form-control { cursor: pointer; }
+    textarea.form-control { resize: vertical; }
+    input, textarea, select { caret-color: var(--cor-texto) !important; }
+
+    /* Autofill */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    input:-webkit-autofill:active,
+    input:-internal-autofill-selected,
+    select:-webkit-autofill,
+    select:-webkit-autofill:hover,
+    select:-webkit-autofill:focus,
+    textarea:-webkit-autofill,
+    textarea:-webkit-autofill:hover,
+    textarea:-webkit-autofill:focus {
+        -webkit-box-shadow: 0 0 0 1000px var(--cor-card) inset !important;
+        -webkit-text-fill-color: var(--cor-texto) !important;
+        caret-color: var(--cor-texto) !important;
+        transition: background-color 5000s ease-in-out 0s !important;
+    }
+
+    /* Títulos de seção do formulário */
+    .form-title, .form-subtitle {
+        color: var(--cor-primaria);
+    }
+
+    /* Override formularios.css que hardcoda cores escuras com !important */
+    :root[data-theme="light"] .form-group input,
+    :root[data-theme="light"] .form-group select,
+    :root[data-theme="light"] .form-group textarea {
+        background: #ffffff !important;
+        color: #1a1d24 !important;
+        border-color: #e8dfc8 !important;
+    }
+
+    :root[data-theme="light"] .form-group input:focus,
+    :root[data-theme="light"] .form-group select:focus,
+    :root[data-theme="light"] .form-group textarea:focus {
+        background: #ffffff !important;
+        color: #1a1d24 !important;
+        border-color: #d29e00 !important;
+        box-shadow: 0 0 0 3px rgba(210, 158, 0, 0.14) !important;
+    }
+
+    :root[data-theme="light"] .form-group input:-webkit-autofill,
+    :root[data-theme="light"] .form-group input:-webkit-autofill:hover,
+    :root[data-theme="light"] .form-group input:-webkit-autofill:focus,
+    :root[data-theme="light"] .form-group input:-webkit-autofill:active {
+        -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+        -webkit-text-fill-color: #1a1d24 !important;
+        caret-color: #1a1d24 !important;
+    }
+
+    /* ============================================================
+       CHECKBOX - SALVAR BENEFICIÁRIO
+       ============================================================ */
+    .form-checkbox {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        margin: 20px 0;
+        padding: 8px 15px;
+        background-color: var(--cor-card);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--borda-radius-pequeno);
+        width: fit-content;
+        margin-left: auto;
+    }
+
+    .form-checkbox input[type="checkbox"] {
+        width: 18px !important;
+        height: 18px !important;
+        cursor: pointer;
+        accent-color: var(--cor-primaria);
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .form-checkbox label {
+        color: var(--cor-texto) !important;
+        cursor: pointer;
+        margin: 0;
+        font-size: 14px;
+    }
+
+    .form-checkbox label i { color: var(--cor-primaria); margin-right: 8px; }
+
+    .form-checkbox:hover {
+        background-color: var(--cor-card-hover);
+        border-color: var(--cor-primaria);
+    }
+
+    /* ============================================================
+       BOTÕES
+       ============================================================ */
     .btn-primary, .btn-secondary {
-        padding: 12px 24px;
+        padding: 11px 22px;
         border-radius: var(--borda-radius-pequeno);
         font-weight: 600;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        transition: all 0.3s ease;
-        font-size: 15px;
+        transition: all 0.25s ease;
+        font-size: 14px;
         border: none;
+        white-space: nowrap;
     }
 
     .btn-primary {
@@ -215,15 +369,15 @@
     .btn-secondary {
         background: transparent;
         color: var(--cor-texto);
-        border: 1px solid var(--cor-borda);
+        border: 1px solid var(--cor-borda) !important;
     }
 
     .btn-secondary:hover {
-        background: rgba(255, 255, 255, 0.05);
-        border-color: var(--cor-texto-secundario);
+        background: rgba(210, 158, 0, 0.06);
+        border-color: var(--cor-primaria) !important;
+        color: var(--cor-primaria);
     }
 
-    /* CONTAINER DOS BOTÕES */
     .form-buttons {
         display: flex;
         justify-content: flex-end;
@@ -232,349 +386,30 @@
         padding-top: 20px;
         border-top: 1px solid var(--cor-borda);
     }
-    
-    .content-container {
-        max-width: 1400px;
-        margin: 0 auto;
-        width: 100%;
-        padding: 0 20px;
-    }
 
-    /* ============================================
-    CORREÇÃO PARA CAMPOS DA TRANSFERÊNCIA
-    ============================================ */
-
-    /* Spinners e selects */
-    .form-control, select, .form-select {
-        background-color: var(--cor-fundo) !important;
-        color: var(--cor-texto) !important;
-        border: 1px solid var(--cor-borda) !important;
-        border-radius: var(--borda-radius-pequeno) !important;
-        padding: 12px 15px !important;
-        font-size: 14px !important;
-    }
-
-    /* Campo de valor */
-    .valor-input, input[type="text"], input[type="number"] {
-        background-color: var(--cor-fundo) !important;
-        color: var(--cor-texto) !important;
-        border: 1px solid var(--cor-borda) !important;
-        border-radius: var(--borda-radius-pequeno) !important;
-        padding: 12px 15px !important;
-    }
-
-    /* Focus */
-    .form-control:focus, select:focus, input:focus {
-        outline: none !important;
-        border-color: var(--cor-primaria) !important;
-        box-shadow: 0 0 0 2px rgba(210, 158, 0, 0.2) !important;
-    }
-
-    /* Opções do select */
-    select option {
-        background-color: var(--cor-card) !important;
-        color: var(--cor-texto) !important;
-    }
-
-    /* Placeholder */
-    ::placeholder {
-        color: var(--cor-texto-secundario) !important;
-        opacity: 0.7 !important;
-    }
-
-    /* Autofill do Chrome */
-    input:-webkit-autofill,
-    input:-webkit-autofill:hover,
-    input:-webkit-autofill:focus,
-    select:-webkit-autofill,
-    select:-webkit-autofill:hover,
-    select:-webkit-autofill:focus {
-        -webkit-box-shadow: 0 0 0 1000px var(--cor-fundo) inset !important;
-        -webkit-text-fill-color: var(--cor-texto) !important;
-        transition: background-color 5000s ease-in-out 0s !important;
-    }  
-    
-    .form-control {
-        width: 100%;
-        padding: 12px 15px;
-        background-color: var(--cor-fundo) !important;
-        color: var(--cor-texto) !important;
-        border: 1px solid var(--cor-borda) !important;
-        border-radius: 8px;
-        font-size: 14px;
-        transition: all 0.3s ease;
-    }
-
-    .form-control:focus {
-        outline: none;
-        border-color: var(--cor-primaria) !important;
-        box-shadow: 0 0 0 2px rgba(210, 158, 0, 0.2);
-    }
-
-    select.form-control {
-        cursor: pointer;
-    }
-
-    textarea.form-control {
-        resize: vertical;
-    }
-
-    .form-control::placeholder {
-        color: var(--cor-texto-secundario);
-    }  
-    
-    /* ============================================
-    CORREÇÃO COMPLETA PARA TODOS OS CAMPOS
-    ============================================ */
-
-    /* Reset para todos os inputs, selects e textareas */
-    input, select, textarea, .form-control {
-        background-color: var(--cor-fundo) !important;
-        color: var(--cor-texto) !important;
-        border: 1px solid var(--cor-borda) !important;
-        border-radius: 8px !important;
-        padding: 12px 15px !important;
-        font-size: 14px !important;
-        width: 100% !important;
-        transition: all 0.3s ease !important;
-    }
-
-    /* Estado normal, foco, hover, active - TODOS usam a mesma cor */
-    input:hover, input:focus, input:active,
-    select:hover, select:focus, select:active,
-    textarea:hover, textarea:focus, textarea:active,
-    .form-control:hover, .form-control:focus, .form-control:active {
-        background-color: var(--cor-fundo) !important;
-        color: var(--cor-texto) !important;
-        outline: none !important;
-        border-color: var(--cor-primaria) !important;
-        box-shadow: 0 0 0 2px rgba(210, 158, 0, 0.2) !important;
-    }
-
-    /* 🔥 CORREÇÃO ESPECIAL PARA QUANDO O CAMPO ESTÁ SENDO DIGITADO 🔥 */
-    input:focus-within,
-    input[type="text"]:focus,
-    input[type="number"]:focus,
-    input:not([type]):focus {
-        background-color: var(--cor-fundo) !important;
-        color: var(--cor-texto) !important;
-    }
-
-    /* Placeholder */
-    ::placeholder {
-        color: var(--cor-texto-secundario) !important;
-        opacity: 0.7 !important;
-    }
-
-    /* Opções do select (dropdown) */
-    select option {
-        background-color: var(--cor-card) !important;
-        color: var(--cor-texto) !important;
-    }
-
-    /* Select específicos */
-    #conta_origem, #finalidade, #beneficiarios_salvos {
-        background-color: var(--cor-fundo) !important;
-        color: var(--cor-texto) !important;
-    }
-
-    /* Textarea específico */
-    #descricao {
-        background-color: var(--cor-fundo) !important;
-        color: var(--cor-texto) !important;
-    }
-
-    /* Inputs específicos */
-    input[type="text"], input[type="number"], input[type="email"], input[type="password"] {
-        background-color: var(--cor-fundo) !important;
-        color: var(--cor-texto) !important;
-    }
-
-    /* 🔥 CORREÇÃO EXTREMA PARA AUTOFILL E DIGITAÇÃO 🔥 */
-    input:-webkit-autofill,
-    input:-webkit-autofill:hover,
-    input:-webkit-autofill:focus,
-    input:-webkit-autofill:active,
-    input:-internal-autofill-selected,
-    select:-webkit-autofill,
-    select:-webkit-autofill:hover,
-    select:-webkit-autofill:focus,
-    textarea:-webkit-autofill,
-    textarea:-webkit-autofill:hover,
-    textarea:-webkit-autofill:focus {
-        -webkit-box-shadow: 0 0 0 1000px var(--cor-fundo) inset !important;
-        -webkit-text-fill-color: var(--cor-texto) !important;
-        caret-color: var(--cor-texto) !important;
-        transition: background-color 5000s ease-in-out 0s !important;
-        background-color: var(--cor-fundo) !important;
-    }
-
-    /* Cursor (texto piscando) */
-    input, textarea, select {
-        caret-color: var(--cor-texto) !important;
-    }
-
-    /* 🔥 FORÇAR QUE TUDO USE A COR DO TEMA 🔥 */
-    body *:focus {
-        background-color: var(--cor-fundo) !important;
-        color: var(--cor-texto) !important;
-    }  
-
-    /* Títulos do formulário */
-    :root[data-theme="light"] .form-title,
-    :root[data-theme="light"] .form-subtitle {
-        color: #d29e00 !important;
-    }
-
-    :root[data-theme="dark"] .form-title,
-    :root[data-theme="dark"] .form-subtitle {
-        color: #ffffff !important;
-    }    
-
-    /* ============================================
-    CORREÇÃO DO HEADER - FUNDO E CORES
-    ============================================ */
-
-    /* Fundo do header - usa a cor do tema */
-    .main-header {
-        background: var(--cor-card) !important;
-        border-bottom: 1px solid var(--cor-borda) !important;
-    }
-
-    /* Nome do usuário - em azul */
-    .user-info span:first-child {
-        color: var(--cor-primaria) !important;
-        font-weight: 600;
-    }
-
-    /* Avatar do usuário */
-    .user-info i {
-        color: var(--cor-primaria) !important;
-    }
-
-    /* Título da página (TRANSFERÊNCIA INTERNACIONAL) */
-    .page-header h2 {
-        background: linear-gradient(90deg, #b78700, #eeb600) !important;
-        -webkit-background-clip: text !important;
-        background-clip: text !important;
-        color: transparent !important;
-    }
-
-    /* Subtítulo da página */
-    .page-subtitle {
-        color: var(--cor-texto-secundario) !important;
-    }
-
-    /* Breadcrumb (navegação) */
-    .page-nav a {
-        color: var(--cor-texto-secundario) !important;
-    }
-
-    .page-nav a:hover {
-        color: var(--cor-primaria) !important;
-    }
-
-    .current-page {
-        color: var(--cor-texto) !important;
-    }
-
-    /* Logo */
-    .logo h1 {
-        background: linear-gradient(90deg, #b78700, #eeb600) !important;
-        -webkit-background-clip: text !important;
-        background-clip: text !important;
-        color: transparent !important;
-    }
-
-    .logo i {
-        color: var(--cor-primaria) !important;
-    }    
-
-    /* ============================================
-    CORREÇÃO DO HEADER PARA TRANSFERENCIA.HTML
-    ============================================ */
-
-    /* Fundo do header - usa a cor do tema */
-    /* Fundo do header - MESMO FUNDO DA TELA */
-    .main-header {
-        background-color: var(--cor-fundo) !important;
-        border-bottom: 1px solid var(--cor-borda) !important;
-    }
-
-    /* Título da página (TRANSFERÊNCIA INTERNACIONAL) */
-    .page-header h2 {
-        background: linear-gradient(90deg, #b78700, #eeb600) !important;
-        -webkit-background-clip: text !important;
-        background-clip: text !important;
-        color: transparent !important;
-    }
-
-    /* Nome do usuário - em azul */
-    .user-info span:first-child {
-        color: var(--cor-primaria) !important;
-        font-weight: 600;
-    }
-
-    /* Avatar do usuário */
-    .user-info i {
-        color: var(--cor-primaria) !important;
-    }
-
-    /* Logo */
-    .logo h1 {
-        background: linear-gradient(90deg, #b78700, #eeb600) !important;
-        -webkit-background-clip: text !important;
-        background-clip: text !important;
-        color: transparent !important;
-    }
-
-    .logo i {
-        color: var(--cor-primaria) !important;
-    }  
-    
-    /* ============================================
-    CHECKBOX - SALVAR BENEFICIÁRIO
-    ============================================ */
-
-    .form-checkbox {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;  /* 🔥 Alinha à direita */
-        gap: 10px;
-        margin: 20px 0;
-        padding: 8px 15px;
+    /* ============================================================
+       RODAPÉ
+       ============================================================ */
+    .main-footer {
+        padding: 20px 30px;
+        border-top: 1px solid var(--cor-borda);
         background-color: var(--cor-card);
-        border: 1px solid var(--cor-borda);
-        border-radius: var(--borda-radius-pequeno);
-        width: fit-content;         /* 🔥 Largura apenas do conteúdo */
-        margin-left: auto;          /* 🔥 Empurra para a direita */
+        text-align: center;
+        color: var(--cor-texto-secundario);
+        max-width: 1400px;
+        margin: 40px auto 0;
+        width: 100%;
+        font-size: 13px;
     }
 
-    .form-checkbox input[type="checkbox"] {
-        width: 18px;
-        height: 18px;
-        cursor: pointer;
-        accent-color: var(--cor-primaria);
-        margin: 0;
-        padding: 0;
+    .footer-links a {
+        color: var(--cor-texto-secundario);
+        text-decoration: none;
+        margin: 0 10px;
+        transition: color 0.2s;
     }
 
-    .form-checkbox label {
-        color: var(--cor-texto) !important;
-        cursor: pointer;
-        margin: 0;
-        font-size: 14px;
-    }
-
-    .form-checkbox label i {
-        color: var(--cor-primaria);
-        margin-right: 8px;
-    }
-
-    .form-checkbox:hover {
-        background-color: var(--cor-card-hover);
-        border-color: var(--cor-primaria);
-    }  
+    .footer-links a:hover { color: var(--cor-primaria); }
 
     </style>
 </head>
@@ -1439,10 +1274,10 @@
             // Forçar a cor do tema no clone
             const theme = document.documentElement.getAttribute('data-theme');
             if (theme === 'light') {
-                clone.style.backgroundColor = '#f0f4f9';
+                clone.style.backgroundColor = '#ffffff';
                 clone.style.color = '#1a1d24';
             } else {
-                clone.style.backgroundColor = '#0a0e15';
+                clone.style.backgroundColor = '#191611';
                 clone.style.color = '#e0e0e0';
             }
         });
@@ -1457,10 +1292,10 @@
                 
                 inputs.forEach(input => {
                     if (theme === 'light') {
-                        input.style.backgroundColor = '#f0f4f9';
+                        input.style.backgroundColor = '#ffffff';
                         input.style.color = '#1a1d24';
                     } else {
-                        input.style.backgroundColor = '#0a0e15';
+                        input.style.backgroundColor = '#191611';
                         input.style.color = '#e0e0e0';
                     }
                 });

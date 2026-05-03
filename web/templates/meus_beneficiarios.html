@@ -5,383 +5,207 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🏦 Cambio Bank - Meus Beneficiários</title>
     <link rel="stylesheet" href="/static/css/theme.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>(function(){var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
     <style>
-    /* ============================================
-    CSS DO DASHBOARD (PARA FUNDO E HEADER)
-    ============================================ */
+    * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; }
 
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-
-    :root {
-        /* PALETA DE CORES DO SEU KIVY */
-        --cor-fundo: #0a0e15;
-        --cor-card: #0d1117;
-        --cor-borda: #1e232e;
-        --cor-texto: #e0e0e0;
-        --cor-texto-secundario: #8b949e;
-        --cor-primaria: #1a5fb4;
-        --cor-sucesso: #2ec27e;
-        --cor-alerta: #f39c12;
-        --cor-perigo: #e01b24;
-        --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.3);
-        --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.4);
-        --sombra-forte: 0 12px 24px rgba(0, 0, 0, 0.5);
-        --borda-radius: 12px;
+    /* ── TEMA ─────────────────────────────────────────────── */
+    :root, :root[data-theme="light"] {
+        --cor-fundo:            #f8f5ee;
+        --cor-card:             #ffffff;
+        --cor-borda:            #e8dfc8;
+        --cor-primaria:         #d29e00;
+        --cor-texto:            #1a1d24;
+        --cor-texto-secundario: #6b7280;
+        --cor-card-hover:       #f5f0e8;
+        --cor-sucesso:          #2ec27e;
+        --cor-alerta:           #f39c12;
+        --cor-perigo:           #e01b24;
+        --sombra-suave:         0 2px 8px rgba(0,0,0,.06);
+        --sombra-media:         0 6px 20px rgba(0,0,0,.10);
+        --borda-radius:         12px;
         --borda-radius-pequeno: 8px;
     }
 
-    body {
-        background: var(--cor-fundo) !important;
-        color: var(--cor-texto) !important;
-        min-height: 100vh;
-        overflow-x: hidden;
+    :root[data-theme="dark"] {
+        --cor-fundo:            #110f08;
+        --cor-card:             #191611;
+        --cor-borda:            #2d2819;
+        --cor-primaria:         #d29e00;
+        --cor-texto:            #e0e0e0;
+        --cor-texto-secundario: #9ca3af;
+        --cor-card-hover:       #221f14;
+        --cor-sucesso:          #2ec27e;
+        --cor-alerta:           #f39c12;
+        --cor-perigo:           #e01b24;
+        --sombra-suave:         0 4px 6px rgba(0,0,0,.3);
+        --sombra-media:         0 8px 16px rgba(0,0,0,.4);
+        --borda-radius:         12px;
+        --borda-radius-pequeno: 8px;
     }
 
-    /* CONTAINER PRINCIPAL */
-    .app-container {
-        max-width: 1400px;
-        margin: 0 auto;
-        padding: 20px;
-        min-height: 100vh;
-    }
+    html, body { background:var(--cor-fundo); color:var(--cor-texto); min-height:100vh; overflow-x:hidden; }
 
-    /* HEADER (igual ao dashboard) */
-    .app-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 20px 0;
-        margin-bottom: 30px;
-        border-bottom: 1px solid var(--cor-borda);
+    /* ── CABEÇALHO ────────────────────────────────────────── */
+    .main-header {
+        display:flex; justify-content:space-between; align-items:center;
+        padding:16px 30px; background:var(--cor-card);
+        border-bottom:1px solid var(--cor-borda); position:sticky; top:0; z-index:100;
     }
-
-    .logo {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        font-size: 24px;
-        font-weight: bold;
-    }
-
-    .logo i {
-        color: var(--cor-primaria);
-        font-size: 28px;
-    }
-
+    .header-left, .header-right { display:flex; align-items:center; gap:20px; }
+    .logo-text strong { font-weight:800; }
     .logo-text {
-        background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
+        background:linear-gradient(90deg,#b78700,#eeb600);
+        -webkit-background-clip:text; background-clip:text; color:transparent;
+        font-size:20px; font-weight:400; letter-spacing:.5px;
     }
-
-    .page-title {
-        font-size: 28px;
-        font-weight: bold;
-        text-align: center;
-        background: linear-gradient(90deg, #fff, #e0e0e0);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
+    .user-info { display:flex; align-items:center; gap:10px; font-size:14px; color:var(--cor-texto-secundario); }
+    .user-info span { color:var(--cor-primaria); font-weight:600; }
+    .user-info i { color:var(--cor-primaria); }
+    .btn-back {
+        background:transparent; border:1px solid var(--cor-borda); color:var(--cor-texto);
+        padding:7px 16px; border-radius:var(--borda-radius-pequeno); text-decoration:none;
+        display:flex; align-items:center; gap:8px; transition:all .25s ease; font-size:14px;
     }
+    .btn-back:hover { border-color:var(--cor-primaria); color:var(--cor-primaria); background:rgba(210,158,0,.08); }
 
-    .user-menu {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 16px;
-        background: var(--cor-card);
-        border-radius: var(--borda-radius-pequeno);
-        border: 1px solid var(--cor-borda);
-        cursor: pointer;
-        transition: all 0.3s ease;
+    /* ── BREADCRUMB ───────────────────────────────────────── */
+    .page-nav {
+        padding:12px 30px; border-bottom:1px solid var(--cor-borda);
+        display:flex; align-items:center; gap:10px; font-size:13px;
     }
+    .page-nav a { color:var(--cor-texto-secundario); text-decoration:none; display:flex; align-items:center; gap:6px; transition:color .2s; }
+    .page-nav a:hover { color:var(--cor-primaria); }
+    .page-nav i { font-size:11px; }
+    .page-nav .fa-chevron-right { opacity:.4; }
+    .current-page { color:var(--cor-texto); font-weight:600; display:flex; align-items:center; gap:6px; }
 
-    .user-menu:hover {
-        border-color: var(--cor-primaria);
-        transform: translateY(-2px);
+    /* ── TÍTULO ───────────────────────────────────────────── */
+    .page-header { padding:24px 30px 16px; text-align:center; }
+    .page-header h2 {
+        font-size:24px; margin-bottom:6px;
+        background:linear-gradient(90deg,#b78700,#eeb600);
+        -webkit-background-clip:text; background-clip:text; color:transparent;
+        display:flex; align-items:center; gap:10px; justify-content:center;
     }
+    .page-subtitle { color:var(--cor-texto-secundario); font-size:14px; margin:0; }
 
-    .user-avatar {
-        font-size: 24px;
-        color: var(--cor-primaria);
-    }
+    /* ── LAYOUT ───────────────────────────────────────────── */
+    .content-container { max-width:1400px; margin:0 auto; padding:0 24px; }
+    .container-beneficiarios { padding:0 0 40px; }
 
-    .user-name {
-        font-weight: 600;
-    }
-
-    /* FOOTER (igual ao dashboard) */
-    .app-footer {
-        margin-top: 40px;
-        padding-top: 20px;
-        border-top: 1px solid var(--cor-borda);
-    }
-
-    .footer-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        color: var(--cor-texto-secundario);
-        font-size: 14px;
-    }
-
-    .status-online {
-        color: var(--cor-sucesso);
-        font-weight: 600;
-    }
-
-    /* ============================================
-    CSS DOS BENEFICIÁRIOS (SIMPLIFICADO)
-    ============================================ */
-
-    .container-beneficiarios {
-        padding: 20px 0;
-    }
-
-    /* HEADER BENEFICIÁRIOS */
+    /* ── TOOLBAR ──────────────────────────────────────────── */
     .header-beneficiarios {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 30px;
-        padding-bottom: 20px;
-        border-bottom: 1px solid var(--cor-borda);
+        display:flex; justify-content:space-between; align-items:center;
+        margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid var(--cor-borda);
     }
+    .header-beneficiarios h1 { font-size:18px; display:flex; align-items:center; gap:10px; color:var(--cor-texto); }
+    .header-beneficiarios h1 i { color:var(--cor-primaria); }
 
-    .header-beneficiarios h1 {
-        font-size: 24px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        color: var(--cor-texto);
-    }
-
-    .header-beneficiarios h1 i {
-        color: #1abc9c; /* Turquesa dos beneficiários */
-    }
-
-    /* BOTÃO NOVO */
     .btn-novo-beneficiario {
-        background: linear-gradient(135deg, var(--cor-primaria), #2d8fff);
-        color: white;
-        border: none;
-        padding: 12px 24px;
-        border-radius: var(--borda-radius-pequeno);
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        transition: all 0.3s ease;
+        background:linear-gradient(135deg,#b78700,#eeb600); color:#1a1200;
+        border:none; padding:9px 20px; border-radius:var(--borda-radius-pequeno);
+        font-size:14px; font-weight:600; cursor:pointer;
+        display:flex; align-items:center; gap:8px; transition:all .25s ease; white-space:nowrap;
     }
+    .btn-novo-beneficiario:hover { transform:translateY(-2px); box-shadow:0 5px 15px rgba(210,158,0,.3); }
 
-    .btn-novo-beneficiario:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(26, 95, 180, 0.3);
-    }
-
-    /* LISTA DE BENEFICIÁRIOS */
+    /* ── GRID DE CARDS ────────────────────────────────────── */
     .lista-beneficiarios {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-        gap: 20px;
-        margin-bottom: 40px;
+        display:grid;
+        grid-template-columns:repeat(auto-fill, minmax(360px, 1fr));
+        gap:20px;
+        margin-bottom:40px;
     }
 
-    /* CARD SIMPLIFICADO */
+    /* ── CARD ─────────────────────────────────────────────── */
     .card-beneficiario {
-        background: var(--cor-card);
-        border: 1px solid var(--cor-borda);
-        border-radius: var(--borda-radius);
-        padding: 25px;
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
+        background:var(--cor-card);
+        border:1px solid var(--cor-borda);
+        border-left:3px solid var(--cor-primaria);
+        border-radius:var(--borda-radius);
+        overflow:hidden;
+        transition:all .25s ease;
     }
-
     .card-beneficiario:hover {
-        border-color: #1abc9c;
-        transform: translateY(-3px);
-        box-shadow: var(--sombra-media);
+        transform:translateY(-3px);
+        box-shadow:0 8px 24px rgba(210,158,0,.12);
+        border-left-color:#b78700;
     }
 
-    .card-beneficiario::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, #1abc9c, transparent);
-        opacity: 0.7;
+    /* topo do card: avatar + nome + badge */
+    .card-top {
+        display:flex; align-items:center; gap:14px;
+        padding:18px 20px 16px; border-bottom:1px solid var(--cor-borda);
     }
-
-    /* HEADER DO CARD */
-    .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 20px;
+    .card-avatar {
+        width:44px; height:44px; border-radius:50%;
+        background:linear-gradient(135deg,#b78700,#eeb600);
+        display:flex; align-items:center; justify-content:center;
+        font-size:19px; font-weight:800; color:#1a1200; flex-shrink:0;
     }
+    .card-name-block { flex:1; min-width:0; }
+    .card-name { font-size:15px; font-weight:700; color:var(--cor-texto); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .card-bank { font-size:12px; color:var(--cor-texto-secundario); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-    .card-header h3 {
-        font-size: 18px;
-        color: var(--cor-texto);
-        margin: 0;
-        flex: 1;
-        font-weight: 600;
-    }
-
+    /* badges */
     .status-ativo {
-        background: rgba(46, 194, 126, 0.15);
-        color: var(--cor-sucesso);
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
+        background:rgba(46,194,126,.12); color:var(--cor-sucesso);
+        padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600;
+        white-space:nowrap; border:1px solid rgba(46,194,126,.25); flex-shrink:0;
     }
-
     .status-inativo {
-        background: rgba(224, 27, 36, 0.15);
-        color: var(--cor-perigo);
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
+        background:rgba(224,27,36,.10); color:var(--cor-perigo);
+        padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600;
+        white-space:nowrap; border:1px solid rgba(224,27,36,.2); flex-shrink:0;
     }
 
-    /* INFORMAÇÕES SIMPLIFICADAS DO CARD */
-    .card-info {
-        margin-bottom: 20px;
+    /* grid de dados */
+    .card-data { display:grid; grid-template-columns:1fr 1fr; }
+    .data-cell { padding:11px 20px; }
+    .data-cell:nth-child(even) { border-left:1px solid var(--cor-borda); }
+    .data-cell:nth-child(n+3) { border-top:1px solid var(--cor-borda); }
+    .data-label {
+        font-size:10px; color:var(--cor-texto-secundario);
+        text-transform:uppercase; letter-spacing:.5px; margin-bottom:3px;
+        display:flex; align-items:center; gap:4px;
     }
+    .data-label i { font-size:9px; }
+    .data-value { font-size:13px; font-weight:600; color:var(--cor-texto); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-    .info-item {
-        display: flex;
-        margin-bottom: 12px;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .info-item i {
-        color: var(--cor-texto-secundario);
-        width: 20px;
-        font-size: 14px;
-    }
-
-    .info-text {
-        color: var(--cor-texto);
-        font-size: 14px;
-        flex: 1;
-    }
-
-    .info-label {
-        color: var(--cor-texto-secundario);
-        font-size: 13px;
-        margin-bottom: 2px;
-    }
-
-    .info-value {
-        color: var(--cor-texto);
-        font-size: 14px;
-        font-weight: 500;
-    }
-
-    /* BOTÕES DE AÇÃO */
+    /* ações */
     .card-actions {
-        display: flex;
-        gap: 10px;
-        border-top: 1px solid var(--cor-borda);
-        padding-top: 15px;
+        display:flex; align-items:center; gap:8px;
+        padding:12px 20px; border-top:1px solid var(--cor-borda);
     }
-
-    .card-actions button {
-        flex: 1;
-        padding: 10px;
-        border: none;
-        border-radius: var(--borda-radius-pequeno);
-        font-size: 14px;
-        font-weight: 500;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        transition: all 0.2s ease;
+    .btn-usar, .btn-editar, .btn-excluir {
+        padding:6px 14px; border-radius:var(--borda-radius-pequeno);
+        font-size:13px; font-weight:600; cursor:pointer;
+        display:inline-flex; align-items:center; gap:6px;
+        transition:all .2s ease; white-space:nowrap; border:1px solid;
     }
+    .btn-usar  { background:rgba(46,194,126,.10); color:var(--cor-sucesso);  border-color:rgba(46,194,126,.3); }
+    .btn-usar:hover  { background:rgba(46,194,126,.20); border-color:var(--cor-sucesso); }
+    .btn-editar { background:rgba(210,158,0,.10);   color:var(--cor-primaria); border-color:rgba(210,158,0,.3); }
+    .btn-editar:hover { background:rgba(210,158,0,.20); border-color:var(--cor-primaria); }
+    .btn-excluir { background:transparent; color:var(--cor-texto-secundario); border-color:var(--cor-borda); margin-left:auto; }
+    .btn-excluir:hover { background:rgba(224,27,36,.08); color:var(--cor-perigo); border-color:rgba(224,27,36,.3); }
 
-    .btn-usar {
-        background: rgba(46, 194, 126, 0.15);
-        color: var(--cor-sucesso);
-        border: 1px solid rgba(46, 194, 126, 0.3);
-    }
+    /* ── VAZIO / LOADING ──────────────────────────────────── */
+    .empty-state { grid-column:1/-1; text-align:center; padding:60px 20px; color:var(--cor-texto-secundario); }
+    .empty-state i { font-size:48px; margin-bottom:20px; opacity:.4; }
+    .empty-state h3 { font-size:20px; margin-bottom:10px; color:var(--cor-texto); }
+    .empty-state p { font-size:14px; }
+    .loading { grid-column:1/-1; text-align:center; padding:40px; color:var(--cor-texto-secundario); }
+    .loading i { margin-right:10px; }
+    .status-online { color:var(--cor-sucesso); font-weight:600; }
 
-    .btn-usar:hover {
-        background: rgba(46, 194, 126, 0.25);
-    }
-
-    .btn-editar {
-        background: rgba(26, 95, 180, 0.15);
-        color: var(--cor-primaria);
-        border: 1px solid rgba(26, 95, 180, 0.3);
-    }
-
-    .btn-editar:hover {
-        background: rgba(26, 95, 180, 0.25);
-    }
-
-    .btn-excluir {
-        background: rgba(224, 27, 36, 0.15);
-        color: var(--cor-perigo);
-        border: 1px solid rgba(224, 27, 36, 0.3);
-    }
-
-    .btn-excluir:hover {
-        background: rgba(224, 27, 36, 0.25);
-    }
-
-    /* ESTADO VAZIO */
-    .empty-state {
-        grid-column: 1 / -1;
-        text-align: center;
-        padding: 60px 20px;
-        color: var(--cor-texto-secundario);
-    }
-
-    .empty-state i {
-        font-size: 48px;
-        margin-bottom: 20px;
-        color: var(--cor-texto-secundario);
-        opacity: 0.5;
-    }
-
-    .empty-state h3 {
-        font-size: 20px;
-        margin-bottom: 10px;
-        color: var(--cor-texto);
-    }
-
-    .empty-state p {
-        font-size: 14px;
-        color: var(--cor-texto-secundario);
-    }
-
-    /* LOADING */
-    .loading {
-        grid-column: 1 / -1;
-        text-align: center;
-        padding: 40px;
-        color: var(--cor-texto-secundario);
-    }
-
-    .loading i {
-        margin-right: 10px;
+    /* ── RODAPÉ ───────────────────────────────────────────── */
+    .main-footer {
+        padding:18px 30px; border-top:1px solid var(--cor-borda);
+        background:var(--cor-card); text-align:center;
+        color:var(--cor-texto-secundario); font-size:13px; margin-top:40px;
     }
 
     /* MODAL DE CRIAÇÃO/EDIÇÃO */
@@ -534,10 +358,10 @@
     }
 
     .btn-salvar {
-        background: linear-gradient(135deg, var(--cor-primaria), #2d8fff);
-        color: white;
+        background: linear-gradient(135deg, #b78700, #eeb600);
+        color: #1a1200;
         border: none;
-        padding: 12px 24px;
+        padding: 11px 24px;
         border-radius: var(--borda-radius-pequeno);
         font-size: 14px;
         font-weight: 600;
@@ -545,11 +369,12 @@
         display: flex;
         align-items: center;
         gap: 8px;
+        white-space: nowrap;
     }
 
     .btn-salvar:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(26, 95, 180, 0.3);
+        box-shadow: 0 5px 15px rgba(210, 158, 0, 0.3);
     }
 
     /* MENSAGENS */
@@ -635,7 +460,7 @@
         padding: 30px;
         text-align: center;
         border-bottom: 1px solid var(--cor-borda);
-        background: linear-gradient(135deg, rgba(26, 95, 180, 0.1), transparent);
+        background: linear-gradient(135deg, rgba(210, 158, 0, 0.06), transparent);
     }
 
     .modal-elegante-icon {
@@ -826,95 +651,89 @@
         }
     }
 
-    /* Títulos do modal em azul */
+    /* Modal header título gold */
     .modal-header h2 {
-        background: linear-gradient(90deg, var(--cor-primaria), #2d8fff) !important;
-        -webkit-background-clip: text !important;
-        background-clip: text !important;
-        color: transparent !important;
+        background: linear-gradient(90deg, #b78700, #eeb600);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
     }
+    .modal-header h2 i { color: var(--cor-primaria); }
 
-    .modal-header h2 i {
-        color: var(--cor-primaria) !important;
-    }    
-
-    /* Focus nos campos do modal */
+    /* Campos do modal */
+    .form-group input,
+    .form-group textarea {
+        background: var(--cor-card) !important;
+        color: var(--cor-texto) !important;
+        border-color: var(--cor-borda) !important;
+    }
     .form-group input:focus,
     .form-group textarea:focus {
         outline: none !important;
         border-color: var(--cor-primaria) !important;
-        box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2) !important;
-        background-color: var(--cor-fundo) !important;
+        box-shadow: 0 0 0 3px rgba(210, 158, 0, 0.14) !important;
+        background: var(--cor-card) !important;
         color: var(--cor-texto) !important;
     }
-
-    /* Labels do modal */
-    .form-group label {
-        color: var(--cor-texto-secundario) !important;
+    /* Override formularios.css dark */
+    :root[data-theme="light"] .form-group input,
+    :root[data-theme="light"] .form-group textarea {
+        background: #ffffff !important;
+        color: #1a1d24 !important;
+        border-color: #e8dfc8 !important;
     }
-
-    .form-group label .required {
-        color: var(--cor-perigo) !important;
+    :root[data-theme="light"] .form-group input:focus,
+    :root[data-theme="light"] .form-group textarea:focus {
+        background: #ffffff !important;
+        border-color: #d29e00 !important;
+        box-shadow: 0 0 0 3px rgba(210,158,0,.14) !important;
     }
-
-    /* Título das seções internas */
-    .form-group h3 {
-        color: var(--cor-primaria) !important;
-    }    
+    .form-group label { color: var(--cor-texto-secundario); }
+    .form-group label .required { color: var(--cor-perigo); }
+    .form-group h3 { color: var(--cor-primaria); }
 
     </style>
-    <!-- FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <!-- CONTAINER PRINCIPAL (IGUAL AO DASHBOARD) -->
-    <div class="app-container">
-        
-        <!-- HEADER (IGUAL AO DASHBOARD) -->
-        <header class="app-header">
-            <div class="header-left">
-                <div class="logo">
-                    <i class="fas fa-university"></i>
-                    <span class="logo-text">CAMBIO BANK</span>
-                </div>
+    <!-- CABEÇALHO -->
+    <header class="main-header">
+        <div class="header-left">
+            <div class="logo">
+                <span class="logo-text"><strong>Link</strong> international</span>
             </div>
-            
-            <div class="header-center">
-                <h1 class="page-title">MEUS BENEFICIÁRIOS</h1>
+        </div>
+        <div class="header-right">
+            <div class="user-info">
+                <span id="userName">{{ usuario if usuario else 'Usuário' }}</span>
+                <i class="fas fa-user-circle"></i>
             </div>
-            
-            <div class="header-right">
-                <div class="user-menu" onclick="window.location.href='/dashboard'">
-                    <div class="user-avatar">
-                        <i class="fas fa-user-circle"></i>
-                    </div>
-                    <span class="user-name" id="userName">
-                        {{ usuario if usuario else 'pantanal' }}
-                    </span>
-                    <i class="fas fa-home"></i>
-                </div>
-            </div>
-        </header>
-
-        <!-- CONTEÚDO DOS BENEFICIÁRIOS -->
-        <div class="container-beneficiarios">
-            <!-- Botão voltar -->
-            <a href="/dashboard" class="btn-voltar">
-                <i class="fas fa-arrow-left"></i> Voltar ao Dashboard
+            <a href="/dashboard" class="btn-back">
+                <i class="fas fa-arrow-left"></i> Voltar
             </a>
+        </div>
+    </header>
 
-            <!-- Header específico de beneficiários -->
+    <!-- CONTEÚDO -->
+    <div class="content-container">
+        <nav class="page-nav">
+            <a href="/dashboard"><i class="fas fa-home"></i> Home</a>
+            <i class="fas fa-chevron-right"></i>
+            <span class="current-page"><i class="fas fa-users"></i> Meus Beneficiários</span>
+        </nav>
+
+        <div class="page-header">
+            <h2><i class="fas fa-users"></i> MEUS BENEFICIÁRIOS</h2>
+            <p class="page-subtitle">Gerencie os destinatários das suas transferências internacionais</p>
+        </div>
+
+        <div class="container-beneficiarios">
             <div class="header-beneficiarios">
-                <h1>
-                    <i class="fas fa-users"></i>
-                    Meus Beneficiários
-                </h1>
+                <h1><i class="fas fa-users"></i> Beneficiários cadastrados</h1>
                 <button class="btn-novo-beneficiario" onclick="abrirModalNovo()">
                     <i class="fas fa-plus"></i> Cadastrar Novo
                 </button>
             </div>
-            
-            <!-- Lista de beneficiários (SIMPLIFICADA) -->
+
             <div class="lista-beneficiarios" id="listaBeneficiarios">
                 <div class="loading">
                     <i class="fas fa-spinner fa-spin"></i> Carregando beneficiários...
@@ -922,19 +741,12 @@
             </div>
         </div>
 
-        <!-- FOOTER -->
-        <footer class="app-footer">
-            <div class="footer-content">
-                <div class="footer-copyright">
-                    © 2024 Cambio Bank • Sistema de Câmbio Internacional
-                </div>
-                <div class="footer-version">
-                    v2.1.0 • <span class="status-online">● Online</span>
-                </div>
-            </div>
-        </footer>
-        
-    </div>
+    </div><!-- end content-container -->
+
+    <footer class="main-footer">
+        © 2025 Link International • Money Transfers &nbsp;|&nbsp;
+        <span class="status-online">● Online</span>
+    </footer>
 
     <!-- MODAL DE CRIAÇÃO/EDIÇÃO (EXISTENTE) -->
     <div class="modal" id="modalBeneficiario">
@@ -1193,70 +1005,54 @@
             return;
         }
         
-        container.innerHTML = beneficiariosData.map(benef => `
+        container.innerHTML = beneficiariosData.map(benef => {
+            const inicial = (benef.nome || '?').charAt(0).toUpperCase();
+            const ibanTrunc = benef.iban ? (benef.iban.length > 18 ? benef.iban.substring(0,18)+'…' : benef.iban) : '—';
+            return `
             <div class="card-beneficiario" data-id="${benef.id}">
-                <div class="card-header">
-                    <h3>${benef.nome}</h3>
+                <div class="card-top">
+                    <div class="card-avatar">${inicial}</div>
+                    <div class="card-name-block">
+                        <div class="card-name">${benef.nome}</div>
+                        <div class="card-bank">${benef.banco || '—'}</div>
+                    </div>
                     <span class="${(benef.ativo === false) ? 'status-inativo' : 'status-ativo'}">
                         ${(benef.ativo === false) ? 'Inativo' : 'Ativo'}
                     </span>
                 </div>
-                
-                <div class="card-info">
-                    <!-- BANCO -->
-                    <div class="info-item">
-                        <i class="fas fa-university"></i>
-                        <div class="info-text">
-                            <div class="info-label">Banco</div>
-                            <div class="info-value">${benef.banco || 'Não informado'}</div>
-                        </div>
+
+                <div class="card-data">
+                    <div class="data-cell">
+                        <div class="data-label"><i class="fas fa-barcode"></i> SWIFT/BIC</div>
+                        <div class="data-value">${benef.swift || '—'}</div>
                     </div>
-                    
-                    <!-- SWIFT/BIC -->
-                    <div class="info-item">
-                        <i class="fas fa-code"></i>
-                        <div class="info-text">
-                            <div class="info-label">SWIFT/BIC</div>
-                            <div class="info-value">${benef.swift || 'Não informado'}</div>
-                        </div>
+                    <div class="data-cell">
+                        <div class="data-label"><i class="fas fa-globe"></i> País do Banco</div>
+                        <div class="data-value">${benef.pais_banco || '—'}</div>
                     </div>
-                    
-                    <!-- IBAN/ACCOUNT -->
-                    ${benef.iban ? `
-                    <div class="info-item">
-                        <i class="fas fa-credit-card"></i>
-                        <div class="info-text">
-                            <div class="info-label">IBAN/Account</div>
-                            <div class="info-value">${benef.iban}</div>
-                        </div>
+                    <div class="data-cell">
+                        <div class="data-label"><i class="fas fa-credit-card"></i> IBAN / Account</div>
+                        <div class="data-value">${ibanTrunc}</div>
                     </div>
-                    ` : ''}
-                    
-                    <!-- PAÍS DO BANCO -->
-                    ${benef.pais_banco ? `
-                    <div class="info-item">
-                        <i class="fas fa-globe"></i>
-                        <div class="info-text">
-                            <div class="info-label">País do Banco</div>
-                            <div class="info-value">${benef.pais_banco}</div>
-                        </div>
+                    <div class="data-cell">
+                        <div class="data-label"><i class="fas fa-city"></i> Cidade</div>
+                        <div class="data-value">${benef.cidade_banco || benef.cidade || '—'}</div>
                     </div>
-                    ` : ''}
                 </div>
-                
+
                 <div class="card-actions">
                     <button class="btn-usar" onclick="usarBeneficiario(${benef.id})">
                         <i class="fas fa-exchange-alt"></i> Usar
                     </button>
                     <button class="btn-editar" onclick="editarBeneficiario(${benef.id})">
-                        <i class="fas fa-edit"></i> Editar
+                        <i class="fas fa-pen"></i> Editar
                     </button>
                     <button class="btn-excluir" onclick="excluirBeneficiario(${benef.id})">
-                        <i class="fas fa-trash"></i> Excluir
+                        <i class="fas fa-trash-alt"></i> Excluir
                     </button>
                 </div>
-            </div>
-        `).join('');
+            </div>`;
+        }).join('');
     }
 
     // ============================================

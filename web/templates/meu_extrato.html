@@ -5,12 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🏦 Cambio Bank - Meu Extrato</title>
     <link rel="stylesheet" href="/static/css/theme.css">
-    <!-- Estilos principais (mesmo do dashboard) -->
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        (function(){
+            var t = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
     <style>
-    /* ============================================
-    CSS DO DASHBOARD (PARA FUNDO E HEADER)
-    ============================================ */
-
     * {
         margin: 0;
         padding: 0;
@@ -18,118 +21,191 @@
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
-    :root {
-        /* PALETA DE CORES DO SEU KIVY */
-        --cor-fundo: #0a0e15;
-        --cor-card: #0d1117;
-        --cor-borda: #1e232e;
-        --cor-texto: #e0e0e0;
-        --cor-texto-secundario: #8b949e;
-        --cor-primaria: #1a5fb4;
-        --cor-sucesso: #2ec27e;
-        --cor-alerta: #f39c12;
-        --cor-perigo: #e01b24;
-        --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.3);
-        --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.4);
-        --sombra-forte: 0 12px 24px rgba(0, 0, 0, 0.5);
-        --borda-radius: 12px;
+    :root, :root[data-theme="light"] {
+        --cor-fundo:            #f8f5ee;
+        --cor-card:             #ffffff;
+        --cor-borda:            #e8dfc8;
+        --cor-primaria:         #d29e00;
+        --cor-texto:            #1a1d24;
+        --cor-texto-secundario: #6b7280;
+        --cor-card-hover:       #f5f0e8;
+        --cor-sucesso:          #2ec27e;
+        --cor-alerta:           #f39c12;
+        --cor-perigo:           #e01b24;
+        --sombra-suave:         0 2px 8px rgba(0,0,0,0.06);
+        --sombra-media:         0 4px 16px rgba(0,0,0,0.10);
+        --borda-radius:         12px;
         --borda-radius-pequeno: 8px;
     }
 
-    body {
-        background: var(--cor-fundo) !important;
-        color: var(--cor-texto) !important;
+    :root[data-theme="dark"] {
+        --cor-fundo:            #110f08;
+        --cor-card:             #191611;
+        --cor-borda:            #2d2819;
+        --cor-primaria:         #d29e00;
+        --cor-texto:            #e0e0e0;
+        --cor-texto-secundario: #9ca3af;
+        --cor-card-hover:       #221f14;
+        --cor-sucesso:          #2ec27e;
+        --cor-alerta:           #f39c12;
+        --cor-perigo:           #e01b24;
+        --sombra-suave:         0 4px 6px rgba(0,0,0,0.3);
+        --sombra-media:         0 8px 16px rgba(0,0,0,0.4);
+        --borda-radius:         12px;
+        --borda-radius-pequeno: 8px;
+    }
+
+    html, body {
+        background: var(--cor-fundo);
+        color: var(--cor-texto);
         min-height: 100vh;
         overflow-x: hidden;
+        max-width: 100%;
     }
 
-    /* CONTAINER PRINCIPAL */
-    .app-container {
-        max-width: 1400px;
-        margin: 0 auto;
-        padding: 20px;
-        min-height: 100vh;
-    }
-
-    /* HEADER (igual ao dashboard) */
-    .app-header {
+    /* ============================================================
+       CABEÇALHO
+       ============================================================ */
+    .main-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 20px 0;
-        margin-bottom: 30px;
-        border-bottom: 1px solid var(--cor-borda);
-    }
-
-    .logo {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        font-size: 24px;
-        font-weight: bold;
-    }
-
-    .logo i {
-        color: var(--cor-primaria);
-        font-size: 28px;
-    }
-
-    .logo-text {
-        background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-    }
-
-    .page-title {
-        font-size: 28px;
-        font-weight: bold;
-        text-align: center;
-        background: linear-gradient(90deg, #fff, #e0e0e0);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-    }
-
-    .user-menu {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 16px;
+        padding: 16px 30px;
         background: var(--cor-card);
-        border-radius: var(--borda-radius-pequeno);
-        border: 1px solid var(--cor-borda);
-        cursor: pointer;
-        transition: all 0.3s ease;
+        border-bottom: 1px solid var(--cor-borda);
+        position: sticky;
+        top: 0;
+        z-index: 100;
     }
 
-    .user-menu:hover {
-        border-color: var(--cor-primaria);
-        transform: translateY(-2px);
-    }
-
-    .user-avatar {
-        font-size: 24px;
-        color: var(--cor-primaria);
-    }
-
-    .user-name {
-        font-weight: 600;
-    }
-
-    /* FOOTER (igual ao dashboard) */
-    .app-footer {
-        margin-top: 40px;
-        padding-top: 20px;
-        border-top: 1px solid var(--cor-borda);
-    }
-
-    .footer-content {
+    .header-left, .header-right {
         display: flex;
-        justify-content: space-between;
         align-items: center;
+        gap: 20px;
+    }
+
+    .logo-text strong { font-weight: 800; }
+    .logo-text {
+        background: linear-gradient(90deg, #b78700, #eeb600);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        font-size: 20px;
+        font-weight: 400;
+        letter-spacing: .5px;
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+        color: var(--cor-texto-secundario);
+    }
+
+    .user-info span { color: var(--cor-primaria); font-weight: 600; }
+    .user-info i { color: var(--cor-primaria); }
+
+    .btn-back {
+        background: transparent;
+        border: 1px solid var(--cor-borda);
+        color: var(--cor-texto);
+        padding: 7px 16px;
+        border-radius: var(--borda-radius-pequeno);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.25s ease;
+        font-size: 14px;
+    }
+
+    .btn-back:hover {
+        border-color: var(--cor-primaria);
+        color: var(--cor-primaria);
+        background: rgba(210, 158, 0, 0.08);
+    }
+
+    /* ============================================================
+       BREADCRUMB
+       ============================================================ */
+    .page-nav {
+        padding: 12px 30px;
+        border-bottom: 1px solid var(--cor-borda);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+    }
+
+    .page-nav a {
+        color: var(--cor-texto-secundario);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: color 0.2s;
+    }
+
+    .page-nav a:hover { color: var(--cor-primaria); }
+    .page-nav i { font-size: 11px; }
+    .page-nav .fa-chevron-right { opacity: 0.4; }
+
+    .current-page {
+        color: var(--cor-texto);
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* ============================================================
+       TÍTULO DA PÁGINA
+       ============================================================ */
+    .page-header {
+        padding: 24px 30px 16px;
+        text-align: center;
+    }
+
+    .page-header h2 {
+        font-size: 24px;
+        margin-bottom: 6px;
+        background: linear-gradient(90deg, #b78700, #eeb600);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        justify-content: center;
+    }
+
+    .page-subtitle {
         color: var(--cor-texto-secundario);
         font-size: 14px;
+        margin: 0;
+    }
+
+    /* ============================================================
+       LAYOUT
+       ============================================================ */
+    .content-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 24px;
+    }
+
+    /* ============================================================
+       RODAPÉ
+       ============================================================ */
+    .main-footer {
+        padding: 18px 30px;
+        border-top: 1px solid var(--cor-borda);
+        background-color: var(--cor-card);
+        text-align: center;
+        color: var(--cor-texto-secundario);
+        font-size: 13px;
+        margin-top: 40px;
     }
 
     .status-online {
@@ -150,7 +226,7 @@
         background: var(--cor-card);
         border: 1px solid var(--cor-borda);
         border-radius: var(--borda-radius);
-        padding: 30px;
+        padding: 28px;
         margin-bottom: 30px;
         box-shadow: var(--sombra-suave);
     }
@@ -160,16 +236,16 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 30px;
-        padding-bottom: 20px;
+        margin-bottom: 28px;
+        padding-bottom: 18px;
         border-bottom: 1px solid var(--cor-borda);
     }
 
     .header-extrato h1 {
-        font-size: 24px;
+        font-size: 20px;
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 10px;
         color: var(--cor-texto);
     }
 
@@ -177,21 +253,8 @@
         color: var(--cor-primaria);
     }
 
-    /* Diminuir espaço entre botão e header */
     .container-extrato {
-        padding: 10px 0 20px 0; /* Reduz padding-top de 20px para 10px */
-    }
-    
-    /* Aumentar espaço entre header e conteúdo abaixo */
-    .header-extrato {
-        margin-bottom: 40px; /* Aumentar de 30px para 40px */
-        margin-top: 15px; /* Adicionar espaço acima do header */
-    }
-    
-    /* Espaço específico para o botão voltar */
-    .btn-voltar {
-        margin-bottom: 5px; /* Pequeno espaço abaixo do botão */
-        display: inline-block; /* Para margem funcionar */
+        padding: 0 0 20px 0;
     }
 
     /* PAINEL DE CONTROLE (FILTROS) */
@@ -228,74 +291,58 @@
     .form-group select,
     .form-group input {
         width: 100%;
-        padding: 12px 15px;
-        background: rgba(255, 255, 255, 0.05);
+        padding: 11px 14px;
+        background: var(--cor-card);
         border: 1px solid var(--cor-borda);
         border-radius: var(--borda-radius-pequeno);
         color: var(--cor-texto);
         font-size: 14px;
-    }
-
-    .form-group input {
-        background: rgba(255, 255, 255, 0.07);
+        transition: border-color 0.2s, box-shadow 0.2s;
     }
 
     .form-group select:focus,
     .form-group input:focus {
         outline: none;
         border-color: var(--cor-primaria);
+        box-shadow: 0 0 0 3px rgba(210, 158, 0, 0.14);
     }
 
-    /* CORREÇÃO DO DROPDOWN (SELECT) */
+    /* Dropdown arrow */
     .form-group select {
         appearance: none;
         -webkit-appearance: none;
-        -moz-appearance: none;
-        background: rgba(255, 255, 255, 0.05) url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238b949e'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e") no-repeat right 12px center;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236b7280'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
         background-size: 20px;
         padding-right: 40px !important;
     }
 
-    /* ESTILO DAS OPÇÕES DO SELECT */
     .form-group select option {
         background: var(--cor-card);
         color: var(--cor-texto);
-        padding: 12px;
-        border-bottom: 1px solid var(--cor-borda);
     }
 
-    /* REMOVER O FUNDO BRANCO DO DROPDOWN NO CHROME */
-    select:-internal-list-box {
-        background: var(--cor-card) !important;
-        color: var(--cor-texto) !important;
-    }
-
-    /* CORREÇÃO PARA FIREFOX */
     select option {
         background: var(--cor-card) !important;
         color: var(--cor-texto) !important;
     }
 
-    /* CORREÇÃO PARA CHROME/EDGE */
-    select:focus option:checked {
-        background: var(--cor-primaria) !important;
-        color: white !important;
+    /* Override formularios.css que hardcoda cores escuras */
+    :root[data-theme="light"] .form-group input,
+    :root[data-theme="light"] .form-group select,
+    :root[data-theme="light"] .form-group textarea {
+        background: #ffffff !important;
+        color: #1a1d24 !important;
+        border-color: #e8dfc8 !important;
     }
 
-    /* PARA TODOS OS SELECTS DO SISTEMA */
-    select {
-        background-color: var(--cor-card) !important;
-        color: var(--cor-texto) !important;
-        border: 1px solid var(--cor-borda) !important;
-    }
-
-    /* REMOVER O ESTILO PADRÃO DO AUTOCOMPLETE NOS SELECTS TAMBÉM */
-    select:-webkit-autofill,
-    select:-webkit-autofill:hover,
-    select:-webkit-autofill:focus {
-        -webkit-box-shadow: 0 0 0px 1000px var(--cor-card) inset !important;
-        -webkit-text-fill-color: var(--cor-texto) !important;
-        transition: background-color 5000s ease-in-out 0s;
+    :root[data-theme="light"] .form-group input:focus,
+    :root[data-theme="light"] .form-group select:focus {
+        background: #ffffff !important;
+        color: #1a1d24 !important;
+        border-color: #d29e00 !important;
+        box-shadow: 0 0 0 3px rgba(210, 158, 0, 0.14) !important;
     }
 
     /* BOTÕES DE PERÍODO RÁPIDO */
@@ -320,9 +367,9 @@
 
     .btn-periodo:hover,
     .btn-periodo.ativo {
-        background: var(--cor-primaria);
-        border-color: var(--cor-primaria);
-        color: white;
+        background: linear-gradient(135deg, #b78700, #eeb600);
+        border-color: #d29e00;
+        color: #1a1200;
     }
 
     /* PERÍODO PERSONALIZADO */
@@ -339,25 +386,27 @@
     }
 
     .btn-usar-periodo {
-        padding: 12px 24px;
-        background: rgba(26, 95, 180, 0.2);
-        border: 1px solid rgba(26, 95, 180, 0.4);
+        padding: 11px 22px;
+        background: rgba(210, 158, 0, 0.1);
+        border: 1px solid rgba(210, 158, 0, 0.35);
         border-radius: var(--borda-radius-pequeno);
         color: var(--cor-primaria);
         cursor: pointer;
         font-weight: 600;
         transition: all 0.2s ease;
         height: fit-content;
+        white-space: nowrap;
     }
 
     .btn-usar-periodo:hover {
-        background: rgba(26, 95, 180, 0.3);
+        background: rgba(210, 158, 0, 0.2);
+        border-color: var(--cor-primaria);
     }
 
     /* PAINEL DE RESUMO */
     .painel-resumo {
-        background: linear-gradient(135deg, rgba(26, 95, 180, 0.1), rgba(45, 143, 255, 0.1));
-        border: 1px solid rgba(26, 95, 180, 0.3);
+        background: linear-gradient(135deg, rgba(210, 158, 0, 0.06), rgba(238, 182, 0, 0.04));
+        border: 1px solid rgba(210, 158, 0, 0.2);
         border-radius: var(--borda-radius);
         padding: 25px;
         margin-bottom: 25px;
@@ -398,7 +447,7 @@
     /* LISTA DE TRANSAÇÕES */
     .cabecalho-transacoes {
         display: grid;
-        grid-template-columns: 8% 52% 10% 10% 12% 8%;
+        grid-template-columns: 8fr 52fr 10fr 10fr 12fr 8fr;
         gap: 10px;
         padding: 15px 20px;
         background: rgba(255, 255, 255, 0.03);
@@ -463,7 +512,7 @@
     /* CARD DE TRANSAÇÃO (ESTILO KIVY) */
     .card-transacao {
         display: grid;
-        grid-template-columns: 8% 52% 10% 10% 12% 8%;
+        grid-template-columns: 8fr 52fr 10fr 10fr 12fr 8fr;
         gap: 10px;
         padding: 20px;
         /* 🔥 CORRIGIDO: usar cor que funciona nos dois temas */
@@ -476,7 +525,7 @@
     }
 
     .card-transacao:hover {
-        background: rgba(26, 95, 180, 0.05);
+        background: rgba(210, 158, 0, 0.04);
     }
 
     /* COLUNAS DA TRANSAÇÃO */
@@ -552,7 +601,7 @@
     }
 
     .btn-acao:hover {
-        background: rgba(26, 95, 180, 0.2);
+        background: rgba(210, 158, 0, 0.1);
         border-color: var(--cor-primaria);
         color: var(--cor-primaria);
     }
@@ -565,25 +614,6 @@
         margin-top: 30px;
         padding-top: 20px;
         border-top: 1px solid var(--cor-borda);
-    }
-
-    .btn-voltar {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        color: var(--cor-texto-secundario);
-        text-decoration: none;
-        padding: 12px 24px;
-        border-radius: var(--borda-radius-pequeno);
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid var(--cor-borda);
-        transition: all 0.2s ease;
-    }
-
-    .btn-voltar:hover {
-        color: var(--cor-texto);
-        background: rgba(255, 255, 255, 0.1);
-        border-color: var(--cor-primaria);
     }
 
     .btn-exportar {
@@ -723,10 +753,10 @@
     }
 
     .btn-fechar-modal {
-        background: var(--cor-primaria);
-        color: white;
+        background: linear-gradient(135deg, #b78700, #eeb600);
+        color: #1a1200;
         border: none;
-        padding: 12px 30px;
+        padding: 11px 28px;
         border-radius: var(--borda-radius-pequeno);
         font-weight: 600;
         cursor: pointer;
@@ -734,15 +764,15 @@
     }
 
     .btn-fechar-modal:hover {
-        background: #1a5fb4;
         transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(210, 158, 0, 0.3);
     }
 
     /* RESPONSIVIDADE */
     @media (max-width: 1200px) {
         .cabecalho-transacoes,
         .card-transacao {
-            grid-template-columns: 15% 40% 12% 12% 12% 9%;
+            grid-template-columns: 15fr 40fr 12fr 12fr 12fr 9fr;
         }
     }
 
@@ -758,7 +788,7 @@
         
         .cabecalho-transacoes,
         .card-transacao {
-            grid-template-columns: 20% 35% 15% 15% 15%;
+            grid-template-columns: 20fr 35fr 15fr 15fr 15fr;
             gap: 8px;
         }
         
@@ -819,46 +849,41 @@
         }
     }
     </style>
-    
-    <!-- FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <!-- CONTAINER PRINCIPAL (IGUAL AO DASHBOARD) -->
-    <div class="app-container">
-        
-        <!-- HEADER (IGUAL AO DASHBOARD) -->
-        <header class="app-header">
-            <div class="header-left">
-                <div class="logo">
-                    <i class="fas fa-university"></i>
-                    <span class="logo-text">CAMBIO BANK</span>
-                </div>
+    <!-- CABEÇALHO -->
+    <header class="main-header">
+        <div class="header-left">
+            <div class="logo">
+                <span class="logo-text"><strong>Link</strong> international</span>
             </div>
-            
-            <div class="header-center">
-                <h1 class="page-title">MEU EXTRATO</h1>
+        </div>
+        <div class="header-right">
+            <div class="user-info">
+                <span id="userName">{{ usuario if usuario else 'Usuário' }}</span>
+                <i class="fas fa-user-circle"></i>
             </div>
-            
-            <div class="header-right">
-                <div class="user-menu" onclick="window.location.href='/dashboard'">
-                    <div class="user-avatar">
-                        <i class="fas fa-user-circle"></i>
-                    </div>
-                    <span class="user-name" id="userName">
-                        {{ usuario if usuario else 'pantanal' }}
-                    </span>
-                    <i class="fas fa-home"></i>
-                </div>
-            </div>
-        </header>
+            <a href="/dashboard" class="btn-back">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </header>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <div class="content-container">
+        <nav class="page-nav">
+            <a href="/dashboard"><i class="fas fa-home"></i> Home</a>
+            <i class="fas fa-chevron-right"></i>
+            <span class="current-page"><i class="fas fa-file-invoice-dollar"></i> Meu Extrato</span>
+        </nav>
+
+        <div class="page-header">
+            <h2><i class="fas fa-file-invoice-dollar"></i> MEU EXTRATO</h2>
+            <p class="page-subtitle">Histórico completo das suas transações</p>
+        </div>
 
         <!-- CONTEÚDO DO EXTRATO -->
         <div class="container-extrato">
-            <!-- Botão voltar -->
-            <a href="/dashboard" class="btn-voltar">
-                <i class="fas fa-arrow-left"></i> Voltar ao Dashboard
-            </a>
 
             <!-- Header do extrato -->
             <div class="header-extrato">
@@ -978,18 +1003,12 @@
             </div>
         </div>
 
-        <!-- FOOTER -->
-        <footer class="app-footer">
-            <div class="footer-content">
-                <div class="footer-copyright">
-                    © 2024 Cambio Bank • Sistema de Câmbio Internacional
-                </div>
-                <div class="footer-version">
-                    v2.1.0 • <span class="status-online">● Online</span>
-                </div>
-            </div>
-        </footer>
-    </div>
+        </div><!-- end content-container -->
+
+    <footer class="main-footer">
+        © 2025 Link International • Money Transfers &nbsp;|&nbsp;
+        <span class="status-online">● Online</span>
+    </footer>
 
     <!-- MODAL DE DETALHES DA TRANSAÇÃO -->
     <div class="modal-detalhes" id="modalDetalhes">
