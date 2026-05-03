@@ -161,6 +161,49 @@
     </div>
 </div>
 
+<!-- MODAL CREDENCIAIS -->
+<div id="modalCredenciais" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);align-items:center;justify-content:center;">
+    <div style="background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:16px;padding:32px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);position:relative;">
+        <div style="text-align:center;margin-bottom:24px;">
+            <div style="width:56px;height:56px;border-radius:50%;background:rgba(210,158,0,.15);border:2px solid #d29e00;display:flex;align-items:center;justify-content:center;font-size:24px;color:#d29e00;margin:0 auto 12px;">
+                <i class="fas fa-key"></i>
+            </div>
+            <h3 style="font-size:18px;font-weight:700;margin-bottom:6px;">Portal Access Created</h3>
+            <p style="font-size:13px;color:var(--cor-texto-secundario);">Note these credentials — they will <strong>not</strong> be shown again.</p>
+        </div>
+
+        <div style="background:var(--cor-fundo);border:1px solid var(--cor-borda);border-radius:10px;padding:16px;margin-bottom:20px;display:flex;flex-direction:column;gap:14px;">
+            <div>
+                <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--cor-texto-secundario);margin-bottom:4px;">Username</div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <code id="credUser" style="flex:1;font-size:15px;font-weight:700;color:var(--cor-primaria);background:transparent;border:none;font-family:monospace;"></code>
+                    <button onclick="copiarCred('credUser', this)" style="background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;white-space:nowrap;">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+            </div>
+            <div style="border-top:1px solid var(--cor-borda);padding-top:14px;">
+                <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--cor-texto-secundario);margin-bottom:4px;">Temporary Password</div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <code id="credSenha" style="flex:1;font-size:15px;font-weight:700;color:var(--cor-primaria);background:transparent;border:none;font-family:monospace;"></code>
+                    <button onclick="copiarCred('credSenha', this)" style="background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;white-space:nowrap;">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div style="background:rgba(243,156,18,.1);border:1px solid rgba(243,156,18,.3);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--cor-alerta);margin-bottom:20px;display:flex;gap:8px;align-items:flex-start;">
+            <i class="fas fa-triangle-exclamation" style="margin-top:1px;"></i>
+            <span>The client must change this password on first login. This popup will not appear again.</span>
+        </div>
+
+        <button onclick="fecharModalCredenciais()" style="width:100%;background:linear-gradient(135deg,#b78700,#eeb600);color:#1a1200;border:none;padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">
+            <i class="fas fa-check"></i> I have noted the credentials
+        </button>
+    </div>
+</div>
+
 <!-- FORM -->
 <div class="form-wrap" id="formWrap">
 
@@ -832,6 +875,14 @@ async function postForm(data, isDraft) {
         const d = await r.json();
         if (d.success) {
             if (d.id) _editingId = d.id;  // subsequent saves will PATCH this record
+
+            // Mostrar credenciais assim que criadas — independente de draft ou submit final
+            if (d.credenciais) {
+                document.getElementById('credUser').textContent  = d.credenciais.username;
+                document.getElementById('credSenha').textContent = d.credenciais.senha_temporaria;
+                document.getElementById('modalCredenciais').style.display = 'flex';
+            }
+
             if (!isDraft) {
                 document.getElementById('formWrap').style.display = 'none';
                 document.querySelector('.stepper-wrap').style.display = 'none';
@@ -839,7 +890,7 @@ async function postForm(data, isDraft) {
                 document.getElementById('successViewBtn').href = '/compliance/b2b/clientes/' + d.id;
                 document.getElementById('successScreen').classList.add('show');
             } else {
-                alert('Draft saved. You can continue the onboarding later from the client list.');
+                if (!d.credenciais) alert('Draft saved. You can continue the onboarding later from the client list.');
             }
         } else {
             alert(d.message || 'Error submitting form. Please try again.');
@@ -851,6 +902,26 @@ async function postForm(data, isDraft) {
         document.getElementById('btnSubmit').disabled = false;
         document.getElementById('btnSubmit').innerHTML = '<i class="fas fa-paper-plane"></i> Submit for MLRO Review';
     }
+}
+
+// ── Credenciais modal ──
+function fecharModalCredenciais() {
+    document.getElementById('modalCredenciais').style.display = 'none';
+}
+
+function copiarCred(elementId, btn) {
+    const texto = document.getElementById(elementId).textContent;
+    navigator.clipboard.writeText(texto).then(() => {
+        const original = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied';
+        btn.style.color = 'var(--cor-sucesso)';
+        btn.style.borderColor = 'var(--cor-sucesso)';
+        setTimeout(() => {
+            btn.innerHTML = original;
+            btn.style.color = '';
+            btn.style.borderColor = '';
+        }, 1500);
+    });
 }
 
 // ── Continue-draft mode ──

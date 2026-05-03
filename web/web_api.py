@@ -7,6 +7,9 @@ Versão inicial - apenas endpoints básicos
 # IMPORTS PADRÃO DO PYTHON
 # ============================================
 import os
+import uuid
+import secrets
+import string
 import hashlib
 import re
 import random
@@ -867,57 +870,36 @@ def pagina_login():
 def dashboard():
     """Página do dashboard - requer login"""
     usuario = session.get('username')
-    
     if not usuario:
         return redirect('/login')
-    
+
+    email = f'{usuario}@exemplo.com'
+    nome  = usuario.upper()
+    beneficiarios_count = 0
+    cliente_b2b = None
+
     try:
-        email = f'{usuario}@exemplo.com'
-        nome = usuario.upper()
-        beneficiarios_count = 0  # ← INICIALIZA
-        
         if supabase:
-            # 1. Buscar dados do usuário
-            response = supabase.table('usuarios')\
-                .select('email, nome')\
-                .eq('username', usuario)\
-                .single()\
-                .execute()
-            
-            if response.data:
-                if response.data.get('email'):
-                    email = response.data['email']
-                if response.data.get('nome'):
-                    nome = response.data['nome']
-            
-            # 2. 🔥 NOVO: Contar beneficiários ATIVOS
-            print(f"🔍 Contando beneficiários para {usuario}...")
-            benef_response = supabase.table('beneficiarios')\
-                .select('id, nome, ativo')\
-                .eq('cliente_username', usuario)\
-                .eq('ativo', True)\
-                .execute()
-            
-            if benef_response.data:
-                beneficiarios_count = len(benef_response.data)
-                print(f"✅ Encontrados {beneficiarios_count} beneficiários para {usuario}")
-            else:
-                print(f"⚠️ Nenhum beneficiário encontrado para {usuario}")
-                
+            u = supabase.table('usuarios').select('email,nome').eq('username', usuario).single().execute()
+            if u.data:
+                email = u.data.get('email', email)
+                nome  = u.data.get('nome', nome)
+
+            benef = supabase.table('beneficiarios').select('id').eq('cliente_username', usuario).eq('ativo', True).execute()
+            beneficiarios_count = len(benef.data or [])
+
+            cb = supabase.table('clientes_b2b')\
+                .select('id,razao_social,status,nivel_risco,numero_registro')\
+                .eq('usuario_username', usuario).limit(1).execute()
+            if cb.data:
+                cliente_b2b = cb.data[0]
     except Exception as e:
-        print(f"⚠️  Erro ao buscar dados: {e}")
-        beneficiarios_count = 0
-    
-    # Dados para o template
-    dados = {
-        'usuario': usuario,
-        'email': email,
-        'nome': nome,
-        'beneficiarios_count': beneficiarios_count  # ← ENVIADO PARA O TEMPLATE
-    }
-    
-    print(f"📊 Dashboard para {usuario}: {beneficiarios_count} beneficiários")
-    return render_with_lang('dashboard.html', **dados)
+        print(f"⚠️ Erro ao buscar dados dashboard: {e}")
+
+    return render_with_lang('dashboard.html',
+        usuario=usuario, email=email, nome=nome,
+        beneficiarios_count=beneficiarios_count,
+        cliente_b2b=cliente_b2b)
 
 @app.route('/static/<path:path>')
 def servir_estaticos(path):
@@ -1316,6 +1298,7 @@ def criar_transferencia_cliente():
                         'iban': dados.get('iban_account', '').strip(),
                         'aba': dados.get('aba_routing', '').strip(),
                         'cliente_username': usuario_logado,
+                        'cliente_id': session.get('user_id'),
                         'ativo': True
                     }
                     
@@ -1684,11 +1667,11 @@ def get_beneficiarios():
                 'endereco': dados.get('endereco', ''),
                 'cidade': dados.get('cidade', ''),
                 'pais': dados.get('pais', ''),
-                # 🔍 CAMPOS ADICIONADOS
                 'endereco_banco': dados.get('endereco_banco', ''),
                 'cidade_banco': dados.get('cidade_banco', ''),
                 'pais_banco': dados.get('pais_banco', ''),
                 'cliente_username': usuario,
+                'cliente_id': session.get('user_id'),
                 'ativo': True,
             }
             
@@ -1863,6 +1846,7 @@ def handle_beneficiarios():
                 'cidade': dados.get('cidade', ''),
                 'pais': dados.get('pais', ''),
                 'cliente_username': usuario,
+                'cliente_id': session.get('user_id'),
                 'ativo': True
             }
             
@@ -18533,19 +18517,22 @@ def api_admin_cadastrar_cliente():
         
         # Gerar hash da senha
         senha_hash = hashlib.sha256(senha.encode()).hexdigest()
-        
+
         # Gerar hash do documento
         documento_hash = None
         if documento:
             documento_limpo = re.sub(r'[^a-zA-Z0-9]', '', documento)
             documento_hash = hashlib.sha256(documento_limpo.encode()).hexdigest()
-        
+
+        # UUID gerado aqui para ser compartilhado entre usuarios, contas e config_cotacoes
+        novo_cliente_id = str(uuid.uuid4())
+
         # ============================================
         # CRIAR CONTAS BANCÁRIAS
         # ============================================
-        
+
         contas_criadas = []
-        
+
         for moeda in moedas:
             while True:
                 numero_conta = str(random.randint(100000000, 999999999))
@@ -18555,13 +18542,14 @@ def api_admin_cadastrar_cliente():
                     .execute()
                 if not check_conta.data:
                     break
-            
+
             conta_data = {
                 'id': numero_conta,
                 'moeda': moeda,
                 'saldo': 0.00,
                 'cliente_username': username,
                 'cliente_nome': nome,
+                'cliente_id': novo_cliente_id,
                 'data_criacao': datetime.now().date().isoformat(),
                 'ativa': True,
                 'created_at': datetime.now().isoformat()
@@ -18581,6 +18569,7 @@ def api_admin_cadastrar_cliente():
         # ============================================
         
         usuario_data = {
+            'id': novo_cliente_id,
             # Campos existentes
             'username': username,
             'senha_hash': senha_hash,
@@ -18656,15 +18645,17 @@ def api_admin_cadastrar_cliente():
         config_data = {
             'tipo_config': 'permissoes',
             'cliente_username': username,
+            'cliente_id': novo_cliente_id,
             'valor_config': False,
             'data_atualizacao': datetime.now().isoformat(),
             'created_at': datetime.now().isoformat()
         }
         supabase.table('config_cotacoes').insert(config_data).execute()
-        
+
         limite_data = {
             'tipo_config': 'limites',
             'cliente_username': username,
+            'cliente_id': novo_cliente_id,
             'valor_config': 10000.00,
             'data_atualizacao': datetime.now().isoformat(),
             'created_at': datetime.now().isoformat()
@@ -20481,6 +20472,7 @@ def api_chamados_novo():
         supabase.table('chamados').insert({
             'id': chamado_id,
             'cliente_username': username,
+            'cliente_id': session.get('user_id'),
             'cliente_nome': nome_cliente,
             'titulo': titulo,
             'categoria': categoria,
@@ -21042,7 +21034,64 @@ def api_b2b_cliente_criar():
             except Exception:
                 pass
 
-        return jsonify({'success': True, 'id': client_id, 'message': 'Client created successfully'})
+        # ── CRIAR ACESSO AO PORTAL (onboarding restrito) ──
+        credenciais = None
+        try:
+            novo_user_id = str(uuid.uuid4())
+
+            # Username baseado no nome da empresa — limpo e único
+            base = re.sub(r'[^a-z0-9]', '_', d.get('razao_social', '').lower().strip())
+            base = re.sub(r'_+', '_', base).strip('_')[:20]
+            username_portal = base
+            sufixo = 1
+            while True:
+                chk = supabase.table('usuarios').select('id').eq('username', username_portal).execute()
+                if not chk.data:
+                    break
+                username_portal = f"{base}_{sufixo}"
+                sufixo += 1
+
+            # Senha temporária — 12 chars alfanuméricos
+            chars = string.ascii_letters + string.digits
+            senha_temp = ''.join(secrets.choice(chars) for _ in range(12))
+            senha_hash = hashlib.sha256(senha_temp.encode()).hexdigest()
+
+            user_data = {
+                'id': novo_user_id,
+                'username': username_portal,
+                'senha_hash': senha_hash,
+                'nome': d.get('razao_social', ''),
+                'email': d.get('email', ''),
+                'tipo': 'cliente',
+                'status': 'onboarding',
+                'tipo_pessoa': 'J',
+                'razao_social': d.get('razao_social'),
+                'nome_fantasia': d.get('nome_comercial'),
+                'verificado': False,
+                'cambio_liberado': False,
+                'contas': [],
+                'codigo_verificacao': '',
+                'data_cadastro': datetime.now(timezone.utc).isoformat(),
+                'created_at': datetime.now(timezone.utc).isoformat(),
+            }
+            supabase.table('usuarios').insert(user_data).execute()
+
+            # Vincular usuario ao clientes_b2b
+            supabase.table('clientes_b2b').update({
+                'usuario_username': username_portal,
+                'usuario_id': novo_user_id,
+            }).eq('id', client_id).execute()
+
+            credenciais = {'username': username_portal, 'senha_temporaria': senha_temp}
+        except Exception as e_cred:
+            print(f"⚠️  Erro ao criar acesso portal para cliente {client_id}: {e_cred}")
+
+        return jsonify({
+            'success': True,
+            'id': client_id,
+            'message': 'Client created successfully',
+            'credenciais': credenciais,
+        })
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
 
@@ -21576,6 +21625,25 @@ def api_b2b_beneficiarios_list(client_id):
             return jsonify({'success': True, 'beneficiarios': []})
         result = supabase.table('beneficiarios').select('*').eq('usuario_id', username).execute()
         return jsonify({'success': True, 'beneficiarios': result.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/beneficiarios/<benef_id>', methods=['PATCH'])
+def api_b2b_beneficiario_update(benef_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        d = request.get_json(force=True) or {}
+        upd = {}
+        if d.get('status') in ('aprovado', 'recusado', 'pendente'):
+            upd['status'] = d['status']
+        if 'notas_compliance' in d:
+            upd['notas_compliance'] = d['notas_compliance']
+        if not upd:
+            return jsonify({'success': False, 'message': 'Nothing to update'}), 400
+        supabase.table('beneficiarios').update(upd).eq('id', benef_id).execute()
+        return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
 
