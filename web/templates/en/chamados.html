@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cambio Bank - Support</title>
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; }
+        :root {
+            --cor-fundo:#0a0e15; --cor-card:#0d1117; --cor-borda:#1e232e;
+            --cor-texto:#e0e0e0; --cor-texto-sec:#8b949e;
+            --cor-primaria:#1a5fb4; --cor-sucesso:#2ec27e;
+            --cor-alerta:#f39c12; --cor-perigo:#e01b24;
+            --radius:12px; --radius-sm:8px;
+        }
+        body { background:var(--cor-fundo); color:var(--cor-texto); min-height:100vh; }
+        .header { background:var(--cor-fundo); border-bottom:1px solid var(--cor-borda); padding:16px 24px; display:flex; align-items:center; justify-content:space-between; }
+        .header-left { display:flex; align-items:center; gap:12px; }
+        .header-left h1 { font-size:20px; font-weight:700; background:linear-gradient(90deg,var(--cor-primaria),#2d8fff); -webkit-background-clip:text; background-clip:text; color:transparent; }
+        .header-left h1 i { color:var(--cor-primaria); margin-right:8px; -webkit-background-clip:unset; background-clip:unset; }
+        .btn-back { background:transparent; border:1px solid var(--cor-borda); color:var(--cor-texto); padding:8px 16px; border-radius:var(--radius-sm); cursor:pointer; display:flex; align-items:center; gap:6px; font-size:14px; text-decoration:none; transition:all .2s; }
+        .btn-back:hover { border-color:var(--cor-primaria); color:var(--cor-primaria); }
+        .main-layout { display:grid; grid-template-columns:380px 1fr; height:calc(100vh - 65px); }
+        .lista-lado { border-right:1px solid var(--cor-borda); display:flex; flex-direction:column; overflow:hidden; }
+        .lista-toolbar { padding:14px 16px; border-bottom:1px solid var(--cor-borda); background:var(--cor-card); display:flex; gap:8px; align-items:center; }
+        .btn-novo { background:var(--cor-primaria); color:#fff; border:none; padding:9px 18px; border-radius:var(--radius-sm); cursor:pointer; font-size:13px; font-weight:600; display:flex; align-items:center; gap:6px; transition:all .2s; white-space:nowrap; }
+        .btn-novo:hover { background:#1557a8; }
+        .filtro-status-cli { background:var(--cor-fundo) !important; border:1px solid var(--cor-borda) !important; color:var(--cor-texto) !important; padding:8px 10px !important; border-radius:var(--radius-sm) !important; font-size:13px !important; min-height:unset !important; flex:1; }
+        .lista-scroll { flex:1; overflow-y:auto; }
+        .chamado-item { padding:14px 16px; border-bottom:1px solid var(--cor-borda); cursor:pointer; transition:background .2s; }
+        .chamado-item:hover { background:rgba(26,95,180,.07); }
+        .chamado-item.ativo { background:rgba(26,95,180,.12); border-left:3px solid var(--cor-primaria); }
+        .chamado-item-header { display:flex; justify-content:space-between; margin-bottom:4px; }
+        .chamado-id-small { font-size:11px; color:var(--cor-texto-sec); font-family:monospace; }
+        .chamado-data-small { font-size:11px; color:var(--cor-texto-sec); }
+        .chamado-titulo-item { font-size:14px; font-weight:600; margin-bottom:6px; }
+        .chamado-meta-item { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+        .tag { font-size:11px; padding:2px 8px; border-radius:10px; font-weight:600; display:inline-block; white-space:nowrap; }
+        .tag-aberto    { background:rgba(243,156,18,.15); color:#f39c12; }
+        .tag-atendimento { background:rgba(26,95,180,.15); color:#3498db; }
+        .tag-aguardando { background:rgba(155,89,182,.15); color:#9b59b6; }
+        .tag-resolvido  { background:rgba(46,194,126,.15); color:#2ec27e; }
+        .tag-fechado    { background:rgba(139,148,158,.15); color:#8b949e; }
+        .tag-urgente    { background:rgba(224,27,36,.15); color:#e01b24; }
+        .tag-alta       { background:rgba(243,156,18,.15); color:#f39c12; }
+        .tag-normal     { background:rgba(52,152,219,.15); color:#3498db; }
+        .tag-baixa      { background:rgba(139,148,158,.15); color:#8b949e; }
+        .empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; height:200px; color:var(--cor-texto-sec); gap:12px; text-align:center; padding:20px; }
+        .empty-state i { font-size:40px; opacity:.3; }
+        .painel-detalhe { display:flex; flex-direction:column; background:var(--cor-fundo); }
+        .detalhe-vazio { display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; color:var(--cor-texto-sec); gap:16px; text-align:center; padding:40px; }
+        .detalhe-vazio i { font-size:60px; opacity:.2; }
+        .detalhe-header { background:var(--cor-card); border-bottom:1px solid var(--cor-borda); padding:16px 24px; }
+        .detalhe-titulo { font-size:18px; font-weight:700; margin-bottom:6px; }
+        .detalhe-meta { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+        .meta-item { display:flex; align-items:center; gap:5px; font-size:13px; color:var(--cor-texto-sec); }
+        .chat-area { flex:1; overflow-y:auto; padding:20px 24px; display:flex; flex-direction:column; gap:12px; }
+        .msg-wrapper { display:flex; flex-direction:column; max-width:72%; gap:4px; }
+        .msg-wrapper.cliente { align-self:flex-end; }
+        .msg-wrapper.admin   { align-self:flex-start; }
+        .msg-bubble { padding:10px 14px; border-radius:12px; font-size:14px; line-height:1.5; word-break:break-word; }
+        .msg-wrapper.cliente .msg-bubble { background:rgba(26,95,180,.18); border:1px solid rgba(26,95,180,.25); border-radius:12px 12px 2px 12px; }
+        .msg-wrapper.admin .msg-bubble { background:var(--cor-card); border:1px solid var(--cor-borda); border-radius:12px 12px 12px 2px; }
+        .msg-meta { font-size:11px; color:var(--cor-texto-sec); display:flex; gap:8px; }
+        .msg-wrapper.cliente .msg-meta { justify-content:flex-end; }
+        .msg-day-sep { text-align:center; color:var(--cor-texto-sec); font-size:12px; padding:8px 0; display:flex; align-items:center; gap:10px; }
+        .msg-day-sep::before, .msg-day-sep::after { content:''; flex:1; height:1px; background:var(--cor-borda); }
+        .input-area { border-top:1px solid var(--cor-borda); padding:16px 24px; background:var(--cor-card); }
+        .input-row { display:flex; gap:10px; align-items:flex-end; }
+        .msg-textarea { flex:1; background:var(--cor-fundo) !important; border:1px solid var(--cor-borda) !important; color:var(--cor-texto) !important; border-radius:var(--radius-sm) !important; padding:10px 14px !important; font-size:14px !important; resize:none !important; min-height:60px !important; max-height:120px; line-height:1.5; }
+        .msg-textarea:focus { border-color:var(--cor-primaria) !important; outline:none !important; box-shadow:none !important; }
+        .btn-enviar { background:var(--cor-primaria); color:#fff; border:none; padding:12px 20px; border-radius:var(--radius-sm); cursor:pointer; font-size:14px; font-weight:600; display:flex; align-items:center; gap:6px; transition:all .2s; white-space:nowrap; }
+        .btn-enviar:hover { background:#1557a8; }
+        .btn-enviar:disabled { opacity:.5; cursor:not-allowed; }
+        .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:1000; align-items:center; justify-content:center; }
+        .modal-overlay.show { display:flex; }
+        .modal-box { background:var(--cor-card); border:1px solid var(--cor-borda); border-radius:var(--radius); padding:28px; width:100%; max-width:520px; }
+        .modal-title { font-size:18px; font-weight:700; margin-bottom:20px; display:flex; align-items:center; gap:10px; }
+        .modal-title i { color:var(--cor-primaria); }
+        .form-group { margin-bottom:16px; }
+        .form-group label { display:block; font-size:13px; color:var(--cor-texto-sec); margin-bottom:6px; font-weight:500; }
+        .form-group input, .form-group select, .form-group textarea { width:100%; background:var(--cor-fundo) !important; border:1px solid var(--cor-borda) !important; color:var(--cor-texto) !important; padding:10px 14px !important; border-radius:var(--radius-sm) !important; font-size:14px !important; min-height:unset !important; }
+        .form-group textarea { min-height:100px !important; resize:vertical; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:var(--cor-primaria) !important; outline:none !important; box-shadow:none !important; }
+        .modal-footer { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+        .btn-cancel { background:transparent; border:1px solid var(--cor-borda); color:var(--cor-texto); padding:10px 20px; border-radius:var(--radius-sm); cursor:pointer; font-size:14px; transition:all .2s; }
+        .btn-cancel:hover { border-color:var(--cor-perigo); color:var(--cor-perigo); }
+        .btn-submit { background:var(--cor-primaria); color:#fff; border:none; padding:10px 24px; border-radius:var(--radius-sm); cursor:pointer; font-size:14px; font-weight:600; transition:all .2s; }
+        .btn-submit:hover { background:#1557a8; }
+        .status-banner { padding:10px 24px; font-size:13px; display:flex; align-items:center; gap:8px; }
+        .status-banner.resolvido { background:rgba(46,194,126,.08); color:var(--cor-sucesso); border-bottom:1px solid rgba(46,194,126,.2); }
+        .status-banner.fechado { background:rgba(139,148,158,.08); color:var(--cor-texto-sec); border-bottom:1px solid var(--cor-borda); }
+
+        .lang-switch { display:flex; gap:6px; align-items:center; }
+        .lang-btn {
+            background:transparent; border:1px solid var(--cor-borda); color:var(--cor-texto-sec);
+            padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600;
+            text-decoration:none; transition:all .2s; display:inline-flex; align-items:center; height:32px;
+        }
+        .lang-btn:hover { border-color:var(--cor-primaria); color:var(--cor-primaria); }
+        .lang-btn.active { background:var(--cor-primaria); border-color:var(--cor-primaria); color:#fff; }
+        #btnTheme {
+            background:transparent; border:1px solid var(--cor-borda); color:var(--cor-texto-sec);
+            padding:6px 12px; border-radius:6px; cursor:pointer; font-size:14px;
+            transition:all .2s; display:inline-flex; align-items:center; height:32px;
+        }
+        #btnTheme:hover { border-color:var(--cor-primaria); color:var(--cor-primaria); }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-left">
+        <a href="/dashboard" class="btn-back"><i class="fas fa-arrow-left"></i> Dashboard</a>
+        <h1><i class="fas fa-headset"></i> Support</h1>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+        <a href="/language/{{ 'pt' if current_lang == 'en' else 'en' }}" class="btn-hd btn-hd-ghost"><i class="fas fa-globe"></i> {{ 'PT' if current_lang == 'en' else 'EN' }}</a>
+        <button id="btnTheme" onclick="toggleTheme()" title="Toggle theme"><i class="fas fa-moon"></i></button>
+    </div>
+</div>
+
+<div class="main-layout">
+    <div class="lista-lado">
+        <div class="lista-toolbar">
+            <button class="btn-novo" onclick="abrirModalNovo()">
+                <i class="fas fa-plus"></i> New Ticket
+            </button>
+            <select class="filtro-status-cli" id="filtroStatusCli" onchange="carregarChamados()">
+                <option value="">All</option>
+                <option value="aberto">Open</option>
+                <option value="em_atendimento">In progress</option>
+                <option value="aguardando_cliente">Awaiting reply</option>
+                <option value="resolvido">Resolved</option>
+                <option value="fechado">Closed</option>
+            </select>
+        </div>
+        <div class="lista-scroll" id="listaChamados">
+            <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><span>Loading...</span></div>
+        </div>
+    </div>
+
+    <div class="painel-detalhe" id="painelDetalhe">
+        <div class="detalhe-vazio" id="detalheVazio">
+            <i class="fas fa-headset"></i>
+            <p>Your support tickets</p>
+            <small>Select a ticket or open a new one to get started</small>
+        </div>
+        <div id="detalheConteudo" style="display:none;flex-direction:column;flex:1;overflow:hidden">
+            <div class="detalhe-header">
+                <div class="detalhe-titulo" id="detTitulo"></div>
+                <div class="detalhe-meta" id="detMeta"></div>
+            </div>
+            <div id="statusBanner"></div>
+            <div class="chat-area" id="chatArea"></div>
+            <div class="input-area" id="inputArea">
+                <div class="input-row">
+                    <textarea class="msg-textarea" id="msgInput" placeholder="Type your message..." rows="2"
+                        onkeydown="if(event.key==='Enter'&&event.ctrlKey)enviarMensagem()"></textarea>
+                    <button class="btn-enviar" id="btnEnviar" onclick="enviarMensagem()">
+                        <i class="fas fa-paper-plane"></i> Send
+                    </button>
+                </div>
+                <small style="color:var(--cor-texto-sec);font-size:11px;margin-top:6px;display:block">Ctrl+Enter to send</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modalNovo">
+    <div class="modal-box">
+        <div class="modal-title"><i class="fas fa-plus-circle"></i> Open New Ticket</div>
+        <div class="form-group">
+            <label>Subject *</label>
+            <input type="text" id="novoTitulo" placeholder="Briefly describe your issue or request">
+        </div>
+        <div class="form-group">
+            <label>Category</label>
+            <select id="novoCategoria">
+                <option value="transferencia">Transfer</option>
+                <option value="cambio">Exchange</option>
+                <option value="documentacao">Documentation</option>
+                <option value="financeiro">Financial</option>
+                <option value="tecnico">Technical</option>
+                <option value="outro" selected>Other</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Priority</label>
+            <select id="novoPrioridade">
+                <option value="baixa">Low</option>
+                <option value="normal" selected>Normal</option>
+                <option value="alta">High</option>
+                <option value="urgente">Urgent</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Message *</label>
+            <textarea id="novoMensagem" placeholder="Describe in detail what you need..."></textarea>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="fecharModalNovo()">Cancel</button>
+            <button class="btn-submit" onclick="criarChamado()"><i class="fas fa-paper-plane"></i> Submit Ticket</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let chamadoAtual = null;
+
+const STATUS_LABEL = {
+    aberto:'Open', em_atendimento:'In progress',
+    aguardando_cliente:'Awaiting reply', resolvido:'Resolved', fechado:'Closed'
+};
+const STATUS_TAG = {
+    aberto:'tag-aberto', em_atendimento:'tag-atendimento',
+    aguardando_cliente:'tag-aguardando', resolvido:'tag-resolvido', fechado:'tag-fechado'
+};
+const PRIO_TAG = { urgente:'tag-urgente', alta:'tag-alta', normal:'tag-normal', baixa:'tag-baixa' };
+const PRIO_LABEL = { urgente:'Urgent', alta:'High', normal:'Normal', baixa:'Low' };
+const CAT_LABEL = {
+    transferencia:'Transfer', cambio:'Exchange', documentacao:'Documentation',
+    financeiro:'Financial', tecnico:'Technical', outro:'Other'
+};
+
+function fmtData(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-GB') + ' ' + d.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+}
+
+async function carregarChamados() {
+    const status = document.getElementById('filtroStatusCli').value;
+    const url = '/api/chamados/lista' + (status ? `?status=${status}` : '');
+    try {
+        const r = await fetch(url);
+        const d = await r.json();
+        if (d.success) renderLista(d.chamados || []);
+    } catch(e) { console.error(e); }
+}
+
+function renderLista(lista) {
+    const el = document.getElementById('listaChamados');
+    if (!lista.length) {
+        el.innerHTML = `<div class="empty-state"><i class="fas fa-inbox"></i><span>No tickets.<br><small>Click "New Ticket" to open one.</small></span></div>`;
+        return;
+    }
+    el.innerHTML = lista.map(c => {
+        const ativo = chamadoAtual && chamadoAtual.id === c.id ? 'ativo' : '';
+        return `
+        <div class="chamado-item ${ativo}" onclick="abrirChamado('${c.id}', ${JSON.stringify(c).replace(/"/g,'&quot;')})">
+            <div class="chamado-item-header">
+                <span class="chamado-id-small">${c.id}</span>
+                <span class="chamado-data-small">${fmtData(c.updated_at)}</span>
+            </div>
+            <div class="chamado-titulo-item">${c.titulo}</div>
+            <div class="chamado-meta-item">
+                <span class="tag ${STATUS_TAG[c.status]}">${STATUS_LABEL[c.status]}</span>
+                <span class="tag ${PRIO_TAG[c.prioridade]}">${PRIO_LABEL[c.prioridade] || c.prioridade}</span>
+                <span style="font-size:11px;color:var(--cor-texto-sec)">${CAT_LABEL[c.categoria] || c.categoria}</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function abrirChamado(id, dadosBasicos) {
+    chamadoAtual = typeof dadosBasicos === 'object' ? dadosBasicos : {id};
+    document.getElementById('detalheVazio').style.display = 'none';
+    const cont = document.getElementById('detalheConteudo');
+    cont.style.display = 'flex';
+    document.getElementById('chatArea').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;flex:1;gap:10px;color:var(--cor-texto-sec)"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+    const r = await fetch(`/api/chamados/${id}`);
+    const d = await r.json();
+    if (d.success) {
+        chamadoAtual = d.chamado;
+        document.getElementById('detTitulo').textContent = chamadoAtual.titulo;
+        renderDetMeta(chamadoAtual);
+        renderStatusBanner(chamadoAtual);
+        renderMensagens(d.mensagens);
+        carregarChamados();
+    }
+}
+
+function renderDetMeta(c) {
+    document.getElementById('detMeta').innerHTML = `
+        <div class="meta-item"><i class="fas fa-hashtag"></i> ${c.id}</div>
+        <div class="meta-item"><i class="fas fa-tag"></i> ${CAT_LABEL[c.categoria] || c.categoria}</div>
+        <div class="meta-item"><span class="tag ${STATUS_TAG[c.status]}">${STATUS_LABEL[c.status]}</span></div>
+        <div class="meta-item"><span class="tag ${PRIO_TAG[c.prioridade]}">${PRIO_LABEL[c.prioridade] || c.prioridade}</span></div>
+        <div class="meta-item"><i class="fas fa-calendar-plus"></i> ${fmtData(c.created_at)}</div>
+    `;
+}
+
+function renderStatusBanner(c) {
+    const el = document.getElementById('statusBanner');
+    const inp = document.getElementById('inputArea');
+    if (c.status === 'resolvido') {
+        el.className = 'status-banner resolvido';
+        el.innerHTML = '<i class="fas fa-check-circle"></i> This ticket has been marked as <strong>resolved</strong>. Reply if you still need help.';
+        inp.style.display = 'block';
+    } else if (c.status === 'fechado') {
+        el.className = 'status-banner fechado';
+        el.innerHTML = '<i class="fas fa-lock"></i> This ticket is <strong>closed</strong>.';
+        inp.style.display = 'none';
+    } else {
+        el.className = '';
+        el.innerHTML = '';
+        inp.style.display = 'block';
+    }
+}
+
+function renderMensagens(msgs) {
+    const chat = document.getElementById('chatArea');
+    if (!msgs.length) {
+        chat.innerHTML = '<div class="empty-state"><i class="fas fa-comment-slash"></i><span>No messages</span></div>';
+        return;
+    }
+    let html = '';
+    let ultimaData = '';
+    msgs.forEach(m => {
+        const dStr = new Date(m.created_at).toLocaleDateString('en-GB');
+        if (dStr !== ultimaData) {
+            html += `<div class="msg-day-sep">${dStr}</div>`;
+            ultimaData = dStr;
+        }
+        html += `
+        <div class="msg-wrapper ${m.autor_tipo}">
+            <div class="msg-bubble">${m.mensagem.replace(/\n/g,'<br>')}</div>
+            <div class="msg-meta">
+                <span>${m.autor_tipo === 'cliente' ? 'You' : 'Cambio Bank Support'}</span>
+                <span>${new Date(m.created_at).toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'})}</span>
+            </div>
+        </div>`;
+    });
+    chat.innerHTML = html;
+    chat.scrollTop = chat.scrollHeight;
+}
+
+async function enviarMensagem() {
+    if (!chamadoAtual) return;
+    const texto = document.getElementById('msgInput').value.trim();
+    if (!texto) return;
+    const btn = document.getElementById('btnEnviar');
+    btn.disabled = true;
+    const r = await fetch(`/api/chamados/${chamadoAtual.id}/mensagem`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({mensagem: texto})
+    });
+    const d = await r.json();
+    btn.disabled = false;
+    if (d.success) {
+        document.getElementById('msgInput').value = '';
+        abrirChamado(chamadoAtual.id, chamadoAtual);
+    } else { alert('Error: ' + d.error); }
+}
+
+function abrirModalNovo() { document.getElementById('modalNovo').classList.add('show'); }
+function fecharModalNovo() {
+    document.getElementById('modalNovo').classList.remove('show');
+    document.getElementById('novoTitulo').value = '';
+    document.getElementById('novoMensagem').value = '';
+}
+
+async function criarChamado() {
+    const titulo = document.getElementById('novoTitulo').value.trim();
+    const mensagem = document.getElementById('novoMensagem').value.trim();
+    const categoria = document.getElementById('novoCategoria').value;
+    const prioridade = document.getElementById('novoPrioridade').value;
+    if (!titulo || !mensagem) { alert('Please fill in the subject and message.'); return; }
+    const r = await fetch('/api/chamados/novo', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({titulo, mensagem, categoria, prioridade})
+    });
+    const d = await r.json();
+    if (d.success) {
+        fecharModalNovo();
+        carregarChamados();
+        setTimeout(() => abrirChamado(d.chamado_id, {id: d.chamado_id}), 300);
+    } else { alert('Error: ' + d.error); }
+}
+
+document.getElementById('modalNovo').addEventListener('click', e => {
+    if (e.target === document.getElementById('modalNovo')) fecharModalNovo();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    carregarChamados();
+    setInterval(carregarChamados, 30000);
+});
+</script>
+<script src="/static/js/theme.js"></script>
+</body>
+</html>

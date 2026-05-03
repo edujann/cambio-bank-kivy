@@ -20368,6 +20368,1525 @@ def api_admin_descongelar_cliente(username):
         print(f"❌ Erro ao descongelar cliente: {e}")
         return jsonify({"success": False, "message": _err(e)}), 500        
 
+# ============================================================
+# SISTEMA DE CHAMADOS B2B
+# ============================================================
+
+_SLA_HORAS = {'urgente': 2, 'alta': 8, 'normal': 24, 'baixa': 72}
+
+def _gerar_id_chamado():
+    from datetime import datetime
+    ano = datetime.now().year
+    try:
+        res = supabase.table('chamados').select('id').ilike('id', f'CHM-{ano}-%').order('id', desc=True).limit(1).execute()
+        if res.data:
+            ultimo = int(res.data[0]['id'].split('-')[-1])
+            return f"CHM-{ano}-{str(ultimo + 1).zfill(4)}"
+    except Exception:
+        pass
+    return f"CHM-{ano}-0001"
+
+@app.route('/chamados')
+def pagina_chamados():
+    if 'username' not in session:
+        return redirect('/login')
+    return render_with_lang('chamados.html',
+        usuario=session.get('username'),
+        nome=session.get('nome', session.get('username')),
+        email=session.get('email', ''))
+
+@app.route('/admin/chamados')
+def pagina_admin_chamados():
+    if 'username' not in session:
+        return redirect('/login')
+    return render_with_lang('admin_chamados.html',
+        usuario=session.get('username'),
+        nome=session.get('nome', session.get('username')),
+        email=session.get('email', ''))
+
+@app.route('/api/chamados/badges')
+def api_chamados_badges():
+    if 'username' not in session:
+        return jsonify({'success': False}), 401
+    username = session.get('username')
+    try:
+        user_info = supabase.table('usuarios').select('tipo').eq('username', username).single().execute()
+        tipo = user_info.data.get('tipo', 'cliente') if user_info.data else 'cliente'
+        if tipo == 'admin':
+            res = supabase.table('chamados').select('id', count='exact').in_('status', ['aberto', 'em_atendimento', 'aguardando_cliente']).execute()
+            return jsonify({'success': True, 'abertos': res.count or 0})
+        else:
+            res = supabase.table('chamados_mensagens')\
+                .select('id', count='exact')\
+                .eq('lida_cliente', False)\
+                .eq('autor_tipo', 'admin')\
+                .execute()
+            chamados_cliente = supabase.table('chamados').select('id').eq('cliente_username', username).execute()
+            ids = [c['id'] for c in (chamados_cliente.data or [])]
+            nao_lidos = 0
+            if ids:
+                r2 = supabase.table('chamados_mensagens').select('id', count='exact')\
+                    .in_('chamado_id', ids).eq('lida_cliente', False).eq('autor_tipo', 'admin').execute()
+                nao_lidos = r2.count or 0
+            return jsonify({'success': True, 'nao_lidos': nao_lidos})
+    except Exception as e:
+        return jsonify({'success': False, 'error': _err(e)}), 500
+
+@app.route('/api/chamados/lista')
+def api_chamados_lista():
+    if 'username' not in session:
+        return jsonify({'success': False}), 401
+    username = session.get('username')
+    try:
+        user_info = supabase.table('usuarios').select('tipo').eq('username', username).single().execute()
+        tipo = user_info.data.get('tipo', 'cliente') if user_info.data else 'cliente'
+        status_filter = request.args.get('status', '')
+        prioridade_filter = request.args.get('prioridade', '')
+        cliente_filter = request.args.get('cliente', '')
+
+        q = supabase.table('chamados').select('*').order('updated_at', desc=True)
+        if tipo != 'admin':
+            q = q.eq('cliente_username', username)
+        else:
+            if status_filter:
+                q = q.eq('status', status_filter)
+            if prioridade_filter:
+                q = q.eq('prioridade', prioridade_filter)
+            if cliente_filter:
+                q = q.ilike('cliente_username', f'%{cliente_filter}%')
+        res = q.execute()
+        return jsonify({'success': True, 'chamados': res.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'error': _err(e)}), 500
+
+@app.route('/api/chamados/novo', methods=['POST'])
+def api_chamados_novo():
+    if 'username' not in session:
+        return jsonify({'success': False}), 401
+    username = session.get('username')
+    data = request.get_json()
+    titulo = data.get('titulo', '').strip()
+    categoria = data.get('categoria', 'outro')
+    prioridade = data.get('prioridade', 'normal')
+    mensagem_inicial = data.get('mensagem', '').strip()
+    if not titulo or not mensagem_inicial:
+        return jsonify({'success': False, 'error': 'Título e mensagem são obrigatórios'}), 400
+    try:
+        from datetime import datetime, timedelta
+        agora = datetime.utcnow()
+        sla_h = _SLA_HORAS.get(prioridade, 24)
+        sla_deadline = (agora + timedelta(hours=sla_h)).isoformat()
+        chamado_id = _gerar_id_chamado()
+        nome_cliente = session.get('nome', username)
+        supabase.table('chamados').insert({
+            'id': chamado_id,
+            'cliente_username': username,
+            'cliente_nome': nome_cliente,
+            'titulo': titulo,
+            'categoria': categoria,
+            'prioridade': prioridade,
+            'status': 'aberto',
+            'created_at': agora.isoformat(),
+            'updated_at': agora.isoformat(),
+            'sla_deadline': sla_deadline,
+            'total_mensagens': 1
+        }).execute()
+        supabase.table('chamados_mensagens').insert({
+            'chamado_id': chamado_id,
+            'autor_tipo': 'cliente',
+            'autor_nome': nome_cliente,
+            'mensagem': mensagem_inicial,
+            'lida_admin': False,
+            'lida_cliente': True,
+            'created_at': agora.isoformat()
+        }).execute()
+        return jsonify({'success': True, 'chamado_id': chamado_id})
+    except Exception as e:
+        return jsonify({'success': False, 'error': _err(e)}), 500
+
+@app.route('/api/chamados/<chamado_id>')
+def api_chamados_detalhe(chamado_id):
+    if 'username' not in session:
+        return jsonify({'success': False}), 401
+    username = session.get('username')
+    try:
+        user_info = supabase.table('usuarios').select('tipo').eq('username', username).single().execute()
+        tipo = user_info.data.get('tipo', 'cliente') if user_info.data else 'cliente'
+        chamado = supabase.table('chamados').select('*').eq('id', chamado_id).single().execute()
+        if not chamado.data:
+            return jsonify({'success': False, 'error': 'Chamado não encontrado'}), 404
+        if tipo != 'admin' and chamado.data['cliente_username'] != username:
+            return jsonify({'success': False, 'error': 'Acesso negado'}), 403
+        msgs_q = supabase.table('chamados_mensagens').select('*').eq('chamado_id', chamado_id).order('created_at').execute()
+        mensagens = msgs_q.data or []
+        # Filtrar notas internas para clientes
+        if tipo != 'admin':
+            mensagens = [m for m in mensagens if not m.get('is_nota_interna')]
+            # Marcar como lidas pelo cliente
+            supabase.table('chamados_mensagens').update({'lida_cliente': True})\
+                .eq('chamado_id', chamado_id).eq('autor_tipo', 'admin').execute()
+        else:
+            # Marcar como lidas pelo admin
+            supabase.table('chamados_mensagens').update({'lida_admin': True})\
+                .eq('chamado_id', chamado_id).eq('autor_tipo', 'cliente').execute()
+        return jsonify({'success': True, 'chamado': chamado.data, 'mensagens': mensagens})
+    except Exception as e:
+        return jsonify({'success': False, 'error': _err(e)}), 500
+
+@app.route('/api/chamados/<chamado_id>/mensagem', methods=['POST'])
+def api_chamados_mensagem(chamado_id):
+    if 'username' not in session:
+        return jsonify({'success': False}), 401
+    username = session.get('username')
+    data = request.get_json()
+    mensagem = data.get('mensagem', '').strip()
+    is_nota = data.get('nota_interna', False)
+    if not mensagem:
+        return jsonify({'success': False, 'error': 'Mensagem vazia'}), 400
+    try:
+        from datetime import datetime
+        user_info = supabase.table('usuarios').select('tipo,nome').eq('username', username).single().execute()
+        tipo = user_info.data.get('tipo', 'cliente') if user_info.data else 'cliente'
+        nome = user_info.data.get('nome', username) if user_info.data else username
+        chamado = supabase.table('chamados').select('*').eq('id', chamado_id).single().execute()
+        if not chamado.data:
+            return jsonify({'success': False, 'error': 'Chamado não encontrado'}), 404
+        if tipo != 'admin' and chamado.data['cliente_username'] != username:
+            return jsonify({'success': False, 'error': 'Acesso negado'}), 403
+        if chamado.data['status'] in ('resolvido', 'fechado'):
+            return jsonify({'success': False, 'error': 'Chamado encerrado'}), 400
+        agora = datetime.utcnow().isoformat()
+        supabase.table('chamados_mensagens').insert({
+            'chamado_id': chamado_id,
+            'autor_tipo': tipo if tipo == 'admin' else 'cliente',
+            'autor_nome': nome,
+            'mensagem': mensagem,
+            'is_nota_interna': is_nota if tipo == 'admin' else False,
+            'lida_admin': tipo == 'admin',
+            'lida_cliente': tipo != 'admin',
+            'created_at': agora
+        }).execute()
+        novo_status = chamado.data['status']
+        if tipo == 'admin' and chamado.data['status'] == 'aberto':
+            novo_status = 'em_atendimento'
+        elif tipo != 'admin' and chamado.data['status'] == 'aguardando_cliente':
+            novo_status = 'em_atendimento'
+        supabase.table('chamados').update({
+            'updated_at': agora,
+            'status': novo_status,
+            'total_mensagens': (chamado.data.get('total_mensagens') or 0) + 1
+        }).eq('id', chamado_id).execute()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': _err(e)}), 500
+
+@app.route('/api/chamados/<chamado_id>/status', methods=['POST'])
+def api_chamados_status(chamado_id):
+    if 'username' not in session:
+        return jsonify({'success': False}), 401
+    try:
+        user_info = supabase.table('usuarios').select('tipo').eq('username', session['username']).single().execute()
+        if not user_info.data or user_info.data.get('tipo') != 'admin':
+            return jsonify({'success': False, 'error': 'Acesso negado'}), 403
+        data = request.get_json()
+        novo_status = data.get('status')
+        validos = ['aberto', 'em_atendimento', 'aguardando_cliente', 'resolvido', 'fechado']
+        if novo_status not in validos:
+            return jsonify({'success': False, 'error': 'Status inválido'}), 400
+        from datetime import datetime
+        update = {'status': novo_status, 'updated_at': datetime.utcnow().isoformat()}
+        if novo_status in ('resolvido', 'fechado'):
+            update['closed_at'] = datetime.utcnow().isoformat()
+        supabase.table('chamados').update(update).eq('id', chamado_id).execute()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': _err(e)}), 500
+
+@app.route('/api/chamados/<chamado_id>/atribuir', methods=['POST'])
+def api_chamados_atribuir(chamado_id):
+    if 'username' not in session:
+        return jsonify({'success': False}), 401
+    try:
+        user_info = supabase.table('usuarios').select('tipo').eq('username', session['username']).single().execute()
+        if not user_info.data or user_info.data.get('tipo') != 'admin':
+            return jsonify({'success': False, 'error': 'Acesso negado'}), 403
+        data = request.get_json()
+        atribuido_a = data.get('atribuido_a', '').strip()
+        from datetime import datetime
+        supabase.table('chamados').update({
+            'atribuido_a': atribuido_a or None,
+            'updated_at': datetime.utcnow().isoformat()
+        }).eq('id', chamado_id).execute()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': _err(e)}), 500
+
+# ============================================
+# COMPLIANCE B2B
+# ============================================
+
+def _b2b_acesso():
+    """Returns (usuario, tipo, redirect_or_None). Allows admin and compliance."""
+    usuario = session.get('username')
+    if not usuario:
+        return None, None, redirect('/login')
+    tipo = session.get('tipo', '')
+    if tipo in ('compliance', 'admin'):
+        return usuario, tipo, None
+    try:
+        r = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        tipo = r.data.get('tipo') if r.data else None
+        if tipo not in ('compliance', 'admin'):
+            return None, None, redirect('/login')
+        session['tipo'] = tipo
+        return usuario, tipo, None
+    except Exception:
+        return None, None, redirect('/login')
+
+
+def _calcular_score_b2b(cliente, criterios, thresholds, overrides):
+    """Calculate risk score for a B2B client. Returns (score, nivel, criterios_resultado, overrides_activos)."""
+    # Check hard overrides first
+    overrides_activos = []
+    for ov in overrides:
+        if not ov.get('ativo'):
+            continue
+        codigo = ov['codigo']
+        triggered = False
+        if codigo == 'pep_activo' and cliente.get('pep_empresa') in ('sim', 'confirmado'):
+            triggered = True
+        elif codigo == 'sanctions_confirmed' and cliente.get('sancoes_empresa') == 'confirmado':
+            triggered = True
+        elif codigo == 'sof_recusa':
+            # flagged manually — check notas or a dedicated field
+            pass
+        if triggered:
+            overrides_activos.append(ov['nome'])
+
+    if overrides_activos:
+        return 60, 'high', [], overrides_activos
+
+    # Score each criterion
+    resultados = []
+    total = 0
+    for c in criterios:
+        if not c.get('ativo'):
+            continue
+        codigo = c['codigo']
+        peso = c.get('peso', 1) or 1
+        valor = _auto_score_criterio(codigo, cliente)
+        pts = valor * peso
+        total += pts
+        resultados.append({'codigo': codigo, 'bloco': c.get('bloco'), 'nome': c['nome'], 'valor': valor, 'pts': pts})
+
+    low_max = thresholds.get('low_max', 32)
+    med_max = thresholds.get('medium_max', 46)
+    if total <= low_max:
+        nivel = 'low'
+    elif total <= med_max:
+        nivel = 'medium'
+    else:
+        nivel = 'high'
+
+    return total, nivel, resultados, []
+
+
+def _auto_score_criterio(codigo, c):
+    """Auto-score a criterion based on client data. Returns 1/2/3."""
+    # Block A — Country & Geography
+    if codigo == 'A1':  # registration country risk
+        pais = (c.get('pais_registro') or '').lower()
+        high = ['iran','north korea','myanmar','syria','russia','belarus','cuba','afghanistan']
+        low = ['united kingdom','germany','france','netherlands','usa','united states','sweden','norway']
+        if any(h in pais for h in high): return 3
+        if any(l in pais for l in low): return 1
+        return 2
+    if codigo == 'A2':  # destination countries
+        dest = (c.get('paises_destino') or '').lower()
+        high = ['iran','north korea','myanmar','syria','afghanistan','somalia','sudan','libya']
+        if any(h in dest for h in high): return 3
+        china_only = dest.strip().replace(' ', '').split(',') == ['china']
+        return 2  # default medium per user decision
+    if codigo == 'A3':  # source country of funds
+        pais = (c.get('pais_registro') or '').lower()
+        high = ['iran','north korea','myanmar','cayman','panama','british virgin islands','seychelles']
+        if any(h in pais for h in high): return 3
+        low = ['united kingdom','germany','france','netherlands']
+        if any(l in pais for l in low): return 1
+        return 2
+    if codigo == 'A4':  # operating in high-risk jurisdiction
+        return 2  # requires manual review — default medium
+    if codigo == 'A5':  # cross-border complexity
+        dest = c.get('paises_destino') or ''
+        num_countries = len([x for x in dest.split(',') if x.strip()])
+        if num_countries >= 5: return 3
+        if num_countries >= 2: return 2
+        return 1
+
+    # Block B — Business & Structure
+    if codigo == 'B1':  # entity type
+        et = (c.get('tipo_entidade') or '').lower()
+        if 'trust' in et or 'foundation' in et: return 3
+        if 'sole' in et or 'partnership' in et: return 2
+        return 1
+    if codigo == 'B2':  # business age / incorporation
+        from datetime import date
+        inc = c.get('data_constituicao')
+        if inc:
+            try:
+                d = date.fromisoformat(str(inc)[:10])
+                age_years = (date.today() - d).days / 365
+                if age_years < 1: return 3
+                if age_years < 3: return 2
+                return 1
+            except Exception:
+                pass
+        return 2
+    if codigo == 'B3':  # industry / sector
+        sector = (c.get('setor_atividade') or '').lower()
+        high = ['gambling','cryptocurrency','arms','weapons','precious metals','art','antiques']
+        med = ['import','export','construction','real estate','cash']
+        if any(h in sector for h in high): return 3
+        if any(m in sector for m in med): return 2
+        return 1
+    if codigo == 'B4':  # company structure complexity
+        return 2  # requires manual review
+    if codigo == 'B5':  # number of controlling persons / UBOs
+        return 2  # requires manual review after persons are added
+
+    # Block C — Transaction Profile
+    if codigo == 'C1':  # expected monthly volume
+        vol = c.get('volume_mensal_esperado') or 0
+        if vol > 1000000: return 3
+        if vol > 200000: return 2
+        return 1
+    if codigo == 'C2':  # transaction frequency
+        freq = c.get('frequencia_mensal_esperada') or 0
+        if freq > 50: return 3
+        if freq > 15: return 2
+        return 1
+    if codigo == 'C3':  # avg transaction size
+        ticket = c.get('ticket_medio_esperado') or 0
+        if ticket > 100000: return 3
+        if ticket > 20000: return 2
+        return 1
+    if codigo == 'C4':  # source of funds clarity
+        sof = (c.get('fonte_recursos') or '').lower()
+        if 'loan' in sof or 'investment' in sof: return 2
+        if c.get('fonte_recursos_detalhes'): return 1
+        return 2
+    if codigo == 'C5':  # payment purpose
+        fp = (c.get('finalidade_pagamento') or '').lower()
+        if 'supplier' in fp or 'goods' in fp or 'services' in fp: return 1
+        return 2
+
+    # Block D — Customer & AML History
+    if codigo == 'D1':  # PEP connection
+        pep = c.get('pep_empresa') or 'nao'
+        if pep == 'confirmado': return 3
+        if pep in ('sim', 'possivel'): return 2
+        return 1
+    if codigo == 'D2':  # sanctions / adverse media
+        sanc = c.get('sancoes_empresa') or 'nao_confirmado'
+        if sanc == 'confirmado': return 3
+        if sanc == 'possivel': return 2
+        return 1
+    if codigo == 'D3':  # prior SAR / CTR
+        return 1  # default low for new clients
+    if codigo == 'D4':  # regulatory/legal history
+        return 1  # default low for new clients
+    if codigo == 'D5':  # relationship transparency / KYB cooperation
+        return 1  # default good cooperation
+
+    return 2  # safe default
+
+
+# ── PAGE ROUTES ──
+
+@app.route('/compliance/b2b/dashboard')
+def compliance_b2b_dashboard():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return redir
+    return render_with_lang('compliance_b2b/dashboard.html', usuario=usuario, tipo=tipo)
+
+@app.route('/compliance/b2b/clientes')
+def compliance_b2b_clientes():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return redir
+    return render_with_lang('compliance_b2b/clientes.html', usuario=usuario, tipo=tipo)
+
+@app.route('/compliance/b2b/clientes/novo')
+def compliance_b2b_onboarding():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return redir
+    return render_with_lang('compliance_b2b/onboarding.html', usuario=usuario, tipo=tipo)
+
+@app.route('/compliance/b2b/clientes/<client_id>')
+def compliance_b2b_cliente_detalhe(client_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return redir
+    return render_with_lang('compliance_b2b/cliente_detalhe.html', usuario=usuario, tipo=tipo, client_id=client_id)
+
+@app.route('/compliance/b2b/risk-config')
+def compliance_b2b_risk_config():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return redir
+    return render_with_lang('compliance_b2b/risk_config.html', usuario=usuario, tipo=tipo)
+
+@app.route('/compliance/b2b/edd')
+def compliance_b2b_edd():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return redir
+    return render_with_lang('compliance_b2b/edd.html', usuario=usuario, tipo=tipo)
+
+@app.route('/compliance/b2b/alertas')
+def compliance_b2b_alertas():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return redir
+    return render_with_lang('compliance_b2b/alertas.html', usuario=usuario, tipo=tipo)
+
+@app.route('/compliance/b2b/beneficiarios')
+def compliance_b2b_beneficiarios():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return redir
+    return render_with_lang('compliance_b2b/beneficiarios.html', usuario=usuario, tipo=tipo)
+
+@app.route('/compliance/b2b/screening')
+def compliance_b2b_screening():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return redir
+    return render_with_lang('compliance_b2b/screening.html', usuario=usuario, tipo=tipo)
+
+@app.route('/compliance/b2b/limites')
+def compliance_b2b_limites():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return redir
+    return render_with_lang('compliance_b2b/limites.html', usuario=usuario, tipo=tipo)
+
+
+# ── DASHBOARD STATS ──
+
+@app.route('/api/compliance/b2b/dashboard-stats')
+def api_b2b_dashboard_stats():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        clientes = supabase.table('clientes_b2b').select('id,status,nivel_risco').execute().data or []
+        edd = supabase.table('edd_cases').select('id,status').execute().data or []
+        alertas = supabase.table('alertas_compliance').select('id,status').execute().data or []
+
+        total = len(clientes)
+        ativos = sum(1 for c in clientes if c.get('status') == 'ativo')
+        pendentes = sum(1 for c in clientes if c.get('status') == 'aguardando_revisao')
+        high_risk = sum(1 for c in clientes if c.get('nivel_risco') == 'high' and c.get('status') == 'ativo')
+        edd_abertos = sum(1 for e in edd if e.get('status') in ('aberto', 'em_analise'))
+        alertas_abertos = sum(1 for a in alertas if a.get('status') == 'aberto')
+
+        return jsonify({'success': True, 'stats': {
+            'total': total, 'ativos': ativos, 'pendentes': pendentes,
+            'high_risk': high_risk, 'edd_abertos': edd_abertos, 'alertas_abertos': alertas_abertos
+        }})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── CLIENT LIST ──
+
+@app.route('/api/compliance/b2b/clientes', methods=['GET'])
+def api_b2b_clientes_list():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        page = int(request.args.get('page', 1))
+        limit = min(int(request.args.get('limit', 20)), 100)
+        q = request.args.get('q', '').strip()
+        status_filter = request.args.get('status', '').strip()
+        risco_filter = request.args.get('risco', '').strip()
+        order = request.args.get('order', 'recente')
+
+        query = supabase.table('clientes_b2b').select('*')
+        if status_filter:
+            query = query.eq('status', status_filter)
+        if risco_filter:
+            query = query.eq('nivel_risco', risco_filter)
+        if q:
+            query = query.or_(f'razao_social.ilike.%{q}%,numero_registro.ilike.%{q}%,nome_comercial.ilike.%{q}%')
+
+        order_map = {
+            'recente': ('criado_em', True),
+            'nome': ('razao_social', False),
+            'risco_desc': ('score_risco', True),
+            'risco_asc': ('score_risco', False),
+            'revisao': ('proxima_revisao_em', False),
+        }
+        col, desc = order_map.get(order, ('criado_em', True))
+        query = query.order(col, desc=desc)
+
+        offset = (page - 1) * limit
+        result = query.range(offset, offset + limit - 1).execute()
+        clientes = result.data or []
+
+        count_q = supabase.table('clientes_b2b').select('id', count='exact')
+        if status_filter: count_q = count_q.eq('status', status_filter)
+        if risco_filter: count_q = count_q.eq('nivel_risco', risco_filter)
+        if q: count_q = count_q.or_(f'razao_social.ilike.%{q}%,numero_registro.ilike.%{q}%,nome_comercial.ilike.%{q}%')
+        count_result = count_q.execute()
+        total = count_result.count if hasattr(count_result, 'count') and count_result.count is not None else len(clientes)
+
+        return jsonify({'success': True, 'clientes': clientes, 'total': total})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── CREATE CLIENT (onboarding) ──
+
+@app.route('/api/compliance/b2b/clientes', methods=['POST'])
+def api_b2b_cliente_criar():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        from datetime import datetime, timezone
+        d = request.get_json() or {}
+        if not d.get('razao_social'):
+            return jsonify({'success': False, 'message': 'Company name is required'}), 400
+
+        pessoas = d.pop('pessoas', [])
+
+        # Suggest limits from turnover
+        turnover = float(d.get('faturamento_anual') or 0)
+        if turnover and not d.get('limite_mensal'):
+            d['limite_mensal'] = round(turnover / 12)
+            d['limite_diario'] = round(turnover / 240)
+            d['limite_por_transacao'] = round(turnover / 480)
+
+        d['onboarding_por'] = usuario
+        d['criado_por'] = usuario
+        d['criado_em'] = datetime.now(timezone.utc).isoformat()
+
+        # Satisfy original NOT NULL constraint on business_name (legacy English column)
+        if d.get('razao_social') and not d.get('business_name'):
+            d['business_name'] = d['razao_social']
+
+        # Whitelist: only columns that exist in clientes_b2b
+        _COLS_B2B = {
+            'business_name',
+            'razao_social', 'nome_comercial', 'tipo_entidade', 'numero_registro',
+            'pais_registro', 'data_constituicao', 'numero_vat', 'setor_atividade',
+            'faturamento_anual', 'descricao_negocio', 'website', 'fca_registro_numero',
+            'email', 'telefone', 'account_manager_username', 'usuario_username',
+            'endereco_linha1', 'endereco_linha2', 'cidade', 'estado', 'cep', 'pais',
+            'endereco_registrado', 'finalidade_pagamento', 'volume_mensal_esperado',
+            'frequencia_mensal_esperada', 'ticket_medio_esperado', 'paises_destino',
+            'moedas_utilizadas', 'fonte_recursos', 'fonte_recursos_detalhes',
+            'banco_origem', 'paises_origem', 'pep_empresa', 'sancoes_empresa',
+            'pep_notas', 'creditsafe_ref', 'shuttipro_ref', 'checkmarble_ref',
+            'notas_compliance', 'status', 'nivel_risco', 'score_risco',
+            'limite_por_transacao', 'limite_diario', 'limite_mensal',
+            'onboarding_por', 'criado_por', 'criado_em',
+        }
+        d = {k: v for k, v in d.items() if k in _COLS_B2B and v is not None and v != ''}
+
+        result = supabase.table('clientes_b2b').insert(d).execute()
+        if not result.data:
+            return jsonify({'success': False, 'message': 'Error creating client'}), 500
+
+        client_id = result.data[0]['id']
+
+        # Insert pessoas
+        _COLS_PESSOAS = {
+            'nome_completo', 'cargo', 'data_nascimento', 'nacionalidade',
+            'numero_identificacao', 'percentual_participacao', 'email',
+            'pep_status', 'sancoes_status', 'identidade_verificada',
+            'cliente_b2b_id', 'criado_por', 'criado_em',
+        }
+        from datetime import datetime, timezone as tz_import
+        for p in pessoas:
+            p_clean = {k: v for k, v in p.items() if k in _COLS_PESSOAS and v is not None and v != ''}
+            p_clean['cliente_b2b_id'] = client_id
+            p_clean['cliente_id'] = client_id  # legacy NOT NULL column
+            p_clean['criado_por'] = usuario
+            if p_clean.get('nome_completo'):
+                supabase.table('pessoas_controlantes').insert(p_clean).execute()
+
+        # Auto-calculate score if we have enough data
+        try:
+            criterios_r = supabase.table('risk_criteria').select('*').eq('ativo', True).execute()
+            thresholds_r = supabase.table('risk_thresholds').select('*').limit(1).execute()
+            overrides_r = supabase.table('risk_overrides').select('*').execute()
+            criterios = criterios_r.data or []
+            thresholds = thresholds_r.data[0] if thresholds_r.data else {'low_max': 32, 'medium_max': 46}
+            overrides = overrides_r.data or []
+            score, nivel, crit_result, ov_activos = _calcular_score_b2b(d, criterios, thresholds, overrides)
+            import json
+            supabase.table('clientes_b2b').update({
+                'score_risco': score,
+                'nivel_risco': nivel,
+                'score_calculado_em': datetime.now(timezone.utc).isoformat(),
+                'criterios_score': json.dumps(crit_result),
+                'overrides_activos': json.dumps(ov_activos),
+            }).eq('id', client_id).execute()
+        except Exception:
+            pass
+
+        # Create initial limit history entry if limits were set
+        if d.get('limite_mensal'):
+            try:
+                supabase.table('limites_b2b_historico').insert({
+                    'cliente_b2b_id': client_id,
+                    'limite_por_transacao': d.get('limite_por_transacao'),
+                    'limite_diario': d.get('limite_diario'),
+                    'limite_mensal': d.get('limite_mensal'),
+                    'motivo': 'Initial suggested limits from declared annual turnover',
+                    'alterado_por': usuario,
+                }).execute()
+            except Exception:
+                pass
+
+        return jsonify({'success': True, 'id': client_id, 'message': 'Client created successfully'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── CLIENT DETAIL ──
+
+@app.route('/api/compliance/b2b/clientes/<client_id>', methods=['GET'])
+def api_b2b_cliente_get(client_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        import json
+        result = supabase.table('clientes_b2b').select('*').eq('id', client_id).single().execute()
+        if not result.data:
+            return jsonify({'success': False, 'message': 'Client not found'}), 404
+        c = result.data
+        
+        # Parse JSON fields if stored as strings
+        for field in ('criterios_score', 'overrides_activos'):
+            if isinstance(c.get(field), str):
+                try: c[field] = json.loads(c[field])
+                except Exception: c[field] = []
+        
+        # 🔥 BUSCAR PESSOAS E FORMATAR PARA O FRONTEND
+        pessoas_raw = supabase.table('pessoas_controlantes').select('*').eq('cliente_b2b_id', client_id).execute()
+        pessoas_raw_data = pessoas_raw.data or []
+        
+        # 🔥 CONVERTER para o formato que o frontend espera (Step 3 do onboarding)
+        pessoas_formatadas = []
+        for p in pessoas_raw_data:
+            # Construir nome_completo a partir de first_name + last_name se não existir
+            nome_completo = p.get('nome_completo')
+            if not nome_completo:
+                first = p.get('first_name', '')
+                last = p.get('last_name', '')
+                if first or last:
+                    nome_completo = f"{first} {last}".strip()
+            
+            # Pegar percentual de onde estiver
+            percentual = p.get('percentual_participacao')
+            if percentual is None:
+                percentual = p.get('percent_shares')
+            
+            pessoa_formatada = {
+                'id': p.get('id'),
+                'nome_completo': nome_completo,
+                'cargo': p.get('cargo', ''),
+                'email': p.get('email', ''),
+                'percentual_participacao': float(percentual) if percentual is not None else None,
+                'data_nascimento': p.get('data_nascimento') or p.get('date_of_birth'),
+                'nacionalidade': p.get('nacionalidade') or p.get('nationality', ''),
+                'numero_identificacao': p.get('numero_identificacao') or p.get('id_number', ''),
+                'pep_status': p.get('pep_status', 'nao'),
+                'sancoes_status': p.get('sancoes_status') or p.get('sanctions_status', 'nao'),
+                'identidade_verificada': p.get('identidade_verificada', False)
+            }
+            
+            # Remover campos vazios/None
+            pessoa_formatada = {k: v for k, v in pessoa_formatada.items() if v is not None and v != ''}
+            pessoas_formatadas.append(pessoa_formatada)
+        
+        return jsonify({'success': True, 'cliente': c, 'pessoas': pessoas_formatadas})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── UPDATE (continue onboarding / edit draft) ──
+
+@app.route('/api/compliance/b2b/clientes/<client_id>', methods=['PATCH'])
+def api_b2b_cliente_atualizar(client_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        from datetime import datetime, timezone
+        d = request.get_json() or {}
+        pessoas = d.pop('pessoas', [])
+
+        _COLS_B2B = {
+            'business_name',
+            'razao_social', 'nome_comercial', 'tipo_entidade', 'numero_registro',
+            'pais_registro', 'data_constituicao', 'numero_vat', 'setor_atividade',
+            'faturamento_anual', 'descricao_negocio', 'website', 'fca_registro_numero',
+            'email', 'telefone', 'account_manager_username', 'usuario_username',
+            'endereco_linha1', 'endereco_linha2', 'cidade', 'estado', 'cep', 'pais',
+            'endereco_registrado', 'finalidade_pagamento', 'volume_mensal_esperado',
+            'frequencia_mensal_esperada', 'ticket_medio_esperado', 'paises_destino',
+            'moedas_utilizadas', 'fonte_recursos', 'fonte_recursos_detalhes',
+            'banco_origem', 'paises_origem', 'pep_empresa', 'sancoes_empresa',
+            'pep_notas', 'creditsafe_ref', 'shuttipro_ref', 'checkmarble_ref',
+            'notas_compliance', 'status', 'nivel_risco', 'score_risco',
+            'limite_por_transacao', 'limite_diario', 'limite_mensal',
+        }
+        if d.get('razao_social') and not d.get('business_name'):
+            d['business_name'] = d['razao_social']
+
+        upd = {k: v for k, v in d.items() if k in _COLS_B2B and v is not None and v != ''}
+        if upd:
+            supabase.table('clientes_b2b').update(upd).eq('id', client_id).execute()
+
+        # ============================================================
+        # 🔥 CORREÇÃO AQUI: Adicionar cliente_id como alias
+        # ============================================================
+        if pessoas:
+            _COLS_PESSOAS = {
+                'nome_completo', 'cargo', 'data_nascimento', 'nacionalidade',
+                'numero_identificacao', 'percentual_participacao', 'email',
+                'pep_status', 'sancoes_status', 'cliente_b2b_id', 'criado_por',
+            }
+            supabase.table('pessoas_controlantes').delete().eq('cliente_b2b_id', client_id).execute()
+            for p in pessoas:
+                p_clean = {k: v for k, v in p.items() if k in _COLS_PESSOAS and v is not None and v != ''}
+                p_clean['cliente_b2b_id'] = client_id
+                p_clean['cliente_id'] = client_id  # ← 🔥 LINHA ADICIONADA (necessária pela constraint NOT NULL)
+                p_clean['criado_por'] = usuario
+                if p_clean.get('nome_completo'):
+                    supabase.table('pessoas_controlantes').insert(p_clean).execute()
+
+        return jsonify({'success': True, 'id': client_id})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── STATUS CHANGE ──
+
+@app.route('/api/compliance/b2b/clientes/<client_id>/status', methods=['POST'])
+def api_b2b_cliente_status(client_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        from datetime import datetime, timezone
+        d = request.get_json() or {}
+        novo_status = d.get('status')
+        motivo = d.get('motivo', '').strip()
+        allowed = ['ativo','em_onboarding','aguardando_revisao','suspenso','rejeitado','encerrado']
+        if novo_status not in allowed:
+            return jsonify({'success': False, 'message': 'Invalid status'}), 400
+        upd = {'status': novo_status}
+        supabase.table('clientes_b2b').update(upd).eq('id', client_id).execute()
+        try:
+            supabase.table('alertas_compliance').insert({
+                'cliente_b2b_id': client_id,
+                'titulo': f'Status changed to {novo_status}',
+                'tipo': 'status_change',
+                'prioridade': 'low',
+                'status': 'fechado',
+                'descricao': motivo or f'Status changed to {novo_status} by {usuario}',
+                'criado_por': usuario,
+                'criado_em': datetime.now(timezone.utc).isoformat(),
+            }).execute()
+        except Exception:
+            pass
+        return jsonify({'success': True, 'message': f'Status updated to {novo_status}'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── APPROVE ──
+
+@app.route('/api/compliance/b2b/clientes/<client_id>/aprovar', methods=['POST'])
+def api_b2b_cliente_aprovar(client_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        from datetime import datetime, timezone, timedelta
+        d = request.get_json() or {}
+        notas = d.get('notas', '').strip()
+        now = datetime.now(timezone.utc)
+        upd = {
+            'status': 'ativo',
+            'aprovado_por': usuario,
+            'aprovado_em': now.isoformat(),
+            'proxima_revisao_em': (now + timedelta(days=365)).isoformat(),
+        }
+        if notas:
+            result = supabase.table('clientes_b2b').select('notas_compliance').eq('id', client_id).single().execute()
+            existing = (result.data or {}).get('notas_compliance') or ''
+            upd['notas_compliance'] = (existing + f'\n\n[MLRO Approval {now.strftime("%d/%m/%Y")} by {usuario}]: {notas}').strip()
+        supabase.table('clientes_b2b').update(upd).eq('id', client_id).execute()
+        return jsonify({'success': True, 'message': 'Client approved and activated'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── REJECT ──
+
+@app.route('/api/compliance/b2b/clientes/<client_id>/rejeitar', methods=['POST'])
+def api_b2b_cliente_rejeitar(client_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        from datetime import datetime, timezone
+        d = request.get_json() or {}
+        motivo = d.get('motivo', '').strip()
+        if not motivo:
+            return jsonify({'success': False, 'message': 'Rejection reason is required'}), 400
+        now = datetime.now(timezone.utc)
+        result = supabase.table('clientes_b2b').select('notas_compliance').eq('id', client_id).single().execute()
+        existing = (result.data or {}).get('notas_compliance') or ''
+        new_notes = (existing + f'\n\n[REJECTED {now.strftime("%d/%m/%Y")} by {usuario}]: {motivo}').strip()
+        supabase.table('clientes_b2b').update({
+            'status': 'rejeitado',
+            'aprovado_por': usuario,
+            'aprovado_em': now.isoformat(),
+            'notas_compliance': new_notes,
+        }).eq('id', client_id).execute()
+        return jsonify({'success': True, 'message': 'Client rejected'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── NOTES ──
+
+@app.route('/api/compliance/b2b/clientes/<client_id>/notas', methods=['POST'])
+def api_b2b_cliente_notas(client_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        d = request.get_json() or {}
+        notas = d.get('notas', '').strip()
+        supabase.table('clientes_b2b').update({'notas_compliance': notas}).eq('id', client_id).execute()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── LIMITS ──
+
+@app.route('/api/compliance/b2b/clientes/<client_id>/limites', methods=['POST'])
+def api_b2b_cliente_limites(client_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        from datetime import datetime, timezone
+        d = request.get_json() or {}
+        motivo = d.get('motivo', '').strip()
+        if not motivo:
+            return jsonify({'success': False, 'message': 'Justification is required'}), 400
+
+        upd = {}
+        if d.get('limite_por_transacao') is not None:
+            upd['limite_por_transacao'] = d['limite_por_transacao']
+        if d.get('limite_diario') is not None:
+            upd['limite_diario'] = d['limite_diario']
+        if d.get('limite_mensal') is not None:
+            upd['limite_mensal'] = d['limite_mensal']
+
+        supabase.table('clientes_b2b').update(upd).eq('id', client_id).execute()
+
+        supabase.table('limites_b2b_historico').insert({
+            'cliente_b2b_id': client_id,
+            'limite_por_transacao': upd.get('limite_por_transacao'),
+            'limite_diario': upd.get('limite_diario'),
+            'limite_mensal': upd.get('limite_mensal'),
+            'motivo': motivo,
+            'alterado_por': usuario,
+            'criado_em': datetime.now(timezone.utc).isoformat(),
+        }).execute()
+
+        return jsonify({'success': True, 'message': 'Limits updated'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/clientes/<client_id>/limites-historico', methods=['GET'])
+def api_b2b_cliente_limites_hist(client_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        result = supabase.table('limites_b2b_historico').select('*').eq('cliente_b2b_id', client_id).order('criado_em', desc=True).execute()
+        return jsonify({'success': True, 'historico': result.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── RECALC SCORE ──
+
+@app.route('/api/compliance/b2b/clientes/<client_id>/recalc-score', methods=['POST'])
+def api_b2b_recalc_score(client_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        import json
+        from datetime import datetime, timezone
+        result = supabase.table('clientes_b2b').select('*').eq('id', client_id).single().execute()
+        if not result.data:
+            return jsonify({'success': False, 'message': 'Client not found'}), 404
+        cliente = result.data
+
+        criterios_r = supabase.table('risk_criteria').select('*').eq('ativo', True).execute()
+        thresholds_r = supabase.table('risk_thresholds').select('*').limit(1).execute()
+        overrides_r = supabase.table('risk_overrides').select('*').execute()
+        criterios = criterios_r.data or []
+        thresholds = thresholds_r.data[0] if thresholds_r.data else {'low_max': 32, 'medium_max': 46}
+        overrides = overrides_r.data or []
+
+        score, nivel, crit_result, ov_activos = _calcular_score_b2b(cliente, criterios, thresholds, overrides)
+        supabase.table('clientes_b2b').update({
+            'score_risco': score,
+            'nivel_risco': nivel,
+            'score_calculado_em': datetime.now(timezone.utc).isoformat(),
+            'criterios_score': json.dumps(crit_result),
+            'overrides_activos': json.dumps(ov_activos),
+        }).eq('id', client_id).execute()
+
+        return jsonify({'success': True, 'score': score, 'nivel': nivel})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── PESSOAS ──
+
+@app.route('/api/compliance/b2b/clientes/<client_id>/pessoas', methods=['GET'])
+def api_b2b_pessoas_list(client_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        result = supabase.table('pessoas_controlantes').select('*').eq('cliente_b2b_id', client_id).order('criado_em').execute()
+        return jsonify({'success': True, 'pessoas': result.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/clientes/<client_id>/pessoas', methods=['POST'])
+def api_b2b_pessoas_criar(client_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        from datetime import datetime, timezone
+        d = request.get_json() or {}
+        if not d.get('nome_completo'):
+            return jsonify({'success': False, 'message': 'Full name is required'}), 400
+        _COLS_PESSOAS = {
+            'nome_completo', 'cargo', 'data_nascimento', 'nacionalidade',
+            'numero_identificacao', 'percentual_participacao', 'email',
+            'pep_status', 'sancoes_status', 'identidade_verificada',
+            'cliente_b2b_id', 'criado_por', 'criado_em',
+        }
+        d = {k: v for k, v in d.items() if k in _COLS_PESSOAS and v is not None and v != ''}
+        d['cliente_b2b_id'] = client_id
+        d['cliente_id'] = client_id  # legacy NOT NULL column
+        d['criado_por'] = usuario
+        d['criado_em'] = datetime.now(timezone.utc).isoformat()
+        result = supabase.table('pessoas_controlantes').insert(d).execute()
+        return jsonify({'success': True, 'id': result.data[0]['id'] if result.data else None})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/pessoas/<pessoa_id>', methods=['PATCH'])
+def api_b2b_pessoa_atualizar(pessoa_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        d = request.get_json() or {}
+        _COLS = {'nome_completo','cargo','data_nascimento','nacionalidade','numero_identificacao',
+                 'percentual_participacao','email','pep_status','sancoes_status','identidade_verificada'}
+        upd = {k: v for k, v in d.items() if k in _COLS and v is not None and v != ''}
+        supabase.table('pessoas_controlantes').update(upd).eq('id', pessoa_id).execute()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── DOCUMENTS ──
+
+@app.route('/api/compliance/b2b/clientes/<client_id>/documentos', methods=['GET'])
+def api_b2b_documentos_list(client_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        result = supabase.table('documentos_b2b').select('*').eq('cliente_b2b_id', client_id).order('tipo_documento').execute()
+        docs = result.data or []
+        # If no documents exist yet, seed the standard checklist
+        if not docs:
+            from datetime import datetime, timezone
+            now = datetime.now(timezone.utc).isoformat()
+            checklist = [
+                {'tipo_documento': 'Certificate of Incorporation', 'obrigatorio': True},
+                {'tipo_documento': 'Articles of Association / Memorandum', 'obrigatorio': True},
+                {'tipo_documento': 'Proof of Registered Address', 'obrigatorio': True},
+                {'tipo_documento': 'Beneficial Ownership Register', 'obrigatorio': True},
+                {'tipo_documento': 'Director ID (Passport or Driving Licence)', 'obrigatorio': True},
+                {'tipo_documento': 'UBO ID Documents', 'obrigatorio': True},
+                {'tipo_documento': 'Latest Filed Accounts / Financial Statements', 'obrigatorio': True},
+                {'tipo_documento': 'Bank Statement (last 3 months)', 'obrigatorio': True},
+                {'tipo_documento': 'Business Bank Reference Letter', 'obrigatorio': False},
+                {'tipo_documento': 'CreditSafe / Credit Report', 'obrigatorio': False},
+                {'tipo_documento': 'Signed Client Agreement / T&Cs', 'obrigatorio': True},
+            ]
+            rows = [{'cliente_b2b_id': client_id, 'cliente_id': client_id, 'tipo': c['tipo_documento'], 'status': 'pendente', 'criado_por': usuario, 'criado_em': now, **c} for c in checklist]
+            result2 = supabase.table('documentos_b2b').insert(rows).execute()
+            docs = result2.data or []
+        return jsonify({'success': True, 'documentos': docs})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/documentos/<doc_id>', methods=['PATCH'])
+def api_b2b_documento_update(doc_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        from datetime import datetime, timezone
+        d = request.get_json() or {}
+        upd = {}
+        if 'status' in d: upd['status'] = d['status']
+        if 'notas' in d: upd['notas'] = d['notas']
+        if d.get('status') in ('aprovado', 'recusado'):
+            upd['aprovado_por'] = usuario
+            upd['aprovado_em'] = datetime.now(timezone.utc).isoformat()
+        supabase.table('documentos_b2b').update(upd).eq('id', doc_id).execute()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+def _b2b_calc_expiry(tipo_documento, data_documento_str, now_dt):
+    import calendar
+    _RULES = {
+        'Certificate of Incorporation':                ('none',     0),
+        'Articles of Association / Memorandum':        ('none',     0),
+        'Proof of Registered Address':                 ('doc_date', 6),
+        'Beneficial Ownership Register':               ('upload',  12),
+        'Director ID (Passport or Driving Licence)':   ('manual',   0),
+        'UBO ID Documents':                            ('manual',   0),
+        'Latest Filed Accounts / Financial Statements':('upload',  12),
+        'Bank Statement (last 3 months)':              ('doc_date', 6),
+        'Business Bank Reference Letter':              ('doc_date', 6),
+        'CreditSafe / Credit Report':                  ('upload',   6),
+        'Signed Client Agreement / T&Cs':              ('upload',  12),
+    }
+    def _add_months(dt, m):
+        month = dt.month - 1 + m
+        year  = dt.year + month // 12
+        month = month % 12 + 1
+        day   = min(dt.day, calendar.monthrange(year, month)[1])
+        return dt.replace(year=year, month=month, day=day)
+
+    mode, months = _RULES.get(tipo_documento, ('upload', 12))
+    from datetime import datetime, timezone
+    if mode == 'none':
+        return None
+    if mode == 'upload':
+        return _add_months(now_dt, months).isoformat()
+    if mode == 'doc_date' and data_documento_str:
+        try:
+            doc_dt = datetime.strptime(data_documento_str, '%Y-%m-%d').replace(tzinfo=timezone.utc)
+            return _add_months(doc_dt, months).isoformat()
+        except Exception:
+            return _add_months(now_dt, months).isoformat()
+    if mode == 'manual' and data_documento_str:
+        try:
+            exp_dt = datetime.strptime(data_documento_str, '%Y-%m-%d').replace(tzinfo=timezone.utc)
+            return exp_dt.isoformat()
+        except Exception:
+            return None
+    return None
+
+
+@app.route('/api/compliance/b2b/documentos/<doc_id>/upload', methods=['POST'])
+def api_b2b_documento_upload(doc_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'message': 'No file provided'}), 400
+        f = request.files['file']
+        if not f.filename:
+            return jsonify({'success': False, 'message': 'Empty filename'}), 400
+        import os
+        file_bytes = f.read()
+        data_documento_str = request.form.get('data_documento', '').strip() or None
+        doc_r = supabase.table('documentos_b2b').select('cliente_b2b_id,tipo_documento').eq('id', doc_id).single().execute()
+        if not doc_r.data:
+            return jsonify({'success': False, 'message': 'Document not found'}), 404
+        client_id     = doc_r.data['cliente_b2b_id']
+        tipo_documento = doc_r.data.get('tipo_documento', '')
+        ext  = os.path.splitext(f.filename)[1].lower()
+        path = f"b2b/{client_id}/{doc_id}{ext}"
+        ct   = f.content_type or 'application/octet-stream'
+        supabase.storage.from_('documentos-b2b').upload(path, file_bytes, file_options={'content-type': ct, 'upsert': 'true'})
+        from datetime import datetime, timezone
+        now    = datetime.now(timezone.utc)
+        expira = _b2b_calc_expiry(tipo_documento, data_documento_str, now)
+        upd = {
+            'storage_path':    path,
+            'arquivo_nome':    f.filename,
+            'arquivo_tamanho': len(file_bytes),
+            'enviado_por':     usuario,
+            'enviado_em':      now.isoformat(),
+            'recebido_em':     now.isoformat(),
+            'status':          'em_revisao',
+        }
+        if expira is not None:
+            upd['expira_em'] = expira
+        supabase.table('documentos_b2b').update(upd).eq('id', doc_id).execute()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/documentos/<doc_id>/download', methods=['GET'])
+def api_b2b_documento_download(doc_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        doc_r = supabase.table('documentos_b2b').select('storage_path').eq('id', doc_id).single().execute()
+        if not doc_r.data or not doc_r.data.get('storage_path'):
+            return jsonify({'success': False, 'message': 'No file uploaded yet'}), 404
+        path = doc_r.data['storage_path']
+        signed = supabase.storage.from_('documentos-b2b').create_signed_url(path, 300)
+        url = signed.get('signedURL') or signed.get('signedUrl') or ''
+        if not url:
+            return jsonify({'success': False, 'message': 'Could not generate download URL'}), 500
+        return jsonify({'success': True, 'url': url})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── BENEFICIARIES (linked to B2B client) ──
+
+@app.route('/api/compliance/b2b/clientes/<client_id>/beneficiarios', methods=['GET'])
+def api_b2b_beneficiarios_list(client_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        # Look up the linked user account for this B2B client
+        cli = supabase.table('clientes_b2b').select('usuario_username').eq('id', client_id).single().execute()
+        username = (cli.data or {}).get('usuario_username')
+        if not username:
+            return jsonify({'success': True, 'beneficiarios': []})
+        result = supabase.table('beneficiarios').select('*').eq('usuario_id', username).execute()
+        return jsonify({'success': True, 'beneficiarios': result.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── HISTORY / TIMELINE ──
+
+@app.route('/api/compliance/b2b/clientes/<client_id>/historico', methods=['GET'])
+def api_b2b_historico(client_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        eventos = []
+        # Limit history entries from alertas_compliance used as event log
+        result = supabase.table('alertas_compliance').select('*').eq('cliente_b2b_id', client_id).order('criado_em', desc=True).limit(50).execute()
+        for a in (result.data or []):
+            eventos.append({
+                'tipo': a.get('tipo', 'nota'),
+                'descricao': a.get('titulo', a.get('descricao', '—')),
+                'usuario': a.get('criado_por'),
+                'criado_em': a.get('criado_em'),
+            })
+        # Add onboarding creation event
+        cli = supabase.table('clientes_b2b').select('criado_em,criado_por,aprovado_em,aprovado_por,status').eq('id', client_id).single().execute()
+        if cli.data:
+            c = cli.data
+            if c.get('criado_em'):
+                eventos.append({'tipo':'criado','descricao':'KYB onboarding submitted','usuario':c.get('criado_por'),'criado_em':c['criado_em']})
+            if c.get('aprovado_em'):
+                label = 'Approved by MLRO' if c.get('status') == 'ativo' else 'Reviewed by MLRO'
+                eventos.append({'tipo':'aprovado','descricao':label,'usuario':c.get('aprovado_por'),'criado_em':c['aprovado_em']})
+
+        eventos.sort(key=lambda x: x.get('criado_em') or '', reverse=True)
+        return jsonify({'success': True, 'eventos': eventos})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── GLOBAL BENEFICIARIES ──
+
+@app.route('/api/compliance/b2b/beneficiarios-global', methods=['GET'])
+def api_b2b_beneficiarios_global():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        q = request.args.get('q', '').strip()
+        limit = min(int(request.args.get('limit', 100)), 500)
+        # Get all B2B clients with a linked user account
+        cli_r = supabase.table('clientes_b2b').select('id,razao_social,usuario_username').not_.is_('usuario_username', 'null').execute()
+        clientes = {c['usuario_username']: c for c in (cli_r.data or [])}
+        if not clientes:
+            return jsonify({'success': True, 'beneficiarios': []})
+        query = supabase.table('beneficiarios').select('*').in_('usuario_id', list(clientes.keys())).limit(limit)
+        if q:
+            query = query.ilike('nome_completo', f'%{q}%')
+        result = query.execute()
+        data = []
+        for b in (result.data or []):
+            c = clientes.get(b.get('usuario_id'), {})
+            b['cliente_id']   = c.get('id')
+            b['cliente_nome'] = c.get('razao_social', '—')
+            data.append(b)
+        return jsonify({'success': True, 'beneficiarios': data, 'total': len(data)})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── SCREENING OVERVIEW ──
+
+@app.route('/api/compliance/b2b/screening-overview', methods=['GET'])
+def api_b2b_screening_overview():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        filtro = request.args.get('resultado', '')  # hit / clear / pendente
+        cli_r = supabase.table('clientes_b2b').select(
+            'id,razao_social,pep_empresa,sancoes_empresa,nivel_risco,score_risco,criado_em'
+        ).execute()
+        pess_r = supabase.table('pessoas_controlantes').select(
+            'id,nome_completo,cargo,pep_status,sancoes_status,cliente_b2b_id'
+        ).execute()
+
+        clientes_map = {c['id']: c for c in (cli_r.data or [])}
+        entidades = []
+
+        for c in (cli_r.data or []):
+            resultado = 'hit' if (c.get('pep_empresa') == 'sim' or c.get('sancoes_empresa') == 'confirmado') else 'clear'
+            if filtro and resultado != filtro:
+                continue
+            entidades.append({
+                'id': c['id'], 'nome': c.get('razao_social', '—'), 'tipo': 'company',
+                'resultado': resultado,
+                'pep': c.get('pep_empresa'), 'sancoes': c.get('sancoes_empresa'),
+                'nivel_risco': c.get('nivel_risco'), 'cliente_id': c['id'],
+                'cliente_nome': c.get('razao_social', '—'),
+            })
+
+        for p in (pess_r.data or []):
+            resultado = 'hit' if (p.get('pep_status') == 'confirmado' or p.get('sancoes_status') == 'confirmado') else 'clear'
+            if filtro and resultado != filtro:
+                continue
+            cli = clientes_map.get(p.get('cliente_b2b_id'), {})
+            entidades.append({
+                'id': p['id'], 'nome': p.get('nome_completo', '—'), 'tipo': p.get('cargo', 'Director'),
+                'resultado': resultado,
+                'pep': p.get('pep_status'), 'sancoes': p.get('sancoes_status'),
+                'nivel_risco': cli.get('nivel_risco'), 'cliente_id': p.get('cliente_b2b_id'),
+                'cliente_nome': cli.get('razao_social', '—'),
+            })
+
+        hits   = sum(1 for e in entidades if e['resultado'] == 'hit')
+        clears = sum(1 for e in entidades if e['resultado'] == 'clear')
+        return jsonify({'success': True, 'entidades': entidades, 'total': len(entidades), 'hits': hits, 'clears': clears})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── EDD ──
+
+@app.route('/api/compliance/b2b/edd', methods=['GET'])
+def api_b2b_edd_list():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        cliente_id = request.args.get('cliente_id')
+        status_raw = request.args.get('status', '')
+        limit = min(int(request.args.get('limit', 50)), 200)
+
+        query = supabase.table('edd_cases').select('*, clientes_b2b!edd_cases_cliente_b2b_id_fkey(razao_social)')
+        if cliente_id:
+            query = query.eq('cliente_b2b_id', cliente_id)
+        if status_raw:
+            statuses = [s.strip() for s in status_raw.split(',')]
+            if len(statuses) == 1:
+                query = query.eq('status', statuses[0])
+            else:
+                query = query.in_('status', statuses)
+        result = query.order('criado_em', desc=True).limit(limit).execute()
+        cases = []
+        for row in (result.data or []):
+            row['cliente_nome'] = (row.pop('clientes_b2b', None) or {}).get('razao_social')
+            cases.append(row)
+        return jsonify({'success': True, 'cases': cases})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/edd', methods=['POST'])
+def api_b2b_edd_criar():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        from datetime import datetime, timezone
+        d = request.get_json() or {}
+        if not d.get('gatilho'):
+            return jsonify({'success': False, 'message': 'EDD trigger is required'}), 400
+        d['status'] = 'aberto'
+        d['criado_por'] = usuario
+        d['criado_em'] = datetime.now(timezone.utc).isoformat()
+        result = supabase.table('edd_cases').insert(d).execute()
+        # Create an alert
+        try:
+            cli_r = supabase.table('clientes_b2b').select('razao_social').eq('id', d.get('cliente_b2b_id')).single().execute()
+            nome = (cli_r.data or {}).get('razao_social', '—')
+            supabase.table('alertas_compliance').insert({
+                'cliente_b2b_id': d.get('cliente_b2b_id'),
+                'titulo': f'EDD case opened: {d["gatilho"][:60]}',
+                'tipo': 'edd_aberto',
+                'prioridade': 'high',
+                'status': 'aberto',
+                'criado_por': usuario,
+                'criado_em': datetime.now(timezone.utc).isoformat(),
+            }).execute()
+        except Exception:
+            pass
+        return jsonify({'success': True, 'id': result.data[0]['id'] if result.data else None})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── ALERTS ──
+
+@app.route('/api/compliance/b2b/alertas', methods=['GET'])
+def api_b2b_alertas_list():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        status_filter = request.args.get('status', '')
+        limit = min(int(request.args.get('limit', 50)), 200)
+        query = supabase.table('alertas_compliance').select('*, clientes_b2b!alertas_compliance_cliente_b2b_id_fkey(razao_social)')
+        if status_filter:
+            query = query.eq('status', status_filter)
+        result = query.order('criado_em', desc=True).limit(limit).execute()
+        alertas = []
+        for row in (result.data or []):
+            row['cliente_nome'] = (row.pop('clientes_b2b', None) or {}).get('razao_social')
+            alertas.append(row)
+        return jsonify({'success': True, 'alertas': alertas})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── RISK CONFIGURATION ──
+
+@app.route('/api/compliance/b2b/risk-config/criterios', methods=['GET'])
+def api_b2b_riskconfig_criterios_get():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        result = supabase.table('risk_criteria').select('*').order('bloco').order('ordem').execute()
+        return jsonify({'success': True, 'criterios': result.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/risk-config/criterios', methods=['POST'])
+def api_b2b_riskconfig_criterios_save():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        from datetime import datetime, timezone
+        d = request.get_json() or {}
+        criterios = d.get('criterios', [])
+        now = datetime.now(timezone.utc).isoformat()
+        for c in criterios:
+            cid = c.get('id')
+            if not cid: continue
+            upd = {}
+            if 'peso' in c: upd['peso'] = c['peso']
+            if 'ativo' in c: upd['ativo'] = c['ativo']
+            if upd:
+                upd['atualizado_por'] = usuario
+                upd['atualizado_em'] = now
+                supabase.table('risk_criteria').update(upd).eq('id', cid).execute()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/risk-config/overrides', methods=['GET'])
+def api_b2b_riskconfig_overrides_get():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        result = supabase.table('risk_overrides').select('*').execute()
+        return jsonify({'success': True, 'overrides': result.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/risk-config/overrides', methods=['POST'])
+def api_b2b_riskconfig_overrides_save():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        from datetime import datetime, timezone
+        d = request.get_json() or {}
+        overrides = d.get('overrides', [])
+        now = datetime.now(timezone.utc).isoformat()
+        for o in overrides:
+            oid = o.get('id')
+            if not oid: continue
+            supabase.table('risk_overrides').update({
+                'ativo': o.get('ativo', True),
+                'atualizado_por': usuario,
+                'atualizado_em': now,
+            }).eq('id', oid).execute()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/risk-config/thresholds', methods=['GET'])
+def api_b2b_riskconfig_thresholds_get():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        result = supabase.table('risk_thresholds').select('*').limit(1).execute()
+        th = result.data[0] if result.data else {'low_max': 32, 'medium_max': 46}
+        return jsonify({'success': True, 'thresholds': th})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/risk-config/thresholds', methods=['POST'])
+def api_b2b_riskconfig_thresholds_save():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        from datetime import datetime, timezone
+        d = request.get_json() or {}
+        low_max = int(d.get('low_max', 32))
+        medium_max = int(d.get('medium_max', 46))
+        if low_max >= medium_max:
+            return jsonify({'success': False, 'message': 'Low max must be less than Medium max'}), 400
+        now = datetime.now(timezone.utc).isoformat()
+        existing = supabase.table('risk_thresholds').select('id').limit(1).execute()
+        if existing.data:
+            supabase.table('risk_thresholds').update({
+                'low_max': low_max, 'medium_max': medium_max,
+                'atualizado_por': usuario, 'atualizado_em': now,
+            }).eq('id', existing.data[0]['id']).execute()
+        else:
+            supabase.table('risk_thresholds').insert({
+                'low_max': low_max, 'medium_max': medium_max,
+                'atualizado_por': usuario, 'atualizado_em': now,
+            }).execute()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     debug = _IS_DEBUG

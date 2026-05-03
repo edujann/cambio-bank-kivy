@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <script>(function(){ document.documentElement.setAttribute('data-theme', localStorage.getItem('theme')||'light'); })();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link International — New B2B Onboarding</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        :root[data-theme="light"]{--cor-fundo:#f5ede0;--cor-card:#ffffff;--cor-borda:rgba(210,185,130,.4);--cor-texto:#1a1200;--cor-texto-secundario:#9a8560;--cor-primaria:#c8920a;--cor-admin:#c8920a;--cor-sucesso:#1a7a52;--cor-alerta:#b87200;--cor-perigo:#c02020;--sombra-suave:0 2px 8px rgba(160,110,0,.10),0 1px 3px rgba(0,0,0,.04);--sombra-media:0 6px 22px rgba(160,110,0,.13),0 2px 8px rgba(0,0,0,.05);--borda-radius:14px;--borda-radius-pequeno:10px;}
+        :root[data-theme="dark"]{--cor-fundo:#110f08;--cor-card:#191611;--cor-borda:#2d2819;--cor-texto:#e0e0e0;--cor-texto-secundario:#8b949e;--cor-primaria:#d29e00;--cor-admin:#d29e00;--cor-sucesso:#2ec27e;--cor-alerta:#f39c12;--cor-perigo:#e01b24;--sombra-suave:0 4px 6px rgba(0,0,0,.30);--sombra-media:0 8px 16px rgba(0,0,0,.40);--borda-radius:14px;--borda-radius-pequeno:10px;}
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+        body{background-color:#f5ede0;background-image:radial-gradient(ellipse at 15% 15%,rgba(210,158,0,.10) 0%,transparent 55%),radial-gradient(ellipse at 85% 85%,rgba(180,120,0,.08) 0%,transparent 55%),linear-gradient(150deg,#f8f2e6 0%,#fdf9f2 45%,#ede3cf 100%);background-attachment:fixed;color:var(--cor-texto);min-height:100vh;overflow-x:hidden;}
+        body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(180,130,0,.055) 1px,transparent 1px);background-size:30px 30px;pointer-events:none;z-index:0;}
+        html[data-theme="dark"] body{background-color:#110f08;background-image:linear-gradient(135deg,#110f08 0%,#1f1a10 100%);}
+        html[data-theme="dark"] body::before{display:none;}
+        .top-bar{position:sticky;top:0;z-index:200;height:54px;background:var(--cor-card);border-bottom:1px solid var(--cor-borda);display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:10px;}
+        .logo{display:flex;align-items:center;gap:10px;font-size:17px;}
+        .logo-text{background:linear-gradient(90deg,#b78700,#eeb600);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800;}
+        .logo-text span{font-weight:400;}
+        .badge-b2b{background:rgba(210,158,0,.15);border:1px solid rgba(210,158,0,.4);color:#d29e00;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;letter-spacing:.5px;text-transform:uppercase;}
+        .hd-right{display:flex;align-items:center;gap:8px;}
+        .btn-hd{background:rgba(210,158,0,.12);border:1px solid #d29e00;color:#d29e00;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:.15s;}
+        .btn-hd:hover{background:rgba(210,158,0,.25);}
+        .btn-hd-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-hd-ghost:hover{border-color:#d29e00;color:#d29e00;}
+
+        /* Progress stepper */
+        .stepper-wrap{padding:24px 24px 0;}
+        .stepper{display:flex;align-items:center;gap:0;margin-bottom:32px;}
+        .step{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;position:relative;}
+        .step:not(:last-child)::after{content:'';position:absolute;top:17px;left:50%;width:100%;height:2px;background:var(--cor-borda);z-index:0;}
+        .step.done::after,.step.active::after{background:#d29e00;}
+        .step-circle{width:34px;height:34px;border-radius:50%;border:2px solid var(--cor-borda);background:var(--cor-card);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;z-index:1;transition:.3s;position:relative;}
+        .step.active .step-circle{border-color:#d29e00;background:rgba(210,158,0,.12);color:#d29e00;}
+        .step.done .step-circle{border-color:#2ec27e;background:rgba(46,194,126,.12);color:#2ec27e;}
+        .step-label{font-size:11px;text-align:center;color:var(--cor-texto-secundario);white-space:nowrap;}
+        .step.active .step-label{color:#d29e00;font-weight:700;}
+        .step.done .step-label{color:#2ec27e;}
+
+        /* Main layout */
+        .form-wrap{max-width:840px;margin:0 auto;padding:0 24px 40px;}
+
+        /* Step panels */
+        .step-panel{display:none;}
+        .step-panel.active{display:block;}
+
+        /* Section headers */
+        .step-header{margin-bottom:24px;}
+        .step-header h2{font-size:18px;font-weight:700;display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+        .step-header h2 i{color:#d29e00;}
+        .step-header p{color:var(--cor-texto-secundario);font-size:13px;}
+
+        /* Form fields */
+        .form-section{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;padding:22px;margin-bottom:16px;}
+        .form-section h3{font-size:12px;font-weight:700;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+        .form-section h3 i{color:#d29e00;}
+        .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+        .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+        @media(max-width:600px){.grid-2,.grid-3{grid-template-columns:1fr;}}
+        .form-group{display:flex;flex-direction:column;gap:5px;}
+        .form-group.span-2{grid-column:span 2;}
+        .form-group.span-3{grid-column:span 3;}
+        label{font-size:11px;font-weight:700;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.3px;}
+        label .req{color:#e01b24;margin-left:2px;}
+        input,select,textarea{padding:10px 12px;background:#1f1a10;border:1px solid var(--cor-borda);border-radius:8px;color:var(--cor-texto);font-size:13px;width:100%;}
+        input:focus,select:focus,textarea:focus{outline:none;border-color:#d29e00;}
+        textarea{resize:vertical;min-height:80px;}
+        input::placeholder{color:var(--cor-texto-secundario);}
+        .field-hint{font-size:11px;color:var(--cor-texto-secundario);margin-top:2px;}
+
+        /* Checkbox / radio */
+        .check-group{display:flex;flex-direction:column;gap:8px;}
+        .check-item{display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:10px 12px;border:1px solid var(--cor-borda);border-radius:8px;transition:.15s;}
+        .check-item:hover{border-color:#d29e00;background:rgba(210,158,0,.04);}
+        .check-item input[type=checkbox],.check-item input[type=radio]{width:16px;height:16px;margin-top:2px;accent-color:#d29e00;flex-shrink:0;}
+        .check-item .check-label{font-size:13px;}
+        .check-item .check-sub{font-size:11px;color:var(--cor-texto-secundario);margin-top:2px;}
+
+        /* Person cards (step 3) */
+        .pessoa-card{background:rgba(210,158,0,.04);border:1px solid rgba(210,158,0,.2);border-radius:10px;padding:16px;margin-bottom:10px;position:relative;}
+        .pessoa-card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+        .pessoa-card-hd h4{font-size:13px;font-weight:700;}
+        .btn-remove{background:none;border:none;color:var(--cor-texto-secundario);cursor:pointer;font-size:14px;padding:4px;}
+        .btn-remove:hover{color:#e01b24;}
+        .btn-add-pessoa{display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px dashed rgba(210,158,0,.4);border-radius:8px;color:#d29e00;background:transparent;cursor:pointer;font-size:13px;font-weight:600;width:100%;justify-content:center;transition:.15s;}
+        .btn-add-pessoa:hover{background:rgba(210,158,0,.06);}
+
+        /* Declaration step */
+        .declaration-box{background:rgba(255,255,255,.03);border:1px solid var(--cor-borda);border-radius:10px;padding:20px;margin-bottom:16px;font-size:13px;line-height:1.7;color:var(--cor-texto-secundario);}
+
+        /* Navigation */
+        .step-nav{display:flex;justify-content:space-between;align-items:center;margin-top:28px;padding-top:20px;border-top:1px solid var(--cor-borda);}
+        .btn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:.15s;white-space:nowrap;}
+        .btn-gold{background:linear-gradient(90deg,#b78700,#d29e00);color:#1a1200;}
+        .btn-gold:hover{opacity:.9;transform:translateY(-1px);}
+        .btn-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-ghost:hover{border-color:#d29e00;color:#d29e00;}
+        .btn-success{background:rgba(46,194,126,.15);border:1px solid #2ec27e;color:#2ec27e;}
+        .btn-success:hover{background:rgba(46,194,126,.25);}
+        .btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+
+        /* Step indicator text */
+        .step-counter{font-size:12px;color:var(--cor-texto-secundario);}
+
+        /* Success screen */
+        .success-screen{display:none;text-align:center;padding:60px 24px;}
+        .success-screen.show{display:block;}
+        .success-icon{width:72px;height:72px;border-radius:50%;background:rgba(46,194,126,.12);border:2px solid #2ec27e;display:flex;align-items:center;justify-content:center;font-size:32px;color:#2ec27e;margin:0 auto 20px;}
+
+        @keyframes spin{to{transform:rotate(360deg);}}
+        .fa-spin{animation:spin 1s linear infinite;}
+        #btnTheme{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:0;border-radius:6px;cursor:pointer;font-size:14px;display:inline-flex;align-items:center;justify-content:center;height:30px;width:30px;transition:.15s;}
+        #btnTheme:hover{border-color:#d29e00;color:#d29e00;}
+        [data-theme="light"] input,[data-theme="light"] select,[data-theme="light"] textarea{background:var(--cor-card)!important;color:var(--cor-texto)!important;border-color:var(--cor-borda)!important;}
+        [data-theme="light"] input::placeholder{color:var(--cor-texto-secundario)!important;}
+        [data-theme="light"] .form-section{background:var(--cor-fundo)!important;}
+        [data-theme="light"] .declaration-box{background:var(--cor-card)!important;color:var(--cor-texto-secundario)!important;}
+        [data-theme="light"] .check-item{border-color:var(--cor-borda)!important;}
+        [data-theme="light"] .check-item:hover{background:rgba(210,158,0,.04)!important;}
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <div class="logo">
+        <span class="logo-text"><strong>Link</strong><span> international</span></span>
+        <div class="badge-b2b">B2B Compliance</div>
+    </div>
+    <div class="hd-right">
+        <a href="/language/{{ 'pt' if current_lang == 'en' else 'en' }}" class="btn-hd btn-hd-ghost" title="Switch language"><i class="fas fa-globe"></i> {{ 'PT' if current_lang == 'en' else 'EN' }}</a>
+        <button id="btnTheme" onclick="toggleTheme()" title="Toggle theme"><i class="fas fa-sun"></i></button>
+        <a href="/compliance/b2b/clientes" class="btn-hd btn-hd-ghost"><i class="fas fa-arrow-left"></i> Back to Clients</a>
+        <a href="/compliance/b2b/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-gauge-high"></i> Dashboard</a>
+    </div>
+</div>
+
+<!-- STEPPER -->
+<div class="stepper-wrap">
+    <div class="stepper" id="stepper">
+        <div class="step active" id="st0"><div class="step-circle">1</div><div class="step-label">Business</div></div>
+        <div class="step" id="st1"><div class="step-circle">2</div><div class="step-label">Address</div></div>
+        <div class="step" id="st2"><div class="step-circle">3</div><div class="step-label">Directors / UBOs</div></div>
+        <div class="step" id="st3"><div class="step-circle">4</div><div class="step-label">Payment Profile</div></div>
+        <div class="step" id="st4"><div class="step-circle">5</div><div class="step-label">PEP Check</div></div>
+        <div class="step" id="st5"><div class="step-circle">6</div><div class="step-label">Declaration</div></div>
+    </div>
+</div>
+
+<!-- SUCCESS -->
+<div class="success-screen" id="successScreen">
+    <div class="success-icon"><i class="fas fa-check"></i></div>
+    <h2 style="font-size:22px;font-weight:700;margin-bottom:8px">KYB Onboarding Submitted</h2>
+    <p style="color:var(--cor-texto-secundario);font-size:14px;margin-bottom:24px">The client file has been created and is now awaiting MLRO review and approval.</p>
+    <div id="successClientId" style="font-family:monospace;font-size:13px;color:var(--cor-texto-secundario);margin-bottom:24px"></div>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <a id="successViewBtn" class="btn btn-gold" href="/compliance/b2b/clientes"><i class="fas fa-eye"></i> View Client File</a>
+        <a href="/compliance/b2b/clientes/novo" class="btn btn-ghost"><i class="fas fa-plus"></i> New Onboarding</a>
+        <a href="/compliance/b2b/clientes" class="btn btn-ghost"><i class="fas fa-list"></i> Client List</a>
+    </div>
+</div>
+
+<!-- FORM -->
+<div class="form-wrap" id="formWrap">
+
+    <!-- STEP 1: Business Details -->
+    <div class="step-panel active" id="panel0">
+        <div class="step-header">
+            <h2><i class="fas fa-briefcase"></i> Business Details</h2>
+            <p>Core company registration information. All fields marked * are required.</p>
+        </div>
+        <div class="form-section">
+            <h3><i class="fas fa-building"></i> Company Identity</h3>
+            <div class="grid-2">
+                <div class="form-group span-2">
+                    <label>Legal / Registered Name <span class="req">*</span></label>
+                    <input type="text" id="razao_social" placeholder="Full legal company name" required>
+                </div>
+                <div class="form-group">
+                    <label>Trading Name (if different)</label>
+                    <input type="text" id="nome_comercial" placeholder="DBA / trading name">
+                </div>
+                <div class="form-group">
+                    <label>Entity Type <span class="req">*</span></label>
+                    <select id="tipo_entidade" required>
+                        <option value="">— Select —</option>
+                        <option>Limited Company (Ltd)</option>
+                        <option>Public Limited Company (PLC)</option>
+                        <option>Limited Liability Partnership (LLP)</option>
+                        <option>Partnership</option>
+                        <option>Sole Trader</option>
+                        <option>Foreign Company (Branch)</option>
+                        <option>Trust</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Companies House / Registration No. <span class="req">*</span></label>
+                    <input type="text" id="numero_registro" placeholder="e.g. 12345678">
+                </div>
+                <div class="form-group">
+                    <label>Country of Registration <span class="req">*</span></label>
+                    <input type="text" id="pais_registro" placeholder="e.g. United Kingdom">
+                </div>
+                <div class="form-group">
+                    <label>Date of Incorporation</label>
+                    <input type="date" id="data_constituicao">
+                </div>
+                <div class="form-group">
+                    <label>VAT Number</label>
+                    <input type="text" id="numero_vat" placeholder="e.g. GB123456789">
+                </div>
+            </div>
+        </div>
+        <div class="form-section">
+            <h3><i class="fas fa-industry"></i> Business Activity</h3>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Industry / Sector <span class="req">*</span></label>
+                    <select id="setor_atividade" required>
+                        <option value="">— Select industry —</option>
+                        <option>Import / Export Trade</option>
+                        <option>Manufacturing</option>
+                        <option>Wholesale / Distribution</option>
+                        <option>Retail</option>
+                        <option>Technology / Software</option>
+                        <option>Professional Services</option>
+                        <option>Construction</option>
+                        <option>Real Estate</option>
+                        <option>Healthcare</option>
+                        <option>Education</option>
+                        <option>Financial Services</option>
+                        <option>Logistics / Freight</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Declared Annual Turnover (£)</label>
+                    <input type="number" id="faturamento_anual" placeholder="e.g. 2000000">
+                    <div class="field-hint">Used to suggest transaction limits. Compliance sets the final values.</div>
+                </div>
+                <div class="form-group span-2">
+                    <label>Business Description <span class="req">*</span></label>
+                    <textarea id="descricao_negocio" placeholder="Describe the nature of the business, main products/services, customer base…" style="min-height:90px"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Website</label>
+                    <input type="url" id="website" placeholder="https://…">
+                </div>
+                <div class="form-group">
+                    <label>FCA Register Number (if regulated)</label>
+                    <input type="text" id="fca_registro_numero" placeholder="e.g. 123456">
+                </div>
+            </div>
+        </div>
+        <div class="form-section">
+            <h3><i class="fas fa-phone"></i> Contact Details</h3>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Email <span class="req">*</span></label>
+                    <input type="email" id="email" placeholder="compliance@company.com">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="tel" id="telefone" placeholder="+44 …">
+                </div>
+            </div>
+        </div>
+        <div class="form-section">
+            <h3><i class="fas fa-user-tie"></i> Internal Assignment</h3>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Account Manager</label>
+                    <input type="text" id="account_manager_username" placeholder="Username (optional)">
+                </div>
+                <div class="form-group">
+                    <label>Linked Login Username (if any)</label>
+                    <input type="text" id="usuario_username" placeholder="Existing user account (optional)">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STEP 2: Address -->
+    <div class="step-panel" id="panel1">
+        <div class="step-header">
+            <h2><i class="fas fa-location-dot"></i> Business Address</h2>
+            <p>Registered office and principal place of business in the UK.</p>
+        </div>
+        <div class="form-section">
+            <h3><i class="fas fa-map-marker-alt"></i> Principal / Operating Address</h3>
+            <div class="grid-2">
+                <div class="form-group span-2">
+                    <label>Address Line 1 <span class="req">*</span></label>
+                    <input type="text" id="endereco_linha1" placeholder="Building number and street name">
+                </div>
+                <div class="form-group span-2">
+                    <label>Address Line 2</label>
+                    <input type="text" id="endereco_linha2" placeholder="Suite, floor, unit (optional)">
+                </div>
+                <div class="form-group">
+                    <label>City <span class="req">*</span></label>
+                    <input type="text" id="cidade" placeholder="e.g. London">
+                </div>
+                <div class="form-group">
+                    <label>County / Region</label>
+                    <input type="text" id="estado" placeholder="e.g. Greater London">
+                </div>
+                <div class="form-group">
+                    <label>Postcode <span class="req">*</span></label>
+                    <input type="text" id="cep" placeholder="e.g. EC1A 1BB">
+                </div>
+                <div class="form-group">
+                    <label>Country <span class="req">*</span></label>
+                    <input type="text" id="pais" value="United Kingdom">
+                </div>
+            </div>
+        </div>
+        <div class="form-section">
+            <h3><i class="fas fa-landmark"></i> Registered Address</h3>
+            <div class="form-group" style="margin-bottom:14px">
+                <div class="check-item" id="sameAddressWrap">
+                    <input type="checkbox" id="sameAddress" onchange="toggleSameAddress()" checked>
+                    <div>
+                        <div class="check-label">Same as operating address above</div>
+                    </div>
+                </div>
+            </div>
+            <div id="regAddressFields" style="display:none">
+                <div class="form-group">
+                    <label>Registered Address (full)</label>
+                    <textarea id="endereco_registrado" placeholder="Full registered address if different from above…"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STEP 3: Directors / UBOs -->
+    <div class="step-panel" id="panel2">
+        <div class="step-header">
+            <h2><i class="fas fa-users"></i> Directors & Ultimate Beneficial Owners</h2>
+            <p>All directors and persons with significant control (≥25% ownership) must be recorded. This is required under UK MLR 2017 Regulation 28.</p>
+        </div>
+        <div class="form-section">
+            <h3><i class="fas fa-user-tie"></i> Controlling Persons</h3>
+            <div id="pessoasList"></div>
+            <button class="btn-add-pessoa" onclick="addPessoa()"><i class="fas fa-plus-circle"></i> Add director / UBO / authorised signatory</button>
+        </div>
+    </div>
+
+    <!-- STEP 4: Payment Profile -->
+    <div class="step-panel" id="panel3">
+        <div class="step-header">
+            <h2><i class="fas fa-money-bill-trend-up"></i> Payment Profile</h2>
+            <p>Information about the client's expected payment flows. Required for risk assessment and transaction monitoring.</p>
+        </div>
+        <div class="form-section">
+            <h3><i class="fas fa-arrow-right-from-bracket"></i> Outgoing Payments (Abroad)</h3>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Primary Purpose of Payments <span class="req">*</span></label>
+                    <select id="finalidade_pagamento" required>
+                        <option value="">— Select —</option>
+                        <option>Pay overseas suppliers (goods)</option>
+                        <option>Pay overseas suppliers (services)</option>
+                        <option>Intercompany transfers</option>
+                        <option>Investment / capital injection</option>
+                        <option>Salary / payroll</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Expected Monthly Volume (£)</label>
+                    <input type="number" id="volume_mensal_esperado" placeholder="e.g. 500000">
+                </div>
+                <div class="form-group">
+                    <label>Expected Monthly Frequency (payments/month)</label>
+                    <input type="number" id="frequencia_mensal_esperada" placeholder="e.g. 20">
+                </div>
+                <div class="form-group">
+                    <label>Max Single Transaction (£)</label>
+                    <input type="number" id="ticket_medio_esperado" placeholder="e.g. 50000">
+                </div>
+                <div class="form-group span-2">
+                    <label>Main Destination Countries <span class="req">*</span></label>
+                    <input type="text" id="paises_destino" placeholder="e.g. China, United States, Germany (comma separated)">
+                    <div class="field-hint">List all countries where payments will be sent.</div>
+                </div>
+                <div class="form-group span-2">
+                    <label>Main Currencies Required</label>
+                    <input type="text" id="moedas_utilizadas" placeholder="e.g. USD, EUR, CNY, GBP">
+                </div>
+            </div>
+        </div>
+        <div class="form-section">
+            <h3><i class="fas fa-piggy-bank"></i> Source of Funds</h3>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Primary Source of Funds <span class="req">*</span></label>
+                    <select id="fonte_recursos" required>
+                        <option value="">— Select —</option>
+                        <option>Revenue from trading / sales</option>
+                        <option>Business loan / credit facility</option>
+                        <option>Director / shareholder investment</option>
+                        <option>Intercompany loan</option>
+                        <option>Sale of assets</option>
+                        <option>Investment income</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Supporting Bank (where funds originate)</label>
+                    <input type="text" id="banco_origem" placeholder="e.g. Barclays, HSBC, Lloyds">
+                </div>
+                <div class="form-group span-2">
+                    <label>Source of Funds — Details</label>
+                    <textarea id="fonte_recursos_detalhes" placeholder="Provide additional detail about the origin of funds, if applicable…"></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="form-section">
+            <h3><i class="fas fa-arrow-right-to-bracket"></i> Incoming Payments (if applicable)</h3>
+            <div class="grid-2">
+                <div class="form-group span-2">
+                    <label>Countries from which funds are received</label>
+                    <input type="text" id="paises_origem" placeholder="e.g. United Kingdom, United States (or leave blank if N/A)">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STEP 5: PEP Declaration -->
+    <div class="step-panel" id="panel4">
+        <div class="step-header">
+            <h2><i class="fas fa-shield-halved"></i> PEP & Sanctions Declaration</h2>
+            <p>The following questions must be answered for each controlling person. Providing false information is a criminal offence.</p>
+        </div>
+        <div class="form-section">
+            <h3><i class="fas fa-user-secret"></i> Politically Exposed Persons (PEP)</h3>
+            <p style="font-size:13px;color:var(--cor-texto-secundario);margin-bottom:16px;line-height:1.6">A PEP is a person who has been entrusted with prominent public functions (e.g. heads of state, senior politicians, senior government officials, judicial officials, senior military officials, senior executives of state-owned enterprises, senior officials of major political parties, and their immediate family members and close associates).</p>
+            <div class="check-group">
+                <label class="check-item">
+                    <input type="radio" name="pep_empresa" value="nao">
+                    <div>
+                        <div class="check-label">None of the directors, UBOs or authorised signatories are PEPs</div>
+                    </div>
+                </label>
+                <label class="check-item">
+                    <input type="radio" name="pep_empresa" value="sim">
+                    <div>
+                        <div class="check-label">One or more controlling persons is or has been a PEP</div>
+                        <div class="check-sub">If selected, please provide details in the compliance notes field below.</div>
+                    </div>
+                </label>
+                <label class="check-item">
+                    <input type="radio" name="pep_empresa" value="possivel">
+                    <div>
+                        <div class="check-label">Uncertain — further investigation required</div>
+                    </div>
+                </label>
+            </div>
+        </div>
+        <div class="form-section">
+            <h3><i class="fas fa-ban"></i> Sanctions</h3>
+            <p style="font-size:13px;color:var(--cor-texto-secundario);margin-bottom:16px;line-height:1.6">Has the company, any director, UBO or authorised signatory been subject to sanctions by OFAC, OFSI, EU, UN, or any other international sanctions authority?</p>
+            <div class="check-group">
+                <label class="check-item">
+                    <input type="radio" name="sancoes_empresa" value="nao_confirmado">
+                    <div>
+                        <div class="check-label">No — no sanctions exposure identified</div>
+                    </div>
+                </label>
+                <label class="check-item">
+                    <input type="radio" name="sancoes_empresa" value="possivel">
+                    <div>
+                        <div class="check-label">Possible — name match or further screening required</div>
+                    </div>
+                </label>
+                <label class="check-item">
+                    <input type="radio" name="sancoes_empresa" value="confirmado">
+                    <div>
+                        <div class="check-label">Confirmed — subject to sanctions</div>
+                        <div class="check-sub">This will trigger an immediate compliance hold.</div>
+                    </div>
+                </label>
+            </div>
+        </div>
+        <div class="form-section">
+            <h3><i class="fas fa-note-sticky"></i> Additional Notes</h3>
+            <div class="form-group">
+                <label>PEP / Sanctions details (if applicable)</label>
+                <textarea id="pep_notas" placeholder="Provide details about any PEP relationships or sanctions exposure here…"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- STEP 6: Declaration -->
+    <div class="step-panel" id="panel5">
+        <div class="step-header">
+            <h2><i class="fas fa-file-signature"></i> Review & Declaration</h2>
+            <p>Review all information before submitting. The onboarding will be sent to the MLRO queue for final approval.</p>
+        </div>
+
+        <div class="form-section" id="summaryPanel">
+            <h3><i class="fas fa-list-check"></i> Summary</h3>
+            <div id="summaryContent" style="font-size:13px;line-height:1.8;color:var(--cor-texto-secundario)">
+                <!-- populated by JS -->
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3><i class="fas fa-scale-balanced"></i> Compliance Declaration</h3>
+            <div class="declaration-box">
+                I confirm that the information provided in this application is accurate and complete to the best of my knowledge. I understand that Link International (the trading name of Link World Money Limited) is required by law to carry out due diligence checks and that failure to provide accurate information may result in the refusal or termination of services. I confirm that no funds used in any transactions will be the proceeds of crime, and that the business is conducted in compliance with all applicable laws and regulations.
+            </div>
+            <div class="check-group">
+                <label class="check-item">
+                    <input type="checkbox" id="declAccept" required>
+                    <div>
+                        <div class="check-label">I confirm the above declaration and authorise Link International to process this application</div>
+                    </div>
+                </label>
+                <label class="check-item">
+                    <input type="checkbox" id="declData" required>
+                    <div>
+                        <div class="check-label">I consent to personal data being processed for the purpose of AML/CFT compliance</div>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3><i class="fas fa-search"></i> External Screening References</h3>
+            <div class="grid-3">
+                <div class="form-group">
+                    <label>CreditSafe Reference</label>
+                    <input type="text" id="creditsafe_ref" placeholder="Reference number (optional)">
+                </div>
+                <div class="form-group">
+                    <label>ShuftiPro Reference</label>
+                    <input type="text" id="shuttipro_ref" placeholder="Reference number (optional)">
+                </div>
+                <div class="form-group">
+                    <label>CheckMarble Reference</label>
+                    <input type="text" id="checkmarble_ref" placeholder="Reference number (optional)">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3><i class="fas fa-comment-dots"></i> Onboarding Officer Notes</h3>
+            <div class="form-group">
+                <label>Internal compliance notes</label>
+                <textarea id="notas_compliance" placeholder="Any observations, flags or additional context for the MLRO…"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- NAVIGATION BUTTONS -->
+    <div class="step-nav">
+        <button class="btn btn-ghost" id="btnBack" onclick="prevStep()" style="display:none"><i class="fas fa-chevron-left"></i> Back</button>
+        <div class="step-counter" id="stepCounter">Step 1 of 6</div>
+        <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost" id="btnSaveDraft" onclick="saveDraft()"><i class="fas fa-save"></i> Save draft</button>
+            <button class="btn btn-gold" id="btnNext" onclick="nextStep()">Next <i class="fas fa-chevron-right"></i></button>
+            <button class="btn btn-success" id="btnSubmit" onclick="submitForm()" style="display:none"><i class="fas fa-paper-plane"></i> Submit for MLRO Review</button>
+        </div>
+    </div>
+
+</div><!-- /form-wrap -->
+
+<script>
+let currentStep = 0;
+const TOTAL_STEPS = 6;
+let pessoas = [];
+let submitting = false;
+
+function updateStepper() {
+    for (let i = 0; i < TOTAL_STEPS; i++) {
+        const el = document.getElementById('st' + i);
+        el.classList.remove('active', 'done');
+        if (i < currentStep) el.classList.add('done');
+        else if (i === currentStep) el.classList.add('active');
+        const circle = el.querySelector('.step-circle');
+        circle.innerHTML = i < currentStep ? '<i class="fas fa-check" style="font-size:12px"></i>' : (i + 1);
+    }
+    document.getElementById('stepCounter').textContent = `Step ${currentStep + 1} of ${TOTAL_STEPS}`;
+    document.getElementById('btnBack').style.display = currentStep > 0 ? '' : 'none';
+    document.getElementById('btnNext').style.display = currentStep < TOTAL_STEPS - 1 ? '' : 'none';
+    document.getElementById('btnSubmit').style.display = currentStep === TOTAL_STEPS - 1 ? '' : 'none';
+    document.querySelectorAll('.step-panel').forEach((p, i) => p.classList.toggle('active', i === currentStep));
+    if (currentStep === TOTAL_STEPS - 1) buildSummary();
+}
+
+function nextStep() {
+    if (!validateStep(currentStep)) return;
+    if (currentStep < TOTAL_STEPS - 1) { currentStep++; updateStepper(); window.scrollTo(0, 0); }
+}
+
+function prevStep() {
+    if (currentStep > 0) { currentStep--; updateStepper(); window.scrollTo(0, 0); }
+}
+
+function validateStep(step) {
+    const required = {
+        0: ['razao_social','tipo_entidade','numero_registro','pais_registro','setor_atividade','descricao_negocio','email'],
+        1: ['endereco_linha1','cidade','cep','pais'],
+        2: [],
+        3: ['finalidade_pagamento','paises_destino','fonte_recursos'],
+        4: [],
+        5: []
+    };
+    const fields = required[step] || [];
+    for (const id of fields) {
+        const el = document.getElementById(id);
+        if (el && !el.value.trim()) {
+            el.style.borderColor = '#e01b24';
+            el.focus();
+            el.addEventListener('input', () => el.style.borderColor = '', {once: true});
+            alert('Please fill in all required fields.');
+            return false;
+        }
+    }
+    if (step === 4) {
+        const pep = document.querySelector('input[name=pep_empresa]:checked');
+        const sanc = document.querySelector('input[name=sancoes_empresa]:checked');
+        if (!pep || !sanc) { alert('Please answer both PEP and sanctions questions.'); return false; }
+    }
+    if (step === 5) {
+        if (!document.getElementById('declAccept').checked || !document.getElementById('declData').checked) {
+            alert('Please accept the compliance declaration.'); return false;
+        }
+    }
+    return true;
+}
+
+// ── Pessoas (Step 3) ──
+function addPessoa() {
+    const idx = pessoas.length;
+    pessoas.push({});
+    renderPessoas();
+}
+
+function removePessoa(idx) {
+    pessoas.splice(idx, 1);
+    renderPessoas();
+}
+
+function renderPessoas() {
+    const list = document.getElementById('pessoasList');
+    if (!list) return;
+    
+    list.innerHTML = pessoas.map((pessoa, idx) => `
+        <div class="pessoa-card">
+            <div class="pessoa-card-hd">
+                <h4><i class="fas fa-user" style="color:#d29e00;margin-right:6px"></i>Person ${idx + 1}</h4>
+                <button class="btn-remove" onclick="removePessoa(${idx})" title="Remove"><i class="fas fa-trash"></i></button>
+            </div>
+            <div class="grid-2">
+                <div class="form-group"><label>Full Name <span class="req">*</span></label>
+                    <input type="text" data-p="${idx}" data-f="nome_completo" placeholder="Full legal name" oninput="syncPessoa(this)" value="${escapeHtml(pessoa.nome_completo || '')}">
+                </div>
+                <div class="form-group"><label>Role / Title <span class="req">*</span></label>
+                    <select data-p="${idx}" data-f="cargo" onchange="syncPessoa(this)">
+                        <option value="">— Select —</option>
+                        <option ${pessoa.cargo === 'Director' ? 'selected' : ''}>Director</option>
+                        <option ${pessoa.cargo === 'UBO (≥25%)' ? 'selected' : ''}>UBO (≥25%)</option>
+                        <option ${pessoa.cargo === 'Authorised Signatory' ? 'selected' : ''}>Authorised Signatory</option>
+                        <option ${pessoa.cargo === 'Shareholder' ? 'selected' : ''}>Shareholder</option>
+                        <option ${pessoa.cargo === 'Company Secretary' ? 'selected' : ''}>Company Secretary</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Date of Birth</label>
+                    <input type="date" data-p="${idx}" data-f="data_nascimento" oninput="syncPessoa(this)" value="${pessoa.data_nascimento || ''}">
+                </div>
+                <div class="form-group"><label>Nationality</label>
+                    <input type="text" data-p="${idx}" data-f="nacionalidade" placeholder="e.g. British" oninput="syncPessoa(this)" value="${escapeHtml(pessoa.nacionalidade || '')}">
+                </div>
+                <div class="form-group"><label>ID / Passport No.</label>
+                    <input type="text" data-p="${idx}" data-f="numero_identificacao" placeholder="Document number" oninput="syncPessoa(this)" value="${escapeHtml(pessoa.numero_identificacao || '')}">
+                </div>
+                <div class="form-group"><label>Ownership %</label>
+                    <input type="number" data-p="${idx}" data-f="percentual_participacao" placeholder="e.g. 30" min="0" max="100" oninput="syncPessoa(this)" value="${pessoa.percentual_participacao || ''}">
+                </div>
+                <div class="form-group span-2"><label>Email</label>
+                    <input type="email" data-p="${idx}" data-f="email" placeholder="personal@email.com" oninput="syncPessoa(this)" value="${escapeHtml(pessoa.email || '')}">
+                </div>
+                <div class="form-group"><label>PEP Status</label>
+                    <select data-p="${idx}" data-f="pep_status" onchange="syncPessoa(this)">
+                        <option value="nao" ${pessoa.pep_status === 'nao' ? 'selected' : ''}>No</option>
+                        <option value="possivel" ${pessoa.pep_status === 'possivel' ? 'selected' : ''}>Possible</option>
+                        <option value="sim" ${pessoa.pep_status === 'sim' ? 'selected' : ''}>Yes</option>
+                        <option value="confirmado" ${pessoa.pep_status === 'confirmado' ? 'selected' : ''}>Confirmed</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Sanctions Status</label>
+                    <select data-p="${idx}" data-f="sancoes_status" onchange="syncPessoa(this)">
+                        <option value="nao_confirmado" ${pessoa.sancoes_status === 'nao_confirmado' ? 'selected' : ''}>Not confirmed</option>
+                        <option value="possivel" ${pessoa.sancoes_status === 'possivel' ? 'selected' : ''}>Possible</option>
+                        <option value="confirmado" ${pessoa.sancoes_status === 'confirmado' ? 'selected' : ''}>Confirmed</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Função auxiliar para escapar HTML e evitar problemas com caracteres especiais
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+        return c;
+    });
+}
+
+function syncPessoa(el) {
+    const idx = parseInt(el.dataset.p);
+    const field = el.dataset.f;
+    if (pessoas[idx] !== undefined) pessoas[idx][field] = el.value;
+}
+
+function toggleSameAddress() {
+    const checked = document.getElementById('sameAddress').checked;
+    document.getElementById('regAddressFields').style.display = checked ? 'none' : 'block';
+}
+
+// ── Summary (Step 6) ──
+function buildSummary() {
+    const v = id => document.getElementById(id)?.value || '—';
+    const pep = document.querySelector('input[name=pep_empresa]:checked')?.value || '—';
+    const sanc = document.querySelector('input[name=sancoes_empresa]:checked')?.value || '—';
+    document.getElementById('summaryContent').innerHTML = `
+        <strong>Company:</strong> ${v('razao_social')} (${v('tipo_entidade')}) · Reg: ${v('numero_registro')} · ${v('pais_registro')}<br>
+        <strong>Industry:</strong> ${v('setor_atividade')} · Turnover: £${Number(v('faturamento_anual')||0).toLocaleString('en-GB') || '—'}<br>
+        <strong>Address:</strong> ${v('endereco_linha1')}, ${v('cidade')}, ${v('cep')}, ${v('pais')}<br>
+        <strong>Directors / UBOs:</strong> ${pessoas.length} person(s) recorded<br>
+        <strong>Payment purpose:</strong> ${v('finalidade_pagamento')} · Destination: ${v('paises_destino')}<br>
+        <strong>Source of funds:</strong> ${v('fonte_recursos')}<br>
+        <strong>PEP status:</strong> ${pep} · <strong>Sanctions:</strong> ${sanc}
+    `;
+}
+
+// ── Collect all form data ──
+function collectData() {
+    const v = id => document.getElementById(id)?.value.trim() || null;
+    const n = id => parseFloat(document.getElementById(id)?.value) || null;
+    const pep = document.querySelector('input[name=pep_empresa]:checked')?.value || 'nao';
+    const sanc = document.querySelector('input[name=sancoes_empresa]:checked')?.value || 'nao_confirmado';
+    return {
+        razao_social: v('razao_social'),
+        nome_comercial: v('nome_comercial'),
+        tipo_entidade: v('tipo_entidade'),
+        numero_registro: v('numero_registro'),
+        pais_registro: v('pais_registro'),
+        data_constituicao: v('data_constituicao'),
+        numero_vat: v('numero_vat'),
+        setor_atividade: v('setor_atividade'),
+        faturamento_anual: n('faturamento_anual'),
+        descricao_negocio: v('descricao_negocio'),
+        website: v('website'),
+        fca_registro_numero: v('fca_registro_numero'),
+        email: v('email'),
+        telefone: v('telefone'),
+        account_manager_username: v('account_manager_username'),
+        usuario_username: v('usuario_username'),
+        // address
+        endereco_linha1: v('endereco_linha1'),
+        endereco_linha2: v('endereco_linha2'),
+        cidade: v('cidade'),
+        estado: v('estado'),
+        cep: v('cep'),
+        pais: v('pais'),
+        endereco_registrado: document.getElementById('sameAddress')?.checked ? null : v('endereco_registrado'),
+        // payment
+        finalidade_pagamento: v('finalidade_pagamento'),
+        volume_mensal_esperado: n('volume_mensal_esperado'),
+        frequencia_mensal_esperada: n('frequencia_mensal_esperada'),
+        ticket_medio_esperado: n('ticket_medio_esperado'),
+        paises_destino: v('paises_destino'),
+        moedas_utilizadas: v('moedas_utilizadas'),
+        fonte_recursos: v('fonte_recursos'),
+        fonte_recursos_detalhes: v('fonte_recursos_detalhes'),
+        banco_origem: v('banco_origem'),
+        paises_origem: v('paises_origem'),
+        // pep / sanctions
+        pep_empresa: pep,
+        sancoes_empresa: sanc,
+        pep_notas: v('pep_notas'),
+        // refs & notes
+        creditsafe_ref: v('creditsafe_ref'),
+        shuttipro_ref: v('shuttipro_ref'),
+        checkmarble_ref: v('checkmarble_ref'),
+        notas_compliance: v('notas_compliance'),
+        // pessoas
+        pessoas: pessoas.filter(p => p.nome_completo),
+        // status
+        status: 'aguardando_revisao'
+    };
+}
+
+async function saveDraft() {
+    const data = collectData();
+    data.status = 'em_onboarding';
+    await postForm(data, true);
+}
+
+async function submitForm() {
+    if (submitting) return;
+    if (!validateStep(5)) return;
+    submitting = true;
+    document.getElementById('btnSubmit').disabled = true;
+    document.getElementById('btnSubmit').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting…';
+    await postForm(collectData(), false);
+    submitting = false;
+}
+
+async function postForm(data, isDraft) {
+    try {
+        const url    = _editingId ? `/api/compliance/b2b/clientes/${_editingId}` : '/api/compliance/b2b/clientes';
+        const method = _editingId ? 'PATCH' : 'POST';
+        const r = await fetch(url, {
+            method,
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        const d = await r.json();
+        if (d.success) {
+            if (d.id) _editingId = d.id;  // subsequent saves will PATCH this record
+            if (!isDraft) {
+                document.getElementById('formWrap').style.display = 'none';
+                document.querySelector('.stepper-wrap').style.display = 'none';
+                document.getElementById('successClientId').textContent = 'Client ID: ' + d.id;
+                document.getElementById('successViewBtn').href = '/compliance/b2b/clientes/' + d.id;
+                document.getElementById('successScreen').classList.add('show');
+            } else {
+                alert('Draft saved. You can continue the onboarding later from the client list.');
+            }
+        } else {
+            alert(d.message || 'Error submitting form. Please try again.');
+            document.getElementById('btnSubmit').disabled = false;
+            document.getElementById('btnSubmit').innerHTML = '<i class="fas fa-paper-plane"></i> Submit for MLRO Review';
+        }
+    } catch(e) {
+        alert(e.message);
+        document.getElementById('btnSubmit').disabled = false;
+        document.getElementById('btnSubmit').innerHTML = '<i class="fas fa-paper-plane"></i> Submit for MLRO Review';
+    }
+}
+
+// ── Continue-draft mode ──
+const _urlParams   = new URLSearchParams(window.location.search);
+const _continueId  = _urlParams.get('continuar');
+let   _editingId   = _continueId || null;
+
+async function _loadDraft(id) {
+    try {
+        const r = await fetch(`/api/compliance/b2b/clientes/${id}`);
+        const d = await r.json();
+        if (!d.success || !d.cliente) return;
+        const c = d.cliente;
+
+        // Helper: set field value only if the element exists and value is non-null
+        const sv = (fid, val) => { if (val == null) return; const el = document.getElementById(fid); if (el) el.value = val; };
+
+        // Step 1 — Business details
+        sv('razao_social',          c.razao_social);
+        sv('nome_comercial',        c.nome_comercial);
+        sv('tipo_entidade',         c.tipo_entidade);
+        sv('numero_registro',       c.numero_registro);
+        sv('pais_registro',         c.pais_registro);
+        sv('data_constituicao',     c.data_constituicao);
+        sv('numero_vat',            c.numero_vat);
+        sv('setor_atividade',       c.setor_atividade);
+        sv('faturamento_anual',     c.faturamento_anual);
+        sv('descricao_negocio',     c.descricao_negocio);
+        sv('website',               c.website);
+        sv('fca_registro_numero',   c.fca_registro_numero);
+        sv('email',                 c.email);
+        sv('telefone',              c.telefone);
+        sv('account_manager_username', c.account_manager_username);
+        sv('usuario_username',      c.usuario_username);
+
+        // Step 2 — Address
+        sv('endereco_linha1',       c.endereco_linha1);
+        sv('endereco_linha2',       c.endereco_linha2);
+        sv('cidade',                c.cidade);
+        sv('estado',                c.estado);
+        sv('cep',                   c.cep);
+        sv('pais',                  c.pais);
+        sv('endereco_registrado',   c.endereco_registrado);
+
+        // Step 4 — Payment profile
+        sv('finalidade_pagamento',        c.finalidade_pagamento);
+        sv('volume_mensal_esperado',      c.volume_mensal_esperado);
+        sv('frequencia_mensal_esperada',  c.frequencia_mensal_esperada);
+        sv('ticket_medio_esperado',       c.ticket_medio_esperado);
+        sv('paises_destino',              c.paises_destino);
+        sv('moedas_utilizadas',           c.moedas_utilizadas);
+        sv('fonte_recursos',              c.fonte_recursos);
+        sv('fonte_recursos_detalhes',     c.fonte_recursos_detalhes);
+        sv('banco_origem',                c.banco_origem);
+        sv('paises_origem',               c.paises_origem);
+
+        // Step 5 — PEP / Sanctions
+        if (c.pep_empresa) {
+            const pepEl = document.querySelector(`input[name=pep_empresa][value="${c.pep_empresa}"]`);
+            if (pepEl) pepEl.checked = true;
+        }
+        if (c.sancoes_empresa) {
+            const sancEl = document.querySelector(`input[name=sancoes_empresa][value="${c.sancoes_empresa}"]`);
+            if (sancEl) sancEl.checked = true;
+        }
+        sv('pep_notas', c.pep_notas);
+
+        // Step 6 — Refs & notes
+        sv('creditsafe_ref',    c.creditsafe_ref);
+        sv('shuttipro_ref',     c.shuttipro_ref);
+        sv('checkmarble_ref',   c.checkmarble_ref);
+        sv('notas_compliance',  c.notas_compliance);
+
+        // Update page title
+        const h1 = document.querySelector('.page-header h1');
+        if (h1) h1.innerHTML = `<i class="fas fa-pen-to-square"></i> Continue Onboarding — ${c.razao_social || ''}`;
+
+        // Load pessoas from step 3
+        if (d.pessoas && d.pessoas.length) {
+            pessoas = d.pessoas.map(p => ({
+                nome_completo:          p.nome_completo,
+                cargo:                  p.cargo,
+                data_nascimento:        p.data_nascimento,
+                nacionalidade:          p.nacionalidade,
+                numero_identificacao:   p.numero_identificacao,
+                percentual_participacao: p.percentual_participacao,
+                email:                  p.email,
+            }));
+            renderPessoas();
+        }
+    } catch(e) { console.error('Load draft error:', e); }
+}
+
+// init
+renderPessoas();
+updateStepper();
+
+if (_continueId) { _loadDraft(_continueId); }
+</script>
+<script>
+function toggleTheme(){var next=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',next);localStorage.setItem('theme',next);var ic=document.querySelector('#btnTheme i');if(ic)ic.className=next==='light'?'fas fa-moon':'fas fa-sun';}
+document.addEventListener('DOMContentLoaded',function(){var t=document.documentElement.getAttribute('data-theme')||'light';var ic=document.querySelector('#btnTheme i');if(ic)ic.className=t==='light'?'fas fa-moon':'fas fa-sun';});
+</script>
+</body>
+</html>

@@ -82,7 +82,7 @@
             margin-left: 10px;
         }
 
-        .page-title { font-size: 20px; font-weight: bold; }
+        .page-title { font-size: 20px; font-weight: bold; flex: 1; text-align: center; }
 
         .btn-voltar {
             background: transparent;
@@ -471,10 +471,10 @@
                 <span class="badge-admin">ADMIN</span>
             </div>
             <h1 class="page-title">RELATÓRIOS FINANCEIROS</h1>
-            <button id="btnTheme" onclick="toggleTheme()" class="btn-voltar" title="Alternar tema" style="padding:8px 12px;"><i class="fas fa-sun"></i></button>
-            <button class="btn-voltar" onclick="window.location.href='/admin/dashboard'">
-                <i class="fas fa-arrow-left"></i> Voltar
-            </button>
+            <div class="hd-right">
+                <button id="btnTheme" onclick="toggleTheme()" class="btn-hd btn-hd-ghost" title="Alternar tema"><i class="fas fa-sun"></i></button>
+                <button class="btn-hd btn-hd-ghost" onclick="window.location.href='/admin/dashboard'"><i class="fas fa-arrow-left"></i> Voltar</button>
+            </div>
         </header>
 
         <!-- TABS -->

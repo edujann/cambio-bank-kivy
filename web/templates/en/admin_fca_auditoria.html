@@ -132,15 +132,11 @@
         <i class="fas fa-file-contract"></i>
         <span class="logo-text">FCA Audit — MLR 2017</span>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;">
+    <div class="hd-right">
         <span style="font-size:12px;color:var(--cor-texto-secundario);">{{ usuario }}</span>
-        <!-- LANGUAGE SELECTOR -->
-        <div class="lang-switch">
-            <a href="/language/pt" class="lang-btn {% if current_lang == 'pt' %}active{% endif %}">PT</a>
-            <a href="/language/en" class="lang-btn {% if current_lang == 'en' %}active{% endif %}">EN</a>
-        </div>
-        <button id="btnTheme" onclick="toggleTheme()" title="Toggle theme" class="btn-theme"><i class="fas fa-sun"></i></button>
-        <a href="/admin/dashboard" class="btn-back"><i class="fas fa-arrow-left"></i> Dashboard</a>
+        <a href="/language/{{ 'pt' if current_lang == 'en' else 'en' }}" class="btn-hd btn-hd-ghost"><i class="fas fa-globe"></i> {{ 'PT' if current_lang == 'en' else 'EN' }}</a>
+        <button id="btnTheme" onclick="toggleTheme()" class="btn-hd btn-hd-ghost" title="Toggle theme"><i class="fas fa-sun"></i></button>
+        <a href="/admin/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-arrow-left"></i> Dashboard</a>
     </div>
 </div>
 

@@ -1,10 +1,12 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏦 Cambio Bank - Admin Dashboard</title>
+    <title>Link International — Admin</title>
     <link rel="stylesheet" href="/static/css/theme.css">
+    <!-- Aplica tema imediatamente (sem flash) — padrão 'light' para esta página -->
+    <script>(function(){ document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'light'); })();</script>
     <style>
         /* RESET E CONFIGURAÇÕES GERAIS */
         * {
@@ -14,35 +16,85 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        :root {
-            --cor-fundo: #0a0e15;
-            --cor-card: #0d1117;
-            --cor-borda: #1e232e;
+        /* ── Tema Claro — paleta gold/cream ── */
+        :root[data-theme="light"] {
+            --cor-fundo: #f5ede0;
+            --cor-card: #ffffff;
+            --cor-borda: rgba(210,185,130,.4);
+            --cor-texto: #1a1200;
+            --cor-texto-secundario: #9a8560;
+            --cor-primaria: #c8920a;
+            --cor-admin: #c8920a;
+            --cor-sucesso: #1a7a52;
+            --cor-alerta: #b87200;
+            --cor-perigo: #c02020;
+            --sombra-suave: 0 2px 8px rgba(160,110,0,.10), 0 1px 3px rgba(0,0,0,.04);
+            --sombra-media: 0 6px 22px rgba(160,110,0,.13), 0 2px 8px rgba(0,0,0,.05);
+            --sombra-forte: 0 12px 32px rgba(160,110,0,.16), 0 4px 12px rgba(0,0,0,.07);
+            --borda-radius: 14px;
+            --borda-radius-pequeno: 10px;
+        }
+
+        /* ── Tema Escuro — paleta original ── */
+        :root[data-theme="dark"] {
+            --cor-fundo: #110f08;
+            --cor-card: #191611;
+            --cor-borda: #2d2819;
             --cor-texto: #e0e0e0;
             --cor-texto-secundario: #8b949e;
-            --cor-primaria: #1a5fb4;
-            --cor-admin: #1a5fb4;  /* 🔥 MUDOU DE #9b59b6 para #1a5fb4 */
+            --cor-primaria: #d29e00;
+            --cor-admin: #d29e00;
             --cor-sucesso: #2ec27e;
             --cor-alerta: #f39c12;
             --cor-perigo: #e01b24;
-            --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.3);
-            --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.4);
-            --sombra-forte: 0 12px 24px rgba(0, 0, 0, 0.5);
-            --borda-radius: 12px;
-            --borda-radius-pequeno: 8px;
+            --sombra-suave: 0 4px 6px rgba(0,0,0,.30);
+            --sombra-media: 0 8px 16px rgba(0,0,0,.40);
+            --sombra-forte: 0 12px 24px rgba(0,0,0,.50);
+            --borda-radius: 14px;
+            --borda-radius-pequeno: 10px;
         }
 
         body {
-            background: var(--cor-fundo);
+            /* Fundo padrão: tema claro */
+            background-color: #f5ede0;
+            background-image:
+                radial-gradient(ellipse at 15% 15%, rgba(210,158,0,.10) 0%, transparent 55%),
+                radial-gradient(ellipse at 85% 85%, rgba(180,120,0,.08) 0%, transparent 55%),
+                linear-gradient(150deg, #f8f2e6 0%, #fdf9f2 45%, #ede3cf 100%);
+            background-attachment: fixed;
             color: var(--cor-texto);
             min-height: 100vh;
             overflow-x: hidden;
+            transition: background-color .3s;
+        }
+
+        /* Dot grid — só no tema claro */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: radial-gradient(circle, rgba(180,130,0,.055) 1px, transparent 1px);
+            background-size: 30px 30px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Fundo escuro */
+        html[data-theme="dark"] body {
+            background-color: #110f08;
+            background-image: linear-gradient(135deg, #110f08 0%, #1f1a10 100%);
+        }
+
+        html[data-theme="dark"] body::before {
+            display: none;
         }
 
         .app-container {
             max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
+            position: relative;
+            z-index: 1;
         }
 
         /* CARDS DE ESTATÍSTICAS */
@@ -58,6 +110,7 @@
             border: 1px solid var(--cor-borda);
             border-radius: var(--borda-radius);
             padding: 20px;
+            box-shadow: var(--sombra-suave);
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
@@ -119,10 +172,17 @@
             gap: 12px;
             font-size: 22px;
             margin-bottom: 25px;
+            background: linear-gradient(90deg, #b78700, #eeb600);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
         }
 
         .section-title i {
-            color: var(--cor-admin);
+            color: #d29e00;
+            background: none;
+            -webkit-background-clip: unset;
+            background-clip: unset;
         }
 
         .admin-grid {
@@ -136,6 +196,7 @@
             border: 1px solid var(--cor-borda);
             border-radius: var(--borda-radius-pequeno);
             padding: 18px 16px;
+            box-shadow: var(--sombra-suave);
             cursor: pointer;
             transition: all 0.2s ease;
             position: relative;
@@ -176,9 +237,9 @@
             flex-shrink: 0;
         }
 
-        .card-icon.clientes { background: rgba(26, 95, 180, 0.15); color: #1a5fb4; }
+        .card-icon.clientes { background: rgba(210, 158, 0, 0.15); color: #d29e00; }
         .card-icon.relatorios { background: rgba(46, 194, 126, 0.15); color: #2ec27e; }
-        .card-icon.contas { background: rgba(26, 95, 180, 0.15); color: #1a5fb4; }
+        .card-icon.contas { background: rgba(210, 158, 0, 0.15); color: #d29e00; }
         .card-icon.transferencias { background: rgba(243, 156, 18, 0.15); color: #f39c12; }
         .card-icon.aprovar { background: rgba(231, 76, 60, 0.15); color: #e74c3c; }
         .card-icon.cotacoes { background: rgba(52, 152, 219, 0.15); color: #3498db; }
@@ -384,7 +445,7 @@
         }
 
         .dropdown-item:hover {
-            background: rgba(26, 95, 180, 0.15);
+            background: rgba(210, 158, 0, 0.15);
         }
 
         .tab-btn.active {
@@ -394,7 +455,7 @@
 
         .tab-btn:hover {
             color: var(--cor-texto);
-            background: rgba(26, 95, 180, 0.1);
+            background: rgba(210, 158, 0, 0.1);
         }
 
         .btn-nova-conta {
@@ -402,7 +463,7 @@
         }
 
         .btn-nova-conta:hover {
-            background: #2d8fff;
+            background: #eeb600;
         }
 
         .btn-submit {
@@ -410,7 +471,7 @@
         }
 
         .btn-submit:hover {
-            background: #2d8fff;
+            background: #eeb600;
         }
 
         .btn-secondary:hover {
@@ -424,7 +485,7 @@
         }
 
         .info-conversao {
-            background: rgba(26, 95, 180, 0.1);
+            background: rgba(210, 158, 0, 0.1);
             border: 1px solid var(--cor-admin);
         }
 
@@ -476,11 +537,16 @@
             font-size: 22px;
         }
 
+        .logo-text strong {
+            font-weight: 800;
+        }
+
         .logo-text {
-            background: linear-gradient(90deg, var(--cor-admin), #2d8fff);
+            background: linear-gradient(90deg, #b78700, #eeb600);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
+            letter-spacing: 0.5px;
         }
 
         .page-title {
@@ -488,8 +554,12 @@
             font-weight: bold;
             text-align: center;
             margin: 0;
-            color: var(--cor-texto);
-        }        
+            background: linear-gradient(90deg, #b78700, #eeb600);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            flex: 1;
+        }
 
         .badge-admin {
             background: var(--cor-admin);
@@ -557,6 +627,18 @@
             color: var(--cor-admin);
         }
 
+
+        /* Supera especificidade de .app-header .page-title em theme.css */
+        .app-header .page-title {
+            background: linear-gradient(90deg, #b78700, #eeb600);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        /* Supera hover hardcoded rgba(26,95,180) em theme.css */
+        .btn-hd:hover { background: rgba(210, 158, 0, 0.25); }
+
         /* RESPONSIVIDADE */
         @media (max-width: 1200px) {
             .stats-grid, .admin-grid {
@@ -589,8 +671,7 @@
         <!-- HEADER -->
         <header class="app-header">
             <div class="logo">
-                <i class="fas fa-university"></i>
-                <span class="logo-text">CAMBIO BANK</span>
+                <span class="logo-text"><strong>Link</strong> international</span>
                 <span class="badge-admin">ADMIN</span>
             </div>
             
@@ -598,15 +679,12 @@
             
             <div style="display: flex; align-items: center; gap: 10px;">
                 <!-- SELETOR DE IDIOMA -->
-                <div class="lang-switch">
-                    <a href="/language/pt" class="lang-btn {% if current_lang == 'pt' %}active{% endif %}">PT</a>
-                    <a href="/language/en" class="lang-btn {% if current_lang == 'en' %}active{% endif %}">EN</a>
-                </div>
-                
+                <a href="/language/{{ 'pt' if current_lang == 'en' else 'en' }}" class="btn-hd btn-hd-ghost"><i class="fas fa-globe"></i> {{ 'PT' if current_lang == 'en' else 'EN' }}</a>
+
                 <button id="btnTheme" onclick="toggleTheme()" title="Alternar tema">
                     <i class="fas fa-moon"></i>
                 </button>
-                
+
                 <div class="user-menu-btn" id="userMenu">
                     <span class="user-name">{{ usuario if usuario else 'admin' }}</span>
                     <i class="fas fa-chevron-down"></i>
@@ -662,11 +740,11 @@
                 <div class="admin-grid">
                     <div class="admin-card" onclick="window.location.href='/admin/cadastrar-cliente'">
                         <div class="card-icon clientes"><i class="fas fa-user-plus"></i></div>
-                        <div class="card-text"><h3 class="card-title">Cadastrar Cliente</h3><p class="card-desc">Novo cliente no sistema</p></div>
+                        <div class="card-text"><h3 class="card-title">Cadastrar Cliente B2B</h3><p class="card-desc">Novo cliente no sistema</p></div>
                     </div>
                     <div class="admin-card" onclick="window.location.href='/admin/clientes'">
                         <div class="card-icon clientes"><i class="fas fa-users"></i></div>
-                        <div class="card-text"><h3 class="card-title">Listar Clientes</h3><p class="card-desc">Gerenciar clientes</p></div>
+                        <div class="card-text"><h3 class="card-title">Listar Clientes B2B</h3><p class="card-desc">Gerenciar clientes</p></div>
                     </div>
                     <div class="admin-card" onclick="window.location.href='/admin/relatorios'">
                         <div class="card-icon relatorios"><i class="fas fa-chart-line"></i></div>
@@ -702,7 +780,7 @@
                     </div>
                     <div class="admin-card" onclick="window.location.href='/loja/dashboard'">
                         <div class="card-icon" style="background:rgba(243,156,18,.15)"><i class="fas fa-store" style="color:#f39c12"></i></div>
-                        <div class="card-text"><h3 class="card-title">Captação Varejo</h3><p class="card-desc">Ver ordens das lojas</p></div>
+                        <div class="card-text"><h3 class="card-title">Remessas</h3><p class="card-desc">Ver ordens das lojas</p></div>
                     </div>
                     <div class="admin-card" onclick="window.location.href='/admin/despachos'">
                         <div class="card-icon" style="background:rgba(46,194,126,.15)"><i class="fas fa-paper-plane" style="color:#2ec27e"></i></div>
@@ -713,28 +791,36 @@
                         <div class="card-text"><h3 class="card-title">Gestão de Lojas</h3><p class="card-desc">Lojas parceiras</p></div>
                     </div>
                     <div class="admin-card" onclick="window.location.href='/admin/usuarios'">
-                        <div class="card-icon" style="background:rgba(26,95,180,.15)"><i class="fas fa-users-cog" style="color:#1a5fb4"></i></div>
+                        <div class="card-icon" style="background:rgba(210,158,0,.15)"><i class="fas fa-users-cog" style="color:#d29e00"></i></div>
                         <div class="card-text"><h3 class="card-title">Usuários</h3><p class="card-desc">Operadores, compliance e admins</p></div>
                     </div>
                     <div class="admin-card" onclick="window.location.href='/compliance/dashboard'">
                         <div class="card-icon" style="background:rgba(155,89,182,.15)"><i class="fas fa-shield-alt" style="color:#9b59b6"></i></div>
                         <div class="card-text"><h3 class="card-title">Compliance</h3><p class="card-desc">Visualizar fila de análise</p></div>
                     </div>
+                    <div class="admin-card" onclick="window.location.href='/compliance/b2b/dashboard'">
+                        <div class="card-icon" style="background:rgba(210,158,0,.15)"><i class="fas fa-building" style="color:#d29e00"></i></div>
+                        <div class="card-text"><h3 class="card-title">Compliance B2B <span id="badgeB2B" style="display:none;background:#e01b24;color:#fff;font-size:11px;padding:2px 7px;border-radius:10px;margin-left:6px;font-weight:700"></span></h3><p class="card-desc">KYB, EDD, limites, beneficiários</p></div>
+                    </div>
                     <div class="admin-card" onclick="window.location.href='/admin/conciliacao'">
                         <div class="card-icon" style="background:rgba(46,194,126,.15)"><i class="fas fa-balance-scale" style="color:#2ec27e"></i></div>
                         <div class="card-text"><h3 class="card-title">Conciliação Bancária</h3><p class="card-desc">Confirmar Bank Transfers recebidos nas contas</p></div>
                     </div>
                     <div class="admin-card" onclick="window.location.href='/admin/taxas-loja'">
-                        <div class="card-icon" style="background:rgba(26,95,180,.15)"><i class="fas fa-tags" style="color:#1a5fb4"></i></div>
+                        <div class="card-icon" style="background:rgba(210,158,0,.15)"><i class="fas fa-tags" style="color:#d29e00"></i></div>
                         <div class="card-text"><h3 class="card-title">Taxas & Contas</h3><p class="card-desc">Taxas de câmbio e contas por forma de pagamento</p></div>
                     </div>
                     <div class="admin-card" onclick="window.location.href='/admin/fca-auditoria'">
-                        <div class="card-icon" style="background:rgba(26,95,180,.15)"><i class="fas fa-file-contract" style="color:var(--cor-primaria);"></i></div>
+                        <div class="card-icon" style="background:rgba(210,158,0,.15)"><i class="fas fa-file-contract" style="color:var(--cor-primaria);"></i></div>
                         <div class="card-text"><h3 class="card-title">Auditoria FCA</h3><p class="card-desc">Exportação de registros MLR 2017</p></div>
                     </div>
                     <div class="admin-card" onclick="window.location.href='/admin/aml'">
                         <div class="card-icon" style="background:rgba(224,27,36,.15)"><i class="fas fa-shield-virus" style="color:var(--cor-perigo);"></i></div>
                         <div class="card-text"><h3 class="card-title">Gestão AML</h3><p class="card-desc">Listas de sanções, re-screening, alertas</p></div>
+                    </div>
+                    <div class="admin-card" onclick="window.location.href='/admin/chamados'">
+                        <div class="card-icon" style="background:rgba(52,152,219,.15)"><i class="fas fa-headset" style="color:#3498db"></i></div>
+                        <div class="card-text"><h3 class="card-title">Chamados B2B <span id="badgeChamadosAdmin" style="display:none;background:#e01b24;color:#fff;font-size:11px;padding:2px 7px;border-radius:10px;margin-left:6px;font-weight:700"></span></h3><p class="card-desc">Suporte e chamados dos clientes</p></div>
                     </div>
                     <div class="admin-card" onclick="window.location.href='/admin/configuracoes'">
                         <div class="card-icon config"><i class="fas fa-cog"></i></div>
@@ -768,7 +854,7 @@
         <footer class="app-footer">
             <div class="footer-content">
                 <div class="footer-copyright">
-                    © 2024 Cambio Bank • Sistema de Câmbio Internacional
+                    © 2025 Link International • Money Transfers
                 </div>
                 <div class="footer-version">
                     v2.1.0 • <span class="status-online">● Online</span>
@@ -793,6 +879,23 @@
     </div>
 
     <script>
+        // ── Toggle de tema ──
+        function toggleTheme() {
+            var root = document.documentElement;
+            var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+            root.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+            var icon = document.querySelector('#btnTheme i');
+            if (icon) icon.className = next === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+        }
+
+        // Sincroniza ícone do botão com o tema atual
+        document.addEventListener('DOMContentLoaded', function() {
+            var t = document.documentElement.getAttribute('data-theme') || 'light';
+            var icon = document.querySelector('#btnTheme i');
+            if (icon) icon.className = t === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+        });
+
         // Dados do usuário
         window.USER = {
             username: "{{ usuario if usuario else 'admin' }}",
@@ -804,6 +907,18 @@
         // CARREGAR DADOS DO DASHBOARD ADMIN
         // ============================================
         
+        async function carregarBadgeChamados() {
+            try {
+                const r = await fetch('/api/chamados/badges');
+                const d = await r.json();
+                if (d.success && d.abertos > 0) {
+                    const el = document.getElementById('badgeChamadosAdmin');
+                    el.textContent = d.abertos;
+                    el.style.display = 'inline';
+                }
+            } catch(e) {}
+        }
+
         async function carregarDashboardAdmin() {
             try {
                 const response = await fetch('/api/admin/dashboard');
@@ -959,7 +1074,9 @@
         
         document.addEventListener('DOMContentLoaded', () => {
             carregarDashboardAdmin();
+            carregarBadgeChamados();
             setInterval(carregarDashboardAdmin, 30000);
+            setInterval(carregarBadgeChamados, 60000);
             iniciarAlertasCambio();
         });
 
@@ -1022,7 +1139,6 @@
             setTimeout(() => { const el = document.getElementById(id); if (el) el.remove(); }, 8000);
         }
     </script>
-    <script src="/static/js/theme.js"></script>
     <script src="/static/js/conta_search.js"></script>
 </body>
 </html>

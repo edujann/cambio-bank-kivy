@@ -51,6 +51,76 @@
 }
 
 /* ============================================
+   PADRÃO UNIVERSAL DE HEADER — baseado em loja_dashboard
+   ============================================ */
+
+.hd {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 0; margin-bottom: 22px;
+    border-bottom: 1px solid var(--cor-borda);
+    flex-wrap: wrap; gap: 10px;
+}
+.hd-right {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: auto;
+}
+
+/* Botão padrão de header — colorido (primário) */
+.btn-hd {
+    background: rgba(26,95,180,.12);
+    border: 1px solid var(--cor-admin);
+    color: var(--cor-admin);
+    padding: 6px 13px;
+    border-radius: var(--borda-radius-pequeno);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    line-height: 1;
+    transition: background .15s;
+}
+.btn-hd:hover { background: rgba(26,95,180,.25); }
+
+/* Botão padrão de header — ghost (neutro) */
+.btn-hd-ghost {
+    background: transparent;
+    border: 1px solid var(--cor-borda);
+    color: var(--cor-texto-secundario);
+}
+.btn-hd-ghost:hover { border-color: var(--cor-admin); color: var(--cor-admin); }
+
+/* Seletor de idioma no header */
+.hd-lang {
+    display: flex; gap: 4px; align-items: center;
+}
+.hd-lang a {
+    background: transparent;
+    border: 1px solid var(--cor-borda);
+    color: var(--cor-texto-secundario);
+    padding: 6px 10px;
+    border-radius: var(--borda-radius-pequeno);
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    transition: all .15s;
+}
+.hd-lang a:hover, .hd-lang a.active {
+    background: rgba(26,95,180,.12);
+    border-color: var(--cor-admin);
+    color: var(--cor-admin);
+}
+.hd-lang a.active {
+    background: var(--cor-admin);
+    color: #fff;
+}
+
+/* ============================================
    TÍTULOS COM DEGRADÊ AZUL (visível em ambos temas)
    ============================================ */
 

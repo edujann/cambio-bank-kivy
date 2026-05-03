@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏦 Cambio Bank - Dashboard</title>
+    <title>Link International — Dashboard</title>
     <link rel="stylesheet" href="/static/css/theme.css">
     <style>
     /* RESET E CONFIGURAÇÕES GERAIS */
@@ -17,12 +17,12 @@
 
     :root {
         /* PALETA DE CORES DO SEU KIVY */
-        --cor-fundo: #0a0e15;
-        --cor-card: #0d1117;
-        --cor-borda: #1e232e;
+        --cor-fundo: #110f08;
+        --cor-card: #191611;
+        --cor-borda: #2d2819;
         --cor-texto: #e0e0e0;
         --cor-texto-secundario: #8b949e;
-        --cor-primaria: #1a5fb4;
+        --cor-primaria: #d29e00;
         --cor-sucesso: #2ec27e;
         --cor-alerta: #f39c12;
         --cor-perigo: #e01b24;
@@ -69,8 +69,9 @@
         font-size: 28px;
     }
 
+    .logo-text strong { font-weight: 800; }
     .logo-text {
-        background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
+        background: linear-gradient(90deg, #b78700, #eeb600);
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
@@ -80,11 +81,19 @@
         font-size: 28px;
         font-weight: bold;
         text-align: center;
-        background: linear-gradient(90deg, #fff, #e0e0e0);
+        background: linear-gradient(90deg, #b78700, #eeb600);
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
     }
+    .app-header .page-title {
+        background: linear-gradient(90deg, #b78700, #eeb600);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+    :root[data-theme="light"] { --cor-primaria: #d29e00; }
+    .btn-hd:hover { background: rgba(210, 158, 0, 0.25); }
 
     .user-menu {
         display: flex;
@@ -223,7 +232,7 @@
     }
 
     .card-icon.transfer {
-        background: rgba(26, 95, 180, 0.15);
+        background: rgba(210, 158, 0, 0.15);
         color: var(--cor-primaria);
     }
 
@@ -243,8 +252,13 @@
     }
 
     .card-icon.historico {
-        background: rgba(52, 152, 219, 0.15);  /* Azul celeste com opacidade */
-        color: #3498db;  /* Azul celeste sólido */
+        background: rgba(52, 152, 219, 0.15);
+        color: #3498db;
+    }
+
+    .card-icon.suporte {
+        background: rgba(155, 89, 182, 0.15);
+        color: #9b59b6;
     }
 
     .card-title {
@@ -382,7 +396,7 @@
         width: 50px;
         height: 50px;
         border-radius: 12px;
-        background: rgba(26, 95, 180, 0.15);
+        background: rgba(210, 158, 0, 0.15);
         color: var(--cor-primaria);
         display: flex;
         align-items: center;
@@ -540,7 +554,7 @@
 
     /* Cores dos ícones */
     .saldo-moeda-card[data-moeda="USD"] .moeda-icon {
-        background: rgba(26, 95, 180, 0.15);
+        background: rgba(210, 158, 0, 0.15);
         color: #1a5fb4;
     }
 
@@ -594,8 +608,8 @@
 
     /* SALDO TOTAL RESUMO */
     .saldo-total-resumo {
-        background: linear-gradient(135deg, rgba(26, 95, 180, 0.1) 0%, rgba(46, 194, 126, 0.1) 100%);
-        border: 1px solid rgba(26, 95, 180, 0.2);
+        background: linear-gradient(135deg, rgba(210, 158, 0, 0.1) 0%, rgba(46, 194, 126, 0.1) 100%);
+        border: 1px solid rgba(210, 158, 0, 0.2);
         border-radius: var(--borda-radius);
         padding: 20px 30px;
         display: flex;
@@ -1083,7 +1097,7 @@
     }
 
     .dropdown-item:hover {
-        background: rgba(26, 95, 180, 0.15);
+        background: rgba(210, 158, 0, 0.15);
     }
 
     .dropdown-item i {
@@ -1136,7 +1150,7 @@
     }
 
     .dropdown-item:hover {
-        background: rgba(26, 95, 180, 0.15);
+        background: rgba(210, 158, 0, 0.15);
     }
 
     .dropdown-divider {
@@ -1162,9 +1176,9 @@
 
     .botao-cambio {
         background: linear-gradient(135deg, 
-            rgba(26, 95, 180, 0.15) 0%, 
+            rgba(210, 158, 0, 0.15) 0%, 
             rgba(46, 194, 126, 0.15) 100%);
-        border: 1px solid rgba(26, 95, 180, 0.2);
+        border: 1px solid rgba(210, 158, 0, 0.2);
         border-radius: var(--borda-radius);
         padding: 25px 30px;
         display: flex;
@@ -1181,7 +1195,7 @@
         border-color: var(--cor-primaria);
         box-shadow: var(--sombra-forte);
         background: linear-gradient(135deg, 
-            rgba(26, 95, 180, 0.25) 0%, 
+            rgba(210, 158, 0, 0.25) 0%, 
             rgba(46, 194, 126, 0.25) 100%);
     }
 
@@ -1325,7 +1339,7 @@
     }
 
     .popup-header {
-        background: linear-gradient(135deg, var(--cor-primaria), #2d8fff);
+        background: linear-gradient(135deg, #b78700, #eeb600);
         padding: 25px 30px;
         text-align: center;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -1368,7 +1382,7 @@
 
     .progress-bar {
         height: 6px;
-        background: rgba(26, 95, 180, 0.1);
+        background: rgba(210, 158, 0, 0.1);
         border-radius: 3px;
         overflow: hidden;
         margin-bottom: 10px;
@@ -1397,7 +1411,7 @@
         gap: 8px;
         margin-top: 20px;
         padding: 10px;
-        background: rgba(26, 95, 180, 0.05);
+        background: rgba(210, 158, 0, 0.05);
         border-radius: var(--borda-radius-pequeno);
     }
 
@@ -1425,9 +1439,9 @@
     }
 
     .popup-btn-ok:hover {
-        background: #2d8fff;
+        background: #eeb600;
         transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(26, 95, 180, 0.3);
+        box-shadow: 0 5px 15px rgba(210, 158, 0, 0.3);
     }
 
     .popup-btn-cancel {
@@ -1501,8 +1515,7 @@ function abrirTransferencia() {
         <header class="app-header">
             <div class="header-left">
                 <div class="logo">
-                    <i class="fas fa-university"></i>
-                    <span class="logo-text">CAMBIO BANK</span>
+                    <span class="logo-text"><strong>Link</strong> international</span>
                 </div>
             </div>
             
@@ -1512,10 +1525,7 @@ function abrirTransferencia() {
             
             <div class="header-right">
 
-                <div class="lang-switch">
-                    <a href="/language/pt" class="lang-btn {% if current_lang == 'pt' %}active{% endif %}">PT</a>
-                    <a href="/language/en" class="lang-btn {% if current_lang == 'en' %}active{% endif %}">EN</a>
-                </div>
+                <a href="/language/{{ 'pt' if current_lang == 'en' else 'en' }}" class="btn-hd btn-hd-ghost"><i class="fas fa-globe"></i> {{ 'PT' if current_lang == 'en' else 'EN' }}</a>
 
                 <!-- ADICIONE ID "userMenu" AQUI -->
                 <div class="user-menu" id="userMenu" onclick="toggleUserMenu()">
@@ -1676,14 +1686,25 @@ function abrirTransferencia() {
 
                     <!-- CARD 4: MINHAS TRANSFERÊNCIAS (MANTENDO PADRÃO) -->
                     <div class="acao-card" onclick="window.location.href='/minhas-transferencias'">
-                        <div class="card-icon historico">  
+                        <div class="card-icon historico">
                             <i class="fas fa-history"></i>
                         </div>
-                        <h3 class="card-title">Minhas Transferências</h3>
-                        <p class="card-desc">Transferências internacionais</p>
+                        <h3 class="card-title">My Transfers</h3>
+                        <p class="card-desc">International transfers</p>
                         <div class="card-badge" id="badgeTransferencias">
-                            <i class="fas fa-sync-alt"></i> Carregando...
+                            <i class="fas fa-sync-alt"></i> Loading...
                         </div>
+                    </div>
+
+                    <!-- CARD 5: SUPPORT / TICKETS -->
+                    <div class="acao-card" onclick="window.location.href='/chamados'">
+                        <div class="card-icon suporte" style="position:relative">
+                            <i class="fas fa-headset"></i>
+                            <span id="badgeSuporte" style="display:none;position:absolute;top:-6px;right:-6px;background:#e01b24;color:#fff;font-size:10px;padding:2px 6px;border-radius:10px;font-weight:700"></span>
+                        </div>
+                        <h3 class="card-title">Support</h3>
+                        <p class="card-desc">Tickets & messages</p>
+                        <div class="card-badge" id="badgeChamadosCliente">Open ticket</div>
                     </div>
                 </div>  <!-- ADICIONE ESTA LINHA PARA FECHAR .cards-grid -->
             </section>
@@ -1737,7 +1758,7 @@ function abrirTransferencia() {
         <footer class="app-footer">
             <div class="footer-content">
                 <div class="footer-copyright">
-                    © 2024 Cambio Bank • Sistema de Câmbio Internacional
+                    © 2025 Link International • Money Transfers
                 </div>
                 <div class="footer-version">
                     v2.1.0 • <span class="status-online">● Online</span>
@@ -1942,7 +1963,7 @@ function abrirTransferencia() {
                 
                 /* APARÊNCIA */
                 background: #0d1117 !important;
-                border: 2px solid #1a5fb4 !important;
+                border: 2px solid #d29e00 !important;
                 border-radius: 8px !important;
                 box-shadow: 0 10px 30px rgba(0,0,0,0.7) !important;
                 padding: 10px 0 !important;
@@ -2028,6 +2049,22 @@ function abrirTransferencia() {
             window.menuVisivel = false;
         }
     }
+
+    // SUPPORT BADGE
+    async function carregarBadgeSuporte() {
+        try {
+            const r = await fetch('/api/chamados/badges');
+            const d = await r.json();
+            if (d.success && d.nao_lidos > 0) {
+                const el = document.getElementById('badgeSuporte');
+                const el2 = document.getElementById('badgeChamadosCliente');
+                if (el) { el.textContent = d.nao_lidos; el.style.display = 'inline'; }
+                if (el2) el2.textContent = d.nao_lidos + ' unread';
+            }
+        } catch(e) {}
+    }
+    document.addEventListener('DOMContentLoaded', carregarBadgeSuporte);
+    setInterval(carregarBadgeSuporte, 60000);
 
     // ============================================
     // INICIALIZAÇÃO

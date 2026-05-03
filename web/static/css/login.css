@@ -2,15 +2,12 @@
    VARIÁVEIS E RESET
    ============================================ */
 :root {
-    /* Cores do sistema (igual ao seu Kivy) */
-    --cor-fundo: #0a0e15;
-    --cor-card: #0d1117;
-    --cor-borda: #1e232e;
+    --cor-fundo: #110f08;
+    --cor-card: #191611;
+    --cor-borda: #2d2819;
     --cor-texto: #e0e0e0;
     --cor-texto-secundario: #8b949e;
-    
-    /* Cores de destaque */
-    --cor-primaria: #1a5fb4;
+    --cor-primaria: #d29e00;
     --cor-sucesso: #2ec27e;
     --cor-alerta: #f39c12;
     --cor-perigo: #e01b24;
@@ -33,7 +30,7 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #0a0e15 0%, #0d1117 100%);
+    background: linear-gradient(135deg, #110f08 0%, #1f1a10 100%);
     color: var(--cor-texto);
     min-height: 100vh;
     display: flex;
@@ -73,7 +70,7 @@ body {
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, var(--cor-primaria), var(--cor-sucesso));
+    background: linear-gradient(90deg, #8b6900, #eeb600, #8b6900);
 }
 
 /* ============================================
@@ -84,21 +81,19 @@ body {
     margin-bottom: 40px;
 }
 
-.logo i {
-    font-size: 48px;
-    color: var(--cor-primaria);
-    margin-bottom: 15px;
-    display: block;
-}
-
 .logo h1 {
-    font-size: 32px;
-    font-weight: bold;
+    font-size: 36px;
+    font-weight: 400;
     margin-bottom: 8px;
-    background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
+    background: linear-gradient(90deg, #b78700, #eeb600);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+    letter-spacing: 0.5px;
+}
+
+.logo h1 strong {
+    font-weight: 800;
 }
 
 .tagline {
@@ -132,7 +127,7 @@ body {
 .input-group input {
     width: 100%;
     padding: 16px 16px 16px 48px;
-    background: #1a1a2e !important;  /* ← CORREÇÃO: fundo ESCURO SÓLIDO */
+    background: #1f1a10 !important;  /* ← CORREÇÃO: fundo ESCURO SÓLIDO */
     border: 1px solid var(--cor-borda);
     border-radius: var(--borda-radius-pequeno);
     color: var(--cor-texto) !important;
@@ -144,8 +139,8 @@ body {
 .input-group input:focus {
     outline: none;
     border-color: var(--cor-primaria);
-    background: #2d3748 !important;  /* ← CORREÇÃO: escuro mais claro no focus */
-    box-shadow: 0 0 0 3px rgba(26, 95, 180, 0.1);
+    background: #2a2418 !important;
+    box-shadow: 0 0 0 3px rgba(210, 158, 0, 0.12);
 }
 
 /* ADICIONE ESTE CÓDIGO PARA CORRIGIR AUTOFILL */
@@ -153,22 +148,22 @@ body {
 .input-group input:-webkit-autofill:hover,
 .input-group input:-webkit-autofill:focus,
 .input-group input:-webkit-autofill:active {
-    -webkit-box-shadow: 0 0 0 1000px #1a1a2e inset !important;
+    -webkit-box-shadow: 0 0 0 1000px #1f1a10 inset !important;
     -webkit-text-fill-color: var(--cor-texto) !important;
     caret-color: var(--cor-texto) !important;
-    background-color: #1a1a2e !important;
+    background-color: #1f1a10 !important;
     border: 1px solid var(--cor-primaria) !important;
     transition: background-color 5000s ease-in-out 0s !important;
 }
 
 /* Para outros navegadores */
 .input-group input:-moz-autofill {
-    background-color: #1a1a2e !important;
+    background-color: #1f1a10 !important;
     color: var(--cor-texto) !important;
 }
 
 .input-group input:autofill {
-    background-color: #1a1a2e !important;
+    background-color: #1f1a10 !important;
     color: var(--cor-texto) !important;
 }
 
@@ -182,8 +177,8 @@ body {
 .btn-login {
     width: 100%;
     padding: 18px;
-    background: linear-gradient(90deg, var(--cor-primaria), #1c71d8);
-    color: white;
+    background: linear-gradient(90deg, #b78700, #eeb600);
+    color: #1a1200;
     border: none;
     border-radius: var(--borda-radius-pequeno);
     font-size: 18px;
@@ -199,7 +194,7 @@ body {
 
 .btn-login:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(26, 95, 180, 0.3);
+    box-shadow: 0 8px 20px rgba(210, 158, 0, 0.35);
 }
 
 .btn-login:active {
@@ -232,7 +227,7 @@ body {
 }
 
 .forgot-link:hover {
-    color: #2d8fff;
+    color: #eeb600;
     text-decoration: underline;
 }
 
@@ -512,8 +507,8 @@ body {
 
 /* SALDO TOTAL RESUMO */
 .saldo-total-resumo {
-    background: linear-gradient(135deg, rgba(26, 95, 180, 0.1) 0%, rgba(46, 194, 126, 0.1) 100%);
-    border: 1px solid rgba(26, 95, 180, 0.2);
+    background: linear-gradient(135deg, rgba(210, 158, 0, 0.1) 0%, rgba(46, 194, 126, 0.1) 100%);
+    border: 1px solid rgba(210, 158, 0, 0.2);
     border-radius: var(--borda-radius);
     padding: 20px 30px;
     display: flex;

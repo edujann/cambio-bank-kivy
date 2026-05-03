@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transferência Internacional | Cambio Bank</title>
+    <title>Transferência Internacional | Link International</title>
     
     <!-- CSS ORGANIZADO -->
     <link rel="stylesheet" href="/static/css/style.css">          <!-- Estilos gerais -->
@@ -17,6 +17,11 @@
     
     <!-- CSS ESPECÍFICO DO CABEÇALHO/FOOTER DA TRANSFERÊNCIA -->
     <style>
+    :root{--cor-fundo:#110f08;--cor-card:#191611;--cor-borda:#2d2819;--cor-primaria:#d29e00;--cor-admin:#d29e00;}
+    :root[data-theme="light"]{--cor-primaria:#d29e00;--cor-admin:#d29e00;}
+    .logo-text strong{font-weight:800;}
+    .logo-text{background:linear-gradient(90deg,#b78700,#eeb600);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:20px;font-weight:400;letter-spacing:.5px;}
+
     /* CABEÇALHO ESPECÍFICO PARA TRANSFERÊNCIA */
     .main-header {
         display: flex;
@@ -56,7 +61,7 @@
     .logo h1 {
         font-size: 20px;
         font-weight: bold;
-        background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
+        background: linear-gradient(90deg, #b78700, #eeb600);
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
@@ -84,7 +89,7 @@
 
     .btn-back:hover {
         border-color: var(--cor-primaria);
-        background: rgba(26, 95, 180, 0.1);
+        background: rgba(210, 158, 0, 0.1);
     }
 
     /* FOOTER ESPECÍFICO */
@@ -198,13 +203,13 @@
     }
 
     .btn-primary {
-        background: linear-gradient(135deg, var(--cor-primaria), #2d8fff);
-        color: white;
+        background: linear-gradient(135deg, #b78700, #eeb600);
+        color: #1a1200;
     }
 
     .btn-primary:hover {
         transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(26, 95, 180, 0.3);
+        box-shadow: 0 5px 15px rgba(210, 158, 0, 0.3);
     }
 
     .btn-secondary {
@@ -262,7 +267,7 @@
     .form-control:focus, select:focus, input:focus {
         outline: none !important;
         border-color: var(--cor-primaria) !important;
-        box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2) !important;
+        box-shadow: 0 0 0 2px rgba(210, 158, 0, 0.2) !important;
     }
 
     /* Opções do select */
@@ -303,7 +308,7 @@
     .form-control:focus {
         outline: none;
         border-color: var(--cor-primaria) !important;
-        box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2);
+        box-shadow: 0 0 0 2px rgba(210, 158, 0, 0.2);
     }
 
     select.form-control {
@@ -343,7 +348,7 @@
         color: var(--cor-texto) !important;
         outline: none !important;
         border-color: var(--cor-primaria) !important;
-        box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2) !important;
+        box-shadow: 0 0 0 2px rgba(210, 158, 0, 0.2) !important;
     }
 
     /* 🔥 CORREÇÃO ESPECIAL PARA QUANDO O CAMPO ESTÁ SENDO DIGITADO 🔥 */
@@ -415,10 +420,10 @@
         color: var(--cor-texto) !important;
     }  
 
-    /* Títulos do formulário - tema claro fica azul */
+    /* Títulos do formulário */
     :root[data-theme="light"] .form-title,
     :root[data-theme="light"] .form-subtitle {
-        color: #1a5fb4 !important;
+        color: #d29e00 !important;
     }
 
     :root[data-theme="dark"] .form-title,
@@ -449,7 +454,7 @@
 
     /* Título da página (TRANSFERÊNCIA INTERNACIONAL) */
     .page-header h2 {
-        background: linear-gradient(90deg, var(--cor-primaria), #2d8fff) !important;
+        background: linear-gradient(90deg, #b78700, #eeb600) !important;
         -webkit-background-clip: text !important;
         background-clip: text !important;
         color: transparent !important;
@@ -475,7 +480,7 @@
 
     /* Logo */
     .logo h1 {
-        background: linear-gradient(90deg, var(--cor-primaria), #2d8fff) !important;
+        background: linear-gradient(90deg, #b78700, #eeb600) !important;
         -webkit-background-clip: text !important;
         background-clip: text !important;
         color: transparent !important;
@@ -498,7 +503,7 @@
 
     /* Título da página (TRANSFERÊNCIA INTERNACIONAL) */
     .page-header h2 {
-        background: linear-gradient(90deg, var(--cor-primaria), #2d8fff) !important;
+        background: linear-gradient(90deg, #b78700, #eeb600) !important;
         -webkit-background-clip: text !important;
         background-clip: text !important;
         color: transparent !important;
@@ -517,7 +522,7 @@
 
     /* Logo */
     .logo h1 {
-        background: linear-gradient(90deg, var(--cor-primaria), #2d8fff) !important;
+        background: linear-gradient(90deg, #b78700, #eeb600) !important;
         -webkit-background-clip: text !important;
         background-clip: text !important;
         color: transparent !important;
@@ -581,8 +586,7 @@
     <header class="main-header">
         <div class="header-left">
             <div class="logo">
-                <i class="fas fa-university"></i>
-                <h1>CAMBI<span class="logo-highlight">O</span> BANK</h1>
+                <span class="logo-text"><strong>Link</strong> international</span>
             </div>
         </div>
         <div class="header-right">
@@ -858,7 +862,7 @@
 
     <!-- RODAPÉ -->
     <footer class="main-footer">
-        <p>© 2024 Cambio Bank - Sistema de Câmbio Internacional. Todos os direitos reservados.</p>
+        <p>© 2025 Link International • Money Transfers</p>
         <p class="footer-links">
             <a href="#"><i class="fas fa-shield-alt"></i> Segurança</a> |
             <a href="#"><i class="fas fa-question-circle"></i> Ajuda</a> |
@@ -1045,8 +1049,8 @@
         
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
-            uploadArea.style.borderColor = '#2d8fff';
-            uploadArea.style.backgroundColor = 'rgba(45, 143, 255, 0.1)';
+            uploadArea.style.borderColor = '#eeb600';
+            uploadArea.style.backgroundColor = 'rgba(210, 158, 0, 0.1)';
         });
         
         uploadArea.addEventListener('dragleave', () => {

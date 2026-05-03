@@ -3,22 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cambio Bank — Customers</title>
+    <title>Link International — Customers</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/theme.css">
     <style>
+        :root{--cor-fundo:#110f08;--cor-card:#191611;--cor-borda:#2d2819;--cor-primaria:#d29e00;--cor-admin:#d29e00;}
+        :root[data-theme="light"]{--cor-primaria:#d29e00;--cor-admin:#d29e00;}
+        .btn-hd{background:rgba(210,158,0,.12);border:1px solid var(--cor-admin);color:var(--cor-admin);padding:6px 13px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+        .btn-hd:hover{background:rgba(210,158,0,.25);}
+        .btn-hd-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-hd-ghost:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
         body{background:var(--cor-fundo);color:var(--cor-texto);min-height:100vh;}
         .container{max-width:1200px;margin:0 auto;padding:20px;}
         .header{display:flex;justify-content:space-between;align-items:center;padding:18px 0;margin-bottom:24px;border-bottom:1px solid var(--cor-borda);flex-wrap:wrap;gap:12px;}
         .logo{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:bold;}
         .logo i{color:var(--cor-admin);font-size:24px;}
-        .logo-text{background:linear-gradient(90deg,var(--cor-admin),#2d8fff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+        .logo-text strong{font-weight:800;}
+        .logo-text{background:linear-gradient(90deg,#b78700,#eeb600);-webkit-background-clip:text;background-clip:text;color:transparent;}
         .btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:var(--borda-radius-pequeno);border:none;cursor:pointer;font-size:13px;font-weight:600;text-decoration:none;transition:.2s;}
         .btn-primary{background:var(--cor-admin);color:#fff;}
-        .btn-primary:hover{background:#1c71d8;}
-        .btn-ghost{background:rgba(26,95,180,.12);border:1px solid var(--cor-admin);color:var(--cor-admin);}
-        .btn-ghost:hover{background:rgba(26,95,180,.25);}
+        .btn-primary:hover{background:#eeb600;}
+        .btn-ghost{background:rgba(210,158,0,.12);border:1px solid var(--cor-admin);color:var(--cor-admin);}
+        .btn-ghost:hover{background:rgba(210,158,0,.25);}
         .btn-sm{padding:5px 12px;font-size:12px;}
         .btn-danger{background:rgba(224,27,36,.15);border:1px solid var(--cor-perigo);color:var(--cor-perigo);}
 
@@ -70,7 +77,7 @@
         .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
         .detail-item label{font-size:11px;color:var(--cor-texto-secundario);display:block;margin-bottom:2px;font-weight:600;}
         .detail-item span{font-size:13px;}
-        .aml-panel{background:rgba(26,95,180,.06);border:1px solid rgba(26,95,180,.2);border-radius:var(--borda-radius-pequeno);padding:12px 16px;margin-bottom:14px;}
+        .aml-panel{background:rgba(210,158,0,.06);border:1px solid rgba(210,158,0,.2);border-radius:var(--borda-radius-pequeno);padding:12px 16px;margin-bottom:14px;}
         .aml-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:13px;}
         .aml-row:last-child{margin-bottom:0;}
         .doc-list{display:flex;flex-direction:column;gap:8px;}
@@ -94,18 +101,15 @@
     <div class="header">
         <div style="display: flex; align-items: center; gap: 15px;">
             <div class="logo">
-                <i class="fas fa-university"></i>
-                <span class="logo-text">Cambio Bank</span>
+                <span class="logo-text"><strong>Link</strong> international</span>
                 <span style="color:var(--muted);font-size:14px;font-weight:400;">/ Customers</span>
             </div>
-            <div class="lang-switch">
-                <a href="/language/pt" class="lang-btn {% if current_lang == 'pt' %}active{% endif %}">PT</a>
-                <a href="/language/en" class="lang-btn {% if current_lang == 'en' %}active{% endif %}">EN</a>
-            </div>
+            <a href="/language/{{ 'pt' if current_lang == 'en' else 'en' }}" class="btn-hd btn-hd-ghost"><i class="fas fa-globe"></i> {{ 'PT' if current_lang == 'en' else 'EN' }}</a>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <a href="/loja/dashboard" class="btn btn-ghost btn-sm"><i class="fas fa-arrow-left"></i> Back</a>
-            <button class="btn btn-primary" onclick="abrirModalNovo()"><i class="fas fa-user-plus"></i> New Customer</button>
+        <div class="hd-right">
+            <button id="btnTheme" onclick="toggleTheme()" class="btn-hd btn-hd-ghost" title="Toggle theme"><i class="fas fa-sun"></i></button>
+            <a href="/loja/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-arrow-left"></i> Back</a>
+            <button class="btn-hd" onclick="abrirModalNovo()"><i class="fas fa-user-plus"></i> New Customer</button>
         </div>
     </div>
 

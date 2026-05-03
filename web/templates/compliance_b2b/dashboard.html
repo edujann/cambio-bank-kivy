@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <script>(function(){ document.documentElement.setAttribute('data-theme', localStorage.getItem('theme')||'light'); })();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link International — Compliance B2B</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        :root[data-theme="light"]{--cor-fundo:#f5ede0;--cor-card:#ffffff;--cor-borda:rgba(210,185,130,.4);--cor-texto:#1a1200;--cor-texto-secundario:#9a8560;--cor-primaria:#c8920a;--cor-admin:#c8920a;--cor-sucesso:#1a7a52;--cor-alerta:#b87200;--cor-perigo:#c02020;--sombra-suave:0 2px 8px rgba(160,110,0,.10),0 1px 3px rgba(0,0,0,.04);--sombra-media:0 6px 22px rgba(160,110,0,.13),0 2px 8px rgba(0,0,0,.05);--borda-radius:14px;--borda-radius-pequeno:10px;}
+        :root[data-theme="dark"]{--cor-fundo:#110f08;--cor-card:#191611;--cor-borda:#2d2819;--cor-texto:#e0e0e0;--cor-texto-secundario:#8b949e;--cor-primaria:#d29e00;--cor-admin:#d29e00;--cor-sucesso:#2ec27e;--cor-alerta:#f39c12;--cor-perigo:#e01b24;--sombra-suave:0 4px 6px rgba(0,0,0,.30);--sombra-media:0 8px 16px rgba(0,0,0,.40);--borda-radius:14px;--borda-radius-pequeno:10px;}
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+        body{background-color:#f5ede0;background-image:radial-gradient(ellipse at 15% 15%,rgba(210,158,0,.10) 0%,transparent 55%),radial-gradient(ellipse at 85% 85%,rgba(180,120,0,.08) 0%,transparent 55%),linear-gradient(150deg,#f8f2e6 0%,#fdf9f2 45%,#ede3cf 100%);background-attachment:fixed;color:var(--cor-texto);min-height:100vh;overflow-x:hidden;}
+        body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(180,130,0,.055) 1px,transparent 1px);background-size:30px 30px;pointer-events:none;z-index:0;}
+        html[data-theme="dark"] body{background-color:#110f08;background-image:linear-gradient(135deg,#110f08 0%,#1f1a10 100%);}
+        html[data-theme="dark"] body::before{display:none;}
+
+        /* ── Top Bar ── */
+        .top-bar{position:sticky;top:0;z-index:200;height:54px;background:var(--cor-card);border-bottom:1px solid var(--cor-borda);display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:10px;}
+        .logo{display:flex;align-items:center;gap:10px;font-size:17px;}
+        .logo-text{background:linear-gradient(90deg,#b78700,#eeb600);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800;}
+        .logo-text span{font-weight:400;}
+        .badge-b2b{background:rgba(210,158,0,.15);border:1px solid rgba(210,158,0,.4);color:#d29e00;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;letter-spacing:.5px;text-transform:uppercase;}
+        .hd-right{display:flex;align-items:center;gap:8px;}
+        .btn-hd{background:rgba(210,158,0,.12);border:1px solid #d29e00;color:#d29e00;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:.15s;}
+        .btn-hd:hover{background:rgba(210,158,0,.25);}
+        .btn-hd-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-hd-ghost:hover{border-color:#d29e00;color:#d29e00;}
+        .badge-user{background:rgba(210,158,0,.1);color:#d29e00;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;}
+
+        /* ── Layout ── */
+        .main-layout{display:flex;min-height:calc(100vh - 54px);position:relative;z-index:1;}
+
+        /* ── Sidebar ── */
+        .sidebar{width:215px;min-width:215px;background:var(--cor-card);border-right:1px solid var(--cor-borda);padding:12px 0 24px;position:sticky;top:54px;height:calc(100vh - 54px);overflow-y:auto;display:flex;flex-direction:column;}
+        .sidebar::-webkit-scrollbar{width:4px;}
+        .sidebar::-webkit-scrollbar-thumb{background:rgba(210,158,0,.3);border-radius:2px;}
+        .nav-section-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--cor-texto-secundario);padding:14px 18px 5px;opacity:.7;}
+        .nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;font-weight:600;color:var(--cor-texto-secundario);cursor:pointer;border-left:3px solid transparent;transition:.15s;user-select:none;text-decoration:none;}
+        .nav-item i{width:16px;text-align:center;font-size:13px;}
+        .nav-item:hover{color:#d29e00;background:rgba(210,158,0,.06);}
+        .nav-item.active{color:#d29e00;background:rgba(210,158,0,.1);border-left-color:#d29e00;}
+        .nav-badge{margin-left:auto;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;min-width:18px;text-align:center;background:#e01b24;}
+        .nav-divider{height:1px;background:var(--cor-borda);margin:8px 14px;}
+
+        /* ── Content ── */
+        .content-area{flex:1;min-width:0;padding:24px;overflow-x:hidden;}
+        .page-header{margin-bottom:24px;}
+        .page-header h1{font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+        .page-header h1 i{color:#d29e00;}
+        .page-header p{color:var(--cor-texto-secundario);font-size:13px;}
+
+        /* ── KPI Grid ── */
+        .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:28px;}
+        .kpi{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;transition:.2s;}
+        .kpi:hover{border-color:rgba(210,158,0,.4);transform:translateY(-2px);}
+        .kpi-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:12px;}
+        .kpi-lbl{font-size:11px;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+        .kpi-val{font-size:28px;font-weight:700;line-height:1;}
+        .kpi-sub{font-size:11px;color:var(--cor-texto-secundario);margin-top:6px;}
+        .kpi-stripe{position:absolute;top:0;left:0;right:0;height:3px;}
+
+        /* colour helpers */
+        .c-gold{color:#d29e00;} .c-verde{color:#2ec27e;} .c-am{color:#f39c12;} .c-perigo{color:#e01b24;} .c-azul{color:#1a5fb4;} .c-roxo{color:#9b59b6;}
+        .bg-gold{background:rgba(210,158,0,.12);color:#d29e00;}
+        .bg-verde{background:rgba(46,194,126,.12);color:#2ec27e;}
+        .bg-am{background:rgba(243,156,18,.12);color:#f39c12;}
+        .bg-perigo{background:rgba(224,27,36,.12);color:#e01b24;}
+        .bg-azul{background:rgba(26,95,180,.12);color:#1a5fb4;}
+        .stripe-gold{background:linear-gradient(90deg,#8b6900,#eeb600);}
+        .stripe-verde{background:#2ec27e;}
+        .stripe-am{background:#f39c12;}
+        .stripe-perigo{background:#e01b24;}
+        .stripe-azul{background:#1a5fb4;}
+
+        /* ── Two-col layout ── */
+        .two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;}
+        @media(max-width:960px){.two-col{grid-template-columns:1fr;}}
+
+        /* ── Card shell ── */
+        .tbl-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;overflow:hidden;margin-bottom:18px;}
+        .card-hd{padding:14px 18px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+        .card-hd h3{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;}
+        .card-hd h3 i{color:#d29e00;}
+        .tbl-wrap{overflow-x:auto;}
+        table{width:100%;border-collapse:collapse;font-size:13px;}
+        th{background:rgba(128,128,128,.05);color:var(--cor-texto-secundario);padding:8px 14px;text-align:left;font-weight:600;font-size:11px;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px;}
+        td{padding:10px 14px;border-top:1px solid var(--cor-borda);vertical-align:middle;}
+        tr:hover td{background:rgba(210,158,0,.02);}
+        .empty{padding:40px;text-align:center;color:var(--cor-texto-secundario);}
+        .empty i{font-size:32px;margin-bottom:8px;display:block;opacity:.4;}
+
+        /* ── Tags ── */
+        .tag{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+        .tag-ativo{background:rgba(46,194,126,.12);color:#2ec27e;}
+        .tag-em_onboarding{background:rgba(243,156,18,.12);color:#f39c12;}
+        .tag-aguardando_revisao{background:rgba(210,158,0,.15);color:#d29e00;}
+        .tag-aprovado{background:rgba(46,194,126,.12);color:#2ec27e;}
+        .tag-rejeitado{background:rgba(224,27,36,.12);color:#e01b24;}
+        .tag-suspenso{background:rgba(224,27,36,.12);color:#e01b24;}
+        .tag-encerrado{background:rgba(128,128,128,.12);color:#888;}
+        .tag-low{background:rgba(46,194,126,.12);color:#2ec27e;}
+        .tag-medium{background:rgba(243,156,18,.12);color:#f39c12;}
+        .tag-high{background:rgba(224,27,36,.12);color:#e01b24;}
+        .tag-aberto{background:rgba(224,27,36,.12);color:#e01b24;}
+        .tag-em_analise{background:rgba(243,156,18,.12);color:#f39c12;}
+        .tag-fechado{background:rgba(128,128,128,.12);color:#888;}
+
+        /* ── Alert list ── */
+        .alert-item{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-top:1px solid var(--cor-borda);transition:.15s;cursor:pointer;}
+        .alert-item:first-child{border-top:none;}
+        .alert-item:hover{background:rgba(210,158,0,.03);}
+        .alert-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+        .dot-critical{background:#e01b24;}
+        .dot-high{background:#f39c12;}
+        .dot-medium{background:#d29e00;}
+        .dot-low{background:#2ec27e;}
+        .alert-body{flex:1;min-width:0;}
+        .alert-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .alert-meta{font-size:11px;color:var(--cor-texto-secundario);margin-top:2px;}
+        .alert-time{font-size:11px;color:var(--cor-texto-secundario);white-space:nowrap;flex-shrink:0;}
+
+        /* ── Buttons ── */
+        .btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;text-decoration:none;transition:.15s;white-space:nowrap;}
+        .btn-gold{background:linear-gradient(90deg,#b78700,#d29e00);color:#1a1200;}
+        .btn-gold:hover{opacity:.9;transform:translateY(-1px);}
+        .btn-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-ghost:hover{border-color:#d29e00;color:#d29e00;}
+        .btn-sm{padding:4px 10px;font-size:11px;}
+
+        /* ── Loading spinner ── */
+        @keyframes spin{to{transform:rotate(360deg);}}
+        .fa-spin{animation:spin 1s linear infinite;}
+
+        /* ── Risk distribution bar ── */
+        .risk-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;gap:2px;margin-top:8px;}
+        .risk-seg{transition:.3s;}
+        .risk-seg.low{background:#2ec27e;}
+        .risk-seg.medium{background:#f39c12;}
+        .risk-seg.high{background:#e01b24;}
+
+        /* ── Responsive ── */
+        @media(max-width:768px){
+            .sidebar{display:none;}
+            .kpi-grid{grid-template-columns:repeat(2,1fr);}
+        }
+        #btnTheme{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:0;border-radius:6px;cursor:pointer;font-size:14px;display:inline-flex;align-items:center;justify-content:center;height:30px;width:30px;transition:.15s;}
+        #btnTheme:hover{border-color:#d29e00;color:#d29e00;}
+        [data-theme="light"] input,[data-theme="light"] select,[data-theme="light"] textarea{background:var(--cor-card)!important;color:var(--cor-texto)!important;border-color:var(--cor-borda)!important;}
+        [data-theme="light"] input::placeholder{color:var(--cor-texto-secundario)!important;}
+    </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+    <div class="logo">
+        <span class="logo-text"><strong>Link</strong><span> international</span></span>
+        <div class="badge-b2b">B2B Compliance</div>
+    </div>
+    <div class="hd-right">
+        <span class="badge-user"><i class="fas fa-user-shield" style="margin-right:4px"></i>{{ usuario }}</span>
+        <a href="/language/{{ 'pt' if current_lang == 'en' else 'en' }}" class="btn-hd btn-hd-ghost" title="Switch language"><i class="fas fa-globe"></i> {{ 'PT' if current_lang == 'en' else 'EN' }}</a>
+        <button id="btnTheme" onclick="toggleTheme()" title="Toggle theme"><i class="fas fa-sun"></i></button>
+        <a href="/compliance/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-shield-halved"></i> Compliance</a>
+        <a href="/admin/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-grid-2"></i> Admin</a>
+    </div>
+</div>
+
+<div class="main-layout">
+
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+        <div class="nav-section-lbl">Overview</div>
+        <a class="nav-item active" href="/compliance/b2b/dashboard"><i class="fas fa-gauge-high"></i> Dashboard</a>
+        <a class="nav-item" href="/compliance/b2b/clientes"><i class="fas fa-building"></i> Clients <span class="nav-badge" id="sbBadgeClients" style="display:none"></span></a>
+        <a class="nav-item" href="/compliance/b2b/clientes/novo"><i class="fas fa-plus-circle"></i> New Onboarding</a>
+
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Compliance</div>
+        <a class="nav-item" href="/compliance/b2b/edd"><i class="fas fa-magnifying-glass-chart"></i> EDD Cases <span class="nav-badge" id="sbBadgeEdd" style="display:none"></span></a>
+        <a class="nav-item" href="/compliance/b2b/alertas"><i class="fas fa-bell"></i> Alerts <span class="nav-badge" id="sbBadgeAlerts" style="display:none"></span></a>
+        <a class="nav-item" href="/compliance/b2b/screening"><i class="fas fa-shield-halved"></i> Screening</a>
+
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Operations</div>
+        <a class="nav-item" href="/compliance/b2b/beneficiarios"><i class="fas fa-users"></i> Beneficiaries <span class="nav-badge" id="sbBadgeBenef" style="display:none"></span></a>
+        <a class="nav-item" href="/compliance/b2b/limites"><i class="fas fa-sliders"></i> Limits</a>
+        <a class="nav-item" href="/compliance/b2b/risk-config"><i class="fas fa-gear"></i> Risk Config</a>
+    </nav>
+
+    <!-- CONTENT -->
+    <div class="content-area">
+        <div class="page-header">
+            <h1><i class="fas fa-building"></i> B2B Compliance Centre</h1>
+            <p>KYB onboarding, risk scoring, EDD, limits and beneficiary management</p>
+        </div>
+
+        <!-- KPI CARDS -->
+        <div class="kpi-grid" id="kpiGrid">
+            <div class="kpi">
+                <div class="kpi-stripe stripe-gold"></div>
+                <div class="kpi-icon bg-gold"><i class="fas fa-building"></i></div>
+                <div class="kpi-lbl">Total B2B Clients</div>
+                <div class="kpi-val c-gold" id="kpiTotal">—</div>
+                <div class="kpi-sub">all statuses</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-stripe stripe-verde"></div>
+                <div class="kpi-icon bg-verde"><i class="fas fa-check-circle"></i></div>
+                <div class="kpi-lbl">Active</div>
+                <div class="kpi-val c-verde" id="kpiAtivos">—</div>
+                <div class="kpi-sub">fully approved</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-stripe stripe-am"></div>
+                <div class="kpi-icon bg-am"><i class="fas fa-clock"></i></div>
+                <div class="kpi-lbl">Pending Review</div>
+                <div class="kpi-val c-am" id="kpiPendentes">—</div>
+                <div class="kpi-sub">awaiting MLRO</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-stripe stripe-perigo"></div>
+                <div class="kpi-icon bg-perigo"><i class="fas fa-triangle-exclamation"></i></div>
+                <div class="kpi-lbl">High Risk</div>
+                <div class="kpi-val c-perigo" id="kpiHighRisk">—</div>
+                <div class="kpi-sub">active clients</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-stripe stripe-perigo"></div>
+                <div class="kpi-icon bg-perigo"><i class="fas fa-magnifying-glass-chart"></i></div>
+                <div class="kpi-lbl">Open EDD Cases</div>
+                <div class="kpi-val c-perigo" id="kpiEdd">—</div>
+                <div class="kpi-sub">in progress</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-stripe stripe-am"></div>
+                <div class="kpi-icon bg-am"><i class="fas fa-bell"></i></div>
+                <div class="kpi-lbl">Open Alerts</div>
+                <div class="kpi-val c-am" id="kpiAlertas">—</div>
+                <div class="kpi-sub">unresolved</div>
+            </div>
+        </div>
+
+        <!-- TWO COLUMN -->
+        <div class="two-col">
+
+            <!-- PENDING ONBOARDING -->
+            <div class="tbl-card">
+                <div class="card-hd">
+                    <h3><i class="fas fa-clock"></i> Awaiting MLRO Approval</h3>
+                    <a href="/compliance/b2b/clientes?status=aguardando_revisao" class="btn btn-ghost btn-sm">View all</a>
+                </div>
+                <div id="pendingList">
+                    <div class="empty"><i class="fas fa-spinner fa-spin"></i>Loading…</div>
+                </div>
+            </div>
+
+            <!-- OPEN ALERTS -->
+            <div class="tbl-card">
+                <div class="card-hd">
+                    <h3><i class="fas fa-bell"></i> Active Alerts</h3>
+                    <a href="/compliance/b2b/alertas" class="btn btn-ghost btn-sm">View all</a>
+                </div>
+                <div id="alertList">
+                    <div class="empty"><i class="fas fa-spinner fa-spin"></i>Loading…</div>
+                </div>
+            </div>
+
+        </div><!-- /two-col -->
+
+        <!-- RECENT CLIENTS -->
+        <div class="tbl-card">
+            <div class="card-hd">
+                <h3><i class="fas fa-building"></i> Recent B2B Clients</h3>
+                <div style="display:flex;gap:8px;">
+                    <a href="/compliance/b2b/clientes/novo" class="btn btn-gold btn-sm"><i class="fas fa-plus"></i> New Onboarding</a>
+                    <a href="/compliance/b2b/clientes" class="btn btn-ghost btn-sm">View all</a>
+                </div>
+            </div>
+            <div class="tbl-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Company</th>
+                            <th>Reg. Number</th>
+                            <th>Risk</th>
+                            <th>Status</th>
+                            <th>Monthly Limit</th>
+                            <th>Review Due</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentClients">
+                        <tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i>Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- EDD OPEN CASES -->
+        <div class="tbl-card">
+            <div class="card-hd">
+                <h3><i class="fas fa-magnifying-glass-chart"></i> Open EDD Cases</h3>
+                <a href="/compliance/b2b/edd" class="btn btn-ghost btn-sm">View all</a>
+            </div>
+            <div class="tbl-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Client</th>
+                            <th>Trigger</th>
+                            <th>Opened</th>
+                            <th>Assigned To</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="eddCases">
+                        <tr><td colspan="6" class="empty"><i class="fas fa-spinner fa-spin"></i>Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div><!-- /content-area -->
+</div><!-- /main-layout -->
+
+<script>
+const fmt = n => n == null ? '—' : Number(n).toLocaleString('en-GB');
+const fmtGBP = n => n == null ? '—' : '£' + Number(n).toLocaleString('en-GB', {minimumFractionDigits:0,maximumFractionDigits:0});
+const fmtDate = s => s ? new Date(s).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+const timeSince = s => {
+    if (!s) return '—';
+    const d = Math.floor((Date.now() - new Date(s)) / 60000);
+    if (d < 60) return d + 'm ago';
+    if (d < 1440) return Math.floor(d/60) + 'h ago';
+    return Math.floor(d/1440) + 'd ago';
+};
+
+const tagHtml = (v, map) => `<span class="tag tag-${v}">${map[v] || v}</span>`;
+const statusMap = {ativo:'Active',em_onboarding:'Onboarding',aguardando_revisao:'Awaiting Review',rejeitado:'Rejected',suspenso:'Suspended',encerrado:'Closed'};
+const riskMap = {low:'Low',medium:'Medium',high:'High'};
+const eddMap = {aberto:'Open',em_analise:'In Analysis',fechado:'Closed'};
+
+async function load() {
+    try {
+        const r = await fetch('/api/compliance/b2b/dashboard-stats');
+        const d = await r.json();
+        if (!d.success) return;
+
+        const s = d.stats;
+        document.getElementById('kpiTotal').textContent = fmt(s.total);
+        document.getElementById('kpiAtivos').textContent = fmt(s.ativos);
+        document.getElementById('kpiPendentes').textContent = fmt(s.pendentes);
+        document.getElementById('kpiHighRisk').textContent = fmt(s.high_risk);
+        document.getElementById('kpiEdd').textContent = fmt(s.edd_abertos);
+        document.getElementById('kpiAlertas').textContent = fmt(s.alertas_abertos);
+
+        // sidebar badges
+        if (s.pendentes > 0) { const b = document.getElementById('sbBadgeClients'); b.textContent = s.pendentes; b.style.display = ''; }
+        if (s.edd_abertos > 0) { const b = document.getElementById('sbBadgeEdd'); b.textContent = s.edd_abertos; b.style.display = ''; }
+        if (s.alertas_abertos > 0) { const b = document.getElementById('sbBadgeAlerts'); b.textContent = s.alertas_abertos; b.style.display = ''; }
+    } catch(e) { console.error(e); }
+
+    loadPending();
+    loadAlerts();
+    loadRecentClients();
+    loadEdd();
+}
+
+async function loadPending() {
+    try {
+        const r = await fetch('/api/compliance/b2b/clientes?status=aguardando_revisao&limit=6');
+        const d = await r.json();
+        const el = document.getElementById('pendingList');
+        if (!d.success || !d.clientes.length) {
+            el.innerHTML = '<div class="empty"><i class="fas fa-check-circle" style="color:#2ec27e"></i>No pending reviews</div>';
+            return;
+        }
+        el.innerHTML = d.clientes.map(c => `
+            <div class="alert-item" onclick="window.location.href='/compliance/b2b/clientes/${c.id}'">
+                <div class="alert-dot dot-high"></div>
+                <div class="alert-body">
+                    <div class="alert-title">${c.razao_social}</div>
+                    <div class="alert-meta">${c.numero_registro || '—'} &middot; ${c.pais_registro || '—'} &middot; ${tagHtml(c.nivel_risco || 'medium', riskMap)}</div>
+                </div>
+                <div class="alert-time">${timeSince(c.criado_em)}</div>
+            </div>`).join('');
+    } catch(e) {
+        document.getElementById('pendingList').innerHTML = '<div class="empty"><i class="fas fa-exclamation-triangle"></i>Error loading</div>';
+    }
+}
+
+async function loadAlerts() {
+    try {
+        const r = await fetch('/api/compliance/b2b/alertas?status=aberto&limit=6');
+        const d = await r.json();
+        const el = document.getElementById('alertList');
+        if (!d.success || !d.alertas.length) {
+            el.innerHTML = '<div class="empty"><i class="fas fa-check-circle" style="color:#2ec27e"></i>No active alerts</div>';
+            return;
+        }
+        const prioMap = {critical:'dot-critical',high:'dot-high',medium:'dot-medium',low:'dot-low'};
+        el.innerHTML = d.alertas.map(a => `
+            <div class="alert-item">
+                <div class="alert-dot ${prioMap[a.prioridade] || 'dot-medium'}"></div>
+                <div class="alert-body">
+                    <div class="alert-title">${a.titulo}</div>
+                    <div class="alert-meta">${a.cliente_nome || '—'} &middot; ${a.tipo || '—'}</div>
+                </div>
+                <div class="alert-time">${timeSince(a.criado_em)}</div>
+            </div>`).join('');
+    } catch(e) {
+        document.getElementById('alertList').innerHTML = '<div class="empty"><i class="fas fa-exclamation-triangle"></i>Error loading</div>';
+    }
+}
+
+async function loadRecentClients() {
+    try {
+        const r = await fetch('/api/compliance/b2b/clientes?limit=8&order=recente');
+        const d = await r.json();
+        const tbody = document.getElementById('recentClients');
+        if (!d.success || !d.clientes.length) {
+            tbody.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-building"></i>No B2B clients yet. <a href="/compliance/b2b/clientes/novo" class="btn btn-gold btn-sm" style="margin-left:8px"><i class="fas fa-plus"></i> Start onboarding</a></td></tr>';
+            return;
+        }
+        tbody.innerHTML = d.clientes.map(c => `
+            <tr>
+                <td><strong>${c.razao_social}</strong><br><small style="color:var(--cor-texto-secundario)">${c.tipo_entidade || ''}</small></td>
+                <td style="font-family:monospace;font-size:12px">${c.numero_registro || '—'}</td>
+                <td>${tagHtml(c.nivel_risco || 'medium', riskMap)}</td>
+                <td>${tagHtml(c.status || 'em_onboarding', statusMap)}</td>
+                <td>${fmtGBP(c.limite_mensal)}</td>
+                <td style="color:${isOverdue(c.proxima_revisao_em) ? '#e01b24' : 'inherit'}">${fmtDate(c.proxima_revisao_em)}</td>
+                <td><a href="/compliance/b2b/clientes/${c.id}" class="btn btn-ghost btn-sm"><i class="fas fa-eye"></i> View</a></td>
+            </tr>`).join('');
+    } catch(e) {
+        document.getElementById('recentClients').innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-exclamation-triangle"></i>Error loading</td></tr>';
+    }
+}
+
+async function loadEdd() {
+    try {
+        const r = await fetch('/api/compliance/b2b/edd?status=aberto,em_analise&limit=5');
+        const d = await r.json();
+        const tbody = document.getElementById('eddCases');
+        if (!d.success || !d.cases.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-check-circle" style="color:#2ec27e"></i>No open EDD cases</td></tr>';
+            return;
+        }
+        tbody.innerHTML = d.cases.map(c => `
+            <tr>
+                <td><strong>${c.cliente_nome || '—'}</strong></td>
+                <td style="font-size:12px">${c.gatilho || '—'}</td>
+                <td style="font-size:12px;color:var(--cor-texto-secundario)">${fmtDate(c.criado_em)}</td>
+                <td style="font-size:12px">${c.atribuido_a || 'Unassigned'}</td>
+                <td>${tagHtml(c.status || 'aberto', eddMap)}</td>
+                <td><a href="/compliance/b2b/edd/${c.id}" class="btn btn-ghost btn-sm"><i class="fas fa-eye"></i></a></td>
+            </tr>`).join('');
+    } catch(e) {
+        document.getElementById('eddCases').innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-exclamation-triangle"></i>Error loading</td></tr>';
+    }
+}
+
+function isOverdue(s) {
+    if (!s) return false;
+    return new Date(s) < new Date();
+}
+
+load();
+</script>
+<script>
+function toggleTheme(){var next=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',next);localStorage.setItem('theme',next);var ic=document.querySelector('#btnTheme i');if(ic)ic.className=next==='light'?'fas fa-moon':'fas fa-sun';}
+document.addEventListener('DOMContentLoaded',function(){var t=document.documentElement.getAttribute('data-theme')||'light';var ic=document.querySelector('#btnTheme i');if(ic)ic.className=t==='light'?'fas fa-moon':'fas fa-sun';});
+</script>
+</body>
+</html>
