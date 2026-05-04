@@ -2967,21 +2967,31 @@ def test_storage_simple():
 @app.route('/api/beneficiarios/<int:benef_id>', methods=['PUT', 'DELETE'])
 def gerenciar_beneficiario(benef_id):
     """Editar ou excluir (soft delete) um beneficiário"""
-    usuario = session.get('username')
+    # 🔥 MIGRADO: usar user_id
+    user_id = session.get('user_id')
+    username = session.get('username')
     
-    if not usuario:
+    if not user_id or not username:
         return jsonify({"success": False, "message": "Não autenticado"}), 401
     
     if request.method == 'PUT':
         # Editar beneficiário
         dados = request.get_json()
         
-        # Verificar se o beneficiário pertence ao usuário
+        # 🔥 MIGRADO: Verificar se o beneficiário pertence ao usuário usando cliente_id
         benef_response = supabase.table('beneficiarios')\
             .select('id')\
             .eq('id', benef_id)\
-            .eq('cliente_username', usuario)\
+            .eq('cliente_id', user_id)\
             .execute()
+        
+        # Fallback para dados antigos (se não encontrar por cliente_id)
+        if not benef_response.data:
+            benef_response = supabase.table('beneficiarios')\
+                .select('id')\
+                .eq('id', benef_id)\
+                .eq('cliente_username', username)\
+                .execute()
         
         if not benef_response.data:
             return jsonify({"success": False, "message": "Beneficiário não encontrado"}), 404
@@ -2998,12 +3008,20 @@ def gerenciar_beneficiario(benef_id):
             return jsonify({"success": False, "message": "Erro ao atualizar"}), 500
     
     elif request.method == 'DELETE':
-        # Soft delete (marcar como inativo)
+        # 🔥 MIGRADO: Soft delete usando cliente_id
         update_response = supabase.table('beneficiarios')\
             .update({'ativo': False})\
             .eq('id', benef_id)\
-            .eq('cliente_username', usuario)\
+            .eq('cliente_id', user_id)\
             .execute()
+        
+        # Fallback para dados antigos
+        if not update_response.data:
+            update_response = supabase.table('beneficiarios')\
+                .update({'ativo': False})\
+                .eq('id', benef_id)\
+                .eq('cliente_username', username)\
+                .execute()
         
         if update_response.data:
             return jsonify({"success": True, "message": "Beneficiário excluído"})
@@ -5473,10 +5491,10 @@ def cambio_moedas():
             session['user_id'] = user_id
 
     if not user_id:
-        return jsonify({"success": False, "message": "Não autenticado"}), 401
-    
-    if not usuario:
         return redirect('/login')
+    
+    # 🔥 CORRIGIDO: usar 'username' em vez de 'usuario'
+    usuario = username  # ← LINHA ADICIONADA para compatibilidade com o resto do código
     
     try:
         email = f'{usuario}@exemplo.com'
@@ -5509,7 +5527,7 @@ def cambio_moedas():
     
     # 🔥 PASSAR USUÁRIO CORRETO PARA O TEMPLATE
     return render_with_lang('cambio_moedas.html',
-                          usuario=usuario,  # ← CRÍTICO: passar o nome de usuário
+                          usuario=usuario,
                           email=email,
                           nome=nome,
                           cambio_liberado=cambio_liberado,
@@ -5671,7 +5689,11 @@ def api_pares_disponiveis(usuario):
 @app.route('/api/calcular-cambio', methods=['POST'])
 def api_calcular_cambio():
     """API REAL - Calcula operação de câmbio EXATAMENTE como o Kivy"""
-    if 'username' not in session:
+    # 🔥 MIGRADO: usar user_id da sessão (segurança)
+    user_id = session.get('user_id')
+    username = session.get('username')
+    
+    if not user_id or not username:
         return jsonify({'error': 'Não autorizado'}), 401
     
     data = request.json
@@ -5679,29 +5701,27 @@ def api_calcular_cambio():
     moeda_para = data.get('moedaPara')
     tipo_operacao = data.get('tipoOperacao')
     valor_digitado = float(data.get('valor', 0))
-    usuario = data.get('usuario')
+    
+    # 🔥 IGNORAR o campo 'usuario' do request - usar o da sessão!
+    usuario = username
     
     print(f"🧮 Calculando câmbio: {moeda_de}->{moeda_para} ({tipo_operacao})")
     print(f"   Valor: {valor_digitado}")
-    print(f"   Usuário: {usuario}")
+    print(f"   Usuário: {usuario} (ID: {user_id})")
     
-    if not all([moeda_de, moeda_para, tipo_operacao, usuario]):
+    if not all([moeda_de, moeda_para, tipo_operacao]):
         return jsonify({'success': False, 'error': 'Parâmetros inválidos'})
     
     try:
-        # 🔥 LÓGICA IDÊNTICA AO KIVY
+        # 🔥 LÓGICA IDÊNTICA AO KIVY (mantida)
         if tipo_operacao == 'compra':
-            # COMPRA: Cliente COMPRA moeda_para, PAGA moeda_de
-            # Par: MOEDA_PARA_MOEDA_DE (1 moeda_para = X moeda_de)
             par_correto = f"{moeda_para}_{moeda_de}"
             print(f"   PERSPECTIVA CORRIGIDA: COMPRA {moeda_para}, PAGA {moeda_de}")
         else:
-            # VENDA: Cliente VENDE moeda_de, RECEBE moeda_para  
-            # Par: MOEDA_DE_MOEDA_PARA (1 moeda_de = X moeda_para)
             par_correto = f"{moeda_de}_{moeda_para}"
             print(f"   PERSPECTIVA CORRIGIDA: VENDE {moeda_de}, RECEBE {moeda_para}")
         
-        # 🔥 OBTER COTAÇÃO REAL (AwesomeAPI)
+        # 🔥 OBTER COTAÇÃO REAL
         cotacao_real = obter_cotacao_simples(par_correto)
         
         if not cotacao_real:
@@ -5710,35 +5730,31 @@ def api_calcular_cambio():
         print(f"   Par correto: {par_correto}")
         print(f"   1 {par_correto[:3]} = {cotacao_real:.6f} {par_correto[4:]}")
         
-        # 🔥 OBTER SPREAD
+        # 🔥 OBTER SPREAD (usa função auxiliar que recebe username)
         spread_info = obter_spread_cliente(usuario, par_correto)
         spread = spread_info.get(tipo_operacao, 0.5)
         
         print(f"   Spread aplicado: {spread}%")
         
-        # 🔥 APLICAR SPREAD (igual ao Kivy)
+        # 🔥 APLICAR SPREAD
         if tipo_operacao == 'compra':
-            # COMPRA: Cliente PAGA MAIS
             cotacao_cliente = cotacao_real * (1 + spread/100)
             print(f"   CLIENTE PAGA MAIS -> Spread: +{spread}%")
         else:
-            # VENDA: Cliente RECEBE MENOS
             cotacao_cliente = cotacao_real * (1 - spread/100)
             print(f"   CLIENTE RECEBE MENOS -> Spread: -{spread}%")
         
         print(f"   Cotação para cliente: {cotacao_cliente:.6f}")
         
-        # 🔥 CÁLCULO FINAL (igual ao Kivy)
+        # 🔥 CÁLCULO FINAL
         if tipo_operacao == 'compra':
-            # COMPRA: Cliente RECEBE moeda_para (valor digitado), PAGA moeda_de
             valor_receber = valor_digitado
-            valor_pagar = valor_receber * cotacao_cliente  # MULTIPLICAÇÃO
+            valor_pagar = valor_receber * cotacao_cliente
             resultado = valor_pagar
             print(f"   CÁLCULO COMPRA: {valor_receber:.2f} {moeda_para} x {cotacao_cliente:.6f} = {valor_pagar:.2f} {moeda_de}")
         else:
-            # VENDA: Cliente PAGA moeda_de (valor digitado), RECEBE moeda_para
             valor_pagar = valor_digitado
-            valor_receber = valor_pagar * cotacao_cliente  # MULTIPLICAÇÃO
+            valor_receber = valor_pagar * cotacao_cliente
             resultado = valor_receber
             print(f"   CÁLCULO VENDA: {valor_pagar:.2f} {moeda_de} x {cotacao_cliente:.6f} = {valor_receber:.2f} {moeda_para}")
         
@@ -5765,17 +5781,23 @@ def api_calcular_cambio():
 @app.route('/api/cotacao', methods=['POST'])
 def api_cotacao():
     """API REAL - Retorna cotação com spread (para exibição na UI)"""
-    if 'username' not in session:
+    # 🔥 MIGRADO: usar user_id da sessão
+    user_id = session.get('user_id')
+    username = session.get('username')
+    
+    if not user_id or not username:
         return jsonify({'error': 'Não autorizado'}), 401
     
     data = request.json
     par = data.get('par')
     operacao = data.get('operacao')
-    usuario = data.get('usuario')
+    
+    # 🔥 IGNORAR campo 'usuario' do request - usar o da sessão
+    usuario = username
     
     print(f"📊 Solicitando cotação: {par} ({operacao}) para {usuario}")
     
-    if not all([par, operacao, usuario]):
+    if not all([par, operacao]):
         return jsonify({'success': False, 'error': 'Parâmetros inválidos'})
     
     try:
@@ -5784,9 +5806,9 @@ def api_cotacao():
         
         # 🔥 LÓGICA DO Kivy.calcular_cotacao_cliente()
         if operacao == 'compra':
-            par_correto = f"{moeda_para}_{moeda_de}"  # RECEBE_PAGA
+            par_correto = f"{moeda_para}_{moeda_de}"
         else:
-            par_correto = f"{moeda_de}_{moeda_para}"  # PAGA_RECEBE
+            par_correto = f"{moeda_de}_{moeda_para}"
         
         print(f"   Par para cálculo: {par_correto}")
         
@@ -6078,19 +6100,27 @@ def api_verificar_saldos(usuario):
 @app.route('/api/executar-cambio', methods=['POST'])
 def api_executar_cambio():
     """API REAL - Executa operação de câmbio e salva no Supabase"""
-    if 'username' not in session:
+    # 🔥 MIGRADO: usar user_id da sessão
+    user_id = session.get('user_id')
+    username = session.get('username')
+    
+    if not user_id or not username:
         return jsonify({'error': 'Não autorizado'}), 401
     
     data = request.json
-    usuario = data.get('usuario')
-    # 🔥 Verificar se o cliente está congelado
+    
+    # 🔥 IGNORAR campo 'usuario' do request - usar o da sessão
+    usuario = username
+    
+    # Verificar se o cliente está congelado
     if is_cliente_congelado(usuario):
         print(f"🚫 Cliente {usuario} está congelado! Câmbio bloqueado.")
         return jsonify({
             'success': False,
             'error': 'Operação não disponível no momento. Entre em contato com o suporte.',
             'codigo': 'CLIENTE_CONGELADO'
-        }), 403    
+        }), 403
+    
     tipo_operacao = data.get('tipoOperacao')
     valor_pagar = data.get('valorPagar')
     valor_receber = data.get('valorReceber')
@@ -6098,10 +6128,10 @@ def api_executar_cambio():
     moeda_receber = data.get('moedaReceber')
     cotacao_cliente = data.get('cotacaoDireta')
     
-    # 🔥 🔥 🔥 VERIFICAR SE O CLIENTE TEM ALGUMA CONTA CONGELADA
+    # 🔥 MIGRADO: usar cliente_id em vez de cliente_username nas queries
     response_todas_contas = supabase.table('contas')\
         .select('id, moeda, ativos_congelados')\
-        .eq('cliente_username', usuario)\
+        .eq('cliente_id', user_id)\
         .eq('ativa', True)\
         .execute()
     
@@ -6116,16 +6146,16 @@ def api_executar_cambio():
                 }), 403
     
     print(f"💰 Executando operação REAL de câmbio:")
-    print(f"   Usuário: {usuario}")
+    print(f"   Usuário: {usuario} (ID: {user_id})")
     print(f"   Operação: {tipo_operacao}")
     print(f"   Pagar: {valor_pagar} {moeda_pagar}")
     print(f"   Receber: {valor_receber} {moeda_receber}")
     print(f"   Cotação: {cotacao_cliente}")
     
-    # 🔥 🔥 🔥 NOVA VERIFICAÇÃO DE SEGURANÇA MÁXIMA 🔥 🔥 🔥
+    # VERIFICAÇÃO DE SEGURANÇA MÁXIMA
     print(f"🔐 Verificação SEGURANÇA MÁXIMA para: {usuario}")
     
-    # 1. VERIFICAR PERMISSÃO (SEGURANÇA MÁXIMA)
+    # 1. VERIFICAR PERMISSÃO
     if not verificar_permissao_cambio_seguro(usuario):
         print(f"🚫 BLOQUEADO: Cliente {usuario} NÃO TEM PERMISSÃO")
         return jsonify({
@@ -6147,18 +6177,15 @@ def api_executar_cambio():
         })
     
     print(f"✅ Cliente {usuario} AUTORIZADO para operar")
-    # 🔥 🔥 🔥 FIM DA VERIFICAÇÃO DE SEGURANÇA 🔥 🔥 🔥
     
-    # 3. VERIFICAR LIMITE DO CLIENTE (OPCIONAL MAS RECOMENDADO)
+    # 3. VERIFICAR LIMITE DO CLIENTE
     try:
-        # Buscar limite do cliente
         limite_config = obter_config_cliente('limites', usuario)
         
         if limite_config is not None:
             limite_cliente = float(limite_config)
             print(f"🔍 Limite do cliente: {limite_cliente}")
             
-            # Converter valor da operação para float
             valor_operacao = float(valor_pagar) if tipo_operacao == 'venda' else float(valor_receber)
             
             if valor_operacao > limite_cliente:
@@ -6171,10 +6198,8 @@ def api_executar_cambio():
                 })
     except Exception as e:
         print(f"⚠️ Erro ao verificar limite (continuando): {e}")
-        # Continua mesmo se der erro na verificação de limite
     
     print(f"✅ Cliente {usuario} AUTORIZADO para operar")
-    # 🔥 🔥 🔥 FIM DA VERIFICAÇÃO DE SEGURANÇA 🔥 🔥 🔥
     
     try:
         if not supabase:
@@ -6183,10 +6208,10 @@ def api_executar_cambio():
                 'error': 'Supabase não conectado'
             })
         
-        # 🔥 1. BUSCAR CONTAS DO USUÁRIO
+        # 🔥 MIGRADO: buscar contas usando cliente_id
         response_contas = supabase.table('contas')\
             .select('id, moeda, saldo')\
-            .eq('cliente_username', usuario)\
+            .eq('cliente_id', user_id)\
             .eq('ativa', True)\
             .execute()
         
@@ -6214,7 +6239,7 @@ def api_executar_cambio():
                 'error': f'Conta não encontrada: {moeda_pagar} ou {moeda_receber}'
             })
         
-        # 🔥 NOVO: Verificar se a conta de pagamento está congelada
+        # Verificar se a conta de pagamento está congelada
         if is_conta_congelada(conta_pagar):
             print(f"❌ Conta {conta_pagar} está congelada! Câmbio bloqueado.")
             return jsonify({
@@ -6223,7 +6248,7 @@ def api_executar_cambio():
                 'codigo': 'CONTA_CONGELADA'
             }), 403
         
-        # 🔥 2. CALCULAR NOVOS SALDOS
+        # Calcular novos saldos
         saldo_pagar_depois = saldo_pagar_antes - float(valor_pagar)
         saldo_receber_depois = saldo_receber_antes + float(valor_receber)
         
@@ -6232,26 +6257,25 @@ def api_executar_cambio():
         print(f"   Conta receber: {conta_receber} ({moeda_receber})")
         print(f"   Saldo antes: {saldo_receber_antes:.2f} → depois: {saldo_receber_depois:.2f}")
         
-        # 🔥 3. ATUALIZAR SALDOS NO SUPABASE
-        # Conta que paga (diminui saldo)
+        # Atualizar saldos
         supabase.table('contas')\
             .update({'saldo': saldo_pagar_depois})\
             .eq('id', conta_pagar)\
             .execute()
         
-        # Conta que recebe (aumenta saldo)
         supabase.table('contas')\
             .update({'saldo': saldo_receber_depois})\
             .eq('id', conta_receber)\
             .execute()
         
-        # 🔥 4. REGISTRAR TRANSAÇÃO (igual ao Kivy com sufixo _nt)
+        # Registrar transação
         import random
         from datetime import datetime
         
         transacao_id = f"{random.randint(100000, 999999)}_nt"
         par_moedas = f"{moeda_pagar}_{moeda_receber}"
         
+        # 🔥 MIGRADO: adicionar cliente_id na transação
         dados_transacao = {
             'id': transacao_id,
             'tipo': 'cambio',
@@ -6264,6 +6288,7 @@ def api_executar_cambio():
             'descricao': f'CÂMBIO - {tipo_operacao.upper()} {par_moedas}',
             'usuario': usuario,
             'cliente': usuario,
+            'cliente_id': user_id,  # 🔥 NOVO: adicionar cliente_id
             'operacao': tipo_operacao,
             'par_moedas': par_moedas,
             'valor_origem': float(valor_pagar),
@@ -6274,7 +6299,6 @@ def api_executar_cambio():
             'created_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         
-        # Salvar no Supabase
         supabase.table('transferencias')\
             .insert(dados_transacao)\
             .execute()
@@ -6770,15 +6794,17 @@ def admin_clientes():
 def api_admin_clientes():
     """API para listar todos os clientes"""
     try:
-        usuario = session.get('username')
+        # 🔥 MIGRADO: usar user_id
+        user_id = session.get('user_id')
+        username = session.get('username')
         
-        if not usuario:
+        if not user_id or not username:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
-        # Verificar admin
+        # Verificar admin (buscar pelo username mesmo, pois é admin)
         user_check = supabase.table('usuarios')\
             .select('tipo')\
-            .eq('username', usuario)\
+            .eq('username', username)\
             .single()\
             .execute()
         
@@ -6787,25 +6813,37 @@ def api_admin_clientes():
         
         # Buscar todos os clientes
         clientes_response = supabase.table('usuarios')\
-            .select('username, nome, email, telefone, tipo, status, verificado, cambio_liberado, data_cadastro')\
+            .select('id, username, nome, email, telefone, tipo, status, verificado, cambio_liberado, data_cadastro')\
             .eq('tipo', 'cliente')\
             .order('data_cadastro', desc=True)\
             .execute()
         
         clientes = []
         for c in (clientes_response.data or []):
-            # Buscar contas do cliente
+            cliente_id = c.get('id')
+            cliente_username = c.get('username')
+            
+            # 🔥 MIGRADO: buscar contas usando cliente_id
             contas_response = supabase.table('contas')\
                 .select('id, moeda, saldo')\
-                .eq('cliente_username', c['username'])\
+                .eq('cliente_id', cliente_id)\
                 .eq('ativa', True)\
                 .execute()
+            
+            # Fallback para dados antigos (se não encontrar por cliente_id)
+            if not contas_response.data:
+                contas_response = supabase.table('contas')\
+                    .select('id, moeda, saldo')\
+                    .eq('cliente_username', cliente_username)\
+                    .eq('ativa', True)\
+                    .execute()
             
             saldo_total = sum(float(conta.get('saldo', 0)) for conta in (contas_response.data or []))
             
             clientes.append({
-                'username': c.get('username'),
-                'nome': c.get('nome', c.get('username')),
+                'id': cliente_id,
+                'username': cliente_username,
+                'nome': c.get('nome', cliente_username),
                 'email': c.get('email', ''),
                 'telefone': c.get('telefone', ''),
                 'status': c.get('status', 'ativo'),
@@ -6830,15 +6868,17 @@ def api_admin_clientes():
 def api_admin_toggle_cambio(username):
     """Ativa/desativa câmbio para um cliente"""
     try:
-        admin_user = session.get('username')
+        # 🔥 MIGRADO: usar user_id do admin
+        admin_user_id = session.get('user_id')
+        admin_username = session.get('username')
         
-        if not admin_user:
+        if not admin_user_id or not admin_username:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
         # Verificar admin
         user_check = supabase.table('usuarios')\
             .select('tipo')\
-            .eq('username', admin_user)\
+            .eq('username', admin_username)\
             .single()\
             .execute()
         
@@ -6848,26 +6888,47 @@ def api_admin_toggle_cambio(username):
         data = request.get_json()
         liberado = data.get('cambio_liberado', False)
         
-        # Atualizar usuário
+        # 🔥 Buscar o cliente pelo username para obter o ID
+        cliente_response = supabase.table('usuarios')\
+            .select('id')\
+            .eq('username', username)\
+            .single()\
+            .execute()
+        
+        if not cliente_response.data:
+            return jsonify({"success": False, "message": f"Cliente '{username}' não encontrado"}), 404
+        
+        cliente_id = cliente_response.data['id']
+        
+        # Atualizar usuário (mantém por username para compatibilidade)
         update_response = supabase.table('usuarios')\
             .update({'cambio_liberado': liberado})\
             .eq('username', username)\
             .execute()
         
-        # Também atualizar config_cotacoes
+        # 🔥 MIGRADO: usar cliente_id na config_cotacoes
         config_data = {
             'tipo_config': 'permissoes',
-            'cliente_username': username,
+            'cliente_id': cliente_id,
+            'cliente_username': username,  # manter para fallback
             'valor_config': liberado,
             'data_atualizacao': datetime.now().isoformat()
         }
         
-        # Verificar se já existe
+        # Verificar se já existe (primeiro por cliente_id, fallback por username)
         check = supabase.table('config_cotacoes')\
             .select('id')\
             .eq('tipo_config', 'permissoes')\
-            .eq('cliente_username', username)\
+            .eq('cliente_id', cliente_id)\
             .execute()
+        
+        if not check.data:
+            # Fallback: buscar por username (dados antigos)
+            check = supabase.table('config_cotacoes')\
+                .select('id')\
+                .eq('tipo_config', 'permissoes')\
+                .eq('cliente_username', username)\
+                .execute()
         
         if check.data:
             supabase.table('config_cotacoes')\
@@ -6892,15 +6953,17 @@ def api_admin_toggle_cambio(username):
 def api_admin_toggle_status():
     """Ativa ou bloqueia o acesso de um cliente ao sistema"""
     try:
-        admin_user = session.get('username')
+        # 🔥 MIGRADO: usar user_id do admin
+        admin_user_id = session.get('user_id')
+        admin_username = session.get('username')
         
-        if not admin_user:
+        if not admin_user_id or not admin_username:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
         # Verificar se é admin
         user_check = supabase.table('usuarios')\
             .select('tipo')\
-            .eq('username', admin_user)\
+            .eq('username', admin_username)\
             .single()\
             .execute()
         
@@ -6917,7 +6980,16 @@ def api_admin_toggle_status():
         if status not in ['ativo', 'bloqueado']:
             return jsonify({"success": False, "message": "Status inválido"}), 400
         
-        # 🔥 ATUALIZAR STATUS NO SUPABASE
+        # 🔥 Buscar o cliente_id para log (opcional, mas útil)
+        cliente_response = supabase.table('usuarios')\
+            .select('id')\
+            .eq('username', username)\
+            .single()\
+            .execute()
+        
+        cliente_id = cliente_response.data.get('id') if cliente_response.data else None
+        
+        # ATUALIZAR STATUS NO SUPABASE (mantém por username)
         update_response = supabase.table('usuarios')\
             .update({'status': status})\
             .eq('username', username)\
@@ -6926,7 +6998,7 @@ def api_admin_toggle_status():
         if not update_response.data:
             return jsonify({"success": False, "message": "Cliente não encontrado"}), 404
         
-        print(f"✅ Status do cliente {username} alterado para {status} por {admin_user}")
+        print(f"✅ Status do cliente {username} (ID: {cliente_id}) alterado para {status} por {admin_username}")
         
         if status == 'ativo':
             mensagem = f"Cliente {username} ativado com sucesso!"
