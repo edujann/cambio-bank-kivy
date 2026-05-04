@@ -20840,10 +20840,14 @@ def pagina_admin_chamados():
 def api_chamados_badges():
     if 'username' not in session:
         return jsonify({'success': False}), 401
+    
     username = session.get('username')
+    user_id = session.get('user_id')
+    
     try:
         user_info = supabase.table('usuarios').select('tipo').eq('username', username).single().execute()
         tipo = user_info.data.get('tipo', 'cliente') if user_info.data else 'cliente'
+        
         if tipo == 'admin':
             res = supabase.table('chamados').select('id', count='exact').in_('status', ['aberto', 'em_atendimento', 'aguardando_cliente']).execute()
             return jsonify({'success': True, 'abertos': res.count or 0})
@@ -20853,13 +20857,22 @@ def api_chamados_badges():
                 .eq('lida_cliente', False)\
                 .eq('autor_tipo', 'admin')\
                 .execute()
-            chamados_cliente = supabase.table('chamados').select('id').eq('cliente_username', username).execute()
+            
+            # 🔥 MIGRADO: buscar chamados do cliente por cliente_id
+            chamados_cliente = supabase.table('chamados').select('id').eq('cliente_id', user_id).execute()
+            
+            # Fallback para dados antigos
+            if not chamados_cliente.data and user_id:
+                chamados_cliente = supabase.table('chamados').select('id').eq('cliente_username', username).execute()
+            
             ids = [c['id'] for c in (chamados_cliente.data or [])]
             nao_lidos = 0
+            
             if ids:
                 r2 = supabase.table('chamados_mensagens').select('id', count='exact')\
                     .in_('chamado_id', ids).eq('lida_cliente', False).eq('autor_tipo', 'admin').execute()
                 nao_lidos = r2.count or 0
+            
             return jsonify({'success': True, 'nao_lidos': nao_lidos})
     except Exception as e:
         return jsonify({'success': False, 'error': _err(e)}), 500
@@ -20868,7 +20881,10 @@ def api_chamados_badges():
 def api_chamados_lista():
     if 'username' not in session:
         return jsonify({'success': False}), 401
+    
     username = session.get('username')
+    user_id = session.get('user_id')
+    
     try:
         user_info = supabase.table('usuarios').select('tipo').eq('username', username).single().execute()
         tipo = user_info.data.get('tipo', 'cliente') if user_info.data else 'cliente'
@@ -20877,15 +20893,30 @@ def api_chamados_lista():
         cliente_filter = request.args.get('cliente', '')
 
         q = supabase.table('chamados').select('*').order('updated_at', desc=True)
+        
         if tipo != 'admin':
-            q = q.eq('cliente_username', username)
+            # 🔥 MIGRADO: usar cliente_id (se disponível), fallback para cliente_username
+            if user_id:
+                q = q.eq('cliente_id', user_id)
+            else:
+                q = q.eq('cliente_username', username)
         else:
             if status_filter:
                 q = q.eq('status', status_filter)
             if prioridade_filter:
                 q = q.eq('prioridade', prioridade_filter)
             if cliente_filter:
-                q = q.ilike('cliente_username', f'%{cliente_filter}%')
+                # 🔥 Admin filtrando: tenta por cliente_id ou cliente_username
+                # Buscar o cliente_id pelo username
+                cliente_lookup = supabase.table('usuarios')\
+                    .select('id')\
+                    .eq('username', cliente_filter)\
+                    .execute()
+                if cliente_lookup.data:
+                    q = q.eq('cliente_id', cliente_lookup.data[0]['id'])
+                else:
+                    q = q.ilike('cliente_username', f'%{cliente_filter}%')
+        
         res = q.execute()
         return jsonify({'success': True, 'chamados': res.data or []})
     except Exception as e:
@@ -20941,17 +20972,37 @@ def api_chamados_novo():
 def api_chamados_detalhe(chamado_id):
     if 'username' not in session:
         return jsonify({'success': False}), 401
+    
     username = session.get('username')
+    user_id = session.get('user_id')
+    
     try:
         user_info = supabase.table('usuarios').select('tipo').eq('username', username).single().execute()
         tipo = user_info.data.get('tipo', 'cliente') if user_info.data else 'cliente'
         chamado = supabase.table('chamados').select('*').eq('id', chamado_id).single().execute()
+        
         if not chamado.data:
             return jsonify({'success': False, 'error': 'Chamado não encontrado'}), 404
-        if tipo != 'admin' and chamado.data['cliente_username'] != username:
+        
+        # 🔥 MIGRADO: verificar permissão usando cliente_id
+        tem_permissao = False
+        
+        if tipo == 'admin':
+            tem_permissao = True
+        else:
+            # Verifica por cliente_id primeiro
+            if user_id and chamado.data.get('cliente_id') == user_id:
+                tem_permissao = True
+            # Fallback: verifica por cliente_username
+            elif chamado.data.get('cliente_username') == username:
+                tem_permissao = True
+        
+        if not tem_permissao:
             return jsonify({'success': False, 'error': 'Acesso negado'}), 403
+        
         msgs_q = supabase.table('chamados_mensagens').select('*').eq('chamado_id', chamado_id).order('created_at').execute()
         mensagens = msgs_q.data or []
+        
         # Filtrar notas internas para clientes
         if tipo != 'admin':
             mensagens = [m for m in mensagens if not m.get('is_nota_interna')]
@@ -20962,6 +21013,7 @@ def api_chamados_detalhe(chamado_id):
             # Marcar como lidas pelo admin
             supabase.table('chamados_mensagens').update({'lida_admin': True})\
                 .eq('chamado_id', chamado_id).eq('autor_tipo', 'cliente').execute()
+        
         return jsonify({'success': True, 'chamado': chamado.data, 'mensagens': mensagens})
     except Exception as e:
         return jsonify({'success': False, 'error': _err(e)}), 500
@@ -20970,24 +21022,43 @@ def api_chamados_detalhe(chamado_id):
 def api_chamados_mensagem(chamado_id):
     if 'username' not in session:
         return jsonify({'success': False}), 401
+    
     username = session.get('username')
+    user_id = session.get('user_id')
     data = request.get_json()
     mensagem = data.get('mensagem', '').strip()
     is_nota = data.get('nota_interna', False)
+    
     if not mensagem:
         return jsonify({'success': False, 'error': 'Mensagem vazia'}), 400
+    
     try:
         from datetime import datetime
         user_info = supabase.table('usuarios').select('tipo,nome').eq('username', username).single().execute()
         tipo = user_info.data.get('tipo', 'cliente') if user_info.data else 'cliente'
         nome = user_info.data.get('nome', username) if user_info.data else username
         chamado = supabase.table('chamados').select('*').eq('id', chamado_id).single().execute()
+        
         if not chamado.data:
             return jsonify({'success': False, 'error': 'Chamado não encontrado'}), 404
-        if tipo != 'admin' and chamado.data['cliente_username'] != username:
+        
+        # 🔥 MIGRADO: verificar permissão usando cliente_id
+        tem_permissao = False
+        
+        if tipo == 'admin':
+            tem_permissao = True
+        else:
+            if user_id and chamado.data.get('cliente_id') == user_id:
+                tem_permissao = True
+            elif chamado.data.get('cliente_username') == username:
+                tem_permissao = True
+        
+        if not tem_permissao:
             return jsonify({'success': False, 'error': 'Acesso negado'}), 403
+        
         if chamado.data['status'] in ('resolvido', 'fechado'):
             return jsonify({'success': False, 'error': 'Chamado encerrado'}), 400
+        
         agora = datetime.utcnow().isoformat()
         supabase.table('chamados_mensagens').insert({
             'chamado_id': chamado_id,
@@ -20999,16 +21070,19 @@ def api_chamados_mensagem(chamado_id):
             'lida_cliente': tipo != 'admin',
             'created_at': agora
         }).execute()
+        
         novo_status = chamado.data['status']
         if tipo == 'admin' and chamado.data['status'] == 'aberto':
             novo_status = 'em_atendimento'
         elif tipo != 'admin' and chamado.data['status'] == 'aguardando_cliente':
             novo_status = 'em_atendimento'
+        
         supabase.table('chamados').update({
             'updated_at': agora,
             'status': novo_status,
             'total_mensagens': (chamado.data.get('total_mensagens') or 0) + 1
         }).eq('id', chamado_id).execute()
+        
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': _err(e)}), 500
