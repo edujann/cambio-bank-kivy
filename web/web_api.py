@@ -1110,7 +1110,7 @@ def add_header(response):
 
 @app.route('/api/transferencias/criar', methods=['POST'])
 def criar_transferencia_cliente():
-    """Cliente cria transferência internacional - SALVA NO SUPABASE REAL"""
+    """Cliente cria transferência internacional - COM MODELO GLOBAL DE BENEFICIÁRIOS"""
     try:
         print("\n" + "="*60)
         print("🔍 INICIANDO CRIAÇÃO DE TRANSFERÊNCIA")
@@ -1141,10 +1141,9 @@ def criar_transferencia_cliente():
         
         # ✅ MIGRADO: Usar user_id em vez de username
         user_id = session.get('user_id')
-        username = session.get('username')  # manter para compatibilidade com outras funções
+        username = session.get('username')
         
         if not user_id and username:
-            # Fallback: buscar user_id pelo username
             user_response = supabase.table('usuarios')\
                 .select('id')\
                 .eq('username', username)\
@@ -1154,10 +1153,10 @@ def criar_transferencia_cliente():
                 user_id = user_response.data['id']
                 session['user_id'] = user_id
 
-        usuario_logado = username  # manter variável para compatibilidade com código abaixo
+        usuario_logado = username
         usuario_logado_id = user_id
 
-        # ✅ Verificar se o cliente está congelado (esta função ainda usa username - manter)
+        # Verificar se o cliente está congelado
         if is_cliente_congelado(usuario_logado):
             print(f"❌ Cliente {usuario_logado} está congelado! Transferência bloqueada.")
             return jsonify({
@@ -1172,7 +1171,7 @@ def criar_transferencia_cliente():
                 "message": "Usuário não autenticado"
             }), 401
         
-        # ✅ Validar campos obrigatórios
+        # Validar campos obrigatórios
         campos_obrigatorios = ['conta_origem', 'valor', 'moeda', 'beneficiario']
         for campo in campos_obrigatorios:
             if campo not in dados:
@@ -1182,7 +1181,7 @@ def criar_transferencia_cliente():
                     "message": f"Campo '{campo}' é obrigatório"
                 }), 400
         
-        # 🔥 NOVO: Verificar se a conta está congelada
+        # Verificar se a conta está congelada
         if is_conta_congelada(dados['conta_origem']):
             print(f"❌ Conta {dados['conta_origem']} está congelada! Transferência bloqueada.")
             return jsonify({
@@ -1190,17 +1189,15 @@ def criar_transferencia_cliente():
                 "message": "Operação não disponível no momento. Entre em contato com o suporte."
             }), 403
         
-        # ✅ Usar usuário da sessão
         dados['usuario'] = usuario_logado
         print(f"✅ Usuário da transferência: {usuario_logado}")
         
-        # ✅ DEBUG: Mostrar dados importantes
         print(f"\n📋 DADOS PARA VALIDAÇÃO:")
         print(f"   conta_origem: '{dados['conta_origem']}'")
         print(f"   valor: '{dados['valor']}'")
         print(f"   moeda: '{dados['moeda']}'")
         
-        # ✅ MIGRADO: Buscar conta usando cliente_id
+        # Buscar conta
         print(f"\n🔍 Buscando conta: '{dados['conta_origem']}' para user_id: '{usuario_logado_id}'")
 
         response_conta = supabase.table('contas')\
@@ -1213,7 +1210,6 @@ def criar_transferencia_cliente():
         if not response_conta.data:
             print(f"❌ Conta não encontrada ou não pertence ao usuário")
             
-            # Listar contas disponíveis para debug (MIGRADO)
             contas_disponiveis = supabase.table('contas')\
                 .select('id, saldo, moeda')\
                 .eq('cliente_id', usuario_logado_id)\
@@ -1234,7 +1230,6 @@ def criar_transferencia_cliente():
         
         print(f"✅ Conta encontrada: ID '{conta['id']}', Saldo: {saldo_atual}, Moeda: {conta.get('moeda', 'N/A')}")
         
-        # ✅ Converter valor CORRETAMENTE
         try:
             valor_transferencia = float(dados['valor'])
             print(f"💰 Valor da transferência: {valor_transferencia}")
@@ -1245,7 +1240,6 @@ def criar_transferencia_cliente():
                 "message": f"Valor inválido: '{dados['valor']}'"
             }), 400
 
-        # ✅ Verificar saldo suficiente
         print(f"💰 Comparação: Saldo ({saldo_atual}) >= Valor ({valor_transferencia})? {saldo_atual >= valor_transferencia}")
         
         if valor_transferencia > saldo_atual:
@@ -1256,15 +1250,120 @@ def criar_transferencia_cliente():
             }), 400
         
         print(f"✅ Saldo suficiente! Continuando...")
+
+        # ============================================
+        # 🔥 NOVO: BUSCAR OU CRIAR BENEFICIÁRIO GLOBAL
+        # ============================================
+        beneficiario_id = None
+        beneficiario_status = None
+        nome_beneficiario = None
         
-        # ✅ Criar transferência
+        try:
+            # Extrair dados do beneficiário dos campos da requisição
+            nome_beneficiario = dados.get('beneficiario', '').strip()
+            swift = dados.get('codigo_swift', '').strip().upper().replace(' ', '')
+            iban = dados.get('iban_account', '').strip().upper().replace(' ', '')
+            banco = dados.get('nome_banco', '').strip()
+            pais = dados.get('pais', 'HK').strip().upper()
+            endereco = dados.get('endereco_beneficiario', '').strip()
+            cidade = dados.get('cidade', '').strip()
+            endereco_banco = dados.get('endereco_banco', '').strip()
+            cidade_banco = dados.get('cidade_banco', '').strip()
+            pais_banco = dados.get('pais_banco', pais).strip().upper()
+            
+            print(f"\n🔍 [GLOBAL] Buscando/criando beneficiário:")
+            print(f"   Nome: {nome_beneficiario}")
+            print(f"   SWIFT: {swift}")
+            print(f"   IBAN: {iban}")
+            print(f"   País: {pais}")
+            
+            # Chamar a função SQL global
+            if swift and iban:
+                result = supabase.rpc(
+                    'buscar_ou_criar_beneficiario',
+                    {
+                        'p_cliente_id': usuario_logado_id,
+                        'p_cliente_username': usuario_logado,
+                        'p_nome': nome_beneficiario,
+                        'p_swift': swift,
+                        'p_iban': iban,
+                        'p_banco': banco,
+                        'p_pais': pais,
+                        'p_endereco': endereco,
+                        'p_cidade': cidade,
+                        'p_endereco_banco': endereco_banco,
+                        'p_cidade_banco': cidade_banco,
+                        'p_pais_banco': pais_banco
+                    }
+                ).execute()
+                
+                beneficiario_id = result.data
+                print(f"✅ [GLOBAL] Beneficiário ID: {beneficiario_id}")
+                
+                # 🔥 Buscar o status do beneficiário (o VÍNCULO, não o template)
+                check_benef = supabase.table('beneficiarios')\
+                    .select('status, risco_pais, is_template')\
+                    .eq('id', beneficiario_id)\
+                    .single()\
+                    .execute()
+                
+                if check_benef.data:
+                    beneficiario_status = check_benef.data.get('status')
+                    risco_pais = check_benef.data.get('risco_pais')
+                    is_template = check_benef.data.get('is_template')
+                    tem_beneficiario_pendente = False
+                    print(f"   Status: {beneficiario_status}, Risco: {risco_pais}, is_template: {is_template}")
+                    
+                    # 🔥 CRÍTICO: Se o beneficiário é um TEMPLATE (sem cliente), NÃO permitir
+                    if is_template:
+                        print(f"❌ Beneficiário é um TEMPLATE (sem vínculo com cliente)!")
+                        return jsonify({
+                            "success": False,
+                            "message": "Erro interno: Beneficiário não vinculado ao cliente. Entre em contato com o suporte."
+                        }), 500
+                    
+                    # 🔥 Se o beneficiário está REJEITADO ou BLOQUEADO, NÃO PERMITIR
+                    if beneficiario_status in ('rejected', 'blocked'):
+                        print(f"❌ Beneficiário rejeitado/bloqueado! Status: {beneficiario_status}")
+                        return jsonify({
+                            "success": False,
+                            "message": f"Beneficiário não está autorizado para transferências. Status: {beneficiario_status}. Entre em contato com o suporte."
+                        }), 403
+                    
+                    # 🔥 Se está PENDING, permitir (não bloqueia) - apenas registra para aviso
+                    tem_beneficiario_pendente = (beneficiario_status == 'pending')
+                    if tem_beneficiario_pendente:
+                        print(f"⚠️ Beneficiário PENDENTE - transferência será criada, aguardando aprovação")
+            else:
+                print(f"⚠️ [GLOBAL] SWIFT ou IBAN não fornecidos")
+                return jsonify({
+                    "success": False,
+                    "message": "SWIFT e IBAN são obrigatórios para criar um beneficiário"
+                }), 400
+                
+        except Exception as global_error:
+            error_msg = str(global_error)
+            if 'país é bloqueado' in error_msg:
+                return jsonify({
+                    "success": False, 
+                    "message": error_msg
+                }), 403
+            print(f"⚠️ [GLOBAL] Erro na função global: {global_error}")
+            return jsonify({
+                "success": False,
+                "message": f"Erro ao processar beneficiário: {error_msg}"
+            }), 500
+        
+        # ============================================
+        
+        # Criar transferência
         import random
         from datetime import datetime
         
         transferencia_id = f"{random.randint(100000, 999999)}"
         agora = datetime.now()
         
-        # Preparar dados para Supabase (mantém campos existentes por compatibilidade)
+        # Preparar dados para Supabase (mantém campos existentes + novo beneficiario_id)
         dados_supabase = {
             'id': transferencia_id,
             'tipo': 'transferencia_internacional',
@@ -1276,8 +1375,9 @@ def criar_transferencia_cliente():
             'descricao': dados.get('descricao', ''),
             'usuario': usuario_logado,
             'cliente': usuario_logado,
-            'cliente_id': usuario_logado_id,  # NOVO: adicionar cliente_id
+            'cliente_id': usuario_logado_id,
             'beneficiario': dados['beneficiario'],
+            'beneficiario_id': beneficiario_id,  # 🔥 NOVO: link para beneficiário global
             'endereco_beneficiario': dados.get('endereco_beneficiario', ''),
             'cidade': dados.get('cidade', ''),
             'pais': dados.get('pais', ''),
@@ -1294,12 +1394,12 @@ def criar_transferencia_cliente():
             'solicitado_por': usuario_logado
         }
 
-        # DEBUG: Verificar dados
         print(f"\n📊 DADOS PARA SALVAR:")
         print(f"   ID: {transferencia_id}")
         print(f"   Conta: {dados['conta_origem']}")
         print(f"   Valor: {valor_transferencia}")
         print(f"   Moeda: {dados['moeda']}")
+        print(f"   Beneficiário ID: {beneficiario_id}")
 
         # Salvar no Supabase
         print(f"💾 Salvando transferência {transferencia_id}...")
@@ -1308,7 +1408,6 @@ def criar_transferencia_cliente():
         if response.data:
             print(f"✅✅✅ TRANSFERÊNCIA SALVA COM SUCESSO!")
             print(f"✅ ID: {transferencia_id}")
-            print(f"✅ Registros inseridos: {len(response.data)}")
             
             # ATUALIZAR SALDO DA CONTA (DÉBITO)
             novo_saldo = saldo_atual - valor_transferencia
@@ -1324,49 +1423,8 @@ def criar_transferencia_cliente():
             else:
                 print(f"⚠️ Transferência salva mas erro ao atualizar saldo")
             
-            # 🔥 SALVAR BENEFICIÁRIO SE CHECKBOX MARCADO (MIGRADO)
-            try:
-                salvar_beneficiario = dados.get('salvar_beneficiario', False)
-                
-                if isinstance(salvar_beneficiario, str):
-                    salvar_beneficiario = salvar_beneficiario.lower() in ['true', '1', 'yes', 'on']
-                
-                print(f"📝 Checkbox 'salvar beneficiário': {salvar_beneficiario}")
-                
-                if salvar_beneficiario:
-                    print(f"💾 Salvando beneficiário para {usuario_logado}...")
-                    
-                    dados_beneficiario = {
-                        'nome': dados.get('beneficiario', '').strip(),
-                        'endereco': dados.get('endereco_beneficiario', '').strip(),
-                        'cidade': dados.get('cidade', '').strip(),
-                        'pais': dados.get('pais', '').strip(),
-                        'banco': dados.get('nome_banco', '').strip(),
-                        'endereco_banco': dados.get('endereco_banco', '').strip(),
-                        'cidade_banco': dados.get('cidade_banco', '').strip(),
-                        'pais_banco': dados.get('pais_banco', '').strip(),
-                        'swift': dados.get('codigo_swift', '').strip(),
-                        'iban': dados.get('iban_account', '').strip(),
-                        'aba': dados.get('aba_routing', '').strip(),
-                        'cliente_id': usuario_logado_id,  # MIGRADO: usar cliente_id
-                        'ativo': True
-                    }
-                    
-                    if dados_beneficiario['nome'] and dados_beneficiario['banco'] and dados_beneficiario['swift']:
-                        response_benef = supabase.table('beneficiarios').insert(dados_beneficiario).execute()
-                        
-                        if response_benef.data:
-                            print(f"✅✅✅ BENEFICIÁRIO SALVO COM SUCESSO!")
-                            print(f"✅ ID: {response_benef.data[0]['id']}")
-                            print(f"✅ Nome: {dados_beneficiario['nome']}")
-                        else:
-                            print(f"⚠️ Erro ao salvar beneficiário")
-                    else:
-                        print(f"⚠️ Campos insuficientes para salvar beneficiário")
-                        
-            except Exception as benef_error:
-                print(f"⚠️ Erro ao salvar beneficiário: {benef_error}")
-                print(f"⚠️ Continuando sem salvar beneficiário...")
+            # 🔥 NOTA: NÃO salvamos beneficiário separadamente aqui porque a função global já cuida disso
+            # O código antigo de salvar beneficiário foi REMOVIDO para evitar duplicação
             
             # PROCESSAR UPLOAD DA INVOICE (mantido igual)
             try:
@@ -1427,11 +1485,24 @@ def criar_transferencia_cliente():
             print(f"💰 Valor: {valor_transferencia} {dados['moeda']}")
             print(f"👤 Usuário: {usuario_logado}")
             
-            return jsonify({
-                "success": True,
-                "message": "Transferência criada com sucesso!",
-                "transferencia_id": transferencia_id
-            })
+            
+            # Mensagem personalizada baseada no status do beneficiário
+            if tem_beneficiario_pendente:
+                return jsonify({
+                    "success": True,
+                    "message": "✅ Transferência solicitada com sucesso! ⚠️ Este beneficiário é novo e passará por análise do compliance. A transferência será processada após aprovação.",
+                    "transferencia_id": transferencia_id,
+                    "beneficiario_id": beneficiario_id,
+                    "aguardando_aprovacao": True,
+                    "status_beneficiario": "pending"
+                })
+            else:
+                return jsonify({
+                    "success": True,
+                    "message": "Transferência criada com sucesso!",
+                    "transferencia_id": transferencia_id,
+                    "beneficiario_id": beneficiario_id
+                })
         else:
             print(f"❌ ERRO: Nenhum dado retornado do Supabase")
             return jsonify({
@@ -22227,20 +22298,75 @@ def api_b2b_documento_download(doc_id):
 
 # ── BENEFICIARIES (linked to B2B client) ──
 
-@app.route('/api/compliance/b2b/clientes/<client_id>/beneficiarios', methods=['GET'])
-def api_b2b_beneficiarios_list(client_id):
-    usuario, tipo, redir = _b2b_acesso()
-    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+@app.route('/api/compliance/b2b/clientes/<cliente_id>/beneficiarios', methods=['GET'])
+def api_b2b_beneficiarios_list(cliente_id):
+    """Retorna os beneficiários de um cliente específico B2B"""
     try:
-        # Look up the linked user account for this B2B client
-        cli = supabase.table('clientes_b2b').select('usuario_username').eq('id', client_id).single().execute()
-        username = (cli.data or {}).get('usuario_username')
-        if not username:
-            return jsonify({'success': True, 'beneficiarios': []})
-        result = supabase.table('beneficiarios').select('*').eq('usuario_id', username).execute()
-        return jsonify({'success': True, 'beneficiarios': result.data or []})
+        if 'username' not in session:
+            return jsonify({'error': 'Não autenticado'}), 401
+        
+        tipo = session.get('tipo', '')
+        if tipo not in ('admin', 'compliance'):
+            return jsonify({'error': 'Acesso negado'}), 403
+        
+        print(f"🔍 Buscando beneficiários para cliente_id: {cliente_id}")
+        
+        # Buscar beneficiários onde cliente_id = cliente_id
+        result = supabase.table('beneficiarios')\
+            .select('*')\
+            .eq('cliente_id', cliente_id)\
+            .order('created_at', desc=True)\
+            .execute()
+        
+        # Se não encontrou, tentar buscar pelo cliente_username
+        if not result.data:
+            cliente = supabase.table('clientes_b2b')\
+                .select('usuario_username')\
+                .eq('id', cliente_id)\
+                .execute()
+            if cliente.data and cliente.data[0].get('usuario_username'):
+                username = cliente.data[0]['usuario_username']
+                print(f"🔍 Buscando por cliente_username: {username}")
+                result = supabase.table('beneficiarios')\
+                    .select('*')\
+                    .eq('cliente_username', username)\
+                    .execute()
+        
+        beneficiarios = []
+        for b in (result.data or []):
+            # Buscar informações do template beneficiário
+            template_id = b.get('master_beneficiario_id') or b.get('id')
+            
+            beneficiarios.append({
+                'id': b.get('id'),
+                'nome_beneficiario': b.get('nome'),
+                'nome': b.get('nome'),
+                'swift': b.get('swift'),
+                'iban': b.get('iban'),
+                'banco': b.get('banco'),
+                'pais': b.get('pais'),
+                'pais_destino': b.get('pais'),
+                'moeda': b.get('moeda', 'USD'),
+                'risco_pais': b.get('risco_pais'),
+                'status': b.get('status', 'pending'),
+                'sanctions_flag': b.get('sanctions_flag', False),
+                'limite_por_transacao': b.get('limite_por_transacao'),
+                'notas_compliance': b.get('notas_compliance'),
+                'created_at': b.get('created_at')
+            })
+        
+        print(f"✅ Encontrados {len(beneficiarios)} beneficiários")
+        
+        return jsonify({
+            'success': True,
+            'beneficiarios': beneficiarios
+        })
+        
     except Exception as e:
-        return jsonify({'success': False, 'message': _err(e)}), 500
+        print(f"❌ Erro: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/compliance/b2b/beneficiarios/<benef_id>', methods=['PATCH'])
@@ -22567,6 +22693,821 @@ def api_b2b_riskconfig_thresholds_save():
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
+
+# =========================================
+# FUNÇÕES BENEFICIÁRIOS COMPLIANCE B2B
+# ============================================
+
+@app.route('/api/b2b/beneficiarios/solicitar', methods=['POST'])
+def solicitar_beneficiario_v2():
+    """Cliente solicita novo beneficiário"""
+    usuario = session.get('username')
+    
+    # Buscar cliente B2B
+    cliente = supabase.table('clientes_b2b')\
+        .select('id, usuario_username, nivel_risco')\
+        .eq('usuario_username', usuario)\
+        .single()\
+        .execute()
+    
+    if not cliente.data:
+        return jsonify({'error': 'Cliente B2B não encontrado'}), 404
+    
+    data = request.json
+    
+    # Validar campos obrigatórios
+    required = ['nome', 'swift', 'iban', 'banco', 'pais']
+    for field in required:
+        if not data.get(field):
+            return jsonify({'error': f'Campo {field} é obrigatório'}), 400
+    
+    try:
+        # 🔥 Chamar a função SQL
+        result = supabase.rpc(
+            'buscar_ou_criar_beneficiario',
+            {
+                'p_cliente_id': cliente.data['id'],
+                'p_cliente_username': cliente.data['usuario_username'],
+                'p_nome': data['nome'],
+                'p_swift': data['swift'].upper().replace(' ', ''),
+                'p_iban': data['iban'].upper().replace(' ', ''),
+                'p_banco': data['banco'],
+                'p_pais': data['pais'].upper(),
+                'p_endereco': data.get('endereco'),
+                'p_cidade': data.get('cidade'),
+                'p_endereco_banco': data.get('endereco_banco'),
+                'p_cidade_banco': data.get('cidade_banco'),
+                'p_pais_banco': data.get('pais_banco', data['pais']).upper()
+            }
+        ).execute()
+        
+        beneficiario_id = result.data
+        
+        # 🔥 Buscar o beneficiário criado para saber o status
+        beneficiario = supabase.table('beneficiarios')\
+            .select('status, risco_pais, pais')\
+            .eq('id', beneficiario_id)\
+            .single()\
+            .execute()
+        
+        if not beneficiario.data:
+            return jsonify({'error': 'Erro ao recuperar beneficiário'}), 500
+        
+        status = beneficiario.data.get('status')
+        risco_pais = beneficiario.data.get('risco_pais')
+        pais = beneficiario.data.get('pais')
+        
+        # 🔥 Tratar diferentes cenários
+        if risco_pais == 'blocked':
+            return jsonify({
+                'success': False,
+                'error': f'País {pais} está bloqueado devido a sanções internacionais. Não é possível cadastrar este beneficiário.',
+                'codigo': 'PAIS_BLOQUEADO'
+            }), 403
+        
+        # 🔥 Criar alerta para compliance se for país sancionado
+        if risco_pais == 'sanctioned':
+            criar_alerta_sancionado(beneficiario_id, cliente.data['id'], pais)
+            return jsonify({
+                'success': True,
+                'beneficiario_id': beneficiario_id,
+                'status': status,
+                'risco': 'sanctioned',
+                'message': f'Beneficiário em país com sanções ({pais}) solicitado. Aguardando análise especial do compliance.',
+                'alerta_criado': True
+            }), 202
+        
+        # 🔥 Se for China/HK (standard) - fluxo normal
+        if risco_pais == 'standard':
+            return jsonify({
+                'success': True,
+                'beneficiario_id': beneficiario_id,
+                'status': status,
+                'risco': 'standard',
+                'message': 'Beneficiário solicitado. Aguardando análise do compliance.'
+            }), 202
+        
+        # 🔥 Outros casos (low, medium)
+        return jsonify({
+            'success': True,
+            'beneficiario_id': beneficiario_id,
+            'status': status,
+            'risco': risco_pais,
+            'message': 'Beneficiário solicitado com sucesso.'
+        }), 202
+        
+    except Exception as e:
+        error_msg = str(e)
+        if 'país é bloqueado' in error_msg:
+            return jsonify({'error': error_msg, 'codigo': 'PAIS_BLOQUEADO'}), 403
+        return jsonify({'error': error_msg}), 500
+    
+@app.route('/api/compliance/b2b/beneficiarios/pendentes', methods=['GET'])
+def compliance_beneficiarios_pendentes():
+    """Lista beneficiários aguardando aprovação (com priorização)"""
+    usuario = session.get('username')
+    
+    # Verificar permissão
+    if not usuario or session.get('tipo') not in ('admin', 'compliance'):
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    # 🔥 Buscar pendentes (CORRIGIDO - sem encadeamento no select)
+    query = supabase.table('beneficiarios')\
+        .select('*, clientes_b2b!beneficiarios_cliente_id_fkey(id, razao_social, nivel_risco, usuario_username)')
+    
+    query = query.eq('status', 'pending')
+    query = query.eq('is_template', False)
+    query = query.order('created_at', desc=False)  # asc=True
+    
+    result = query.execute()
+    
+    # 🔥 Enriquecer com prioridade
+    pendentes = []
+    for b in (result.data or []):
+        # Definir prioridade baseada no risco
+        risco = b.get('risco_pais', 'medium')
+        prioridade = {
+            'sanctioned': 1,  # Mais alta
+            'high': 2,
+            'medium': 3,
+            'standard': 4,
+            'low': 5
+        }.get(risco, 3)
+        
+        prioridade_label = {
+            1: '⚠️ URGENTE - País com Sanções',
+            2: '🔴 Alto Risco',
+            3: '🟡 Médio Risco',
+            4: '🟢 Risco Padrão (China/HK)',
+            5: '✅ Baixo Risco'
+        }.get(prioridade, '🟡 Médio Risco')
+        
+        # Buscar template info (se houver)
+        template_info = None
+        if b.get('master_beneficiario_id'):
+            template = supabase.table('beneficiarios')\
+                .select('shared_count, created_at')\
+                .eq('id', b['master_beneficiario_id'])\
+                .execute()
+            if template.data:
+                template_info = template.data[0]
+        
+        pendentes.append({
+            'id': b.get('id'),
+            'nome': b.get('nome'),
+            'pais': b.get('pais'),
+            'risco_pais': risco,
+            'swift': b.get('swift'),
+            'iban': b.get('iban'),
+            'banco': b.get('banco'),
+            'status': b.get('status'),
+            'created_at': b.get('created_at'),
+            'cliente_id': b.get('cliente_id'),
+            'cliente_username': b.get('cliente_username'),
+            'master_beneficiario_id': b.get('master_beneficiario_id'),
+            'prioridade': prioridade,
+            'prioridade_label': prioridade_label,
+            'template_info': template_info,
+            'cliente': {
+                'id': b.get('clientes_b2b', {}).get('id'),
+                'razao_social': b.get('clientes_b2b', {}).get('razao_social'),
+                'nivel_risco': b.get('clientes_b2b', {}).get('nivel_risco'),
+                'usuario_username': b.get('clientes_b2b', {}).get('usuario_username')
+            } if b.get('clientes_b2b') else None
+        })
+    
+    # Ordenar por prioridade (em Python, já que o Supabase não suporta ordenação customizada)
+    pendentes.sort(key=lambda x: x.get('prioridade', 99))
+    
+    # Calcular resumo
+    resumo = {
+        'urgentes': sum(1 for b in pendentes if b.get('risco_pais') == 'sanctioned'),
+        'alto_risco': sum(1 for b in pendentes if b.get('risco_pais') == 'high'),
+        'padrao': sum(1 for b in pendentes if b.get('risco_pais') == 'standard'),
+        'total': len(pendentes)
+    }
+    
+    return jsonify({
+        'success': True,
+        'pendentes': pendentes,
+        'total': len(pendentes),
+        'resumo': resumo
+    })
+
+
+@app.route('/api/compliance/b2b/beneficiarios/<int:beneficiario_id>/aprovar', methods=['POST'])
+def compliance_aprovar_beneficiario(beneficiario_id):
+    """Aprova um beneficiário (com validações especiais)"""
+    usuario = session.get('username')
+    data = request.json
+    
+    # Verificar permissão
+    if not usuario or session.get('tipo') not in ('admin', 'compliance'):
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    # Buscar o beneficiário
+    beneficiario = supabase.table('beneficiarios')\
+        .select('*, master_beneficiario_id, risco_pais')\
+        .eq('id', beneficiario_id)\
+        .single()\
+        .execute()
+    
+    if not beneficiario.data:
+        return jsonify({'error': 'Beneficiário não encontrado'}), 404
+    
+    risco_pais = beneficiario.data.get('risco_pais')
+    
+    # 🔥 Validações especiais por tipo de risco
+    if risco_pais == 'sanctioned':
+        # Para países sancionados, exigir justificativa e EDD
+        if not data.get('justificativa_edd'):
+            return jsonify({
+                'error': 'Para países com sanções, é obrigatório fornecer justificativa de EDD (Enhanced Due Diligence)',
+                'campo_obrigatorio': 'justificativa_edd'
+            }), 400
+        
+        if not data.get('documentos_edd'):
+            return jsonify({
+                'error': 'Para países com sanções, é obrigatório anexar documentos de EDD',
+                'campo_obrigatorio': 'documentos_edd'
+            }), 400
+    
+    # Atualizar beneficiário
+    update_data = {
+        'status': 'approved',
+        'aprovado_por': usuario,
+        'aprovado_em': datetime.now().isoformat(),
+        'notas_compliance': data.get('notas', ''),
+        'limite_por_transacao': data.get('limite_por_transacao'),
+        'screening_updated_at': datetime.now().isoformat()
+    }
+    
+    # 🔥 Se for sancionado, adicionar campos extras
+    if risco_pais == 'sanctioned':
+        update_data['edd_aprovado_em'] = datetime.now().isoformat()
+        update_data['edd_aprovado_por'] = usuario
+        update_data['edd_justificativa'] = data.get('justificativa_edd')
+    
+    supabase.table('beneficiarios')\
+        .update(update_data)\
+        .eq('id', beneficiario_id)\
+        .execute()
+    
+    # 🔥 Se for um vínculo, verificar se todos os vínculos estão aprovados
+    if beneficiario.data.get('master_beneficiario_id'):
+        template_id = beneficiario.data['master_beneficiario_id']
+        
+        # Contar quantos vínculos pendentes ainda existem
+        vinculos_pendentes = supabase.table('beneficiarios')\
+            .select('id', count='exact')\
+            .eq('master_beneficiario_id', template_id)\
+            .eq('status', 'pending')\
+            .execute()
+        
+        # Se não há mais pendentes, template também pode ser aprovado
+        if vinculos_pendentes.count == 0:
+            supabase.table('beneficiarios')\
+                .update({'status': 'approved', 'aprovado_em': datetime.now().isoformat()})\
+                .eq('id', template_id)\
+                .execute()
+    
+    # Registrar auditoria
+    registrar_auditoria(
+        usuario=usuario,
+        acao='APROVAR_BENEFICIARIO',
+        beneficiario_id=beneficiario_id,
+        cliente_id=beneficiario.data.get('cliente_id'),
+        risco=risco_pais
+    )
+    
+    return jsonify({
+        'success': True,
+        'message': 'Beneficiário aprovado' + (' com EDD especial' if risco_pais == 'sanctioned' else '')
+    })
+
+
+@app.route('/api/compliance/b2b/beneficiarios/compartilhados', methods=['GET'])
+def compliance_beneficiarios_compartilhados():
+    """Beneficiários usados por múltiplos clientes"""
+    result = supabase.table('vw_beneficiarios_compartilhados')\
+        .select('*')\
+        .execute()
+    
+    return jsonify({
+        'success': True,
+        'beneficiarios': result.data
+    })
+
+
+@app.route('/api/compliance/b2b/beneficiarios/<int:beneficiario_id>/historico', methods=['GET'])
+def compliance_historico_beneficiario(beneficiario_id):
+    """Histórico completo de um beneficiário (todos os clientes)"""
+    
+    # Buscar o template ou o próprio beneficiário
+    beneficiario = supabase.table('beneficiarios')\
+        .select('*')\
+        .eq('id', beneficiario_id)\
+        .single()\
+        .execute()
+    
+    if not beneficiario.data:
+        return jsonify({'error': 'Beneficiário não encontrado'}), 404
+    
+    template_id = beneficiario.data.get('master_beneficiario_id') or beneficiario_id
+    
+    # Buscar todos os vínculos
+    vinculos = supabase.table('beneficiarios')\
+        .select('''
+            *,
+            clientes_b2b!beneficiarios_cliente_id_fkey(
+                id, razao_social, usuario_username, nivel_risco
+            )
+        ''')\
+        .eq('master_beneficiario_id', template_id)\
+        .execute()
+    
+    # Buscar todas as transferências
+    transferencias = []
+    for v in vinculos.data:
+        if v.get('cliente_id'):
+            transf = supabase.table('transferencias')\
+                .select('*, clientes_b2b!inner(razao_social)')\
+                .eq('beneficiario', v['nome'])\
+                .eq('cliente_id', v['cliente_id'])\
+                .order('created_at', desc=True)\
+                .limit(50)\
+                .execute()
+            transferencias.extend(transf.data)
+    
+    return jsonify({
+        'success': True,
+        'beneficiario': beneficiario.data,
+        'vinculos': vinculos.data,
+        'transferencias': transferencias,
+        'total_movimentado': sum(float(t.get('valor', 0)) for t in transferencias),
+        'total_clientes': len(vinculos.data)
+    })
+
+
+@app.route('/api/compliance/b2b/beneficiarios/dashboard', methods=['GET'])
+def compliance_beneficiarios_dashboard():
+    """Dashboard com estatísticas por tipo de risco"""
+    
+    # 🔥 Estatísticas por risco
+    stats = supabase.table('beneficiarios')\
+        .select('risco_pais, status, count')\
+        .eq('is_template', False)\
+        .group_by('risco_pais, status')\
+        .execute()
+    
+    # Organizar por prioridade
+    resumo = {
+        'urgentes': 0,      # sanctioned pendentes
+        'alto_risco': 0,    # high pendentes
+        'padrao': 0,        # standard pendentes  
+        'baixo_risco': 0,   # low/medium pendentes
+        'total_pendentes': 0,
+        'total_aprovados': 0,
+        'total_bloqueados': 0
+    }
+    
+    for s in stats.data:
+        if s['status'] == 'pending':
+            resumo['total_pendentes'] += s['count']
+            if s['risco_pais'] == 'sanctioned':
+                resumo['urgentes'] += s['count']
+            elif s['risco_pais'] == 'high':
+                resumo['alto_risco'] += s['count']
+            elif s['risco_pais'] == 'standard':
+                resumo['padrao'] += s['count']
+            else:
+                resumo['baixo_risco'] += s['count']
+        elif s['status'] == 'approved':
+            resumo['total_aprovados'] += s['count']
+        elif s['risco_pais'] == 'blocked':
+            resumo['total_bloqueados'] += s['count']
+    
+    return jsonify({
+        'success': True,
+        'dashboard': resumo,
+        'classificacao': {
+            'urgente': 'Países com sanções (Rússia, Venezuela, etc.) - requer EDD',
+            'alto_risco': 'Países de alto risco tradicional',
+            'padrao': 'China e Hong Kong - fluxo normal',
+            'baixo_risco': 'Países desenvolvidos'
+        }
+    })
+
+@app.route('/api/compliance/b2b/clientes/<cliente_id>/beneficiarios', methods=['GET'])
+def api_cliente_beneficiarios(cliente_id):
+    """Retorna os beneficiários de um cliente específico"""
+    try:
+        if 'username' not in session:
+            return jsonify({'error': 'Não autenticado'}), 401
+        
+        tipo = session.get('tipo', '')
+        if tipo not in ('admin', 'compliance'):
+            return jsonify({'error': 'Acesso negado'}), 403
+        
+        # Buscar beneficiários onde cliente_id = cliente_id (B2B)
+        result = supabase.table('beneficiarios')\
+            .select('*')\
+            .eq('cliente_id', cliente_id)\
+            .order('created_at', desc=True)\
+            .execute()
+        
+        beneficiarios = []
+        for b in (result.data or []):
+            # Buscar informações do template beneficiário
+            template_id = b.get('master_beneficiario_id') or b.get('id')
+            
+            beneficiarios.append({
+                'id': b.get('id'),
+                'nome': b.get('nome'),
+                'nome_beneficiario': b.get('nome'),
+                'swift': b.get('swift'),
+                'iban': b.get('iban'),
+                'banco': b.get('banco'),
+                'pais': b.get('pais'),
+                'moeda': b.get('moeda', 'USD'),
+                'pais_destino': b.get('pais'),
+                'risco_pais': b.get('risco_pais'),
+                'status': b.get('status', 'pending'),
+                'sanctions_flag': b.get('sanctions_flag', False),
+                'limite_por_transacao': b.get('limite_por_transacao'),
+                'notas_compliance': b.get('notas_compliance'),
+                'created_at': b.get('created_at')
+            })
+        
+        return jsonify({
+            'success': True,
+            'beneficiarios': beneficiarios
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# ============================================
+# ENDPOINT NOVO PARA COMPLIANCE - BENEFICIÁRIOS
+# ============================================
+
+@app.route('/api/compliance/beneficiarios/all', methods=['GET'])
+def compliance_beneficiarios_all():
+    """Lista todos os beneficiários agrupados por template"""
+    try:
+        if 'username' not in session:
+            return jsonify({'error': 'Não autenticado'}), 401
+        
+        tipo = session.get('tipo', '')
+        if tipo not in ('admin', 'compliance'):
+            return jsonify({'error': 'Acesso negado'}), 403
+        
+        # Buscar TODOS os beneficiários
+        result = supabase.table('beneficiarios')\
+            .select('*')\
+            .order('created_at', desc=True)\
+            .execute()
+        
+        beneficiarios = result.data or []
+        
+        # Primeiro, identificar TODOS os templates
+        templates = {}
+        for b in beneficiarios:
+            if b.get('is_template'):
+                templates[b['id']] = {
+                    'id': b['id'],
+                    'nome': b.get('nome'),
+                    'banco': b.get('banco'),
+                    'iban': b.get('iban'),
+                    'swift': b.get('swift'),
+                    'pais': b.get('pais'),
+                    'moeda': b.get('moeda', 'USD'),
+                    'risco_pais': b.get('risco_pais'),
+                    'clientes': []
+                }
+        
+        # Depois, adicionar os vínculos aos templates
+        for b in beneficiarios:
+            master_id = b.get('master_beneficiario_id')
+            if master_id and master_id in templates:
+                # Buscar nome do cliente
+                cliente_nome = None
+                if b.get('cliente_id'):
+                    cliente = supabase.table('clientes_b2b')\
+                        .select('razao_social')\
+                        .eq('id', b['cliente_id'])\
+                        .execute()
+                    if cliente.data:
+                        cliente_nome = cliente.data[0].get('razao_social')
+                
+                if not cliente_nome and b.get('cliente_username'):
+                    cliente_nome = b.get('cliente_username')
+                
+                templates[master_id]['clientes'].append({
+                    'id': b.get('cliente_id'),
+                    'nome': cliente_nome or '—',
+                    'status': b.get('status', 'pending'),
+                    'created_at': b.get('created_at'),
+                    'aprovado_em': b.get('aprovado_em')
+                })
+        
+        # Formatar resposta
+        resultado = []
+        for template_id, t in templates.items():
+            clientes = t.get('clientes', [])
+            
+            # Contar status
+            aprovados = sum(1 for c in clientes if c.get('status') == 'approved')
+            pendentes = sum(1 for c in clientes if c.get('status') == 'pending')
+            total_clientes = len(clientes)
+            
+            # Badge info
+            badge_icon = '👥' if total_clientes > 1 else '👤'
+            badge_text = f'{badge_icon} {total_clientes} client'
+            if total_clientes > 1:
+                badge_text += 's'
+            
+            badge_warning = ''
+            if pendentes > 0:
+                badge_warning = f'⚠️ {pendentes} Pending'
+            
+            # Se não tem clientes, não mostrar na lista
+            if total_clientes == 0:
+                continue
+            
+            resultado.append({
+                'id': t['id'],
+                'nome': t['nome'],
+                'banco': t['banco'],
+                'iban': t['iban'],
+                'swift': t['swift'],
+                'pais': t['pais'],
+                'moeda': t['moeda'],
+                'risco_pais': t['risco_pais'],
+                'clientes': clientes,
+                'total_clientes': total_clientes,
+                'aprovados': aprovados,
+                'pendentes': pendentes,
+                'badge_text': badge_text,
+                'badge_warning': badge_warning,
+                'has_pending': pendentes > 0,
+                'has_multiple': total_clientes > 1
+            })
+        
+        # Ordenar por quantidade de clientes (os com mais clientes primeiro)
+        resultado.sort(key=lambda x: x['total_clientes'], reverse=True)
+        
+        return jsonify({
+            'success': True,
+            'beneficiarios': resultado,
+            'total': len(resultado)
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/compliance/b2b/beneficiarios/aprovar', methods=['POST'])
+def compliance_aprovar_beneficiario_vinculo():
+    """Aprova um vínculo de beneficiário para um cliente específico"""
+    try:
+        if 'username' not in session:
+            return jsonify({'error': 'Não autenticado'}), 401
+        
+        tipo = session.get('tipo', '')
+        if tipo not in ('admin', 'compliance'):
+            return jsonify({'error': 'Acesso negado'}), 403
+        
+        data = request.json
+        beneficiary_id = data.get('beneficiary_id')
+        client_id = data.get('client_id')
+        
+        if not beneficiary_id or not client_id:
+            return jsonify({'error': 'Dados incompletos'}), 400
+        
+        # Buscar o vínculo
+        vinculo = supabase.table('beneficiarios')\
+            .select('*')\
+            .eq('master_beneficiario_id', beneficiary_id)\
+            .eq('cliente_id', client_id)\
+            .execute()
+        
+        if not vinculo.data:
+            return jsonify({'error': 'Vínculo não encontrado'}), 404
+        
+        from datetime import datetime
+        
+        # Atualizar status
+        supabase.table('beneficiarios')\
+            .update({
+                'status': 'approved',
+                'aprovado_em': datetime.now().isoformat(),
+                'aprovado_por': session.get('username')
+            })\
+            .eq('id', vinculo.data[0]['id'])\
+            .execute()
+        
+        return jsonify({'success': True, 'message': 'Beneficiário aprovado'})
+        
+    except Exception as e:
+        print(f"❌ Erro: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/compliance/b2b/beneficiarios/recusar', methods=['POST'])
+def compliance_recusar_beneficiario_vinculo():
+    """Recusa um vínculo de beneficiário para um cliente específico"""
+    try:
+        if 'username' not in session:
+            return jsonify({'error': 'Não autenticado'}), 401
+        
+        tipo = session.get('tipo', '')
+        if tipo not in ('admin', 'compliance'):
+            return jsonify({'error': 'Acesso negado'}), 403
+        
+        data = request.json
+        beneficiary_id = data.get('beneficiary_id')
+        client_id = data.get('client_id')
+        motivo = data.get('motivo', '')
+        
+        if not beneficiary_id or not client_id:
+            return jsonify({'error': 'Dados incompletos'}), 400
+        
+        # Buscar o vínculo
+        vinculo = supabase.table('beneficiarios')\
+            .select('*')\
+            .eq('master_beneficiario_id', beneficiary_id)\
+            .eq('cliente_id', client_id)\
+            .execute()
+        
+        if not vinculo.data:
+            return jsonify({'error': 'Vínculo não encontrado'}), 404
+        
+        from datetime import datetime
+        
+        # Atualizar status
+        supabase.table('beneficiarios')\
+            .update({
+                'status': 'rejected',
+                'notas_compliance': motivo,
+                'aprovado_em': datetime.now().isoformat(),
+                'aprovado_por': session.get('username')
+            })\
+            .eq('id', vinculo.data[0]['id'])\
+            .execute()
+        
+        return jsonify({'success': True, 'message': 'Beneficiário recusado'})
+        
+    except Exception as e:
+        print(f"❌ Erro: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/compliance/b2b/beneficiarios/<int:beneficiario_id>/detalhes', methods=['GET'])
+def compliance_beneficiario_detalhes(beneficiario_id):
+    """Retorna todos os detalhes de um beneficiário para a tela de detalhes"""
+    try:
+        if 'username' not in session:
+            return jsonify({'error': 'Não autenticado'}), 401
+        
+        tipo = session.get('tipo', '')
+        if tipo not in ('admin', 'compliance'):
+            return jsonify({'error': 'Acesso negado'}), 403
+        
+        # Buscar o beneficiário
+        beneficiario = supabase.table('beneficiarios')\
+            .select('*')\
+            .eq('id', beneficiario_id)\
+            .execute()
+        
+        if not beneficiario.data:
+            return jsonify({'error': 'Beneficiário não encontrado'}), 404
+        
+        b = beneficiario.data[0]
+        
+        # Se for um vínculo, buscar o template real
+        template_id = b.get('master_beneficiario_id') or beneficiario_id
+        
+        # Buscar template (dados mestres)
+        template = supabase.table('beneficiarios')\
+            .select('*')\
+            .eq('id', template_id)\
+            .execute()
+        
+        dados_template = template.data[0] if template.data else b
+        
+        # Buscar todos os vínculos deste template (sem JOIN)
+        vinculos = supabase.table('beneficiarios')\
+            .select('*')\
+            .eq('master_beneficiario_id', template_id)\
+            .execute()
+        
+        vinculos_lista = []
+        for v in (vinculos.data or []):
+            # Buscar dados do cliente separadamente
+            cliente_nome = None
+            if v.get('cliente_id'):
+                cliente = supabase.table('clientes_b2b')\
+                    .select('razao_social')\
+                    .eq('id', v['cliente_id'])\
+                    .execute()
+                if cliente.data:
+                    cliente_nome = cliente.data[0].get('razao_social')
+            
+            # Se não encontrou, tentar buscar pelo username
+            if not cliente_nome and v.get('cliente_username'):
+                cliente = supabase.table('clientes_b2b')\
+                    .select('razao_social')\
+                    .eq('usuario_username', v['cliente_username'])\
+                    .execute()
+                if cliente.data:
+                    cliente_nome = cliente.data[0].get('razao_social')
+            
+            vinculos_lista.append({
+                'cliente_id': v.get('cliente_id'),
+                'cliente_nome': cliente_nome or v.get('cliente_username'),
+                'status': v.get('status'),
+                'created_at': v.get('created_at'),
+                'aprovado_em': v.get('aprovado_em')
+            })
+        
+        # Buscar transferências associadas
+        transferencias = []
+        for v in (vinculos.data or []):
+            if v.get('cliente_id'):
+                transf = supabase.table('transferencias')\
+                    .select('*')\
+                    .eq('beneficiario_id', v['id'])\
+                    .order('created_at', desc=True)\
+                    .limit(50)\
+                    .execute()
+                
+                for t in (transf.data or []):
+                    # Buscar nome do cliente para esta transferência
+                    transf_cliente_nome = None
+                    if t.get('cliente_id'):
+                        cli = supabase.table('clientes_b2b')\
+                            .select('razao_social')\
+                            .eq('id', t['cliente_id'])\
+                            .execute()
+                        if cli.data:
+                            transf_cliente_nome = cli.data[0].get('razao_social')
+                    
+                    transferencias.append({
+                        'id': t.get('id'),
+                        'created_at': t.get('created_at'),
+                        'valor': t.get('valor'),
+                        'moeda': t.get('moeda'),
+                        'status': t.get('status'),
+                        'cliente_nome': transf_cliente_nome,
+                        'invoice_path': t.get('invoice_info', {}).get('caminho_arquivo') if t.get('invoice_info') else None
+                    })
+        
+        return jsonify({
+            'success': True,
+            'beneficiario': {
+                'id': dados_template.get('id'),
+                'nome': dados_template.get('nome'),
+                'pais': dados_template.get('pais'),
+                'risco_pais': dados_template.get('risco_pais'),
+                'banco': dados_template.get('banco'),
+                'swift': dados_template.get('swift'),
+                'iban': dados_template.get('iban'),
+                'aba': dados_template.get('aba'),
+                'endereco': dados_template.get('endereco'),
+                'cidade': dados_template.get('cidade'),
+                'endereco_banco': dados_template.get('endereco_banco'),
+                'cidade_banco': dados_template.get('cidade_banco'),
+                'status': dados_template.get('status'),
+                'created_at': dados_template.get('created_at')
+            },
+            'vinculos': vinculos_lista,
+            'transferencias': transferencias
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/compliance/b2b/beneficiarios/<int:beneficiario_id>')
+def compliance_beneficiario_detalhe_page(beneficiario_id):
+    """Página de detalhes do beneficiário"""
+    usuario = session.get('username')
+    
+    if not usuario:
+        return redirect('/login')
+    
+    tipo = session.get('tipo', '')
+    if tipo not in ('admin', 'compliance'):
+        return redirect('/login')
+    
+    return render_with_lang('compliance_b2b/beneficiario_detalhe.html',
+                          usuario=usuario,
+                          beneficiario_id=beneficiario_id)
 
 
 if __name__ == '__main__':

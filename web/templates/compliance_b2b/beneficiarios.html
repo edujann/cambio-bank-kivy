@@ -28,61 +28,137 @@
         }
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
         body{background-color:#f5ede0;background-image:radial-gradient(ellipse at 15% 15%,rgba(210,158,0,.10) 0%,transparent 55%),radial-gradient(ellipse at 85% 85%,rgba(180,120,0,.08) 0%,transparent 55%),linear-gradient(150deg,#f8f2e6 0%,#fdf9f2 45%,#ede3cf 100%);background-attachment:fixed;color:var(--cor-texto);min-height:100vh;overflow-x:hidden;}
-        body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(180,130,0,.055) 1px,transparent 1px);background-size:30px 30px;pointer-events:none;z-index:0;}
-        html[data-theme="dark"] body{background-color:#110f08;background-image:linear-gradient(135deg,#110f08 0%,#1f1a10 100%);}
-        html[data-theme="dark"] body::before{display:none;}
         .top-bar{position:sticky;top:0;z-index:200;height:54px;background:var(--cor-card);border-bottom:1px solid var(--cor-borda);display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:10px;box-shadow:var(--sombra-suave);}
         .logo-text{background:linear-gradient(135deg,#7a5800,#c8920a 45%,#a07000);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800;font-size:17px;}
-        .logo-text span{font-weight:400;}
-        .badge-b2b{background:rgba(200,146,10,.15);border:1px solid rgba(200,146,10,.4);color:var(--cor-admin);font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;letter-spacing:.5px;text-transform:uppercase;}
-        .hd-right{display:flex;align-items:center;gap:8px;}
-        .btn-hd{background:rgba(200,146,10,.12);border:1px solid var(--cor-admin);color:var(--cor-admin);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:.15s;}
-        .btn-hd:hover{background:rgba(200,146,10,.25);}
-        .btn-hd-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
-        .btn-hd-ghost:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
-        .badge-user{background:rgba(200,146,10,.1);color:var(--cor-admin);padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;}
+        .badge-b2b{background:rgba(200,146,10,.15);border:1px solid rgba(200,146,10,.4);color:var(--cor-admin);font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;}
         .main-layout{display:flex;min-height:calc(100vh - 54px);position:relative;z-index:1;}
-        .sidebar{width:215px;min-width:215px;background:var(--cor-card);border-right:1px solid var(--cor-borda);padding:12px 0 24px;position:sticky;top:54px;height:calc(100vh - 54px);overflow-y:auto;display:flex;flex-direction:column;}
-        .sidebar::-webkit-scrollbar{width:4px;}
-        .sidebar::-webkit-scrollbar-thumb{background:rgba(200,146,10,.3);border-radius:2px;}
-        .nav-section-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--cor-texto-secundario);padding:14px 18px 5px;opacity:.7;}
-        .nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;font-weight:600;color:var(--cor-texto-secundario);cursor:pointer;border-left:3px solid transparent;transition:.15s;user-select:none;text-decoration:none;}
-        .nav-item i{width:16px;text-align:center;font-size:13px;}
+        .sidebar{width:215px;min-width:215px;background:var(--cor-card);border-right:1px solid var(--cor-borda);padding:12px 0 24px;position:sticky;top:54px;height:calc(100vh - 54px);overflow-y:auto;}
+        .nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;font-weight:600;color:var(--cor-texto-secundario);cursor:pointer;border-left:3px solid transparent;text-decoration:none;}
         .nav-item:hover{color:var(--cor-admin);background:rgba(200,146,10,.06);}
         .nav-item.active{color:var(--cor-admin);background:rgba(200,146,10,.1);border-left-color:var(--cor-admin);}
-        .nav-divider{height:1px;background:var(--cor-borda);margin:8px 14px;}
-        .content-area{flex:1;min-width:0;padding:24px;overflow-x:hidden;}
+        .content-area{flex:1;min-width:0;padding:24px;overflow-x:auto;}
         .page-header{margin-bottom:24px;}
-        .page-header h1{font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px;margin-bottom:4px;}
-        .page-header h1 i{color:var(--cor-admin);}
-        .page-header p{color:var(--cor-texto-secundario);font-size:13px;}
-        .tbl-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;overflow:hidden;margin-bottom:18px;box-shadow:var(--sombra-suave);}
-        .card-hd{padding:14px 18px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
-        .card-hd h3{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;}
-        .card-hd h3 i{color:var(--cor-admin);}
-        .filter-bar{padding:12px 16px;border-bottom:1px solid var(--cor-borda);display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
-        .filter-bar input,.filter-bar select{background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:6px 10px;border-radius:8px;font-size:12px;font-family:inherit;outline:none;}
-        .filter-bar input:focus,.filter-bar select:focus{border-color:var(--cor-admin);}
+        .page-header h1{font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px;}
+        .tbl-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;overflow:hidden;box-shadow:var(--sombra-suave);}
+        .card-hd{padding:14px 18px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;}
+        .filter-bar{padding:12px 16px;border-bottom:1px solid var(--cor-borda);display:flex;gap:8px;flex-wrap:wrap;}
+        .filter-bar input,.filter-bar select{background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:6px 10px;border-radius:8px;font-size:12px;}
         .tbl-wrap{overflow-x:auto;}
         table{width:100%;border-collapse:collapse;font-size:13px;}
-        th{background:rgba(128,128,128,.05);color:var(--cor-texto-secundario);padding:8px 14px;text-align:left;font-weight:600;font-size:11px;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px;}
+        th{background:rgba(128,128,128,.05);color:var(--cor-texto-secundario);padding:10px 14px;text-align:left;font-weight:600;font-size:11px;}
         td{padding:10px 14px;border-top:1px solid var(--cor-borda);vertical-align:middle;}
         tr:hover td{background:rgba(200,146,10,.02);}
         .empty{padding:40px;text-align:center;color:var(--cor-texto-secundario);}
-        .empty i{font-size:32px;margin-bottom:8px;display:block;opacity:.4;}
-        .tag{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
-        .tag-company{background:rgba(200,146,10,.12);color:var(--cor-admin);}
-        .btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:inherit;text-decoration:none;transition:.15s;white-space:nowrap;}
-        .btn-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
-        .btn-ghost:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
-        @keyframes spin{to{transform:rotate(360deg)}}
-        .fa-spin{animation:spin 1s linear infinite}
-        @media(max-width:768px){.sidebar{display:none}.content-area{padding:16px}}
+        
+        .monospace{font-family:monospace;font-size:11px;}
+        .info-sub{font-size:10px;color:var(--cor-texto-secundario);}
+        .client-badge{display:inline-flex;align-items:center;gap:8px;padding:4px 10px;background:rgba(210,158,0,.08);border-radius:20px;font-size:11px;font-weight:500;}
+        .badge-warning{color:var(--cor-alerta);display:inline-flex;align-items:center;gap:4px;}
+        .badge-approved{color:var(--cor-sucesso);display:inline-flex;align-items:center;gap:4px;}        
 
-        /* Summary bar */
-        .summary-bar{display:flex;gap:20px;align-items:center;padding:10px 18px;background:rgba(200,146,10,.05);border-bottom:1px solid var(--cor-borda);flex-wrap:wrap;}
-        .summary-item{font-size:12px;color:var(--cor-texto-secundario);display:flex;align-items:center;gap:5px;}
-        .summary-item strong{color:var(--cor-texto);}
+        /* Risk colors - apenas texto, sem ícones */
+        .risk-low { color: #2ec27e; font-weight: 600; }
+        .risk-medium { color: #f39c12; font-weight: 600; }
+        .risk-high { color: #e01b24; font-weight: 600; }
+        .risk-sanctioned { color: #e01b24; font-weight: 600; }
+        .risk-standard { color: #d29e00; font-weight: 600; }        
+        
+        /* Badge styles */
+        .client-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        .client-badge:hover {
+            background: rgba(200, 146, 10, 0.1);
+            border-color: var(--cor-admin);
+        }
+        .badge-count {
+            color: var(--cor-texto);
+        }
+        .badge-warning {
+            color: var(--cor-alerta);
+        }
+        .badge-approved {
+            color: var(--cor-sucesso);
+        }
+        
+        /* Tooltip */
+        .client-tooltip {
+            position: fixed;
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: 10px;
+            padding: 12px;
+            box-shadow: var(--sombra-media);
+            z-index: 1000;
+            min-width: 260px;
+            max-width: 320px;
+            font-size: 12px;
+        }
+        .tooltip-header {
+            font-weight: 700;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+        .client-tooltip .client-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+        .client-tooltip .client-item:last-child {
+            border-bottom: none;
+        }
+        .client-name {
+            font-weight: 600;
+        }
+        .client-date {
+            font-size: 10px;
+            color: var(--cor-texto-secundario);
+        }
+        .status-approved {
+            color: var(--cor-sucesso);
+        }
+        .status-pending {
+            color: var(--cor-alerta);
+        }
+        .btn-approve, .btn-reject {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            margin-left: 6px;
+        }
+        .btn-approve {
+            background: var(--cor-sucesso);
+            color: white;
+        }
+        .btn-reject {
+            background: var(--cor-perigo);
+            color: white;
+        }
+        .risk-sanctioned {
+            color: var(--cor-perigo);
+            font-weight: 600;
+        }
+        
+        .btn-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:6px 14px;border-radius:8px;cursor:pointer;}
+        .btn-ghost:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+        
+        @media(max-width:768px){.sidebar{display:none}.content-area{padding:16px}}
     </style>
 </head>
 <body>
@@ -91,54 +167,37 @@
             <span class="logo-text"><strong>Link</strong> <span>international</span></span>
             <span class="badge-b2b">B2B Compliance</span>
         </div>
-        <div class="hd-right">
-            <a href="/language/{{ 'pt' if current_lang == 'en' else 'en' }}" class="btn-hd btn-hd-ghost"><i class="fas fa-globe"></i> {{ 'PT' if current_lang == 'en' else 'EN' }}</a>
-            <button class="btn-hd btn-hd-ghost" id="btnTheme" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
-            <span class="badge-user"><i class="fas fa-user-shield"></i> {{ usuario }}</span>
-            <a href="/admin/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-arrow-left"></i> Admin</a>
+        <div style="display:flex;align-items:center;gap:8px;">
+            <span><i class="fas fa-user-shield"></i> {{ usuario }}</span>
+            <a href="/admin/dashboard" class="btn-ghost" style="text-decoration:none;"><i class="fas fa-arrow-left"></i> Admin</a>
         </div>
     </div>
 
     <div class="main-layout">
         <nav class="sidebar">
-            <div class="nav-section-lbl">Overview</div>
             <a href="/compliance/b2b/dashboard" class="nav-item"><i class="fas fa-gauge-high"></i> Dashboard</a>
             <a href="/compliance/b2b/clientes" class="nav-item"><i class="fas fa-building"></i> Clients</a>
-            <a href="/compliance/b2b/clientes/novo" class="nav-item"><i class="fas fa-plus-circle"></i> New Onboarding</a>
-            <div class="nav-divider"></div>
-            <div class="nav-section-lbl">Compliance</div>
+            <a href="/compliance/b2b/beneficiarios" class="nav-item active"><i class="fas fa-users"></i> Beneficiaries</a>
             <a href="/compliance/b2b/edd" class="nav-item"><i class="fas fa-magnifying-glass-chart"></i> EDD Cases</a>
             <a href="/compliance/b2b/alertas" class="nav-item"><i class="fas fa-bell"></i> Alerts</a>
-            <a href="/compliance/b2b/screening" class="nav-item"><i class="fas fa-shield-halved"></i> Screening</a>
-            <div class="nav-divider"></div>
-            <div class="nav-section-lbl">Operations</div>
-            <a href="/compliance/b2b/beneficiarios" class="nav-item active"><i class="fas fa-users"></i> Beneficiaries</a>
-            <a href="/compliance/b2b/limites" class="nav-item"><i class="fas fa-sliders"></i> Limits</a>
-            <a href="/compliance/b2b/risk-config" class="nav-item"><i class="fas fa-gear"></i> Risk Config</a>
         </nav>
 
         <div class="content-area">
             <div class="page-header">
                 <h1><i class="fas fa-users"></i> B2B Beneficiaries</h1>
-                <p>All registered beneficiary accounts across B2B clients</p>
             </div>
 
             <div class="tbl-card">
                 <div class="card-hd">
                     <h3><i class="fas fa-users"></i> Beneficiary Registry</h3>
-                    <button class="btn btn-ghost" onclick="loadBeneficiarios()"><i class="fas fa-rotate-right"></i> Refresh</button>
-                </div>
-                <div class="summary-bar" id="summaryBar" style="display:none;">
-                    <div class="summary-item"><i class="fas fa-users" style="color:var(--cor-admin);"></i> Total: <strong id="sum-total">0</strong></div>
-                    <div class="summary-item"><i class="fas fa-globe" style="color:var(--cor-admin);"></i> Countries: <strong id="sum-countries">0</strong></div>
+                    <button class="btn-ghost" onclick="loadBeneficiarios()"><i class="fas fa-rotate-right"></i> Refresh</button>
                 </div>
                 <div class="filter-bar">
-                    <input type="text" id="searchInput" placeholder="Name / IBAN / bank..." style="flex:1;min-width:180px;" oninput="debounceSearch()">
-                    <select id="countryFilter" onchange="applyFilters()">
-                        <option value="">All Countries</option>
-                    </select>
-                    <select id="currencyFilter" onchange="applyFilters()">
-                        <option value="">All Currencies</option>
+                    <input type="text" id="searchInput" placeholder="Search by name, IBAN, bank..." style="flex:1;" oninput="debounceSearch()">
+                    <select id="statusFilter" onchange="applyFilters()">
+                        <option value="">All Status</option>
+                        <option value="pending">Pending Only</option>
+                        <option value="approved">Approved Only</option>
                     </select>
                 </div>
                 <div class="tbl-wrap">
@@ -151,12 +210,13 @@
                                 <th>BIC / SWIFT</th>
                                 <th>Currency</th>
                                 <th>Country</th>
-                                <th>B2B Client</th>
+                                <th>B2B Clients</th>
+                                <th>Risk</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="benefTbody">
-                            <tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i>Loading beneficiaries...</td></tr>
+                            <tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i> Loading beneficiaries...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -165,111 +225,228 @@
     </div>
 
     <script>
-        function toggleTheme(){
-            var next = document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';
-            document.documentElement.setAttribute('data-theme',next);
-            localStorage.setItem('theme',next);
-            var ic=document.querySelector('#btnTheme i');
-            if(ic) ic.className=next==='light'?'fas fa-moon':'fas fa-sun';
-        }
-        document.addEventListener('DOMContentLoaded',function(){
-            var t=document.documentElement.getAttribute('data-theme')||'light';
-            var ic=document.querySelector('#btnTheme i');
-            if(ic) ic.className=t==='light'?'fas fa-moon':'fas fa-sun';
-            loadBeneficiarios();
-        });
+        let allBenef = [];
+        let searchTimer = null;
+        let currentTooltip = null;
 
-        var allBenef = [];
-        var searchTimer = null;
+        function toggleTheme(){
+            let next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        }
 
         function debounceSearch(){
             clearTimeout(searchTimer);
-            searchTimer = setTimeout(function(){
-                var q = document.getElementById('searchInput').value.trim();
-                fetchBeneficiarios(q);
+            searchTimer = setTimeout(() => {
+                applyFilters();
             }, 350);
         }
 
         function loadBeneficiarios(){
-            fetchBeneficiarios('');
-        }
-
-        function fetchBeneficiarios(q){
-            var url = '/api/compliance/b2b/beneficiarios-global' + (q ? '?q=' + encodeURIComponent(q) : '');
-            document.getElementById('benefTbody').innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i>Loading...</td></tr>';
-            fetch(url)
-                .then(function(r){ return r.json(); })
-                .then(function(data){
-                    allBenef = Array.isArray(data) ? data : (data.beneficiarios || data.data || []);
-                    populateFilters();
-                    updateSummary();
+            document.getElementById('benefTbody').innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>';
+            fetch('/api/compliance/beneficiarios/all')
+                .then(r => r.json())
+                .then(data => {
+                    allBenef = data.beneficiarios || [];
                     applyFilters();
                 })
-                .catch(function(){
-                    document.getElementById('benefTbody').innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-triangle-exclamation"></i>Failed to load beneficiaries</td></tr>';
+                .catch(err => {
+                    console.error(err);
+                    document.getElementById('benefTbody').innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-exclamation-triangle"></i> Failed to load</td></tr>';
                 });
         }
 
-        function populateFilters(){
-            var countries = [...new Set(allBenef.map(function(b){ return b.pais || b.country || ''; }).filter(Boolean))].sort();
-            var currencies = [...new Set(allBenef.map(function(b){ return b.moeda || b.currency || ''; }).filter(Boolean))].sort();
-
-            var cSel = document.getElementById('countryFilter');
-            var prevC = cSel.value;
-            cSel.innerHTML = '<option value="">All Countries</option>' + countries.map(function(c){ return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join('');
-            if(prevC) cSel.value = prevC;
-
-            var mSel = document.getElementById('currencyFilter');
-            var prevM = mSel.value;
-            mSel.innerHTML = '<option value="">All Currencies</option>' + currencies.map(function(c){ return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join('');
-            if(prevM) mSel.value = prevM;
-        }
-
-        function updateSummary(){
-            var countries = new Set(allBenef.map(function(b){ return b.pais || b.country || ''; }).filter(Boolean));
-            document.getElementById('sum-total').textContent = allBenef.length;
-            document.getElementById('sum-countries').textContent = countries.size;
-            document.getElementById('summaryBar').style.display = 'flex';
-        }
-
         function applyFilters(){
-            var country = document.getElementById('countryFilter').value;
-            var currency = document.getElementById('currencyFilter').value;
-            var filtered = allBenef.filter(function(b){
-                var matchC = !country || (b.pais || b.country || '') === country;
-                var matchM = !currency || (b.moeda || b.currency || '') === currency;
-                return matchC && matchM;
+            let searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            let statusFilter = document.getElementById('statusFilter').value;
+            
+            let filtered = allBenef.filter(b => {
+                if (searchTerm && !b.nome.toLowerCase().includes(searchTerm) && 
+                    !(b.iban || '').toLowerCase().includes(searchTerm) &&
+                    !(b.swift || '').toLowerCase().includes(searchTerm)) {
+                    return false;
+                }
+                if (statusFilter === 'pending' && b.pendentes === 0) return false;
+                if (statusFilter === 'approved' && b.pendentes > 0) return false;
+                return true;
             });
+            
             renderTable(filtered);
         }
 
+        function formatDate(dateStr){
+            if (!dateStr) return '—';
+            let d = new Date(dateStr);
+            return d.toLocaleDateString('pt-BR');
+        }
+
+        function escapeHtml(str){
+            if (!str) return '';
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+
+        function showTooltip(event, beneficiary){
+            if (currentTooltip) currentTooltip.remove();
+            
+            let tooltip = document.createElement('div');
+            tooltip.className = 'client-tooltip';
+            
+            let clientes = beneficiary.clientes || [];
+            let aprovados = clientes.filter(c => c.status === 'approved');
+            let pendentes = clientes.filter(c => c.status === 'pending');
+            
+            let html = `<div class="tooltip-header">📋 CLIENTS (${clientes.length})</div>`;
+            
+            // Pendentes primeiro
+            pendentes.forEach(c => {
+                html += `
+                    <div class="client-item">
+                        <div>
+                            <div class="client-name">🏢 ${escapeHtml(c.nome)}</div>
+                            <div class="client-date">Solicitado: ${formatDate(c.created_at)}</div>
+                        </div>
+                        <div class="status-pending">⏳ Pending</div>
+                    </div>
+                    <div style="text-align: right; margin-bottom: 8px;">
+                        <button class="btn-approve" onclick="approveBeneficiary(${beneficiary.id}, '${c.id}')">✓ Approve</button>
+                        <button class="btn-reject" onclick="rejectBeneficiary(${beneficiary.id}, '${c.id}')">✗ Reject</button>
+                    </div>
+                `;
+            });
+            
+            // Aprovados
+            if (aprovados.length > 0){
+                let showAll = aprovados.length <= 5;
+                let visibleAprovados = showAll ? aprovados : aprovados.slice(0, 3);
+                
+                visibleAprovados.forEach(c => {
+                    html += `
+                        <div class="client-item">
+                            <div>
+                                <div class="client-name">🏢 ${escapeHtml(c.nome)}</div>
+                                <div class="client-date">Aprovado: ${formatDate(c.aprovado_em || c.created_at)}</div>
+                            </div>
+                            <div class="status-approved">✅ Approved</div>
+                        </div>
+                    `;
+                });
+                
+                if (!showAll && aprovados.length > 3){
+                    html += `<div style="text-align: center; padding-top: 6px; font-size: 11px; color: var(--cor-texto-secundario);">
+                                + ${aprovados.length - 3} more approved clients
+                            </div>`;
+                }
+            }
+            
+            tooltip.innerHTML = html;
+            document.body.appendChild(tooltip);
+            
+            // Position
+            let rect = event.target.getBoundingClientRect();
+            tooltip.style.top = rect.bottom + 5 + 'px';
+            tooltip.style.left = Math.min(rect.left, window.innerWidth - tooltip.offsetWidth - 10) + 'px';
+            
+            currentTooltip = tooltip;
+            
+            // Remove on mouseleave
+            event.target.onmouseleave = () => {
+                if (currentTooltip) currentTooltip.remove();
+                currentTooltip = null;
+            };
+        }
+
+        function approveBeneficiary(beneficiaryId, clientId){
+            fetch('/api/compliance/b2b/beneficiarios/aprovar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ beneficiary_id: beneficiaryId, client_id: clientId })
+            }).then(r => r.json()).then(data => {
+                if (data.success){
+                    loadBeneficiarios();
+                    if (currentTooltip) currentTooltip.remove();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            });
+        }
+
+        function rejectBeneficiary(beneficiaryId, clientId){
+            let motivo = prompt('Motivo da rejeição:');
+            if (!motivo) return;
+            fetch('/api/compliance/b2b/beneficiarios/recusar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ beneficiary_id: beneficiaryId, client_id: clientId, motivo: motivo })
+            }).then(r => r.json()).then(data => {
+                if (data.success){
+                    loadBeneficiarios();
+                    if (currentTooltip) currentTooltip.remove();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            });
+        }
+
         function renderTable(benefs){
-            var tbody = document.getElementById('benefTbody');
-            if(!benefs.length){
-                tbody.innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-users-slash"></i>No beneficiaries found</td></tr>';
+            let tbody = document.getElementById('benefTbody');
+            if (!benefs.length){
+                tbody.innerHTML = '<tr><td colspan="9" class="empty"><i class="fas fa-users-slash"></i> No beneficiaries found</td></tr>';
                 return;
             }
-            tbody.innerHTML = benefs.map(function(b){
-                var clientId = b.client_b2b_id || b.cliente_id || '';
-                return '<tr>' +
-                    '<td><strong>' + esc(b.nome || b.name || '—') + '</strong></td>' +
-                    '<td>' + esc(b.banco || b.bank || '—') + '</td>' +
-                    '<td style="font-family:monospace;font-size:12px;">' + esc(b.iban || b.account || '—') + '</td>' +
-                    '<td style="font-family:monospace;font-size:12px;">' + esc(b.bic || b.swift || '—') + '</td>' +
-                    '<td><span class="tag tag-company">' + esc(b.moeda || b.currency || '—') + '</span></td>' +
-                    '<td>' + esc(b.pais || b.country || '—') + '</td>' +
-                    '<td>' + esc(b.client_nome || b.empresa_nome || clientId || '—') + '</td>' +
-                    '<td style="white-space:nowrap;">' +
-                        '<a href="/compliance/b2b/clientes/' + esc(clientId) + '" class="btn btn-ghost" style="font-size:11px;padding:4px 10px;"><i class="fas fa-building"></i> View Client</a>' +
-                    '</td>' +
-                '</tr>';
+            
+            tbody.innerHTML = benefs.map(b => {
+                // Risk display - APENAS TEXTO COLORIDO (sem ícones)
+                let riskClass = '';
+                let riskText = '';
+                if (b.risco_pais === 'sanctioned'){
+                    riskClass = 'risk-sanctioned';
+                    riskText = 'Sanctioned';
+                } else if (b.risco_pais === 'high'){
+                    riskClass = 'risk-high';
+                    riskText = 'High';
+                } else if (b.risco_pais === 'standard'){
+                    riskClass = 'risk-standard';
+                    riskText = 'Standard';
+                } else if (b.risco_pais === 'medium'){
+                    riskClass = 'risk-medium';
+                    riskText = 'Medium';
+                } else {
+                    riskClass = 'risk-low';
+                    riskText = 'Low';
+                }
+                
+                // Badge para a coluna B2B Clients
+                let badgeHtml = '';
+                if (b.total_clientes === 0) {
+                    badgeHtml = '<span class="tag" style="opacity:0.6;"><i class="fas fa-database"></i> Template</span>';
+                } else {
+                    let icon = b.total_clientes > 1 ? '<i class="fas fa-users"></i>' : '<i class="fas fa-user"></i>';
+                    badgeHtml = `<div class="client-badge">
+                                    ${icon} <span>${b.total_clientes} client${b.total_clientes !== 1 ? 's' : ''}</span>
+                                    ${b.badge_warning ? `<span class="badge-warning"><i class="fas fa-clock"></i> ${b.pendentes} Pending</span>` : ''}
+                                    ${b.pendentes === 0 && b.total_clientes > 0 ? `<span class="badge-approved"><i class="fas fa-check-circle"></i> All Approved</span>` : ''}
+                                </div>`;
+                }
+                
+                return `<tr>
+                            <td><strong>${escapeHtml(b.nome)}</strong><br><span class="info-sub">${escapeHtml(b.pais || '—')}</span></td>
+                            <td>${escapeHtml(b.banco || '—')}<br><span class="info-sub">${escapeHtml(b.moeda || 'USD')}</span></td>
+                            <td class="monospace">${escapeHtml(b.iban || '—')}</td>
+                            <td class="monospace">${escapeHtml(b.swift || '—')}</td>
+                            <td>${escapeHtml(b.moeda || 'USD')}</td>
+                            <td>${escapeHtml(b.pais || '—')}</td>
+                            <td>${badgeHtml}</td>
+                            <td class="${riskClass}">${riskText}</td>
+                            <td style="white-space:nowrap">
+                                <a href="/compliance/b2b/beneficiarios/${b.id}" class="btn btn-ghost btn-sm">
+                                    <i class="fas fa-eye"></i> Details
+                                </a>
+                            </td>
+                        </tr>`;
             }).join('');
         }
 
-        function esc(s){
-            if(s == null) return '';
-            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-        }
+        document.addEventListener('DOMContentLoaded', loadBeneficiarios);
     </script>
 </body>
 </html>

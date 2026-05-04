@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <script>(function(){ document.documentElement.setAttribute('data-theme', localStorage.getItem('theme')||'light'); })();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link International — Beneficiary Details</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        :root[data-theme="light"]{--cor-fundo:#f5ede0;--cor-card:#ffffff;--cor-borda:rgba(210,185,130,.4);--cor-texto:#1a1200;--cor-texto-secundario:#9a8560;--cor-primaria:#c8920a;--cor-admin:#c8920a;--cor-sucesso:#1a7a52;--cor-alerta:#b87200;--cor-perigo:#c02020;--sombra-suave:0 2px 8px rgba(160,110,0,.10),0 1px 3px rgba(0,0,0,.04);--sombra-media:0 6px 22px rgba(160,110,0,.13),0 2px 8px rgba(0,0,0,.05);--borda-radius:14px;--borda-radius-pequeno:10px;}
+        :root[data-theme="dark"]{--cor-fundo:#110f08;--cor-card:#191611;--cor-borda:#2d2819;--cor-texto:#e0e0e0;--cor-texto-secundario:#8b949e;--cor-primaria:#d29e00;--cor-admin:#d29e00;--cor-sucesso:#2ec27e;--cor-alerta:#f39c12;--cor-perigo:#e01b24;--sombra-suave:0 4px 6px rgba(0,0,0,.30);--sombra-media:0 8px 16px rgba(0,0,0,.40);--borda-radius:14px;--borda-radius-pequeno:10px;}
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+        body{background-color:#f5ede0;background-image:radial-gradient(ellipse at 15% 15%,rgba(210,158,0,.10) 0%,transparent 55%),radial-gradient(ellipse at 85% 85%,rgba(180,120,0,.08) 0%,transparent 55%),linear-gradient(150deg,#f8f2e6 0%,#fdf9f2 45%,#ede3cf 100%);background-attachment:fixed;color:var(--cor-texto);min-height:100vh;overflow-x:hidden;}
+        .top-bar{position:sticky;top:0;z-index:200;height:54px;background:var(--cor-card);border-bottom:1px solid var(--cor-borda);display:flex;align-items:center;justify-content:space-between;padding:0 20px;}
+        .logo-text{background:linear-gradient(90deg,#b78700,#eeb600);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800;}
+        .badge-b2b{background:rgba(210,158,0,.15);border:1px solid rgba(210,158,0,.4);color:#d29e00;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;}
+        .badge-user{background:rgba(210,158,0,.1);color:#d29e00;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;}
+        .btn-hd{background:rgba(210,158,0,.12);border:1px solid #d29e00;color:#d29e00;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;}
+        .btn-hd-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-hd-ghost:hover{border-color:#d29e00;color:#d29e00;}
+        .main-layout{display:flex;min-height:calc(100vh - 54px);position:relative;z-index:1;}
+        .sidebar{width:215px;min-width:215px;background:var(--cor-card);border-right:1px solid var(--cor-borda);padding:12px 0 24px;position:sticky;top:54px;height:calc(100vh - 54px);overflow-y:auto;}
+        .nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;font-weight:600;color:var(--cor-texto-secundario);text-decoration:none;border-left:3px solid transparent;}
+        .nav-item:hover{color:#d29e00;background:rgba(210,158,0,.06);}
+        .nav-item.active{color:#d29e00;background:rgba(210,158,0,.1);border-left-color:#d29e00;}
+        .content-area{flex:1;min-width:0;padding:24px;overflow-x:hidden;}
+        .page-header{margin-bottom:20px;}
+        .page-header h1{font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px;}
+        .page-header h1 i{color:#d29e00;}
+        
+        /* Cards */
+        .card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;margin-bottom:20px;overflow:hidden;}
+        .card-header{padding:14px 18px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+        .card-header h3{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;}
+        .card-header h3 i{color:#d29e00;}
+        .card-body{padding:18px;}
+        
+        /* Info grid */
+        .info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;}
+        .info-item{margin-bottom:12px;}
+        .info-label{font-size:11px;font-weight:600;text-transform:uppercase;color:var(--cor-texto-secundario);margin-bottom:4px;letter-spacing:0.3px;}
+        .info-value{font-size:14px;font-weight:500;}
+        .info-value.monospace{font-family:monospace;font-size:13px;}
+        
+        /* Tags - padrão profissional (sem emojis) */
+        .tag{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+        .tag-approved{background:rgba(46,194,126,.12);color:#2ec27e;}
+        .tag-pending{background:rgba(210,158,0,.15);color:#d29e00;}
+        .tag-rejected{background:rgba(224,27,36,.12);color:#e01b24;}
+        .tag-sanctioned{background:rgba(224,27,36,.12);color:#e01b24;}
+        .tag-standard{background:rgba(210,158,0,.15);color:#d29e00;}
+        .tag-high{background:rgba(224,27,36,.12);color:#e01b24;}
+        .tag-medium{background:rgba(243,156,18,.12);color:#f39c12;}
+        .tag-low{background:rgba(46,194,126,.12);color:#2ec27e;}
+        
+        /* Table - padrão profissional */
+        .tbl-wrap{overflow-x:auto;}
+        table{width:100%;border-collapse:collapse;font-size:13px;}
+        th{background:rgba(128,128,128,.05);color:var(--cor-texto-secundario);padding:9px 14px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;}
+        td{padding:10px 14px;border-top:1px solid var(--cor-borda);}
+        tr:hover td{background:rgba(210,158,0,.02);}
+        
+        /* Buttons */
+        .btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;text-decoration:none;transition:.15s;}
+        .btn-gold{background:linear-gradient(90deg,#b78700,#d29e00);color:#1a1200;}
+        .btn-success{background:rgba(46,194,126,.15);border:1px solid #2ec27e;color:#2ec27e;}
+        .btn-success:hover{background:#2ec27e;color:#fff;}
+        .btn-danger{background:rgba(224,27,36,.15);border:1px solid #e01b24;color:#e01b24;}
+        .btn-danger:hover{background:#e01b24;color:#fff;}
+        .btn-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-ghost:hover{border-color:#d29e00;color:#d29e00;}
+        .btn-sm{padding:4px 10px;font-size:11px;}
+        
+        .empty{padding:48px;text-align:center;color:var(--cor-texto-secundario);}
+        .empty i{font-size:36px;margin-bottom:10px;display:block;opacity:.3;}
+        
+        .action-bar{display:flex;gap:12px;justify-content:flex-end;margin-top:16px;padding-top:16px;border-top:1px solid var(--cor-borda);}
+        .flex-between{display:flex;justify-content:space-between;align-items:center;}
+        
+        @media(max-width:768px){.sidebar{display:none;}}
+        
+        #btnTheme{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);border-radius:6px;cursor:pointer;width:30px;height:30px;}
+        #btnTheme:hover{border-color:#d29e00;color:#d29e00;}
+        
+        .badge-count{background:rgba(210,158,0,.15);color:#d29e00;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;}
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <div style="display:flex;align-items:center;gap:10px;">
+        <span class="logo-text"><strong>Link</strong><span> international</span></span>
+        <span class="badge-b2b">B2B Compliance</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+        <button id="btnTheme" onclick="toggleTheme()"><i class="fas fa-sun"></i></button>
+        <span class="badge-user"><i class="fas fa-user-shield"></i> {{ usuario }}</span>
+        <a href="/compliance/b2b/beneficiarios" class="btn-hd btn-hd-ghost"><i class="fas fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+<div class="main-layout">
+    <nav class="sidebar">
+        <div class="nav-section-lbl">Overview</div>
+        <a href="/compliance/b2b/dashboard" class="nav-item"><i class="fas fa-gauge-high"></i> Dashboard</a>
+        <a href="/compliance/b2b/clientes" class="nav-item"><i class="fas fa-building"></i> Clients</a>
+        <a href="/compliance/b2b/beneficiarios" class="nav-item active"><i class="fas fa-users"></i> Beneficiaries</a>
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Compliance</div>
+        <a href="/compliance/b2b/edd" class="nav-item"><i class="fas fa-magnifying-glass-chart"></i> EDD Cases</a>
+        <a href="/compliance/b2b/alertas" class="nav-item"><i class="fas fa-bell"></i> Alerts</a>
+        <a href="/compliance/b2b/risk-config" class="nav-item"><i class="fas fa-gear"></i> Risk Config</a>
+    </nav>
+
+    <div class="content-area" id="contentArea">
+        <div class="page-header">
+            <h1><i class="fas fa-users"></i> Beneficiary Details</h1>
+        </div>
+
+        <div id="detailsContainer" class="card">
+            <div class="card-body" style="text-align:center;padding:60px;">
+                <i class="fas fa-spinner fa-spin" style="font-size:32px;color:var(--cor-texto-secundario);"></i>
+                <p style="margin-top:12px;">Loading beneficiary details...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const beneficiarioId = window.location.pathname.split('/').pop();
+
+async function loadBeneficiary() {
+    const container = document.getElementById('detailsContainer');
+    try {
+        const resp = await fetch(`/api/compliance/b2b/beneficiarios/${beneficiarioId}/detalhes`);
+        const data = await resp.json();
+        if (!data.success) throw new Error(data.message);
+        renderDetails(data);
+    } catch (err) {
+        container.innerHTML = `<div class="card-body" style="text-align:center;padding:60px;">
+            <i class="fas fa-exclamation-triangle" style="font-size:32px;color:var(--cor-perigo);"></i>
+            <p style="margin-top:12px;">${err.message}</p>
+            <a href="/compliance/b2b/beneficiarios" class="btn btn-ghost btn-sm" style="margin-top:16px;"><i class="fas fa-arrow-left"></i> Back to list</a>
+        </div>`;
+    }
+}
+
+function getStatusTag(status) {
+    const map = {
+        'approved': '<span class="tag tag-approved"><i class="fas fa-check-circle"></i> Approved</span>',
+        'pending': '<span class="tag tag-pending"><i class="fas fa-clock"></i> Pending</span>',
+        'rejected': '<span class="tag tag-rejected"><i class="fas fa-times-circle"></i> Rejected</span>'
+    };
+    return map[status] || `<span class="tag">${status}</span>`;
+}
+
+function getRiskTag(risco) {
+    const map = {
+        'sanctioned': '<span class="tag tag-sanctioned"><i class="fas fa-shield-halved"></i> Sanctioned</span>',
+        'high': '<span class="tag tag-high"><i class="fas fa-arrow-up"></i> High</span>',
+        'medium': '<span class="tag tag-medium"><i class="fas fa-minus"></i> Medium</span>',
+        'low': '<span class="tag tag-low"><i class="fas fa-arrow-down"></i> Low</span>',
+        'standard': '<span class="tag tag-standard"><i class="fas fa-building"></i> Standard (China/HK)</span>'
+    };
+    return map[risco] || `<span class="tag tag-medium">${risco}</span>`;
+}
+
+async function approveBeneficiary(vinculoId) {
+    if (!confirm('Approve this beneficiary for the client?')) return;
+    const resp = await fetch(`/api/compliance/b2b/beneficiarios/aprovar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ beneficiary_id: beneficiarioId, client_id: vinculoId })
+    });
+    const data = await resp.json();
+    if (data.success) {
+        alert('Beneficiary approved successfully!');
+        loadBeneficiary();
+    } else {
+        alert('Error: ' + data.message);
+    }
+}
+
+async function rejectBeneficiary(vinculoId) {
+    const motivo = prompt('Reason for rejection:');
+    if (!motivo) return;
+    const resp = await fetch(`/api/compliance/b2b/beneficiarios/recusar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ beneficiary_id: beneficiarioId, client_id: vinculoId, motivo })
+    });
+    const data = await resp.json();
+    if (data.success) {
+        alert('Beneficiary rejected!');
+        loadBeneficiary();
+    } else {
+        alert('Error: ' + data.message);
+    }
+}
+
+function renderDetails(data) {
+    const b = data.beneficiario;
+    const vinculos = data.vinculos || [];
+    const transferencias = data.transferencias || [];
+    
+    let html = `
+        <div class="card-header">
+            <h3><i class="fas fa-info-circle"></i> Beneficiary Information</h3>
+            ${b.status === 'pending' ? `<div class="badge-count"><i class="fas fa-clock"></i> Awaiting Approval</div>` : ''}
+        </div>
+        <div class="card-body">
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-building"></i> Beneficiary Name</div>
+                    <div class="info-value"><strong>${escapeHtml(b.nome)}</strong></div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-map-marker-alt"></i> Country</div>
+                    <div class="info-value">${escapeHtml(b.pais)} ${getRiskTag(b.risco_pais)}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-university"></i> Bank</div>
+                    <div class="info-value">${escapeHtml(b.banco || '—')}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-code"></i> SWIFT / BIC</div>
+                    <div class="info-value monospace">${escapeHtml(b.swift || '—')}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-credit-card"></i> IBAN / Account</div>
+                    <div class="info-value monospace">${escapeHtml(b.iban || '—')}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-exchange-alt"></i> ABA / Routing</div>
+                    <div class="info-value monospace">${escapeHtml(b.aba || '—')}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-location-dot"></i> Bank Address</div>
+                    <div class="info-value">${escapeHtml(b.endereco_banco || '—')}, ${escapeHtml(b.cidade_banco || '—')}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-address-card"></i> Beneficiary Address</div>
+                    <div class="info-value">${escapeHtml(b.endereco || '—')}, ${escapeHtml(b.cidade || '—')}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-flag-checkered"></i> Global Status</div>
+                    <div class="info-value">${getStatusTag(b.status)}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-calendar-plus"></i> Created At</div>
+                    <div class="info-value">${formatDate(b.created_at)}</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Client links section
+    if (vinculos.length > 0) {
+        html += `
+            <div class="card-header" style="border-top:1px solid var(--cor-borda);">
+                <h3><i class="fas fa-link"></i> Linked Clients <span class="badge-count">${vinculos.length}</span></h3>
+            </div>
+            <div class="card-body">
+                <div class="tbl-wrap">
+                    <table>
+                        <thead>
+                            <tr><th>Client</th><th>Status</th><th>Requested</th><th>Approved</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody>
+                            ${vinculos.map(v => `
+                                <tr>
+                                    <td><a href="/compliance/b2b/clientes/${v.cliente_id}" style="color:var(--cor-texto);text-decoration:none;font-weight:500;">${escapeHtml(v.cliente_nome)}</a></td>
+                                    <td>${getStatusTag(v.status)}</td>
+                                    <td>${formatDate(v.created_at)}</td>
+                                    <td>${v.aprovado_em ? formatDate(v.aprovado_em) : '—'}</td>
+                                    <td>${v.status === 'pending' ? `
+                                        <button class="btn btn-success btn-sm" onclick="approveBeneficiary('${v.cliente_id}')"><i class="fas fa-check"></i> Approve</button>
+                                        <button class="btn btn-danger btn-sm" onclick="rejectBeneficiary('${v.cliente_id}')"><i class="fas fa-times"></i> Reject</button>
+                                    ` : '<span class="tag tag-approved"><i class="fas fa-check-circle"></i> Processed</span>'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Payment history
+    if (transferencias.length > 0) {
+        html += `
+            <div class="card-header" style="border-top:1px solid var(--cor-borda);">
+                <h3><i class="fas fa-history"></i> Payment History <span class="badge-count">${transferencias.length}</span></h3>
+            </div>
+            <div class="card-body">
+                <div class="tbl-wrap">
+                    <table>
+                        <thead>
+                            <tr><th>Date</th><th>Client</th><th>Amount</th><th>Currency</th><th>Status</th><th>Invoice</th></tr>
+                        </thead>
+                        <tbody>
+                            ${transferencias.map(t => `
+                                <tr>
+                                    <td>${formatDate(t.created_at)}</td>
+                                    <td>${escapeHtml(t.cliente_nome || '—')}</td>
+                                    <td><strong>${formatMoney(t.valor, t.moeda)}</strong></td>
+                                    <td>${t.moeda || 'USD'}</td>
+                                    <td>${getStatusTag(t.status)}</td>
+                                    <td>${t.invoice_path ? `<a href="${t.invoice_path}" target="_blank" class="btn btn-ghost btn-sm"><i class="fas fa-file-pdf"></i> View</a>` : '—'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+    
+    document.getElementById('detailsContainer').innerHTML = html;
+}
+
+function formatDate(d) { return d ? new Date(d).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) : '—'; }
+function formatMoney(v, c) { return new Intl.NumberFormat('en-GB', { style: 'currency', currency: c || 'USD' }).format(v || 0); }
+function escapeHtml(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+loadBeneficiary();
+</script>
+<script>
+function toggleTheme(){var next=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',next);localStorage.setItem('theme',next);var ic=document.querySelector('#btnTheme i');if(ic)ic.className=next==='light'?'fas fa-moon':'fas fa-sun';}
+document.addEventListener('DOMContentLoaded',function(){var t=document.documentElement.getAttribute('data-theme')||'light';var ic=document.querySelector('#btnTheme i');if(ic)ic.className=t==='light'?'fas fa-moon':'fas fa-sun';});
+</script>
+</body>
+</html>
