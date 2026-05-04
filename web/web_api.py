@@ -21795,12 +21795,72 @@ def api_b2b_cliente_aprovar(client_id):
             'aprovado_em': now.isoformat(),
             'proxima_revisao_em': (now + timedelta(days=365)).isoformat(),
         }
+        # Buscar dados do cliente para criar contas e vincular usuário
+        cb_r = supabase.table('clientes_b2b').select(
+            'notas_compliance, usuario_username, usuario_id, razao_social, '
+            'limite_por_transacao, limite_diario, limite_mensal'
+        ).eq('id', client_id).single().execute()
+        cb = cb_r.data or {}
+
         if notas:
-            result = supabase.table('clientes_b2b').select('notas_compliance').eq('id', client_id).single().execute()
-            existing = (result.data or {}).get('notas_compliance') or ''
+            existing = cb.get('notas_compliance') or ''
             upd['notas_compliance'] = (existing + f'\n\n[MLRO Approval {now.strftime("%d/%m/%Y")} by {usuario}]: {notas}').strip()
+
         supabase.table('clientes_b2b').update(upd).eq('id', client_id).execute()
-        return jsonify({'success': True, 'message': 'Client approved and activated'})
+
+        # ── CRIAR CONTAS (4 moedas principais) ──
+        usuario_username = cb.get('usuario_username')
+        usuario_id       = cb.get('usuario_id')
+        cliente_nome     = cb.get('razao_social', '')
+        contas_criadas   = []
+
+        if usuario_username:
+            for moeda in ['GBP', 'USD', 'EUR', 'BRL']:
+                while True:
+                    numero_conta = str(random.randint(100000000, 999999999))
+                    chk = supabase.table('contas').select('id').eq('id', numero_conta).execute()
+                    if not chk.data:
+                        break
+                supabase.table('contas').insert({
+                    'id':               numero_conta,
+                    'moeda':            moeda,
+                    'saldo':            0.00,
+                    'cliente_username': usuario_username,
+                    'cliente_id':       usuario_id,
+                    'cliente_nome':     cliente_nome,
+                    'data_criacao':     now.date().isoformat(),
+                    'ativa':            True,
+                    'created_at':       now.isoformat(),
+                }).execute()
+                contas_criadas.append(numero_conta)
+
+            # ── CRIAR CONFIG_COTACOES — câmbio bloqueado por padrão ──
+            limite_mensal = float(cb.get('limite_mensal') or 10000.00)
+            for cfg in [
+                {'tipo_config': 'permissoes', 'valor_config': False},
+                {'tipo_config': 'limites',    'valor_config': limite_mensal},
+            ]:
+                supabase.table('config_cotacoes').insert({
+                    **cfg,
+                    'cliente_username':  usuario_username,
+                    'cliente_id':        usuario_id,
+                    'data_atualizacao':  now.isoformat(),
+                    'created_at':        now.isoformat(),
+                }).execute()
+
+            # ── ATIVAR USUÁRIO — câmbio permanece bloqueado até liberação manual ──
+            supabase.table('usuarios').update({
+                'status':           'ativo',
+                'verificado':       True,
+                'cambio_liberado':  False,
+                'contas':           contas_criadas,
+            }).eq('username', usuario_username).execute()
+
+        return jsonify({
+            'success': True,
+            'message': 'Client approved and activated',
+            'contas_criadas': contas_criadas,
+        })
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
 

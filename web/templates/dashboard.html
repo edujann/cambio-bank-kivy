@@ -534,9 +534,10 @@ function closeDateModal(){document.getElementById('dateOverlay').classList.remov
 function confirmDateUpload(){
     const val=document.getElementById('dateInput').value;
     if(!val){alert('{% if is_pt %}Por favor seleccione uma data.{% else %}Please select a date.{% endif %}');return;}
-    _pendingDate[_pendingDocId]=val;
+    const docId=_pendingDocId;
+    _pendingDate[docId]=val;
     closeDateModal();
-    document.getElementById('obf-'+_pendingDocId).click();
+    document.getElementById('obf-'+docId).click();
 }
 
 async function obUpload(docId,input){
