@@ -7068,23 +7068,25 @@ def admin_contas_bancarias():
 def api_admin_contas_bancarias():
     """Retorna todas as contas bancárias da empresa"""
     try:
-        usuario = session.get('username')
+        # 🔥 OTIMIZADO: usar user_id
+        user_id = session.get('user_id')
+        username = session.get('username')
         
-        if not usuario:
+        if not user_id or not username:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
         # Verificar se é admin
         if supabase:
             user_check = supabase.table('usuarios')\
                 .select('tipo')\
-                .eq('username', usuario)\
+                .eq('username', username)\
                 .single()\
                 .execute()
             
             if not user_check.data or user_check.data.get('tipo') != 'admin':
                 return jsonify({"success": False, "message": "Acesso negado"}), 403
         
-        # Buscar contas do Supabase
+        # Buscar contas do Supabase (não precisa migrar - não tem cliente_username)
         response = supabase.table('contas_bancarias_empresa')\
             .select('*')\
             .order('moeda')\
@@ -7125,16 +7127,18 @@ def api_admin_contas_bancarias():
 def api_admin_criar_conta_bancaria():
     """Cria uma nova conta bancária"""
     try:
-        usuario = session.get('username')
+        # 🔥 OTIMIZADO: usar user_id
+        user_id = session.get('user_id')
+        username = session.get('username')
         
-        if not usuario:
+        if not user_id or not username:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
         # Verificar se é admin
         if supabase:
             user_check = supabase.table('usuarios')\
                 .select('tipo')\
-                .eq('username', usuario)\
+                .eq('username', username)\
                 .single()\
                 .execute()
             
@@ -7185,7 +7189,7 @@ def api_admin_criar_conta_bancaria():
             .execute()
         
         if response.data:
-            print(f"✅ Conta {numero} criada com sucesso!")
+            print(f"✅ Conta {numero} criada com sucesso por {username}")
             return jsonify({
                 "success": True,
                 "message": f"Conta {numero} criada com sucesso!",
@@ -7203,16 +7207,18 @@ def api_admin_criar_conta_bancaria():
 def api_admin_deposito_conta():
     """Realiza depósito em conta bancária"""
     try:
-        usuario = session.get('username')
+        # 🔥 OTIMIZADO: usar user_id
+        user_id = session.get('user_id')
+        username = session.get('username')
         
-        if not usuario:
+        if not user_id or not username:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
         # Verificar se é admin
         if supabase:
             user_check = supabase.table('usuarios')\
                 .select('tipo')\
-                .eq('username', usuario)\
+                .eq('username', username)\
                 .single()\
                 .execute()
             
@@ -7270,13 +7276,14 @@ def api_admin_deposito_conta():
             'valor': valor,
             'conta_destinatario': conta_numero,
             'descricao': descricao,
-            'usuario': usuario,
+            'usuario': username,
+            'executado_por': username,
             'created_at': datetime.now().isoformat()
         }
         
         supabase.table('transferencias').insert(transacao).execute()
         
-        print(f"💰 Depósito de {valor:.2f} {moeda} realizado na conta {conta_numero}")
+        print(f"💰 Depósito de {valor:.2f} {moeda} realizado na conta {conta_numero} por {username}")
         
         return jsonify({
             "success": True,
@@ -7293,16 +7300,18 @@ def api_admin_deposito_conta():
 def api_admin_saque_conta():
     """Realiza saque de conta bancária"""
     try:
-        usuario = session.get('username')
+        # 🔥 OTIMIZADO: usar user_id
+        user_id = session.get('user_id')
+        username = session.get('username')
         
-        if not usuario:
+        if not user_id or not username:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
         # Verificar se é admin
         if supabase:
             user_check = supabase.table('usuarios')\
                 .select('tipo')\
-                .eq('username', usuario)\
+                .eq('username', username)\
                 .single()\
                 .execute()
             
@@ -7335,7 +7344,6 @@ def api_admin_saque_conta():
         saldo_atual = float(conta.get('saldo', 0))
         moeda = conta.get('moeda', 'USD')
         
-        # Verificar saldo (apenas aviso, permite negativo)
         if valor > saldo_atual:
             print(f"⚠️ Aviso: Saldo insuficiente! Saldo: {saldo_atual:.2f}, Saque: {valor:.2f}")
         
@@ -7365,13 +7373,14 @@ def api_admin_saque_conta():
             'valor': valor,
             'conta_remetente': conta_numero,
             'descricao': descricao,
-            'usuario': usuario,
+            'usuario': username,
+            'executado_por': username,
             'created_at': datetime.now().isoformat()
         }
         
         supabase.table('transferencias').insert(transacao).execute()
         
-        print(f"💸 Saque de {valor:.2f} {moeda} realizado da conta {conta_numero}")
+        print(f"💸 Saque de {valor:.2f} {moeda} realizado da conta {conta_numero} por {username}")
         
         return jsonify({
             "success": True,
@@ -7388,16 +7397,18 @@ def api_admin_saque_conta():
 def api_admin_ajuste_saldo():
     """Realiza ajuste de saldo em conta bancária (permite saldo negativo)"""
     try:
-        usuario = session.get('username')
+        # 🔥 OTIMIZADO: usar user_id
+        user_id = session.get('user_id')
+        username = session.get('username')
         
-        if not usuario:
+        if not user_id or not username:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
         # Verificar se é admin
         if supabase:
             user_check = supabase.table('usuarios')\
                 .select('tipo')\
-                .eq('username', usuario)\
+                .eq('username', username)\
                 .single()\
                 .execute()
             
@@ -7437,11 +7448,11 @@ def api_admin_ajuste_saldo():
         if operacao == 'credito':
             novo_saldo = saldo_atual + valor
             tipo_ajuste = "CRÉDITO"
-            tipo_registro = "DÉBITO"  # Aparece na coluna DÉBITO do extrato
+            tipo_registro = "DÉBITO"
         else:
             novo_saldo = saldo_atual - valor
             tipo_ajuste = "DÉBITO"
-            tipo_registro = "CRÉDITO"  # Aparece na coluna CRÉDITO do extrato
+            tipo_registro = "CRÉDITO"
         
         # Atualizar saldo
         update_response = supabase.table('contas_bancarias_empresa')\
@@ -7470,7 +7481,8 @@ def api_admin_ajuste_saldo():
             'tipo_ajuste': tipo_registro,
             'tipo_interface': tipo_ajuste,
             'descricao_ajuste': descricao,
-            'usuario': usuario,
+            'usuario': username,
+            'executado_por': username,
             'created_at': datetime.now().isoformat()
         }
         
@@ -7480,7 +7492,7 @@ def api_admin_ajuste_saldo():
         if novo_saldo < 0:
             aviso = " ⚠️ ATENÇÃO: A conta ficou com saldo NEGATIVO!"
         
-        print(f"💰 Ajuste {tipo_ajuste} de {valor:.2f} {moeda} na conta {conta_numero}")
+        print(f"💰 Ajuste {tipo_ajuste} de {valor:.2f} {moeda} na conta {conta_numero} por {username}")
         
         return jsonify({
             "success": True,
@@ -9166,16 +9178,18 @@ def processar_transferencia_sync(transf):
 def api_admin_aprovar_transferencia():
     """Aprova uma transferência pendente"""
     try:
-        usuario = session.get('username')
+        # 🔥 OTIMIZADO: usar user_id
+        user_id = session.get('user_id')
+        username = session.get('username')
         
-        if not usuario:
+        if not user_id or not username:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
         # Verificar se é admin
         if supabase:
             user_check = supabase.table('usuarios')\
                 .select('tipo')\
-                .eq('username', usuario)\
+                .eq('username', username)\
                 .single()\
                 .execute()
             
@@ -9218,7 +9232,7 @@ def api_admin_aprovar_transferencia():
         
         update_data = {
             'status': 'processing',
-            'executado_por': usuario,
+            'executado_por': username,
             'data_aprovacao': data_aprovacao,
             'data_processing': data_aprovacao
         }
@@ -9229,7 +9243,7 @@ def api_admin_aprovar_transferencia():
             .execute()
         
         if update_response.data:
-            print(f"✅ Transferência {transferencia_id} aprovada por {usuario}")
+            print(f"✅ Transferência {transferencia_id} aprovada por {username}")
             return jsonify({
                 "success": True,
                 "message": f"Transferência {transferencia_id} aprovada com sucesso!"
@@ -9246,16 +9260,18 @@ def api_admin_aprovar_transferencia():
 def api_admin_recusar_transferencia():
     """Recusa uma transferência pendente e estorna o valor"""
     try:
-        usuario = session.get('username')
+        # 🔥 OTIMIZADO: usar user_id
+        user_id = session.get('user_id')
+        username = session.get('username')
         
-        if not usuario:
+        if not user_id or not username:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
         # Verificar se é admin
         if supabase:
             user_check = supabase.table('usuarios')\
                 .select('tipo')\
-                .eq('username', usuario)\
+                .eq('username', username)\
                 .single()\
                 .execute()
             
@@ -9288,7 +9304,7 @@ def api_admin_recusar_transferencia():
         valor = float(transf.get('valor', 0))
         
         if conta_remetente and valor > 0:
-            # Buscar saldo atual da conta
+            # Buscar saldo atual da conta (mantém por id mesmo)
             conta_response = supabase.table('contas')\
                 .select('saldo')\
                 .eq('id', conta_remetente)\
@@ -9314,10 +9330,10 @@ def api_admin_recusar_transferencia():
 
         update_data = {
             'status': 'rejected',
-            'executado_por': usuario,
+            'executado_por': username,
             'data_recusa': data_recusa,
-            'motivo_recusa': motivo_cliente,  # ← Mensagem genérica para o cliente
-            'motivo_interno': motivo          # ← Salvar motivo real para auditoria (opcional)
+            'motivo_recusa': motivo_cliente,
+            'motivo_interno': motivo
         }
         
         update_response = supabase.table('transferencias')\
@@ -9326,7 +9342,7 @@ def api_admin_recusar_transferencia():
             .execute()
         
         if update_response.data:
-            print(f"✅ Transferência {transferencia_id} recusada por {usuario}. Motivo: {motivo}")
+            print(f"✅ Transferência {transferencia_id} recusada por {username}. Motivo: {motivo}")
             return jsonify({
                 "success": True,
                 "message": f"Transferência {transferencia_id} recusada com sucesso!"
@@ -9554,14 +9570,21 @@ def api_admin_detalhes_transferencia(transferencia_id):
         if not usuario:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
-        # Buscar transferência
+        # 🔥 CORREÇÃO: Remover sufixos _DEBITO e _CREDITO (criados em estornos)
+        original_id = transferencia_id
+        if transferencia_id.endswith('_DEBITO') or transferencia_id.endswith('_CREDITO'):
+            # Remove o sufixo para buscar o ID original
+            transferencia_id = transferencia_id.rsplit('_', 1)[0]
+            print(f"🔍 [DETALHES] ID original com sufixo: {original_id} -> ID limpo: {transferencia_id}")
+        
+        # Buscar transferência (agora com ID limpo)
         response = supabase.table('transferencias')\
             .select('*')\
             .eq('id', transferencia_id)\
             .execute()
         
         if not response.data:
-            return jsonify({"success": False, "message": "Transferência não encontrada"}), 404
+            return jsonify({"success": False, "message": f"Transferência {original_id} não encontrada"}), 404
         
         transf = response.data[0]
         
@@ -17737,66 +17760,99 @@ def admin_cotacoes():
 def api_admin_cotacoes_clientes():
     """Retorna lista de clientes para configuração de cotações"""
     try:
-        usuario = session.get('username')
+        # 🔥 MIGRADO: usar user_id
+        user_id = session.get('user_id')
+        username = session.get('username')
         
-        if not usuario:
+        if not user_id or not username:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
-        # Buscar todos os clientes
+        # Buscar todos os clientes (incluindo ID)
         clientes_response = supabase.table('usuarios')\
-            .select('username, nome, email, tipo')\
+            .select('id, username, nome, email, tipo')\
             .eq('tipo', 'cliente')\
             .execute()
         
         clientes = []
         for cliente in (clientes_response.data or []):
             username = cliente.get('username')
+            cliente_id = cliente.get('id')
             
-            # Buscar spreads do cliente
+            # 🔥 MIGRADO: Buscar spreads usando cliente_id
             spreads = {}
             spreads_response = supabase.table('config_cotacoes')\
                 .select('valor_config')\
                 .eq('tipo_config', 'spreads')\
-                .eq('cliente_username', username)\
+                .eq('cliente_id', cliente_id)\
                 .execute()
+            
+            # Fallback para dados antigos (por username)
+            if not spreads_response.data:
+                spreads_response = supabase.table('config_cotacoes')\
+                    .select('valor_config')\
+                    .eq('tipo_config', 'spreads')\
+                    .eq('cliente_username', username)\
+                    .execute()
             
             if spreads_response.data:
                 spreads = spreads_response.data[0].get('valor_config', {})
             
-            # Buscar permissão de câmbio
+            # 🔥 MIGRADO: Buscar permissão usando cliente_id
             permissao_response = supabase.table('config_cotacoes')\
                 .select('valor_config')\
                 .eq('tipo_config', 'permissoes')\
-                .eq('cliente_username', username)\
+                .eq('cliente_id', cliente_id)\
                 .execute()
+            
+            if not permissao_response.data:
+                permissao_response = supabase.table('config_cotacoes')\
+                    .select('valor_config')\
+                    .eq('tipo_config', 'permissoes')\
+                    .eq('cliente_username', username)\
+                    .execute()
             
             cambio_liberado = True
             if permissao_response.data:
                 cambio_liberado = permissao_response.data[0].get('valor_config', True)
             
-            # Buscar limite operacional
+            # 🔥 MIGRADO: Buscar limite usando cliente_id
             limite_response = supabase.table('config_cotacoes')\
                 .select('valor_config')\
                 .eq('tipo_config', 'limites')\
-                .eq('cliente_username', username)\
+                .eq('cliente_id', cliente_id)\
                 .execute()
+            
+            if not limite_response.data:
+                limite_response = supabase.table('config_cotacoes')\
+                    .select('valor_config')\
+                    .eq('tipo_config', 'limites')\
+                    .eq('cliente_username', username)\
+                    .execute()
             
             limite_operacional = 10000.00
             if limite_response.data:
                 limite_operacional = float(limite_response.data[0].get('valor_config', 10000))
             
-            # Buscar horário personalizado
+            # 🔥 MIGRADO: Buscar horário usando cliente_id
             horario_response = supabase.table('config_cotacoes')\
                 .select('valor_config')\
                 .eq('tipo_config', 'horarios')\
-                .eq('cliente_username', username)\
+                .eq('cliente_id', cliente_id)\
                 .execute()
+            
+            if not horario_response.data:
+                horario_response = supabase.table('config_cotacoes')\
+                    .select('valor_config')\
+                    .eq('tipo_config', 'horarios')\
+                    .eq('cliente_username', username)\
+                    .execute()
             
             horario = None
             if horario_response.data:
                 horario = horario_response.data[0].get('valor_config')
             
             clientes.append({
+                'id': cliente_id,
                 'username': username,
                 'nome': cliente.get('nome', username),
                 'email': cliente.get('email', ''),
@@ -17820,14 +17876,16 @@ def api_admin_cotacoes_clientes():
 def api_admin_cotacoes_cliente(username):
     """Retorna dados completos de um cliente específico"""
     try:
-        usuario = session.get('username')
+        # 🔥 MIGRADO: usar user_id
+        user_id = session.get('user_id')
+        usuario_logado = session.get('username')
         
-        if not usuario:
+        if not user_id or not usuario_logado:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
-        # Buscar dados do cliente
+        # Buscar dados do cliente (incluindo ID)
         cliente_response = supabase.table('usuarios')\
-            .select('username, nome, email')\
+            .select('id, username, nome, email')\
             .eq('username', username)\
             .single()\
             .execute()
@@ -17836,46 +17894,76 @@ def api_admin_cotacoes_cliente(username):
             return jsonify({"success": False, "message": "Cliente não encontrado"}), 404
         
         cliente = cliente_response.data
+        cliente_id = cliente.get('id')
         
-        # Buscar spreads
+        # 🔥 MIGRADO: Buscar spreads usando cliente_id
         spreads_response = supabase.table('config_cotacoes')\
             .select('valor_config')\
             .eq('tipo_config', 'spreads')\
-            .eq('cliente_username', username)\
+            .eq('cliente_id', cliente_id)\
             .execute()
+        
+        # Fallback para dados antigos
+        if not spreads_response.data:
+            spreads_response = supabase.table('config_cotacoes')\
+                .select('valor_config')\
+                .eq('tipo_config', 'spreads')\
+                .eq('cliente_username', username)\
+                .execute()
         
         spreads = {}
         if spreads_response.data:
             spreads = spreads_response.data[0].get('valor_config', {})
         
-        # Buscar permissão
+        # 🔥 MIGRADO: Buscar permissão usando cliente_id
         permissao_response = supabase.table('config_cotacoes')\
             .select('valor_config')\
             .eq('tipo_config', 'permissoes')\
-            .eq('cliente_username', username)\
+            .eq('cliente_id', cliente_id)\
             .execute()
+        
+        if not permissao_response.data:
+            permissao_response = supabase.table('config_cotacoes')\
+                .select('valor_config')\
+                .eq('tipo_config', 'permissoes')\
+                .eq('cliente_username', username)\
+                .execute()
         
         cambio_liberado = True
         if permissao_response.data:
             cambio_liberado = permissao_response.data[0].get('valor_config', True)
         
-        # Buscar limite
+        # 🔥 MIGRADO: Buscar limite usando cliente_id
         limite_response = supabase.table('config_cotacoes')\
             .select('valor_config')\
             .eq('tipo_config', 'limites')\
-            .eq('cliente_username', username)\
+            .eq('cliente_id', cliente_id)\
             .execute()
+        
+        if not limite_response.data:
+            limite_response = supabase.table('config_cotacoes')\
+                .select('valor_config')\
+                .eq('tipo_config', 'limites')\
+                .eq('cliente_username', username)\
+                .execute()
         
         limite_operacional = 10000.00
         if limite_response.data:
             limite_operacional = float(limite_response.data[0].get('valor_config', 10000))
         
-        # Buscar horário
+        # 🔥 MIGRADO: Buscar horário usando cliente_id
         horario_response = supabase.table('config_cotacoes')\
             .select('valor_config')\
             .eq('tipo_config', 'horarios')\
-            .eq('cliente_username', username)\
+            .eq('cliente_id', cliente_id)\
             .execute()
+        
+        if not horario_response.data:
+            horario_response = supabase.table('config_cotacoes')\
+                .select('valor_config')\
+                .eq('tipo_config', 'horarios')\
+                .eq('cliente_username', username)\
+                .execute()
         
         horario = None
         if horario_response.data:
@@ -17884,6 +17972,7 @@ def api_admin_cotacoes_cliente(username):
         return jsonify({
             "success": True,
             "cliente": {
+                'id': cliente_id,
                 'username': cliente.get('username'),
                 'nome': cliente.get('nome'),
                 'email': cliente.get('email', ''),
@@ -17903,9 +17992,11 @@ def api_admin_cotacoes_cliente(username):
 def api_admin_cotacoes_spread():
     """Salva spread individual para um cliente"""
     try:
-        usuario = session.get('username')
+        # 🔥 MIGRADO: usar user_id
+        user_id = session.get('user_id')
+        usuario_logado = session.get('username')
         
-        if not usuario:
+        if not user_id or not usuario_logado:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
         dados = request.get_json()
@@ -17918,12 +18009,29 @@ def api_admin_cotacoes_spread():
         if not username or not par:
             return jsonify({"success": False, "message": "Dados incompletos"}), 400
         
-        # Buscar spreads atuais
+        # 🔥 Buscar o cliente_id
+        cliente_response = supabase.table('usuarios')\
+            .select('id')\
+            .eq('username', username)\
+            .single()\
+            .execute()
+        
+        cliente_id = cliente_response.data.get('id') if cliente_response.data else None
+        
+        # 🔥 Buscar spreads atuais (primeiro por cliente_id)
         response = supabase.table('config_cotacoes')\
             .select('valor_config')\
             .eq('tipo_config', 'spreads')\
-            .eq('cliente_username', username)\
+            .eq('cliente_id', cliente_id)\
             .execute()
+        
+        # Fallback para dados antigos
+        if not response.data and cliente_id:
+            response = supabase.table('config_cotacoes')\
+                .select('valor_config')\
+                .eq('tipo_config', 'spreads')\
+                .eq('cliente_username', username)\
+                .execute()
         
         spreads = {}
         if response.data:
@@ -17946,13 +18054,14 @@ def api_admin_cotacoes_spread():
                     'data_atualizacao': datetime.now().isoformat()
                 })\
                 .eq('tipo_config', 'spreads')\
-                .eq('cliente_username', username)\
+                .eq('id', response.data[0]['id'])\
                 .execute()
         else:
-            # Criar novo
+            # Criar novo (com cliente_id e cliente_username)
             supabase.table('config_cotacoes')\
                 .insert({
                     'tipo_config': 'spreads',
+                    'cliente_id': cliente_id,
                     'cliente_username': username,
                     'valor_config': spreads,
                     'data_atualizacao': datetime.now().isoformat(),
@@ -17960,7 +18069,7 @@ def api_admin_cotacoes_spread():
                 })\
                 .execute()
         
-        print(f"✅ Spread {par} salvo para {username}: compra={spread_compra}%, venda={spread_venda}%")
+        print(f"✅ Spread {par} salvo para {username} (ID: {cliente_id}): compra={spread_compra}%, venda={spread_venda}%")
         
         return jsonify({
             "success": True,
@@ -18053,9 +18162,11 @@ def api_admin_cotacoes_template():
 def api_admin_cotacoes_permissao():
     """Altera permissão de câmbio de um cliente"""
     try:
-        usuario = session.get('username')
+        # 🔥 MIGRADO: usar user_id
+        user_id = session.get('user_id')
+        usuario_logado = session.get('username')
         
-        if not usuario:
+        if not user_id or not usuario_logado:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
         dados = request.get_json()
@@ -18068,7 +18179,16 @@ def api_admin_cotacoes_permissao():
         
         from datetime import datetime
         
-        # 🔥 1. ATUALIZAR TABELA USUARIOS (CAMPO cambio_liberado)
+        # 🔥 Buscar cliente_id
+        cliente_response = supabase.table('usuarios')\
+            .select('id')\
+            .eq('username', username)\
+            .single()\
+            .execute()
+        
+        cliente_id = cliente_response.data.get('id') if cliente_response.data else None
+        
+        # 1. ATUALIZAR TABELA USUARIOS (mantém por username)
         update_response = supabase.table('usuarios')\
             .update({'cambio_liberado': liberado})\
             .eq('username', username)\
@@ -18077,12 +18197,20 @@ def api_admin_cotacoes_permissao():
         if not update_response.data:
             return jsonify({"success": False, "message": "Cliente não encontrado"}), 404
         
-        # 🔥 2. TAMBÉM ATUALIZAR TABELA config_cotacoes (para manter compatibilidade)
+        # 2. ATUALIZAR config_cotacoes (usando cliente_id)
         config_check = supabase.table('config_cotacoes')\
             .select('id')\
             .eq('tipo_config', 'permissoes')\
-            .eq('cliente_username', username)\
+            .eq('cliente_id', cliente_id)\
             .execute()
+        
+        # Fallback para dados antigos
+        if not config_check.data and cliente_id:
+            config_check = supabase.table('config_cotacoes')\
+                .select('id')\
+                .eq('tipo_config', 'permissoes')\
+                .eq('cliente_username', username)\
+                .execute()
         
         if config_check.data:
             supabase.table('config_cotacoes')\
@@ -18090,13 +18218,13 @@ def api_admin_cotacoes_permissao():
                     'valor_config': liberado,
                     'data_atualizacao': datetime.now().isoformat()
                 })\
-                .eq('tipo_config', 'permissoes')\
-                .eq('cliente_username', username)\
+                .eq('id', config_check.data[0]['id'])\
                 .execute()
         else:
             supabase.table('config_cotacoes')\
                 .insert({
                     'tipo_config': 'permissoes',
+                    'cliente_id': cliente_id,
                     'cliente_username': username,
                     'valor_config': liberado,
                     'data_atualizacao': datetime.now().isoformat(),
@@ -18104,9 +18232,7 @@ def api_admin_cotacoes_permissao():
                 })\
                 .execute()
         
-        print(f"✅ Permissão de câmbio para {username}: {'liberado' if liberado else 'bloqueado'}")
-        print(f"   - usuarios.cambio_liberado = {liberado}")
-        print(f"   - config_cotacoes atualizada")
+        print(f"✅ Permissão de câmbio para {username} (ID: {cliente_id}): {'liberado' if liberado else 'bloqueado'}")
         
         return jsonify({
             "success": True,
@@ -18122,9 +18248,11 @@ def api_admin_cotacoes_permissao():
 def api_admin_cotacoes_limite():
     """Altera limite operacional de um cliente"""
     try:
-        usuario = session.get('username')
+        # 🔥 MIGRADO: usar user_id
+        user_id = session.get('user_id')
+        usuario_logado = session.get('username')
         
-        if not usuario:
+        if not user_id or not usuario_logado:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
         dados = request.get_json()
@@ -18141,14 +18269,31 @@ def api_admin_cotacoes_limite():
         if limite > 100000:
             return jsonify({"success": False, "message": "Limite máximo é US$ 100.000,00"}), 400
         
-        # Buscar se já existe
+        # 🔥 Buscar cliente_id
+        cliente_response = supabase.table('usuarios')\
+            .select('id')\
+            .eq('username', username)\
+            .single()\
+            .execute()
+        
+        cliente_id = cliente_response.data.get('id') if cliente_response.data else None
+        
+        from datetime import datetime
+        
+        # 🔥 Buscar se já existe (primeiro por cliente_id)
         response = supabase.table('config_cotacoes')\
             .select('id')\
             .eq('tipo_config', 'limites')\
-            .eq('cliente_username', username)\
+            .eq('cliente_id', cliente_id)\
             .execute()
         
-        from datetime import datetime
+        # Fallback para dados antigos
+        if not response.data and cliente_id:
+            response = supabase.table('config_cotacoes')\
+                .select('id')\
+                .eq('tipo_config', 'limites')\
+                .eq('cliente_username', username)\
+                .execute()
         
         if response.data:
             # Atualizar existente
@@ -18157,14 +18302,14 @@ def api_admin_cotacoes_limite():
                     'valor_config': limite,
                     'data_atualizacao': datetime.now().isoformat()
                 })\
-                .eq('tipo_config', 'limites')\
-                .eq('cliente_username', username)\
+                .eq('id', response.data[0]['id'])\
                 .execute()
         else:
             # Criar novo
             supabase.table('config_cotacoes')\
                 .insert({
                     'tipo_config': 'limites',
+                    'cliente_id': cliente_id,
                     'cliente_username': username,
                     'valor_config': limite,
                     'data_atualizacao': datetime.now().isoformat(),
@@ -18172,7 +18317,7 @@ def api_admin_cotacoes_limite():
                 })\
                 .execute()
         
-        print(f"✅ Limite operacional para {username}: US$ {limite:,.2f}")
+        print(f"✅ Limite operacional para {username} (ID: {cliente_id}): US$ {limite:,.2f}")
         
         return jsonify({
             "success": True,
@@ -18188,9 +18333,11 @@ def api_admin_cotacoes_limite():
 def api_admin_cotacoes_horario():
     """Salva horário personalizado de um cliente"""
     try:
-        usuario = session.get('username')
+        # 🔥 MIGRADO: usar user_id
+        user_id = session.get('user_id')
+        usuario_logado = session.get('username')
         
-        if not usuario:
+        if not user_id or not usuario_logado:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
         dados = request.get_json()
@@ -18201,23 +18348,48 @@ def api_admin_cotacoes_horario():
         if not username:
             return jsonify({"success": False, "message": "Usuário não informado"}), 400
         
+        # 🔥 Buscar cliente_id
+        cliente_response = supabase.table('usuarios')\
+            .select('id')\
+            .eq('username', username)\
+            .single()\
+            .execute()
+        
+        cliente_id = cliente_response.data.get('id') if cliente_response.data else None
+        
         from datetime import datetime
         
         if horario is None:
-            # Remover horário personalizado
+            # Remover horário personalizado (primeiro por cliente_id)
+            supabase.table('config_cotacoes')\
+                .delete()\
+                .eq('tipo_config', 'horarios')\
+                .eq('cliente_id', cliente_id)\
+                .execute()
+            
+            # Fallback: remover por username também (limpeza)
             supabase.table('config_cotacoes')\
                 .delete()\
                 .eq('tipo_config', 'horarios')\
                 .eq('cliente_username', username)\
                 .execute()
-            print(f"🗑️ Horário personalizado removido para {username}")
+            
+            print(f"🗑️ Horário personalizado removido para {username} (ID: {cliente_id})")
         else:
-            # Salvar horário personalizado
+            # Salvar horário personalizado (primeiro por cliente_id)
             response = supabase.table('config_cotacoes')\
                 .select('id')\
                 .eq('tipo_config', 'horarios')\
-                .eq('cliente_username', username)\
+                .eq('cliente_id', cliente_id)\
                 .execute()
+            
+            # Fallback para dados antigos
+            if not response.data and cliente_id:
+                response = supabase.table('config_cotacoes')\
+                    .select('id')\
+                    .eq('tipo_config', 'horarios')\
+                    .eq('cliente_username', username)\
+                    .execute()
             
             if response.data:
                 # Atualizar existente
@@ -18226,21 +18398,22 @@ def api_admin_cotacoes_horario():
                         'valor_config': horario,
                         'data_atualizacao': datetime.now().isoformat()
                     })\
-                    .eq('tipo_config', 'horarios')\
-                    .eq('cliente_username', username)\
+                    .eq('id', response.data[0]['id'])\
                     .execute()
             else:
                 # Criar novo
                 supabase.table('config_cotacoes')\
                     .insert({
                         'tipo_config': 'horarios',
+                        'cliente_id': cliente_id,
                         'cliente_username': username,
                         'valor_config': horario,
                         'data_atualizacao': datetime.now().isoformat(),
                         'created_at': datetime.now().isoformat()
                     })\
                     .execute()
-            print(f"✅ Horário personalizado salvo para {username}: {horario}")
+            
+            print(f"✅ Horário personalizado salvo para {username} (ID: {cliente_id}): {horario}")
         
         return jsonify({
             "success": True,
@@ -18256,9 +18429,11 @@ def api_admin_cotacoes_horario():
 def api_admin_cotacoes_salvar_tudo():
     """Salva todas as configurações de um cliente de uma vez"""
     try:
-        usuario = session.get('username')
+        # 🔥 MIGRADO: usar user_id
+        user_id = session.get('user_id')
+        usuario_logado = session.get('username')
         
-        if not usuario:
+        if not user_id or not usuario_logado:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
         dados = request.get_json()
@@ -18272,9 +18447,18 @@ def api_admin_cotacoes_salvar_tudo():
         if not username:
             return jsonify({"success": False, "message": "Usuário não informado"}), 400
         
+        # 🔥 Buscar cliente_id
+        cliente_response = supabase.table('usuarios')\
+            .select('id')\
+            .eq('username', username)\
+            .single()\
+            .execute()
+        
+        cliente_id = cliente_response.data.get('id') if cliente_response.data else None
+        
         from datetime import datetime
         
-        # 🔥 1. ATUALIZAR TABELA USUARIOS (CAMPO cambio_liberado)
+        # 1. ATUALIZAR TABELA USUARIOS (mantém por username)
         update_response = supabase.table('usuarios')\
             .update({'cambio_liberado': cambio_liberado})\
             .eq('username', username)\
@@ -18283,12 +18467,19 @@ def api_admin_cotacoes_salvar_tudo():
         if not update_response.data:
             print(f"⚠️ Cliente {username} não encontrado na tabela usuarios")
         
-        # 2. Salvar spreads
+        # 2. Salvar spreads (híbrido)
         spreads_response = supabase.table('config_cotacoes')\
             .select('id')\
             .eq('tipo_config', 'spreads')\
-            .eq('cliente_username', username)\
+            .eq('cliente_id', cliente_id)\
             .execute()
+        
+        if not spreads_response.data and cliente_id:
+            spreads_response = supabase.table('config_cotacoes')\
+                .select('id')\
+                .eq('tipo_config', 'spreads')\
+                .eq('cliente_username', username)\
+                .execute()
         
         if spreads_response.data:
             supabase.table('config_cotacoes')\
@@ -18296,13 +18487,13 @@ def api_admin_cotacoes_salvar_tudo():
                     'valor_config': spreads,
                     'data_atualizacao': datetime.now().isoformat()
                 })\
-                .eq('tipo_config', 'spreads')\
-                .eq('cliente_username', username)\
+                .eq('id', spreads_response.data[0]['id'])\
                 .execute()
         else:
             supabase.table('config_cotacoes')\
                 .insert({
                     'tipo_config': 'spreads',
+                    'cliente_id': cliente_id,
                     'cliente_username': username,
                     'valor_config': spreads,
                     'data_atualizacao': datetime.now().isoformat(),
@@ -18310,12 +18501,19 @@ def api_admin_cotacoes_salvar_tudo():
                 })\
                 .execute()
         
-        # 3. Salvar permissão (config_cotacoes)
+        # 3. Salvar permissão (híbrido)
         permissao_response = supabase.table('config_cotacoes')\
             .select('id')\
             .eq('tipo_config', 'permissoes')\
-            .eq('cliente_username', username)\
+            .eq('cliente_id', cliente_id)\
             .execute()
+        
+        if not permissao_response.data and cliente_id:
+            permissao_response = supabase.table('config_cotacoes')\
+                .select('id')\
+                .eq('tipo_config', 'permissoes')\
+                .eq('cliente_username', username)\
+                .execute()
         
         if permissao_response.data:
             supabase.table('config_cotacoes')\
@@ -18323,13 +18521,13 @@ def api_admin_cotacoes_salvar_tudo():
                     'valor_config': cambio_liberado,
                     'data_atualizacao': datetime.now().isoformat()
                 })\
-                .eq('tipo_config', 'permissoes')\
-                .eq('cliente_username', username)\
+                .eq('id', permissao_response.data[0]['id'])\
                 .execute()
         else:
             supabase.table('config_cotacoes')\
                 .insert({
                     'tipo_config': 'permissoes',
+                    'cliente_id': cliente_id,
                     'cliente_username': username,
                     'valor_config': cambio_liberado,
                     'data_atualizacao': datetime.now().isoformat(),
@@ -18337,12 +18535,19 @@ def api_admin_cotacoes_salvar_tudo():
                 })\
                 .execute()
         
-        # 4. Salvar limite
+        # 4. Salvar limite (híbrido)
         limite_response = supabase.table('config_cotacoes')\
             .select('id')\
             .eq('tipo_config', 'limites')\
-            .eq('cliente_username', username)\
+            .eq('cliente_id', cliente_id)\
             .execute()
+        
+        if not limite_response.data and cliente_id:
+            limite_response = supabase.table('config_cotacoes')\
+                .select('id')\
+                .eq('tipo_config', 'limites')\
+                .eq('cliente_username', username)\
+                .execute()
         
         if limite_response.data:
             supabase.table('config_cotacoes')\
@@ -18350,13 +18555,13 @@ def api_admin_cotacoes_salvar_tudo():
                     'valor_config': limite_operacional,
                     'data_atualizacao': datetime.now().isoformat()
                 })\
-                .eq('tipo_config', 'limites')\
-                .eq('cliente_username', username)\
+                .eq('id', limite_response.data[0]['id'])\
                 .execute()
         else:
             supabase.table('config_cotacoes')\
                 .insert({
                     'tipo_config': 'limites',
+                    'cliente_id': cliente_id,
                     'cliente_username': username,
                     'valor_config': limite_operacional,
                     'data_atualizacao': datetime.now().isoformat(),
@@ -18364,13 +18569,20 @@ def api_admin_cotacoes_salvar_tudo():
                 })\
                 .execute()
         
-        # 5. Salvar horário
+        # 5. Salvar horário (híbrido)
         if horario:
             horario_response = supabase.table('config_cotacoes')\
                 .select('id')\
                 .eq('tipo_config', 'horarios')\
-                .eq('cliente_username', username)\
+                .eq('cliente_id', cliente_id)\
                 .execute()
+            
+            if not horario_response.data and cliente_id:
+                horario_response = supabase.table('config_cotacoes')\
+                    .select('id')\
+                    .eq('tipo_config', 'horarios')\
+                    .eq('cliente_username', username)\
+                    .execute()
             
             if horario_response.data:
                 supabase.table('config_cotacoes')\
@@ -18378,13 +18590,13 @@ def api_admin_cotacoes_salvar_tudo():
                         'valor_config': horario,
                         'data_atualizacao': datetime.now().isoformat()
                     })\
-                    .eq('tipo_config', 'horarios')\
-                    .eq('cliente_username', username)\
+                    .eq('id', horario_response.data[0]['id'])\
                     .execute()
             else:
                 supabase.table('config_cotacoes')\
                     .insert({
                         'tipo_config': 'horarios',
+                        'cliente_id': cliente_id,
                         'cliente_username': username,
                         'valor_config': horario,
                         'data_atualizacao': datetime.now().isoformat(),
@@ -18392,15 +18604,20 @@ def api_admin_cotacoes_salvar_tudo():
                     })\
                     .execute()
         else:
-            # Remover horário personalizado se existir
+            # Remover horário personalizado
+            supabase.table('config_cotacoes')\
+                .delete()\
+                .eq('tipo_config', 'horarios')\
+                .eq('cliente_id', cliente_id)\
+                .execute()
+            
             supabase.table('config_cotacoes')\
                 .delete()\
                 .eq('tipo_config', 'horarios')\
                 .eq('cliente_username', username)\
                 .execute()
         
-        print(f"✅ Todas as configurações salvas para {username}")
-        print(f"   - usuarios.cambio_liberado = {cambio_liberado}")
+        print(f"✅ Todas as configurações salvas para {username} (ID: {cliente_id})")
         
         return jsonify({
             "success": True,
@@ -18901,7 +19118,7 @@ def admin_transferencias():
 
 @app.route('/api/admin/transferencias', methods=['GET'])
 def api_admin_transferencias():
-    """Retorna apenas transferências internacionais"""
+    """Retorna apenas transferências internacionais - VERSÃO HÍBRIDA"""
     try:
         usuario = session.get('username')
         
@@ -18916,18 +19133,30 @@ def api_admin_transferencias():
         periodo_filter = int(request.args.get('periodo', 0))
         search_filter = request.args.get('search', '').strip()
         
-        # Calcular offset
         offset = (page - 1) * limit
         
+        # 🔥 PRÉ-PROCESSAMENTO: Converter username para UUID se necessário
+        cliente_id_lookup = None
+        if cliente_filter:
+            # Tenta buscar o UUID do cliente
+            user_resp = supabase.table('usuarios')\
+                .select('id')\
+                .eq('username', cliente_filter)\
+                .execute()
+            if user_resp.data:
+                cliente_id_lookup = user_resp.data[0]['id']
+        
         def build_filter_chain(query):
-            # Filtrar apenas transferências internacionais
             query = query.eq('tipo', 'transferencia_internacional')
             
             if status_filter and status_filter != 'todos':
                 query = query.eq('status', status_filter)
             
+            # 🔥 FILTRO HÍBRIDO: tenta cliente_id primeiro
             if cliente_filter:
-                query = query.eq('cliente', cliente_filter)
+                # Subquery complexa: OR entre cliente_id e cliente
+                # Como Supabase não suporta OR diretamente, usamos um approach diferente
+                pass
             
             if periodo_filter > 0:
                 from datetime import datetime, timedelta
@@ -18940,70 +19169,119 @@ def api_admin_transferencias():
             
             return query
         
-        # QUERY 1: contar registros filtrados
-        count_query = build_filter_chain(supabase.table('transferencias')\
-            .select('id', count='exact'))
-        count_response = count_query.execute()
-        total_count = count_response.count or 0
+        # 🔥 Busca HÍBRIDA: duas queries e combina resultados
+        todas_transferencias = []
+        ids_vistos = set()
         
-        # QUERY 2: obter dados apenas da página atual
-        page_query = build_filter_chain(supabase.table('transferencias')\
-            .select('id, tipo, status, created_at, moeda, valor, cliente, usuario, solicitado_por, beneficiario, descricao, motivo_recusa, invoice_info'))
-        response = page_query\
-            .order('created_at', desc=True)\
-            .range(offset, offset + limit - 1)\
-            .execute()
-        transferencias_data = response.data or []
+        # Query 1: Buscar por cliente_id (novo)
+        if cliente_id_lookup:
+            query1 = supabase.table('transferencias')\
+                .select('*')\
+                .eq('tipo', 'transferencia_internacional')\
+                .eq('cliente_id', cliente_id_lookup)
+            
+            if status_filter and status_filter != 'todos':
+                query1 = query1.eq('status', status_filter)
+            if periodo_filter > 0:
+                from datetime import datetime, timedelta
+                data_limite = datetime.now() - timedelta(days=periodo_filter)
+                query1 = query1.gte('created_at', data_limite.isoformat())
+            
+            response1 = query1.execute()
+            for t in (response1.data or []):
+                if t['id'] not in ids_vistos:
+                    todas_transferencias.append(t)
+                    ids_vistos.add(t['id'])
         
-        # QUERY 3: obter apenas status para estatísticas
-        status_query = build_filter_chain(supabase.table('transferencias')\
-            .select('status'))
+        # Query 2: Buscar por cliente (string) - fallback
+        query2 = supabase.table('transferencias')\
+            .select('*')\
+            .eq('tipo', 'transferencia_internacional')\
+            .eq('cliente', cliente_filter) if cliente_filter else None
+        
+        if query2:
+            if status_filter and status_filter != 'todos':
+                query2 = query2.eq('status', status_filter)
+            if periodo_filter > 0:
+                from datetime import datetime, timedelta
+                data_limite = datetime.now() - timedelta(days=periodo_filter)
+                query2 = query2.gte('created_at', data_limite.isoformat())
+            
+            response2 = query2.execute()
+            for t in (response2.data or []):
+                if t['id'] not in ids_vistos:
+                    todas_transferencias.append(t)
+                    ids_vistos.add(t['id'])
+        
+        # Se não tem filtro de cliente, busca todas
+        if not cliente_filter:
+            query_all = supabase.table('transferencias')\
+                .select('*')\
+                .eq('tipo', 'transferencia_internacional')
+            
+            if status_filter and status_filter != 'todos':
+                query_all = query_all.eq('status', status_filter)
+            if periodo_filter > 0:
+                from datetime import datetime, timedelta
+                data_limite = datetime.now() - timedelta(days=periodo_filter)
+                query_all = query_all.gte('created_at', data_limite.isoformat())
+            
+            response_all = query_all.execute()
+            for t in (response_all.data or []):
+                if t['id'] not in ids_vistos:
+                    todas_transferencias.append(t)
+                    ids_vistos.add(t['id'])
+        
+        # Ordenar por data
+        todas_transferencias.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        
+        # Paginação
+        total_count = len(todas_transferencias)
+        transferencias_data = todas_transferencias[offset:offset + limit]
+        
+        # Buscar nomes dos clientes
+        cliente_ids = set()
+        for t in transferencias_data:
+            if t.get('cliente_id'):
+                cliente_ids.add(t['cliente_id'])
+        
+        clientes_nomes = {}
+        if cliente_ids:
+            clientes_response = supabase.table('usuarios')\
+                .select('id, nome')\
+                .in_('id', list(cliente_ids))\
+                .execute()
+            if clientes_response.data:
+                for cliente in clientes_response.data:
+                    clientes_nomes[cliente['id']] = cliente['nome']
+        
+        # Estatísticas
+        status_query = supabase.table('transferencias')\
+            .select('status')\
+            .eq('tipo', 'transferencia_internacional')
+        
+        if periodo_filter > 0:
+            from datetime import datetime, timedelta
+            data_limite = datetime.now() - timedelta(days=periodo_filter)
+            status_query = status_query.gte('created_at', data_limite.isoformat())
+        
         status_response = status_query.execute()
         status_data = status_response.data or []
         
-        # 🔥 OTIMIZAÇÃO: Buscar todos os nomes de clientes de uma vez (evita N queries)
-        cliente_usernames = set()
-        for t in transferencias_data:
-            cliente_username = t.get('cliente') or t.get('usuario') or t.get('solicitado_por')
-            if cliente_username:
-                cliente_usernames.add(cliente_username)
-        
-        # Buscar nomes em lote
-        clientes_nomes = {}
-        if cliente_usernames:
-            clientes_response = supabase.table('usuarios')\
-                .select('username, nome')\
-                .in_('username', list(cliente_usernames))\
-                .execute()
-            
-            if clientes_response.data:
-                for cliente in clientes_response.data:
-                    clientes_nomes[cliente['username']] = cliente['nome']
-        
         transferencias = []
         for t in transferencias_data:
-            # Buscar nome do cliente (agora do cache local)
-            cliente_username = t.get('cliente') or t.get('usuario') or t.get('solicitado_por')
-            cliente_nome = clientes_nomes.get(cliente_username) if cliente_username else None
+            cliente_id = t.get('cliente_id')
+            cliente_nome = clientes_nomes.get(cliente_id) if cliente_id else None
             
-            # 🔥 OTIMIZAÇÃO: Verificar invoice de forma mais eficiente
-            invoice_info = t.get('invoice_info')
-            tem_invoice = False
-            
-            if invoice_info:
-                # Se for string JSON, converter uma vez
-                if isinstance(invoice_info, str):
-                    try:
-                        import json
-                        invoice_info = json.loads(invoice_info)
-                    except:
-                        invoice_info = None
-                
-                # Verificar se existe caminho de arquivo válido
-                if isinstance(invoice_info, dict):
-                    caminho = invoice_info.get('caminho_arquivo')
-                    if caminho and caminho.strip():
-                        tem_invoice = True
+            if not cliente_nome:
+                cliente_username = t.get('cliente')
+                if cliente_username:
+                    user_resp = supabase.table('usuarios')\
+                        .select('nome')\
+                        .eq('username', cliente_username)\
+                        .execute()
+                    if user_resp.data:
+                        cliente_nome = user_resp.data[0]['nome']
             
             transferencias.append({
                 'id': t.get('id'),
@@ -19012,19 +19290,15 @@ def api_admin_transferencias():
                 'data': t.get('created_at') or t.get('data'),
                 'moeda': t.get('moeda', 'USD'),
                 'valor': float(t.get('valor', 0)),
-                'cliente': cliente_username,
+                'cliente': t.get('cliente'),
                 'cliente_nome': cliente_nome,
                 'usuario': t.get('usuario'),
                 'beneficiario': t.get('beneficiario'),
                 'descricao': t.get('descricao'),
-                'tem_invoice': tem_invoice,
+                'tem_invoice': bool(t.get('invoice_info')),
                 'motivo_recusa': t.get('motivo_recusa')
             })
         
-        print(f"📊 {len(transferencias)} transferências internacionais encontradas (página {page})")
-        # 🔥 OTIMIZAÇÃO: Removido print detalhado de invoices para performance
-        
-        # 🔥 OTIMIZAÇÃO: Calcular estatísticas globais de forma mais eficiente
         stats = {'pendentes': 0, 'processando': 0, 'concluidas': 0}
         for t in status_data:
             status = t.get('status')
@@ -19042,7 +19316,7 @@ def api_admin_transferencias():
                 "page": page,
                 "limit": limit,
                 "total": total_count,
-                "total_pages": (total_count + limit - 1) // limit  # Ceiling division
+                "total_pages": (total_count + limit - 1) // limit
             },
             "statistics": {
                 "total": total_count,
