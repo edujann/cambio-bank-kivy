@@ -490,8 +490,8 @@ def set_security_headers(response):
         "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
         "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
         "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; "
-        "img-src 'self' data: blob:; "
-        "connect-src 'self';"
+        "img-src 'self' data: blob: https://rpljjewsxsnbrsagsuoh.supabase.co; "
+        "connect-src 'self' https://rpljjewsxsnbrsagsuoh.supabase.co;"
     )
     return response
 # ============================================
@@ -1593,7 +1593,11 @@ def upload_invoice_nova_transferencia(transferencia_id):
         
         print(f"🔼 [UPLOAD-NOVA] Fazendo upload de {len(arquivo_bytes)} bytes...")
         upload_response = supabase.storage.from_("invoices")\
-            .upload(caminho_supabase, arquivo_bytes)
+            .upload(
+                caminho_supabase, 
+                arquivo_bytes,
+                file_options={"content-type": "application/pdf"}
+            )
         
         if not upload_response:
             return jsonify({'error': 'Erro ao fazer upload para o storage'}), 500
@@ -9206,6 +9210,20 @@ def processar_transferencia_sync(transf):
             if response.data:
                 cliente_nome = response.data[0].get('cliente_nome') or response.data[0].get('cliente_username')
         
+        # 🔥 OBTER STATUS DO BENEFICIÁRIO
+        beneficiario_status = None
+        beneficiario_id = transf.get('beneficiario_id')
+        if beneficiario_id:
+            try:
+                benef_check = supabase.table('beneficiarios')\
+                    .select('status')\
+                    .eq('id', beneficiario_id)\
+                    .execute()
+                if benef_check.data:
+                    beneficiario_status = benef_check.data[0].get('status')
+            except Exception as e:
+                print(f"⚠️ Erro ao buscar status do beneficiário {beneficiario_id}: {e}")
+        
         # Obter informações da invoice
         invoice_info = transf.get('invoice_info')
         if invoice_info and isinstance(invoice_info, str):
@@ -9230,7 +9248,8 @@ def processar_transferencia_sync(transf):
             'finalidade': transf.get('finalidade'),
             'descricao': transf.get('descricao'),
             'invoice_info': invoice_info,
-            'motivo_recusa': transf.get('motivo_recusa')
+            'motivo_recusa': transf.get('motivo_recusa'),
+            'beneficiario_status': beneficiario_status
         }
     except Exception as e:
         print(f"⚠️ Erro ao processar transferência {transf.get('id')}: {e}")
@@ -9241,7 +9260,8 @@ def processar_transferencia_sync(transf):
             'valor': float(transf.get('valor', 0)),
             'moeda': transf.get('moeda', 'USD'),
             'data': transf.get('created_at') or transf.get('data'),
-            'cliente_nome': None
+            'cliente_nome': None,
+            'beneficiario_status': None
         }
 
 
@@ -9283,6 +9303,23 @@ def api_admin_aprovar_transferencia():
             return jsonify({"success": False, "message": "Transferência não encontrada"}), 404
         
         transf = response.data[0]
+        
+        # 🔥 VERIFICAR SE O BENEFICIÁRIO ESTÁ APROVADO PELO COMPLIANCE
+        beneficiario_id = transf.get('beneficiario_id')
+        if beneficiario_id:
+            benef_check = supabase.table('beneficiarios')\
+                .select('status')\
+                .eq('id', beneficiario_id)\
+                .execute()
+            
+            if benef_check.data:
+                status_benef = benef_check.data[0].get('status')
+                if status_benef != 'approved':
+                    return jsonify({
+                        "success": False,
+                        "message": f"❌ Esta transferência não pode ser aprovada. O beneficiário ainda não foi aprovado pelo compliance. Status atual: {status_benef}",
+                        "beneficiario_status": status_benef
+                    }), 403
         
         # Verificar se é internacional e se invoice está aprovada
         if transf.get('tipo') == 'transferencia_internacional':
@@ -9571,7 +9608,24 @@ def api_admin_concluir_transferencia_swift():
         transf = response.data[0]
         valor = float(transf.get('valor', 0))
         moeda = transf.get('moeda', 'USD')
-        
+
+        # Verificar se o beneficiário está aprovado pelo compliance
+        beneficiario_id = transf.get('beneficiario_id')
+        if beneficiario_id:
+            benef_check = supabase.table('beneficiarios')\
+                .select('status')\
+                .eq('id', beneficiario_id)\
+                .execute()
+            
+            if benef_check.data:
+                status_benef = benef_check.data[0].get('status')
+                if status_benef != 'approved':
+                    return jsonify({
+                        "success": False,
+                        "message": f"❌ Esta transferência não pode ser concluída. O beneficiário aguarda aprovação do compliance. Status: {status_benef}",
+                        "beneficiario_status": status_benef
+                    }), 403  
+                      
         # Buscar conta bancária
         conta_response = supabase.table('contas_bancarias_empresa')\
             .select('*')\
@@ -9841,6 +9895,17 @@ def api_admin_invoice_aprovar():
         if not usuario:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
+        # 🔥 VERIFICAR PERMISSÃO (admin OU compliance)
+        if supabase:
+            user_check = supabase.table('usuarios')\
+                .select('tipo')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if not user_check.data or user_check.data.get('tipo') not in ('admin', 'compliance'):
+                return jsonify({"success": False, "message": "Acesso negado"}), 403
+        
         dados = request.get_json()
         transferencia_id = dados.get('transferencia_id')
         
@@ -9901,6 +9966,17 @@ def api_admin_invoice_recusar():
         
         if not usuario:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
+        
+        # 🔥 VERIFICAR PERMISSÃO (admin OU compliance)
+        if supabase:
+            user_check = supabase.table('usuarios')\
+                .select('tipo')\
+                .eq('username', usuario)\
+                .single()\
+                .execute()
+            
+            if not user_check.data or user_check.data.get('tipo') not in ('admin', 'compliance'):
+                return jsonify({"success": False, "message": "Acesso negado"}), 403
         
         dados = request.get_json()
         transferencia_id = dados.get('transferencia_id')
@@ -15244,10 +15320,19 @@ def get_signed_url():
         if not caminho:
             return jsonify({'success': False, 'message': 'Caminho do arquivo não informado'}), 400
         
-        # Gerar URL assinada válida por 1 hora (3600 segundos)
-        signed_url = supabase.storage.from_('kyc-docs').create_signed_url(caminho, 3600)
+        import urllib.parse
+        caminho_decodificado = urllib.parse.unquote(caminho)
         
-        # A resposta pode ser um dicionário ou objeto dependendo da versão
+        if caminho_decodificado.startswith('transferencias/'):
+            bucket = 'invoices'
+        else:
+            bucket = 'kyc-docs'
+        
+        print(f"📁 Bucket: {bucket}, Arquivo: {caminho_decodificado}")
+        
+        # Gerar URL assinada (sem download forçado)
+        signed_url = supabase.storage.from_(bucket).create_signed_url(caminho_decodificado, 3600)
+        
         if isinstance(signed_url, dict):
             url = signed_url.get('signedURL') or signed_url.get('signedUrl', '')
         else:
@@ -15260,7 +15345,7 @@ def get_signed_url():
         
     except Exception as e:
         print(f"❌ Erro ao gerar signed URL: {e}")
-        return jsonify({'success': False, 'message': _err(e)}), 500                
+        return jsonify({'success': False, 'message': str(e)}), 500   
 
 # ---- AML Config ----
 
@@ -23455,15 +23540,16 @@ def compliance_beneficiario_detalhes(beneficiario_id):
                         if cli.data:
                             transf_cliente_nome = cli.data[0].get('razao_social')
                     
-                    transferencias.append({
-                        'id': t.get('id'),
-                        'created_at': t.get('created_at'),
-                        'valor': t.get('valor'),
-                        'moeda': t.get('moeda'),
-                        'status': t.get('status'),
-                        'cliente_nome': transf_cliente_nome,
-                        'invoice_path': t.get('invoice_info', {}).get('caminho_arquivo') if t.get('invoice_info') else None
-                    })
+                        transferencias.append({
+                            'id': t.get('id'),
+                            'created_at': t.get('created_at'),
+                            'valor': t.get('valor'),
+                            'moeda': t.get('moeda'),
+                            'status': t.get('status'),
+                            'cliente_nome': transf_cliente_nome,
+                            'invoice_path': t.get('invoice_info', {}).get('caminho_arquivo') if t.get('invoice_info') else None,
+                            'invoice_status': t.get('invoice_info', {}).get('status') if t.get('invoice_info') else None
+                        })
         
         return jsonify({
             'success': True,
@@ -23508,6 +23594,32 @@ def compliance_beneficiario_detalhe_page(beneficiario_id):
     return render_with_lang('compliance_b2b/beneficiario_detalhe.html',
                           usuario=usuario,
                           beneficiario_id=beneficiario_id)
+
+@app.route('/api/compliance/b2b/beneficiarios/pendentes/count', methods=['GET'])
+def api_beneficiarios_pendentes_count():
+    """Retorna quantidade de beneficiários pendentes de aprovação"""
+    try:
+        if 'username' not in session:
+            return jsonify({'error': 'Não autenticado'}), 401
+        
+        tipo = session.get('tipo', '')
+        if tipo not in ('admin', 'compliance'):
+            return jsonify({'error': 'Acesso negado'}), 403
+        
+        result = supabase.table('beneficiarios')\
+            .select('id', count='exact')\
+            .eq('status', 'pending')\
+            .eq('is_template', False)\
+            .execute()
+        
+        return jsonify({
+            'success': True,
+            'pendentes': result.count or 0
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao contar beneficiários pendentes: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 if __name__ == '__main__':

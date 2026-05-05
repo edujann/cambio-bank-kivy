@@ -307,7 +307,15 @@ function renderDetails(data) {
                                     <td><strong>${formatMoney(t.valor, t.moeda)}</strong></td>
                                     <td>${t.moeda || 'USD'}</td>
                                     <td>${getStatusTag(t.status)}</td>
-                                    <td>${t.invoice_path ? `<a href="${t.invoice_path}" target="_blank" class="btn btn-ghost btn-sm"><i class="fas fa-file-pdf"></i> View</a>` : '—'}</td>
+                                    <td>${t.invoice_path ? `
+                                    <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                                        <button class="btn btn-ghost btn-sm" onclick="verInvoice('${t.invoice_path}')"><i class="fas fa-file-pdf"></i> View</button>
+                                        ${t.invoice_status === 'pending' ? `
+                                            <button class="btn btn-success btn-sm" onclick="aprovarInvoice('${t.id}')"><i class="fas fa-check"></i> Approve</button>
+                                            <button class="btn btn-danger btn-sm" onclick="recusarInvoice('${t.id}')"><i class="fas fa-times"></i> Reject</button>
+                                        ` : t.invoice_status === 'approved' ? '<span class="tag tag-approved">Approved</span>' : t.invoice_status === 'rejected' ? '<span class="tag tag-rejected">Rejected</span>' : '—'}
+                                    </div>
+                                ` : '—'}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -318,6 +326,98 @@ function renderDetails(data) {
     }
     
     document.getElementById('detailsContainer').innerHTML = html;
+}
+
+async function verInvoice(caminho) {
+    try {
+        const response = await fetch(`/api/storage/signed-url?path=${encodeURIComponent(caminho)}`);
+        const data = await response.json();
+        
+        if (data.success && data.url) {
+            // Buscar o arquivo diretamente
+            const fileResponse = await fetch(data.url);
+            const blob = await fileResponse.blob();
+            
+            // Criar URL do blob
+            const blobUrl = URL.createObjectURL(blob);
+            
+            // Criar link para download
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = caminho.split('/').pop(); // Nome do arquivo
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Limpar a URL do blob
+            URL.revokeObjectURL(blobUrl);
+        } else {
+            toast(data.message || 'Erro ao carregar invoice', 'err');
+        }
+    } catch (error) {
+        console.error('Erro ao abrir invoice:', error);
+        toast('Erro ao abrir invoice', 'err');
+    }
+}
+
+async function aprovarInvoice(transferenciaId) {
+    if (!confirm('Aprovar esta invoice?')) return;
+    
+    try {
+        const response = await fetch('/api/admin/aprovar-operacoes/invoice/aprovar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ transferencia_id: transferenciaId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            toast('Invoice aprovada com sucesso!', 'ok');
+            location.reload();
+        } else {
+            toast('Erro: ' + data.message, 'err');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        toast('Erro ao aprovar invoice', 'err');
+    }
+}
+
+async function recusarInvoice(transferenciaId) {
+    const motivo = prompt('Motivo da recusa:');
+    if (!motivo) return;
+    
+    if (!confirm('Recusar esta invoice?')) return;
+    
+    try {
+        const response = await fetch('/api/admin/aprovar-operacoes/invoice/recusar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ transferencia_id: transferenciaId, motivo: motivo })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            toast('Invoice recusada!', 'ok');
+            location.reload();
+        } else {
+            toast('Erro: ' + data.message, 'err');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        toast('Erro ao recusar invoice', 'err');
+    }
+}
+
+function toast(msg, tipo) {
+    const toastDiv = document.createElement('div');
+    toastDiv.className = `toast toast-${tipo}`;
+    toastDiv.innerHTML = `<i class="fas ${tipo === 'ok' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${msg}`;
+    toastDiv.style.cssText = `position:fixed; bottom:20px; right:20px; padding:12px 20px; border-radius:8px; z-index:9999; font-size:13px; background:${tipo === 'ok' ? '#2ec27e' : '#e01b24'}; color:white;`;
+    document.body.appendChild(toastDiv);
+    setTimeout(() => toastDiv.remove(), 4000);
 }
 
 function formatDate(d) { return d ? new Date(d).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) : '—'; }

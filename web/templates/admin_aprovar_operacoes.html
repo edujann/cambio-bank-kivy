@@ -1007,9 +1007,15 @@
                 </div>
                 <div class="transferencia-actions">
                     ${tipo === 'pendente' ? `
-                        <button class="btn-item btn-item-aprovar" onclick="event.stopPropagation(); aprovarTransferencia('${transf.id}')">
-                            <i class="fas fa-check"></i> Aprovar
-                        </button>
+                        ${transf.beneficiario_status && transf.beneficiario_status !== 'approved' ? `
+                            <button class="btn-item" style="background: #666; cursor: not-allowed;" disabled title="Beneficiário aguarda aprovação do compliance">
+                                <i class="fas fa-clock"></i> Aguardando Compliance
+                            </button>
+                        ` : `
+                            <button class="btn-item btn-item-aprovar" onclick="event.stopPropagation(); aprovarTransferencia('${transf.id}')">
+                                <i class="fas fa-check"></i> Aprovar
+                            </button>
+                        `}
                         <button class="btn-item btn-item-recusar" onclick="event.stopPropagation(); abrirModalRecusa('${transf.id}')">
                             <i class="fas fa-times"></i> Recusar
                         </button>

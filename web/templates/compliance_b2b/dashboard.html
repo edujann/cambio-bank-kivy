@@ -364,6 +364,18 @@ async function load() {
         if (s.pendentes > 0) { const b = document.getElementById('sbBadgeClients'); b.textContent = s.pendentes; b.style.display = ''; }
         if (s.edd_abertos > 0) { const b = document.getElementById('sbBadgeEdd'); b.textContent = s.edd_abertos; b.style.display = ''; }
         if (s.alertas_abertos > 0) { const b = document.getElementById('sbBadgeAlerts'); b.textContent = s.alertas_abertos; b.style.display = ''; }
+        
+        // Buscar quantidade de beneficiários pendentes
+        try {
+            const benefRes = await fetch('/api/compliance/b2b/beneficiarios/pendentes/count');
+            const benefData = await benefRes.json();
+            if (benefData.success && benefData.pendentes > 0) {
+                const badge = document.getElementById('sbBadgeBenef');
+                badge.textContent = benefData.pendentes;
+                badge.style.display = '';
+            }
+        } catch(e) { console.error('Erro ao carregar badge beneficiários:', e); }
+        
     } catch(e) { console.error(e); }
 
     loadPending();
