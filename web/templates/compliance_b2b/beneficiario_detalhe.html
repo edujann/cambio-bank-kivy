@@ -61,6 +61,90 @@
         td{padding:10px 14px;border-top:1px solid var(--cor-borda);}
         tr:hover td{background:rgba(210,158,0,.02);}
         
+        /* Nav section label */
+        .nav-section-lbl {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            color: var(--cor-texto-secundario);
+            padding: 14px 18px 5px;
+            opacity: .7;
+        }
+
+        /* Nav divider */
+        .nav-divider {
+            height: 1px;
+            background: var(--cor-borda);
+            margin: 8px 14px;
+        }
+
+        /* Nav badge */
+        .nav-badge {
+            margin-left: auto;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 10px;
+            min-width: 18px;
+            text-align: center;
+            background: #e01b24;
+        }
+
+        /* Botão de tema */
+        #btnTheme {
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto-secundario);
+            padding: 0;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 30px;
+            width: 30px;
+            transition: .15s;
+        }
+
+        #btnTheme:hover {
+            border-color: #d29e00;
+            color: #d29e00;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 17px;
+        }
+
+        .logo-text {
+            background: linear-gradient(90deg, #b78700, #eeb600);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 800;
+        }
+
+        .logo-text span {
+            font-weight: 400;
+        }
+
+        .badge-b2b {
+            background: rgba(210, 158, 0, 0.15);
+            border: 1px solid rgba(210, 158, 0, 0.4);
+            color: #d29e00;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 10px;
+            letter-spacing: .5px;
+            text-transform: uppercase;
+        }        
+
         /* Buttons */
         .btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;text-decoration:none;transition:.15s;}
         .btn-gold{background:linear-gradient(90deg,#b78700,#d29e00);color:#1a1200;}
@@ -89,28 +173,37 @@
 <body>
 
 <div class="top-bar">
-    <div style="display:flex;align-items:center;gap:10px;">
+    <div class="logo">
         <span class="logo-text"><strong>Link</strong><span> international</span></span>
-        <span class="badge-b2b">B2B Compliance</span>
+        <div class="badge-b2b">B2B Compliance</div>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;">
-        <button id="btnTheme" onclick="toggleTheme()"><i class="fas fa-sun"></i></button>
+    <div class="hd-right">
         <span class="badge-user"><i class="fas fa-user-shield"></i> {{ usuario }}</span>
-        <a href="/compliance/b2b/beneficiarios" class="btn-hd btn-hd-ghost"><i class="fas fa-arrow-left"></i> Back</a>
+        <a href="/language/{{ 'pt' if current_lang == 'en' else 'en' }}" class="btn-hd btn-hd-ghost" title="Switch language"><i class="fas fa-globe"></i> {{ 'PT' if current_lang == 'en' else 'EN' }}</a>
+        <button id="btnTheme" onclick="toggleTheme()" title="Toggle theme"><i class="fas fa-sun"></i></button>
+        <a href="/compliance/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-shield-halved"></i> Compliance</a>
+        <a href="/compliance/b2b/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-arrow-left"></i> Voltar</a>
     </div>
 </div>
 
 <div class="main-layout">
     <nav class="sidebar">
         <div class="nav-section-lbl">Overview</div>
-        <a href="/compliance/b2b/dashboard" class="nav-item"><i class="fas fa-gauge-high"></i> Dashboard</a>
-        <a href="/compliance/b2b/clientes" class="nav-item"><i class="fas fa-building"></i> Clients</a>
-        <a href="/compliance/b2b/beneficiarios" class="nav-item active"><i class="fas fa-users"></i> Beneficiaries</a>
+        <a class="nav-item active" href="/compliance/b2b/dashboard"><i class="fas fa-gauge-high"></i> Dashboard</a>
+        <a class="nav-item" href="/compliance/b2b/clientes"><i class="fas fa-building"></i> Clients <span class="nav-badge" id="sbBadgeClients" style="display:none"></span></a>
+        <a class="nav-item" href="/compliance/b2b/clientes/novo"><i class="fas fa-plus-circle"></i> New Onboarding</a>
+
         <div class="nav-divider"></div>
         <div class="nav-section-lbl">Compliance</div>
-        <a href="/compliance/b2b/edd" class="nav-item"><i class="fas fa-magnifying-glass-chart"></i> EDD Cases</a>
-        <a href="/compliance/b2b/alertas" class="nav-item"><i class="fas fa-bell"></i> Alerts</a>
-        <a href="/compliance/b2b/risk-config" class="nav-item"><i class="fas fa-gear"></i> Risk Config</a>
+        <a class="nav-item" href="/compliance/b2b/edd"><i class="fas fa-magnifying-glass-chart"></i> EDD Cases <span class="nav-badge" id="sbBadgeEdd" style="display:none"></span></a>
+        <a class="nav-item" href="/compliance/b2b/alertas"><i class="fas fa-bell"></i> Alerts <span class="nav-badge" id="sbBadgeAlerts" style="display:none"></span></a>
+        <a class="nav-item" href="/compliance/b2b/screening"><i class="fas fa-shield-halved"></i> Screening</a>
+
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Operations</div>
+        <a class="nav-item" href="/compliance/b2b/beneficiarios"><i class="fas fa-users"></i> Beneficiaries <span class="nav-badge" id="sbBadgeBenef" style="display:none"></span></a>
+        <a class="nav-item" href="/compliance/b2b/limites"><i class="fas fa-sliders"></i> Limits</a>
+        <a class="nav-item" href="/compliance/b2b/risk-config"><i class="fas fa-gear"></i> Risk Config</a>
     </nav>
 
     <div class="content-area" id="contentArea">
@@ -129,6 +222,24 @@
 
 <script>
 const beneficiarioId = window.location.pathname.split('/').pop();
+
+function toggleTheme() {
+    var next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    var ic = document.querySelector('#btnTheme i');
+    if (ic) {
+        ic.className = next === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var t = document.documentElement.getAttribute('data-theme') || 'light';
+    var ic = document.querySelector('#btnTheme i');
+    if (ic) {
+        ic.className = t === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+    }
+});
 
 async function loadBeneficiary() {
     const container = document.getElementById('detailsContainer');
