@@ -1070,6 +1070,91 @@ def logout():
     print("✅ Sessão completamente limpa - logout realizado")
     return redirect('/login')
 
+@app.route('/api/client/change-credentials', methods=['POST'])
+def api_change_credentials():
+    """Cliente B2B altera sua senha (valida senha atual)"""
+    try:
+        print("="*50)
+        print("🔍 [DEBUG] Iniciando change-credentials")
+        
+        if 'username' not in session:
+            print("❌ [DEBUG] Usuário não autenticado")
+            return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+        
+        usuario_atual = session['username']
+        print(f"🔍 [DEBUG] Usuário atual (session): {usuario_atual}")
+        
+        data = request.get_json()
+        print(f"🔍 [DEBUG] Dados recebidos: {data}")
+        
+        senha_atual = data.get('current_password', '').strip()
+        nova_senha = data.get('new_password', '').strip()
+        
+        print(f"🔍 [DEBUG] senha_atual: {'[RECEBIDA]' if senha_atual else '[VAZIA]'}")
+        print(f"🔍 [DEBUG] nova_senha: {'[RECEBIDA]' if nova_senha else '[VAZIA]'}")
+        
+        # Validações
+        if not senha_atual:
+            return jsonify({'success': False, 'message': 'Senha atual é obrigatória'}), 400
+        
+        if not nova_senha:
+            return jsonify({'success': False, 'message': 'Nova senha é obrigatória'}), 400
+        
+        if len(nova_senha) < 8:
+            return jsonify({'success': False, 'message': 'A nova senha deve ter no mínimo 8 caracteres'}), 400
+        
+        # Buscar o usuário
+        print(f"🔍 [DEBUG] Buscando usuário com username: {usuario_atual}")
+        user = supabase.table('usuarios')\
+            .select('id, senha_hash')\
+            .eq('username', usuario_atual)\
+            .execute()
+        
+        print(f"🔍 [DEBUG] Resultado da busca: {user.data}")
+        
+        if not user.data:
+            print(f"❌ [DEBUG] Usuário não encontrado: {usuario_atual}")
+            return jsonify({'success': False, 'message': 'Usuário não encontrado'}), 404
+        
+        usuario_id = user.data[0]['id']
+        senha_hash_atual = user.data[0]['senha_hash']
+        
+        print(f"🔍 [DEBUG] usuario_id: {usuario_id}")
+        print(f"🔍 [DEBUG] senha_hash_atual: {senha_hash_atual[:20]}...")
+        
+        # Validar senha atual
+        import hashlib
+        senha_atual_hash = hashlib.sha256(senha_atual.encode()).hexdigest()
+        print(f"🔍 [DEBUG] senha_atual_hash: {senha_atual_hash[:20]}...")
+        
+        if senha_atual_hash != senha_hash_atual:
+            print(f"❌ [DEBUG] Senha atual incorreta")
+            return jsonify({'success': False, 'message': 'Senha atual incorreta'}), 401
+        
+        print(f"✅ [DEBUG] Senha atual validada com sucesso")
+        
+        # Atualizar para a nova senha
+        nova_senha_hash = hashlib.sha256(nova_senha.encode()).hexdigest()
+        print(f"🔍 [DEBUG] nova_senha_hash: {nova_senha_hash[:20]}...")
+        
+        result = supabase.table('usuarios')\
+            .update({'senha_hash': nova_senha_hash})\
+            .eq('id', usuario_id)\
+            .execute()
+        
+        print(f"✅ [DEBUG] Atualização realizada: {result.data}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Senha atualizada com sucesso!'
+        })
+        
+    except Exception as e:
+        print(f"❌ [DEBUG] Erro: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 @app.route('/api/transacoes')
 def get_transacoes():
     """Retorna transações de exemplo"""
@@ -21899,51 +21984,50 @@ def api_b2b_cliente_criar():
         credenciais = None
         try:
             novo_user_id = str(uuid.uuid4())
+            
+            # 🔥 USAR EMAIL COMO USERNAME 🔥
+            email_cliente = d.get('email', '').strip().lower()
+            if not email_cliente:
+                print(f"⚠️  Email não fornecido para cliente {client_id}")
+            else:
+                # Verificar se email já existe
+                chk = supabase.table('usuarios').select('id').eq('username', email_cliente).execute()
+                if chk.data:
+                    print(f"⚠️  Email {email_cliente} já está em uso")
+                else:
+                    # Senha temporária — 12 chars alfanuméricos
+                    chars = string.ascii_letters + string.digits
+                    senha_temp = ''.join(secrets.choice(chars) for _ in range(12))
+                    senha_hash = hashlib.sha256(senha_temp.encode()).hexdigest()
 
-            # Username baseado no nome da empresa — limpo e único
-            base = re.sub(r'[^a-z0-9]', '_', d.get('razao_social', '').lower().strip())
-            base = re.sub(r'_+', '_', base).strip('_')[:20]
-            username_portal = base
-            sufixo = 1
-            while True:
-                chk = supabase.table('usuarios').select('id').eq('username', username_portal).execute()
-                if not chk.data:
-                    break
-                username_portal = f"{base}_{sufixo}"
-                sufixo += 1
+                    user_data = {
+                        'id': novo_user_id,
+                        'username': email_cliente,  # 🔥 EMAIL como username
+                        'senha_hash': senha_hash,
+                        'nome': d.get('razao_social', ''),
+                        'email': email_cliente,
+                        'tipo': 'cliente',
+                        'status': 'onboarding',
+                        'tipo_pessoa': 'J',
+                        'razao_social': d.get('razao_social'),
+                        'nome_fantasia': d.get('nome_comercial'),
+                        'verificado': False,
+                        'cambio_liberado': False,
+                        'contas': [],
+                        'codigo_verificacao': '',
+                        'data_cadastro': datetime.now(timezone.utc).isoformat(),
+                        'created_at': datetime.now(timezone.utc).isoformat(),
+                        'cliente_b2b_id': client_id,  # 🔥 VINCULAR À EMPRESA
+                    }
+                    supabase.table('usuarios').insert(user_data).execute()
 
-            # Senha temporária — 12 chars alfanuméricos
-            chars = string.ascii_letters + string.digits
-            senha_temp = ''.join(secrets.choice(chars) for _ in range(12))
-            senha_hash = hashlib.sha256(senha_temp.encode()).hexdigest()
+                    # Vincular usuario ao clientes_b2b
+                    supabase.table('clientes_b2b').update({
+                        'usuario_username': email_cliente,
+                        'usuario_id': novo_user_id,
+                    }).eq('id', client_id).execute()
 
-            user_data = {
-                'id': novo_user_id,
-                'username': username_portal,
-                'senha_hash': senha_hash,
-                'nome': d.get('razao_social', ''),
-                'email': d.get('email', ''),
-                'tipo': 'cliente',
-                'status': 'onboarding',
-                'tipo_pessoa': 'J',
-                'razao_social': d.get('razao_social'),
-                'nome_fantasia': d.get('nome_comercial'),
-                'verificado': False,
-                'cambio_liberado': False,
-                'contas': [],
-                'codigo_verificacao': '',
-                'data_cadastro': datetime.now(timezone.utc).isoformat(),
-                'created_at': datetime.now(timezone.utc).isoformat(),
-            }
-            supabase.table('usuarios').insert(user_data).execute()
-
-            # Vincular usuario ao clientes_b2b
-            supabase.table('clientes_b2b').update({
-                'usuario_username': username_portal,
-                'usuario_id': novo_user_id,
-            }).eq('id', client_id).execute()
-
-            credenciais = {'username': username_portal, 'senha_temporaria': senha_temp}
+                    credenciais = {'username': email_cliente, 'senha_temporaria': senha_temp}
         except Exception as e_cred:
             print(f"⚠️  Erro ao criar acesso portal para cliente {client_id}: {e_cred}")
 

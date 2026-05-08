@@ -276,7 +276,14 @@ nav.sb-nav{flex:1;padding:10px 0;overflow-y:auto;}
                 <div class="sb-u-name" id="userNameSidebar">{{ nome or usuario }}</div>
                 <div class="sb-u-email" id="userEmailSidebar">{{ email }}</div>
             </div>
-            <a href="/logout" class="sb-logout" title="{% if is_pt %}Sair{% else %}Logout{% endif %}"><i class="fas fa-right-from-bracket"></i></a>
+            <div style="display:flex; gap:6px;">
+                <button onclick="openCredentialsModal()" class="sb-logout" title="{% if is_pt %}Alterar Credenciais{% else %}Change Credentials{% endif %}" style="background:none; border:none;">
+                    <i class="fas fa-user-gear"></i>
+                </button>
+                <a href="/logout" class="sb-logout" title="{% if is_pt %}Sair{% else %}Logout{% endif %}">
+                    <i class="fas fa-right-from-bracket"></i>
+                </a>
+            </div>
         </div>
     </div>
 </aside>
@@ -442,6 +449,42 @@ nav.sb-nav{flex:1;padding:10px 0;overflow-y:auto;}
 <div id="notificationsContainer"></div>
 <div id="userInfo" style="display:none"></div>
 
+<!-- MODAL: ALTERAR SENHA -->
+<div class="date-overlay" id="credentialsModal">
+    <div class="date-box" style="width: 400px;">
+        <h4><i class="fas fa-key"></i> {% if is_pt %}Alterar Senha{% else %}Change Password{% endif %}</h4>
+        <p style="margin-bottom: 16px;">{% if is_pt %}Informe sua senha atual e a nova senha.{% else %}Enter your current password and new password.{% endif %}</p>
+        
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 5px; color: var(--text2);">
+                {% if is_pt %}Senha Atual{% else %}Current Password{% endif %} <span style="color: #e01b24;">*</span>
+            </label>
+            <input type="password" id="currentPassword" class="form-control" placeholder="{% if is_pt %}Digite sua senha atual{% else %}Enter your current password{% endif %}" style="width:100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg2); color: var(--text);">
+        </div>
+        
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 5px; color: var(--text2);">
+                {% if is_pt %}Nova Senha{% else %}New Password{% endif %} <span style="color: #e01b24;">*</span>
+            </label>
+            <input type="password" id="newPassword" class="form-control" placeholder="{% if is_pt %}Nova senha{% else %}New password{% endif %}" style="width:100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg2); color: var(--text);">
+        </div>
+        
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 5px; color: var(--text2);">
+                {% if is_pt %}Confirmar Nova Senha{% else %}Confirm New Password{% endif %} <span style="color: #e01b24;">*</span>
+            </label>
+            <input type="password" id="confirmPassword" class="form-control" placeholder="{% if is_pt %}Confirme a nova senha{% else %}Confirm new password{% endif %}" style="width:100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg2); color: var(--text);">
+        </div>
+        
+        <div id="credsMsg" style="font-size: 12px; margin-bottom: 12px; color: #e01b24;"></div>
+        
+        <div class="date-actions">
+            <button class="btn-cancel" onclick="closeCredentialsModal()">{% if is_pt %}Cancelar{% else %}Cancel{% endif %}</button>
+            <button class="btn-gold" onclick="saveCredentials()"><i class="fas fa-save"></i> {% if is_pt %}Salvar{% else %}Save{% endif %}</button>
+        </div>
+    </div>
+</div>
+
 <script>
 window.USER          = {username:"{{ usuario or '' }}",nome:"{{ nome or 'Usuário' }}",email:"{{ email or '' }}"};
 window.API_URL       = '';
@@ -458,6 +501,96 @@ function toggleTheme(){
 }
 function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('sidebarOverlay').classList.add('open');}
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebarOverlay').classList.remove('open');}
+
+// ── CREDENTIALS MODAL (funciona para onboarding e clientes ativos) ──
+function openCredentialsModal() {
+    const modal = document.getElementById('credentialsModal');
+    if (modal) {
+        modal.classList.add('open');
+        const currentPw = document.getElementById('currentPassword');
+        const newPw = document.getElementById('newPassword');
+        const confirmPw = document.getElementById('confirmPassword');
+        const msgDiv = document.getElementById('credsMsg');
+        if (currentPw) currentPw.value = '';
+        if (newPw) newPw.value = '';
+        if (confirmPw) confirmPw.value = '';
+        if (msgDiv) msgDiv.innerHTML = '';
+    }
+}
+
+function closeCredentialsModal() {
+    const modal = document.getElementById('credentialsModal');
+    if (modal) {
+        modal.classList.remove('open');
+    }
+}
+
+async function saveCredentials() {
+    const currentPassword = document.getElementById('currentPassword')?.value || '';
+    const newPassword = document.getElementById('newPassword')?.value || '';
+    const confirmPassword = document.getElementById('confirmPassword')?.value || '';
+    const msgDiv = document.getElementById('credsMsg');
+    
+    if (!msgDiv) return;
+    
+    if (!currentPassword) {
+        msgDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> {% if is_pt %}Informe sua senha atual.{% else %}Please enter your current password.{% endif %}';
+        return;
+    }
+    
+    if (!newPassword) {
+        msgDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> {% if is_pt %}Digite uma nova senha.{% else %}Enter a new password.{% endif %}';
+        return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+        msgDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> {% if is_pt %}As senhas não coincidem.{% else %}Passwords do not match.{% endif %}';
+        return;
+    }
+    
+    if (newPassword.length < 8) {
+        msgDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> {% if is_pt %}A senha deve ter no mínimo 8 caracteres.{% else %}Password must be at least 8 characters.{% endif %}';
+        return;
+    }
+    
+    msgDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> {% if is_pt %}Processando...{% else %}Processing...{% endif %}';
+    
+    try {
+        const response = await fetch('/api/client/change-credentials', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                current_password: currentPassword,
+                new_password: newPassword
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            msgDiv.innerHTML = '<i class="fas fa-check-circle" style="color: #2ec27e;"></i> {% if is_pt %}Senha atualizada com sucesso!{% else %}Password updated successfully!{% endif %}';
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            setTimeout(() => closeCredentialsModal(), 1500);
+        } else {
+            msgDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + data.message;
+        }
+    } catch (error) {
+        console.error('Erro ao alterar senha:', error);
+        msgDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> {% if is_pt %}Erro ao atualizar senha.{% else %}Error updating password.{% endif %}';
+    }
+}
+
+// Fechar modal ao clicar fora
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('credentialsModal');
+    if (modal && modal.classList.contains('open')) {
+        if (event.target === modal) {
+            closeCredentialsModal();
+        }
+    }
+});
 </script>
 
 {% if is_ob %}
@@ -510,7 +643,7 @@ async function loadObDocs(){
                 </td>
             </tr>`;
         }).join('');
-    }catch(e){if(tbody)tbody.innerHTML=`<tr><td colspan="5" class="tx-empty" style="color:#e01b24">${e.message}</td></tr>`;}
+    }catch(e){if(tbody)tbody.innerHTML=`<td><td colspan="5" class="tx-empty" style="color:#e01b24">${e.message}</td></tr>`;}
 }
 
 function obPrepare(docId){
