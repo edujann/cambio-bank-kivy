@@ -21368,32 +21368,67 @@ def _calcular_score_b2b(cliente, criterios, thresholds, overrides):
 
     return total, nivel, resultados, []
 
-
 def _auto_score_criterio(codigo, c):
     """Auto-score a criterion based on client data. Returns 1/2/3."""
+    
+    # ============================================
+    # FUNÇÃO AUXILIAR PARA BUSCAR RISCO DO PAÍS
+    # ============================================
+    def get_risco_pais(nome_pais):
+        """Busca o risco de um país pelo nome na tabela paises_risco"""
+        if not nome_pais:
+            return 2
+        try:
+            result = supabase.table('paises_risco')\
+                .select('risco')\
+                .eq('nome', nome_pais)\
+                .execute()
+            if result.data:
+                risco = result.data[0]['risco']
+                return {'low': 1, 'medium': 2, 'high': 3, 'standard': 2}.get(risco, 2)
+        except Exception:
+            pass
+        return 2
+    
+    def get_risco_nacionalidade(nome_nacionalidade):
+        """Busca o risco de uma nacionalidade pelo nome na tabela paises_risco"""
+        if not nome_nacionalidade:
+            return 2
+        try:
+            result = supabase.table('paises_risco')\
+                .select('risco')\
+                .eq('nome_nacionalidade', nome_nacionalidade)\
+                .execute()
+            if result.data:
+                risco = result.data[0]['risco']
+                return {'low': 1, 'medium': 2, 'high': 3, 'standard': 2}.get(risco, 2)
+        except Exception:
+            pass
+        return 2
+    
     # Block A — Country & Geography
     if codigo == 'A1':  # registration country risk
-        pais = (c.get('pais_registro') or '').lower()
-        high = ['iran','north korea','myanmar','syria','russia','belarus','cuba','afghanistan']
-        low = ['united kingdom','germany','france','netherlands','usa','united states','sweden','norway']
-        if any(h in pais for h in high): return 3
-        if any(l in pais for l in low): return 1
-        return 2
+        pais = c.get('pais_registro') or ''
+        return get_risco_pais(pais)
+        
     if codigo == 'A2':  # destination countries
-        dest = (c.get('paises_destino') or '').lower()
-        high = ['iran','north korea','myanmar','syria','afghanistan','somalia','sudan','libya']
-        if any(h in dest for h in high): return 3
-        china_only = dest.strip().replace(' ', '').split(',') == ['china']
-        return 2  # default medium per user decision
+        destinos = c.get('paises_destino') or ''
+        paises = [p.strip() for p in destinos.split(',') if p.strip()]
+        if not paises:
+            return 2
+        highest_risk = 1
+        for pais in paises:
+            risco = get_risco_pais(pais)
+            highest_risk = max(highest_risk, risco)
+        return highest_risk
+        
     if codigo == 'A3':  # source country of funds
-        pais = (c.get('pais_registro') or '').lower()
-        high = ['iran','north korea','myanmar','cayman','panama','british virgin islands','seychelles']
-        if any(h in pais for h in high): return 3
-        low = ['united kingdom','germany','france','netherlands']
-        if any(l in pais for l in low): return 1
-        return 2
+        pais = c.get('pais_registro') or ''
+        return get_risco_pais(pais)
+        
     if codigo == 'A4':  # operating in high-risk jurisdiction
         return 2  # requires manual review — default medium
+        
     if codigo == 'A5':  # cross-border complexity
         dest = c.get('paises_destino') or ''
         num_countries = len([x for x in dest.split(',') if x.strip()])
@@ -21404,9 +21439,12 @@ def _auto_score_criterio(codigo, c):
     # Block B — Business & Structure
     if codigo == 'B1':  # entity type
         et = (c.get('tipo_entidade') or '').lower()
-        if 'trust' in et or 'foundation' in et: return 3
-        if 'sole' in et or 'partnership' in et: return 2
+        if 'trust' in et or 'foundation' in et:
+            return 3
+        if 'sole' in et or ('partnership' in et and 'limited liability' not in et):
+            return 2
         return 1
+        
     if codigo == 'B2':  # business age / incorporation
         from datetime import date
         inc = c.get('data_constituicao')
@@ -21414,28 +21452,98 @@ def _auto_score_criterio(codigo, c):
             try:
                 d = date.fromisoformat(str(inc)[:10])
                 age_years = (date.today() - d).days / 365
-                if age_years < 1: return 3
-                if age_years < 3: return 2
+                if age_years < 2:
+                    return 3
+                if age_years < 5:
+                    return 2
                 return 1
             except Exception:
                 pass
         return 2
+        
     if codigo == 'B3':  # industry / sector
         sector = (c.get('setor_atividade') or '').lower()
-        high = ['gambling','cryptocurrency','arms','weapons','precious metals','art','antiques']
-        med = ['import','export','construction','real estate','cash']
-        if any(h in sector for h in high): return 3
-        if any(m in sector for m in med): return 2
+        high = [
+            'gambling / casinos / betting',
+            'cryptocurrency / crypto exchange',
+            'money services business (msb) / remittance',
+            'arms / weapons / defense',
+            'precious metals / diamonds / jewelry',
+            'art / antiques dealers'
+        ]
+        med = [
+            'import / export trade',
+            'wholesale / distribution',
+            'construction',
+            'real estate',
+            'cash-intensive retail (convenience stores, laundromats)',
+            'travel agencies / tour operators',
+            'non-profit / ngo / charity',
+            'oil & gas / energy',
+            'mining',
+            'telecommunications',
+            'financial services - banking',
+            'financial services - insurance',
+            'financial services - asset management'
+        ]
+        if sector in high:
+            return 3
+        if sector in med:
+            return 2
         return 1
-    if codigo == 'B4':  # company structure complexity
-        return 2  # requires manual review
-    if codigo == 'B5':  # number of controlling persons / UBOs
-        return 2  # requires manual review after persons are added
+        
+    if codigo == 'B4':  # UBO jurisdiction
+        ubos = c.get('pessoas', [])
+        highest_risk = 1
+        for ubo in ubos:
+            nacionalidade = ubo.get('nacionalidade', '')
+            risco = get_risco_nacionalidade(nacionalidade)
+            highest_risk = max(highest_risk, risco)
+        return highest_risk
+        
+    if codigo == 'B5':  # number of UBOs / complexity
+        ubos = c.get('pessoas', [])
+        num = len(ubos)
+        if num >= 5:
+            return 3
+        if num >= 3:
+            return 2
+        return 1
+        
+    if codigo == 'B6':  # regulatory status
+        reg = (c.get('estatuto_regulatorio') or '').lower()
+        if reg == 'regulated_fca_hmrc':
+            return 1
+        if reg == 'other_regulated':
+            return 2
+        if reg == 'unregulated':
+            return 3
+        return 2
+        
+    if codigo == 'B7':  # ownership structure
+        struct = (c.get('estrutura_propriedade') or '').lower()
+        if struct == 'simple_transparent':
+            return 1
+        if struct == 'moderate':
+            return 2
+        if struct == 'complex_offshore':
+            return 3
+        return 2
+        
+    if codigo == 'B8':  # third party payments
+        tp = (c.get('pagamentos_terceiros') or '').lower()
+        if tp == 'never':
+            return 1
+        if tp == 'occasional_with_docs':
+            return 2
+        if tp == 'frequent_without_docs' or tp == 'frequent_with_docs':
+            return 3
+        return 2
 
     # Block C — Transaction Profile
     if codigo == 'C1':  # expected monthly volume
         vol = c.get('volume_mensal_esperado') or 0
-        if vol > 1000000: return 3
+        if vol >= 1000000: return 3
         if vol > 200000: return 2
         return 1
     if codigo == 'C2':  # transaction frequency
@@ -21450,34 +21558,81 @@ def _auto_score_criterio(codigo, c):
         return 1
     if codigo == 'C4':  # source of funds clarity
         sof = (c.get('fonte_recursos') or '').lower()
-        if 'loan' in sof or 'investment' in sof: return 2
-        if c.get('fonte_recursos_detalhes'): return 1
+        if 'loan' in sof or 'investment' in sof:
+            return 2
+        if c.get('fonte_recursos_detalhes'):
+            return 1
         return 2
     if codigo == 'C5':  # payment purpose
         fp = (c.get('finalidade_pagamento') or '').lower()
-        if 'supplier' in fp or 'goods' in fp or 'services' in fp: return 1
+        if 'supplier' in fp or 'goods' in fp or 'services' in fp:
+            return 1
+        if 'msb' in fp or 'money services' in fp or 'payment processing' in fp:
+            return 3
+        return 2
+    if codigo == 'C6':  # invoice documentation
+        inv = (c.get('invoice_documentation') or '').lower()
+        if inv == 'always':
+            return 1
+        if inv == 'sometimes':
+            return 2
+        if inv == 'rarely':
+            return 3
         return 2
 
     # Block D — Customer & AML History
     if codigo == 'D1':  # PEP connection
         pep = c.get('pep_empresa') or 'nao'
-        if pep == 'confirmado': return 3
-        if pep in ('sim', 'possivel'): return 2
+        if pep == 'confirmado':
+            return 3
+        if pep in ('sim', 'possivel'):
+            return 2
         return 1
     if codigo == 'D2':  # sanctions / adverse media
         sanc = c.get('sancoes_empresa') or 'nao_confirmado'
-        if sanc == 'confirmado': return 3
-        if sanc == 'possivel': return 2
+        if sanc == 'confirmado':
+            return 3
+        if sanc == 'possivel':
+            return 2
         return 1
     if codigo == 'D3':  # prior SAR / CTR
-        return 1  # default low for new clients
+        sar = (c.get('prior_sar_ctr') or '').lower()
+        if sar == 'none':
+            return 1
+        if sar == 'minor':
+            return 2
+        if sar == 'serious':
+            return 3
+        return 2
     if codigo == 'D4':  # regulatory/legal history
-        return 1  # default low for new clients
-    if codigo == 'D5':  # relationship transparency / KYB cooperation
-        return 1  # default good cooperation
+        reg = (c.get('regulatory_history') or '').lower()
+        if reg == 'none':
+            return 1
+        if reg == 'minor':
+            return 2
+        if reg == 'serious':
+            return 3
+        return 2
+    if codigo == 'D5':  # adverse media
+        adv = (c.get('adverse_media') or '').lower()
+        if adv == 'none':
+            return 1
+        if adv == 'minor':
+            return 2
+        if adv == 'significant':
+            return 3
+        return 2
+    if codigo == 'D6':  # banking history (closed accounts)
+        bank = (c.get('banking_history') or '').lower()
+        if bank == 'none':
+            return 1
+        if bank == 'one':
+            return 2
+        if bank == 'multiple':
+            return 3
+        return 2
 
     return 2  # safe default
-
 
 # ── PAGE ROUTES ──
 
@@ -21653,6 +21808,7 @@ def api_b2b_cliente_criar():
             'faturamento_anual', 'descricao_negocio', 'website', 'fca_registro_numero',
             'email', 'telefone', 'account_manager_username', 'usuario_username',
             'endereco_linha1', 'endereco_linha2', 'cidade', 'estado', 'cep', 'pais',
+            'pais_code',  
             'endereco_registrado', 'finalidade_pagamento', 'volume_mensal_esperado',
             'frequencia_mensal_esperada', 'ticket_medio_esperado', 'paises_destino',
             'moedas_utilizadas', 'fonte_recursos', 'fonte_recursos_detalhes',
@@ -21660,7 +21816,14 @@ def api_b2b_cliente_criar():
             'pep_notas', 'creditsafe_ref', 'shuttipro_ref', 'checkmarble_ref',
             'notas_compliance', 'status', 'nivel_risco', 'score_risco',
             'limite_por_transacao', 'limite_diario', 'limite_mensal',
-            'onboarding_por', 'criado_por', 'criado_em',
+            'estatuto_regulatorio',     
+            'estrutura_propriedade',
+            'pagamentos_terceiros',
+            'invoice_documentation',
+            'prior_sar_ctr',
+            'regulatory_history',
+            'adverse_media',
+            'banking_history'       
         }
         d = {k: v for k, v in d.items() if k in _COLS_B2B and v is not None and v != ''}
 
@@ -21688,13 +21851,24 @@ def api_b2b_cliente_criar():
 
         # Auto-calculate score if we have enough data
         try:
+            # 🔥 BUSCAR OS UBOS QUE FORAM SALVOS 🔥
+            # Recuperar as pessoas que acabaram de ser inseridas
+            pessoas_salvas = supabase.table('pessoas_controlantes').select('*').eq('cliente_b2b_id', client_id).execute()
+            
+            # Criar uma cópia do dicionário d com os UBOs
+            cliente_completo = d.copy()
+            cliente_completo['pessoas'] = pessoas_salvas.data or []
+            
             criterios_r = supabase.table('risk_criteria').select('*').eq('ativo', True).execute()
             thresholds_r = supabase.table('risk_thresholds').select('*').limit(1).execute()
             overrides_r = supabase.table('risk_overrides').select('*').execute()
             criterios = criterios_r.data or []
             thresholds = thresholds_r.data[0] if thresholds_r.data else {'low_max': 32, 'medium_max': 46}
             overrides = overrides_r.data or []
-            score, nivel, crit_result, ov_activos = _calcular_score_b2b(d, criterios, thresholds, overrides)
+            
+            # 🔥 AGORA USAR O cliente_completo (com UBOs) em vez de 'd' 🔥
+            score, nivel, crit_result, ov_activos = _calcular_score_b2b(cliente_completo, criterios, thresholds, overrides)
+            
             import json
             supabase.table('clientes_b2b').update({
                 'score_risco': score,
@@ -21703,7 +21877,8 @@ def api_b2b_cliente_criar():
                 'criterios_score': json.dumps(crit_result),
                 'overrides_activos': json.dumps(ov_activos),
             }).eq('id', client_id).execute()
-        except Exception:
+        except Exception as e:
+            print(f"⚠️ Erro ao calcular score: {e}")
             pass
 
         # Create initial limit history entry if limits were set
@@ -21845,7 +22020,6 @@ def api_b2b_cliente_get(client_id):
 
 
 # ── UPDATE (continue onboarding / edit draft) ──
-
 @app.route('/api/compliance/b2b/clientes/<client_id>', methods=['PATCH'])
 def api_b2b_cliente_atualizar(client_id):
     usuario, tipo, redir = _b2b_acesso()
@@ -21862,6 +22036,7 @@ def api_b2b_cliente_atualizar(client_id):
             'faturamento_anual', 'descricao_negocio', 'website', 'fca_registro_numero',
             'email', 'telefone', 'account_manager_username', 'usuario_username',
             'endereco_linha1', 'endereco_linha2', 'cidade', 'estado', 'cep', 'pais',
+            'pais_code',  
             'endereco_registrado', 'finalidade_pagamento', 'volume_mensal_esperado',
             'frequencia_mensal_esperada', 'ticket_medio_esperado', 'paises_destino',
             'moedas_utilizadas', 'fonte_recursos', 'fonte_recursos_detalhes',
@@ -21869,6 +22044,15 @@ def api_b2b_cliente_atualizar(client_id):
             'pep_notas', 'creditsafe_ref', 'shuttipro_ref', 'checkmarble_ref',
             'notas_compliance', 'status', 'nivel_risco', 'score_risco',
             'limite_por_transacao', 'limite_diario', 'limite_mensal',
+            'onboarding_por', 'criado_por', 'criado_em',
+            'estatuto_regulatorio',      
+            'estrutura_propriedade',
+            'pagamentos_terceiros',
+            'invoice_documentation',
+            'prior_sar_ctr',
+            'regulatory_history',
+            'adverse_media',
+            'banking_history' 
         }
         if d.get('razao_social') and not d.get('business_name'):
             d['business_name'] = d['razao_social']
@@ -21878,7 +22062,7 @@ def api_b2b_cliente_atualizar(client_id):
             supabase.table('clientes_b2b').update(upd).eq('id', client_id).execute()
 
         # ============================================================
-        # 🔥 CORREÇÃO AQUI: Adicionar cliente_id como alias
+        # ATUALIZAR PESSOAS (UBOs)
         # ============================================================
         if pessoas:
             _COLS_PESSOAS = {
@@ -21890,10 +22074,50 @@ def api_b2b_cliente_atualizar(client_id):
             for p in pessoas:
                 p_clean = {k: v for k, v in p.items() if k in _COLS_PESSOAS and v is not None and v != ''}
                 p_clean['cliente_b2b_id'] = client_id
-                p_clean['cliente_id'] = client_id  # ← 🔥 LINHA ADICIONADA (necessária pela constraint NOT NULL)
+                p_clean['cliente_id'] = client_id
                 p_clean['criado_por'] = usuario
                 if p_clean.get('nome_completo'):
                     supabase.table('pessoas_controlantes').insert(p_clean).execute()
+
+        # ============================================================
+        # 🔥 RECALCULAR SCORE APÓS ATUALIZAÇÃO 🔥
+        # ============================================================
+        try:
+            # Buscar o cliente atualizado com todos os dados
+            cliente_atualizado = supabase.table('clientes_b2b').select('*').eq('id', client_id).single().execute()
+            if cliente_atualizado.data:
+                cliente_completo = cliente_atualizado.data
+                
+                # Buscar os UBOs
+                pessoas_salvas = supabase.table('pessoas_controlantes').select('*').eq('cliente_b2b_id', client_id).execute()
+                cliente_completo['pessoas'] = pessoas_salvas.data or []
+                
+                # Buscar configurações de risco
+                criterios_r = supabase.table('risk_criteria').select('*').eq('ativo', True).execute()
+                thresholds_r = supabase.table('risk_thresholds').select('*').limit(1).execute()
+                overrides_r = supabase.table('risk_overrides').select('*').execute()
+                
+                criterios = criterios_r.data or []
+                thresholds = thresholds_r.data[0] if thresholds_r.data else {'low_max': 32, 'medium_max': 46}
+                overrides = overrides_r.data or []
+                
+                # Calcular o score
+                import json
+                score, nivel, crit_result, ov_activos = _calcular_score_b2b(cliente_completo, criterios, thresholds, overrides)
+                
+                # Atualizar o score no banco
+                supabase.table('clientes_b2b').update({
+                    'score_risco': score,
+                    'nivel_risco': nivel,
+                    'score_calculado_em': datetime.now(timezone.utc).isoformat(),
+                    'criterios_score': json.dumps(crit_result),
+                    'overrides_activos': json.dumps(ov_activos),
+                }).eq('id', client_id).execute()
+                
+                print(f"✅ Score recalculado para cliente {client_id}: {score} - {nivel}")
+        except Exception as e:
+            print(f"⚠️ Erro ao recalcular score no PATCH: {e}")
+            pass
 
         return jsonify({'success': True, 'id': client_id})
     except Exception as e:
@@ -22121,10 +22345,22 @@ def api_b2b_recalc_score(client_id):
     try:
         import json
         from datetime import datetime, timezone
+        
+        # Buscar o cliente
         result = supabase.table('clientes_b2b').select('*').eq('id', client_id).single().execute()
         if not result.data:
             return jsonify({'success': False, 'message': 'Client not found'}), 404
         cliente = result.data
+
+        # 🔥 BUSCAR OS UBOS (PESSOAS) 🔥
+        pessoas_result = supabase.table('pessoas_controlantes').select('*').eq('cliente_b2b_id', client_id).execute()
+        cliente['pessoas'] = pessoas_result.data or []
+
+        # 🔥 DEBUG: Verificar o que foi carregado 🔥
+        print(f"🔍 Recalculando score para cliente {client_id}")
+        print(f"   UBOs encontrados: {len(cliente['pessoas'])}")
+        for p in cliente['pessoas']:
+            print(f"   - Nacionalidade: '{p.get('nacionalidade')}'")
 
         criterios_r = supabase.table('risk_criteria').select('*').eq('ativo', True).execute()
         thresholds_r = supabase.table('risk_thresholds').select('*').limit(1).execute()
@@ -22134,6 +22370,7 @@ def api_b2b_recalc_score(client_id):
         overrides = overrides_r.data or []
 
         score, nivel, crit_result, ov_activos = _calcular_score_b2b(cliente, criterios, thresholds, overrides)
+        
         supabase.table('clientes_b2b').update({
             'score_risco': score,
             'nivel_risco': nivel,
@@ -22141,6 +22378,8 @@ def api_b2b_recalc_score(client_id):
             'criterios_score': json.dumps(crit_result),
             'overrides_activos': json.dumps(ov_activos),
         }).eq('id', client_id).execute()
+
+        print(f"✅ Score recalculado: {score} - {nivel}")
 
         return jsonify({'success': True, 'score': score, 'nivel': nivel})
     except Exception as e:
@@ -23621,6 +23860,114 @@ def api_beneficiarios_pendentes_count():
         print(f"❌ Erro ao contar beneficiários pendentes: {e}")
         return jsonify({'error': str(e)}), 500
 
+# ============================================
+# ENDPOINTS PARA PAÍSES E NACIONALIDADES
+# ============================================
+
+@app.route('/api/paises', methods=['GET'])
+def api_paises():
+    """Retorna lista de países para selects (não bloqueados)"""
+    try:
+        # Buscar países não bloqueados
+        response = supabase.table('paises_risco')\
+            .select('codigo, nome, risco, continente')\
+            .eq('bloqueado', False)\
+            .order('nome')\
+            .execute()
+        
+        paises = response.data or []
+        
+        # Separar por risco para facilitar o frontend
+        paises_por_risco = {
+            'low': [p for p in paises if p['risco'] == 'low'],
+            'medium': [p for p in paises if p['risco'] == 'medium'],
+            'high': [p for p in paises if p['risco'] == 'high'],
+            'standard': [p for p in paises if p['risco'] == 'standard']
+        }
+        
+        return jsonify({
+            'success': True,
+            'paises': paises,
+            'paises_por_risco': paises_por_risco,
+            'total': len(paises)
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro em /api/paises: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/nacionalidades', methods=['GET'])
+def api_nacionalidades():
+    """Retorna lista de nacionalidades para selects"""
+    try:
+        response = supabase.table('paises_risco')\
+            .select('codigo, nome_nacionalidade, risco')\
+            .eq('bloqueado', False)\
+            .order('nome_nacionalidade')\
+            .execute()
+        
+        nacionalidades = []
+        for item in (response.data or []):
+            if item.get('nome_nacionalidade'):
+                nacionalidades.append({
+                    'codigo': item['codigo'],
+                    'nome': item['nome_nacionalidade'],
+                    'risco': item['risco']
+                })
+        
+        return jsonify({
+            'success': True,
+            'nacionalidades': nacionalidades,
+            'total': len(nacionalidades)
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro em /api/nacionalidades: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/paises/risco', methods=['POST'])
+def api_paises_risco():
+    """Retorna o risco de um ou mais países"""
+    try:
+        data = request.json
+        codigos = data.get('codigos', [])  # lista de códigos ISO
+        
+        if not codigos:
+            return jsonify({'success': False, 'message': 'Nenhum código informado'}), 400
+        
+        response = supabase.table('paises_risco')\
+            .select('codigo, risco')\
+            .in_('codigo', codigos)\
+            .execute()
+        
+        risco_map = {item['codigo']: item['risco'] for item in (response.data or [])}
+        
+        # Converter risco para pontuação
+        risco_score = {
+            'low': 1,
+            'medium': 2,
+            'high': 3,
+            'standard': 2
+        }
+        
+        resultados = {}
+        for codigo in codigos:
+            risco = risco_map.get(codigo, 'medium')
+            resultados[codigo] = {
+                'risco': risco,
+                'pontos': risco_score.get(risco, 2)
+            }
+        
+        return jsonify({
+            'success': True,
+            'resultados': resultados
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro em /api/paises/risco: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))

@@ -108,6 +108,38 @@
         .success-screen{display:none;text-align:center;padding:60px 24px;}
         .success-screen.show{display:block;}
         .success-icon{width:72px;height:72px;border-radius:50%;background:rgba(46,194,126,.12);border:2px solid #2ec27e;display:flex;align-items:center;justify-content:center;font-size:32px;color:#2ec27e;margin:0 auto 20px;}
+        
+        datalist {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .destination-tag {
+            background: rgba(210,158,0,.12);
+            border: 1px solid #d29e00;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .destination-tag button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #e01b24;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .destination-tag button:hover {
+            color: #c02020;
+        }        
 
         @keyframes spin{to{transform:rotate(360deg);}}
         .fa-spin{animation:spin 1s linear infinite;}
@@ -119,6 +151,12 @@
         [data-theme="light"] .declaration-box{background:var(--cor-card)!important;color:var(--cor-texto-secundario)!important;}
         [data-theme="light"] .check-item{border-color:var(--cor-borda)!important;}
         [data-theme="light"] .check-item:hover{background:rgba(210,158,0,.04)!important;}
+
+        option[data-risk="low"] { color: #2ec27e; }
+        option[data-risk="medium"] { color: #f39c12; }
+        option[data-risk="high"] { color: #e01b24; }
+        option[data-risk="standard"] { color: #d29e00; }
+
     </style>
 </head>
 <body>
@@ -244,11 +282,28 @@
                 </div>
                 <div class="form-group">
                     <label>Country of Registration <span class="req">*</span></label>
-                    <input type="text" id="pais_registro" placeholder="e.g. United Kingdom">
+                    <div style="position: relative;">
+                        <input type="text" id="pais_registro" 
+                            list="countryList"
+                            class="form-control"
+                            placeholder="Start typing country name..."
+                            autocomplete="off"
+                            onchange="onCountrySelect(this.value)"
+                            oninput="onCountryInput(this.value)"
+                            onblur="validateCountrySelection(this.value)">
+                        <datalist id="countryList">
+                            <option value="">-- Select a country --</option>
+                            ${ALLOWED_COUNTRIES.map(c => `<option value="${c.name}" data-risk="${c.risk}">${c.name}</option>`).join('')}
+                        </datalist>
+                    </div>
+                    <div id="countryRiskIndicator" class="field-hint" style="margin-top: 6px; display: none;">
+                        <i class="fas fa-shield-alt"></i> <span id="countryRiskText"></span>
+                    </div>
+                    <input type="hidden" id="pais_registro_code">
                 </div>
                 <div class="form-group">
-                    <label>Date of Incorporation</label>
-                    <input type="date" id="data_constituicao">
+                    <label>Date of Incorporation <span class="req">*</span></label>
+                    <input type="date" id="data_constituicao" required>
                 </div>
                 <div class="form-group">
                     <label>VAT Number</label>
@@ -263,6 +318,8 @@
                     <label>Industry / Sector <span class="req">*</span></label>
                     <select id="setor_atividade" required>
                         <option value="">— Select industry —</option>
+                        
+                        <!-- Existing low/medium risk -->
                         <option>Import / Export Trade</option>
                         <option>Manufacturing</option>
                         <option>Wholesale / Distribution</option>
@@ -273,14 +330,42 @@
                         <option>Real Estate</option>
                         <option>Healthcare</option>
                         <option>Education</option>
-                        <option>Financial Services</option>
                         <option>Logistics / Freight</option>
-                        <option>Other</option>
+                        
+                        <!-- NEW: Medium Risk -->
+                        <option>Cash-intensive Retail (Convenience stores, Laundromats)</option>
+                        <option>Non-Profit / NGO / Charity</option>
+                        <option>Oil & Gas / Energy</option>
+                        <option>Mining</option>
+                        <option>Telecommunications</option>
+                        <option>Travel Agencies / Tour Operators</option>
+                        
+                        <!-- NEW: High Risk -->
+                        <option>Gambling / Casinos / Betting</option>
+                        <option>Cryptocurrency / Crypto Exchange</option>
+                        <option>Money Services Business (MSB) / Remittance</option>
+                        <option>Arms / Weapons / Defense</option>
+                        <option>Precious Metals / Diamonds / Jewelry</option>
+                        <option>Art / Antiques Dealers</option>
+                        
+                        <!-- Financial Services (specific) -->
+                        <option>Financial Services - Banking</option>
+                        <option>Financial Services - Insurance</option>
+                        <option>Financial Services - Asset Management</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Declared Annual Turnover (£)</label>
-                    <input type="number" id="faturamento_anual" placeholder="e.g. 2000000">
+                    <label>Regulatory Status <span class="req">*</span></label>
+                    <select id="estatuto_regulatorio" required>
+                        <option value="">— Select —</option>
+                        <option value="regulated_fca_hmrc">Regulated by FCA / HMRC</option>
+                        <option value="other_regulated">Other regulation (EU, US, etc.)</option>
+                        <option value="unregulated">Not regulated</option>
+                    </select>
+                </div>                
+                <div class="form-group">
+                    <label>Declared Annual Turnover (£) <span class="req">*</span></label>
+                    <input type="number" id="faturamento_anual" required placeholder="e.g. 2000000">
                     <div class="field-hint">Used to suggest transaction limits. Compliance sets the final values.</div>
                 </div>
                 <div class="form-group span-2">
@@ -356,7 +441,18 @@
                 </div>
                 <div class="form-group">
                     <label>Country <span class="req">*</span></label>
-                    <input type="text" id="pais" value="United Kingdom">
+                    <div style="position: relative;">
+                        <input type="text" id="pais" 
+                            list="countryListAddress"
+                            class="form-control"
+                            placeholder="Start typing country name..."
+                            autocomplete="off"
+                            value="United Kingdom"
+                            onchange="onAddressCountrySelect(this.value)"
+                            oninput="onAddressCountryInput(this.value)">
+                        <datalist id="countryListAddress"></datalist>
+                    </div>
+                    <input type="hidden" id="pais_code">
                 </div>
             </div>
         </div>
@@ -385,10 +481,27 @@
             <h2><i class="fas fa-users"></i> Directors & Ultimate Beneficial Owners</h2>
             <p>All directors and persons with significant control (≥25% ownership) must be recorded. This is required under UK MLR 2017 Regulation 28.</p>
         </div>
+        
+        <!-- SEÇÃO: Controlling Persons -->
         <div class="form-section">
             <h3><i class="fas fa-user-tie"></i> Controlling Persons</h3>
             <div id="pessoasList"></div>
             <button class="btn-add-pessoa" onclick="addPessoa()"><i class="fas fa-plus-circle"></i> Add director / UBO / authorised signatory</button>
+            <datalist id="nationalityList"></datalist>
+        </div>
+        
+        <!-- SEÇÃO: Ownership Structure (NOVO CAMPO) -->
+        <div class="form-section">
+            <h3><i class="fas fa-sitemap"></i> Ownership Structure</h3>
+            <div class="form-group">
+                <label>Ownership Structure <span class="req">*</span></label>
+                <select id="estrutura_propriedade" required>
+                    <option value="">— Select —</option>
+                    <option value="simple_transparent">Simple and transparent (direct ownership)</option>
+                    <option value="moderate">Moderate (2-3 layers, clear UBOs)</option>
+                    <option value="complex_offshore">Complex / offshore layers</option>
+                </select>
+            </div>
         </div>
     </div>
 
@@ -410,7 +523,7 @@
                         <option>Intercompany transfers</option>
                         <option>Investment / capital injection</option>
                         <option>Salary / payroll</option>
-                        <option>Other</option>
+                        <option>Money Services Business (MSB) - Payment processing for clients</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -425,10 +538,39 @@
                     <label>Max Single Transaction (£)</label>
                     <input type="number" id="ticket_medio_esperado" placeholder="e.g. 50000">
                 </div>
+                <div class="form-group">
+                    <label>Third Party Payments <span class="req">*</span></label>
+                    <select id="pagamentos_terceiros" required>
+                        <option value="">— Select —</option>
+                        <option value="never">Never</option>
+                        <option value="occasional_with_docs">Occasional with supporting documents</option>
+                        <option value="frequent_without_docs">Frequent without supporting documents</option>
+                        <option value="frequent_with_docs">Frequent with supporting documents</option>
+                    </select>
+                </div>  
+                <div class="form-group">
+                    <label>Invoice Documentation <span class="req">*</span></label>
+                    <select id="invoice_documentation" required>
+                        <option value="">— Select —</option>
+                        <option value="always">Always (invoices provided for all transactions)</option>
+                        <option value="sometimes">Sometimes (invoices provided for some transactions)</option>
+                        <option value="rarely">Rarely (invoices rarely or never provided)</option>
+                    </select>
+                </div>                              
                 <div class="form-group span-2">
                     <label>Main Destination Countries <span class="req">*</span></label>
-                    <input type="text" id="paises_destino" placeholder="e.g. China, United States, Germany (comma separated)">
-                    <div class="field-hint">List all countries where payments will be sent.</div>
+                    <div style="position: relative;">
+                        <input type="text" id="paises_destino_input" 
+                            list="destinationCountriesList"
+                            class="form-control"
+                            placeholder="Start typing a country name and press Enter..."
+                            autocomplete="off"
+                            onkeydown="handleDestinationKeydown(event)">
+                        <datalist id="destinationCountriesList"></datalist>
+                    </div>
+                    <div id="selectedDestinationsContainer" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;"></div>
+                    <input type="hidden" id="paises_destino" value="">
+                    <div class="field-hint">Type a country name and press Enter to add. Select multiple countries.</div>
                 </div>
                 <div class="form-group span-2">
                     <label>Main Currencies Required</label>
@@ -530,6 +672,49 @@
             </div>
         </div>
         <div class="form-section">
+            <h3><i class="fas fa-file-alt"></i> Compliance History</h3>
+            
+            <div class="form-group">
+                <label>Prior SAR / CTR Filings <span class="req">*</span></label>
+                <select id="prior_sar_ctr" required>
+                    <option value="">— Select —</option>
+                    <option value="none">None</option>
+                    <option value="minor">Minor (filed, resolved)</option>
+                    <option value="serious">Serious / convictions (active investigations)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Regulatory / Legal History <span class="req">*</span></label>
+                <select id="regulatory_history" required>
+                    <option value="">— Select —</option>
+                    <option value="none">None</option>
+                    <option value="minor">Minor (warnings, minor fines)</option>
+                    <option value="serious">Serious (license suspension, significant fines)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Adverse Media <span class="req">*</span></label>
+                <select id="adverse_media" required>
+                    <option value="">— Select —</option>
+                    <option value="none">None</option>
+                    <option value="minor">Minor / manageable</option>
+                    <option value="significant">Significant (fraud, money laundering allegations)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Banking History (Closed Accounts) <span class="req">*</span></label>
+                <select id="banking_history" required>
+                    <option value="">— Select —</option>
+                    <option value="none">No closed accounts</option>
+                    <option value="one">One account closed by bank</option>
+                    <option value="multiple">Multiple accounts closed / debanked</option>
+                </select>
+            </div>
+        </div>        
+        <div class="form-section">
             <h3><i class="fas fa-note-sticky"></i> Additional Notes</h3>
             <div class="form-group">
                 <label>PEP / Sanctions details (if applicable)</label>
@@ -619,6 +804,230 @@ const TOTAL_STEPS = 6;
 let pessoas = [];
 let submitting = false;
 
+// ============================================
+// PAÍSES POR NÍVEL DE RISCO (sincronizado com PROHIBITED_COUNTRIES e HIGH_RISK_COUNTRIES)
+// ============================================
+
+const RISK_LEVELS = {
+    'low': { label: 'Low Risk', class: 'risk-low', color: '#2ec27e' },
+    'medium': { label: 'Medium Risk', class: 'risk-medium', color: '#f39c12' },
+    'high': { label: 'High Risk', class: 'risk-high', color: '#e01b24' },
+    'standard': { label: 'Standard (China/HK)', class: 'risk-standard', color: '#d29e00' }
+};
+
+// Países bloqueados (NÃO aparecem na lista - PROHIBITED_COUNTRIES)
+const BLOCKED_COUNTRIES = ['BY', 'BA', 'CU', 'KP', 'CD', 'GN', 'GW', 'HT', 'IR', 'ML', 'MM', 'NI', 'RU', 'SO', 'SS', 'VE', 'YE', 'ZW', 'AF', 'SY'];
+
+// Gerar as options do datalist via JavaScript
+function buildCountryDatalist() {
+    const datalist = document.getElementById('countryList');
+    if (!datalist) return;
+    
+    if (!ALLOWED_COUNTRIES.length) {
+        console.log('Aguardando carregamento dos países...');
+        return;
+    }
+    
+    datalist.innerHTML = '<option value="">-- Select a country --</option>' +
+        ALLOWED_COUNTRIES.map(c => `<option value="${c.nome}" data-risk="${c.risco}">${c.nome}</option>`).join('');
+    
+    console.log(`Datalist de países populado com ${ALLOWED_COUNTRIES.length} países`);
+}
+
+// Função para popular o datalist do endereço
+function buildAddressCountryDatalist() {
+    const datalist = document.getElementById('countryListAddress');
+    if (!datalist || !ALLOWED_COUNTRIES.length) return;
+    
+    datalist.innerHTML = '<option value="">-- Select a country --</option>' +
+        ALLOWED_COUNTRIES.map(c => `<option value="${c.nome}" data-risk="${c.risco}">${c.nome}</option>`).join('');
+}
+
+// Função chamada quando o usuário seleciona um país no endereço
+function onAddressCountrySelect(value) {
+    const country = getCountryByName(value);
+    const codeInput = document.getElementById('pais_code');
+    
+    if (country) {
+        if (codeInput) codeInput.value = country.codigo;
+    } else {
+        if (codeInput) codeInput.value = '';
+    }
+}
+
+function onAddressCountryInput(value) {
+    const country = getCountryByName(value);
+    const codeInput = document.getElementById('pais_code');
+    
+    if (country) {
+        if (codeInput) codeInput.value = country.codigo;
+    } else {
+        if (codeInput) codeInput.value = '';
+    }
+}
+
+
+// Função chamada quando o usuário seleciona um país
+function onCountrySelect(value) {
+    const country = getCountryByName(value);
+    const codeInput = document.getElementById('pais_registro_code');
+    
+    if (country) {
+        showCountryRisk(country);
+        if (codeInput) codeInput.value = country.code;
+    } else {
+        hideCountryRisk();
+        if (codeInput) codeInput.value = '';
+    }
+}
+
+function onCountryInput(value) {
+    const country = getCountryByName(value);
+    const codeInput = document.getElementById('pais_registro_code');
+    
+    if (country) {
+        showCountryRisk(country);
+        if (codeInput) codeInput.value = country.code;
+    } else {
+        hideCountryRisk();
+        if (codeInput) codeInput.value = '';
+    }
+}
+
+function validateCountrySelection(value) {
+    const country = getCountryByName(value);
+    const codeInput = document.getElementById('pais_registro_code');
+    const input = document.getElementById('pais_registro');
+    
+    if (!country && value.trim() !== '') {
+        if (input) {
+            input.style.borderColor = '#e01b24';
+            input.title = 'Please select a valid country from the list';
+        }
+    } else if (country) {
+        if (codeInput) codeInput.value = country.code;
+        if (input) input.style.borderColor = '';
+    }
+}
+
+function showCountryRisk(country) {
+    const risk = RISK_LEVELS[country.risco];  // ← usar 'risco' em vez de 'risk'
+    if (!risk) {
+        console.log('Risco não encontrado:', country.risco);
+        return;
+    }
+    const indicator = document.getElementById('countryRiskIndicator');
+    const textSpan = document.getElementById('countryRiskText');
+    
+    if (indicator && textSpan) {
+        textSpan.innerHTML = `<span style="color: ${risk.color}"><i class="fas fa-${country.risco === 'low' ? 'check-circle' : country.risco === 'high' ? 'exclamation-triangle' : 'info-circle'}"></i> ${risk.label}</span>`;
+        indicator.style.display = 'block';
+        
+        const input = document.getElementById('pais_registro');
+        if (input) {
+            input.style.borderColor = risk.color;
+        }
+    }
+}
+
+function hideCountryRisk() {
+    const indicator = document.getElementById('countryRiskIndicator');
+    const input = document.getElementById('pais_registro');
+    if (indicator) indicator.style.display = 'none';
+    if (input) input.style.borderColor = '';
+}
+
+// Função para obter o país pelo código
+function getCountryByCode(code) {
+    return ALLOWED_COUNTRIES.find(c => c.codigo === code);
+}
+
+// Função para obter o país pelo nome
+function getCountryByName(name) {
+    return ALLOWED_COUNTRIES.find(c => c.nome === name);
+}
+
+function getNationalityByName(name) {
+    return ALLOWED_NATIONALITIES.find(n => n.nome === name);
+}
+
+function buildNationalityDatalist() {
+    const datalist = document.getElementById('nationalityList');
+    if (!datalist) {
+        return;
+    }
+    
+    datalist.innerHTML = '<option value="">-- Select a nationality --</option>' +
+        ALLOWED_NATIONALITIES.map(n => `<option value="${n.nome}" data-risk="${n.risco}">${n.nome}</option>`).join('');
+    
+}
+
+function buildDestinationDatalist() {
+    const datalist = document.getElementById('destinationCountriesList');
+    if (!datalist) return;
+    if (!ALLOWED_COUNTRIES.length) return;
+    
+    datalist.innerHTML = '<option value="">-- Select a country --</option>' +
+        ALLOWED_COUNTRIES.map(c => `<option value="${c.nome}" data-risk="${c.risco}">${c.nome}</option>`).join('');
+    
+    // 🔥 TAMBÉM POPULAR O DATALIST DO ENDEREÇO 🔥
+    buildAddressCountryDatalist();
+}
+
+// Aguardar o DOM carregar antes de popular
+document.addEventListener('DOMContentLoaded', async function() {
+    // Carregar dados da API primeiro
+    await carregarPaises();
+    await carregarNacionalidades();
+    
+    // Depois de carregados, popular os datalists
+    buildCountryDatalist();
+    buildDestinationDatalist();
+    setupDateValidation();
+});
+
+
+// Variáveis globais
+let ALLOWED_COUNTRIES = [];
+let ALLOWED_NATIONALITIES = [];
+let PAISES_POR_RISCO = {};
+
+// Função para carregar países da API
+async function carregarPaises() {
+    try {
+        const response = await fetch('/api/paises');
+        const data = await response.json();
+        
+        if (data.success) {
+            ALLOWED_COUNTRIES = data.paises;
+            PAISES_POR_RISCO = data.paises_por_risco;
+            console.log(`✅ ${ALLOWED_COUNTRIES.length} países carregados da API`);
+        } else {
+            console.error('Erro ao carregar países:', data.message);
+        }
+    } catch (error) {
+        console.error('Erro na requisição:', error);
+    }
+}
+
+// Função para carregar nacionalidades da API
+async function carregarNacionalidades() {
+    try {
+        const response = await fetch('/api/nacionalidades');
+        const data = await response.json();
+        
+        if (data.success) {
+            ALLOWED_NATIONALITIES = data.nacionalidades;
+            console.log(`✅ ${ALLOWED_NATIONALITIES.length} nacionalidades carregadas da API`);
+        } else {
+            console.error('Erro ao carregar nacionalidades:', data.message);
+        }
+    } catch (error) {
+        console.error('Erro na requisição:', error);
+    }
+}
+
+
 function updateStepper() {
     for (let i = 0; i < TOTAL_STEPS; i++) {
         const el = document.getElementById('st' + i);
@@ -647,13 +1056,14 @@ function prevStep() {
 
 function validateStep(step) {
     const required = {
-        0: ['razao_social','tipo_entidade','numero_registro','pais_registro','setor_atividade','descricao_negocio','email'],
+        0: ['razao_social','tipo_entidade','numero_registro','pais_registro','setor_atividade','descricao_negocio','email','estatuto_regulatorio','faturamento_anual'],
         1: ['endereco_linha1','cidade','cep','pais'],
-        2: [],
-        3: ['finalidade_pagamento','paises_destino','fonte_recursos'],
-        4: [],
+        2: ['estrutura_propriedade'],
+        3: ['finalidade_pagamento','paises_destino','fonte_recursos','pagamentos_terceiros','invoice_documentation'],
+        4: ['prior_sar_ctr', 'regulatory_history', 'adverse_media', 'banking_history'],
         5: []
     };
+    
     const fields = required[step] || [];
     for (const id of fields) {
         const el = document.getElementById(id);
@@ -665,88 +1075,336 @@ function validateStep(step) {
             return false;
         }
     }
+    
+    // 🔥 Validação específica para Step 3 (Directors / UBOs)
+    if (step === 2) {
+        // Validar Ownership Structure
+        const estrutura = document.getElementById('estrutura_propriedade');
+        if (!estrutura || !estrutura.value) {
+            alert('Please select the ownership structure.');
+            estrutura.style.borderColor = '#e01b24';
+            estrutura.focus();
+            return false;
+        }
+        estrutura.style.borderColor = '';
+        
+        // Validar que cada pessoa tem todos os campos obrigatórios
+        for (let i = 0; i < pessoas.length; i++) {
+            const p = pessoas[i];
+            if (!p.nome_completo || !p.cargo || !p.data_nascimento || 
+                !p.nacionalidade || !p.numero_identificacao || 
+                !p.percentual_participacao || !p.email) {
+                alert(`Please complete all required fields for Person ${i + 1}.`);
+                return false;
+            }
+        }
+        
+        // Validar que há pelo menos uma pessoa
+        if (pessoas.length === 0) {
+            alert('Please add at least one director / UBO.');
+            return false;
+        }
+    }
+    
+    // Validação específica para Step 4 (Payment Profile)
+    if (step === 3) {
+        // Validar que volume_mensal_esperado é consistente com faturamento_anual
+        const faturamentoAnual = parseFloat(document.getElementById('faturamento_anual')?.value) || 0;
+        const volumeMensal = parseFloat(document.getElementById('volume_mensal_esperado')?.value) || 0;
+        
+        if (faturamentoAnual > 0 && volumeMensal > 0) {
+            const expectedMonthly = faturamentoAnual / 12;
+            const tolerance = expectedMonthly * 0.3; // 30% de tolerância
+            if (Math.abs(volumeMensal - expectedMonthly) > tolerance) {
+                if (!confirm(`The declared monthly volume (£${volumeMensal.toLocaleString()}) differs significantly from the annual turnover (£${faturamentoAnual.toLocaleString()}). Expected monthly volume would be approx £${expectedMonthly.toLocaleString()}. Do you want to continue?`)) {
+                    return false;
+                }
+            }
+        }
+    }
+    
+    // Validação específica para Step 5 (PEP & Sanctions)
     if (step === 4) {
         const pep = document.querySelector('input[name=pep_empresa]:checked');
         const sanc = document.querySelector('input[name=sancoes_empresa]:checked');
-        if (!pep || !sanc) { alert('Please answer both PEP and sanctions questions.'); return false; }
-    }
-    if (step === 5) {
-        if (!document.getElementById('declAccept').checked || !document.getElementById('declData').checked) {
-            alert('Please accept the compliance declaration.'); return false;
+        if (!pep || !sanc) {
+            alert('Please answer both PEP and sanctions questions.');
+            return false;
         }
     }
+    
+    // Validação específica para Step 6 (Declaration)
+    if (step === 5) {
+        if (!document.getElementById('declAccept').checked || !document.getElementById('declData').checked) {
+            alert('Please accept the compliance declaration.');
+            return false;
+        }
+    }
+    
     return true;
 }
 
+function setupDateValidation() {
+    const dateInput = document.getElementById('data_constituicao');
+    if (dateInput) {
+        // Define a data máxima como HOJE (dinâmico)
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        dateInput.max = `${yyyy}-${mm}-${dd}`;
+        
+        // Validação adicional
+        dateInput.addEventListener('change', function() {
+            const selectedDate = new Date(this.value);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (selectedDate > today) {
+                this.value = '';
+                alert('Date of Incorporation cannot be in the future.');
+            }
+        });
+    }
+}
+
+
 // ── Pessoas (Step 3) ──
 function addPessoa() {
-    const idx = pessoas.length;
-    pessoas.push({});
+    pessoas.push({
+        nome_completo: '',
+        cargo: '',
+        data_nascimento: '',
+        nacionalidade: '',
+        nacionalidade_code: '',
+        nacionalidade_risk: '',
+        numero_identificacao: '',
+        percentual_participacao: '',
+        email: ''
+    });
     renderPessoas();
 }
 
 function removePessoa(idx) {
     pessoas.splice(idx, 1);
-    renderPessoas();
+    renderPessoas();  // 🔥 Recarrega a lista após remover
 }
 
 function renderPessoas() {
     const list = document.getElementById('pessoasList');
     if (!list) return;
     
-    list.innerHTML = pessoas.map((pessoa, idx) => `
-        <div class="pessoa-card">
-            <div class="pessoa-card-hd">
-                <h4><i class="fas fa-user" style="color:#d29e00;margin-right:6px"></i>Person ${idx + 1}</h4>
-                <button class="btn-remove" onclick="removePessoa(${idx})" title="Remove"><i class="fas fa-trash"></i></button>
+    if (!pessoas.length) {
+        list.innerHTML = `
+            <div class="empty-state" style="padding:40px; text-align:center; color:var(--cor-texto-secundario);">
+                <i class="fas fa-user-slash" style="font-size:32px; margin-bottom:10px; display:block;"></i>
+                No directors or UBOs added yet.<br>
+                Click the button above to add.
             </div>
-            <div class="grid-2">
-                <div class="form-group"><label>Full Name <span class="req">*</span></label>
-                    <input type="text" data-p="${idx}" data-f="nome_completo" placeholder="Full legal name" oninput="syncPessoa(this)" value="${escapeHtml(pessoa.nome_completo || '')}">
+        `;
+        return;
+    }
+    
+    // Gerar as options do datalist de nacionalidades uma vez fora do loop
+    const nationalityOptions = ALLOWED_NATIONALITIES && ALLOWED_NATIONALITIES.length 
+        ? ALLOWED_NATIONALITIES.map(n => `<option value="${n.nome}" data-risk="${n.risco}">${n.nome}</option>`).join('')
+        : '<option value="">-- Select a nationality --</option>';
+    
+    list.innerHTML = pessoas.map((pessoa, idx) => {
+        const nome = escapeHtml(pessoa.nome_completo || '');
+        const nacionalidade = escapeHtml(pessoa.nacionalidade || '');
+        const email = escapeHtml(pessoa.email || '');
+        const documento = escapeHtml(pessoa.numero_identificacao || '');
+        
+        return `
+            <div class="pessoa-card" data-idx="${idx}">
+                <div class="pessoa-card-hd">
+                    <h4><i class="fas fa-user" style="color:#d29e00;margin-right:6px"></i>Person ${idx + 1}</h4>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn-remove" onclick="removePessoa(${idx})" title="Remove">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="form-group"><label>Role / Title <span class="req">*</span></label>
-                    <select data-p="${idx}" data-f="cargo" onchange="syncPessoa(this)">
-                        <option value="">— Select —</option>
-                        <option ${pessoa.cargo === 'Director' ? 'selected' : ''}>Director</option>
-                        <option ${pessoa.cargo === 'UBO (≥25%)' ? 'selected' : ''}>UBO (≥25%)</option>
-                        <option ${pessoa.cargo === 'Authorised Signatory' ? 'selected' : ''}>Authorised Signatory</option>
-                        <option ${pessoa.cargo === 'Shareholder' ? 'selected' : ''}>Shareholder</option>
-                        <option ${pessoa.cargo === 'Company Secretary' ? 'selected' : ''}>Company Secretary</option>
-                    </select>
-                </div>
-                <div class="form-group"><label>Date of Birth</label>
-                    <input type="date" data-p="${idx}" data-f="data_nascimento" oninput="syncPessoa(this)" value="${pessoa.data_nascimento || ''}">
-                </div>
-                <div class="form-group"><label>Nationality</label>
-                    <input type="text" data-p="${idx}" data-f="nacionalidade" placeholder="e.g. British" oninput="syncPessoa(this)" value="${escapeHtml(pessoa.nacionalidade || '')}">
-                </div>
-                <div class="form-group"><label>ID / Passport No.</label>
-                    <input type="text" data-p="${idx}" data-f="numero_identificacao" placeholder="Document number" oninput="syncPessoa(this)" value="${escapeHtml(pessoa.numero_identificacao || '')}">
-                </div>
-                <div class="form-group"><label>Ownership %</label>
-                    <input type="number" data-p="${idx}" data-f="percentual_participacao" placeholder="e.g. 30" min="0" max="100" oninput="syncPessoa(this)" value="${pessoa.percentual_participacao || ''}">
-                </div>
-                <div class="form-group span-2"><label>Email</label>
-                    <input type="email" data-p="${idx}" data-f="email" placeholder="personal@email.com" oninput="syncPessoa(this)" value="${escapeHtml(pessoa.email || '')}">
-                </div>
-                <div class="form-group"><label>PEP Status</label>
-                    <select data-p="${idx}" data-f="pep_status" onchange="syncPessoa(this)">
-                        <option value="nao" ${pessoa.pep_status === 'nao' ? 'selected' : ''}>No</option>
-                        <option value="possivel" ${pessoa.pep_status === 'possivel' ? 'selected' : ''}>Possible</option>
-                        <option value="sim" ${pessoa.pep_status === 'sim' ? 'selected' : ''}>Yes</option>
-                        <option value="confirmado" ${pessoa.pep_status === 'confirmado' ? 'selected' : ''}>Confirmed</option>
-                    </select>
-                </div>
-                <div class="form-group"><label>Sanctions Status</label>
-                    <select data-p="${idx}" data-f="sancoes_status" onchange="syncPessoa(this)">
-                        <option value="nao_confirmado" ${pessoa.sancoes_status === 'nao_confirmado' ? 'selected' : ''}>Not confirmed</option>
-                        <option value="possivel" ${pessoa.sancoes_status === 'possivel' ? 'selected' : ''}>Possible</option>
-                        <option value="confirmado" ${pessoa.sancoes_status === 'confirmado' ? 'selected' : ''}>Confirmed</option>
-                    </select>
+                <div class="grid-2">
+                    <!-- 1. FULL NAME (obrigatório) -->
+                    <div class="form-group span-2">
+                        <label>Full Name <span class="req">*</span></label>
+                        <input type="text" id="pessoa_nome_${idx}" 
+                               data-p="${idx}" 
+                               data-f="nome_completo" 
+                               value="${nome}"
+                               oninput="syncPessoa(this)" 
+                               onblur="syncPessoa(this)"
+                               placeholder="Full legal name" required>
+                    </div>
+                    
+                    <!-- 2. ROLE / TITLE -->
+                    <div class="form-group">
+                        <label>Role / Title <span class="req">*</span></label>
+                        <select id="pessoa_cargo_${idx}" 
+                                data-p="${idx}" data-f="cargo" 
+                                onchange="syncPessoa(this)" required>
+                            <option value="">— Select —</option>
+                            <option ${pessoa.cargo === 'Director' ? 'selected' : ''}>Director</option>
+                            <option ${pessoa.cargo === 'UBO (≥25%)' ? 'selected' : ''}>UBO (≥25%)</option>
+                            <option ${pessoa.cargo === 'Authorised Signatory' ? 'selected' : ''}>Authorised Signatory</option>
+                            <option ${pessoa.cargo === 'Shareholder' ? 'selected' : ''}>Shareholder</option>
+                            <option ${pessoa.cargo === 'Company Secretary' ? 'selected' : ''}>Company Secretary</option>
+                        </select>
+                    </div>
+                    
+                    <!-- 3. DATE OF BIRTH -->
+                    <div class="form-group">
+                        <label>Date of Birth <span class="req">*</span></label>
+                        <input type="date" id="pessoa_dob_${idx}" 
+                               data-p="${idx}" data-f="data_nascimento" 
+                               value="${pessoa.data_nascimento || ''}"
+                               oninput="syncPessoa(this)" required>
+                    </div>
+                    
+                    <!-- 4. NATIONALITY -->
+                    <div class="form-group">
+                        <label>Nationality <span class="req">*</span></label>
+                        <div style="position: relative;">
+                            <input type="text" id="pessoa_nacionalidade_${idx}" 
+                                data-p="${idx}" data-f="nacionalidade" 
+                                list="nationalityList_${idx}"
+                                class="form-control"
+                                value="${nacionalidade}"
+                                oninput="onNationalityInput(this, ${idx})"
+                                onchange="onNationalitySelect(this, ${idx})"
+                                placeholder="Start typing country name..." required>
+                            <datalist id="nationalityList_${idx}">
+                                <option value="">-- Select a nationality --</option>
+                                ${nationalityOptions}
+                            </datalist>
+                        </div>
+                        <div id="nationalityRiskIndicator_${idx}" class="field-hint" style="margin-top: 6px; display: none;">
+                            <i class="fas fa-shield-alt"></i> <span id="nationalityRiskText_${idx}"></span>
+                        </div>
+                        <input type="hidden" id="pessoa_nacionalidade_code_${idx}" data-p="${idx}" data-f="nacionalidade_code">
+                    </div>
+                    
+                    <!-- 5. ID / PASSPORT NO. -->
+                    <div class="form-group">
+                        <label>ID / Passport No. <span class="req">*</span></label>
+                        <input type="text" id="pessoa_id_${idx}" 
+                               data-p="${idx}" data-f="numero_identificacao" 
+                               value="${documento}"
+                               oninput="syncPessoa(this)" 
+                               placeholder="Document number" required>
+                    </div>
+                    
+                    <!-- 6. OWNERSHIP % -->
+                    <div class="form-group">
+                        <label>Ownership % <span class="req">*</span></label>
+                        <input type="number" id="pessoa_ownership_${idx}" 
+                               data-p="${idx}" data-f="percentual_participacao" 
+                               value="${pessoa.percentual_participacao || ''}"
+                               oninput="syncPessoa(this); validarOwnership(this)" 
+                               placeholder="e.g. 30" min="0" max="100" step="0.01" required>
+                    </div>
+                    
+                    <!-- 7. EMAIL -->
+                    <div class="form-group span-2">
+                        <label>Email <span class="req">*</span></label>
+                        <input type="email" id="pessoa_email_${idx}" 
+                               data-p="${idx}" data-f="email" 
+                               value="${email}"
+                               oninput="syncPessoa(this)" 
+                               placeholder="personal@email.com" required>
+                    </div>
                 </div>
             </div>
-        </div>
+        `;
+    }).join('');
+}
+
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function validarOwnership(input) {
+    const valor = parseFloat(input.value);
+    if (isNaN(valor)) {
+        input.style.borderColor = '#e01b24';
+        return false;
+    }
+    if (valor < 0 || valor > 100) {
+        input.style.borderColor = '#e01b24';
+        input.title = 'Ownership percentage must be between 0 and 100';
+        return false;
+    }
+    input.style.borderColor = '';
+    input.title = '';
+    return true;
+}
+
+// Array para armazenar os destinos selecionados
+let selectedDestinations = [];
+
+// Gerenciar a tecla Enter para adicionar países
+function handleDestinationKeydown(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        const input = document.getElementById('paises_destino_input');
+        const value = input.value.trim();
+        
+        if (value && !selectedDestinations.includes(value)) {
+            // Verificar se é um país válido (está na lista)
+            const country = getCountryByName(value);
+            if (country) {
+                selectedDestinations.push(value);
+                updateDestinationsDisplay();
+                updateDestinationsHidden();
+            }
+        }
+        input.value = '';
+    }
+}
+
+// Atualizar a exibição dos países selecionados
+function updateDestinationsDisplay() {
+    const container = document.getElementById('selectedDestinationsContainer');
+    if (!container) return;
+    
+    container.innerHTML = selectedDestinations.map(country => `
+        <span class="destination-tag" style="background: rgba(210,158,0,.12); border: 1px solid #d29e00; border-radius: 20px; padding: 4px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 8px;">
+            ${country}
+            <button type="button" onclick="removeDestination('${country}')" style="background: none; border: none; cursor: pointer; color: #e01b24; font-size: 14px;">&times;</button>
+        </span>
     `).join('');
+}
+
+// Remover um país da lista
+function removeDestination(country) {
+    selectedDestinations = selectedDestinations.filter(c => c !== country);
+    updateDestinationsDisplay();
+    updateDestinationsHidden();
+}
+
+// Atualizar o campo hidden com os valores separados por vírgula
+function updateDestinationsHidden() {
+    const hiddenField = document.getElementById('paises_destino');
+    if (hiddenField) {
+        hiddenField.value = selectedDestinations.join(',');
+    }
+}
+
+// Inicializar os destinos selecionados a partir de um valor salvo (para edição de draft)
+function initDestinationsFromString(value) {
+    if (value && typeof value === 'string') {
+        selectedDestinations = value.split(',').filter(c => c.trim());
+        updateDestinationsDisplay();
+        updateDestinationsHidden();
+    }
 }
 
 // Função auxiliar para escapar HTML e evitar problemas com caracteres especiais
@@ -765,12 +1423,52 @@ function escapeHtml(str) {
 function syncPessoa(el) {
     const idx = parseInt(el.dataset.p);
     const field = el.dataset.f;
-    if (pessoas[idx] !== undefined) pessoas[idx][field] = el.value;
+    console.log(`🔄 syncPessoa: idx=${idx}, field=${field}, value=${el.value}`);
+    if (pessoas[idx] !== undefined) {
+        pessoas[idx][field] = el.value;
+        console.log(`✅ pessoas[${idx}][${field}] = ${el.value}`);
+    } else {
+        console.log(`❌ pessoas[${idx}] não existe!`);
+    }
 }
 
 function toggleSameAddress() {
     const checked = document.getElementById('sameAddress').checked;
     document.getElementById('regAddressFields').style.display = checked ? 'none' : 'block';
+}
+
+// Função chamada quando o usuário digita no campo de nacionalidade
+function onNationalityInput(input, idx) {
+    const value = input.value;
+    const nationality = getNationalityByName(value);
+    const codeInput = document.getElementById(`pessoa_nacionalidade_code_${idx}`);
+    const riskIndicator = document.getElementById(`nationalityRiskIndicator_${idx}`);
+    const riskText = document.getElementById(`nationalityRiskText_${idx}`);
+    
+    if (nationality) {
+        const risk = RISK_LEVELS[nationality.risco];  // ← usar 'risco' em vez de 'risk'
+        if (risk && riskText) {
+            riskText.innerHTML = `<span style="color: ${risk.color}"><i class="fas fa-${nationality.risco === 'low' ? 'check-circle' : nationality.risco === 'high' ? 'exclamation-triangle' : 'info-circle'}"></i> ${risk.label}</span>`;
+        }
+        if (riskIndicator) riskIndicator.style.display = 'block';
+        if (codeInput) codeInput.value = nationality.codigo;
+        
+        const pessoa = pessoas[idx];
+        if (pessoa) {
+            pessoa.nacionalidade_code = nationality.codigo;
+            pessoa.nacionalidade_risk = nationality.risco;
+        }
+    } else {
+        if (riskIndicator) riskIndicator.style.display = 'none';
+        if (codeInput) codeInput.value = '';
+    }
+    
+    syncPessoa(input);
+}
+
+// Função chamada quando o usuário seleciona uma nacionalidade
+function onNationalitySelect(input, idx) {
+    onNationalityInput(input, idx);
 }
 
 // ── Summary (Step 6) ──
@@ -795,15 +1493,20 @@ function collectData() {
     const n = id => parseFloat(document.getElementById(id)?.value) || null;
     const pep = document.querySelector('input[name=pep_empresa]:checked')?.value || 'nao';
     const sanc = document.querySelector('input[name=sancoes_empresa]:checked')?.value || 'nao_confirmado';
+    
     return {
+        // Step 1 - Business Details
         razao_social: v('razao_social'),
         nome_comercial: v('nome_comercial'),
         tipo_entidade: v('tipo_entidade'),
         numero_registro: v('numero_registro'),
         pais_registro: v('pais_registro'),
+        pais_registro_code: document.getElementById('pais_registro_code')?.value || null,
         data_constituicao: v('data_constituicao'),
         numero_vat: v('numero_vat'),
         setor_atividade: v('setor_atividade'),
+        estatuto_regulatorio: v('estatuto_regulatorio'),
+        estrutura_propriedade: v('estrutura_propriedade'),  // 🔥 NOVO CAMPO
         faturamento_anual: n('faturamento_anual'),
         descricao_negocio: v('descricao_negocio'),
         website: v('website'),
@@ -812,15 +1515,18 @@ function collectData() {
         telefone: v('telefone'),
         account_manager_username: v('account_manager_username'),
         usuario_username: v('usuario_username'),
-        // address
+        
+        // Step 2 - Address
         endereco_linha1: v('endereco_linha1'),
         endereco_linha2: v('endereco_linha2'),
         cidade: v('cidade'),
         estado: v('estado'),
         cep: v('cep'),
         pais: v('pais'),
+        pais_code: document.getElementById('pais_code')?.value || null,
         endereco_registrado: document.getElementById('sameAddress')?.checked ? null : v('endereco_registrado'),
-        // payment
+        
+        // Step 4 - Payment Profile
         finalidade_pagamento: v('finalidade_pagamento'),
         volume_mensal_esperado: n('volume_mensal_esperado'),
         frequencia_mensal_esperada: n('frequencia_mensal_esperada'),
@@ -831,18 +1537,28 @@ function collectData() {
         fonte_recursos_detalhes: v('fonte_recursos_detalhes'),
         banco_origem: v('banco_origem'),
         paises_origem: v('paises_origem'),
-        // pep / sanctions
+        pagamentos_terceiros: v('pagamentos_terceiros'),       
+        invoice_documentation: v('invoice_documentation'), 
+        
+        // Step 5 - PEP & Sanctions
         pep_empresa: pep,
         sancoes_empresa: sanc,
         pep_notas: v('pep_notas'),
-        // refs & notes
+        prior_sar_ctr: v('prior_sar_ctr'),
+        regulatory_history: v('regulatory_history'),
+        adverse_media: v('adverse_media'),
+        banking_history: v('banking_history'),        
+        
+        // Step 6 - Refs & Notes
         creditsafe_ref: v('creditsafe_ref'),
         shuttipro_ref: v('shuttipro_ref'),
         checkmarble_ref: v('checkmarble_ref'),
         notas_compliance: v('notas_compliance'),
-        // pessoas
-        pessoas: pessoas.filter(p => p.nome_completo),
-        // status
+        
+        // Step 3 - Persons (UBOs)
+        pessoas: pessoas.filter(p => p.nome_completo && p.email),  // 🔥 FILTRO MELHORADO
+        
+        // Status
         status: 'aguardando_revisao'
     };
 }
@@ -936,7 +1652,13 @@ async function _loadDraft(id) {
         if (!d.success || !d.cliente) return;
         const c = d.cliente;
 
-        // Helper: set field value only if the element exists and value is non-null
+        console.log('Valores do backend:', {
+            estatuto_regulatorio: c.estatuto_regulatorio,
+            estrutura_propriedade: c.estrutura_propriedade,
+            pais_registro_code: c.pais_registro_code,
+            pais_code: c.pais_code
+        });
+
         const sv = (fid, val) => { if (val == null) return; const el = document.getElementById(fid); if (el) el.value = val; };
 
         // Step 1 — Business details
@@ -948,6 +1670,8 @@ async function _loadDraft(id) {
         sv('data_constituicao',     c.data_constituicao);
         sv('numero_vat',            c.numero_vat);
         sv('setor_atividade',       c.setor_atividade);
+        sv('estatuto_regulatorio',  c.estatuto_regulatorio);
+        sv('estrutura_propriedade', c.estrutura_propriedade);
         sv('faturamento_anual',     c.faturamento_anual);
         sv('descricao_negocio',     c.descricao_negocio);
         sv('website',               c.website);
@@ -965,6 +1689,19 @@ async function _loadDraft(id) {
         sv('cep',                   c.cep);
         sv('pais',                  c.pais);
         sv('endereco_registrado',   c.endereco_registrado);
+        
+        // 🔥 Carregar código do país do endereço 🔥
+        if (c.pais_code) {
+            const codeInput = document.getElementById('pais_code');
+            if (codeInput) codeInput.value = c.pais_code;
+        } else if (c.pais) {
+            // Se não tem o código salvo, tentar buscar pelo nome
+            const country = getCountryByName(c.pais);
+            if (country) {
+                const codeInput = document.getElementById('pais_code');
+                if (codeInput) codeInput.value = country.codigo;
+            }
+        }
 
         // Step 4 — Payment profile
         sv('finalidade_pagamento',        c.finalidade_pagamento);
@@ -977,17 +1714,27 @@ async function _loadDraft(id) {
         sv('fonte_recursos_detalhes',     c.fonte_recursos_detalhes);
         sv('banco_origem',                c.banco_origem);
         sv('paises_origem',               c.paises_origem);
+        sv('pagamentos_terceiros',        c.pagamentos_terceiros);      
+        sv('invoice_documentation',       c.invoice_documentation);  
 
         // Step 5 — PEP / Sanctions
         if (c.pep_empresa) {
             const pepEl = document.querySelector(`input[name=pep_empresa][value="${c.pep_empresa}"]`);
             if (pepEl) pepEl.checked = true;
         }
+        if (c.pais_registro_code) {
+            const codeInput = document.getElementById('pais_registro_code');
+            if (codeInput) codeInput.value = c.pais_registro_code;
+        }        
         if (c.sancoes_empresa) {
             const sancEl = document.querySelector(`input[name=sancoes_empresa][value="${c.sancoes_empresa}"]`);
             if (sancEl) sancEl.checked = true;
         }
         sv('pep_notas', c.pep_notas);
+        sv('prior_sar_ctr', c.prior_sar_ctr);
+        sv('regulatory_history', c.regulatory_history);
+        sv('adverse_media', c.adverse_media);
+        sv('banking_history', c.banking_history);        
 
         // Step 6 — Refs & notes
         sv('creditsafe_ref',    c.creditsafe_ref);
@@ -1012,7 +1759,17 @@ async function _loadDraft(id) {
             }));
             renderPessoas();
         }
-    } catch(e) { console.error('Load draft error:', e); }
+
+        // 🔥 Carregar destinos salvos
+        if (c.paises_destino) {
+            initDestinationsFromString(c.paises_destino);
+        } else {
+            initDestinationsFromString('');
+        }
+
+    } catch(e) { 
+        console.error('Load draft error:', e); 
+    }
 }
 
 // init
