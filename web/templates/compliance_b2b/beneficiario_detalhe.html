@@ -537,9 +537,5 @@ function escapeHtml(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;
 
 loadBeneficiary();
 </script>
-<script>
-function toggleTheme(){var next=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',next);localStorage.setItem('theme',next);var ic=document.querySelector('#btnTheme i');if(ic)ic.className=next==='light'?'fas fa-moon':'fas fa-sun';}
-document.addEventListener('DOMContentLoaded',function(){var t=document.documentElement.getAttribute('data-theme')||'light';var ic=document.querySelector('#btnTheme i');if(ic)ic.className=t==='light'?'fas fa-moon':'fas fa-sun';});
-</script>
 </body>
 </html>
