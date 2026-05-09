@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Country Risk — B2B Compliance</title>
+    <script>(function(){ document.documentElement.setAttribute('data-theme', localStorage.getItem('theme')||'light'); })();</script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        :root[data-theme="light"]{
+            --cor-fundo:#f5ede0;--cor-card:#ffffff;--cor-borda:rgba(210,185,130,.4);
+            --cor-texto:#1a1200;--cor-texto-secundario:#9a8560;
+            --cor-primaria:#c8920a;--cor-admin:#c8920a;
+            --cor-sucesso:#1a7a52;--cor-alerta:#b87200;--cor-perigo:#c02020;
+            --sombra-suave:0 2px 8px rgba(160,110,0,.10),0 1px 3px rgba(0,0,0,.04);
+            --sombra-media:0 6px 22px rgba(160,110,0,.13),0 2px 8px rgba(0,0,0,.05);
+            --borda-radius:14px;
+        }
+        :root[data-theme="dark"]{
+            --cor-fundo:#110f08;--cor-card:#191611;--cor-borda:#2d2819;
+            --cor-texto:#e0e0e0;--cor-texto-secundario:#8b949e;
+            --cor-primaria:#d29e00;--cor-admin:#d29e00;
+            --cor-sucesso:#2ec27e;--cor-alerta:#f39c12;--cor-perigo:#e01b24;
+            --sombra-suave:0 4px 6px rgba(0,0,0,.30);
+            --sombra-media:0 8px 16px rgba(0,0,0,.40);
+            --borda-radius:14px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+        body{background-color:#f5ede0;background-image:radial-gradient(ellipse at 15% 15%,rgba(210,158,0,.10) 0%,transparent 55%),radial-gradient(ellipse at 85% 85%,rgba(180,120,0,.08) 0%,transparent 55%),linear-gradient(150deg,#f8f2e6 0%,#fdf9f2 45%,#ede3cf 100%);background-attachment:fixed;color:var(--cor-texto);min-height:100vh;overflow-x:hidden;}
+        body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(180,130,0,.055) 1px,transparent 1px);background-size:30px 30px;pointer-events:none;z-index:0;}
+        html[data-theme="dark"] body{background-color:#110f08;background-image:linear-gradient(135deg,#110f08 0%,#1f1a10 100%);}
+        html[data-theme="dark"] body::before{display:none;}
+        .top-bar{position:sticky;top:0;z-index:200;height:54px;background:var(--cor-card);border-bottom:1px solid var(--cor-borda);display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:10px;box-shadow:var(--sombra-suave);}
+        .logo-text{background:linear-gradient(135deg,#7a5800,#c8920a 45%,#a07000);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800;font-size:17px;}
+        .logo-text span{font-weight:400;}
+        .badge-b2b{background:rgba(200,146,10,.15);border:1px solid rgba(200,146,10,.4);color:var(--cor-admin);font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;letter-spacing:.5px;text-transform:uppercase;}
+        .hd-right{display:flex;align-items:center;gap:8px;}
+        .btn-hd{background:rgba(200,146,10,.12);border:1px solid var(--cor-admin);color:var(--cor-admin);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:.15s;}
+        .btn-hd:hover{background:rgba(200,146,10,.25);}
+        .btn-hd-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-hd-ghost:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+        .badge-user{background:rgba(200,146,10,.1);color:var(--cor-admin);padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;}
+        .main-layout{display:flex;min-height:calc(100vh - 54px);position:relative;z-index:1;}
+        .sidebar{width:215px;min-width:215px;background:var(--cor-card);border-right:1px solid var(--cor-borda);padding:12px 0 24px;position:sticky;top:54px;height:calc(100vh - 54px);overflow-y:auto;display:flex;flex-direction:column;}
+        .sidebar::-webkit-scrollbar{width:4px;}
+        .sidebar::-webkit-scrollbar-thumb{background:rgba(200,146,10,.3);border-radius:2px;}
+        .nav-section-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--cor-texto-secundario);padding:14px 18px 5px;opacity:.7;}
+        .nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;font-weight:600;color:var(--cor-texto-secundario);cursor:pointer;border-left:3px solid transparent;transition:.15s;user-select:none;text-decoration:none;}
+        .nav-item i{width:16px;text-align:center;font-size:13px;}
+        .nav-item:hover{color:var(--cor-admin);background:rgba(200,146,10,.06);}
+        .nav-item.active{color:var(--cor-admin);background:rgba(200,146,10,.1);border-left-color:var(--cor-admin);}
+        .nav-divider{height:1px;background:var(--cor-borda);margin:8px 14px;}
+        .content-area{flex:1;min-width:0;padding:24px;overflow-x:hidden;}
+        .page-header{margin-bottom:24px;}
+        .page-header h1{font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+        .page-header h1 i{color:var(--cor-admin);}
+        .page-header p{color:var(--cor-texto-secundario);font-size:13px;}
+        /* KPIs */
+        .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:20px;}
+        .kpi{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;padding:16px 18px;position:relative;overflow:hidden;box-shadow:var(--sombra-suave);transition:.2s;}
+        .kpi:hover{border-color:rgba(200,146,10,.4);transform:translateY(-2px);}
+        .kpi-stripe{position:absolute;top:0;left:0;right:0;height:3px;}
+        .kpi-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;margin-bottom:9px;}
+        .kpi-lbl{font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;}
+        .kpi-val{font-size:24px;font-weight:700;line-height:1;}
+        /* Tabs */
+        .tab-bar{display:flex;gap:4px;margin-bottom:16px;background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;padding:5px;box-shadow:var(--sombra-suave);}
+        .tab-btn{flex:1;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--cor-texto-secundario);font-family:inherit;transition:.15s;display:inline-flex;align-items:center;justify-content:center;gap:7px;}
+        .tab-btn:hover{color:var(--cor-admin);}
+        .tab-btn.active{background:rgba(200,146,10,.12);color:var(--cor-admin);box-shadow:0 1px 3px rgba(0,0,0,.06);}
+        .tab-panel{display:none;}
+        .tab-panel.active{display:block;}
+        /* Table card */
+        .tbl-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;overflow:hidden;box-shadow:var(--sombra-suave);}
+        .card-hd{padding:13px 18px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+        .card-hd h3{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;}
+        .card-hd h3 i{color:var(--cor-admin);}
+        .filter-bar{padding:10px 14px;border-bottom:1px solid var(--cor-borda);display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+        .filter-bar input,.filter-bar select{background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:6px 10px;border-radius:8px;font-size:12px;font-family:inherit;outline:none;transition:.15s;}
+        .filter-bar input:focus,.filter-bar select:focus{border-color:var(--cor-admin);}
+        .filter-btn-group{display:flex;gap:4px;}
+        .filter-btn{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--cor-borda);background:transparent;color:var(--cor-texto-secundario);transition:.15s;white-space:nowrap;}
+        .filter-btn:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+        .filter-btn.active{background:rgba(200,146,10,.12);border-color:var(--cor-admin);color:var(--cor-admin);}
+        .tbl-wrap{overflow-x:auto;}
+        table{width:100%;border-collapse:collapse;font-size:13px;}
+        th{background:rgba(128,128,128,.05);color:var(--cor-texto-secundario);padding:8px 14px;text-align:left;font-weight:600;font-size:11px;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px;}
+        td{padding:9px 14px;border-top:1px solid var(--cor-borda);vertical-align:middle;}
+        tr:hover td{background:rgba(200,146,10,.025);}
+        .empty{padding:40px;text-align:center;color:var(--cor-texto-secundario);}
+        .empty i{font-size:32px;margin-bottom:8px;display:block;opacity:.4;}
+        .tag{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+        .btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:inherit;text-decoration:none;transition:.15s;white-space:nowrap;}
+        .btn-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-ghost:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+        .btn-sm{padding:4px 10px;font-size:11px;}
+        /* Toggle */
+        .toggle{position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0;}
+        .toggle input{opacity:0;width:0;height:0;}
+        .toggle-slider{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:20px;transition:.2s;}
+        .toggle-slider::before{content:'';position:absolute;width:14px;height:14px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;}
+        .toggle input:checked+.toggle-slider{background:var(--cor-perigo);}
+        .toggle input:checked+.toggle-slider::before{transform:translateX(16px);}
+        /* Map panel */
+        .map-legend{display:flex;flex-wrap:wrap;gap:12px;padding:14px 18px;border-bottom:1px solid var(--cor-borda);align-items:center;}
+        .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--cor-texto-secundario);}
+        .legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+        .map-wrap{padding:0;position:relative;background:#f8f5ee;border-radius:0 0 12px 12px;}
+        html[data-theme="dark"] .map-wrap{background:#1a1710;}
+        #svgMap{width:100%;display:block;}
+        /* Critical svgMap layout — inlined so it is guaranteed present before the library
+           initialises (CDN CSS and JS race; if JS wins the container has 0 height). */
+        .svgMap-wrapper,.svgMap-container{position:relative;}
+        .svgMap-map-wrapper{position:relative;width:100%;height:calc(100vh - 455px);min-height:300px;overflow:hidden;background:#d9ecff;}
+        .svgMap-map-image{display:block;position:absolute;top:0;left:0;width:100%;height:100%;margin:0;}
+        .svgMap-country{fill:#E2E2E2;stroke:#fff;stroke-width:1;stroke-linejoin:round;vector-effect:non-scaling-stroke;transition:fill 250ms,opacity .12s;}
+        .svgMap-country:hover{stroke:#555;stroke-width:1.5;opacity:.85 !important;cursor:pointer;}
+        .svgMap-map-controls-wrapper{display:flex;overflow:hidden;border-radius:2px;box-shadow:0 0 0 2px rgba(0,0,0,.1);position:absolute;z-index:1;}
+        .svgMap-map-controls-wrapper.svgMap-controls-position-topLeft{top:10px;left:10px;}
+        .svgMap-control-button{background:#fff;border:0;width:32px;height:32px;cursor:pointer;position:relative;}
+        .svgMap-zoom-button::before{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#ccc;width:11px;height:3px;}
+        .svgMap-zoom-in-button::after{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#ccc;width:3px;height:11px;}
+        .svgMap-zoom-reset-button::before{background:0 0 !important;border:2px solid #ccc;width:11px !important;height:11px !important;}
+        .svgMap-map-controls-wrapper{background:var(--cor-card) !important;border:1px solid var(--cor-borda) !important;border-radius:8px !important;}
+        .svgMap-map-controls-zoom-button{color:var(--cor-texto) !important;border-color:var(--cor-borda) !important;}
+        /* Hide svgMap built-in tooltip — we use our own */
+        .svgMap-tooltip{display:none !important;}
+        .svgMap-country{transition:opacity .12s;}
+        .svgMap-country:hover{opacity:.75 !important;cursor:pointer;}
+        /* Custom tooltip */
+        #mapTooltip{position:fixed;z-index:9999;pointer-events:none;display:none;background:#fff;border:1px solid rgba(210,185,130,.5);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.15);max-width:240px;}
+        html[data-theme="dark"] #mapTooltip{background:#191611;border-color:#2d2819;}
+        /* Modal */
+        .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;align-items:center;justify-content:center;padding:20px;}
+        .modal-box{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:16px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+        .modal-hd{padding:20px 24px 16px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;}
+        .modal-hd h3{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;}
+        .modal-hd h3 i{color:var(--cor-admin);}
+        .modal-body{padding:20px 24px;}
+        .modal-ft{padding:14px 24px;border-top:1px solid var(--cor-borda);display:flex;justify-content:flex-end;gap:8px;}
+        .form-group{margin-bottom:16px;}
+        .form-group label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--cor-texto-secundario);margin-bottom:6px;}
+        .form-control{width:100%;background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:8px 12px;border-radius:8px;font-size:13px;font-family:inherit;outline:none;transition:.15s;}
+        .form-control:focus{border-color:var(--cor-admin);}
+        .btn-primary{background:var(--cor-admin);border:1px solid var(--cor-admin);color:#fff;}
+        .btn-primary:hover{opacity:.88;}
+        .btn-danger{background:rgba(192,32,32,.12);border:1px solid rgba(192,32,32,.4);color:#c02020;}
+        .btn-danger:hover{background:rgba(192,32,32,.22);border-color:#c02020;}
+        html[data-theme="dark"] .btn-danger{background:rgba(220,50,50,.15);border-color:rgba(220,50,50,.4);color:#e05050;}
+        .saving-indicator{display:none;font-size:11px;color:var(--cor-texto-secundario);align-items:center;gap:4px;}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .fa-spin{animation:spin 1s linear infinite}
+        @media(max-width:768px){.sidebar{display:none}.content-area{padding:16px}}
+    </style>
+</head>
+<body>
+<div class="top-bar">
+    <div style="display:flex;align-items:center;gap:10px;">
+        <span class="logo-text"><strong>Link</strong> <span>international</span></span>
+        <span class="badge-b2b">B2B Compliance</span>
+    </div>
+    <div class="hd-right">
+        <a href="/language/{{ 'pt' if current_lang == 'en' else 'en' }}" class="btn-hd btn-hd-ghost"><i class="fas fa-globe"></i> {{ 'PT' if current_lang == 'en' else 'EN' }}</a>
+        <button class="btn-hd btn-hd-ghost" id="btnTheme" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+        <span class="badge-user"><i class="fas fa-user-shield"></i> {{ usuario }}</span>
+        <a href="/admin/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-arrow-left"></i> Admin</a>
+    </div>
+</div>
+
+<div class="main-layout">
+    <nav class="sidebar">
+        <div class="nav-section-lbl">Overview</div>
+        <a href="/compliance/b2b/dashboard" class="nav-item"><i class="fas fa-gauge-high"></i> Dashboard</a>
+        <a href="/compliance/b2b/clientes" class="nav-item"><i class="fas fa-building"></i> Clients</a>
+        <a href="/compliance/b2b/clientes/novo" class="nav-item"><i class="fas fa-plus-circle"></i> New Onboarding</a>
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Compliance</div>
+        <a href="/compliance/b2b/edd" class="nav-item"><i class="fas fa-magnifying-glass-chart"></i> EDD Cases</a>
+        <a href="/compliance/b2b/alertas" class="nav-item"><i class="fas fa-bell"></i> Alerts</a>
+        <a href="/compliance/b2b/screening" class="nav-item"><i class="fas fa-shield-halved"></i> Screening</a>
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Operations</div>
+        <a href="/compliance/b2b/beneficiarios" class="nav-item"><i class="fas fa-users"></i> Beneficiaries</a>
+        <a href="/compliance/b2b/transferencias" class="nav-item"><i class="fas fa-arrow-right-arrow-left"></i> Transfers</a>
+        <a href="/compliance/b2b/limites" class="nav-item"><i class="fas fa-sliders"></i> Limits</a>
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Configuration</div>
+        <a href="/compliance/b2b/paises" class="nav-item active"><i class="fas fa-earth-americas"></i> Countries</a>
+        <a href="/compliance/b2b/risk-config" class="nav-item"><i class="fas fa-gear"></i> Risk Config</a>
+        <a href="/compliance/b2b/structuring-config" class="nav-item"><i class="fas fa-wave-square"></i> AML Rules</a>
+    </nav>
+
+    <div class="content-area">
+        <div class="page-header">
+            <h1><i class="fas fa-earth-americas"></i> Country Risk Management</h1>
+            <p>Manage risk classification and blocking status. Changes take effect immediately on all new transactions and onboardings.</p>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpi-grid">
+            <div class="kpi">
+                <div class="kpi-stripe" style="background:var(--cor-admin);"></div>
+                <div class="kpi-icon" style="background:rgba(200,146,10,.1);color:var(--cor-admin);"><i class="fas fa-earth-americas"></i></div>
+                <div class="kpi-lbl">Total Countries</div>
+                <div class="kpi-val" id="kpi-total">—</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-stripe" style="background:var(--cor-sucesso);"></div>
+                <div class="kpi-icon" style="background:rgba(26,122,82,.1);color:var(--cor-sucesso);"><i class="fas fa-check-circle"></i></div>
+                <div class="kpi-lbl">Low Risk</div>
+                <div class="kpi-val" id="kpi-low">—</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-stripe" style="background:var(--cor-alerta);"></div>
+                <div class="kpi-icon" style="background:rgba(184,114,0,.1);color:var(--cor-alerta);"><i class="fas fa-triangle-exclamation"></i></div>
+                <div class="kpi-lbl">High Risk</div>
+                <div class="kpi-val" id="kpi-high">—</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-stripe" style="background:#7c3aed;"></div>
+                <div class="kpi-icon" style="background:rgba(124,58,237,.1);color:#7c3aed;"><i class="fas fa-circle-xmark"></i></div>
+                <div class="kpi-lbl">Sanctioned</div>
+                <div class="kpi-val" id="kpi-sanctioned">—</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-stripe" style="background:var(--cor-perigo);"></div>
+                <div class="kpi-icon" style="background:rgba(192,32,32,.1);color:var(--cor-perigo);"><i class="fas fa-ban"></i></div>
+                <div class="kpi-lbl">Blocked</div>
+                <div class="kpi-val" id="kpi-blocked">—</div>
+            </div>
+        </div>
+
+        <!-- Tab bar -->
+        <div class="tab-bar">
+            <button class="tab-btn active" id="tabBtnMap" onclick="showTab('map',this)">
+                <i class="fas fa-earth-americas"></i> World Map
+            </button>
+            <button class="tab-btn" id="tabBtnList" onclick="showTab('list',this)">
+                <i class="fas fa-list"></i> Country List
+            </button>
+        </div>
+
+        <!-- ── LIST PANEL ── -->
+        <div id="panel-list" class="tab-panel">
+            <div class="tbl-card">
+                <div class="card-hd">
+                    <h3><i class="fas fa-list"></i> Country List</h3>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="saving-indicator" id="savingIndicator"><i class="fas fa-spinner fa-spin"></i> Saving...</span>
+                        <button class="btn btn-ghost" onclick="loadCountries()"><i class="fas fa-rotate-right"></i> Refresh</button>
+                        <button class="btn btn-danger btn-sm" onclick="openReset()"><i class="fas fa-arrow-rotate-left"></i> Reset to Default</button>
+                    </div>
+                </div>
+                <div class="filter-bar">
+                    <input type="text" id="searchInput" placeholder="Search country or ISO..." style="width:200px;" oninput="onSearch()">
+                    <select id="riscoFilter" onchange="loadCountries()">
+                        <option value="">All Risk Levels</option>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High Risk</option>
+                        <option value="sanctioned">Sanctioned</option>
+                        <option value="standard">Standard</option>
+                    </select>
+                    <select id="continentFilter" onchange="loadCountries()">
+                        <option value="">All Continents</option>
+                    </select>
+                    <div class="filter-btn-group" style="margin-left:auto;">
+                        <button class="filter-btn active" data-blocked="" onclick="setBlockedFilter(this)">All</button>
+                        <button class="filter-btn" data-blocked="false" onclick="setBlockedFilter(this)">Active</button>
+                        <button class="filter-btn" data-blocked="true" onclick="setBlockedFilter(this)"><i class="fas fa-ban" style="font-size:10px;"></i> Blocked</button>
+                    </div>
+                    <span id="resultCount" style="font-size:12px;color:var(--cor-texto-secundario);"></span>
+                </div>
+                <div class="tbl-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:50px;">ISO</th>
+                                <th>Country</th>
+                                <th>Nationality</th>
+                                <th>Continent</th>
+                                <th>Risk Level</th>
+                                <th style="text-align:center;">Blocked</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="countryTbody">
+                            <tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── MAP PANEL ── -->
+        <div id="panel-map" class="tab-panel active">
+            <div class="tbl-card">
+                <div class="card-hd">
+                    <h3><i class="fas fa-map"></i> World Risk Map</h3>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="font-size:12px;color:var(--cor-texto-secundario);">Hover for details · Click to edit</span>
+                        <button class="btn btn-danger btn-sm" onclick="openReset()"><i class="fas fa-arrow-rotate-left"></i> Reset to Default</button>
+                    </div>
+                </div>
+                <!-- Legend -->
+                <div class="map-legend">
+                    <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--cor-texto-secundario);margin-right:4px;">Risk:</span>
+                    <div class="legend-item"><div class="legend-dot" style="background:#22c55e;"></div> Low</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#eab308;"></div> Medium</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#c8920a;"></div> Standard</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#ef4444;"></div> High Risk</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#7c3aed;"></div> Sanctioned</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#7f1d1d;"></div> Blocked</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#d4d4d4;"></div> Not in system</div>
+                </div>
+                <!-- Map container -->
+                <div class="map-wrap">
+                    <div id="mapLoading" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--cor-texto-secundario);z-index:10;pointer-events:none;">
+                        <i class="fas fa-spinner fa-spin" style="font-size:28px;"></i>
+                        <span style="font-size:13px;">Loading world map...</span>
+                    </div>
+                    <div id="svgMap"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom map tooltip -->
+<div id="mapTooltip"></div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editOverlay" onclick="if(event.target===this)closeEdit()">
+    <div class="modal-box">
+        <div class="modal-hd">
+            <h3><i class="fas fa-pen-to-square"></i> Edit — <span id="modalCountryName" style="font-weight:400;"></span></h3>
+            <button onclick="closeEdit()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--cor-texto-secundario);line-height:1;">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Risk Level</label>
+                <select id="editRisco" class="form-control" onchange="updateSanctionedNote()">
+                    <option value="low">Low — standard operations, no restrictions</option>
+                    <option value="medium">Medium — enhanced monitoring</option>
+                    <option value="high">High Risk — EDD required, AML alerts triggered</option>
+                    <option value="sanctioned">Sanctioned — automatically blocked, no transactions</option>
+                    <option value="standard">Standard — special classification</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Nationality label</label>
+                <input type="text" id="editNacionalidade" class="form-control" placeholder="e.g. Brazilian, British...">
+            </div>
+            <div class="form-group">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                    <label class="toggle">
+                        <input type="checkbox" id="editBloqueado" onchange="onBlockedChange()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span>Block country (prevents onboarding &amp; transactions)</span>
+                </label>
+            </div>
+            <div id="sanctionedNote" style="display:none;padding:10px 12px;background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.25);border-radius:8px;font-size:12px;color:#7c3aed;">
+                <i class="fas fa-info-circle"></i> Sanctioned countries are <strong>always blocked</strong> — the toggle is locked.
+            </div>
+        </div>
+        <div class="modal-ft">
+            <button class="btn btn-ghost" onclick="closeEdit()">Cancel</button>
+            <button class="btn btn-primary" id="saveBtn" onclick="saveEdit()"><i class="fas fa-check"></i> Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Confirmation Modal -->
+<div class="modal-overlay" id="resetOverlay" onclick="if(event.target===this)closeReset()">
+    <div class="modal-box" style="max-width:420px;">
+        <div class="modal-hd">
+            <h3><i class="fas fa-arrow-rotate-left" style="color:#c02020;"></i> Reset to Default</h3>
+            <button onclick="closeReset()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--cor-texto-secundario);line-height:1;">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="padding:14px 16px;background:rgba(192,32,32,.07);border:1px solid rgba(192,32,32,.25);border-radius:10px;margin-bottom:16px;">
+                <div style="font-size:13px;font-weight:700;color:#c02020;margin-bottom:6px;"><i class="fas fa-triangle-exclamation"></i> Ação irreversível</div>
+                <div style="font-size:12px;color:var(--cor-texto-secundario);line-height:1.6;">
+                    Todos os países serão revertidos para a classificação padrão <strong>FCA/HMRC (FATF 2024 + UK OFSI)</strong>. Qualquer ajuste manual feito será perdido.
+                </div>
+            </div>
+            <div style="font-size:12px;color:var(--cor-texto-secundario);line-height:1.8;">
+                <strong>Sanctioned + bloqueado:</strong> AF, BY, CU, IR, KP, MM, RU, SY<br>
+                <strong>High + bloqueado:</strong> SD (Sudan)<br>
+                <strong>Low:</strong> G7 + EU Ocidental + OCDE (~35 países)<br>
+                <strong>Standard:</strong> parceiros estáveis sem alertas FATF (~38 países)<br>
+                <strong>High:</strong> FATF Grey List MLR 2017 Reg.33 (~40 países)<br>
+                <strong>Medium:</strong> risco moderado / removidos recentemente da grey list (~45 países)
+            </div>
+        </div>
+        <div class="modal-ft">
+            <button class="btn btn-ghost" onclick="closeReset()">Cancelar</button>
+            <button class="btn btn-danger" id="resetBtn" onclick="confirmReset()"><i class="fas fa-arrow-rotate-left"></i> Confirmar Reset</button>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ── State ── */
+var allCountries  = [];
+var countryByCode = {};
+var editingCode   = null;
+var blockedFilter = '';
+var searchTimer;
+var mapReady      = false;   // svgMap JS loaded
+var mapBuilt      = false;   // map rendered at least once
+
+/* ── Risk meta ── */
+var RISK_COLORS = {
+    low:        '#22c55e',
+    medium:     '#eab308',
+    standard:   '#c8920a',
+    high:       '#ef4444',
+    sanctioned: '#7c3aed',
+    blocked:    '#7f1d1d',
+    none:       '#d4d4d4',
+};
+var RISK_LABELS = {low:'Low',medium:'Medium',standard:'Standard',high:'High Risk',sanctioned:'Sanctioned'};
+
+/* ── Theme ── */
+function toggleTheme(){
+    var next=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';
+    document.documentElement.setAttribute('data-theme',next);
+    localStorage.setItem('theme',next);
+    var ic=document.querySelector('#btnTheme i');
+    if(ic) ic.className=next==='light'?'fas fa-moon':'fas fa-sun';
+    if(mapBuilt) applyRiskColors();  // recolor map paths on theme change
+}
+document.addEventListener('DOMContentLoaded',function(){
+    var t=document.documentElement.getAttribute('data-theme')||'light';
+    var ic=document.querySelector('#btnTheme i');
+    if(ic) ic.className=t==='light'?'fas fa-moon':'fas fa-sun';
+    loadCountries();
+    initMap();
+});
+
+/* ── Tabs ── */
+function showTab(name, btn){
+    document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('panel-'+name).classList.add('active');
+    btn.classList.add('active');
+    if(name==='map' && !mapBuilt) initMap();
+}
+
+/* ── Data loading ── */
+function onSearch(){
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(loadCountries, 300);
+}
+
+function setBlockedFilter(btn){
+    document.querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    blockedFilter = btn.getAttribute('data-blocked');
+    loadCountries();
+}
+
+function loadCountries(){
+    var params = new URLSearchParams();
+    var q = (document.getElementById('searchInput').value||'').trim();
+    var r = document.getElementById('riscoFilter').value;
+    var c = document.getElementById('continentFilter').value;
+    if(q) params.set('q', q);
+    if(r) params.set('risco', r);
+    if(c) params.set('continente', c);
+    if(blockedFilter !== '') params.set('bloqueado', blockedFilter);
+
+    document.getElementById('countryTbody').innerHTML =
+        '<tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+
+    fetch('/api/compliance/b2b/paises?' + params)
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+            if(!d.success) throw new Error(d.message);
+            allCountries = d.paises || [];
+            countryByCode = {};
+            allCountries.forEach(function(p){ countryByCode[p.codigo] = p; });
+            updateKPIs(d.stats);
+            populateContinents(d.continents);
+            renderTable(allCountries);
+            document.getElementById('resultCount').textContent = allCountries.length + ' countries';
+            // If map is already shown, refresh colors with new data
+            if(mapBuilt) applyRiskColors();
+        })
+        .catch(function(){
+            document.getElementById('countryTbody').innerHTML =
+                '<tr><td colspan="7" class="empty"><i class="fas fa-triangle-exclamation"></i> Failed to load countries</td></tr>';
+        });
+}
+
+function updateKPIs(s){
+    if(!s) return;
+    document.getElementById('kpi-total').textContent    = s.total     || 0;
+    document.getElementById('kpi-low').textContent      = s.low       || 0;
+    document.getElementById('kpi-high').textContent     = s.high_risk || 0;
+    document.getElementById('kpi-sanctioned').textContent= s.sanctioned|| 0;
+    document.getElementById('kpi-blocked').textContent  = s.blocked   || 0;
+}
+
+function populateContinents(list){
+    var sel = document.getElementById('continentFilter');
+    var cur = sel.value;
+    sel.innerHTML = '<option value="">All Continents</option>';
+    (list||[]).forEach(function(c){
+        var opt=document.createElement('option');
+        opt.value=c; opt.textContent=c;
+        if(c===cur) opt.selected=true;
+        sel.appendChild(opt);
+    });
+}
+
+/* ── Table rendering ── */
+function riskTag(r){
+    var l=(r||'').toLowerCase();
+    var colors={
+        low:       {bg:'rgba(34,197,94,.12)',   c:'#16a34a'},
+        medium:    {bg:'rgba(234,179,8,.12)',    c:'#ca8a04'},
+        standard:  {bg:'rgba(200,146,10,.12)',  c:'#c8920a'},
+        high:      {bg:'rgba(239,68,68,.12)',   c:'#dc2626'},
+        sanctioned:{bg:'rgba(124,58,237,.12)',  c:'#7c3aed'},
+    };
+    var m=colors[l]||colors.medium;
+    return '<span class="tag" style="background:'+m.bg+';color:'+m.c+';">'+(RISK_LABELS[l]||r||'—')+'</span>';
+}
+
+function renderTable(list){
+    var tbody=document.getElementById('countryTbody');
+    if(!list.length){
+        tbody.innerHTML='<tr><td colspan="7" class="empty"><i class="fas fa-earth-americas"></i><br>No countries found</td></tr>';
+        return;
+    }
+    tbody.innerHTML=list.map(function(p,i){
+        var blocked=!!p.bloqueado;
+        return '<tr style="'+(blocked?'opacity:.6;':'')+'">'+
+            '<td><code style="font-size:12px;font-weight:700;background:rgba(128,128,128,.08);padding:2px 6px;border-radius:4px;">'+esc(p.codigo||'—')+'</code></td>'+
+            '<td style="font-weight:600;">'+flagEmoji(p.codigo)+' '+esc(p.nome||'—')+'</td>'+
+            '<td style="font-size:12px;color:var(--cor-texto-secundario);">'+esc(p.nome_nacionalidade||'—')+'</td>'+
+            '<td style="font-size:12px;color:var(--cor-texto-secundario);">'+esc(p.continente||'—')+'</td>'+
+            '<td>'+riskTag(p.risco)+'</td>'+
+            '<td style="text-align:center;">'+
+                '<label class="toggle" onclick="quickToggleBlocked(event,\''+esc(p.codigo)+'\','+(!blocked)+')">'+
+                    '<input type="checkbox" '+(blocked?'checked':'')+' onclick="event.preventDefault();">'+
+                    '<span class="toggle-slider"></span>'+
+                '</label>'+
+            '</td>'+
+            '<td style="white-space:nowrap;">'+
+                '<button class="btn btn-ghost btn-sm" onclick="openEdit(allCountries['+i+'])"><i class="fas fa-pen-to-square"></i> Edit</button>'+
+            '</td>'+
+        '</tr>';
+    }).join('');
+}
+
+/* ── Flag emoji from ISO-2 ── */
+function flagEmoji(code){
+    try{
+        if(!code||code.length!==2) return '';
+        var pts=code.toUpperCase().split('').map(function(c){ return 127397+c.charCodeAt(0); });
+        return String.fromCodePoint.apply(String,pts)+' ';
+    }catch(e){ return ''; }
+}
+
+/* ── Quick toggle ── */
+function quickToggleBlocked(evt,codigo,newVal){
+    evt.preventDefault(); evt.stopPropagation();
+    saveCountry(codigo,{bloqueado:newVal},function(){ loadCountries(); });
+}
+
+/* ── World Map ── */
+function initMap(){
+    document.getElementById('mapLoading').style.display='block';
+    // CSS is embedded inline (cdn.jsdelivr.net is not in CSP whitelist)
+    var sc=document.createElement('script');
+    sc.src='https://cdn.jsdelivr.net/npm/svgmap@2/dist/svgMap.min.js';
+    sc.onload=function(){ buildMap(); };
+    sc.onerror=function(){
+        document.getElementById('mapLoading').innerHTML=
+            '<i class="fas fa-triangle-exclamation" style="font-size:28px;display:block;margin-bottom:10px;"></i>'+
+            'World map library failed to load. Check your internet connection.';
+    };
+    document.head.appendChild(sc);
+    mapReady=true;
+}
+
+function buildMap(){
+    // Build values object — only countries in our system matter for coloring;
+    // countries NOT in the dataset will appear as colorNoData.
+    var values={};
+    // We need ALL countries in paises_risco, so fetch without filters
+    fetch('/api/compliance/b2b/paises')
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+            var full = d.paises || [];
+            full.forEach(function(p){
+                countryByCode[p.codigo] = p;
+                // numeric value drives gradient (overridden by applyRiskColors anyway)
+                values[p.codigo] = {
+                    risk_num: riskNum(p.risco, p.bloqueado),
+                    nome:     p.nome||p.codigo,
+                    risco:    p.risco||'medium',
+                    nat:      p.nome_nacionalidade||'—',
+                    bloqueado:p.bloqueado||false,
+                };
+            });
+
+            new svgMap({
+                targetElementID: 'svgMap',
+                data: {
+                    data: {
+                        risk_num: { name:'Risk', format:'{0}' },
+                        nome:     { name:'Country' },
+                        risco:    { name:'Risk Level' },
+                        nat:      { name:'Nationality' },
+                        bloqueado:{ name:'Blocked' },
+                    },
+                    applyData: 'risk_num',
+                    values: values
+                },
+                colorMin:    '#c8f5e0',
+                colorMax:    '#fde8e8',
+                colorNoData: '#d8d8d8',
+                noDataText:  'Not in risk system',
+                minZoom:     1,
+                maxZoom:     10,
+                initialZoom: 1.06,
+                zoomScaleSensitivity: 0.2,
+                flagType:    'emoji',
+            });
+
+            // Reset panzoom to show full world map (override any auto-zoom-in)
+            setTimeout(function(){
+                var resetBtn = document.querySelector('#svgMap .svgMap-zoom-reset-button');
+                if(resetBtn) resetBtn.click();
+            }, 200);
+
+            var ml=document.getElementById('mapLoading');
+            if(ml) ml.style.display='none';
+            mapBuilt=true;
+
+            // Apply discrete colors after map renders
+            setTimeout(applyRiskColors, 300);
+
+            // Attach click handlers
+            setTimeout(attachMapClicks, 350);
+        })
+        .catch(function(){
+            document.getElementById('mapLoading').innerHTML=
+                '<i class="fas fa-triangle-exclamation" style="font-size:28px;display:block;margin-bottom:10px;"></i>Failed to load country data.';
+        });
+}
+
+function riskNum(risco, blocked){
+    if(blocked) return 5;
+    return {low:1,medium:2,standard:2,high:3,sanctioned:4}[(risco||'').toLowerCase()] || 2;
+}
+
+function buildTooltip(code, vals){
+    var p = countryByCode[code];
+    var flag = flagEmoji(code);
+    if(!p){
+        return '<div style="padding:12px 14px;min-width:160px;">'+
+            '<div style="font-size:14px;font-weight:700;margin-bottom:2px;">'+flag+esc(code)+'</div>'+
+            '<div style="font-size:11px;color:#888;margin-top:4px;">Not in risk system</div>'+
+        '</div>';
+    }
+    var risco=(p.risco||'medium').toLowerCase();
+    var rColor=RISK_COLORS[p.bloqueado?'blocked':risco]||RISK_COLORS.none;
+    var rLabel=p.bloqueado&&risco!=='sanctioned'?'Blocked':RISK_LABELS[risco]||risco;
+    return '<div style="padding:14px 16px;min-width:200px;font-family:\'Segoe UI\',sans-serif;">'+
+        '<div style="font-size:16px;font-weight:700;margin-bottom:3px;">'+flag+esc(p.nome||code)+'</div>'+
+        '<div style="font-size:11px;color:#888;margin-bottom:10px;">ISO: '+esc(code)+(p.nome_nacionalidade?' · '+esc(p.nome_nacionalidade):'')+'</div>'+
+        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">'+
+            '<span style="width:10px;height:10px;border-radius:50%;background:'+rColor+';display:inline-block;flex-shrink:0;"></span>'+
+            '<span style="font-size:12px;font-weight:700;color:'+rColor+';">'+esc(rLabel)+'</span>'+
+        '</div>'+
+        (p.continente?'<div style="font-size:11px;color:#888;margin-bottom:4px;"><i class="fas fa-location-dot" style="font-size:10px;"></i> '+esc(p.continente)+'</div>':'')+
+        '<div style="font-size:11px;color:#888;margin-bottom:10px;">Blocked: <strong style="color:'+(p.bloqueado?'#c02020':'#1a7a52')+';">'+(p.bloqueado?'Yes':'No')+'</strong></div>'+
+        '<div style="font-size:10px;color:#aaa;border-top:1px solid #eee;padding-top:8px;margin-top:4px;"><i class="fas fa-pen-to-square" style="font-size:9px;"></i> Click to edit</div>'+
+    '</div>';
+}
+
+function applyRiskColors(){
+    // Override svgMap gradient colors with our discrete palette
+    document.querySelectorAll('.svgMap-country').forEach(function(el){
+        var code = el.getAttribute('data-id') || '';
+        var p = countryByCode[code];
+        var fill;
+        if(!p){
+            fill = RISK_COLORS.none;
+        } else {
+            var risco=(p.risco||'medium').toLowerCase();
+            fill = (p.bloqueado && risco!=='sanctioned') ? RISK_COLORS.blocked : (RISK_COLORS[risco]||RISK_COLORS.none);
+        }
+        el.setAttribute('fill', fill);
+        el.style.fill = fill;
+    });
+}
+
+function attachMapClicks(){
+    var tip = document.getElementById('mapTooltip');
+
+    document.querySelectorAll('.svgMap-country').forEach(function(el){
+        el.style.cursor = 'pointer';
+
+        el.addEventListener('mousemove', function(e){
+            var code = el.getAttribute('data-id') || '';
+            tip.innerHTML = buildTooltip(code);
+            tip.style.display = 'block';
+            // Keep tooltip inside viewport
+            var x = e.clientX + 18;
+            var y = e.clientY - 10;
+            if(x + 250 > window.innerWidth)  x = e.clientX - 260;
+            if(y + 200 > window.innerHeight) y = e.clientY - 210;
+            tip.style.left = x + 'px';
+            tip.style.top  = y + 'px';
+        });
+
+        el.addEventListener('mouseleave', function(){
+            tip.style.display = 'none';
+        });
+
+        // Use pointerdown+pointerup to detect a tap vs drag (panzoom intercepts click)
+        var _downX, _downY;
+        el.addEventListener('pointerdown', function(e){ _downX=e.clientX; _downY=e.clientY; });
+        el.addEventListener('pointerup', function(e){
+            if(Math.abs(e.clientX-_downX)<5 && Math.abs(e.clientY-_downY)<5){
+                tip.style.display = 'none';
+                var code = el.getAttribute('data-id') || '';
+                var p = countryByCode[code];
+                if(p) openEdit(p);
+            }
+        });
+    });
+}
+
+/* ── Edit Modal ── */
+function openEdit(p){
+    editingCode = p.codigo;
+    document.getElementById('modalCountryName').textContent = flagEmoji(p.codigo) + p.nome + ' (' + p.codigo + ')';
+    document.getElementById('editRisco').value          = p.risco || 'medium';
+    document.getElementById('editNacionalidade').value  = p.nome_nacionalidade || '';
+    document.getElementById('editBloqueado').checked    = !!p.bloqueado;
+    updateSanctionedNote();
+    document.getElementById('editOverlay').style.display='flex';
+}
+
+function closeEdit(){
+    document.getElementById('editOverlay').style.display='none';
+    editingCode=null;
+}
+
+function onBlockedChange(){
+    if(document.getElementById('editRisco').value==='sanctioned')
+        document.getElementById('editBloqueado').checked=true;
+}
+
+function updateSanctionedNote(){
+    var isSanc=document.getElementById('editRisco').value==='sanctioned';
+    document.getElementById('sanctionedNote').style.display=isSanc?'block':'none';
+    if(isSanc){
+        document.getElementById('editBloqueado').checked=true;
+        document.getElementById('editBloqueado').disabled=true;
+    } else {
+        document.getElementById('editBloqueado').disabled=false;
+    }
+}
+
+function saveEdit(){
+    if(!editingCode) return;
+    var payload={
+        risco:             document.getElementById('editRisco').value,
+        bloqueado:         document.getElementById('editBloqueado').checked,
+        nome_nacionalidade:document.getElementById('editNacionalidade').value.trim()||null,
+    };
+    var btn=document.getElementById('saveBtn');
+    btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Saving...'; btn.disabled=true;
+    saveCountry(editingCode, payload, function(updated){
+        // Update local cache immediately
+        if(countryByCode[editingCode]){
+            Object.assign(countryByCode[editingCode], payload);
+            if(updated) Object.assign(countryByCode[editingCode], updated);
+        }
+        closeEdit();
+        loadCountries();
+        if(mapBuilt) setTimeout(applyRiskColors,100);
+        btn.innerHTML='<i class="fas fa-check"></i> Save Changes'; btn.disabled=false;
+    }, function(msg){
+        alert('Error: '+msg);
+        btn.innerHTML='<i class="fas fa-check"></i> Save Changes'; btn.disabled=false;
+    });
+}
+
+function saveCountry(codigo, payload, onOk, onErr){
+    var ind=document.getElementById('savingIndicator');
+    ind.style.display='inline-flex';
+    fetch('/api/compliance/b2b/paises/'+encodeURIComponent(codigo),{
+        method:'PUT',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload),
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+        ind.style.display='none';
+        if(!d.success) throw new Error(d.message);
+        if(onOk) onOk(d.pais);
+    })
+    .catch(function(e){
+        ind.style.display='none';
+        if(onErr) onErr(e.message);
+        else alert('Failed to save: '+e.message);
+    });
+}
+
+function esc(s){
+    if(s==null) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── Reset to Default ── */
+function openReset(){
+    var o=document.getElementById('resetOverlay');
+    o.style.display='flex';
+    var btn=document.getElementById('resetBtn');
+    btn.innerHTML='<i class="fas fa-arrow-rotate-left"></i> Confirmar Reset';
+    btn.disabled=false;
+}
+function closeReset(){
+    document.getElementById('resetOverlay').style.display='none';
+}
+function confirmReset(){
+    var btn=document.getElementById('resetBtn');
+    btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Resetando...';
+    btn.disabled=true;
+    fetch('/api/compliance/b2b/paises/reset',{method:'POST',headers:{'Content-Type':'application/json'}})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+        if(!d.success) throw new Error(d.message);
+        closeReset();
+        loadCountries();
+        if(mapBuilt) setTimeout(applyRiskColors, 150);
+    })
+    .catch(function(e){
+        alert('Erro: '+e.message);
+        btn.innerHTML='<i class="fas fa-arrow-rotate-left"></i> Confirmar Reset';
+        btn.disabled=false;
+    });
+}
+</script>
+</body>
+</html>

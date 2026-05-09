@@ -202,6 +202,7 @@
         <div class="nav-divider"></div>
         <div class="nav-section-lbl">Operations</div>
         <a class="nav-item" href="/compliance/b2b/beneficiarios"><i class="fas fa-users"></i> Beneficiaries <span class="nav-badge" id="sbBadgeBenef" style="display:none"></span></a>
+        <a class="nav-item" href="/compliance/b2b/transferencias"><i class="fas fa-arrow-right-arrow-left"></i> Transfers</a>
         <a class="nav-item" href="/compliance/b2b/limites"><i class="fas fa-sliders"></i> Limits</a>
         <a class="nav-item" href="/compliance/b2b/risk-config"><i class="fas fa-gear"></i> Risk Config</a>
     </nav>
@@ -445,23 +446,12 @@ async function verInvoice(caminho) {
         const data = await response.json();
         
         if (data.success && data.url) {
-            // Buscar o arquivo diretamente
             const fileResponse = await fetch(data.url);
             const blob = await fileResponse.blob();
-            
-            // Criar URL do blob
-            const blobUrl = URL.createObjectURL(blob);
-            
-            // Criar link para download
-            const link = document.createElement('a');
-            link.href = blobUrl;
-            link.download = caminho.split('/').pop(); // Nome do arquivo
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            // Limpar a URL do blob
-            URL.revokeObjectURL(blobUrl);
+            const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+            const blobUrl = URL.createObjectURL(pdfBlob);
+            window.open(blobUrl, '_blank');
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
         } else {
             toast(data.message || 'Erro ao carregar invoice', 'err');
         }

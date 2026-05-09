@@ -217,7 +217,11 @@
         <div class="nav-section-lbl">Operations</div>
         <a class="nav-item" href="/compliance/b2b/beneficiarios"><i class="fas fa-users"></i> Beneficiaries</a>
         <a class="nav-item" href="/compliance/b2b/limites"><i class="fas fa-sliders"></i> Limits</a>
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Configuration</div>
+        <a class="nav-item" href="/compliance/b2b/paises"><i class="fas fa-earth-americas"></i> Countries</a>
         <a class="nav-item" href="/compliance/b2b/risk-config"><i class="fas fa-gear"></i> Risk Config</a>
+        <a class="nav-item" href="/compliance/b2b/structuring-config"><i class="fas fa-wave-square"></i> AML Rules</a>
     </nav>
 
     <div class="content-area">
@@ -259,6 +263,7 @@
             <button class="tab-btn" onclick="showTab('limites')"><i class="fas fa-scale-balanced"></i> Limits</button>
             <button class="tab-btn" onclick="showTab('beneficiarios')"><i class="fas fa-money-bill-transfer"></i> Beneficiaries</button>
             <button class="tab-btn" onclick="showTab('edd')"><i class="fas fa-magnifying-glass-chart"></i> EDD</button>
+            <button class="tab-btn" onclick="showTab('transferencias')"><i class="fas fa-arrow-right-arrow-left"></i> Transfers</button>
             <button class="tab-btn" onclick="showTab('historico')"><i class="fas fa-clock-rotate-left"></i> History</button>
         </div>
 
@@ -429,6 +434,42 @@
             </div>
         </div>
 
+        <!-- TRANSFERS -->
+        <div class="tab-panel" id="panel-transferencias">
+            <div class="tbl-card">
+                <div class="card-hd">
+                    <h3><i class="fas fa-arrow-right-arrow-left"></i> International Transfers</h3>
+                    <span id="txCount" style="font-size:12px;color:var(--cor-texto-secundario);"></span>
+                </div>
+                <div style="padding:10px 16px;border-bottom:1px solid var(--cor-borda);display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <div style="display:flex;gap:4px;">
+                        <button class="tx-period-btn btn btn-ghost" style="font-size:11px;padding:4px 10px;" data-days="30" onclick="setTxPeriod(this)">30d</button>
+                        <button class="tx-period-btn btn btn-ghost" style="font-size:11px;padding:4px 10px;" data-days="90" onclick="setTxPeriod(this)">90d</button>
+                        <button class="tx-period-btn btn btn-ghost" style="font-size:11px;padding:4px 10px;" data-days="180" onclick="setTxPeriod(this)">180d</button>
+                        <button class="tx-period-btn btn btn-ghost" style="font-size:11px;padding:4px 10px;" data-days="365" onclick="setTxPeriod(this)">1 year</button>
+                        <button class="tx-period-btn btn btn-ghost" style="font-size:11px;padding:4px 10px;" data-days="" onclick="setTxPeriod(this)">All</button>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
+                        <label style="font-size:11px;color:var(--cor-texto-secundario);">From</label>
+                        <input type="date" id="txDateFrom" style="font-size:11px;padding:4px 8px;border:1px solid var(--cor-borda);border-radius:6px;background:var(--cor-card);color:var(--cor-texto);" onchange="applyTxDateFilter()">
+                        <label style="font-size:11px;color:var(--cor-texto-secundario);">To</label>
+                        <input type="date" id="txDateTo" style="font-size:11px;padding:4px 8px;border:1px solid var(--cor-borda);border-radius:6px;background:var(--cor-card);color:var(--cor-texto);" onchange="applyTxDateFilter()">
+                        <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="clearTxFilter()"><i class="fas fa-xmark"></i></button>
+                    </div>
+                </div>
+                <div class="tbl-wrap">
+                    <table>
+                        <thead><tr>
+                            <th>Date</th><th>Amount</th><th>Currency</th><th>Destination</th><th>Beneficiary</th><th>Purpose</th><th>Invoice</th><th>Status</th><th></th>
+                        </tr></thead>
+                        <tbody id="transBody">
+                            <tr><td colspan="9" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <!-- HISTORY -->
         <div class="tab-panel" id="panel-historico">
             <div class="info-card">
@@ -454,6 +495,7 @@ const CLIENT_ID = '{{ client_id }}';
 const USUARIO = '{{ usuario }}';
 let clientData = null;
 let activeTab = 'overview';
+let allTransferencias = [];
 
 const fmt = n => n == null ? '—' : Number(n).toLocaleString('en-GB');
 const fmtGBP = n => n == null ? '—' : '£' + Number(n).toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:0});
@@ -478,6 +520,7 @@ function showTab(name) {
     if (name === 'limites') loadLimits();
     if (name === 'beneficiarios') loadBenef();
     if (name === 'edd') loadEdd();
+    if (name === 'transferencias') loadTransferencias();
     if (name === 'historico') loadTimeline();
 }
 
@@ -927,6 +970,109 @@ async function loadEdd() {
     }
 }
 
+// ── Transfers ──
+function setTxPeriod(btn) {
+    document.querySelectorAll('.tx-period-btn').forEach(b => {
+        b.style.background = 'transparent';
+        b.style.borderColor = 'var(--cor-borda)';
+        b.style.color = 'var(--cor-texto-secundario)';
+    });
+    btn.style.background = 'rgba(200,146,10,.12)';
+    btn.style.borderColor = 'var(--cor-admin)';
+    btn.style.color = 'var(--cor-admin)';
+    const days = btn.getAttribute('data-days');
+    if (days) {
+        const to = new Date();
+        const from = new Date();
+        from.setDate(from.getDate() - parseInt(days));
+        document.getElementById('txDateFrom').value = from.toISOString().slice(0,10);
+        document.getElementById('txDateTo').value = to.toISOString().slice(0,10);
+    } else {
+        document.getElementById('txDateFrom').value = '';
+        document.getElementById('txDateTo').value = '';
+    }
+    document.getElementById('transBody').dataset.loaded = '';
+    loadTransferencias();
+}
+
+function applyTxDateFilter() {
+    document.querySelectorAll('.tx-period-btn').forEach(b => {
+        b.style.background = 'transparent';
+        b.style.borderColor = 'var(--cor-borda)';
+        b.style.color = 'var(--cor-texto-secundario)';
+    });
+    document.getElementById('transBody').dataset.loaded = '';
+    loadTransferencias();
+}
+
+function clearTxFilter() {
+    document.getElementById('txDateFrom').value = '';
+    document.getElementById('txDateTo').value = '';
+    document.querySelectorAll('.tx-period-btn').forEach(b => {
+        b.style.background = 'transparent';
+        b.style.borderColor = 'var(--cor-borda)';
+        b.style.color = 'var(--cor-texto-secundario)';
+    });
+    document.getElementById('transBody').dataset.loaded = '';
+    loadTransferencias();
+}
+
+async function loadTransferencias() {
+    const tbody = document.getElementById('transBody');
+    if (tbody.dataset.loaded) return;
+    tbody.innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    const dateFrom = document.getElementById('txDateFrom').value;
+    const dateTo = document.getElementById('txDateTo').value;
+    const params = new URLSearchParams({limit: 500});
+    if (dateFrom) params.set('date_from', dateFrom);
+    if (dateTo) params.set('date_to', dateTo);
+    try {
+        const r = await fetch(`/api/compliance/b2b/clientes/${CLIENT_ID}/transferencias?${params}`);
+        const d = await r.json();
+        if (!d.success || !d.transferencias.length) {
+            tbody.innerHTML = '<tr><td colspan="9" class="empty"><i class="fas fa-arrow-right-arrow-left"></i>No international transfers found</td></tr>';
+            return;
+        }
+        allTransferencias = d.transferencias;
+        const total = d.total || d.transferencias.length;
+        const dateFrom = document.getElementById('txDateFrom').value;
+        const dateTo = document.getElementById('txDateTo').value;
+        const period = dateFrom || dateTo ? ` · ${dateFrom || '…'} → ${dateTo || '…'}` : '';
+        document.getElementById('txCount').textContent = total + ' transfer(s)' + period;
+        const statusMeta = {
+            completed:   { label:'Completed',  bg:'rgba(26,122,82,.12)',   color:'var(--cor-sucesso)' },
+            processing:  { label:'Processing', bg:'rgba(184,114,0,.12)',   color:'var(--cor-alerta)'  },
+            solicitada:  { label:'Requested',  bg:'rgba(200,146,10,.12)',  color:'var(--cor-admin)'   },
+            rejected:    { label:'Rejected',   bg:'rgba(192,32,32,.12)',   color:'var(--cor-perigo)'  },
+        };
+        tbody.innerHTML = d.transferencias.map(t => {
+            const dest = [t.pais, t.pais_banco].filter(Boolean).join(' / ') || '—';
+            const bank = t.nome_banco ? `<br><span style="font-size:10px;opacity:.7;">${t.nome_banco}</span>` : '';
+            const amount = t.valor != null ? Number(t.valor).toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits:2}) : '—';
+            const st = (t.status || '').toLowerCase();
+            const sm = statusMeta[st] || { label: t.status || '—', bg:'rgba(128,128,128,.1)', color:'var(--cor-texto-secundario)' };
+            const stColor = sm.bg;
+            const stLabel = sm.label;
+            const stTextColor = sm.color;
+            const invoice = t.invoice_info ? '<span style="color:var(--cor-sucesso);font-size:11px;font-weight:600;"><i class="fas fa-check"></i> Yes</span>' : '<span style="color:var(--cor-perigo);font-size:11px;font-weight:600;"><i class="fas fa-xmark"></i> No</span>';
+            return `<tr>
+                <td style="font-size:12px;white-space:nowrap;">${fmtDate(t.data || t.created_at)}</td>
+                <td style="font-weight:700;">${amount}</td>
+                <td>${t.moeda || '—'}</td>
+                <td style="font-size:12px;">${dest}${bank}</td>
+                <td style="font-size:12px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${t.beneficiario||''}">${t.beneficiario || '—'}</td>
+                <td style="font-size:11px;color:var(--cor-texto-secundario);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${t.finalidade||''}">${t.finalidade || '—'}</td>
+                <td>${invoice}</td>
+                <td><span style="display:inline-block;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:600;background:${stColor};color:${stTextColor};">${stLabel}</span></td>
+                <td style="white-space:nowrap;"><button class="btn btn-ghost btn-sm" onclick="openTxModal(allTransferencias[${d.transferencias.indexOf(t)}])"><i class="fas fa-eye"></i></button></td>
+            </tr>`;
+        }).join('');
+        tbody.dataset.loaded = '1';
+    } catch(e) {
+        tbody.innerHTML = `<tr><td colspan="7" class="empty"><i class="fas fa-triangle-exclamation"></i>Error loading transfers</td></tr>`;
+    }
+}
+
 // ── Timeline ──
 async function loadTimeline() {
     const el = document.getElementById('timeline');
@@ -1357,7 +1503,155 @@ async function savePessoa(pessoaId) {
 
 // ── Init ──
 loadClient();
+
+// ── Transfer Detail Modal ──
+function openTxModal(t) {
+    if (!t) return;
+    const inv = t.invoice_info ? (typeof t.invoice_info === 'string' ? JSON.parse(t.invoice_info) : t.invoice_info) : null;
+    const swift = t.dados_swift_pagamento ? (typeof t.dados_swift_pagamento === 'string' ? JSON.parse(t.dados_swift_pagamento) : t.dados_swift_pagamento) : null;
+    const statusMeta = {
+        completed: { label:'Completed', color:'var(--cor-sucesso)' },
+        processing:{ label:'Processing', color:'var(--cor-alerta)' },
+        solicitada:{ label:'Requested',  color:'var(--cor-admin)'  },
+        rejected:  { label:'Rejected',   color:'var(--cor-perigo)' }
+    };
+    const st = (t.status||'').toLowerCase();
+    const sm = statusMeta[st] || { label: t.status||'—', color:'var(--cor-texto-secundario)' };
+    const fmtVal = (v, m) => { if (v == null) return '—'; const s={USD:'US$',EUR:'€',GBP:'£',BRL:'R$'}; return (s[m]||m||'') + ' ' + Number(v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+    const f = v => v || '—';
+    const fdt = s => { if(!s) return '—'; const d=new Date(s); return isNaN(d)?s:d.toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); };
+
+    let html = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <h3 style="font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;margin:0;"><i class="fas fa-arrow-right-arrow-left" style="color:var(--cor-admin);"></i> Transfer Details</h3>
+        <button onclick="closeTxModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--cor-texto-secundario);line-height:1;">&times;</button>
+    </div>`;
+
+    // Section helper
+    const sec = (icon, title, rows) => `
+        <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--cor-borda);">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--cor-admin);margin-bottom:12px;display:flex;align-items:center;gap:6px;"><i class="fas ${icon}"></i> ${title}</div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px 20px;">${rows}</div>
+        </div>`;
+    const row = (label, value, full=false) => `
+        <div style="${full?'grid-column:1/-1;':''}">
+            <div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;">${label}</div>
+            <div style="font-size:13px;font-weight:600;word-break:break-word;">${value}</div>
+        </div>`;
+
+    html += sec('fa-circle-info', 'Transfer', [
+        row('ID', f(t.id)),
+        row('Status', `<span style="color:${sm.color};font-weight:700;">${sm.label}</span>`),
+        row('Amount', `<span style="color:var(--cor-admin);font-size:15px;">${fmtVal(t.valor, t.moeda)}</span>`),
+        row('Currency', f(t.moeda)),
+        row('Date', fdt(t.data || t.created_at)),
+        row('Requested by', f(t.solicitado_por || t.usuario || t.cliente)),
+    ].join(''));
+
+    html += sec('fa-calendar-days', 'Processing Dates', [
+        row('Requested', fdt(t.data_solicitacao)),
+        row('Approved', fdt(t.data_aprovacao)),
+        row('Processing', fdt(t.data_processing)),
+        row('Completed', fdt(t.data_conclusao)),
+        row('Approved by', f(t.executado_por)),
+        row('Completed by', f(t.concluido_por)),
+    ].join(''));
+
+    html += sec('fa-user-tie', 'Beneficiary', [
+        row('Name', f(t.beneficiario)),
+        row('City', f(t.cidade)),
+        row('Country', f(t.pais)),
+        row('Address', f(t.endereco_beneficiario), true),
+    ].join(''));
+
+    html += sec('fa-university', 'Bank Details', [
+        row('Bank', f(t.nome_banco)),
+        row('Country', f(t.pais_banco)),
+        row('City', f(t.cidade_banco)),
+        row('SWIFT/BIC', t.codigo_swift ? `<span style="font-family:monospace;">${t.codigo_swift}</span>` : '—'),
+        row('IBAN / Account', t.iban_account ? `<span style="font-family:monospace;font-size:12px;">${t.iban_account}</span>` : '—', true),
+        t.aba_routing ? row('ABA/Routing', `<span style="font-family:monospace;">${t.aba_routing}</span>`) : '',
+        row('Bank Address', f(t.endereco_banco), true),
+    ].join(''));
+
+    if (t.finalidade || t.descricao) {
+        html += sec('fa-sticky-note', 'Additional Info', [
+            t.finalidade ? row('Purpose', f(t.finalidade)) : '',
+            t.descricao  ? row('Description', f(t.descricao), true) : '',
+        ].join(''));
+    }
+
+    if (t.status === 'rejected' && t.motivo_recusa) {
+        html += `<div style="margin-bottom:20px;padding:14px;background:rgba(192,32,32,.08);border:1px solid rgba(192,32,32,.25);border-radius:10px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--cor-perigo);margin-bottom:6px;"><i class="fas fa-triangle-exclamation"></i> Rejection Reason</div>
+            <div style="font-size:13px;font-style:italic;color:var(--cor-perigo);">"${t.motivo_recusa}"</div>
+        </div>`;
+    }
+
+    if (swift && Object.keys(swift).length) {
+        const swiftKeys = [{k:'linha1_uetr',l:'UETR'},{k:'linha2_20',l:':20:'},{k:'linha3_32a',l:':32A:'},{k:'linha4_50k',l:':50K:'},{k:'linha5_57a',l:':57A:'},{k:'linha6_59',l:':59:'},{k:'linha7_beneficiario',l:'Beneficiary'},{k:'linha8_70',l:':70:'},{k:'linha9_71a',l:':71A:'}];
+        const swiftRows = swiftKeys.filter(x => swift[x.k] && swift[x.k].trim()).map(x => row(x.l, `<span style="font-family:monospace;font-size:11px;word-break:break-all;">${swift[x.k]}</span>`)).join('');
+        if (swiftRows) html += sec('fa-file-invoice-dollar', 'SWIFT Data', swiftRows);
+    }
+
+    if (inv) {
+        const invSt = inv.status || 'pending';
+        const invColor = invSt === 'approved' ? 'var(--cor-sucesso)' : invSt === 'rejected' ? 'var(--cor-perigo)' : 'var(--cor-alerta)';
+        const invLabel = invSt === 'approved' ? 'Approved' : invSt === 'rejected' ? 'Rejected' : 'Pending';
+        html += sec('fa-file-contract', 'Invoice', [
+            row('Status', `<span style="color:${invColor};font-weight:700;">${invLabel}</span>`),
+            inv.data_upload ? row('Upload Date', fdt(inv.data_upload)) : '',
+            inv.nome_arquivo ? row('File', `<span style="font-size:11px;word-break:break-all;">${inv.nome_arquivo}</span>`, true) : '',
+            inv.motivo_recusa ? row('Reject Reason', `<span style="color:var(--cor-perigo);">${inv.motivo_recusa}</span>`, true) : '',
+        ].join(''));
+    }
+
+    document.getElementById('txModalBody').innerHTML = html;
+    // Invoice button
+    const invBtn = document.getElementById('txInvoiceBtn');
+    if (inv) {
+        invBtn.style.display = 'inline-flex';
+        invBtn.onclick = () => abrirInvoiceTx(t.id);
+    } else {
+        invBtn.style.display = 'none';
+    }
+    document.getElementById('txModalOverlay').style.display = 'flex';
+}
+
+function closeTxModal() {
+    document.getElementById('txModalOverlay').style.display = 'none';
+}
+
+async function abrirInvoiceTx(id) {
+    try {
+        const r = await fetch(`/api/admin/transferencias/${id}/invoice`);
+        if (r.ok) {
+            const ct = r.headers.get('content-type') || '';
+            if (ct.includes('pdf')) {
+                const blob = await r.blob();
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank');
+                URL.revokeObjectURL(url);
+            } else { alert('Invoice not available as PDF.'); }
+        } else {
+            const err = await r.json().catch(() => ({}));
+            alert(err.message || 'Error opening invoice');
+        }
+    } catch(e) { alert('Error opening invoice'); }
+}
 </script>
+
+<!-- Transfer Detail Modal -->
+<div id="txModalOverlay" onclick="if(event.target===this)closeTxModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:2000;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:16px;width:100%;max-width:700px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.4);">
+        <div id="txModalBody" style="padding:24px;overflow-y:auto;flex:1;"></div>
+        <div style="padding:14px 24px;border-top:1px solid var(--cor-borda);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0;">
+            <button id="txInvoiceBtn" class="btn btn-ghost" style="display:none;color:var(--cor-sucesso);border-color:rgba(26,122,82,.4);"><i class="fas fa-file-invoice"></i> View Invoice</button>
+            <button class="btn btn-ghost" onclick="closeTxModal()">Close</button>
+        </div>
+    </div>
+</div>
+
 <script>
 function toggleTheme(){var next=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',next);localStorage.setItem('theme',next);var ic=document.querySelector('#btnTheme i');if(ic)ic.className=next==='light'?'fas fa-moon':'fas fa-sun';}
 document.addEventListener('DOMContentLoaded',function(){var t=document.documentElement.getAttribute('data-theme')||'light';var ic=document.querySelector('#btnTheme i');if(ic)ic.className=t==='light'?'fas fa-moon':'fas fa-sun';});

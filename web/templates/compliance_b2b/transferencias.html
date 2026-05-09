@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transfers — B2B Compliance</title>
+    <script>(function(){ document.documentElement.setAttribute('data-theme', localStorage.getItem('theme')||'light'); })();</script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        :root[data-theme="light"]{
+            --cor-fundo:#f5ede0;--cor-card:#ffffff;--cor-borda:rgba(210,185,130,.4);
+            --cor-texto:#1a1200;--cor-texto-secundario:#9a8560;
+            --cor-primaria:#c8920a;--cor-admin:#c8920a;
+            --cor-sucesso:#1a7a52;--cor-alerta:#b87200;--cor-perigo:#c02020;
+            --sombra-suave:0 2px 8px rgba(160,110,0,.10),0 1px 3px rgba(0,0,0,.04);
+            --sombra-media:0 6px 22px rgba(160,110,0,.13),0 2px 8px rgba(0,0,0,.05);
+            --borda-radius:14px;
+        }
+        :root[data-theme="dark"]{
+            --cor-fundo:#110f08;--cor-card:#191611;--cor-borda:#2d2819;
+            --cor-texto:#e0e0e0;--cor-texto-secundario:#8b949e;
+            --cor-primaria:#d29e00;--cor-admin:#d29e00;
+            --cor-sucesso:#2ec27e;--cor-alerta:#f39c12;--cor-perigo:#e01b24;
+            --sombra-suave:0 4px 6px rgba(0,0,0,.30);
+            --sombra-media:0 8px 16px rgba(0,0,0,.40);
+            --borda-radius:14px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+        body{background-color:#f5ede0;background-image:radial-gradient(ellipse at 15% 15%,rgba(210,158,0,.10) 0%,transparent 55%),radial-gradient(ellipse at 85% 85%,rgba(180,120,0,.08) 0%,transparent 55%),linear-gradient(150deg,#f8f2e6 0%,#fdf9f2 45%,#ede3cf 100%);background-attachment:fixed;color:var(--cor-texto);min-height:100vh;overflow-x:hidden;}
+        body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(180,130,0,.055) 1px,transparent 1px);background-size:30px 30px;pointer-events:none;z-index:0;}
+        html[data-theme="dark"] body{background-color:#110f08;background-image:linear-gradient(135deg,#110f08 0%,#1f1a10 100%);}
+        html[data-theme="dark"] body::before{display:none;}
+        .top-bar{position:sticky;top:0;z-index:200;height:54px;background:var(--cor-card);border-bottom:1px solid var(--cor-borda);display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:10px;box-shadow:var(--sombra-suave);}
+        .logo-text{background:linear-gradient(135deg,#7a5800,#c8920a 45%,#a07000);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800;font-size:17px;}
+        .logo-text span{font-weight:400;}
+        .badge-b2b{background:rgba(200,146,10,.15);border:1px solid rgba(200,146,10,.4);color:var(--cor-admin);font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;letter-spacing:.5px;text-transform:uppercase;}
+        .hd-right{display:flex;align-items:center;gap:8px;}
+        .btn-hd{background:rgba(200,146,10,.12);border:1px solid var(--cor-admin);color:var(--cor-admin);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:.15s;}
+        .btn-hd:hover{background:rgba(200,146,10,.25);}
+        .btn-hd-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-hd-ghost:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+        .badge-user{background:rgba(200,146,10,.1);color:var(--cor-admin);padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;}
+        .main-layout{display:flex;min-height:calc(100vh - 54px);position:relative;z-index:1;}
+        .sidebar{width:215px;min-width:215px;background:var(--cor-card);border-right:1px solid var(--cor-borda);padding:12px 0 24px;position:sticky;top:54px;height:calc(100vh - 54px);overflow-y:auto;display:flex;flex-direction:column;}
+        .sidebar::-webkit-scrollbar{width:4px;}
+        .sidebar::-webkit-scrollbar-thumb{background:rgba(200,146,10,.3);border-radius:2px;}
+        .nav-section-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--cor-texto-secundario);padding:14px 18px 5px;opacity:.7;}
+        .nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;font-weight:600;color:var(--cor-texto-secundario);cursor:pointer;border-left:3px solid transparent;transition:.15s;user-select:none;text-decoration:none;}
+        .nav-item i{width:16px;text-align:center;font-size:13px;}
+        .nav-item:hover{color:var(--cor-admin);background:rgba(200,146,10,.06);}
+        .nav-item.active{color:var(--cor-admin);background:rgba(200,146,10,.1);border-left-color:var(--cor-admin);}
+        .nav-divider{height:1px;background:var(--cor-borda);margin:8px 14px;}
+        .content-area{flex:1;min-width:0;padding:24px;overflow-x:hidden;}
+        .page-header{margin-bottom:24px;}
+        .page-header h1{font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+        .page-header h1 i{color:var(--cor-admin);}
+        .page-header p{color:var(--cor-texto-secundario);font-size:13px;}
+        .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px;}
+        .kpi{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;box-shadow:var(--sombra-suave);transition:.2s;}
+        .kpi:hover{border-color:rgba(200,146,10,.4);transform:translateY(-2px);}
+        .kpi-stripe{position:absolute;top:0;left:0;right:0;height:3px;}
+        .kpi-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:10px;}
+        .kpi-lbl{font-size:11px;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+        .kpi-val{font-size:26px;font-weight:700;line-height:1;}
+        .kpi-sub{font-size:11px;color:var(--cor-texto-secundario);margin-top:5px;}
+        .tbl-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;overflow:hidden;box-shadow:var(--sombra-suave);}
+        .card-hd{padding:14px 18px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+        .card-hd h3{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;}
+        .card-hd h3 i{color:var(--cor-admin);}
+        .filter-bar{padding:10px 14px;border-bottom:1px solid var(--cor-borda);display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+        .filter-bar input,.filter-bar select{background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:6px 10px;border-radius:8px;font-size:12px;font-family:inherit;outline:none;transition:.15s;}
+        .filter-bar input:focus,.filter-bar select:focus{border-color:var(--cor-admin);}
+        .period-bar{padding:8px 14px;border-bottom:1px solid var(--cor-borda);display:flex;gap:4px;align-items:center;flex-wrap:wrap;}
+        .period-btn{padding:4px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--cor-borda);background:transparent;color:var(--cor-texto-secundario);transition:.15s;white-space:nowrap;}
+        .period-btn:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+        .period-btn.active{background:rgba(200,146,10,.12);border-color:var(--cor-admin);color:var(--cor-admin);}
+        .tbl-wrap{overflow-x:auto;}
+        table{width:100%;border-collapse:collapse;font-size:13px;}
+        th{background:rgba(128,128,128,.05);color:var(--cor-texto-secundario);padding:8px 14px;text-align:left;font-weight:600;font-size:11px;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px;}
+        td{padding:10px 14px;border-top:1px solid var(--cor-borda);vertical-align:middle;}
+        tr:hover td{background:rgba(210,158,0,.02);}
+        .empty{padding:40px;text-align:center;color:var(--cor-texto-secundario);}
+        .empty i{font-size:32px;margin-bottom:8px;display:block;opacity:.4;}
+        .btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:inherit;text-decoration:none;transition:.15s;white-space:nowrap;}
+        .btn-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-ghost:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+        .btn-sm{padding:4px 10px;font-size:11px;}
+        .pagination{padding:12px 16px;border-top:1px solid var(--cor-borda);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+        .pagination-info{font-size:12px;color:var(--cor-texto-secundario);}
+        .pagination-controls{display:flex;align-items:center;gap:4px;}
+        .page-btn{min-width:32px;height:32px;padding:0 8px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--cor-borda);background:transparent;color:var(--cor-texto-secundario);transition:.15s;display:inline-flex;align-items:center;justify-content:center;}
+        .page-btn:hover:not(:disabled){border-color:var(--cor-admin);color:var(--cor-admin);}
+        .page-btn.active{background:rgba(200,146,10,.12);border-color:var(--cor-admin);color:var(--cor-admin);}
+        .page-btn:disabled{opacity:.35;cursor:default;}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .fa-spin{animation:spin 1s linear infinite}
+        @media(max-width:768px){.sidebar{display:none}.content-area{padding:16px}}
+    </style>
+</head>
+<body>
+<div class="top-bar">
+    <div style="display:flex;align-items:center;gap:10px;">
+        <span class="logo-text"><strong>Link</strong> <span>international</span></span>
+        <span class="badge-b2b">B2B Compliance</span>
+    </div>
+    <div class="hd-right">
+        <a href="/language/{{ 'pt' if current_lang == 'en' else 'en' }}" class="btn-hd btn-hd-ghost"><i class="fas fa-globe"></i> {{ 'PT' if current_lang == 'en' else 'EN' }}</a>
+        <button class="btn-hd btn-hd-ghost" id="btnTheme" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+        <span class="badge-user"><i class="fas fa-user-shield"></i> {{ usuario }}</span>
+        <a href="/admin/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-arrow-left"></i> Admin</a>
+    </div>
+</div>
+
+<div class="main-layout">
+    <nav class="sidebar">
+        <div class="nav-section-lbl">Overview</div>
+        <a href="/compliance/b2b/dashboard" class="nav-item"><i class="fas fa-gauge-high"></i> Dashboard</a>
+        <a href="/compliance/b2b/clientes" class="nav-item"><i class="fas fa-building"></i> Clients</a>
+        <a href="/compliance/b2b/clientes/novo" class="nav-item"><i class="fas fa-plus-circle"></i> New Onboarding</a>
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Compliance</div>
+        <a href="/compliance/b2b/edd" class="nav-item"><i class="fas fa-magnifying-glass-chart"></i> EDD Cases</a>
+        <a href="/compliance/b2b/alertas" class="nav-item"><i class="fas fa-bell"></i> Alerts</a>
+        <a href="/compliance/b2b/screening" class="nav-item"><i class="fas fa-shield-halved"></i> Screening</a>
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Operations</div>
+        <a href="/compliance/b2b/beneficiarios" class="nav-item"><i class="fas fa-users"></i> Beneficiaries</a>
+        <a href="/compliance/b2b/transferencias" class="nav-item active"><i class="fas fa-arrow-right-arrow-left"></i> Transfers</a>
+        <a href="/compliance/b2b/limites" class="nav-item"><i class="fas fa-sliders"></i> Limits</a>
+        <a href="/compliance/b2b/risk-config" class="nav-item"><i class="fas fa-gear"></i> Risk Config</a>
+        <a href="/compliance/b2b/structuring-config" class="nav-item"><i class="fas fa-wave-square"></i> AML Rules</a>
+    </nav>
+
+    <div class="content-area">
+        <div class="page-header">
+            <h1><i class="fas fa-arrow-right-arrow-left"></i> International Transfers</h1>
+            <p>Monitor all B2B international transfers in real time</p>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi">
+                <div class="kpi-stripe" style="background:var(--cor-admin);"></div>
+                <div class="kpi-icon" style="background:rgba(200,146,10,.1);color:var(--cor-admin);"><i class="fas fa-arrow-right-arrow-left"></i></div>
+                <div class="kpi-lbl">Total Transfers</div>
+                <div class="kpi-val" id="kpi-total">—</div>
+                <div class="kpi-sub">Filtered results</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-stripe" style="background:var(--cor-sucesso);"></div>
+                <div class="kpi-icon" style="background:rgba(26,122,82,.1);color:var(--cor-sucesso);"><i class="fas fa-check-circle"></i></div>
+                <div class="kpi-lbl">Completed</div>
+                <div class="kpi-val" id="kpi-completed">—</div>
+                <div class="kpi-sub">Successfully processed</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-stripe" style="background:var(--cor-alerta);"></div>
+                <div class="kpi-icon" style="background:rgba(184,114,0,.1);color:var(--cor-alerta);"><i class="fas fa-clock"></i></div>
+                <div class="kpi-lbl">Pending / Processing</div>
+                <div class="kpi-val" id="kpi-pending">—</div>
+                <div class="kpi-sub">Awaiting settlement</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-stripe" style="background:var(--cor-perigo);"></div>
+                <div class="kpi-icon" style="background:rgba(192,32,32,.1);color:var(--cor-perigo);"><i class="fas fa-xmark-circle"></i></div>
+                <div class="kpi-lbl">Rejected</div>
+                <div class="kpi-val" id="kpi-rejected">—</div>
+                <div class="kpi-sub">Declined transfers</div>
+            </div>
+        </div>
+
+        <div class="tbl-card">
+            <div class="card-hd">
+                <h3><i class="fas fa-list"></i> Transfer Feed</h3>
+                <button class="btn btn-ghost btn-sm" onclick="loadTransfers()"><i class="fas fa-rotate-right"></i> Refresh</button>
+            </div>
+
+            <div class="filter-bar">
+                <input type="text" id="searchInput" placeholder="Search client..." style="width:200px;" oninput="onSearchInput()">
+                <select id="statusFilter" onchange="loadTransfers(1)">
+                    <option value="">All Statuses</option>
+                    <option value="completed">Completed</option>
+                    <option value="processing">Processing</option>
+                    <option value="solicitada">Requested</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+                <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
+                    <label style="font-size:11px;color:var(--cor-texto-secundario);">From</label>
+                    <input type="date" id="dateFrom" style="padding:5px 8px;" onchange="loadTransfers(1)">
+                    <label style="font-size:11px;color:var(--cor-texto-secundario);">To</label>
+                    <input type="date" id="dateTo" style="padding:5px 8px;" onchange="loadTransfers(1)">
+                    <button class="btn btn-ghost btn-sm" onclick="clearDates()"><i class="fas fa-xmark"></i></button>
+                </div>
+            </div>
+
+            <div class="period-bar">
+                <span style="font-size:11px;color:var(--cor-texto-secundario);margin-right:4px;">Quick:</span>
+                <button class="period-btn" data-days="30" onclick="setPeriod(this)">30d</button>
+                <button class="period-btn" data-days="90" onclick="setPeriod(this)">90d</button>
+                <button class="period-btn" data-days="180" onclick="setPeriod(this)">180d</button>
+                <button class="period-btn" data-days="365" onclick="setPeriod(this)">1 year</button>
+                <button class="period-btn active" data-days="" onclick="setPeriod(this)">All</button>
+                <span id="resultCount" style="margin-left:auto;font-size:12px;color:var(--cor-texto-secundario);"></span>
+            </div>
+
+            <div class="tbl-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Client</th>
+                            <th>Amount</th>
+                            <th>Currency</th>
+                            <th>Destination</th>
+                            <th>Beneficiary</th>
+                            <th>Invoice</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="txBody">
+                        <tr><td colspan="9" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination" id="paginationBar" style="display:none;">
+                <div class="pagination-info" id="paginationInfo"></div>
+                <div class="pagination-controls" id="paginationControls"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Transfer Detail Modal -->
+<div id="txModalOverlay" onclick="if(event.target===this)closeTxModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:2000;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:16px;width:100%;max-width:700px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.4);">
+        <div id="txModalBody" style="padding:24px;overflow-y:auto;flex:1;"></div>
+        <div style="padding:14px 24px;border-top:1px solid var(--cor-borda);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0;">
+            <button id="txInvoiceBtn" class="btn btn-ghost" style="display:none;color:var(--cor-sucesso);border-color:rgba(26,122,82,.4);"><i class="fas fa-file-invoice"></i> View Invoice</button>
+            <button class="btn btn-ghost" onclick="closeTxModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+var currentPage = 1;
+var totalPages  = 1;
+var perPage     = 50;
+var pageTx      = [];
+
+function toggleTheme(){
+    var next = document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';
+    document.documentElement.setAttribute('data-theme',next);
+    localStorage.setItem('theme',next);
+    var ic=document.querySelector('#btnTheme i');
+    if(ic) ic.className=next==='light'?'fas fa-moon':'fas fa-sun';
+}
+document.addEventListener('DOMContentLoaded',function(){
+    var t=document.documentElement.getAttribute('data-theme')||'light';
+    var ic=document.querySelector('#btnTheme i');
+    if(ic) ic.className=t==='light'?'fas fa-moon':'fas fa-sun';
+    loadTransfers(1);
+});
+
+function setPeriod(btn){
+    document.querySelectorAll('.period-btn').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    var days = btn.getAttribute('data-days');
+    if(days){
+        var to = new Date(), from = new Date();
+        from.setDate(from.getDate() - parseInt(days));
+        document.getElementById('dateFrom').value = from.toISOString().slice(0,10);
+        document.getElementById('dateTo').value = to.toISOString().slice(0,10);
+    } else {
+        document.getElementById('dateFrom').value = '';
+        document.getElementById('dateTo').value = '';
+    }
+    loadTransfers(1);
+}
+
+function clearDates(){
+    document.getElementById('dateFrom').value = '';
+    document.getElementById('dateTo').value = '';
+    document.querySelectorAll('.period-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.querySelector('[data-days=""]').classList.add('active');
+    loadTransfers(1);
+}
+
+function loadTransfers(page){
+    currentPage = page || 1;
+    document.getElementById('txBody').innerHTML = '<tr><td colspan="9" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    document.getElementById('paginationBar').style.display = 'none';
+
+    var params = new URLSearchParams({
+        page:     currentPage,
+        per_page: perPage,
+    });
+    var q  = document.getElementById('searchInput').value.trim();
+    var st = document.getElementById('statusFilter').value;
+    var df = document.getElementById('dateFrom').value;
+    var dt = document.getElementById('dateTo').value;
+    if(q)  params.set('q', q);
+    if(st) params.set('status', st);
+    if(df) params.set('date_from', df);
+    if(dt) params.set('date_to', dt);
+
+    fetch('/api/compliance/b2b/transferencias?' + params)
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+            if(!d.success){ throw new Error(d.message); }
+            pageTx      = d.transferencias || [];
+            totalPages  = d.pagination.total_pages;
+            updateKPIs(d.stats);
+            renderTable(pageTx);
+            renderPagination(d.pagination);
+            document.getElementById('resultCount').textContent = d.pagination.total + ' transfer(s)';
+        })
+        .catch(function(e){
+            document.getElementById('txBody').innerHTML = '<tr><td colspan="9" class="empty"><i class="fas fa-triangle-exclamation"></i> Failed to load transfers</td></tr>';
+        });
+}
+
+// Debounce search input so we don't fire on every keystroke
+var searchTimer;
+function onSearchInput(){
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function(){ loadTransfers(1); }, 350);
+}
+
+function updateKPIs(stats){
+    document.getElementById('kpi-total').textContent     = stats.total     || 0;
+    document.getElementById('kpi-completed').textContent = stats.completed  || 0;
+    document.getElementById('kpi-pending').textContent   = stats.pending    || 0;
+    document.getElementById('kpi-rejected').textContent  = stats.rejected   || 0;
+}
+
+function renderPagination(p){
+    if(p.total_pages <= 1){ document.getElementById('paginationBar').style.display='none'; return; }
+    document.getElementById('paginationBar').style.display='flex';
+    var from = (p.page - 1) * p.per_page + 1;
+    var to   = Math.min(p.page * p.per_page, p.total);
+    document.getElementById('paginationInfo').textContent = 'Showing ' + from + '–' + to + ' of ' + p.total + ' transfers';
+
+    var ctrl = document.getElementById('paginationControls');
+    var html = '';
+    html += '<button class="page-btn" onclick="loadTransfers('+p.page+')" disabled style="display:none"></button>';
+
+    // Prev
+    html += '<button class="page-btn" onclick="loadTransfers('+(p.page-1)+')" '+(p.page===1?'disabled':'')+'><i class="fas fa-chevron-left"></i></button>';
+
+    // Page numbers — show up to 7
+    var pages = [];
+    if(p.total_pages <= 7){
+        for(var i=1;i<=p.total_pages;i++) pages.push(i);
+    } else {
+        pages.push(1);
+        if(p.page > 3) pages.push('...');
+        for(var j=Math.max(2,p.page-1); j<=Math.min(p.total_pages-1,p.page+1); j++) pages.push(j);
+        if(p.page < p.total_pages-2) pages.push('...');
+        pages.push(p.total_pages);
+    }
+    pages.forEach(function(pg){
+        if(pg === '...'){
+            html += '<span style="padding:0 4px;color:var(--cor-texto-secundario);font-size:12px;">…</span>';
+        } else {
+            html += '<button class="page-btn'+(pg===p.page?' active':'')+'" onclick="loadTransfers('+pg+')">'+pg+'</button>';
+        }
+    });
+
+    // Next
+    html += '<button class="page-btn" onclick="loadTransfers('+(p.page+1)+')" '+(p.page===p.total_pages?'disabled':'')+'><i class="fas fa-chevron-right"></i></button>';
+
+    ctrl.innerHTML = html;
+}
+
+var statusMeta = {
+    completed:  { label:'Completed',  bg:'rgba(26,122,82,.12)',  color:'var(--cor-sucesso)' },
+    processing: { label:'Processing', bg:'rgba(184,114,0,.12)',  color:'var(--cor-alerta)'  },
+    solicitada: { label:'Requested',  bg:'rgba(200,146,10,.12)', color:'var(--cor-admin)'   },
+    rejected:   { label:'Rejected',   bg:'rgba(192,32,32,.12)',  color:'var(--cor-perigo)'  }
+};
+
+function renderTable(list){
+    var tbody = document.getElementById('txBody');
+    if(!list.length){
+        tbody.innerHTML = '<tr><td colspan="9" class="empty"><i class="fas fa-arrow-right-arrow-left"></i>No transfers found</td></tr>';
+        return;
+    }
+    tbody.innerHTML = list.map(function(t, i){
+        var st = (t.status||'').toLowerCase();
+        var sm = statusMeta[st] || { label: t.status||'—', bg:'rgba(128,128,128,.1)', color:'var(--cor-texto-secundario)' };
+        var dest = [t.pais, t.pais_banco].filter(Boolean).join(' / ') || '—';
+        var bank = t.nome_banco ? '<br><span style="font-size:10px;opacity:.65;">'+esc(t.nome_banco)+'</span>' : '';
+        var amount = t.valor != null ? Number(t.valor).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+        var inv = t.invoice_info ? '<span style="color:var(--cor-sucesso);font-size:11px;font-weight:600;"><i class="fas fa-check"></i> Yes</span>' : '<span style="color:var(--cor-perigo);font-size:11px;font-weight:600;"><i class="fas fa-xmark"></i> No</span>';
+        var txDate = fmtDate(t.data || t.created_at);
+        return '<tr>' +
+            '<td style="font-size:12px;white-space:nowrap;">'+txDate+'</td>' +
+            '<td style="font-weight:600;'+(t.client_linked===false?'color:var(--cor-texto-secundario);font-style:italic;font-weight:400;':'')+'">'+esc(t.client_nome||'—')+'</td>' +
+            '<td style="font-weight:700;">'+amount+'</td>' +
+            '<td>'+esc(t.moeda||'—')+'</td>' +
+            '<td style="font-size:12px;">'+esc(dest)+bank+'</td>' +
+            '<td style="font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+esc(t.beneficiario||'')+'">'+esc(t.beneficiario||'—')+'</td>' +
+            '<td>'+inv+'</td>' +
+            '<td><span style="display:inline-block;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:600;background:'+sm.bg+';color:'+sm.color+';">'+sm.label+'</span></td>' +
+            '<td style="white-space:nowrap;"><button class="btn btn-ghost btn-sm" onclick="openTxModal(pageTx['+i+'])"><i class="fas fa-eye"></i></button></td>' +
+        '</tr>';
+    }).join('');
+}
+
+function fmtDate(s){
+    if(!s) return '—';
+    var d = new Date(s);
+    if(isNaN(d)) return s;
+    return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+}
+
+function esc(s){
+    if(s==null) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Transfer Detail Modal ──
+function openTxModal(t){
+    if(!t) return;
+    var inv = t.invoice_info ? (typeof t.invoice_info==='string' ? JSON.parse(t.invoice_info) : t.invoice_info) : null;
+    var swift = t.dados_swift_pagamento ? (typeof t.dados_swift_pagamento==='string' ? JSON.parse(t.dados_swift_pagamento) : t.dados_swift_pagamento) : null;
+    var st = (t.status||'').toLowerCase();
+    var sm2 = statusMeta[st] || { label:t.status||'—', color:'var(--cor-texto-secundario)' };
+    var fmtVal = function(v,m){ if(v==null) return '—'; var s={USD:'US$',EUR:'€',GBP:'£',BRL:'R$'}; return (s[m]||m||'')+' '+Number(v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+    var f = function(v){ return esc(v||'—'); };
+    var fdt = function(s){ if(!s) return '—'; var d=new Date(s); return isNaN(d)?s:d.toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); };
+    var sec = function(icon,title,rows){ return '<div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--cor-borda);"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--cor-admin);margin-bottom:12px;display:flex;align-items:center;gap:6px;"><i class="fas '+icon+'"></i> '+title+'</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px 20px;">'+rows+'</div></div>'; };
+    var row = function(label,value,full){ return '<div style="'+(full?'grid-column:1/-1;':'')+'"><div style="font-size:10px;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;">'+label+'</div><div style="font-size:13px;font-weight:600;word-break:break-word;">'+value+'</div></div>'; };
+
+    var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">' +
+        '<h3 style="font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;margin:0;"><i class="fas fa-arrow-right-arrow-left" style="color:var(--cor-admin);"></i> Transfer Details — '+esc(t.client_nome||'')+'</h3>' +
+        '<button onclick="closeTxModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--cor-texto-secundario);line-height:1;">&times;</button></div>';
+
+    html += sec('fa-circle-info','Transfer',[
+        row('ID',f(t.id)),
+        row('Status','<span style="color:'+sm2.color+';font-weight:700;">'+sm2.label+'</span>'),
+        row('Amount','<span style="color:var(--cor-admin);font-size:15px;">'+fmtVal(t.valor,t.moeda)+'</span>'),
+        row('Currency',f(t.moeda)),
+        row('Date',fdt(t.data||t.created_at)),
+        row('Client',f(t.client_nome)),
+        row('Requested by',f(t.solicitado_por||t.usuario||t.cliente)),
+    ].join(''));
+
+    html += sec('fa-calendar-days','Processing Dates',[
+        row('Requested',fdt(t.data_solicitacao)),
+        row('Approved',fdt(t.data_aprovacao)),
+        row('Processing',fdt(t.data_processing)),
+        row('Completed',fdt(t.data_conclusao)),
+        row('Approved by',f(t.executado_por)),
+        row('Completed by',f(t.concluido_por)),
+    ].join(''));
+
+    html += sec('fa-user-tie','Beneficiary',[
+        row('Name',f(t.beneficiario)),
+        row('City',f(t.cidade)),
+        row('Country',f(t.pais)),
+        row('Address',f(t.endereco_beneficiario),true),
+    ].join(''));
+
+    html += sec('fa-university','Bank Details',[
+        row('Bank',f(t.nome_banco)),
+        row('Country',f(t.pais_banco)),
+        row('City',f(t.cidade_banco)),
+        row('SWIFT/BIC',t.codigo_swift?'<span style="font-family:monospace;">'+esc(t.codigo_swift)+'</span>':'—'),
+        row('IBAN / Account',t.iban_account?'<span style="font-family:monospace;font-size:12px;">'+esc(t.iban_account)+'</span>':'—',true),
+        t.aba_routing?row('ABA/Routing','<span style="font-family:monospace;">'+esc(t.aba_routing)+'</span>'):'',
+        row('Bank Address',f(t.endereco_banco),true),
+    ].join(''));
+
+    if(t.finalidade||t.descricao){
+        html += sec('fa-sticky-note','Additional Info',[
+            t.finalidade?row('Purpose',f(t.finalidade)):'',
+            t.descricao?row('Description',f(t.descricao),true):'',
+        ].join(''));
+    }
+
+    if(t.status==='rejected'&&t.motivo_recusa){
+        html += '<div style="margin-bottom:20px;padding:14px;background:rgba(192,32,32,.08);border:1px solid rgba(192,32,32,.25);border-radius:10px;"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--cor-perigo);margin-bottom:6px;"><i class="fas fa-triangle-exclamation"></i> Rejection Reason</div><div style="font-size:13px;font-style:italic;color:var(--cor-perigo);">"'+esc(t.motivo_recusa)+'"</div></div>';
+    }
+
+    if(swift&&Object.keys(swift).length){
+        var swiftKeys=[{k:'linha1_uetr',l:'UETR'},{k:'linha2_20',l:':20:'},{k:'linha3_32a',l:':32A:'},{k:'linha4_50k',l:':50K:'},{k:'linha5_57a',l:':57A:'},{k:'linha6_59',l:':59:'},{k:'linha7_beneficiario',l:'Beneficiary'},{k:'linha8_70',l:':70:'},{k:'linha9_71a',l:':71A:'}];
+        var swiftRows=swiftKeys.filter(function(x){ return swift[x.k]&&swift[x.k].trim(); }).map(function(x){ return row(x.l,'<span style="font-family:monospace;font-size:11px;word-break:break-all;">'+esc(swift[x.k])+'</span>'); }).join('');
+        if(swiftRows) html += sec('fa-file-invoice-dollar','SWIFT Data',swiftRows);
+    }
+
+    if(inv){
+        var invSt=inv.status||'pending';
+        var invColor=invSt==='approved'?'var(--cor-sucesso)':invSt==='rejected'?'var(--cor-perigo)':'var(--cor-alerta)';
+        var invLabel=invSt==='approved'?'Approved':invSt==='rejected'?'Rejected':'Pending';
+        html += sec('fa-file-contract','Invoice',[
+            row('Status','<span style="color:'+invColor+';font-weight:700;">'+invLabel+'</span>'),
+            inv.data_upload?row('Upload Date',fdt(inv.data_upload)):'',
+            inv.nome_arquivo?row('File','<span style="font-size:11px;word-break:break-all;">'+esc(inv.nome_arquivo)+'</span>',true):'',
+            inv.motivo_recusa?row('Reject Reason','<span style="color:var(--cor-perigo);">'+esc(inv.motivo_recusa)+'</span>',true):'',
+        ].join(''));
+    }
+
+    document.getElementById('txModalBody').innerHTML = html;
+    var invBtn = document.getElementById('txInvoiceBtn');
+    if(inv){ invBtn.style.display='inline-flex'; invBtn.onclick=function(){ abrirInvoice(t.id); }; }
+    else { invBtn.style.display='none'; }
+    document.getElementById('txModalOverlay').style.display='flex';
+}
+
+function closeTxModal(){
+    document.getElementById('txModalOverlay').style.display='none';
+}
+
+function abrirInvoice(id){
+    fetch('/api/admin/transferencias/'+encodeURIComponent(id)+'/invoice')
+        .then(function(r){
+            if(r.ok){
+                var ct=r.headers.get('content-type')||'';
+                if(ct.includes('pdf')){
+                    return r.blob().then(function(blob){
+                        var url=URL.createObjectURL(blob);
+                        window.open(url,'_blank');
+                        URL.revokeObjectURL(url);
+                    });
+                } else { alert('Invoice not available as PDF.'); }
+            } else { return r.json().then(function(e){ alert(e.message||'Error opening invoice'); }); }
+        })
+        .catch(function(){ alert('Error opening invoice'); });
+}
+</script>
+</body>
+</html>

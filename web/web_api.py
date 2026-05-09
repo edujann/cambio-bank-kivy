@@ -11346,7 +11346,7 @@ def loja_nova_ordem():
         pais_destino = (d.get('pais_destino') or '').upper()[:2]
 
         # Verificar país proibido
-        if pais_destino and pais_destino in PROHIBITED_COUNTRIES:
+        if pais_destino and _is_blocked(pais_destino):
             return jsonify({'success': False, 'message': f'País de destino "{pais_destino}" está na lista de países proibidos (AML Policy).'}), 403
 
         # Salvar ou criar cliente
@@ -11456,7 +11456,7 @@ def loja_nova_ordem():
             # --- Alertas AML não-bloqueantes ---
             if aml.get('pep_screening') and not d.get('pep_screening_ok'):
                 aml_alertas.append('PEP_SCREENING_REQUIRED')
-            if pais_destino and pais_destino in HIGH_RISK_COUNTRIES:
+            if pais_destino and _is_high_risk(pais_destino):
                 aml_alertas.append('HIGH_RISK_COUNTRY_EDD')
             if forma == 'cash':
                 aml_alertas.append('CASH_EDD')
@@ -11855,14 +11855,73 @@ def loja_confirmar_pagamento(ordem_id):
 # AML / CLIENTES / LOJAS
 # ============================================
 
-PROHIBITED_COUNTRIES = {
+# ── Country risk cache ──────────────────────────────────────────────
+# Loaded from paises_risco on first use; invalidated on admin update.
+# Fallback to hardcoded sets if Supabase is unavailable at startup.
+_COUNTRY_CACHE: dict = {'loaded': False, 'blocked': set(), 'high_risk': set(), 'sanctioned': set()}
+_COUNTRY_CACHE_LOCK = threading.Lock()
+
+_PROHIBITED_FALLBACK = {
     'BY','BA','CU','KP','CD','GN','GW','HT','IR','IL','LB','LY','ML','MM',
     'NI','RU','SO','SS','VE','YE','ZW'
 }
-HIGH_RISK_COUNTRIES = {
+_HIGH_RISK_FALLBACK = {
     'DZ','AO','BO','VG','BG','BF','CM','CI','KP','CD','HT','IR','KE','LA',
     'LB','MC','MZ','MM','NA','NP','NG','ZA','SS','SY','VE','VN','YE'
 }
+
+def _load_country_cache() -> None:
+    try:
+        rows = supabase.table('paises_risco').select('codigo,risco,bloqueado').execute().data or []
+        blocked = set()
+        high_risk = set()
+        sanctioned = set()
+        for row in rows:
+            code = (row.get('codigo') or '').upper().strip()
+            if not code:
+                continue
+            risco = (row.get('risco') or '').lower()
+            if risco == 'sanctioned':
+                sanctioned.add(code)
+                blocked.add(code)          # sanctioned ⇒ always blocked
+            elif risco == 'high':
+                high_risk.add(code)
+            if row.get('bloqueado'):
+                blocked.add(code)
+        with _COUNTRY_CACHE_LOCK:
+            _COUNTRY_CACHE.update({'loaded': True, 'blocked': blocked,
+                                   'high_risk': high_risk, 'sanctioned': sanctioned})
+    except Exception:
+        # DB unavailable — fall back to hardcoded lists
+        with _COUNTRY_CACHE_LOCK:
+            _COUNTRY_CACHE.update({'loaded': True,
+                                   'blocked': set(_PROHIBITED_FALLBACK),
+                                   'high_risk': set(_HIGH_RISK_FALLBACK),
+                                   'sanctioned': set()})
+
+def _country_cache() -> dict:
+    if not _COUNTRY_CACHE['loaded']:
+        _load_country_cache()
+    return _COUNTRY_CACHE
+
+def _invalidate_country_cache() -> None:
+    with _COUNTRY_CACHE_LOCK:
+        _COUNTRY_CACHE['loaded'] = False
+
+def _is_blocked(code: str) -> bool:
+    return (code or '').upper() in _country_cache()['blocked']
+
+def _is_high_risk(code: str) -> bool:
+    c = (code or '').upper()
+    cc = _country_cache()
+    return c in cc['high_risk'] or c in cc['sanctioned']
+
+def _is_sanctioned(code: str) -> bool:
+    return (code or '').upper() in _country_cache()['sanctioned']
+
+# Keep old names as thin aliases so any external import still works
+def _prohibited(code: str) -> bool: return _is_blocked(code)
+def _high_risk(code: str)  -> bool: return _is_high_risk(code)
 
 # Limiares de tier usados na detecção de structuring
 AML_TIER_THRESHOLDS = [850, 2500, 3500, 5000]
@@ -12251,6 +12310,7 @@ def _criar_alerta_compliance(cliente_b2b_id, titulo, tipo, prioridade, descricao
             'prioridade': prioridade,
             'status': 'aberto',
             'criado_em': datetime.now(timezone.utc).isoformat(),
+            'criado_por': criado_por,
         }
         if descricao:
             payload['descricao'] = descricao[:500]
@@ -12280,7 +12340,7 @@ def _aml_check_order(cliente_id, valor_nova_ordem_gbp):
             edd_required = (
                 bool(c.get('pep_flag')) or
                 str(c.get('risk_score', '') or '').lower() in ('high', 'alto') or
-                (c.get('pais_residencia', '') or '') in HIGH_RISK_COUNTRIES
+                _is_high_risk(c.get('pais_residencia', '') or '')
             )
     except Exception:
         pass
@@ -13085,7 +13145,7 @@ def clientes_criar():
             return jsonify({'success': False, 'message': 'Nome obrigatório'}), 400
 
         pais = (d.get('pais_residencia') or 'GB').upper()[:2]
-        if pais in PROHIBITED_COUNTRIES:
+        if _is_blocked(pais):
             return jsonify({'success': False, 'message': f'País {pais} está na lista de países proibidos (AML policy).'}), 403
 
         # Sanctions screening (non-blocking — result stored in screening_log)
@@ -13112,7 +13172,7 @@ def clientes_criar():
             'pais_residencia': pais,
             'nacionalidade':   (d.get('nacionalidade') or '').strip(),
             'observacoes':     (d.get('observacoes') or '').strip(),
-            'risk_score':      'high' if pais in HIGH_RISK_COUNTRIES else 'medium',
+            'risk_score':      'high' if _is_high_risk(pais) else 'medium',
             'pep_flag':        bool(d.get('pep_flag', False)),
             'pep_info':        (d.get('pep_info') or '').strip(),
             'sanctions_flag':  sn_flag,
@@ -13202,9 +13262,9 @@ def clientes_atualizar(cliente_id):
                    'proof_address_tipo','proof_address_tipo_outro','proof_address_numero']
         payload = {k: d[k] for k in allowed if k in d}
         pais = payload.get('pais_residencia', '')
-        if pais and pais.upper() in PROHIBITED_COUNTRIES:
+        if pais and _is_blocked(pais.upper()):
             return jsonify({'success': False, 'message': f'País {pais} é proibido (AML policy).'}), 403
-        if pais and pais.upper() in HIGH_RISK_COUNTRIES and 'risk_score' not in payload:
+        if pais and _is_high_risk(pais.upper()) and 'risk_score' not in payload:
             payload['risk_score'] = 'high'
         # Re-screen if name changed
         sn_resultado = 'clear'
@@ -21552,6 +21612,51 @@ def api_b2b_clientes_list():
 
 # ── CREATE CLIENT (onboarding) ──
 
+def _run_b2b_screening(client_id: str, razao_social: str, pessoas: list, usuario: str):
+    """Run sanctions/PEP screening for company + controllers in a background thread.
+    Called at onboarding so the HTTP response isn't blocked by external API calls.
+    pessoas: list of (pessoa_id, nome) tuples.
+    """
+    # Screen the company
+    try:
+        res = screening_check(client_id, razao_social, screened_by=usuario)
+        if res.get('resultado') == 'hit':
+            supabase.table('clientes_b2b').update({
+                'sancoes_empresa': 'confirmado',
+                'pep_empresa': 'sim',
+            }).eq('id', client_id).execute()
+            _criar_alerta_compliance(
+                cliente_b2b_id=client_id,
+                titulo=f'Sanctions / PEP hit detected: {razao_social}',
+                tipo='sanctions_hit',
+                prioridade='critico',
+                descricao=f'Company matched {len(res.get("matches", []))} entry(ies) on OFAC/HMT/UN/PEP lists during onboarding screening.',
+                criado_por='sistema',
+            )
+    except Exception:
+        pass
+
+    # Screen each controller / UBO
+    for pessoa_id, nome in pessoas:
+        try:
+            res = screening_check(pessoa_id, nome, screened_by=usuario)
+            if res.get('resultado') == 'hit':
+                supabase.table('pessoas_controlantes').update({
+                    'sancoes_status': 'confirmado',
+                    'pep_status': 'confirmado',
+                }).eq('id', pessoa_id).execute()
+                _criar_alerta_compliance(
+                    cliente_b2b_id=client_id,
+                    titulo=f'Sanctions / PEP hit detected: {nome}',
+                    tipo='sanctions_hit',
+                    prioridade='critico',
+                    descricao=f'Controller / UBO "{nome}" matched {len(res.get("matches", []))} entry(ies) on OFAC/HMT/UN/PEP lists during onboarding screening.',
+                    criado_por='sistema',
+                )
+        except Exception:
+            pass
+
+
 @app.route('/api/compliance/b2b/clientes', methods=['POST'])
 def api_b2b_cliente_criar():
     usuario, tipo, redir = _b2b_acesso()
@@ -21620,13 +21725,23 @@ def api_b2b_cliente_criar():
             'cliente_b2b_id', 'criado_por', 'criado_em',
         }
         from datetime import datetime, timezone as tz_import
+        pessoas_para_screening = []
         for p in pessoas:
             p_clean = {k: v for k, v in p.items() if k in _COLS_PESSOAS and v is not None and v != ''}
             p_clean['cliente_b2b_id'] = client_id
             p_clean['cliente_id'] = client_id  # legacy NOT NULL column
             p_clean['criado_por'] = usuario
             if p_clean.get('nome_completo'):
-                supabase.table('pessoas_controlantes').insert(p_clean).execute()
+                p_res = supabase.table('pessoas_controlantes').insert(p_clean).execute()
+                if p_res.data:
+                    pessoas_para_screening.append((p_res.data[0]['id'], p_clean['nome_completo']))
+
+        # Launch background AML/PEP screening — non-blocking
+        threading.Thread(
+            target=_run_b2b_screening,
+            args=(client_id, d.get('razao_social', ''), pessoas_para_screening, usuario),
+            daemon=True,
+        ).start()
 
         # Auto-calculate score if we have enough data
         try:
@@ -22544,6 +22659,51 @@ def api_b2b_historico(client_id):
         return jsonify({'success': False, 'message': _err(e)}), 500
 
 
+# ── CLIENT TRANSFERS ──
+
+@app.route('/api/compliance/b2b/clientes/<client_id>/transferencias', methods=['GET'])
+def api_b2b_cliente_transferencias(client_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        limit = min(int(request.args.get('limit', 500)), 500)
+        date_from = request.args.get('date_from', '').strip()
+        date_to   = request.args.get('date_to', '').strip()
+
+        # Resolve username to also catch legacy transfers where cliente_id is null
+        username = ''
+        try:
+            cli_r = supabase.table('clientes_b2b').select('usuario_username').eq('id', client_id).single().execute()
+            username = (cli_r.data or {}).get('usuario_username') or ''
+        except Exception:
+            pass
+
+        query = supabase.table('transferencias')\
+            .select('id, valor, moeda, status, data, created_at, pais, pais_banco, nome_banco, '
+                    'beneficiario, endereco_beneficiario, cidade, '
+                    'endereco_banco, cidade_banco, codigo_swift, iban_account, aba_routing, '
+                    'finalidade, descricao, invoice_info, dados_swift_pagamento, '
+                    'data_solicitacao, data_aprovacao, data_processing, data_conclusao, '
+                    'executado_por, concluido_por, motivo_recusa, solicitado_por, cliente, usuario')\
+            .eq('tipo', 'transferencia_internacional')\
+            .order('created_at', desc=True)
+
+        if username:
+            query = query.or_(f'cliente_id.eq.{client_id},and(usuario.eq.{username},cliente_id.is.null)')
+        else:
+            query = query.eq('cliente_id', client_id)
+
+        if date_from:
+            query = query.gte('data', date_from)
+        if date_to:
+            query = query.lte('data', date_to + 'T23:59:59')
+
+        result = query.limit(limit).execute()
+        return jsonify({'success': True, 'transferencias': result.data or [], 'total': len(result.data or [])})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
 # ── GLOBAL BENEFICIARIES ──
 
 @app.route('/api/compliance/b2b/beneficiarios-global', methods=['GET'])
@@ -22580,13 +22740,33 @@ def api_b2b_screening_overview():
     usuario, tipo, redir = _b2b_acesso()
     if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
     try:
-        filtro = request.args.get('resultado', '')  # hit / clear / pendente
+        filtro      = request.args.get('resultado', '').strip()   # hit / clear
+        q           = request.args.get('q', '').strip().lower()
+        tipo_filter = request.args.get('tipo', '').strip().lower()  # company / director / ubo
+
         cli_r = supabase.table('clientes_b2b').select(
             'id,razao_social,pep_empresa,sancoes_empresa,nivel_risco,score_risco,criado_em'
         ).execute()
         pess_r = supabase.table('pessoas_controlantes').select(
-            'id,nome_completo,cargo,pep_status,sancoes_status,cliente_b2b_id'
+            'id,nome_completo,cargo,pep_status,sancoes_status,cliente_b2b_id,criado_em'
         ).execute()
+
+        # Pull recent screening_log to enrich entities with last-screened date + matches
+        log_by_name = {}
+        log_by_id   = {}
+        try:
+            log_r = supabase.table('screening_log') \
+                .select('nome_pesquisado,resultado,matches,screened_by,created_at,cliente_id') \
+                .order('created_at', desc=True).limit(2000).execute()
+            for lg in (log_r.data or []):
+                key = (lg.get('nome_pesquisado') or '').lower().strip()
+                if key and key not in log_by_name:
+                    log_by_name[key] = lg
+                cid = str(lg.get('cliente_id') or '')
+                if cid and cid not in log_by_id:
+                    log_by_id[cid] = lg
+        except Exception:
+            pass
 
         clientes_map = {c['id']: c for c in (cli_r.data or [])}
         entidades = []
@@ -22595,30 +22775,92 @@ def api_b2b_screening_overview():
             resultado = 'hit' if (c.get('pep_empresa') == 'sim' or c.get('sancoes_empresa') == 'confirmado') else 'clear'
             if filtro and resultado != filtro:
                 continue
+            if tipo_filter and tipo_filter != 'company':
+                continue
+            nome = c.get('razao_social') or '—'
+            if q and q not in nome.lower():
+                continue
+            lg = log_by_id.get(str(c['id'])) or log_by_name.get(nome.lower().strip())
             entidades.append({
-                'id': c['id'], 'nome': c.get('razao_social', '—'), 'tipo': 'company',
+                'id': c['id'], 'nome': nome, 'tipo': 'company',
                 'resultado': resultado,
                 'pep': c.get('pep_empresa'), 'sancoes': c.get('sancoes_empresa'),
                 'nivel_risco': c.get('nivel_risco'), 'cliente_id': c['id'],
-                'cliente_nome': c.get('razao_social', '—'),
+                'cliente_nome': nome,
+                'criado_em': c.get('criado_em'),
+                'last_screened_at': lg['created_at'] if lg else None,
+                'screened_by':      lg['screened_by'] if lg else None,
+                'matches':          lg.get('matches') or [] if lg else [],
             })
 
         for p in (pess_r.data or []):
-            resultado = 'hit' if (p.get('pep_status') == 'confirmado' or p.get('sancoes_status') == 'confirmado') else 'clear'
+            pep_val = p.get('pep_status', '')
+            san_val = p.get('sancoes_status', '')
+            resultado = 'hit' if (pep_val == 'confirmado' or san_val == 'confirmado') else 'clear'
             if filtro and resultado != filtro:
                 continue
+            cargo_raw = (p.get('cargo') or 'director').strip()
+            cargo_low = cargo_raw.lower()
+            tipo_ent  = 'ubo' if ('ubo' in cargo_low or 'beneficial' in cargo_low) else 'director'
+            if tipo_filter and tipo_filter not in (tipo_ent, cargo_low):
+                continue
+            nome = p.get('nome_completo') or '—'
+            if q and q not in nome.lower():
+                continue
             cli = clientes_map.get(p.get('cliente_b2b_id'), {})
+            lg  = log_by_id.get(str(p['id'])) or log_by_name.get(nome.lower().strip())
             entidades.append({
-                'id': p['id'], 'nome': p.get('nome_completo', '—'), 'tipo': p.get('cargo', 'Director'),
+                'id': p['id'], 'nome': nome, 'tipo': tipo_ent,
+                'cargo': cargo_raw,
                 'resultado': resultado,
-                'pep': p.get('pep_status'), 'sancoes': p.get('sancoes_status'),
+                'pep': pep_val, 'sancoes': san_val,
                 'nivel_risco': cli.get('nivel_risco'), 'cliente_id': p.get('cliente_b2b_id'),
                 'cliente_nome': cli.get('razao_social', '—'),
+                'criado_em': p.get('criado_em'),
+                'last_screened_at': lg['created_at'] if lg else None,
+                'screened_by':      lg['screened_by'] if lg else None,
+                'matches':          lg.get('matches') or [] if lg else [],
             })
 
         hits   = sum(1 for e in entidades if e['resultado'] == 'hit')
         clears = sum(1 for e in entidades if e['resultado'] == 'clear')
         return jsonify({'success': True, 'entidades': entidades, 'total': len(entidades), 'hits': hits, 'clears': clears})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/entities/rescreen', methods=['POST'])
+def api_b2b_entity_rescreen():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        d           = request.get_json() or {}
+        entity_type = (d.get('entity_type') or '').strip()
+        entity_id   = (d.get('entity_id')   or '').strip()
+        entity_name = (d.get('entity_name') or '').strip()
+        if not entity_name or not entity_id or entity_type not in ('company', 'person'):
+            return jsonify({'success': False, 'message': 'entity_type, entity_id and entity_name are required'}), 400
+
+        result    = screening_check(entity_id, entity_name, screened_by=usuario)
+        resultado = result.get('resultado', 'clear')
+
+        if entity_type == 'company':
+            upd = {'sancoes_empresa': 'confirmado' if resultado == 'hit' else 'nao_encontrado'}
+            if resultado == 'hit':
+                upd['pep_empresa'] = 'sim'
+            supabase.table('clientes_b2b').update(upd).eq('id', entity_id).execute()
+        else:
+            upd = {'sancoes_status': 'confirmado' if resultado == 'hit' else 'nao_encontrado'}
+            if resultado == 'hit':
+                upd['pep_status'] = 'confirmado'
+            supabase.table('pessoas_controlantes').update(upd).eq('id', entity_id).execute()
+
+        return jsonify({
+            'success':   True,
+            'resultado': resultado,
+            'matches':   result.get('matches', []),
+            'possible':  result.get('possible_matches', []),
+        })
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
 
@@ -22876,6 +23118,119 @@ def api_b2b_riskconfig_thresholds_save():
 # =========================================
 # STRUCTURING CONFIG B2B
 # =========================================
+
+@app.route('/compliance/b2b/transferencias')
+def compliance_b2b_transferencias():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return redir
+    return render_template('compliance_b2b/transferencias.html',
+                           usuario=usuario, current_lang=session.get('lang', 'en'))
+
+
+@app.route('/api/compliance/b2b/transferencias', methods=['GET'])
+def api_b2b_transferencias_list():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        per_page  = min(int(request.args.get('per_page', 50)), 100)
+        page      = max(int(request.args.get('page', 1)), 1)
+        date_from = request.args.get('date_from', '').strip()
+        date_to   = request.args.get('date_to', '').strip()
+        status_f  = request.args.get('status', '').strip()
+        q         = request.args.get('q', '').strip()
+
+        def _base_query(select_cols, count_mode=None):
+            kw = {'count': count_mode} if count_mode else {}
+            qr = supabase.table('transferencias').select(select_cols, **kw)\
+                .eq('tipo', 'transferencia_internacional')
+            if status_f:
+                qr = qr.eq('status', status_f)
+            if date_from:
+                qr = qr.gte('data', date_from)
+            if date_to:
+                qr = qr.lte('data', date_to + 'T23:59:59')
+            if q:
+                qr = qr.ilike('cliente', f'%{q}%')
+            return qr
+
+        # Total count + per-status counts (for KPIs)
+        count_r   = _base_query('id', count_mode='exact').execute()
+        total     = count_r.count or 0
+
+        def _count_status(st):
+            try:
+                r = supabase.table('transferencias').select('id', count='exact')\
+                    .eq('tipo', 'transferencia_internacional').eq('status', st)
+                if date_from: r = r.gte('data', date_from)
+                if date_to:   r = r.lte('data', date_to + 'T23:59:59')
+                if q:         r = r.ilike('cliente', f'%{q}%')
+                return r.execute().count or 0
+            except Exception:
+                return 0
+
+        stats = {
+            'total':      total,
+            'completed':  _count_status('completed'),
+            'pending':    _count_status('solicitada') + _count_status('processing'),
+            'rejected':   _count_status('rejected'),
+        }
+
+        # Paginated data
+        offset     = (page - 1) * per_page
+        total_pages = max(1, -(-total // per_page))  # ceiling division
+        result = _base_query(
+            'id, valor, moeda, status, data, created_at, pais, pais_banco, nome_banco, '
+            'beneficiario, endereco_beneficiario, cidade, '
+            'endereco_banco, cidade_banco, codigo_swift, iban_account, aba_routing, '
+            'finalidade, descricao, invoice_info, dados_swift_pagamento, '
+            'data_solicitacao, data_aprovacao, data_processing, data_conclusao, '
+            'executado_por, concluido_por, motivo_recusa, solicitado_por, '
+            'cliente, usuario, cliente_id'
+        ).order('created_at', desc=True).range(offset, offset + per_page - 1).execute()
+
+        transferencias = result.data or []
+
+        # Enrich client names
+        client_ids = list({t['cliente_id'] for t in transferencias if t.get('cliente_id')})
+        client_names = {}
+        if client_ids:
+            cli_r = supabase.table('clientes_b2b')\
+                .select('id, business_name, razao_social, nome_comercial')\
+                .in_('id', client_ids).execute()
+            for c in (cli_r.data or []):
+                client_names[c['id']] = (c.get('business_name') or
+                                         c.get('nome_comercial') or
+                                         c.get('razao_social') or '')
+
+        for t in transferencias:
+            cid = t.get('cliente_id')
+            if cid and client_names.get(cid):
+                t['client_nome'] = client_names[cid]
+                t['client_linked'] = True
+            else:
+                raw = t.get('cliente') or t.get('usuario') or t.get('solicitado_por') or ''
+                if raw:
+                    t['client_nome'] = raw.replace('_', ' ').title()
+                    t['client_linked'] = True
+                else:
+                    executor = t.get('executado_por') or 'admin'
+                    t['client_nome'] = f'[{executor}]'
+                    t['client_linked'] = False
+
+        return jsonify({
+            'success': True,
+            'transferencias': transferencias,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': total,
+                'total_pages': total_pages,
+            },
+            'stats': stats,
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
 
 @app.route('/compliance/b2b/structuring-config')
 def compliance_b2b_structuring_config():
@@ -23886,6 +24241,161 @@ def api_paises_risco():
     except Exception as e:
         print(f"❌ Erro em /api/paises/risco: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+# ── COUNTRY MANAGEMENT (B2B Compliance) ──────────────────────────────────────
+
+@app.route('/compliance/b2b/paises')
+def compliance_b2b_paises():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return redir
+    return render_with_lang('compliance_b2b/paises.html', usuario=usuario, tipo=tipo)
+
+
+@app.route('/api/compliance/b2b/paises', methods=['GET'])
+def api_b2b_paises_list():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        q          = request.args.get('q', '').strip().lower()
+        risco_f    = request.args.get('risco', '').strip().lower()
+        cont_f     = request.args.get('continente', '').strip()
+        blocked_f  = request.args.get('bloqueado', '').strip()   # 'true' | 'false' | ''
+
+        rows = supabase.table('paises_risco')\
+            .select('codigo,nome,nome_nacionalidade,risco,bloqueado,continente')\
+            .order('nome').execute().data or []
+
+        # Apply filters in Python (table is small — 250 rows tops)
+        filtered = []
+        for r in rows:
+            if q and q not in (r.get('nome') or '').lower() and q not in (r.get('codigo') or '').lower():
+                continue
+            if risco_f and (r.get('risco') or '').lower() != risco_f:
+                continue
+            if cont_f and (r.get('continente') or '') != cont_f:
+                continue
+            if blocked_f == 'true'  and not r.get('bloqueado'):
+                continue
+            if blocked_f == 'false' and r.get('bloqueado'):
+                continue
+            filtered.append(r)
+
+        stats = {
+            'total':      len(rows),
+            'blocked':    sum(1 for r in rows if r.get('bloqueado')),
+            'high_risk':  sum(1 for r in rows if (r.get('risco') or '') == 'high'),
+            'sanctioned': sum(1 for r in rows if (r.get('risco') or '') == 'sanctioned'),
+            'low':        sum(1 for r in rows if (r.get('risco') or '') == 'low'),
+        }
+        continents = sorted({r.get('continente') for r in rows if r.get('continente')})
+        return jsonify({'success': True, 'paises': filtered, 'stats': stats, 'continents': continents})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/paises/reset', methods=['POST'])
+def api_b2b_paises_reset():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        # Baseline classification — FCA/HMRC UK (MLR 2017 + FATF 2024 + UK OFSI)
+        SANCTIONED = ['AF','BY','CU','IR','KP','MM','RU','SY']
+        HIGH_BLOCKED = ['SD']
+        LOW = [
+            'AT','BE','HR','CZ','DK','EE','FI','FR','DE','IS','IE','IT',
+            'LV','LI','LT','LU','NL','NO','PL','PT','SK','SI','ES','SE','CH','GB',
+            'CA','CL','US','JP','KR','SG','TW','AU','NZ',
+        ]
+        STANDARD = [
+            'AD','BG','CY','GR','HU','MT','MC','RO','SM','VA',
+            'AR','BR','CR','MX','PY','PE','UY',
+            'AM','AZ','BH','BT','BN','CN','IN','ID','IL','KW',
+            'MY','MV','MN','OM','QA','SA','TH',
+            'CV','MU',
+            # UK Crown Dependencies + BOTs (framework AML equivalente FCA)
+            'JE','GG','IM','GI','BM',
+            # US territories (framework FinCEN)
+            'PR','VI',
+            # Major Asian financial centres
+            'HK',
+        ]
+        HIGH = [
+            # Africa — FATF Grey List
+            'BF','BI','CF','TD','KM','CG','CD','GQ','ER','ET','GN','GW',
+            'LR','LY','ML','MR','MZ','NE','NG','SN','SL','SO','SS','UG','ZW',
+            'JO','MA','NA','TN','TZ','KE',
+            # Americas — instabilidade / FATF
+            'HT','JM','NI','TT','VE',
+            # Asia/Middle East — FATF Grey List + conflito
+            'IQ','LA','LB','PK','PS','PH','TJ','TM','YE',
+            # Oceania — FATF monitoring
+            'PG','VU',
+        ]
+        MEDIUM = [
+            # Europe — países em transição
+            'AL','BA','GE','XK','MD','ME','MK','RS','TR','UA',
+            # Americas — offshore / risco moderado
+            'AG','BS','BB','BZ','BO','CO','DM','DO','EC','SV','GD','GT',
+            'GY','HN','KN','LC','PA','VC','SR',
+            # Asia — risco moderado
+            'BD','KH','KZ','KG','NP','LK','TL','UZ','VN',
+            # Middle East — removidos da grey list recentemente
+            'AE',
+            # Africa — risco moderado + removidos da grey list
+            'DZ','AO','BJ','BW','CM','CI','DJ','EG','GA','GM','GH',
+            'LS','MG','MW','RW','ST','SC','SZ','TG','ZA','ZM',
+            # Oceania — risco moderado
+            'FJ','KI','MH','FM','NR','PW','WS','SB','TO','TV',
+            # Offshore caribenho britânico e holandês
+            'KY','VG','TC','AI','MS','CW','AW','SX',
+            # Centros financeiros asiáticos com risco moderado
+            'MO',
+        ]
+
+        supabase.table('paises_risco').update({'risco':'sanctioned','bloqueado':True}).in_('codigo', SANCTIONED).execute()
+        supabase.table('paises_risco').update({'risco':'high','bloqueado':True}).in_('codigo', HIGH_BLOCKED).execute()
+        supabase.table('paises_risco').update({'risco':'low','bloqueado':False}).in_('codigo', LOW).execute()
+        supabase.table('paises_risco').update({'risco':'standard','bloqueado':False}).in_('codigo', STANDARD).execute()
+        supabase.table('paises_risco').update({'risco':'high','bloqueado':False}).in_('codigo', HIGH).execute()
+        supabase.table('paises_risco').update({'risco':'medium','bloqueado':False}).in_('codigo', MEDIUM).execute()
+
+        _invalidate_country_cache()
+        total = len(SANCTIONED)+len(HIGH_BLOCKED)+len(LOW)+len(STANDARD)+len(HIGH)+len(MEDIUM)
+        return jsonify({'success': True, 'updated': total,
+                        'message': f'{total} countries reset to FCA/HMRC baseline (FATF 2024 + UK OFSI)'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/paises/<codigo>', methods=['PUT'])
+def api_b2b_pais_update(codigo):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        codigo = codigo.upper().strip()
+        d = request.get_json() or {}
+        allowed = {'risco', 'bloqueado', 'nome_nacionalidade'}
+        payload = {k: v for k, v in d.items() if k in allowed}
+        if not payload:
+            return jsonify({'success': False, 'message': 'Nothing to update'}), 400
+
+        valid_risco = {'low', 'medium', 'high', 'sanctioned', 'standard'}
+        if 'risco' in payload and payload['risco'] not in valid_risco:
+            return jsonify({'success': False, 'message': f'Invalid risk value. Use: {", ".join(valid_risco)}'}), 400
+
+        # sanctioned always forces blocked
+        if payload.get('risco') == 'sanctioned':
+            payload['bloqueado'] = True
+
+        result = supabase.table('paises_risco').update(payload).eq('codigo', codigo).execute()
+        if not result.data:
+            return jsonify({'success': False, 'message': 'Country not found'}), 404
+
+        _invalidate_country_cache()   # force reload on next request
+        return jsonify({'success': True, 'pais': result.data[0]})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))

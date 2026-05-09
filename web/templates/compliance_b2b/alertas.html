@@ -139,9 +139,13 @@
             <div class="nav-divider"></div>
             <div class="nav-section-lbl">Operations</div>
             <a href="/compliance/b2b/beneficiarios" class="nav-item"><i class="fas fa-users"></i> Beneficiaries</a>
+            <a href="/compliance/b2b/transferencias" class="nav-item"><i class="fas fa-arrow-right-arrow-left"></i> Transfers</a>
             <a href="/compliance/b2b/limites" class="nav-item"><i class="fas fa-sliders"></i> Limits</a>
+            <div class="nav-divider"></div>
+            <div class="nav-section-lbl">Configuration</div>
+            <a href="/compliance/b2b/paises" class="nav-item"><i class="fas fa-earth-americas"></i> Countries</a>
             <a href="/compliance/b2b/risk-config" class="nav-item"><i class="fas fa-gear"></i> Risk Config</a>
-        <a href="/compliance/b2b/structuring-config" class="nav-item"><i class="fas fa-wave-square"></i> AML Rules</a>
+            <a href="/compliance/b2b/structuring-config" class="nav-item"><i class="fas fa-wave-square"></i> AML Rules</a>
         </nav>
 
         <div class="content-area">
@@ -195,10 +199,10 @@
                     </div>
                     <select id="typeFilter" onchange="applyFilters()" style="margin-left:auto;">
                         <option value="">All Types</option>
-                        <option value="edd_aberto">EDD Aberto</option>
+                        <option value="edd_aberto">EDD Opened</option>
                         <option value="sanctions_hit">Sanctions Hit</option>
                         <option value="high_risk">High Risk</option>
-                        <option value="structuring">Structuring</option>
+                        <option value="B2B_STRUCT">Structuring (AML)</option>
                         <option value="manual">Manual</option>
                     </select>
                 </div>
@@ -263,7 +267,7 @@
             var type = document.getElementById('typeFilter').value;
             var filtered = allAlertas.filter(function(a){
                 var matchSt = !currentStatus || a.status === currentStatus;
-                var matchType = !type || a.tipo === type;
+                var matchType = !type || (type === 'B2B_STRUCT' ? (a.tipo||'').indexOf('B2B_STRUCT') === 0 : a.tipo === type);
                 return matchSt && matchType;
             });
             renderAlertList(filtered);
@@ -278,53 +282,86 @@
             container.innerHTML = alertas.map(function(a){
                 var dotCls = 'dot-' + (a.prioridade || 'medium');
                 var typeLabel = typeDisplay(a.tipo);
+                var clientId = a.cliente_b2b_id || a.client_b2b_id || a.cliente_id || '';
                 return '<div class="alert-item">' +
                     '<span class="dot ' + esc(dotCls) + '" style="width:10px;height:10px;flex-shrink:0;"></span>' +
                     '<div class="alert-body">' +
                         '<div class="alert-title">' + esc(a.titulo || a.title || 'Alert #' + (a.id||'')) + '</div>' +
+                        (a.descricao ? '<div style="font-size:11px;color:var(--cor-texto-secundario);margin:3px 0 4px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + esc(a.descricao) + '">' + esc(a.descricao) + '</div>' : '') +
                         '<div class="alert-meta">' +
                             '<span>' + esc(a.client_nome || a.empresa_nome || '—') + '</span>' +
                             '<span class="tag tag-company" style="font-size:10px;">' + esc(typeLabel) + '</span>' +
-                            '<span style="opacity:.6;">' + timeAgo(a.created_at) + '</span>' +
+                            statusTag(a.status) +
+                            '<span style="opacity:.6;">' + timeAgo(a.criado_em || a.created_at) + '</span>' +
                         '</div>' +
                     '</div>' +
                     '<div class="alert-actions">' +
-                        '<a href="/compliance/b2b/clientes/' + esc(a.cliente_b2b_id||a.client_b2b_id||a.cliente_id||'') + '" class="btn btn-ghost" style="font-size:11px;padding:4px 10px;white-space:nowrap;"><i class="fas fa-eye"></i> Review</a>' +
-                        '<button class="btn btn-danger" style="font-size:11px;padding:4px 10px;" onclick="dismissAlerta(\'' + esc(a.id) + '\', this)"><i class="fas fa-xmark"></i> Dismiss</button>' +
+                        statusActionBtns(a) +
+                        '<a href="/compliance/b2b/clientes/' + esc(clientId) + '" class="btn btn-ghost" style="font-size:11px;padding:4px 10px;white-space:nowrap;"><i class="fas fa-eye"></i> View</a>' +
                     '</div>' +
                 '</div>';
             }).join('');
         }
 
-        function typeDisplay(tipo){
-            var map = {
-                edd_aberto: 'EDD Aberto',
-                sanctions_hit: 'Sanctions Hit',
-                high_risk: 'High Risk',
-                structuring: 'Structuring',
-                manual: 'Manual'
-            };
-            return map[tipo] || (tipo || 'Unknown');
+        function statusTag(s){
+            var map = {aberto:'tag-aberto', em_analise:'tag-em_analise', fechado:'tag-fechado concluido'};
+            var labels = {aberto:'Open', em_analise:'In Review', fechado:'Closed'};
+            var cls = map[s] || 'tag-em_analise';
+            return '<span class="tag ' + cls + '" style="font-size:10px;">' + esc(labels[s] || s || '—') + '</span>';
         }
 
-        function dismissAlerta(id, btn){
+        function statusActionBtns(a){
+            var id = esc(a.id);
+            if(a.status === 'aberto'){
+                return '<button class="btn" style="font-size:11px;padding:4px 10px;background:rgba(184,114,0,.12);border:1px solid rgba(184,114,0,.3);color:var(--cor-alerta);white-space:nowrap;" onclick="updateAlertaStatus(\'' + id + '\',\'em_analise\',this)"><i class="fas fa-magnifying-glass"></i> In Review</button>' +
+                       '<button class="btn btn-danger" style="font-size:11px;padding:4px 10px;white-space:nowrap;" onclick="updateAlertaStatus(\'' + id + '\',\'fechado\',this)"><i class="fas fa-xmark"></i> Dismiss</button>';
+            }
+            if(a.status === 'em_analise'){
+                return '<button class="btn" style="font-size:11px;padding:4px 10px;background:rgba(26,122,82,.12);border:1px solid rgba(26,122,82,.3);color:var(--cor-sucesso);white-space:nowrap;" onclick="updateAlertaStatus(\'' + id + '\',\'fechado\',this)"><i class="fas fa-check"></i> Close</button>';
+            }
+            if(a.status === 'fechado'){
+                return '<button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;white-space:nowrap;" onclick="updateAlertaStatus(\'' + id + '\',\'aberto\',this)"><i class="fas fa-rotate-left"></i> Reopen</button>';
+            }
+            return '';
+        }
+
+        function typeDisplay(tipo){
+            if(!tipo) return 'Unknown';
+            var map = {
+                edd_aberto:                     'EDD Opened',
+                sanctions_hit:                  'Sanctions Hit',
+                high_risk:                      'High Risk',
+                structuring:                    'Structuring',
+                manual:                         'Manual',
+                B2B_STRUCT_VOLUME_ANOMALY:      'Structuring · Volume',
+                B2B_STRUCT_FREQ_ANOMALY:        'Structuring · Frequency',
+                B2B_STRUCT_OVERSIZED_NO_INVOICE:'Structuring · No Invoice',
+                B2B_STRUCT_UNEXPECTED_DESTINATION:'Structuring · Destination',
+                B2B_STRUCT_UNIFORM_SPLIT:       'Structuring · Split',
+                B2B_STRUCT_THRESHOLD_PROXIMITY: 'Structuring · Threshold'
+            };
+            return map[tipo] || tipo;
+        }
+
+        function updateAlertaStatus(id, newStatus, btn){
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             fetch('/api/compliance/b2b/alertas/' + encodeURIComponent(id) + '/status', {
                 method: 'POST',
                 headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({status: 'fechado'})
+                body: JSON.stringify({status: newStatus})
             })
             .then(function(r){ return r.json(); })
-            .then(function(){
-                allAlertas = allAlertas.filter(function(a){ return String(a.id) !== String(id); });
+            .then(function(d){
+                if(!d.success){ alert(d.message || 'Error updating alert'); btn.disabled=false; return; }
+                var a = allAlertas.find(function(x){ return String(x.id) === String(id); });
+                if(a) a.status = newStatus;
                 updateKPIs();
                 applyFilters();
             })
             .catch(function(){
-                alert('Error dismissing alert.');
+                alert('Request failed');
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-xmark"></i> Dismiss';
             });
         }
 
