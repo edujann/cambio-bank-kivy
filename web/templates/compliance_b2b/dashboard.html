@@ -191,6 +191,7 @@
         <a class="nav-item" href="/compliance/b2b/beneficiarios"><i class="fas fa-users"></i> Beneficiaries <span class="nav-badge" id="sbBadgeBenef" style="display:none"></span></a>
         <a class="nav-item" href="/compliance/b2b/limites"><i class="fas fa-sliders"></i> Limits</a>
         <a class="nav-item" href="/compliance/b2b/risk-config"><i class="fas fa-gear"></i> Risk Config</a>
+        <a class="nav-item" href="/compliance/b2b/structuring-config"><i class="fas fa-wave-square"></i> AML Rules</a>
     </nav>
 
     <!-- CONTENT -->
@@ -423,7 +424,7 @@ async function loadAlerts() {
                 <div class="alert-dot ${prioMap[a.prioridade] || 'dot-medium'}"></div>
                 <div class="alert-body">
                     <div class="alert-title">${a.titulo}</div>
-                    <div class="alert-meta">${a.cliente_nome || '—'} &middot; ${a.tipo || '—'}</div>
+                    <div class="alert-meta">${a.client_nome || '—'} &middot; ${a.tipo || '—'}</div>
                 </div>
                 <div class="alert-time">${timeSince(a.criado_em)}</div>
             </div>`).join('');

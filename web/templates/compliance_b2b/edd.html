@@ -143,6 +143,7 @@
             <a href="/compliance/b2b/beneficiarios" class="nav-item"><i class="fas fa-users"></i> Beneficiaries</a>
             <a href="/compliance/b2b/limites" class="nav-item"><i class="fas fa-sliders"></i> Limits</a>
             <a href="/compliance/b2b/risk-config" class="nav-item"><i class="fas fa-gear"></i> Risk Config</a>
+        <a href="/compliance/b2b/structuring-config" class="nav-item"><i class="fas fa-wave-square"></i> AML Rules</a>
         </nav>
 
         <div class="content-area">
@@ -225,11 +226,15 @@
         <div class="modal">
             <h3><i class="fas fa-plus-circle"></i> New EDD Case</h3>
             <div class="form-group">
-                <label>Client ID</label>
-                <input type="text" class="form-control" id="f-client-id" placeholder="Enter B2B client ID">
+                <label>Client <span style="color:var(--cor-perigo)">*</span></label>
+                <input type="text" class="form-control" id="f-client-name" list="clientNameList"
+                       placeholder="Type company name..." oninput="onClientNameInput()" autocomplete="off">
+                <datalist id="clientNameList"></datalist>
+                <input type="hidden" id="f-client-id">
+                <div id="f-client-error" style="font-size:11px;color:var(--cor-perigo);margin-top:4px;display:none;">Select a client from the list</div>
             </div>
             <div class="form-group">
-                <label>Trigger / Reason</label>
+                <label>Trigger / Reason <span style="color:var(--cor-perigo)">*</span></label>
                 <textarea class="form-control" id="f-gatilho" placeholder="Describe the trigger or reason for EDD..."></textarea>
             </div>
             <div class="form-group">
@@ -275,6 +280,7 @@
         });
 
         var allCases = [];
+        var clientMap = {}; // name → id
 
         function loadEDD(){
             fetch('/api/compliance/b2b/edd')
@@ -318,19 +324,51 @@
                 return;
             }
             tbody.innerHTML = cases.map(function(c){
+                var clientId = c.cliente_b2b_id || c.client_b2b_id || '';
                 return '<tr>' +
-                    '<td><strong>' + esc(c.client_nome || c.client_b2b_id || '—') + '</strong></td>' +
+                    '<td><strong>' + esc(c.client_nome || '—') + '</strong></td>' +
                     '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + esc(c.gatilho||'') + '">' + esc(c.gatilho || '—') + '</td>' +
                     '<td>' + priorityBadge(c.prioridade) + '</td>' +
                     '<td>' + esc(c.responsavel || '—') + '</td>' +
-                    '<td style="white-space:nowrap;">' + fmtDate(c.created_at) + '</td>' +
+                    '<td style="white-space:nowrap;">' + fmtDate(c.criado_em || c.created_at) + '</td>' +
                     '<td style="white-space:nowrap;">' + fmtDate(c.data_vencimento) + '</td>' +
                     '<td>' + statusTag(c.status) + '</td>' +
-                    '<td style="white-space:nowrap;">' +
-                        '<a href="/compliance/b2b/clientes/' + esc(c.client_b2b_id||c.id||'') + '" class="btn btn-ghost" style="font-size:11px;padding:4px 10px;"><i class="fas fa-eye"></i> View</a>' +
+                    '<td style="white-space:nowrap;display:flex;gap:5px;align-items:center;">' +
+                        statusActionBtn(c) +
+                        '<a href="/compliance/b2b/clientes/' + esc(clientId) + '" class="btn btn-ghost" style="font-size:11px;padding:4px 10px;white-space:nowrap;"><i class="fas fa-eye"></i> View</a>' +
                     '</td>' +
                 '</tr>';
             }).join('');
+        }
+
+        function statusActionBtn(c){
+            var id = esc(c.id);
+            if(c.status === 'aberto'){
+                return '<button class="btn" style="font-size:11px;padding:4px 10px;background:rgba(184,114,0,.12);border:1px solid rgba(184,114,0,.3);color:var(--cor-alerta);white-space:nowrap;" onclick="updateStatus(\'' + id + '\',\'em_analise\',this)"><i class="fas fa-play"></i> Start Analysis</button>';
+            }
+            if(c.status === 'em_analise'){
+                return '<button class="btn" style="font-size:11px;padding:4px 10px;background:rgba(26,122,82,.12);border:1px solid rgba(26,122,82,.3);color:var(--cor-sucesso);white-space:nowrap;" onclick="updateStatus(\'' + id + '\',\'concluido\',this)"><i class="fas fa-check"></i> Complete</button>';
+            }
+            if(c.status === 'concluido' || c.status === 'fechado'){
+                return '<button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;white-space:nowrap;" onclick="updateStatus(\'' + id + '\',\'aberto\',this)"><i class="fas fa-rotate-left"></i> Reopen</button>';
+            }
+            return '';
+        }
+
+        function updateStatus(id, newStatus, btn){
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            fetch('/api/compliance/b2b/edd/' + encodeURIComponent(id) + '/status', {
+                method: 'PATCH',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({status: newStatus})
+            })
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+                if(d.success){ loadEDD(); }
+                else { alert(d.message || 'Error updating status'); btn.disabled=false; }
+            })
+            .catch(function(){ alert('Request failed'); btn.disabled=false; });
         }
 
         function priorityBadge(p){
@@ -356,6 +394,33 @@
 
         function openNewModal(){
             document.getElementById('newEddModal').classList.add('show');
+            loadClientsForSearch();
+        }
+
+        function loadClientsForSearch(){
+            fetch('/api/compliance/b2b/clientes?limit=200')
+                .then(function(r){ return r.json(); })
+                .then(function(d){
+                    var dl = document.getElementById('clientNameList');
+                    dl.innerHTML = '';
+                    clientMap = {};
+                    (d.clientes || []).forEach(function(c){
+                        var name = c.business_name || c.razao_social || c.nome_comercial || '';
+                        if(!name) return;
+                        var opt = document.createElement('option');
+                        opt.value = name;
+                        dl.appendChild(opt);
+                        clientMap[name] = c.id;
+                    });
+                })
+                .catch(function(){});
+        }
+
+        function onClientNameInput(){
+            var name = document.getElementById('f-client-name').value;
+            var id = clientMap[name] || '';
+            document.getElementById('f-client-id').value = id;
+            document.getElementById('f-client-error').style.display = name && !id ? '' : 'none';
         }
 
         function closeModal(id){
@@ -368,34 +433,36 @@
 
         function createEDD(){
             var clientId = document.getElementById('f-client-id').value.trim();
+            var clientName = document.getElementById('f-client-name').value.trim();
             var gatilho = document.getElementById('f-gatilho').value.trim();
-            var prioridade = document.getElementById('f-prioridade').value;
-            var responsavel = document.getElementById('f-responsavel').value.trim();
-            var dueDate = document.getElementById('f-due-date').value;
-            var notas = document.getElementById('f-notas').value.trim();
-            if(!clientId || !gatilho){
-                alert('Client ID and Trigger / Reason are required.');
+            if(!clientId){
+                document.getElementById('f-client-error').style.display = '';
+                return;
+            }
+            if(!gatilho){
+                alert('Trigger / Reason is required.');
                 return;
             }
             var btn = document.getElementById('btnCreate');
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-            var body = {
-                client_b2b_id: clientId,
-                gatilho: gatilho,
-                prioridade: prioridade,
-                responsavel: responsavel,
-                data_vencimento: dueDate || null,
-                notas: notas
-            };
             fetch('/api/compliance/b2b/edd', {
                 method: 'POST',
                 headers: {'Content-Type':'application/json'},
-                body: JSON.stringify(body)
+                body: JSON.stringify({
+                    cliente_b2b_id:  clientId,
+                    gatilho:         gatilho,
+                    prioridade:      document.getElementById('f-prioridade').value,
+                    responsavel:     document.getElementById('f-responsavel').value.trim(),
+                    data_vencimento: document.getElementById('f-due-date').value || null,
+                    notas:           document.getElementById('f-notas').value.trim()
+                })
             })
             .then(function(r){ return r.json(); })
-            .then(function(){
+            .then(function(d){
+                if(!d.success){ alert(d.message || 'Error creating case'); return; }
                 closeModal('newEddModal');
+                document.getElementById('f-client-name').value='';
                 document.getElementById('f-client-id').value='';
                 document.getElementById('f-gatilho').value='';
                 document.getElementById('f-prioridade').value='medium';

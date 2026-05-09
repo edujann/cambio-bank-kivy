@@ -1510,7 +1510,31 @@ def criar_transferencia_cliente():
             
             # 🔥 NOTA: NÃO salvamos beneficiário separadamente aqui porque a função global já cuida disso
             # O código antigo de salvar beneficiário foi REMOVIDO para evitar duplicação
-            
+
+            # --- Detecção de structuring B2B ---
+            if usuario_logado_id:
+                try:
+                    valor_gbp = _to_gbp(valor_transferencia, dados['moeda'])
+                    struct_b2b = _detect_structuring_b2b(
+                        usuario_logado_id,
+                        valor_gbp,
+                        pais_destino=dados.get('pais') or dados.get('pais_banco'),
+                    )
+                    if struct_b2b:
+                        _criar_alerta_compliance(
+                            cliente_b2b_id=usuario_logado_id,
+                            titulo=f'Structuring pattern detected: {struct_b2b[0]["codigo"]}',
+                            tipo='structuring',
+                            prioridade='high',
+                            descricao='; '.join(s['detalhe'] for s in struct_b2b),
+                            criado_por='sistema',
+                        )
+                        print(f"🚨 B2B structuring alert created for client {usuario_logado_id}: {[s['codigo'] for s in struct_b2b]}")
+                    else:
+                        print(f"✅ B2B structuring check passed for client {usuario_logado_id}")
+                except Exception as e:
+                    print(f"⚠️ B2B structuring check error: {e}")
+
             # PROCESSAR UPLOAD DA INVOICE (mantido igual)
             try:
                 if 'file' in request.files:
@@ -11471,6 +11495,15 @@ def loja_nova_ordem():
                     }).execute()
                 except Exception:
                     pass
+            if struct_alertas:
+                _criar_alerta_compliance(
+                    cliente_b2b_id=cliente_id,
+                    titulo=f'Structuring pattern detected: {struct_alertas[0]["codigo"]}',
+                    tipo='structuring',
+                    prioridade='high',
+                    descricao='; '.join(sa['detalhe'] for sa in struct_alertas),
+                    criado_por='sistema',
+                )
 
         # --- Sanctions screening ---
         if cliente_id and cliente_nome:
@@ -11487,6 +11520,14 @@ def loja_nova_ordem():
                     }).execute()
                 except Exception:
                     pass
+                _criar_alerta_compliance(
+                    cliente_b2b_id=cliente_id,
+                    titulo=f'Possible sanctions match: {cliente_nome}',
+                    tipo='sanctions_hit',
+                    prioridade='critical',
+                    descricao=f'{len(sanction_hits)} match(es) against: {", ".join(set(h.get("lista","") for h in sanction_hits))}',
+                    criado_por='sistema',
+                )
 
         # --- status final ---
         # 1. Se precisa de compliance review (documentos pendentes, etc.)
@@ -11894,6 +11935,179 @@ def _detect_structuring(cliente_id, valor_nova_ordem_gbp):
     return alertas
 
 
+# Limiares de reporte UK usados apenas como referência secundária
+_B2B_REPORTING_THRESHOLDS = [10000, 25000, 50000, 100000]
+
+# Cache em memória para a config de structuring (TTL 5 min)
+_struct_cfg_cache = {'data': None, 'expires': 0}
+
+def _get_structuring_config():
+    import time
+    if _struct_cfg_cache['data'] and time.time() < _struct_cfg_cache['expires']:
+        return _struct_cfg_cache['data']
+    try:
+        res = supabase.table('structuring_config_b2b').select('*').limit(1).execute()
+        cfg = res.data[0] if res.data else {}
+        _struct_cfg_cache['data'] = cfg
+        _struct_cfg_cache['expires'] = time.time() + 300
+        return cfg
+    except Exception as e:
+        print(f"⚠️ _get_structuring_config error: {e}")
+        return {}
+
+def _detect_structuring_b2b(cliente_b2b_id, valor_nova_gbp, pais_destino=None):
+    """
+    Detecta padrões de structuring em transferências internacionais B2B.
+    Calibrado dinamicamente contra o perfil KYB do cliente (JMLSG-compliant).
+    Não usa limiares fixos — avalia desvio em relação ao comportamento esperado declarado.
+    """
+    from datetime import datetime, timedelta
+    alertas = []
+    try:
+        # --- 0. Carregar configuração de structuring ---
+        cfg = _get_structuring_config()
+        if not cfg.get('check_volume', True) and not cfg.get('check_frequency', True) \
+                and not cfg.get('check_ticket', True) and not cfg.get('check_destination', True) \
+                and not cfg.get('check_uniform', True) and not cfg.get('check_threshold', True):
+            return []  # todas as regras desativadas
+
+        freq_mult_std  = float(cfg.get('freq_mult_standard',  1.5))
+        freq_mult_hf   = float(cfg.get('freq_mult_high_freq', 2.5))
+        vol_mult_std   = float(cfg.get('vol_mult_standard',   1.5))
+        vol_mult_hf    = float(cfg.get('vol_mult_high_freq',  2.5))
+        ticket_mult    = float(cfg.get('ticket_mult',         3.0))
+        uniform_var    = float(cfg.get('uniform_var_pct',     10)) / 100
+        uniform_min    = int(cfg.get('uniform_min_count',     3))
+        thresh_prox    = float(cfg.get('threshold_prox_pct',  5)) / 100
+        hf_sectors     = [s.strip().lower() for s in (cfg.get('high_freq_sectors') or '').split(',') if s.strip()]
+        if not hf_sectors:
+            hf_sectors = ['import','export','wholesale','manufacturing','trade','retail','distributor','logistics','freight','commodities']
+
+        # --- 1. Carregar perfil KYB do cliente ---
+        perfil_res = supabase.table('clientes_b2b')\
+            .select('faturamento_anual,volume_mensal_esperado,frequencia_mensal_esperada,'
+                    'ticket_medio_esperado,paises_destino,finalidade_pagamento,'
+                    'setor_atividade,invoice_documentation')\
+            .eq('id', str(cliente_b2b_id))\
+            .single()\
+            .execute()
+        c = perfil_res.data or {}
+
+        faturamento      = float(c.get('faturamento_anual') or 0)
+        vol_mensal       = float(c.get('volume_mensal_esperado') or (faturamento / 12 if faturamento else 0))
+        freq_mensal      = float(c.get('frequencia_mensal_esperada') or 4)
+        ticket_medio     = float(c.get('ticket_medio_esperado') or (vol_mensal / freq_mensal if freq_mensal else 0))
+        invoice_policy   = (c.get('invoice_documentation') or '').lower()
+        setor            = (c.get('setor_atividade') or '').lower()
+        paises_declarados = [p.strip().lower() for p in (c.get('paises_destino') or '').split(',') if p.strip()]
+
+        # Setores de alta frequência recebem multiplicador (transações mais frequentes são normais)
+        is_high_freq_sector = any(s in setor for s in hf_sectors)
+        freq_multiplier = freq_mult_hf if is_high_freq_sector else freq_mult_std
+        vol_multiplier  = vol_mult_hf  if is_high_freq_sector else vol_mult_std
+
+        # --- 2. Buscar histórico de transferências internacionais ---
+        agora = datetime.now()
+        cutoff_30d = (agora - timedelta(days=30)).isoformat()
+        cutoff_7d  = (agora - timedelta(days=7)).isoformat()
+
+        r = supabase.table('transferencias')\
+            .select('id,valor,moeda,data,beneficiario_id')\
+            .eq('tipo', 'transferencia_internacional')\
+            .eq('cliente_id', str(cliente_b2b_id))\
+            .not_.in_('status', ['rejected', 'recusada'])\
+            .gte('data', cutoff_30d)\
+            .execute()
+        transfs_30d = r.data or []
+        transfs_7d  = [t for t in transfs_30d if (t.get('data') or '') >= cutoff_7d]
+
+        total_30d_gbp = sum(_to_gbp(t['valor'], t['moeda']) for t in transfs_30d)
+        total_com_nova_30d = total_30d_gbp + valor_nova_gbp
+
+        print(f"📊 B2B structuring check | cliente={cliente_b2b_id}")
+        print(f"   KYB: vol_mensal=£{vol_mensal:,.0f} freq={freq_mensal}/mês ticket=£{ticket_medio:,.0f} setor={setor}")
+        print(f"   Histórico: {len(transfs_30d)} transfs em 30d, total=£{total_30d_gbp:,.0f}")
+        print(f"   Nova transf: £{valor_nova_gbp:,.0f} → destino={pais_destino}")
+
+        # --- Padrão 1: Anomalia de volume ---
+        if cfg.get('check_volume', True) and vol_mensal > 0:
+            limite_vol = vol_mensal * vol_multiplier
+            if total_com_nova_30d > limite_vol:
+                alertas.append({
+                    'codigo': 'B2B_STRUCT_VOLUME_ANOMALY',
+                    'detalhe': (
+                        f'Total of £{total_com_nova_30d:,.0f} in 30 days exceeds '
+                        f'{vol_multiplier:.1f}× the declared monthly volume of £{vol_mensal:,.0f}'
+                    )
+                })
+
+        # --- Padrão 2: Anomalia de frequência ---
+        if cfg.get('check_frequency', True):
+          limite_freq = freq_mensal * freq_multiplier
+          if len(transfs_30d) + 1 > limite_freq:
+            alertas.append({
+                'codigo': 'B2B_STRUCT_FREQ_ANOMALY',
+                'detalhe': (
+                    f'{len(transfs_30d) + 1} transfers in 30 days vs declared '
+                    f'{freq_mensal:.0f}/month (adjusted limit: {limite_freq:.0f})'
+                )
+            })
+
+        # --- Padrão 3: Ticket muito acima do esperado sem invoice ---
+        if cfg.get('check_ticket', True) and ticket_medio > 0 and valor_nova_gbp > ticket_medio * ticket_mult and invoice_policy != 'always':
+            alertas.append({
+                'codigo': 'B2B_STRUCT_OVERSIZED_NO_INVOICE',
+                'detalhe': (
+                    f'Transfer of £{valor_nova_gbp:,.0f} is {valor_nova_gbp / ticket_medio:.1f}× '
+                    f'the declared average ticket of £{ticket_medio:,.0f}, and invoice policy is "{invoice_policy}"'
+                )
+            })
+
+        # --- Padrão 4: País de destino fora do perfil declarado ---
+        if cfg.get('check_destination', True) and pais_destino and paises_declarados:
+            pais_norm = pais_destino.lower().strip()
+            if not any(pd in pais_norm or pais_norm in pd for pd in paises_declarados):
+                alertas.append({
+                    'codigo': 'B2B_STRUCT_UNEXPECTED_DESTINATION',
+                    'detalhe': (
+                        f'Transfer to "{pais_destino}" is not in declared destination countries: '
+                        f'{", ".join(paises_declarados[:5])}'
+                    )
+                })
+
+        # --- Padrão 5: Valores uniformes em série curta ---
+        if cfg.get('check_uniform', True) and len(transfs_7d) >= uniform_min:
+            valores_7d = [_to_gbp(t['valor'], t['moeda']) for t in transfs_7d]
+            avg = sum(valores_7d) / len(valores_7d)
+            if avg > 0:
+                variacao_max = max(abs(v - avg) / avg for v in valores_7d)
+                if variacao_max < uniform_var:
+                    alertas.append({
+                        'codigo': 'B2B_STRUCT_UNIFORM_SPLIT',
+                        'detalhe': (
+                            f'{len(transfs_7d) + 1} transfers in 7 days with near-identical amounts '
+                            f'(avg £{avg:,.0f}, max variation {variacao_max * 100:.1f}%)'
+                        )
+                    })
+
+        # --- Padrão 6: Fracionamento abaixo de limiar de reporte ---
+        if cfg.get('check_threshold', True) and invoice_policy not in ('always',) and not alertas:
+            for threshold in _B2B_REPORTING_THRESHOLDS:
+                if threshold * (1 - thresh_prox) <= valor_nova_gbp < threshold:
+                    alertas.append({
+                        'codigo': 'B2B_STRUCT_THRESHOLD_PROXIMITY',
+                        'detalhe': (
+                            f'Transfer of £{valor_nova_gbp:,.0f} is within {thresh_prox * 100:.0f}% of the '
+                            f'£{threshold:,} reporting threshold and client has no consistent invoice policy'
+                        )
+                    })
+                    break
+
+    except Exception as e:
+        print(f"⚠️ _detect_structuring_b2b error: {e}")
+    return alertas
+
+
 AML_TIERS = [
     (850,   0, ['basic_info', 'photo_id']),
     (2500,  1, ['basic_info', 'photo_id', 'proof_address']),
@@ -12015,6 +12229,39 @@ def _check_sanctions(cliente_id, nome_cliente):
             except Exception:
                 pass
     return hits
+
+
+def _criar_alerta_compliance(cliente_b2b_id, titulo, tipo, prioridade, descricao, criado_por):
+    """Insere um alerta em alertas_compliance, ignorando se já existe um aberto do mesmo tipo para o cliente."""
+    from datetime import datetime, timezone
+    try:
+        existing = supabase.table('alertas_compliance')\
+            .select('id')\
+            .eq('cliente_b2b_id', str(cliente_b2b_id))\
+            .eq('tipo', tipo)\
+            .eq('status', 'aberto')\
+            .execute()
+        if existing.data:
+            print(f"ℹ️ Alerta {tipo} já existe aberto para cliente {cliente_b2b_id} — ignorando duplicata")
+            return
+        payload = {
+            'cliente_b2b_id': str(cliente_b2b_id),
+            'titulo': titulo[:200],
+            'tipo': tipo,
+            'prioridade': prioridade,
+            'status': 'aberto',
+            'criado_em': datetime.now(timezone.utc).isoformat(),
+        }
+        if descricao:
+            payload['descricao'] = descricao[:500]
+        print(f"📢 Criando alerta: tipo={tipo} cliente={cliente_b2b_id} prioridade={prioridade}")
+        result = supabase.table('alertas_compliance').insert(payload).execute()
+        if result.data:
+            print(f"✅ Alerta criado: id={result.data[0].get('id')}")
+        else:
+            print(f"⚠️ Insert de alerta não retornou dados: {result}")
+    except Exception as e:
+        print(f"❌ _criar_alerta_compliance error: {e}")
 
 
 def _aml_check_order(cliente_id, valor_nova_ordem_gbp):
@@ -21409,6 +21656,15 @@ def api_b2b_cliente_criar():
                 'criterios_score': json.dumps(crit_result),
                 'overrides_activos': json.dumps(ov_activos),
             }).eq('id', client_id).execute()
+            if nivel == 'high':
+                _criar_alerta_compliance(
+                    cliente_b2b_id=client_id,
+                    titulo=f'Client classified as high risk (score {score})',
+                    tipo='high_risk',
+                    prioridade='high',
+                    descricao=f'Risk score {score}/60 calculated at onboarding.',
+                    criado_por=usuario,
+                )
         except Exception as e:
             print(f"⚠️ Erro ao calcular score: {e}")
             pass
@@ -21644,7 +21900,15 @@ def api_b2b_cliente_atualizar(client_id):
                     'criterios_score': json.dumps(crit_result),
                     'overrides_activos': json.dumps(ov_activos),
                 }).eq('id', client_id).execute()
-                
+                if nivel == 'high':
+                    _criar_alerta_compliance(
+                        cliente_b2b_id=client_id,
+                        titulo=f'Client classified as high risk (score {score})',
+                        tipo='high_risk',
+                        prioridade='high',
+                        descricao=f'Risk score {score}/60 after profile update.',
+                        criado_por=usuario,
+                    )
                 print(f"✅ Score recalculado para cliente {client_id}: {score} - {nivel}")
         except Exception as e:
             print(f"⚠️ Erro ao recalcular score no PATCH: {e}")
@@ -21888,12 +22152,6 @@ def api_b2b_recalc_score(client_id):
         pessoas_result = supabase.table('pessoas_controlantes').select('*').eq('cliente_b2b_id', client_id).execute()
         cliente['pessoas'] = pessoas_result.data or []
 
-        # 🔥 DEBUG: Verificar o que foi carregado 🔥
-        print(f"🔍 Recalculando score para cliente {client_id}")
-        print(f"   UBOs encontrados: {len(cliente['pessoas'])}")
-        for p in cliente['pessoas']:
-            print(f"   - Nacionalidade: '{p.get('nacionalidade')}'")
-
         criterios_r = supabase.table('risk_criteria').select('*').eq('ativo', True).execute()
         thresholds_r = supabase.table('risk_thresholds').select('*').limit(1).execute()
         overrides_r = supabase.table('risk_overrides').select('*').execute()
@@ -21902,7 +22160,8 @@ def api_b2b_recalc_score(client_id):
         overrides = overrides_r.data or []
 
         score, nivel, crit_result, ov_activos = _calcular_score_b2b(cliente, criterios, thresholds, overrides)
-        
+        print(f"🎯 Score calculado: {score} → nivel={nivel} (thresholds: low≤{thresholds.get('low_max',32)} medium≤{thresholds.get('medium_max',46)})")
+
         supabase.table('clientes_b2b').update({
             'score_risco': score,
             'nivel_risco': nivel,
@@ -21910,7 +22169,15 @@ def api_b2b_recalc_score(client_id):
             'criterios_score': json.dumps(crit_result),
             'overrides_activos': json.dumps(ov_activos),
         }).eq('id', client_id).execute()
-
+        if nivel == 'high':
+            _criar_alerta_compliance(
+                cliente_b2b_id=client_id,
+                titulo=f'Client classified as high risk (score {score})',
+                tipo='high_risk',
+                prioridade='high',
+                descricao=f'Risk score {score}/60 from manual recalculation.',
+                criado_por=usuario,
+            )
         print(f"✅ Score recalculado: {score} - {nivel}")
 
         return jsonify({'success': True, 'score': score, 'nivel': nivel})
@@ -22367,7 +22634,7 @@ def api_b2b_edd_list():
         status_raw = request.args.get('status', '')
         limit = min(int(request.args.get('limit', 50)), 200)
 
-        query = supabase.table('edd_cases').select('*, clientes_b2b!edd_cases_cliente_b2b_id_fkey(razao_social)')
+        query = supabase.table('edd_cases').select('*, clientes_b2b!edd_cases_cliente_b2b_id_fkey(business_name, razao_social, nome_comercial)')
         if cliente_id:
             query = query.eq('cliente_b2b_id', cliente_id)
         if status_raw:
@@ -22379,7 +22646,8 @@ def api_b2b_edd_list():
         result = query.order('criado_em', desc=True).limit(limit).execute()
         cases = []
         for row in (result.data or []):
-            row['cliente_nome'] = (row.pop('clientes_b2b', None) or {}).get('razao_social')
+            cb = row.pop('clientes_b2b', None) or {}
+            row['client_nome'] = cb.get('business_name') or cb.get('nome_comercial') or cb.get('razao_social') or '—'
             cases.append(row)
         return jsonify({'success': True, 'cases': cases})
     except Exception as e:
@@ -22395,26 +22663,53 @@ def api_b2b_edd_criar():
         d = request.get_json() or {}
         if not d.get('gatilho'):
             return jsonify({'success': False, 'message': 'EDD trigger is required'}), 400
+        # Normalise client ID field name (frontend may send either spelling)
+        if 'client_b2b_id' in d and 'cliente_b2b_id' not in d:
+            d['cliente_b2b_id'] = d.pop('client_b2b_id')
         d['status'] = 'aberto'
         d['criado_por'] = usuario
         d['criado_em'] = datetime.now(timezone.utc).isoformat()
         result = supabase.table('edd_cases').insert(d).execute()
-        # Create an alert
         try:
-            cli_r = supabase.table('clientes_b2b').select('razao_social').eq('id', d.get('cliente_b2b_id')).single().execute()
-            nome = (cli_r.data or {}).get('razao_social', '—')
-            supabase.table('alertas_compliance').insert({
-                'cliente_b2b_id': d.get('cliente_b2b_id'),
-                'titulo': f'EDD case opened: {d["gatilho"][:60]}',
-                'tipo': 'edd_aberto',
-                'prioridade': 'high',
-                'status': 'aberto',
-                'criado_por': usuario,
-                'criado_em': datetime.now(timezone.utc).isoformat(),
-            }).execute()
+            cli_r = supabase.table('clientes_b2b')\
+                .select('business_name,razao_social')\
+                .eq('id', d.get('cliente_b2b_id', '')).single().execute()
+            cb = cli_r.data or {}
+            nome = cb.get('business_name') or cb.get('razao_social') or '—'
+            _criar_alerta_compliance(
+                cliente_b2b_id=d.get('cliente_b2b_id'),
+                titulo=f'EDD case opened: {d["gatilho"][:60]}',
+                tipo='edd_aberto',
+                prioridade='high',
+                descricao=d.get('notas', ''),
+                criado_por=usuario,
+            )
         except Exception:
             pass
         return jsonify({'success': True, 'id': result.data[0]['id'] if result.data else None})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/edd/<edd_id>/status', methods=['PATCH'])
+def api_b2b_edd_status(edd_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        from datetime import datetime, timezone
+        d = request.get_json() or {}
+        novo_status = d.get('status')
+        if novo_status not in ('aberto', 'em_analise', 'concluido', 'fechado'):
+            return jsonify({'success': False, 'message': 'Invalid status'}), 400
+        now = datetime.now(timezone.utc).isoformat()
+        payload = {'status': novo_status}
+        try:
+            payload['atualizado_por'] = usuario
+            payload['atualizado_em'] = now
+        except Exception:
+            pass
+        supabase.table('edd_cases').update(payload).eq('id', edd_id).execute()
+        return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
 
@@ -22428,15 +22723,43 @@ def api_b2b_alertas_list():
     try:
         status_filter = request.args.get('status', '')
         limit = min(int(request.args.get('limit', 50)), 200)
-        query = supabase.table('alertas_compliance').select('*, clientes_b2b!alertas_compliance_cliente_b2b_id_fkey(razao_social)')
+        query = supabase.table('alertas_compliance').select('*, clientes_b2b!alertas_compliance_cliente_b2b_id_fkey(business_name, razao_social, nome_comercial)')
         if status_filter:
             query = query.eq('status', status_filter)
         result = query.order('criado_em', desc=True).limit(limit).execute()
         alertas = []
         for row in (result.data or []):
-            row['cliente_nome'] = (row.pop('clientes_b2b', None) or {}).get('razao_social')
+            cb = row.pop('clientes_b2b', None) or {}
+            row['client_nome'] = cb.get('business_name') or cb.get('nome_comercial') or cb.get('razao_social') or '—'
             alertas.append(row)
         return jsonify({'success': True, 'alertas': alertas})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/alertas/<alert_id>/status', methods=['POST'])
+def api_b2b_alerta_status(alert_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        from datetime import datetime, timezone
+        d = request.get_json() or {}
+        novo_status = d.get('status', '').strip()
+        VALID = {'aberto', 'em_analise', 'fechado'}
+        if novo_status not in VALID:
+            return jsonify({'success': False, 'message': f'Invalid status. Must be one of: {", ".join(VALID)}'}), 400
+        upd = {
+            'status': novo_status,
+            'atualizado_por': usuario,
+            'atualizado_em': datetime.now(timezone.utc).isoformat(),
+        }
+        if novo_status == 'fechado':
+            upd['fechado_por'] = usuario
+            upd['fechado_em'] = datetime.now(timezone.utc).isoformat()
+        result = supabase.table('alertas_compliance').update(upd).eq('id', alert_id).execute()
+        if not result.data:
+            return jsonify({'success': False, 'message': 'Alert not found'}), 404
+        return jsonify({'success': True, 'alerta': result.data[0]})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
 
@@ -22549,6 +22872,69 @@ def api_b2b_riskconfig_thresholds_save():
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
+
+# =========================================
+# STRUCTURING CONFIG B2B
+# =========================================
+
+@app.route('/compliance/b2b/structuring-config')
+def compliance_b2b_structuring_config():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return redir
+    return render_template('compliance_b2b/structuring_config.html',
+                           usuario=usuario, current_lang=session.get('lang', 'en'))
+
+
+@app.route('/api/compliance/b2b/structuring-config', methods=['GET'])
+def api_b2b_structuring_config_get():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        res = supabase.table('structuring_config_b2b').select('*').limit(1).execute()
+        cfg = res.data[0] if res.data else {}
+        return jsonify({'success': True, 'config': cfg})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/structuring-config', methods=['POST'])
+def api_b2b_structuring_config_save():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        from datetime import datetime, timezone
+        d = request.get_json() or {}
+        now = datetime.now(timezone.utc).isoformat()
+        payload = {
+            'check_volume':        bool(d.get('check_volume',        True)),
+            'check_frequency':     bool(d.get('check_frequency',     True)),
+            'check_ticket':        bool(d.get('check_ticket',        True)),
+            'check_destination':   bool(d.get('check_destination',   True)),
+            'check_uniform':       bool(d.get('check_uniform',       True)),
+            'check_threshold':     bool(d.get('check_threshold',     True)),
+            'freq_mult_standard':  float(d.get('freq_mult_standard',  1.5)),
+            'freq_mult_high_freq': float(d.get('freq_mult_high_freq', 2.5)),
+            'vol_mult_standard':   float(d.get('vol_mult_standard',   1.5)),
+            'vol_mult_high_freq':  float(d.get('vol_mult_high_freq',  2.5)),
+            'ticket_mult':         float(d.get('ticket_mult',         3.0)),
+            'uniform_var_pct':     float(d.get('uniform_var_pct',     10)),
+            'uniform_min_count':   int(d.get('uniform_min_count',     3)),
+            'threshold_prox_pct':  float(d.get('threshold_prox_pct',  5)),
+            'high_freq_sectors':   str(d.get('high_freq_sectors', '')).strip(),
+            'atualizado_por':      usuario,
+            'atualizado_em':       now,
+        }
+        existing = supabase.table('structuring_config_b2b').select('id').limit(1).execute()
+        if existing.data:
+            supabase.table('structuring_config_b2b').update(payload).eq('id', existing.data[0]['id']).execute()
+        else:
+            supabase.table('structuring_config_b2b').insert(payload).execute()
+        # Invalidar cache
+        _struct_cfg_cache['expires'] = 0
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
 
 # =========================================
 # FUNÇÕES BENEFICIÁRIOS COMPLIANCE B2B
