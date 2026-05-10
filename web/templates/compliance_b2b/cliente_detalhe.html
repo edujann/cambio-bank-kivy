@@ -653,12 +653,15 @@ function renderRisco(c) {
 
     // criteria breakdown
     const criterios = c.criterios_score || [];
+    const overridesActive = c.overrides_activos || [];
     if (criterios.length) {
         document.getElementById('criteriaList').innerHTML = criterios.map(cr => `
             <div class="crit-row">
                 <span class="crit-name">${cr.bloco}: ${cr.nome}</span>
                 <span class="crit-val crit-val-${cr.valor}">${cr.valor === 1 ? 'Low' : cr.valor === 2 ? 'Medium' : 'High'} (${cr.valor})</span>
             </div>`).join('');
+    } else if (overridesActive.length) {
+        document.getElementById('criteriaList').innerHTML = '<div style="text-align:center;color:var(--cor-alerta);padding:16px;font-size:12px"><i class="fas fa-triangle-exclamation" style="margin-right:6px"></i>Hard override active — score forced to maximum. Individual criteria evaluation was skipped.</div>';
     } else {
         document.getElementById('criteriaList').innerHTML = '<div style="text-align:center;color:var(--cor-texto-secundario);padding:16px;font-size:12px"><i class="fas fa-calculator" style="margin-right:6px"></i>Score not yet calculated. Click "Recalculate" to score this client.</div>';
     }
@@ -957,7 +960,7 @@ async function loadEdd() {
             return;
         }
         tbody.innerHTML = d.cases.map(c => `<tr>
-            <td style="font-size:12px">${c.gatilho || '—'}</td>
+            <td style="font-size:12px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${c.trigger_reason || c.gatilho || ''}">${c.trigger_reason || c.gatilho || '—'}</td>
             <td style="font-size:12px">${fmtDate(c.criado_em)}</td>
             <td style="font-size:12px">${c.atribuido_a || 'Unassigned'}</td>
             <td>${tagHtml(c.status || 'aberto', eddMap)}</td>
@@ -1334,6 +1337,13 @@ function openModalPessoa(p) {
                 <option value="confirmado"${sancSel(p.sancoes_status)==='confirmado'?' selected':''}>Confirmed</option>
             </select></div>
         </div>
+        <div class="form-group" style="margin-top:4px;padding:12px 14px;background:rgba(26,122,82,.06);border:1px solid rgba(26,122,82,.2);border-radius:8px;">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin:0;">
+                <input type="checkbox" id="pVerified" ${p.identidade_verificada ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--cor-sucesso);cursor:pointer;">
+                <span style="font-size:13px;font-weight:600;">Identity Verified</span>
+                <span style="font-size:11px;color:var(--cor-texto-secundario);">— passport / government ID reviewed and confirmed</span>
+            </label>
+        </div>
         <div class="modal-actions">
             <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
             <button class="btn btn-gold" onclick="savePessoa('${p.id}')"><i class="fas fa-save"></i> Save</button>
@@ -1490,6 +1500,7 @@ async function savePessoa(pessoaId) {
         email: document.getElementById('pEmail').value.trim(),
         pep_status: document.getElementById('pPep').value,
         sancoes_status: document.getElementById('pSanc').value,
+        identidade_verificada: document.getElementById('pVerified')?.checked ?? false,
     };
     if (!body.nome_completo || !body.cargo) { alert('Name and role are required.'); return; }
     try {

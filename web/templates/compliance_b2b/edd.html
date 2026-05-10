@@ -328,10 +328,10 @@
                 return;
             }
             tbody.innerHTML = cases.map(function(c){
-                var clientId = c.cliente_b2b_id || c.client_b2b_id || '';
+                var clientId = c.cliente_id || c.cliente_b2b_id || c.client_b2b_id || '';
                 return '<tr>' +
                     '<td><strong>' + esc(c.client_nome || '—') + '</strong></td>' +
-                    '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + esc(c.gatilho||'') + '">' + esc(c.gatilho || '—') + '</td>' +
+                    '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + esc(c.trigger_reason||c.gatilho||'') + '">' + esc(c.trigger_reason || c.gatilho || '—') + '</td>' +
                     '<td>' + priorityBadge(c.prioridade) + '</td>' +
                     '<td>' + esc(c.responsavel || '—') + '</td>' +
                     '<td style="white-space:nowrap;">' + fmtDate(c.criado_em || c.created_at) + '</td>' +
@@ -339,7 +339,7 @@
                     '<td>' + statusTag(c.status) + '</td>' +
                     '<td style="white-space:nowrap;display:flex;gap:5px;align-items:center;">' +
                         statusActionBtn(c) +
-                        '<a href="/compliance/b2b/clientes/' + esc(clientId) + '" class="btn btn-ghost" style="font-size:11px;padding:4px 10px;white-space:nowrap;"><i class="fas fa-eye"></i> View</a>' +
+                        '<a href="/compliance/b2b/edd/' + esc(c.id) + '" class="btn btn-ghost" style="font-size:11px;padding:4px 10px;white-space:nowrap;"><i class="fas fa-eye"></i> Details</a>' +
                     '</td>' +
                 '</tr>';
             }).join('');
@@ -454,8 +454,8 @@
                 method: 'POST',
                 headers: {'Content-Type':'application/json'},
                 body: JSON.stringify({
-                    cliente_b2b_id:  clientId,
-                    gatilho:         gatilho,
+                    cliente_id:      clientId,
+                    trigger_reason:  gatilho,
                     prioridade:      document.getElementById('f-prioridade').value,
                     responsavel:     document.getElementById('f-responsavel').value.trim(),
                     data_vencimento: document.getElementById('f-due-date').value || null,

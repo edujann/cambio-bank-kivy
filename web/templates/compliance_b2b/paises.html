@@ -145,6 +145,13 @@
         .form-control:focus{border-color:var(--cor-admin);}
         .btn-primary{background:var(--cor-admin);border:1px solid var(--cor-admin);color:#fff;}
         .btn-primary:hover{opacity:.88;}
+        .audit-from{font-size:11px;color:var(--cor-texto-secundario);font-weight:600;}
+        .audit-to{font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px;}
+        .audit-risk-low{background:rgba(34,197,94,.12);color:#16a34a;}
+        .audit-risk-standard{background:rgba(200,146,10,.12);color:var(--cor-admin);}
+        .audit-risk-medium{background:rgba(234,179,8,.12);color:#a16207;}
+        .audit-risk-high{background:rgba(239,68,68,.12);color:#dc2626;}
+        .audit-risk-sanctioned{background:rgba(124,58,237,.12);color:#7c3aed;}
         .btn-danger{background:rgba(192,32,32,.12);border:1px solid rgba(192,32,32,.4);color:#c02020;}
         .btn-danger:hover{background:rgba(192,32,32,.22);border-color:#c02020;}
         html[data-theme="dark"] .btn-danger{background:rgba(220,50,50,.15);border-color:rgba(220,50,50,.4);color:#e05050;}
@@ -229,6 +236,12 @@
                 <div class="kpi-lbl">Blocked</div>
                 <div class="kpi-val" id="kpi-blocked">—</div>
             </div>
+            <div class="kpi">
+                <div class="kpi-stripe" style="background:#ea580c;"></div>
+                <div class="kpi-icon" style="background:rgba(234,88,12,.1);color:#ea580c;"><i class="fas fa-clock"></i></div>
+                <div class="kpi-lbl">Reviews Overdue</div>
+                <div class="kpi-val" id="kpi-overdue">—</div>
+            </div>
         </div>
 
         <!-- Tab bar -->
@@ -238,6 +251,9 @@
             </button>
             <button class="tab-btn" id="tabBtnList" onclick="showTab('list',this)">
                 <i class="fas fa-list"></i> Country List
+            </button>
+            <button class="tab-btn" id="tabBtnAudit" onclick="showTab('audit',this)">
+                <i class="fas fa-clock-rotate-left"></i> Audit Log
             </button>
         </div>
 
@@ -249,6 +265,7 @@
                     <div style="display:flex;align-items:center;gap:8px;">
                         <span class="saving-indicator" id="savingIndicator"><i class="fas fa-spinner fa-spin"></i> Saving...</span>
                         <button class="btn btn-ghost" onclick="loadCountries()"><i class="fas fa-rotate-right"></i> Refresh</button>
+                        <button class="btn btn-ghost btn-sm" id="btnReviewOverdue" onclick="openReviewOverdue()" disabled style="opacity:.4;cursor:not-allowed;" title="No reviews overdue"><i class="fas fa-clipboard-check"></i> Review Overdue</button>
                         <button class="btn btn-danger btn-sm" onclick="openReset()"><i class="fas fa-arrow-rotate-left"></i> Reset to Default</button>
                     </div>
                 </div>
@@ -282,11 +299,12 @@
                                 <th>Continent</th>
                                 <th>Risk Level</th>
                                 <th style="text-align:center;">Blocked</th>
+                                <th>Review</th>
                                 <th></th>
                             </tr>
                         </thead>
                         <tbody id="countryTbody">
-                            <tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>
+                            <tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -321,6 +339,33 @@
                         <span style="font-size:13px;">Loading world map...</span>
                     </div>
                     <div id="svgMap"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── AUDIT LOG PANEL ── -->
+        <div id="panel-audit" class="tab-panel">
+            <div class="tbl-card">
+                <div class="card-hd">
+                    <h3><i class="fas fa-clock-rotate-left"></i> Country Risk — Audit Log</h3>
+                    <button class="btn btn-ghost" onclick="loadAuditLog()"><i class="fas fa-rotate-right"></i> Refresh</button>
+                </div>
+                <div class="tbl-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:160px;">Date / Time</th>
+                                <th style="width:140px;">User</th>
+                                <th style="width:60px;">ISO</th>
+                                <th>Country</th>
+                                <th>Change</th>
+                                <th style="width:100px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditTbody">
+                            <tr><td colspan="6" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -374,30 +419,64 @@
 
 <!-- Reset Confirmation Modal -->
 <div class="modal-overlay" id="resetOverlay" onclick="if(event.target===this)closeReset()">
-    <div class="modal-box" style="max-width:420px;">
+    <div class="modal-box" style="max-width:480px;">
         <div class="modal-hd">
-            <h3><i class="fas fa-arrow-rotate-left" style="color:#c02020;"></i> Reset to Default</h3>
+            <h3><i class="fas fa-arrow-rotate-left" style="color:#c02020;"></i> Reset to FCA/HMRC Default</h3>
             <button onclick="closeReset()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--cor-texto-secundario);line-height:1;">&times;</button>
         </div>
         <div class="modal-body">
             <div style="padding:14px 16px;background:rgba(192,32,32,.07);border:1px solid rgba(192,32,32,.25);border-radius:10px;margin-bottom:16px;">
-                <div style="font-size:13px;font-weight:700;color:#c02020;margin-bottom:6px;"><i class="fas fa-triangle-exclamation"></i> Ação irreversível</div>
+                <div style="font-size:13px;font-weight:700;color:#c02020;margin-bottom:6px;"><i class="fas fa-triangle-exclamation"></i> Irreversible action</div>
                 <div style="font-size:12px;color:var(--cor-texto-secundario);line-height:1.6;">
-                    Todos os países serão revertidos para a classificação padrão <strong>FCA/HMRC (FATF 2024 + UK OFSI)</strong>. Qualquer ajuste manual feito será perdido.
+                    All <strong>214 jurisdictions</strong> will be reverted to the <strong>FCA/HMRC baseline (FATF 2024 + UK OFSI)</strong>. All manual classification changes will be permanently lost.
                 </div>
             </div>
-            <div style="font-size:12px;color:var(--cor-texto-secundario);line-height:1.8;">
-                <strong>Sanctioned + bloqueado:</strong> AF, BY, CU, IR, KP, MM, RU, SY<br>
-                <strong>High + bloqueado:</strong> SD (Sudan)<br>
-                <strong>Low:</strong> G7 + EU Ocidental + OCDE (~35 países)<br>
-                <strong>Standard:</strong> parceiros estáveis sem alertas FATF (~38 países)<br>
-                <strong>High:</strong> FATF Grey List MLR 2017 Reg.33 (~40 países)<br>
-                <strong>Medium:</strong> risco moderado / removidos recentemente da grey list (~45 países)
+            <div class="form-group">
+                <label style="font-weight:700;font-size:12px;">Reason for reset <span style="color:var(--cor-perigo);">*</span> <span id="resetNoteCount" style="font-weight:400;color:var(--cor-texto-secundario);">(required — min 20 characters)</span></label>
+                <textarea id="resetNota" class="form-control" rows="3" placeholder="e.g. FATF plenary October 2026 — reclassifying all jurisdictions to updated FCA/HMRC baseline." oninput="onResetInput()" style="resize:vertical;font-size:13px;"></textarea>
+            </div>
+            <div class="form-group">
+                <label style="font-weight:700;font-size:12px;">Your password <span style="color:var(--cor-perigo);">*</span></label>
+                <input type="password" id="resetSenha" class="form-control" placeholder="Enter your password to authorise" oninput="onResetInput()" style="font-size:13px;">
+                <div id="resetSenhaError" style="display:none;margin-top:6px;font-size:12px;color:#c02020;"><i class="fas fa-circle-xmark"></i> Incorrect password</div>
             </div>
         </div>
         <div class="modal-ft">
-            <button class="btn btn-ghost" onclick="closeReset()">Cancelar</button>
-            <button class="btn btn-danger" id="resetBtn" onclick="confirmReset()"><i class="fas fa-arrow-rotate-left"></i> Confirmar Reset</button>
+            <button class="btn btn-ghost" onclick="closeReset()">Cancel</button>
+            <button class="btn btn-danger" id="resetBtn" onclick="confirmReset()" disabled style="opacity:.4;cursor:not-allowed;">
+                <i class="fas fa-arrow-rotate-left"></i> Confirm Reset
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Review Overdue Modal -->
+<div class="modal-overlay" id="reviewOverdueOverlay" onclick="if(event.target===this)closeReviewOverdue()">
+    <div class="modal-box" style="max-width:480px;">
+        <div class="modal-hd">
+            <h3><i class="fas fa-clipboard-check" style="color:var(--cor-sucesso);"></i> Review Overdue Jurisdictions</h3>
+            <button onclick="closeReviewOverdue()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--cor-texto-secundario);line-height:1;">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="padding:12px 14px;background:rgba(26,122,82,.07);border:1px solid rgba(26,122,82,.25);border-radius:10px;margin-bottom:16px;font-size:12px;color:var(--cor-texto-secundario);line-height:1.7;">
+                <span id="reviewOverdueInfo">Loading...</span>
+                <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;">
+                    <span><strong style="color:#7c3aed;">Sanctioned</strong> → 3 months</span>
+                    <span><strong style="color:#dc2626;">High Risk</strong> → 6 months</span>
+                    <span><strong style="color:#ca8a04;">Medium</strong> → 12 months</span>
+                    <span><strong style="color:#c8920a;">Standard / Low</strong> → 24 months</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label style="font-weight:700;font-size:12px;">Review note <span style="color:var(--cor-perigo);">*</span> <span id="reviewNoteCount" style="font-weight:400;color:var(--cor-texto-secundario);">(required — min 20 characters)</span></label>
+                <textarea id="reviewOverdueNota" class="form-control" rows="4" placeholder="e.g. Reviewed FATF grey list dated 09/05/2026, OFSI consolidated list dated 09/05/2026 — no classification changes required." oninput="onReviewNoteInput()" style="resize:vertical;font-size:13px;"></textarea>
+            </div>
+        </div>
+        <div class="modal-ft">
+            <button class="btn btn-ghost" onclick="closeReviewOverdue()">Cancel</button>
+            <button class="btn btn-primary" id="reviewOverdueBtn" onclick="confirmReviewOverdue()" disabled style="background:var(--cor-sucesso);border-color:var(--cor-sucesso);opacity:.5;cursor:not-allowed;">
+                <i class="fas fa-check"></i> Confirm Review
+            </button>
         </div>
     </div>
 </div>
@@ -411,6 +490,7 @@ var blockedFilter = '';
 var searchTimer;
 var mapReady      = false;   // svgMap JS loaded
 var mapBuilt      = false;   // map rendered at least once
+var overdueCount  = 0;
 
 /* ── Risk meta ── */
 var RISK_COLORS = {
@@ -448,6 +528,7 @@ function showTab(name, btn){
     document.getElementById('panel-'+name).classList.add('active');
     btn.classList.add('active');
     if(name==='map' && !mapBuilt) initMap();
+    if(name==='audit') loadAuditLog();
 }
 
 /* ── Data loading ── */
@@ -474,7 +555,7 @@ function loadCountries(){
     if(blockedFilter !== '') params.set('bloqueado', blockedFilter);
 
     document.getElementById('countryTbody').innerHTML =
-        '<tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+        '<tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
 
     fetch('/api/compliance/b2b/paises?' + params)
         .then(function(r){ return r.json(); })
@@ -492,17 +573,38 @@ function loadCountries(){
         })
         .catch(function(){
             document.getElementById('countryTbody').innerHTML =
-                '<tr><td colspan="7" class="empty"><i class="fas fa-triangle-exclamation"></i> Failed to load countries</td></tr>';
+                '<tr><td colspan="8" class="empty"><i class="fas fa-triangle-exclamation"></i> Failed to load countries</td></tr>';
         });
 }
 
 function updateKPIs(s){
     if(!s) return;
-    document.getElementById('kpi-total').textContent    = s.total     || 0;
-    document.getElementById('kpi-low').textContent      = s.low       || 0;
-    document.getElementById('kpi-high').textContent     = s.high_risk || 0;
-    document.getElementById('kpi-sanctioned').textContent= s.sanctioned|| 0;
-    document.getElementById('kpi-blocked').textContent  = s.blocked   || 0;
+    document.getElementById('kpi-total').textContent     = s.total          || 0;
+    document.getElementById('kpi-low').textContent       = s.low            || 0;
+    document.getElementById('kpi-high').textContent      = s.high_risk      || 0;
+    document.getElementById('kpi-sanctioned').textContent= s.sanctioned     || 0;
+    document.getElementById('kpi-blocked').textContent   = s.blocked        || 0;
+    overdueCount = s.overdue_reviews || 0;
+    var odEl = document.getElementById('kpi-overdue');
+    odEl.textContent = overdueCount;
+    odEl.style.color = overdueCount > 0 ? '#ea580c' : '';
+    updateReviewOverdueBtn();
+}
+
+function updateReviewOverdueBtn(){
+    var btn = document.getElementById('btnReviewOverdue');
+    if(!btn) return;
+    if(overdueCount > 0){
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor  = 'pointer';
+        btn.title = overdueCount + ' jurisdiction(s) overdue';
+    } else {
+        btn.disabled = true;
+        btn.style.opacity = '.4';
+        btn.style.cursor  = 'not-allowed';
+        btn.title = 'No reviews overdue';
+    }
 }
 
 function populateContinents(list){
@@ -531,10 +633,32 @@ function riskTag(r){
     return '<span class="tag" style="background:'+m.bg+';color:'+m.c+';">'+(RISK_LABELS[l]||r||'—')+'</span>';
 }
 
+function reviewStatus(p){
+    if(!p.proxima_revisao){
+        return '<span style="font-size:11px;color:var(--cor-texto-secundario);">Never reviewed</span>';
+    }
+    var today = new Date(); today.setHours(0,0,0,0);
+    var next  = new Date(p.proxima_revisao + 'T00:00:00');
+    var daysLeft = Math.ceil((next - today) / 86400000);
+    if(daysLeft < 0){
+        return '<span class="tag" style="background:rgba(234,88,12,.12);color:#ea580c;font-size:10px;"><i class="fas fa-circle-exclamation" style="font-size:9px;margin-right:2px;"></i>Overdue</span>';
+    }
+    if(daysLeft <= 30){
+        return '<span class="tag" style="background:rgba(234,88,12,.08);color:#ea580c;font-size:10px;"><i class="fas fa-clock" style="font-size:9px;margin-right:2px;"></i>Due soon</span>';
+    }
+    return '<span class="tag" style="background:rgba(26,122,82,.1);color:#1a7a52;font-size:10px;"><i class="fas fa-check" style="font-size:9px;margin-right:2px;"></i>'+fmtDate(p.proxima_revisao)+'</span>';
+}
+
+function fmtDate(iso){
+    if(!iso) return '—';
+    var pts = iso.split('-');
+    return pts.length===3 ? pts[2]+'/'+pts[1]+'/'+pts[0] : iso;
+}
+
 function renderTable(list){
     var tbody=document.getElementById('countryTbody');
     if(!list.length){
-        tbody.innerHTML='<tr><td colspan="7" class="empty"><i class="fas fa-earth-americas"></i><br>No countries found</td></tr>';
+        tbody.innerHTML='<tr><td colspan="8" class="empty"><i class="fas fa-earth-americas"></i><br>No countries found</td></tr>';
         return;
     }
     tbody.innerHTML=list.map(function(p,i){
@@ -551,8 +675,12 @@ function renderTable(list){
                     '<span class="toggle-slider"></span>'+
                 '</label>'+
             '</td>'+
+            '<td>'+reviewStatus(p)+'</td>'+
             '<td style="white-space:nowrap;">'+
                 '<button class="btn btn-ghost btn-sm" onclick="openEdit(allCountries['+i+'])"><i class="fas fa-pen-to-square"></i> Edit</button>'+
+                ' <button class="btn btn-ghost btn-sm" onclick="markReviewed(\''+esc(p.codigo)+'\')" title="Confirm Review" style="color:var(--cor-sucesso);">'+
+                    '<i class="fas fa-check-circle"></i>'+
+                '</button>'+
             '</td>'+
         '</tr>';
     }).join('');
@@ -818,27 +946,207 @@ function saveCountry(codigo, payload, onOk, onErr){
     });
 }
 
+function markReviewed(codigo){
+    fetch('/api/compliance/b2b/paises/'+encodeURIComponent(codigo)+'/revisar', {
+        method:'POST', headers:{'Content-Type':'application/json'}
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+        if(!d.success) throw new Error(d.message);
+        var p = countryByCode[codigo];
+        if(p){
+            p.ultima_revisao  = d.ultima_revisao;
+            p.proxima_revisao = d.proxima_revisao;
+        }
+        renderTable(allCountries);
+        // Reload full stats to update overdue KPI
+        setTimeout(loadCountries, 400);
+    })
+    .catch(function(e){ alert('Error: '+e.message); });
+}
+
 function esc(s){
     if(s==null) return '';
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+/* ── Audit Log ── */
+function loadAuditLog(){
+    var tbody = document.getElementById('auditTbody');
+    tbody.innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    fetch('/api/compliance/b2b/paises/audit')
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+        if(!d.success) throw new Error(d.message);
+        var logs = d.logs || [];
+        if(!logs.length){
+            tbody.innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-clock-rotate-left"></i><br>No audit entries yet</td></tr>';
+            return;
+        }
+        tbody.innerHTML = logs.map(function(log){
+            var isReset  = log.acao === 'PAIS_RISCO_RESET';
+            var isReview = log.acao === 'PAIS_REVISAO_CONFIRMADA';
+            var dt = log.created_at ? new Date(log.created_at).toLocaleString('en-GB',{dateStyle:'short',timeStyle:'short'}) : '—';
+            var detail = {};
+            try{ detail = JSON.parse(log.detalhe||'{}'); }catch(e){}
+
+            var isBulkReview = isReview && detail.tipo === 'bulk';
+            var codigoCell = (isReset || isBulkReview) ? '<span style="color:var(--cor-texto-secundario);">—</span>' : '<strong>'+esc(detail.codigo||'')+'</strong>';
+            var nomeCell   = isReset
+                ? '<span style="color:var(--cor-texto-secundario);font-style:italic;">All jurisdictions</span>'
+                : isBulkReview
+                    ? '<span style="color:var(--cor-texto-secundario);font-style:italic;">All jurisdictions ('+esc(String(detail.total||''))+')</span>'
+                    : esc(detail.nome||detail.codigo||'—');
+
+            var changeCell = '';
+            if(isReset){
+                changeCell = '<span style="color:var(--cor-perigo);font-weight:600;"><i class="fas fa-arrow-rotate-left" style="margin-right:4px;"></i>FCA/HMRC baseline restored</span>'
+                    + (detail.nota ? '<div style="font-size:11px;color:var(--cor-texto-secundario);margin-top:3px;max-width:360px;white-space:normal;line-height:1.4;">'+esc(detail.nota)+'</div>' : '');
+            } else if(isBulkReview){
+                changeCell = '<span style="color:var(--cor-sucesso);"><i class="fas fa-clipboard-check" style="margin-right:4px;"></i>Bulk review completed</span>'
+                    + (detail.nota ? '<div style="font-size:11px;color:var(--cor-texto-secundario);margin-top:3px;max-width:360px;white-space:normal;line-height:1.4;">'+esc(detail.nota)+'</div>' : '');
+            } else if(isReview){
+                var nextRev = detail.proxima_revisao ? fmtDate(detail.proxima_revisao) : '—';
+                changeCell = '<span style="color:var(--cor-sucesso);"><i class="fas fa-check-circle" style="margin-right:4px;"></i>Review confirmed</span>'
+                    + '<span style="font-size:11px;color:var(--cor-texto-secundario);margin-left:8px;">Next: '+esc(nextRev)+'</span>';
+            } else {
+                var riscoChange = '';
+                if(detail.risco_anterior !== detail.risco_novo && detail.risco_novo){
+                    riscoChange = '<span class="audit-from">'+esc(detail.risco_anterior||'?')+'</span>'
+                        + '<i class="fas fa-arrow-right" style="margin:0 6px;font-size:10px;color:var(--cor-texto-secundario);"></i>'
+                        + '<span class="audit-to audit-risk-'+esc(detail.risco_novo)+'">'+esc(detail.risco_novo)+'</span>';
+                }
+                var blockedChange = '';
+                if(detail.bloqueado_anterior !== detail.bloqueado_novo && detail.bloqueado_novo !== undefined){
+                    blockedChange = (detail.bloqueado_novo
+                        ? '<span class="tag" style="background:rgba(192,32,32,.1);color:#c02020;margin-left:6px;"><i class="fas fa-ban" style="font-size:9px;"></i> blocked</span>'
+                        : '<span class="tag" style="background:rgba(26,122,82,.1);color:#1a7a52;margin-left:6px;"><i class="fas fa-check" style="font-size:9px;"></i> unblocked</span>');
+                }
+                changeCell = riscoChange + blockedChange || '<span style="color:var(--cor-texto-secundario);">nationality updated</span>';
+            }
+
+            var actionBadge = isReset
+                ? '<span class="tag" style="background:rgba(192,32,32,.1);color:#c02020;">Reset</span>'
+                : isReview
+                    ? '<span class="tag" style="background:rgba(26,122,82,.1);color:var(--cor-sucesso);">Review</span>'
+                    : '<span class="tag" style="background:rgba(200,146,10,.1);color:var(--cor-admin);">Edit</span>';
+
+            return '<tr>'
+                +'<td style="font-size:12px;color:var(--cor-texto-secundario);white-space:nowrap;">'+dt+'</td>'
+                +'<td style="font-size:12px;white-space:nowrap;"><i class="fas fa-user" style="margin-right:4px;opacity:.4;"></i>'+esc(log.usuario||'—')+'</td>'
+                +'<td>'+codigoCell+'</td>'
+                +'<td>'+nomeCell+'</td>'
+                +'<td>'+changeCell+'</td>'
+                +'<td>'+actionBadge+'</td>'
+                +'</tr>';
+        }).join('');
+    })
+    .catch(function(e){
+        tbody.innerHTML='<tr><td colspan="6" class="empty">Error: '+esc(e.message)+'</td></tr>';
+    });
+}
+
+/* ── Review Overdue ── */
+function openReviewOverdue(){
+    if(overdueCount === 0) return;
+    document.getElementById('reviewOverdueNota').value = '';
+    var btn = document.getElementById('reviewOverdueBtn');
+    btn.disabled = true; btn.style.opacity = '.5'; btn.style.cursor = 'not-allowed';
+    btn.innerHTML = '<i class="fas fa-check"></i> Confirm Review';
+    document.getElementById('reviewNoteCount').textContent = '(required — min 20 characters)';
+    document.getElementById('reviewNoteCount').style.color = 'var(--cor-texto-secundario)';
+    document.getElementById('reviewOverdueInfo').textContent =
+        overdueCount + ' jurisdiction' + (overdueCount !== 1 ? 's' : '') +
+        ' overdue. Only these will be reviewed and updated today. Next review dates:';
+    document.getElementById('reviewOverdueOverlay').style.display = 'flex';
+    setTimeout(function(){ document.getElementById('reviewOverdueNota').focus(); }, 100);
+}
+function closeReviewOverdue(){
+    document.getElementById('reviewOverdueOverlay').style.display = 'none';
+}
+function onReviewNoteInput(){
+    var val  = document.getElementById('reviewOverdueNota').value.trim();
+    var len  = val.length;
+    var btn  = document.getElementById('reviewOverdueBtn');
+    var info = document.getElementById('reviewNoteCount');
+    if(len >= 20){
+        btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
+        info.textContent = '(' + len + ' characters)';
+        info.style.color = 'var(--cor-sucesso)';
+    } else {
+        btn.disabled = true; btn.style.opacity = '.5'; btn.style.cursor = 'not-allowed';
+        info.textContent = '(' + (20 - len) + ' more characters needed)';
+        info.style.color = 'var(--cor-texto-secundario)';
+    }
+}
+function confirmReviewOverdue(){
+    var nota = (document.getElementById('reviewOverdueNota').value||'').trim();
+    if(nota.length < 20) return;
+    var btn = document.getElementById('reviewOverdueBtn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    btn.disabled = true; btn.style.opacity = '.7';
+    fetch('/api/compliance/b2b/paises/revisar-todos', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({nota: nota}),
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+        if(!d.success) throw new Error(d.message);
+        closeReviewOverdue();
+        loadCountries();
+    })
+    .catch(function(e){
+        alert('Error: ' + e.message);
+        btn.innerHTML = '<i class="fas fa-check"></i> Confirm Review';
+        btn.disabled = false; btn.style.opacity = '1';
+    });
+}
+
 /* ── Reset to Default ── */
 function openReset(){
-    var o=document.getElementById('resetOverlay');
-    o.style.display='flex';
-    var btn=document.getElementById('resetBtn');
-    btn.innerHTML='<i class="fas fa-arrow-rotate-left"></i> Confirmar Reset';
-    btn.disabled=false;
+    document.getElementById('resetNota').value  = '';
+    document.getElementById('resetSenha').value = '';
+    document.getElementById('resetSenhaError').style.display = 'none';
+    document.getElementById('resetNoteCount').textContent = '(required — min 20 characters)';
+    document.getElementById('resetNoteCount').style.color = 'var(--cor-texto-secundario)';
+    var btn = document.getElementById('resetBtn');
+    btn.innerHTML = '<i class="fas fa-arrow-rotate-left"></i> Confirm Reset';
+    btn.disabled = true; btn.style.opacity = '.4'; btn.style.cursor = 'not-allowed';
+    document.getElementById('resetOverlay').style.display = 'flex';
+    setTimeout(function(){ document.getElementById('resetNota').focus(); }, 100);
 }
 function closeReset(){
-    document.getElementById('resetOverlay').style.display='none';
+    document.getElementById('resetOverlay').style.display = 'none';
+}
+function onResetInput(){
+    var nota  = document.getElementById('resetNota').value.trim();
+    var senha = document.getElementById('resetSenha').value;
+    var btn   = document.getElementById('resetBtn');
+    var info  = document.getElementById('resetNoteCount');
+    if(nota.length >= 20){
+        info.textContent = '(' + nota.length + ' characters)';
+        info.style.color = 'var(--cor-sucesso)';
+    } else {
+        info.textContent = '(' + (20 - nota.length) + ' more characters needed)';
+        info.style.color = 'var(--cor-texto-secundario)';
+    }
+    var ok = nota.length >= 20 && senha.length > 0;
+    btn.disabled = !ok; btn.style.opacity = ok ? '1' : '.4'; btn.style.cursor = ok ? 'pointer' : 'not-allowed';
 }
 function confirmReset(){
-    var btn=document.getElementById('resetBtn');
-    btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Resetando...';
-    btn.disabled=true;
-    fetch('/api/compliance/b2b/paises/reset',{method:'POST',headers:{'Content-Type':'application/json'}})
+    var nota  = document.getElementById('resetNota').value.trim();
+    var senha = document.getElementById('resetSenha').value;
+    if(nota.length < 20 || !senha) return;
+    document.getElementById('resetSenhaError').style.display = 'none';
+    var btn = document.getElementById('resetBtn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    btn.disabled = true; btn.style.opacity = '.7';
+    fetch('/api/compliance/b2b/paises/reset', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({nota: nota, senha: senha}),
+    })
     .then(function(r){ return r.json(); })
     .then(function(d){
         if(!d.success) throw new Error(d.message);
@@ -847,9 +1155,15 @@ function confirmReset(){
         if(mapBuilt) setTimeout(applyRiskColors, 150);
     })
     .catch(function(e){
-        alert('Erro: '+e.message);
-        btn.innerHTML='<i class="fas fa-arrow-rotate-left"></i> Confirmar Reset';
-        btn.disabled=false;
+        if(e.message === 'Incorrect password'){
+            document.getElementById('resetSenhaError').style.display = 'block';
+            document.getElementById('resetSenha').value = '';
+            document.getElementById('resetSenha').focus();
+        } else {
+            alert('Error: ' + e.message);
+        }
+        btn.innerHTML = '<i class="fas fa-arrow-rotate-left"></i> Confirm Reset';
+        btn.disabled = false; btn.style.opacity = '1';
     });
 }
 </script>

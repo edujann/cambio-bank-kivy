@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EDD Case — B2B Compliance</title>
+    <script>(function(){ document.documentElement.setAttribute('data-theme', localStorage.getItem('theme')||'light'); })();</script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        :root[data-theme="light"]{
+            --cor-fundo:#f5ede0;--cor-card:#ffffff;--cor-borda:rgba(210,185,130,.4);
+            --cor-texto:#1a1200;--cor-texto-secundario:#9a8560;
+            --cor-primaria:#c8920a;--cor-admin:#c8920a;
+            --cor-sucesso:#1a7a52;--cor-alerta:#b87200;--cor-perigo:#c02020;
+            --sombra-suave:0 2px 8px rgba(160,110,0,.10),0 1px 3px rgba(0,0,0,.04);
+            --sombra-media:0 6px 22px rgba(160,110,0,.13),0 2px 8px rgba(0,0,0,.05);
+            --borda-radius:14px;
+        }
+        :root[data-theme="dark"]{
+            --cor-fundo:#110f08;--cor-card:#191611;--cor-borda:#2d2819;
+            --cor-texto:#e0e0e0;--cor-texto-secundario:#8b949e;
+            --cor-primaria:#d29e00;--cor-admin:#d29e00;
+            --cor-sucesso:#2ec27e;--cor-alerta:#f39c12;--cor-perigo:#e01b24;
+            --sombra-suave:0 4px 6px rgba(0,0,0,.30);
+            --sombra-media:0 8px 16px rgba(0,0,0,.40);
+            --borda-radius:14px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+        body{background-color:#f5ede0;background-image:radial-gradient(ellipse at 15% 15%,rgba(210,158,0,.10) 0%,transparent 55%),radial-gradient(ellipse at 85% 85%,rgba(180,120,0,.08) 0%,transparent 55%),linear-gradient(150deg,#f8f2e6 0%,#fdf9f2 45%,#ede3cf 100%);background-attachment:fixed;color:var(--cor-texto);min-height:100vh;overflow-x:hidden;}
+        body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(180,130,0,.055) 1px,transparent 1px);background-size:30px 30px;pointer-events:none;z-index:0;}
+        html[data-theme="dark"] body{background-color:#110f08;background-image:linear-gradient(135deg,#110f08 0%,#1f1a10 100%);}
+        html[data-theme="dark"] body::before{display:none;}
+        .top-bar{position:sticky;top:0;z-index:200;height:54px;background:var(--cor-card);border-bottom:1px solid var(--cor-borda);display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:10px;box-shadow:var(--sombra-suave);}
+        .logo-text{background:linear-gradient(135deg,#7a5800,#c8920a 45%,#a07000);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800;font-size:17px;}
+        .logo-text span{font-weight:400;}
+        .badge-b2b{background:rgba(200,146,10,.15);border:1px solid rgba(200,146,10,.4);color:var(--cor-admin);font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;letter-spacing:.5px;text-transform:uppercase;}
+        .hd-right{display:flex;align-items:center;gap:8px;}
+        .btn-hd{background:rgba(200,146,10,.12);border:1px solid var(--cor-admin);color:var(--cor-admin);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:.15s;}
+        .btn-hd:hover{background:rgba(200,146,10,.25);}
+        .btn-hd-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-hd-ghost:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+        .badge-user{background:rgba(200,146,10,.1);color:var(--cor-admin);padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;}
+        .main-layout{display:flex;min-height:calc(100vh - 54px);position:relative;z-index:1;}
+        .sidebar{width:215px;min-width:215px;background:var(--cor-card);border-right:1px solid var(--cor-borda);padding:12px 0 24px;position:sticky;top:54px;height:calc(100vh - 54px);overflow-y:auto;display:flex;flex-direction:column;}
+        .sidebar::-webkit-scrollbar{width:4px;}
+        .sidebar::-webkit-scrollbar-thumb{background:rgba(200,146,10,.3);border-radius:2px;}
+        .nav-section-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--cor-texto-secundario);padding:14px 18px 5px;opacity:.7;}
+        .nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;font-weight:600;color:var(--cor-texto-secundario);cursor:pointer;border-left:3px solid transparent;transition:.15s;user-select:none;text-decoration:none;}
+        .nav-item i{width:16px;text-align:center;font-size:13px;}
+        .nav-item:hover{color:var(--cor-admin);background:rgba(200,146,10,.06);}
+        .nav-item.active{color:var(--cor-admin);background:rgba(200,146,10,.1);border-left-color:var(--cor-admin);}
+        .nav-divider{height:1px;background:var(--cor-borda);margin:8px 14px;}
+        .content-area{flex:1;min-width:0;padding:24px;overflow-x:hidden;}
+        .card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:12px;margin-bottom:18px;box-shadow:var(--sombra-suave);overflow:hidden;}
+        .card-hd{padding:14px 18px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+        .card-hd h3{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;}
+        .card-hd h3 i{color:var(--cor-admin);}
+        .card-body{padding:18px 20px;}
+        .tag{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+        .btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:inherit;text-decoration:none;transition:.15s;white-space:nowrap;}
+        .btn-gold{background:linear-gradient(135deg,#96700a,#c8920a 45%,#d4a820);color:#1a0d00;box-shadow:0 2px 8px rgba(160,110,0,.2);}
+        .btn-gold:hover{transform:translateY(-1px);}
+        .btn-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-ghost:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+        .btn-success{background:rgba(26,122,82,.12);border:1px solid rgba(26,122,82,.3);color:var(--cor-sucesso);}
+        .btn-success:hover{background:rgba(26,122,82,.22);}
+        .btn-danger{background:rgba(192,32,32,.12);border:1px solid rgba(192,32,32,.3);color:var(--cor-perigo);}
+        .btn-danger:hover{background:rgba(192,32,32,.22);}
+        .form-control{width:100%;padding:9px 12px;background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:8px;color:var(--cor-texto);font-size:13px;font-family:inherit;outline:none;transition:.15s;}
+        .form-control:focus{border-color:var(--cor-admin);}
+        textarea.form-control{resize:vertical;min-height:70px;}
+        .meta-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px 24px;padding:18px 20px;}
+        .meta-item .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--cor-texto-secundario);margin-bottom:4px;}
+        .meta-item .val{font-size:13px;font-weight:600;}
+        .progress-bar-wrap{background:rgba(128,128,128,.1);border-radius:10px;height:8px;overflow:hidden;margin:4px 0 2px;}
+        .progress-bar-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,#1a7a52,#2ec27e);transition:width .4s;}
+        /* Checklist */
+        .checklist-item{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid var(--cor-borda);transition:.15s;}
+        .checklist-item:last-child{border-bottom:none;}
+        .checklist-item:hover{background:rgba(200,146,10,.02);}
+        .check-box{width:20px;height:20px;border-radius:5px;border:2px solid var(--cor-borda);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-top:1px;transition:.15s;}
+        .check-box.done{background:var(--cor-sucesso);border-color:var(--cor-sucesso);color:#fff;}
+        .check-box:hover:not(.done){border-color:var(--cor-sucesso);}
+        .check-label{flex:1;}
+        .check-label .text{font-size:13px;font-weight:500;}
+        .check-label .text.done-text{color:var(--cor-texto-secundario);text-decoration:line-through;}
+        .check-label .meta{font-size:11px;color:var(--cor-texto-secundario);margin-top:2px;}
+        /* Activity log */
+        .activity-item{display:flex;gap:12px;padding:10px 0;}
+        .activity-item+.activity-item{border-top:1px solid var(--cor-borda);}
+        .activity-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+        .activity-content .action{font-size:12px;font-weight:600;}
+        .activity-content .detail{font-size:12px;color:var(--cor-texto-secundario);margin-top:2px;line-height:1.4;}
+        .activity-content .when{font-size:11px;color:var(--cor-texto-secundario);margin-top:2px;}
+        /* Approval */
+        .approval-pending{padding:20px;text-align:center;color:var(--cor-texto-secundario);}
+        .approval-done{padding:18px 20px;}
+        /* Modal */
+        .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;}
+        .modal-overlay.show{display:flex;}
+        .modal-box{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:16px;padding:28px;width:100%;max-width:460px;box-shadow:var(--sombra-media);}
+        .modal-box h3{font-size:16px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:8px;}
+        .form-group{margin-bottom:14px;}
+        .form-group label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--cor-texto-secundario);margin-bottom:5px;}
+        .modal-ft{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;}
+        .overdue-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(192,32,32,.12);color:var(--cor-perigo);}
+        /* Document expand panel */
+        .doc-expand{display:none;padding:10px 16px 14px 48px;border-top:1px solid var(--cor-borda);background:rgba(128,128,128,.025);}
+        .doc-expand.open{display:block;}
+        .doc-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px dashed rgba(128,128,128,.15);font-size:12px;min-width:0;}
+        .doc-row:last-of-type{border-bottom:none;}
+        .doc-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;}
+        .doc-meta{color:var(--cor-texto-secundario);flex-shrink:0;font-size:11px;}
+        .upload-area{margin-top:10px;padding-top:10px;border-top:1px dashed rgba(128,128,128,.2);}
+        .clip-btn{background:none;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:8px;color:var(--cor-texto-secundario);transition:.15s;flex-shrink:0;}
+        .clip-btn:hover{background:rgba(200,146,10,.08);color:var(--cor-admin);}
+        .clip-count{background:rgba(200,146,10,.18);color:var(--cor-admin);padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;}
+        @media(max-width:768px){.sidebar{display:none}.content-area{padding:16px}}
+    </style>
+</head>
+<body>
+<div class="top-bar">
+    <div style="display:flex;align-items:center;gap:10px;">
+        <span class="logo-text"><strong>Link</strong> <span>international</span></span>
+        <span class="badge-b2b">B2B Compliance</span>
+    </div>
+    <div class="hd-right">
+        <a href="/language/{{ 'pt' if current_lang == 'en' else 'en' }}" class="btn-hd btn-hd-ghost"><i class="fas fa-globe"></i> {{ 'PT' if current_lang == 'en' else 'EN' }}</a>
+        <button class="btn-hd btn-hd-ghost" id="btnTheme" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+        <span class="badge-user"><i class="fas fa-user-shield"></i> {{ usuario }}</span>
+        <a href="/admin/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-arrow-left"></i> Admin</a>
+    </div>
+</div>
+
+<div class="main-layout">
+    <nav class="sidebar">
+        <div class="nav-section-lbl">Overview</div>
+        <a href="/compliance/b2b/dashboard" class="nav-item"><i class="fas fa-gauge-high"></i> Dashboard</a>
+        <a href="/compliance/b2b/clientes" class="nav-item"><i class="fas fa-building"></i> Clients</a>
+        <a href="/compliance/b2b/clientes/novo" class="nav-item"><i class="fas fa-plus-circle"></i> New Onboarding</a>
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Compliance</div>
+        <a href="/compliance/b2b/edd" class="nav-item active"><i class="fas fa-magnifying-glass-chart"></i> EDD Cases</a>
+        <a href="/compliance/b2b/alertas" class="nav-item"><i class="fas fa-bell"></i> Alerts</a>
+        <a href="/compliance/b2b/screening" class="nav-item"><i class="fas fa-shield-halved"></i> Screening</a>
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Operations</div>
+        <a href="/compliance/b2b/beneficiarios" class="nav-item"><i class="fas fa-users"></i> Beneficiaries</a>
+        <a href="/compliance/b2b/transferencias" class="nav-item"><i class="fas fa-arrow-right-arrow-left"></i> Transfers</a>
+        <a href="/compliance/b2b/limites" class="nav-item"><i class="fas fa-sliders"></i> Limits</a>
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Configuration</div>
+        <a href="/compliance/b2b/paises" class="nav-item"><i class="fas fa-earth-americas"></i> Countries</a>
+        <a href="/compliance/b2b/risk-config" class="nav-item"><i class="fas fa-gear"></i> Risk Config</a>
+        <a href="/compliance/b2b/structuring-config" class="nav-item"><i class="fas fa-wave-square"></i> AML Rules</a>
+    </nav>
+
+    <div class="content-area">
+
+        <!-- Back + title -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+            <a href="/compliance/b2b/edd" class="btn btn-ghost" style="font-size:12px;"><i class="fas fa-arrow-left"></i> EDD Cases</a>
+            <h1 style="font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px;">
+                <i class="fas fa-magnifying-glass-chart" style="color:var(--cor-admin);"></i>
+                EDD Case — <span id="pageTitle" style="font-weight:400;">loading...</span>
+            </h1>
+            <span id="overdueIndicator" style="display:none;" class="overdue-badge"><i class="fas fa-circle-exclamation"></i> Overdue</span>
+        </div>
+
+        <!-- Case header card -->
+        <div class="card">
+            <div class="card-hd">
+                <h3><i class="fas fa-folder-open"></i> Case Information</h3>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <span id="statusBadge"></span>
+                    <div id="statusActions"></div>
+                </div>
+            </div>
+            <div class="meta-grid" id="metaGrid">
+                <div class="meta-item"><div class="lbl">Client</div><div class="val" id="metaClient">—</div></div>
+                <div class="meta-item"><div class="lbl">Country</div><div class="val" id="metaCountry">—</div></div>
+                <div class="meta-item"><div class="lbl">Client Risk</div><div class="val" id="metaRisk">—</div></div>
+                <div class="meta-item"><div class="lbl">Priority</div><div class="val" id="metaPriority">—</div></div>
+                <div class="meta-item"><div class="lbl">Assigned To</div><div class="val" id="metaAssigned">—</div></div>
+                <div class="meta-item"><div class="lbl">Due Date</div><div class="val" id="metaDue">—</div></div>
+                <div class="meta-item"><div class="lbl">Opened By</div><div class="val" id="metaOpenedBy">—</div></div>
+                <div class="meta-item"><div class="lbl">Opened</div><div class="val" id="metaOpened">—</div></div>
+            </div>
+            <div style="padding:0 20px 18px;">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--cor-texto-secundario);margin-bottom:6px;">Trigger / Reason</div>
+                <div id="metaTrigger" style="font-size:13px;line-height:1.6;padding:12px 14px;background:rgba(128,128,128,.05);border-radius:8px;border:1px solid var(--cor-borda);">—</div>
+            </div>
+            <div id="metaNotes" style="display:none;padding:0 20px 18px;">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--cor-texto-secundario);margin-bottom:6px;">Initial Notes</div>
+                <div id="metaNotesText" style="font-size:13px;line-height:1.6;color:var(--cor-texto-secundario);"></div>
+            </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+
+            <!-- Left: Checklist + Approval -->
+            <div>
+                <!-- EDD Checklist -->
+                <div class="card">
+                    <div class="card-hd">
+                        <h3><i class="fas fa-list-check"></i> EDD Checklist <span style="font-size:11px;font-weight:400;color:var(--cor-texto-secundario);">MLR 2017 Reg.33</span></h3>
+                        <div style="font-size:12px;color:var(--cor-texto-secundario);"><span id="checkDone">0</span>/7 complete</div>
+                    </div>
+                    <div style="padding:10px 20px 6px;">
+                        <div class="progress-bar-wrap">
+                            <div class="progress-bar-fill" id="progressBar" style="width:0%;"></div>
+                        </div>
+                    </div>
+                    <div id="checklistItems"></div>
+                </div>
+
+                <!-- Senior Management Approval -->
+                <div class="card">
+                    <div class="card-hd">
+                        <h3><i class="fas fa-user-shield"></i> Senior Management Approval</h3>
+                        <span style="font-size:10px;color:var(--cor-texto-secundario);">MLR 2017 Reg.33(4)</span>
+                    </div>
+                    <div id="approvalSection"></div>
+                </div>
+            </div>
+
+            <!-- Right: Activity Log -->
+            <div>
+                <div class="card" style="height:fit-content;">
+                    <div class="card-hd">
+                        <h3><i class="fas fa-clock-rotate-left"></i> Activity Log</h3>
+                        <button class="btn btn-ghost" style="font-size:11px;" onclick="loadCase()"><i class="fas fa-rotate-right"></i> Refresh</button>
+                    </div>
+                    <div style="padding:14px 20px;border-bottom:1px solid var(--cor-borda);">
+                        <textarea class="form-control" id="noteInput" placeholder="Add a note..." rows="2" style="font-size:12px;"></textarea>
+                        <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+                            <button class="btn btn-gold" style="font-size:11px;padding:5px 12px;" onclick="addNote()"><i class="fas fa-plus"></i> Add Note</button>
+                        </div>
+                    </div>
+                    <div id="activityLog" style="padding:14px 20px;max-height:500px;overflow-y:auto;">
+                        <div style="text-align:center;color:var(--cor-texto-secundario);font-size:12px;">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Approve Modal -->
+<div class="modal-overlay" id="approveModal" onclick="if(event.target===this)closeApprove()">
+    <div class="modal-box">
+        <h3><i class="fas fa-user-shield" style="color:var(--cor-sucesso);"></i> Senior Management Approval</h3>
+        <div style="padding:12px 14px;background:rgba(26,122,82,.07);border:1px solid rgba(26,122,82,.25);border-radius:10px;margin-bottom:16px;font-size:12px;color:var(--cor-texto-secundario);line-height:1.6;">
+            By approving this EDD case you confirm that you have reviewed all findings and authorise the business relationship to proceed under enhanced monitoring. This is logged as a permanent audit record (MLR 2017 Reg.33(4)).
+        </div>
+        <div class="form-group">
+            <label>Approval note <span style="color:var(--cor-perigo);">*</span></label>
+            <textarea class="form-control" id="approveNota" rows="3" placeholder="State your findings and basis for approval..." oninput="onApproveInput()"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Your password <span style="color:var(--cor-perigo);">*</span></label>
+            <input type="password" class="form-control" id="approveSenha" placeholder="Enter password to authorise" oninput="onApproveInput()">
+            <div id="approvePassError" style="display:none;margin-top:5px;font-size:12px;color:#c02020;"><i class="fas fa-circle-xmark"></i> Incorrect password</div>
+        </div>
+        <div class="modal-ft">
+            <button class="btn btn-ghost" onclick="closeApprove()">Cancel</button>
+            <button class="btn btn-success" id="approveBtn" onclick="confirmApprove()" disabled style="opacity:.4;cursor:not-allowed;"><i class="fas fa-check"></i> Approve Case</button>
+        </div>
+    </div>
+</div>
+
+<script>
+var EDD_ID = '{{ edd_id }}';
+var caseData = null;
+var docsData  = {};
+
+function toggleTheme(){
+    var next = document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';
+    document.documentElement.setAttribute('data-theme',next);
+    localStorage.setItem('theme',next);
+    var ic = document.querySelector('#btnTheme i');
+    if(ic) ic.className = next==='light'?'fas fa-moon':'fas fa-sun';
+}
+document.addEventListener('DOMContentLoaded', function(){
+    var t = document.documentElement.getAttribute('data-theme')||'light';
+    var ic = document.querySelector('#btnTheme i');
+    if(ic) ic.className = t==='light'?'fas fa-moon':'fas fa-sun';
+    loadCase();
+});
+
+function loadCase(){
+    fetch('/api/compliance/b2b/edd/' + encodeURIComponent(EDD_ID))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+        if(!d.success){ showError(d.message); return; }
+        caseData = d.case;
+        // Load documents first so counts are correct when checklist renders
+        loadDocs().then(function(){
+            renderHeader(caseData);
+            renderChecklist(caseData);
+            renderApproval(caseData);
+            renderActivity(caseData.actividades || []);
+        });
+    })
+    .catch(function(){ showError('Failed to load case'); });
+}
+
+async function loadDocs(){
+    try {
+        var r = await fetch('/api/compliance/b2b/edd/'+encodeURIComponent(EDD_ID)+'/docs');
+        var d = await r.json();
+        if(!d.success) return;
+        docsData = {};
+        (d.docs || []).forEach(function(doc){
+            if(!docsData[doc.checklist_item]) docsData[doc.checklist_item] = [];
+            docsData[doc.checklist_item].push(doc);
+        });
+    } catch(e){}
+}
+
+function showError(msg){
+    document.getElementById('pageTitle').textContent = 'Error';
+    document.getElementById('metaTrigger').textContent = msg || 'Unknown error';
+}
+
+/* ── Header ── */
+function renderHeader(c){
+    document.getElementById('pageTitle').textContent = c.client_nome || c.id;
+    document.getElementById('statusBadge').innerHTML = statusTag(c.status);
+    document.getElementById('statusActions').innerHTML = statusActionBtns(c);
+
+    var today = new Date(); today.setHours(0,0,0,0);
+    var due = c.data_vencimento ? new Date(c.data_vencimento+'T00:00:00') : null;
+    var overdue = due && due < today && c.status !== 'concluido' && c.status !== 'fechado';
+    document.getElementById('overdueIndicator').style.display = overdue ? 'inline-flex' : 'none';
+
+    document.getElementById('metaClient').innerHTML = '<a href="/compliance/b2b/clientes/'+esc(c.cliente_id||'')+'" style="color:var(--cor-admin);text-decoration:none;">'+esc(c.client_nome||'—')+'</a>';
+    document.getElementById('metaCountry').textContent = c.client_pais || '—';
+    document.getElementById('metaRisk').innerHTML = riskTag(c.client_risco);
+    document.getElementById('metaPriority').innerHTML = priorityBadge(c.prioridade);
+    document.getElementById('metaAssigned').textContent = c.responsavel || '—';
+    document.getElementById('metaDue').innerHTML = due
+        ? '<span style="color:'+(overdue?'var(--cor-perigo)':'inherit')+';">'+(overdue?'<i class="fas fa-circle-exclamation" style="font-size:10px;margin-right:3px;"></i>':'')+fmtDate(c.data_vencimento)+'</span>'
+        : '—';
+    document.getElementById('metaOpenedBy').textContent = c.criado_por || '—';
+    document.getElementById('metaOpened').textContent = fmtDate(c.criado_em || c.created_at);
+    document.getElementById('metaTrigger').textContent = c.trigger_reason || c.gatilho || '—';
+    if(c.notas){
+        document.getElementById('metaNotes').style.display = 'block';
+        document.getElementById('metaNotesText').textContent = c.notas;
+    }
+}
+
+function statusActionBtns(c){
+    if(c.status === 'concluido' || c.status === 'fechado'){
+        return '<button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="changeStatus(\'aberto\')"><i class="fas fa-rotate-left"></i> Reopen</button>';
+    }
+    if(c.status === 'aberto'){
+        return '<button class="btn" style="font-size:11px;padding:4px 10px;background:rgba(184,114,0,.12);border:1px solid rgba(184,114,0,.3);color:var(--cor-alerta);" onclick="changeStatus(\'em_analise\')"><i class="fas fa-play"></i> Start Analysis</button>';
+    }
+    if(c.status === 'em_analise'){
+        return '<button class="btn btn-success" style="font-size:11px;padding:4px 10px;" onclick="changeStatus(\'concluido\')"><i class="fas fa-check"></i> Mark Complete</button>';
+    }
+    return '';
+}
+
+function changeStatus(newStatus){
+    fetch('/api/compliance/b2b/edd/'+encodeURIComponent(EDD_ID)+'/status',{
+        method:'PATCH', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({status: newStatus})
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d){ if(d.success) loadCase(); else alert(d.message); })
+    .catch(function(){ alert('Failed to update status'); });
+}
+
+/* ── Checklist ── */
+function renderChecklist(c){
+    var items = c.checklist_def || [];
+    var done  = c.checklist  || {};
+    var doneCount = Object.keys(done).length;
+    document.getElementById('checkDone').textContent = doneCount;
+    document.getElementById('progressBar').style.width = Math.round(doneCount/7*100)+'%';
+
+    var html = items.map(function(it){
+        var isDone   = !!done[it.id];
+        var meta     = isDone ? ('Completed by '+esc(done[it.id].por||'?')+' · '+fmtDate(done[it.id].em)) : '';
+        var docCount = (docsData[it.id] || []).length;
+        var clipLabel = docCount > 0
+            ? '<span class="clip-count">'+docCount+'</span>'
+            : '<span style="opacity:.35;font-size:10px;">0</span>';
+        return '<div id="wrap-'+it.id+'">'
+            +'<div class="checklist-item" id="chk-'+it.id+'" style="align-items:center;">'
+            +'<div class="check-box'+(isDone?' done':'')+'" onclick="toggleChecklist(\''+it.id+'\','+(!isDone)+')" style="flex-shrink:0;">'
+            +(isDone?'<i class="fas fa-check" style="font-size:10px;"></i>':'')+'</div>'
+            +'<div class="check-label" style="flex:1;min-width:0;">'
+            +'<div class="text'+(isDone?' done-text':'')+'">'+esc(it.label)+'</div>'
+            +(meta?'<div class="meta">'+meta+'</div>':'')
+            +'</div>'
+            +'<button class="clip-btn" onclick="toggleDocsPanel(\''+it.id+'\')" title="Evidence documents">'
+            +'<i class="fas fa-paperclip" style="font-size:11px;"></i> '+clipLabel
+            +'</button>'
+            +'</div>'
+            +'<div class="doc-expand" id="docs-panel-'+it.id+'">'+renderDocPanel(it.id)+'</div>'
+            +'</div>';
+    }).join('');
+    document.getElementById('checklistItems').innerHTML = html;
+}
+
+function renderDocPanel(itemId){
+    var docs = docsData[itemId] || [];
+    var list = docs.length
+        ? docs.map(function(doc){
+            var kb = doc.tamanho_bytes ? ' · '+Math.round(doc.tamanho_bytes/1024)+'KB' : '';
+            return '<div class="doc-row">'
+                +'<i class="fas fa-file-alt" style="color:var(--cor-admin);flex-shrink:0;font-size:13px;"></i>'
+                +'<span class="doc-name" title="'+esc(doc.nome_arquivo)+'">'+esc(doc.nome_arquivo)+'</span>'
+                +'<span class="doc-meta">'+esc(doc.uploaded_por)+kb+'</span>'
+                +'<span class="doc-meta">'+fmtDate(doc.uploaded_em)+'</span>'
+                +(doc.nota?'<span class="doc-meta" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+esc(doc.nota)+'">'+esc(doc.nota)+'</span>':'')
+                +'<button class="btn btn-ghost" style="font-size:10px;padding:2px 8px;white-space:nowrap;" onclick="viewDoc(\''+doc.id+'\')"><i class="fas fa-eye"></i> View</button>'
+                +'<button class="btn btn-danger" style="font-size:10px;padding:2px 8px;" title="Delete" onclick="deleteDoc(\''+doc.id+'\',\''+itemId+'\')"><i class="fas fa-trash"></i></button>'
+                +'</div>';
+        }).join('')
+        : '<div style="color:var(--cor-texto-secundario);font-size:12px;padding:4px 0 8px;">No evidence attached yet.</div>';
+
+    return list
+        +'<div class="upload-area">'
+        +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+        +'<input type="file" id="file-'+itemId+'" style="font-size:11px;flex:1;min-width:0;" '
+        +'accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.doc,.docx,.csv,.zip">'
+        +'<input type="text" id="nota-'+itemId+'" placeholder="Note (optional)" '
+        +'style="flex:1;min-width:120px;font-size:11px;padding:5px 9px;border:1px solid var(--cor-borda);border-radius:6px;background:var(--cor-card);color:var(--cor-texto);">'
+        +'<button class="btn btn-gold" style="font-size:11px;padding:5px 12px;white-space:nowrap;" onclick="uploadDoc(\''+itemId+'\')">'
+        +'<i class="fas fa-upload"></i> Upload</button>'
+        +'</div>'
+        +'<div id="upload-err-'+itemId+'" style="display:none;color:var(--cor-perigo);font-size:11px;margin-top:4px;"></div>'
+        +'</div>';
+}
+
+function toggleDocsPanel(itemId){
+    var panel = document.getElementById('docs-panel-'+itemId);
+    if(panel) panel.classList.toggle('open');
+}
+
+async function uploadDoc(itemId){
+    var fileInput = document.getElementById('file-'+itemId);
+    var notaInput = document.getElementById('nota-'+itemId);
+    var errEl     = document.getElementById('upload-err-'+itemId);
+    if(errEl) errEl.style.display = 'none';
+    if(!fileInput || !fileInput.files.length){
+        if(errEl){ errEl.textContent = 'Please select a file.'; errEl.style.display = 'block'; }
+        return;
+    }
+    var fd = new FormData();
+    fd.append('file', fileInput.files[0]);
+    fd.append('item', itemId);
+    fd.append('nota', notaInput ? notaInput.value.trim() : '');
+    try {
+        var r = await fetch('/api/compliance/b2b/edd/'+encodeURIComponent(EDD_ID)+'/docs', {method:'POST', body: fd});
+        var d = await r.json();
+        if(!d.success){
+            if(errEl){ errEl.textContent = d.message || 'Upload failed'; errEl.style.display = 'block'; }
+            return;
+        }
+        await loadDocs();
+        renderChecklist(caseData);
+        // Re-open the panel after re-render
+        setTimeout(function(){
+            var p = document.getElementById('docs-panel-'+itemId);
+            if(p) p.classList.add('open');
+        }, 40);
+    } catch(e){
+        if(errEl){ errEl.textContent = e.message; errEl.style.display = 'block'; }
+    }
+}
+
+async function viewDoc(docId){
+    try {
+        var r = await fetch('/api/compliance/b2b/edd/'+encodeURIComponent(EDD_ID)+'/docs/'+encodeURIComponent(docId)+'/url');
+        var d = await r.json();
+        if(!d.success || !d.url){ alert('Could not get document URL'); return; }
+        window.open(d.url, '_blank');
+    } catch(e){ alert('Request failed'); }
+}
+
+async function deleteDoc(docId, itemId){
+    if(!confirm('Delete this document? This cannot be undone.')) return;
+    try {
+        var r = await fetch('/api/compliance/b2b/edd/'+encodeURIComponent(EDD_ID)+'/docs/'+encodeURIComponent(docId), {method:'DELETE'});
+        var d = await r.json();
+        if(!d.success){ alert(d.message || 'Delete failed'); return; }
+        await loadDocs();
+        renderChecklist(caseData);
+        setTimeout(function(){
+            var p = document.getElementById('docs-panel-'+itemId);
+            if(p) p.classList.add('open');
+        }, 40);
+    } catch(e){ alert('Request failed'); }
+}
+
+function toggleChecklist(item, done){
+    fetch('/api/compliance/b2b/edd/'+encodeURIComponent(EDD_ID)+'/checklist',{
+        method:'PATCH', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({item: item, done: done})
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d){ if(d.success) loadCase(); else alert(d.message); })
+    .catch(function(){ alert('Failed to update checklist'); });
+}
+
+/* ── Approval ── */
+function renderApproval(c){
+    var sec = document.getElementById('approvalSection');
+    if(c.aprovado_por){
+        sec.innerHTML = '<div class="approval-done">'
+            +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">'
+            +'<i class="fas fa-check-circle" style="color:var(--cor-sucesso);font-size:18px;"></i>'
+            +'<span style="font-size:14px;font-weight:700;color:var(--cor-sucesso);">Approved</span>'
+            +'</div>'
+            +'<div style="font-size:12px;color:var(--cor-texto-secundario);line-height:1.8;">'
+            +'<strong>Approver:</strong> '+esc(c.aprovado_por)+'<br>'
+            +'<strong>Date:</strong> '+fmtDate(c.aprovado_em)+'<br>'
+            +'<strong>Note:</strong> '+esc(c.aprovacao_nota||'—')
+            +'</div></div>';
+    } else {
+        sec.innerHTML = '<div class="approval-pending">'
+            +'<i class="fas fa-clock" style="font-size:28px;margin-bottom:10px;display:block;"></i>'
+            +'<div style="font-size:13px;font-weight:600;margin-bottom:6px;">Awaiting Approval</div>'
+            +'<div style="font-size:12px;margin-bottom:16px;line-height:1.5;">Senior management must approve this case before it can be closed (MLR 2017 Reg.33(4)).</div>'
+            +'<button class="btn btn-success" onclick="openApprove()"><i class="fas fa-user-shield"></i> Approve This Case</button>'
+            +'</div>';
+    }
+}
+
+/* ── Activity Log ── */
+function renderActivity(logs){
+    var el = document.getElementById('activityLog');
+    if(!logs.length){
+        el.innerHTML = '<div style="text-align:center;color:var(--cor-texto-secundario);font-size:12px;padding:10px 0;">No activity yet</div>';
+        return;
+    }
+    var dotColors = {
+        EDD_NOTA:      '#c8920a',
+        EDD_CHECKLIST: '#1a7a52',
+        EDD_APROVACAO: '#2ec27e',
+        EDD_STATUS:    '#7c3aed',
+    };
+    el.innerHTML = logs.slice().reverse().map(function(log){
+        var detail = {};
+        try{ detail = JSON.parse(log.detalhe||'{}'); }catch(e){}
+        var color = dotColors[log.acao] || '#888';
+        var action = '', detail_text = '';
+        if(log.acao === 'EDD_NOTA'){
+            action = 'Note added';
+            detail_text = esc(detail.texto||'');
+        } else if(log.acao === 'EDD_CHECKLIST'){
+            action = detail.done ? '✓ Checklist item completed' : '✗ Checklist item unchecked';
+            detail_text = esc(detail.label||detail.item||'');
+        } else if(log.acao === 'EDD_APROVACAO'){
+            action = 'Case approved by senior management';
+            detail_text = esc(detail.nota||'');
+        } else if(log.acao === 'EDD_STATUS'){
+            action = 'Status changed';
+            detail_text = esc((detail.de||'?')+' → '+(detail.para||'?'));
+        }
+        return '<div class="activity-item">'
+            +'<div class="activity-dot" style="background:'+color+';margin-top:4px;"></div>'
+            +'<div class="activity-content">'
+            +'<div class="action"><i class="fas fa-user" style="opacity:.4;font-size:10px;margin-right:3px;"></i>'+esc(log.usuario||'—')+' — '+action+'</div>'
+            +(detail_text?'<div class="detail">'+detail_text+'</div>':'')
+            +'<div class="when">'+fmtDateTime(log.created_at)+'</div>'
+            +'</div></div>';
+    }).join('');
+}
+
+function addNote(){
+    var texto = (document.getElementById('noteInput').value||'').trim();
+    if(!texto){ alert('Please enter a note.'); return; }
+    fetch('/api/compliance/b2b/edd/'+encodeURIComponent(EDD_ID)+'/note',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({texto: texto})
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+        if(!d.success){ alert(d.message); return; }
+        document.getElementById('noteInput').value = '';
+        loadCase();
+    })
+    .catch(function(){ alert('Failed to add note'); });
+}
+
+/* ── Approve Modal ── */
+function openApprove(){
+    document.getElementById('approveNota').value = '';
+    document.getElementById('approveSenha').value = '';
+    document.getElementById('approvePassError').style.display = 'none';
+    var btn = document.getElementById('approveBtn');
+    btn.disabled = true; btn.style.opacity = '.4'; btn.style.cursor = 'not-allowed';
+    document.getElementById('approveModal').classList.add('show');
+    setTimeout(function(){ document.getElementById('approveNota').focus(); }, 100);
+}
+function closeApprove(){
+    document.getElementById('approveModal').classList.remove('show');
+}
+function onApproveInput(){
+    var nota  = document.getElementById('approveNota').value.trim();
+    var senha = document.getElementById('approveSenha').value;
+    var btn   = document.getElementById('approveBtn');
+    var ok    = nota.length >= 10 && senha.length > 0;
+    btn.disabled = !ok; btn.style.opacity = ok?'1':'.4'; btn.style.cursor = ok?'pointer':'not-allowed';
+}
+function confirmApprove(){
+    var nota  = document.getElementById('approveNota').value.trim();
+    var senha = document.getElementById('approveSenha').value;
+    if(nota.length < 10 || !senha) return;
+    document.getElementById('approvePassError').style.display = 'none';
+    var btn = document.getElementById('approveBtn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    btn.disabled = true; btn.style.opacity = '.7';
+    fetch('/api/compliance/b2b/edd/'+encodeURIComponent(EDD_ID)+'/approve',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({nota: nota, senha: senha})
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+        if(!d.success){
+            if(d.message === 'Incorrect password'){
+                document.getElementById('approvePassError').style.display = 'block';
+                document.getElementById('approveSenha').value = '';
+                document.getElementById('approveSenha').focus();
+            } else { alert(d.message); }
+            btn.innerHTML = '<i class="fas fa-check"></i> Approve Case';
+            btn.disabled = false; btn.style.opacity = '1';
+            return;
+        }
+        closeApprove();
+        loadCase();
+    })
+    .catch(function(){ alert('Request failed'); btn.innerHTML='<i class="fas fa-check"></i> Approve Case'; btn.disabled=false; btn.style.opacity='1'; });
+}
+
+/* ── Helpers ── */
+function statusTag(s){
+    var map = {
+        aberto:     {bg:'rgba(192,32,32,.12)',c:'var(--cor-perigo)',l:'Open'},
+        em_analise: {bg:'rgba(184,114,0,.12)',c:'var(--cor-alerta)',l:'In Analysis'},
+        concluido:  {bg:'rgba(26,122,82,.12)', c:'var(--cor-sucesso)',l:'Completed'},
+        fechado:    {bg:'rgba(26,122,82,.12)', c:'var(--cor-sucesso)',l:'Closed'},
+    };
+    var m = map[s] || {bg:'rgba(128,128,128,.1)',c:'var(--cor-texto-secundario)',l:s||'—'};
+    return '<span class="tag" style="background:'+m.bg+';color:'+m.c+';">'+esc(m.l)+'</span>';
+}
+function riskTag(r){
+    var map = {
+        low:       {bg:'rgba(34,197,94,.12)',  c:'#16a34a'},
+        medium:    {bg:'rgba(234,179,8,.12)',   c:'#ca8a04'},
+        standard:  {bg:'rgba(200,146,10,.12)', c:'#c8920a'},
+        high:      {bg:'rgba(239,68,68,.12)',   c:'#dc2626'},
+        sanctioned:{bg:'rgba(124,58,237,.12)', c:'#7c3aed'},
+    };
+    var m = map[(r||'').toLowerCase()] || {bg:'rgba(128,128,128,.1)',c:'var(--cor-texto-secundario)'};
+    return '<span class="tag" style="background:'+m.bg+';color:'+m.c+';">'+(r||'—')+'</span>';
+}
+function priorityBadge(p){
+    var map = {high:{c:'var(--cor-perigo)',dot:'#c02020'},medium:{c:'var(--cor-alerta)',dot:'#b87200'},low:{c:'var(--cor-sucesso)',dot:'#1a7a52'}};
+    var m = map[p]||map.medium;
+    return '<span style="display:inline-flex;align-items:center;gap:5px;">'
+        +'<span style="width:8px;height:8px;border-radius:50%;background:'+m.dot+';display:inline-block;"></span>'
+        +esc(p?p.charAt(0).toUpperCase()+p.slice(1):'—')+'</span>';
+}
+function fmtDate(d){
+    if(!d) return '—';
+    var dt = new Date(d);
+    if(isNaN(dt)) return d;
+    return dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+}
+function fmtDateTime(d){
+    if(!d) return '—';
+    var dt = new Date(d);
+    if(isNaN(dt)) return d;
+    return dt.toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function esc(s){
+    if(s==null) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

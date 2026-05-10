@@ -15460,6 +15460,90 @@ def _compliance_audit(usuario, acao, detalhe=''):
         pass  # audit failure must never break the main action
 
 
+def _auto_edd_trigger(client_id):
+    """Check EDD conditions for a client and create a case if needed.
+    Returns the new EDD case id (str) or None.
+    Safe — never raises; prints diagnostics to server log.
+    """
+    try:
+        from datetime import datetime, timezone
+        print(f"[EDD-AUTO] checking client {client_id}")
+
+        # 1. Fetch client
+        _cli_r = supabase.table('clientes_b2b')\
+            .select('nivel_risco,pep_empresa,sancoes_empresa,paises_origem')\
+            .eq('id', client_id).limit(1).execute()
+        if not _cli_r.data:
+            print(f"[EDD-AUTO] client not found: {client_id}")
+            return None
+        _cli = _cli_r.data[0]
+        print(f"[EDD-AUTO] client data: nivel={_cli.get('nivel_risco')} pep={_cli.get('pep_empresa')} sanc={_cli.get('sancoes_empresa')}")
+
+        # 2. Fetch pessoas
+        _pessoas = supabase.table('pessoas_controlantes')\
+            .select('nome_completo,pep_status,sancoes_status')\
+            .eq('cliente_b2b_id', client_id).execute().data or []
+        print(f"[EDD-AUTO] {len(_pessoas)} controlling person(s)")
+
+        # 3. Build reasons
+        _edd_reasons = []
+        _pep_emp  = _cli.get('pep_empresa', '')
+        _sanc_emp = _cli.get('sancoes_empresa', '')
+        if _cli.get('nivel_risco') == 'high':
+            _edd_reasons.append('High risk score')
+        if _pep_emp == 'sim':
+            _edd_reasons.append('Company declared as PEP')
+        if _sanc_emp == 'confirmado':
+            _edd_reasons.append('Sanctions hit confirmed on company')
+        for _p in _pessoas:
+            if _p.get('pep_status') in ('sim', 'confirmado'):
+                _edd_reasons.append(f"Controlling person PEP: {_p.get('nome_completo','unknown')}")
+                break
+        for _p in _pessoas:
+            if _p.get('sancoes_status') == 'confirmado':
+                _edd_reasons.append(f"Controlling person sanctions hit: {_p.get('nome_completo','unknown')}")
+                break
+        print(f"[EDD-AUTO] reasons: {_edd_reasons}")
+
+        if not _edd_reasons:
+            print(f"[EDD-AUTO] no trigger conditions met — skipping")
+            return None
+
+        # 4. Check for existing open case
+        _existing = supabase.table('edd_cases').select('id')\
+            .eq('cliente_id', client_id)\
+            .in_('status', ['aberto', 'em_analise']).execute()
+        print(f"[EDD-AUTO] existing open cases: {len(_existing.data or [])}")
+        if _existing.data:
+            print(f"[EDD-AUTO] open case already exists — skipping")
+            return None
+
+        # 5. Create EDD case
+        _prio    = 'high' if (_sanc_emp == 'confirmado' or _pep_emp == 'sim') else 'medium'
+        _trigger = '; '.join(_edd_reasons)
+        _ins = supabase.table('edd_cases').insert({
+            'cliente_id':     client_id,
+            'status':         'aberto',
+            'trigger_reason': f'[AUTO] {_trigger}',
+            'prioridade':     _prio,
+            'criado_por':     'sistema',
+            'criado_em':      datetime.now(timezone.utc).isoformat(),
+            'checklist':      {},
+        }).execute()
+        if _ins.data:
+            _edd_id = _ins.data[0]['id']
+            print(f"[EDD-AUTO] ✅ EDD case created: {_edd_id}")
+            _compliance_audit('sistema', 'EDD_AUTO_CRIADO',
+                f'edd_id={_edd_id}; cliente_id={client_id}; trigger={_trigger}')
+            return _edd_id
+        else:
+            print(f"[EDD-AUTO] ❌ INSERT returned no data")
+            return None
+    except Exception as _e:
+        print(f"[EDD-AUTO] ❌ exception: {_e}")
+        return None
+
+
 @app.route('/api/compliance/audit', methods=['GET'])
 def compliance_listar_audit():
     usuario, tipo, redir = _check_compliance_acesso()
@@ -21511,6 +21595,14 @@ def compliance_b2b_edd():
     if redir: return redir
     return render_with_lang('compliance_b2b/edd.html', usuario=usuario, tipo=tipo)
 
+
+@app.route('/compliance/b2b/edd/<edd_id>')
+def compliance_b2b_edd_detalhe_page(edd_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return redir
+    return render_with_lang('compliance_b2b/edd_detalhe.html', usuario=usuario, tipo=tipo, edd_id=edd_id)
+
+
 @app.route('/compliance/b2b/alertas')
 def compliance_b2b_alertas():
     usuario, tipo, redir = _b2b_acesso()
@@ -21744,6 +21836,9 @@ def api_b2b_cliente_criar():
         ).start()
 
         # Auto-calculate score if we have enough data
+        _nivel_calculado = None
+        _score_calculado = None
+        _pessoas_salvas_data = []
         try:
             # 🔥 BUSCAR OS UBOS QUE FORAM SALVOS 🔥
             # Recuperar as pessoas que acabaram de ser inseridas
@@ -21780,9 +21875,15 @@ def api_b2b_cliente_criar():
                     descricao=f'Risk score {score}/60 calculated at onboarding.',
                     criado_por=usuario,
                 )
+            _nivel_calculado = nivel
+            _score_calculado = score
+            _pessoas_salvas_data = pessoas_salvas.data or []
         except Exception as e:
             print(f"⚠️ Erro ao calcular score: {e}")
             pass
+
+        # ── AUTO-EDD ──
+        _auto_edd_trigger(client_id)
 
         # Create initial limit history entry if limits were set
         if d.get('limite_mensal'):
@@ -22029,7 +22130,10 @@ def api_b2b_cliente_atualizar(client_id):
             print(f"⚠️ Erro ao recalcular score no PATCH: {e}")
             pass
 
-        return jsonify({'success': True, 'id': client_id})
+        # ── AUTO-EDD ──
+        _edd_auto_id = _auto_edd_trigger(client_id)
+        return jsonify({'success': True, 'id': client_id,
+                        'edd_auto_created': _edd_auto_id})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
 
@@ -22344,12 +22448,24 @@ def api_b2b_pessoa_atualizar(pessoa_id):
     usuario, tipo, redir = _b2b_acesso()
     if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
     try:
+        from datetime import datetime, timezone
         d = request.get_json() or {}
         _COLS = {'nome_completo','cargo','data_nascimento','nacionalidade','numero_identificacao',
                  'percentual_participacao','email','pep_status','sancoes_status','identidade_verificada'}
         upd = {k: v for k, v in d.items() if k in _COLS and v is not None and v != ''}
         supabase.table('pessoas_controlantes').update(upd).eq('id', pessoa_id).execute()
-        return jsonify({'success': True})
+
+        # ── AUTO-EDD: trigger from person PEP/sanctions change ──
+        _edd_auto_id = None
+        _new_pep  = upd.get('pep_status', '')
+        _new_sanc = upd.get('sancoes_status', '')
+        if _new_pep in ('sim', 'confirmado') or _new_sanc == 'confirmado':
+            _pr = supabase.table('pessoas_controlantes')\
+                .select('cliente_b2b_id').eq('id', pessoa_id).limit(1).execute()
+            if _pr.data and _pr.data[0].get('cliente_b2b_id'):
+                _edd_auto_id = _auto_edd_trigger(_pr.data[0]['cliente_b2b_id'])
+
+        return jsonify({'success': True, 'edd_auto_created': _edd_auto_id})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
 
@@ -22876,9 +22992,9 @@ def api_b2b_edd_list():
         status_raw = request.args.get('status', '')
         limit = min(int(request.args.get('limit', 50)), 200)
 
-        query = supabase.table('edd_cases').select('*, clientes_b2b!edd_cases_cliente_b2b_id_fkey(business_name, razao_social, nome_comercial)')
+        query = supabase.table('edd_cases').select('*, clientes_b2b!cliente_id(business_name, razao_social, nome_comercial)')
         if cliente_id:
-            query = query.eq('cliente_b2b_id', cliente_id)
+            query = query.eq('cliente_id', cliente_id)
         if status_raw:
             statuses = [s.strip() for s in status_raw.split(',')]
             if len(statuses) == 1:
@@ -22903,11 +23019,17 @@ def api_b2b_edd_criar():
     try:
         from datetime import datetime, timezone
         d = request.get_json() or {}
-        if not d.get('gatilho'):
+        # Normalise trigger field name (frontend sends 'gatilho', table column is 'trigger_reason')
+        if 'gatilho' in d and 'trigger_reason' not in d:
+            d['trigger_reason'] = d.pop('gatilho')
+        if not d.get('trigger_reason'):
             return jsonify({'success': False, 'message': 'EDD trigger is required'}), 400
         # Normalise client ID field name (frontend may send either spelling)
-        if 'client_b2b_id' in d and 'cliente_b2b_id' not in d:
-            d['cliente_b2b_id'] = d.pop('client_b2b_id')
+        for old_key in ('client_b2b_id', 'cliente_b2b_id'):
+            if old_key in d and 'cliente_id' not in d:
+                d['cliente_id'] = d.pop(old_key)
+            elif old_key in d:
+                d.pop(old_key)
         d['status'] = 'aberto'
         d['criado_por'] = usuario
         d['criado_em'] = datetime.now(timezone.utc).isoformat()
@@ -22915,12 +23037,12 @@ def api_b2b_edd_criar():
         try:
             cli_r = supabase.table('clientes_b2b')\
                 .select('business_name,razao_social')\
-                .eq('id', d.get('cliente_b2b_id', '')).single().execute()
+                .eq('id', d.get('cliente_id', '')).single().execute()
             cb = cli_r.data or {}
             nome = cb.get('business_name') or cb.get('razao_social') or '—'
             _criar_alerta_compliance(
-                cliente_b2b_id=d.get('cliente_b2b_id'),
-                titulo=f'EDD case opened: {d["gatilho"][:60]}',
+                cliente_b2b_id=d.get('cliente_id'),
+                titulo=f'EDD case opened: {d["trigger_reason"][:60]}',
                 tipo='edd_aberto',
                 prioridade='high',
                 descricao=d.get('notas', ''),
@@ -22951,6 +23073,249 @@ def api_b2b_edd_status(edd_id):
         except Exception:
             pass
         supabase.table('edd_cases').update(payload).eq('id', edd_id).execute()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── EDD DETAIL ──
+
+EDD_CHECKLIST_ITEMS = [
+    ('info_adicional',      'Additional information obtained on client and all UBOs/controllers'),
+    ('source_funds',        'Source of funds verified and documented'),
+    ('source_wealth',       'Source of wealth verified and documented'),
+    ('business_purpose',    'Purpose and intended nature of business relationship confirmed'),
+    ('transaction_volumes', 'Expected transaction volumes and patterns documented'),
+    ('enhanced_monitoring', 'Enhanced ongoing monitoring activated'),
+    ('senior_approval',     'Senior management approval obtained (MLR 2017 Reg.33(4))'),
+]
+
+
+@app.route('/api/compliance/b2b/edd/<edd_id>', methods=['GET'])
+def api_b2b_edd_detalhe(edd_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        r = supabase.table('edd_cases')\
+            .select('*, clientes_b2b!cliente_id(id,business_name,razao_social,nome_comercial,nivel_risco,paises_origem)')\
+            .eq('id', edd_id).single().execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'Case not found'}), 404
+        case = r.data
+        cb = case.pop('clientes_b2b', None) or {}
+        case['client_nome']   = cb.get('business_name') or cb.get('nome_comercial') or cb.get('razao_social') or '—'
+        case['client_risco']  = cb.get('nivel_risco', '—')
+        case['client_pais']   = cb.get('paises_origem', '—')
+        case['checklist_def'] = [{'id': k, 'label': v} for k, v in EDD_CHECKLIST_ITEMS]
+        # Activity log from compliance_audit
+        logs = supabase.table('compliance_audit')\
+            .select('usuario,acao,detalhe,created_at')\
+            .in_('acao', ['EDD_NOTA', 'EDD_CHECKLIST', 'EDD_APROVACAO', 'EDD_STATUS'])\
+            .ilike('detalhe', f'%{edd_id}%')\
+            .order('created_at', desc=False).limit(200).execute().data or []
+        case['actividades'] = logs
+        return jsonify({'success': True, 'case': case})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/edd/<edd_id>/checklist', methods=['PATCH'])
+def api_b2b_edd_checklist(edd_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        from datetime import datetime, timezone
+        import json as _json
+        d    = request.get_json() or {}
+        item = d.get('item', '').strip()
+        done = bool(d.get('done', True))
+        valid_ids = {k for k, _ in EDD_CHECKLIST_ITEMS}
+        if item not in valid_ids:
+            return jsonify({'success': False, 'message': 'Invalid checklist item'}), 400
+        # Fetch current checklist
+        r = supabase.table('edd_cases').select('checklist').eq('id', edd_id).single().execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'Case not found'}), 404
+        checklist = r.data.get('checklist') or {}
+        now = datetime.now(timezone.utc).isoformat()
+        if done:
+            checklist[item] = {'done': True, 'por': usuario, 'em': now}
+        else:
+            checklist.pop(item, None)
+        supabase.table('edd_cases').update({'checklist': checklist}).eq('id', edd_id).execute()
+        label = next((v for k, v in EDD_CHECKLIST_ITEMS if k == item), item)
+        _compliance_audit(usuario, 'EDD_CHECKLIST', _json.dumps({
+            'edd_id': edd_id, 'item': item,
+            'label': label[:80], 'done': done,
+        }, ensure_ascii=False))
+        return jsonify({'success': True, 'checklist': checklist})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/edd/<edd_id>/approve', methods=['POST'])
+def api_b2b_edd_approve(edd_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        from datetime import datetime, timezone
+        import json as _json
+        d    = request.get_json() or {}
+        nota = (d.get('nota') or '').strip()
+        senha = (d.get('senha') or '').strip()
+        if len(nota) < 10:
+            return jsonify({'success': False, 'message': 'Approval note required (min 10 characters)'}), 400
+        if not senha:
+            return jsonify({'success': False, 'message': 'Password required'}), 400
+        # Verify password
+        senha_hash = hashlib.sha256(senha.encode()).hexdigest()
+        uc = supabase.table('usuarios').select('id').eq('username', usuario).eq('senha_hash', senha_hash).execute()
+        if not uc.data:
+            return jsonify({'success': False, 'message': 'Incorrect password'}), 401
+        now = datetime.now(timezone.utc).isoformat()
+        supabase.table('edd_cases').update({
+            'aprovado_por':   usuario,
+            'aprovado_em':    now,
+            'aprovacao_nota': nota,
+            'status':         'concluido',
+        }).eq('id', edd_id).execute()
+        _compliance_audit(usuario, 'EDD_APROVACAO', _json.dumps({
+            'edd_id': edd_id, 'nota': nota,
+        }, ensure_ascii=False))
+        return jsonify({'success': True, 'aprovado_em': now})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/edd/<edd_id>/note', methods=['POST'])
+def api_b2b_edd_note(edd_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        import json as _json
+        d    = request.get_json() or {}
+        texto = (d.get('texto') or '').strip()
+        if len(texto) < 3:
+            return jsonify({'success': False, 'message': 'Note too short'}), 400
+        _compliance_audit(usuario, 'EDD_NOTA', _json.dumps({
+            'edd_id': edd_id, 'texto': texto,
+        }, ensure_ascii=False))
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── EDD DOCUMENTS ──
+
+@app.route('/api/compliance/b2b/edd/<edd_id>/docs', methods=['GET'])
+def api_b2b_edd_docs_list(edd_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        item_filter = request.args.get('item', '')
+        query = supabase.table('edd_documentos').select('*').eq('edd_case_id', edd_id).order('uploaded_em')
+        if item_filter:
+            query = query.eq('checklist_item', item_filter)
+        r = query.execute()
+        return jsonify({'success': True, 'docs': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/edd/<edd_id>/docs', methods=['POST'])
+def api_b2b_edd_docs_upload(edd_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        from datetime import datetime, timezone
+        import uuid as _uuid
+        import re as _re
+        import json as _json
+
+        checklist_item = (request.form.get('item') or '').strip()
+        nota           = (request.form.get('nota') or '').strip()
+        if not checklist_item:
+            return jsonify({'success': False, 'message': 'checklist_item required'}), 400
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'message': 'No file provided'}), 400
+
+        f = request.files['file']
+        if not f.filename:
+            return jsonify({'success': False, 'message': 'Empty filename'}), 400
+
+        safe_name    = _re.sub(r'[^\w.\-]', '_', f.filename)
+        doc_id       = str(_uuid.uuid4())
+        storage_path = f'edd-docs/{edd_id}/{checklist_item}/{doc_id}_{safe_name}'
+        file_bytes   = f.read()
+        content_type = f.content_type or 'application/octet-stream'
+
+        supabase.storage.from_('edd-docs').upload(
+            storage_path, file_bytes,
+            file_options={'content-type': content_type, 'upsert': 'false'},
+        )
+
+        ins = supabase.table('edd_documentos').insert({
+            'id':             doc_id,
+            'edd_case_id':    edd_id,
+            'checklist_item': checklist_item,
+            'nome_arquivo':   safe_name,
+            'storage_path':   storage_path,
+            'content_type':   content_type,
+            'tamanho_bytes':  len(file_bytes),
+            'nota':           nota or None,
+            'uploaded_por':   usuario,
+            'uploaded_em':    datetime.now(timezone.utc).isoformat(),
+        }).execute()
+
+        _compliance_audit(usuario, 'EDD_DOC_UPLOAD', _json.dumps({
+            'edd_id': edd_id, 'checklist_item': checklist_item,
+            'arquivo': safe_name, 'doc_id': doc_id,
+        }, ensure_ascii=False))
+
+        return jsonify({'success': True, 'doc': ins.data[0] if ins.data else {}})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/edd/<edd_id>/docs/<doc_id>/url', methods=['GET'])
+def api_b2b_edd_doc_url(edd_id, doc_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        r = supabase.table('edd_documentos')\
+            .select('storage_path,nome_arquivo,content_type')\
+            .eq('id', doc_id).eq('edd_case_id', edd_id).single().execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'Document not found'}), 404
+        signed = supabase.storage.from_('edd-docs').create_signed_url(r.data['storage_path'], 3600)
+        url = signed.get('signedURL') or signed.get('signedUrl', '')
+        return jsonify({'success': True, 'url': url,
+                        'nome_arquivo': r.data['nome_arquivo'],
+                        'content_type': r.data.get('content_type', '')})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/edd/<edd_id>/docs/<doc_id>', methods=['DELETE'])
+def api_b2b_edd_doc_delete(edd_id, doc_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        import json as _json
+        r = supabase.table('edd_documentos')\
+            .select('storage_path,nome_arquivo,checklist_item')\
+            .eq('id', doc_id).eq('edd_case_id', edd_id).single().execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'Document not found'}), 404
+        try:
+            supabase.storage.from_('edd-docs').remove([r.data['storage_path']])
+        except Exception as _e_st:
+            print(f"⚠️ Storage delete failed: {_e_st}")
+        supabase.table('edd_documentos').delete().eq('id', doc_id).execute()
+        _compliance_audit(usuario, 'EDD_DOC_DELETE', _json.dumps({
+            'edd_id': edd_id, 'doc_id': doc_id,
+            'arquivo': r.data['nome_arquivo'], 'checklist_item': r.data['checklist_item'],
+        }, ensure_ascii=False))
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
@@ -24261,8 +24626,11 @@ def api_b2b_paises_list():
         cont_f     = request.args.get('continente', '').strip()
         blocked_f  = request.args.get('bloqueado', '').strip()   # 'true' | 'false' | ''
 
+        from datetime import date as _date
+        today_iso = _date.today().isoformat()
+
         rows = supabase.table('paises_risco')\
-            .select('codigo,nome,nome_nacionalidade,risco,bloqueado,continente')\
+            .select('codigo,nome,nome_nacionalidade,risco,bloqueado,continente,ultima_revisao,proxima_revisao')\
             .order('nome').execute().data or []
 
         # Apply filters in Python (table is small — 250 rows tops)
@@ -24281,14 +24649,66 @@ def api_b2b_paises_list():
             filtered.append(r)
 
         stats = {
-            'total':      len(rows),
-            'blocked':    sum(1 for r in rows if r.get('bloqueado')),
-            'high_risk':  sum(1 for r in rows if (r.get('risco') or '') == 'high'),
-            'sanctioned': sum(1 for r in rows if (r.get('risco') or '') == 'sanctioned'),
-            'low':        sum(1 for r in rows if (r.get('risco') or '') == 'low'),
+            'total':           len(rows),
+            'blocked':         sum(1 for r in rows if r.get('bloqueado')),
+            'high_risk':       sum(1 for r in rows if (r.get('risco') or '') == 'high'),
+            'sanctioned':      sum(1 for r in rows if (r.get('risco') or '') == 'sanctioned'),
+            'low':             sum(1 for r in rows if (r.get('risco') or '') == 'low'),
+            'overdue_reviews': sum(1 for r in rows if r.get('proxima_revisao') and r['proxima_revisao'] < today_iso),
         }
         continents = sorted({r.get('continente') for r in rows if r.get('continente')})
         return jsonify({'success': True, 'paises': filtered, 'stats': stats, 'continents': continents})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/paises/revisar-todos', methods=['POST'])
+def api_b2b_paises_revisar_todos():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        from datetime import date as _date, timedelta
+        import json as _json
+
+        d    = request.get_json() or {}
+        nota = (d.get('nota') or '').strip()
+        if len(nota) < 20:
+            return jsonify({'success': False, 'message': 'Review note is required (min 20 characters)'}), 400
+
+        rows  = supabase.table('paises_risco').select('codigo,risco,proxima_revisao').execute().data or []
+
+        intervals = {'sanctioned': 90, 'high': 180, 'medium': 365, 'standard': 730, 'low': 730}
+        today     = _date.today()
+        today_iso = today.isoformat()
+
+        # Only process countries that are overdue (proxima_revisao is null or already passed)
+        overdue = [r for r in rows if not r.get('proxima_revisao') or r['proxima_revisao'] <= today_iso]
+        if not overdue:
+            return jsonify({'success': False, 'message': 'No overdue reviews — nothing to update'}), 400
+
+        by_risco = {}
+        for r in overdue:
+            risco = r.get('risco', 'medium')
+            by_risco.setdefault(risco, []).append(r['codigo'])
+
+        total = 0
+        for risco, codigos in by_risco.items():
+            days    = intervals.get(risco, 365)
+            proxima = today + timedelta(days=days)
+            supabase.table('paises_risco').update({
+                'ultima_revisao':  today_iso,
+                'proxima_revisao': proxima.isoformat(),
+            }).in_('codigo', codigos).execute()
+            total += len(codigos)
+
+        _compliance_audit(usuario, 'PAIS_REVISAO_CONFIRMADA', _json.dumps({
+            'tipo':         'bulk',
+            'total':        total,
+            'nota':         nota,
+            'data_revisao': today_iso,
+        }, ensure_ascii=False))
+
+        return jsonify({'success': True, 'updated': total})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
 
@@ -24298,6 +24718,22 @@ def api_b2b_paises_reset():
     usuario, tipo, redir = _b2b_acesso()
     if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
     try:
+        d     = request.get_json() or {}
+        nota  = (d.get('nota')  or '').strip()
+        senha = (d.get('senha') or '').strip()
+
+        if len(nota) < 20:
+            return jsonify({'success': False, 'message': 'Reason is required (min 20 characters)'}), 400
+        if not senha:
+            return jsonify({'success': False, 'message': 'Password is required'}), 400
+
+        # Verify password against stored hash
+        senha_hash  = hashlib.sha256(senha.encode()).hexdigest()
+        user_check  = supabase.table('usuarios').select('id')\
+            .eq('username', usuario).eq('senha_hash', senha_hash).execute()
+        if not user_check.data:
+            return jsonify({'success': False, 'message': 'Incorrect password'}), 401
+
         # Baseline classification — FCA/HMRC UK (MLR 2017 + FATF 2024 + UK OFSI)
         SANCTIONED = ['AF','BY','CU','IR','KP','MM','RU','SY']
         HIGH_BLOCKED = ['SD']
@@ -24361,6 +24797,11 @@ def api_b2b_paises_reset():
 
         _invalidate_country_cache()
         total = len(SANCTIONED)+len(HIGH_BLOCKED)+len(LOW)+len(STANDARD)+len(HIGH)+len(MEDIUM)
+        import json as _json
+        _compliance_audit(usuario, 'PAIS_RISCO_RESET', _json.dumps({
+            'total': total,
+            'nota':  nota,
+        }, ensure_ascii=False))
         return jsonify({'success': True, 'updated': total,
                         'message': f'{total} countries reset to FCA/HMRC baseline (FATF 2024 + UK OFSI)'})
     except Exception as e:
@@ -24387,12 +24828,95 @@ def api_b2b_pais_update(codigo):
         if payload.get('risco') == 'sanctioned':
             payload['bloqueado'] = True
 
+        # fetch current values before update (for audit trail)
+        atual = supabase.table('paises_risco').select('nome,risco,bloqueado,proxima_revisao').eq('codigo', codigo).execute()
+        anterior = atual.data[0] if atual.data else {}
+
+        # recalculate review dates when risk level changes
+        novo_risco = payload.get('risco')
+        if novo_risco and novo_risco != anterior.get('risco'):
+            from datetime import date as _date, timedelta
+            intervals = {'sanctioned': 90, 'high': 180, 'medium': 365, 'standard': 730, 'low': 730}
+            today = _date.today()
+            payload['ultima_revisao']  = today.isoformat()
+            payload['proxima_revisao'] = (today + timedelta(days=intervals.get(novo_risco, 365))).isoformat()
+
         result = supabase.table('paises_risco').update(payload).eq('codigo', codigo).execute()
         if not result.data:
             return jsonify({'success': False, 'message': 'Country not found'}), 404
 
-        _invalidate_country_cache()   # force reload on next request
+        _invalidate_country_cache()
+
+        import json as _json
+        _compliance_audit(usuario, 'PAIS_RISCO_UPDATE', _json.dumps({
+            'codigo':             codigo,
+            'nome':               anterior.get('nome', codigo),
+            'risco_anterior':     anterior.get('risco'),
+            'risco_novo':         payload.get('risco', anterior.get('risco')),
+            'bloqueado_anterior': anterior.get('bloqueado'),
+            'bloqueado_novo':     payload.get('bloqueado', anterior.get('bloqueado')),
+        }, ensure_ascii=False))
+
         return jsonify({'success': True, 'pais': result.data[0]})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/paises/<codigo>/revisar', methods=['POST'])
+def api_b2b_pais_revisar(codigo):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        from datetime import date as _date, timedelta
+        import json as _json
+        codigo = codigo.upper().strip()
+
+        atual = supabase.table('paises_risco').select('nome,risco').eq('codigo', codigo).execute()
+        if not atual.data:
+            return jsonify({'success': False, 'message': 'Country not found'}), 404
+        pais  = atual.data[0]
+        risco = pais.get('risco', 'medium')
+
+        # Review intervals: sanctioned=3mo, high=6mo, medium=12mo, standard/low=24mo
+        intervals = {'sanctioned': 90, 'high': 180, 'medium': 365, 'standard': 730, 'low': 730}
+        days     = intervals.get(risco, 365)
+        today    = _date.today()
+        proxima  = today + timedelta(days=days)
+
+        supabase.table('paises_risco').update({
+            'ultima_revisao':  today.isoformat(),
+            'proxima_revisao': proxima.isoformat(),
+        }).eq('codigo', codigo).execute()
+
+        _compliance_audit(usuario, 'PAIS_REVISAO_CONFIRMADA', _json.dumps({
+            'codigo':           codigo,
+            'nome':             pais.get('nome', codigo),
+            'risco':            risco,
+            'proxima_revisao':  proxima.isoformat(),
+        }, ensure_ascii=False))
+
+        return jsonify({
+            'success':          True,
+            'ultima_revisao':   today.isoformat(),
+            'proxima_revisao':  proxima.isoformat(),
+            'dias':             days,
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/b2b/paises/audit', methods=['GET'])
+def api_b2b_paises_audit():
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        rows = supabase.table('compliance_audit')\
+            .select('usuario,acao,detalhe,created_at')\
+            .in_('acao', ['PAIS_RISCO_UPDATE', 'PAIS_RISCO_RESET', 'PAIS_REVISAO_CONFIRMADA'])\
+            .order('created_at', desc=True)\
+            .limit(300)\
+            .execute().data or []
+        return jsonify({'success': True, 'logs': rows})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
 
