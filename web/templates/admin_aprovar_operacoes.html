@@ -714,6 +714,132 @@
         </div>
     </div>
 
+    <!-- ══ FLUXO PÓS-SWIFT: DESPESA ══════════════════════════════════════════ -->
+
+    <!-- MODAL: Pergunta Despesa Wire Fee -->
+    <div id="modalPerguntaDespesa" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width:460px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-minus-circle" style="color:#e74c3c;"></i> Lançar Despesa Bancária?</h3>
+            </div>
+            <div class="modal-body" style="text-align:center;padding:28px 24px 16px;">
+                <p style="font-size:15px;margin-bottom:10px;">Deseja lançar o <strong>wire fee bancário</strong> como despesa?</p>
+                <p style="font-size:13px;color:var(--text-muted,#888);">Será debitado da conta bancária usada na transferência.</p>
+            </div>
+            <div class="modal-footer" style="justify-content:center;gap:16px;">
+                <button class="btn-secondary" onclick="confirmarPerguntaDespesa(false)">Não, pular</button>
+                <button class="btn-submit" onclick="confirmarPerguntaDespesa(true)"><i class="fas fa-check"></i> Sim, lançar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Lançar Despesa Wire Fee -->
+    <div id="modalDespesaWire" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width:520px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-minus-circle" style="color:#e74c3c;"></i> Wire Fee — Despesa Bancária</h3>
+                <button class="modal-close" onclick="document.getElementById('modalDespesaWire').style.display='none'; document.getElementById('modalPerguntaReceita').style.display='flex';">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Conta Bancária</label>
+                    <input type="text" id="despesa_conta_bancaria" class="form-control" readonly style="opacity:.7;cursor:not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label>Categoria</label>
+                    <select id="despesa_categoria" class="form-control" onchange="popularContasDespesa()">
+                        <option value="">Carregando...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Conta de Despesa</label>
+                    <select id="despesa_conta_despesa" class="form-control" disabled>
+                        <option value="">Selecione primeiro uma categoria...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Valor <span style="color:#e01b24;">*</span></label>
+                    <input type="number" id="despesa_valor" class="form-control" placeholder="0.00" min="0.01" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <input type="text" id="despesa_descricao" class="form-control">
+                </div>
+                <div id="despesa_msg" style="font-size:13px;min-height:18px;color:#e01b24;margin-top:4px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="document.getElementById('modalDespesaWire').style.display='none'; document.getElementById('modalPerguntaReceita').style.display='flex';">Pular</button>
+                <button class="btn-submit" onclick="confirmarDespesaWire()"><i class="fas fa-save"></i> Lançar Despesa</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ FLUXO PÓS-SWIFT: RECEITA ══════════════════════════════════════════ -->
+
+    <!-- MODAL: Pergunta Receita Wire Fee -->
+    <div id="modalPerguntaReceita" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width:460px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus-circle" style="color:#27ae60;"></i> Lançar Receita Wire Fee?</h3>
+            </div>
+            <div class="modal-body" style="text-align:center;padding:28px 24px 16px;">
+                <p style="font-size:15px;margin-bottom:10px;">Deseja lançar o <strong>wire fee cobrado do cliente</strong> como receita?</p>
+                <p style="font-size:13px;color:var(--text-muted,#888);">Será debitado da conta do cliente.</p>
+            </div>
+            <div class="modal-footer" style="justify-content:center;gap:16px;">
+                <button class="btn-secondary" onclick="confirmarPerguntaReceita(false)">Não, finalizar</button>
+                <button class="btn-submit" onclick="confirmarPerguntaReceita(true)"><i class="fas fa-check"></i> Sim, lançar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Lançar Receita Wire Fee -->
+    <div id="modalReceitaWire" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width:520px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus-circle" style="color:#27ae60;"></i> Wire Fee — Receita do Cliente</h3>
+                <button class="modal-close" onclick="finalizarFluxoSwift()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Cliente</label>
+                    <input type="text" id="receita_username" class="form-control" readonly style="opacity:.7;cursor:not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label>Conta do Cliente <span style="color:#e01b24;">*</span></label>
+                    <select id="receita_conta_cliente" class="form-control">
+                        <option value="">Selecione a conta...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Categoria</label>
+                    <select id="receita_categoria" class="form-control" onchange="popularContasReceita()">
+                        <option value="">Carregando...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Conta de Receita</label>
+                    <select id="receita_conta_receita" class="form-control" disabled>
+                        <option value="">Selecione primeiro uma categoria...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Valor <span style="color:#e01b24;">*</span></label>
+                    <input type="number" id="receita_valor" class="form-control" placeholder="0.00" min="0.01" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <input type="text" id="receita_descricao" class="form-control">
+                </div>
+                <div id="receita_msg" style="font-size:13px;min-height:18px;color:#e01b24;margin-top:4px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="finalizarFluxoSwift()">Cancelar</button>
+                <button class="btn-submit" onclick="confirmarReceitaWire()"><i class="fas fa-save"></i> Lançar Receita</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL ANÁLISE INVOICE -->
     <div id="modalInvoice" class="modal" style="display: none;">
         <div class="modal-content">
@@ -1353,10 +1479,10 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    alert(`✅ Transferência ${window.swiftId} concluída com sucesso!`);
+                    window.postSwift_contaBancaria = contaNumero;
+                    window.postSwift_transf = [...transferenciasPendentes, ...transferenciasProcessando].find(t => t.id === window.swiftId) || {};
                     fecharModalSwift();
-                    carregarDados();
-                    limparSelecao();
+                    iniciarFluxoPosSwift();
                 } else {
                     alert('❌ ' + data.message);
                 }
@@ -1364,6 +1490,216 @@
                 console.error('Erro:', error);
                 alert('Erro ao concluir transferência!');
             }
+        }
+
+        // ══ FLUXO PÓS-SWIFT ══════════════════════════════════════════════════════
+
+        let _contasContabeis = null;
+
+        async function _carregarContasContabeis() {
+            if (_contasContabeis) return _contasContabeis;
+            const r = await fetch('/api/admin/contas-contabeis');
+            const d = await r.json();
+            if (d.success) _contasContabeis = d;
+            return _contasContabeis;
+        }
+
+        async function _popularCategorias(selectId, tipo) {
+            const dados = await _carregarContasContabeis();
+            if (!dados) return;
+            const cats = Object.keys(dados[tipo] || {}).sort();
+            const sel = document.getElementById(selectId);
+            sel.innerHTML = '<option value="">Selecione a categoria...</option>';
+            cats.forEach(c => {
+                const o = document.createElement('option');
+                o.value = c; o.textContent = c;
+                sel.appendChild(o);
+            });
+        }
+
+        function popularContasDespesa() {
+            const cat = document.getElementById('despesa_categoria').value;
+            const sel = document.getElementById('despesa_conta_despesa');
+            if (!cat || !_contasContabeis?.despesas?.[cat]) {
+                sel.innerHTML = '<option value="">Selecione primeiro uma categoria...</option>';
+                sel.disabled = true; return;
+            }
+            const contas = Object.keys(_contasContabeis.despesas[cat]).sort();
+            sel.innerHTML = '<option value="">Selecione a conta...</option>';
+            contas.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
+            sel.disabled = false;
+        }
+
+        function popularContasReceita() {
+            const cat = document.getElementById('receita_categoria').value;
+            const sel = document.getElementById('receita_conta_receita');
+            if (!cat || !_contasContabeis?.receitas?.[cat]) {
+                sel.innerHTML = '<option value="">Selecione primeiro uma categoria...</option>';
+                sel.disabled = true; return;
+            }
+            const contas = Object.keys(_contasContabeis.receitas[cat]).sort();
+            sel.innerHTML = '<option value="">Selecione a conta...</option>';
+            contas.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
+            sel.disabled = false;
+        }
+
+        function iniciarFluxoPosSwift() {
+            document.getElementById('modalPerguntaDespesa').style.display = 'flex';
+        }
+
+        async function confirmarPerguntaDespesa(lancar) {
+            document.getElementById('modalPerguntaDespesa').style.display = 'none';
+            if (lancar) {
+                document.getElementById('despesa_conta_bancaria').value = window.postSwift_contaBancaria;
+                document.getElementById('despesa_valor').value = '';
+                document.getElementById('despesa_descricao').value = `Wire fee - ${window.postSwift_transf.beneficiario || ''} #${window.swiftId}`;
+                document.getElementById('despesa_msg').innerHTML = '';
+                document.getElementById('despesa_conta_despesa').innerHTML = '<option value="">Selecione primeiro uma categoria...</option>';
+                document.getElementById('despesa_conta_despesa').disabled = true;
+                await _popularCategorias('despesa_categoria', 'despesas');
+                document.getElementById('modalDespesaWire').style.display = 'flex';
+            } else {
+                document.getElementById('modalPerguntaReceita').style.display = 'flex';
+            }
+        }
+
+        async function confirmarDespesaWire() {
+            const msg = document.getElementById('despesa_msg');
+            msg.style.color = '#e01b24';
+            if (!document.getElementById('despesa_categoria').value) {
+                msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Selecione a categoria.';
+                return;
+            }
+            if (!document.getElementById('despesa_conta_despesa').value) {
+                msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Selecione a conta de despesa.';
+                return;
+            }
+            const valor = parseFloat(document.getElementById('despesa_valor').value);
+            if (!valor || valor <= 0) {
+                msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Informe um valor válido.';
+                return;
+            }
+            msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Lançando...';
+            try {
+                const r = await fetch('/api/admin/gerenciar-contas/despesa', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        conta_bancaria: document.getElementById('despesa_conta_bancaria').value,
+                        categoria:      document.getElementById('despesa_categoria').value,
+                        conta_despesa:  document.getElementById('despesa_conta_despesa').value,
+                        valor:          valor,
+                        descricao:      document.getElementById('despesa_descricao').value
+                    })
+                });
+                const d = await r.json();
+                if (d.success) {
+                    msg.style.color = '#27ae60';
+                    msg.innerHTML = '<i class="fas fa-check-circle"></i> Despesa lançada com sucesso!';
+                    setTimeout(() => {
+                        document.getElementById('modalDespesaWire').style.display = 'none';
+                        document.getElementById('modalPerguntaReceita').style.display = 'flex';
+                    }, 1000);
+                } else {
+                    msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + d.message;
+                }
+            } catch(e) {
+                msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erro ao lançar despesa.';
+            }
+        }
+
+        async function confirmarPerguntaReceita(lancar) {
+            document.getElementById('modalPerguntaReceita').style.display = 'none';
+            if (!lancar) { finalizarFluxoSwift(); return; }
+
+            const transf = window.postSwift_transf;
+            const username = transf.cliente || transf.usuario || '';
+            document.getElementById('receita_username').value = username;
+            document.getElementById('receita_valor').value = '';
+            document.getElementById('receita_descricao').value = `Wire fee - ${window.postSwift_transf.beneficiario || ''} #${window.swiftId}`;
+            const msg = document.getElementById('receita_msg');
+            msg.style.color = '#e01b24'; msg.innerHTML = '';
+
+            document.getElementById('receita_conta_receita').innerHTML = '<option value="">Selecione primeiro uma categoria...</option>';
+            document.getElementById('receita_conta_receita').disabled = true;
+            await _popularCategorias('receita_categoria', 'receitas');
+
+            const sel = document.getElementById('receita_conta_cliente');
+            sel.innerHTML = '<option value="">Carregando contas...</option>';
+            try {
+                const r = await fetch(`/api/admin/fx/cliente-contas?username=${encodeURIComponent(username)}`);
+                const d = await r.json();
+                sel.innerHTML = '<option value="">Selecione a conta...</option>';
+                (d.contas || []).forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = `${c.moeda} — Saldo: ${parseFloat(c.saldo || 0).toFixed(2)}`;
+                    if (c.id === transf.conta_remetente) opt.selected = true;
+                    sel.appendChild(opt);
+                });
+            } catch(e) {
+                sel.innerHTML = '<option value="">Erro ao carregar contas</option>';
+            }
+            document.getElementById('modalReceitaWire').style.display = 'flex';
+        }
+
+        async function confirmarReceitaWire() {
+            const msg = document.getElementById('receita_msg');
+            msg.style.color = '#e01b24';
+            if (!document.getElementById('receita_categoria').value) {
+                msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Selecione a categoria.';
+                return;
+            }
+            if (!document.getElementById('receita_conta_receita').value) {
+                msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Selecione a conta de receita.';
+                return;
+            }
+            const contaCliente = document.getElementById('receita_conta_cliente').value;
+            const valor = parseFloat(document.getElementById('receita_valor').value);
+            if (!contaCliente) {
+                msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Selecione a conta do cliente.';
+                return;
+            }
+            if (!valor || valor <= 0) {
+                msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Informe um valor válido.';
+                return;
+            }
+            msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Lançando...';
+            const transf = window.postSwift_transf;
+            try {
+                const r = await fetch('/api/admin/gerenciar-contas/receita', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        username:       transf.cliente || transf.usuario || '',
+                        conta_cliente:  contaCliente,
+                        categoria:      document.getElementById('receita_categoria').value,
+                        conta_receita:  document.getElementById('receita_conta_receita').value,
+                        valor:          valor,
+                        descricao:      document.getElementById('receita_descricao').value
+                    })
+                });
+                const d = await r.json();
+                if (d.success) {
+                    msg.style.color = '#27ae60';
+                    msg.innerHTML = '<i class="fas fa-check-circle"></i> Receita lançada com sucesso!';
+                    setTimeout(() => {
+                        document.getElementById('modalReceitaWire').style.display = 'none';
+                        finalizarFluxoSwift();
+                    }, 1000);
+                } else {
+                    msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + d.message;
+                }
+            } catch(e) {
+                msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erro ao lançar receita.';
+            }
+        }
+
+        function finalizarFluxoSwift() {
+            ['modalPerguntaDespesa','modalDespesaWire','modalPerguntaReceita','modalReceitaWire']
+                .forEach(id => { document.getElementById(id).style.display = 'none'; });
+            carregarDados();
+            limparSelecao();
         }
 
         // ============================================

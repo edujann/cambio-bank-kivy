@@ -403,6 +403,7 @@
         {% endif %}
         <a href="/language/{{ 'pt' if current_lang == 'en' else 'en' }}" class="btn-hd btn-hd-ghost"><i class="fas fa-globe"></i> {{ 'PT' if current_lang == 'en' else 'EN' }}</a>
         <button id="btnTheme" class="btn-hd btn-hd-ghost" onclick="toggleTheme()" title="Toggle theme"><i class="fas fa-moon"></i></button>
+        <button onclick="abrirModalSenha()" class="btn-hd btn-hd-ghost" title="Change Password"><i class="fas fa-key"></i></button>
         <a href="/logout" class="btn-hd btn-hd-ghost"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 </div>
@@ -1038,6 +1039,31 @@
         </div>
     </div>
 </div>
+<!-- MODAL: CHANGE PASSWORD -->
+<div class="modal-ov" id="modalAlterarSenha" onclick="if(event.target===this)fecharModal('modalAlterarSenha')">
+    <div class="modal" style="width:min(420px,92vw) !important;max-width:420px !important;">
+        <h3><i class="fas fa-key"></i> Change Password</h3>
+        <p style="font-size:13px;color:var(--cor-texto-secundario);margin-bottom:16px;">Enter your current password and new password.</p>
+        <div style="margin-bottom:14px;">
+            <label style="display:block;font-size:12px;font-weight:600;margin-bottom:5px;">Current Password <span style="color:#e01b24;">*</span></label>
+            <input type="password" id="senhaAtual" class="config-input" placeholder="Enter your current password">
+        </div>
+        <div style="margin-bottom:14px;">
+            <label style="display:block;font-size:12px;font-weight:600;margin-bottom:5px;">New Password <span style="color:#e01b24;">*</span></label>
+            <input type="password" id="novaSenha" class="config-input" placeholder="New password">
+        </div>
+        <div style="margin-bottom:14px;">
+            <label style="display:block;font-size:12px;font-weight:600;margin-bottom:5px;">Confirm New Password <span style="color:#e01b24;">*</span></label>
+            <input type="password" id="confirmarSenha" class="config-input" placeholder="Confirm new password">
+        </div>
+        <div id="msgAlterarSenha" style="font-size:12px;margin-bottom:4px;min-height:18px;color:#e01b24;"></div>
+        <div class="modal-acts">
+            <button class="btn-ghost btn-sm" onclick="fecharModal('modalAlterarSenha')">Cancel</button>
+            <button class="btn-primary btn-sm" onclick="salvarNovaSenha()"><i class="fas fa-save"></i> Save</button>
+        </div>
+    </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <script>
     // Global variables passed from backend
@@ -1046,6 +1072,42 @@
     window.IS_COMPLIANCE = (window.USER_TIPO === 'compliance' || window.USUARIO !== '');
 </script>
 <script>
+// ── CHANGE PASSWORD ──
+function abrirModalSenha() {
+    document.getElementById('senhaAtual').value = '';
+    document.getElementById('novaSenha').value = '';
+    document.getElementById('confirmarSenha').value = '';
+    const msg = document.getElementById('msgAlterarSenha');
+    msg.style.color = '#e01b24'; msg.innerHTML = '';
+    document.getElementById('modalAlterarSenha').classList.add('open');
+}
+async function salvarNovaSenha() {
+    const sa = document.getElementById('senhaAtual').value;
+    const ns = document.getElementById('novaSenha').value;
+    const cs = document.getElementById('confirmarSenha').value;
+    const msg = document.getElementById('msgAlterarSenha');
+    msg.style.color = '#e01b24';
+    if (!sa) { msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Please enter your current password.'; return; }
+    if (!ns) { msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Please enter a new password.'; return; }
+    if (ns !== cs) { msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Passwords do not match.'; return; }
+    if (ns.length < 8) { msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Password must be at least 8 characters.'; return; }
+    msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    try {
+        const r = await fetch('/api/client/change-credentials', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({current_password: sa, new_password: ns})
+        });
+        const d = await r.json();
+        if (d.success) {
+            msg.style.color = '#2ec27e';
+            msg.innerHTML = '<i class="fas fa-check-circle"></i> Password updated successfully!';
+            setTimeout(() => fecharModal('modalAlterarSenha'), 1500);
+        } else {
+            msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + d.message;
+        }
+    } catch(e) { msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error updating password.'; }
+}
+
 // Use global variables defined in HTML
 const IS_COMPLIANCE = window.IS_COMPLIANCE;
 const USER_TIPO = window.USER_TIPO;

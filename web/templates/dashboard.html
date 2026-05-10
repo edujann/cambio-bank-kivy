@@ -296,7 +296,7 @@ nav.sb-nav{flex:1;padding:10px 0;overflow-y:auto;}
         <div style="display:flex;align-items:center;gap:8px">
             <button class="btn-hamburger" onclick="openSidebar()"><i class="fas fa-bars"></i></button>
             <span class="top-greeting">
-                {% if is_pt %}Bom dia{% else %}Good morning{% endif %},
+                {% if is_pt %}Bem-vindo(a){% else %}Welcome{% endif %},
                 <span>{{ (nome or usuario).split()[0] }}</span>
             </span>
         </div>

@@ -546,7 +546,7 @@ def consultar_cep(cep):
         data = r.json()
         return jsonify(data)
     except Exception as e:
-        return jsonify({'erro': True, 'message': str(e)}), 500
+        return jsonify({'erro': True, 'message': _err(e)}), 500
 
 
 @app.route('/api/status')
@@ -642,6 +642,7 @@ def login():
 
         if not response.data or not _verificar_senha(senha, response.data[0].get('senha_hash', '')):
             _sec_log.warning(f"Falha de login para usuário '{usuario}' IP={request.remote_addr}")
+            time.sleep(0.5)
             return jsonify({"success": False, "message": "Usuário ou senha inválidos"}), 401
 
         usuario_data = response.data[0]
@@ -1138,7 +1139,7 @@ def api_change_credentials():
 
     except Exception as e:
         _sec_log.error('change-credentials: erro inesperado | %s', str(e))
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 @app.route('/api/transacoes')
 def get_transacoes():
@@ -2902,9 +2903,10 @@ def test_storage_simple():
             })
             
     except Exception as e:
+        _sec_log.error(f"Erro geral: {e}")
         return jsonify({
             'success': False,
-            'message': f'Erro geral: {str(e)}'
+            'message': 'Erro interno'
         })
     
 # Adicione estas rotas no web_api.py:
@@ -4549,7 +4551,7 @@ def obter_extrato_kivy():
                         transacoes_todas.append({
                             'id': transf_id,
                             'data': data_transacao_str,
-                            'descricao': f"RECEITA - {descricao_receita}",
+                            'descricao': descricao_receita,
                             'credito': 0.00,
                             'debito': valor,
                             'tipo': "Receita",
@@ -5223,10 +5225,10 @@ def api_configuracao_completa(cliente_username):
         })
         
     except Exception as e:
-        print(f"❌ Erro ao obter configurações: {e}")
+        _sec_log.error(f"Erro ao obter configurações: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Erro interno'
         })
 
 @app.route('/api/cambio/verificar-horario/<cliente_username>')
@@ -5294,11 +5296,10 @@ def api_pares_disponiveis(usuario):
         })
         
     except Exception as e:
-        print(f"❌ Erro em api_pares_disponiveis: {e}")
-        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        _sec_log.error(f"Erro em api_pares_disponiveis: {e}")
         return jsonify({
             'success': False,
-            'error': str(e),
+            'error': 'Erro interno',
             'pares': []
         })
 
@@ -5387,11 +5388,10 @@ def api_calcular_cambio():
         })
         
     except Exception as e:
-        print(f"❌ Erro em api_calcular_cambio: {e}")
-        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        _sec_log.error(f"Erro em api_calcular_cambio: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Erro interno'
         })
 
 @app.route('/api/cotacao', methods=['POST'])
@@ -5467,11 +5467,10 @@ def api_cotacao():
         })
         
     except Exception as e:
-        print(f"❌ Erro em api_cotacao: {e}")
-        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        _sec_log.error(f"Erro em api_cotacao: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Erro interno'
         })
 
 @app.route('/api/verificar-horario/<usuario>')
@@ -5930,11 +5929,10 @@ def api_executar_cambio():
         })
         
     except Exception as e:
-        print(f"❌ Erro ao executar câmbio: {e}")
-        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
+        _sec_log.error(f"Erro ao executar câmbio: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Erro interno'
         })
 
 def obter_cotacao_exchangerate(moeda_origem, moeda_destino):
@@ -7503,7 +7501,7 @@ def api_admin_extrato_conta():
                 
                 # CASO 2: Nossa conta é a CREDORA (ENTRADA de dinheiro)
                 elif conta_bancaria_credito == conta_numero:
-                    descricao = f"TRANSFERÊNCIA INTERNACIONAL {status_text} - Recebida de: {beneficiario}"
+                    descricao = f"TRANSFERÊNCIA INTERNACIONAL {status_text} - {beneficiario}"
                     transacoes_processadas.append({
                         'id': transf.get('id'),
                         'data': data_transf,
@@ -13000,13 +12998,13 @@ def sanctions_update():
     errors  = {}
     if source in ('ALL', 'OFAC'):
         try:    results['OFAC'] = _update_ofac()
-        except Exception as e: errors['OFAC'] = str(e)
+        except Exception as e: _sec_log.error(f"OFAC update: {e}"); errors['OFAC'] = 'Erro interno'
     if source in ('ALL', 'HMT'):
         try:    results['HMT'] = _update_hmt()
-        except Exception as e: errors['HMT'] = str(e)
+        except Exception as e: _sec_log.error(f"HMT update: {e}"); errors['HMT'] = 'Erro interno'
     if source in ('ALL', 'UN'):
         try:    results['UN'] = _update_un()
-        except Exception as e: errors['UN'] = str(e)
+        except Exception as e: _sec_log.error(f"UN update: {e}"); errors['UN'] = 'Erro interno'
     return jsonify({'success': True, 'loaded': results, 'errors': errors})
 
 
@@ -15229,7 +15227,7 @@ def get_signed_url():
         
     except Exception as e:
         print(f"❌ Erro ao gerar signed URL: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500   
+        return jsonify({'success': False, 'message': _err(e)}), 500   
 
 # ---- AML Config ----
 
@@ -16334,7 +16332,7 @@ def comprovante_view():
             headers={'Content-Disposition': f'inline; filename="{nome}"'}
         )
     except Exception as e:
-        return str(e), 500
+        return _err(e), 500
 
 
 @app.route('/api/admin/ordens/<ordem_id>/comprovantes', methods=['GET'])
@@ -23190,10 +23188,8 @@ def api_b2b_beneficiarios_list(cliente_id):
         })
         
     except Exception as e:
-        print(f"❌ Erro: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        _sec_log.error(f"Erro: {e}", exc_info=True)
+        return jsonify({'error': 'Erro interno'}), 500
 
 
 @app.route('/api/compliance/b2b/beneficiarios/<benef_id>', methods=['PATCH'])
@@ -24231,10 +24227,10 @@ def solicitar_beneficiario_v2():
         }), 202
         
     except Exception as e:
-        error_msg = str(e)
-        if 'país é bloqueado' in error_msg:
-            return jsonify({'error': error_msg, 'codigo': 'PAIS_BLOQUEADO'}), 403
-        return jsonify({'error': error_msg}), 500
+        if 'país é bloqueado' in str(e):
+            return jsonify({'error': 'País bloqueado', 'codigo': 'PAIS_BLOQUEADO'}), 403
+        _sec_log.error(f"Erro ao solicitar beneficiário: {e}")
+        return jsonify({'error': 'Erro interno'}), 500
     
 @app.route('/api/compliance/b2b/beneficiarios/pendentes', methods=['GET'])
 def compliance_beneficiarios_pendentes():
@@ -24580,7 +24576,7 @@ def api_cliente_beneficiarios(cliente_id):
         
     except Exception as e:
         print(f"❌ Erro: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': _err(e)}), 500
 
 # ============================================
 # ENDPOINT NOVO PARA COMPLIANCE - BENEFICIÁRIOS
@@ -24699,10 +24695,8 @@ def compliance_beneficiarios_all():
         })
         
     except Exception as e:
-        print(f"❌ Erro: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        _sec_log.error(f"Erro: {e}", exc_info=True)
+        return jsonify({'error': 'Erro interno'}), 500
 
 @app.route('/api/compliance/b2b/beneficiarios/aprovar', methods=['POST'])
 def compliance_aprovar_beneficiario_vinculo():
@@ -24748,7 +24742,7 @@ def compliance_aprovar_beneficiario_vinculo():
         
     except Exception as e:
         print(f"❌ Erro: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': _err(e)}), 500
 
 
 @app.route('/api/compliance/b2b/beneficiarios/recusar', methods=['POST'])
@@ -24797,7 +24791,7 @@ def compliance_recusar_beneficiario_vinculo():
         
     except Exception as e:
         print(f"❌ Erro: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': _err(e)}), 500
 
 @app.route('/api/compliance/b2b/beneficiarios/<int:beneficiario_id>/detalhes', methods=['GET'])
 def compliance_beneficiario_detalhes(beneficiario_id):
@@ -24923,10 +24917,8 @@ def compliance_beneficiario_detalhes(beneficiario_id):
         })
         
     except Exception as e:
-        print(f"❌ Erro: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        _sec_log.error(f"Erro: {e}", exc_info=True)
+        return jsonify({'error': 'Erro interno'}), 500
 
 @app.route('/compliance/b2b/beneficiarios/<int:beneficiario_id>')
 def compliance_beneficiario_detalhe_page(beneficiario_id):
@@ -24968,7 +24960,7 @@ def api_beneficiarios_pendentes_count():
         
     except Exception as e:
         print(f"❌ Erro ao contar beneficiários pendentes: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': _err(e)}), 500
 
 # ============================================
 # ENDPOINTS PARA PAÍSES E NACIONALIDADES
@@ -25004,7 +24996,7 @@ def api_paises():
         
     except Exception as e:
         print(f"❌ Erro em /api/paises: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/nacionalidades', methods=['GET'])
@@ -25034,7 +25026,7 @@ def api_nacionalidades():
         
     except Exception as e:
         print(f"❌ Erro em /api/nacionalidades: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 
 @app.route('/api/paises/risco', methods=['POST'])
@@ -25077,7 +25069,7 @@ def api_paises_risco():
         
     except Exception as e:
         print(f"❌ Erro em /api/paises/risco: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': _err(e)}), 500
 
 # ── COUNTRY MANAGEMENT (B2B Compliance) ──────────────────────────────────────
 

@@ -453,6 +453,7 @@
         {% endif %}
         <a href="/language/{{ 'pt' if current_lang == 'en' else 'en' }}" class="btn-hd btn-hd-ghost"><i class="fas fa-globe"></i> {{ 'PT' if current_lang == 'en' else 'EN' }}</a>
         <button id="btnTheme" class="btn-hd btn-hd-ghost" onclick="toggleTheme()" title="Alternar tema"><i class="fas fa-moon"></i></button>
+        <button onclick="abrirModalSenha()" class="btn-hd btn-hd-ghost" title="Alterar Senha"><i class="fas fa-key"></i></button>
         <a href="/logout" class="btn-hd btn-hd-ghost"><i class="fas fa-sign-out-alt"></i> Sair</a>
     </div>
 </div>
@@ -1141,6 +1142,31 @@
     </div>
 </div>
 
+<!-- MODAL: ALTERAR SENHA -->
+<div class="modal-ov" id="modalAlterarSenha" onclick="if(event.target===this)fecharModal('modalAlterarSenha')">
+    <div class="modal" style="width:min(420px,92vw) !important;max-width:420px !important;">
+        <h3><i class="fas fa-key"></i> Alterar Senha</h3>
+        <p style="font-size:13px;color:var(--cor-texto-secundario);margin-bottom:16px;">Informe sua senha atual e a nova senha.</p>
+        <div style="margin-bottom:14px;">
+            <label style="display:block;font-size:12px;font-weight:600;margin-bottom:5px;">Senha Atual <span style="color:#e01b24;">*</span></label>
+            <input type="password" id="senhaAtual" class="config-input" placeholder="Digite sua senha atual">
+        </div>
+        <div style="margin-bottom:14px;">
+            <label style="display:block;font-size:12px;font-weight:600;margin-bottom:5px;">Nova Senha <span style="color:#e01b24;">*</span></label>
+            <input type="password" id="novaSenha" class="config-input" placeholder="Nova senha">
+        </div>
+        <div style="margin-bottom:14px;">
+            <label style="display:block;font-size:12px;font-weight:600;margin-bottom:5px;">Confirmar Nova Senha <span style="color:#e01b24;">*</span></label>
+            <input type="password" id="confirmarSenha" class="config-input" placeholder="Confirme a nova senha">
+        </div>
+        <div id="msgAlterarSenha" style="font-size:12px;margin-bottom:4px;min-height:18px;color:#e01b24;"></div>
+        <div class="modal-acts">
+            <button class="btn-ghost btn-sm" onclick="fecharModal('modalAlterarSenha')">Cancelar</button>
+            <button class="btn-primary btn-sm" onclick="salvarNovaSenha()"><i class="fas fa-save"></i> Salvar</button>
+        </div>
+    </div>
+</div>
+
 <div class="toast" id="toastContainer"></div>
 <script>
     // Variáveis globais passadas do backend
@@ -1149,6 +1175,42 @@
     window.IS_COMPLIANCE = (window.USER_TIPO === 'compliance' || window.USUARIO !== '');
 </script>
 <script>
+// ── ALTERAR SENHA ──
+function abrirModalSenha() {
+    document.getElementById('senhaAtual').value = '';
+    document.getElementById('novaSenha').value = '';
+    document.getElementById('confirmarSenha').value = '';
+    const msg = document.getElementById('msgAlterarSenha');
+    msg.style.color = '#e01b24'; msg.innerHTML = '';
+    document.getElementById('modalAlterarSenha').classList.add('open');
+}
+async function salvarNovaSenha() {
+    const sa = document.getElementById('senhaAtual').value;
+    const ns = document.getElementById('novaSenha').value;
+    const cs = document.getElementById('confirmarSenha').value;
+    const msg = document.getElementById('msgAlterarSenha');
+    msg.style.color = '#e01b24';
+    if (!sa) { msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Informe sua senha atual.'; return; }
+    if (!ns) { msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Digite uma nova senha.'; return; }
+    if (ns !== cs) { msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> As senhas não coincidem.'; return; }
+    if (ns.length < 8) { msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> A senha deve ter no mínimo 8 caracteres.'; return; }
+    msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+    try {
+        const r = await fetch('/api/client/change-credentials', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({current_password: sa, new_password: ns})
+        });
+        const d = await r.json();
+        if (d.success) {
+            msg.style.color = '#2ec27e';
+            msg.innerHTML = '<i class="fas fa-check-circle"></i> Senha atualizada com sucesso!';
+            setTimeout(() => fecharModal('modalAlterarSenha'), 1500);
+        } else {
+            msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + d.message;
+        }
+    } catch(e) { msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erro ao atualizar senha.'; }
+}
+
 // Usar variáveis globais definidas no HTML
 const IS_COMPLIANCE = window.IS_COMPLIANCE;
 const USER_TIPO = window.USER_TIPO;

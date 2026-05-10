@@ -872,13 +872,85 @@
         <a href="/perfil" class="dropdown-item">
             <i class="fas fa-user"></i> Meu Perfil
         </a>
+        <a href="#" class="dropdown-item" onclick="abrirModalSenha(); return false;">
+            <i class="fas fa-key"></i> Alterar Senha
+        </a>
         <div class="dropdown-divider"></div>
         <a href="/logout" class="dropdown-item logout-item">
             <i class="fas fa-sign-out-alt"></i> Sair
         </a>
     </div>
 
+<!-- MODAL: ALTERAR SENHA -->
+<div id="modalAlterarSenha" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(2px);">
+    <div style="background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:26px;width:min(420px,92vw);box-shadow:0 8px 32px rgba(0,0,0,.35);">
+        <h3 style="margin:0 0 6px;font-size:15px;display:flex;align-items:center;gap:8px;"><i class="fas fa-key" style="color:var(--cor-admin);"></i> Alterar Senha</h3>
+        <p style="font-size:13px;color:var(--cor-texto-secundario);margin-bottom:18px;">Informe sua senha atual e a nova senha.</p>
+        <div style="margin-bottom:14px;">
+            <label style="display:block;font-size:12px;font-weight:600;margin-bottom:5px;color:var(--cor-texto-secundario);">Senha Atual <span style="color:#e01b24;">*</span></label>
+            <input type="password" id="senhaAtual" placeholder="Digite sua senha atual" style="width:100%;box-sizing:border-box;background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:9px 11px;border-radius:var(--borda-radius-pequeno,6px);font-size:13px;outline:none;transition:.15s;" onfocus="this.style.borderColor='var(--cor-admin)'" onblur="this.style.borderColor='var(--cor-borda)'">
+        </div>
+        <div style="margin-bottom:14px;">
+            <label style="display:block;font-size:12px;font-weight:600;margin-bottom:5px;color:var(--cor-texto-secundario);">Nova Senha <span style="color:#e01b24;">*</span></label>
+            <input type="password" id="novaSenha" placeholder="Nova senha" style="width:100%;box-sizing:border-box;background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:9px 11px;border-radius:var(--borda-radius-pequeno,6px);font-size:13px;outline:none;transition:.15s;" onfocus="this.style.borderColor='var(--cor-admin)'" onblur="this.style.borderColor='var(--cor-borda)'">
+        </div>
+        <div style="margin-bottom:14px;">
+            <label style="display:block;font-size:12px;font-weight:600;margin-bottom:5px;color:var(--cor-texto-secundario);">Confirmar Nova Senha <span style="color:#e01b24;">*</span></label>
+            <input type="password" id="confirmarSenha" placeholder="Confirme a nova senha" style="width:100%;box-sizing:border-box;background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:9px 11px;border-radius:var(--borda-radius-pequeno,6px);font-size:13px;outline:none;transition:.15s;" onfocus="this.style.borderColor='var(--cor-admin)'" onblur="this.style.borderColor='var(--cor-borda)'">
+        </div>
+        <div id="msgAlterarSenha" style="font-size:12px;margin-bottom:4px;min-height:18px;color:#e01b24;"></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid var(--cor-borda);">
+            <button onclick="fecharModalSenha()" style="padding:9px 20px;border:1px solid var(--cor-borda);border-radius:6px;background:transparent;color:var(--cor-texto);cursor:pointer;font-size:13px;font-weight:600;">Cancelar</button>
+            <button onclick="salvarNovaSenha()" style="padding:9px 20px;border:none;border-radius:6px;background:var(--cor-admin);color:#fff;cursor:pointer;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:6px;"><i class="fas fa-save"></i> Salvar</button>
+        </div>
+    </div>
+</div>
+
     <script>
+        // ── Alterar Senha ──
+        function abrirModalSenha() {
+            document.getElementById('senhaAtual').value = '';
+            document.getElementById('novaSenha').value = '';
+            document.getElementById('confirmarSenha').value = '';
+            const msg = document.getElementById('msgAlterarSenha');
+            msg.style.color = '#e01b24'; msg.innerHTML = '';
+            document.getElementById('modalAlterarSenha').style.display = 'flex';
+            toggleMenu();
+        }
+        function fecharModalSenha() {
+            document.getElementById('modalAlterarSenha').style.display = 'none';
+        }
+        document.addEventListener('click', function(e) {
+            const m = document.getElementById('modalAlterarSenha');
+            if (m && m.style.display === 'flex' && e.target === m) fecharModalSenha();
+        });
+        async function salvarNovaSenha() {
+            const sa = document.getElementById('senhaAtual').value;
+            const ns = document.getElementById('novaSenha').value;
+            const cs = document.getElementById('confirmarSenha').value;
+            const msg = document.getElementById('msgAlterarSenha');
+            msg.style.color = '#e01b24';
+            if (!sa) { msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Informe sua senha atual.'; return; }
+            if (!ns) { msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Digite uma nova senha.'; return; }
+            if (ns !== cs) { msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> As senhas não coincidem.'; return; }
+            if (ns.length < 8) { msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> A senha deve ter no mínimo 8 caracteres.'; return; }
+            msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+            try {
+                const r = await fetch('/api/client/change-credentials', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({current_password: sa, new_password: ns})
+                });
+                const d = await r.json();
+                if (d.success) {
+                    msg.style.color = '#2ec27e';
+                    msg.innerHTML = '<i class="fas fa-check-circle"></i> Senha atualizada com sucesso!';
+                    setTimeout(() => fecharModalSenha(), 1500);
+                } else {
+                    msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + d.message;
+                }
+            } catch(e) { msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erro ao atualizar senha.'; }
+        }
+
         // ── Toggle de tema ──
         function toggleTheme() {
             var root = document.documentElement;

@@ -338,6 +338,7 @@
             <a href="/admin/dashboard" class="btn-hd"><i class="fas fa-shield-alt"></i> Admin</a>
             {% endif %}
             <button id="btnTheme" class="btn-hd btn-hd-ghost" onclick="toggleTheme()" title="Alternar tema"><i class="fas fa-moon"></i></button>
+            <button onclick="abrirModalSenha()" class="btn-hd btn-hd-ghost" title="Alterar Senha"><i class="fas fa-key"></i></button>
             <a href="/logout" class="btn-hd btn-hd-ghost"><i class="fas fa-sign-out-alt"></i> Sair</a>
         </div>
     </div>
@@ -1068,11 +1069,72 @@
     </div>
 </div>
 
+<!-- MODAL: ALTERAR SENHA -->
+<div class="modal-ov" id="modalAlterarSenha" onclick="if(event.target===this)fecharModal('modalAlterarSenha')">
+    <div class="modal" style="width:min(420px,92vw);">
+        <h3><i class="fas fa-key"></i> Alterar Senha</h3>
+        <p style="font-size:13px;color:var(--cor-texto-secundario);margin-bottom:16px;">Informe sua senha atual e a nova senha.</p>
+        <div style="margin-bottom:14px;">
+            <label style="display:block;font-size:12px;font-weight:600;margin-bottom:5px;">Senha Atual <span style="color:#e01b24;">*</span></label>
+            <input type="password" id="senhaAtual" class="fc" placeholder="Digite sua senha atual">
+        </div>
+        <div style="margin-bottom:14px;">
+            <label style="display:block;font-size:12px;font-weight:600;margin-bottom:5px;">Nova Senha <span style="color:#e01b24;">*</span></label>
+            <input type="password" id="novaSenha" class="fc" placeholder="Nova senha">
+        </div>
+        <div style="margin-bottom:14px;">
+            <label style="display:block;font-size:12px;font-weight:600;margin-bottom:5px;">Confirmar Nova Senha <span style="color:#e01b24;">*</span></label>
+            <input type="password" id="confirmarSenha" class="fc" placeholder="Confirme a nova senha">
+        </div>
+        <div id="msgAlterarSenha" style="font-size:12px;margin-bottom:4px;min-height:18px;color:#e01b24;"></div>
+        <div class="modal-acts">
+            <button class="btn-g" onclick="fecharModal('modalAlterarSenha')">Cancelar</button>
+            <button class="btn-nova" onclick="salvarNovaSenha()"><i class="fas fa-save"></i> Salvar</button>
+        </div>
+    </div>
+</div>
+
 <div class="toast-c" id="toastC"></div>
 
 <script src="/static/js/theme.js"></script>
 <script src="/static/js/conta_search.js"></script>
 <script>
+// ── ALTERAR SENHA ──
+function abrirModalSenha() {
+    document.getElementById('senhaAtual').value = '';
+    document.getElementById('novaSenha').value = '';
+    document.getElementById('confirmarSenha').value = '';
+    const msg = document.getElementById('msgAlterarSenha');
+    msg.style.color = '#e01b24'; msg.innerHTML = '';
+    document.getElementById('modalAlterarSenha').classList.add('open');
+}
+async function salvarNovaSenha() {
+    const sa = document.getElementById('senhaAtual').value;
+    const ns = document.getElementById('novaSenha').value;
+    const cs = document.getElementById('confirmarSenha').value;
+    const msg = document.getElementById('msgAlterarSenha');
+    msg.style.color = '#e01b24';
+    if (!sa) { msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Informe sua senha atual.'; return; }
+    if (!ns) { msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Digite uma nova senha.'; return; }
+    if (ns !== cs) { msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> As senhas não coincidem.'; return; }
+    if (ns.length < 8) { msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> A senha deve ter no mínimo 8 caracteres.'; return; }
+    msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+    try {
+        const r = await fetch('/api/client/change-credentials', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({current_password: sa, new_password: ns})
+        });
+        const d = await r.json();
+        if (d.success) {
+            msg.style.color = '#2ec27e';
+            msg.innerHTML = '<i class="fas fa-check-circle"></i> Senha atualizada com sucesso!';
+            setTimeout(() => fecharModal('modalAlterarSenha'), 1500);
+        } else {
+            msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + d.message;
+        }
+    } catch(e) { msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erro ao atualizar senha.'; }
+}
+
 const IS_ADMIN = {{ 'true' if tipo == 'admin' else 'false' }};
 const LOJA     = '{{ loja }}';
 const fmtN = (v,d=2) => parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
