@@ -1074,85 +1074,49 @@ def logout():
 def api_change_credentials():
     """Cliente B2B altera sua senha (valida senha atual)"""
     try:
-        print("="*50)
-        print("🔍 [DEBUG] Iniciando change-credentials")
-        
         if 'username' not in session:
-            print("❌ [DEBUG] Usuário não autenticado")
             return jsonify({'success': False, 'message': 'Não autenticado'}), 401
-        
+
         usuario_atual = session['username']
-        print(f"🔍 [DEBUG] Usuário atual (session): {usuario_atual}")
-        
         data = request.get_json()
-        print(f"🔍 [DEBUG] Dados recebidos: {data}")
-        
+
         senha_atual = data.get('current_password', '').strip()
-        nova_senha = data.get('new_password', '').strip()
-        
-        print(f"🔍 [DEBUG] senha_atual: {'[RECEBIDA]' if senha_atual else '[VAZIA]'}")
-        print(f"🔍 [DEBUG] nova_senha: {'[RECEBIDA]' if nova_senha else '[VAZIA]'}")
-        
-        # Validações
+        nova_senha  = data.get('new_password', '').strip()
+
         if not senha_atual:
             return jsonify({'success': False, 'message': 'Senha atual é obrigatória'}), 400
-        
         if not nova_senha:
             return jsonify({'success': False, 'message': 'Nova senha é obrigatória'}), 400
-        
         if len(nova_senha) < 8:
             return jsonify({'success': False, 'message': 'A nova senha deve ter no mínimo 8 caracteres'}), 400
-        
-        # Buscar o usuário
-        print(f"🔍 [DEBUG] Buscando usuário com username: {usuario_atual}")
+
         user = supabase.table('usuarios')\
             .select('id, senha_hash')\
             .eq('username', usuario_atual)\
             .execute()
-        
-        print(f"🔍 [DEBUG] Resultado da busca: {user.data}")
-        
+
         if not user.data:
-            print(f"❌ [DEBUG] Usuário não encontrado: {usuario_atual}")
             return jsonify({'success': False, 'message': 'Usuário não encontrado'}), 404
-        
-        usuario_id = user.data[0]['id']
+
+        usuario_id      = user.data[0]['id']
         senha_hash_atual = user.data[0]['senha_hash']
-        
-        print(f"🔍 [DEBUG] usuario_id: {usuario_id}")
-        print(f"🔍 [DEBUG] senha_hash_atual: {senha_hash_atual[:20]}...")
-        
-        # Validar senha atual
+
         import hashlib
-        senha_atual_hash = hashlib.sha256(senha_atual.encode()).hexdigest()
-        print(f"🔍 [DEBUG] senha_atual_hash: {senha_atual_hash[:20]}...")
-        
-        if senha_atual_hash != senha_hash_atual:
-            print(f"❌ [DEBUG] Senha atual incorreta")
+        if hashlib.sha256(senha_atual.encode()).hexdigest() != senha_hash_atual:
+            _sec_log.warning('change-credentials: senha incorreta | user=%s', usuario_atual)
             return jsonify({'success': False, 'message': 'Senha atual incorreta'}), 401
-        
-        print(f"✅ [DEBUG] Senha atual validada com sucesso")
-        
-        # Atualizar para a nova senha
+
         nova_senha_hash = hashlib.sha256(nova_senha.encode()).hexdigest()
-        print(f"🔍 [DEBUG] nova_senha_hash: {nova_senha_hash[:20]}...")
-        
-        result = supabase.table('usuarios')\
+        supabase.table('usuarios')\
             .update({'senha_hash': nova_senha_hash})\
             .eq('id', usuario_id)\
             .execute()
-        
-        print(f"✅ [DEBUG] Atualização realizada: {result.data}")
-        
-        return jsonify({
-            'success': True,
-            'message': 'Senha atualizada com sucesso!'
-        })
-        
+
+        _sec_log.info('change-credentials: senha atualizada | user=%s', usuario_atual)
+        return jsonify({'success': True, 'message': 'Senha atualizada com sucesso!'})
+
     except Exception as e:
-        print(f"❌ [DEBUG] Erro: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        _sec_log.error('change-credentials: erro inesperado | %s', str(e))
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/api/transacoes')
