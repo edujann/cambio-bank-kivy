@@ -11,6 +11,7 @@ import uuid
 import secrets
 import string
 import hashlib
+import bcrypt
 import re
 import random
 import threading
@@ -362,6 +363,19 @@ _sec_log = logging.getLogger('security')
 _IS_DEBUG = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
 
 # ============================================
+# HELPERS DE SENHA — bcrypt com fallback SHA256
+# ============================================
+def _hash_senha(senha: str) -> str:
+    """Gera hash bcrypt de uma senha em texto claro."""
+    return bcrypt.hashpw(senha.encode(), bcrypt.gensalt(rounds=12)).decode()
+
+def _verificar_senha(senha: str, hash_armazenado: str) -> bool:
+    """Verifica senha contra hash bcrypt ou SHA256 legado."""
+    if hash_armazenado.startswith(('$2b$', '$2a$')):
+        return bcrypt.checkpw(senha.encode(), hash_armazenado.encode())
+    return hashlib.sha256(senha.encode()).hexdigest() == hash_armazenado
+
+# ============================================
 # SUPORTE A IDIOMAS (PT/EN) - VERSÃO SIMPLIFICADA
 # ============================================
 
@@ -621,15 +635,12 @@ def login():
         if len(usuario) > 100 or len(senha) > 200:
             return jsonify({"success": False, "message": "Usuário ou senha inválidos"}), 401
 
-        senha_hash = hashlib.sha256(senha.encode()).hexdigest()
-
         response = supabase.table('usuarios')\
             .select('*')\
             .eq('username', usuario)\
-            .eq('senha_hash', senha_hash)\
             .execute()
 
-        if not response.data:
+        if not response.data or not _verificar_senha(senha, response.data[0].get('senha_hash', '')):
             _sec_log.warning(f"Falha de login para usuário '{usuario}' IP={request.remote_addr}")
             return jsonify({"success": False, "message": "Usuário ou senha inválidos"}), 401
 
@@ -638,6 +649,17 @@ def login():
         if usuario_data.get('status') == 'bloqueado':
             _sec_log.warning(f"Login bloqueado para '{usuario}'")
             return jsonify({"success": False, "message": "Usuário bloqueado. Entre em contato com o administrador."}), 401
+
+        # Upgrade transparente SHA256 → bcrypt no primeiro login após migração
+        hash_atual = usuario_data.get('senha_hash', '')
+        if not hash_atual.startswith(('$2b$', '$2a$')):
+            try:
+                supabase.table('usuarios')\
+                    .update({'senha_hash': _hash_senha(senha)})\
+                    .eq('id', usuario_data['id'])\
+                    .execute()
+            except Exception:
+                pass  # upgrade falhou silenciosamente; login prossegue normalmente
 
         # Remove campos sensíveis da resposta
         usuario_data.pop('senha_hash', None)
@@ -1101,12 +1123,11 @@ def api_change_credentials():
         usuario_id      = user.data[0]['id']
         senha_hash_atual = user.data[0]['senha_hash']
 
-        import hashlib
-        if hashlib.sha256(senha_atual.encode()).hexdigest() != senha_hash_atual:
+        if not _verificar_senha(senha_atual, senha_hash_atual):
             _sec_log.warning('change-credentials: senha incorreta | user=%s', usuario_atual)
             return jsonify({'success': False, 'message': 'Senha atual incorreta'}), 401
 
-        nova_senha_hash = hashlib.sha256(nova_senha.encode()).hexdigest()
+        nova_senha_hash = _hash_senha(nova_senha)
         supabase.table('usuarios')\
             .update({'senha_hash': nova_senha_hash})\
             .eq('id', usuario_id)\
@@ -10978,11 +10999,7 @@ def verificar_senha_admin():
         if not response.data:
             return jsonify({"success": False, "message": "Usuário não encontrado ou não é admin"}), 404
         
-        # Calcular hash da senha fornecida
-        import hashlib
-        senha_hash = hashlib.sha256(senha.encode()).hexdigest()
-        
-        if senha_hash == response.data['senha_hash']:
+        if _verificar_senha(senha, response.data['senha_hash']):
             return jsonify({"success": True, "message": "Senha correta"})
         else:
             return jsonify({"success": False, "message": "Senha incorreta"}), 401
@@ -13797,13 +13814,12 @@ def admin_criar_usuario():
         if existe.data:
             return jsonify({'success': False, 'message': f'Username "{username}" já está em uso'}), 400
 
-        senha_hash = hashlib.sha256(senha.encode()).hexdigest()
         payload = {
             'username': username,
             'nome': nome,
             'email': email or None,
             'tipo': tipo,
-            'senha_hash': senha_hash,
+            'senha_hash': _hash_senha(senha),
             'status': 'ativo',
             'lojas_permitidas': lojas if tipo == 'loja' else [],
         }
@@ -13835,7 +13851,7 @@ def admin_atualizar_usuario(usuario_id):
         if 'senha' in d and d['senha']:
             if len(d['senha']) < 8:
                 return jsonify({'success': False, 'message': 'Senha deve ter no mínimo 8 caracteres'}), 400
-            payload['senha_hash'] = hashlib.sha256(d['senha'].encode()).hexdigest()
+            payload['senha_hash'] = _hash_senha(d['senha'])
 
         if not payload:
             return jsonify({'success': False, 'message': 'Nada para atualizar'}), 400
@@ -17307,17 +17323,14 @@ def deletar_transacao():
         # ============================================
         # 🔥 VERIFICAR SENHA
         # ============================================
-        import hashlib
-        senha_hash = hashlib.sha256(senha.encode()).hexdigest()
-        
         admin_check = supabase.table('usuarios')\
             .select('senha_hash')\
             .eq('username', usuario_logado)\
             .eq('tipo', 'admin')\
             .single()\
             .execute()
-        
-        if not admin_check.data or admin_check.data['senha_hash'] != senha_hash:
+
+        if not admin_check.data or not _verificar_senha(senha, admin_check.data['senha_hash']):
             return jsonify({"success": False, "message": "❌ Senha incorreta!"}), 401
         
         # ============================================
@@ -19408,7 +19421,6 @@ def api_admin_cadastrar_cliente():
                     }), 400
         
         from datetime import datetime
-        import hashlib
         import random
         
         # Verificar se usuário já existe
@@ -19440,7 +19452,7 @@ def api_admin_cadastrar_cliente():
                 return jsonify({"success": False, "message": f"CRN '{documento}' já está cadastrado!"}), 400
         
         # Gerar hash da senha
-        senha_hash = hashlib.sha256(senha.encode()).hexdigest()
+        senha_hash = _hash_senha(senha)
 
         # Gerar hash do documento
         documento_hash = None
@@ -22378,7 +22390,7 @@ def api_b2b_cliente_criar():
                     # Senha temporária — 12 chars alfanuméricos
                     chars = string.ascii_letters + string.digits
                     senha_temp = ''.join(secrets.choice(chars) for _ in range(12))
-                    senha_hash = hashlib.sha256(senha_temp.encode()).hexdigest()
+                    senha_hash = _hash_senha(senha_temp)
 
                     user_data = {
                         'id': novo_user_id,
@@ -23629,9 +23641,8 @@ def api_b2b_edd_approve(edd_id):
         if not senha:
             return jsonify({'success': False, 'message': 'Password required'}), 400
         # Verify password
-        senha_hash = hashlib.sha256(senha.encode()).hexdigest()
-        uc = supabase.table('usuarios').select('id').eq('username', usuario).eq('senha_hash', senha_hash).execute()
-        if not uc.data:
+        uc = supabase.table('usuarios').select('id, senha_hash').eq('username', usuario).execute()
+        if not uc.data or not _verificar_senha(senha, uc.data[0]['senha_hash']):
             return jsonify({'success': False, 'message': 'Incorrect password'}), 401
         now = datetime.now(timezone.utc).isoformat()
         supabase.table('edd_cases').update({
@@ -25189,10 +25200,9 @@ def api_b2b_paises_reset():
             return jsonify({'success': False, 'message': 'Password is required'}), 400
 
         # Verify password against stored hash
-        senha_hash  = hashlib.sha256(senha.encode()).hexdigest()
-        user_check  = supabase.table('usuarios').select('id')\
-            .eq('username', usuario).eq('senha_hash', senha_hash).execute()
-        if not user_check.data:
+        user_check = supabase.table('usuarios').select('id, senha_hash')\
+            .eq('username', usuario).execute()
+        if not user_check.data or not _verificar_senha(senha, user_check.data[0]['senha_hash']):
             return jsonify({'success': False, 'message': 'Incorrect password'}), 401
 
         # Baseline classification — FCA/HMRC UK (MLR 2017 + FATF 2024 + UK OFSI)

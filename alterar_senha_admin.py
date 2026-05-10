@@ -1,4 +1,4 @@
-import hashlib
+import bcrypt
 import os
 from dotenv import load_dotenv
 from supabase import create_client
@@ -13,8 +13,8 @@ supabase = create_client(url, key)
 # NOVA SENHA - MUDE AQUI!
 nova_senha = "Admin@2026!"
 
-# Gerar hash
-nova_senha_hash = hashlib.sha256(nova_senha.encode()).hexdigest()
+# Gerar hash bcrypt
+nova_senha_hash = bcrypt.hashpw(nova_senha.encode(), bcrypt.gensalt(rounds=12)).decode()
 
 # Atualizar no Supabase
 response = supabase.table('usuarios')\

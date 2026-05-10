@@ -1,7 +1,12 @@
 # supabase_manager.py
 import os
+import hashlib
+import bcrypt
 import datetime
 from supabase import create_client, Client
+
+def _hash_senha(senha: str) -> str:
+    return bcrypt.hashpw(senha.encode(), bcrypt.gensalt(rounds=12)).decode()
 #from config_supabase import SupabaseConfig
 
 class SupabaseManager:
@@ -59,17 +64,12 @@ class SupabaseManager:
     def salvar_usuario(self, dados_usuario):
         """Salva/atualiza usuário no Supabase - VERSÃO PARA CADASTRO PENDENTE"""
         try:
-            import hashlib
             from datetime import datetime
-            
-            # Hash da senha
-            senha_original = dados_usuario['senha']
-            senha_hash = hashlib.sha256(senha_original.encode()).hexdigest()
-            
+
             # Dados para cadastro inicial (pendente)
             usuario_data = {
                 'username': dados_usuario['username'],
-                'senha_hash': senha_hash,
+                'senha_hash': _hash_senha(dados_usuario['senha']),
                 'nome': dados_usuario['nome'],
                 'email': dados_usuario['email'],
                 'documento_hash': hashlib.sha256(dados_usuario['documento'].encode()).hexdigest() if dados_usuario['documento'] else '',
@@ -115,22 +115,18 @@ class SupabaseManager:
     def salvar_usuario_pendente(self, dados_usuario):
         """Salva usuário como pendente (sem criar contas ainda)"""
         try:
-            import hashlib
             from datetime import datetime
-            
-            # Hash da senha
-            senha_hash = hashlib.sha256(dados_usuario['senha'].encode()).hexdigest()
-            
+
             # Hash do documento
             documento_hash = ''
             if dados_usuario.get('documento'):
                 documento_hash = hashlib.sha256(dados_usuario['documento'].encode()).hexdigest()
-            
+
             # Dados para cadastro inicial (pendente)
             usuario_data = {
                 'username': dados_usuario['username'],
                 'email': dados_usuario['email'],
-                'senha_hash': senha_hash,
+                'senha_hash': _hash_senha(dados_usuario['senha']),
                 'nome': dados_usuario['nome'],
                 'documento_hash': documento_hash,
                 'telefone': dados_usuario.get('telefone', ''),
