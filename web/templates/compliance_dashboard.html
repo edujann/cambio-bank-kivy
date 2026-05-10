@@ -486,6 +486,13 @@
         </div>
 
         <div class="nav-divider"></div>
+        <div class="nav-section-lbl">EDD</div>
+        <div class="nav-item" data-tab="edd-cases" onclick="showTab('edd-cases')">
+            <i class="fas fa-shield-alt"></i> EDD Cases
+            <span class="nav-badge" id="tab-cnt-edd" style="background:#e67e22;">0</span>
+        </div>
+
+        <div class="nav-divider"></div>
         <div class="nav-section-lbl">Alertas AML</div>
         <div class="nav-item" data-tab="structuring" onclick="showTab('structuring')">
             <i class="fas fa-project-diagram"></i> Structuring
@@ -609,6 +616,64 @@
                         <tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i><br>Carregando...</td></tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: EDD CASES B2C -->
+    <div class="tab-panel" id="panel-edd-cases">
+        <div class="tbl-card">
+            <div class="tbl-hd">
+                <h3><i class="fas fa-shield-alt" style="color:#e67e22;"></i> EDD Cases — Enhanced Due Diligence (B2C)</h3>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <select id="edd-filter-status" onchange="loadEddCases()" style="padding:5px 10px;border-radius:6px;border:1px solid #ddd;font-size:13px;">
+                        <option value="">Todos os status</option>
+                        <option value="aberto">Aberto</option>
+                        <option value="em_analise">Em Análise</option>
+                        <option value="aprovado">Aprovado</option>
+                        <option value="rejeitado">Rejeitado</option>
+                    </select>
+                    <select id="edd-filter-prioridade" onchange="loadEddCases()" style="padding:5px 10px;border-radius:6px;border:1px solid #ddd;font-size:13px;">
+                        <option value="">Todas prioridades</option>
+                        <option value="critical">Critical</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                    <button onclick="loadEddCases()" style="padding:5px 12px;background:#e67e22;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;">
+                        <i class="fas fa-sync"></i> Atualizar
+                    </button>
+                </div>
+            </div>
+            <table class="gc-table" id="edd-table">
+                <thead>
+                    <tr>
+                        <th>Prioridade</th>
+                        <th>Cliente</th>
+                        <th>Ordem</th>
+                        <th>Triggers</th>
+                        <th>Status</th>
+                        <th>Criado em</th>
+                        <th>Próx. Revisão</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="edd-tbody">
+                    <tr><td colspan="8" style="text-align:center;color:#aaa;padding:30px;">Carregando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- EDD Case Detail Panel -->
+        <div id="edd-detail-panel" style="display:none;margin-top:18px;">
+            <div class="tbl-card">
+                <div class="tbl-hd">
+                    <h3 id="edd-detail-title"><i class="fas fa-folder-open" style="color:#e67e22;"></i> Detalhe do Caso EDD</h3>
+                    <button onclick="closeEddDetail()" style="padding:5px 12px;background:#95a5a6;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;">
+                        <i class="fas fa-times"></i> Fechar
+                    </button>
+                </div>
+                <div id="edd-detail-body" style="padding:18px;">Selecione um caso.</div>
             </div>
         </div>
     </div>
@@ -1104,6 +1169,8 @@ function showTab(name) {
     else if (name === 'regras') carregarConfig();
     else if (name === 'sars') carregarSARs();
     else if (name === 'audit') carregarAudit();
+    else if (name === 'edd-cases') loadEddCases();
+    else if (name === 'consulta') buscarConsulta();
 }
 
 // ─── Toast ───────────────────────────────────────
@@ -1198,7 +1265,11 @@ function renderOrdens(list) {
             ? (Array.isArray(o.aml_alertas) ? o.aml_alertas : String(o.aml_alertas).split(','))
                 .map(a => a.trim()).filter(Boolean)
             : [];
-        const alertas = _amlList.map(a => `<span class="aml-pill">${a}</span>`).join(' ');
+        const hasEdd = _amlList.includes('EDD_REQUIRED');
+        const alertas = _amlList
+            .filter(a => a !== 'EDD_REQUIRED')
+            .map(a => `<span class="aml-pill">${a}</span>`).join(' ');
+        const eddBadge = hasEdd ? `<span style="background:#e67e22;color:#fff;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap;margin-right:4px;" title="EDD pendente — aprovação bloqueada"><i class="fas fa-shield-alt"></i> EDD</span>` : '';
         const pgtoIco = o.pagamento_confirmado ? '<i class="fas fa-check-circle flag-ok" title="Confirmado"></i>' : '<i class="fas fa-clock flag-pend" title="Aguardando"></i>';
         const compTag = `<span class="tag tag-${o.compliance_status || 'pendente'}">${o.compliance_status || 'pendente'}</span>`;
         const dt = o.created_at ? new Date(o.created_at).toLocaleDateString('pt-BR') : '—';
@@ -1211,7 +1282,7 @@ function renderOrdens(list) {
                 <td>${fmtVal(o.valor_saida, o.moeda_saida)}</td>
                 <td>${pgtoIco}</td>
                 <td>${compTag}</td>
-                <td>${alertas || '<span style="color:var(--cor-sucesso);font-size:11px;">✓ OK</span>'}</td>
+                <td>${eddBadge}${alertas || (!hasEdd ? '<span style="color:var(--cor-sucesso);font-size:11px;">✓ OK</span>' : '')}</td>
                 <td style="white-space:nowrap">${dt}</td>
                 <td><button class="btn-act" onclick="abrirOrdem('${o.id}')"><i class="fas fa-eye"></i> Analisar</button></td>
             </tr>
@@ -1466,6 +1537,13 @@ async function abrirOrdem(id) {
         const photoOk = cliente && cliente.doc_photo_id_ok;
         const addrOk  = cliente && cliente.doc_address_ok;
 
+        // Buscar EDD B2C case antes do checklist (necessário para item 'edd')
+        let eddInfo = null;
+        try {
+            const eddR = await fetch(`/api/compliance/edd-b2c/by-ordem/${id}`).then(r => r.json());
+            eddInfo = eddR.data || null;
+        } catch(e) {}
+
         // Docs da ordem: source_funds, declaration, edd
         const ordemDocMap = {};
         for (const d of ordemDocs) {
@@ -1512,6 +1590,22 @@ async function abrirOrdem(id) {
                 if (!addrOk) tudoOk = false;
                 checklistItems += checkItem(addrOk, DOC_LABELS_CK[tipo],
                     addrOk ? 'Validado pelo compliance' : 'Pendente de aprovação — ver aba Gerir Cliente');
+            } else if (tipo === 'edd') {
+                // EDD B2C: satisfeito pelo caso EDD aprovado, não por upload de documento
+                const eddAprovado = eddInfo && eddInfo.status === 'aprovado';
+                const eddEmAnalise = eddInfo && ['aberto','em_analise'].includes(eddInfo.status);
+                const doc = ordemDocMap['edd'];
+                const docOk = doc && doc.validado === true;
+                const ok = eddAprovado || docOk;
+                if (!ok) tudoOk = false;
+                const hint = eddAprovado
+                    ? `EDD Case aprovado pelo compliance`
+                    : eddEmAnalise
+                        ? `EDD Case em análise — conclua o processo na aba EDD Cases`
+                        : docOk ? 'Documento EDD aprovado'
+                        : doc ? 'Documento EDD enviado — clique Aprovar na seção acima'
+                               : 'EDD Case aberto — conclua o processo na aba EDD Cases';
+                checklistItems += checkItem(ok, 'EDD', hint);
             } else {
                 const doc = ordemDocMap[tipo];
                 const ok = doc && doc.validado === true;
@@ -1550,13 +1644,26 @@ async function abrirOrdem(id) {
         const acts = document.getElementById('mo-acts');
 
         if (USER_TIPO === 'compliance' && ordem.compliance_status === 'pendente') {
-            const aprTooltip = !tudoOk ? 'title="Conclua o checklist antes de aprovar"' : '';
+            // eddInfo já foi buscado antes do checklist
+            const hasEddPending = eddInfo && ['aberto','em_analise'].includes(eddInfo.status);
+            const aprTooltip = !tudoOk ? 'title="Conclua o checklist antes de aprovar"' : (hasEddPending ? 'title="EDD pendente — conclua o EDD antes de aprovar"' : '');
+            const aprDisabled = !tudoOk || hasEddPending;
+            const eddWarning = hasEddPending ? `
+                <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:10px 14px;margin-bottom:10px;font-size:12px;">
+                    <i class="fas fa-shield-alt" style="color:#e67e22;"></i>
+                    <strong style="color:#856404;">EDD Pendente</strong> — Esta ordem requer Enhanced Due Diligence antes de ser aprovada.
+                    <button onclick="fecharModal('modalOrdem');showTab('edd-cases');openEddDetail('${eddInfo.id}')"
+                        style="margin-left:8px;padding:2px 8px;background:#e67e22;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px;">
+                        <i class="fas fa-folder-open"></i> Abrir Caso EDD
+                    </button>
+                </div>` : '';
             acts.innerHTML = `
+                ${eddWarning}
                 <button class="btn-ghost" onclick="fecharModal('modalOrdem')">Fechar</button>
                 <button class="btn-danger" onclick="acao('rejeitar', '${id}')"><i class="fas fa-times"></i> Rejeitar</button>
                 <button class="btn-success" onclick="acao('aprovar', '${id}')" ${aprTooltip}
-                    style="${!tudoOk?'opacity:.55;':''}">
-                    <i class="fas fa-check"></i> Aprovar Ordem ${!tudoOk?'<i class="fas fa-lock" style="font-size:10px;margin-left:4px;"></i>':''}
+                    style="${aprDisabled?'opacity:.55;pointer-events:none;':''}">
+                    <i class="fas fa-check"></i> Aprovar Ordem ${aprDisabled?'<i class="fas fa-lock" style="font-size:10px;margin-left:4px;"></i>':''}
                 </button>
             `;
         } else if (ordem.compliance_status === 'aprovado') {
@@ -2331,7 +2438,380 @@ async function carregarAudit() {
     }
 }
 
+// ─── EDD Cases B2C ───────────────────────────────
+
+const EDD_CHECKLIST_LABELS = {
+    source_funds:      'Source of Funds',
+    purpose_of_use:    'Purpose of Use',
+    declaration_funds: 'Declaration of Funds',
+    avg_transaction:   'Avg. Transaction (30d)',
+    source_wealth:     'Source of Wealth',
+    mlro_approval:     'MLRO Approval',
+};
+
+const EDD_PRIO_COLORS = {
+    critical: '#c0392b',
+    high:     '#e67e22',
+    medium:   '#2980b9',
+    low:      '#27ae60',
+};
+
+const EDD_STATUS_LABELS = {
+    aberto:     'Aberto',
+    em_analise: 'Em Análise',
+    aprovado:   'Aprovado',
+    rejeitado:  'Rejeitado',
+};
+
+async function loadEddCases() {
+    const tbody = document.getElementById('edd-tbody');
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#aaa;"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    const status    = document.getElementById('edd-filter-status').value;
+    const prioridade = document.getElementById('edd-filter-prioridade').value;
+    let url = '/api/compliance/edd-b2c?';
+    if (status)     url += `status=${status}&`;
+    if (prioridade) url += `prioridade=${prioridade}&`;
+    try {
+        const r = await fetch(url).then(res => res.json());
+        const cases = r.data || [];
+        // Update badge
+        const abertos = cases.filter(c => ['aberto','em_analise'].includes(c.status)).length;
+        document.getElementById('tab-cnt-edd').textContent = abertos;
+        if (!cases.length) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:#aaa;">Nenhum caso EDD encontrado.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = cases.map(c => {
+            const prio  = c.prioridade || 'medium';
+            const cor   = EDD_PRIO_COLORS[prio] || '#888';
+            const st    = EDD_STATUS_LABELS[c.status] || c.status;
+            const stCor = c.status === 'aprovado' ? '#27ae60' : c.status === 'rejeitado' ? '#c0392b' : c.status === 'em_analise' ? '#2980b9' : '#e67e22';
+            const triggers = (c.trigger_reasons || []).join('; ');
+            const dt = c.criado_em ? new Date(c.criado_em).toLocaleDateString('pt-BR') : '—';
+            const rev = c.proxima_revisao || '—';
+            return `<tr>
+                <td><span style="background:${cor};color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap;">${prio.toUpperCase()}</span></td>
+                <td style="font-size:12px;">${c.cliente_id ? c.cliente_id.substring(0,8)+'…' : '—'}</td>
+                <td style="font-size:12px;">${c.ordem_id ? c.ordem_id.substring(0,8)+'…' : '—'}</td>
+                <td style="font-size:11px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${triggers}">${triggers || '—'}</td>
+                <td><span style="color:${stCor};font-weight:600;font-size:12px;">${st}</span></td>
+                <td style="font-size:12px;">${dt}</td>
+                <td style="font-size:12px;${rev !== '—' && new Date(rev) < new Date() ? 'color:#c0392b;font-weight:600;' : ''}">${rev}</td>
+                <td><button onclick="openEddDetail('${c.id}')" style="padding:3px 10px;background:#e67e22;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;white-space:nowrap;">
+                    <i class="fas fa-folder-open"></i> Abrir
+                </button></td>
+            </tr>`;
+        }).join('');
+    } catch(e) {
+        console.error(e);
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#c0392b;">Erro ao carregar casos EDD.</td></tr>';
+    }
+}
+
+async function openEddDetail(eddId) {
+    const panel = document.getElementById('edd-detail-panel');
+    const body  = document.getElementById('edd-detail-body');
+    panel.style.display = 'block';
+    body.innerHTML = '<div style="text-align:center;padding:30px;color:#aaa;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
+    panel.scrollIntoView({behavior:'smooth', block:'start'});
+    try {
+        const r = await fetch(`/api/compliance/edd-b2c/${eddId}`).then(res => res.json());
+        if (!r.success) { body.innerHTML = `<p style="color:red;">${r.message}</p>`; return; }
+        const c = r.data;
+        const ordem  = c.ordem  || {};
+        const cliente = c.cliente || {};
+        const checklist = c.checklist || {};
+        const docs = c.documentos || [];
+        const isClosed = ['aprovado','rejeitado'].includes(c.status);
+        const prio = c.prioridade || 'medium';
+        const prioColor = EDD_PRIO_COLORS[prio] || '#888';
+        const stats30d = c.cliente_stats_30d || {};
+        const docsOrdem = c.documentos_ordem || [];
+        const purposeFromOrder = c.ordem?.purpose_of_remittance || '';
+        const PURPOSE_LABELS = {
+            family_support:'Apoio familiar / Family Support', personal_savings:'Poupança pessoal / Personal Savings',
+            education:'Educação / Education', living_expenses:'Despesas de vida / Living Expenses',
+            medical:'Saúde / Medical', property:'Imóvel / Property Purchase',
+            investment:'Investimento / Investment', business:'Negócios / Business',
+            gift:'Presente / Gift', other:'Outro / Other',
+        };
+
+        // Group EDD docs by checklist_item
+        const docsByItem = {};
+        docs.forEach(d => {
+            if (!docsByItem[d.checklist_item]) docsByItem[d.checklist_item] = [];
+            docsByItem[d.checklist_item].push(d);
+        });
+
+        // Group order-level docs by tipo (source_funds, declaration)
+        const orderDocsByTipo = {};
+        docsOrdem.forEach(d => {
+            if (!orderDocsByTipo[d.tipo]) orderDocsByTipo[d.tipo] = [];
+            orderDocsByTipo[d.tipo].push(d);
+        });
+
+        let html = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;">
+            <div style="background:#f8f9fa;border-radius:8px;padding:14px;">
+                <div style="font-weight:600;color:#555;font-size:12px;margin-bottom:8px;">CLIENTE</div>
+                <div style="font-weight:700;font-size:15px;">${cliente.nome || '—'}</div>
+                <div style="font-size:12px;color:#888;">${cliente.documento || ''}</div>
+                ${cliente.pep_flag ? '<div style="margin-top:4px;"><span style="background:#e74c3c;color:#fff;padding:2px 7px;border-radius:4px;font-size:11px;">PEP</span></div>' : ''}
+            </div>
+            <div style="background:#f8f9fa;border-radius:8px;padding:14px;">
+                <div style="font-weight:600;color:#555;font-size:12px;margin-bottom:8px;">ORDEM</div>
+                <div style="font-weight:700;font-size:15px;">£${parseFloat(ordem.valor_entrada||0).toFixed(2)} → ${ordem.moeda_saida||''}</div>
+                <div style="font-size:12px;color:#888;">${ordem.forma_pagamento||''} · ${ordem.pais_destino||''}</div>
+                <div style="font-size:11px;color:#aaa;">${ordem.data ? new Date(ordem.data).toLocaleString('pt-BR') : ''}</div>
+            </div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+            <span style="background:${prioColor};color:#fff;padding:3px 10px;border-radius:4px;font-size:12px;font-weight:600;">${prio.toUpperCase()}</span>
+            ${c.requer_mlro ? '<span style="background:#8e44ad;color:#fff;padding:3px 10px;border-radius:4px;font-size:12px;font-weight:600;margin-left:6px;">MLRO Required</span>' : ''}
+        </div>
+
+        <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px;margin-bottom:16px;">
+            <div style="font-weight:600;font-size:12px;color:#856404;margin-bottom:6px;"><i class="fas fa-exclamation-triangle"></i> Triggers</div>
+            ${(c.trigger_reasons||[]).map(t => `<div style="font-size:12px;color:#856404;">• ${t}</div>`).join('')}
+        </div>
+
+        <div style="margin-bottom:18px;">
+            <div style="font-weight:600;color:#555;font-size:13px;margin-bottom:10px;"><i class="fas fa-tasks"></i> Checklist</div>
+            ${Object.entries(checklist).map(([key, val]) => {
+                const label = EDD_CHECKLIST_LABELS[key] || key;
+                const st = val.status || 'pendente';
+                const stColor = st === 'ok' ? '#27ae60' : st === 'nao_aplicavel' ? '#95a5a6' : '#e67e22';
+                const stLabel = st === 'ok' ? 'Concluído' : st === 'nao_aplicavel' ? 'N/A' : 'Pendente';
+                const itemDocs = docsByItem[key] || [];
+
+                // Improvement 3: avg_transaction auto-fill hint
+                let autoHint = '';
+                if (key === 'avg_transaction' && stats30d.num_ordens !== undefined) {
+                    const statsText = `${stats30d.num_ordens} ordem(ns) em 30d | Total: £${(stats30d.total_gbp||0).toFixed(2)} | Média: £${(stats30d.avg_gbp||0).toFixed(2)}`;
+                    autoHint = `<div style="background:#eaf4fb;border:1px solid #aed6f1;border-radius:5px;padding:7px 10px;font-size:11px;color:#1a5276;margin:4px 14px 0;">
+                        <i class="fas fa-chart-bar"></i> Histórico do cliente: <strong>${statsText}</strong>
+                        ${!isClosed && st==='pendente' ? `<button onclick="updateEddChecklist('${eddId}','${key}','ok','${statsText.replace(/'/g,'')}')" style="float:right;padding:2px 8px;background:#2980b9;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:10px;">✓ Marcar OK</button>` : ''}
+                    </div>`;
+                }
+
+                // Improvement 5: purpose_of_use pre-fill from order
+                if (key === 'purpose_of_use' && purposeFromOrder) {
+                    const purposeLabel = PURPOSE_LABELS[purposeFromOrder] || purposeFromOrder;
+                    autoHint = `<div style="background:#eafaf1;border:1px solid #a9dfbf;border-radius:5px;padding:7px 10px;font-size:11px;color:#1e8449;margin:4px 14px 0;">
+                        <i class="fas fa-bullseye"></i> Finalidade declarada na ordem: <strong>${purposeLabel}</strong>
+                        ${!isClosed && st==='pendente' ? `<button onclick="updateEddChecklist('${eddId}','${key}','ok','${purposeLabel.replace(/'/g,'')}')" style="float:right;padding:2px 8px;background:#27ae60;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:10px;">✓ Marcar OK</button>` : ''}
+                    </div>`;
+                }
+
+                // Improvement 4: source_funds / declaration_funds — show order-level docs
+                const tipoMap = {source_funds: 'source_funds', declaration_funds: 'declaration'};
+                const orderTipo = tipoMap[key];
+                const relatedOrderDocs = orderTipo ? (orderDocsByTipo[orderTipo] || []) : [];
+                let orderDocsHint = '';
+                if (relatedOrderDocs.length > 0) {
+                    const docsRows = relatedOrderDocs.map(d => `
+                        <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+                            <i class="fas fa-file-alt" style="flex-shrink:0;"></i>
+                            <span style="flex:1;font-weight:600;">${d.arquivo_nome||'documento'}</span>
+                            <button onclick="viewOrderDoc('${d.id}')" style="padding:2px 9px;background:#2980b9;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:10px;white-space:nowrap;"><i class="fas fa-eye"></i> Ver</button>
+                        </div>`).join('');
+                    orderDocsHint = `<div style="background:#fef9e7;border:1px solid #f7dc6f;border-radius:5px;padding:7px 10px;font-size:11px;color:#7d6608;margin:4px 14px 0;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
+                            <span><i class="fas fa-link"></i> Documento(s) enviado(s) na criação da ordem:</span>
+                            ${!isClosed && st==='pendente' ? `<button onclick="updateEddChecklist('${eddId}','${key}','ok','Documento verificado — enviado na criação da ordem: ${relatedOrderDocs[0].arquivo_nome||''}')" style="padding:2px 8px;background:#d4ac0d;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:10px;white-space:nowrap;">✓ Usar este doc</button>` : ''}
+                        </div>
+                        ${docsRows}
+                    </div>`;
+                }
+
+                return `
+                <div style="border:1px solid #eee;border-radius:8px;margin-bottom:8px;overflow:hidden;">
+                    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fafafa;">
+                        <span style="font-size:13px;font-weight:600;flex:1;">${label}</span>
+                        ${isClosed ? `<span style="color:${stColor};font-size:12px;font-weight:600;">${stLabel}</span>` : ''}
+                        ${!isClosed ? `
+                        <select onchange="updateEddChecklist('${eddId}','${key}',this.value, document.getElementById('nota-${key}')?.value||'')"
+                            style="font-size:12px;padding:3px 6px;border-radius:4px;border:1px solid #ddd;color:${stColor};font-weight:600;">
+                            <option value="pendente" ${st==='pendente'?'selected':''}>⏳ Pendente</option>
+                            <option value="ok" ${st==='ok'?'selected':''}>✓ Concluído</option>
+                            <option value="nao_aplicavel" ${st==='nao_aplicavel'?'selected':''}>— N/A</option>
+                        </select>` : ''}
+                        <button onclick="toggleEddItemDocs('docs-${key}')" style="padding:3px 8px;background:#ecf0f1;border:none;border-radius:4px;cursor:pointer;font-size:11px;">
+                            <i class="fas fa-paperclip"></i> ${itemDocs.length}
+                        </button>
+                    </div>
+                    ${autoHint}
+                    ${orderDocsHint}
+                    ${val.nota ? `<div style="padding:4px 14px 8px;font-size:11px;color:#888;">Nota: ${val.nota}</div>` : ''}
+                    <div id="docs-${key}" style="display:none;padding:10px 14px;background:#f8f9fa;border-top:1px solid #eee;">
+                        ${itemDocs.map(doc => `
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px;">
+                                <i class="fas fa-file" style="color:#888;"></i>
+                                <span style="flex:1;">${doc.nome_arquivo}</span>
+                                <button onclick="viewEddDoc('${eddId}','${doc.id}')" style="padding:2px 7px;background:#3498db;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px;">Ver</button>
+                                ${!isClosed ? `<button onclick="deleteEddDoc('${eddId}','${doc.id}','${key}')" style="padding:2px 7px;background:#e74c3c;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px;">Del</button>` : ''}
+                            </div>`).join('')}
+                        ${!isClosed ? `
+                        <div style="margin-top:8px;">
+                            <input type="file" id="file-${key}" style="font-size:11px;">
+                            <button onclick="uploadEddDoc('${eddId}','${key}')" style="margin-top:4px;padding:3px 10px;background:#27ae60;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px;">
+                                <i class="fas fa-upload"></i> Upload
+                            </button>
+                        </div>` : ''}
+                    </div>
+                </div>`;
+            }).join('')}
+        </div>
+
+        <div style="margin-bottom:16px;">
+            <div style="font-weight:600;color:#555;font-size:13px;margin-bottom:6px;"><i class="fas fa-sticky-note"></i> Notas do Caso</div>
+            ${!isClosed ? `
+            <textarea id="edd-notas-${eddId}" rows="3" style="width:100%;box-sizing:border-box;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:13px;">${c.notas||''}</textarea>
+            <button onclick="saveEddNota('${eddId}')" style="margin-top:6px;padding:5px 14px;background:#3498db;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;">
+                <i class="fas fa-save"></i> Salvar Nota
+            </button>` : `<div style="padding:8px;background:#f8f9fa;border-radius:6px;font-size:13px;color:#555;">${c.notas || '(sem notas)'}</div>`}
+        </div>`;
+
+        if (!isClosed) {
+            html += `
+        <div style="display:flex;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid #eee;flex-wrap:wrap;">
+            <div style="flex:1;min-width:200px;">
+                <input type="text" id="edd-approve-nota-${eddId}" placeholder="Nota de aprovação (opcional)" style="width:100%;box-sizing:border-box;border:1px solid #ddd;border-radius:6px;padding:7px 10px;font-size:13px;">
+            </div>
+            <button onclick="approveEddCase('${eddId}')" style="padding:7px 18px;background:#27ae60;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;">
+                <i class="fas fa-check"></i> Aprovar EDD
+            </button>
+            <button onclick="rejectEddCase('${eddId}')" style="padding:7px 18px;background:#c0392b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;">
+                <i class="fas fa-times"></i> Rejeitar EDD
+            </button>
+        </div>`;
+        } else {
+            html += `
+        <div style="padding:12px;background:${c.status==='aprovado'?'#d4edda':'#f8d7da'};border-radius:8px;margin-top:12px;">
+            <span style="font-weight:600;">${c.status==='aprovado'?'✓ Aprovado':'✗ Rejeitado'}</span>
+            por ${c.aprovado_por||'—'} em ${c.aprovado_em?new Date(c.aprovado_em).toLocaleString('pt-BR'):'—'}<br>
+            ${c.aprovacao_nota ? `<span style="font-size:12px;color:#555;">${c.aprovacao_nota}</span>` : ''}
+            ${c.proxima_revisao ? `<br><span style="font-size:12px;color:#555;">Próxima revisão: ${c.proxima_revisao}</span>` : ''}
+        </div>`;
+        }
+
+        body.innerHTML = html;
+    } catch(e) {
+        console.error(e);
+        body.innerHTML = '<p style="color:red;">Erro ao carregar caso EDD.</p>';
+    }
+}
+
+function closeEddDetail() {
+    document.getElementById('edd-detail-panel').style.display = 'none';
+}
+
+function toggleEddItemDocs(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+async function updateEddChecklist(eddId, item, status, nota) {
+    try {
+        const r = await fetch(`/api/compliance/edd-b2c/${eddId}/checklist`, {
+            method: 'PATCH',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({item, status, nota: nota||''})
+        }).then(res => res.json());
+        if (r.success) { toast('Checklist atualizado', 'ok'); openEddDetail(eddId); }
+        else toast(r.message || 'Erro', 'erro');
+    } catch(e) { toast('Erro de conexão', 'erro'); }
+}
+
+async function saveEddNota(eddId) {
+    const nota = document.getElementById(`edd-notas-${eddId}`)?.value || '';
+    try {
+        const r = await fetch(`/api/compliance/edd-b2c/${eddId}/nota`, {
+            method: 'PATCH',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({nota})
+        }).then(res => res.json());
+        if (r.success) toast('Nota salva', 'ok');
+        else toast(r.message || 'Erro', 'erro');
+    } catch(e) { toast('Erro de conexão', 'erro'); }
+}
+
+async function approveEddCase(eddId) {
+    const nota = document.getElementById(`edd-approve-nota-${eddId}`)?.value || '';
+    if (!confirm('Confirma a aprovação deste caso EDD? A ordem poderá ser processada após aprovação.')) return;
+    try {
+        const r = await fetch(`/api/compliance/edd-b2c/${eddId}/aprovar`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({nota})
+        }).then(res => res.json());
+        if (r.success) { toast('EDD aprovado. Próxima revisão: ' + r.proxima_revisao, 'ok'); openEddDetail(eddId); loadEddCases(); }
+        else toast(r.message || 'Erro', 'erro');
+    } catch(e) { toast('Erro de conexão', 'erro'); }
+}
+
+async function rejectEddCase(eddId) {
+    const nota = prompt('Motivo da rejeição (obrigatório):');
+    if (!nota) return;
+    try {
+        const r = await fetch(`/api/compliance/edd-b2c/${eddId}/rejeitar`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({nota})
+        }).then(res => res.json());
+        if (r.success) { toast('EDD rejeitado. Ordem cancelada.', 'ok'); openEddDetail(eddId); loadEddCases(); }
+        else toast(r.message || 'Erro', 'erro');
+    } catch(e) { toast('Erro de conexão', 'erro'); }
+}
+
+async function uploadEddDoc(eddId, item) {
+    const input = document.getElementById(`file-${item}`);
+    if (!input || !input.files[0]) { toast('Selecione um arquivo', 'aviso'); return; }
+    const fd = new FormData();
+    fd.append('file', input.files[0]);
+    fd.append('checklist_item', item);
+    try {
+        const r = await fetch(`/api/compliance/edd-b2c/${eddId}/docs`, {method:'POST', body:fd}).then(res=>res.json());
+        if (r.success) { toast('Documento enviado', 'ok'); openEddDetail(eddId); }
+        else toast(r.message || 'Erro no upload', 'erro');
+    } catch(e) { toast('Erro de conexão', 'erro'); }
+}
+
+async function viewEddDoc(eddId, docId) {
+    try {
+        const r = await fetch(`/api/compliance/edd-b2c/${eddId}/docs/${docId}/url`).then(res=>res.json());
+        if (r.success && r.url) window.open(r.url, '_blank');
+        else toast(r.message || 'Erro ao obter URL', 'erro');
+    } catch(e) { toast('Erro de conexão', 'erro'); }
+}
+
+async function deleteEddDoc(eddId, docId, item) {
+    if (!confirm('Remover este documento?')) return;
+    try {
+        const r = await fetch(`/api/compliance/edd-b2c/${eddId}/docs/${docId}`, {method:'DELETE'}).then(res=>res.json());
+        if (r.success) { toast('Documento removido', 'ok'); openEddDetail(eddId); }
+        else toast(r.message || 'Erro', 'erro');
+    } catch(e) { toast('Erro de conexão', 'erro'); }
+}
+
+async function viewOrderDoc(docId) {
+    try {
+        const r = await fetch(`/api/clientes/documentos/${docId}/url`).then(res => res.json());
+        if (r.success && r.url) window.open(r.url, '_blank');
+        else toast(r.message || 'Erro ao obter URL do documento', 'erro');
+    } catch(e) { toast('Erro de conexão', 'erro'); }
+}
+
 // ─── Init ────────────────────────────────────────
+async function loadEddCount() {
+    try {
+        const r = await fetch('/api/compliance/edd-b2c?status=aberto').then(res => res.json());
+        const n = (r.data || []).filter(c => ['aberto','em_analise'].includes(c.status)).length;
+        document.getElementById('tab-cnt-edd').textContent = n;
+    } catch(e) {}
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     carregarOrdens();
     carregarStats();
@@ -2339,7 +2819,9 @@ document.addEventListener('DOMContentLoaded', function() {
     carregarStructuring();
     carregarExpirando();
     carregarSanctions();
+    loadEddCount();
     setInterval(function() { carregarStats(); }, 30000);
+    setInterval(loadEddCount, 60000);
 });
 
 // ============================================

@@ -11571,9 +11571,27 @@ def loja_nova_ordem():
             'compliance_status': compliance_status_val,
             'criado_por': usuario,
             'observacoes': d.get('observacoes', ''),
+            'purpose_of_remittance': (d.get('purpose_of_remittance') or '').strip(),
         }
         ins_ordem = supabase.table('ordens_captacao').insert(ordem).execute()
         ordem_id  = str(ins_ordem.data[0]['id']) if ins_ordem.data else None
+
+        # --- EDD B2C auto-trigger ---
+        if ordem_id and cliente_id:
+            _edd_b2c_id = _auto_edd_trigger_b2c(
+                ordem_id       = ordem_id,
+                cliente_id     = cliente_id,
+                aml_alertas    = aml_alertas,
+                forma_pagamento= forma,
+                valor_gbp      = valor_gbp,
+                pais_destino   = pais_destino,
+            )
+            if _edd_b2c_id:
+                # Mark order as EDD-blocked inside compliance_review
+                supabase.table('ordens_captacao').update({
+                    'status': 'compliance_review',
+                    'aml_alertas': ','.join(list(set(aml_alertas + ['EDD_REQUIRED'])))
+                }).eq('id', ordem_id).execute()
 
         # Cash/cartão: creditar conta empresa imediatamente (independente do status)
         if forma != 'transferencia' and conta_emp and valor_e > 0:
@@ -11666,15 +11684,26 @@ def loja_upload_proof_of_funds(ordem_id):
                 return jsonify({'success': False, 'message': 'Bucket "kyc-docs" não encontrado no Supabase Storage.'}), 500
             raise
 
+        # Buscar cliente_id da ordem para vincular o documento aos dois eixos de auditoria
+        cliente_id_ordem = None
+        try:
+            ro = supabase.table('ordens_captacao').select('cliente_id').eq('id', ordem_id).single().execute()
+            cliente_id_ordem = ro.data.get('cliente_id') if ro.data else None
+        except Exception:
+            pass
+
         obs_default = {'source_funds': 'Source of Funds — KYC override', 'declaration': 'Declaration Form — KYC override', 'edd': 'EDD — KYC override'}
-        r = supabase.table('documentos_kyc').insert({
+        payload_doc = {
             'ordem_id':     ordem_id,
             'tipo':         tipo,
             'arquivo_url':  path_storage,
             'arquivo_nome': arquivo.filename,
             'observacao':   request.form.get('observacao', obs_default.get(tipo, '')),
             'criado_por':   usuario,
-        }).execute()
+        }
+        if cliente_id_ordem:
+            payload_doc['cliente_id'] = str(cliente_id_ordem)
+        r = supabase.table('documentos_kyc').insert(payload_doc).execute()
         doc_id = r.data[0]['id'] if r.data else None
         return jsonify({'success': True, 'message': f'{tipo} enviado.', 'doc_id': doc_id})
     except Exception as e:
@@ -13425,13 +13454,34 @@ def clientes_upload_kyc_file(cliente_id):
         }).execute()
         doc_id = r_doc.data[0]['id'] if r_doc.data else None
 
-        # 🔥 Atualizar a data do último upload do comprovante de endereço
+        # Salvar nova data de validade do Photo ID quando fornecida
+        if tipo_doc == 'photo_id':
+            doc_validade = (request.form.get('doc_validade') or '').strip()
+            if doc_validade:
+                supabase.table('clientes_varejo').update({
+                    'doc_photo_id_validade': doc_validade
+                }).eq('id', cliente_id).execute()
+
+        # Atualizar datas do comprovante de endereço
         if tipo_doc == 'proof_address':
-            from datetime import datetime
-            supabase.table('clientes_varejo').update({
-                'doc_address_atualizado_em': datetime.now().strftime('%Y-%m-%d')
-            }).eq('id', cliente_id).execute()
-            print(f"✅ Data de atualização do comprovante salva: {datetime.now().strftime('%Y-%m-%d')}")
+            from datetime import datetime, date as _date
+            import calendar as _cal
+            doc_data = (request.form.get('doc_data') or '').strip()
+            addr_update = {}
+            if doc_data:
+                addr_update['doc_address_atualizado_em'] = doc_data
+                try:
+                    d = _date.fromisoformat(doc_data)
+                    mes = d.month + 6
+                    ano = d.year + (mes - 1) // 12
+                    mes = ((mes - 1) % 12) + 1
+                    dia = min(d.day, _cal.monthrange(ano, mes)[1])
+                    addr_update['doc_address_validade'] = _date(ano, mes, dia).isoformat()
+                except Exception:
+                    pass
+            else:
+                addr_update['doc_address_atualizado_em'] = datetime.now().strftime('%Y-%m-%d')
+            supabase.table('clientes_varejo').update(addr_update).eq('id', cliente_id).execute()
 
         # Se o cliente já tinha este doc validado, resetar para pendente (renovação)
         CLIENT_FIELD_RESET = {
@@ -15012,7 +15062,22 @@ def compliance_aprovar_ordem(ordem_id):
             return jsonify({'success': False, 'message': 'Ordem não encontrada'}), 404
         
         ordem = r.data
-        
+
+        # Verificar se há EDD B2C pendente — bloqueia aprovação
+        edd_check = supabase.table('edd_cases_b2c').select('id,status,prioridade')\
+            .eq('ordem_id', ordem_id)\
+            .in_('status', ['aberto', 'em_analise']).limit(1).execute()
+        if edd_check.data:
+            edd = edd_check.data[0]
+            return jsonify({
+                'success': False,
+                'message': 'Esta ordem possui um caso EDD pendente. Conclua o EDD antes de aprovar.',
+                'edd_bloqueado': True,
+                'edd_id': edd['id'],
+                'edd_status': edd['status'],
+                'edd_prioridade': edd['prioridade'],
+            }), 400
+
         # Verificar se já foi processada
         if ordem.get('compliance_status') == 'aprovado':
             return jsonify({'success': False, 'message': 'Ordem já foi aprovada'}), 400
@@ -15544,6 +15609,438 @@ def _auto_edd_trigger(client_id):
         return None
 
 
+# ─────────────────────────────────────────────────────────────
+#  EDD B2C — Auto-trigger helper
+# ─────────────────────────────────────────────────────────────
+
+def _auto_edd_trigger_b2c(ordem_id, cliente_id, aml_alertas, forma_pagamento, valor_gbp, pais_destino):
+    """
+    Evaluate EDD triggers for a B2C order and open a case if needed.
+    Returns the EDD case ID or None.
+
+    Triggers (per policy):
+    - valor_gbp >= 3501             → THRESHOLD_VALUE
+    - HIGH_RISK_COUNTRY_EDD alert   → HIGH_RISK_COUNTRY
+    - pep_flag + any alert          → PEP
+    - STRUCTURING_* alert           → STRUCTURING
+    - SANCTIONS_HIT                 → SANCTIONS (critical)
+    - Cash rolling 30d >= 2000 + PEP or structuring → CASH_ROLLING
+    - Doc inconsistent/missing      → DOC_ISSUE
+    """
+    try:
+        from datetime import datetime, timezone, timedelta
+        triggers = []
+        prioridade = 'medium'
+        requer_mlro = False
+
+        alertas = set(aml_alertas or [])
+
+        # 1. Threshold de valor
+        if valor_gbp and float(valor_gbp) >= 3501:
+            triggers.append('Transação única ≥ £3.501')
+
+        # 2. País de alto risco
+        if 'HIGH_RISK_COUNTRY_EDD' in alertas:
+            triggers.append(f'País de destino alto risco: {pais_destino}')
+            prioridade = 'high'
+
+        # 3. PEP
+        cli_r = supabase.table('clientes_varejo')\
+            .select('pep_flag,pep_info')\
+            .eq('id', cliente_id).limit(1).execute()
+        cli = cli_r.data[0] if cli_r.data else {}
+        is_pep = cli.get('pep_flag') or False
+        if is_pep:
+            triggers.append(f'Cliente PEP: {cli.get("pep_info") or "confirmado"}')
+            prioridade = 'high'
+            requer_mlro = True
+
+        # 4. Structuring
+        struct_hits = [a for a in alertas if a.startswith('STRUCTURING_')]
+        if struct_hits:
+            triggers.append(f'Structuring detectado: {", ".join(struct_hits)}')
+            prioridade = 'high'
+
+        # 5. Sanctions
+        if 'SANCTIONS_HIT' in alertas:
+            triggers.append('Possível match em lista de sanções')
+            prioridade = 'critical'
+            requer_mlro = True
+
+        # 6. Cash rolling 30 days >= £2.000 + PEP ou structuring
+        if forma_pagamento == 'cash' and (is_pep or struct_hits):
+            try:
+                _30d_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+                cash_r = supabase.table('ordens_captacao')\
+                    .select('valor_entrada')\
+                    .eq('cliente_id', cliente_id)\
+                    .eq('forma_pagamento', 'cash')\
+                    .gte('data', _30d_ago)\
+                    .not_.eq('status', 'cancelada').execute()
+                cash_total = sum(float(o.get('valor_entrada') or 0) for o in (cash_r.data or []))
+                if cash_total >= 2000:
+                    triggers.append(f'Cash acumulado £{cash_total:.0f} em 30 dias + fator de risco adicional')
+            except Exception:
+                pass
+
+        if not triggers:
+            return None
+
+        # Check if there's already an open EDD for this order
+        existing = supabase.table('edd_cases_b2c')\
+            .select('id').eq('ordem_id', ordem_id)\
+            .in_('status', ['aberto', 'em_analise']).execute()
+        if existing.data:
+            return existing.data[0]['id']
+
+        # Build default checklist
+        checklist = {
+            'source_funds':     {'status': 'pendente', 'nota': '', 'verificado_por': '', 'verificado_em': ''},
+            'purpose_of_use':   {'status': 'pendente', 'nota': '', 'verificado_por': '', 'verificado_em': ''},
+            'declaration_funds':{'status': 'pendente', 'nota': '', 'verificado_por': '', 'verificado_em': ''},
+            'avg_transaction':  {'status': 'pendente', 'nota': '', 'verificado_por': '', 'verificado_em': ''},
+        }
+        if requer_mlro:
+            checklist['source_wealth'] = {'status': 'pendente', 'nota': '', 'verificado_por': '', 'verificado_em': ''}
+            checklist['mlro_approval'] = {'status': 'pendente', 'nota': '', 'verificado_por': '', 'verificado_em': ''}
+
+        # Next review date
+        from datetime import date
+        proxima_revisao = (date.today() + timedelta(days=30)).isoformat()
+
+        ins = supabase.table('edd_cases_b2c').insert({
+            'ordem_id':        ordem_id,
+            'cliente_id':      cliente_id,
+            'trigger_reasons': triggers,
+            'status':          'aberto',
+            'prioridade':      prioridade,
+            'checklist':       checklist,
+            'requer_mlro':     requer_mlro,
+            'criado_por':      'sistema',
+            'criado_em':       datetime.now(timezone.utc).isoformat(),
+            'proxima_revisao': proxima_revisao,
+            'tipo_revisao':    'mensal',
+        }).execute()
+
+        if ins.data:
+            edd_id = ins.data[0]['id']
+            _compliance_audit('sistema', 'EDD_B2C_AUTO_CRIADO',
+                f'edd_id={edd_id}; ordem_id={ordem_id}; cliente_id={cliente_id}; triggers={"; ".join(triggers)}')
+            return edd_id
+        return None
+    except Exception as _e:
+        print(f'[EDD-B2C] ❌ exception: {_e}')
+        return None
+
+
+# ─────────────────────────────────────────────────────────────
+#  EDD B2C — API endpoints
+# ─────────────────────────────────────────────────────────────
+
+@app.route('/api/compliance/edd-b2c', methods=['GET'])
+def api_edd_b2c_lista():
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        status_f    = request.args.get('status', '')
+        prioridade_f = request.args.get('prioridade', '')
+        q = supabase.table('edd_cases_b2c').select('*').order('criado_em', desc=True).limit(200)
+        if status_f:
+            q = q.eq('status', status_f)
+        if prioridade_f:
+            q = q.eq('prioridade', prioridade_f)
+        r = q.execute()
+        return jsonify({'success': True, 'data': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/edd-b2c/<edd_id>', methods=['GET'])
+def api_edd_b2c_detalhe(edd_id):
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('edd_cases_b2c').select('*').eq('id', edd_id).limit(1).execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'EDD não encontrado'}), 404
+        case = r.data[0]
+        # Fetch related order and client
+        try:
+            ordem_r = supabase.table('ordens_captacao')\
+                .select('id,cliente_nome,valor_entrada,moeda_entrada,moeda_saida,valor_saida,forma_pagamento,pais_destino,data,status,aml_alertas,purpose_of_remittance,observacoes')\
+                .eq('id', case['ordem_id']).limit(1).execute()
+            case['ordem'] = ordem_r.data[0] if ordem_r.data else {}
+        except Exception:
+            case['ordem'] = {}
+        try:
+            cli_r = supabase.table('clientes_varejo')\
+                .select('id,nome,documento,pep_flag,pep_info,risk_score,nacionalidade,pais_residencia')\
+                .eq('id', case['cliente_id']).limit(1).execute()
+            case['cliente'] = cli_r.data[0] if cli_r.data else {}
+        except Exception:
+            case['cliente'] = {}
+        # Fetch EDD documents
+        try:
+            docs_r = supabase.table('edd_b2c_documentos').select('*')\
+                .eq('edd_case_id', edd_id).order('uploaded_em', desc=False).execute()
+            case['documentos'] = docs_r.data or []
+        except Exception:
+            case['documentos'] = []
+        # Client transaction stats for last 30 days (avg_transaction auto-fill)
+        try:
+            from datetime import datetime, timezone, timedelta
+            cutoff_30d = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+            hist_r = supabase.table('ordens_captacao')\
+                .select('valor_entrada,moeda_entrada')\
+                .eq('cliente_id', case['cliente_id'])\
+                .neq('status', 'cancelada')\
+                .gte('data', cutoff_30d).execute()
+            rows_30d = hist_r.data or []
+            FX = {'GBP': 1.0, 'EUR': 0.86, 'USD': 0.79}
+            total_gbp_30d = sum(float(r.get('valor_entrada') or 0) * FX.get(r.get('moeda_entrada','GBP'), 0.79) for r in rows_30d)
+            n30 = len(rows_30d)
+            case['cliente_stats_30d'] = {
+                'num_ordens': n30,
+                'total_gbp':  round(total_gbp_30d, 2),
+                'avg_gbp':    round(total_gbp_30d / n30, 2) if n30 else 0,
+            }
+        except Exception:
+            case['cliente_stats_30d'] = {}
+        # Order-level docs uploaded at order creation (source_funds / declaration)
+        try:
+            order_docs_r = supabase.table('documentos_kyc')\
+                .select('id,tipo,arquivo_url,arquivo_nome,criado_por,created_at')\
+                .eq('ordem_id', case['ordem_id'])\
+                .in_('tipo', ['source_funds', 'declaration']).execute()
+            case['documentos_ordem'] = order_docs_r.data or []
+        except Exception:
+            case['documentos_ordem'] = []
+        return jsonify({'success': True, 'data': case})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/edd-b2c/<edd_id>/checklist', methods=['PATCH'])
+def api_edd_b2c_checklist(edd_id):
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        d = request.get_json() or {}
+        item  = d.get('item')
+        status_item = d.get('status')   # 'ok' | 'pendente' | 'nao_aplicavel'
+        nota  = d.get('nota', '')
+        if not item or not status_item:
+            return jsonify({'success': False, 'message': 'item e status são obrigatórios'}), 400
+
+        r = supabase.table('edd_cases_b2c').select('checklist,status').eq('id', edd_id).limit(1).execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'EDD não encontrado'}), 404
+        case = r.data[0]
+        if case['status'] in ('aprovado', 'rejeitado'):
+            return jsonify({'success': False, 'message': 'Caso já encerrado'}), 400
+
+        from datetime import datetime, timezone
+        checklist = case.get('checklist') or {}
+        checklist[item] = {
+            'status': status_item,
+            'nota': nota,
+            'verificado_por': usuario,
+            'verificado_em': datetime.now(timezone.utc).isoformat(),
+        }
+        upd = {'checklist': checklist, 'atualizado_em': datetime.now(timezone.utc).isoformat()}
+        # Auto-advance to em_analise when first item is touched
+        if case['status'] == 'aberto':
+            upd['status'] = 'em_analise'
+        supabase.table('edd_cases_b2c').update(upd).eq('id', edd_id).execute()
+        _compliance_audit(usuario, 'EDD_B2C_CHECKLIST',
+            f'edd_id={edd_id}; item={item}; status={status_item}')
+        return jsonify({'success': True, 'checklist': checklist})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/edd-b2c/<edd_id>/nota', methods=['PATCH'])
+def api_edd_b2c_nota(edd_id):
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        from datetime import datetime, timezone
+        nota = (request.get_json() or {}).get('nota', '')
+        supabase.table('edd_cases_b2c').update({
+            'notas': nota,
+            'atualizado_em': datetime.now(timezone.utc).isoformat()
+        }).eq('id', edd_id).execute()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/edd-b2c/<edd_id>/aprovar', methods=['POST'])
+def api_edd_b2c_aprovar(edd_id):
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        from datetime import datetime, timezone, timedelta, date
+        d = request.get_json() or {}
+        nota = d.get('nota', '')
+        r = supabase.table('edd_cases_b2c').select('*').eq('id', edd_id).limit(1).execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'EDD não encontrado'}), 404
+        case = r.data[0]
+        if case.get('requer_mlro') and tipo not in ('admin', 'mlro', 'compliance'):
+            return jsonify({'success': False, 'message': 'Este caso requer aprovação do MLRO'}), 403
+        proxima = (date.today() + timedelta(days=90)).isoformat()
+        supabase.table('edd_cases_b2c').update({
+            'status':          'aprovado',
+            'aprovado_por':    usuario,
+            'aprovado_em':     datetime.now(timezone.utc).isoformat(),
+            'aprovacao_nota':  nota,
+            'atualizado_em':   datetime.now(timezone.utc).isoformat(),
+            'proxima_revisao': proxima,
+            'tipo_revisao':    'trimestral',
+        }).eq('id', edd_id).execute()
+        _compliance_audit(usuario, 'EDD_B2C_APROVADO',
+            f'edd_id={edd_id}; ordem_id={case["ordem_id"]}; nota={nota}')
+        return jsonify({'success': True, 'proxima_revisao': proxima})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/edd-b2c/<edd_id>/rejeitar', methods=['POST'])
+def api_edd_b2c_rejeitar(edd_id):
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        from datetime import datetime, timezone
+        d = request.get_json() or {}
+        nota = d.get('nota', '')
+        if not nota:
+            return jsonify({'success': False, 'message': 'Motivo de rejeição é obrigatório'}), 400
+        r = supabase.table('edd_cases_b2c').select('ordem_id').eq('id', edd_id).limit(1).execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'EDD não encontrado'}), 404
+        ordem_id = r.data[0]['ordem_id']
+        supabase.table('edd_cases_b2c').update({
+            'status':         'rejeitado',
+            'aprovado_por':   usuario,
+            'aprovado_em':    datetime.now(timezone.utc).isoformat(),
+            'aprovacao_nota': nota,
+            'atualizado_em':  datetime.now(timezone.utc).isoformat(),
+        }).eq('id', edd_id).execute()
+        # Also reject the linked order
+        supabase.table('ordens_captacao').update({
+            'compliance_status':          'rejeitado',
+            'status':                     'cancelada',
+            'compliance_motivo_interno':  f'[EDD Rejeitado] {nota}',
+        }).eq('id', ordem_id).execute()
+        _compliance_audit(usuario, 'EDD_B2C_REJEITADO',
+            f'edd_id={edd_id}; ordem_id={ordem_id}; nota={nota}')
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/edd-b2c/<edd_id>/docs', methods=['GET'])
+def api_edd_b2c_docs_list(edd_id):
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('edd_b2c_documentos').select('*')\
+            .eq('edd_case_id', edd_id).order('uploaded_em').execute()
+        return jsonify({'success': True, 'data': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/edd-b2c/<edd_id>/docs', methods=['POST'])
+def api_edd_b2c_docs_upload(edd_id):
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        import uuid as _uuid
+        from datetime import datetime, timezone
+        checklist_item = request.form.get('checklist_item', 'geral')
+        nota           = request.form.get('nota', '')
+        f = request.files.get('file')
+        if not f:
+            return jsonify({'success': False, 'message': 'Arquivo não enviado'}), 400
+        file_bytes   = f.read()
+        ext          = f.filename.rsplit('.', 1)[-1] if '.' in f.filename else 'bin'
+        storage_path = f'edd-b2c/{edd_id}/{checklist_item}/{_uuid.uuid4()}.{ext}'
+        supabase.storage.from_('edd-docs').upload(
+            storage_path, file_bytes,
+            file_options={'content-type': f.content_type or 'application/octet-stream'}
+        )
+        ins = supabase.table('edd_b2c_documentos').insert({
+            'edd_case_id':   edd_id,
+            'checklist_item': checklist_item,
+            'nome_arquivo':  f.filename,
+            'storage_path':  storage_path,
+            'content_type':  f.content_type,
+            'tamanho_bytes': len(file_bytes),
+            'nota':          nota,
+            'uploaded_por':  usuario,
+        }).execute()
+        return jsonify({'success': True, 'data': ins.data[0] if ins.data else {}})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/edd-b2c/<edd_id>/docs/<doc_id>/url', methods=['GET'])
+def api_edd_b2c_doc_url(edd_id, doc_id):
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('edd_b2c_documentos').select('storage_path')\
+            .eq('id', doc_id).eq('edd_case_id', edd_id).limit(1).execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'Documento não encontrado'}), 404
+        url = supabase.storage.from_('edd-docs').create_signed_url(r.data[0]['storage_path'], 3600)
+        return jsonify({'success': True, 'url': url.get('signedURL') or url.get('signed_url', '')})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/compliance/edd-b2c/<edd_id>/docs/<doc_id>', methods=['DELETE'])
+def api_edd_b2c_doc_delete(edd_id, doc_id):
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('edd_b2c_documentos').select('storage_path')\
+            .eq('id', doc_id).eq('edd_case_id', edd_id).limit(1).execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'Documento não encontrado'}), 404
+        supabase.storage.from_('edd-docs').remove([r.data[0]['storage_path']])
+        supabase.table('edd_b2c_documentos').delete().eq('id', doc_id).execute()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# endpoint to check if an order has a pending EDD
+@app.route('/api/compliance/edd-b2c/by-ordem/<ordem_id>', methods=['GET'])
+def api_edd_b2c_by_ordem(ordem_id):
+    usuario, tipo, redir = _check_compliance_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('edd_cases_b2c').select('id,status,prioridade,trigger_reasons,checklist,requer_mlro')\
+            .eq('ordem_id', ordem_id).order('criado_em', desc=True).limit(1).execute()
+        return jsonify({'success': True, 'data': r.data[0] if r.data else None})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
 @app.route('/api/compliance/audit', methods=['GET'])
 def compliance_listar_audit():
     usuario, tipo, redir = _check_compliance_acesso()
@@ -15592,9 +16089,9 @@ def ordens_consulta():
 
         q = supabase.table('ordens_captacao').select('*').order('data', desc=True).limit(300)
         loja_sessao = session.get('loja', '')
-        if tipo_usr != 'admin':
+        if tipo_usr not in ('admin', 'compliance'):
             q = q.eq('loja', loja_sessao or usuario)
-        # admin vê tudo
+        # admin e compliance vêem tudo
         if status_f:
             q = q.eq('status', status_f)
         if data_de:

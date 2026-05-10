@@ -513,6 +513,8 @@
                 </div>
                 <!-- AML check (loaded after selection) -->
                 <div id="s1AmlBox"></div>
+                <!-- Expired document alerts -->
+                <div id="s1DocAlertBox" style="margin-top:10px;"></div>
             </div>
 
             <!-- Quick new customer -->
@@ -898,9 +900,34 @@
                 <div class="prow prow-total"><span>Initial status:</span><span id="pv-status"></span></div>
             </div>
 
-            <div class="fg">
-                <label>Observations</label>
-                <input id="s2Obs" type="text" class="fc" placeholder="Optional">
+            <div class="grid2">
+                <div class="fg">
+                    <label>Purpose of Remittance *</label>
+                    <select id="s2Purpose" class="fc">
+                        <option value="">Select purpose…</option>
+                        <option value="family_support">Family Support</option>
+                        <option value="personal_savings">Personal Savings</option>
+                        <option value="education">Education</option>
+                        <option value="living_expenses">Living Expenses</option>
+                        <option value="medical">Medical</option>
+                        <option value="property">Property Purchase</option>
+                        <option value="investment">Investment</option>
+                        <option value="business">Business</option>
+                        <option value="gift">Gift</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="fg">
+                    <label>Observations</label>
+                    <input id="s2Obs" type="text" class="fc" placeholder="Optional">
+                </div>
+            </div>
+
+            <div style="margin-top:6px;">
+                <button type="button" onclick="imprimirDeclaration()" style="background:transparent;border:1px solid var(--cor-borda);color:var(--cor-admin);padding:7px 14px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:12px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;">
+                    <i class="fas fa-print"></i> Generate Declaration Form for Printing
+                </button>
+                <span style="font-size:11px;color:var(--cor-texto-secundario);margin-left:8px;">Print, have the customer sign, then upload the signed copy.</span>
             </div>
 
             <div id="s2Msg" class="status-msg"></div>
@@ -1172,11 +1199,13 @@ function resetDrawer() {
     clienteSelecionado = null;
     benefSelecionado = {};
     destinoAtivo = 'brazil';
+    window._docVencidosPendentes = new Set();
     document.getElementById('s1Busca').value = '';
     document.getElementById('s1ClienteId').value = '';
     document.getElementById('s1ClienteBox').style.display = 'none';
     document.getElementById('s1NovoBox').style.display = 'none';
     document.getElementById('s1AmlBox').innerHTML = '';
+    document.getElementById('s1DocAlertBox').innerHTML = '';
     document.getElementById('s1Msg').innerHTML = '';
     ['s2Forma','s2Moeda'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('s2Conta').innerHTML = '<option value="">Select payment method and currency…</option>';
@@ -1185,6 +1214,7 @@ function resetDrawer() {
     document.getElementById('s2Valor').value = '';
     document.getElementById('s2Taxa').value = '';
     document.getElementById('s2Obs').value = '';
+    document.getElementById('s2Purpose').value = '';
     document.getElementById('s2Msg').innerHTML = '';
     document.getElementById('s2AmlBox').innerHTML = '';
     document.getElementById('previewBox').style.display = 'none';
@@ -1276,6 +1306,136 @@ async function s1SelecionarCliente(c) {
     }
     
     await s1AmlCheck(c.id, 0, 'GBP');
+    s1CheckDocVencimentos(c);
+}
+
+function s1CheckDocVencimentos(c) {
+    const box = document.getElementById('s1DocAlertBox');
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    window._docVencidosPendentes = new Set();
+    let html = '';
+
+    if (c.doc_photo_id_validade) {
+        const val = new Date(c.doc_photo_id_validade);
+        if (val < hoje) {
+            window._docVencidosPendentes.add('photo_id');
+            html += `
+            <div id="s1Alert_photo_id" style="background:rgba(224,27,36,.07);border:1px solid rgba(224,27,36,.3);border-radius:8px;padding:12px;margin-bottom:8px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                    <i class="fas fa-exclamation-triangle" style="color:var(--cor-perigo);font-size:15px;"></i>
+                    <div>
+                        <div style="font-weight:700;font-size:13px;color:var(--cor-perigo);">Photo ID Expired</div>
+                        <div style="font-size:11px;color:var(--cor-texto-secundario);">Expired on ${val.toLocaleDateString('en-GB')} — upload the new document before continuing</div>
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:150px;">
+                        <label style="font-size:11px;font-weight:600;margin-bottom:3px;display:block;">New Expiry Date *</label>
+                        <input type="date" id="s1RenovacaoValidade_photo_id" class="fc" style="font-size:12px;">
+                    </div>
+                    <div style="flex:2;min-width:170px;">
+                        <label style="font-size:11px;font-weight:600;margin-bottom:3px;display:block;">New Document *</label>
+                        <input type="file" id="s1RenovacaoArquivo_photo_id" accept=".pdf,.jpg,.jpeg,.png,.webp" style="font-size:11px;width:100%;">
+                    </div>
+                    <button type="button" onclick="s1UploadDocRenovacao('photo_id')"
+                        style="background:var(--cor-perigo);color:#fff;border:none;border-radius:6px;padding:7px 13px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">
+                        <i class="fas fa-upload"></i> Upload
+                    </button>
+                </div>
+                <div id="s1AlertMsg_photo_id" style="margin-top:6px;font-size:11px;"></div>
+            </div>`;
+        }
+    }
+
+    let addrValidade = null;
+    if (c.doc_address_validade) {
+        addrValidade = new Date(c.doc_address_validade);
+    } else if (c.doc_address_atualizado_em) {
+        addrValidade = new Date(c.doc_address_atualizado_em);
+        addrValidade.setMonth(addrValidade.getMonth() + 6);
+    }
+    if (addrValidade && addrValidade < hoje) {
+        window._docVencidosPendentes.add('proof_address');
+        html += `
+            <div id="s1Alert_proof_address" style="background:rgba(230,126,34,.07);border:1px solid rgba(230,126,34,.3);border-radius:8px;padding:12px;margin-bottom:8px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                    <i class="fas fa-exclamation-triangle" style="color:var(--cor-alerta);font-size:15px;"></i>
+                    <div>
+                        <div style="font-weight:700;font-size:13px;color:var(--cor-alerta);">Proof of Address Expired</div>
+                        <div style="font-size:11px;color:var(--cor-texto-secundario);">Expired on ${addrValidade.toLocaleDateString('en-GB')} — valid for 6 months from document date</div>
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:150px;">
+                        <label style="font-size:11px;font-weight:600;margin-bottom:3px;display:block;">Document Date *</label>
+                        <input type="date" id="s1RenovacaoData_proof_address" class="fc" style="font-size:12px;" oninput="s1CalcAddrValidadeRen()">
+                        <div id="s1AddrValidadeMsgRen" style="font-size:10px;color:var(--cor-texto-secundario);margin-top:3px;"></div>
+                    </div>
+                    <div style="flex:2;min-width:170px;">
+                        <label style="font-size:11px;font-weight:600;margin-bottom:3px;display:block;">New Proof of Address *</label>
+                        <input type="file" id="s1RenovacaoArquivo_proof_address" accept=".pdf,.jpg,.jpeg,.png,.webp" style="font-size:11px;width:100%;">
+                    </div>
+                    <button type="button" onclick="s1UploadDocRenovacao('proof_address')"
+                        style="background:var(--cor-alerta);color:#fff;border:none;border-radius:6px;padding:7px 13px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">
+                        <i class="fas fa-upload"></i> Upload
+                    </button>
+                </div>
+                <div id="s1AlertMsg_proof_address" style="margin-top:6px;font-size:11px;"></div>
+            </div>`;
+    }
+
+    box.innerHTML = html;
+}
+
+function s1CalcAddrValidadeRen() {
+    const input = document.getElementById('s1RenovacaoData_proof_address');
+    const msg   = document.getElementById('s1AddrValidadeMsgRen');
+    if (!input || !msg || !input.value) { if (msg) msg.textContent = ''; return; }
+    const d = new Date(input.value);
+    d.setMonth(d.getMonth() + 6);
+    msg.textContent = `Valid until: ${d.toLocaleDateString('en-GB')}`;
+}
+
+async function s1UploadDocRenovacao(tipo) {
+    const msgEl   = document.getElementById(`s1AlertMsg_${tipo}`);
+    const arquivo = document.getElementById(`s1RenovacaoArquivo_${tipo}`)?.files[0];
+    if (!arquivo) { msgEl.innerHTML = '<span style="color:var(--cor-perigo);">Please select a file.</span>'; return; }
+
+    const fd = new FormData();
+    fd.append('arquivo', arquivo);
+    fd.append('tipo', tipo);
+    fd.append('observacao', 'Document renewal — uploaded by attendant');
+
+    if (tipo === 'photo_id') {
+        const validade = document.getElementById('s1RenovacaoValidade_photo_id')?.value;
+        if (!validade) { msgEl.innerHTML = '<span style="color:var(--cor-perigo);">Please enter the new expiry date.</span>'; return; }
+        fd.append('doc_validade', validade);
+    } else if (tipo === 'proof_address') {
+        const docData = document.getElementById('s1RenovacaoData_proof_address')?.value;
+        if (!docData) { msgEl.innerHTML = '<span style="color:var(--cor-perigo);">Please enter the document date.</span>'; return; }
+        fd.append('doc_data', docData);
+    }
+
+    msgEl.innerHTML = '<span style="color:var(--cor-texto-secundario);"><i class="fas fa-spinner fa-spin"></i> Uploading...</span>';
+    try {
+        const r = await fetch(`/api/clientes/${clienteSelecionado.id}/upload-kyc`, {method:'POST', body:fd});
+        const d = await r.json();
+        if (d.success) {
+            window._docVencidosPendentes?.delete(tipo);
+            const alertEl = document.getElementById(`s1Alert_${tipo}`);
+            if (alertEl) {
+                alertEl.style.background = 'rgba(39,174,96,.07)';
+                alertEl.style.borderColor = 'rgba(39,174,96,.3)';
+                const icon = alertEl.querySelector('i.fa-exclamation-triangle');
+                if (icon) { icon.className = 'fas fa-check-circle'; icon.style.color = 'var(--cor-sucesso)'; }
+            }
+            msgEl.innerHTML = `<span style="color:var(--cor-sucesso);"><i class="fas fa-check-circle"></i> ${d.message}</span>`;
+        } else {
+            msgEl.innerHTML = `<span style="color:var(--cor-perigo);">${d.message}</span>`;
+        }
+    } catch(e) {
+        msgEl.innerHTML = '<span style="color:var(--cor-perigo);">Connection error.</span>';
+    }
 }
 
 async function s1AmlCheck(clienteId, valor, moeda) {
@@ -1357,9 +1517,11 @@ function s1UsarNovo() {
 
 function s1LimparCliente() {
     clienteSelecionado = null;
+    window._docVencidosPendentes = new Set();
     document.getElementById('s1ClienteId').value = '';
     document.getElementById('s1ClienteBox').style.display = 'none';
     document.getElementById('s1AmlBox').innerHTML = '';
+    document.getElementById('s1DocAlertBox').innerHTML = '';
     document.getElementById('s1Busca').value = '';
 }
 
@@ -1375,6 +1537,12 @@ async function step1Proximo() {
     msg.innerHTML = '';
 
     if (clienteSelecionado) {
+        if (window._docVencidosPendentes && window._docVencidosPendentes.size > 0) {
+            const nomes = {photo_id:'Photo ID', proof_address:'Proof of Address'};
+            const pendentes = [...window._docVencidosPendentes].map(t => nomes[t] || t).join(', ');
+            msg.innerHTML = `<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Expired documents not renewed: <strong>${pendentes}</strong>. Please upload above before continuing.</span>`;
+            return;
+        }
         await carregarBeneficios(clienteSelecionado.id);
         const nomeBenef = (document.getElementById('nbo-nome')?.value || '').trim();
         if (nomeBenef && document.getElementById('s1BenefBox')?.style.display !== 'none') {
@@ -1819,6 +1987,7 @@ async function criarOrdem() {
     const moeda = document.getElementById('s2Moeda').value;
     const forma = document.getElementById('s2Forma').value;
     const conta = document.getElementById('s2Conta').value;
+    const purpose = document.getElementById('s2Purpose').value;
 
     if (!forma || !moeda || !valor || !taxa || !conta) {
         msg.innerHTML = '<span style="color:var(--cor-perigo)"><i class="fas fa-exclamation-circle"></i> Fill in all required fields.</span>';
@@ -1924,21 +2093,39 @@ async function criarOrdem() {
             </div>
         </div>
         
-        ${document.getElementById('s2Obs').value.trim() ? `
         <div class="confirmacao-section">
             <div class="confirmacao-section-title">
-                <i class="fas fa-pencil-alt"></i> Observations
+                <i class="fas fa-bullseye"></i> Purpose of Remittance
             </div>
-            <div class="confirmacao-item" style="background:rgba(128,128,128,.05);">
-                <div class="val" style="font-size:12px; font-weight:normal;">${document.getElementById('s2Obs').value.trim()}</div>
+            <div class="confirmacao-grid">
+                <div class="confirmacao-item">
+                    <div class="lbl">Purpose of Remittance</div>
+                    <div class="val">${({
+                        family_support:'Family Support',
+                        personal_savings:'Personal Savings',
+                        education:'Education',
+                        living_expenses:'Living Expenses',
+                        medical:'Medical',
+                        property:'Property Purchase',
+                        investment:'Investment',
+                        business:'Business',
+                        gift:'Gift',
+                        other:'Other',
+                    })[purpose] || '—'}</div>
+                </div>
+                ${document.getElementById('s2Obs').value.trim() ? `
+                <div class="confirmacao-item">
+                    <div class="lbl">Observations</div>
+                    <div class="val" style="font-size:12px;font-weight:normal;">${document.getElementById('s2Obs').value.trim()}</div>
+                </div>` : ''}
             </div>
         </div>
-        ` : ''}
     `;
-    
+
     window._pendingOrdemPayload = {
         clienteId, clienteNome, clienteDoc, clienteTel,
         forma, moeda, valor, conta, taxa, mSaida, benef,
+        purpose_of_remittance: purpose,
         observacoes: document.getElementById('s2Obs').value.trim()
     };
     
@@ -1984,6 +2171,7 @@ async function confirmarCriacaoOrdem() {
                 benef_iban: payload.benef.iban || '',
                 benef_swift: payload.benef.bic_swift || payload.benef.swift_us || '',
                 benef_routing: payload.benef.routing_number || '',
+                purpose_of_remittance: payload.purpose_of_remittance || '',
                 observacoes: payload.observacoes,
             })
         });
@@ -2016,6 +2204,7 @@ async function confirmarCriacaoOrdem() {
                 benef_iban: payload.benef.iban || '',
                 benef_swift: payload.benef.bic_swift || payload.benef.swift_us || '',
                 benef_routing: payload.benef.routing_number || '',
+                purpose_of_remittance: payload.purpose_of_remittance || '',
                 observacoes: payload.observacoes,
             };
             const docLabels = {photo_id:'Photo ID',proof_address:'Proof of Address',source_funds:'Source of Funds',declaration:'Declaration Form',edd:'EDD Documents'};
@@ -2130,6 +2319,129 @@ function atualizarStatusPreview() {
     } else {
         statusSpan.innerHTML = '<span style="color:#27ae60"><i class="fas fa-check-circle"></i> released</span>';
     }
+}
+
+function imprimirDeclaration() {
+    const PURPOSE_LABELS = {
+        family_support:'Family Support', personal_savings:'Personal Savings',
+        education:'Education', living_expenses:'Living Expenses',
+        medical:'Medical', property:'Property Purchase',
+        investment:'Investment', business:'Business',
+        gift:'Gift', other:'Other',
+    };
+    const clienteNome = clienteSelecionado?.nome || document.getElementById('s1NovoNome')?.value.trim() || '';
+    const clienteDoc  = clienteSelecionado?.documento || document.getElementById('s1NovoDoc')?.value.trim() || '';
+    const valor  = parseFloat(document.getElementById('s2Valor')?.value) || 0;
+    const moeda  = document.getElementById('s2Moeda')?.value || 'GBP';
+    const forma  = document.getElementById('s2Forma')?.value || '';
+    const purpose = document.getElementById('s2Purpose')?.value || '';
+    const benef  = benefSelecionado[destinoAtivo] || {};
+    const today  = new Date().toLocaleDateString('en-GB');
+
+    const win = window.open('', '_blank', 'width=750,height=980');
+    if (!win) { alert('Please allow popups for this site and try again.'); return; }
+    win.document.write(`<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<title>Declaration of Funds — Link International</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Times New Roman',Times,serif;font-size:13px;color:#111;padding:32px 40px;max-width:700px;margin:0 auto;}
+  h1{font-size:17px;text-align:center;margin-bottom:4px;letter-spacing:.5px;}
+  .subtitle{text-align:center;font-size:12px;color:#555;margin-bottom:22px;font-style:italic;}
+  .logo-hd{text-align:center;border-bottom:2px solid #b78700;padding-bottom:14px;margin-bottom:18px;}
+  .logo-hd strong{font-size:20px;color:#b78700;letter-spacing:1px;}
+  .logo-hd small{display:block;font-size:11px;color:#888;margin-top:2px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+  .field label{font-weight:700;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:2px;}
+  .field .val{border-bottom:1px solid #444;padding:4px 0;min-height:24px;font-size:13px;}
+  .field.full{grid-column:span 2;}
+  .decl-box{border:1px solid #888;border-radius:3px;padding:14px;margin:18px 0;font-size:12px;line-height:2;}
+  .decl-box strong{font-size:13px;}
+  .sign-grid{display:grid;grid-template-columns:2fr 1fr;gap:30px;margin-top:40px;}
+  .sign-line{border-top:1px solid #333;padding-top:4px;font-size:11px;color:#555;}
+  .footer{margin-top:28px;font-size:10px;color:#999;text-align:center;border-top:1px solid #ddd;padding-top:10px;line-height:1.6;}
+  .btn-print{display:block;margin:24px auto 0;padding:9px 30px;background:#b78700;color:#fff;border:none;font-size:13px;cursor:pointer;border-radius:3px;font-family:sans-serif;}
+  @media print{.btn-print{display:none;} body{padding:16px;}}
+</style></head>
+<body>
+<div class="logo-hd">
+  <strong>LINK INTERNATIONAL</strong>
+  <small>Authorised and Regulated by the Financial Conduct Authority</small>
+  <small>FCA Reference Number: [FCA REF] &nbsp;|&nbsp; Company No: [Co. No]</small>
+</div>
+<h1>DECLARATION OF FUNDS / SOURCE OF FUNDS</h1>
+<p class="subtitle">International Money Transfer — Customer Declaration</p>
+
+<div class="grid2">
+  <div class="field full">
+    <label>Full Name</label>
+    <div class="val">${clienteNome}</div>
+  </div>
+  <div class="field">
+    <label>Document No. (Passport / ID)</label>
+    <div class="val">${clienteDoc}</div>
+  </div>
+  <div class="field">
+    <label>Date</label>
+    <div class="val">${today}</div>
+  </div>
+  <div class="field">
+    <label>Amount</label>
+    <div class="val">${moeda} ${valor.toFixed(2)}</div>
+  </div>
+  <div class="field">
+    <label>Payment Method</label>
+    <div class="val">${forma ? forma.charAt(0).toUpperCase()+forma.slice(1) : ''}</div>
+  </div>
+  <div class="field">
+    <label>Beneficiary</label>
+    <div class="val">${benef.nome||''}</div>
+  </div>
+  <div class="field full">
+    <label>Purpose of Remittance</label>
+    <div class="val">${PURPOSE_LABELS[purpose]||purpose||'&nbsp;'}</div>
+  </div>
+  <div class="field full">
+    <label>Source of Funds (describe in detail)</label>
+    <div class="val" style="min-height:48px;">&nbsp;</div>
+  </div>
+</div>
+
+<div class="decl-box">
+  <strong>DECLARATION</strong><br>
+  I, the undersigned, hereby declare that:<br>
+  1. The funds being transferred originate from legitimate sources;<br>
+  2. I am the legal owner of these funds;<br>
+  3. These funds are not derived from criminal activities;<br>
+  4. The information provided is true and accurate to the best of my knowledge;<br>
+  5. I understand that providing false information is a criminal offence under UK law.
+</div>
+
+<div class="sign-grid">
+  <div>
+    <div style="height:50px;"></div>
+    <div class="sign-line">Customer Signature</div>
+    <div class="sign-line" style="margin-top:4px;">${clienteNome}</div>
+  </div>
+  <div>
+    <div style="height:50px;"></div>
+    <div class="sign-line">Date</div>
+  </div>
+</div>
+
+<div style="margin-top:24px;">
+  <div class="sign-line" style="width:60%;">Link International Staff Signature</div>
+</div>
+
+<div class="footer">
+  Link International · Authorised and Regulated by the Financial Conduct Authority<br>
+  This form must be completed and signed in the presence of a Link International employee.<br>
+  After signing, please upload this document to the customer's order.
+</div>
+<button class="btn-print" onclick="window.print()">🖨️ Print</button>
+</body></html>`);
+    win.document.close();
+    win.focus();
 }
 
 // ══ ADMIN ACTIONS ════════════════════════════════════════════════════
