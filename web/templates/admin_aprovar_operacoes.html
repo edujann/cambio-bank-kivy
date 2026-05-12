@@ -687,6 +687,15 @@
                     <input type="text" id="swift_50k" class="form-control" placeholder="Digite o campo :50K:...">
                 </div>
                 <div class="form-group">
+                    <input type="text" id="swift_extra_1" class="form-control" placeholder="Campo extra 1">
+                </div>
+                <div class="form-group">
+                    <input type="text" id="swift_extra_2" class="form-control" placeholder="Campo extra 2">
+                </div>
+                <div class="form-group">
+                    <input type="text" id="swift_extra_3" class="form-control" placeholder="Campo extra 3">
+                </div>
+                <div class="form-group">
                     <label>LINHA 5: :57A:</label>
                     <input type="text" id="swift_57a" class="form-control" placeholder="Digite o campo :57A:...">
                 </div>
@@ -1425,6 +1434,9 @@
             document.getElementById('swift_20').value = '';
             document.getElementById('swift_32a').value = '';
             document.getElementById('swift_50k').value = '';
+            document.getElementById('swift_extra_1').value = '';  // 🔥 NOVO
+            document.getElementById('swift_extra_2').value = '';  // 🔥 NOVO
+            document.getElementById('swift_extra_3').value = '';  // 🔥 NOVO
             document.getElementById('swift_57a').value = '';
             document.getElementById('swift_59').value = '';
             document.getElementById('swift_beneficiario').value = '';
@@ -1458,6 +1470,9 @@
                 linha2_20: document.getElementById('swift_20').value.trim(),
                 linha3_32a: document.getElementById('swift_32a').value.trim(),
                 linha4_50k: document.getElementById('swift_50k').value.trim(),
+                linha_extra_1: document.getElementById('swift_extra_1').value.trim(),
+                linha_extra_2: document.getElementById('swift_extra_2').value.trim(),
+                linha_extra_3: document.getElementById('swift_extra_3').value.trim(),
                 linha5_57a: document.getElementById('swift_57a').value.trim(),
                 linha6_59: document.getElementById('swift_59').value.trim(),
                 linha7_beneficiario: document.getElementById('swift_beneficiario').value.trim(),

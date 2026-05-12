@@ -2887,7 +2887,14 @@
                 return yPos;
             }
             
-            const boxHeight = 60;
+            // 🔥 CALCULAR ALTURA DINÂMICA BASEADA NOS CAMPOS PREENCHIDOS
+            let linhasExtras = 0;
+            if (dadosSwift.linha_extra_1 && dadosSwift.linha_extra_1.trim()) linhasExtras++;
+            if (dadosSwift.linha_extra_2 && dadosSwift.linha_extra_2.trim()) linhasExtras++;
+            if (dadosSwift.linha_extra_3 && dadosSwift.linha_extra_3.trim()) linhasExtras++;
+            
+            // Box base 60 + 6mm por cada linha extra (3mm por linha)
+            const boxHeight = 60 + (linhasExtras * 6);
             
             doc.setFillColor(250, 250, 250);
             doc.roundedRect(15, yPos, width - 30, boxHeight, 3, 3, 'F');
@@ -2896,14 +2903,14 @@
             doc.setLineWidth(0.3);
             doc.roundedRect(15, yPos, width - 30, boxHeight, 3, 3, 'S');
             
-            // TÍTULO (FONTE 10, SUBLINHADO 0.6)
+            // TÍTULO
             doc.setTextColor(20, 46, 82);
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(10);
             doc.text('SWIFT PAYMENT DETAILS', 20, yPos + 7);
             
             doc.setDrawColor(20, 46, 82);
-            doc.setLineWidth(0.6); // 🔥 SUBLINHADO MAIS FINO
+            doc.setLineWidth(0.6);
             const textWidth3 = doc.getTextWidth('SWIFT PAYMENT DETAILS');
             doc.line(20, yPos + 9.5, 20 + textWidth3, yPos + 9.5);
             
@@ -2911,7 +2918,6 @@
             const valorXPos = 42;
             let yContent = yPos + 16;
             
-            // 🔥 FONTE 8 (PADRÃO COM OS OUTROS)
             doc.setFontSize(8);
             
             const adicionarLinhaSwift = (rotulo, valor, chave) => {
@@ -2942,6 +2948,35 @@
             adicionarLinhaSwift(':20:', dadosSwift.linha2_20, 'linha2_20');
             adicionarLinhaSwift(':32A:', dadosSwift.linha3_32a, 'linha3_32a');
             adicionarLinhaSwift(':50K:', dadosSwift.linha4_50k, 'linha4_50k');
+            
+            // 🔥🔥🔥 TRÊS CAMPOS EXTRAS (SEM RÓTULO, APENAS O VALOR) 🔥🔥🔥
+            const extra1 = dadosSwift.linha_extra_1;
+            if (extra1 && extra1.trim()) {
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(20, 20, 20);
+                doc.setFontSize(8);
+                doc.text(extra1, valorXPos, yContent);
+                yContent += 4.5;
+            }
+            
+            const extra2 = dadosSwift.linha_extra_2;
+            if (extra2 && extra2.trim()) {
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(20, 20, 20);
+                doc.setFontSize(8);
+                doc.text(extra2, valorXPos, yContent);
+                yContent += 4.5;
+            }
+            
+            const extra3 = dadosSwift.linha_extra_3;
+            if (extra3 && extra3.trim()) {
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(20, 20, 20);
+                doc.setFontSize(8);
+                doc.text(extra3, valorXPos, yContent);
+                yContent += 4.5;
+            }
+            
             adicionarLinhaSwift(':57A:', dadosSwift.linha5_57a, 'linha5_57a');
             adicionarLinhaSwift(':59:', dadosSwift.linha6_59, 'linha6_59');
             
@@ -2986,9 +3021,9 @@
             const footerY = height - 28;
             
             // LINHA DIVISÓRIA
-            doc.setDrawColor(200, 200, 200);
-            doc.setLineWidth(0.5);
-            doc.line(10, footerY, width - 10, footerY);
+            //doc.setDrawColor(200, 200, 200);
+            //doc.setLineWidth(0.5);
+            //doc.line(10, footerY, width - 10, footerY);
             
             // CAIXA DE STATUS
             doc.setFillColor(247, 247, 247);

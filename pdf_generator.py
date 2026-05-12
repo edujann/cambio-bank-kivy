@@ -473,27 +473,41 @@ class PDFGenerator:
         return y_pos
 
     def _adicionar_dados_swift_pagamento(self, pdf, width, height, y_pos, dados_swift):
-        """Dados SWIFT em inglês"""
+        """Dados SWIFT - 3 campos extras condicionais entre 50K e 57A"""
         if dados_swift:
             y_pos = y_pos - 20
             
+            # ============================================
+            # 🔥 CALCULAR ALTURA DINÂMICA DO BOX
+            # ============================================
+            linha_50k = dados_swift.get('linha4_50k', 'N/A')
+            num_linhas_50k = len(linha_50k.split('\n')) if '\n' in linha_50k else 1
+            linhas_extras_50k = max(0, num_linhas_50k - 1)
+            
+            # 🔥 VERIFICAR CAMPOS EXTRAS PREENCHIDOS
+            extra_1 = dados_swift.get('linha_extra_1', '')
+            extra_2 = dados_swift.get('linha_extra_2', '')
+            extra_3 = dados_swift.get('linha_extra_3', '')
+            num_extras_preenchidos = sum(1 for x in [extra_1, extra_2, extra_3] if x and x.strip())
+            
+            # Altura: base + linhas extras 50K + linhas extras preenchidas (12px cada)
+            box_height = 160 + (linhas_extras_50k * 10) + (num_extras_preenchidos * 12)
+            
             # Desenha o box
             pdf.setFillColorRGB(0.98, 0.98, 0.98)
-            box_height = 160
             pdf.roundRect(40, y_pos - box_height, width-80, box_height, 3, fill=1)
             
-            # Título em inglês
+            # Título
             pdf.setFillColorRGB(0.08, 0.18, 0.32)
             pdf.setFont("Helvetica-Bold", 10)
-            pdf.drawString(50, y_pos - 20, "SWIFT PAYMENT DETAILS")  # 🔥 EM INGLÊS
+            pdf.drawString(50, y_pos - 20, "SWIFT PAYMENT DETAILS")
             
-            # Linha fina
             text_width = pdf.stringWidth("SWIFT PAYMENT DETAILS", "Helvetica-Bold", 10)
             pdf.setStrokeColorRGB(0.08, 0.18, 0.32)
             pdf.setLineWidth(0.8)
             pdf.line(50, y_pos - 23, 50 + text_width, y_pos - 23)
             
-            # Conteúdo (os campos SWIFT permanecem os mesmos)
+            # Conteúdo
             y_pos_content = y_pos - 35
             pdf.setFillColorRGB(0.2, 0.2, 0.2)
             x_pos = 50
@@ -523,15 +537,65 @@ class PDFGenerator:
             pdf.setFillColorRGB(0.1, 0.1, 0.1)
             pdf.drawString(valor_x_pos, y_pos_content - 36, dados_swift.get('linha3_32a', 'N/A'))
             
-            # Linha 4: :50K:
+            # ============================================
+            # 🔥 LINHA 4: :50K: COM MÚLTIPLAS LINHAS
+            # ============================================
             pdf.setFont("Helvetica-Bold", 7)
             pdf.setFillColorRGB(0.5, 0.5, 0.5)
             pdf.drawString(x_pos, y_pos_content - 48, ":50K:")
+            
             pdf.setFont("Helvetica", 7)
             pdf.setFillColorRGB(0.1, 0.1, 0.1)
-            pdf.drawString(valor_x_pos, y_pos_content - 48, dados_swift.get('linha4_50k', 'N/A'))
             
-            # Linha 5: :57A:
+            linha_50k = dados_swift.get('linha4_50k', 'N/A')
+            linhas_50k = linha_50k.split('\n') if '\n' in linha_50k else [linha_50k]
+            
+            y_offset = y_pos_content - 48
+            for i, linha in enumerate(linhas_50k):
+                if i == 0:
+                    pdf.drawString(valor_x_pos, y_offset, linha[:70] if len(linha) > 70 else linha)
+                else:
+                    y_offset -= 10
+                    pdf.drawString(valor_x_pos, y_offset, linha[:70] if len(linha) > 70 else linha)
+            
+            # Ajustar y_pos_content para as próximas linhas
+            linhas_usadas_50k = len(linhas_50k)
+            if linhas_usadas_50k > 1:
+                offset_linhas_50k = (linhas_usadas_50k - 1) * 10
+                y_pos_content -= offset_linhas_50k
+            
+            # ============================================
+            # 🔥 TRÊS CAMPOS EXTRAS (CONDICIONAIS)
+            # ============================================
+            y_offset_extra = y_pos_content - 60
+            
+            extra_1 = dados_swift.get('linha_extra_1', '')
+            if extra_1 and extra_1.strip():
+                pdf.setFont("Helvetica", 7)
+                pdf.setFillColorRGB(0.1, 0.1, 0.1)
+                pdf.drawString(valor_x_pos, y_offset_extra, extra_1[:70] if len(extra_1) > 70 else extra_1)
+                y_offset_extra -= 12
+                y_pos_content -= 12
+            
+            extra_2 = dados_swift.get('linha_extra_2', '')
+            if extra_2 and extra_2.strip():
+                pdf.setFont("Helvetica", 7)
+                pdf.setFillColorRGB(0.1, 0.1, 0.1)
+                pdf.drawString(valor_x_pos, y_offset_extra, extra_2[:70] if len(extra_2) > 70 else extra_2)
+                y_offset_extra -= 12
+                y_pos_content -= 12
+            
+            extra_3 = dados_swift.get('linha_extra_3', '')
+            if extra_3 and extra_3.strip():
+                pdf.setFont("Helvetica", 7)
+                pdf.setFillColorRGB(0.1, 0.1, 0.1)
+                pdf.drawString(valor_x_pos, y_offset_extra, extra_3[:70] if len(extra_3) > 70 else extra_3)
+                y_offset_extra -= 12
+                y_pos_content -= 12
+            
+            # ============================================
+            # 🔥 LINHA 5: :57A: (posição ajustada)
+            # ============================================
             pdf.setFont("Helvetica-Bold", 7)
             pdf.setFillColorRGB(0.5, 0.5, 0.5)
             pdf.drawString(x_pos, y_pos_content - 60, ":57A:")
@@ -558,6 +622,7 @@ class PDFGenerator:
             if len(beneficiario) > 60:
                 pdf.drawString(valor_x_pos, y_pos_content - 84, beneficiario[:60])
                 pdf.drawString(valor_x_pos, y_pos_content - 96, beneficiario[60:120] if len(beneficiario) > 120 else beneficiario[60:])
+                
                 pdf.setFont("Helvetica-Bold", 7)
                 pdf.setFillColorRGB(0.5, 0.5, 0.5)
                 pdf.drawString(x_pos, y_pos_content - 108, ":70:")
@@ -572,7 +637,7 @@ class PDFGenerator:
                 pdf.setFillColorRGB(0.1, 0.1, 0.1)
                 pdf.drawString(valor_x_pos, y_pos_content - 120, dados_swift.get('linha9_71a', 'N/A'))
                 
-                return y_pos - 145
+                return y_pos - 145 - (linhas_usadas_50k - 1) * 10 - (num_extras_preenchidos * 12)
             else:
                 pdf.drawString(valor_x_pos, y_pos_content - 84, beneficiario)
                 
@@ -590,7 +655,7 @@ class PDFGenerator:
                 pdf.setFillColorRGB(0.1, 0.1, 0.1)
                 pdf.drawString(valor_x_pos, y_pos_content - 108, dados_swift.get('linha9_71a', 'N/A'))
                 
-                return y_pos - 130
+                return y_pos - 130 - (linhas_usadas_50k - 1) * 10 - (num_extras_preenchidos * 12)
         
         return y_pos
 
