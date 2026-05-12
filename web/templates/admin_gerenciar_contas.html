@@ -711,6 +711,45 @@
         .status-gc.processing { background: rgba(243,156,18,0.2); color: #f39c12; }
         .status-gc.pending, .status-gc.solicitada { background: rgba(243,156,18,0.2); color: #f39c12; }
         .status-gc.rejected { background: rgba(231,76,60,0.2); color: #e74c3c; }
+
+        .filtro-container {
+            background: rgba(210, 158, 0, 0.05);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius);
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .filtro-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            color: var(--cor-texto-secundario);
+            font-size: 13px;
+        }
+
+        .filtro-label i {
+            color: var(--cor-admin);
+        }
+
+        .select-filtro {
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--borda-radius-pequeno);
+            color: var(--cor-texto);
+            padding: 10px 12px;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .filtro-info {
+            font-size: 12px;
+            color: var(--cor-texto-secundario);
+            margin-top: 8px;
+            text-align: center;
+        }
+
     </style>
 </head>
 <body>
@@ -923,21 +962,38 @@
                 <div class="form-card">
                     <h3 class="form-title"><i class="fas fa-chart-line"></i> Lançar Despesa</h3>
                     
-                    <div class="form-row">
-                        <label><i class="fas fa-building"></i> Conta Bancária</label>
-                        <select id="despesaContaBancaria" class="form-control">
-                            <option value="">Selecione a conta bancária...</option>
+                    <!-- 🔥 FILTRO POR BANCO -->
+                    <div class="filtro-container">
+                        <div class="filtro-label">
+                            <i class="fas fa-building"></i>
+                            <span>Filtrar por Banco</span>
+                        </div>
+                        <select id="filtroBancoDespesa" class="select-filtro" onchange="filtrarContasPorBancoDespesa()">
+                            <option value="TODOS"><i class="fas fa-building"></i> TODOS OS BANCOS</option>
                         </select>
+                        <div class="filtro-info" id="filtroInfoDespesa">
+                            <i class="fas fa-info-circle"></i> Selecione um banco para filtrar as contas
+                        </div>
                     </div>
                     
-                    <div class="form-row-duas-colunas">
-                        <div class="form-row">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-building"></i> Conta Bancária</label>
+                            <select id="despesaContaBancaria" class="form-control">
+                                <option value="">Selecione a conta bancária...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
                             <label><i class="fas fa-tags"></i> Categoria</label>
                             <select id="despesaCategoria" class="form-control">
                                 <option value="">Selecione a categoria...</option>
                             </select>
                         </div>
-                        <div class="form-row">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
                             <label><i class="fas fa-receipt"></i> Conta de Despesa</label>
                             <select id="despesaConta" class="form-control" disabled>
                                 <option value="">Selecione primeiro uma categoria...</option>
@@ -946,13 +1002,14 @@
                     </div>
                     
                     <div class="form-row">
-                        <label><i class="fas fa-dollar-sign"></i> Valor</label>
-                        <input type="text" id="despesaValor" class="form-control" placeholder="0,00">
-                    </div>
-                    
-                    <div class="form-row">
-                        <label><i class="fas fa-pencil-alt"></i> Descrição</label>
-                        <input type="text" id="despesaDescricao" class="form-control" placeholder="Ex: Pagamento de aluguel">
+                        <div class="form-group">
+                            <label><i class="fas fa-dollar-sign"></i> Valor</label>
+                            <input type="text" id="despesaValor" class="form-control" placeholder="0,00">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-pencil-alt"></i> Descrição</label>
+                            <input type="text" id="despesaDescricao" class="form-control" placeholder="Ex: Pagamento de aluguel">
+                        </div>
                     </div>
                     
                     <button class="btn-submit" onclick="lancarDespesa()">
@@ -1906,32 +1963,29 @@
         // ABA 5: DESPESAS
         // ============================================
         async function carregarDespesas() {
-            const selectConta = document.getElementById('despesaContaBancaria');
-            const selectCategoria = document.getElementById('despesaCategoria');
-            
-            // Carregar contas bancárias
-            const responseContas = await fetch('/api/admin/contas-bancarias');
-            const contasData = await responseContas.json();
-            if (contasData.success) {
-                selectConta.innerHTML = '<option value="">Selecione a conta bancária...</option>';
-                contasData.contas.forEach(conta => {
-                    const option = document.createElement('option');
-                    option.value = conta.numero;
-                    option.textContent = `${conta.numero} - ${conta.banco} - ${conta.moeda} (Saldo: ${formatarValor(conta.saldo)})`;
-                    selectConta.appendChild(option);
-                });
-            }
+            // Carregar contas bancárias da empresa
+            await carregarContasBancariasEmpresa();
             
             // Carregar categorias de despesa
-            const categorias = Object.keys(contasContabeis.despesas || {});
-            selectCategoria.innerHTML = '<option value="">Selecione a categoria...</option>';
-            categorias.forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat;
-                option.textContent = cat;
-                selectCategoria.appendChild(option);
-            });
+            const selectCategoria = document.getElementById('despesaCategoria');
+            try {
+                const response = await fetch('/api/admin/contas-contabeis');
+                const data = await response.json();
+                if (data.success && selectCategoria) {
+                    const categorias = Object.keys(data.despesas || {});
+                    selectCategoria.innerHTML = '<option value="">Selecione a categoria...</option>';
+                    categorias.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat;
+                        option.textContent = cat;
+                        selectCategoria.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar categorias:', error);
+            }
         }
+
 
         document.getElementById('despesaCategoria')?.addEventListener('change', () => {
             const categoria = document.getElementById('despesaCategoria').value;
@@ -2347,6 +2401,88 @@
             } catch (error) {
                 console.error('Erro:', error);
                 alert('Erro ao executar transferência!');
+            }
+        }
+
+        // ============================================
+        // FILTRO DE BANCO - DESPESAS
+        // ============================================
+        
+        let bancoFiltroAtualDespesa = 'TODOS';
+        let contasOriginaisDespesa = [];
+        let contasBancariasEmpresa = [];
+
+        async function carregarContasBancariasEmpresa() {
+            try {
+                const response = await fetch('/api/admin/contas-bancarias');
+                const data = await response.json();
+                if (data.success) {
+                    contasBancariasEmpresa = data.contas;
+                    contasOriginaisDespesa = JSON.parse(JSON.stringify(data.contas));
+                    atualizarFiltroBancoDespesa();
+                    filtrarContasPorBancoDespesa();
+                }
+            } catch (error) {
+                console.error('Erro ao carregar contas bancárias:', error);
+            }
+        }
+
+        function atualizarFiltroBancoDespesa() {
+            const selectFiltro = document.getElementById('filtroBancoDespesa');
+            if (!selectFiltro) return;
+            
+            const bancosSet = new Set();
+            bancosSet.add('TODOS');
+            for (const conta of contasOriginaisDespesa) {
+                if (conta.banco && conta.banco.trim()) {
+                    bancosSet.add(conta.banco);
+                }
+            }
+            
+            let optionsHtml = '<option value="TODOS"><i class="fas fa-building"></i> TODOS OS BANCOS</option>';
+            for (const banco of bancosSet) {
+                if (banco !== 'TODOS') {
+                    const contasDoBanco = contasOriginaisDespesa.filter(c => c.banco === banco);
+                    const qtd = contasDoBanco.length;
+                    optionsHtml += `<option value="${escapeHtml(banco)}"><i class="fas fa-building"></i> ${escapeHtml(banco)} (${qtd} conta${qtd !== 1 ? 's' : ''})</option>`;
+                }
+            }
+            
+            selectFiltro.innerHTML = optionsHtml;
+        }
+
+        function filtrarContasPorBancoDespesa() {
+            const selectFiltro = document.getElementById('filtroBancoDespesa');
+            const selectConta = document.getElementById('despesaContaBancaria');
+            
+            if (!selectFiltro || !selectConta) return;
+            
+            bancoFiltroAtualDespesa = selectFiltro.value;
+            
+            let contasFiltradas;
+            if (bancoFiltroAtualDespesa === 'TODOS') {
+                contasFiltradas = JSON.parse(JSON.stringify(contasOriginaisDespesa));
+            } else {
+                contasFiltradas = contasOriginaisDespesa.filter(conta => conta.banco === bancoFiltroAtualDespesa);
+            }
+            
+            // Atualizar o select de contas com as contas filtradas
+            let optionsHtml = '<option value="">Selecione a conta bancária...</option>';
+            for (const conta of contasFiltradas) {
+                const simbolo = obterSimboloMoeda(conta.moeda);
+                const saldoFormatado = formatarValor(conta.saldo);
+                optionsHtml += `<option value="${escapeHtml(conta.numero)}">${escapeHtml(conta.numero)} | ${escapeHtml(conta.banco)} | ${conta.moeda} | Saldo: ${simbolo} ${saldoFormatado}</option>`;
+            }
+            selectConta.innerHTML = optionsHtml;
+            
+            // Atualizar informação no filtro
+            const filtroInfo = document.getElementById('filtroInfoDespesa');
+            if (filtroInfo) {
+                if (bancoFiltroAtualDespesa === 'TODOS') {
+                    filtroInfo.innerHTML = `<i class="fas fa-info-circle"></i> Mostrando todas as ${contasFiltradas.length} contas de todos os bancos`;
+                } else {
+                    filtroInfo.innerHTML = `<i class="fas fa-check-circle"></i> Mostrando ${contasFiltradas.length} conta(s) do banco "${bancoFiltroAtualDespesa}"`;
+                }
             }
         }
 

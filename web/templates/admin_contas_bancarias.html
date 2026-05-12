@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏦 Cambio Bank - Contas Bancárias</title>
+    <title>Link International - Contas Bancárias</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/theme.css">
     <style>
@@ -15,21 +15,30 @@
         }
 
         :root {
-            --cor-fundo: #0a0e15;
-            --cor-card: #0d1117;
-            --cor-borda: #1e232e;
+            --cor-fundo: #110f08;
+            --cor-card: #191611;
+            --cor-borda: #2d2819;
             --cor-texto: #e0e0e0;
             --cor-texto-secundario: #8b949e;
-            --cor-primaria: #1a5fb4;
-            --cor-admin: #1a5fb4;
+            --cor-primaria: #d29e00;
+            --cor-admin: #d29e00;
             --cor-sucesso: #2ec27e;
             --cor-alerta: #f39c12;
             --cor-perigo: #e01b24;
             --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.3);
             --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.4);
-            --sombra-forte: 0 12px 24px rgba(0, 0, 0, 0.5);
             --borda-radius: 12px;
             --borda-radius-pequeno: 8px;
+        }
+
+        :root[data-theme="light"] {
+            --cor-fundo: #f8f5ee;
+            --cor-card: #ffffff;
+            --cor-borda: #e8dfc8;
+            --cor-texto: #1a1d24;
+            --cor-texto-secundario: #6b7280;
+            --cor-primaria: #d29e00;
+            --cor-admin: #d29e00;
         }
 
         body {
@@ -69,8 +78,9 @@
             font-size: 28px;
         }
 
+        .logo-text strong { font-weight: 800; }
         .logo-text {
-            background: linear-gradient(90deg, var(--cor-admin), #2d8fff);
+            background: linear-gradient(90deg, #b78700, #eeb600);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
@@ -91,22 +101,34 @@
             font-weight: bold;
             flex: 1;
             text-align: center;
+            color: #d29e00 !important;
         }
 
-        .btn-voltar {
+        .btn-hd {
             background: transparent;
             border: 1px solid var(--cor-borda);
             color: var(--cor-texto);
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-radius: var(--borda-radius-pequeno);
             cursor: pointer;
             transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .btn-hd:hover {
+            border-color: #d29e00 !important;
+            color: #d29e00 !important;
+            background: rgba(210, 158, 0, 0.1) !important;
+        }
+
+        .hd-right {
+            display: flex;
+            gap: 10px;
         }
 
         .btn-voltar:hover {
-            border-color: var(--cor-admin);
-            color: var(--cor-admin);
-            transform: translateY(-2px);
+            border-color: #d29e00 !important;
+            color: #d29e00 !important;
         }
 
         /* TOTAIS POR MOEDA */
@@ -156,10 +178,13 @@
             cursor: pointer;
             margin-bottom: 20px;
             transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .btn-nova-conta:hover {
-            background: #2d8fff;
+            background: #eeb600;
             transform: translateY(-2px);
             box-shadow: var(--sombra-suave);
         }
@@ -174,15 +199,19 @@
             gap: 5px;
             border-bottom: 1px solid var(--cor-borda);
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
 
         .tab-btn {
             background: transparent;
             border: none;
-            padding: 12px 24px;
-            font-size: 14px;
+            padding: 12px 20px;
+            font-size: 13px;
             font-weight: 600;
             color: var(--cor-texto-secundario);
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
             cursor: pointer;
             transition: all 0.3s ease;
             border-radius: 8px 8px 0 0;
@@ -190,8 +219,7 @@
 
         .tab-btn:hover {
             color: var(--cor-texto);
-            background: rgba(26, 95, 180, 0.1);
-            transform: translateY(-2px);
+            background: rgba(210, 158, 0, 0.1);
         }
 
         .tab-btn.active {
@@ -262,7 +290,7 @@
         }
 
         .conta-moeda {
-            background: rgba(26, 95, 180, 0.2);
+            background: rgba(210, 158, 0, 0.2);
             color: var(--cor-admin);
             padding: 4px 10px;
             border-radius: 20px;
@@ -343,7 +371,7 @@
         }
 
         .btn-extrato {
-            background: rgba(26, 95, 180, 0.2);
+            background: rgba(210, 158, 0, 0.2);
             color: var(--cor-primaria);
         }
 
@@ -366,6 +394,8 @@
             font-size: 18px;
             margin-bottom: 20px;
             color: var(--cor-admin);
+            border-left: 3px solid var(--cor-admin);
+            padding-left: 15px;
         }
 
         .form-group {
@@ -393,54 +423,13 @@
         .form-control:focus {
             outline: none;
             border-color: var(--cor-admin);
-            box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2);
+            box-shadow: 0 0 0 2px rgba(210, 158, 0, 0.2);
         }
 
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
-        }
-
-        /* BOTÕES */
-        .btn-submit {
-            background: var(--cor-admin);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: var(--borda-radius-pequeno);
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 10px;
-        }
-
-        .btn-submit:hover {
-            background: #2d8fff;
-            transform: translateY(-2px);
-            box-shadow: var(--sombra-suave);
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .btn-secondary {
-            background: transparent;
-            border: 1px solid var(--cor-borda);
-            color: var(--cor-texto);
-            padding: 12px 24px;
-            border-radius: var(--borda-radius-pequeno);
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-secondary:hover {
-            border-color: var(--cor-admin);
-            color: var(--cor-admin);
-            transform: translateY(-2px);
         }
 
         /* TOGGLE BUTTONS */
@@ -463,7 +452,6 @@
         }
 
         .toggle-btn:hover {
-            border-color: var(--cor-admin);
             transform: translateY(-2px);
         }
 
@@ -473,9 +461,44 @@
             color: white;
         }
 
+        /* BOTÕES */
+        .btn-submit {
+            background: var(--cor-admin);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: var(--borda-radius-pequeno);
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn-submit:hover {
+            background: #eeb600;
+            transform: translateY(-2px);
+            box-shadow: var(--sombra-suave);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto);
+            padding: 12px 24px;
+            border-radius: var(--borda-radius-pequeno);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--cor-admin);
+            color: var(--cor-admin);
+        }
+
         /* INFO CONVERSÃO */
         .info-conversao {
-            background: rgba(26, 95, 180, 0.1);
+            background: rgba(210, 158, 0, 0.1);
             border: 1px solid var(--cor-admin);
             border-radius: var(--borda-radius-pequeno);
             padding: 15px;
@@ -486,7 +509,7 @@
         }
 
         .info-conversao:hover {
-            background: rgba(26, 95, 180, 0.15);
+            background: rgba(210, 158, 0, 0.15);
             transform: translateY(-2px);
         }
 
@@ -556,51 +579,9 @@
             gap: 10px;
         }
 
-        /* LOADING */
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: var(--cor-texto-secundario);
-        }
-
-        .loading i {
-            font-size: 32px;
-            margin-bottom: 10px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        /* RESPONSIVIDADE */
-        @media (max-width: 768px) {
-            .totais-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .contas-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-            
-            .tabs-header {
-                flex-wrap: wrap;
-            }
-            
-            .tab-btn {
-                flex: 1;
-                text-align: center;
-            }
-        }
-
         /* FILTRO POR BANCO */
         .filtro-container {
-            background: rgba(26, 95, 180, 0.05);
+            background: rgba(210, 158, 0, 0.05);
             border: 1px solid var(--cor-borda);
             border-radius: var(--borda-radius);
             padding: 15px;
@@ -634,7 +615,7 @@
         .select-filtro:focus {
             outline: none;
             border-color: var(--cor-admin);
-            box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2);
+            box-shadow: 0 0 0 2px rgba(210, 158, 0, 0.2);
         }
 
         .filtro-info {
@@ -644,10 +625,46 @@
             text-align: center;
         }
 
-        .filtro-info i {
-            margin-right: 5px;
+        /* LOADING */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--cor-texto-secundario);
         }
 
+        .loading i {
+            font-size: 32px;
+            margin-bottom: 10px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* RESPONSIVIDADE */
+        @media (max-width: 768px) {
+            .totais-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .contas-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .tabs-header {
+                flex-direction: column;
+            }
+            
+            .tab-btn {
+                text-align: center;
+            }
+        }
     </style>
 </head>
 <body>
@@ -655,16 +672,15 @@
         <!-- HEADER -->
         <header class="app-header">
             <div class="logo">
-                <i class="fas fa-university"></i>
-                <span class="logo-text">CAMBIO BANK</span>
+                <span class="logo-text"><strong>Link</strong> international</span>
                 <span class="badge-admin">ADMIN</span>
             </div>
             
             <h1 class="page-title">CONTAS BANCÁRIAS</h1>
             
             <div class="hd-right">
-                <button id="btnTheme" onclick="toggleTheme()" class="btn-hd btn-hd-ghost" title="Alternar tema"><i class="fas fa-sun"></i></button>
-                <button class="btn-hd btn-hd-ghost" onclick="window.location.href='/admin/dashboard'"><i class="fas fa-arrow-left"></i> Voltar</button>
+                <button id="btnTheme" onclick="toggleTheme()" class="btn-hd" title="Alternar tema"><i class="fas fa-sun"></i></button>
+                <button class="btn-hd" onclick="window.location.href='/admin/dashboard'"><i class="fas fa-arrow-left"></i> Voltar</button>
             </div>
         </header>
 
@@ -696,13 +712,28 @@
         <!-- TABS -->
         <div class="tabs-container">
             <div class="tabs-header">
-                <button class="tab-btn active" data-tab="tab-contas">📋 Minhas Contas</button>
-                <button class="tab-btn" data-tab="tab-ajuste">💰 Ajuste de Saldo</button>
-                <button class="tab-btn" data-tab="tab-cambio">💱 Câmbio entre Contas</button>
+                <button class="tab-btn active" data-tab="tab-contas"><i class="fas fa-university"></i> Minhas Contas</button>
+                <button class="tab-btn" data-tab="tab-ajuste"><i class="fas fa-coins"></i> Ajuste de Saldo</button>
+                <button class="tab-btn" data-tab="tab-cambio"><i class="fas fa-exchange-alt"></i> Câmbio entre Contas</button>
+                <button class="tab-btn" data-tab="tab-despesas"><i class="fas fa-arrow-trend-down"></i> Despesas</button>
             </div>
 
             <!-- TAB 1: MINHAS CONTAS -->
             <div id="tab-contas" class="tab-content active">
+                <!-- FILTRO POR BANCO -->
+                <div class="filtro-container">
+                    <div class="filtro-label">
+                        <i class="fas fa-building"></i>
+                        <span>Filtrar por Banco</span>
+                    </div>
+                    <select id="filtroBanco" class="select-filtro" onchange="filtrarContasPorBanco()">
+                        <option value="TODOS"><i class="fas fa-building"></i> TODOS OS BANCOS</option>
+                    </select>
+                    <div class="filtro-info" id="filtroInfo">
+                        <i class="fas fa-info-circle"></i> Selecione um banco para filtrar as contas
+                    </div>
+                </div>
+                
                 <div class="contas-grid" id="contasGrid">
                     <div class="loading">
                         <i class="fas fa-spinner fa-spin"></i>
@@ -714,7 +745,7 @@
             <!-- TAB 2: AJUSTE DE SALDO -->
             <div id="tab-ajuste" class="tab-content">
                 <div class="form-card">
-                    <h3 class="form-title">Ajuste de Saldo em Conta Bancária</h3>
+                    <h3 class="form-title"><i class="fas fa-coins"></i> Ajuste de Saldo</h3>
                     
                     <!-- FILTRO POR BANCO -->
                     <div class="filtro-container">
@@ -723,7 +754,7 @@
                             <span>Filtrar por Banco</span>
                         </div>
                         <select id="filtroBancoAjuste" class="select-filtro" onchange="filtrarContasPorBancoAjuste()">
-                            <option value="TODOS">🏦 TODOS OS BANCOS</option>
+                            <option value="TODOS"><i class="fas fa-building"></i> TODOS OS BANCOS</option>
                         </select>
                         <div class="filtro-info" id="filtroInfoAjuste">
                             <i class="fas fa-info-circle"></i> Selecione um banco para filtrar as contas
@@ -765,7 +796,7 @@
             <!-- TAB 3: CÂMBIO ENTRE CONTAS -->
             <div id="tab-cambio" class="tab-content">
                 <div class="form-card">
-                    <h3 class="form-title">Câmbio entre Contas Bancárias</h3>
+                    <h3 class="form-title"><i class="fas fa-exchange-alt"></i> Câmbio entre Contas</h3>
                     
                     <!-- FILTRO POR BANCO -->
                     <div class="filtro-container">
@@ -773,8 +804,8 @@
                             <i class="fas fa-building"></i>
                             <span>Filtrar por Banco</span>
                         </div>
-                        <select id="filtroBancoCambio" class="select-filtro" onchange="filtrarContasPorBanco()">
-                            <option value="TODOS">🏦 TODOS OS BANCOS</option>
+                        <select id="filtroBancoCambio" class="select-filtro" onchange="filtrarContasPorBancoCambio()">
+                            <option value="TODOS"><i class="fas fa-building"></i> TODOS OS BANCOS</option>
                         </select>
                         <div class="filtro-info" id="filtroInfoCambio">
                             <i class="fas fa-info-circle"></i> Selecione um banco para filtrar as contas
@@ -806,8 +837,8 @@
                         </div>
                     </div>
                     
-                    <div class="btn-group">
-                        <button class="btn-secondary" onclick="trocarTaxas()">
+                    <div class="btn-group" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <button class="btn-secondary" onclick="trocarTaxas()" style="flex: 1;">
                             <i class="fas fa-exchange-alt"></i> Trocar Taxas
                         </button>
                     </div>
@@ -826,6 +857,63 @@
                     </button>
                 </div>
             </div>
+
+            <!-- TAB 4: DESPESAS -->
+            <div id="tab-despesas" class="tab-content">
+                <div class="form-card">
+                    <h3 class="form-title"><i class="fas fa-chart-line"></i> Lançar Despesa</h3>
+                    
+                    <!-- FILTRO POR BANCO -->
+                    <div class="filtro-container">
+                        <div class="filtro-label">
+                            <i class="fas fa-building"></i>
+                            <span>Filtrar por Banco</span>
+                        </div>
+                        <select id="filtroBancoDespesa" class="select-filtro" onchange="filtrarContasPorBancoDespesa()">
+                            <option value="TODOS"><i class="fas fa-building"></i> TODOS OS BANCOS</option>
+                        </select>
+                        <div class="filtro-info" id="filtroInfoDespesa">
+                            <i class="fas fa-info-circle"></i> Selecione um banco para filtrar as contas
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-building"></i> Conta Bancária</label>
+                        <select id="despesaContaBancaria" class="form-control">
+                            <option value="">Selecione a conta bancária...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-tags"></i> Categoria</label>
+                            <select id="despesaCategoria" class="form-control">
+                                <option value="">Selecione a categoria...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-receipt"></i> Conta de Despesa</label>
+                            <select id="despesaConta" class="form-control" disabled>
+                                <option value="">Selecione primeiro uma categoria...</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="despesaValor"><i class="fas fa-dollar-sign"></i> Valor</label>
+                        <input type="text" id="despesaValor" class="form-control" placeholder="0,00">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-pencil-alt"></i> Descrição</label>
+                        <input type="text" id="despesaDescricao" class="form-control" placeholder="Ex: Pagamento de aluguel">
+                    </div>
+                    
+                    <button class="btn-submit" onclick="lancarDespesa()">
+                        <i class="fas fa-check"></i> Lançar Despesa
+                    </button>
+                </div>
+            </div>          
         </div>
     </div>
 
@@ -934,37 +1022,40 @@
         // VARIÁVEIS GLOBAIS
         // ============================================
         let contas = [];
+        let contasOriginais = [];
+        let bancosDisponiveis = [];
+        let bancoFiltroAtual = 'TODOS';
+        let bancoFiltroAtualAjuste = 'TODOS';
+        let bancoFiltroAtualCambio = 'TODOS';
         let operacaoAjusteAtual = 'credito';
         let tipoMoedaSelecionado = 'principal';
         let contaSelecionada = null;
 
         // ============================================
-        // VARIÁVEIS PARA FILTRO DE BANCO
-        // ============================================
-        let bancosDisponiveis = [];
-        let contasOriginais = [];
-        let bancoFiltroAtual = 'TODOS';
-
-        // ============================================
-        // VARIÁVEIS PARA FILTRO DE BANCO - AJUSTE
-        // ============================================
-        let bancoFiltroAtualAjuste = 'TODOS';
-
-        // ============================================
         // INICIALIZAÇÃO
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('🚀 Página carregada, iniciando...');
+            console.log('🚀 Tela Contas Bancárias carregada');
             carregarContas();
+            carregarDespesas();
             
-            // TABS
+            // Configurar TABS
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                     btn.classList.add('active');
-                    document.getElementById(btn.dataset.tab).classList.add('active');
-                    console.log(`📑 Aba ativada: ${btn.dataset.tab}`);
+                    const tabId = btn.dataset.tab;
+                    document.getElementById(tabId).classList.add('active');
+                    
+                    // Atualizar selects quando mudar de aba
+                    if (tabId === 'tab-ajuste') {
+                        atualizarSelectAjuste();
+                    } else if (tabId === 'tab-cambio') {
+                        atualizarSelectsCambio();
+                    } else if (tabId === 'tab-despesas') {  // 🔥 ADICIONAR ESTA LINHA
+                        carregarDespesas();  // 🔥 ADICIONAR ESTA LINHA
+                    }                    
                 });
             });
         });
@@ -977,30 +1068,21 @@
             
             try {
                 const response = await fetch('/api/admin/contas-bancarias');
-                console.log('📡 Resposta da API:', response.status);
-                
                 const data = await response.json();
-                console.log('📊 Dados recebidos:', data);
                 
                 if (data.success) {
-                    // Guardar contas originais (cópia)
                     contasOriginais = JSON.parse(JSON.stringify(data.contas));
                     contas = data.contas;
                     console.log(`✅ ${contas.length} contas carregadas`);
                     
-                    // Extrair bancos únicos para o filtro
                     extrairBancosUnicos();
-                    
-                    // Mostrar primeiras contas para debug
-                    if (contas.length > 0) {
-                        console.log('📋 Primeira conta:', contas[0]);
-                    }
-                    
                     atualizarTotais(data.totais);
+                    atualizarFiltroBanco();
+                    atualizarFiltroBancoAjuste();
+                    atualizarFiltroBancoCambio();
+                    atualizarSelectAjuste();
+                    atualizarSelectsCambio();
                     renderizarContas();
-                    atualizarSelectsContas();
-                    atualizarFiltroBanco();      // Para aba de câmbio
-                    atualizarFiltroBancoAjuste(); // Para aba de ajuste
                 } else {
                     console.error('❌ Erro da API:', data.message);
                     document.getElementById('contasGrid').innerHTML = `<div class="loading"><p>❌ ${data.message}</p></div>`;
@@ -1009,6 +1091,20 @@
                 console.error('❌ Erro na requisição:', error);
                 document.getElementById('contasGrid').innerHTML = `<div class="loading"><p>❌ Erro ao carregar contas: ${error.message}</p></div>`;
             }
+        }
+
+        function extrairBancosUnicos() {
+            const bancosSet = new Set();
+            bancosSet.add('TODOS');
+            
+            for (const conta of contasOriginais) {
+                if (conta.banco && conta.banco.trim()) {
+                    bancosSet.add(conta.banco);
+                }
+            }
+            
+            bancosDisponiveis = Array.from(bancosSet);
+            console.log('🏦 Bancos disponíveis:', bancosDisponiveis);
         }
 
         function atualizarTotais(totais) {
@@ -1021,32 +1117,24 @@
                 if (el) {
                     const simbolo = simbolos[moeda] || moeda;
                     el.innerHTML = `${simbolo} ${formatarValor(valor)}`;
-                    console.log(`   ${moeda}: ${simbolo} ${formatarValor(valor)}`);
                 }
             }
         }
 
         function renderizarContas() {
             const grid = document.getElementById('contasGrid');
-            console.log('🎨 renderizarContas() - iniciando renderização');
             
             if (!contas || contas.length === 0) {
-                console.log('⚠️ Nenhuma conta para renderizar');
                 grid.innerHTML = '<div class="loading"><p>📭 Nenhuma conta cadastrada</p><button class="btn-nova-conta" onclick="abrirModalNovaConta()" style="margin-top: 15px;">➕ Criar primeira conta</button></div>';
                 return;
             }
             
             grid.innerHTML = '';
             
-            for (let i = 0; i < contas.length; i++) {
-                const conta = contas[i];
-                console.log(`   Renderizando conta ${i+1}: ${conta.numero} - ${conta.banco}`);
-                
+            for (const conta of contas) {
                 const saldoClass = conta.saldo < 0 ? 'negativo' : 'positivo';
                 const saldoFormatado = formatarValor(conta.saldo);
                 const simbolo = obterSimboloMoeda(conta.moeda);
-                
-                // Escapar o número da conta para uso em onclick
                 const contaNumeroEscapado = conta.numero.replace(/'/g, "\\'");
                 
                 const card = document.createElement('div');
@@ -1083,42 +1171,266 @@
                 `;
                 grid.appendChild(card);
             }
-            
-            console.log(`✅ ${contas.length} contas renderizadas`);
         }
 
-        function atualizarSelectsContas() {
-            console.log('🔄 atualizarSelectsContas() - atualizando selects');
+        // ============================================
+        // FILTRO DE BANCO
+        // ============================================
+        
+        function atualizarFiltroBanco() {
+            const selectFiltro = document.getElementById('filtroBanco');
+            if (!selectFiltro) return;
             
-            const selectAjuste = document.getElementById('ajusteConta');
-            const selectOrigem = document.getElementById('cambioContaOrigem');
-            const selectDestino = document.getElementById('cambioContaDestino');
+            let optionsHtml = '<option value="TODOS"><i class="fas fa-building"></i> TODOS OS BANCOS</option>';
             
-            if (!selectAjuste || !selectOrigem || !selectDestino) {
-                console.error('❌ Selects não encontrados no DOM');
-                return;
+            for (const banco of bancosDisponiveis) {
+                if (banco !== 'TODOS') {
+                    const contasDoBanco = contasOriginais.filter(c => c.banco === banco);
+                    const qtd = contasDoBanco.length;
+                    optionsHtml += `<option value="${escapeHtml(banco)}"><i class="fas fa-building"></i> ${escapeHtml(banco)} (${qtd} conta${qtd !== 1 ? 's' : ''})</option>`;
+                }
             }
+            
+            selectFiltro.innerHTML = optionsHtml;
+        }
+
+        function filtrarContasPorBanco() {
+            const selectFiltro = document.getElementById('filtroBanco');
+            bancoFiltroAtual = selectFiltro.value;
+            
+            console.log(`🔍 Filtrando contas por banco: "${bancoFiltroAtual}"`);
+            
+            if (bancoFiltroAtual === 'TODOS') {
+                contas = JSON.parse(JSON.stringify(contasOriginais));
+            } else {
+                contas = contasOriginais.filter(conta => conta.banco === bancoFiltroAtual);
+            }
+            
+            const filtroInfo = document.getElementById('filtroInfo');
+            if (filtroInfo) {
+                if (bancoFiltroAtual === 'TODOS') {
+                    filtroInfo.innerHTML = `<i class="fas fa-info-circle"></i> Mostrando todas as ${contas.length} contas de todos os bancos`;
+                } else {
+                    filtroInfo.innerHTML = `<i class="fas fa-check-circle"></i> Mostrando ${contas.length} conta(s) do banco "${bancoFiltroAtual}"`;
+                }
+            }
+            
+            renderizarContas();
+        }
+
+        // ============================================
+        // FILTRO DE BANCO - AJUSTE
+        // ============================================
+        
+        function atualizarFiltroBancoAjuste() {
+            const selectFiltro = document.getElementById('filtroBancoAjuste');
+            if (!selectFiltro) return;
+            
+            let optionsHtml = '<option value="TODOS"><i class="fas fa-building"></i> TODOS OS BANCOS</option>';
+            
+            for (const banco of bancosDisponiveis) {
+                if (banco !== 'TODOS') {
+                    const contasDoBanco = contasOriginais.filter(c => c.banco === banco);
+                    const qtd = contasDoBanco.length;
+                    optionsHtml += `<option value="${escapeHtml(banco)}"><i class="fas fa-building"></i> ${escapeHtml(banco)} (${qtd} conta${qtd !== 1 ? 's' : ''})</option>`;
+                }
+            }
+            
+            selectFiltro.innerHTML = optionsHtml;
+        }
+
+        function filtrarContasPorBancoAjuste() {
+            const selectFiltro = document.getElementById('filtroBancoAjuste');
+            bancoFiltroAtualAjuste = selectFiltro.value;
+            
+            console.log(`🔍 Filtrando contas (ajuste) por banco: "${bancoFiltroAtualAjuste}"`);
+            
+            let contasFiltradas;
+            if (bancoFiltroAtualAjuste === 'TODOS') {
+                contasFiltradas = JSON.parse(JSON.stringify(contasOriginais));
+            } else {
+                contasFiltradas = contasOriginais.filter(conta => conta.banco === bancoFiltroAtualAjuste);
+            }
+            
+            atualizarSelectAjuste(contasFiltradas);
+            
+            const filtroInfo = document.getElementById('filtroInfoAjuste');
+            if (filtroInfo) {
+                if (bancoFiltroAtualAjuste === 'TODOS') {
+                    filtroInfo.innerHTML = `<i class="fas fa-info-circle"></i> Mostrando todas as ${contasFiltradas.length} contas de todos os bancos`;
+                } else {
+                    filtroInfo.innerHTML = `<i class="fas fa-check-circle"></i> Mostrando ${contasFiltradas.length} conta(s) do banco "${bancoFiltroAtualAjuste}"`;
+                }
+            }
+        }
+
+        // ============================================
+        // FILTRO DE BANCO - CÂMBIO
+        // ============================================
+        
+        function atualizarFiltroBancoCambio() {
+            const selectFiltro = document.getElementById('filtroBancoCambio');
+            if (!selectFiltro) return;
+            
+            let optionsHtml = '<option value="TODOS"><i class="fas fa-building"></i> TODOS OS BANCOS</option>';
+            
+            for (const banco of bancosDisponiveis) {
+                if (banco !== 'TODOS') {
+                    const contasDoBanco = contasOriginais.filter(c => c.banco === banco);
+                    const qtd = contasDoBanco.length;
+                    optionsHtml += `<option value="${escapeHtml(banco)}"><i class="fas fa-building"></i> ${escapeHtml(banco)} (${qtd} conta${qtd !== 1 ? 's' : ''})</option>`;
+                }
+            }
+            
+            selectFiltro.innerHTML = optionsHtml;
+        }
+
+        function filtrarContasPorBancoCambio() {
+            const selectFiltro = document.getElementById('filtroBancoCambio');
+            bancoFiltroAtualCambio = selectFiltro.value;
+            
+            console.log(`🔍 Filtrando contas (câmbio) por banco: "${bancoFiltroAtualCambio}"`);
+            
+            let contasFiltradas;
+            if (bancoFiltroAtualCambio === 'TODOS') {
+                contasFiltradas = JSON.parse(JSON.stringify(contasOriginais));
+            } else {
+                contasFiltradas = contasOriginais.filter(conta => conta.banco === bancoFiltroAtualCambio);
+            }
+            
+            atualizarSelectsCambio(contasFiltradas);
+            
+            const filtroInfo = document.getElementById('filtroInfoCambio');
+            if (filtroInfo) {
+                if (bancoFiltroAtualCambio === 'TODOS') {
+                    filtroInfo.innerHTML = `<i class="fas fa-info-circle"></i> Mostrando todas as ${contasFiltradas.length} contas de todos os bancos`;
+                } else {
+                    filtroInfo.innerHTML = `<i class="fas fa-check-circle"></i> Mostrando ${contasFiltradas.length} conta(s) do banco "${bancoFiltroAtualCambio}"`;
+                }
+            }
+            
+            calcularConversao();
+        }
+
+        // ============================================
+        // FILTRO DE BANCO - DESPESAS
+        // ============================================
+        
+        let bancoFiltroAtualDespesa = 'TODOS';
+        let contasOriginaisDespesa = [];
+
+        function atualizarFiltroBancoDespesa() {
+            const selectFiltro = document.getElementById('filtroBancoDespesa');
+            if (!selectFiltro) return;
+            
+            // Garantir que temos as contas originais
+            if (contasOriginaisDespesa.length === 0 && contasOriginais.length > 0) {
+                contasOriginaisDespesa = JSON.parse(JSON.stringify(contasOriginais));
+            }
+            
+            const bancosSet = new Set();
+            bancosSet.add('TODOS');
+            for (const conta of contasOriginaisDespesa) {
+                if (conta.banco && conta.banco.trim()) {
+                    bancosSet.add(conta.banco);
+                }
+            }
+            
+            let optionsHtml = '<option value="TODOS"><i class="fas fa-building"></i> TODOS OS BANCOS</option>';
+            for (const banco of bancosSet) {
+                if (banco !== 'TODOS') {
+                    const contasDoBanco = contasOriginaisDespesa.filter(c => c.banco === banco);
+                    const qtd = contasDoBanco.length;
+                    optionsHtml += `<option value="${escapeHtml(banco)}"><i class="fas fa-building"></i> ${escapeHtml(banco)} (${qtd} conta${qtd !== 1 ? 's' : ''})</option>`;
+                }
+            }
+            
+            selectFiltro.innerHTML = optionsHtml;
+        }
+
+        function filtrarContasPorBancoDespesa() {
+            const selectFiltro = document.getElementById('filtroBancoDespesa');
+            const selectConta = document.getElementById('despesaContaBancaria');
+            
+            if (!selectFiltro || !selectConta) return;
+            
+            bancoFiltroAtualDespesa = selectFiltro.value;
+            
+            console.log(`🔍 Filtrando contas (despesa) por banco: "${bancoFiltroAtualDespesa}"`);
+            
+            let contasFiltradas;
+            if (bancoFiltroAtualDespesa === 'TODOS') {
+                contasFiltradas = JSON.parse(JSON.stringify(contasOriginaisDespesa));
+            } else {
+                contasFiltradas = contasOriginaisDespesa.filter(conta => conta.banco === bancoFiltroAtualDespesa);
+            }
+            
+            // Atualizar o select de contas com as contas filtradas
+            let optionsHtml = '<option value="">Selecione a conta bancária...</option>';
+            for (const conta of contasFiltradas) {
+                const simbolo = obterSimboloMoeda(conta.moeda);
+                const saldoFormatado = formatarValor(conta.saldo);
+                optionsHtml += `<option value="${escapeHtml(conta.numero)}">${escapeHtml(conta.numero)} | ${escapeHtml(conta.banco)} | ${conta.moeda} | Saldo: ${simbolo} ${saldoFormatado}</option>`;
+            }
+            selectConta.innerHTML = optionsHtml;
+            
+            // Atualizar informação no filtro
+            const filtroInfo = document.getElementById('filtroInfoDespesa');
+            if (filtroInfo) {
+                if (bancoFiltroAtualDespesa === 'TODOS') {
+                    filtroInfo.innerHTML = `<i class="fas fa-info-circle"></i> Mostrando todas as ${contasFiltradas.length} contas de todos os bancos`;
+                } else {
+                    filtroInfo.innerHTML = `<i class="fas fa-check-circle"></i> Mostrando ${contasFiltradas.length} conta(s) do banco "${bancoFiltroAtualDespesa}"`;
+                }
+            }
+        }        
+
+        // ============================================
+        // FUNÇÕES DOS SELECTS
+        // ============================================
+        
+        function atualizarSelectAjuste(contasParaMostrar = null) {
+            const select = document.getElementById('ajusteConta');
+            if (!select) return;
+            
+            const contasFonte = contasParaMostrar || contasOriginais;
             
             let optionsHtml = '<option value="">Selecione uma conta...</option>';
             
-            for (const conta of contas) {
+            for (const conta of contasFonte) {
                 const simbolo = obterSimboloMoeda(conta.moeda);
                 const saldoFormatado = formatarValor(conta.saldo);
                 optionsHtml += `<option value="${escapeHtml(conta.numero)}">${escapeHtml(conta.numero)} | ${escapeHtml(conta.banco)} | ${conta.moeda} | Saldo: ${simbolo} ${saldoFormatado}</option>`;
             }
             
-            selectAjuste.innerHTML = optionsHtml;
+            select.innerHTML = optionsHtml;
+            console.log(`✅ Select de ajuste atualizado com ${contasFonte.length} opções`);
+        }
+
+        function atualizarSelectsCambio(contasParaMostrar = null) {
+            const selectOrigem = document.getElementById('cambioContaOrigem');
+            const selectDestino = document.getElementById('cambioContaDestino');
+            if (!selectOrigem || !selectDestino) return;
+            
+            const contasFonte = contasParaMostrar || contasOriginais;
+            
+            let optionsHtml = '<option value="">Selecione a conta...</option>';
+            
+            for (const conta of contasFonte) {
+                const simbolo = obterSimboloMoeda(conta.moeda);
+                const saldoFormatado = formatarValor(conta.saldo);
+                optionsHtml += `<option value="${escapeHtml(conta.numero)}">${escapeHtml(conta.numero)} | ${escapeHtml(conta.banco)} | ${conta.moeda} | Saldo: ${simbolo} ${saldoFormatado}</option>`;
+            }
+            
             selectOrigem.innerHTML = optionsHtml;
             selectDestino.innerHTML = optionsHtml;
-            
-            console.log(`✅ Selects atualizados com ${contas.length} opções`);
+            console.log(`✅ Selects de câmbio atualizados com ${contasFonte.length} opções`);
         }
 
         // ============================================
         // NOVA CONTA
         // ============================================
         function setTipoMoeda(tipo) {
-            console.log(`🔄 setTipoMoeda: ${tipo}`);
             tipoMoedaSelecionado = tipo;
             
             const btnPrincipal = document.getElementById('btnMoedaPrincipal');
@@ -1140,29 +1452,19 @@
         }
 
         function abrirModalNovaConta() {
-            console.log('📂 abrirModalNovaConta()');
-            
-            // Limpar campos
             document.getElementById('novaContaBanco').value = '';
             document.getElementById('novaContaAgencia').value = '';
             document.getElementById('novaContaNumero').value = '';
             document.getElementById('novaContaMoedaManual').value = '';
-            
             setTipoMoeda('principal');
-            
-            const modal = document.getElementById('modalNovaConta');
-            modal.classList.add('active');
-            console.log('✅ Modal nova conta aberto');
+            document.getElementById('modalNovaConta').classList.add('active');
         }
 
         function fecharModalNovaConta() {
-            console.log('📂 fecharModalNovaConta()');
             document.getElementById('modalNovaConta').classList.remove('active');
         }
 
         async function criarNovaConta() {
-            console.log('➕ criarNovaConta()');
-            
             const banco = document.getElementById('novaContaBanco').value.trim();
             const agencia = document.getElementById('novaContaAgencia').value.trim();
             const numero = document.getElementById('novaContaNumero').value.trim();
@@ -1183,8 +1485,6 @@
                 return;
             }
             
-            console.log('📤 Enviando dados:', { banco, agencia, numero, moeda });
-            
             try {
                 const response = await fetch('/api/admin/contas-bancarias', {
                     method: 'POST',
@@ -1193,12 +1493,11 @@
                 });
                 
                 const data = await response.json();
-                console.log('📥 Resposta:', data);
                 
                 if (data.success) {
                     alert('✅ Conta criada com sucesso!');
                     fecharModalNovaConta();
-                    carregarContas(); // Recarregar lista
+                    carregarContas();
                 } else {
                     alert('❌ ' + data.message);
                 }
@@ -1212,7 +1511,6 @@
         // DEPÓSITO / SAQUE
         // ============================================
         function abrirModalDeposito(contaNumero) {
-            console.log(`💰 abrirModalDeposito: ${contaNumero}`);
             contaSelecionada = contaNumero;
             document.getElementById('depositoValor').value = '';
             document.getElementById('depositoDescricao').value = 'Depósito em conta';
@@ -1231,8 +1529,6 @@
                 alert('❌ Valor inválido!');
                 return;
             }
-            
-            console.log(`💰 Confirmando depósito: ${contaSelecionada} - ${valor}`);
             
             try {
                 const response = await fetch('/api/admin/contas-bancarias/deposito', {
@@ -1257,7 +1553,6 @@
         }
 
         function abrirModalSaque(contaNumero) {
-            console.log(`💸 abrirModalSaque: ${contaNumero}`);
             contaSelecionada = contaNumero;
             document.getElementById('saqueValor').value = '';
             document.getElementById('saqueDescricao').value = 'Saque da conta';
@@ -1283,8 +1578,6 @@
                     return;
                 }
             }
-            
-            console.log(`💸 Confirmando saque: ${contaSelecionada} - ${valor}`);
             
             try {
                 const response = await fetch('/api/admin/contas-bancarias/saque', {
@@ -1312,7 +1605,6 @@
         // AJUSTE DE SALDO
         // ============================================
         function setOperacaoAjuste(operacao) {
-            console.log(`🔄 setOperacaoAjuste: ${operacao}`);
             operacaoAjusteAtual = operacao;
             
             const btnCredito = document.getElementById('btnCredito');
@@ -1356,8 +1648,6 @@
                 return;
             }
             
-            console.log(`💰 Executando ajuste: ${contaNumero} - ${operacaoAjusteAtual} - ${valor}`);
-            
             try {
                 const response = await fetch('/api/admin/contas-bancarias/ajuste', {
                     method: 'POST',
@@ -1385,7 +1675,7 @@
                 alert('❌ Erro ao executar ajuste!');
             }
         }
-      
+
         // ============================================
         // CÂMBIO ENTRE CONTAS
         // ============================================
@@ -1428,8 +1718,8 @@
                 return;
             }
             
-            const contaOrigemObj = contas.find(c => c.numero === contaOrigem);
-            const contaDestinoObj = contas.find(c => c.numero === contaDestino);
+            const contaOrigemObj = contasOriginais.find(c => c.numero === contaOrigem);
+            const contaDestinoObj = contasOriginais.find(c => c.numero === contaDestino);
             
             if (!contaOrigemObj || !contaDestinoObj) {
                 infoDiv.innerHTML = '⚠️ Selecione contas válidas';
@@ -1471,15 +1761,13 @@
                 return;
             }
             
-            const contaOrigemObj = contas.find(c => c.numero === contaOrigem);
-            const contaDestinoObj = contas.find(c => c.numero === contaDestino);
+            const contaOrigemObj = contasOriginais.find(c => c.numero === contaOrigem);
+            const contaDestinoObj = contasOriginais.find(c => c.numero === contaDestino);
             const valorDestino = valor * taxaPrincipal;
             
-            if (!confirm(`Confirmar câmbio?\n\nOrigem: ${contaOrigem} (${contaOrigemObj.moeda})\nDestino: ${contaDestino}\nValor: ${obterSimboloMoeda(contaOrigemObj.moeda)} ${formatarValor(valor)}\nReceberá: ${obterSimboloMoeda(contaDestinoObj.moeda)} ${formatarValor(valorDestino)}\nTaxa: ${taxaPrincipal.toFixed(6)}`)) {
+            if (!confirm(`Confirmar câmbio?\n\nOrigem: ${contaOrigem} (${contaOrigemObj.moeda})\nDestino: ${contaDestino} (${contaDestinoObj.moeda})\nValor: ${obterSimboloMoeda(contaOrigemObj.moeda)} ${formatarValor(valor)}\nReceberá: ${obterSimboloMoeda(contaDestinoObj.moeda)} ${formatarValor(valorDestino)}\nTaxa: ${taxaPrincipal.toFixed(6)}`)) {
                 return;
             }
-            
-            console.log(`💱 Executando câmbio: ${contaOrigem} → ${contaDestino} - ${valor} ${contaOrigemObj.moeda}`);
             
             try {
                 const response = await fetch('/api/admin/contas-bancarias/cambio', {
@@ -1509,151 +1797,192 @@
         }
 
         // ============================================
-        // FUNÇÕES PARA FILTRO DE BANCO
+        // FUNÇÕES DA ABA DESPESAS
         // ============================================
         
-        function extrairBancosUnicos() {
-            const bancosSet = new Set();
-            bancosSet.add('TODOS');
+        async function carregarDespesas() {
+            const selectCategoria = document.getElementById('despesaCategoria');
             
-            for (const conta of contas) {
-                if (conta.banco && conta.banco.trim()) {
-                    bancosSet.add(conta.banco);
-                }
-            }
-            
-            bancosDisponiveis = Array.from(bancosSet);
-            console.log('🏦 Bancos disponíveis:', bancosDisponiveis);
-        }
-        
-        function atualizarFiltroBanco() {
-            const selectFiltro = document.getElementById('filtroBancoCambio');
-            if (!selectFiltro) return;
-            
-            let optionsHtml = '<option value="TODOS">🏦 TODOS OS BANCOS</option>';
-            
-            for (const banco of bancosDisponiveis) {
-                if (banco !== 'TODOS') {
-                    const contasDoBanco = contasOriginais.filter(c => c.banco === banco);
-                    const qtd = contasDoBanco.length;
-                    optionsHtml += `<option value="${escapeHtml(banco)}">🏦 ${escapeHtml(banco)} (${qtd} conta${qtd !== 1 ? 's' : ''})</option>`;
-                }
-            }
-            
-            selectFiltro.innerHTML = optionsHtml;
-            console.log(`✅ Filtro de banco atualizado com ${bancosDisponiveis.length - 1} bancos`);
-        }
-        
-        function filtrarContasPorBanco() {
-            const selectFiltro = document.getElementById('filtroBancoCambio');
-            bancoFiltroAtual = selectFiltro.value;
-            
-            console.log(`🔍 Filtrando contas por banco: "${bancoFiltroAtual}"`);
-            
-            if (bancoFiltroAtual === 'TODOS') {
-                contas = JSON.parse(JSON.stringify(contasOriginais));
+            // Atualizar contas originais para o filtro
+            if (contasOriginais.length > 0) {
+                contasOriginaisDespesa = JSON.parse(JSON.stringify(contasOriginais));
+                atualizarFiltroBancoDespesa();
+                filtrarContasPorBancoDespesa();
             } else {
-                contas = contasOriginais.filter(conta => conta.banco === bancoFiltroAtual);
-            }
-            
-            console.log(`📊 Contas após filtro: ${contas.length} (de ${contasOriginais.length} total)`);
-            
-            // Atualizar tudo que depende das contas
-            atualizarSelectsContas();
-            
-            // Atualizar informação no filtro
-            const filtroInfo = document.getElementById('filtroInfoCambio');
-            if (filtroInfo) {
-                if (bancoFiltroAtual === 'TODOS') {
-                    filtroInfo.innerHTML = `<i class="fas fa-info-circle"></i> Mostrando todas as ${contas.length} contas de todos os bancos`;
-                } else {
-                    filtroInfo.innerHTML = `<i class="fas fa-check-circle"></i> Mostrando ${contas.length} conta(s) do banco "${bancoFiltroAtual}"`;
+                // Se ainda não tem contas, carregar e depois atualizar
+                try {
+                    const response = await fetch('/api/admin/contas-bancarias');
+                    const data = await response.json();
+                    if (data.success) {
+                        contasOriginaisDespesa = JSON.parse(JSON.stringify(data.contas));
+                        atualizarFiltroBancoDespesa();
+                        filtrarContasPorBancoDespesa();
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar contas para despesa:', error);
                 }
             }
             
-            // Limpar campos de seleção
-            document.getElementById('cambioContaOrigem').value = '';
-            document.getElementById('cambioContaDestino').value = '';
+            // Carregar categorias de despesa
+            try {
+                const responseContas = await fetch('/api/admin/contas-contabeis');
+                const data = await responseContas.json();
+                if (data.success && selectCategoria) {
+                    const categorias = Object.keys(data.despesas || {});
+                    selectCategoria.innerHTML = '<option value="">Selecione a categoria...</option>';
+                    categorias.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat;
+                        option.textContent = cat;
+                        selectCategoria.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar categorias:', error);
+            }
+        }
+
+        // Evento para quando a categoria é selecionada
+        document.getElementById('despesaCategoria')?.addEventListener('change', () => {
+            const categoria = document.getElementById('despesaCategoria').value;
+            const selectConta = document.getElementById('despesaConta');
             
-            // Recalcular conversão se houver taxa
-            calcularConversao();
+            if (categoria) {
+                // Buscar contas contábeis para popular o select
+                fetch('/api/admin/contas-contabeis')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success && data.despesas[categoria]) {
+                            const contas = Object.keys(data.despesas[categoria]);
+                            selectConta.innerHTML = '<option value="">Selecione a conta...</option>';
+                            contas.forEach(conta => {
+                                const option = document.createElement('option');
+                                option.value = conta;
+                                option.textContent = conta;
+                                selectConta.appendChild(option);
+                            });
+                            selectConta.disabled = false;
+                        } else {
+                            selectConta.innerHTML = '<option value="">Nenhuma conta disponível</option>';
+                            selectConta.disabled = true;
+                        }
+                    });
+            } else {
+                selectConta.innerHTML = '<option value="">Selecione primeiro uma categoria...</option>';
+                selectConta.disabled = true;
+            }
+        });
+
+        async function lancarDespesa() {
+            const contaBancaria = document.getElementById('despesaContaBancaria').value;
+            const categoria = document.getElementById('despesaCategoria').value;
+            const contaDespesa = document.getElementById('despesaConta').value;
+            const valor = parseFloat(document.getElementById('despesaValor').value.replace(',', '.'));
+            const descricao = document.getElementById('despesaDescricao').value.trim();
+            
+            if (!contaBancaria || !categoria || !contaDespesa) {
+                alert('Preencha todos os campos!');
+                return;
+            }
+            
+            if (isNaN(valor) || valor <= 0) {
+                alert('Valor inválido!');
+                return;
+            }
+            
+            if (!descricao) {
+                alert('Informe uma descrição!');
+                return;
+            }
+            
+            if (!confirm(`Confirmar lançamento de despesa?\n\nConta: ${contaBancaria}\nCategoria: ${categoria}\nConta Despesa: ${contaDespesa}\nValor: ${formatarValor(valor)}\nDescrição: ${descricao}`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/gerenciar-contas/despesa', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        conta_bancaria: contaBancaria,
+                        categoria: categoria,
+                        conta_despesa: contaDespesa,
+                        valor: valor,
+                        descricao: descricao
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Despesa lançada com sucesso!`);
+                    
+                    // Recarregar contas para atualizar saldos
+                    carregarContas();
+                    
+                    // Recarregar as contas bancárias no select
+                    const selectConta = document.getElementById('despesaContaBancaria');
+                    if (selectConta) {
+                        const responseContas = await fetch('/api/admin/contas-bancarias');
+                        const contasData = await responseContas.json();
+                        if (contasData.success) {
+                            const valorSelecionado = selectConta.value;
+                            selectConta.innerHTML = '<option value="">Selecione a conta bancária...</option>';
+                            contasData.contas.forEach(conta => {
+                                const option = document.createElement('option');
+                                option.value = conta.numero;
+                                option.textContent = `${conta.numero} - ${conta.banco} - ${conta.moeda} (Saldo: ${formatarValor(conta.saldo)})`;
+                                if (valorSelecionado === conta.numero) {
+                                    option.selected = true;
+                                }
+                                selectConta.appendChild(option);
+                            });
+                        }
+                    }
+                    
+                    // Limpar campos
+                    document.getElementById('despesaValor').value = '';
+                    document.getElementById('despesaDescricao').value = '';
+                    document.getElementById('despesaCategoria').value = '';
+                    document.getElementById('despesaConta').innerHTML = '<option value="">Selecione primeiro uma categoria...</option>';
+                    document.getElementById('despesaConta').disabled = true;
+                    
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao lançar despesa!');
+            }
         }
 
         // ============================================
-        // FUNÇÕES PARA FILTRO DE BANCO - AJUSTE
+        // 🔥 EVENTO PARA MOSTRAR SÍMBOLO DA MOEDA 🔥
         // ============================================
-        
-        function atualizarFiltroBancoAjuste() {
-            const selectFiltro = document.getElementById('filtroBancoAjuste');
-            if (!selectFiltro) return;
-            
-            let optionsHtml = '<option value="TODOS">🏦 TODOS OS BANCOS</option>';
-            
-            for (const banco of bancosDisponiveis) {
-                if (banco !== 'TODOS') {
-                    const contasDoBanco = contasOriginais.filter(c => c.banco === banco);
-                    const qtd = contasDoBanco.length;
-                    optionsHtml += `<option value="${escapeHtml(banco)}">🏦 ${escapeHtml(banco)} (${qtd} conta${qtd !== 1 ? 's' : ''})</option>`;
+        // Evento para quando a conta bancária é selecionada (mostrar símbolo da moeda)
+        document.getElementById('despesaContaBancaria')?.addEventListener('change', () => {
+            const contaSelecionada = document.getElementById('despesaContaBancaria').value;
+            if (contaSelecionada) {
+                const conta = contasOriginaisDespesa.find(c => c.numero === contaSelecionada);
+                if (conta) {
+                    const simbolo = obterSimboloMoeda(conta.moeda);
+                    const labelValor = document.querySelector('#tab-despesas .form-group label[for="despesaValor"]');
+                    if (labelValor) {
+                        labelValor.innerHTML = `<i class="fas fa-dollar-sign"></i> Valor (${simbolo})`;
+                    }
                 }
-            }
-            
-            selectFiltro.innerHTML = optionsHtml;
-            console.log(`✅ Filtro de banco (ajuste) atualizado com ${bancosDisponiveis.length - 1} bancos`);
-        }
-        
-        function filtrarContasPorBancoAjuste() {
-            const selectFiltro = document.getElementById('filtroBancoAjuste');
-            bancoFiltroAtualAjuste = selectFiltro.value;
-            
-            console.log(`🔍 Filtrando contas (ajuste) por banco: "${bancoFiltroAtualAjuste}"`);
-            
-            let contasFiltradas;
-            if (bancoFiltroAtualAjuste === 'TODOS') {
-                contasFiltradas = JSON.parse(JSON.stringify(contasOriginais));
             } else {
-                contasFiltradas = contasOriginais.filter(conta => conta.banco === bancoFiltroAtualAjuste);
-            }
-            
-            console.log(`📊 Contas após filtro (ajuste): ${contasFiltradas.length} (de ${contasOriginais.length} total)`);
-            
-            // Atualizar apenas o select de ajuste
-            atualizarSelectAjuste(contasFiltradas);
-            
-            // Atualizar informação no filtro
-            const filtroInfo = document.getElementById('filtroInfoAjuste');
-            if (filtroInfo) {
-                if (bancoFiltroAtualAjuste === 'TODOS') {
-                    filtroInfo.innerHTML = `<i class="fas fa-info-circle"></i> Mostrando todas as ${contasFiltradas.length} contas de todos os bancos`;
-                } else {
-                    filtroInfo.innerHTML = `<i class="fas fa-check-circle"></i> Mostrando ${contasFiltradas.length} conta(s) do banco "${bancoFiltroAtualAjuste}"`;
+                const labelValor = document.querySelector('#tab-despesas .form-group label[for="despesaValor"]');
+                if (labelValor) {
+                    labelValor.innerHTML = `<i class="fas fa-dollar-sign"></i> Valor`;
                 }
             }
-            
-            // Limpar o select
-            document.getElementById('ajusteConta').value = '';
-        }
-        
-        function atualizarSelectAjuste(contasParaMostrar) {
-            const selectAjuste = document.getElementById('ajusteConta');
-            if (!selectAjuste) return;
-            
-            let optionsHtml = '<option value="">Selecione uma conta...</option>';
-            
-            for (const conta of contasParaMostrar) {
-                const simbolo = obterSimboloMoeda(conta.moeda);
-                const saldoFormatado = formatarValor(conta.saldo);
-                optionsHtml += `<option value="${escapeHtml(conta.numero)}">${escapeHtml(conta.numero)} | ${escapeHtml(conta.banco)} | ${conta.moeda} | Saldo: ${simbolo} ${saldoFormatado}</option>`;
-            }
-            
-            selectAjuste.innerHTML = optionsHtml;
-            console.log(`✅ Select de ajuste atualizado com ${contasParaMostrar.length} opções`);
-        }
+        });        
 
         // ============================================
         // EXTRATO
         // ============================================
         function abrirExtrato(contaNumero) {
-            console.log(`📊 abrirExtrato: ${contaNumero}`);
             window.location.href = `/admin/extrato-conta?conta=${encodeURIComponent(contaNumero)}`;
         }
 
@@ -1676,76 +2005,6 @@
             div.textContent = text;
             return div.innerHTML;
         }
-
-        // ============================================
-        // FUNÇÃO DE EXPORTAÇÃO PARA PDF
-        // ============================================
-
-        async function exportarExtratoPDF() {
-            const contaNumero = contaNumero; // Já existe no escopo global
-            
-            if (!contaNumero || transacoesExibidas.length === 0) {
-                alert('Nenhuma transação para exportar');
-                return;
-            }
-            
-            try {
-                // Mostrar loading
-                const btnExportar = document.querySelector('.btn-exportar');
-                const textoOriginal = btnExportar.innerHTML;
-                btnExportar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando PDF...';
-                btnExportar.disabled = true;
-                
-                // 🔥 PREPARAR DADOS PARA O PDF (mesma estrutura do extrato do cliente)
-                const dadosPDF = {
-                    conta: contaNumero,
-                    periodo: 'Todo período',
-                    transacoes: transacoesExibidas.map(t => ({
-                        ...t,
-                        data_formatada: formatarData(t.data)
-                    })),
-                    resumo: {
-                        saldo_final: saldoAtual,
-                        total_entradas: totalEntradas,
-                        total_saidas: totalSaidas,
-                        total_transacoes: transacoesExibidas.length,
-                        moeda: moedaAtual || 'USD'
-                    }
-                };
-                
-                console.log('📄 Gerando PDF com', transacoesExibidas.length, 'transações');
-                
-                // 🔥 CHAMAR API DE EXPORTAÇÃO (mesma do cliente)
-                const response = await fetch('/api/extrato/exportar-pdf', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(dadosPDF)
-                });
-                
-                const data = await response.json();
-                
-                if (data.success && data.pdf_url) {
-                    // 🔥 ABRIR PDF EM NOVA ABA
-                    window.open(data.pdf_url, '_blank');
-                    alert('✅ PDF gerado com sucesso!');
-                } else {
-                    throw new Error(data.message || 'Erro ao gerar PDF');
-                }
-                
-            } catch (error) {
-                console.error('❌ Erro ao exportar PDF:', error);
-                alert('❌ Erro ao gerar PDF: ' + error.message);
-            } finally {
-                // Restaurar botão
-                const btnExportar = document.querySelector('.btn-exportar');
-                if (btnExportar) {
-                    btnExportar.innerHTML = '<i class="fas fa-file-pdf"></i> Exportar Extrato (PDF)';
-                    btnExportar.disabled = false;
-                }
-            }
-        }        
     </script>
     <script src="/static/js/theme.js"></script>
     <script src="/static/js/conta_search.js"></script>
