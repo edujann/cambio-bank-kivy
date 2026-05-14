@@ -4707,7 +4707,25 @@ def obter_extrato_kivy():
                         })
                         
                         print(f"💰 TRANSFERÊNCIA EMPRESA → CLIENTE (DÉBITO): -{valor:,.2f} {moeda} | Desc: {descricao_original}")
-                    
+
+                    # 🔥 DESPESA (quando cliente RECEBE pagamento de uma despesa)
+                    elif transf_tipo == 'despesa':
+                        # Cliente RECEBEU pagamento (conta_destinatario)
+                        if transf.get('conta_destinatario') == conta_num:
+                            descricao_despesa = transf.get('descricao_despesa', transf.get('descricao', ''))
+                            
+                            transacoes_todas.append({
+                                'id': transf_id,
+                                'data': data_transacao_str,
+                                'descricao': f"RECEBIDO - {descricao_despesa}",
+                                'credito': valor,      # 🔥 CRÉDITO = entrada
+                                'debito': 0.00,
+                                'tipo': "Pagamento Recebido",
+                                'moeda': moeda,
+                                'timestamp': data_transacao
+                            })
+                            print(f"💰 PAGAMENTO RECEBIDO: {descricao_despesa} | +{valor:,.2f} {moeda}")
+
                     # 🔥 OUTROS TIPOS DE TRANSAÇÕES (quando cliente é destinatário em transferências normais)
                     elif transf_tipo not in ['ajuste_admin', 'deposito', 'cambio', 'transferencia_empresa_cliente']:
                         status_normalizado = transf_status.lower() if transf_status else ''
@@ -8312,13 +8330,13 @@ def api_admin_extrato_kivy():
                         remetente_nome = transf.get('remetente', '')
                         
                         if banco_origem and remetente_nome:
-                            descricao_final = f"💰 Depósito de: {banco_origem} - {remetente_nome}"
+                            descricao_final = f"Depósito de: {banco_origem} - {remetente_nome}"
                         elif banco_origem:
-                            descricao_final = f"💰 Depósito do banco: {banco_origem}"
+                            descricao_final = f"Depósito do banco: {banco_origem}"
                         elif remetente_nome:
-                            descricao_final = f"💰 Depósito de: {remetente_nome}"
+                            descricao_final = f"Depósito de: {remetente_nome}"
                         else:
-                            descricao_final = "💰 Depósito"
+                            descricao_final = "Depósito"
                         
                         transacoes_todas.append({
                             'id': transf_id,
@@ -8556,7 +8574,25 @@ def api_admin_extrato_kivy():
                             'moeda': moeda,
                             'timestamp': data_transacao
                         })
-                    
+
+                    #  DESPESA (quando cliente RECEBE pagamento)
+                    elif transf_tipo == 'despesa':
+                        # Cliente RECEBEU pagamento (conta_destinatario)
+                        if transf.get('conta_destinatario') == conta_num:
+                            descricao_despesa = transf.get('descricao_despesa', transf.get('descricao', ''))
+                            
+                            transacoes_todas.append({
+                                'id': transf_id,
+                                'data': data_transacao_str,
+                                'descricao': f"RECEBIDO - {descricao_despesa}",
+                                'credito': valor,
+                                'debito': 0.00,
+                                'tipo': "Pagamento Recebido",
+                                'moeda': moeda,
+                                'timestamp': data_transacao
+                            })
+                            print(f"💰 [ADMIN] PAGAMENTO RECEBIDO: {descricao_despesa} | +{valor:,.2f} {moeda}")
+
                     elif transf_tipo not in ['ajuste_admin']:
                         status_normalizado = transf_status.lower() if transf_status else ''
                         status_text = "SOLICITADA" if status_normalizado in ['pending', 'solicitada'] else \
@@ -10437,117 +10473,174 @@ def api_admin_gerenciar_extrato():
 
 @app.route('/api/admin/gerenciar-contas/despesa', methods=['POST'])
 def api_admin_gerenciar_despesa():
-    """Lança uma despesa na conta bancária da empresa (permite saldo negativo)"""
+    """Lança uma despesa (pode ser em conta bancária ou crédito direto a cliente)"""
     try:
         usuario = session.get('username')
         
         if not usuario:
             return jsonify({"success": False, "message": "Não autenticado"}), 401
         
-        # Verificar se é admin
-        if supabase:
-            user_check = supabase.table('usuarios')\
-                .select('tipo')\
-                .eq('username', usuario)\
+        dados = request.get_json()
+        
+        tipo_destino = dados.get('tipo_destino', 'empresa')
+        
+        # ============================================
+        # CENÁRIO 1: DESPESA EM CONTA BANCÁRIA DA EMPRESA
+        # ============================================
+        if tipo_destino == 'empresa':
+            conta_bancaria = dados.get('conta_bancaria')
+            if not conta_bancaria:
+                return jsonify({"success": False, "message": "Conta bancária não informada"}), 400
+            
+            categoria = dados.get('categoria')
+            conta_despesa = dados.get('conta_despesa')
+            valor = float(dados.get('valor', 0))
+            descricao = dados.get('descricao', '')
+            
+            if not categoria or not conta_despesa:
+                return jsonify({"success": False, "message": "Categoria e conta de despesa são obrigatórios"}), 400
+            
+            if valor <= 0:
+                return jsonify({"success": False, "message": "Valor deve ser maior que zero"}), 400
+            
+            # Buscar conta bancária da empresa
+            conta_response = supabase.table('contas_bancarias_empresa')\
+                .select('saldo, moeda')\
+                .eq('numero', conta_bancaria)\
                 .single()\
                 .execute()
             
-            if not user_check.data or user_check.data.get('tipo') != 'admin':
-                return jsonify({"success": False, "message": "Acesso negado"}), 403
-        
-        dados = request.get_json()
-        
-        conta_bancaria = dados.get('conta_bancaria')
-        categoria = dados.get('categoria')
-        conta_despesa = dados.get('conta_despesa')
-        valor = float(dados.get('valor', 0))
-        descricao = dados.get('descricao', '')
-        
-        if not conta_bancaria or not categoria or not conta_despesa:
-            return jsonify({"success": False, "message": "Dados incompletos"}), 400
-        
-        if valor <= 0:
-            return jsonify({"success": False, "message": "Valor deve ser maior que zero"}), 400
-        
-        # Buscar conta bancária
-        conta_response = supabase.table('contas_bancarias_empresa')\
-            .select('saldo, moeda')\
-            .eq('numero', conta_bancaria)\
-            .single()\
-            .execute()
-        
-        if not conta_response.data:
-            return jsonify({"success": False, "message": "Conta bancária não encontrada"}), 404
-        
-        saldo_atual = float(conta_response.data['saldo'])
-        moeda = conta_response.data['moeda']
-        
-        # 🔥 REMOVIDA A VERIFICAÇÃO DE SALDO
-        # Agora permite saldo negativo sem restrições
-        
-        novo_saldo = saldo_atual - valor
-        
-        # Mostrar aviso se ficar negativo (apenas para informação)
-        if novo_saldo < 0:
-            print(f"⚠️ AVISO: Conta bancária ficará negativa: {saldo_atual:.2f} → {novo_saldo:.2f} {moeda}")
-        
-        # Atualizar saldo
-        supabase.table('contas_bancarias_empresa')\
-            .update({'saldo': novo_saldo})\
-            .eq('numero', conta_bancaria)\
-            .execute()
-        
-        # Registrar transação
-        from datetime import datetime
-        import random
-        
-        # Gerar ID numérico
-        transacao_id = str(random.randint(100000, 999999))
-        while True:
-            check = supabase.table('transferencias').select('id').eq('id', transacao_id).execute()
-            if not check.data:
-                break
+            if not conta_response.data:
+                return jsonify({"success": False, "message": f"Conta {conta_bancaria} não encontrada"}), 404
+            
+            moeda = conta_response.data['moeda']
+            saldo_atual = float(conta_response.data['saldo'])
+            novo_saldo = saldo_atual - valor
+            
+            # Atualizar saldo da conta bancária
+            supabase.table('contas_bancarias_empresa')\
+                .update({'saldo': novo_saldo})\
+                .eq('numero', conta_bancaria)\
+                .execute()
+            
+            # Registrar transação
+            from datetime import datetime
+            import random
+            
             transacao_id = str(random.randint(100000, 999999))
+            while True:
+                check = supabase.table('transferencias').select('id').eq('id', transacao_id).execute()
+                if not check.data:
+                    break
+                transacao_id = str(random.randint(100000, 999999))
+            
+            transacao_data = {
+                'id': transacao_id,
+                'tipo': 'despesa',
+                'status': 'completed',
+                'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'moeda': moeda,
+                'valor': valor,
+                'conta_remetente': conta_bancaria,
+                'conta_destinatario': conta_despesa,
+                'conta_despesa': conta_despesa,  # ← Mesmo valor para relatório
+                'descricao': None,
+                'usuario': usuario,
+                'categoria_despesa': categoria,
+                'descricao_despesa': descricao,
+                'executado_por': usuario,
+                'created_at': datetime.now().isoformat()
+            }
+            
+            supabase.table('transferencias').insert(transacao_data).execute()
+            
+            return jsonify({
+                "success": True,
+                "message": "Despesa lançada com sucesso!",
+                "transacao_id": transacao_id,
+                "novo_saldo": novo_saldo
+            })
         
-        # Formatar conta_destinatario no padrão "DESPESA_CATEGORIA_Nome da Conta"
-        conta_destinatario_formatada = f"DESPESA_{categoria}_{conta_despesa}"
-        
-        transacao_data = {
-            'id': transacao_id,
-            'tipo': 'despesa',
-            'status': 'completed',
-            'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            'moeda': moeda,
-            'valor': valor,
-            'conta_remetente': conta_bancaria,
-            'conta_destinatario': conta_destinatario_formatada,
-            'descricao': None,
-            'usuario': usuario,
-            'categoria_despesa': categoria,
-            'descricao_despesa': descricao,
-            'executado_por': usuario,
-            'created_at': datetime.now().isoformat()
-        }
-        
-        result = supabase.table('transferencias').insert(transacao_data).execute()
-        
-        if not result.data:
-            return jsonify({"success": False, "message": "Erro ao registrar despesa"}), 500
-        
-        print(f"📉 Despesa lançada: {valor:.2f} {moeda} - {descricao}")
-        print(f"   Conta: {conta_bancaria} | Saldo: {saldo_atual:.2f} → {novo_saldo:.2f} {moeda}")
-        print(f"   Conta destino formatada: {conta_destinatario_formatada}")
-        
-        return jsonify({
-            "success": True,
-            "message": f"Despesa lançada com sucesso!",
-            "transacao_id": transacao_id,
-            "novo_saldo": novo_saldo
-        })
+        # ============================================
+        # CENÁRIO 2: CRÉDITO DIRETO NA CONTA DO CLIENTE
+        # ============================================
+        else:
+            cliente_username = dados.get('cliente_username')
+            conta_cliente = dados.get('conta_cliente')
+            conta_despesa = dados.get('conta_despesa')  # ← Conta contábil (ex: Tarifas Bancárias)
+            valor = float(dados.get('valor', 0))
+            descricao = dados.get('descricao', '')
+            categoria = dados.get('categoria', 'SERVICOS')
+            
+            if not cliente_username or not conta_cliente:
+                return jsonify({"success": False, "message": "Cliente e conta do cliente são obrigatórios"}), 400
+            
+            if not conta_despesa:
+                return jsonify({"success": False, "message": "Conta de despesa é obrigatória"}), 400
+            
+            if valor <= 0:
+                return jsonify({"success": False, "message": "Valor deve ser maior que zero"}), 400
+            
+            # Buscar conta do cliente
+            conta_cliente_response = supabase.table('contas')\
+                .select('saldo, moeda')\
+                .eq('id', conta_cliente)\
+                .single()\
+                .execute()
+            
+            if not conta_cliente_response.data:
+                return jsonify({"success": False, "message": f"Conta do cliente {conta_cliente} não encontrada"}), 404
+            
+            moeda = conta_cliente_response.data['moeda']
+            saldo_atual = float(conta_cliente_response.data['saldo'])
+            novo_saldo = saldo_atual + valor  # Cliente RECEBE = AUMENTA
+            
+            # Atualizar saldo da conta do cliente
+            supabase.table('contas')\
+                .update({'saldo': novo_saldo})\
+                .eq('id', conta_cliente)\
+                .execute()
+            
+            # Registrar transação
+            from datetime import datetime
+            import random
+            
+            transacao_id = str(random.randint(100000, 999999))
+            while True:
+                check = supabase.table('transferencias').select('id').eq('id', transacao_id).execute()
+                if not check.data:
+                    break
+                transacao_id = str(random.randint(100000, 999999))
+            
+            transacao_data = {
+                'id': transacao_id,
+                'tipo': 'despesa',
+                'status': 'completed',
+                'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'moeda': moeda,
+                'valor': valor,
+                'conta_remetente': None,                        # Sem conta de origem
+                'conta_destinatario': conta_cliente,            # Quem recebeu (cliente) - para extrato
+                'conta_despesa': conta_despesa,                 # 🔥 Conta contábil - para relatórios
+                'descricao': None,
+                'usuario': usuario,
+                'categoria_despesa': categoria,
+                'descricao_despesa': descricao,
+                'executado_por': usuario,
+                'created_at': datetime.now().isoformat()
+            }
+            
+            supabase.table('transferencias').insert(transacao_data).execute()
+            
+            return jsonify({
+                "success": True,
+                "message": f"Crédito de {valor:.2f} {moeda} realizado para {cliente_username}!",
+                "transacao_id": transacao_id,
+                "novo_saldo": novo_saldo
+            })
         
     except Exception as e:
         print(f"❌ Erro ao lançar despesa: {e}")
-        _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         return jsonify({"success": False, "message": _err(e)}), 500
 
 
@@ -17630,16 +17723,21 @@ def api_admin_relatorios_mensal():
                 if not categoria:
                     categoria = 'SEM CATEGORIA'
                 
-                # Extrair conta específica do campo conta_destinatario
-                conta_dest = t.get('conta_destinatario', '')
-                if conta_dest and '_' in conta_dest:
-                    partes = conta_dest.split('_')
-                    if len(partes) >= 3:
-                        conta_especifica = partes[2]
-                    else:
-                        conta_especifica = partes[-1] if partes else 'Outras'
+                # 🔥 PRIORIZAR conta_despesa se existir (para créditos a cliente)
+                conta_despesa = t.get('conta_despesa')
+                if conta_despesa:
+                    conta_especifica = conta_despesa
                 else:
-                    conta_especifica = conta_dest if conta_dest else 'Outras'
+                    # Extrair conta específica do campo conta_destinatario
+                    conta_dest = t.get('conta_destinatario', '')
+                    if conta_dest and '_' in conta_dest:
+                        partes = conta_dest.split('_')
+                        if len(partes) >= 3:
+                            conta_especifica = partes[2]
+                        else:
+                            conta_especifica = partes[-1] if partes else 'Outras'
+                    else:
+                        conta_especifica = conta_dest if conta_dest else 'Outras'
                 
                 descricao = t.get('descricao_despesa', '')
                 if not descricao:
@@ -17669,6 +17767,7 @@ def api_admin_relatorios_mensal():
                 'descricao': descricao,
                 'categoria': categoria,
                 'conta_especifica': conta_especifica,
+                'conta_despesa': t.get('conta_despesa'),
                 'valor': valor,
                 'moeda': moeda
             })

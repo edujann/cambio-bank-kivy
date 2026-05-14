@@ -1015,11 +1015,12 @@
                     if (taxas && moedaTransacao !== 'USD') {
                         valorUSD = converterValorParaUSD(t.valor, moedaTransacao, taxas);
                     }
+                    let contaExibida = t.conta_despesa || t.conta_especifica || '-';
                     html += `<tr>
                         <td>${formatarData(t.data)}</td>
                         <td>${escapeHtml(t.descricao || '-')}</td>
                         <td>${escapeHtml(t.categoria || '-')}</td>
-                        <td>${escapeHtml(t.conta_especifica || '-')}</td>
+                        <td>${escapeHtml(contaExibida)}</td>
                         <td>${formatarValor(t.valor, moedaTransacao)}</td>
                         <td><strong>${formatarValor(valorUSD, 'USD')}</strong></td>
                     </tr>`;

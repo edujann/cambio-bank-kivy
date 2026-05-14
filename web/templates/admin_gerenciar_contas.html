@@ -750,6 +750,35 @@
             text-align: center;
         }
 
+        /*  FORÇAR PADRÃO DOS LABELS DA ABA DESPESAS - TELA CONTAS BANCÁRIAS */
+        #tab-despesas .form-group label,
+        #tab-despesas .filtro-label,
+        div#tab-despesas .form-group label,
+        div#tab-despesas .filtro-label {
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            color: var(--cor-texto-secundario) !important;
+            text-transform: uppercase !important;
+            margin-bottom: 8px !important;
+            display: block !important;
+            letter-spacing: 0.5px !important;
+        }
+
+        #tab-despesas .form-group label i,
+        div#tab-despesas .form-group label i {
+            margin-right: 8px !important;
+            color: var(--cor-admin) !important;
+            font-size: 12px !important;
+        }
+
+        /* Forçar também os labels que estão dentro do form-card */
+        #tab-despesas .form-card .form-group label {
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            color: var(--cor-texto-secundario) !important;
+            text-transform: uppercase !important;
+        }        
+
     </style>
 </head>
 <body>
@@ -962,37 +991,28 @@
                 <div class="form-card">
                     <h3 class="form-title"><i class="fas fa-chart-line"></i> Lançar Despesa</h3>
                     
-                    <!-- 🔥 FILTRO POR BANCO -->
-                    <div class="filtro-container">
-                        <div class="filtro-label">
-                            <i class="fas fa-building"></i>
-                            <span>Filtrar por Banco</span>
-                        </div>
-                        <select id="filtroBancoDespesa" class="select-filtro" onchange="filtrarContasPorBancoDespesa()">
-                            <option value="TODOS"><i class="fas fa-building"></i> TODOS OS BANCOS</option>
-                        </select>
-                        <div class="filtro-info" id="filtroInfoDespesa">
-                            <i class="fas fa-info-circle"></i> Selecione um banco para filtrar as contas
+                    <!-- SELETOR DE TIPO DE DESTINO -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-tag"></i> Tipo de Destino</label>
+                            <select id="despesaTipoDestino" class="form-control" onchange="toggleDespesaDestino()">
+                                <option value="empresa">Conta Bancária da Empresa</option>
+                                <option value="cliente">Conta de Cliente</option>
+                            </select>
                         </div>
                     </div>
                     
+                    <!-- CONTAINER DINÂMICO PARA O DESTINO (tudo vai aparecer aqui) -->
+                    <div id="despesaDestinoDinamico"></div>
+                    
+                    <!-- CAMPOS COMUNS (aparecem sempre) -->
                     <div class="form-row">
-                        <div class="form-group">
-                            <label><i class="fas fa-building"></i> Conta Bancária</label>
-                            <select id="despesaContaBancaria" class="form-control">
-                                <option value="">Selecione a conta bancária...</option>
-                            </select>
-                        </div>
-                        
                         <div class="form-group">
                             <label><i class="fas fa-tags"></i> Categoria</label>
                             <select id="despesaCategoria" class="form-control">
                                 <option value="">Selecione a categoria...</option>
                             </select>
                         </div>
-                    </div>
-                    
-                    <div class="form-row">
                         <div class="form-group">
                             <label><i class="fas fa-receipt"></i> Conta de Despesa</label>
                             <select id="despesaConta" class="form-control" disabled>
@@ -1291,6 +1311,10 @@
             carregarContasEmpresa();
             carregarContasContabeis();
             carregarListaClientes();
+
+            // Inicializar a aba despesas com o tipo padrão (empresa)
+            toggleDespesaDestino();
+
         });
 
         // ============================================
@@ -2008,14 +2032,36 @@
         });
 
         async function lancarDespesa() {
-            const contaBancaria = document.getElementById('despesaContaBancaria').value;
+            const tipoDestino = document.getElementById('despesaTipoDestino').value;
+            
+            let contaDestino = null;
+            let clienteUsername = null;
+            
+            if (tipoDestino === 'empresa') {
+                // Destino: Conta Bancária da Empresa
+                contaDestino = document.getElementById('despesaContaBancaria')?.value;
+                if (!contaDestino) {
+                    alert('Selecione a conta bancária!');
+                    return;
+                }
+            } else {
+                // Destino: Conta de Cliente
+                clienteUsername = document.getElementById('despesaCliente')?.value;
+                contaDestino = document.getElementById('despesaContaCliente')?.value;
+                
+                if (!clienteUsername || !contaDestino) {
+                    alert('Selecione o cliente e a conta do cliente!');
+                    return;
+                }
+            }
+            
             const categoria = document.getElementById('despesaCategoria').value;
             const contaDespesa = document.getElementById('despesaConta').value;
             const valor = parseFloat(document.getElementById('despesaValor').value.replace(',', '.'));
             const descricao = document.getElementById('despesaDescricao').value.trim();
             
-            if (!contaBancaria || !categoria || !contaDespesa) {
-                alert('Preencha todos os campos!');
+            if (!categoria || !contaDespesa) {
+                alert('Preencha categoria e conta de despesa!');
                 return;
             }
             
@@ -2029,21 +2075,35 @@
                 return;
             }
             
-            if (!confirm(`Confirmar lançamento de despesa?\n\nConta: ${contaBancaria}\nCategoria: ${categoria}\nConta Despesa: ${contaDespesa}\nValor: ${formatarValor(valor)}\nDescrição: ${descricao}`)) {
+            // Mensagem de confirmação
+            let mensagemConfirmacao = `Confirmar lançamento de despesa?\n\n`;
+            if (tipoDestino === 'empresa') {
+                mensagemConfirmacao += `Conta Bancária: ${contaDestino}\n`;
+            } else {
+                mensagemConfirmacao += `Cliente: ${clienteUsername}\nConta do Cliente: ${contaDestino}\n`;
+            }
+            mensagemConfirmacao += `Categoria: ${categoria}\nConta Despesa: ${contaDespesa}\nValor: ${formatarValor(valor)}\nDescrição: ${descricao}`;
+            
+            if (!confirm(mensagemConfirmacao)) {
                 return;
             }
             
             try {
+                const payload = {
+                    conta_bancaria: tipoDestino === 'empresa' ? contaDestino : null,
+                    cliente_username: tipoDestino === 'cliente' ? clienteUsername : null,
+                    conta_cliente: tipoDestino === 'cliente' ? contaDestino : null,
+                    categoria: categoria,
+                    conta_despesa: contaDespesa,
+                    valor: valor,
+                    descricao: descricao,
+                    tipo_destino: tipoDestino
+                };
+                
                 const response = await fetch('/api/admin/gerenciar-contas/despesa', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        conta_bancaria: contaBancaria,
-                        categoria: categoria,
-                        conta_despesa: contaDespesa,
-                        valor: valor,
-                        descricao: descricao
-                    })
+                    body: JSON.stringify(payload)
                 });
                 
                 const data = await response.json();
@@ -2051,36 +2111,19 @@
                 if (data.success) {
                     alert(`✅ Despesa lançada com sucesso!`);
                     
-                    // 🔥 RECARREGAR AS CONTAS BANCÁRIAS para atualizar o saldo no select
-                    await carregarContasEmpresa();
-                    
-                    // 🔥 Recarregar o select de contas bancárias na aba de despesas
-                    const selectConta = document.getElementById('despesaContaBancaria');
-                    if (selectConta) {
-                        // Salvar o valor selecionado atualmente
-                        const valorSelecionado = selectConta.value;
-                        
-                        // Recarregar as opções
-                        selectConta.innerHTML = '<option value="">Selecione a conta bancária...</option>';
-                        contasEmpresa.forEach(conta => {
-                            const option = document.createElement('option');
-                            option.value = conta.numero;
-                            option.textContent = `${conta.numero} - ${conta.banco} - ${conta.moeda} (Saldo: ${formatarValor(conta.saldo)})`;
-                            if (valorSelecionado === conta.numero) {
-                                option.selected = true;
-                            }
-                            selectConta.appendChild(option);
-                        });
-                    }
-                    
-                    // Limpar os campos
+                    // Limpar campos
                     document.getElementById('despesaValor').value = '';
                     document.getElementById('despesaDescricao').value = '';
-                    
-                    // Opcional: Resetar os selects de categoria e conta de despesa
                     document.getElementById('despesaCategoria').value = '';
                     document.getElementById('despesaConta').innerHTML = '<option value="">Selecione primeiro uma categoria...</option>';
                     document.getElementById('despesaConta').disabled = true;
+                    
+                    // Recarregar dados conforme o tipo
+                    if (tipoDestino === 'empresa') {
+                        await carregarContasBancariasEmpresa();
+                    } else {
+                        await carregarContasClienteDespesa(clienteUsername);
+                    }
                     
                 } else {
                     alert('❌ ' + data.message);
@@ -2090,6 +2133,150 @@
                 alert('Erro ao lançar despesa!');
             }
         }
+
+        // ============================================
+        // FUNÇÕES PARA DESPESA EM CLIENTE
+        // ============================================
+
+        function toggleDespesaDestino() {
+            const tipoDestino = document.getElementById('despesaTipoDestino').value;
+            const container = document.getElementById('despesaDestinoDinamico');
+            
+            if (tipoDestino === 'empresa') {
+                container.innerHTML = `
+                    <div class="filtro-container">
+                        <div class="filtro-label">
+                            <i class="fas fa-building"></i>
+                            <span>Filtrar por Banco</span>
+                        </div>
+                        <select id="filtroBancoDespesa" class="select-filtro" onchange="filtrarContasPorBancoDespesa()">
+                            <option value="TODOS"><i class="fas fa-building"></i> TODOS OS BANCOS</option>
+                        </select>
+                        <div class="filtro-info" id="filtroInfoDespesa">
+                            <i class="fas fa-info-circle"></i> Selecione um banco para filtrar as contas
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-building"></i> Conta Bancária</label>
+                        <select id="despesaContaBancaria" class="form-control">
+                            <option value="">Selecione a conta bancária...</option>
+                        </select>
+                    </div>
+                `;
+                carregarContasBancariasEmpresa();
+            } else {
+                container.innerHTML = `
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-user"></i> Cliente</label>
+                            <select id="despesaCliente" class="form-control">
+                                <option value="">Selecione o cliente...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-wallet"></i> Conta do Cliente</label>
+                            <select id="despesaContaCliente" class="form-control" disabled>
+                                <option value="">Selecione primeiro um cliente...</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+                carregarClientesParaDespesa();
+                
+                document.getElementById('despesaCliente')?.addEventListener('change', async (e) => {
+                    const username = e.target.value;
+                    if (username) {
+                        await carregarContasClienteDespesa(username);
+                    }
+                });
+            }
+        }
+
+        async function carregarClientesParaDespesa() {
+            try {
+                const response = await fetch('/api/admin/clientes');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const selectCliente = document.getElementById('despesaCliente');
+                    if (selectCliente) {
+                        selectCliente.innerHTML = '<option value="">Selecione o cliente...</option>';
+                        data.clientes.forEach(cliente => {
+                            const option = document.createElement('option');
+                            option.value = cliente.username;
+                            option.textContent = `${cliente.nome} (${cliente.username})`;
+                            selectCliente.appendChild(option);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao carregar clientes:', error);
+            }
+        }
+
+        async function carregarContasClienteDespesa(username) {
+            try {
+                const response = await fetch(`/api/admin/clientes/${username}/contas`);
+                const data = await response.json();
+                
+                const selectConta = document.getElementById('despesaContaCliente');
+                if (data.success && data.contas.length > 0) {
+                    selectConta.innerHTML = '<option value="">Selecione a conta...</option>';
+                    data.contas.forEach(conta => {
+                        const option = document.createElement('option');
+                        option.value = conta.numero;
+                        option.textContent = `${conta.numero} - ${conta.moeda} (Saldo: ${formatarValor(conta.saldo)})`;
+                        selectConta.appendChild(option);
+                    });
+                    selectConta.disabled = false;
+                } else {
+                    selectConta.innerHTML = '<option value="">Cliente não possui contas</option>';
+                    selectConta.disabled = true;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar contas do cliente:', error);
+            }
+        }
+
+        async function carregarContasBancariasEmpresa() {
+            try {
+                const response = await fetch('/api/admin/contas-bancarias');
+                const data = await response.json();
+                if (data.success) {
+                    const selectConta = document.getElementById('despesaContaBancaria');
+                    if (selectConta) {
+                        selectConta.innerHTML = '<option value="">Selecione a conta bancária...</option>';
+                        data.contas.forEach(conta => {
+                            const option = document.createElement('option');
+                            option.value = conta.numero;
+                            option.textContent = `${conta.numero} - ${conta.banco} - ${conta.moeda} (Saldo: ${formatarValor(conta.saldo)})`;
+                            selectConta.appendChild(option);
+                        });
+                    }
+                    
+                    // Atualizar filtro de banco se existir
+                    const selectFiltro = document.getElementById('filtroBancoDespesa');
+                    if (selectFiltro) {
+                        const bancosSet = new Set();
+                        bancosSet.add('TODOS');
+                        data.contas.forEach(conta => {
+                            if (conta.banco) bancosSet.add(conta.banco);
+                        });
+                        
+                        let optionsHtml = '<option value="TODOS"><i class="fas fa-building"></i> TODOS OS BANCOS</option>';
+                        for (const banco of bancosSet) {
+                            if (banco !== 'TODOS') {
+                                optionsHtml += `<option value="${banco}"><i class="fas fa-building"></i> ${banco}</option>`;
+                            }
+                        }
+                        selectFiltro.innerHTML = optionsHtml;
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao carregar contas bancárias:', error);
+            }
+        }        
 
         // ============================================
         // ABA 6: RECEITAS
