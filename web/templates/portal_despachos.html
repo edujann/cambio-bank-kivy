@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="{{ 'en' if current_lang == 'en' else 'pt-BR' }}" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Link International — {% if is_pt %}Despachos{% else %}Dispatches{% endif %}</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script>(function(){var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+<style>
+:root[data-theme="light"]{
+    --bg:#faf8f2;--bg2:#f0ece0;--card:#ffffff;--border:#e4dcc8;
+    --text:#1a1612;--text2:#7a6e5c;--text3:#b0a48a;
+    --gold:#b8860b;--gold-lt:rgba(184,134,11,.09);--gold-md:rgba(184,134,11,.18);
+    --sh:0 1px 8px rgba(0,0,0,.07);--sh-md:0 4px 18px rgba(0,0,0,.11);
+}
+:root[data-theme="dark"]{
+    --bg:#110f08;--bg2:#191611;--card:#1e1b12;--border:#2d2819;
+    --text:#e8e0c8;--text2:#8b8070;--text3:#5a5040;
+    --gold:#d29e00;--gold-lt:rgba(210,158,0,.09);--gold-md:rgba(210,158,0,.18);
+    --sh:0 1px 8px rgba(0,0,0,.4);--sh-md:0 4px 18px rgba(0,0,0,.5);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;}
+
+/* SIDEBAR — idêntico ao dashboard.html */
+.sidebar{width:230px;min-height:100vh;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:200;transition:transform .25s;}
+.sb-logo{padding:20px 18px 14px;border-bottom:1px solid var(--border);}
+.sb-brand{font-size:18px;font-weight:400;letter-spacing:.5px;background:linear-gradient(90deg,#b78700,#eeb600);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.sb-brand strong{font-weight:800;}
+.sb-brand small{display:block;font-size:10px;font-weight:500;color:var(--text2);letter-spacing:1.2px;text-transform:uppercase;margin-top:2px;-webkit-text-fill-color:var(--text2);}
+.sb-company{padding:12px 18px;border-bottom:1px solid var(--border);}
+.sb-co-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:3px;}
+.sb-co-name{font-size:13px;font-weight:700;color:var(--text);line-height:1.3;}
+.sb-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;margin-top:5px;}
+.sb-badge.active{background:rgba(46,194,126,.14);color:#2ec27e;}
+.sb-badge.onboarding{background:rgba(184,134,11,.14);color:#b8860b;}
+nav.sb-nav{flex:1;padding:10px 0;overflow-y:auto;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;font-weight:500;color:var(--text2);text-decoration:none;transition:all .15s;position:relative;}
+.nav-item i{width:15px;text-align:center;font-size:12px;}
+.nav-item:hover{color:var(--text);background:var(--gold-lt);}
+.nav-item.active{color:var(--gold);background:var(--gold-lt);font-weight:600;}
+.nav-item.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gold);border-radius:0 2px 2px 0;}
+.sb-footer{padding:12px 18px;border-top:1px solid var(--border);}
+.sb-user-row{display:flex;align-items:center;gap:10px;}
+.sb-avatar{width:30px;height:30px;border-radius:50%;background:var(--gold-md);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--gold);flex-shrink:0;}
+.sb-user-info{flex:1;min-width:0;}
+.sb-u-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sb-u-email{font-size:10px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sb-logout{color:var(--text3);font-size:13px;cursor:pointer;padding:4px;transition:color .15s;text-decoration:none;background:none;border:none;}
+.sb-logout:hover{color:#e01b24;}
+
+/* MAIN */
+.main-wrap{margin-left:230px;flex:1;min-height:100vh;display:flex;flex-direction:column;}
+.top-bar{height:52px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:50;}
+.top-greeting{font-size:14px;font-weight:600;}
+.top-greeting span{color:var(--text2);font-weight:400;}
+.top-right{display:flex;align-items:center;gap:6px;}
+.btn-ic{width:30px;height:30px;border:1px solid var(--border);background:transparent;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:12px;transition:all .15s;text-decoration:none;}
+.btn-ic:hover{border-color:var(--gold);color:var(--gold);}
+.btn-hamburger{display:none;background:none;border:none;font-size:17px;color:var(--text);cursor:pointer;margin-right:8px;}
+.page{padding:22px 24px;flex:1;}
+
+/* CONTENT */
+.page-title{font-size:20px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:10px;}
+.page-title i{color:var(--gold);}
+.page-sub{font-size:13px;color:var(--text2);margin-bottom:24px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--sh);margin-bottom:16px;overflow:hidden;}
+.card-hd{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:8px;flex-wrap:wrap;}
+.card-hd:hover{background:var(--gold-lt);}
+.card-hd-left{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.card-body{display:none;padding:16px 18px;}
+.card-body.open{display:block;}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;white-space:nowrap;}
+.badge-enviado{background:rgba(184,114,0,.14);color:#b87200;}
+.badge-pago{background:rgba(46,194,126,.12);color:#2ec27e;}
+.badge-despachada{background:rgba(100,100,200,.12);color:#5555cc;}
+.badge-em-analise{background:rgba(150,80,200,.12);color:#8832cc;}
+.badge-paga-ord{background:rgba(46,194,126,.12);color:#2ec27e;}
+
+/* TABLE */
+.ord-table{width:100%;border-collapse:collapse;font-size:13px;}
+.ord-table th{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;font-weight:700;}
+.ord-table td{padding:11px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.ord-table tr:last-child td{border-bottom:none;}
+.ord-table tr:hover td{background:var(--gold-lt);}
+
+/* UPLOAD SECTION */
+.comp-list{margin-bottom:12px;}
+.comp-item{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:var(--bg2);font-size:12px;gap:6px;flex-wrap:wrap;}
+.comp-item-name{display:flex;align-items:center;gap:6px;color:var(--text2);}
+.comp-actions{display:flex;gap:6px;align-items:center;}
+.upload-area{border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;}
+.upload-area:hover{border-color:var(--gold);background:var(--gold-lt);}
+.upload-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.upload-area i{font-size:24px;color:var(--text3);margin-bottom:8px;display:block;}
+.upload-area p{font-size:13px;color:var(--text2);}
+.upload-area small{font-size:11px;color:var(--text3);}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:none;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.btn-gold{background:linear-gradient(135deg,#b78700,#d4a017);color:#fff;}
+.btn-gold:hover{background:linear-gradient(135deg,#a07800,#c49010);}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text2);}
+.btn-outline:hover{border-color:var(--gold);color:var(--gold);}
+.btn-success{background:rgba(46,194,126,.14);color:#2ec27e;border:1px solid rgba(46,194,126,.25);}
+.btn-success:hover{background:rgba(46,194,126,.25);}
+.btn-sm{padding:5px 10px;font-size:11px;}
+.msg{font-size:12px;min-height:16px;margin-top:6px;}
+.empty{text-align:center;padding:40px 16px;color:var(--text2);}
+.empty i{font-size:36px;margin-bottom:10px;opacity:.3;display:block;}
+.empty p{font-size:13px;}
+
+/* MOBILE */
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:199;}
+.sb-overlay.open{display:block;}
+@media(max-width:900px){
+    .sidebar{transform:translateX(-100%);}
+    .sidebar.open{transform:translateX(0);}
+    .main-wrap{margin-left:0;}
+    .btn-hamburger{display:block;}
+    .page{padding:16px;}
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+    <div class="sb-logo">
+        <div class="sb-brand"><strong>Link</strong> international<small>{% if is_pt %}Portal do Cliente{% else %}Client Portal{% endif %}</small></div>
+    </div>
+    <div class="sb-company">
+        <div class="sb-co-lbl">{% if is_pt %}Conta{% else %}Account{% endif %}</div>
+        <div class="sb-co-name">{{ cliente_b2b.razao_social if cliente_b2b else (nome or usuario) }}</div>
+        {% if cliente_b2b %}{% set st = cliente_b2b.status %}
+        <span class="sb-badge {{ 'active' if st=='ativo' else 'onboarding' }}">
+            <i class="fas fa-circle" style="font-size:6px"></i>
+            {% if st=='ativo' %}{% if is_pt %}Ativo{% else %}Active{% endif %}{% else %}Onboarding{% endif %}
+        </span>
+        {% endif %}
+    </div>
+    <nav class="sb-nav">
+        <a class="nav-item" href="/dashboard"><i class="fas fa-house"></i> {% if is_pt %}Painel{% else %}Overview{% endif %}</a>
+        <a class="nav-item" href="/transferencia"><i class="fas fa-arrow-right-arrow-left"></i> {% if is_pt %}Nova Transferência{% else %}New Transfer{% endif %}</a>
+        <a class="nav-item" href="/minhas-transferencias"><i class="fas fa-list-check"></i> {% if is_pt %}Minhas Transferências{% else %}My Transfers{% endif %}</a>
+        <a class="nav-item" href="/meus-beneficiarios"><i class="fas fa-users"></i> {% if is_pt %}Beneficiários{% else %}Beneficiaries{% endif %}</a>
+        <a class="nav-item" href="/meu_extrato"><i class="fas fa-clock-rotate-left"></i> {% if is_pt %}Extrato{% else %}Statements{% endif %}</a>
+        <a class="nav-item" href="/chamados"><i class="fas fa-comments"></i> {% if is_pt %}Suporte{% else %}Support{% endif %}</a>
+        <a class="nav-item active" href="/portal/despachos"><i class="fas fa-paper-plane"></i> {% if is_pt %}Despachos{% else %}Dispatches{% endif %}</a>
+    </nav>
+    <div class="sb-footer">
+        <div class="sb-user-row">
+            <div class="sb-avatar">{{ (nome or usuario)[0]|upper }}</div>
+            <div class="sb-user-info">
+                <div class="sb-u-name">{{ nome or usuario }}</div>
+                <div class="sb-u-email">{{ email }}</div>
+            </div>
+            <a href="/logout" class="sb-logout" title="{% if is_pt %}Sair{% else %}Logout{% endif %}">
+                <i class="fas fa-right-from-bracket"></i>
+            </a>
+        </div>
+    </div>
+</aside>
+
+<div class="sb-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- MAIN -->
+<div class="main-wrap">
+    <header class="top-bar">
+        <div style="display:flex;align-items:center;gap:8px">
+            <button class="btn-hamburger" onclick="openSidebar()"><i class="fas fa-bars"></i></button>
+            <span class="top-greeting">
+                {% if is_pt %}Bem-vindo(a){% else %}Welcome{% endif %},
+                <span>{{ (nome or usuario).split()[0] }}</span>
+            </span>
+        </div>
+        <div class="top-right">
+            <a href="/language/{{ 'pt' if current_lang=='en' else 'en' }}" class="btn-ic" title="{% if is_pt %}English{% else %}Português{% endif %}"><i class="fas fa-globe"></i></a>
+            <button class="btn-ic" onclick="toggleTheme()"><i class="fas fa-circle-half-stroke"></i></button>
+        </div>
+    </header>
+
+    <div class="page">
+        <div class="page-title"><i class="fas fa-paper-plane"></i> {% if is_pt %}Meus Despachos{% else %}My Dispatches{% endif %}</div>
+        <p class="page-sub">{% if is_pt %}Visualize os despachos enviados para sua empresa, envie comprovantes de pagamento e sinalize ordens pagas.{% else %}View dispatches sent to your company, upload payment proofs and mark orders as paid.{% endif %}</p>
+
+        <div id="lista-despachos">
+            <div class="empty"><i class="fas fa-spinner fa-spin"></i><p>{% if is_pt %}Carregando...{% else %}Loading...{% endif %}</p></div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: UPLOAD COMPROVANTE -->
+<div style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(2px);" id="modalUpload" onclick="if(event.target===this)fecharUpload()">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:26px 22px;width:min(460px,94vw);box-shadow:var(--sh-md);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <strong style="font-size:15px;"><i class="fas fa-upload" style="color:var(--gold);margin-right:8px;"></i>{% if is_pt %}Enviar Comprovante{% else %}Upload Proof{% endif %}</strong>
+            <button onclick="fecharUpload()" style="background:none;border:none;font-size:18px;color:var(--text2);cursor:pointer;">&times;</button>
+        </div>
+        <p id="upload-desc" style="font-size:13px;color:var(--text2);margin-bottom:14px;"></p>
+        <div class="upload-area" id="uploadArea">
+            <input type="file" id="uploadFile" accept="image/*,.pdf" onchange="previewArquivo(this)">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <p id="uploadAreaText">{% if is_pt %}Clique ou arraste o arquivo aqui{% else %}Click or drag file here{% endif %}</p>
+            <small>PDF, JPG, PNG — max 10MB</small>
+        </div>
+        <div class="msg" id="upload-msg"></div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">
+            <button class="btn btn-outline" onclick="fecharUpload()">{% if is_pt %}Cancelar{% else %}Cancel{% endif %}</button>
+            <button class="btn btn-gold" onclick="enviarComprovante()"><i class="fas fa-upload"></i> {% if is_pt %}Enviar{% else %}Upload{% endif %}</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const _isPt = {{ 'true' if is_pt else 'false' }};
+let _uploadOrdemId = null;
+
+function openSidebar(){ document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebarOverlay').classList.add('open'); }
+function closeSidebar(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); }
+function toggleTheme(){ const h=document.documentElement; const t=h.getAttribute('data-theme')==='dark'?'light':'dark'; h.setAttribute('data-theme',t); localStorage.setItem('theme',t); }
+
+function fmtValor(v, moeda){ return parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' ' + (moeda||''); }
+function fmtData(iso){ if(!iso) return '—'; const d=new Date(iso); return d.toLocaleDateString('pt-BR'); }
+
+function badgeOrdem(status){
+    const map = {
+        'despachada':     ['badge-despachada', _isPt?'Despachada':'Dispatched'],
+        'comprovante_em_analise': ['badge-em-analise', _isPt?'Em Análise':'Under Review'],
+        'paga':           ['badge-paga-ord', _isPt?'Paga':'Paid'],
+        'liberada':       ['', _isPt?'Liberada':'Released'],
+    };
+    const [cls, lbl] = map[status] || ['', status];
+    return `<span class="badge ${cls}">${lbl}</span>`;
+}
+
+async function carregarDespachos(){
+    const el = document.getElementById('lista-despachos');
+    try {
+        const r = await fetch('/api/portal/despachos');
+        const d = await r.json();
+        if (!d.success || !d.despachos.length) {
+            el.innerHTML = `<div class="empty"><i class="fas fa-paper-plane"></i><p>${_isPt?'Nenhum despacho encontrado.':'No dispatches found.'}</p></div>`;
+            return;
+        }
+        let html = '';
+        d.despachos.forEach(dep => {
+            const ordens = dep.ordens || [];
+            const badgeDep = dep.status === 'pago'
+                ? '<span class="badge badge-pago"><i class="fas fa-check-circle"></i> ' + (_isPt?'Pago':'Paid') + '</span>'
+                : '<span class="badge badge-enviado"><i class="fas fa-paper-plane"></i> ' + (_isPt?'Enviado':'Sent') + '</span>';
+
+            let ordensRows = ordens.map(o => {
+                const podeUpload = o.status === 'despachada' || o.status === 'comprovante_em_analise';
+                const podeSinalizar = o.status === 'despachada' && o.tem_comprovante;
+                return `<tr>
+                    <td>
+                        <div style="font-weight:600;">${o.cliente_nome||'—'}</div>
+                        <div style="font-size:11px;color:var(--text2);">${_isPt?'Beneficiário':'Beneficiary'}: ${o.beneficiario_nome||'—'}</div>
+                    </td>
+                    <td>${fmtValor(o.valor_entrada, o.moeda_entrada)}</td>
+                    <td>${fmtValor(o.valor_saida, o.moeda_saida)}</td>
+                    <td>${badgeOrdem(o.status)}</td>
+                    <td style="white-space:nowrap;">
+                        ${podeUpload ? `<button class="btn btn-outline btn-sm" onclick="abrirUpload('${o.id}','${(o.cliente_nome||'').replace(/'/g,"\\'")}')"><i class="fas fa-upload"></i> ${_isPt?'Comprovante':'Upload'}</button>` : ''}
+                        ${podeSinalizar ? `<button class="btn btn-success btn-sm" style="margin-left:4px;" onclick="sinalizarPaga('${o.id}','${(o.cliente_nome||'').replace(/'/g,"\\'")}')"><i class="fas fa-check"></i> ${_isPt?'Sinalizar Paga':'Mark Paid'}</button>` : ''}
+                        ${o.status==='comprovante_em_analise' ? `<span style="font-size:11px;color:var(--text2);"><i class="fas fa-clock"></i> ${_isPt?'Aguardando verificação':'Awaiting verification'}</span>` : ''}
+                    </td>
+                </tr>`;
+            }).join('');
+
+            html += `<div class="card">
+                <div class="card-hd" onclick="toggleCard('dep-${dep.id}')">
+                    <div class="card-hd-left">
+                        <strong>${_isPt?'Despacho':'Dispatch'} #${dep.numero}</strong>
+                        <span style="font-size:12px;color:var(--text2);">${fmtValor(dep.valor_total, dep.moeda_saida)} · ${dep.qtd_ordens} ${_isPt?'ordem(ns)':'order(s)'}</span>
+                        ${badgeDep}
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:12px;color:var(--text2);">${fmtData(dep.created_at)}</span>
+                        <i class="fas fa-chevron-down" style="font-size:11px;color:var(--text3);"></i>
+                    </div>
+                </div>
+                <div class="card-body" id="dep-${dep.id}">
+                    ${dep.observacoes ? `<p style="font-size:12px;color:var(--text2);margin-bottom:12px;"><i class="fas fa-info-circle"></i> ${dep.observacoes}</p>` : ''}
+                    ${ordens.length
+                        ? `<div style="overflow-x:auto;"><table class="ord-table"><thead><tr>
+                            <th>${_isPt?'Cliente':'Client'}</th>
+                            <th>${_isPt?'Valor Enviado':'Amount Sent'}</th>
+                            <th>${_isPt?'Valor Recebido':'Amount Received'}</th>
+                            <th>Status</th>
+                            <th>${_isPt?'Ações':'Actions'}</th>
+                           </tr></thead><tbody>${ordensRows}</tbody></table></div>`
+                        : `<p style="font-size:12px;color:var(--text2);">${_isPt?'Sem ordens vinculadas.':'No orders linked.'}</p>`
+                    }
+                </div>
+            </div>`;
+        });
+        el.innerHTML = html;
+    } catch(e) {
+        el.innerHTML = `<div class="empty"><i class="fas fa-exclamation-triangle"></i><p>${_isPt?'Erro ao carregar despachos.':'Error loading dispatches.'}</p></div>`;
+    }
+}
+
+function toggleCard(id){ const el=document.getElementById(id); if(el) el.classList.toggle('open'); }
+
+function abrirUpload(ordemId, clienteNome){
+    _uploadOrdemId = ordemId;
+    document.getElementById('upload-desc').textContent = (_isPt?'Ordem: ':'Order: ') + clienteNome;
+    document.getElementById('uploadAreaText').textContent = _isPt?'Clique ou arraste o arquivo aqui':'Click or drag file here';
+    document.getElementById('uploadFile').value = '';
+    document.getElementById('upload-msg').innerHTML = '';
+    document.getElementById('modalUpload').style.display = 'flex';
+}
+function fecharUpload(){ document.getElementById('modalUpload').style.display = 'none'; }
+
+function previewArquivo(input){
+    if (input.files && input.files[0]) {
+        document.getElementById('uploadAreaText').textContent = input.files[0].name;
+    }
+}
+
+async function enviarComprovante(){
+    const file = document.getElementById('uploadFile').files[0];
+    const msg  = document.getElementById('upload-msg');
+    if (!file) { msg.style.color='#e01b24'; msg.textContent = _isPt?'Selecione um arquivo.':'Select a file.'; return; }
+    if (file.size > 10 * 1024 * 1024) { msg.style.color='#e01b24'; msg.textContent = _isPt?'Arquivo muito grande (max 10MB).':'File too large (max 10MB).'; return; }
+    msg.style.color='var(--text2)';
+    msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + (_isPt?'Enviando...':'Uploading...');
+    const fd = new FormData();
+    fd.append('arquivo', file);
+    try {
+        const r = await fetch(`/api/portal/ordens/${_uploadOrdemId}/comprovantes`, {method:'POST', body:fd});
+        const d = await r.json();
+        if (d.success) {
+            msg.style.color='#2ec27e';
+            msg.innerHTML = '<i class="fas fa-check"></i> ' + (d.message || (_isPt?'Enviado!':'Uploaded!'));
+            setTimeout(() => { fecharUpload(); carregarDespachos(); }, 1200);
+        } else {
+            msg.style.color='#e01b24';
+            msg.textContent = d.message || (_isPt?'Erro ao enviar.':'Upload error.');
+        }
+    } catch(e) {
+        msg.style.color='#e01b24';
+        msg.textContent = _isPt?'Erro de conexão.':'Connection error.';
+    }
+}
+
+async function sinalizarPaga(ordemId, clienteNome){
+    if (!confirm(_isPt
+        ? `Confirmar que a ordem de "${clienteNome}" foi paga e enviar para verificação?`
+        : `Confirm that the order for "${clienteNome}" has been paid and submit for verification?`)) return;
+    try {
+        const r = await fetch(`/api/portal/ordens/${ordemId}/marcar-paga`, {method:'POST'});
+        const d = await r.json();
+        if (d.success) { carregarDespachos(); }
+        else alert(d.message);
+    } catch(e) {
+        alert(_isPt?'Erro de conexão.':'Connection error.');
+    }
+}
+
+carregarDespachos();
+</script>
+</body>
+</html>

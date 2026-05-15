@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link International — Back Office</title>
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <script>(function(){ document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'light'); })();</script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; }
+
+        :root[data-theme="light"] {
+            --cor-fundo:#f5ede0; --cor-card:#ffffff; --cor-borda:rgba(210,185,130,.4);
+            --cor-texto:#1a1200; --cor-texto-secundario:#9a8560;
+            --cor-primaria:#c8920a; --cor-admin:#c8920a;
+            --cor-sucesso:#1a7a52; --cor-alerta:#b87200; --cor-perigo:#c02020;
+            --sombra-suave:0 2px 8px rgba(160,110,0,.10),0 1px 3px rgba(0,0,0,.04);
+            --sombra-media:0 6px 22px rgba(160,110,0,.13),0 2px 8px rgba(0,0,0,.05);
+            --borda-radius:14px; --borda-radius-pequeno:10px;
+        }
+        :root[data-theme="dark"] {
+            --cor-fundo:#110f08; --cor-card:#191611; --cor-borda:#2d2819;
+            --cor-texto:#e0e0e0; --cor-texto-secundario:#8b949e;
+            --cor-primaria:#d29e00; --cor-admin:#d29e00;
+            --cor-sucesso:#2ec27e; --cor-alerta:#f39c12; --cor-perigo:#e01b24;
+            --sombra-suave:0 4px 6px rgba(0,0,0,.30);
+            --sombra-media:0 8px 16px rgba(0,0,0,.40);
+            --borda-radius:14px; --borda-radius-pequeno:10px;
+        }
+
+        body {
+            background-color:#f5ede0;
+            background-image:radial-gradient(ellipse at 15% 15%,rgba(210,158,0,.10) 0%,transparent 55%),
+                radial-gradient(ellipse at 85% 85%,rgba(180,120,0,.08) 0%,transparent 55%),
+                linear-gradient(150deg,#f8f2e6 0%,#fdf9f2 45%,#ede3cf 100%);
+            background-attachment:fixed; color:var(--cor-texto); min-height:100vh; overflow-x:hidden;
+        }
+        body::before {
+            content:''; position:fixed; inset:0;
+            background-image:radial-gradient(circle,rgba(180,130,0,.055) 1px,transparent 1px);
+            background-size:30px 30px; pointer-events:none; z-index:0;
+        }
+        html[data-theme="dark"] body { background-color:#110f08; background-image:linear-gradient(135deg,#110f08 0%,#1f1a10 100%); }
+        html[data-theme="dark"] body::before { display:none; }
+
+        .app-container { max-width:1400px; margin:0 auto; padding:20px; position:relative; z-index:1; }
+
+        /* HEADER */
+        .header { display:flex; align-items:center; justify-content:space-between; margin-bottom:32px; flex-wrap:wrap; gap:12px; }
+        .header-left { display:flex; align-items:center; gap:16px; }
+        .header-logo { width:48px; height:48px; background:linear-gradient(135deg,var(--cor-admin),#e8b400); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; color:#fff; box-shadow:0 4px 12px rgba(200,146,10,.3); }
+        .header-title h1 { font-size:22px; font-weight:700; background:linear-gradient(90deg,#b78700,#eeb600); -webkit-background-clip:text; background-clip:text; color:transparent; }
+        .header-title p { font-size:13px; color:var(--cor-texto-secundario); margin-top:2px; }
+        .header-right { display:flex; align-items:center; gap:10px; }
+        .btn-hd { height:36px; padding:0 14px; border-radius:9px; border:1px solid var(--cor-borda); background:var(--cor-card); color:var(--cor-texto); font-size:13px; cursor:pointer; display:flex; align-items:center; gap:7px; transition:all .2s; white-space:nowrap; }
+        .btn-hd:hover { border-color:var(--cor-admin); color:var(--cor-admin); }
+        .btn-hd-gold { background:linear-gradient(135deg,var(--cor-admin),#e8b400); color:#fff; border-color:transparent; }
+        .btn-hd-gold:hover { opacity:.9; color:#fff; }
+        .badge-tipo { font-size:11px; padding:3px 10px; border-radius:20px; background:rgba(200,146,10,.15); color:var(--cor-admin); border:1px solid rgba(200,146,10,.3); font-weight:600; }
+
+        /* STATS */
+        .stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-bottom:32px; }
+        @media(max-width:768px){ .stats-grid{ grid-template-columns:1fr; } }
+        .stat-card { background:var(--cor-card); border:1px solid var(--cor-borda); border-radius:var(--borda-radius); padding:20px; box-shadow:var(--sombra-suave); position:relative; overflow:hidden; transition:all .3s; }
+        .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--cor-admin),transparent); }
+        .stat-card:hover { transform:translateY(-3px); border-color:var(--cor-admin); box-shadow:var(--sombra-media); }
+        .stat-card.alerta::before { background:linear-gradient(90deg,var(--cor-alerta),transparent); }
+        .stat-card.sucesso::before { background:linear-gradient(90deg,var(--cor-sucesso),transparent); }
+        .stat-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+        .stat-title { font-size:12px; color:var(--cor-texto-secundario); text-transform:uppercase; letter-spacing:.5px; }
+        .stat-icon { font-size:22px; color:var(--cor-admin); }
+        .stat-card.alerta .stat-icon { color:var(--cor-alerta); }
+        .stat-card.sucesso .stat-icon { color:var(--cor-sucesso); }
+        .stat-value { font-size:36px; font-weight:700; line-height:1; }
+        .stat-label { font-size:12px; color:var(--cor-texto-secundario); margin-top:6px; }
+
+        /* TABS */
+        .tabs-nav { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:24px; background:var(--cor-card); border:1px solid var(--cor-borda); border-radius:var(--borda-radius); padding:8px; box-shadow:var(--sombra-suave); }
+        .tab-btn { padding:9px 18px; border-radius:10px; border:none; background:transparent; color:var(--cor-texto-secundario); font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:7px; transition:all .2s; white-space:nowrap; }
+        .tab-btn:hover { background:rgba(200,146,10,.08); color:var(--cor-admin); }
+        .tab-btn.active { background:linear-gradient(135deg,var(--cor-admin),#e8b400); color:#fff; box-shadow:0 3px 10px rgba(200,146,10,.3); }
+        .tab-btn .badge { background:rgba(255,255,255,.3); color:inherit; border-radius:10px; padding:1px 7px; font-size:11px; }
+        .tab-btn:not(.active) .badge { background:var(--cor-admin); color:#fff; }
+        .tab-pane { display:none; }
+        .tab-pane.active { display:block; }
+
+        /* SECTION */
+        .section-card { background:var(--cor-card); border:1px solid var(--cor-borda); border-radius:var(--borda-radius); padding:24px; box-shadow:var(--sombra-suave); margin-bottom:24px; }
+        .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
+        .section-title { font-size:16px; font-weight:700; display:flex; align-items:center; gap:10px; color:var(--cor-texto); }
+        .section-title i { color:var(--cor-admin); }
+
+        /* TABLE */
+        .data-table { width:100%; border-collapse:collapse; font-size:13px; }
+        .data-table th { background:rgba(200,146,10,.08); color:var(--cor-texto-secundario); font-size:11px; text-transform:uppercase; letter-spacing:.5px; padding:10px 12px; text-align:left; border-bottom:1px solid var(--cor-borda); }
+        .data-table td { padding:12px 12px; border-bottom:1px solid var(--cor-borda); vertical-align:middle; }
+        .data-table tr:last-child td { border-bottom:none; }
+        .data-table tr:hover td { background:rgba(200,146,10,.04); }
+
+        /* BADGES */
+        .badge-status { display:inline-flex; align-items:center; gap:4px; font-size:11px; padding:3px 10px; border-radius:20px; font-weight:600; white-space:nowrap; }
+        .badge-on-hold   { background:rgba(184,114,0,.15); color:var(--cor-alerta); }
+        .badge-liberada  { background:rgba(26,122,82,.12); color:var(--cor-sucesso); }
+        .badge-despachada{ background:rgba(100,100,200,.12); color:#5555cc; }
+        .badge-em-analise{ background:rgba(150,80,200,.12); color:#8832cc; }
+        .badge-paga      { background:rgba(26,122,82,.12); color:var(--cor-sucesso); }
+        .badge-cancelada { background:rgba(192,32,32,.12); color:var(--cor-perigo); }
+        .badge-enviado   { background:rgba(184,114,0,.15); color:var(--cor-alerta); }
+
+        /* BUTTONS */
+        .btn { padding:7px 14px; border-radius:8px; border:none; font-size:12px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:all .2s; white-space:nowrap; }
+        .btn-primary { background:linear-gradient(135deg,var(--cor-admin),#e8b400); color:#fff; }
+        .btn-primary:hover { opacity:.88; }
+        .btn-success { background:rgba(26,122,82,.15); color:var(--cor-sucesso); border:1px solid rgba(26,122,82,.25); }
+        .btn-success:hover { background:rgba(26,122,82,.25); }
+        .btn-danger { background:rgba(192,32,32,.12); color:var(--cor-perigo); border:1px solid rgba(192,32,32,.2); }
+        .btn-danger:hover { background:rgba(192,32,32,.22); }
+        .btn-ghost { background:transparent; color:var(--cor-texto-secundario); border:1px solid var(--cor-borda); }
+        .btn-ghost:hover { border-color:var(--cor-admin); color:var(--cor-admin); }
+
+        /* ATALHOS CALL CENTER */
+        .shortcut-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; }
+        .shortcut-card { background:var(--cor-card); border:1px solid var(--cor-borda); border-radius:var(--borda-radius-pequeno); padding:20px 16px; text-align:center; cursor:pointer; transition:all .25s; text-decoration:none; color:var(--cor-texto); display:block; }
+        .shortcut-card:hover { transform:translateY(-3px); border-color:var(--cor-admin); box-shadow:var(--sombra-media); }
+        .shortcut-card i { font-size:28px; color:var(--cor-admin); margin-bottom:10px; display:block; }
+        .shortcut-card span { font-size:13px; font-weight:600; }
+
+        /* EMPTY STATE */
+        .empty-state { text-align:center; padding:48px 24px; color:var(--cor-texto-secundario); }
+        .empty-state i { font-size:40px; margin-bottom:12px; opacity:.4; display:block; }
+        .empty-state p { font-size:14px; }
+
+        /* DESPACHO CARD */
+        .despacho-card { border:1px solid var(--cor-borda); border-radius:var(--borda-radius-pequeno); margin-bottom:12px; overflow:hidden; }
+        .despacho-header { padding:14px 16px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; background:rgba(200,146,10,.04); flex-wrap:wrap; gap:8px; }
+        .despacho-header:hover { background:rgba(200,146,10,.08); }
+        .despacho-body { display:none; padding:16px; border-top:1px solid var(--cor-borda); }
+        .despacho-body.open { display:block; }
+        .despacho-meta { font-size:13px; color:var(--cor-texto-secundario); display:flex; gap:16px; flex-wrap:wrap; }
+        .despacho-meta strong { color:var(--cor-texto); }
+
+        /* LOADING */
+        .loading { display:flex; align-items:center; gap:8px; color:var(--cor-texto-secundario); padding:24px; font-size:13px; }
+
+        /* COMPROVANTE ITEM */
+        .comp-item { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; border:1px solid var(--cor-borda); border-radius:8px; margin-bottom:6px; background:rgba(200,146,10,.03); font-size:12px; flex-wrap:wrap; gap:6px; }
+
+        /* MODAL */
+        .modal-ov { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(2px); }
+        .modal-ov.open { display:flex; }
+        .modal-box { background:var(--cor-card); border:1px solid var(--cor-borda); border-radius:var(--borda-radius); padding:28px 24px; width:min(480px,94vw); box-shadow:var(--sombra-forte); position:relative; }
+        .modal-title { font-size:16px; font-weight:700; margin-bottom:18px; display:flex; align-items:center; gap:10px; }
+        .modal-title i { color:var(--cor-admin); }
+        .modal-close { position:absolute; top:14px; right:16px; background:none; border:none; font-size:18px; color:var(--cor-texto-secundario); cursor:pointer; }
+        .modal-close:hover { color:var(--cor-perigo); }
+        .form-group { margin-bottom:14px; }
+        .form-group label { font-size:12px; color:var(--cor-texto-secundario); display:block; margin-bottom:5px; font-weight:600; }
+        .form-control { width:100%; padding:9px 12px; border:1px solid var(--cor-borda); border-radius:9px; background:var(--cor-card); color:var(--cor-texto); font-size:13px; outline:none; transition:border-color .2s; }
+        .form-control:focus { border-color:var(--cor-admin); }
+        .modal-footer { display:flex; justify-content:flex-end; gap:10px; margin-top:18px; }
+        .msg-area { font-size:12px; min-height:16px; margin-top:8px; }
+
+        /* SLA colors */
+        .sla-ok   { color:var(--cor-sucesso); }
+        .sla-warn { color:var(--cor-alerta); }
+        .sla-crit { color:var(--cor-perigo); }
+
+        @media(max-width:600px){
+            .header { flex-direction:column; align-items:flex-start; }
+            .tabs-nav { overflow-x:auto; flex-wrap:nowrap; }
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-left">
+            <div class="header-logo"><i class="fas fa-briefcase"></i></div>
+            <div class="header-title">
+                <h1>Back Office</h1>
+                <p>Bem-vindo(a), {{ nome.split()[0] if nome else usuario }}</p>
+            </div>
+        </div>
+        <div class="header-right">
+            <span class="badge-tipo">
+                {% if tipo == 'backoffice_gerente' %}
+                    <i class="fas fa-user-shield"></i> Gerente
+                {% else %}
+                    <i class="fas fa-user"></i> Agente
+                {% endif %}
+            </span>
+            <button class="btn-hd" onclick="abrirModalSenha()" title="Alterar Senha"><i class="fas fa-key"></i></button>
+            <button class="btn-hd btn-hd-gold" onclick="sair()"><i class="fas fa-right-from-bracket"></i> Sair</button>
+        </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid" id="statsGrid">
+        <div class="stat-card alerta">
+            <div class="stat-header">
+                <span class="stat-title">On Hold</span>
+                <i class="fas fa-clock stat-icon"></i>
+            </div>
+            <div class="stat-value" id="stat-on-hold">—</div>
+            <div class="stat-label">Aguardando confirmação de depósito</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-header">
+                <span class="stat-title">Comprovante em Análise</span>
+                <i class="fas fa-magnifying-glass-dollar stat-icon"></i>
+            </div>
+            <div class="stat-value" id="stat-em-analise">—</div>
+            <div class="stat-label">Aguardando verificação do backoffice</div>
+        </div>
+        <div class="stat-card sucesso">
+            <div class="stat-header">
+                <span class="stat-title">Despachos Abertos</span>
+                <i class="fas fa-paper-plane stat-icon"></i>
+            </div>
+            <div class="stat-value" id="stat-despachos">—</div>
+            <div class="stat-label">Despachos enviados aguardando pagamento</div>
+        </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs-nav">
+        <button class="tab-btn active" onclick="mudarTab('operacoes',this)">
+            <i class="fas fa-gears"></i> Operações
+            <span class="badge" id="badge-operacoes" style="display:none">0</span>
+        </button>
+        <button class="tab-btn" onclick="mudarTab('despachos',this)">
+            <i class="fas fa-paper-plane"></i> Despachos
+            <span class="badge" id="badge-despachos" style="display:none">0</span>
+        </button>
+        <button class="tab-btn" onclick="mudarTab('callcenter',this)">
+            <i class="fas fa-headset"></i> Call Center / Atendimento
+        </button>
+        <button class="tab-btn" onclick="mudarTab('lojas',this)">
+            <i class="fas fa-store"></i> Lojas
+        </button>
+        <button class="tab-btn" onclick="mudarTab('clientes',this)">
+            <i class="fas fa-users"></i> Clientes
+        </button>
+        {% if tipo == 'backoffice_gerente' %}
+        <button class="tab-btn" onclick="mudarTab('config',this)">
+            <i class="fas fa-sliders"></i> Configurações
+        </button>
+        {% endif %}
+    </div>
+
+    <!-- ══ TAB: OPERAÇÕES ══════════════════════════════════════ -->
+    <div class="tab-pane active" id="tab-operacoes">
+
+        <!-- On Hold -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i class="fas fa-clock"></i> Ordens On Hold — Confirmar Depósito</div>
+                <button class="btn btn-ghost" onclick="carregarOnHold()"><i class="fas fa-rotate-right"></i> Atualizar</button>
+            </div>
+            <div id="lista-on-hold">
+                <div class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>
+            </div>
+        </div>
+
+        <!-- Comprovante em Análise -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i class="fas fa-magnifying-glass-dollar"></i> Comprovante em Análise — Verificar Pagamento</div>
+                <button class="btn btn-ghost" onclick="carregarEmAnalise()"><i class="fas fa-rotate-right"></i> Atualizar</button>
+            </div>
+            <div id="lista-em-analise">
+                <div class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ TAB: DESPACHOS ══════════════════════════════════════ -->
+    <div class="tab-pane" id="tab-despachos">
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i class="fas fa-paper-plane"></i> Despachos</div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <select id="filtro-despacho-status" class="form-control" style="width:auto;font-size:12px;" onchange="carregarDespachos()">
+                        <option value="">Todos</option>
+                        <option value="enviado">Enviado</option>
+                        <option value="pago">Pago</option>
+                    </select>
+                    <button class="btn btn-ghost" onclick="carregarDespachos()"><i class="fas fa-rotate-right"></i> Atualizar</button>
+                </div>
+            </div>
+            <div id="lista-despachos">
+                <div class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ TAB: CALL CENTER ════════════════════════════════════ -->
+    <div class="tab-pane" id="tab-callcenter">
+        <div class="section-card">
+            <div class="section-title" style="margin-bottom:20px;"><i class="fas fa-headset"></i> Atendimento & Call Center</div>
+            <p style="font-size:14px;color:var(--cor-texto-secundario);margin-bottom:24px;">
+                Para criar uma nova ordem via telefone, utilize o painel de atendimento. Selecione a forma de pagamento <strong>Transferência</strong> — a ordem ficará com status <em>On Hold</em> até a confirmação do depósito.
+            </p>
+            <div class="shortcut-grid">
+                <a href="/loja/dashboard" class="shortcut-card">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Nova Ordem / Atendimento</span>
+                </a>
+                <a href="/loja/clientes" class="shortcut-card">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Cadastrar / Buscar Cliente</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ TAB: LOJAS ══════════════════════════════════════════ -->
+    <div class="tab-pane" id="tab-lojas">
+        <div class="section-card">
+            <div class="section-title" style="margin-bottom:20px;"><i class="fas fa-store"></i> Lojas</div>
+            <p style="font-size:14px;color:var(--cor-texto-secundario);margin-bottom:24px;">
+                Acesse o painel de lojas para acompanhar ordens, dar suporte aos atendentes e verificar o movimento de cada loja.
+            </p>
+            <div class="shortcut-grid">
+                <a href="/loja/dashboard" class="shortcut-card">
+                    <i class="fas fa-store"></i>
+                    <span>Painel de Atendimento</span>
+                </a>
+                {% if tipo == 'backoffice_gerente' %}
+                <a href="/admin/lojas" class="shortcut-card">
+                    <i class="fas fa-building"></i>
+                    <span>Gerenciar Lojas</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ TAB: CLIENTES ══════════════════════════════════════ -->
+    <div class="tab-pane" id="tab-clientes">
+        <div class="section-card">
+            <div class="section-title" style="margin-bottom:20px;"><i class="fas fa-users"></i> Clientes</div>
+            <p style="font-size:14px;color:var(--cor-texto-secundario);margin-bottom:24px;">
+                Acesse o cadastro de clientes, faça upload de documentos, consulte o histórico e dê suporte às lojas.
+            </p>
+            <div class="shortcut-grid">
+                <a href="/loja/clientes" class="shortcut-card">
+                    <i class="fas fa-users"></i>
+                    <span>Clientes B2C</span>
+                </a>
+                {% if tipo == 'backoffice_gerente' %}
+                <a href="/admin/dashboard" class="shortcut-card">
+                    <i class="fas fa-user-tie"></i>
+                    <span>Clientes B2B (Admin)</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ TAB: CONFIGURAÇÕES (gerente) ══════════════════════ -->
+    {% if tipo == 'backoffice_gerente' %}
+    <div class="tab-pane" id="tab-config">
+        <div class="section-card">
+            <div class="section-title" style="margin-bottom:20px;"><i class="fas fa-sliders"></i> Configurações</div>
+            <div class="shortcut-grid">
+                <a href="/admin/dashboard" class="shortcut-card">
+                    <i class="fas fa-gauge-high"></i>
+                    <span>Painel Admin</span>
+                </a>
+                <a href="/admin/despachos" class="shortcut-card">
+                    <i class="fas fa-paper-plane"></i>
+                    <span>Gerenciar Despachos</span>
+                </a>
+                <a href="/admin/lojas" class="shortcut-card">
+                    <i class="fas fa-store"></i>
+                    <span>Gerenciar Lojas</span>
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div><!-- /app-container -->
+
+<!-- ══ MODAL: ALTERAR SENHA ══════════════════════════════════════ -->
+<div class="modal-ov" id="modalAlterarSenha" onclick="if(event.target===this)fecharModalSenha()">
+    <div class="modal-box">
+        <button class="modal-close" onclick="fecharModalSenha()">&times;</button>
+        <div class="modal-title"><i class="fas fa-key"></i> Alterar Senha</div>
+        <div class="form-group">
+            <label>Senha Atual</label>
+            <input type="password" id="senhaAtual" class="form-control" placeholder="••••••••">
+        </div>
+        <div class="form-group">
+            <label>Nova Senha</label>
+            <input type="password" id="novaSenha" class="form-control" placeholder="••••••••">
+        </div>
+        <div class="form-group">
+            <label>Confirmar Nova Senha</label>
+            <input type="password" id="confirmarSenha" class="form-control" placeholder="••••••••">
+        </div>
+        <div class="msg-area" id="msgSenha"></div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="fecharModalSenha()">Cancelar</button>
+            <button class="btn btn-primary" onclick="salvarSenha()"><i class="fas fa-save"></i> Salvar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ MODAL: VERIFICAR PAGAMENTO ════════════════════════════════ -->
+<div class="modal-ov" id="modalVerificar" onclick="if(event.target===this)fecharModalVerificar()">
+    <div class="modal-box">
+        <button class="modal-close" onclick="fecharModalVerificar()">&times;</button>
+        <div class="modal-title"><i class="fas fa-check-circle" style="color:var(--cor-sucesso)"></i> Confirmar Pagamento</div>
+        <p style="font-size:13px;color:var(--cor-texto-secundario);margin-bottom:16px;" id="verificar-desc">Confirma que o comprovante bate com a ordem?</p>
+        <div class="form-group">
+            <label>Observações (opcional)</label>
+            <input type="text" id="verificar-obs" class="form-control" placeholder="Ex: comprovante verificado, valores conferem">
+        </div>
+        <div class="msg-area" id="verificar-msg"></div>
+        <div class="modal-footer">
+            <button class="btn btn-danger" onclick="rejeitarComprovante()" id="btn-rejeitar"><i class="fas fa-times"></i> Rejeitar</button>
+            <button class="btn btn-success" onclick="confirmarVerificacao()" id="btn-confirmar"><i class="fas fa-check"></i> Confirmar Pagamento</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ MODAL: REJEITAR COMPROVANTE ════════════════════════════ -->
+<div class="modal-ov" id="modalRejeitar" onclick="if(event.target===this)fecharModalRejeitar()">
+    <div class="modal-box">
+        <button class="modal-close" onclick="fecharModalRejeitar()">&times;</button>
+        <div class="modal-title"><i class="fas fa-times-circle" style="color:var(--cor-perigo)"></i> Rejeitar Comprovante</div>
+        <div class="form-group">
+            <label>Motivo da rejeição <span style="color:var(--cor-perigo)">*</span></label>
+            <input type="text" id="rejeitar-motivo" class="form-control" placeholder="Ex: valor divergente, comprovante ilegível...">
+        </div>
+        <div class="msg-area" id="rejeitar-msg"></div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="fecharModalRejeitar()">Cancelar</button>
+            <button class="btn btn-danger" onclick="confirmarRejeicao()"><i class="fas fa-times"></i> Rejeitar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const _usuario = '{{ usuario }}';
+
+    // ── TABS ──────────────────────────────────────────────────
+    function mudarTab(id, btn) {
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        const pane = document.getElementById('tab-' + id);
+        if (pane) pane.classList.add('active');
+        if (btn) btn.classList.add('active');
+        if (id === 'operacoes') { carregarOnHold(); carregarEmAnalise(); }
+        if (id === 'despachos') carregarDespachos();
+    }
+
+    // ── UTILS ─────────────────────────────────────────────────
+    function fmtData(iso) {
+        if (!iso) return '—';
+        const d = new Date(iso);
+        return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+    }
+    function fmtValor(v, moeda) {
+        return parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' ' + (moeda||'');
+    }
+    function slaClass(iso) {
+        if (!iso) return '';
+        const h = (Date.now() - new Date(iso)) / 3600000;
+        if (h < 24) return 'sla-ok';
+        if (h < 48) return 'sla-warn';
+        return 'sla-crit';
+    }
+    function slaLabel(iso) {
+        if (!iso) return '';
+        const h = Math.floor((Date.now() - new Date(iso)) / 3600000);
+        if (h < 1) return '< 1h';
+        if (h < 24) return h + 'h';
+        return Math.floor(h/24) + 'd ' + (h%24) + 'h';
+    }
+    function badgeStatus(status) {
+        const map = {
+            'on_hold':'badge-on-hold','liberada':'badge-liberada',
+            'despachada':'badge-despachada','comprovante_em_analise':'badge-em-analise',
+            'paga':'badge-paga','cancelada':'badge-cancelada','enviado':'badge-enviado','pago':'badge-paga'
+        };
+        const labels = {
+            'on_hold':'On Hold','liberada':'Liberada','despachada':'Despachada',
+            'comprovante_em_analise':'Comp. em Análise','paga':'Paga',
+            'cancelada':'Cancelada','enviado':'Enviado','pago':'Pago'
+        };
+        return `<span class="badge-status ${map[status]||''}">${labels[status]||status}</span>`;
+    }
+
+    // ── RESUMO ────────────────────────────────────────────────
+    async function carregarResumo() {
+        try {
+            const r = await fetch('/api/backoffice/resumo');
+            const d = await r.json();
+            if (!d.success) return;
+            document.getElementById('stat-on-hold').textContent   = d.on_hold;
+            document.getElementById('stat-em-analise').textContent = d.em_analise;
+            document.getElementById('stat-despachos').textContent  = d.despachos_abertos;
+            const total = d.on_hold + d.em_analise;
+            const bOp = document.getElementById('badge-operacoes');
+            bOp.textContent = total; bOp.style.display = total ? '' : 'none';
+            const bDp = document.getElementById('badge-despachos');
+            bDp.textContent = d.despachos_abertos; bDp.style.display = d.despachos_abertos ? '' : 'none';
+        } catch(e) {}
+    }
+
+    // ── ON HOLD ───────────────────────────────────────────────
+    async function carregarOnHold() {
+        const el = document.getElementById('lista-on-hold');
+        el.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
+        try {
+            const r = await fetch('/api/backoffice/ordens/on-hold');
+            const d = await r.json();
+            if (!d.success || !d.ordens.length) {
+                el.innerHTML = '<div class="empty-state"><i class="fas fa-check-circle"></i><p>Nenhuma ordem on hold.</p></div>';
+                return;
+            }
+            let html = `<table class="data-table"><thead><tr>
+                <th>Data</th><th>Cliente</th><th>Valor</th><th>Loja</th><th>Tempo</th><th>Ações</th>
+            </tr></thead><tbody>`;
+            d.ordens.forEach(o => {
+                const cls = slaClass(o.created_at);
+                html += `<tr>
+                    <td>${fmtData(o.created_at)}</td>
+                    <td><strong>${o.cliente_nome||'—'}</strong><br><span style="font-size:11px;color:var(--cor-texto-secundario)">${o.cliente_doc||''}</span></td>
+                    <td>${fmtValor(o.valor_entrada, o.moeda_entrada)}</td>
+                    <td>${o.loja||'—'}</td>
+                    <td><span class="${cls}" title="${fmtData(o.created_at)}">${slaLabel(o.created_at)}</span></td>
+                    <td><button class="btn btn-success" onclick="confirmarDeposito('${o.id}','${(o.cliente_nome||'').replace(/'/g,"\\'")}')">
+                        <i class="fas fa-check"></i> Confirmar Depósito
+                    </button></td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            el.innerHTML = html;
+        } catch(e) {
+            el.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Erro ao carregar.</p></div>';
+        }
+    }
+
+    async function confirmarDeposito(ordemId, clienteNome) {
+        if (!confirm(`Confirmar recebimento do depósito da ordem de ${clienteNome}?`)) return;
+        try {
+            const r = await fetch(`/api/backoffice/ordens/${ordemId}/confirmar-deposito`, {method:'POST'});
+            const d = await r.json();
+            if (d.success) { carregarOnHold(); carregarResumo(); }
+            else alert(d.message);
+        } catch(e) { alert('Erro de conexão.'); }
+    }
+
+    // ── COMPROVANTE EM ANÁLISE ────────────────────────────────
+    async function carregarEmAnalise() {
+        const el = document.getElementById('lista-em-analise');
+        el.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
+        try {
+            const r = await fetch('/api/backoffice/ordens/comprovante-em-analise');
+            const d = await r.json();
+            if (!d.success || !d.ordens.length) {
+                el.innerHTML = '<div class="empty-state"><i class="fas fa-check-circle"></i><p>Nenhum comprovante aguardando análise.</p></div>';
+                return;
+            }
+            let html = '';
+            d.ordens.forEach(o => {
+                const comps = o.comprovantes || [];
+                let compsHtml = comps.length
+                    ? comps.map(c => `<div class="comp-item">
+                        <span><i class="fas fa-file"></i> ${c.arquivo_nome||'arquivo'}</span>
+                        <span style="color:var(--cor-texto-secundario);font-size:11px;">${fmtData(c.criado_em)}</span>
+                        ${c.signed_url ? `<a href="${c.signed_url}" target="_blank" class="btn btn-ghost" style="padding:4px 10px;font-size:11px;"><i class="fas fa-eye"></i> Ver</a>` : ''}
+                    </div>`).join('')
+                    : '<p style="font-size:12px;color:var(--cor-texto-secundario);">Nenhum comprovante encontrado.</p>';
+                html += `<div class="section-card" style="margin-bottom:12px;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+                        <div>
+                            <div style="font-weight:700;font-size:14px;">${o.cliente_nome||'—'}</div>
+                            <div style="font-size:12px;color:var(--cor-texto-secundario);">${o.cliente_doc||''} · ${fmtValor(o.valor_entrada, o.moeda_entrada)} → ${fmtValor(o.valor_saida, o.moeda_saida)}</div>
+                            <div style="font-size:12px;color:var(--cor-texto-secundario);margin-top:3px;">Beneficiário: ${o.beneficiario_nome||'—'} · Loja: ${o.loja||'—'}</div>
+                        </div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                            <span class="badge-status badge-em-analise"><i class="fas fa-magnifying-glass-dollar"></i> Em Análise</span>
+                            <span class="${slaClass(o.updated_at)}" style="font-size:12px;">${slaLabel(o.updated_at)} aguardando</span>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:12px;">${compsHtml}</div>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;">
+                        <button class="btn btn-danger" onclick="abrirRejeitar('${o.id}')"><i class="fas fa-times"></i> Rejeitar</button>
+                        <button class="btn btn-success" onclick="abrirVerificar('${o.id}','${(o.cliente_nome||'').replace(/'/g,"\\'")}','${fmtValor(o.valor_entrada, o.moeda_entrada)}')">
+                            <i class="fas fa-check"></i> Confirmar Pagamento
+                        </button>
+                    </div>
+                </div>`;
+            });
+            el.innerHTML = html;
+        } catch(e) {
+            el.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Erro ao carregar.</p></div>';
+        }
+    }
+
+    let _ordemVerificarId = null;
+    function abrirVerificar(ordemId, nome, valor) {
+        _ordemVerificarId = ordemId;
+        document.getElementById('verificar-desc').innerHTML = `Confirma que o comprovante de <strong>${nome}</strong> bate com a ordem de <strong>${valor}</strong>?`;
+        document.getElementById('verificar-obs').value = '';
+        document.getElementById('verificar-msg').innerHTML = '';
+        document.getElementById('modalVerificar').classList.add('open');
+    }
+    function fecharModalVerificar() { document.getElementById('modalVerificar').classList.remove('open'); }
+
+    async function confirmarVerificacao() {
+        const obs = document.getElementById('verificar-obs').value;
+        const msg = document.getElementById('verificar-msg');
+        msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+        try {
+            const r = await fetch(`/api/backoffice/ordens/${_ordemVerificarId}/verificar-pagamento`, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({observacoes: obs})
+            });
+            const d = await r.json();
+            if (d.success) {
+                fecharModalVerificar();
+                carregarEmAnalise();
+                carregarResumo();
+            } else { msg.innerHTML = `<span style="color:var(--cor-perigo)">${d.message}</span>`; }
+        } catch(e) { msg.innerHTML = '<span style="color:var(--cor-perigo)">Erro de conexão.</span>'; }
+    }
+
+    let _ordemRejeitarId = null;
+    function abrirRejeitar(ordemId) {
+        _ordemRejeitarId = ordemId;
+        document.getElementById('rejeitar-motivo').value = '';
+        document.getElementById('rejeitar-msg').innerHTML = '';
+        document.getElementById('modalRejeitar').classList.add('open');
+    }
+    function fecharModalRejeitar() { document.getElementById('modalRejeitar').classList.remove('open'); }
+
+    async function confirmarRejeicao() {
+        const motivo = document.getElementById('rejeitar-motivo').value.trim();
+        const msg = document.getElementById('rejeitar-msg');
+        if (!motivo) { msg.innerHTML = '<span style="color:var(--cor-perigo)">Informe o motivo.</span>'; return; }
+        msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+        try {
+            const r = await fetch(`/api/backoffice/ordens/${_ordemRejeitarId}/rejeitar-comprovante`, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({motivo})
+            });
+            const d = await r.json();
+            if (d.success) {
+                fecharModalRejeitar();
+                carregarEmAnalise();
+                carregarResumo();
+            } else { msg.innerHTML = `<span style="color:var(--cor-perigo)">${d.message}</span>`; }
+        } catch(e) { msg.innerHTML = '<span style="color:var(--cor-perigo)">Erro de conexão.</span>'; }
+    }
+
+    // ── DESPACHOS ─────────────────────────────────────────────
+    async function carregarDespachos() {
+        const el = document.getElementById('lista-despachos');
+        const filtro = document.getElementById('filtro-despacho-status').value;
+        el.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
+        try {
+            const r = await fetch('/api/backoffice/despachos' + (filtro ? `?status=${filtro}` : ''));
+            const d = await r.json();
+            if (!d.success || !d.despachos.length) {
+                el.innerHTML = '<div class="empty-state"><i class="fas fa-paper-plane"></i><p>Nenhum despacho encontrado.</p></div>';
+                return;
+            }
+            let html = '';
+            d.despachos.forEach(dep => {
+                const ordens = dep.ordens || [];
+                const ordensHtml = ordens.length
+                    ? `<table class="data-table" style="margin-top:8px;"><thead><tr>
+                        <th>Cliente</th><th>Valor</th><th>Moeda</th><th>Status</th>
+                       </tr></thead><tbody>` +
+                      ordens.map(o => `<tr>
+                        <td>${o.cliente_nome||'—'}</td>
+                        <td>${fmtValor(o.valor_entrada, o.moeda_entrada)}</td>
+                        <td>${o.moeda_saida||'—'}</td>
+                        <td>${badgeStatus(o.status)}</td>
+                      </tr>`).join('') + '</tbody></table>'
+                    : '<p style="font-size:12px;color:var(--cor-texto-secundario);margin-top:8px;">Sem ordens vinculadas.</p>';
+
+                html += `<div class="despacho-card">
+                    <div class="despacho-header" onclick="toggleDespacho('dep-${dep.id}')">
+                        <div>
+                            <strong>Despacho #${dep.numero}</strong>
+                            <span style="margin-left:12px;font-size:12px;color:var(--cor-texto-secundario);">
+                                ${fmtValor(dep.valor_total, dep.moeda_saida)} · ${dep.qtd_ordens} ordem(ns) · Parceiro: ${dep.parceiro_pagador||'—'}
+                            </span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            ${badgeStatus(dep.status)}
+                            <span style="font-size:12px;color:var(--cor-texto-secundario);">${fmtData(dep.created_at)}</span>
+                            <i class="fas fa-chevron-down" style="font-size:11px;color:var(--cor-texto-secundario);"></i>
+                        </div>
+                    </div>
+                    <div class="despacho-body" id="dep-${dep.id}">
+                        <div class="despacho-meta" style="margin-bottom:10px;">
+                            <span>Criado por: <strong>${dep.criado_por||'—'}</strong></span>
+                            ${dep.observacoes ? `<span>Obs: <strong>${dep.observacoes}</strong></span>` : ''}
+                        </div>
+                        ${ordensHtml}
+                    </div>
+                </div>`;
+            });
+            el.innerHTML = html;
+        } catch(e) {
+            el.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Erro ao carregar.</p></div>';
+        }
+    }
+
+    function toggleDespacho(id) {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('open');
+    }
+
+    // ── ALTERAR SENHA ─────────────────────────────────────────
+    function abrirModalSenha() {
+        document.getElementById('senhaAtual').value = '';
+        document.getElementById('novaSenha').value = '';
+        document.getElementById('confirmarSenha').value = '';
+        document.getElementById('msgSenha').innerHTML = '';
+        document.getElementById('modalAlterarSenha').classList.add('open');
+    }
+    function fecharModalSenha() { document.getElementById('modalAlterarSenha').classList.remove('open'); }
+
+    async function salvarSenha() {
+        const atual = document.getElementById('senhaAtual').value;
+        const nova  = document.getElementById('novaSenha').value;
+        const conf  = document.getElementById('confirmarSenha').value;
+        const msg   = document.getElementById('msgSenha');
+        msg.style.color = 'var(--cor-perigo)';
+        if (!atual || !nova || !conf) { msg.innerHTML = 'Preencha todos os campos.'; return; }
+        if (nova !== conf) { msg.innerHTML = 'As senhas não coincidem.'; return; }
+        if (nova.length < 8) { msg.innerHTML = 'A nova senha deve ter ao menos 8 caracteres.'; return; }
+        msg.style.color = 'var(--cor-texto-secundario)';
+        msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+        try {
+            const r = await fetch('/api/client/change-credentials', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({current_password: atual, new_password: nova})
+            });
+            const d = await r.json();
+            if (d.success) {
+                msg.style.color = 'var(--cor-sucesso)';
+                msg.innerHTML = '<i class="fas fa-check"></i> Senha alterada com sucesso!';
+                setTimeout(fecharModalSenha, 1500);
+            } else {
+                msg.style.color = 'var(--cor-perigo)';
+                msg.innerHTML = d.message || 'Erro ao alterar senha.';
+            }
+        } catch(e) {
+            msg.style.color = 'var(--cor-perigo)';
+            msg.innerHTML = 'Erro de conexão.';
+        }
+    }
+
+    // ── LOGOUT ────────────────────────────────────────────────
+    async function sair() {
+        try { await fetch('/api/logout', {method:'POST'}); } catch(e) {}
+        window.location.href = '/login';
+    }
+
+    // ── INIT ──────────────────────────────────────────────────
+    carregarResumo();
+    carregarOnHold();
+    carregarEmAnalise();
+    setInterval(carregarResumo, 60000);
+</script>
+</body>
+</html>
