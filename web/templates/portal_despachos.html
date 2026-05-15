@@ -40,6 +40,7 @@ nav.sb-nav{flex:1;padding:10px 0;overflow-y:auto;}
 .nav-item:hover{color:var(--text);background:var(--gold-lt);}
 .nav-item.active{color:var(--gold);background:var(--gold-lt);font-weight:600;}
 .nav-item.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gold);border-radius:0 2px 2px 0;}
+.nav-badge{display:inline-flex;align-items:center;justify-content:center;background:#e01b24;color:#fff;font-size:10px;font-weight:700;min-width:18px;height:18px;border-radius:9px;padding:0 5px;margin-left:auto;flex-shrink:0;}
 .sb-footer{padding:12px 18px;border-top:1px solid var(--border);}
 .sb-user-row{display:flex;align-items:center;gap:10px;}
 .sb-avatar{width:30px;height:30px;border-radius:50%;background:var(--gold-md);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--gold);flex-shrink:0;}
@@ -76,13 +77,25 @@ nav.sb-nav{flex:1;padding:10px 0;overflow-y:auto;}
 .badge-despachada{background:rgba(100,100,200,.12);color:#5555cc;}
 .badge-em-analise{background:rgba(150,80,200,.12);color:#8832cc;}
 .badge-paga-ord{background:rgba(46,194,126,.12);color:#2ec27e;}
+.badge-pendencia{background:rgba(224,27,36,.12);color:#e01b24;}
 
-/* TABLE */
-.ord-table{width:100%;border-collapse:collapse;font-size:13px;}
-.ord-table th{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;font-weight:700;}
-.ord-table td{padding:11px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
-.ord-table tr:last-child td{border-bottom:none;}
-.ord-table tr:hover td{background:var(--gold-lt);}
+/* ORDER CARD */
+.ord-card{border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;background:var(--bg);}
+.ord-card:last-child{margin-bottom:0;}
+.ord-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px;}
+.ord-client{font-size:12px;font-weight:600;color:var(--text2);}
+.ord-body{display:flex;gap:12px;flex-wrap:wrap;}
+.ord-valor-box{flex:0 0 auto;min-width:140px;background:var(--gold-lt);border:1px solid var(--gold-md);border-radius:10px;padding:12px 16px;text-align:center;}
+.ord-valor-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);font-weight:700;margin-bottom:4px;}
+.ord-valor-num{font-size:26px;font-weight:800;color:var(--gold);line-height:1.1;}
+.ord-valor-moeda{font-size:13px;font-weight:700;color:var(--gold);margin-top:2px;}
+.ord-banco-box{flex:1;min-width:200px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;}
+.ord-banco-title{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);font-weight:700;margin-bottom:8px;}
+.ord-banco-row{display:flex;gap:6px;font-size:12px;margin-bottom:4px;align-items:baseline;}
+.ord-banco-row:last-child{margin-bottom:0;}
+.ord-banco-key{color:var(--text3);min-width:60px;flex-shrink:0;}
+.ord-banco-val{color:var(--text);font-weight:600;word-break:break-all;}
+.ord-footer{margin-top:12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
 
 /* UPLOAD SECTION */
 .comp-list{margin-bottom:12px;}
@@ -104,6 +117,9 @@ nav.sb-nav{flex:1;padding:10px 0;overflow-y:auto;}
 .btn-success:hover{background:rgba(46,194,126,.25);}
 .btn-sm{padding:5px 10px;font-size:11px;}
 .msg{font-size:12px;min-height:16px;margin-top:6px;}
+.comp-uploaded{margin-top:6px;display:flex;flex-wrap:wrap;gap:5px;}
+.comp-chip{display:inline-flex;align-items:center;gap:5px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:3px 9px;font-size:11px;color:var(--text2);text-decoration:none;white-space:nowrap;}
+.comp-chip:hover{border-color:var(--gold);color:var(--gold);}
 .empty{text-align:center;padding:40px 16px;color:var(--text2);}
 .empty i{font-size:36px;margin-bottom:10px;opacity:.3;display:block;}
 .empty p{font-size:13px;}
@@ -144,7 +160,7 @@ nav.sb-nav{flex:1;padding:10px 0;overflow-y:auto;}
         <a class="nav-item" href="/meus-beneficiarios"><i class="fas fa-users"></i> {% if is_pt %}Beneficiários{% else %}Beneficiaries{% endif %}</a>
         <a class="nav-item" href="/meu_extrato"><i class="fas fa-clock-rotate-left"></i> {% if is_pt %}Extrato{% else %}Statements{% endif %}</a>
         <a class="nav-item" href="/chamados"><i class="fas fa-comments"></i> {% if is_pt %}Suporte{% else %}Support{% endif %}</a>
-        <a class="nav-item active" href="/portal/despachos"><i class="fas fa-paper-plane"></i> {% if is_pt %}Despachos{% else %}Dispatches{% endif %}</a>
+        <a class="nav-item active" href="/portal/despachos"><i class="fas fa-paper-plane"></i> {% if is_pt %}Despachos{% else %}Dispatches{% endif %}<span class="nav-badge" id="badge-despachos" style="display:none;"></span></a>
     </nav>
     <div class="sb-footer">
         <div class="sb-user-row">
@@ -197,7 +213,7 @@ nav.sb-nav{flex:1;padding:10px 0;overflow-y:auto;}
         </div>
         <p id="upload-desc" style="font-size:13px;color:var(--text2);margin-bottom:14px;"></p>
         <div class="upload-area" id="uploadArea">
-            <input type="file" id="uploadFile" accept="image/*,.pdf" onchange="previewArquivo(this)">
+            <input type="file" id="uploadFile" accept="image/*,.pdf" multiple onchange="previewArquivo(this)">
             <i class="fas fa-cloud-upload-alt"></i>
             <p id="uploadAreaText">{% if is_pt %}Clique ou arraste o arquivo aqui{% else %}Click or drag file here{% endif %}</p>
             <small>PDF, JPG, PNG — max 10MB</small>
@@ -223,16 +239,20 @@ function fmtData(iso){ if(!iso) return '—'; const d=new Date(iso); return d.to
 
 function badgeOrdem(status){
     const map = {
-        'despachada':     ['badge-despachada', _isPt?'Despachada':'Dispatched'],
-        'comprovante_em_analise': ['badge-em-analise', _isPt?'Em Análise':'Under Review'],
-        'paga':           ['badge-paga-ord', _isPt?'Paga':'Paid'],
-        'liberada':       ['', _isPt?'Liberada':'Released'],
+        'despachada':             ['badge-despachada', _isPt?'Despachada':'Dispatched'],
+        'comprovante_em_analise': ['badge-em-analise',  _isPt?'Em Análise':'Under Review'],
+        'paga':                   ['badge-paga-ord',    _isPt?'Paga':'Paid'],
+        'pendencia':              ['badge-pendencia',   _isPt?'Pendência':'Dispute'],
+        'liberada':               ['',                  _isPt?'Liberada':'Released'],
     };
     const [cls, lbl] = map[status] || ['', status];
     return `<span class="badge ${cls}">${lbl}</span>`;
 }
 
 async function carregarDespachos(){
+    const abertos = new Set(
+        Array.from(document.querySelectorAll('.card-body.open')).map(el => el.id)
+    );
     const el = document.getElementById('lista-despachos');
     try {
         const r = await fetch('/api/portal/despachos');
@@ -241,6 +261,9 @@ async function carregarDespachos(){
             el.innerHTML = `<div class="empty"><i class="fas fa-paper-plane"></i><p>${_isPt?'Nenhum despacho encontrado.':'No dispatches found.'}</p></div>`;
             return;
         }
+        const pendentes = d.despachos.filter(dep => dep.status !== 'pago').length;
+        const badge = document.getElementById('badge-despachos');
+        if (badge) { if (pendentes > 0) { badge.textContent = pendentes; badge.style.display = ''; } else badge.style.display = 'none'; }
         let html = '';
         d.despachos.forEach(dep => {
             const ordens = dep.ordens || [];
@@ -248,23 +271,53 @@ async function carregarDespachos(){
                 ? '<span class="badge badge-pago"><i class="fas fa-check-circle"></i> ' + (_isPt?'Pago':'Paid') + '</span>'
                 : '<span class="badge badge-enviado"><i class="fas fa-paper-plane"></i> ' + (_isPt?'Enviado':'Sent') + '</span>';
 
-            let ordensRows = ordens.map(o => {
-                const podeUpload = o.status === 'despachada' || o.status === 'comprovante_em_analise';
-                const podeSinalizar = o.status === 'despachada' && o.tem_comprovante;
-                return `<tr>
-                    <td>
-                        <div style="font-weight:600;">${o.cliente_nome||'—'}</div>
-                        <div style="font-size:11px;color:var(--text2);">${_isPt?'Beneficiário':'Beneficiary'}: ${o.beneficiario_nome||'—'}</div>
-                    </td>
-                    <td>${fmtValor(o.valor_entrada, o.moeda_entrada)}</td>
-                    <td>${fmtValor(o.valor_saida, o.moeda_saida)}</td>
-                    <td>${badgeOrdem(o.status)}</td>
-                    <td style="white-space:nowrap;">
-                        ${podeUpload ? `<button class="btn btn-outline btn-sm" onclick="abrirUpload('${o.id}','${(o.cliente_nome||'').replace(/'/g,"\\'")}')"><i class="fas fa-upload"></i> ${_isPt?'Comprovante':'Upload'}</button>` : ''}
-                        ${podeSinalizar ? `<button class="btn btn-success btn-sm" style="margin-left:4px;" onclick="sinalizarPaga('${o.id}','${(o.cliente_nome||'').replace(/'/g,"\\'")}')"><i class="fas fa-check"></i> ${_isPt?'Sinalizar Paga':'Mark Paid'}</button>` : ''}
+            function bancoDados(o) {
+                const rows = [];
+                if (o.beneficiario_nome)   rows.push([_isPt?'Beneficiário':'Beneficiary', o.beneficiario_nome]);
+                if (o.beneficiario_banco)  rows.push([_isPt?'Banco':'Bank',               o.beneficiario_banco]);
+                if (o.beneficiario_agencia)rows.push([_isPt?'Agência':'Branch',            o.beneficiario_agencia]);
+                if (o.beneficiario_conta)  rows.push([_isPt?'Conta':'Account',             o.beneficiario_conta]);
+                if (o.beneficiario_pix)    rows.push(['Pix',                               o.beneficiario_pix]);
+                if (o.benef_iban)          rows.push(['IBAN',                              o.benef_iban]);
+                if (o.benef_swift)         rows.push(['SWIFT/BIC',                         o.benef_swift]);
+                return rows.map(([k,v])=>`<div class="ord-banco-row"><span class="ord-banco-key">${k}</span><span class="ord-banco-val">${v}</span></div>`).join('');
+            }
+
+            const ordensCards = ordens.map(o => {
+                const podeUpload    = ['despachada','comprovante_em_analise','pendencia'].includes(o.status);
+                const podeSinalizar = ['despachada','pendencia'].includes(o.status) && o.tem_comprovante;
+                const comps = o.comprovantes || [];
+                const chipsHtml = comps.length
+                    ? `<div class="comp-uploaded">${comps.map((c,i)=>`<a class="comp-chip" href="/api/portal/comprovantes/view?path=${encodeURIComponent(c.arquivo_url)}" target="_blank"><i class="fas fa-file"></i> ${_isPt?'Comprovante':'Proof'} ${i+1}</a>`).join('')}</div>`
+                    : '';
+                const nomeEsc = (o.cliente_nome||'').replace(/'/g,"\\'");
+                const motivoPendencia = o.status === 'pendencia' && o.observacoes
+                    ? o.observacoes.match(/\[PENDÊNCIA:\s*(.+?)\]/)?.[1] || '' : '';
+                return `<div class="ord-card" style="${o.status==='pendencia'?'border-color:rgba(224,27,36,.35);background:rgba(224,27,36,.04);':''}">
+                    <div class="ord-card-top">
+                        <span class="ord-client"><i class="fas fa-user" style="margin-right:5px;"></i>${o.cliente_nome||'—'}</span>
+                        ${badgeOrdem(o.status)}
+                    </div>
+                    ${motivoPendencia ? `<div style="font-size:12px;color:#e01b24;margin-bottom:10px;"><i class="fas fa-triangle-exclamation" style="margin-right:5px;"></i><strong>${_isPt?'Pendência:':'Dispute:'}</strong> ${motivoPendencia}</div>` : ''}
+                    <div class="ord-body">
+                        <div class="ord-valor-box">
+                            <div class="ord-valor-label">${_isPt?'Valor a Pagar':'Amount to Pay'}</div>
+                            <div class="ord-valor-num">${parseFloat(o.valor_saida||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+                            <div class="ord-valor-moeda">${o.moeda_saida||''}</div>
+                        </div>
+                        <div class="ord-banco-box">
+                            <div class="ord-banco-title"><i class="fas fa-landmark" style="margin-right:5px;"></i>${_isPt?'Dados para Pagamento':'Payment Details'}</div>
+                            ${bancoDados(o) || `<span style="font-size:12px;color:var(--text3);">${_isPt?'Sem dados bancários.':'No bank details.'}</span>`}
+                        </div>
+                    </div>
+                    <div class="ord-footer">
+                        ${chipsHtml}
+                        ${podeUpload ? `<button class="btn btn-outline btn-sm" onclick="abrirUpload('${o.id}','${nomeEsc}')"><i class="fas fa-upload"></i> ${_isPt?'Adicionar Comprovante':'Add Proof'}</button>` : ''}
+                        ${podeSinalizar ? `<button class="btn btn-success btn-sm" onclick="sinalizarPaga('${o.id}','${nomeEsc}')"><i class="fas fa-check"></i> ${_isPt?'Sinalizar Paga':'Mark Paid'}</button>` : ''}
                         ${o.status==='comprovante_em_analise' ? `<span style="font-size:11px;color:var(--text2);"><i class="fas fa-clock"></i> ${_isPt?'Aguardando verificação':'Awaiting verification'}</span>` : ''}
-                    </td>
-                </tr>`;
+                        ${o.status==='pendencia' ? `<span style="font-size:11px;color:#e01b24;"><i class="fas fa-triangle-exclamation"></i> ${_isPt?'Envie novo comprovante e sinalize como paga':'Upload new proof and mark as paid'}</span>` : ''}
+                    </div>
+                </div>`;
             }).join('');
 
             html += `<div class="card">
@@ -281,20 +334,12 @@ async function carregarDespachos(){
                 </div>
                 <div class="card-body" id="dep-${dep.id}">
                     ${dep.observacoes ? `<p style="font-size:12px;color:var(--text2);margin-bottom:12px;"><i class="fas fa-info-circle"></i> ${dep.observacoes}</p>` : ''}
-                    ${ordens.length
-                        ? `<div style="overflow-x:auto;"><table class="ord-table"><thead><tr>
-                            <th>${_isPt?'Cliente':'Client'}</th>
-                            <th>${_isPt?'Valor Enviado':'Amount Sent'}</th>
-                            <th>${_isPt?'Valor Recebido':'Amount Received'}</th>
-                            <th>Status</th>
-                            <th>${_isPt?'Ações':'Actions'}</th>
-                           </tr></thead><tbody>${ordensRows}</tbody></table></div>`
-                        : `<p style="font-size:12px;color:var(--text2);">${_isPt?'Sem ordens vinculadas.':'No orders linked.'}</p>`
-                    }
+                    ${ordens.length ? ordensCards : `<p style="font-size:12px;color:var(--text2);">${_isPt?'Sem ordens vinculadas.':'No orders linked.'}</p>`}
                 </div>
             </div>`;
         });
         el.innerHTML = html;
+        abertos.forEach(id => { const c = document.getElementById(id); if(c) c.classList.add('open'); });
     } catch(e) {
         el.innerHTML = `<div class="empty"><i class="fas fa-exclamation-triangle"></i><p>${_isPt?'Erro ao carregar despachos.':'Error loading dispatches.'}</p></div>`;
     }
@@ -313,34 +358,37 @@ function abrirUpload(ordemId, clienteNome){
 function fecharUpload(){ document.getElementById('modalUpload').style.display = 'none'; }
 
 function previewArquivo(input){
-    if (input.files && input.files[0]) {
-        document.getElementById('uploadAreaText').textContent = input.files[0].name;
+    if (input.files && input.files.length) {
+        document.getElementById('uploadAreaText').textContent =
+            input.files.length === 1 ? input.files[0].name : `${input.files.length} ${_isPt?'arquivos selecionados':'files selected'}`;
     }
 }
 
 async function enviarComprovante(){
-    const file = document.getElementById('uploadFile').files[0];
-    const msg  = document.getElementById('upload-msg');
-    if (!file) { msg.style.color='#e01b24'; msg.textContent = _isPt?'Selecione um arquivo.':'Select a file.'; return; }
-    if (file.size > 10 * 1024 * 1024) { msg.style.color='#e01b24'; msg.textContent = _isPt?'Arquivo muito grande (max 10MB).':'File too large (max 10MB).'; return; }
+    const files = Array.from(document.getElementById('uploadFile').files);
+    const msg   = document.getElementById('upload-msg');
+    if (!files.length) { msg.style.color='#e01b24'; msg.textContent = _isPt?'Selecione ao menos um arquivo.':'Select at least one file.'; return; }
+    const grandes = files.filter(f => f.size > 10 * 1024 * 1024);
+    if (grandes.length) { msg.style.color='#e01b24'; msg.textContent = (_isPt?'Arquivo muito grande (max 10MB): ':'File too large (max 10MB): ') + grandes[0].name; return; }
     msg.style.color='var(--text2)';
-    msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + (_isPt?'Enviando...':'Uploading...');
-    const fd = new FormData();
-    fd.append('arquivo', file);
-    try {
-        const r = await fetch(`/api/portal/ordens/${_uploadOrdemId}/comprovantes`, {method:'POST', body:fd});
-        const d = await r.json();
-        if (d.success) {
-            msg.style.color='#2ec27e';
-            msg.innerHTML = '<i class="fas fa-check"></i> ' + (d.message || (_isPt?'Enviado!':'Uploaded!'));
-            setTimeout(() => { fecharUpload(); carregarDespachos(); }, 1200);
-        } else {
-            msg.style.color='#e01b24';
-            msg.textContent = d.message || (_isPt?'Erro ao enviar.':'Upload error.');
-        }
-    } catch(e) {
+    let ok = 0, fail = 0;
+    for (let i = 0; i < files.length; i++) {
+        msg.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${_isPt?'Enviando':'Uploading'} ${i+1}/${files.length}…`;
+        const fd = new FormData();
+        fd.append('arquivo', files[i]);
+        try {
+            const r = await fetch(`/api/portal/ordens/${_uploadOrdemId}/comprovantes`, {method:'POST', body:fd});
+            const d = await r.json();
+            if (d.success) ok++; else fail++;
+        } catch(e) { fail++; }
+    }
+    if (fail === 0) {
+        msg.style.color='#2ec27e';
+        msg.innerHTML = `<i class="fas fa-check"></i> ${ok} ${_isPt?'comprovante(s) enviado(s)!':'proof(s) uploaded!'}`;
+        setTimeout(() => { fecharUpload(); carregarDespachos(); }, 1200);
+    } else {
         msg.style.color='#e01b24';
-        msg.textContent = _isPt?'Erro de conexão.':'Connection error.';
+        msg.textContent = `${ok} ${_isPt?'enviado(s)':'uploaded'}, ${fail} ${_isPt?'com erro.':'failed.'}`;
     }
 }
 

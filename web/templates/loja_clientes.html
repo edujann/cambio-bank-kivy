@@ -164,6 +164,9 @@
         <div class="hd-right">
             <button id="btnTheme" onclick="toggleTheme()" class="btn-hd btn-hd-ghost" title="Alternar tema"><i class="fas fa-sun"></i></button>
             <a href="/loja/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-arrow-left"></i> Voltar</a>
+            {% if tipo in ('backoffice', 'backoffice_gerente') %}
+            <a href="/backoffice/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-desktop"></i> Back Office</a>
+            {% endif %}
             <button class="btn-hd" onclick="abrirModalNovo()"><i class="fas fa-user-plus"></i> Novo Cliente</button>
         </div>
     </div>
