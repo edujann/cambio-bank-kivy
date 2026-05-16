@@ -219,6 +219,27 @@
             padding:0 !important; border-radius:4px !important; cursor:pointer; accent-color:var(--cor-alerta);
         }
 
+        /* TYPING INDICATOR */
+        .typing-bubble { padding:4px 24px 0; flex-shrink:0; }
+        .typing-dots { display:inline-flex; gap:4px; align-items:center; }
+        .typing-dots span { width:6px; height:6px; background:var(--cor-texto-sec); border-radius:50%; animation:typing-dot 1.2s infinite; display:inline-block; }
+        .typing-dots span:nth-child(2) { animation-delay:.2s; }
+        .typing-dots span:nth-child(3) { animation-delay:.4s; }
+        @keyframes typing-dot { 0%,60%,100%{transform:translateY(0);opacity:.4} 30%{transform:translateY(-4px);opacity:1} }
+
+        /* READ RECEIPTS */
+        .msg-receipt { font-size:10px; margin-left:4px; }
+        .msg-receipt.sent { color:var(--cor-texto-sec); }
+        .msg-receipt.read { color:#3498db; }
+
+        /* RESPOSTAS RÁPIDAS */
+        .respostas-panel { display:none; background:var(--cor-fundo); border:1px solid var(--cor-borda); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:8px; max-height:200px; overflow-y:auto; }
+        .respostas-panel.show { display:block; }
+        .rr-cat { font-size:10px; color:var(--cor-admin); text-transform:uppercase; letter-spacing:.6px; font-weight:700; margin:8px 0 4px; }
+        .rr-cat:first-child { margin-top:0; }
+        .rr-btn { display:block; width:100%; text-align:left; background:var(--cor-card); border:1px solid var(--cor-borda); color:var(--cor-texto); padding:6px 10px; border-radius:6px; font-size:12px; cursor:pointer; margin-bottom:3px; transition:.15s; white-space:normal; line-height:1.4; }
+        .rr-btn:hover { border-color:var(--cor-admin); color:var(--cor-admin); background:rgba(210,158,0,.05); }
+
         /* LOADING */
         .loading-msg { display:flex; align-items:center; justify-content:center; height:100%; gap:10px; color:var(--cor-texto-sec); }
 
@@ -349,16 +370,30 @@
             <div class="chat-area" id="chatArea">
                 <div class="loading-msg"><i class="fas fa-spinner fa-spin"></i> Carregando mensagens...</div>
             </div>
+            <!-- Typing indicator -->
+            <div id="typingBubble" class="typing-bubble" style="display:none">
+                <div class="msg-wrapper cliente" style="max-width:120px">
+                    <div class="msg-bubble" style="padding:7px 12px">
+                        <span class="typing-dots"><span></span><span></span><span></span></span>
+                    </div>
+                    <div class="msg-meta"><span>Cliente digitando...</span></div>
+                </div>
+            </div>
             <!-- Input -->
             <div class="input-area">
+                <div id="respostasPanel" class="respostas-panel"></div>
                 <div class="input-opts">
                     <label class="checkbox-nota">
                         <input type="checkbox" id="checkNota"> <i class="fas fa-lock"></i> Nota interna (invisível ao cliente)
                     </label>
+                    <button class="btn-sm btn-ghost" onclick="toggleRespostasRapidas()" style="margin-left:auto;padding:4px 10px;font-size:12px" title="Respostas rápidas">
+                        <i class="fas fa-bolt"></i> Respostas rápidas
+                    </button>
                 </div>
                 <div class="input-row">
                     <textarea class="msg-textarea" id="msgInput" placeholder="Digite sua resposta..." rows="2"
-                        onkeydown="if(event.key==='Enter'&&event.ctrlKey)enviarMensagem()"></textarea>
+                        onkeydown="if(event.key==='Enter'&&event.ctrlKey)enviarMensagem()"
+                        oninput="onMsgTyping()"></textarea>
                     <button class="btn-sm btn-primary" onclick="enviarMensagem()">
                         <i class="fas fa-paper-plane"></i> Enviar
                     </button>
@@ -373,6 +408,31 @@
 let todosOsChamados = [];
 let chamadoAtual = null;
 let _lastRefreshTime = Date.now();
+let _typingDebounce = null;
+let _typingPoll = null;
+
+const RESPOSTAS_RAPIDAS = [
+    { cat: 'Saudação', textos: [
+        'Olá! Obrigado por entrar em contato com o suporte Link International. Em que posso ajudar?',
+        'Bom dia! Vou verificar a situação da sua solicitação agora mesmo.'
+    ]},
+    { cat: 'Documentação', textos: [
+        'Por favor, envie os documentos solicitados para que possamos prosseguir com a análise.',
+        'Os seus documentos foram recebidos e estão em análise. O prazo é de 1 a 2 dias úteis.'
+    ]},
+    { cat: 'Transferência', textos: [
+        'A sua transferência foi processada com sucesso e o valor será creditado em até 1 dia útil.',
+        'Identificámos um problema com a transferência. Verifique os dados do beneficiário e tente novamente.'
+    ]},
+    { cat: 'Câmbio', textos: [
+        'A cotação atual está disponível na plataforma. As taxas são atualizadas em tempo real.',
+        'O seu câmbio foi aprovado e está a ser processado. Receberá uma confirmação por email.'
+    ]},
+    { cat: 'Encerramento', textos: [
+        'Fico feliz em ter ajudado! Se precisar de mais alguma coisa, não hesite em entrar em contato.',
+        'Vou encerrar este chamado. Caso precise de suporte adicional, abra um novo chamado. Até logo!'
+    ]}
+];
 
 const STATUS_LABEL = {
     aberto: 'Aberto', em_atendimento: 'Em atendimento',
@@ -560,6 +620,7 @@ async function abrirChamado(id) {
     if (d.success) {
         chamadoAtual = d.chamado;
         renderMensagens(d.mensagens);
+        startTypingPoll(id);
     }
 }
 
@@ -574,6 +635,13 @@ function renderDetMeta(c) {
         ${c.atribuido_a ? `<div class="meta-item"><i class="fas fa-user-tag"></i> ${c.atribuido_a}</div>` : ''}
         ${slaTag(c.sla_deadline, c.status)}
     `;
+}
+
+function receiptHtml(m) {
+    if (m.is_nota_interna || m.autor_tipo !== 'admin') return '';
+    return m.lida_cliente
+        ? `<span class="msg-receipt read" title="Lida pelo cliente"><i class="fas fa-check-double"></i></span>`
+        : `<span class="msg-receipt sent" title="Enviada"><i class="fas fa-check"></i></span>`;
 }
 
 function renderMensagens(msgs) {
@@ -591,11 +659,53 @@ function renderMensagens(msgs) {
             <div class="msg-bubble">${m.mensagem.replace(/\n/g,'<br>')}</div>
             <div class="msg-meta">
                 <span>${m.autor_nome}</span>
-                <span>${fmtData(m.created_at)}</span>
+                <span data-ts="${m.created_at}" title="${fmtData(m.created_at)}">${tempoRelativo(m.created_at)}</span>
+                ${receiptHtml(m)}
             </div>
         </div>`;
     }).join('');
     chat.scrollTop = chat.scrollHeight;
+}
+
+function toggleRespostasRapidas() {
+    const panel = document.getElementById('respostasPanel');
+    if (panel.classList.toggle('show')) {
+        panel.innerHTML = RESPOSTAS_RAPIDAS.map(cat => `
+            <div class="rr-cat">${cat.cat}</div>
+            ${cat.textos.map(t => `<button class="rr-btn" onclick="inserirResposta(this)">${t}</button>`).join('')}
+        `).join('');
+    }
+}
+
+function inserirResposta(btn) {
+    document.getElementById('msgInput').value = btn.textContent.trim();
+    document.getElementById('respostasPanel').classList.remove('show');
+    document.getElementById('msgInput').focus();
+}
+
+function onMsgTyping() {
+    if (!chamadoAtual) return;
+    clearTimeout(_typingDebounce);
+    _typingDebounce = setTimeout(() => {
+        fetch(`/api/chamados/${chamadoAtual.id}/typing`, {method:'POST'}).catch(()=>{});
+    }, 300);
+}
+
+function startTypingPoll(id) {
+    stopTypingPoll();
+    _typingPoll = setInterval(async () => {
+        if (!chamadoAtual) return;
+        try {
+            const r = await fetch(`/api/chamados/${id}/typing_status`);
+            const d = await r.json();
+            const bubble = document.getElementById('typingBubble');
+            if (bubble) bubble.style.display = d.typing ? 'block' : 'none';
+        } catch(e) {}
+    }, 2000);
+}
+
+function stopTypingPoll() {
+    if (_typingPoll) { clearInterval(_typingPoll); _typingPoll = null; }
 }
 
 async function enviarMensagem() {

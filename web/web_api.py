@@ -22164,6 +22164,48 @@ def api_chamados_atribuir(chamado_id):
         return jsonify({'success': False, 'error': _err(e)}), 500
 
 # ============================================
+# CHAMADOS — INDICADOR DE DIGITAÇÃO (em memória, TTL 4s)
+# ============================================
+_typing_store = {}  # {chamado_id: {role: float_timestamp}}
+
+@app.route('/api/chamados/<chamado_id>/typing', methods=['POST'])
+def api_chamados_typing(chamado_id):
+    if 'username' not in session:
+        return jsonify({'success': False}), 401
+    try:
+        from datetime import datetime as _dt
+        tipo = session.get('tipo', 'cliente')
+        role = 'admin' if tipo in ('admin', 'backoffice', 'backoffice_gerente') else 'cliente'
+        if chamado_id not in _typing_store:
+            _typing_store[chamado_id] = {}
+        _typing_store[chamado_id][role] = _dt.utcnow().timestamp()
+        # evitar memory leak: limpar entradas velhas quando store ficar grande
+        if len(_typing_store) > 500:
+            cutoff = _dt.utcnow().timestamp() - 60
+            for k in list(_typing_store.keys()):
+                _typing_store[k] = {r: ts for r, ts in _typing_store[k].items() if ts > cutoff}
+                if not _typing_store[k]:
+                    del _typing_store[k]
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': _err(e)}), 500
+
+@app.route('/api/chamados/<chamado_id>/typing_status')
+def api_chamados_typing_status(chamado_id):
+    if 'username' not in session:
+        return jsonify({'success': False}), 401
+    try:
+        from datetime import datetime as _dt
+        tipo = session.get('tipo', 'cliente')
+        role = 'admin' if tipo in ('admin', 'backoffice', 'backoffice_gerente') else 'cliente'
+        other = 'cliente' if role == 'admin' else 'admin'
+        ts = _typing_store.get(chamado_id, {}).get(other, 0)
+        is_typing = (_dt.utcnow().timestamp() - ts) < 4
+        return jsonify({'success': True, 'typing': is_typing})
+    except Exception as e:
+        return jsonify({'success': False, 'error': _err(e)}), 500
+
+# ============================================
 # COMPLIANCE B2B
 # ============================================
 
