@@ -723,6 +723,23 @@ loadObDocs();
 {% endif %}
 <script>
 (function() {
+    let _audioCtx = null;
+    function notifySound() {
+        try {
+            if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = _audioCtx.createOscillator();
+            const gain = _audioCtx.createGain();
+            osc.connect(gain); gain.connect(_audioCtx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, _audioCtx.currentTime);
+            osc.frequency.setValueAtTime(1100, _audioCtx.currentTime + 0.12);
+            gain.gain.setValueAtTime(0.08, _audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, _audioCtx.currentTime + 0.4);
+            osc.start(_audioCtx.currentTime);
+            osc.stop(_audioCtx.currentTime + 0.4);
+        } catch(e) {}
+    }
+    let _prevBadge = -1;
     async function atualizarBadgeChamados() {
         try {
             const r = await fetch('/api/chamados/badges');
@@ -738,6 +755,9 @@ loadObDocs();
 
             const ab = document.getElementById('action-badge-chamados');
             if (ab) { ab.textContent = n; ab.style.display = n > 0 ? '' : 'none'; }
+
+            if (_prevBadge >= 0 && n > _prevBadge) notifySound();
+            _prevBadge = n;
         } catch(e) {}
     }
     atualizarBadgeChamados();

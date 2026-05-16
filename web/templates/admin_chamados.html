@@ -632,6 +632,7 @@ async function carregarChamados() {
     } catch(e) { console.error(e); }
 }
 
+let _prevMsgCount = 0;
 async function recarregarMensagens() {
     if (!chamadoAtual) return;
     const chat = document.getElementById('chatArea');
@@ -640,9 +641,13 @@ async function recarregarMensagens() {
         const r = await fetch(`/api/chamados/${chamadoAtual.id}`);
         const d = await r.json();
         if (d.success) {
+            const hasNewClientMsg = d.mensagens.length > _prevMsgCount &&
+                d.mensagens.slice(_prevMsgCount).some(m => m.autor_tipo === 'cliente');
             chamadoAtual = d.chamado;
             renderMensagens(d.mensagens);
+            _prevMsgCount = d.mensagens.length;
             if (!nearBottom) chat.scrollTop = chat.scrollHeight - chat.clientHeight - 120;
+            if (hasNewClientMsg) notifySound();
             // Re-aplicar busca se a barra estiver aberta
             const termo = document.getElementById('buscaChatInput').value;
             if (termo && document.getElementById('buscaChatBar').style.display !== 'none') {
@@ -716,6 +721,7 @@ async function abrirChamado(id) {
     if (d.success) {
         chamadoAtual = d.chamado;
         renderMensagens(d.mensagens);
+        _prevMsgCount = d.mensagens.length;
         startTypingPoll(id);
         const buscaTermo = document.getElementById('buscaChatInput').value;
         if (buscaTermo && document.getElementById('buscaChatBar').style.display !== 'none') {

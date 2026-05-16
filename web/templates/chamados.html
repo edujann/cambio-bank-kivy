@@ -370,7 +370,7 @@ function notifySound() {
 
 function getLastSeen(id) { return parseInt(localStorage.getItem('cliLastSeen_' + id) || '0'); }
 function setLastSeen(id) { localStorage.setItem('cliLastSeen_' + id, Date.now()); }
-function isUnread(c) { return c.status === 'aguardando_cliente' && new Date(c.updated_at).getTime() > getLastSeen(c.id); }
+function isUnread(c) { return new Date(c.updated_at).getTime() > getLastSeen(c.id); }
 
 let _prevUnlidos = -1;
 function checkNotificacoes(lista) {
@@ -402,6 +402,7 @@ async function carregarChamados() {
     } catch(e) { console.error(e); }
 }
 
+let _prevMsgCount = 0;
 async function recarregarMensagens() {
     if (!chamadoAtual) return;
     const chat = document.getElementById('chatArea');
@@ -410,9 +411,14 @@ async function recarregarMensagens() {
         const r = await fetch(`/api/chamados/${chamadoAtual.id}`);
         const d = await r.json();
         if (d.success) {
+            const hasNewAdminMsg = d.mensagens.length > _prevMsgCount &&
+                d.mensagens.slice(_prevMsgCount).some(m => m.autor_tipo === 'admin');
             chamadoAtual = d.chamado;
             renderMensagens(d.mensagens);
+            _prevMsgCount = d.mensagens.length;
             if (!nearBottom) chat.scrollTop = chat.scrollHeight - chat.clientHeight - 120;
+            setLastSeen(chamadoAtual.id);
+            if (hasNewAdminMsg) notifySound();
             csatVerificar(chamadoAtual);
         }
     } catch(e) {}
@@ -459,6 +465,7 @@ async function abrirChamado(id, dadosBasicos) {
         renderDetMeta(chamadoAtual);
         renderStatusBanner(chamadoAtual);
         renderMensagens(d.mensagens);
+        _prevMsgCount = d.mensagens.length;
         startTypingPoll(id);
         carregarChamados();
         csatVerificar(chamadoAtual);
