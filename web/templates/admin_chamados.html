@@ -75,9 +75,17 @@
         .chamado-cliente { font-size:12px; color:var(--cor-primaria); margin-bottom:8px; }
         .chamado-meta { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
         .dot-nao-lido {
-            width:8px; height:8px; background:var(--cor-primaria); border-radius:50%;
-            position:absolute; top:18px; right:16px;
+            width:7px; height:7px; background:var(--cor-primaria); border-radius:50%;
+            display:inline-block; vertical-align:middle; margin-left:5px; flex-shrink:0;
+            animation:pulse-dot 1.5s ease-in-out infinite;
         }
+        @keyframes pulse-dot {
+            0%,100% { opacity:1; transform:scale(1); }
+            50%      { opacity:.55; transform:scale(.8); }
+        }
+        #btnRefresh { transition:transform .3s; }
+        #btnRefresh.spinning i { animation:spin-once .5s linear; }
+        @keyframes spin-once { to { transform:rotate(360deg); } }
 
         /* TAGS STATUS / PRIORIDADE / CATEGORIA */
         .tag {
@@ -287,6 +295,12 @@
     </select>
     <input type="text" id="filtroCliente" placeholder="Buscar cliente..." oninput="aplicarFiltros()">
     <span class="badge-count" id="totalCount">0 chamados</span>
+    <span id="lastUpdate" style="font-size:11px;color:var(--cor-texto-sec);display:flex;align-items:center;gap:5px;margin-left:auto;white-space:nowrap">
+        <i class="fas fa-circle" style="font-size:6px;color:var(--cor-sucesso)"></i> ao vivo
+    </span>
+    <button id="btnRefresh" onclick="refreshManual()" class="btn-hd btn-hd-ghost" style="padding:5px 10px" title="Atualizar agora">
+        <i class="fas fa-rotate-right"></i>
+    </button>
 </div>
 
 <div class="main-layout">
@@ -355,6 +369,7 @@
 <script>
 let todosOsChamados = [];
 let chamadoAtual = null;
+let _lastRefreshTime = Date.now();
 
 const STATUS_LABEL = {
     aberto: 'Aberto', em_atendimento: 'Em atendimento',
@@ -442,6 +457,26 @@ function checkNotificacoes(lista) {
     _prevNotifCount = atencao;
 }
 
+function atualizarContadorRefresh() {
+    const el = document.getElementById('lastUpdate');
+    if (!el) return;
+    const seg = Math.floor((Date.now() - _lastRefreshTime) / 1000);
+    if (seg < 5) {
+        el.innerHTML = `<i class="fas fa-circle" style="font-size:6px;color:var(--cor-sucesso)"></i> ao vivo`;
+    } else {
+        el.innerHTML = `<i class="fas fa-circle" style="font-size:6px;color:var(--cor-texto-sec)"></i> há ${seg}s`;
+    }
+}
+
+function refreshManual() {
+    const btn = document.getElementById('btnRefresh');
+    btn.classList.add('spinning');
+    btn.disabled = true;
+    carregarChamados().finally(() => {
+        setTimeout(() => { btn.classList.remove('spinning'); btn.disabled = false; }, 500);
+    });
+}
+
 async function carregarChamados() {
     const status = document.getElementById('filtroStatus').value;
     const prioridade = document.getElementById('filtroPrioridade').value;
@@ -457,6 +492,7 @@ async function carregarChamados() {
             todosOsChamados = d.chamados || [];
             renderLista(todosOsChamados);
             calcStats(todosOsChamados);
+            _lastRefreshTime = Date.now();
         }
     } catch(e) { console.error(e); }
 }
@@ -485,9 +521,8 @@ function renderLista(lista) {
         const naoLido = isUnread(c) && !ativo ? '<span class="dot-nao-lido"></span>' : '';
         return `
         <div class="chamado-item ${ativo}" onclick="abrirChamado('${c.id}')">
-            ${naoLido}
             <div class="chamado-item-header">
-                <span class="chamado-id">${c.id}</span>
+                <span class="chamado-id" style="display:flex;align-items:center;gap:0">${c.id}${naoLido}</span>
                 <span class="chamado-data" data-ts="${c.updated_at}" title="${fmtData(c.updated_at)}">${tempoRelativo(c.updated_at)}</span>
             </div>
             <div class="chamado-titulo">${c.titulo}</div>
@@ -616,9 +651,10 @@ async function atribuirChamado() {
 
 document.addEventListener('DOMContentLoaded', () => {
     carregarChamados();
-    setInterval(carregarChamados, 30000);
+    setInterval(carregarChamados, 15000);
     setInterval(atualizarTimestamps, 60000);
-    window.addEventListener('focus', () => { atualizarTimestamps(); });
+    setInterval(atualizarContadorRefresh, 1000);
+    window.addEventListener('focus', () => { atualizarTimestamps(); carregarChamados(); });
 });
 </script>
 <script src="/static/js/theme.js"></script>
