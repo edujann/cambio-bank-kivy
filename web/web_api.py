@@ -22272,9 +22272,13 @@ def api_chamados_anexo(chamado_id):
         if len(conteudo) > 10 * 1024 * 1024:
             return jsonify({'success': False, 'error': 'Arquivo muito grande (máx. 10MB)'}), 400
 
-        caminho = f"chamados/{chamado_id}/{_uuid.uuid4().hex[:8]}_{nome_original}"
+        from werkzeug.utils import secure_filename as _sf
+        uid = _uuid.uuid4().hex[:8]
+        nome_storage = f"{uid}_{_sf(nome_original)}"
+        caminho = f"chamados/{chamado_id}/{nome_storage}"
         supabase.storage.from_('chamados').upload(caminho, conteudo)
-        url = supabase.storage.from_('chamados').get_public_url(caminho)
+        # Proxy URL — não depende de bucket público
+        url = f'/api/chamados/arquivo/{chamado_id}/{nome_storage}'
 
         agora = datetime.utcnow()
         supabase.table('chamados_mensagens').insert({
@@ -22290,6 +22294,43 @@ def api_chamados_anexo(chamado_id):
         return jsonify({'success': True, 'url': url, 'nome': nome_original})
     except Exception as e:
         return jsonify({'success': False, 'error': _err(e)}), 500
+
+
+@app.route('/api/chamados/arquivo/<chamado_id>/<nome_arquivo>')
+def api_chamados_arquivo(chamado_id, nome_arquivo):
+    """Serve anexos de chamados via proxy (não requer bucket público)."""
+    if 'username' not in session:
+        return jsonify({'error': 'Não autenticado'}), 401
+    try:
+        username = session.get('username')
+        tipo = session.get('tipo', 'cliente')
+        autor_tipo = 'admin' if tipo in ('admin', 'backoffice', 'backoffice_gerente') else 'cliente'
+        chamado = supabase.table('chamados').select('cliente_username,cliente_id').eq('id', chamado_id).single().execute()
+        if not chamado.data:
+            return 'Chamado não encontrado', 404
+        if autor_tipo == 'cliente':
+            user_id = session.get('user_id')
+            if chamado.data.get('cliente_id') != user_id and chamado.data.get('cliente_username') != username:
+                return 'Acesso negado', 403
+        caminho = f"chamados/{chamado_id}/{nome_arquivo}"
+        dados = supabase.storage.from_('chamados').download(caminho)
+        ext = nome_arquivo.rsplit('.', 1)[-1].lower() if '.' in nome_arquivo else ''
+        ct_map = {
+            'pdf': 'application/pdf', 'png': 'image/png', 'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg', 'gif': 'image/gif', 'webp': 'image/webp',
+            'txt': 'text/plain',
+            'doc': 'application/msword',
+            'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'xls': 'application/vnd.ms-excel',
+            'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'zip': 'application/zip',
+        }
+        ct = ct_map.get(ext, 'application/octet-stream')
+        from flask import Response
+        return Response(dados, content_type=ct,
+                        headers={'Content-Disposition': f'inline; filename="{nome_arquivo}"'})
+    except Exception as e:
+        return f'Erro ao servir arquivo: {_err(e)}', 500
 
 
 # ============================================
