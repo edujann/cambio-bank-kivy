@@ -268,7 +268,7 @@ nav.sb-nav{flex:1;padding:10px 0;overflow-y:auto;}
         <a class="nav-item {{ 'disabled' if is_ob }}" href="/meus-beneficiarios"><i class="fas fa-users"></i> {% if is_pt %}Beneficiários{% else %}Beneficiaries{% endif %}</a>
         <a class="nav-item {{ 'disabled' if is_ob }}" href="/meu_extrato"><i class="fas fa-clock-rotate-left"></i> {% if is_pt %}Extrato{% else %}Statements{% endif %}</a>
         <a class="nav-item {{ 'disabled' if is_ob or not cambio_liberado }}" href="/cambio-moedas"><i class="fas fa-coins"></i> {% if is_pt %}Câmbio{% else %}Exchange{% endif %}</a>
-        <a class="nav-item" href="/chamados"><i class="fas fa-comments"></i> {% if is_pt %}Suporte{% else %}Support{% endif %}</a>
+        <a class="nav-item" href="/chamados"><i class="fas fa-comments"></i> {% if is_pt %}Suporte{% else %}Support{% endif %}<span class="nav-badge" id="badge-chamados" style="display:none;"></span></a>
         {% if is_parceiro_pagador %}
         <a class="nav-item {{ 'disabled' if is_ob }}" href="/portal/despachos"><i class="fas fa-paper-plane"></i> {% if is_pt %}Despachos{% else %}Dispatches{% endif %}<span class="nav-badge" id="badge-despachos" style="display:none;"></span></a>
         {% endif %}
@@ -308,7 +308,10 @@ nav.sb-nav{flex:1;padding:10px 0;overflow-y:auto;}
         <div class="top-right">
             <a href="/language/{{ 'pt' if current_lang=='en' else 'en' }}" class="btn-ic" title="{% if is_pt %}English{% else %}Português{% endif %}"><i class="fas fa-globe"></i></a>
             <button class="btn-ic" onclick="toggleTheme()"><i class="fas fa-circle-half-stroke"></i></button>
-            <a href="/chamados" class="btn-ic" title="{% if is_pt %}Suporte{% else %}Support{% endif %}"><i class="fas fa-comments"></i></a>
+            <a href="/chamados" class="btn-ic" style="position:relative" title="{% if is_pt %}Suporte{% else %}Support{% endif %}">
+                <i class="fas fa-comments"></i>
+                <span id="badge-chamados-ic" style="display:none;position:absolute;top:-3px;right:-3px;width:8px;height:8px;border-radius:50%;background:#e01b24;border:1.5px solid var(--card)"></span>
+            </a>
         </div>
     </header>
 
@@ -421,7 +424,7 @@ nav.sb-nav{flex:1;padding:10px 0;overflow-y:auto;}
             <a href="/minhas-transferencias" class="action-btn"><i class="fas fa-list-check"></i> {% if is_pt %}Minhas Transferências{% else %}My Transfers{% endif %}</a>
             <a href="/meus-beneficiarios" class="action-btn"><i class="fas fa-users"></i> {% if is_pt %}Beneficiários{% else %}Beneficiaries{% endif %}<span class="action-badge">{{ beneficiarios_count or 0 }}</span></a>
             <a href="/meu_extrato" class="action-btn"><i class="fas fa-clock-rotate-left"></i> {% if is_pt %}Extrato{% else %}Statements{% endif %}</a>
-            <a href="/chamados" class="action-btn"><i class="fas fa-comments"></i> {% if is_pt %}Suporte{% else %}Support{% endif %}</a>
+            <a href="/chamados" class="action-btn"><i class="fas fa-comments"></i> {% if is_pt %}Suporte{% else %}Support{% endif %}<span class="action-badge" id="action-badge-chamados" style="display:none;background:rgba(224,27,36,.12);color:#e01b24;"></span></a>
         </div>
 
         <div class="tx-card">
@@ -718,5 +721,28 @@ loadObDocs();
 })();
 </script>
 {% endif %}
+<script>
+(function() {
+    async function atualizarBadgeChamados() {
+        try {
+            const r = await fetch('/api/chamados/lista?status=aguardando_cliente');
+            const d = await r.json();
+            if (!d.success) return;
+            const n = (d.chamados || []).length;
+
+            const nb = document.getElementById('badge-chamados');
+            if (nb) { nb.textContent = n; nb.style.display = n > 0 ? '' : 'none'; }
+
+            const ib = document.getElementById('badge-chamados-ic');
+            if (ib) { ib.style.display = n > 0 ? '' : 'none'; }
+
+            const ab = document.getElementById('action-badge-chamados');
+            if (ab) { ab.textContent = n; ab.style.display = n > 0 ? '' : 'none'; }
+        } catch(e) {}
+    }
+    atualizarBadgeChamados();
+    setInterval(atualizarBadgeChamados, 30000);
+})();
+</script>
 </body>
 </html>
