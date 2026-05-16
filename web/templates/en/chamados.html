@@ -88,6 +88,25 @@
         .btn-enviar { background:var(--cor-admin); color:#1a1200; border:none; padding:12px 20px; border-radius:var(--radius-sm); cursor:pointer; font-size:14px; font-weight:600; display:flex; align-items:center; gap:6px; transition:all .2s; white-space:nowrap; }
         .btn-enviar:hover { background:#eeb600; }
         .btn-enviar:disabled { opacity:.5; cursor:not-allowed; }
+
+        /* SYSTEM MESSAGE */
+        .msg-sistema { text-align:center; font-size:12px; color:var(--cor-texto-sec); padding:4px 0; font-style:italic; opacity:.8; }
+
+        /* CSAT MODAL */
+        .csat-overlay { position:fixed; inset:0; background:rgba(0,0,0,.65); backdrop-filter:blur(4px); z-index:500; display:flex; align-items:center; justify-content:center; }
+        .csat-card { background:var(--cor-card); border:1px solid var(--cor-borda); border-radius:var(--radius); padding:36px 32px; max-width:420px; width:90%; text-align:center; box-shadow:0 24px 60px rgba(0,0,0,.5); }
+        .csat-titulo { font-size:20px; font-weight:700; margin-bottom:6px; }
+        .csat-sub { font-size:14px; color:var(--cor-texto-sec); margin-bottom:24px; line-height:1.5; }
+        .csat-stars { display:flex; justify-content:center; gap:10px; margin-bottom:20px; font-size:38px; line-height:1; }
+        .csat-star { cursor:pointer; color:var(--cor-borda); transition:color .12s, transform .1s; display:inline-block; }
+        .csat-star:hover { transform:scale(1.15); }
+        .csat-comment { width:100%; background:var(--cor-fundo)!important; border:1px solid var(--cor-borda)!important; color:var(--cor-texto)!important; border-radius:var(--radius-sm)!important; padding:10px 12px!important; font-size:13px!important; resize:none!important; min-height:80px!important; margin-bottom:16px; box-sizing:border-box; }
+        .csat-comment:focus { border-color:var(--cor-primaria)!important; outline:none!important; box-shadow:none!important; }
+        .csat-btn-enviar { width:100%; background:var(--cor-admin); color:#1a1200; border:none; padding:12px; border-radius:var(--radius-sm); font-size:14px; font-weight:700; cursor:pointer; transition:.15s; }
+        .csat-btn-enviar:hover:not(:disabled) { background:#eeb600; }
+        .csat-btn-enviar:disabled { opacity:.4; cursor:not-allowed; }
+        .csat-btn-pular { background:none; border:none; color:var(--cor-texto-sec); font-size:13px; cursor:pointer; margin-top:10px; display:block; width:100%; padding:6px; }
+        .csat-btn-pular:hover { color:var(--cor-texto); }
         .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:1000; align-items:center; justify-content:center; }
         .modal-overlay.show { display:flex; }
         .modal-box { background:var(--cor-card); border:1px solid var(--cor-borda); border-radius:var(--radius); padding:28px; width:100%; max-width:520px; }
@@ -350,6 +369,7 @@ async function recarregarMensagens() {
             chamadoAtual = d.chamado;
             renderMensagens(d.mensagens);
             if (!nearBottom) chat.scrollTop = chat.scrollHeight - chat.clientHeight - 120;
+            csatVerificar(chamadoAtual);
         }
     } catch(e) {}
 }
@@ -396,6 +416,7 @@ async function abrirChamado(id, dadosBasicos) {
         renderMensagens(d.mensagens);
         startTypingPoll(id);
         carregarChamados();
+        csatVerificar(chamadoAtual);
     }
 }
 
@@ -447,6 +468,10 @@ function renderMensagens(msgs) {
         if (dStr !== ultimaData) {
             html += `<div class="msg-day-sep">${dStr}</div>`;
             ultimaData = dStr;
+        }
+        if (m.autor_tipo === 'sistema') {
+            html += `<div class="msg-sistema"><i class="fas fa-robot" style="font-size:10px"></i> ${m.mensagem}</div>`;
+            return;
         }
         const anexoM = m.mensagem.match(/^\[ANEXO:(.+?):(.+)\]$/);
         let conteudo;
@@ -557,13 +582,99 @@ async function uploadAnexo(input) {
     } catch(e) { alert('Error sending file'); input.value = ''; }
 }
 
+/* ── CSAT ── */
+let _csatNota = 0;
+let _csatChamadoId = null;
+
+function csatVerificar(chamado) {
+    if (chamado.status !== 'fechado' || chamado.csat_nota) return;
+    if (sessionStorage.getItem('csatSkip_' + chamado.id)) return;
+    _csatChamadoId = chamado.id;
+    _csatNota = 0;
+    document.querySelectorAll('.csat-star').forEach(s => s.style.color = '');
+    document.getElementById('csatComentario').value = '';
+    document.getElementById('csatBtnEnviar').disabled = true;
+    document.getElementById('csatForm').style.display = 'block';
+    document.getElementById('csatObrigado').style.display = 'none';
+    document.getElementById('csatOverlay').style.display = 'flex';
+}
+
+function csatSelecionarNota(nota) {
+    _csatNota = nota;
+    document.querySelectorAll('.csat-star').forEach(s => {
+        s.style.color = parseInt(s.dataset.v) <= nota ? 'var(--cor-admin)' : '';
+    });
+    document.getElementById('csatBtnEnviar').disabled = false;
+}
+
+function csatPular() {
+    if (_csatChamadoId) sessionStorage.setItem('csatSkip_' + _csatChamadoId, '1');
+    document.getElementById('csatOverlay').style.display = 'none';
+}
+
+async function csatEnviar() {
+    if (!_csatNota || !_csatChamadoId) return;
+    const comentario = document.getElementById('csatComentario').value.trim();
+    try {
+        const r = await fetch(`/api/chamados/${_csatChamadoId}/csat`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({nota: _csatNota, comentario})
+        });
+        const d = await r.json();
+        if (d.success) {
+            if (chamadoAtual && chamadoAtual.id === _csatChamadoId) chamadoAtual.csat_nota = _csatNota;
+            document.getElementById('csatForm').style.display = 'none';
+            document.getElementById('csatObrigado').style.display = 'block';
+        }
+    } catch(e) {}
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     carregarChamados();
     setInterval(carregarChamados, 15000);
     setInterval(atualizarTimestamps, 60000);
     window.addEventListener('focus', () => { atualizarTimestamps(); carregarChamados(); });
+
+    // Star hover effects
+    const stars = document.querySelectorAll('.csat-star');
+    stars.forEach((star, i) => {
+        star.addEventListener('mouseenter', () => {
+            stars.forEach((s, j) => { s.style.color = j <= i ? 'var(--cor-admin)' : ''; });
+        });
+        star.addEventListener('mouseleave', () => {
+            stars.forEach((s, j) => { s.style.color = j < _csatNota ? 'var(--cor-admin)' : ''; });
+        });
+    });
 });
 </script>
 <script src="/static/js/theme.js"></script>
+
+<!-- CSAT MODAL -->
+<div id="csatOverlay" class="csat-overlay" style="display:none">
+    <div class="csat-card">
+        <div id="csatForm">
+            <div style="font-size:44px;margin-bottom:12px">🎯</div>
+            <div class="csat-titulo">How was your support experience?</div>
+            <div class="csat-sub">Rate the support you received for this ticket. Your feedback helps us improve.</div>
+            <div class="csat-stars" id="csatStars">
+                <span class="csat-star" data-v="1" onclick="csatSelecionarNota(1)">★</span>
+                <span class="csat-star" data-v="2" onclick="csatSelecionarNota(2)">★</span>
+                <span class="csat-star" data-v="3" onclick="csatSelecionarNota(3)">★</span>
+                <span class="csat-star" data-v="4" onclick="csatSelecionarNota(4)">★</span>
+                <span class="csat-star" data-v="5" onclick="csatSelecionarNota(5)">★</span>
+            </div>
+            <textarea class="csat-comment" id="csatComentario" placeholder="Leave a comment (optional)..." rows="3"></textarea>
+            <button id="csatBtnEnviar" class="csat-btn-enviar" onclick="csatEnviar()" disabled>Submit rating</button>
+            <button class="csat-btn-pular" onclick="csatPular()">Skip for now</button>
+        </div>
+        <div id="csatObrigado" style="display:none;padding:12px 0">
+            <div style="font-size:52px;margin-bottom:16px">⭐</div>
+            <div class="csat-titulo">Thank you for your feedback!</div>
+            <div class="csat-sub">Your rating has been recorded successfully.</div>
+            <button onclick="document.getElementById('csatOverlay').style.display='none'" class="csat-btn-enviar" style="margin-top:8px">Close</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>

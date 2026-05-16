@@ -21953,6 +21953,29 @@ def api_chamados_lista():
                     q = q.ilike('cliente_username', f'%{cliente_filter}%')
         
         res = q.execute()
+
+        # Auto-fechar chamados resolvidos há mais de 3 dias (somente admin)
+        if tipo == 'admin':
+            try:
+                from datetime import datetime as _dt2, timedelta as _td2
+                _cutoff = (_dt2.utcnow() - _td2(days=3)).isoformat()
+                _cands = supabase.table('chamados').select('id')\
+                    .eq('status', 'resolvido').lt('updated_at', _cutoff).execute()
+                if _cands.data:
+                    _agora = _dt2.utcnow().isoformat()
+                    for _c in _cands.data:
+                        supabase.table('chamados').update({
+                            'status': 'fechado', 'updated_at': _agora, 'closed_at': _agora
+                        }).eq('id', _c['id']).execute()
+                        supabase.table('chamados_mensagens').insert({
+                            'chamado_id': _c['id'], 'autor_tipo': 'sistema',
+                            'autor_nome': 'Sistema',
+                            'mensagem': 'Chamado fechado automaticamente após 3 dias sem resposta do cliente.',
+                            'lida_admin': True, 'lida_cliente': False, 'created_at': _agora
+                        }).execute()
+            except Exception:
+                pass
+
         return jsonify({'success': True, 'chamados': res.data or []})
     except Exception as e:
         return jsonify({'success': False, 'error': _err(e)}), 500
@@ -22178,6 +22201,36 @@ def api_chamados_atribuir(chamado_id):
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': _err(e)}), 500
+
+@app.route('/api/chamados/<chamado_id>/csat', methods=['POST'])
+def api_chamados_csat(chamado_id):
+    if 'username' not in session:
+        return jsonify({'success': False}), 401
+    try:
+        username = session.get('username')
+        user_id = session.get('user_id')
+        data = request.get_json()
+        nota = data.get('nota')
+        comentario = (data.get('comentario') or '').strip()
+        if nota not in (1, 2, 3, 4, 5):
+            return jsonify({'success': False, 'error': 'Nota inválida (1-5)'}), 400
+        chamado = supabase.table('chamados').select('cliente_username,cliente_id,status').eq('id', chamado_id).single().execute()
+        if not chamado.data:
+            return jsonify({'success': False, 'error': 'Chamado não encontrado'}), 404
+        if chamado.data.get('status') != 'fechado':
+            return jsonify({'success': False, 'error': 'Apenas chamados fechados podem ser avaliados'}), 400
+        tipo = session.get('tipo', 'cliente')
+        if tipo == 'cliente':
+            if chamado.data.get('cliente_id') != user_id and chamado.data.get('cliente_username') != username:
+                return jsonify({'success': False, 'error': 'Acesso negado'}), 403
+        supabase.table('chamados').update({
+            'csat_nota': nota,
+            'csat_comentario': comentario or None
+        }).eq('id', chamado_id).execute()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': _err(e)}), 500
+
 
 @app.route('/api/chamados/<chamado_id>/anexo', methods=['POST'])
 def api_chamados_anexo(chamado_id):
