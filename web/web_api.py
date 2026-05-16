@@ -16262,8 +16262,33 @@ def admin_listar_despachos():
     if not usuario:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
-        r = supabase.table('despachos').select('*').order('created_at', desc=True).limit(200).execute()
-        return jsonify({'success': True, 'despachos': r.data or []})
+        status_filtro = request.args.get('status', '')
+        q = supabase.table('despachos').select('*').order('created_at', desc=True).limit(200)
+        if status_filtro:
+            q = q.eq('status', status_filtro)
+        r = q.execute()
+        despachos = r.data or []
+        if despachos:
+            ids = [d['id'] for d in despachos]
+            links_r = supabase.table('despacho_ordens').select('despacho_id, ordem_id').in_('despacho_id', ids).execute()
+            links = links_r.data or []
+            ordem_ids = [l['ordem_id'] for l in links]
+            ordens_dict = {}
+            if ordem_ids:
+                ordens_r = supabase.table('ordens_captacao')\
+                    .select('id, status, cliente_nome, valor_saida, moeda_saida, '
+                            'beneficiario_nome, beneficiario_banco, beneficiario_agencia, beneficiario_conta')\
+                    .in_('id', ordem_ids).execute()
+                ordens_dict = {o['id']: o for o in (ordens_r.data or [])}
+            from collections import defaultdict
+            ordens_por_despacho = defaultdict(list)
+            for l in links:
+                o = ordens_dict.get(l['ordem_id'])
+                if o:
+                    ordens_por_despacho[l['despacho_id']].append(o)
+            for d in despachos:
+                d['ordens'] = ordens_por_despacho.get(d['id'], [])
+        return jsonify({'success': True, 'despachos': despachos})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
 

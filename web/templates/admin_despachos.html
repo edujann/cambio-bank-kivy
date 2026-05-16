@@ -106,12 +106,30 @@
         .btn-act.g{border-color:rgba(26,122,82,.4);color:var(--cor-sucesso);}
         .btn-act.g:hover{background:rgba(26,122,82,.1);}
 
-        /* Despacho card */
-        .desp-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:16px;margin-bottom:12px;box-shadow:var(--sombra-suave);}
-        .desp-num{font-size:18px;font-weight:700;color:var(--cor-admin);}
-        .desp-info{font-size:13px;color:var(--cor-texto-secundario);margin-top:3px;}
-        .desp-val{font-size:20px;font-weight:700;color:var(--cor-sucesso);}
-        .desp-meta{font-size:12px;color:var(--cor-texto-secundario);}
+        /* Despacho card expansível */
+        .desp-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);margin-bottom:12px;overflow:hidden;box-shadow:var(--sombra-suave);}
+        .desp-header{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:rgba(200,146,10,.04);flex-wrap:wrap;gap:8px;transition:.15s;}
+        .desp-header:hover{background:rgba(200,146,10,.09);}
+        .desp-body{display:none;padding:16px;border-top:1px solid var(--cor-borda);}
+        .desp-body.open{display:block;}
+        .desp-num{font-size:15px;font-weight:700;color:var(--cor-admin);}
+        .desp-info{font-size:13px;color:var(--cor-texto-secundario);}
+        .desp-val{font-size:16px;font-weight:700;color:var(--cor-sucesso);}
+        /* Badge status */
+        .badge-s{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600;white-space:nowrap;}
+        .bs-paga,.bs-pago{background:rgba(26,122,82,.12);color:var(--cor-sucesso);}
+        .bs-enviado{background:rgba(184,114,0,.15);color:var(--cor-alerta);}
+        .bs-pendencia{background:rgba(192,32,32,.12);color:var(--cor-perigo);}
+        .bs-despachada{background:rgba(26,122,82,.09);color:var(--cor-sucesso);}
+        .bs-comprovante_em_analise{background:rgba(123,75,184,.12);color:var(--cor-roxo);}
+        .bs-cancelada{background:rgba(150,150,150,.12);color:var(--cor-texto-secundario);}
+        /* Inner data table */
+        .inner-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;}
+        .inner-table th{background:rgba(210,158,0,.06);color:var(--cor-texto-secundario);padding:8px 10px;text-align:left;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--cor-borda);white-space:nowrap;}
+        .inner-table td{padding:9px 10px;border-bottom:1px solid var(--cor-borda);vertical-align:middle;white-space:nowrap;}
+        .inner-table tr:last-child td{border-bottom:none;}
+        .inner-table tr:hover td{background:rgba(210,158,0,.03);}
+        .inner-table tr.row-pendencia td{background:rgba(192,32,32,.03);}
 
         /* Modal */
         .modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;padding:20px;}
@@ -181,7 +199,6 @@
         <div class="tab" onclick="switchTab('onhold',this)"><i class="fas fa-clock"></i> On Hold <span class="tab-badge" id="badge-hold" style="background:var(--cor-alerta);">0</span></div>
         <div class="tab" onclick="switchTab('compliance',this)"><i class="fas fa-shield-halved"></i> Compliance <span class="tab-badge" id="badge-comp" style="background:var(--cor-roxo);">0</span></div>
         <div class="tab" onclick="switchTab('despachos',this)"><i class="fas fa-paper-plane"></i> Histórico Despachos</div>
-        <div class="tab" onclick="switchTab('baixa',this)"><i class="fas fa-check-double"></i> Baixa Pagamentos <span class="tab-badge" id="badge-baixa" style="background:var(--cor-sucesso);">0</span></div>
     </div>
 
     <!-- TAB: Liberadas -->
@@ -302,12 +319,6 @@
         </div>
     </div>
 
-    <!-- TAB: Baixa de Pagamentos -->
-    <div class="tab-panel" id="panel-baixa">
-        <div id="baixaLista">
-            <div class="empty"><i class="fas fa-spinner fa-spin"></i></div>
-        </div>
-    </div>
 </div>
 
 <!-- Modal Criar Despacho -->
@@ -334,70 +345,18 @@
     </div>
 </div>
 
-<!-- Modal Baixa de Pagamento -->
-<div class="modal-ov" id="modalBaixa">
-    <div class="modal" style="max-width:540px;">
-        <div class="modal-top-bar"></div>
-        <h3><i class="fas fa-check-double" style="color:var(--cor-sucesso)"></i> Confirmar Pagamento</h3>
-        <div id="baixaOrdemInfo"></div>
-
-        <div id="baixaPosConfirmacao" style="display:none;">
-            <div style="background:rgba(26,122,82,.08);border:1px solid rgba(26,122,82,.3);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;">
-                <i class="fas fa-check-circle" style="color:var(--cor-sucesso);"></i> <strong>Pagamento confirmado.</strong> Adicione mais comprovantes se necessário.
-            </div>
-            <div style="font-size:11px;font-weight:700;color:var(--cor-texto-secundario);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Comprovantes anexados</div>
-            <div id="baixaComprovantesPosList" style="margin-bottom:10px;"></div>
-            <div class="fg" style="margin-bottom:4px;">
-                <label>Adicionar mais comprovantes</label>
-                <input type="file" id="baixaFilePosConf" accept="image/*,.pdf" multiple style="width:100%;padding:6px;border:1px solid var(--cor-borda);border-radius:6px;background:var(--cor-card);color:var(--cor-texto);font-size:12px;cursor:pointer;">
-            </div>
-            <div class="form-msg" id="baixaPosMsg" style="margin-top:4px;"></div>
-            <div class="modal-acts">
-                <button class="btn-g" onclick="fecharModal('modalBaixa');carregarBaixa();">Fechar</button>
-                <button class="btn-p" onclick="uploadBaixaPosConf()"><i class="fas fa-upload"></i> Enviar Comprovante</button>
-            </div>
-        </div>
-
-        <div id="baixaConfPanel">
-            <div id="baixaComprovantesExist" style="display:none;margin-bottom:12px;">
-                <div style="font-size:11px;font-weight:700;color:var(--cor-texto-secundario);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Comprovantes já anexados</div>
-                <div id="baixaComprovantesLista"></div>
-            </div>
-            <div class="fg" style="margin-bottom:4px;">
-                <label>Comprovante(s) — opcional, múltiplos permitidos</label>
-                <input type="file" id="baixaFile" accept="image/*,.pdf" multiple style="width:100%;padding:6px;border:1px solid var(--cor-borda);border-radius:6px;background:var(--cor-card);color:var(--cor-texto);font-size:12px;cursor:pointer;">
-            </div>
-            <div class="form-msg" id="baixaMsg" style="margin-top:8px;"></div>
-            <div class="modal-acts">
-                <button class="btn-g" onclick="fecharModal('modalBaixa')">Cancelar</button>
-                <button class="btn-p" id="btnConfBaixa" onclick="confirmarPagamentoOrdem()"><i class="fas fa-check-double"></i> Confirmar Pago</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Ver Comprovantes -->
-<div class="modal-ov" id="modalComprovantes">
-    <div class="modal" style="max-width:480px;">
-        <div class="modal-top-bar"></div>
-        <h3><i class="fas fa-paperclip"></i> Comprovantes</h3>
-        <div id="comprovantesModalLista" style="margin-bottom:16px;"></div>
-        <div class="fg">
-            <label>Adicionar mais comprovantes</label>
-            <input type="file" id="addCompFile" accept="image/*,.pdf" multiple style="width:100%;padding:6px;border:1px solid var(--cor-borda);border-radius:6px;background:var(--cor-card);color:var(--cor-texto);font-size:12px;cursor:pointer;">
-        </div>
-        <div class="form-msg" id="addCompMsg" style="margin-top:6px;"></div>
-        <div class="modal-acts">
-            <button class="btn-g" onclick="fecharModal('modalComprovantes')">Fechar</button>
-            <button class="btn-p" onclick="uploadComprovantesAdicionais()"><i class="fas fa-upload"></i> Enviar</button>
-        </div>
-    </div>
-</div>
 
 <div class="toast-c" id="toastC"></div>
 <script>
 const fmtN = (v,d=2) => parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
 const fmtD = s => { if(!s)return'—'; try{const[dt,hr]=(s.replace('T',' ').split('.')[0]).split(' ');const[y,m,d]=dt.split('-');return hr?`${d}/${m}/${y} ${hr.slice(0,5)}`:`${d}/${m}/${y}`;}catch{return s;}};
+const fmtValor = (v, m) => { const n = parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); return m==='BRL'?`R$ ${n}`:`${n} ${m||''}`; };
+function badgeDep(s) {
+    const lbl = {pago:'Pago',enviado:'Enviado',paga:'Paga',despachada:'Despachada',
+                 comprovante_em_analise:'Em Análise',pendencia:'Pendência',cancelada:'Cancelada'};
+    return `<span class="badge-s bs-${s}">${lbl[s]||s}</span>`;
+}
+function toggleDespacho(id) { document.getElementById(id)?.classList.toggle('open'); }
 const destFlag = {brazil:'🇧🇷',europe:'🇪🇺',usa:'🇺🇸'};
 const amlLabels = {PEP_SCREENING_REQUIRED:'PEP',HIGH_RISK_COUNTRY_EDD:'Alto Risco',CASH_EDD:'Cash EDD'};
 
@@ -414,7 +373,6 @@ function switchTab(nome, el) {
     else if (nome === 'onhold') carregarOnHold();
     else if (nome === 'compliance') carregarCompliance();
     else if (nome === 'despachos') carregarDespachos();
-    else if (nome === 'baixa') carregarBaixa();
 }
 
 async function carregarStats() {
@@ -598,31 +556,52 @@ async function carregarDespachos() {
         const d = await r.json();
         const lista = d.despachos || [];
         if (!lista.length) { box.innerHTML = '<div class="empty"><i class="fas fa-inbox"></i><p>Nenhum despacho criado ainda</p></div>'; return; }
-        box.innerHTML = lista.map(dep => `
-            <div class="desp-card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-                <div>
-                    <div class="desp-num">Despacho #${dep.numero||dep.id?.slice(0,8)}</div>
-                    <div class="desp-info">${dep.qtd_ordens||0} ordens · Parceiro: <strong>${dep.parceiro_pagador||'—'}</strong> · ${fmtD(dep.created_at)}</div>
-                    ${dep.observacoes ? `<div class="desp-info" style="margin-top:3px;font-style:italic;">${dep.observacoes}</div>` : ''}
+        box.innerHTML = lista.map(dep => {
+            const ordens = dep.ordens || [];
+            const ordensHtml = ordens.length
+                ? `<div class="tbl-wrap"><table class="inner-table">
+                    <thead><tr>
+                        <th>Ordem</th><th>Cliente</th><th>Beneficiário</th>
+                        <th>Banco</th><th>Agência</th><th>Conta</th>
+                        <th>Moeda</th><th>Valor Pago</th><th>Status</th>
+                    </tr></thead><tbody>` +
+                  ordens.map(o => `<tr class="${o.status==='pendencia'?'row-pendencia':''}">
+                    <td class="mono" style="color:var(--cor-texto-secundario);">${o.id.substring(0,8).toUpperCase()}</td>
+                    <td>${o.cliente_nome||'—'}</td>
+                    <td>${o.beneficiario_nome||'—'}</td>
+                    <td>${o.beneficiario_banco||'—'}</td>
+                    <td>${o.beneficiario_agencia||'—'}</td>
+                    <td>${o.beneficiario_conta||'—'}</td>
+                    <td>${o.moeda_saida||'—'}</td>
+                    <td style="white-space:nowrap;">${fmtValor(o.valor_saida,o.moeda_saida)}</td>
+                    <td>${badgeDep(o.status)}</td>
+                  </tr>`).join('') +
+                  '</tbody></table></div>'
+                : '<p style="font-size:12px;color:var(--cor-texto-secundario);margin-top:4px;">Sem ordens vinculadas.</p>';
+            return `<div class="desp-card">
+                <div class="desp-header" onclick="toggleDespacho('dep-${dep.id}')">
+                    <div>
+                        <span class="desp-num">Despacho #${dep.numero||dep.id?.slice(0,8)}</span>
+                        <span style="margin-left:10px;font-size:12px;color:var(--cor-texto-secundario);">${fmtValor(dep.valor_total,dep.moeda_saida)} · ${ordens.length} ordem(ns) · Parceiro: <strong>${dep.parceiro_pagador||'—'}</strong></span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        ${badgeDep(dep.status)}
+                        <span style="font-size:12px;color:var(--cor-texto-secundario);">${fmtD(dep.created_at)}</span>
+                        <i class="fas fa-chevron-down" style="font-size:11px;color:var(--cor-texto-secundario);"></i>
+                    </div>
                 </div>
-                <div style="text-align:right;">
-                    <div class="desp-val">${dep.moeda_saida==='BRL'?'R$ ':''}${fmtN(dep.valor_total)} ${dep.moeda_saida||''}</div>
-                    <div class="desp-meta" style="margin-top:4px;"><span class="tag tag-${dep.status}">${dep.status}</span></div>
-                    ${dep.status === 'enviado' ? `<button class="btn-act g" style="margin-top:8px;" onclick="confirmarPagoDespacho('${dep.id}')"><i class="fas fa-check"></i> Confirmar Pago</button>` : ''}
+                <div class="desp-body" id="dep-${dep.id}">
+                    <div style="font-size:13px;color:var(--cor-texto-secundario);display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px;">
+                        <span>Criado por: <strong style="color:var(--cor-texto);">${dep.criado_por||'—'}</strong></span>
+                        ${dep.observacoes?`<span>Obs: <em>${dep.observacoes}</em></span>`:''}
+                    </div>
+                    ${ordensHtml}
                 </div>
-            </div>`).join('');
+            </div>`;
+        }).join('');
     } catch(e) { box.innerHTML = `<div style="color:var(--cor-perigo);padding:20px;">${e.message}</div>`; }
 }
 
-async function confirmarPagoDespacho(id) {
-    if (!confirm('Confirmar que este despacho foi pago pelo parceiro?')) return;
-    try {
-        const r = await fetch(`/api/admin/despachos/${id}/confirmar-pago`, {method:'POST'});
-        const d = await r.json();
-        toast(d.message, d.success ? 'ok' : 'err');
-        if (d.success) { carregarDespachos(); carregarStats(); }
-    } catch(e) { toast(e.message, 'err'); }
-}
 
 async function abrirModalDespacho() {
     if (!selecionadas.size) return;
@@ -682,190 +661,6 @@ function toast(m, tipo='ok') {
     el.innerHTML = `<i class="fas fa-${tipo==='ok'?'check-circle':tipo==='warn'?'exclamation-triangle':'times-circle'}"></i> ${m}`;
     c.appendChild(el);
     setTimeout(() => el.remove(), 4500);
-}
-
-let _baixaOrdens = {}, _baixaOrdemAtual = null, _compOrdemId = null;
-
-async function carregarBaixa() {
-    const box = document.getElementById('baixaLista');
-    box.innerHTML = '<div class="empty"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
-    try {
-        const r = await fetch('/api/admin/ordens/despachadas');
-        const d = await r.json();
-        const ordens = d.ordens || [];
-        document.getElementById('badge-baixa').textContent = ordens.length;
-        if (!ordens.length) { box.innerHTML = '<div class="empty"><i class="fas fa-check-circle" style="color:var(--cor-sucesso);font-size:28px;"></i><p style="margin-top:8px;">Nenhuma ordem aguardando baixa</p></div>'; return; }
-        _baixaOrdens = {};
-        ordens.forEach(o => _baixaOrdens[o.id] = o);
-        const grupos = {};
-        for (const o of ordens) {
-            const dep = o.despacho || {};
-            const key = dep.id || '__sem__';
-            if (!grupos[key]) grupos[key] = { dep, ordens: [] };
-            grupos[key].ordens.push(o);
-        }
-        let html = '';
-        for (const { dep, ordens: gOrdens } of Object.values(grupos)) {
-            const num   = dep.numero || (dep.id || '').slice(0, 8) || '—';
-            const total = gOrdens.reduce((s, o) => s + parseFloat(o.valor_saida || 0), 0);
-            const moeda = gOrdens[0]?.moeda_saida || '';
-            html += `<div class="desp-card" style="margin-bottom:18px;">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-                    <div>
-                        <div class="desp-num"><i class="fas fa-paper-plane" style="margin-right:4px;"></i> Despacho #${num}</div>
-                        <div class="desp-info">Parceiro: <strong>${dep.parceiro_pagador || '—'}</strong> · Despachado em ${fmtD(dep.created_at)}</div>
-                        ${dep.observacoes ? `<div class="desp-info" style="font-style:italic;">${dep.observacoes}</div>` : ''}
-                    </div>
-                    <div style="text-align:right;">
-                        <div class="desp-val">${fmtN(total)} ${moeda}</div>
-                        <div style="font-size:11px;color:var(--cor-texto-secundario);">${gOrdens.length} ordens pendentes</div>
-                    </div>
-                </div>
-                <div class="tbl-wrap">
-                    <table style="width:100%;font-size:12px;">
-                        <thead><tr><th>Cliente</th><th>Entrada</th><th>Saída</th><th>Banco / Destino</th><th style="text-align:center;">Ações</th></tr></thead>
-                        <tbody>${gOrdens.map(o => `<tr>
-                            <td><strong>${o.cliente_nome || '—'}</strong><br><span style="font-size:10px;color:var(--cor-texto-secundario);">${fmtD(o.data)}</span></td>
-                            <td>${fmtN(o.valor_entrada)} ${o.moeda_entrada || ''}</td>
-                            <td><strong>${fmtN(o.valor_saida)} ${o.moeda_saida || ''}</strong></td>
-                            <td>${o.beneficiario_banco || o.tipo_destino || '—'}<br><span style="font-size:10px;color:var(--cor-texto-secundario);">${destFlag[o.tipo_destino] || ''} ${o.beneficiario_nome || ''}</span></td>
-                            <td style="text-align:center;white-space:nowrap;">
-                                <button class="btn-act g" style="margin-right:4px;" onclick="abrirModalBaixa('${o.id}')"><i class="fas fa-check-double"></i> Confirmar Pago</button>
-                                <button class="btn-act" onclick="verComprovantes('${o.id}')" title="Ver / Adicionar comprovantes"><i class="fas fa-paperclip"></i>${o.tem_comprovante ? ' ✓' : ''}</button>
-                            </td>
-                        </tr>`).join('')}</tbody>
-                    </table>
-                </div>
-            </div>`;
-        }
-        box.innerHTML = html;
-    } catch(e) { box.innerHTML = `<div style="color:var(--cor-perigo);padding:20px;">${e.message}</div>`; }
-}
-
-function _infoCell(lbl, val) {
-    if (!val) return '';
-    return `<div><span style="color:var(--cor-texto-secundario);font-size:10px;text-transform:uppercase;letter-spacing:.4px;">${lbl}</span><br><strong>${val}</strong></div>`;
-}
-
-function abrirModalBaixa(ordemId) {
-    _baixaOrdemAtual = _baixaOrdens[ordemId];
-    if (!_baixaOrdemAtual) return;
-    const o = _baixaOrdemAtual;
-    let destHtml = '';
-    const dest = o.tipo_destino || 'brazil';
-    const bancoAgencia = [o.beneficiario_banco, o.beneficiario_agencia ? `Ag. ${o.beneficiario_agencia}` : ''].filter(Boolean).join(' · ');
-    if (dest === 'brazil') {
-        destHtml = o.beneficiario_pix
-            ? _infoCell('Chave PIX', o.beneficiario_pix) + _infoCell('Banco / Agência', bancoAgencia) + _infoCell('Conta', o.beneficiario_conta)
-            : _infoCell('Banco / Agência', bancoAgencia || '—') + _infoCell('Conta', o.beneficiario_conta);
-    } else if (dest === 'europe') {
-        destHtml = _infoCell('Banco', o.beneficiario_banco || o.benef_banco_eu) + _infoCell('IBAN', o.benef_iban) + _infoCell('BIC/SWIFT', o.benef_swift || o.benef_routing);
-    } else if (dest === 'usa') {
-        destHtml = _infoCell('Banco', o.beneficiario_banco || o.benef_banco_us) + _infoCell('Routing Number', o.benef_routing) + _infoCell('Account', o.beneficiario_conta || o.benef_conta);
-    }
-    document.getElementById('baixaOrdemInfo').innerHTML = `
-        <div style="background:rgba(200,146,10,.05);border:1px solid var(--cor-borda);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;">
-                ${_infoCell('Cliente', o.cliente_nome)}
-                ${_infoCell('Beneficiário', o.beneficiario_nome)}
-                ${_infoCell('Valor Entrada', fmtN(o.valor_entrada) + ' ' + (o.moeda_entrada || ''))}
-                <div><span style="color:var(--cor-texto-secundario);font-size:10px;text-transform:uppercase;letter-spacing:.4px;">Valor Saída</span><br><strong style="color:var(--cor-sucesso)">${fmtN(o.valor_saida)} ${o.moeda_saida || ''}</strong></div>
-                ${destHtml}
-            </div>
-        </div>`;
-    document.getElementById('baixaConfPanel').style.display = '';
-    document.getElementById('baixaPosConfirmacao').style.display = 'none';
-    document.getElementById('baixaComprovantesExist').style.display = 'none';
-    document.getElementById('baixaFile').value = '';
-    document.getElementById('baixaMsg').innerHTML = '';
-    document.getElementById('btnConfBaixa').disabled = false;
-    if (o.tem_comprovante) _carregarComprovantesNoModal(o.id, 'baixaComprovantesLista', 'baixaComprovantesExist');
-    document.getElementById('modalBaixa').classList.add('open');
-}
-
-async function confirmarPagamentoOrdem() {
-    if (!_baixaOrdemAtual) return;
-    const btn = document.getElementById('btnConfBaixa');
-    const msg = document.getElementById('baixaMsg');
-    btn.disabled = true;
-    msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Confirmando…';
-    try {
-        const files = document.getElementById('baixaFile').files;
-        const fd = new FormData();
-        if (files.length > 0) fd.append('arquivo', files[0]);
-        const r = await fetch(`/api/admin/ordens/${_baixaOrdemAtual.id}/confirmar-pagamento`, {method:'POST', body:fd});
-        const d = await r.json();
-        if (!d.success) { msg.innerHTML = `<span style="color:var(--cor-perigo);">${d.message}</span>`; btn.disabled = false; return; }
-        for (let i = 1; i < files.length; i++) {
-            const fd2 = new FormData(); fd2.append('arquivo', files[i]);
-            await fetch(`/api/admin/ordens/${_baixaOrdemAtual.id}/comprovantes`, {method:'POST', body:fd2});
-        }
-        toast(`Pagamento confirmado — ${_baixaOrdemAtual.cliente_nome || 'ordem'}`, 'ok');
-        carregarStats();
-        document.getElementById('baixaConfPanel').style.display = 'none';
-        document.getElementById('baixaPosConfirmacao').style.display = '';
-        document.getElementById('baixaFilePosConf').value = '';
-        document.getElementById('baixaPosMsg').innerHTML = '';
-        _carregarComprovantesNoModal(_baixaOrdemAtual.id, 'baixaComprovantesPosList', null);
-    } catch(e) { msg.innerHTML = `<span style="color:var(--cor-perigo);">${e.message}</span>`; btn.disabled = false; }
-}
-
-async function uploadBaixaPosConf() {
-    if (!_baixaOrdemAtual) return;
-    const files = document.getElementById('baixaFilePosConf').files;
-    const msg   = document.getElementById('baixaPosMsg');
-    if (!files.length) { msg.innerHTML = '<span style="color:var(--cor-alerta);">Selecione um arquivo.</span>'; return; }
-    msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando…';
-    try {
-        for (const f of files) { const fd = new FormData(); fd.append('arquivo', f); await fetch(`/api/admin/ordens/${_baixaOrdemAtual.id}/comprovantes`, {method:'POST', body:fd}); }
-        document.getElementById('baixaFilePosConf').value = '';
-        msg.innerHTML = '<span style="color:var(--cor-sucesso);">Comprovante(s) adicionado(s).</span>';
-        _carregarComprovantesNoModal(_baixaOrdemAtual.id, 'baixaComprovantesPosList', null);
-    } catch(e) { msg.innerHTML = `<span style="color:var(--cor-perigo);">${e.message}</span>`; }
-}
-
-async function verComprovantes(ordemId) {
-    _compOrdemId = ordemId;
-    document.getElementById('addCompMsg').innerHTML = '';
-    document.getElementById('addCompFile').value = '';
-    document.getElementById('comprovantesModalLista').innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    document.getElementById('modalComprovantes').classList.add('open');
-    await _carregarComprovantesNoModal(ordemId, 'comprovantesModalLista', null);
-}
-
-async function _carregarComprovantesNoModal(ordemId, listaElId, wrapElId) {
-    try {
-        const r = await fetch(`/api/admin/ordens/${ordemId}/comprovantes`);
-        const d = await r.json();
-        const comps = d.comprovantes || [];
-        const el = document.getElementById(listaElId);
-        if (!el) return;
-        if (!comps.length) { el.innerHTML = '<p style="font-size:12px;color:var(--cor-texto-secundario);">Nenhum comprovante ainda.</p>'; return; }
-        el.innerHTML = comps.map((c, i) => `
-            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--cor-borda);">
-                <i class="fas fa-file-alt" style="color:var(--cor-admin);"></i>
-                <span style="flex:1;font-size:12px;">${c.arquivo_nome || `Comprovante ${i+1}`}</span>
-                <span style="font-size:10px;color:var(--cor-texto-secundario);">${c.criado_por || ''} ${(c.criado_em||'').slice(0,10)}</span>
-                ${c.arquivo_url ? `<a href="/api/comprovantes/view?path=${encodeURIComponent(c.arquivo_url)}" target="_blank" class="btn-act" style="text-decoration:none;"><i class="fas fa-eye"></i></a>` : ''}
-            </div>`).join('');
-        if (wrapElId) document.getElementById(wrapElId).style.display = '';
-    } catch(e) { console.error(e); }
-}
-
-async function uploadComprovantesAdicionais() {
-    if (!_compOrdemId) return;
-    const files = document.getElementById('addCompFile').files;
-    const msg   = document.getElementById('addCompMsg');
-    if (!files.length) { msg.innerHTML = '<span style="color:var(--cor-alerta);">Selecione um arquivo.</span>'; return; }
-    msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando…';
-    try {
-        for (const f of files) { const fd = new FormData(); fd.append('arquivo', f); await fetch(`/api/admin/ordens/${_compOrdemId}/comprovantes`, {method:'POST', body:fd}); }
-        toast('Comprovantes adicionados', 'ok');
-        document.getElementById('addCompFile').value = '';
-        msg.innerHTML = '';
-        await _carregarComprovantesNoModal(_compOrdemId, 'comprovantesModalLista', null);
-        carregarBaixa();
-    } catch(e) { msg.innerHTML = `<span style="color:var(--cor-perigo);">${e.message}</span>`; }
 }
 
 function toggleTheme() {
