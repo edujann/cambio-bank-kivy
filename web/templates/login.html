@@ -425,10 +425,11 @@
                 if (d.success) {
                     setStatus('Login successful!', 'success');
                     setTimeout(() => {
-                        if      (d.tipo === 'admin')      window.location.href = '/admin/dashboard';
-                        else if (d.tipo === 'loja')       window.location.href = '/loja/dashboard';
-                        else if (d.tipo === 'compliance') window.location.href = '/compliance/dashboard';
-                        else                              window.location.href = `/dashboard?usuario=${encodeURIComponent(username)}`;
+                        if      (d.tipo === 'admin')                window.location.href = '/admin/dashboard';
+                        else if (d.tipo === 'loja')                 window.location.href = '/loja/dashboard';
+                        else if (d.tipo === 'compliance')           window.location.href = '/compliance/dashboard';
+                        else if (d.tipo === 'backoffice' || d.tipo === 'backoffice_gerente') window.location.href = '/backoffice/dashboard';
+                        else                                        window.location.href = `/dashboard?usuario=${encodeURIComponent(username)}`;
                     }, 900);
                 } else {
                     setStatus(d.message || 'Invalid username or password.', 'error');

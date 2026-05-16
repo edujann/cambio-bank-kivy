@@ -1457,53 +1457,26 @@
         console.log('📊 Dados processados:', data.transacoes?.length || 0, 'transações');
     }
 
-    // 🔥 FUNÇÃO: Formatar descrição simplificada
     function formatarDescricaoCompleta(transacao) {
-        // Verificar se é depósito
-        if (transacao.tipo === "Depósito") {
-            // 🔥 USAR OS CAMPOS QUE O BACKEND JÁ ENVIA
-            let banco = transacao.banco_origem || '';
-            let remetente = transacao.remetente || '';
-            
-            console.log('=== FRONTEND DEPÓSITO ===');
-            console.log('banco_origem recebido:', banco);
-            console.log('remetente recebido:', remetente);
-            console.log('descricao original:', transacao.descricao);
-            
-            // Se os campos vierem vazios, tentar extrair da descrição
-            if (!banco && !remetente && transacao.descricao) {
-                const descOriginal = transacao.descricao;
-                
-                // Extrair banco
-                const bancoMatch = descOriginal.match(/Banco:\s*([^-]+?)(?:\s*-|$)/);
-                if (bancoMatch && bancoMatch[1]) {
-                    banco = bancoMatch[1].trim();
-                }
-                
-                // Extrair remetente
-                const remetenteMatch = descOriginal.match(/Remetente:\s*(.+)$/);
-                if (remetenteMatch && remetenteMatch[1]) {
-                    remetente = remetenteMatch[1].trim();
-                }
-            }
-            
-            console.log('Banco final:', banco);
-            console.log('Remetente final:', remetente);
-            console.log('=======================');
-            
-            // Construir descrição
-            if (banco && remetente) {
-                return `Depósito de: ${banco} - ${remetente}`;
-            } else if (banco) {
-                return `Depósito do banco: ${banco}`;
-            } else if (remetente) {
-                return `Depósito de: ${remetente}`;
-            } else {
-                return 'Depósito';
-            }
+        const tipoNorm = (transacao.tipo || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'');
+        const isDeposito = tipoNorm === 'deposito';
+
+        // Se já tem uma descrição significativa (não é apenas o tipo genérico), usa direto
+        const descRaw = (transacao.descricao || '').trim();
+        const genericos = ['deposito','depósito','deposito','transferencia','transferência','transacao','transação',''];
+        if (descRaw && !genericos.includes(descRaw.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,''))) {
+            return descRaw;
         }
-        
-        // Para outros tipos de transação
+
+        if (isDeposito) {
+            const banco     = transacao.banco_origem || '';
+            const remetente = transacao.remetente    || '';
+            if (banco && remetente) return `Depósito de: ${banco} - ${remetente}`;
+            if (banco)              return `Depósito — ${banco}`;
+            if (remetente)          return `Depósito de: ${remetente}`;
+            return 'Depósito';
+        }
+
         return transacao.descricao || transacao.tipo || 'Transação';
     }
 

@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+    <script>(function(){ document.documentElement.setAttribute('data-theme', localStorage.getItem('theme')||'light'); })();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link International — Back Office</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root[data-theme="light"]{--cor-fundo:#f5ede0;--cor-card:#ffffff;--cor-borda:rgba(210,185,130,.4);--cor-texto:#1a1200;--cor-texto-secundario:#9a8560;--cor-admin:#c8920a;--cor-sucesso:#1a7a52;--cor-alerta:#b87200;--cor-perigo:#c02020;--cor-roxo:#7b4bb8;--sombra-suave:0 2px 8px rgba(160,110,0,.10),0 1px 3px rgba(0,0,0,.04);--sombra-media:0 6px 22px rgba(160,110,0,.13),0 2px 8px rgba(0,0,0,.05);--borda-radius:14px;--borda-radius-pequeno:10px;}
+        :root[data-theme="dark"]{--cor-fundo:#110f08;--cor-card:#191611;--cor-borda:#2d2819;--cor-texto:#e0e0e0;--cor-texto-secundario:#8b949e;--cor-admin:#d29e00;--cor-sucesso:#2ec27e;--cor-alerta:#f39c12;--cor-perigo:#e01b24;--cor-roxo:#9b59b6;--sombra-suave:0 4px 6px rgba(0,0,0,.30);--sombra-media:0 8px 16px rgba(0,0,0,.40);--borda-radius:14px;--borda-radius-pequeno:10px;}
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+        body{background-color:#f5ede0;background-image:radial-gradient(ellipse at 15% 15%,rgba(210,158,0,.10) 0%,transparent 55%),radial-gradient(ellipse at 85% 85%,rgba(180,120,0,.08) 0%,transparent 55%),linear-gradient(150deg,#f8f2e6 0%,#fdf9f2 45%,#ede3cf 100%);background-attachment:fixed;color:var(--cor-texto);min-height:100vh;}
+        body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(180,130,0,.055) 1px,transparent 1px);background-size:30px 30px;pointer-events:none;z-index:0;}
+        html[data-theme="dark"] body{background-color:#110f08;background-image:linear-gradient(135deg,#110f08 0%,#1f1a10 100%);}
+        html[data-theme="dark"] body::before{display:none;}
+
+        .top-bar{position:sticky;top:0;z-index:200;height:54px;background:var(--cor-card);border-bottom:1px solid var(--cor-borda);display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:10px;}
+        .logo{display:flex;align-items:center;gap:10px;font-size:17px;}
+        .logo-text{background:linear-gradient(90deg,#b78700,#eeb600);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800;}
+        .logo-text span{font-weight:400;}
+        .logo-sub{font-size:12px;color:var(--cor-texto-secundario);margin-left:4px;}
+        .hd-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+        .btn-hd{background:rgba(210,158,0,.12);border:1px solid var(--cor-admin);color:var(--cor-admin);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:.15s;}
+        .btn-hd:hover{background:rgba(210,158,0,.25);}
+        .btn-hd-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
+        .btn-hd-ghost:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+        .badge-user{background:rgba(210,158,0,.1);color:var(--cor-admin);padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;}
+        #btnTheme{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:0;border-radius:6px;cursor:pointer;font-size:14px;display:inline-flex;align-items:center;justify-content:center;height:30px;width:30px;transition:.15s;}
+        #btnTheme:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+
+        .page{max-width:1400px;margin:0 auto;padding:24px;position:relative;z-index:1;}
+
+        .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:22px;}
+        .stat-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:14px 16px;box-shadow:var(--sombra-suave);position:relative;overflow:hidden;}
+        .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--cor-admin),transparent);}
+        .stat-card.alerta::before{background:linear-gradient(90deg,var(--cor-alerta),transparent);}
+        .stat-card.sucesso::before{background:linear-gradient(90deg,var(--cor-sucesso),transparent);}
+        .stat-card.roxo::before{background:linear-gradient(90deg,var(--cor-roxo),transparent);}
+        .stat-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+        .stat-title{font-size:11px;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.5px;font-weight:600;}
+        .stat-icon{font-size:20px;color:var(--cor-admin);}
+        .stat-card.alerta .stat-icon{color:var(--cor-alerta);}
+        .stat-card.sucesso .stat-icon{color:var(--cor-sucesso);}
+        .stat-card.roxo .stat-icon{color:var(--cor-roxo);}
+        .stat-value{font-size:30px;font-weight:700;line-height:1;}
+        .stat-label{font-size:11px;color:var(--cor-texto-secundario);margin-top:5px;}
+
+        .tabs-nav{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:20px;background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:8px;box-shadow:var(--sombra-suave);}
+        .tab-btn{padding:9px 15px;border-radius:10px;border:none;background:transparent;color:var(--cor-texto-secundario);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .2s;white-space:nowrap;}
+        .tab-btn:hover{background:rgba(200,146,10,.08);color:var(--cor-admin);}
+        .tab-btn.active{background:linear-gradient(135deg,var(--cor-admin),#e8b400);color:#fff;box-shadow:0 3px 10px rgba(200,146,10,.3);}
+        .tab-btn .badge{border-radius:10px;padding:1px 7px;font-size:11px;background:var(--cor-admin);color:#fff;}
+        .tab-btn.active .badge{background:rgba(255,255,255,.3);color:#fff;}
+        .tab-pane{display:none;}
+        .tab-pane.active{display:block;}
+
+        .section-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:24px;box-shadow:var(--sombra-suave);margin-bottom:20px;}
+        .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
+        .section-title{font-size:15px;font-weight:700;display:flex;align-items:center;gap:10px;}
+        .section-title i{color:var(--cor-admin);}
+
+        .filters{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:14px 16px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;box-shadow:var(--sombra-suave);}
+        .fgroup{display:flex;flex-direction:column;gap:4px;}
+        .fgroup label{font-size:11px;color:var(--cor-texto-secundario);font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+        .fc{background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:7px 10px;border-radius:var(--borda-radius-pequeno);font-size:13px;outline:none;transition:.15s;}
+        .fc:focus{border-color:var(--cor-admin);box-shadow:0 0 0 3px rgba(200,146,10,.1);}
+        [data-theme="dark"] .fc{background:var(--cor-fundo);}
+
+        .data-table{width:100%;border-collapse:collapse;font-size:13px;}
+        .data-table th{background:rgba(200,146,10,.08);color:var(--cor-texto-secundario);font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;text-align:left;border-bottom:1px solid var(--cor-borda);}
+        .data-table td{padding:12px;border-bottom:1px solid var(--cor-borda);vertical-align:middle;}
+        .data-table tr:last-child td{border-bottom:none;}
+        .data-table tr:hover td{background:rgba(200,146,10,.04);}
+        .tbl-wrap{overflow-x:auto;}
+
+        .btn{padding:7px 14px;border-radius:8px;border:none;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .2s;white-space:nowrap;}
+        .btn-primary{background:linear-gradient(135deg,var(--cor-admin),#e8b400);color:#1a1200;}
+        .btn-primary:hover{opacity:.88;}
+        .btn-success{background:rgba(26,122,82,.15);color:var(--cor-sucesso);border:1px solid rgba(26,122,82,.25);}
+        .btn-success:hover{background:rgba(26,122,82,.25);}
+        .btn-danger{background:rgba(192,32,32,.12);color:var(--cor-perigo);border:1px solid rgba(192,32,32,.2);}
+        .btn-danger:hover{background:rgba(192,32,32,.22);}
+        .btn-ghost{background:transparent;color:var(--cor-texto-secundario);border:1px solid var(--cor-borda);}
+        .btn-ghost:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+        .btn-warn{background:rgba(184,114,0,.12);color:var(--cor-alerta);border:1px solid rgba(184,114,0,.25);}
+        .btn-warn:hover{background:rgba(184,114,0,.22);}
+
+        .badge-status{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600;white-space:nowrap;}
+        .badge-on-hold{background:rgba(184,114,0,.15);color:var(--cor-alerta);}
+        .badge-liberada{background:rgba(26,122,82,.12);color:var(--cor-sucesso);}
+        .badge-despachada{background:rgba(100,100,200,.12);color:#5555cc;}
+        .badge-em-analise{background:rgba(150,80,200,.12);color:#8832cc;}
+        .badge-paga{background:rgba(26,122,82,.12);color:var(--cor-sucesso);}
+        .badge-cancelada{background:rgba(192,32,32,.12);color:var(--cor-perigo);}
+        .badge-enviado{background:rgba(184,114,0,.15);color:var(--cor-alerta);}
+        .badge-conciliado{background:rgba(26,122,82,.12);color:var(--cor-sucesso);}
+        .badge-pendente{background:rgba(184,114,0,.15);color:var(--cor-alerta);}
+        .badge-divergente{background:rgba(192,32,32,.12);color:var(--cor-perigo);}
+        .badge-perigo{background:rgba(192,32,32,.12);color:var(--cor-perigo);}
+        .badge-ativa{background:rgba(26,122,82,.12);color:var(--cor-sucesso);}
+        .badge-inativa{background:rgba(192,32,32,.12);color:var(--cor-perigo);}
+
+        .shortcut-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;}
+        .shortcut-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius-pequeno);padding:20px 16px;text-align:center;cursor:pointer;transition:all .25s;text-decoration:none;color:var(--cor-texto);display:block;}
+        .shortcut-card:hover{transform:translateY(-3px);border-color:var(--cor-admin);box-shadow:var(--sombra-media);}
+        .shortcut-card i{font-size:28px;color:var(--cor-admin);margin-bottom:10px;display:block;}
+        .shortcut-card span{font-size:13px;font-weight:600;}
+
+        .despacho-card{border:1px solid var(--cor-borda);border-radius:var(--borda-radius-pequeno);margin-bottom:12px;overflow:hidden;}
+        .despacho-header{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:rgba(200,146,10,.04);flex-wrap:wrap;gap:8px;}
+        .despacho-header:hover{background:rgba(200,146,10,.08);}
+        .despacho-body{display:none;padding:16px;border-top:1px solid var(--cor-borda);}
+        .despacho-body.open{display:block;}
+
+        .form-group{margin-bottom:14px;}
+        .form-group label{font-size:12px;color:var(--cor-texto-secundario);display:block;margin-bottom:5px;font-weight:600;}
+        .form-control{width:100%;padding:9px 12px;border:1px solid var(--cor-borda);border-radius:9px;background:var(--cor-card);color:var(--cor-texto);font-size:13px;outline:none;transition:border-color .2s;}
+        .form-control:focus{border-color:var(--cor-admin);}
+        [data-theme="dark"] .form-control{background:var(--cor-fundo);}
+
+        .modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
+        .modal-ov.open{display:flex;}
+        .modal-box{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);width:min(500px,94vw);box-shadow:0 20px 50px rgba(0,0,0,.25);position:relative;overflow:hidden;}
+        .modal-top-bar{height:4px;background:linear-gradient(90deg,#b78700,#eeb600,#b78700);}
+        .modal-body{padding:24px;}
+        .modal-title{font-size:16px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:10px;}
+        .modal-title i{color:var(--cor-admin);}
+        .modal-close{position:absolute;top:12px;right:14px;background:none;border:none;font-size:18px;color:var(--cor-texto-secundario);cursor:pointer;z-index:1;}
+        .modal-close:hover{color:var(--cor-perigo);}
+        .modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+        .msg-area{font-size:12px;min-height:16px;margin-top:8px;}
+
+        .loading{display:flex;align-items:center;gap:8px;color:var(--cor-texto-secundario);padding:24px;font-size:13px;}
+        .empty-state{text-align:center;padding:48px 24px;color:var(--cor-texto-secundario);}
+        .empty-state i{font-size:40px;margin-bottom:12px;opacity:.4;display:block;}
+        .empty-state p{font-size:14px;}
+
+        .comp-item{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border:1px solid var(--cor-borda);border-radius:8px;margin-bottom:6px;background:rgba(200,146,10,.03);font-size:12px;flex-wrap:wrap;gap:6px;}
+
+        .sla-ok{color:var(--cor-sucesso);}
+        .sla-warn{color:var(--cor-alerta);}
+        .sla-crit{color:var(--cor-perigo);}
+
+        .taxa-input{width:110px;padding:5px 8px;border:1px solid var(--cor-borda);border-radius:6px;font-size:12px;background:var(--cor-card);color:var(--cor-texto);outline:none;text-align:right;}
+        .taxa-input:focus{border-color:var(--cor-admin);}
+        [data-theme="dark"] .taxa-input{background:var(--cor-fundo);}
+
+        @media(max-width:600px){.tabs-nav{flex-wrap:nowrap;overflow-x:auto;}.stats-grid{grid-template-columns:1fr 1fr;}}
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <div class="logo">
+        <span class="logo-text">Link <span>International</span></span>
+        <span class="logo-sub">/ Back Office</span>
+    </div>
+    <div class="hd-right">
+        <span class="badge-user">
+            {% if tipo == 'backoffice_gerente' %}<i class="fas fa-user-shield"></i> Gerente{% else %}<i class="fas fa-user"></i> Agente{% endif %}
+            &nbsp;—&nbsp;{{ nome.split()[0] if nome else usuario }}
+        </span>
+        <button class="btn-hd btn-hd-ghost" onclick="abrirModalSenha()" title="Alterar Senha"><i class="fas fa-key"></i></button>
+        <button id="btnTheme" onclick="toggleTheme()" title="Alternar tema"><i class="fas fa-moon"></i></button>
+        <button class="btn-hd" onclick="sair()"><i class="fas fa-right-from-bracket"></i> Sair</button>
+    </div>
+</div>
+
+<div class="page">
+
+    <!-- STATS -->
+    <div class="stats-grid">
+        <div class="stat-card alerta">
+            <div class="stat-header"><span class="stat-title">On Hold</span><i class="fas fa-clock stat-icon"></i></div>
+            <div class="stat-value" id="stat-on-hold">—</div>
+            <div class="stat-label">Aguardando confirmação de depósito</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-header"><span class="stat-title">Comp. em Análise</span><i class="fas fa-magnifying-glass-dollar stat-icon"></i></div>
+            <div class="stat-value" id="stat-em-analise">—</div>
+            <div class="stat-label">Aguardando verificação</div>
+        </div>
+        <div class="stat-card sucesso">
+            <div class="stat-header"><span class="stat-title">Despachos Abertos</span><i class="fas fa-paper-plane stat-icon"></i></div>
+            <div class="stat-value" id="stat-despachos">—</div>
+            <div class="stat-label">Enviados aguardando pagamento</div>
+        </div>
+        <div class="stat-card roxo">
+            <div class="stat-header"><span class="stat-title">Pend. Conciliação</span><i class="fas fa-scale-balanced stat-icon"></i></div>
+            <div class="stat-value" id="stat-conciliacao">—</div>
+            <div class="stat-label">Lançamentos não conciliados</div>
+        </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs-nav">
+        <button class="tab-btn active" onclick="mudarTab('operacoes',this)">
+            <i class="fas fa-gears"></i> Operações
+            <span class="badge" id="badge-operacoes" style="display:none">0</span>
+        </button>
+        <button class="tab-btn" onclick="mudarTab('despachos',this)">
+            <i class="fas fa-paper-plane"></i> Despachos
+            <span class="badge" id="badge-despachos" style="display:none">0</span>
+        </button>
+        <button class="tab-btn" onclick="mudarTab('conciliacao',this)">
+            <i class="fas fa-scale-balanced"></i> Conciliação
+            <span class="badge" id="badge-conciliacao" style="display:none">0</span>
+        </button>
+        <button class="tab-btn" onclick="mudarTab('taxas',this)">
+            <i class="fas fa-percent"></i> Taxas &amp; Contas
+        </button>
+        <button class="tab-btn" onclick="mudarTab('callcenter',this)">
+            <i class="fas fa-headset"></i> Call Center
+        </button>
+        {% if tipo == 'backoffice_gerente' %}
+        <button class="tab-btn" onclick="mudarTab('config',this)">
+            <i class="fas fa-sliders"></i> Configurações
+        </button>
+        {% endif %}
+    </div>
+
+    <!-- ══ TAB: OPERAÇÕES ══ -->
+    <div class="tab-pane active" id="tab-operacoes">
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i class="fas fa-clock"></i> Ordens On Hold — Confirmar Depósito</div>
+                <button class="btn btn-ghost" onclick="carregarOnHold()"><i class="fas fa-rotate-right"></i> Atualizar</button>
+            </div>
+            <div id="lista-on-hold"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div></div>
+        </div>
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i class="fas fa-magnifying-glass-dollar"></i> Comprovante em Análise — Verificar Pagamento</div>
+                <button class="btn btn-ghost" onclick="carregarEmAnalise()"><i class="fas fa-rotate-right"></i> Atualizar</button>
+            </div>
+            <div id="lista-em-analise"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div></div>
+        </div>
+    </div>
+
+    <!-- ══ TAB: DESPACHOS ══ -->
+    <div class="tab-pane" id="tab-despachos">
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i class="fas fa-paper-plane"></i> Despachos</div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <select id="filtro-despacho-status" class="fc" style="font-size:12px;" onchange="carregarDespachos()">
+                        <option value="">Todos</option>
+                        <option value="enviado">Enviado</option>
+                        <option value="pago">Pago</option>
+                    </select>
+                    <button class="btn btn-ghost" onclick="carregarDespachos()"><i class="fas fa-rotate-right"></i> Atualizar</button>
+                </div>
+            </div>
+            <div id="lista-despachos"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div></div>
+        </div>
+    </div>
+
+    <!-- ══ TAB: CONCILIAÇÃO ══ -->
+    <div class="tab-pane" id="tab-conciliacao">
+        <div class="section-card">
+            <div class="section-title" style="margin-bottom:20px;"><i class="fas fa-scale-balanced"></i> Conciliação Bancária</div>
+            <p style="font-size:14px;color:var(--cor-texto-secundario);margin-bottom:24px;">
+                Confirme as transferências bancárias (Bank Transfers) recebidas nas contas da empresa e visualize a posição de cada conta.
+            </p>
+            <div class="shortcut-grid">
+                <a href="/admin/conciliacao" class="shortcut-card">
+                    <i class="fas fa-scale-balanced"></i>
+                    <span>Abrir Conciliação Bancária</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ TAB: TAXAS & CONTAS ══ -->
+    <div class="tab-pane" id="tab-taxas">
+        <div class="section-card">
+            <div class="section-title" style="margin-bottom:20px;"><i class="fas fa-percent"></i> Taxas &amp; Contas</div>
+            <p style="font-size:14px;color:var(--cor-texto-secundario);margin-bottom:24px;">
+                Gerencie as taxas de câmbio por par de moedas e configure as contas bancárias por forma de pagamento e loja.
+            </p>
+            <div class="shortcut-grid">
+                <a href="/admin/taxas-loja" class="shortcut-card">
+                    <i class="fas fa-percent"></i>
+                    <span>Abrir Taxas &amp; Contas</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ TAB: CALL CENTER ══ -->
+    <div class="tab-pane" id="tab-callcenter">
+        <div class="section-card">
+            <div class="section-title" style="margin-bottom:20px;"><i class="fas fa-headset"></i> Atendimento &amp; Call Center</div>
+            <p style="font-size:14px;color:var(--cor-texto-secundario);margin-bottom:24px;">
+                Para criar uma nova ordem via telefone, utilize o painel de atendimento. Selecione a forma de pagamento <strong>Transferência</strong> — a ordem ficará com status <em>On Hold</em> até a confirmação do depósito.
+            </p>
+            <div class="shortcut-grid">
+                <a href="/loja/dashboard" class="shortcut-card">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Nova Ordem / Atendimento</span>
+                </a>
+                <a href="/loja/clientes" class="shortcut-card">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Cadastrar / Buscar Cliente</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ TAB: CONFIGURAÇÕES (gerente) ══ -->
+    {% if tipo == 'backoffice_gerente' %}
+    <div class="tab-pane" id="tab-config">
+        <div class="section-card">
+            <div class="section-title" style="margin-bottom:20px;"><i class="fas fa-sliders"></i> Configurações</div>
+            <div class="shortcut-grid">
+                <a href="/admin/despachos" class="shortcut-card">
+                    <i class="fas fa-paper-plane"></i>
+                    <span>Gerenciar Despachos</span>
+                </a>
+                <a href="/admin/lojas" class="shortcut-card">
+                    <i class="fas fa-store"></i>
+                    <span>Gerenciar Lojas</span>
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- ══ MODAL: ALTERAR SENHA ══ -->
+<div class="modal-ov" id="modalAlterarSenha" onclick="if(event.target===this)fecharModalSenha()">
+    <div class="modal-box">
+        <div class="modal-top-bar"></div>
+        <button class="modal-close" onclick="fecharModalSenha()">&times;</button>
+        <div class="modal-body">
+            <div class="modal-title"><i class="fas fa-key"></i> Alterar Senha</div>
+            <div class="form-group"><label>Senha Atual</label><input type="password" id="senhaAtual" class="form-control" placeholder="••••••••"></div>
+            <div class="form-group"><label>Nova Senha</label><input type="password" id="novaSenha" class="form-control" placeholder="••••••••"></div>
+            <div class="form-group"><label>Confirmar Nova Senha</label><input type="password" id="confirmarSenha" class="form-control" placeholder="••••••••"></div>
+            <div class="msg-area" id="msgSenha"></div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="fecharModalSenha()">Cancelar</button>
+                <button class="btn btn-primary" onclick="salvarSenha()"><i class="fas fa-save"></i> Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ MODAL: VERIFICAR PAGAMENTO ══ -->
+<div class="modal-ov" id="modalVerificar" onclick="if(event.target===this)fecharModalVerificar()">
+    <div class="modal-box">
+        <div class="modal-top-bar"></div>
+        <button class="modal-close" onclick="fecharModalVerificar()">&times;</button>
+        <div class="modal-body">
+            <div class="modal-title"><i class="fas fa-check-circle" style="color:var(--cor-sucesso)"></i> Confirmar Pagamento</div>
+            <p style="font-size:13px;color:var(--cor-texto-secundario);margin-bottom:16px;" id="verificar-desc">Confirma que o comprovante bate com a ordem?</p>
+            <div class="form-group"><label>Observações (opcional)</label><input type="text" id="verificar-obs" class="form-control" placeholder="Ex: comprovante verificado, valores conferem"></div>
+            <div class="msg-area" id="verificar-msg"></div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" onclick="rejeitarDoVerificar()"><i class="fas fa-times"></i> Rejeitar</button>
+                <button class="btn btn-success" onclick="confirmarVerificacao()"><i class="fas fa-check"></i> Confirmar Pagamento</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ MODAL: REJEITAR COMPROVANTE ══ -->
+<div class="modal-ov" id="modalPendencia" onclick="if(event.target===this)fecharModalPendencia()">
+    <div class="modal-box">
+        <div class="modal-top-bar"></div>
+        <button class="modal-close" onclick="fecharModalPendencia()">&times;</button>
+        <div class="modal-body">
+            <div class="modal-title"><i class="fas fa-triangle-exclamation" style="color:var(--cor-perigo)"></i> Abrir Pendência</div>
+            <p id="pendencia-desc" style="font-size:13px;color:var(--cor-texto-secundario);margin-bottom:14px;"></p>
+            <div class="form-group"><label>Motivo da pendência <span style="color:var(--cor-perigo)">*</span></label><input type="text" id="pendencia-motivo" class="form-control" placeholder="Ex: beneficiário não recebeu, valor divergente..."></div>
+            <div class="msg-area" id="pendencia-msg"></div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="fecharModalPendencia()">Cancelar</button>
+                <button class="btn btn-danger" onclick="confirmarPendencia()"><i class="fas fa-triangle-exclamation"></i> Abrir Pendência</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-ov" id="modalRejeitar" onclick="if(event.target===this)fecharModalRejeitar()">
+    <div class="modal-box">
+        <div class="modal-top-bar"></div>
+        <button class="modal-close" onclick="fecharModalRejeitar()">&times;</button>
+        <div class="modal-body">
+            <div class="modal-title"><i class="fas fa-times-circle" style="color:var(--cor-perigo)"></i> Rejeitar Comprovante</div>
+            <div class="form-group"><label>Motivo da rejeição <span style="color:var(--cor-perigo)">*</span></label><input type="text" id="rejeitar-motivo" class="form-control" placeholder="Ex: valor divergente, comprovante ilegível..."></div>
+            <div class="msg-area" id="rejeitar-msg"></div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="fecharModalRejeitar()">Cancelar</button>
+                <button class="btn btn-danger" onclick="confirmarRejeicao()"><i class="fas fa-times"></i> Rejeitar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    const _usuario = '{{ usuario }}';
+    const _tipo    = '{{ tipo }}';
+
+    // ── THEME ──────────────────────────────────────────────────
+    function toggleTheme() {
+        const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+        document.getElementById('btnTheme').innerHTML = next === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+    }
+    (function(){ const t = localStorage.getItem('theme')||'light'; document.getElementById('btnTheme').innerHTML = t==='dark'?'<i class="fas fa-sun"></i>':'<i class="fas fa-moon"></i>'; })();
+
+    // ── TABS ───────────────────────────────────────────────────
+    function mudarTab(id, btn) {
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + id)?.classList.add('active');
+        btn?.classList.add('active');
+        if (id === 'operacoes')   { carregarOnHold(); carregarEmAnalise(); }
+        if (id === 'despachos')   carregarDespachos();
+        if (id === 'conciliacao') { window.location.href = '/admin/conciliacao'; return; }
+        if (id === 'taxas')      { window.location.href = '/admin/taxas-loja'; return; }
+    }
+
+    // ── UTILS ──────────────────────────────────────────────────
+    function fmtData(iso) {
+        if (!iso) return '—';
+        const d = new Date(iso);
+        return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    }
+    function fmtValor(v, moeda) {
+        return parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + (moeda ? ' '+moeda : '');
+    }
+    function slaClass(iso) {
+        if (!iso) return '';
+        const h = (Date.now()-new Date(iso))/3600000;
+        return h<24?'sla-ok':h<48?'sla-warn':'sla-crit';
+    }
+    function slaLabel(iso) {
+        if (!iso) return '';
+        const h = Math.floor((Date.now()-new Date(iso))/3600000);
+        if (h<1) return '<1h'; if (h<24) return h+'h'; return Math.floor(h/24)+'d '+(h%24)+'h';
+    }
+    function badgeStatus(s) {
+        const cls={on_hold:'badge-on-hold',liberada:'badge-liberada',despachada:'badge-despachada',
+            comprovante_em_analise:'badge-em-analise',paga:'badge-paga',cancelada:'badge-cancelada',
+            enviado:'badge-enviado',pago:'badge-paga',conciliado:'badge-conciliado',
+            pendente:'badge-pendente',divergente:'badge-divergente',pendencia:'badge-perigo'};
+        const lbl={on_hold:'On Hold',liberada:'Liberada',despachada:'Despachada',
+            comprovante_em_analise:'Comp. em Análise',paga:'Paga',cancelada:'Cancelada',
+            enviado:'Enviado',pago:'Pago',conciliado:'Conciliado',pendente:'Pendente',divergente:'Divergente',pendencia:'Pendência'};
+        return `<span class="badge-status ${cls[s]||''}">${lbl[s]||s}</span>`;
+    }
+
+    // ── RESUMO ─────────────────────────────────────────────────
+    async function carregarResumo() {
+        try {
+            const d = await fetch('/api/backoffice/resumo').then(r=>r.json());
+            if (!d.success) return;
+            document.getElementById('stat-on-hold').textContent    = d.on_hold;
+            document.getElementById('stat-em-analise').textContent = d.em_analise;
+            document.getElementById('stat-despachos').textContent  = d.despachos_abertos;
+            if (d.conciliacao_pendente != null) document.getElementById('stat-conciliacao').textContent = d.conciliacao_pendente;
+            const bOp = document.getElementById('badge-operacoes');
+            const tot = d.on_hold + d.em_analise;
+            bOp.textContent = tot; bOp.style.display = tot ? '' : 'none';
+            const bDp = document.getElementById('badge-despachos');
+            bDp.textContent = d.despachos_abertos; bDp.style.display = d.despachos_abertos ? '' : 'none';
+            const bC = document.getElementById('badge-conciliacao');
+            if (d.conciliacao_pendente) { bC.textContent = d.conciliacao_pendente; bC.style.display = ''; }
+        } catch(e) {}
+    }
+
+    // ── ON HOLD ────────────────────────────────────────────────
+    async function carregarOnHold() {
+        const el = document.getElementById('lista-on-hold');
+        el.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
+        try {
+            const d = await fetch('/api/backoffice/ordens/on-hold').then(r=>r.json());
+            if (!d.success || !d.ordens.length) { el.innerHTML='<div class="empty-state"><i class="fas fa-check-circle"></i><p>Nenhuma ordem on hold.</p></div>'; return; }
+            let html = '<div class="tbl-wrap"><table class="data-table"><thead><tr><th>Data</th><th>Cliente</th><th>Valor</th><th>Loja</th><th>Tempo</th><th>Ações</th></tr></thead><tbody>';
+            d.ordens.forEach(o => {
+                html += `<tr>
+                    <td>${fmtData(o.created_at)}</td>
+                    <td><strong>${o.cliente_nome||'—'}</strong><br><span style="font-size:11px;color:var(--cor-texto-secundario)">${o.cliente_doc||''}</span></td>
+                    <td>${fmtValor(o.valor_entrada,o.moeda_entrada)}</td>
+                    <td>${o.loja||'—'}</td>
+                    <td><span class="${slaClass(o.created_at)}">${slaLabel(o.created_at)}</span></td>
+                    <td><button class="btn btn-success" onclick="confirmarDeposito('${o.id}','${(o.cliente_nome||'').replace(/'/g,"\\'")}')"><i class="fas fa-check"></i> Confirmar Depósito</button></td>
+                </tr>`;
+            });
+            el.innerHTML = html + '</tbody></table></div>';
+        } catch(e) { el.innerHTML='<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Erro ao carregar.</p></div>'; }
+    }
+
+    async function confirmarDeposito(ordemId, nome) {
+        if (!confirm(`Confirmar recebimento do depósito da ordem de ${nome}?`)) return;
+        try {
+            const d = await fetch(`/api/backoffice/ordens/${ordemId}/confirmar-deposito`,{method:'POST'}).then(r=>r.json());
+            if (d.success) { carregarOnHold(); carregarResumo(); } else alert(d.message);
+        } catch(e) { alert('Erro de conexão.'); }
+    }
+
+    // ── COMPROVANTE EM ANÁLISE ─────────────────────────────────
+    async function carregarEmAnalise() {
+        const el = document.getElementById('lista-em-analise');
+        el.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
+        try {
+            const d = await fetch('/api/backoffice/ordens/comprovante-em-analise').then(r=>r.json());
+            if (!d.success || !d.ordens.length) { el.innerHTML='<div class="empty-state"><i class="fas fa-check-circle"></i><p>Nenhum comprovante aguardando análise.</p></div>'; return; }
+            let html = '';
+            d.ordens.forEach(o => {
+                const comps = o.comprovantes||[];
+                const compsHtml = comps.length
+                    ? comps.map(c=>`<div class="comp-item"><span><i class="fas fa-file"></i> ${c.arquivo_nome||'arquivo'}</span><span style="font-size:11px;color:var(--cor-texto-secundario)">${fmtData(c.criado_em)}</span>${c.signed_url?`<a href="${c.signed_url}" target="_blank" class="btn btn-ghost" style="padding:4px 10px;font-size:11px;"><i class="fas fa-eye"></i> Ver</a>`:''}</div>`).join('')
+                    : '<p style="font-size:12px;color:var(--cor-texto-secundario)">Nenhum comprovante.</p>';
+                const bancoRows = [
+                    o.beneficiario_banco   ? `<span><strong>Banco:</strong> ${o.beneficiario_banco}</span>` : '',
+                    o.beneficiario_agencia ? `<span><strong>Agência:</strong> ${o.beneficiario_agencia}</span>` : '',
+                    o.beneficiario_conta   ? `<span><strong>Conta:</strong> ${o.beneficiario_conta}</span>` : '',
+                    o.beneficiario_pix     ? `<span><strong>Pix:</strong> ${o.beneficiario_pix}</span>` : '',
+                    o.benef_iban           ? `<span><strong>IBAN:</strong> ${o.benef_iban}</span>` : '',
+                    o.benef_swift          ? `<span><strong>SWIFT:</strong> ${o.benef_swift}</span>` : '',
+                ].filter(Boolean).join(' · ');
+                html += `<div class="section-card" style="margin-bottom:12px;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-weight:700;font-size:14px;">${o.cliente_nome||'—'} <span style="font-size:12px;font-weight:400;color:var(--cor-texto-secundario)">${o.cliente_doc||''}</span></div>
+                            <div style="font-size:12px;color:var(--cor-texto-secundario);margin-top:2px;">Loja: ${o.loja||'—'}</div>
+                        </div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                            <span class="badge-status badge-em-analise"><i class="fas fa-magnifying-glass-dollar"></i> Em Análise</span>
+                            <span class="${slaClass(o.updated_at)}" style="font-size:12px;">${slaLabel(o.updated_at)} aguardando</span>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+                        <div style="flex:0 0 auto;background:rgba(184,134,11,.09);border:1px solid rgba(184,134,11,.25);border-radius:8px;padding:10px 16px;text-align:center;min-width:130px;">
+                            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#b8860b;font-weight:700;margin-bottom:3px;">Valor Pago</div>
+                            <div style="font-size:22px;font-weight:800;color:#b8860b;line-height:1.1;">${parseFloat(o.valor_saida||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+                            <div style="font-size:12px;font-weight:700;color:#b8860b;">${o.moeda_saida||''}</div>
+                        </div>
+                        <div style="flex:1;min-width:180px;background:var(--cor-fundo-secundario,#f5f5f5);border:1px solid var(--cor-borda);border-radius:8px;padding:10px 14px;">
+                            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--cor-texto-terciario);font-weight:700;margin-bottom:6px;"><i class="fas fa-landmark" style="margin-right:4px;"></i>Dados do Beneficiário</div>
+                            <div style="font-size:13px;font-weight:700;margin-bottom:4px;">${o.beneficiario_nome||'—'}</div>
+                            ${bancoRows ? `<div style="font-size:12px;color:var(--cor-texto-secundario);display:flex;flex-wrap:wrap;gap:6px;">${bancoRows}</div>` : ''}
+                        </div>
+                    </div>
+                    <div style="margin-bottom:12px;">${compsHtml}</div>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;">
+                        <button class="btn btn-danger" onclick="abrirRejeitar('${o.id}')"><i class="fas fa-times"></i> Rejeitar</button>
+                        <button class="btn btn-success" onclick="abrirVerificar('${o.id}','${(o.beneficiario_nome||o.cliente_nome||'').replace(/'/g,"\\'")}','${fmtValor(o.valor_saida,o.moeda_saida)}')"><i class="fas fa-check"></i> Confirmar Pagamento</button>
+                    </div>
+                </div>`;
+            });
+            el.innerHTML = html;
+        } catch(e) { el.innerHTML='<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Erro ao carregar.</p></div>'; }
+    }
+
+    let _ordemVerificarId = null;
+    function abrirVerificar(id, nome, valor) {
+        _ordemVerificarId = id;
+        document.getElementById('verificar-desc').innerHTML = `Confirma que o comprovante de <strong>${nome}</strong> bate com a ordem de <strong>${valor}</strong>?`;
+        document.getElementById('verificar-obs').value = '';
+        document.getElementById('verificar-msg').innerHTML = '';
+        document.getElementById('modalVerificar').classList.add('open');
+    }
+    function fecharModalVerificar() { document.getElementById('modalVerificar').classList.remove('open'); }
+    function rejeitarDoVerificar() { fecharModalVerificar(); abrirRejeitar(_ordemVerificarId); }
+
+    async function confirmarVerificacao() {
+        const msg = document.getElementById('verificar-msg');
+        msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+        try {
+            const d = await fetch(`/api/backoffice/ordens/${_ordemVerificarId}/verificar-pagamento`,{
+                method:'POST',headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({observacoes:document.getElementById('verificar-obs').value})
+            }).then(r=>r.json());
+            if (d.success) { fecharModalVerificar(); carregarEmAnalise(); carregarResumo(); }
+            else msg.innerHTML = `<span style="color:var(--cor-perigo)">${d.message}</span>`;
+        } catch(e) { msg.innerHTML='<span style="color:var(--cor-perigo)">Erro de conexão.</span>'; }
+    }
+
+    let _ordemRejeitarId = null;
+    function abrirRejeitar(id) {
+        _ordemRejeitarId = id;
+        document.getElementById('rejeitar-motivo').value = '';
+        document.getElementById('rejeitar-msg').innerHTML = '';
+        document.getElementById('modalRejeitar').classList.add('open');
+    }
+    function fecharModalRejeitar() { document.getElementById('modalRejeitar').classList.remove('open'); }
+
+    async function confirmarRejeicao() {
+        const motivo = document.getElementById('rejeitar-motivo').value.trim();
+        const msg = document.getElementById('rejeitar-msg');
+        if (!motivo) { msg.innerHTML='<span style="color:var(--cor-perigo)">Informe o motivo.</span>'; return; }
+        msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+        try {
+            const d = await fetch(`/api/backoffice/ordens/${_ordemRejeitarId}/rejeitar-comprovante`,{
+                method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({motivo})
+            }).then(r=>r.json());
+            if (d.success) { fecharModalRejeitar(); carregarEmAnalise(); carregarResumo(); }
+            else msg.innerHTML = `<span style="color:var(--cor-perigo)">${d.message}</span>`;
+        } catch(e) { msg.innerHTML='<span style="color:var(--cor-perigo)">Erro de conexão.</span>'; }
+    }
+
+    // ── DESPACHOS ──────────────────────────────────────────────
+    async function carregarDespachos() {
+        const el = document.getElementById('lista-despachos');
+        const filtro = document.getElementById('filtro-despacho-status').value;
+        el.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
+        try {
+            const d = await fetch('/api/backoffice/despachos'+(filtro?'?status='+filtro:'')).then(r=>r.json());
+            if (!d.success||!d.despachos.length) { el.innerHTML='<div class="empty-state"><i class="fas fa-paper-plane"></i><p>Nenhum despacho encontrado.</p></div>'; return; }
+            let html = '';
+            d.despachos.forEach(dep => {
+                const ordens = dep.ordens||[];
+                const ordensHtml = ordens.length
+                    ? `<div class="tbl-wrap"><table class="data-table" style="margin-top:8px;font-size:12px;">
+                        <thead><tr>
+                            <th>Ordem</th><th>Cliente</th><th>Beneficiário</th>
+                            <th>Banco</th><th>Agência</th><th>Conta</th>
+                            <th>Moeda</th><th>Valor Pago</th><th>Status</th><th></th>
+                        </tr></thead><tbody>`+
+                      ordens.map(o=>`<tr style="${o.status==='pendencia'?'background:rgba(192,32,32,.04);':''}">
+                        <td style="font-size:11px;color:var(--cor-texto-secundario);white-space:nowrap;">${o.id.substring(0,8).toUpperCase()}</td>
+                        <td>${o.cliente_nome||'—'}</td>
+                        <td>${o.beneficiario_nome||'—'}</td>
+                        <td>${o.beneficiario_banco||'—'}</td>
+                        <td>${o.beneficiario_agencia||'—'}</td>
+                        <td>${o.beneficiario_conta||'—'}</td>
+                        <td>${o.moeda_saida||'—'}</td>
+                        <td style="white-space:nowrap;">${fmtValor(o.valor_saida,o.moeda_saida)}</td>
+                        <td>${badgeStatus(o.status)}</td>
+                        <td style="white-space:nowrap;">${o.status==='paga'?`<button class="btn btn-danger" style="padding:4px 10px;font-size:11px;" onclick="abrirPendencia('${o.id}','${(o.cliente_nome||'').replace(/'/g,"\\'")}')"><i class="fas fa-triangle-exclamation"></i> Pendência</button>`:o.status==='pendencia'?`<span style="font-size:11px;color:var(--cor-perigo);"><i class="fas fa-triangle-exclamation"></i> Em pendência</span>`:''}</td>
+                      </tr>`).join('')+
+                      '</tbody></table></div>'
+                    : '<p style="font-size:12px;color:var(--cor-texto-secundario);margin-top:8px;">Sem ordens vinculadas.</p>';
+                html += `<div class="despacho-card">
+                    <div class="despacho-header" onclick="toggleDespacho('dep-${dep.id}')">
+                        <div><strong>Despacho #${dep.numero}</strong>
+                            <span style="margin-left:12px;font-size:12px;color:var(--cor-texto-secundario)">${fmtValor(dep.valor_total,dep.moeda_saida)} · ${dep.qtd_ordens} ordem(ns) · Parceiro: ${dep.parceiro_pagador||'—'}</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:10px;">${badgeStatus(dep.status)}<span style="font-size:12px;color:var(--cor-texto-secundario)">${fmtData(dep.created_at)}</span><i class="fas fa-chevron-down" style="font-size:11px;color:var(--cor-texto-secundario)"></i></div>
+                    </div>
+                    <div class="despacho-body" id="dep-${dep.id}">
+                        <div style="font-size:13px;color:var(--cor-texto-secundario);display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;">
+                            <span>Criado por: <strong style="color:var(--cor-texto)">${dep.criado_por||'—'}</strong></span>
+                            ${dep.observacoes?`<span>Obs: <strong style="color:var(--cor-texto)">${dep.observacoes}</strong></span>`:''}
+                        </div>${ordensHtml}
+                    </div>
+                </div>`;
+            });
+            el.innerHTML = html;
+        } catch(e) { el.innerHTML='<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Erro ao carregar.</p></div>'; }
+    }
+    function toggleDespacho(id) { document.getElementById(id)?.classList.toggle('open'); }
+
+    let _ordemPendenciaId = null;
+    function abrirPendencia(id, nome) {
+        _ordemPendenciaId = id;
+        document.getElementById('pendencia-desc').innerHTML = `Ordem de <strong>${nome}</strong>`;
+        document.getElementById('pendencia-motivo').value = '';
+        document.getElementById('pendencia-msg').innerHTML = '';
+        document.getElementById('modalPendencia').classList.add('open');
+    }
+    function fecharModalPendencia() { document.getElementById('modalPendencia').classList.remove('open'); }
+
+    async function confirmarPendencia() {
+        const motivo = document.getElementById('pendencia-motivo').value.trim();
+        const msg = document.getElementById('pendencia-msg');
+        if (!motivo) { msg.innerHTML='<span style="color:var(--cor-perigo)">Informe o motivo da pendência.</span>'; return; }
+        msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+        try {
+            const d = await fetch(`/api/backoffice/ordens/${_ordemPendenciaId}/abrir-pendencia`, {
+                method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({motivo})
+            }).then(r=>r.json());
+            if (d.success) { fecharModalPendencia(); carregarDespachos(); carregarResumo(); }
+            else msg.innerHTML = `<span style="color:var(--cor-perigo)">${d.message}</span>`;
+        } catch(e) { msg.innerHTML='<span style="color:var(--cor-perigo)">Erro de conexão.</span>'; }
+    }
+
+    // ── SENHA ──────────────────────────────────────────────────
+    function abrirModalSenha() {
+        ['senhaAtual','novaSenha','confirmarSenha'].forEach(id=>document.getElementById(id).value='');
+        document.getElementById('msgSenha').innerHTML='';
+        document.getElementById('modalAlterarSenha').classList.add('open');
+    }
+    function fecharModalSenha() { document.getElementById('modalAlterarSenha').classList.remove('open'); }
+
+    async function salvarSenha() {
+        const atual=document.getElementById('senhaAtual').value;
+        const nova=document.getElementById('novaSenha').value;
+        const conf=document.getElementById('confirmarSenha').value;
+        const msg=document.getElementById('msgSenha');
+        msg.style.color='var(--cor-perigo)';
+        if (!atual||!nova||!conf) { msg.innerHTML='Preencha todos os campos.'; return; }
+        if (nova!==conf) { msg.innerHTML='As senhas não coincidem.'; return; }
+        if (nova.length<8) { msg.innerHTML='A nova senha deve ter ao menos 8 caracteres.'; return; }
+        msg.style.color='var(--cor-texto-secundario)';
+        msg.innerHTML='<i class="fas fa-spinner fa-spin"></i> Salvando...';
+        try {
+            const d=await fetch('/api/client/change-credentials',{
+                method:'POST',headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({current_password:atual,new_password:nova})
+            }).then(r=>r.json());
+            if (d.success) { msg.style.color='var(--cor-sucesso)'; msg.innerHTML='<i class="fas fa-check"></i> Senha alterada!'; setTimeout(fecharModalSenha,1500); }
+            else { msg.style.color='var(--cor-perigo)'; msg.innerHTML=d.message||'Erro ao alterar senha.'; }
+        } catch(e) { msg.style.color='var(--cor-perigo)'; msg.innerHTML='Erro de conexão.'; }
+    }
+
+    // ── LOGOUT ─────────────────────────────────────────────────
+    async function sair() {
+        try { await fetch('/api/logout',{method:'POST'}); } catch(e) {}
+        window.location.href='/login';
+    }
+
+    // ── INIT ───────────────────────────────────────────────────
+    carregarResumo();
+    carregarOnHold();
+    carregarEmAnalise();
+    setInterval(carregarResumo, 60000);
+</script>
+</body>
+</html>

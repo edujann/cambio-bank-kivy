@@ -336,6 +336,8 @@
             <a href="/loja/clientes" class="btn-hd"><i class="fas fa-users"></i> Clientes</a>
             {% if tipo == 'admin' %}
             <a href="/admin/dashboard" class="btn-hd"><i class="fas fa-shield-alt"></i> Admin</a>
+            {% elif tipo in ('backoffice', 'backoffice_gerente') %}
+            <a href="/backoffice/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-arrow-left"></i> Back Office</a>
             {% endif %}
             <button id="btnTheme" class="btn-hd btn-hd-ghost" onclick="toggleTheme()" title="Alternar tema"><i class="fas fa-moon"></i></button>
             <button onclick="abrirModalSenha()" class="btn-hd btn-hd-ghost" title="Alterar Senha"><i class="fas fa-key"></i></button>
@@ -2337,6 +2339,7 @@ async function confirmarCriacaoOrdem() {
         if (d.success) {
             toast(d.message, 'ok');
             if (d.aml_alertas?.length) d.aml_alertas.forEach(a => toast(`AML: ${a}`, 'warn'));
+            btn.disabled = false;
             setTimeout(()=>{ fecharDrawer(); carregarOrdens(); }, 800);
         } else if (d.kyc_blocked && !d.sanctions) {
             window._pendingOrderPayload = {

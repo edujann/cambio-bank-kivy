@@ -702,9 +702,27 @@ def processar_estorno_por_inversao(transf_estorno, conta_num, moeda, data_transa
     print(f"   conta_num: {conta_num}")
     
     transacao_original_id = transf_estorno.get('transacao_original_id')
-    
+
     if not transacao_original_id:
-        print(f"⚠️ Sem transacao_original_id")
+        # Estorno direto (sem referência à transação original) — tratar como débito imediato
+        valor_direto = float(transf_estorno.get('valor', 0)) if transf_estorno.get('valor') else 0.0
+        moeda_estorno = transf_estorno.get('moeda', moeda)
+        descricao_direta = transf_estorno.get('descricao') or 'Estorno'
+        if valor_direto > 0:
+            return {
+                'data': data_transacao_str,
+                'descricao': descricao_direta,
+                'credito': 0.0,
+                'debito': valor_direto,
+                'saldo_apos': 0.0,
+                'tipo': 'Estorno',
+                'moeda': moeda_estorno,
+                'timestamp': data_transacao,
+                'id': transf_estorno.get('id'),
+                'banco_origem': transf_estorno.get('banco_origem', ''),
+                'remetente': transf_estorno.get('remetente', ''),
+            }, 'estorno'
+        print(f"⚠️ Sem transacao_original_id e sem valor")
         return None, None
     
     # Buscar a transação original
@@ -900,13 +918,15 @@ def dashboard():
     nome  = usuario.upper()
     beneficiarios_count = 0
     cliente_b2b = None
+    is_parceiro_pagador = False
 
     try:
         if supabase:
-            u = supabase.table('usuarios').select('email,nome').eq('username', usuario).single().execute()
+            u = supabase.table('usuarios').select('email,nome,is_parceiro_pagador').eq('username', usuario).single().execute()
             if u.data:
                 email = u.data.get('email', email)
                 nome  = u.data.get('nome', nome)
+                is_parceiro_pagador = bool(u.data.get('is_parceiro_pagador', False))
 
             benef = supabase.table('beneficiarios').select('id').eq('cliente_username', usuario).eq('ativo', True).execute()
             beneficiarios_count = len(benef.data or [])
@@ -922,7 +942,8 @@ def dashboard():
     return render_with_lang('dashboard.html',
         usuario=usuario, email=email, nome=nome,
         beneficiarios_count=beneficiarios_count,
-        cliente_b2b=cliente_b2b)
+        cliente_b2b=cliente_b2b,
+        is_parceiro_pagador=is_parceiro_pagador)
 
 @app.route('/static/<path:path>')
 def servir_estaticos(path):
@@ -2017,7 +2038,28 @@ def tela_transferencia():
                           nome=nome,
                           email=email)
 
-# Adicione esta rota no web_api.py (logo após as rotas existentes)
+@app.route('/portal/despachos')
+def portal_despachos():
+    usuario = session.get('username')
+    if not usuario:
+        return redirect('/login')
+    try:
+        u = supabase.table('usuarios').select('nome,email,is_parceiro_pagador').eq('username', usuario).single().execute()
+        u_data = u.data or {}
+        if not u_data.get('is_parceiro_pagador'):
+            return redirect('/dashboard')
+        nome  = u_data.get('nome', usuario.upper())
+        email = u_data.get('email', '')
+        cb = supabase.table('clientes_b2b').select('id,razao_social,status').eq('usuario_username', usuario).limit(1).execute()
+        cliente_b2b = cb.data[0] if cb.data else None
+    except Exception as e:
+        print(f"⚠️ Erro portal despachos: {e}")
+        return redirect('/dashboard')
+    return render_with_lang('portal_despachos.html',
+        usuario=usuario, nome=nome, email=email,
+        cliente_b2b=cliente_b2b, is_parceiro_pagador=True)
+
+
 @app.route('/minhas-transferencias')
 def minhas_transferencias():
     """Tela de minhas transferências (histórico, status, invoices, comprovantes)"""
@@ -6282,7 +6324,7 @@ def admin_dashboard():
             .single()\
             .execute()
         
-        if response.data.get('tipo') != 'admin':
+        if response.data.get('tipo') not in ('admin', 'backoffice_gerente'):
             return redirect('/dashboard')
     except:
         return redirect('/dashboard')
@@ -7341,11 +7383,11 @@ def api_admin_extrato_conta():
             data_fim_obj = datetime.strptime(data_fim, "%d/%m/%Y").replace(hour=23, minute=59, second=59)
         elif periodo == '0':
             data_inicio_obj = datetime(2024, 1, 1)
-            data_fim_obj = datetime.now()
+            data_fim_obj = datetime.utcnow()
         else:
             dias = int(periodo)
-            data_inicio_obj = datetime.now() - timedelta(days=dias)
-            data_fim_obj = datetime.now()
+            data_inicio_obj = datetime.utcnow() - timedelta(days=dias)
+            data_fim_obj = datetime.utcnow()
         
         print(f"📅 Período: {data_inicio_obj} a {data_fim_obj}")
         print(f"🔍 Buscando transações para conta: {conta_numero}")
@@ -7467,7 +7509,8 @@ def api_admin_extrato_conta():
                         data_transf_obj = datetime.fromisoformat(data_transf.replace('Z', '+00:00'))
                     else:
                         data_transf_obj = datetime.strptime(data_transf, "%Y-%m-%d %H:%M:%S")
-                    
+                    # Strip timezone info to allow comparison with naive data_inicio_obj/data_fim_obj
+                    data_transf_obj = data_transf_obj.replace(tzinfo=None)
                     if not (data_inicio_obj <= data_transf_obj <= data_fim_obj):
                         continue
                 except Exception as e:
@@ -11248,19 +11291,20 @@ def _check_loja_acesso():
     if not usuario:
         return None, None, redirect('/login')
     # Fast path: session já tem o tipo (definido no login)
+    _TIPOS_LOJA = ('loja', 'admin', 'compliance', 'backoffice', 'backoffice_gerente')
     tipo = session.get('tipo', '')
-    if tipo not in ('loja', 'admin', 'compliance'):
+    if tipo not in _TIPOS_LOJA:
         # Fallback: consultar DB (sessões antigas sem 'tipo' na cookie)
         try:
             r = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
             tipo = r.data.get('tipo') if r.data else None
-            if tipo not in ('loja', 'admin', 'compliance'):
+            if tipo not in _TIPOS_LOJA:
                 return None, None, redirect('/login')
             session['tipo'] = tipo
         except Exception:
             return None, None, redirect('/login')
-    # Admin entra direto — ordens dele vão para escritorio_central
-    if tipo == 'admin' and not session.get('loja'):
+    # Admin e backoffice entram direto — ordens vão para escritorio_central
+    if tipo in ('admin', 'backoffice', 'backoffice_gerente') and not session.get('loja'):
         session['loja'] = 'escritorio_central'
         session['loja_nome'] = 'Escritório Central'
     # Operador de loja sem loja selecionada vai para tela de seleção
@@ -11285,7 +11329,7 @@ def loja_lojas_permitidas():
     try:
         r  = _sbx(lambda sb: sb.table('usuarios').select('tipo,lojas_permitidas').eq('username', usuario).single().execute())
         tipo = r.data.get('tipo') if r.data else None
-        if tipo == 'admin':
+        if tipo in ('admin', 'backoffice', 'backoffice_gerente'):
             rl = _sbx(lambda sb: sb.table('lojas').select('*').eq('ativa', True).order('nome').execute())
         else:
             codigos = r.data.get('lojas_permitidas') or []
@@ -11310,7 +11354,7 @@ def loja_selecionar():
         # Validar que o usuário tem acesso a essa loja
         ru = supabase.table('usuarios').select('tipo,lojas_permitidas').eq('username', usuario).single().execute()
         tipo = ru.data.get('tipo') if ru.data else None
-        if tipo != 'admin':
+        if tipo not in ('admin', 'backoffice', 'backoffice_gerente'):
             permitidas = ru.data.get('lojas_permitidas') or []
             if codigo not in permitidas:
                 return jsonify({'success': False, 'message': 'Acesso negado a esta loja'}), 403
@@ -11361,7 +11405,7 @@ def loja_parceiros():
     if redir:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
-        r = supabase.table('usuarios').select('username, nome').eq('tipo', 'cliente').order('nome').execute()
+        r = supabase.table('usuarios').select('username, nome').eq('tipo', 'cliente').eq('is_parceiro_pagador', True).order('nome').execute()
         return jsonify({'success': True, 'parceiros': r.data or []})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
@@ -11710,9 +11754,9 @@ def loja_listar_ordens():
         elif status_f:
             q = q.eq('status', status_f)
         loja_sessao = session.get('loja', '')
-        if tipo != 'admin':
+        if tipo not in ('admin', 'backoffice', 'backoffice_gerente'):
             q = q.eq('loja', loja_sessao or usuario)
-        # admin sem filtro explícito vê tudo
+        # admin e backoffice sem filtro explícito vêem tudo
         if data_de:
             q = q.gte('data', data_de)
         if data_ate:
@@ -11889,6 +11933,25 @@ def _despacho_numero_para_ordem(ordem_id):
         return None
 
 
+def _auto_fechar_despacho(ordem_id):
+    """Se todas as ordens do despacho estiverem pagas, marca o despacho como pago automaticamente."""
+    try:
+        lnk = supabase.table('despacho_ordens').select('despacho_id').eq('ordem_id', ordem_id).limit(1).execute()
+        if not lnk.data:
+            return
+        despacho_id = lnk.data[0]['despacho_id']
+        todas_links = supabase.table('despacho_ordens').select('ordem_id').eq('despacho_id', despacho_id).execute()
+        ids_ordens = [l['ordem_id'] for l in (todas_links.data or [])]
+        if not ids_ordens:
+            return
+        ordens_r = supabase.table('ordens_captacao').select('status').in_('id', ids_ordens).execute()
+        statuses = [o['status'] for o in (ordens_r.data or [])]
+        if statuses and all(s == 'paga' for s in statuses):
+            supabase.table('despachos').update({'status': 'pago'}).eq('id', despacho_id).execute()
+    except Exception:
+        pass
+
+
 def _debitar_parceiro(ordem, ordem_id, usuario):
     """Debita a conta do parceiro pagador e registra no extrato com descrição padronizada."""
     import random
@@ -11900,8 +11963,12 @@ def _debitar_parceiro(ordem, ordem_id, usuario):
     benef_nome  = ordem.get('beneficiario_nome', '') or ''
     benef_banco = ordem.get('beneficiario_banco', '') or ''
     desp_num    = _despacho_numero_para_ordem(ordem_id)
-    partes = [f"Despacho #{desp_num}" if desp_num else None, benef_nome or None, benef_banco or None]
-    banco_origem = ' - '.join(p for p in partes if p) or f"Ordem {ordem_id[:8]}"
+    ordem_ref   = f"Ord. {ordem_id[:8].upper()}"
+    base_partes = [p for p in [benef_banco or None, benef_nome or None] if p]
+    base        = ' · '.join(base_partes)
+    desc_completa = ' · '.join(p for p in [base or None, ordem_ref, f"Desp. #{desp_num}" if desp_num else None] if p)
+    desc_sem_desp = ' · '.join(p for p in [base or None, ordem_ref] if p)
+    banco_origem  = desc_completa if len(desc_completa) <= 80 else desc_sem_desp or ordem_ref
     contas_p = supabase.table('contas').select('id,saldo,moeda')\
         .eq('cliente_username', parceiro).eq('moeda', moeda_s).execute()
     if not contas_p.data:
@@ -11918,6 +11985,41 @@ def _debitar_parceiro(ordem, ordem_id, usuario):
         'cliente': parceiro,
         'banco_origem': banco_origem,
         'descricao': banco_origem,
+        'executado_por': usuario,
+        'created_at': datetime.now().isoformat()
+    }).execute()
+
+
+def _estornar_parceiro(ordem, ordem_id, usuario, motivo=''):
+    """Reverte o crédito do parceiro pagador e registra estorno no extrato."""
+    import random
+    parceiro = ordem.get('parceiro_pagador')
+    valor_s  = float(ordem.get('valor_saida', 0))
+    moeda_s  = ordem.get('moeda_saida', 'BRL')
+    if not parceiro or not valor_s:
+        return
+    contas_p = supabase.table('contas').select('id,saldo,moeda')\
+        .eq('cliente_username', parceiro).eq('moeda', moeda_s).execute()
+    if not contas_p.data:
+        return
+    ct = contas_p.data[0]
+    novo_saldo = float(ct['saldo'] or 0) - valor_s
+    supabase.table('contas').update({'saldo': novo_saldo}).eq('id', ct['id']).execute()
+    benef_nome  = ordem.get('beneficiario_nome', '') or ''
+    benef_banco = ordem.get('beneficiario_banco', '') or ''
+    ordem_ref   = f"Ord. {ordem_id[:8].upper()}"
+    base = ' · '.join(p for p in [benef_banco or None, benef_nome or None] if p)
+    desc = 'Estorno — ' + (' · '.join(p for p in [base or None, ordem_ref] if p) or ordem_ref)
+    if motivo:
+        desc += f' — {motivo}'
+    supabase.table('transferencias').insert({
+        'id': f"{random.randint(100000,999999)}_est",
+        'tipo': 'estorno', 'status': 'completed',
+        'data': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        'moeda': moeda_s, 'valor': valor_s,
+        'conta_destinatario': ct['id'],
+        'cliente': parceiro,
+        'descricao': desc,
         'executado_por': usuario,
         'created_at': datetime.now().isoformat()
     }).execute()
@@ -13657,7 +13759,8 @@ def admin_taxas_loja_page():
     usuario = session.get('username')
     if not usuario:
         return redirect('/login')
-    return render_with_lang('admin_taxas_loja.html', usuario=usuario)
+    tipo = session.get('tipo', '')
+    return render_with_lang('admin_taxas_loja.html', usuario=usuario, tipo=tipo)
 
 
 def _check_admin_acesso():
@@ -13673,11 +13776,24 @@ def _check_admin_acesso():
         return None, redirect('/login')
 
 
+def _check_admin_ou_gerente_acesso():
+    usuario = session.get('username')
+    if not usuario:
+        return None, redirect('/login')
+    try:
+        r = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        if not r.data or r.data.get('tipo') not in ('admin', 'backoffice_gerente'):
+            return None, redirect('/login')
+        return usuario, None
+    except Exception:
+        return None, redirect('/login')
+
+
 # ── Taxas ──
 
 @app.route('/api/admin/config/taxas', methods=['GET'])
 def admin_config_taxas_list():
-    usuario, redir = _check_admin_acesso()
+    usuario, redir = _check_admin_ou_gerente_acesso()
     if redir:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
@@ -13689,7 +13805,7 @@ def admin_config_taxas_list():
 
 @app.route('/api/admin/config/taxas', methods=['POST'])
 def admin_config_taxas_create():
-    usuario, redir = _check_admin_acesso()
+    usuario, redir = _check_admin_ou_gerente_acesso()
     if redir:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
@@ -13712,7 +13828,7 @@ def admin_config_taxas_create():
 
 @app.route('/api/admin/config/taxas/<int:taxa_id>', methods=['DELETE'])
 def admin_config_taxas_delete(taxa_id):
-    usuario, redir = _check_admin_acesso()
+    usuario, redir = _check_admin_ou_gerente_acesso()
     if redir:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
@@ -13724,7 +13840,7 @@ def admin_config_taxas_delete(taxa_id):
 
 @app.route('/api/admin/config/taxas/<int:taxa_id>', methods=['PUT'])
 def admin_config_taxas_update(taxa_id):
-    usuario, redir = _check_admin_acesso()
+    usuario, redir = _check_admin_ou_gerente_acesso()
     if redir:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
@@ -13746,7 +13862,7 @@ def admin_config_taxas_update(taxa_id):
 
 @app.route('/api/admin/config/contas-loja', methods=['GET'])
 def admin_config_contas_list():
-    usuario, redir = _check_admin_acesso()
+    usuario, redir = _check_admin_ou_gerente_acesso()
     if redir:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
@@ -13765,7 +13881,7 @@ def admin_config_contas_list():
 
 @app.route('/api/admin/config/contas-loja', methods=['POST'])
 def admin_config_contas_create():
-    usuario, redir = _check_admin_acesso()
+    usuario, redir = _check_admin_ou_gerente_acesso()
     if redir:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
@@ -13798,7 +13914,7 @@ def admin_config_contas_create():
 
 @app.route('/api/admin/config/contas-loja/<int:conta_id>', methods=['PUT'])
 def admin_config_contas_update(conta_id):
-    usuario, redir = _check_admin_acesso()
+    usuario, redir = _check_admin_ou_gerente_acesso()
     if redir:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
@@ -13873,7 +13989,7 @@ def admin_listar_usuarios():
     try:
         r = supabase.table('usuarios')\
             .select('id,username,nome,email,tipo,status,lojas_permitidas')\
-            .in_('tipo', ['admin', 'loja', 'compliance'])\
+            .in_('tipo', ['admin', 'loja', 'compliance', 'backoffice', 'backoffice_gerente'])\
             .order('tipo').order('username').execute()
         return jsonify({'success': True, 'usuarios': r.data or []})
     except Exception as e:
@@ -13895,7 +14011,7 @@ def admin_criar_usuario():
 
         if not all([username, nome, tipo, senha]):
             return jsonify({'success': False, 'message': 'Username, nome, tipo e senha são obrigatórios'}), 400
-        if tipo not in ('admin', 'loja', 'compliance'):
+        if tipo not in ('admin', 'loja', 'compliance', 'backoffice', 'backoffice_gerente'):
             return jsonify({'success': False, 'message': 'Tipo inválido'}), 400
         if len(senha) < 8:
             return jsonify({'success': False, 'message': 'Senha deve ter no mínimo 8 caracteres'}), 400
@@ -13908,7 +14024,7 @@ def admin_criar_usuario():
         payload = {
             'username': username,
             'nome': nome,
-            'email': email or None,
+            'email': email,
             'tipo': tipo,
             'senha_hash': _hash_senha(senha),
             'status': 'ativo',
@@ -13930,7 +14046,7 @@ def admin_atualizar_usuario(usuario_id):
         if 'nome'   in d: payload['nome']   = (d['nome'] or '').strip()
         if 'email'  in d: payload['email']  = (d['email'] or '').strip() or None
         if 'tipo'   in d:
-            if d['tipo'] not in ('admin', 'loja', 'compliance'):
+            if d['tipo'] not in ('admin', 'loja', 'compliance', 'backoffice', 'backoffice_gerente'):
                 return jsonify({'success': False, 'message': 'Tipo inválido'}), 400
             payload['tipo'] = d['tipo']
         if 'status' in d:
@@ -14304,15 +14420,20 @@ def compliance_rejeitar(ordem_id):
 
 @app.route('/admin/conciliacao')
 def admin_conciliacao_page():
-    usuario, redir = _check_admin_acesso()
-    if redir: return redir
-    return render_with_lang('admin_conciliacao.html', usuario=usuario)
+    usuario = session.get('username')
+    if not usuario:
+        return redirect('/login')
+    tipo = session.get('tipo', '')
+    if tipo not in ('admin', 'backoffice_gerente'):
+        return redirect('/login')
+    return render_with_lang('admin_conciliacao.html', usuario=usuario, tipo=tipo)
 
 
 @app.route('/api/admin/conciliacao/pendentes', methods=['GET'])
 def admin_conciliacao_pendentes():
-    usuario, redir = _check_admin_acesso()
-    if redir: return jsonify({'success': False}), 401
+    usuario = session.get('username')
+    if not usuario or session.get('tipo') not in ('admin', 'backoffice_gerente'):
+        return jsonify({'success': False}), 401
     try:
         r = supabase.table('ordens_captacao').select('*')\
             .eq('forma_pagamento', 'transferencia')\
@@ -14326,8 +14447,9 @@ def admin_conciliacao_pendentes():
 
 @app.route('/api/admin/conciliacao/contas', methods=['GET'])
 def admin_conciliacao_contas():
-    usuario, redir = _check_admin_acesso()
-    if redir: return jsonify({'success': False}), 401
+    usuario = session.get('username')
+    if not usuario or session.get('tipo') not in ('admin', 'backoffice_gerente'):
+        return jsonify({'success': False}), 401
     try:
         contas = supabase.table('contas_bancarias_empresa').select('*').order('moeda').execute()
         pendentes = supabase.table('ordens_captacao').select('conta_empresa,valor_entrada,moeda_entrada')\
@@ -14351,8 +14473,9 @@ def admin_conciliacao_contas():
 
 @app.route('/api/admin/conciliacao/confirmar', methods=['POST'])
 def admin_conciliacao_confirmar():
-    usuario, redir = _check_admin_acesso()
-    if redir: return jsonify({'success': False}), 401
+    usuario = session.get('username')
+    if not usuario or session.get('tipo') not in ('admin', 'backoffice_gerente'):
+        return jsonify({'success': False}), 401
     try:
         d = request.get_json() or {}
         ids = d.get('ids', [])
@@ -14400,8 +14523,9 @@ def admin_conciliacao_confirmar():
 
 @app.route('/api/admin/conciliacao/historico', methods=['GET'])
 def admin_conciliacao_historico():
-    usuario, redir = _check_admin_acesso()
-    if redir: return jsonify({'success': False}), 401
+    usuario = session.get('username')
+    if not usuario or session.get('tipo') not in ('admin', 'backoffice_gerente'):
+        return jsonify({'success': False}), 401
     try:
         r = supabase.table('ordens_captacao').select('*')\
             .eq('forma_pagamento', 'transferencia')\
@@ -16138,8 +16262,33 @@ def admin_listar_despachos():
     if not usuario:
         return jsonify({'success': False, 'message': 'Não autenticado'}), 401
     try:
-        r = supabase.table('despachos').select('*').order('created_at', desc=True).limit(200).execute()
-        return jsonify({'success': True, 'despachos': r.data or []})
+        status_filtro = request.args.get('status', '')
+        q = supabase.table('despachos').select('*').order('created_at', desc=True).limit(200)
+        if status_filtro:
+            q = q.eq('status', status_filtro)
+        r = q.execute()
+        despachos = r.data or []
+        if despachos:
+            ids = [d['id'] for d in despachos]
+            links_r = supabase.table('despacho_ordens').select('despacho_id, ordem_id').in_('despacho_id', ids).execute()
+            links = links_r.data or []
+            ordem_ids = [l['ordem_id'] for l in links]
+            ordens_dict = {}
+            if ordem_ids:
+                ordens_r = supabase.table('ordens_captacao')\
+                    .select('id, status, cliente_nome, valor_saida, moeda_saida, '
+                            'beneficiario_nome, beneficiario_banco, beneficiario_agencia, beneficiario_conta')\
+                    .in_('id', ordem_ids).execute()
+                ordens_dict = {o['id']: o for o in (ordens_r.data or [])}
+            from collections import defaultdict
+            ordens_por_despacho = defaultdict(list)
+            for l in links:
+                o = ordens_dict.get(l['ordem_id'])
+                if o:
+                    ordens_por_despacho[l['despacho_id']].append(o)
+            for d in despachos:
+                d['ordens'] = ordens_por_despacho.get(d['id'], [])
+        return jsonify({'success': True, 'despachos': despachos})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
 
@@ -16160,9 +16309,9 @@ def ordens_consulta():
 
         q = supabase.table('ordens_captacao').select('*').order('data', desc=True).limit(300)
         loja_sessao = session.get('loja', '')
-        if tipo_usr not in ('admin', 'compliance'):
+        if tipo_usr not in ('admin', 'compliance', 'backoffice', 'backoffice_gerente'):
             q = q.eq('loja', loja_sessao or usuario)
-        # admin e compliance vêem tudo
+        # admin, compliance e backoffice vêem todas as lojas
         if status_f:
             q = q.eq('status', status_f)
         if data_de:
@@ -20399,11 +20548,12 @@ def admin_despachos_page():
         return redirect('/login')
     try:
         ck = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
-        if not ck.data or ck.data.get('tipo') != 'admin':
+        if not ck.data or ck.data.get('tipo') not in ('admin', 'backoffice_gerente'):
             return redirect('/login')
     except:
         return redirect('/login')
-    return render_with_lang('admin_despachos.html', usuario=usuario)
+    tipo = ck.data.get('tipo')
+    return render_with_lang('admin_despachos.html', usuario=usuario, tipo=tipo)
 
 
 @app.route('/admin/lojas')
@@ -20413,11 +20563,12 @@ def admin_lojas_page():
         return redirect('/login')
     try:
         ck = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
-        if not ck.data or ck.data.get('tipo') != 'admin':
+        if not ck.data or ck.data.get('tipo') not in ('admin', 'backoffice_gerente'):
             return redirect('/login')
     except:
         return redirect('/login')
-    return render_with_lang('admin_lojas.html', usuario=usuario)
+    tipo = ck.data.get('tipo')
+    return render_with_lang('admin_lojas.html', usuario=usuario, tipo=tipo)
 
 
 @app.route('/admin/posicao-cambial')
@@ -22587,6 +22738,13 @@ def api_b2b_cliente_get(client_id):
             pessoa_formatada = {k: v for k, v in pessoa_formatada.items() if v is not None and v != ''}
             pessoas_formatadas.append(pessoa_formatada)
         
+        # Also fetch is_parceiro_pagador from usuarios table
+        if c.get('usuario_username'):
+            u_row = supabase.table('usuarios').select('is_parceiro_pagador').eq('username', c['usuario_username']).single().execute()
+            c['is_parceiro_pagador'] = bool(u_row.data.get('is_parceiro_pagador', False)) if u_row.data else False
+        else:
+            c['is_parceiro_pagador'] = False
+
         return jsonify({'success': True, 'cliente': c, 'pessoas': pessoas_formatadas})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
@@ -22868,6 +23026,25 @@ def api_b2b_cliente_notas(client_id):
         notas = d.get('notas', '').strip()
         supabase.table('clientes_b2b').update({'notas_compliance': notas}).eq('id', client_id).execute()
         return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── DISPATCH PARTNER TOGGLE ──
+
+@app.route('/api/compliance/b2b/clientes/<client_id>/parceiro-pagador', methods=['POST'])
+def api_b2b_cliente_parceiro_pagador(client_id):
+    usuario, tipo, redir = _b2b_acesso()
+    if redir: return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        d = request.get_json() or {}
+        ativo = bool(d.get('ativo', False))
+        c = supabase.table('clientes_b2b').select('usuario_username').eq('id', client_id).single().execute()
+        if not c.data or not c.data.get('usuario_username'):
+            return jsonify({'success': False, 'message': 'Client has no associated user account'}), 400
+        username = c.data['usuario_username']
+        supabase.table('usuarios').update({'is_parceiro_pagador': ativo}).eq('username', username).execute()
+        return jsonify({'success': True, 'is_parceiro_pagador': ativo})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
 
@@ -25481,6 +25658,685 @@ def api_b2b_paises_audit():
         return jsonify({'success': True, 'logs': rows})
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ════════════════════════════════════════════════════════════════════
+# BACK OFFICE
+# ════════════════════════════════════════════════════════════════════
+
+_TIPOS_BACKOFFICE = ('backoffice', 'backoffice_gerente')
+_TIPOS_BACKOFFICE_E_ADMIN = ('backoffice', 'backoffice_gerente', 'admin')
+
+
+def _check_backoffice_acesso():
+    usuario = session.get('username')
+    if not usuario:
+        return None, None, redirect('/login')
+    tipo = session.get('tipo', '')
+    if tipo not in _TIPOS_BACKOFFICE_E_ADMIN:
+        try:
+            r = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+            tipo = r.data.get('tipo') if r.data else None
+            if tipo not in _TIPOS_BACKOFFICE_E_ADMIN:
+                return None, None, redirect('/login')
+            session['tipo'] = tipo
+        except Exception:
+            return None, None, redirect('/login')
+    return usuario, tipo, None
+
+
+@app.route('/backoffice/dashboard')
+def backoffice_dashboard():
+    usuario, tipo, redir = _check_backoffice_acesso()
+    if redir:
+        return redir
+    try:
+        r = supabase.table('usuarios').select('nome, email').eq('username', usuario).single().execute()
+        nome  = (r.data or {}).get('nome', usuario.upper())
+        email = (r.data or {}).get('email', '')
+    except Exception:
+        nome, email = usuario.upper(), ''
+    return render_with_lang('backoffice_dashboard.html',
+                            usuario=usuario, nome=nome, email=email, tipo=tipo)
+
+
+@app.route('/api/backoffice/resumo', methods=['GET'])
+def api_backoffice_resumo():
+    usuario, tipo, redir = _check_backoffice_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        on_hold = supabase.table('ordens_captacao').select('id', count='exact')\
+            .eq('status', 'on_hold').execute()
+        em_analise = supabase.table('ordens_captacao').select('id', count='exact')\
+            .eq('status', 'comprovante_em_analise').execute()
+        despachos_abertos = supabase.table('despachos').select('id', count='exact')\
+            .eq('status', 'enviado').execute()
+        try:
+            conc_pendente = supabase.table('lancamentos_bancarios').select('id', count='exact')\
+                .eq('status', 'pendente').execute()
+            conc_count = conc_pendente.count or 0
+        except Exception:
+            conc_count = 0
+        return jsonify({
+            'success': True,
+            'on_hold':               on_hold.count or 0,
+            'em_analise':            em_analise.count or 0,
+            'despachos_abertos':     despachos_abertos.count or 0,
+            'conciliacao_pendente':  conc_count,
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/backoffice/ordens/on-hold', methods=['GET'])
+def api_backoffice_ordens_on_hold():
+    usuario, tipo, redir = _check_backoffice_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('ordens_captacao').select('*')\
+            .eq('status', 'on_hold')\
+            .order('created_at', desc=False)\
+            .execute()
+        return jsonify({'success': True, 'ordens': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/backoffice/ordens/<ordem_id>/confirmar-deposito', methods=['POST'])
+def api_backoffice_confirmar_deposito(ordem_id):
+    usuario, tipo, redir = _check_backoffice_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('ordens_captacao').select('*').eq('id', ordem_id).single().execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'Ordem não encontrada'}), 404
+        o = r.data
+        if o['status'] != 'on_hold':
+            return jsonify({'success': False, 'message': f'Ordem já está como "{o["status"]}"'}), 400
+
+        # Determinar novo status baseado no compliance
+        novo_status = 'liberada' if o.get('compliance_status') == 'aprovado' else 'compliance_review'
+
+        supabase.table('ordens_captacao').update({
+            'status':               novo_status,
+            'pagamento_confirmado': True,
+            'confirmado_por':       usuario,
+            'updated_at':           datetime.now().isoformat(),
+        }).eq('id', ordem_id).execute()
+
+        # Creditar conta bancária da empresa
+        conta_emp = o.get('conta_empresa')
+        valor_e   = float(o.get('valor_entrada', 0))
+        if conta_emp and valor_e > 0:
+            r_ct = supabase.table('contas_bancarias_empresa').select('saldo').eq('numero', conta_emp).single().execute()
+            if r_ct.data:
+                novo_saldo = float(r_ct.data['saldo'] or 0) + valor_e
+                supabase.table('contas_bancarias_empresa').update({'saldo': novo_saldo}).eq('numero', conta_emp).execute()
+            transacao_id = f"{random.randint(100000, 999999)}_bo"
+            supabase.table('transferencias').insert({
+                'id':               transacao_id,
+                'tipo':             'deposito',
+                'status':           'completed',
+                'data':             datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+                'moeda':            o.get('moeda_entrada', 'GBP'),
+                'valor':            valor_e,
+                'conta_destinatario': conta_emp,
+                'descricao':        f"Depósito Confirmado (Backoffice) — {o.get('cliente_nome', '—')} — Ordem {ordem_id[:8]}",
+                'executado_por':    usuario,
+                'created_at':       datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+            }).execute()
+
+        return jsonify({'success': True, 'message': 'Depósito confirmado. Ordem liberada.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/backoffice/ordens/comprovante-em-analise', methods=['GET'])
+def api_backoffice_ordens_em_analise():
+    usuario, tipo, redir = _check_backoffice_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('ordens_captacao').select('*')\
+            .eq('status', 'comprovante_em_analise')\
+            .order('updated_at', desc=False)\
+            .execute()
+        ordens = r.data or []
+        if ordens:
+            ids = [o['id'] for o in ordens]
+            comp_r = supabase.table('comprovantes_pagamento').select('*')\
+                .in_('ordem_id', ids).order('criado_em').execute()
+            comps = comp_r.data or []
+            for comp in comps:
+                if comp.get('arquivo_url'):
+                    try:
+                        signed = supabase.storage.from_('comprovantes-remessas')\
+                            .create_signed_url(comp['arquivo_url'], 3600)
+                        comp['signed_url'] = signed.get('signedURL') or signed.get('signedUrl') or ''
+                    except Exception:
+                        comp['signed_url'] = ''
+            from collections import defaultdict
+            comps_por_ordem = defaultdict(list)
+            for c in comps:
+                comps_por_ordem[c['ordem_id']].append(c)
+            for o in ordens:
+                o['comprovantes'] = comps_por_ordem.get(o['id'], [])
+        return jsonify({'success': True, 'ordens': ordens})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/backoffice/ordens/<ordem_id>/verificar-pagamento', methods=['POST'])
+def api_backoffice_verificar_pagamento(ordem_id):
+    usuario, tipo, redir = _check_backoffice_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('ordens_captacao').select('*').eq('id', ordem_id).single().execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'Ordem não encontrada'}), 404
+        if r.data['status'] != 'comprovante_em_analise':
+            return jsonify({'success': False, 'message': f'Ordem está como "{r.data["status"]}", não em análise'}), 400
+        dados = request.json or {}
+        obs = dados.get('observacoes', '')
+        supabase.table('ordens_captacao').update({
+            'status':     'paga',
+            'pago_por':   usuario,
+            'pago_em':    datetime.now().isoformat(),
+            'observacoes': obs if obs else r.data.get('observacoes', ''),
+            'updated_at': datetime.now().isoformat(),
+        }).eq('id', ordem_id).execute()
+        _debitar_parceiro(r.data, ordem_id, usuario)
+        _auto_fechar_despacho(ordem_id)
+        return jsonify({'success': True, 'message': 'Pagamento verificado e confirmado.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/backoffice/ordens/<ordem_id>/abrir-pendencia', methods=['POST'])
+def api_backoffice_abrir_pendencia(ordem_id):
+    usuario, tipo, redir = _check_backoffice_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('ordens_captacao').select('*').eq('id', ordem_id).single().execute()
+        if not r.data:
+            return jsonify({'success': False, 'message': 'Ordem não encontrada'}), 404
+        if r.data['status'] != 'paga':
+            return jsonify({'success': False, 'message': f'Só é possível abrir pendência em ordens pagas (status atual: "{r.data["status"]}").'}), 400
+        dados = request.json or {}
+        motivo = (dados.get('motivo') or '').strip()
+        if not motivo:
+            return jsonify({'success': False, 'message': 'Informe o motivo da pendência.'}), 400
+        obs_atual = r.data.get('observacoes') or ''
+        nova_obs = f'[PENDÊNCIA: {motivo}]' + (f' {obs_atual}' if obs_atual else '')
+        supabase.table('ordens_captacao').update({
+            'status': 'pendencia',
+            'observacoes': nova_obs,
+            'updated_at': datetime.now().isoformat(),
+        }).eq('id', ordem_id).execute()
+        _estornar_parceiro(r.data, ordem_id, usuario, motivo)
+        lnk = supabase.table('despacho_ordens').select('despacho_id').eq('ordem_id', ordem_id).limit(1).execute()
+        if lnk.data:
+            supabase.table('despachos').update({'status': 'enviado'}).eq('id', lnk.data[0]['despacho_id']).execute()
+        return jsonify({'success': True, 'message': 'Pendência aberta. Estorno realizado e despacho reaberto.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/backoffice/ordens/<ordem_id>/rejeitar-comprovante', methods=['POST'])
+def api_backoffice_rejeitar_comprovante(ordem_id):
+    usuario, tipo, redir = _check_backoffice_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('ordens_captacao').select('status').eq('id', ordem_id).single().execute()
+        if not r.data or r.data['status'] != 'comprovante_em_analise':
+            return jsonify({'success': False, 'message': 'Ordem não está em análise'}), 400
+        dados = request.json or {}
+        motivo = dados.get('motivo', '')
+        supabase.table('ordens_captacao').update({
+            'status':     'despachada',
+            'observacoes': f'[COMPROVANTE REJEITADO: {motivo}]',
+            'updated_at': datetime.now().isoformat(),
+        }).eq('id', ordem_id).execute()
+        return jsonify({'success': True, 'message': 'Comprovante rejeitado. Ordem retornou para despachada.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/backoffice/despachos', methods=['GET'])
+def api_backoffice_despachos():
+    usuario, tipo, redir = _check_backoffice_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        status_filtro = request.args.get('status', '')
+        q = supabase.table('despachos').select('*').order('created_at', desc=True)
+        if status_filtro:
+            q = q.eq('status', status_filtro)
+        r = q.execute()
+        despachos = r.data or []
+        if despachos:
+            ids = [d['id'] for d in despachos]
+            links_r = supabase.table('despacho_ordens').select('despacho_id, ordem_id').in_('despacho_id', ids).execute()
+            links = links_r.data or []
+            ordem_ids = [l['ordem_id'] for l in links]
+            ordens_dict = {}
+            if ordem_ids:
+                ordens_r = supabase.table('ordens_captacao')\
+                    .select('id, status, cliente_nome, valor_saida, moeda_saida, '
+                            'beneficiario_nome, beneficiario_banco, beneficiario_agencia, beneficiario_conta, '
+                            'parceiro_pagador')\
+                    .in_('id', ordem_ids).execute()
+                ordens_dict = {o['id']: o for o in (ordens_r.data or [])}
+            from collections import defaultdict
+            ordens_por_despacho = defaultdict(list)
+            for l in links:
+                o = ordens_dict.get(l['ordem_id'])
+                if o:
+                    ordens_por_despacho[l['despacho_id']].append(o)
+            for d in despachos:
+                d['ordens'] = ordens_por_despacho.get(d['id'], [])
+        return jsonify({'success': True, 'despachos': despachos})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── TAXAS DE CÂMBIO ──────────────────────────────────────────────────
+
+@app.route('/api/backoffice/taxas', methods=['GET'])
+def api_backoffice_taxas_get():
+    usuario, tipo, redir = _check_backoffice_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('taxas_cambio').select('*').order('moeda_origem').execute()
+        return jsonify({'success': True, 'taxas': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/backoffice/taxas', methods=['PUT'])
+def api_backoffice_taxas_put():
+    usuario, tipo, redir = _check_backoffice_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    if tipo != 'backoffice_gerente':
+        return jsonify({'success': False, 'message': 'Permissão negada'}), 403
+    try:
+        d = request.get_json() or {}
+        taxas = d.get('taxas', [])
+        now = datetime.now().isoformat()
+        for t in taxas:
+            tid = t.get('id')
+            if not tid:
+                continue
+            update = {'updated_at': now, 'atualizado_por': usuario}
+            if t.get('taxa_compra') is not None:
+                update['taxa_compra'] = t['taxa_compra']
+            if t.get('taxa_venda') is not None:
+                update['taxa_venda'] = t['taxa_venda']
+            if t.get('spread') is not None:
+                update['spread'] = t['spread']
+            supabase.table('taxas_cambio').update(update).eq('id', tid).execute()
+        return jsonify({'success': True, 'message': f'{len(taxas)} taxa(s) atualizada(s).'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── CONTAS BANCÁRIAS ──────────────────────────────────────────────────
+
+@app.route('/api/backoffice/contas-bancarias', methods=['GET'])
+def api_backoffice_contas_get():
+    usuario, tipo, redir = _check_backoffice_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('contas_bancarias').select('*').order('banco').execute()
+        return jsonify({'success': True, 'contas': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/backoffice/contas-bancarias', methods=['POST'])
+def api_backoffice_contas_post():
+    usuario, tipo, redir = _check_backoffice_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    if tipo != 'backoffice_gerente':
+        return jsonify({'success': False, 'message': 'Permissão negada'}), 403
+    try:
+        d = request.get_json() or {}
+        banco   = (d.get('banco') or '').strip()
+        agencia = (d.get('agencia') or '').strip()
+        numero  = (d.get('numero') or '').strip()
+        if not banco or not agencia or not numero:
+            return jsonify({'success': False, 'message': 'Banco, agência e número são obrigatórios'}), 400
+        row = {
+            'banco':      banco,
+            'agencia':    agencia,
+            'numero':     numero,
+            'tipo':       d.get('tipo', 'corrente'),
+            'titular':    (d.get('titular') or '').strip(),
+            'ativo':      True,
+            'created_by': usuario,
+            'created_at': datetime.now().isoformat(),
+        }
+        r = supabase.table('contas_bancarias').insert(row).execute()
+        return jsonify({'success': True, 'conta': (r.data or [{}])[0]})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/backoffice/contas-bancarias/<conta_id>', methods=['PATCH'])
+def api_backoffice_contas_patch(conta_id):
+    usuario, tipo, redir = _check_backoffice_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    if tipo != 'backoffice_gerente':
+        return jsonify({'success': False, 'message': 'Permissão negada'}), 403
+    try:
+        d = request.get_json() or {}
+        update = {}
+        if 'ativo' in d:
+            update['ativo'] = bool(d['ativo'])
+        if 'banco' in d:
+            update['banco'] = d['banco']
+        if 'titular' in d:
+            update['titular'] = d['titular']
+        if not update:
+            return jsonify({'success': False, 'message': 'Nenhum campo para atualizar'}), 400
+        supabase.table('contas_bancarias').update(update).eq('id', conta_id).execute()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ── CONCILIAÇÃO BANCÁRIA ──────────────────────────────────────────────
+
+@app.route('/api/backoffice/conciliacao', methods=['GET'])
+def api_backoffice_conciliacao_get():
+    usuario, tipo, redir = _check_backoffice_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        q = supabase.table('lancamentos_bancarios').select('*').order('data', desc=True)
+        de     = request.args.get('de')
+        ate    = request.args.get('ate')
+        conta  = request.args.get('conta_id')
+        status = request.args.get('status')
+        if de:
+            q = q.gte('data', de)
+        if ate:
+            q = q.lte('data', ate + 'T23:59:59')
+        if conta:
+            q = q.eq('conta_id', conta)
+        if status:
+            q = q.eq('status', status)
+        r = q.execute()
+        lancamentos = r.data or []
+        # enrich with conta name
+        if lancamentos:
+            conta_ids = list({l['conta_id'] for l in lancamentos if l.get('conta_id')})
+            if conta_ids:
+                contas_r = supabase.table('contas_bancarias').select('id, banco, agencia, numero')\
+                    .in_('id', conta_ids).execute()
+                contas_map = {c['id']: f"{c['banco']} {c['agencia']}/{c['numero']}" for c in (contas_r.data or [])}
+                for l in lancamentos:
+                    l['conta'] = contas_map.get(l.get('conta_id'), '—')
+        return jsonify({'success': True, 'lancamentos': lancamentos})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/backoffice/conciliacao', methods=['POST'])
+def api_backoffice_conciliacao_post():
+    usuario, tipo, redir = _check_backoffice_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    if tipo != 'backoffice_gerente':
+        return jsonify({'success': False, 'message': 'Permissão negada'}), 403
+    try:
+        d = request.get_json() or {}
+        conta_id   = d.get('conta_id')
+        data       = d.get('data')
+        valor      = d.get('valor')
+        descricao  = (d.get('descricao') or '').strip()
+        if not conta_id or not data or valor is None or not descricao:
+            return jsonify({'success': False, 'message': 'conta_id, data, valor e descricao são obrigatórios'}), 400
+        ordem_id = d.get('ordem_id') or None
+        status = 'conciliado' if ordem_id else 'pendente'
+        row = {
+            'conta_id':   conta_id,
+            'data':       data,
+            'valor':      float(valor),
+            'moeda':      d.get('moeda', 'BRL'),
+            'descricao':  descricao,
+            'status':     status,
+            'ordem_id':   ordem_id,
+            'created_by': usuario,
+            'created_at': datetime.now().isoformat(),
+        }
+        r = supabase.table('lancamentos_bancarios').insert(row).execute()
+        return jsonify({'success': True, 'lancamento': (r.data or [{}])[0]})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/backoffice/conciliacao/<lancamento_id>/conciliar', methods=['POST'])
+def api_backoffice_conciliacao_conciliar(lancamento_id):
+    usuario, tipo, redir = _check_backoffice_acesso()
+    if redir:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        d = request.get_json() or {}
+        ordem_id = (d.get('ordem_id') or '').strip()
+        if not ordem_id:
+            return jsonify({'success': False, 'message': 'ordem_id é obrigatório'}), 400
+        # resolve numeric input to uuid if needed
+        ordem_r = None
+        try:
+            int(ordem_id)
+            ordem_r = supabase.table('ordens_captacao').select('id, numero')\
+                .eq('numero', int(ordem_id)).single().execute()
+        except (ValueError, TypeError):
+            pass
+        if not ordem_r or not ordem_r.data:
+            ordem_r = supabase.table('ordens_captacao').select('id, numero')\
+                .eq('id', ordem_id).single().execute()
+        if not ordem_r or not ordem_r.data:
+            return jsonify({'success': False, 'message': 'Ordem não encontrada'}), 404
+        real_id     = ordem_r.data['id']
+        real_numero = ordem_r.data.get('numero', '')
+        supabase.table('lancamentos_bancarios').update({
+            'status':       'conciliado',
+            'ordem_id':     real_id,
+            'ordem_numero': real_numero,
+            'conciliado_por': usuario,
+            'conciliado_em':  datetime.now().isoformat(),
+        }).eq('id', lancamento_id).execute()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+# ════════════════════════════════════════════════════════════════════
+# PORTAL PARCEIRO B2B — DESPACHOS
+# ════════════════════════════════════════════════════════════════════
+
+def _check_parceiro_pagador():
+    usuario = session.get('username')
+    if not usuario:
+        return None, redirect('/login')
+    tipo = session.get('tipo', 'cliente')
+    if tipo not in ('cliente', 'admin', 'backoffice', 'backoffice_gerente'):
+        return None, redirect('/login')
+    try:
+        r = supabase.table('usuarios').select('is_parceiro_pagador').eq('username', usuario).single().execute()
+        if not (r.data or {}).get('is_parceiro_pagador') and tipo == 'cliente':
+            return None, ('forbidden', 403)
+    except Exception:
+        return None, redirect('/login')
+    return usuario, None
+
+
+@app.route('/api/portal/despachos', methods=['GET'])
+def api_portal_despachos():
+    usuario, err = _check_parceiro_pagador()
+    if err:
+        if err == ('forbidden', 403):
+            return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('despachos').select('*')\
+            .eq('parceiro_pagador', usuario)\
+            .order('created_at', desc=True)\
+            .execute()
+        despachos = r.data or []
+        if despachos:
+            ids = [d['id'] for d in despachos]
+            links_r = supabase.table('despacho_ordens').select('despacho_id, ordem_id').in_('despacho_id', ids).execute()
+            links = links_r.data or []
+            ordem_ids = [l['ordem_id'] for l in links]
+            ordens_dict = {}
+            if ordem_ids:
+                ordens_r = supabase.table('ordens_captacao')\
+                    .select('id, status, cliente_nome, valor_entrada, moeda_entrada, valor_saida, moeda_saida, '
+                            'beneficiario_nome, beneficiario_banco, beneficiario_agencia, '
+                            'beneficiario_conta, beneficiario_pix, benef_iban, benef_swift')\
+                    .in_('id', ordem_ids).execute()
+                ordens_dict = {o['id']: o for o in (ordens_r.data or [])}
+                comp_r = supabase.table('comprovantes_pagamento')\
+                    .select('ordem_id, arquivo_nome, arquivo_url, criado_em')\
+                    .in_('ordem_id', ordem_ids).order('criado_em').execute()
+                from collections import defaultdict as _dd
+                comps_por_ordem = _dd(list)
+                for c in (comp_r.data or []):
+                    comps_por_ordem[c['ordem_id']].append(c)
+                for oid, o in ordens_dict.items():
+                    comps = comps_por_ordem.get(oid, [])
+                    o['tem_comprovante'] = len(comps) > 0
+                    o['comprovantes'] = comps
+            from collections import defaultdict
+            ordens_por_despacho = defaultdict(list)
+            for l in links:
+                o = ordens_dict.get(l['ordem_id'])
+                if o:
+                    ordens_por_despacho[l['despacho_id']].append(o)
+            for d in despachos:
+                d['ordens'] = ordens_por_despacho.get(d['id'], [])
+        return jsonify({'success': True, 'despachos': despachos})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/portal/ordens/<ordem_id>/comprovantes', methods=['GET'])
+def api_portal_listar_comprovantes(ordem_id):
+    usuario, err = _check_parceiro_pagador()
+    if err:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r = supabase.table('comprovantes_pagamento').select('*')\
+            .eq('ordem_id', ordem_id).order('criado_em').execute()
+        comps = r.data or []
+        for c in comps:
+            if c.get('arquivo_url'):
+                try:
+                    signed = supabase.storage.from_('comprovantes-remessas')\
+                        .create_signed_url(c['arquivo_url'], 3600)
+                    c['signed_url'] = signed.get('signedURL') or signed.get('signedUrl') or ''
+                except Exception:
+                    c['signed_url'] = ''
+        return jsonify({'success': True, 'comprovantes': comps})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/portal/ordens/<ordem_id>/comprovantes', methods=['POST'])
+def api_portal_upload_comprovante(ordem_id):
+    usuario, err = _check_parceiro_pagador()
+    if err:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r_ord = supabase.table('ordens_captacao').select('status, parceiro_pagador').eq('id', ordem_id).single().execute()
+        if not r_ord.data:
+            return jsonify({'success': False, 'message': 'Ordem não encontrada'}), 404
+        if r_ord.data.get('parceiro_pagador') != usuario and session.get('tipo') == 'cliente':
+            return jsonify({'success': False, 'message': 'Sem permissão para esta ordem'}), 403
+        if r_ord.data['status'] not in ('despachada', 'comprovante_em_analise', 'pendencia'):
+            return jsonify({'success': False, 'message': 'Esta ordem não aceita comprovantes no status atual'}), 400
+        arquivo = request.files.get('arquivo')
+        if not arquivo or not arquivo.filename:
+            return jsonify({'success': False, 'message': 'Nenhum arquivo enviado'}), 400
+        arquivo_bytes = arquivo.read()
+        arquivo_nome  = arquivo.filename
+        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+        caminho = f"{ordem_id}/{ts}_{arquivo_nome}"
+        ct = getattr(arquivo, 'content_type', None) or 'application/octet-stream'
+        supabase.storage.from_('comprovantes-remessas').upload(caminho, arquivo_bytes, {'content-type': ct})
+        supabase.table('comprovantes_pagamento').insert({
+            'ordem_id':    ordem_id,
+            'arquivo_url': caminho,
+            'arquivo_nome': arquivo_nome,
+            'criado_por':  usuario,
+        }).execute()
+        return jsonify({'success': True, 'message': 'Comprovante enviado com sucesso.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/portal/ordens/<ordem_id>/marcar-paga', methods=['POST'])
+def api_portal_marcar_paga(ordem_id):
+    usuario, err = _check_parceiro_pagador()
+    if err:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r_ord = supabase.table('ordens_captacao').select('status, parceiro_pagador').eq('id', ordem_id).single().execute()
+        if not r_ord.data:
+            return jsonify({'success': False, 'message': 'Ordem não encontrada'}), 404
+        if r_ord.data.get('parceiro_pagador') != usuario and session.get('tipo') == 'cliente':
+            return jsonify({'success': False, 'message': 'Sem permissão para esta ordem'}), 403
+        if r_ord.data['status'] not in ('despachada', 'pendencia'):
+            return jsonify({'success': False, 'message': f'Ordem está como "{r_ord.data["status"]}"'}), 400
+        comp_r = supabase.table('comprovantes_pagamento').select('id', count='exact')\
+            .eq('ordem_id', ordem_id).execute()
+        if not comp_r.count:
+            return jsonify({'success': False, 'message': 'Envie pelo menos um comprovante antes de sinalizar como paga'}), 400
+        supabase.table('ordens_captacao').update({
+            'status':     'comprovante_em_analise',
+            'updated_at': datetime.now().isoformat(),
+        }).eq('id', ordem_id).execute()
+        return jsonify({'success': True, 'message': 'Ordem sinalizada. O backoffice irá verificar o comprovante.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/portal/comprovantes/view')
+def api_portal_comprovante_view():
+    if 'username' not in session:
+        return 'Não autenticado', 401
+    path = request.args.get('path', '')
+    if not path:
+        return 'Caminho inválido', 400
+    try:
+        import mimetypes, requests as _req
+        signed = supabase.storage.from_('comprovantes-remessas').create_signed_url(path, 60)
+        url = signed.get('signedURL') or signed.get('signedUrl') or ''
+        if not url:
+            return 'URL não gerada', 500
+        resp = _req.get(url, timeout=30)
+        ext = path.rsplit('.', 1)[-1].lower() if '.' in path else ''
+        ct = mimetypes.types_map.get('.' + ext) or resp.headers.get('Content-Type', 'application/octet-stream')
+        nome = path.rsplit('/', 1)[-1]
+        from flask import Response
+        return Response(resp.content, content_type=ct,
+                        headers={'Content-Disposition': f'inline; filename="{nome}"'})
+    except Exception as e:
+        return _err(e), 500
 
 
 if __name__ == '__main__':

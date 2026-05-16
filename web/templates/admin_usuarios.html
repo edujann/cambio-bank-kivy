@@ -1,122 +1,139 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
 <head>
+    <script>(function(){ document.documentElement.setAttribute('data-theme', localStorage.getItem('theme')||'light'); })();</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cambio Bank — Gestão de Usuários</title>
+    <title>Link International — User Management</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/static/css/theme.css">
     <style>
+        :root[data-theme="light"]{--cor-fundo:#f5ede0;--cor-card:#ffffff;--cor-borda:rgba(210,185,130,.4);--cor-texto:#1a1200;--cor-texto-secundario:#9a8560;--cor-primaria:#c8920a;--cor-admin:#c8920a;--cor-sucesso:#1a7a52;--cor-alerta:#b87200;--cor-perigo:#c02020;--sombra-suave:0 2px 8px rgba(160,110,0,.10),0 1px 3px rgba(0,0,0,.04);--borda-radius:14px;--borda-radius-pequeno:10px;}
+        :root[data-theme="dark"]{--cor-fundo:#110f08;--cor-card:#191611;--cor-borda:#2d2819;--cor-texto:#e0e0e0;--cor-texto-secundario:#8b949e;--cor-primaria:#d29e00;--cor-admin:#d29e00;--cor-sucesso:#2ec27e;--cor-alerta:#f39c12;--cor-perigo:#e01b24;--sombra-suave:0 4px 6px rgba(0,0,0,.30);--borda-radius:14px;--borda-radius-pequeno:10px;}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
-        body{background:var(--cor-fundo);color:var(--cor-texto);min-height:100vh;}
-        .page{max-width:1100px;margin:0 auto;padding:20px;}
+        body{background-color:#f5ede0;background-image:radial-gradient(ellipse at 15% 15%,rgba(210,158,0,.10) 0%,transparent 55%),radial-gradient(ellipse at 85% 85%,rgba(180,120,0,.08) 0%,transparent 55%),linear-gradient(150deg,#f8f2e6 0%,#fdf9f2 45%,#ede3cf 100%);background-attachment:fixed;color:var(--cor-texto);min-height:100vh;}
+        body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(180,130,0,.055) 1px,transparent 1px);background-size:30px 30px;pointer-events:none;z-index:0;}
+        html[data-theme="dark"] body{background-color:#110f08;background-image:linear-gradient(135deg,#110f08 0%,#1f1a10 100%);}
+        html[data-theme="dark"] body::before{display:none;}
 
-        .hd{display:flex;justify-content:space-between;align-items:center;padding:16px 0;margin-bottom:22px;border-bottom:1px solid var(--cor-borda);flex-wrap:wrap;gap:10px;}
-        .logo{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:700;}
-        .logo i{color:var(--cor-admin);font-size:22px;}
-        .logo-text{background:linear-gradient(90deg,var(--cor-admin),#2d8fff);-webkit-background-clip:text;background-clip:text;color:transparent;}
-        .hd-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-        .btn-hd{background:rgba(26,95,180,.12);border:1px solid var(--cor-admin);color:var(--cor-admin);padding:6px 13px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
-        .btn-hd:hover{background:rgba(26,95,180,.25);}
+        /* Top bar */
+        .top-bar{position:sticky;top:0;z-index:200;height:54px;background:var(--cor-card);border-bottom:1px solid var(--cor-borda);display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:10px;}
+        .logo{display:flex;align-items:center;gap:10px;font-size:17px;}
+        .logo-text{background:linear-gradient(90deg,#b78700,#eeb600);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800;}
+        .logo-text span{font-weight:400;}
+        .logo-breadcrumb{font-size:12px;color:var(--cor-texto-secundario);margin-left:4px;}
+        .hd-right{display:flex;align-items:center;gap:8px;}
+        .btn-hd{background:rgba(210,158,0,.12);border:1px solid var(--cor-admin);color:var(--cor-admin);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:.15s;}
+        .btn-hd:hover{background:rgba(210,158,0,.25);}
         .btn-hd-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
         .btn-hd-ghost:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+        .badge-user{background:rgba(210,158,0,.1);color:var(--cor-admin);padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;}
+        #btnTheme{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:0;border-radius:6px;cursor:pointer;font-size:14px;display:inline-flex;align-items:center;justify-content:center;height:30px;width:30px;transition:.15s;}
+        #btnTheme:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
 
-        .sec-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
-        .sec-hd h2{font-size:16px;font-weight:600;}
+        /* Page */
+        .page{max-width:1200px;margin:0 auto;padding:24px;position:relative;z-index:1;}
+        .sec-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+        .sec-hd h2{font-size:17px;font-weight:700;display:flex;align-items:center;gap:8px;}
+        .sec-hd h2 i{color:var(--cor-admin);}
 
-        .btn-novo{background:var(--cor-admin);color:#fff;border:none;padding:8px 16px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;}
-        .btn-novo:hover{opacity:.9;}
+        .btn-novo{background:linear-gradient(90deg,#b78700,#d29e00);color:#1a1200;border:none;padding:8px 18px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:6px;transition:.15s;}
+        .btn-novo:hover{opacity:.9;transform:translateY(-1px);}
 
-        .card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);overflow:hidden;}
-
+        /* Card / table */
+        .card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);overflow:hidden;box-shadow:var(--sombra-suave);}
         table{width:100%;border-collapse:collapse;}
-        th{background:var(--cor-fundo);padding:10px 14px;font-size:12px;font-weight:600;text-align:left;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--cor-borda);}
-        td{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--cor-borda);}
+        th{background:rgba(210,158,0,.06);padding:10px 14px;font-size:11px;font-weight:700;text-align:left;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--cor-borda);}
+        td{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--cor-borda);vertical-align:middle;}
         tr:last-child td{border-bottom:none;}
-        tr:hover td{background:rgba(26,95,180,.04);}
+        tr:hover td{background:rgba(210,158,0,.03);}
 
-        .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
-        .badge-admin{background:rgba(231,76,60,.15);color:#e74c3c;}
-        .badge-loja{background:rgba(26,95,180,.15);color:var(--cor-admin);}
+        /* Badges */
+        .badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+        .badge-admin{background:rgba(224,27,36,.12);color:#e01b24;}
+        .badge-loja{background:rgba(200,146,10,.15);color:#c8920a;}
         .badge-compliance{background:rgba(155,89,182,.15);color:#9b59b6;}
-        .badge-ativo{background:rgba(46,194,126,.15);color:var(--cor-sucesso);}
-        .badge-bloqueado{background:rgba(231,76,60,.15);color:var(--cor-perigo);}
+        .badge-backoffice{background:rgba(53,132,228,.15);color:#3584e4;}
+        .badge-backoffice_gerente{background:rgba(53,132,228,.22);color:#1c6ecc;}
+        .badge-ativo{background:rgba(26,122,82,.12);color:#1a7a52;}
+        .badge-bloqueado{background:rgba(192,32,32,.12);color:#c02020;}
 
-        .acoes{display:flex;gap:6px;}
-        .btn-act{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:4px 10px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:12px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;}
+        .acoes{display:flex;gap:6px;flex-wrap:nowrap;}
+        .btn-act{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:4px 10px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:12px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;transition:.15s;}
         .btn-act:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
         .btn-act.danger:hover{border-color:var(--cor-perigo);color:var(--cor-perigo);}
 
         .empty{text-align:center;padding:40px;color:var(--cor-texto-secundario);}
-        .empty i{font-size:32px;margin-bottom:8px;display:block;}
+        .empty i{font-size:32px;margin-bottom:8px;display:block;opacity:.4;}
+        .loading{text-align:center;padding:24px;color:var(--cor-texto-secundario);}
 
         /* Modal */
-        .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;}
+        .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;padding:20px;}
         .overlay.open{display:flex;}
-        .modal{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:28px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;}
-        .modal h3{font-size:16px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:8px;}
+        .modal{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:28px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+        .modal-top-bar{height:4px;background:linear-gradient(90deg,#7a5c00,#c8920a 30%,#f0c840 55%,#c8920a 75%,#7a5c00);border-radius:var(--borda-radius) var(--borda-radius) 0 0;margin:-28px -28px 24px;position:relative;}
+        .modal h3{font-size:16px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:8px;}
         .modal h3 i{color:var(--cor-admin);}
 
         .form-group{margin-bottom:14px;}
-        .form-group label{display:block;font-size:12px;font-weight:600;color:var(--cor-texto-secundario);margin-bottom:5px;text-transform:uppercase;}
-        .form-group input, .form-group select{width:100%;padding:9px 12px;border:1px solid var(--cor-borda);border-radius:var(--borda-radius-pequeno);background:var(--cor-fundo);color:var(--cor-texto);font-size:13px;}
-        .form-group input:focus, .form-group select:focus{outline:none;border-color:var(--cor-admin);}
+        .form-group label{display:block;font-size:11px;font-weight:700;color:var(--cor-texto-secundario);margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px;}
+        .form-group input,.form-group select{width:100%;padding:10px 12px;border:1px solid var(--cor-borda);border-radius:var(--borda-radius-pequeno);background:var(--cor-fundo);color:var(--cor-texto);font-size:13px;transition:.15s;}
+        .form-group input:focus,.form-group select:focus{outline:none;border-color:var(--cor-admin);box-shadow:0 0 0 3px rgba(200,146,10,.12);}
+        [data-theme="light"] .form-group input,[data-theme="light"] .form-group select{background:var(--cor-card);}
         .form-group .hint{font-size:11px;color:var(--cor-texto-secundario);margin-top:4px;}
 
         .lojas-check{display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;border:1px solid var(--cor-borda);border-radius:var(--borda-radius-pequeno);padding:8px;}
         .lojas-check label{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:3px 4px;border-radius:4px;}
-        .lojas-check label:hover{background:rgba(26,95,180,.06);}
+        .lojas-check label:hover{background:rgba(210,158,0,.06);}
         .lojas-check input[type=checkbox]{width:14px;height:14px;accent-color:var(--cor-admin);}
 
         .modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--cor-borda);}
-        .btn-cancel{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:8px 16px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:13px;}
+        .btn-cancel{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:8px 16px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:13px;transition:.15s;}
         .btn-cancel:hover{border-color:var(--cor-perigo);color:var(--cor-perigo);}
-        .btn-save{background:var(--cor-admin);color:#fff;border:none;padding:8px 20px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:13px;font-weight:600;}
+        .btn-save{background:linear-gradient(90deg,#b78700,#d29e00);color:#1a1200;border:none;padding:8px 20px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:6px;transition:.15s;}
         .btn-save:hover{opacity:.9;}
 
         .msg-form{font-size:12px;margin-top:10px;min-height:18px;}
 
-        .loading{text-align:center;padding:20px;color:var(--cor-texto-secundario);}
+        /* Type option labels in select */
+        .tipo-hint{font-size:11px;color:var(--cor-texto-secundario);margin-top:4px;min-height:16px;}
     </style>
 </head>
 <body>
-<div class="page">
-    <!-- Header -->
-    <div class="hd">
-        <div class="logo">
-            <i class="fas fa-university"></i>
-            <span class="logo-text">Cambio Bank</span>
-            <span style="font-size:13px;color:var(--cor-texto-secundario);font-weight:400;margin-left:4px;">/ Gestão de Usuários</span>
-        </div>
-        <div class="hd-right">
-            <span style="font-size:12px;color:var(--cor-texto-secundario);">{{ usuario }}</span>
-            <a href="/admin/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-arrow-left"></i> Admin</a>
-            <button id="btnTheme" class="btn-hd btn-hd-ghost" onclick="toggleTheme()" title="Alternar tema"><i class="fas fa-moon"></i></button>
-            <a href="/logout" class="btn-hd btn-hd-ghost"><i class="fas fa-sign-out-alt"></i> Sair</a>
-        </div>
-    </div>
 
-    <!-- Conteúdo -->
+<div class="top-bar">
+    <div class="logo">
+        <span class="logo-text"><strong>Link</strong><span> international</span></span>
+        <span class="logo-breadcrumb">/ User Management</span>
+    </div>
+    <div class="hd-right">
+        <span class="badge-user"><i class="fas fa-user-shield" style="margin-right:4px"></i>{{ usuario }}</span>
+        <button id="btnTheme" onclick="toggleTheme()" title="Toggle theme"><i class="fas fa-sun"></i></button>
+        <a href="/admin/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-arrow-left"></i> Dashboard</a>
+        <a href="/logout" class="btn-hd btn-hd-ghost"><i class="fas fa-sign-out-alt"></i> Sign Out</a>
+    </div>
+</div>
+
+<div class="page">
     <div class="sec-hd">
-        <h2><i class="fas fa-users" style="margin-right:7px;color:var(--cor-admin);"></i>Usuários do Sistema <span id="totalCount" style="font-size:13px;color:var(--cor-texto-secundario);font-weight:400;"></span></h2>
-        <button class="btn-novo" onclick="abrirModal()"><i class="fas fa-plus"></i> Novo Usuário</button>
+        <h2><i class="fas fa-users"></i> System Users <span id="totalCount" style="font-size:13px;color:var(--cor-texto-secundario);font-weight:400;"></span></h2>
+        <button class="btn-novo" onclick="abrirModal()"><i class="fas fa-plus"></i> New User</button>
     </div>
 
     <div class="card">
         <table>
             <thead>
                 <tr>
-                    <th>Usuário</th>
-                    <th>Nome</th>
+                    <th>Username</th>
+                    <th>Name</th>
                     <th>E-mail</th>
-                    <th>Tipo</th>
+                    <th>Type</th>
                     <th>Status</th>
-                    <th>Lojas</th>
-                    <th>Ações</th>
+                    <th>Stores</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody id="tbUsuarios">
-                <tr><td colspan="7" class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</td></tr>
+                <tr><td colspan="7" class="loading"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr>
             </tbody>
         </table>
     </div>
@@ -125,54 +142,65 @@
 <!-- Modal criar/editar usuário -->
 <div class="overlay" id="modalOverlay">
     <div class="modal">
-        <h3><i class="fas fa-user-plus"></i> <span id="modalTitulo">Novo Usuário</span></h3>
+        <div class="modal-top-bar"></div>
+        <h3><i class="fas fa-user-plus"></i> <span id="modalTitulo">New User</span></h3>
 
         <div class="form-group">
             <label>Username *</label>
-            <input type="text" id="fUsername" placeholder="ex: joao.silva" autocomplete="off">
-            <div class="hint">Letras minúsculas, números e pontos. Usado no login.</div>
+            <input type="text" id="fUsername" placeholder="e.g. joao.silva" autocomplete="off">
+            <div class="hint">Lowercase letters, numbers and dots. Used for login.</div>
         </div>
         <div class="form-group">
-            <label>Nome completo *</label>
-            <input type="text" id="fNome" placeholder="ex: João Silva">
+            <label>Full name *</label>
+            <input type="text" id="fNome" placeholder="e.g. João Silva">
         </div>
         <div class="form-group">
             <label>E-mail</label>
-            <input type="email" id="fEmail" placeholder="ex: joao@empresa.com">
+            <input type="email" id="fEmail" placeholder="e.g. joao@empresa.com">
         </div>
         <div class="form-group">
-            <label>Tipo *</label>
+            <label>Type *</label>
             <select id="fTipo" onchange="onTipoChange()">
-                <option value="">Selecione...</option>
-                <option value="loja">Operador de Loja</option>
+                <option value="">Select…</option>
+                <option value="loja">Store Operator</option>
                 <option value="compliance">Compliance</option>
-                <option value="admin">Admin</option>
+                <option value="backoffice">Back Office — Agent</option>
+                <option value="backoffice_gerente">Back Office — Manager</option>
+                <option value="admin">Administrator</option>
             </select>
+            <div class="tipo-hint" id="tipoHint"></div>
         </div>
         <div class="form-group" id="grupoLojas" style="display:none;">
-            <label>Lojas permitidas</label>
+            <label>Allowed stores</label>
             <div class="lojas-check" id="lojasCheck">
-                <div style="color:var(--cor-texto-secundario);font-size:12px;">Carregando lojas...</div>
+                <div style="color:var(--cor-texto-secundario);font-size:12px;">Loading stores…</div>
             </div>
-            <div class="hint">Selecione as lojas/call centers que este operador pode acessar.</div>
+            <div class="hint">Select the stores/call centers this operator can access.</div>
         </div>
         <div class="form-group">
-            <label id="lblSenha">Senha *</label>
-            <input type="password" id="fSenha" placeholder="Mínimo 8 caracteres" autocomplete="new-password">
-            <div class="hint" id="hintSenha">Deixe em branco para não alterar.</div>
+            <label id="lblSenha">Password *</label>
+            <input type="password" id="fSenha" placeholder="Minimum 8 characters" autocomplete="new-password">
+            <div class="hint" id="hintSenha" style="display:none;">Leave blank to keep current password.</div>
         </div>
 
         <div class="msg-form" id="msgForm"></div>
 
         <div class="modal-footer">
-            <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
-            <button class="btn-save" onclick="salvarUsuario()"><i class="fas fa-save"></i> Salvar</button>
+            <button class="btn-cancel" onclick="fecharModal()">Cancel</button>
+            <button class="btn-save" onclick="salvarUsuario()"><i class="fas fa-save"></i> Save</button>
         </div>
     </div>
 </div>
 
-<script src="/static/js/theme.js"></script>
 <script>
+const TIPO_HINTS = {
+    loja: 'Access to assigned store/call-center screens.',
+    compliance: 'Access to B2B/AML compliance dashboards.',
+    backoffice: 'Back office agent — operations, dispatches, call center, stores and clients.',
+    backoffice_gerente: 'Back office manager — everything above plus rates, quotations and admin settings.',
+    admin: 'Full system access including user management.',
+};
+
 let editandoId = null;
 let todasLojas = [];
 
@@ -182,29 +210,36 @@ async function carregarUsuarios() {
         const d = await r.json();
         const tb = document.getElementById('tbUsuarios');
         if (!d.success || !d.usuarios.length) {
-            tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-users"></i><p>Nenhum usuário cadastrado.</p></td></tr>';
+            tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-users"></i><p>No users found.</p></td></tr>';
             return;
         }
         document.getElementById('totalCount').textContent = `(${d.usuarios.length})`;
         tb.innerHTML = d.usuarios.map(u => {
             const tipo = u.tipo || '';
-            const badgeTipo = `<span class="badge badge-${tipo}">${tipo}</span>`;
+            const tipoLabels = {
+                loja: 'Store Op.',
+                compliance: 'Compliance',
+                backoffice: 'Backoffice',
+                backoffice_gerente: 'BO Manager',
+                admin: 'Admin',
+            };
+            const badgeTipo = `<span class="badge badge-${tipo}">${tipoLabels[tipo] || tipo}</span>`;
             const badgeStatus = u.status === 'bloqueado'
-                ? `<span class="badge badge-bloqueado"><i class="fas fa-lock"></i> Bloqueado</span>`
-                : `<span class="badge badge-ativo"><i class="fas fa-check"></i> Ativo</span>`;
+                ? `<span class="badge badge-bloqueado"><i class="fas fa-lock"></i> Blocked</span>`
+                : `<span class="badge badge-ativo"><i class="fas fa-check"></i> Active</span>`;
             const lojas = (u.lojas_permitidas || []).join(', ') || '—';
             const btnBloquear = u.status === 'bloqueado'
-                ? `<button class="btn-act" onclick="toggleStatus('${u.id}','ativo')"><i class="fas fa-unlock"></i> Desbloquear</button>`
-                : `<button class="btn-act danger" onclick="toggleStatus('${u.id}','bloqueado')"><i class="fas fa-lock"></i> Bloquear</button>`;
+                ? `<button class="btn-act" onclick="toggleStatus('${u.id}','ativo')"><i class="fas fa-unlock"></i> Unblock</button>`
+                : `<button class="btn-act danger" onclick="toggleStatus('${u.id}','bloqueado')"><i class="fas fa-lock"></i> Block</button>`;
             return `<tr>
-                <td style="font-weight:600;font-family:monospace;">${u.username}</td>
+                <td style="font-weight:600;font-family:monospace;font-size:12px;">${u.username}</td>
                 <td>${u.nome || '—'}</td>
-                <td style="color:var(--cor-texto-secundario);">${u.email || '—'}</td>
+                <td style="color:var(--cor-texto-secundario);font-size:12px;">${u.email || '—'}</td>
                 <td>${badgeTipo}</td>
                 <td>${badgeStatus}</td>
-                <td style="font-size:12px;color:var(--cor-texto-secundario);">${lojas}</td>
+                <td style="font-size:11px;color:var(--cor-texto-secundario);">${lojas}</td>
                 <td><div class="acoes">
-                    <button class="btn-act" onclick="abrirEditar(${JSON.stringify(u).replace(/"/g,'&quot;')})"><i class="fas fa-edit"></i> Editar</button>
+                    <button class="btn-act" onclick="abrirEditar(${JSON.stringify(u).replace(/"/g,'&quot;')})"><i class="fas fa-edit"></i> Edit</button>
                     ${btnBloquear}
                 </div></td>
             </tr>`;
@@ -226,7 +261,7 @@ async function carregarLojas() {
 function renderLojasCheck(selecionadas = []) {
     const el = document.getElementById('lojasCheck');
     if (!todasLojas.length) {
-        el.innerHTML = '<div style="color:var(--cor-texto-secundario);font-size:12px;">Nenhuma loja cadastrada.</div>';
+        el.innerHTML = '<div style="color:var(--cor-texto-secundario);font-size:12px;">No stores registered.</div>';
         return;
     }
     el.innerHTML = todasLojas.map(l =>
@@ -240,6 +275,7 @@ function renderLojasCheck(selecionadas = []) {
 function onTipoChange() {
     const tipo = document.getElementById('fTipo').value;
     const grupoLojas = document.getElementById('grupoLojas');
+    document.getElementById('tipoHint').textContent = TIPO_HINTS[tipo] || '';
     if (tipo === 'loja') {
         grupoLojas.style.display = '';
         carregarLojas().then(() => renderLojasCheck([]));
@@ -250,14 +286,15 @@ function onTipoChange() {
 
 function abrirModal() {
     editandoId = null;
-    document.getElementById('modalTitulo').textContent = 'Novo Usuário';
+    document.getElementById('modalTitulo').textContent = 'New User';
     document.getElementById('fUsername').value = '';
     document.getElementById('fUsername').disabled = false;
     document.getElementById('fNome').value = '';
     document.getElementById('fEmail').value = '';
     document.getElementById('fTipo').value = '';
+    document.getElementById('tipoHint').textContent = '';
     document.getElementById('fSenha').value = '';
-    document.getElementById('lblSenha').textContent = 'Senha *';
+    document.getElementById('lblSenha').textContent = 'Password *';
     document.getElementById('hintSenha').style.display = 'none';
     document.getElementById('grupoLojas').style.display = 'none';
     document.getElementById('msgForm').textContent = '';
@@ -266,14 +303,15 @@ function abrirModal() {
 
 async function abrirEditar(u) {
     editandoId = u.id;
-    document.getElementById('modalTitulo').textContent = 'Editar Usuário';
+    document.getElementById('modalTitulo').textContent = 'Edit User';
     document.getElementById('fUsername').value = u.username;
     document.getElementById('fUsername').disabled = true;
     document.getElementById('fNome').value = u.nome || '';
     document.getElementById('fEmail').value = u.email || '';
     document.getElementById('fTipo').value = u.tipo || '';
+    document.getElementById('tipoHint').textContent = TIPO_HINTS[u.tipo] || '';
     document.getElementById('fSenha').value = '';
-    document.getElementById('lblSenha').textContent = 'Nova Senha';
+    document.getElementById('lblSenha').textContent = 'New Password';
     document.getElementById('hintSenha').style.display = '';
     document.getElementById('msgForm').textContent = '';
 
@@ -304,9 +342,9 @@ async function salvarUsuario() {
     const tipo     = document.getElementById('fTipo').value;
     const senha    = document.getElementById('fSenha').value;
 
-    if (!nome || !tipo) { msg.innerHTML = '<span style="color:var(--cor-perigo)">Nome e tipo são obrigatórios.</span>'; return; }
-    if (!editandoId && (!username || !senha)) { msg.innerHTML = '<span style="color:var(--cor-perigo)">Username e senha são obrigatórios.</span>'; return; }
-    if (senha && senha.length < 8) { msg.innerHTML = '<span style="color:var(--cor-perigo)">Senha deve ter no mínimo 8 caracteres.</span>'; return; }
+    if (!nome || !tipo) { msg.innerHTML = '<span style="color:var(--cor-perigo)">Name and type are required.</span>'; return; }
+    if (!editandoId && (!username || !senha)) { msg.innerHTML = '<span style="color:var(--cor-perigo)">Username and password are required.</span>'; return; }
+    if (senha && senha.length < 8) { msg.innerHTML = '<span style="color:var(--cor-perigo)">Password must be at least 8 characters.</span>'; return; }
 
     const payload = { nome, email, tipo, lojas_permitidas: tipo === 'loja' ? getLojasSelected() : [] };
     if (!editandoId) payload.username = username;
@@ -329,8 +367,8 @@ async function salvarUsuario() {
 }
 
 async function toggleStatus(id, novoStatus) {
-    const acao = novoStatus === 'bloqueado' ? 'bloquear' : 'desbloquear';
-    if (!confirm(`Deseja ${acao} este usuário?`)) return;
+    const acao = novoStatus === 'bloqueado' ? 'block' : 'unblock';
+    if (!confirm(`Are you sure you want to ${acao} this user?`)) return;
     try {
         const r = await fetch(`/api/admin/usuarios/${id}`, {
             method: 'PUT',
@@ -346,6 +384,20 @@ async function toggleStatus(id, novoStatus) {
 document.getElementById('modalOverlay').addEventListener('click', e => {
     if (e.target === document.getElementById('modalOverlay')) fecharModal();
 });
+
+// ── Theme ──
+function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    const next = isDark ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    document.getElementById('btnTheme').innerHTML = isDark ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
+}
+(function() {
+    const t = localStorage.getItem('theme') || 'light';
+    document.getElementById('btnTheme').innerHTML = t === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+})();
 
 carregarUsuarios();
 </script>

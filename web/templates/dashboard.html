@@ -55,6 +55,7 @@ nav.sb-nav{flex:1;padding:10px 0;overflow-y:auto;}
 .nav-item.active{color:var(--gold);background:var(--gold-lt);font-weight:600;}
 .nav-item.active::before{content:'';position:absolute;left:0;top:0;bottom:0;
     width:3px;background:var(--gold);border-radius:0 2px 2px 0;}
+.nav-badge{display:inline-flex;align-items:center;justify-content:center;background:#e01b24;color:#fff;font-size:10px;font-weight:700;min-width:18px;height:18px;border-radius:9px;padding:0 5px;margin-left:auto;flex-shrink:0;}
 .nav-item.disabled{opacity:.35;pointer-events:none;cursor:default;}
 .sb-footer{padding:12px 18px;border-top:1px solid var(--border);}
 .sb-user-row{display:flex;align-items:center;gap:10px;}
@@ -267,6 +268,9 @@ nav.sb-nav{flex:1;padding:10px 0;overflow-y:auto;}
         <a class="nav-item {{ 'disabled' if is_ob }}" href="/meus-beneficiarios"><i class="fas fa-users"></i> {% if is_pt %}Beneficiários{% else %}Beneficiaries{% endif %}</a>
         <a class="nav-item {{ 'disabled' if is_ob }}" href="/meu_extrato"><i class="fas fa-clock-rotate-left"></i> {% if is_pt %}Extrato{% else %}Statements{% endif %}</a>
         <a class="nav-item" href="/chamados"><i class="fas fa-comments"></i> {% if is_pt %}Suporte{% else %}Support{% endif %}</a>
+        {% if is_parceiro_pagador %}
+        <a class="nav-item {{ 'disabled' if is_ob }}" href="/portal/despachos"><i class="fas fa-paper-plane"></i> {% if is_pt %}Despachos{% else %}Dispatches{% endif %}<span class="nav-badge" id="badge-despachos" style="display:none;"></span></a>
+        {% endif %}
     </nav>
 
     <div class="sb-footer">
@@ -697,6 +701,20 @@ async function obView(docId){
 }
 
 loadObDocs();
+</script>
+{% endif %}
+{% if is_parceiro_pagador %}
+<script>
+(async function(){
+    try{
+        const r = await fetch('/api/portal/despachos');
+        const d = await r.json();
+        if(!d.success) return;
+        const n = (d.despachos||[]).filter(dep=>dep.status!=='pago').length;
+        const badge = document.getElementById('badge-despachos');
+        if(badge && n>0){ badge.textContent=n; badge.style.display=''; }
+    }catch(e){}
+})();
 </script>
 {% endif %}
 </body>

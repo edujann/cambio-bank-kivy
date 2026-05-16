@@ -288,6 +288,21 @@
                 <div id="ovNotes" style="font-size:13px;color:var(--cor-texto-secundario);line-height:1.6"></div>
                 <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="openModal('notes')"><i class="fas fa-edit"></i> Edit notes</button>
             </div>
+            <div class="info-card">
+                <h3><i class="fas fa-paper-plane"></i> Dispatch Partner</h3>
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                    <div>
+                        <div style="font-size:13px;margin-bottom:4px;">Portal access for dispatch payment</div>
+                        <div style="font-size:12px;color:var(--cor-texto-secundario);">When enabled, this client can upload payment proofs and mark orders as paid via the B2B portal.</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+                        <span id="parceiroPagadorBadge" class="tag">—</span>
+                        <button id="btnToggleParceiro" class="btn btn-ghost btn-sm" onclick="toggleParceiroPagador()">
+                            <i class="fas fa-toggle-off"></i> <span id="btnToggleParceiroLabel">Enable</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- KYB DATA -->
@@ -601,6 +616,49 @@ function renderOverview(c) {
     ]);
     const notes = c.notas_compliance || '<span style="opacity:.5">No compliance notes recorded.</span>';
     document.getElementById('ovNotes').innerHTML = notes;
+    renderParceiroPagador(c.is_parceiro_pagador);
+}
+
+function renderParceiroPagador(ativo) {
+    const badge = document.getElementById('parceiroPagadorBadge');
+    const btn = document.getElementById('btnToggleParceiro');
+    const lbl = document.getElementById('btnToggleParceiroLabel');
+    if (ativo) {
+        badge.className = 'tag tag-ativo';
+        badge.textContent = 'Enabled';
+        btn.innerHTML = '<i class="fas fa-toggle-on"></i> <span id="btnToggleParceiroLabel">Disable</span>';
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-danger');
+    } else {
+        badge.className = 'tag tag-fechado';
+        badge.textContent = 'Disabled';
+        btn.innerHTML = '<i class="fas fa-toggle-off"></i> <span id="btnToggleParceiroLabel">Enable</span>';
+        btn.classList.remove('btn-danger');
+        btn.classList.add('btn-success');
+    }
+}
+
+async function toggleParceiroPagador() {
+    const atual = clientData.is_parceiro_pagador;
+    const novoEstado = !atual;
+    const acao = novoEstado ? 'enable dispatch partner access' : 'disable dispatch partner access';
+    if (!confirm(`Are you sure you want to ${acao} for this client?`)) return;
+    try {
+        const r = await fetch(`/api/compliance/b2b/clientes/${CLIENT_ID}/parceiro-pagador`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ativo: novoEstado})
+        });
+        const d = await r.json();
+        if (d.success) {
+            clientData.is_parceiro_pagador = novoEstado;
+            renderParceiroPagador(novoEstado);
+        } else {
+            alert(d.message || 'Error updating status');
+        }
+    } catch(e) {
+        alert('Connection error: ' + e.message);
+    }
 }
 
 function renderKyb(c) {

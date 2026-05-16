@@ -1,148 +1,188 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
 <head>
+    <script>(function(){ document.documentElement.setAttribute('data-theme', localStorage.getItem('theme')||'light'); })();</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cambio Bank — Despachos</title>
+    <title>Link International — Despachos</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/static/css/theme.css">
     <style>
+        :root[data-theme="light"]{--cor-fundo:#f5ede0;--cor-card:#ffffff;--cor-borda:rgba(210,185,130,.4);--cor-texto:#1a1200;--cor-texto-secundario:#9a8560;--cor-admin:#c8920a;--cor-sucesso:#1a7a52;--cor-alerta:#b87200;--cor-perigo:#c02020;--cor-roxo:#7b4bb8;--sombra-suave:0 2px 8px rgba(160,110,0,.10),0 1px 3px rgba(0,0,0,.04);--borda-radius:14px;--borda-radius-pequeno:10px;}
+        :root[data-theme="dark"]{--cor-fundo:#110f08;--cor-card:#191611;--cor-borda:#2d2819;--cor-texto:#e0e0e0;--cor-texto-secundario:#8b949e;--cor-admin:#d29e00;--cor-sucesso:#2ec27e;--cor-alerta:#f39c12;--cor-perigo:#e01b24;--cor-roxo:#9b59b6;--sombra-suave:0 4px 6px rgba(0,0,0,.30);--borda-radius:14px;--borda-radius-pequeno:10px;}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
-        body{background:var(--cor-fundo);color:var(--cor-texto);min-height:100vh;}
-        .page{max-width:1400px;margin:0 auto;padding:20px;}
+        body{background-color:#f5ede0;background-image:radial-gradient(ellipse at 15% 15%,rgba(210,158,0,.10) 0%,transparent 55%),radial-gradient(ellipse at 85% 85%,rgba(180,120,0,.08) 0%,transparent 55%),linear-gradient(150deg,#f8f2e6 0%,#fdf9f2 45%,#ede3cf 100%);background-attachment:fixed;color:var(--cor-texto);min-height:100vh;}
+        body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(180,130,0,.055) 1px,transparent 1px);background-size:30px 30px;pointer-events:none;z-index:0;}
+        html[data-theme="dark"] body{background-color:#110f08;background-image:linear-gradient(135deg,#110f08 0%,#1f1a10 100%);}
+        html[data-theme="dark"] body::before{display:none;}
 
-        /* Header */
-        .hd{display:flex;justify-content:space-between;align-items:center;padding:16px 0;margin-bottom:22px;border-bottom:1px solid var(--cor-borda);flex-wrap:wrap;gap:10px;}
-        .logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;}
-        .logo i{color:var(--cor-admin);}
-        .logo-text{background:linear-gradient(90deg,var(--cor-admin),#2d8fff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+        /* Top bar */
+        .top-bar{position:sticky;top:0;z-index:200;height:54px;background:var(--cor-card);border-bottom:1px solid var(--cor-borda);display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:10px;}
+        .logo{display:flex;align-items:center;gap:10px;font-size:17px;}
+        .logo-text{background:linear-gradient(90deg,#b78700,#eeb600);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800;}
+        .logo-text span{font-weight:400;}
+        .logo-breadcrumb{font-size:12px;color:var(--cor-texto-secundario);margin-left:4px;}
         .hd-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-        .btn-hd{background:rgba(26,95,180,.12);border:1px solid var(--cor-admin);color:var(--cor-admin);padding:6px 13px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
-        .btn-hd:hover{background:rgba(26,95,180,.25);}
+        .btn-hd{background:rgba(210,158,0,.12);border:1px solid var(--cor-admin);color:var(--cor-admin);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:.15s;}
+        .btn-hd:hover{background:rgba(210,158,0,.25);}
         .btn-hd-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);}
         .btn-hd-ghost:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+        .badge-user{background:rgba(210,158,0,.1);color:var(--cor-admin);padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;}
+        #btnTheme{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:0;border-radius:6px;cursor:pointer;font-size:14px;display:inline-flex;align-items:center;justify-content:center;height:30px;width:30px;transition:.15s;}
+        #btnTheme:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
+
+        /* Page */
+        .page{max-width:1400px;margin:0 auto;padding:24px;position:relative;z-index:1;}
 
         /* Stats */
         .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px;}
-        .stat{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:14px 16px;}
-        .stat .lbl{font-size:11px;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+        .stat{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:14px 16px;box-shadow:var(--sombra-suave);}
+        .stat .lbl{font-size:11px;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;font-weight:600;}
         .stat .val{font-size:22px;font-weight:700;}
         .stat .sub{font-size:11px;color:var(--cor-texto-secundario);margin-top:3px;}
-        .c-verde{color:var(--cor-sucesso);} .c-am{color:var(--cor-alerta);} .c-azul{color:var(--cor-admin);} .c-roxo{color:#9b59b6;}
+        .c-verde{color:var(--cor-sucesso);} .c-am{color:var(--cor-alerta);} .c-azul{color:var(--cor-admin);} .c-roxo{color:var(--cor-roxo);}
 
         /* Tabs */
-        .tabs{display:flex;gap:0;border-bottom:2px solid var(--cor-borda);margin-bottom:20px;}
-        .tab{padding:10px 20px;cursor:pointer;font-size:13px;font-weight:600;color:var(--cor-texto-secundario);border-bottom:2px solid transparent;margin-bottom:-2px;display:flex;align-items:center;gap:7px;transition:.15s;white-space:nowrap;}
-        .tab:hover{color:var(--cor-texto);}
+        .tabs{display:flex;gap:0;border-bottom:2px solid var(--cor-borda);margin-bottom:20px;overflow-x:auto;}
+        .tab{padding:10px 18px;cursor:pointer;font-size:13px;font-weight:600;color:var(--cor-texto-secundario);border-bottom:2px solid transparent;margin-bottom:-2px;display:flex;align-items:center;gap:7px;transition:.15s;white-space:nowrap;}
+        .tab:hover{color:var(--cor-admin);}
         .tab.active{color:var(--cor-admin);border-bottom-color:var(--cor-admin);}
         .tab-badge{background:var(--cor-admin);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;}
+
         .tab-panel{display:none;}
         .tab-panel.active{display:block;}
 
         /* Filters */
-        .filters{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:14px 16px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
+        .filters{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:14px 16px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;box-shadow:var(--sombra-suave);}
         .fgroup{display:flex;flex-direction:column;gap:4px;}
-        .fgroup label{font-size:11px;color:var(--cor-texto-secundario);font-weight:600;text-transform:uppercase;letter-spacing:.3px;}
-        .fc{background:var(--cor-fundo);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:7px 10px;border-radius:var(--borda-radius-pequeno);font-size:13px;outline:none;}
-        .fc:focus{border-color:var(--cor-admin);}
+        .fgroup label{font-size:11px;color:var(--cor-texto-secundario);font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+        .fc{background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:7px 10px;border-radius:var(--borda-radius-pequeno);font-size:13px;outline:none;transition:.15s;}
+        .fc:focus{border-color:var(--cor-admin);box-shadow:0 0 0 3px rgba(200,146,10,.1);}
+        [data-theme="dark"] .fc{background:var(--cor-fundo);}
         select.fc option{background:var(--cor-card);}
-        .btn-filter{background:var(--cor-admin);color:#fff;border:none;padding:7px 16px;border-radius:var(--borda-radius-pequeno);font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
-        .btn-filter:hover{background:#1c71d8;}
-        .btn-filter-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:7px 14px;border-radius:var(--borda-radius-pequeno);font-size:13px;cursor:pointer;}
+        .btn-filter{background:linear-gradient(90deg,#b78700,#d29e00);color:#1a1200;border:none;padding:7px 16px;border-radius:var(--borda-radius-pequeno);font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.15s;}
+        .btn-filter:hover{opacity:.9;}
+        .btn-filter-ghost{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:7px 14px;border-radius:var(--borda-radius-pequeno);font-size:13px;cursor:pointer;transition:.15s;}
         .btn-filter-ghost:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
 
         /* Selection bar */
-        .sel-bar{background:rgba(26,95,180,.08);border:1px solid var(--cor-admin);border-radius:var(--borda-radius-pequeno);padding:10px 16px;margin-bottom:12px;display:none;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+        .sel-bar{background:rgba(200,146,10,.07);border:1px solid rgba(200,146,10,.4);border-radius:var(--borda-radius-pequeno);padding:10px 16px;margin-bottom:12px;display:none;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
         .sel-bar.visible{display:flex;}
         .sel-info{font-size:13px;font-weight:600;color:var(--cor-admin);}
         .sel-total{font-size:13px;color:var(--cor-texto-secundario);}
-        .btn-despachar{background:var(--cor-admin);color:#fff;border:none;padding:9px 20px;border-radius:var(--borda-radius-pequeno);font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px;}
-        .btn-despachar:hover{background:#1c71d8;}
-        .btn-limpar{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:9px 14px;border-radius:var(--borda-radius-pequeno);font-size:13px;cursor:pointer;}
+        .btn-despachar{background:linear-gradient(90deg,#b78700,#d29e00);color:#1a1200;border:none;padding:9px 20px;border-radius:var(--borda-radius-pequeno);font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s;}
+        .btn-despachar:hover{opacity:.9;}
+        .btn-limpar{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:9px 14px;border-radius:var(--borda-radius-pequeno);font-size:13px;cursor:pointer;transition:.15s;}
         .btn-limpar:hover{border-color:var(--cor-perigo);color:var(--cor-perigo);}
 
         /* Table */
-        .tbl-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);overflow:hidden;}
+        .tbl-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);overflow:hidden;box-shadow:var(--sombra-suave);}
         .tbl-hd{padding:12px 16px;border-bottom:1px solid var(--cor-borda);display:flex;justify-content:space-between;align-items:center;}
         .tbl-hd h3{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px;}
         .tbl-wrap{overflow-x:auto;}
         table{width:100%;border-collapse:collapse;font-size:13px;}
-        th{background:rgba(128,128,128,.05);color:var(--cor-texto-secundario);padding:9px 12px;text-align:left;font-weight:600;font-size:11px;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px;}
+        th{background:rgba(210,158,0,.06);color:var(--cor-texto-secundario);padding:9px 12px;text-align:left;font-weight:700;font-size:11px;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--cor-borda);}
         th.check-col{width:36px;text-align:center;}
         td{padding:10px 12px;border-top:1px solid var(--cor-borda);vertical-align:middle;white-space:nowrap;}
-        tr:hover td{background:rgba(128,128,128,.03);}
-        tr.selected td{background:rgba(26,95,180,.06);}
+        tr:hover td{background:rgba(210,158,0,.03);}
+        tr.selected td{background:rgba(200,146,10,.06);}
         .cb{width:16px;height:16px;cursor:pointer;accent-color:var(--cor-admin);}
         .empty{padding:40px;text-align:center;color:var(--cor-texto-secundario);}
-        .empty i{font-size:32px;margin-bottom:8px;display:block;}
-        .tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
-        .tag-on_hold{background:rgba(243,156,18,.15);color:var(--cor-alerta);}
-        .tag-liberada{background:rgba(26,95,180,.15);color:var(--cor-admin);}
-        .tag-compliance_review{background:rgba(155,89,182,.15);color:#9b59b6;}
-        .tag-despachada{background:rgba(46,194,126,.15);color:var(--cor-sucesso);}
-        .tag-paga{background:rgba(46,194,126,.2);color:var(--cor-sucesso);}
-        .tag-enviado{background:rgba(26,95,180,.15);color:var(--cor-admin);}
-        .tag-pago{background:rgba(46,194,126,.15);color:var(--cor-sucesso);}
+        .empty i{font-size:32px;margin-bottom:8px;display:block;opacity:.4;}
+
+        .tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+        .tag-on_hold{background:rgba(184,114,0,.12);color:var(--cor-alerta);}
+        .tag-liberada{background:rgba(200,146,10,.12);color:var(--cor-admin);}
+        .tag-compliance_review{background:rgba(123,75,184,.12);color:var(--cor-roxo);}
+        .tag-despachada{background:rgba(26,122,82,.12);color:var(--cor-sucesso);}
+        .tag-paga{background:rgba(26,122,82,.18);color:var(--cor-sucesso);}
+        .tag-enviado{background:rgba(200,146,10,.12);color:var(--cor-admin);}
+        .tag-pago{background:rgba(26,122,82,.12);color:var(--cor-sucesso);}
         .flag-pgto-ok{color:var(--cor-sucesso);font-size:11px;}
         .flag-pgto-pend{color:var(--cor-alerta);font-size:11px;}
         .dest-flag{font-size:14px;}
         .mono{font-family:monospace;font-size:13px;}
-        .btn-act{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:3px 10px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap;transition:.15s;}
+        .btn-act{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:3px 10px;border-radius:var(--borda-radius-pequeno);cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap;transition:.15s;display:inline-flex;align-items:center;gap:4px;}
         .btn-act:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
-        .btn-act.g{border-color:rgba(46,194,126,.4);color:var(--cor-sucesso);}
-        .btn-act.g:hover{background:rgba(46,194,126,.1);}
+        .btn-act.g{border-color:rgba(26,122,82,.4);color:var(--cor-sucesso);}
+        .btn-act.g:hover{background:rgba(26,122,82,.1);}
 
-        /* Despacho card */
-        .desp-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
-        .desp-num{font-size:18px;font-weight:700;color:var(--cor-admin);}
-        .desp-info{font-size:13px;color:var(--cor-texto-secundario);margin-top:3px;}
-        .desp-val{font-size:20px;font-weight:700;color:var(--cor-sucesso);}
-        .desp-meta{font-size:12px;color:var(--cor-texto-secundario);}
+        /* Despacho card expansível */
+        .desp-card{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);margin-bottom:12px;overflow:hidden;box-shadow:var(--sombra-suave);}
+        .desp-header{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:rgba(200,146,10,.04);flex-wrap:wrap;gap:8px;transition:.15s;}
+        .desp-header:hover{background:rgba(200,146,10,.09);}
+        .desp-body{display:none;padding:16px;border-top:1px solid var(--cor-borda);}
+        .desp-body.open{display:block;}
+        .desp-num{font-size:15px;font-weight:700;color:var(--cor-admin);}
+        .desp-info{font-size:13px;color:var(--cor-texto-secundario);}
+        .desp-val{font-size:16px;font-weight:700;color:var(--cor-sucesso);}
+        /* Badge status */
+        .badge-s{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600;white-space:nowrap;}
+        .bs-paga,.bs-pago{background:rgba(26,122,82,.12);color:var(--cor-sucesso);}
+        .bs-enviado{background:rgba(184,114,0,.15);color:var(--cor-alerta);}
+        .bs-pendencia{background:rgba(192,32,32,.12);color:var(--cor-perigo);}
+        .bs-despachada{background:rgba(26,122,82,.09);color:var(--cor-sucesso);}
+        .bs-comprovante_em_analise{background:rgba(123,75,184,.12);color:var(--cor-roxo);}
+        .bs-cancelada{background:rgba(150,150,150,.12);color:var(--cor-texto-secundario);}
+        /* Inner data table */
+        .inner-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;}
+        .inner-table th{background:rgba(210,158,0,.06);color:var(--cor-texto-secundario);padding:8px 10px;text-align:left;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--cor-borda);white-space:nowrap;}
+        .inner-table td{padding:9px 10px;border-bottom:1px solid var(--cor-borda);vertical-align:middle;white-space:nowrap;}
+        .inner-table tr:last-child td{border-bottom:none;}
+        .inner-table tr:hover td{background:rgba(210,158,0,.03);}
+        .inner-table tr.row-pendencia td{background:rgba(192,32,32,.03);}
 
         /* Modal */
-        .modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
+        .modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;padding:20px;}
         .modal-ov.open{display:flex;}
-        .modal{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:26px;width:min(560px,95vw);max-height:90vh;overflow-y:auto;}
-        .modal h3{margin-bottom:18px;font-size:16px;display:flex;align-items:center;gap:8px;}
-        .modal-acts{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;}
+        .modal{background:var(--cor-card);border:1px solid var(--cor-borda);border-radius:var(--borda-radius);padding:28px;width:min(560px,95vw);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+        .modal-top-bar{height:4px;background:linear-gradient(90deg,#7a5c00,#c8920a 30%,#f0c840 55%,#c8920a 75%,#7a5c00);border-radius:var(--borda-radius) var(--borda-radius) 0 0;margin:-28px -28px 24px;}
+        .modal h3{margin-bottom:18px;font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;}
+        .modal h3 i{color:var(--cor-admin);}
+        .modal-acts{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;padding-top:16px;border-top:1px solid var(--cor-borda);}
         .fg{margin-bottom:13px;}
-        .fg label{display:block;font-size:12px;color:var(--cor-texto-secundario);margin-bottom:4px;font-weight:600;}
-        .fc-full{width:100%;background:var(--cor-fundo);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:9px 11px;border-radius:var(--borda-radius-pequeno);font-size:14px;outline:none;}
-        .fc-full:focus{border-color:var(--cor-admin);}
-        .btn-p{background:var(--cor-admin);color:#fff;border:none;padding:10px 22px;border-radius:var(--borda-radius-pequeno);font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px;}
-        .btn-p:hover{background:#1c71d8;}
+        .fg label{display:block;font-size:11px;color:var(--cor-texto-secundario);margin-bottom:5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+        .fc-full{width:100%;background:var(--cor-card);border:1px solid var(--cor-borda);color:var(--cor-texto);padding:10px 12px;border-radius:var(--borda-radius-pequeno);font-size:13px;outline:none;transition:.15s;}
+        .fc-full:focus{border-color:var(--cor-admin);box-shadow:0 0 0 3px rgba(200,146,10,.1);}
+        [data-theme="dark"] .fc-full{background:var(--cor-fundo);}
+        .btn-p{background:linear-gradient(90deg,#b78700,#d29e00);color:#1a1200;border:none;padding:10px 22px;border-radius:var(--borda-radius-pequeno);font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s;}
+        .btn-p:hover{opacity:.9;}
         .btn-p:disabled{opacity:.5;cursor:not-allowed;}
-        .btn-g{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:10px 20px;border-radius:var(--borda-radius-pequeno);font-size:14px;cursor:pointer;}
-        .btn-g:hover{border-color:var(--cor-admin);color:var(--cor-admin);}
-        .resumo-despacho{background:rgba(26,95,180,.05);border:1px solid rgba(26,95,180,.2);border-radius:8px;padding:14px;margin-bottom:14px;}
+        .btn-g{background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-secundario);padding:10px 20px;border-radius:var(--borda-radius-pequeno);font-size:13px;cursor:pointer;transition:.15s;}
+        .btn-g:hover{border-color:var(--cor-perigo);color:var(--cor-perigo);}
+        .resumo-despacho{background:rgba(200,146,10,.05);border:1px solid rgba(200,146,10,.25);border-radius:10px;padding:14px;margin-bottom:14px;}
         .resumo-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;}
-        .resumo-row:last-child{margin:0;padding-top:8px;border-top:1px solid rgba(26,95,180,.15);font-size:15px;font-weight:700;}
-        .form-msg{font-size:13px;margin-top:8px;}
+        .resumo-row:last-child{margin:0;padding-top:8px;border-top:1px solid rgba(200,146,10,.2);font-size:15px;font-weight:700;}
+        .form-msg{font-size:12px;margin-top:8px;min-height:16px;}
 
         /* Toast */
         .toast-c{position:fixed;bottom:22px;right:22px;z-index:9999;display:flex;flex-direction:column;gap:7px;}
-        .toast-i{padding:11px 16px;border-radius:var(--borda-radius-pequeno);font-size:13px;font-weight:600;min-width:240px;animation:tIn .2s ease;}
-        .t-ok{background:rgba(46,194,126,.1);border:1px solid var(--cor-sucesso);color:var(--cor-sucesso);}
-        .t-err{background:rgba(224,27,36,.1);border:1px solid var(--cor-perigo);color:var(--cor-perigo);}
-        .t-warn{background:rgba(243,156,18,.1);border:1px solid var(--cor-alerta);color:var(--cor-alerta);}
+        .toast-i{padding:11px 16px;border-radius:var(--borda-radius-pequeno);font-size:13px;font-weight:600;min-width:240px;animation:tIn .2s ease;display:flex;align-items:center;gap:8px;}
+        .t-ok{background:rgba(26,122,82,.1);border:1px solid var(--cor-sucesso);color:var(--cor-sucesso);}
+        .t-err{background:rgba(192,32,32,.1);border:1px solid var(--cor-perigo);color:var(--cor-perigo);}
+        .t-warn{background:rgba(184,114,0,.1);border:1px solid var(--cor-alerta);color:var(--cor-alerta);}
         @keyframes tIn{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
     </style>
 </head>
 <body>
-<div class="page">
 
-    <div class="hd">
-        <div class="logo">
-            <i class="fas fa-paper-plane"></i>
-            <span class="logo-text">Despachos</span>
-        </div>
-        <div class="hd-right">
-            <span style="font-size:12px;color:var(--cor-texto-secundario);">{{ usuario }}</span>
-            <button id="btnTheme" onclick="toggleTheme()" class="btn-hd btn-hd-ghost" title="Alternar tema"><i class="fas fa-sun"></i></button>
-            <a href="/admin/dashboard" class="btn-hd"><i class="fas fa-arrow-left"></i> Admin</a>
-            <a href="/logout" class="btn-hd btn-hd-ghost"><i class="fas fa-sign-out-alt"></i> Sair</a>
-        </div>
+<div class="top-bar">
+    <div class="logo">
+        <span class="logo-text"><strong>Link</strong><span> international</span></span>
+        <span class="logo-breadcrumb">/ Despachos</span>
     </div>
+    <div class="hd-right">
+        <span class="badge-user"><i class="fas fa-user-shield" style="margin-right:4px"></i>{{ usuario }}</span>
+        <button id="btnTheme" onclick="toggleTheme()" title="Alternar tema"><i class="fas fa-sun"></i></button>
+        {% if tipo == 'backoffice_gerente' %}
+        <a href="/backoffice/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-arrow-left"></i> Back Office</a>
+        {% else %}
+        <a href="/admin/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-arrow-left"></i> Admin</a>
+        {% endif %}
+        <a href="/logout" class="btn-hd btn-hd-ghost"><i class="fas fa-sign-out-alt"></i> Sair</a>
+    </div>
+</div>
+
+<div class="page">
 
     <!-- Stats -->
     <div class="stats">
@@ -157,14 +197,12 @@
     <div class="tabs">
         <div class="tab active" onclick="switchTab('liberadas',this)"><i class="fas fa-check-circle"></i> Liberadas <span class="tab-badge" id="badge-lib">0</span></div>
         <div class="tab" onclick="switchTab('onhold',this)"><i class="fas fa-clock"></i> On Hold <span class="tab-badge" id="badge-hold" style="background:var(--cor-alerta);">0</span></div>
-        <div class="tab" onclick="switchTab('compliance',this)"><i class="fas fa-shield-check"></i> Compliance <span class="tab-badge" id="badge-comp" style="background:#9b59b6;">0</span></div>
+        <div class="tab" onclick="switchTab('compliance',this)"><i class="fas fa-shield-halved"></i> Compliance <span class="tab-badge" id="badge-comp" style="background:var(--cor-roxo);">0</span></div>
         <div class="tab" onclick="switchTab('despachos',this)"><i class="fas fa-paper-plane"></i> Histórico Despachos</div>
-        <div class="tab" onclick="switchTab('baixa',this)"><i class="fas fa-check-double"></i> Baixa Pagamentos <span class="tab-badge" id="badge-baixa" style="background:var(--cor-sucesso);">0</span></div>
     </div>
 
     <!-- TAB: Liberadas -->
     <div class="tab-panel active" id="panel-liberadas">
-        <!-- Filtros -->
         <div class="filters">
             <div class="fgroup">
                 <label>Banco beneficiário</label>
@@ -198,7 +236,6 @@
             </div>
         </div>
 
-        <!-- Barra de seleção -->
         <div class="sel-bar" id="selBar">
             <div>
                 <div class="sel-info"><i class="fas fa-check-square"></i> <span id="selQtd">0</span> ordens selecionadas</div>
@@ -221,13 +258,7 @@
                 <table>
                     <thead><tr>
                         <th class="check-col"><i class="fas fa-check-square" style="color:var(--cor-texto-secundario);font-size:12px;"></i></th>
-                        <th>Data</th>
-                        <th>Cliente</th>
-                        <th>Entrada</th>
-                        <th>Saída</th>
-                        <th>Banco benef.</th>
-                        <th>Destino</th>
-                        <th>Loja</th>
+                        <th>Data</th><th>Cliente</th><th>Entrada</th><th>Saída</th><th>Banco benef.</th><th>Destino</th><th>Loja</th>
                     </tr></thead>
                     <tbody id="libBody">
                         <tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>
@@ -247,13 +278,7 @@
             <div class="tbl-wrap">
                 <table>
                     <thead><tr>
-                        <th>Data</th>
-                        <th>Cliente</th>
-                        <th>Entrada</th>
-                        <th>Saída</th>
-                        <th>Compliance</th>
-                        <th>Loja</th>
-                        <th>Ações</th>
+                        <th>Data</th><th>Cliente</th><th>Entrada</th><th>Saída</th><th>Compliance</th><th>Loja</th><th>Ações</th>
                     </tr></thead>
                     <tbody id="holdBody">
                         <tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>
@@ -263,27 +288,21 @@
         </div>
     </div>
 
-    <!-- TAB: Compliance (visualização) -->
+    <!-- TAB: Compliance -->
     <div class="tab-panel" id="panel-compliance">
-        <div style="background:rgba(155,89,182,.06);border:1px solid rgba(155,89,182,.25);border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#9b59b6;display:flex;align-items:center;gap:8px;">
+        <div style="background:rgba(123,75,184,.06);border:1px solid rgba(123,75,184,.25);border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:var(--cor-roxo);display:flex;align-items:center;gap:8px;">
             <i class="fas fa-eye"></i> Visualização apenas — aprovação e rejeição é exclusivo do Compliance.
             <a href="/compliance/dashboard" style="color:var(--cor-admin);margin-left:auto;font-weight:700;text-decoration:none;"><i class="fas fa-external-link-alt"></i> Abrir tela Compliance</a>
         </div>
         <div class="tbl-card">
             <div class="tbl-hd">
-                <h3><i class="fas fa-shield-check" style="color:#9b59b6"></i> Em Análise <span id="tbl-comp-count" style="color:var(--cor-texto-secundario);font-weight:400;font-size:12px;margin-left:4px;"></span></h3>
+                <h3><i class="fas fa-shield-halved" style="color:var(--cor-roxo)"></i> Em Análise <span id="tbl-comp-count" style="color:var(--cor-texto-secundario);font-weight:400;font-size:12px;margin-left:4px;"></span></h3>
                 <button class="btn-hd btn-hd-ghost" onclick="carregarCompliance()"><i class="fas fa-sync-alt"></i></button>
             </div>
             <div class="tbl-wrap">
                 <table>
                     <thead><tr>
-                        <th>Data</th>
-                        <th>Cliente</th>
-                        <th>Entrada</th>
-                        <th>Saída</th>
-                        <th>Pagamento</th>
-                        <th>Alertas</th>
-                        <th>Status</th>
+                        <th>Data</th><th>Cliente</th><th>Entrada</th><th>Saída</th><th>Pagamento</th><th>Alertas</th><th>Status</th>
                     </tr></thead>
                     <tbody id="compBody">
                         <tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>
@@ -300,21 +319,14 @@
         </div>
     </div>
 
-    <!-- TAB: Baixa de Pagamentos -->
-    <div class="tab-panel" id="panel-baixa">
-        <div id="baixaLista">
-            <div class="empty"><i class="fas fa-spinner fa-spin"></i></div>
-        </div>
-    </div>
 </div>
 
 <!-- Modal Criar Despacho -->
 <div class="modal-ov" id="modalDespacho">
     <div class="modal">
-        <h3><i class="fas fa-paper-plane" style="color:var(--cor-admin)"></i> Criar Despacho</h3>
-
+        <div class="modal-top-bar"></div>
+        <h3><i class="fas fa-paper-plane"></i> Criar Despacho</h3>
         <div class="resumo-despacho" id="resumoDespacho"></div>
-
         <div class="fg">
             <label>Parceiro Pagador *</label>
             <select id="dParceiro" class="fc-full">
@@ -325,7 +337,6 @@
             <label>Observações</label>
             <input id="dObs" type="text" class="fc-full" placeholder="Ex: ordens Banco do Brasil solicitadas pelo Gables">
         </div>
-
         <div class="form-msg" id="despachoMsg"></div>
         <div class="modal-acts">
             <button class="btn-g" onclick="fecharModal('modalDespacho')">Cancelar</button>
@@ -334,71 +345,18 @@
     </div>
 </div>
 
-<!-- Modal Baixa de Pagamento -->
-<div class="modal-ov" id="modalBaixa">
-    <div class="modal" style="max-width:540px;">
-        <h3><i class="fas fa-check-double" style="color:var(--cor-sucesso)"></i> Confirmar Pagamento</h3>
-        <div id="baixaOrdemInfo"></div>
-
-        <!-- Painel pós-confirmação (oculto até confirmar) -->
-        <div id="baixaPosConfirmacao" style="display:none;">
-            <div style="background:rgba(39,174,96,.08);border:1px solid rgba(39,174,96,.3);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;">
-                <i class="fas fa-check-circle" style="color:var(--cor-sucesso);"></i> <strong>Pagamento confirmado.</strong> Adicione mais comprovantes se necessário.
-            </div>
-            <div style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Comprovantes anexados</div>
-            <div id="baixaComprovantesPosList" style="margin-bottom:10px;"></div>
-            <div class="fg" style="margin-bottom:4px;">
-                <label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);">Adicionar mais comprovantes</label>
-                <input type="file" id="baixaFilePosConf" accept="image/*,.pdf" multiple style="width:100%;padding:6px;border:1px solid var(--cor-borda);border-radius:6px;background:var(--cor-card);color:var(--cor-texto);font-size:12px;cursor:pointer;">
-            </div>
-            <div class="form-msg" id="baixaPosMsg" style="margin-top:4px;min-height:16px;font-size:12px;"></div>
-            <div class="modal-acts">
-                <button class="btn-g" onclick="fecharModal('modalBaixa');carregarBaixa();">Fechar</button>
-                <button class="btn-p" onclick="uploadBaixaPosConf()"><i class="fas fa-upload"></i> Enviar Comprovante</button>
-            </div>
-        </div>
-
-        <!-- Painel de confirmação (visível antes de confirmar) -->
-        <div id="baixaConfPanel">
-            <div id="baixaComprovantesExist" style="display:none;margin-bottom:12px;">
-                <div style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Comprovantes já anexados</div>
-                <div id="baixaComprovantesLista"></div>
-            </div>
-            <div class="fg" style="margin-bottom:4px;">
-                <label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);">Comprovante(s) — opcional, múltiplos permitidos</label>
-                <input type="file" id="baixaFile" accept="image/*,.pdf" multiple style="width:100%;padding:6px;border:1px solid var(--cor-borda);border-radius:6px;background:var(--cor-card);color:var(--cor-texto);font-size:12px;cursor:pointer;">
-            </div>
-            <div class="form-msg" id="baixaMsg" style="margin-top:8px;min-height:18px;font-size:12px;"></div>
-            <div class="modal-acts">
-                <button class="btn-g" onclick="fecharModal('modalBaixa')">Cancelar</button>
-                <button class="btn-p" id="btnConfBaixa" onclick="confirmarPagamentoOrdem()"><i class="fas fa-check-double"></i> Confirmar Pago</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Ver Comprovantes -->
-<div class="modal-ov" id="modalComprovantes">
-    <div class="modal" style="max-width:480px;">
-        <h3><i class="fas fa-paperclip" style="color:var(--cor-admin)"></i> Comprovantes</h3>
-        <div id="comprovantesModalLista" style="margin-bottom:16px;"></div>
-        <div class="fg">
-            <label style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);">Adicionar mais comprovantes</label>
-            <input type="file" id="addCompFile" accept="image/*,.pdf" multiple style="width:100%;padding:6px;border:1px solid var(--cor-borda);border-radius:6px;background:var(--cor-card);color:var(--cor-texto);font-size:12px;cursor:pointer;">
-        </div>
-        <div class="form-msg" id="addCompMsg" style="margin-top:6px;min-height:16px;font-size:12px;"></div>
-        <div class="modal-acts">
-            <button class="btn-g" onclick="fecharModal('modalComprovantes')">Fechar</button>
-            <button class="btn-p" onclick="uploadComprovantesAdicionais()"><i class="fas fa-upload"></i> Enviar</button>
-        </div>
-    </div>
-</div>
 
 <div class="toast-c" id="toastC"></div>
-<script src="/static/js/theme.js"></script>
 <script>
 const fmtN = (v,d=2) => parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
 const fmtD = s => { if(!s)return'—'; try{const[dt,hr]=(s.replace('T',' ').split('.')[0]).split(' ');const[y,m,d]=dt.split('-');return hr?`${d}/${m}/${y} ${hr.slice(0,5)}`:`${d}/${m}/${y}`;}catch{return s;}};
+const fmtValor = (v, m) => { const n = parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); return m==='BRL'?`R$ ${n}`:`${n} ${m||''}`; };
+function badgeDep(s) {
+    const lbl = {pago:'Pago',enviado:'Enviado',paga:'Paga',despachada:'Despachada',
+                 comprovante_em_analise:'Em Análise',pendencia:'Pendência',cancelada:'Cancelada'};
+    return `<span class="badge-s bs-${s}">${lbl[s]||s}</span>`;
+}
+function toggleDespacho(id) { document.getElementById(id)?.classList.toggle('open'); }
 const destFlag = {brazil:'🇧🇷',europe:'🇪🇺',usa:'🇺🇸'};
 const amlLabels = {PEP_SCREENING_REQUIRED:'PEP',HIGH_RISK_COUNTRY_EDD:'Alto Risco',CASH_EDD:'Cash EDD'};
 
@@ -406,7 +364,6 @@ let selecionadas = new Set();
 let ordensLiberadas = [];
 let parceiros = [];
 
-// ══ TABS ═══════════════════════════════════════════════
 function switchTab(nome, el) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -416,10 +373,8 @@ function switchTab(nome, el) {
     else if (nome === 'onhold') carregarOnHold();
     else if (nome === 'compliance') carregarCompliance();
     else if (nome === 'despachos') carregarDespachos();
-    else if (nome === 'baixa') carregarBaixa();
 }
 
-// ══ STATS ══════════════════════════════════════════════
 async function carregarStats() {
     try {
         const [rLib, rHold, rComp, rDesp] = await Promise.all([
@@ -446,14 +401,13 @@ async function carregarStats() {
     } catch(e) {}
 }
 
-// ══ LIBERADAS ══════════════════════════════════════════
 async function carregarLiberadas() {
     const tb = document.getElementById('libBody');
     tb.innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
-    const banco    = document.getElementById('f-banco').value.trim();
-    const valMin   = document.getElementById('f-valmin').value.trim();
-    const moeda    = document.getElementById('f-moeda').value;
-    const destino  = document.getElementById('f-destino').value;
+    const banco   = document.getElementById('f-banco').value.trim();
+    const valMin  = document.getElementById('f-valmin').value.trim();
+    const moeda   = document.getElementById('f-moeda').value;
+    const destino = document.getElementById('f-destino').value;
     let url = '/api/admin/ordens/liberadas?';
     if (banco)   url += `banco=${encodeURIComponent(banco)}&`;
     if (valMin)  url += `valor_min=${valMin}&`;
@@ -501,11 +455,7 @@ function toggleSelAll(checked) {
         if (checked) selecionadas.add(o.id);
         else selecionadas.delete(o.id);
         const row = document.getElementById(`row-${o.id}`);
-        if (row) {
-            row.classList.toggle('selected', checked);
-            const cb = row.querySelector('.cb');
-            if (cb) cb.checked = checked;
-        }
+        if (row) { row.classList.toggle('selected', checked); const cb = row.querySelector('.cb'); if (cb) cb.checked = checked; }
     });
     atualizarSelBar();
 }
@@ -515,12 +465,9 @@ function atualizarSelBar() {
     const qtd = selecionadas.size;
     bar.classList.toggle('visible', qtd > 0);
     document.getElementById('selQtd').textContent = qtd;
-    const total = ordensLiberadas
-        .filter(o => selecionadas.has(o.id))
-        .reduce((s,o) => s + parseFloat(o.valor_saida||0), 0);
+    const total = ordensLiberadas.filter(o => selecionadas.has(o.id)).reduce((s,o) => s + parseFloat(o.valor_saida||0), 0);
     const moeda = ordensLiberadas.find(o => selecionadas.has(o.id))?.moeda_saida || 'BRL';
-    document.getElementById('selTotal').textContent = moeda === 'BRL'
-        ? `R$ ${fmtN(total)}` : `${fmtN(total)} ${moeda}`;
+    document.getElementById('selTotal').textContent = moeda === 'BRL' ? `R$ ${fmtN(total)}` : `${fmtN(total)} ${moeda}`;
 }
 
 function limparSelecao() {
@@ -532,27 +479,21 @@ function limparSelecao() {
 }
 
 function limparFiltros() {
-    document.getElementById('f-banco').value = '';
-    document.getElementById('f-valmin').value = '';
+    ['f-banco','f-valmin'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('f-moeda').value = '';
     document.getElementById('f-destino').value = '';
     carregarLiberadas();
 }
 
-// ══ ON HOLD ════════════════════════════════════════════
 async function carregarOnHold() {
     const tb = document.getElementById('holdBody');
     tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
     try {
-        // Inclui compliance_review pois transferências com AML também precisam de confirmação de TED
         const r = await fetch('/api/loja/ordens?status_in=on_hold,compliance_review');
         const d = await r.json();
         const lista = (d.ordens || []).filter(o => o.forma_pagamento === 'transferencia' && !o.pagamento_confirmado);
         document.getElementById('tbl-hold-count').textContent = `(${lista.length})`;
-        if (!lista.length) {
-            tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-inbox"></i><p>Nenhuma ordem on hold</p></td></tr>';
-            return;
-        }
+        if (!lista.length) { tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-inbox"></i><p>Nenhuma ordem on hold</p></td></tr>'; return; }
         tb.innerHTML = lista.map(o => {
             const compCls = o.compliance_status === 'aprovado' ? 'c-verde' : 'c-roxo';
             const compTxt = o.compliance_status === 'aprovado' ? '✅ Aprovado' : '⏳ Pendente';
@@ -566,9 +507,7 @@ async function carregarOnHold() {
                 <td style="font-size:11px;color:var(--cor-texto-secundario);"><i class="fas fa-university"></i> Conciliação Bancária</td>
             </tr>`;
         }).join('');
-    } catch(e) {
-        tb.innerHTML = `<tr><td colspan="7" style="color:var(--cor-perigo);padding:20px;">${e.message}</td></tr>`;
-    }
+    } catch(e) { tb.innerHTML = `<tr><td colspan="7" style="color:var(--cor-perigo);padding:20px;">${e.message}</td></tr>`; }
 }
 
 async function confirmarRecebimento(id) {
@@ -581,7 +520,6 @@ async function confirmarRecebimento(id) {
     } catch(e) { toast(e.message, 'err'); }
 }
 
-// ══ COMPLIANCE (visualização) ═══════════════════════════
 async function carregarCompliance() {
     const tb = document.getElementById('compBody');
     tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr>';
@@ -590,13 +528,10 @@ async function carregarCompliance() {
         const d = await r.json();
         const lista = d.ordens || [];
         document.getElementById('tbl-comp-count').textContent = `(${lista.length})`;
-        if (!lista.length) {
-            tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-check-circle" style="color:var(--cor-sucesso)"></i><p>Fila vazia</p></td></tr>';
-            return;
-        }
+        if (!lista.length) { tb.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-check-circle" style="color:var(--cor-sucesso)"></i><p>Fila vazia</p></td></tr>'; return; }
         tb.innerHTML = lista.map(o => {
             const alertas = Array.isArray(o.aml_alertas) ? o.aml_alertas : String(o.aml_alertas||'').split(',').map(s=>s.trim()).filter(Boolean);
-            const amlHtml = alertas.map(a => `<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(243,156,18,.15);color:var(--cor-alerta);margin:1px;">${amlLabels[a]||a}</span>`).join('');
+            const amlHtml = alertas.map(a => `<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(184,114,0,.12);color:var(--cor-alerta);margin:1px;">${amlLabels[a]||a}</span>`).join('');
             const pgtoHtml = o.pagamento_confirmado
                 ? `<span class="flag-pgto-ok"><i class="fas fa-check-circle"></i> Confirmado</span>`
                 : `<span class="flag-pgto-pend"><i class="fas fa-clock"></i> Aguardando</span>`;
@@ -610,12 +545,9 @@ async function carregarCompliance() {
                 <td><span class="tag tag-${o.status}">${o.status}</span></td>
             </tr>`;
         }).join('');
-    } catch(e) {
-        tb.innerHTML = `<tr><td colspan="7" style="color:var(--cor-perigo);padding:20px;">${e.message}</td></tr>`;
-    }
+    } catch(e) { tb.innerHTML = `<tr><td colspan="7" style="color:var(--cor-perigo);padding:20px;">${e.message}</td></tr>`; }
 }
 
-// ══ DESPACHOS HISTÓRICO ════════════════════════════════
 async function carregarDespachos() {
     const box = document.getElementById('despachosLista');
     box.innerHTML = '<div class="empty"><i class="fas fa-spinner fa-spin"></i></div>';
@@ -623,54 +555,65 @@ async function carregarDespachos() {
         const r = await fetch('/api/admin/despachos');
         const d = await r.json();
         const lista = d.despachos || [];
-        if (!lista.length) {
-            box.innerHTML = '<div class="empty"><i class="fas fa-inbox"></i><p>Nenhum despacho criado ainda</p></div>';
-            return;
-        }
-        box.innerHTML = lista.map(dep => `
-            <div class="desp-card">
-                <div>
-                    <div class="desp-num">Despacho #${dep.numero||dep.id?.slice(0,8)}</div>
-                    <div class="desp-info">${dep.qtd_ordens||0} ordens · Parceiro: <strong>${dep.parceiro_pagador||'—'}</strong> · ${fmtD(dep.created_at)}</div>
-                    ${dep.observacoes ? `<div class="desp-info" style="margin-top:3px;font-style:italic;">${dep.observacoes}</div>` : ''}
+        if (!lista.length) { box.innerHTML = '<div class="empty"><i class="fas fa-inbox"></i><p>Nenhum despacho criado ainda</p></div>'; return; }
+        box.innerHTML = lista.map(dep => {
+            const ordens = dep.ordens || [];
+            const ordensHtml = ordens.length
+                ? `<div class="tbl-wrap"><table class="inner-table">
+                    <thead><tr>
+                        <th>Ordem</th><th>Cliente</th><th>Beneficiário</th>
+                        <th>Banco</th><th>Agência</th><th>Conta</th>
+                        <th>Moeda</th><th>Valor Pago</th><th>Status</th>
+                    </tr></thead><tbody>` +
+                  ordens.map(o => `<tr class="${o.status==='pendencia'?'row-pendencia':''}">
+                    <td class="mono" style="color:var(--cor-texto-secundario);">${o.id.substring(0,8).toUpperCase()}</td>
+                    <td>${o.cliente_nome||'—'}</td>
+                    <td>${o.beneficiario_nome||'—'}</td>
+                    <td>${o.beneficiario_banco||'—'}</td>
+                    <td>${o.beneficiario_agencia||'—'}</td>
+                    <td>${o.beneficiario_conta||'—'}</td>
+                    <td>${o.moeda_saida||'—'}</td>
+                    <td style="white-space:nowrap;">${fmtValor(o.valor_saida,o.moeda_saida)}</td>
+                    <td>${badgeDep(o.status)}</td>
+                  </tr>`).join('') +
+                  '</tbody></table></div>'
+                : '<p style="font-size:12px;color:var(--cor-texto-secundario);margin-top:4px;">Sem ordens vinculadas.</p>';
+            return `<div class="desp-card">
+                <div class="desp-header" onclick="toggleDespacho('dep-${dep.id}')">
+                    <div>
+                        <span class="desp-num">Despacho #${dep.numero||dep.id?.slice(0,8)}</span>
+                        <span style="margin-left:10px;font-size:12px;color:var(--cor-texto-secundario);">${fmtValor(dep.valor_total,dep.moeda_saida)} · ${ordens.length} ordem(ns) · Parceiro: <strong>${dep.parceiro_pagador||'—'}</strong></span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        ${badgeDep(dep.status)}
+                        <span style="font-size:12px;color:var(--cor-texto-secundario);">${fmtD(dep.created_at)}</span>
+                        <i class="fas fa-chevron-down" style="font-size:11px;color:var(--cor-texto-secundario);"></i>
+                    </div>
                 </div>
-                <div style="text-align:right;">
-                    <div class="desp-val">${dep.moeda_saida==='BRL'?'R$ ':''}${fmtN(dep.valor_total)} ${dep.moeda_saida||''}</div>
-                    <div class="desp-meta" style="margin-top:4px;"><span class="tag tag-${dep.status}">${dep.status}</span></div>
-                    ${dep.status === 'enviado' ? `<button class="btn-act g" style="margin-top:8px;" onclick="confirmarPagoDespacho('${dep.id}')"><i class="fas fa-check"></i> Confirmar Pago</button>` : ''}
+                <div class="desp-body" id="dep-${dep.id}">
+                    <div style="font-size:13px;color:var(--cor-texto-secundario);display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px;">
+                        <span>Criado por: <strong style="color:var(--cor-texto);">${dep.criado_por||'—'}</strong></span>
+                        ${dep.observacoes?`<span>Obs: <em>${dep.observacoes}</em></span>`:''}
+                    </div>
+                    ${ordensHtml}
                 </div>
-            </div>
-        `).join('');
-    } catch(e) {
-        box.innerHTML = `<div style="color:var(--cor-perigo);padding:20px;">${e.message}</div>`;
-    }
+            </div>`;
+        }).join('');
+    } catch(e) { box.innerHTML = `<div style="color:var(--cor-perigo);padding:20px;">${e.message}</div>`; }
 }
 
-async function confirmarPagoDespacho(id) {
-    if (!confirm('Confirmar que este despacho foi pago pelo parceiro?')) return;
-    try {
-        const r = await fetch(`/api/admin/despachos/${id}/confirmar-pago`, {method:'POST'});
-        const d = await r.json();
-        toast(d.message, d.success ? 'ok' : 'err');
-        if (d.success) { carregarDespachos(); carregarStats(); }
-    } catch(e) { toast(e.message, 'err'); }
-}
 
-// ══ CRIAR DESPACHO ══════════════════════════════════════
 async function abrirModalDespacho() {
     if (!selecionadas.size) return;
     const ordens = ordensLiberadas.filter(o => selecionadas.has(o.id));
     const total  = ordens.reduce((s,o) => s + parseFloat(o.valor_saida||0), 0);
     const moeda  = ordens[0]?.moeda_saida || 'BRL';
     const moedas = [...new Set(ordens.map(o => o.moeda_saida))];
-
     document.getElementById('resumoDespacho').innerHTML = `
         <div class="resumo-row"><span>Ordens selecionadas</span><strong>${ordens.length}</strong></div>
         <div class="resumo-row"><span>Moeda(s)</span><strong>${moedas.join(', ')}</strong></div>
         ${ordens.map(o => `<div class="resumo-row" style="font-size:12px;color:var(--cor-texto-secundario);"><span>${o.cliente_nome||'—'} · ${o.beneficiario_banco||o.tipo_destino||'—'}</span><span>${o.moeda_saida==='BRL'?'R$ ':''}${fmtN(o.valor_saida)} ${o.moeda_saida}</span></div>`).join('')}
-        <div class="resumo-row"><span>Total</span><strong style="color:var(--cor-sucesso);">${moeda==='BRL'?'R$ ':''}${fmtN(total)} ${moeda}</strong></div>
-    `;
-    // Carregar parceiros
+        <div class="resumo-row"><span>Total</span><strong style="color:var(--cor-sucesso);">${moeda==='BRL'?'R$ ':''}${fmtN(total)} ${moeda}</strong></div>`;
     if (!parceiros.length) await carregarParceiros();
     document.getElementById('despachoMsg').innerHTML = '';
     document.getElementById('dObs').value = '';
@@ -697,24 +640,13 @@ async function confirmarDespacho() {
     msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando despacho…';
     try {
         const r = await fetch('/api/admin/despachos', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({
-                ordem_ids: [...selecionadas],
-                parceiro_pagador: parceiro,
-                observacoes: document.getElementById('dObs').value.trim(),
-            })
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ ordem_ids: [...selecionadas], parceiro_pagador: parceiro, observacoes: document.getElementById('dObs').value.trim() })
         });
         const d = await r.json();
         if (d.success) {
-            toast(d.message, 'ok');
-            fecharModal('modalDespacho');
-            selecionadas.clear();
-            carregarLiberadas();
-            carregarStats();
-        } else {
-            msg.innerHTML = `<span style="color:var(--cor-perigo);">${d.message}</span>`;
-        }
+            toast(d.message, 'ok'); fecharModal('modalDespacho'); selecionadas.clear(); carregarLiberadas(); carregarStats();
+        } else { msg.innerHTML = `<span style="color:var(--cor-perigo);">${d.message}</span>`; }
     } catch(e) { msg.innerHTML = `<span style="color:var(--cor-perigo);">${e.message}</span>`; }
     btn.disabled = false;
 }
@@ -731,249 +663,18 @@ function toast(m, tipo='ok') {
     setTimeout(() => el.remove(), 4500);
 }
 
-// ══ BAIXA DE PAGAMENTOS ══════════════════════════════════
-let _baixaOrdens = {};
-let _baixaOrdemAtual = null;
-let _compOrdemId = null;
-
-async function carregarBaixa() {
-    const box = document.getElementById('baixaLista');
-    box.innerHTML = '<div class="empty"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
-    try {
-        const r = await fetch('/api/admin/ordens/despachadas');
-        const d = await r.json();
-        const ordens = d.ordens || [];
-        document.getElementById('badge-baixa').textContent = ordens.length;
-        if (!ordens.length) {
-            box.innerHTML = '<div class="empty"><i class="fas fa-check-circle" style="color:var(--cor-sucesso);font-size:28px;"></i><p style="margin-top:8px;">Nenhuma ordem aguardando baixa</p></div>';
-            return;
-        }
-        _baixaOrdens = {};
-        ordens.forEach(o => _baixaOrdens[o.id] = o);
-
-        // Agrupar por despacho
-        const grupos = {};
-        for (const o of ordens) {
-            const dep = o.despacho || {};
-            const key = dep.id || '__sem__';
-            if (!grupos[key]) grupos[key] = { dep, ordens: [] };
-            grupos[key].ordens.push(o);
-        }
-
-        let html = '';
-        for (const { dep, ordens: gOrdens } of Object.values(grupos)) {
-            const num   = dep.numero || (dep.id || '').slice(0, 8) || '—';
-            const total = gOrdens.reduce((s, o) => s + parseFloat(o.valor_saida || 0), 0);
-            const moeda = gOrdens[0]?.moeda_saida || '';
-            html += `
-            <div class="desp-card" style="margin-bottom:18px;">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-                    <div>
-                        <div class="desp-num"><i class="fas fa-paper-plane" style="color:var(--cor-admin);margin-right:4px;"></i> Despacho #${num}</div>
-                        <div class="desp-info">Parceiro: <strong>${dep.parceiro_pagador || '—'}</strong> · Despachado em ${fmtD(dep.created_at)}</div>
-                        ${dep.observacoes ? `<div class="desp-info" style="font-style:italic;">${dep.observacoes}</div>` : ''}
-                    </div>
-                    <div style="text-align:right;">
-                        <div class="desp-val">${fmtN(total)} ${moeda}</div>
-                        <div style="font-size:11px;color:var(--cor-texto-secundario);">${gOrdens.length} ordens pendentes</div>
-                    </div>
-                </div>
-                <div class="tbl-wrap">
-                    <table style="width:100%;font-size:12px;">
-                        <thead><tr>
-                            <th>Cliente</th>
-                            <th>Entrada</th>
-                            <th>Saída</th>
-                            <th>Banco / Destino</th>
-                            <th style="text-align:center;">Ações</th>
-                        </tr></thead>
-                        <tbody>
-                            ${gOrdens.map(o => `<tr>
-                                <td><strong>${o.cliente_nome || '—'}</strong><br>
-                                    <span style="font-size:10px;color:var(--cor-texto-secundario);">${fmtD(o.data)}</span></td>
-                                <td>${fmtN(o.valor_entrada)} ${o.moeda_entrada || ''}</td>
-                                <td><strong>${fmtN(o.valor_saida)} ${o.moeda_saida || ''}</strong></td>
-                                <td>${o.beneficiario_banco || o.tipo_destino || '—'}<br>
-                                    <span style="font-size:10px;color:var(--cor-texto-secundario);">${destFlag[o.tipo_destino] || ''} ${o.beneficiario_nome || ''}</span></td>
-                                <td style="text-align:center;white-space:nowrap;">
-                                    <button class="btn-act g" style="margin-right:4px;" onclick="abrirModalBaixa('${o.id}')">
-                                        <i class="fas fa-check-double"></i> Confirmar Pago
-                                    </button>
-                                    <button class="btn-act" onclick="verComprovantes('${o.id}')" title="Ver / Adicionar comprovantes">
-                                        <i class="fas fa-paperclip"></i>${o.tem_comprovante ? ' ✓' : ''}
-                                    </button>
-                                </td>
-                            </tr>`).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            </div>`;
-        }
-        box.innerHTML = html;
-    } catch(e) {
-        box.innerHTML = `<div style="color:var(--cor-perigo);padding:20px;">${e.message}</div>`;
-    }
+function toggleTheme() {
+    const html = document.documentElement;
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    document.getElementById('btnTheme').innerHTML = next === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
 }
+(function(){
+    const t = localStorage.getItem('theme') || 'light';
+    document.getElementById('btnTheme').innerHTML = t === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+})();
 
-function _infoCell(lbl, val) {
-    if (!val) return '';
-    return `<div><span style="color:var(--cor-texto-secundario);font-size:10px;text-transform:uppercase;letter-spacing:.4px;">${lbl}</span><br><strong>${val}</strong></div>`;
-}
-
-function abrirModalBaixa(ordemId) {
-    _baixaOrdemAtual = _baixaOrdens[ordemId];
-    if (!_baixaOrdemAtual) return;
-    const o = _baixaOrdemAtual;
-
-    // Dados de destino por tipo
-    let destHtml = '';
-    const dest = o.tipo_destino || 'brazil';
-    const bancoAgencia = [o.beneficiario_banco, o.beneficiario_agencia ? `Ag. ${o.beneficiario_agencia}` : ''].filter(Boolean).join(' · ');
-    if (dest === 'brazil') {
-        if (o.beneficiario_pix) {
-            destHtml = _infoCell('Chave PIX', o.beneficiario_pix)
-                     + _infoCell('Banco / Agência', bancoAgencia)
-                     + _infoCell('Conta', o.beneficiario_conta);
-        } else {
-            destHtml = _infoCell('Banco / Agência', bancoAgencia || '—')
-                     + _infoCell('Conta', o.beneficiario_conta);
-        }
-    } else if (dest === 'europe') {
-        destHtml = _infoCell('Banco', o.beneficiario_banco || o.benef_banco_eu)
-                 + _infoCell('IBAN', o.benef_iban)
-                 + _infoCell('BIC/SWIFT', o.benef_swift || o.benef_routing);
-    } else if (dest === 'usa') {
-        destHtml = _infoCell('Banco', o.beneficiario_banco || o.benef_banco_us)
-                 + _infoCell('Routing Number', o.benef_routing)
-                 + _infoCell('Account', o.beneficiario_conta || o.benef_conta);
-    }
-
-    document.getElementById('baixaOrdemInfo').innerHTML = `
-        <div style="background:var(--cor-bg);border:1px solid var(--cor-borda);border-radius:8px;padding:12px 14px;margin-bottom:14px;">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;">
-                ${_infoCell('Cliente', o.cliente_nome)}
-                ${_infoCell('Beneficiário', o.beneficiario_nome)}
-                ${_infoCell('Valor Entrada', fmtN(o.valor_entrada) + ' ' + (o.moeda_entrada || ''))}
-                <div><span style="color:var(--cor-texto-secundario);font-size:10px;text-transform:uppercase;letter-spacing:.4px;">Valor Saída</span><br><strong style="color:var(--cor-sucesso)">${fmtN(o.valor_saida)} ${o.moeda_saida || ''}</strong></div>
-                ${destHtml}
-            </div>
-        </div>`;
-
-    // resetar painéis
-    document.getElementById('baixaConfPanel').style.display = '';
-    document.getElementById('baixaPosConfirmacao').style.display = 'none';
-    document.getElementById('baixaComprovantesExist').style.display = 'none';
-    document.getElementById('baixaFile').value = '';
-    document.getElementById('baixaMsg').innerHTML = '';
-    document.getElementById('btnConfBaixa').disabled = false;
-    if (o.tem_comprovante) _carregarComprovantesNoModal(o.id, 'baixaComprovantesLista', 'baixaComprovantesExist');
-    document.getElementById('modalBaixa').classList.add('open');
-}
-
-async function confirmarPagamentoOrdem() {
-    if (!_baixaOrdemAtual) return;
-    const btn = document.getElementById('btnConfBaixa');
-    const msg = document.getElementById('baixaMsg');
-    btn.disabled = true;
-    msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Confirmando…';
-    try {
-        const files = document.getElementById('baixaFile').files;
-        const fd = new FormData();
-        if (files.length > 0) fd.append('arquivo', files[0]);
-        const r = await fetch(`/api/admin/ordens/${_baixaOrdemAtual.id}/confirmar-pagamento`, {method:'POST', body:fd});
-        const d = await r.json();
-        if (!d.success) { msg.innerHTML = `<span style="color:var(--cor-perigo);">${d.message}</span>`; btn.disabled = false; return; }
-        // Demais arquivos selecionados já vão junto
-        for (let i = 1; i < files.length; i++) {
-            const fd2 = new FormData();
-            fd2.append('arquivo', files[i]);
-            await fetch(`/api/admin/ordens/${_baixaOrdemAtual.id}/comprovantes`, {method:'POST', body:fd2});
-        }
-        toast(`Pagamento confirmado — ${_baixaOrdemAtual.cliente_nome || 'ordem'}`, 'ok');
-        carregarStats();
-        // Transitar para painel pós-confirmação (sem fechar o modal)
-        document.getElementById('baixaConfPanel').style.display = 'none';
-        document.getElementById('baixaPosConfirmacao').style.display = '';
-        document.getElementById('baixaFilePosConf').value = '';
-        document.getElementById('baixaPosMsg').innerHTML = '';
-        _carregarComprovantesNoModal(_baixaOrdemAtual.id, 'baixaComprovantesPosList', null);
-    } catch(e) {
-        msg.innerHTML = `<span style="color:var(--cor-perigo);">${e.message}</span>`;
-        btn.disabled = false;
-    }
-}
-
-async function uploadBaixaPosConf() {
-    if (!_baixaOrdemAtual) return;
-    const files = document.getElementById('baixaFilePosConf').files;
-    const msg   = document.getElementById('baixaPosMsg');
-    if (!files.length) { msg.innerHTML = '<span style="color:var(--cor-alerta);">Selecione um arquivo.</span>'; return; }
-    msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando…';
-    try {
-        for (const f of files) {
-            const fd = new FormData();
-            fd.append('arquivo', f);
-            await fetch(`/api/admin/ordens/${_baixaOrdemAtual.id}/comprovantes`, {method:'POST', body:fd});
-        }
-        document.getElementById('baixaFilePosConf').value = '';
-        msg.innerHTML = '<span style="color:var(--cor-sucesso);">Comprovante(s) adicionado(s).</span>';
-        _carregarComprovantesNoModal(_baixaOrdemAtual.id, 'baixaComprovantesPosList', null);
-    } catch(e) {
-        msg.innerHTML = `<span style="color:var(--cor-perigo);">${e.message}</span>`;
-    }
-}
-
-async function verComprovantes(ordemId) {
-    _compOrdemId = ordemId;
-    document.getElementById('addCompMsg').innerHTML = '';
-    document.getElementById('addCompFile').value = '';
-    document.getElementById('comprovantesModalLista').innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    document.getElementById('modalComprovantes').classList.add('open');
-    await _carregarComprovantesNoModal(ordemId, 'comprovantesModalLista', null);
-}
-
-async function _carregarComprovantesNoModal(ordemId, listaElId, wrapElId) {
-    try {
-        const r = await fetch(`/api/admin/ordens/${ordemId}/comprovantes`);
-        const d = await r.json();
-        const comps = d.comprovantes || [];
-        const el = document.getElementById(listaElId);
-        if (!el) return;
-        if (!comps.length) { el.innerHTML = '<p style="font-size:12px;color:var(--cor-texto-secundario);">Nenhum comprovante ainda.</p>'; return; }
-        el.innerHTML = comps.map((c, i) => `
-            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--cor-borda);">
-                <i class="fas fa-file-alt" style="color:var(--cor-admin);"></i>
-                <span style="flex:1;font-size:12px;">${c.arquivo_nome || `Comprovante ${i+1}`}</span>
-                <span style="font-size:10px;color:var(--cor-texto-secundario);">${c.criado_por || ''} ${(c.criado_em||'').slice(0,10)}</span>
-                ${c.arquivo_url ? `<a href="/api/comprovantes/view?path=${encodeURIComponent(c.arquivo_url)}" target="_blank" class="btn-act" style="text-decoration:none;"><i class="fas fa-eye"></i></a>` : ''}
-            </div>`).join('');
-        if (wrapElId) document.getElementById(wrapElId).style.display = '';
-    } catch(e) { console.error(e); }
-}
-
-async function uploadComprovantesAdicionais() {
-    if (!_compOrdemId) return;
-    const files = document.getElementById('addCompFile').files;
-    const msg   = document.getElementById('addCompMsg');
-    if (!files.length) { msg.innerHTML = '<span style="color:var(--cor-alerta);">Selecione um arquivo.</span>'; return; }
-    msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando…';
-    try {
-        for (const f of files) {
-            const fd = new FormData();
-            fd.append('arquivo', f);
-            await fetch(`/api/admin/ordens/${_compOrdemId}/comprovantes`, {method:'POST', body:fd});
-        }
-        toast('Comprovantes adicionados', 'ok');
-        document.getElementById('addCompFile').value = '';
-        msg.innerHTML = '';
-        await _carregarComprovantesNoModal(_compOrdemId, 'comprovantesModalLista', null);
-        carregarBaixa();
-    } catch(e) {
-        msg.innerHTML = `<span style="color:var(--cor-perigo);">${e.message}</span>`;
-    }
-}
-
-// Init
 carregarStats();
 carregarLiberadas();
 </script>
