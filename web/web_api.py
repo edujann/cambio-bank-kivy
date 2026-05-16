@@ -21957,6 +21957,22 @@ def api_chamados_lista():
     except Exception as e:
         return jsonify({'success': False, 'error': _err(e)}), 500
 
+@app.route('/api/chamados/agentes')
+def api_chamados_agentes():
+    """Lista agentes disponíveis para atribuição de chamados."""
+    if 'username' not in session:
+        return jsonify({'success': False}), 401
+    try:
+        r = supabase.table('usuarios')\
+            .select('username,nome')\
+            .in_('tipo', ['admin', 'backoffice', 'backoffice_gerente'])\
+            .eq('status', 'ativo')\
+            .order('nome').execute()
+        return jsonify({'success': True, 'agentes': r.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'error': _err(e)}), 500
+
+
 @app.route('/api/chamados/novo', methods=['POST'])
 def api_chamados_novo():
     if 'username' not in session:
@@ -22128,7 +22144,7 @@ def api_chamados_status(chamado_id):
         return jsonify({'success': False}), 401
     try:
         user_info = supabase.table('usuarios').select('tipo').eq('username', session['username']).single().execute()
-        if not user_info.data or user_info.data.get('tipo') != 'admin':
+        if not user_info.data or user_info.data.get('tipo') not in ('admin', 'backoffice_gerente'):
             return jsonify({'success': False, 'error': 'Acesso negado'}), 403
         data = request.get_json()
         novo_status = data.get('status')
@@ -22150,7 +22166,7 @@ def api_chamados_atribuir(chamado_id):
         return jsonify({'success': False}), 401
     try:
         user_info = supabase.table('usuarios').select('tipo').eq('username', session['username']).single().execute()
-        if not user_info.data or user_info.data.get('tipo') != 'admin':
+        if not user_info.data or user_info.data.get('tipo') not in ('admin', 'backoffice_gerente'):
             return jsonify({'success': False, 'error': 'Acesso negado'}), 403
         data = request.get_json()
         atribuido_a = data.get('atribuido_a', '').strip()
@@ -22162,6 +22178,55 @@ def api_chamados_atribuir(chamado_id):
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': _err(e)}), 500
+
+@app.route('/api/chamados/<chamado_id>/anexo', methods=['POST'])
+def api_chamados_anexo(chamado_id):
+    if 'username' not in session:
+        return jsonify({'success': False}), 401
+    try:
+        import uuid as _uuid
+        from datetime import datetime
+        arquivo = request.files.get('arquivo')
+        if not arquivo or not arquivo.filename:
+            return jsonify({'success': False, 'error': 'Arquivo não enviado'}), 400
+
+        tipo = session.get('tipo', 'cliente')
+        autor_tipo = 'admin' if tipo in ('admin', 'backoffice', 'backoffice_gerente') else 'cliente'
+        autor_nome = session.get('nome', session.get('username'))
+        username = session.get('username')
+        user_id = session.get('user_id')
+
+        chamado = supabase.table('chamados').select('cliente_username,cliente_id').eq('id', chamado_id).single().execute()
+        if not chamado.data:
+            return jsonify({'success': False, 'error': 'Chamado não encontrado'}), 404
+        if autor_tipo == 'cliente':
+            if chamado.data.get('cliente_id') != user_id and chamado.data.get('cliente_username') != username:
+                return jsonify({'success': False, 'error': 'Acesso negado'}), 403
+
+        nome_original = arquivo.filename
+        conteudo = arquivo.read()
+        if len(conteudo) > 10 * 1024 * 1024:
+            return jsonify({'success': False, 'error': 'Arquivo muito grande (máx. 10MB)'}), 400
+
+        caminho = f"chamados/{chamado_id}/{_uuid.uuid4().hex[:8]}_{nome_original}"
+        supabase.storage.from_('chamados').upload(caminho, conteudo)
+        url = supabase.storage.from_('chamados').get_public_url(caminho)
+
+        agora = datetime.utcnow()
+        supabase.table('chamados_mensagens').insert({
+            'chamado_id': chamado_id,
+            'autor_tipo': autor_tipo,
+            'autor_nome': autor_nome,
+            'mensagem': f'[ANEXO:{nome_original}:{url}]',
+            'lida_admin': autor_tipo == 'admin',
+            'lida_cliente': autor_tipo == 'cliente',
+            'created_at': agora.isoformat()
+        }).execute()
+        supabase.table('chamados').update({'updated_at': agora.isoformat()}).eq('id', chamado_id).execute()
+        return jsonify({'success': True, 'url': url, 'nome': nome_original})
+    except Exception as e:
+        return jsonify({'success': False, 'error': _err(e)}), 500
+
 
 # ============================================
 # CHAMADOS — INDICADOR DE DIGITAÇÃO (em memória, TTL 4s)

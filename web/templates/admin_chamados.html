@@ -271,6 +271,31 @@
         .lang-btn:hover { border-color:var(--cor-admin); color:var(--cor-admin); }
         .lang-btn.active { background:var(--cor-admin); border-color:var(--cor-admin); color:#1a1200; }
 
+        /* BUSCA NO HISTÓRICO */
+        .busca-chat-bar {
+            flex-shrink:0; display:flex; align-items:center; gap:8px;
+            background:var(--cor-card); border-bottom:1px solid var(--cor-borda);
+            padding:8px 24px;
+        }
+        .busca-chat-bar input {
+            flex:1; background:var(--cor-fundo)!important; border:1px solid var(--cor-borda)!important;
+            color:var(--cor-texto)!important; padding:6px 10px!important;
+            border-radius:var(--radius-sm)!important; font-size:13px!important; min-height:unset!important;
+        }
+        .busca-chat-bar input:focus { border-color:var(--cor-primaria)!important; outline:none!important; box-shadow:none!important; }
+        mark.highlight-busca { background:rgba(210,158,0,.35); border-radius:2px; padding:0 1px; color:inherit; }
+        mark.highlight-busca.current { background:var(--cor-primaria); color:#1a1200; }
+
+        /* ANEXOS */
+        .anexo-link {
+            display:inline-flex; align-items:center; gap:7px;
+            background:rgba(210,158,0,.1); border:1px solid rgba(210,158,0,.2);
+            color:var(--cor-texto); padding:7px 13px; border-radius:8px;
+            text-decoration:none; font-size:13px; word-break:break-all; max-width:300px;
+        }
+        .anexo-link:hover { background:rgba(210,158,0,.2); }
+        .anexo-link i { flex-shrink:0; color:var(--cor-admin); }
+
         @media(max-width:900px) {
             .main-layout { grid-template-columns:1fr; }
             .painel-detalhe { display:none; }
@@ -362,9 +387,24 @@
                     <option value="fechado">Fechado</option>
                 </select>
                 <label style="font-size:13px;color:var(--cor-texto-sec)">Atribuir:</label>
-                <input type="text" id="inputAtribuir" placeholder="Username do operador"
-                    style="background:var(--cor-card)!important;border:1px solid var(--cor-borda)!important;color:var(--cor-texto)!important;padding:7px 12px!important;border-radius:var(--radius-sm)!important;font-size:13px!important;min-height:unset!important;width:160px">
+                <select id="selectAtribuir" style="min-width:180px">
+                    <option value="">— Não atribuído —</option>
+                </select>
                 <button class="btn-sm btn-ghost" onclick="atribuirChamado()"><i class="fas fa-user-tag"></i> Atribuir</button>
+                <button class="btn-sm btn-ghost" onclick="abrirBusca()" style="margin-left:auto" title="Buscar no histórico">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+            </div>
+            <!-- Busca no histórico -->
+            <div class="busca-chat-bar" id="buscaChatBar" style="display:none">
+                <i class="fas fa-search" style="color:var(--cor-texto-sec);font-size:13px;flex-shrink:0"></i>
+                <input type="text" id="buscaChatInput" placeholder="Buscar no histórico..."
+                    oninput="buscaChat(this.value)"
+                    onkeydown="if(event.key==='Enter')navBusca(1);else if(event.key==='Escape')fecharBusca()">
+                <span id="buscaResultado" style="font-size:12px;color:var(--cor-texto-sec);white-space:nowrap;min-width:70px;text-align:center"></span>
+                <button class="btn-sm btn-ghost" style="padding:4px 9px" onclick="navBusca(-1)" title="Anterior"><i class="fas fa-chevron-up"></i></button>
+                <button class="btn-sm btn-ghost" style="padding:4px 9px" onclick="navBusca(1)" title="Próximo"><i class="fas fa-chevron-down"></i></button>
+                <button class="btn-sm btn-ghost" style="padding:4px 9px" onclick="fecharBusca()" title="Fechar"><i class="fas fa-times"></i></button>
             </div>
             <!-- Chat -->
             <div class="chat-area" id="chatArea">
@@ -386,7 +426,11 @@
                     <label class="checkbox-nota">
                         <input type="checkbox" id="checkNota"> <i class="fas fa-lock"></i> Nota interna (invisível ao cliente)
                     </label>
-                    <button class="btn-sm btn-ghost" onclick="toggleRespostasRapidas()" style="margin-left:auto;padding:4px 10px;font-size:12px" title="Respostas rápidas">
+                    <input type="file" id="fileInput" style="display:none" onchange="uploadAnexo(this)">
+                    <button class="btn-sm btn-ghost" onclick="document.getElementById('fileInput').click()" title="Enviar anexo" style="margin-left:auto;padding:4px 10px;font-size:12px">
+                        <i class="fas fa-paperclip"></i>
+                    </button>
+                    <button class="btn-sm btn-ghost" onclick="toggleRespostasRapidas()" style="padding:4px 10px;font-size:12px" title="Respostas rápidas">
                         <i class="fas fa-bolt"></i> Respostas rápidas
                     </button>
                 </div>
@@ -410,6 +454,8 @@ let chamadoAtual = null;
 let _lastRefreshTime = Date.now();
 let _typingDebounce = null;
 let _typingPoll = null;
+let _buscaMatches = [];
+let _buscaIdx = -1;
 
 const RESPOSTAS_RAPIDAS = [
     { cat: 'Saudação', textos: [
@@ -464,9 +510,24 @@ function slaTag(deadline, status) {
     if (!deadline || ['resolvido','fechado'].includes(status)) return '';
     const diff = new Date(deadline) - new Date();
     const horas = diff / 3600000;
-    if (horas < 0) return `<span class="tag tag-sla-late"><i class="fas fa-exclamation-triangle"></i> SLA vencido</span>`;
-    if (horas < 4) return `<span class="tag tag-sla-warn"><i class="fas fa-clock"></i> SLA ${Math.round(horas)}h</span>`;
-    return `<span class="tag tag-sla-ok"><i class="fas fa-check-circle"></i> SLA ok</span>`;
+    if (horas < 0) {
+        const abs = Math.abs(diff);
+        const h = Math.floor(abs / 3600000);
+        const m = Math.floor((abs % 3600000) / 60000);
+        const lbl = h > 0 ? `+${h}h${m > 0 ? m+'min' : ''}` : `+${m}min`;
+        return `<span class="tag tag-sla-late"><i class="fas fa-exclamation-triangle"></i> SLA ${lbl}</span>`;
+    }
+    if (horas < 1) {
+        const m = Math.floor(diff / 60000);
+        return `<span class="tag tag-sla-warn"><i class="fas fa-fire"></i> ${m}min restantes</span>`;
+    }
+    if (horas < 4) {
+        const h = Math.floor(horas);
+        const m = Math.floor((horas - h) * 60);
+        return `<span class="tag tag-sla-warn"><i class="fas fa-clock"></i> SLA ${h}h${m > 0 ? m+'min' : ''}</span>`;
+    }
+    const h = Math.floor(horas);
+    return `<span class="tag tag-sla-ok"><i class="fas fa-check-circle"></i> SLA ${h}h</span>`;
 }
 
 function tempoRelativo(iso) {
@@ -486,6 +547,7 @@ function atualizarTimestamps() {
     document.querySelectorAll('[data-ts]').forEach(el => {
         el.textContent = tempoRelativo(el.dataset.ts);
     });
+    if (chamadoAtual) renderDetMeta(chamadoAtual);
 }
 
 let _audioCtx = null;
@@ -556,8 +618,35 @@ async function carregarChamados() {
             renderLista(todosOsChamados);
             calcStats(todosOsChamados);
             _lastRefreshTime = Date.now();
+            // Se há um chamado aberto, verificar se foi atualizado externamente
+            if (chamadoAtual) {
+                const fresh = todosOsChamados.find(c => c.id === chamadoAtual.id);
+                if (fresh && fresh.updated_at !== chamadoAtual.updated_at) {
+                    recarregarMensagens();
+                }
+            }
         }
     } catch(e) { console.error(e); }
+}
+
+async function recarregarMensagens() {
+    if (!chamadoAtual) return;
+    const chat = document.getElementById('chatArea');
+    const nearBottom = chat ? (chat.scrollHeight - chat.scrollTop - chat.clientHeight) < 120 : true;
+    try {
+        const r = await fetch(`/api/chamados/${chamadoAtual.id}`);
+        const d = await r.json();
+        if (d.success) {
+            chamadoAtual = d.chamado;
+            renderMensagens(d.mensagens);
+            if (!nearBottom) chat.scrollTop = chat.scrollHeight - chat.clientHeight - 120;
+            // Re-aplicar busca se a barra estiver aberta
+            const termo = document.getElementById('buscaChatInput').value;
+            if (termo && document.getElementById('buscaChatBar').style.display !== 'none') {
+                buscaChat(termo);
+            }
+        }
+    } catch(e) {}
 }
 
 function aplicarFiltros() { carregarChamados(); }
@@ -613,7 +702,9 @@ async function abrirChamado(id) {
     document.getElementById('detTitulo').textContent = chamadoAtual.titulo;
     document.getElementById('detId').textContent = chamadoAtual.id + ' • ' + (chamadoAtual.cliente_nome || chamadoAtual.cliente_username);
     document.getElementById('selectStatus').value = chamadoAtual.status;
-    document.getElementById('inputAtribuir').value = chamadoAtual.atribuido_a || '';
+    document.getElementById('selectAtribuir').value = chamadoAtual.atribuido_a || '';
+    _limparHighlights();
+    document.getElementById('buscaResultado').textContent = '';
     renderDetMeta(chamadoAtual);
     const r = await fetch(`/api/chamados/${id}`);
     const d = await r.json();
@@ -621,6 +712,10 @@ async function abrirChamado(id) {
         chamadoAtual = d.chamado;
         renderMensagens(d.mensagens);
         startTypingPoll(id);
+        const buscaTermo = document.getElementById('buscaChatInput').value;
+        if (buscaTermo && document.getElementById('buscaChatBar').style.display !== 'none') {
+            buscaChat(buscaTermo);
+        }
     }
 }
 
@@ -653,10 +748,22 @@ function renderMensagens(msgs) {
     chat.innerHTML = msgs.map(m => {
         const tipo = m.is_nota_interna ? 'nota' : m.autor_tipo;
         const nota = m.is_nota_interna ? `<span class="nota-label"><i class="fas fa-lock"></i> nota interna</span>` : '';
+        const anexoM = m.mensagem.match(/^\[ANEXO:(.+?):(.+)\]$/);
+        let conteudo;
+        if (anexoM) {
+            const nome = anexoM[1];
+            const url = anexoM[2];
+            const ext = nome.split('.').pop().toLowerCase();
+            conteudo = ['jpg','jpeg','png','gif','webp'].includes(ext)
+                ? `<a href="${url}" target="_blank"><img src="${url}" style="max-width:220px;max-height:160px;border-radius:6px;display:block;cursor:pointer" loading="lazy"></a>`
+                : `<a href="${url}" target="_blank" class="anexo-link"><i class="fas fa-paperclip"></i> ${nome}</a>`;
+        } else {
+            conteudo = m.mensagem.replace(/\n/g,'<br>');
+        }
         return `
         <div class="msg-wrapper ${tipo}">
             ${m.is_nota_interna ? nota : ''}
-            <div class="msg-bubble">${m.mensagem.replace(/\n/g,'<br>')}</div>
+            <div class="msg-bubble">${conteudo}</div>
             <div class="msg-meta">
                 <span>${m.autor_nome}</span>
                 <span data-ts="${m.created_at}" title="${fmtData(m.created_at)}">${tempoRelativo(m.created_at)}</span>
@@ -748,7 +855,7 @@ async function mudarStatus() {
 
 async function atribuirChamado() {
     if (!chamadoAtual) return;
-    const val = document.getElementById('inputAtribuir').value.trim();
+    const val = document.getElementById('selectAtribuir').value;
     const r = await fetch(`/api/chamados/${chamadoAtual.id}/atribuir`, {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
@@ -762,8 +869,127 @@ async function atribuirChamado() {
     }
 }
 
+async function carregarAgentes() {
+    try {
+        const r = await fetch('/api/chamados/agentes');
+        const d = await r.json();
+        if (!d.success) return;
+        const sel = document.getElementById('selectAtribuir');
+        const current = sel.value;
+        while (sel.options.length > 1) sel.remove(1);
+        (d.agentes || []).forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = a.username;
+            opt.textContent = `${a.nome} (${a.username})`;
+            sel.appendChild(opt);
+        });
+        sel.value = current;
+    } catch(e) {}
+}
+
+/* ── BUSCA NO HISTÓRICO ── */
+function abrirBusca() {
+    const bar = document.getElementById('buscaChatBar');
+    bar.style.display = 'flex';
+    setTimeout(() => document.getElementById('buscaChatInput').focus(), 50);
+}
+
+function fecharBusca() {
+    document.getElementById('buscaChatBar').style.display = 'none';
+    document.getElementById('buscaChatInput').value = '';
+    _limparHighlights();
+}
+
+function _limparHighlights() {
+    document.querySelectorAll('#chatArea mark.highlight-busca').forEach(m => {
+        m.replaceWith(document.createTextNode(m.textContent));
+    });
+    const chat = document.getElementById('chatArea');
+    if (chat) chat.normalize();
+    _buscaMatches = [];
+    _buscaIdx = -1;
+    document.getElementById('buscaResultado').textContent = '';
+}
+
+function buscaChat(termo) {
+    _limparHighlights();
+    if (!termo || termo.length < 2) return;
+    const re = new RegExp(termo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    document.querySelectorAll('#chatArea .msg-bubble').forEach(bubble => {
+        const walker = document.createTreeWalker(bubble, NodeFilter.SHOW_TEXT, null);
+        const nodes = [];
+        while (walker.nextNode()) nodes.push(walker.currentNode);
+        nodes.forEach(node => {
+            const text = node.nodeValue;
+            re.lastIndex = 0;
+            if (!re.test(text)) return;
+            re.lastIndex = 0;
+            const frag = document.createDocumentFragment();
+            let last = 0, match;
+            while ((match = re.exec(text)) !== null) {
+                if (match.index > last) frag.appendChild(document.createTextNode(text.slice(last, match.index)));
+                const mark = document.createElement('mark');
+                mark.className = 'highlight-busca';
+                mark.textContent = match[0];
+                frag.appendChild(mark);
+                _buscaMatches.push(mark);
+                last = match.index + match[0].length;
+            }
+            if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+            node.parentNode.replaceChild(frag, node);
+        });
+    });
+    const total = _buscaMatches.length;
+    if (total > 0) { _buscaIdx = 0; _irParaMatch(0); }
+    document.getElementById('buscaResultado').textContent = total ? `1 de ${total}` : 'Sem resultados';
+}
+
+function navBusca(dir) {
+    if (!_buscaMatches.length) return;
+    _buscaMatches[_buscaIdx].classList.remove('current');
+    _buscaIdx = (_buscaIdx + dir + _buscaMatches.length) % _buscaMatches.length;
+    _irParaMatch(_buscaIdx);
+    document.getElementById('buscaResultado').textContent = `${_buscaIdx + 1} de ${_buscaMatches.length}`;
+}
+
+function _irParaMatch(idx) {
+    _buscaMatches.forEach(m => m.classList.remove('current'));
+    const mark = _buscaMatches[idx];
+    if (mark) { mark.classList.add('current'); mark.scrollIntoView({behavior:'smooth', block:'center'}); }
+}
+
+/* ── UPLOAD DE ANEXO ── */
+async function uploadAnexo(input) {
+    if (!chamadoAtual || !input.files.length) return;
+    const file = input.files[0];
+    if (file.size > 10 * 1024 * 1024) {
+        alert('Arquivo muito grande. Máximo 10MB.');
+        input.value = '';
+        return;
+    }
+    const formData = new FormData();
+    formData.append('arquivo', file);
+    try {
+        const r = await fetch(`/api/chamados/${chamadoAtual.id}/anexo`, {method:'POST', body:formData});
+        const d = await r.json();
+        if (d.success) {
+            input.value = '';
+            setLastSeen(chamadoAtual.id);
+            abrirChamado(chamadoAtual.id);
+            carregarChamados();
+        } else {
+            alert('Erro ao enviar anexo: ' + (d.error || 'Erro desconhecido'));
+            input.value = '';
+        }
+    } catch(e) {
+        alert('Erro ao enviar arquivo');
+        input.value = '';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     carregarChamados();
+    carregarAgentes();
     setInterval(carregarChamados, 15000);
     setInterval(atualizarTimestamps, 60000);
     setInterval(atualizarContadorRefresh, 1000);

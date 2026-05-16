@@ -105,6 +105,9 @@
         .msg-wrapper.cliente .msg-meta { justify-content:flex-end; }
         .msg-day-sep { text-align:center; color:var(--cor-texto-sec); font-size:12px; padding:8px 0; display:flex; align-items:center; gap:10px; }
         .msg-day-sep::before, .msg-day-sep::after { content:''; flex:1; height:1px; background:var(--cor-borda); }
+        .anexo-link { display:inline-flex; align-items:center; gap:7px; background:rgba(210,158,0,.1); border:1px solid rgba(210,158,0,.2); color:var(--cor-texto); padding:7px 13px; border-radius:8px; text-decoration:none; font-size:13px; word-break:break-all; max-width:280px; }
+        .anexo-link:hover { background:rgba(210,158,0,.2); }
+        .anexo-link i { flex-shrink:0; color:var(--cor-admin); }
 
         .input-area { border-top:1px solid var(--cor-borda); padding:16px 24px; background:var(--cor-card); }
         .input-row { display:flex; gap:10px; align-items:flex-end; }
@@ -226,6 +229,10 @@
                     <textarea class="msg-textarea" id="msgInput" placeholder="Digite sua mensagem..." rows="2"
                         onkeydown="if(event.key==='Enter'&&event.ctrlKey)enviarMensagem()"
                         oninput="onMsgTyping()"></textarea>
+                    <input type="file" id="fileInput" style="display:none" onchange="uploadAnexo(this)">
+                    <button class="btn-enviar" onclick="document.getElementById('fileInput').click()" title="Enviar anexo" style="background:transparent;border:1px solid var(--cor-borda);color:var(--cor-texto-sec);padding:10px 12px">
+                        <i class="fas fa-paperclip"></i>
+                    </button>
                     <button class="btn-enviar" id="btnEnviar" onclick="enviarMensagem()">
                         <i class="fas fa-paper-plane"></i> Enviar
                     </button>
@@ -361,8 +368,34 @@ async function carregarChamados() {
     try {
         const r = await fetch(url);
         const d = await r.json();
-        if (d.success) { renderLista(d.chamados || []); checkNotificacoes(d.chamados || []); }
+        if (d.success) {
+            const lista = d.chamados || [];
+            renderLista(lista);
+            checkNotificacoes(lista);
+            // Se há um chamado aberto, verificar se foi atualizado externamente
+            if (chamadoAtual) {
+                const fresh = lista.find(c => c.id === chamadoAtual.id);
+                if (fresh && fresh.updated_at !== chamadoAtual.updated_at) {
+                    recarregarMensagens();
+                }
+            }
+        }
     } catch(e) { console.error(e); }
+}
+
+async function recarregarMensagens() {
+    if (!chamadoAtual) return;
+    const chat = document.getElementById('chatArea');
+    const nearBottom = chat ? (chat.scrollHeight - chat.scrollTop - chat.clientHeight) < 120 : true;
+    try {
+        const r = await fetch(`/api/chamados/${chamadoAtual.id}`);
+        const d = await r.json();
+        if (d.success) {
+            chamadoAtual = d.chamado;
+            renderMensagens(d.mensagens);
+            if (!nearBottom) chat.scrollTop = chat.scrollHeight - chat.clientHeight - 120;
+        }
+    } catch(e) {}
 }
 
 function renderLista(lista) {
@@ -459,9 +492,18 @@ function renderMensagens(msgs) {
             html += `<div class="msg-day-sep">${dStr}</div>`;
             ultimaData = dStr;
         }
+        const anexoM = m.mensagem.match(/^\[ANEXO:(.+?):(.+)\]$/);
+        let conteudo;
+        if (anexoM) {
+            const nome = anexoM[1]; const url = anexoM[2];
+            const ext = nome.split('.').pop().toLowerCase();
+            conteudo = ['jpg','jpeg','png','gif','webp'].includes(ext)
+                ? `<a href="${url}" target="_blank"><img src="${url}" style="max-width:220px;max-height:160px;border-radius:6px;display:block;cursor:pointer" loading="lazy"></a>`
+                : `<a href="${url}" target="_blank" class="anexo-link"><i class="fas fa-paperclip"></i> ${nome}</a>`;
+        } else { conteudo = m.mensagem.replace(/\n/g,'<br>'); }
         html += `
         <div class="msg-wrapper ${m.autor_tipo}">
-            <div class="msg-bubble">${m.mensagem.replace(/\n/g,'<br>')}</div>
+            <div class="msg-bubble">${conteudo}</div>
             <div class="msg-meta">
                 <span>${m.autor_tipo === 'cliente' ? 'Você' : 'Suporte Link International'}</span>
                 <span data-ts="${m.created_at}" title="${fmtData(m.created_at)}">${new Date(m.created_at).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'})}</span>
@@ -544,6 +586,20 @@ async function criarChamado() {
 document.getElementById('modalNovo').addEventListener('click', e => {
     if (e.target === document.getElementById('modalNovo')) fecharModalNovo();
 });
+
+async function uploadAnexo(input) {
+    if (!chamadoAtual || !input.files.length) return;
+    const file = input.files[0];
+    if (file.size > 10 * 1024 * 1024) { alert('Arquivo muito grande. Máximo 10MB.'); input.value = ''; return; }
+    const formData = new FormData();
+    formData.append('arquivo', file);
+    try {
+        const r = await fetch(`/api/chamados/${chamadoAtual.id}/anexo`, {method:'POST', body:formData});
+        const d = await r.json();
+        if (d.success) { input.value = ''; abrirChamado(chamadoAtual.id); carregarChamados(); }
+        else { alert('Erro ao enviar anexo: ' + (d.error || 'Erro desconhecido')); input.value = ''; }
+    } catch(e) { alert('Erro ao enviar arquivo'); input.value = ''; }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     carregarChamados();
