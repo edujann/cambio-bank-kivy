@@ -261,7 +261,7 @@ async function carregarDespachos(){
             el.innerHTML = `<div class="empty"><i class="fas fa-paper-plane"></i><p>${_isPt?'Nenhum despacho encontrado.':'No dispatches found.'}</p></div>`;
             return;
         }
-        const pendentes = d.despachos.filter(dep => dep.status !== 'pago').length;
+        const pendentes = d.despachos.filter(dep => dep.status === 'enviado').length;
         const badge = document.getElementById('badge-despachos');
         if (badge) { if (pendentes > 0) { badge.textContent = pendentes; badge.style.display = ''; } else badge.style.display = 'none'; }
         let html = '';
@@ -269,6 +269,8 @@ async function carregarDespachos(){
             const ordens = dep.ordens || [];
             const badgeDep = dep.status === 'pago'
                 ? '<span class="badge badge-pago"><i class="fas fa-check-circle"></i> ' + (_isPt?'Pago':'Paid') + '</span>'
+                : dep.status === 'cancelado'
+                ? '<span class="badge" style="background:rgba(150,150,150,.15);color:var(--text2);"><i class="fas fa-ban"></i> ' + (_isPt?'Cancelado':'Cancelled') + '</span>'
                 : '<span class="badge badge-enviado"><i class="fas fa-paper-plane"></i> ' + (_isPt?'Enviado':'Sent') + '</span>';
 
             function bancoDados(o) {
@@ -320,8 +322,9 @@ async function carregarDespachos(){
                 </div>`;
             }).join('');
 
-            html += `<div class="card">
-                <div class="card-hd" onclick="toggleCard('dep-${dep.id}')">
+            const isCancelado = dep.status === 'cancelado';
+            html += `<div class="card" style="${isCancelado?'opacity:.7;':''}">
+                <div class="card-hd" ${isCancelado ? 'style="cursor:default;"' : `onclick="toggleCard('dep-${dep.id}')"`}>
                     <div class="card-hd-left">
                         <strong>${_isPt?'Despacho':'Dispatch'} #${dep.numero}</strong>
                         <span style="font-size:12px;color:var(--text2);">${fmtValor(dep.valor_total, dep.moeda_saida)} · ${dep.qtd_ordens} ${_isPt?'ordem(ns)':'order(s)'}</span>
@@ -329,13 +332,16 @@ async function carregarDespachos(){
                     </div>
                     <div style="display:flex;align-items:center;gap:10px;">
                         <span style="font-size:12px;color:var(--text2);">${fmtData(dep.created_at)}</span>
-                        <i class="fas fa-chevron-down" style="font-size:11px;color:var(--text3);"></i>
+                        ${!isCancelado ? '<i class="fas fa-chevron-down" style="font-size:11px;color:var(--text3);"></i>' : ''}
                     </div>
                 </div>
-                <div class="card-body" id="dep-${dep.id}">
-                    ${dep.observacoes ? `<p style="font-size:12px;color:var(--text2);margin-bottom:12px;"><i class="fas fa-info-circle"></i> ${dep.observacoes}</p>` : ''}
-                    ${ordens.length ? ordensCards : `<p style="font-size:12px;color:var(--text2);">${_isPt?'Sem ordens vinculadas.':'No orders linked.'}</p>`}
-                </div>
+                ${isCancelado
+                    ? `<div style="padding:14px 16px;font-size:13px;color:var(--text2);border-top:1px solid var(--borda);"><i class="fas fa-ban" style="margin-right:6px;"></i>${_isPt?'Este despacho foi cancelado pelo administrador. Entre em contacto com o seu gestor de conta caso tenha dúvidas.':'This dispatch was cancelled by the administrator. Please contact your account manager if you have any questions.'}</div>`
+                    : `<div class="card-body" id="dep-${dep.id}">
+                        ${dep.observacoes ? `<p style="font-size:12px;color:var(--text2);margin-bottom:12px;"><i class="fas fa-info-circle"></i> ${dep.observacoes}</p>` : ''}
+                        ${ordens.length ? ordensCards : `<p style="font-size:12px;color:var(--text2);">${_isPt?'Sem ordens vinculadas.':'No orders linked.'}</p>`}
+                       </div>`
+                }
             </div>`;
         });
         el.innerHTML = html;

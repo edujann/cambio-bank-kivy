@@ -11505,14 +11505,17 @@ def loja_nova_ordem():
                         'sanctions': True
                     }), 403
 
-                # Docs já validados pelo compliance
+                # Docs validados pelo compliance:
+                # photo_id e proof_address são do perfil do cliente — validam uma vez.
+                # source_funds, declaration e edd são por-ordem — cada transação exige
+                # documento novo que justifique AQUELA origem de fundos específica.
                 doc_validado = {
                     'basic_info':    True,
                     'photo_id':      bool(c.get('doc_photo_id_ok')),
                     'proof_address': bool(c.get('doc_address_ok')),
-                    'source_funds':  bool(c.get('doc_source_funds_ok')),
-                    'declaration':   bool(c.get('doc_declaration_ok')),
-                    'edd':           bool(c.get('doc_edd_ok')),
+                    'source_funds':  False,
+                    'declaration':   False,
+                    'edd':           False,
                 }
                 doc_labels = {
                     'photo_id': 'Photo ID',
@@ -11571,7 +11574,11 @@ def loja_nova_ordem():
 
             # --- Alertas AML não-bloqueantes ---
             if aml.get('pep_screening') and not d.get('pep_screening_ok'):
-                aml_alertas.append('PEP_SCREENING_REQUIRED')
+                # Só bloqueia se o cliente for PEP confirmado ou status desconhecido.
+                # Se pep_flag=False (verificado como não-PEP), o check já está satisfeito
+                # automaticamente e a ordem não deve ir para compliance_review por isso.
+                if aml.get('pep_flagged', True):
+                    aml_alertas.append('PEP_SCREENING_REQUIRED')
             if pais_destino and _is_high_risk(pais_destino):
                 aml_alertas.append('HIGH_RISK_COUNTRY_EDD')
             if forma == 'cash':
@@ -11581,6 +11588,10 @@ def loja_nova_ordem():
         pagamento_confirmado = forma != 'transferencia'
 
         # --- compliance routing ---
+        # Primeira ordem de qualquer cliente vai sempre para compliance_review
+        # para que o compliance valide os documentos enviados pelo atendente.
+        # Nas ordens seguintes (tem_historico=True), só vai para compliance_review
+        # se houver alertas AML genuínos.
         compliance_status_val = 'pendente'
         if cliente_id:
             try:
@@ -11593,8 +11604,6 @@ def loja_nova_ordem():
                 compliance_status_val = 'aprovado' if (tem_historico and not aml_alertas) else 'pendente'
             except Exception:
                 compliance_status_val = 'pendente'
-        else:
-            compliance_status_val = 'pendente'
 
         # --- Detecção de structuring/smurfing ---
         if cliente_id:
@@ -12535,13 +12544,15 @@ def _aml_check_order(cliente_id, valor_nova_ordem_gbp):
     pep_screening = total_90d >= 2000
     # EDD is risk-based, not value-based
     edd_required = False
+    pep_flagged   = True  # conservative default: treat as unknown = requires review
     try:
         r_c = supabase.table('clientes_varejo')\
             .select('pep_flag,risk_score,pais_residencia').eq('id', str(cliente_id)).single().execute()
         if r_c.data:
             c = r_c.data
+            pep_flagged = bool(c.get('pep_flag'))  # False = verified non-PEP, True = PEP or unknown
             edd_required = (
-                bool(c.get('pep_flag')) or
+                pep_flagged or
                 str(c.get('risk_score', '') or '').lower() in ('high', 'alto') or
                 _is_high_risk(c.get('pais_residencia', '') or '')
             )
@@ -12575,7 +12586,8 @@ def _aml_check_order(cliente_id, valor_nova_ordem_gbp):
         'docs_required': docs_req,
         'order_docs_newly_required': order_docs_newly_required,
         'pep_screening': pep_screening,
-        'edd_required': edd_required,
+        'pep_flagged':   pep_flagged,
+        'edd_required':  edd_required,
     }
 
 
@@ -14383,6 +14395,59 @@ def compliance_deletar_documento():
     except Exception as e:
         _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
         return jsonify({'success': False, 'message': _err(e)}), 500
+
+@app.route('/api/ordens/<ordem_id>/documentos/<doc_id>/deletar', methods=['POST'])
+def deletar_documento_ordem(ordem_id, doc_id):
+    """Remove documento de suporte de uma ordem enquanto ainda estiver em análise."""
+    if 'username' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    usuario = session['username']
+    try:
+        # Verificar status da ordem — só permite deletar enquanto em análise
+        r_o = supabase.table('ordens_captacao').select('status, loja').eq('id', ordem_id).single().execute()
+        if not r_o.data:
+            return jsonify({'success': False, 'message': 'Ordem não encontrada'}), 404
+        ordem = r_o.data
+        STATUS_BLOQUEADOS = ('liberada', 'despachada', 'comprovante_em_analise', 'paga', 'cancelada')
+        if ordem['status'] in STATUS_BLOQUEADOS:
+            return jsonify({'success': False,
+                            'message': 'Não é possível remover documentos de uma ordem já liberada pelo compliance.'}), 403
+
+        # Verificar se o documento pertence a esta ordem
+        r_d = supabase.table('documentos_kyc').select('*').eq('id', doc_id).eq('ordem_id', ordem_id).single().execute()
+        if not r_d.data:
+            return jsonify({'success': False, 'message': 'Documento não encontrado nesta ordem'}), 404
+        doc = r_d.data
+
+        # Não permitir remoção de photo_id / proof_address via esta rota
+        if doc.get('tipo') in ('photo_id', 'proof_address'):
+            return jsonify({'success': False, 'message': 'Use a área de KYC do cliente para gerir documentos de identificação.'}), 400
+
+        # Remover do banco
+        supabase.table('documentos_kyc').delete().eq('id', doc_id).execute()
+
+        # Tentar remover do storage (não bloqueia se falhar)
+        arquivo_url = doc.get('arquivo_url') or ''
+        if arquivo_url:
+            try:
+                supabase.storage.from_('kyc-docs').remove([arquivo_url])
+            except Exception:
+                pass
+
+        # Auditoria
+        try:
+            supabase.table('compliance_audit').insert({
+                'usuario': usuario,
+                'acao': 'DELETAR_DOC_ORDEM',
+                'detalhe': f'Documento {doc.get("tipo")} (id:{doc_id}) da ordem {ordem_id} removido por {usuario}'
+            }).execute()
+        except Exception:
+            pass
+
+        return jsonify({'success': True, 'message': 'Documento removido.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
 
 @app.route('/api/compliance/ordens/<ordem_id>/rejeitar', methods=['POST'])
 def compliance_rejeitar(ordem_id):
@@ -16358,25 +16423,21 @@ def ordem_detalhes_completos(ordem_id):
         r_do = supabase.table('documentos_kyc').select('*').eq('ordem_id', ordem_id).execute()
         docs_ordem = r_do.data or []
 
-        # Docs do cliente: todos os registros com cliente_id, mais recente por tipo
-        # source_funds e edd são por-operação mas gravados com cliente_id apenas
+        # Docs do cliente: somente photo_id e proof_address (tipos vinculados ao cliente, não à ordem)
+        # Docs por-operação (source_funds, edd, declaration) vêm exclusivamente da query por ordem_id acima
         CLIENT_TIPOS = {'photo_id', 'proof_address'}
-        ORDER_TIPOS  = {'source_funds', 'edd', 'declaration'}
         docs_cliente = []
         if ordem.get('cliente_id'):
             r_dc = supabase.table('documentos_kyc').select('*')\
                 .eq('cliente_id', str(ordem['cliente_id']))\
+                .in_('tipo', list(CLIENT_TIPOS))\
                 .order('created_at', desc=True).execute()
             seen_cli = set()
-            seen_ord = set()
             for doc in (r_dc.data or []):
                 t = doc.get('tipo')
                 if t in CLIENT_TIPOS and t not in seen_cli:
                     seen_cli.add(t)
                     docs_cliente.append(doc)
-                elif t in ORDER_TIPOS and t not in seen_ord:
-                    seen_ord.add(t)
-                    docs_ordem.append(doc)
 
         def signed(doc):
             path = doc.get('arquivo_url', '')
@@ -16474,6 +16535,63 @@ def admin_despacho_confirmar_pago(despacho_id):
             supabase.table('ordens_captacao').update({'status': 'paga'}).eq('id', lnk['ordem_id']).execute()
         supabase.table('despachos').update({'status': 'pago'}).eq('id', despacho_id).execute()
         return jsonify({'success': True, 'message': 'Despacho confirmado como pago.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': _err(e)}), 500
+
+
+@app.route('/api/admin/despachos/<despacho_id>/estornar', methods=['POST'])
+def admin_despacho_estornar(despacho_id):
+    usuario = session.get('username')
+    if not usuario:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    try:
+        r_u = supabase.table('usuarios').select('tipo').eq('username', usuario).single().execute()
+        tipo = r_u.data.get('tipo') if r_u.data else ''
+        if tipo not in ('admin', 'backoffice_gerente'):
+            return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+
+        # Buscar despacho
+        r_dep = supabase.table('despachos').select('id, status, numero').eq('id', despacho_id).single().execute()
+        if not r_dep.data:
+            return jsonify({'success': False, 'message': 'Despacho não encontrado'}), 404
+        dep = r_dep.data
+        if dep['status'] != 'enviado':
+            return jsonify({'success': False, 'message': 'Só é possível estornar despachos com status "enviado".'}), 400
+
+        # Buscar ordens vinculadas
+        links = supabase.table('despacho_ordens').select('ordem_id').eq('despacho_id', despacho_id).execute()
+        ordem_ids = [l['ordem_id'] for l in (links.data or [])]
+
+        if ordem_ids:
+            # Validar que nenhuma ordem está em análise ou paga
+            ordens_r = supabase.table('ordens_captacao').select('id, status').in_('id', ordem_ids).execute()
+            bloqueadas = [o for o in (ordens_r.data or []) if o['status'] in ('comprovante_em_analise', 'paga', 'pendencia')]
+            if bloqueadas:
+                return jsonify({
+                    'success': False,
+                    'message': f'Não é possível estornar: {len(bloqueadas)} ordem(ns) já possui comprovante em análise, foi paga ou está em pendência.'
+                }), 400
+
+            # Reverter ordens para liberada e limpar parceiro_pagador
+            for oid in ordem_ids:
+                supabase.table('ordens_captacao').update({
+                    'status': 'liberada',
+                    'parceiro_pagador': None,
+                }).eq('id', oid).execute()
+
+        # Cancelar despacho com registro de auditoria
+        from datetime import datetime
+        obs_atual = dep.get('observacoes') or ''
+        nova_obs = f"{obs_atual} | Estornado por {usuario} em {datetime.now().strftime('%d/%m/%Y %H:%M')}".strip(' |')
+        supabase.table('despachos').update({
+            'status': 'cancelado',
+            'observacoes': nova_obs,
+        }).eq('id', despacho_id).execute()
+
+        return jsonify({
+            'success': True,
+            'message': f'Despacho #{dep.get("numero","?")} estornado — {len(ordem_ids)} ordem(ns) voltaram para Liberada.'
+        })
     except Exception as e:
         return jsonify({'success': False, 'message': _err(e)}), 500
 

@@ -710,7 +710,7 @@ loadObDocs();
         const r = await fetch('/api/portal/despachos');
         const d = await r.json();
         if(!d.success) return;
-        const n = (d.despachos||[]).filter(dep=>dep.status!=='pago').length;
+        const n = (d.despachos||[]).filter(dep=>dep.status==='enviado').length;
         const badge = document.getElementById('badge-despachos');
         if(badge && n>0){ badge.textContent=n; badge.style.display=''; }
     }catch(e){}

@@ -122,7 +122,7 @@
         .bs-pendencia{background:rgba(192,32,32,.12);color:var(--cor-perigo);}
         .bs-despachada{background:rgba(26,122,82,.09);color:var(--cor-sucesso);}
         .bs-comprovante_em_analise{background:rgba(123,75,184,.12);color:var(--cor-roxo);}
-        .bs-cancelada{background:rgba(150,150,150,.12);color:var(--cor-texto-secundario);}
+        .bs-cancelada,.bs-cancelado{background:rgba(150,150,150,.12);color:var(--cor-texto-secundario);}
         /* Inner data table */
         .inner-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;}
         .inner-table th{background:rgba(210,158,0,.06);color:var(--cor-texto-secundario);padding:8px 10px;text-align:left;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--cor-borda);white-space:nowrap;}
@@ -321,6 +321,23 @@
 
 </div>
 
+<!-- Modal Estorno de Despacho -->
+<div class="modal-ov" id="modalEstornoDespacho">
+    <div class="modal">
+        <div class="modal-top-bar"></div>
+        <h3><i class="fas fa-rotate-left"></i> Estornar Despacho</h3>
+        <div id="estornoDespachoDesc" style="margin:14px 0;font-size:14px;color:var(--cor-texto-secundario);line-height:1.6;"></div>
+        <div style="background:rgba(192,32,32,.07);border:1px solid rgba(192,32,32,.2);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--cor-perigo);margin-bottom:16px;">
+            <i class="fas fa-triangle-exclamation"></i> Todas as ordens voltarão para <strong>Liberada</strong> e o despacho será <strong>cancelado</strong>. Esta ação não pode ser desfeita.
+        </div>
+        <div class="form-msg" id="estornoDespachoMsg"></div>
+        <div class="modal-acts">
+            <button class="btn-g" onclick="fecharModal('modalEstornoDespacho')">Voltar</button>
+            <button class="btn-p" style="background:var(--cor-perigo);border-color:var(--cor-perigo);" onclick="confirmarEstornoDespacho()"><i class="fas fa-rotate-left"></i> Confirmar Estorno</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Criar Despacho -->
 <div class="modal-ov" id="modalDespacho">
     <div class="modal">
@@ -353,10 +370,36 @@ const fmtD = s => { if(!s)return'—'; try{const[dt,hr]=(s.replace('T',' ').spli
 const fmtValor = (v, m) => { const n = parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); return m==='BRL'?`R$ ${n}`:`${n} ${m||''}`; };
 function badgeDep(s) {
     const lbl = {pago:'Pago',enviado:'Enviado',paga:'Paga',despachada:'Despachada',
-                 comprovante_em_analise:'Em Análise',pendencia:'Pendência',cancelada:'Cancelada'};
+                 comprovante_em_analise:'Em Análise',pendencia:'Pendência',cancelada:'Cancelada',cancelado:'Cancelado'};
     return `<span class="badge-s bs-${s}">${lbl[s]||s}</span>`;
 }
 function toggleDespacho(id) { document.getElementById(id)?.classList.toggle('open'); }
+
+let _estornoDespachoId = null;
+function abrirEstornoDespacho(id, numero, parceiro, qtd) {
+    _estornoDespachoId = id;
+    document.getElementById('estornoDespachoDesc').innerHTML =
+        `Despacho <strong>#${numero}</strong> · Parceiro: <strong>${parceiro||'—'}</strong> · <strong>${qtd}</strong> ordem(ns) serão revertidas para <strong>Liberada</strong>.`;
+    document.getElementById('estornoDespachoMsg').innerHTML = '';
+    document.getElementById('modalEstornoDespacho').classList.add('open');
+}
+
+async function confirmarEstornoDespacho() {
+    const msg = document.getElementById('estornoDespachoMsg');
+    msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando…';
+    try {
+        const r = await fetch(`/api/admin/despachos/${_estornoDespachoId}/estornar`, {method:'POST'});
+        const d = await r.json();
+        if (d.success) {
+            fecharModal('modalEstornoDespacho');
+            toast(d.message, 'ok');
+            carregarDespachos();
+            carregarStats();
+        } else {
+            msg.innerHTML = `<span style="color:var(--cor-perigo);">${d.message}</span>`;
+        }
+    } catch(e) { msg.innerHTML = `<span style="color:var(--cor-perigo);">Erro de conexão.</span>`; }
+}
 const destFlag = {brazil:'🇧🇷',europe:'🇪🇺',usa:'🇺🇸'};
 const amlLabels = {PEP_SCREENING_REQUIRED:'PEP',HIGH_RISK_COUNTRY_EDD:'Alto Risco',CASH_EDD:'Cash EDD'};
 
@@ -587,6 +630,12 @@ async function carregarDespachos() {
                     <div style="display:flex;align-items:center;gap:10px;">
                         ${badgeDep(dep.status)}
                         <span style="font-size:12px;color:var(--cor-texto-secundario);">${fmtD(dep.created_at)}</span>
+                        ${dep.status === 'enviado' ? (() => {
+                            const bloqueada = ordens.some(o => ['comprovante_em_analise','paga','pendencia'].includes(o.status));
+                            return bloqueada
+                                ? `<button class="btn-act" disabled title="${ordens.filter(o=>['comprovante_em_analise','paga','pendencia'].includes(o.status)).length} ordem(ns) já em análise ou paga(s)" style="opacity:.4;cursor:not-allowed;white-space:nowrap;border-color:rgba(192,32,32,.3);color:var(--cor-perigo);" onclick="event.stopPropagation()"><i class="fas fa-rotate-left"></i> Estornar</button>`
+                                : `<button class="btn-act" style="border-color:rgba(192,32,32,.4);color:var(--cor-perigo);white-space:nowrap;" onclick="event.stopPropagation();abrirEstornoDespacho('${dep.id}','${dep.numero||dep.id.slice(0,8)}','${(dep.parceiro_pagador||'').replace(/'/g,"\\'")}',${ordens.length})"><i class="fas fa-rotate-left"></i> Estornar</button>`;
+                          })() : ''}
                         <i class="fas fa-chevron-down" style="font-size:11px;color:var(--cor-texto-secundario);"></i>
                     </div>
                 </div>
