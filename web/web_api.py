@@ -22080,14 +22080,25 @@ def api_chamados_detalhe(chamado_id):
         # Filtrar notas internas para clientes
         if tipo != 'admin':
             mensagens = [m for m in mensagens if not m.get('is_nota_interna')]
-            # Marcar como lidas pelo cliente
-            supabase.table('chamados_mensagens').update({'lida_cliente': True})\
-                .eq('chamado_id', chamado_id).eq('autor_tipo', 'admin').execute()
+            # Marcar como lidas pelo cliente (só se houver mensagens não lidas)
+            nao_lidas = [m for m in mensagens if not m.get('lida_cliente') and m.get('autor_tipo') == 'admin']
+            if nao_lidas:
+                supabase.table('chamados_mensagens').update({'lida_cliente': True})\
+                    .eq('chamado_id', chamado_id).eq('autor_tipo', 'admin').execute()
+                # Atualizar updated_at para o polling do admin detectar a mudança de recibo
+                from datetime import datetime as _dt_r
+                supabase.table('chamados').update({'updated_at': _dt_r.utcnow().isoformat()})\
+                    .eq('id', chamado_id).execute()
         else:
-            # Marcar como lidas pelo admin
-            supabase.table('chamados_mensagens').update({'lida_admin': True})\
-                .eq('chamado_id', chamado_id).eq('autor_tipo', 'cliente').execute()
-        
+            # Marcar como lidas pelo admin (só se houver mensagens não lidas)
+            nao_lidas = [m for m in mensagens if not m.get('lida_admin') and m.get('autor_tipo') == 'cliente' and not m.get('is_nota_interna')]
+            if nao_lidas:
+                supabase.table('chamados_mensagens').update({'lida_admin': True})\
+                    .eq('chamado_id', chamado_id).eq('autor_tipo', 'cliente').execute()
+                from datetime import datetime as _dt_r
+                supabase.table('chamados').update({'updated_at': _dt_r.utcnow().isoformat()})\
+                    .eq('id', chamado_id).execute()
+
         return jsonify({'success': True, 'chamado': chamado.data, 'mensagens': mensagens})
     except Exception as e:
         return jsonify({'success': False, 'error': _err(e)}), 500

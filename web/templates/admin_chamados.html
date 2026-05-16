@@ -696,6 +696,7 @@ function renderLista(lista) {
 
 async function abrirChamado(id) {
     chamadoAtual = todosOsChamados.find(c => c.id === id);
+    ajustarPolling();
     setLastSeen(id);
     renderLista(todosOsChamados);
     document.getElementById('detalheVazio').style.display = 'none';
@@ -995,10 +996,16 @@ async function uploadAnexo(input) {
     }
 }
 
+let _pollInterval = null;
+function ajustarPolling() {
+    if (_pollInterval) clearInterval(_pollInterval);
+    _pollInterval = setInterval(carregarChamados, chamadoAtual ? 3000 : 15000);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     carregarChamados();
     carregarAgentes();
-    setInterval(carregarChamados, 15000);
+    ajustarPolling();
     setInterval(atualizarTimestamps, 60000);
     setInterval(atualizarContadorRefresh, 1000);
     window.addEventListener('focus', () => { atualizarTimestamps(); carregarChamados(); });

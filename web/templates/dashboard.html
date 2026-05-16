@@ -725,10 +725,10 @@ loadObDocs();
 (function() {
     async function atualizarBadgeChamados() {
         try {
-            const r = await fetch('/api/chamados/lista?status=aguardando_cliente');
+            const r = await fetch('/api/chamados/badges');
             const d = await r.json();
             if (!d.success) return;
-            const n = (d.chamados || []).length;
+            const n = d.nao_lidos || 0;
 
             const nb = document.getElementById('badge-chamados');
             if (nb) { nb.textContent = n; nb.style.display = n > 0 ? '' : 'none'; }

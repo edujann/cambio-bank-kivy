@@ -445,6 +445,7 @@ function renderLista(lista) {
 
 async function abrirChamado(id, dadosBasicos) {
     chamadoAtual = typeof dadosBasicos === 'object' ? dadosBasicos : {id};
+    ajustarPolling();
     setLastSeen(id);
     document.getElementById('detalheVazio').style.display = 'none';
     const cont = document.getElementById('detalheConteudo');
@@ -674,9 +675,15 @@ async function uploadAnexo(input) {
     } catch(e) { alert('Erro ao enviar arquivo'); input.value = ''; }
 }
 
+let _pollInterval = null;
+function ajustarPolling() {
+    if (_pollInterval) clearInterval(_pollInterval);
+    _pollInterval = setInterval(carregarChamados, chamadoAtual ? 3000 : 15000);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     carregarChamados();
-    setInterval(carregarChamados, 15000);
+    ajustarPolling();
     setInterval(atualizarTimestamps, 60000);
     window.addEventListener('focus', () => { atualizarTimestamps(); carregarChamados(); });
 
