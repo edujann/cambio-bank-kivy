@@ -267,6 +267,7 @@ nav.sb-nav{flex:1;padding:10px 0;overflow-y:auto;}
         <a class="nav-item {{ 'disabled' if is_ob }}" href="/minhas-transferencias"><i class="fas fa-list-check"></i> {% if is_pt %}Minhas Transferências{% else %}My Transfers{% endif %}</a>
         <a class="nav-item {{ 'disabled' if is_ob }}" href="/meus-beneficiarios"><i class="fas fa-users"></i> {% if is_pt %}Beneficiários{% else %}Beneficiaries{% endif %}</a>
         <a class="nav-item {{ 'disabled' if is_ob }}" href="/meu_extrato"><i class="fas fa-clock-rotate-left"></i> {% if is_pt %}Extrato{% else %}Statements{% endif %}</a>
+        <a class="nav-item {{ 'disabled' if is_ob or not cambio_liberado }}" href="/cambio-moedas"><i class="fas fa-coins"></i> {% if is_pt %}Câmbio{% else %}Exchange{% endif %}</a>
         <a class="nav-item" href="/chamados"><i class="fas fa-comments"></i> {% if is_pt %}Suporte{% else %}Support{% endif %}</a>
         {% if is_parceiro_pagador %}
         <a class="nav-item {{ 'disabled' if is_ob }}" href="/portal/despachos"><i class="fas fa-paper-plane"></i> {% if is_pt %}Despachos{% else %}Dispatches{% endif %}<span class="nav-badge" id="badge-despachos" style="display:none;"></span></a>

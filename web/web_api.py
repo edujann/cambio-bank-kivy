@@ -920,13 +920,16 @@ def dashboard():
     cliente_b2b = None
     is_parceiro_pagador = False
 
+    cambio_liberado = False
+
     try:
         if supabase:
-            u = supabase.table('usuarios').select('email,nome,is_parceiro_pagador').eq('username', usuario).single().execute()
+            u = supabase.table('usuarios').select('email,nome,is_parceiro_pagador,cambio_liberado').eq('username', usuario).single().execute()
             if u.data:
                 email = u.data.get('email', email)
                 nome  = u.data.get('nome', nome)
                 is_parceiro_pagador = bool(u.data.get('is_parceiro_pagador', False))
+                cambio_liberado     = bool(u.data.get('cambio_liberado', False))
 
             benef = supabase.table('beneficiarios').select('id').eq('cliente_username', usuario).eq('ativo', True).execute()
             beneficiarios_count = len(benef.data or [])
@@ -943,7 +946,8 @@ def dashboard():
         usuario=usuario, email=email, nome=nome,
         beneficiarios_count=beneficiarios_count,
         cliente_b2b=cliente_b2b,
-        is_parceiro_pagador=is_parceiro_pagador)
+        is_parceiro_pagador=is_parceiro_pagador,
+        cambio_liberado=cambio_liberado)
 
 @app.route('/static/<path:path>')
 def servir_estaticos(path):
@@ -4275,7 +4279,6 @@ def obter_extrato_kivy():
                     
                     if transacao_estorno:
                         transacoes_todas.append(transacao_estorno)
-                        transacoes_ids_utilizados.add(transf_id)
                         print(f"💰 ESTORNO PROCESSADO: {transf_id}")
                     else:
                         print(f"⚠️ ESTORNO IGNORADO: {transf_id}")
@@ -7345,6 +7348,119 @@ def admin_extrato_conta():
                           conta_numero=conta_numero,
                           conta_info=conta_info)
 
+@app.route('/api/admin/contas/<conta_num>/saldo-real', methods=['GET'])
+def api_saldo_real_conta(conta_num):
+    """Retorna o saldo armazenado — tenta contas (clientes) e contas_bancarias_empresa"""
+    try:
+        usuario = session.get('username')
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        tipo = session.get('tipo') or ''
+        if tipo not in ('admin', 'backoffice', 'backoffice_gerente'):
+            return jsonify({"success": False, "message": "Acesso negado"}), 403
+
+        # Tenta tabela de clientes primeiro
+        resp = supabase.table('contas')\
+            .select('id,saldo,moeda,cliente_nome')\
+            .eq('id', conta_num)\
+            .execute()
+
+        if resp.data:
+            row = resp.data[0]
+            return jsonify({
+                "success": True,
+                "saldo_armazenado": float(row.get('saldo') or 0),
+                "moeda": row.get('moeda', ''),
+                "cliente_nome": row.get('cliente_nome', ''),
+                "tabela": "contas",
+            })
+
+        # Tenta tabela de contas da empresa
+        resp2 = supabase.table('contas_bancarias_empresa')\
+            .select('numero,saldo,moeda,banco')\
+            .eq('numero', conta_num)\
+            .execute()
+
+        if resp2.data:
+            row = resp2.data[0]
+            return jsonify({
+                "success": True,
+                "saldo_armazenado": float(row.get('saldo') or 0),
+                "moeda": row.get('moeda', ''),
+                "cliente_nome": row.get('banco', ''),
+                "tabela": "contas_bancarias_empresa",
+            })
+
+        return jsonify({"success": False, "message": "Conta não encontrada"}), 404
+    except Exception as e:
+        return jsonify({"success": False, "message": _err(e)}), 500
+
+
+@app.route('/api/admin/contas/<conta_num>/corrigir-saldo', methods=['POST'])
+def api_corrigir_saldo_conta(conta_num):
+    """Corrige o saldo armazenado na tabela contas para o valor calculado pelo extrato"""
+    try:
+        usuario = session.get('username')
+        if not usuario:
+            return jsonify({"success": False, "message": "Não autenticado"}), 401
+        tipo = session.get('tipo') or ''
+        if tipo not in ('admin', 'backoffice_gerente'):
+            return jsonify({"success": False, "message": "Acesso negado — apenas admin/gerente"}), 403
+
+        dados = request.get_json() or {}
+        novo_saldo  = dados.get('novo_saldo')
+        saldo_antes = dados.get('saldo_antes')
+        motivo      = dados.get('motivo', 'Correção manual via reconciliação de extrato')
+
+        if novo_saldo is None:
+            return jsonify({"success": False, "message": "novo_saldo não informado"}), 400
+
+        # Registrar em admin_logs (tabela separada — não afeta o extrato)
+        divergencia = float(novo_saldo) - float(saldo_antes or 0)
+        tabela = dados.get('tabela', 'contas')
+        log_payload = {
+            'tipo': 'reconciliacao_saldo',
+            'executado_por': usuario,
+            'descricao': f'Correção de saldo via reconciliação — {motivo}',
+            'dados': {
+                'conta': conta_num,
+                'tabela': tabela,
+                'saldo_antes': float(saldo_antes or 0),
+                'saldo_depois': float(novo_saldo),
+                'divergencia': round(divergencia, 2),
+                'motivo': motivo,
+            },
+        }
+        # conta_id só pode referenciar tabela contas (clientes)
+        if tabela == 'contas':
+            log_payload['conta_id'] = conta_num
+        supabase.table('admin_logs').insert(log_payload).execute()
+
+        # Atualizar saldo na tabela correta
+        tabela = dados.get('tabela', 'contas')
+        if tabela == 'contas_bancarias_empresa':
+            supabase.table('contas_bancarias_empresa')\
+                .update({'saldo': float(novo_saldo)})\
+                .eq('numero', conta_num)\
+                .execute()
+        else:
+            supabase.table('contas')\
+                .update({'saldo': float(novo_saldo)})\
+                .eq('id', conta_num)\
+                .execute()
+
+        print(f"✅ [RECONCILIAÇÃO] Conta {conta_num}: {saldo_antes} → {novo_saldo} (Δ {divergencia:+.2f}) por {usuario}")
+
+        return jsonify({
+            "success": True,
+            "saldo_anterior": float(saldo_antes or 0),
+            "saldo_novo": float(novo_saldo),
+            "divergencia_corrigida": divergencia,
+        })
+    except Exception as e:
+        return jsonify({"success": False, "message": _err(e)}), 500
+
+
 @app.route('/api/admin/extrato-conta', methods=['POST'])
 def api_admin_extrato_conta():
     """Retorna extrato da conta bancária com filtro de período"""
@@ -8041,9 +8157,10 @@ def api_admin_extrato_conta():
             "total_entradas": total_entradas,
             "total_saidas": total_saidas,
             "saldo_final": saldo_atual,
+            "moeda": moeda_conta,
             "quantidade": len([t for t in transacoes_processadas if t.get('tipo') != 'Saldo Inicial'])
         })
-        
+
     except Exception as e:
         print(f"❌ Erro ao buscar extrato: {e}")
         _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)

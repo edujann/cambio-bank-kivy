@@ -3,10 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏦 Cambio Bank - Listar Clientes</title>
+    <title>Link International — Listar Clientes</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/theme.css">
     <style>
+        :root, :root[data-theme="dark"] {
+            --cor-fundo: #110f08; --cor-card: #1e1b12; --cor-borda: #2d2819;
+            --cor-texto: #e8e0cc; --cor-texto-secundario: #8b7e62;
+            --cor-primaria: #d29e00; --cor-admin: #d29e00;
+            --cor-sucesso: #2ec27e; --cor-alerta: #f39c12; --cor-perigo: #e01b24;
+            --sombra-suave: 0 4px 6px rgba(0,0,0,.3); --sombra-media: 0 8px 16px rgba(0,0,0,.4);
+            --borda-radius: 12px; --borda-radius-pequeno: 8px;
+        }
+        :root[data-theme="light"] {
+            --cor-fundo: #faf8f2; --cor-card: #ffffff; --cor-borda: #e4dcc8;
+            --cor-texto: #1a1612; --cor-texto-secundario: #7a6e5c;
+            --cor-primaria: #b8860b; --cor-admin: #b8860b;
+            --cor-sucesso: #2a9d6e; --cor-alerta: #e67e22; --cor-perigo: #c0392b;
+            --sombra-suave: 0 2px 4px rgba(0,0,0,.08); --sombra-media: 0 6px 12px rgba(0,0,0,.08);
+            --borda-radius: 12px; --borda-radius-pequeno: 8px;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -46,17 +63,16 @@
             font-weight: bold;
         }
 
-        .logo i {
-            color: var(--cor-admin);
-            font-size: 28px;
-        }
-
         .logo-text {
-            background: linear-gradient(90deg, var(--cor-admin), #2d8fff);
+            background: linear-gradient(90deg, #b78700, #eeb600);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
+            font-weight: 800;
         }
+        .logo-text span { font-weight: 400; }
+        .btn-hd { background: rgba(210,158,0,.12); border-color: var(--cor-admin); color: var(--cor-admin); }
+        .btn-hd:hover { background: rgba(210,158,0,.25); }
 
         .badge-admin {
             background: var(--cor-admin);
@@ -73,6 +89,10 @@
             font-weight: bold;
             flex: 1;
             text-align: center;
+            background: linear-gradient(90deg,#b78700,#eeb600);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
         }
 
         .btn-voltar {
@@ -195,18 +215,18 @@
         }
 
         th {
-            background: rgba(26, 95, 180, 0.1);
+            background: rgba(210,158,0,.1);
             color: var(--cor-admin);
             font-weight: 600;
             cursor: pointer;
         }
 
         th:hover {
-            background: rgba(26, 95, 180, 0.2);
+            background: rgba(210,158,0,.2);
         }
 
         tr:hover {
-            background: rgba(26, 95, 180, 0.05);
+            background: rgba(210,158,0,.05);
         }
 
         /* STATUS BADGES */
@@ -251,7 +271,7 @@
         }
 
         .btn-acao:hover {
-            background: rgba(26, 95, 180, 0.2);
+            background: rgba(210,158,0,.2);
             transform: scale(1.1);
         }
 
@@ -375,7 +395,7 @@
         }
 
         .info-card {
-            background: rgba(26, 95, 180, 0.1);
+            background: rgba(210,158,0,.1);
             border: 1px solid var(--cor-admin);
             border-radius: var(--borda-radius-pequeno);
             padding: 15px;
@@ -419,12 +439,10 @@
         <!-- HEADER -->
         <header class="app-header">
             <div class="logo">
-                <i class="fas fa-university"></i>
-                <span class="logo-text">CAMBIO BANK</span>
+                <span class="logo-text"><strong>Link</strong><span> international</span></span>
                 <span class="badge-admin">ADMIN</span>
             </div>
-            
-            <h1 class="page-title">LISTAR CLIENTES</h1>
+            <h1 class="page-title">Listar Clientes</h1>
             
             <div class="hd-right">
                 <button id="btnTheme" onclick="toggleTheme()" class="btn-hd btn-hd-ghost" title="Alternar tema"><i class="fas fa-sun"></i></button>

@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
 <head>
+    <script>(function(){ document.documentElement.setAttribute('data-theme', localStorage.getItem('theme')||'light'); })();</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏦 Cambio Bank - Configurações</title>
+    <title>Link International — Configurações</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/theme.css">
     <style>
@@ -14,44 +15,36 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        /* TEMA ESCURO (padrão) */
-        :root {
-            --cor-fundo: #0a0e15;
-            --cor-card: #0d1117;
-            --cor-borda: #1e232e;
-            --cor-texto: #e0e0e0;
-            --cor-texto-secundario: #8b949e;
-            --cor-primaria: #1a5fb4;
-            --cor-admin: #1a5fb4;
-            --cor-sucesso: #2ec27e;
-            --cor-alerta: #f39c12;
-            --cor-perigo: #e01b24;
-            --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.3);
-            --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.4);
-            --borda-radius: 12px;
-            --borda-radius-pequeno: 8px;
+        :root, :root[data-theme="dark"] {
+            --cor-fundo: #110f08; --cor-card: #1e1b12; --cor-borda: #2d2819;
+            --cor-texto: #f0e8d0; --cor-texto-secundario: #9e9070;
+            --cor-primaria: #d29e00; --cor-admin: #d29e00;
+            --cor-sucesso: #2ec27e; --cor-alerta: #f39c12; --cor-perigo: #e01b24;
+            --sombra-suave: 0 4px 6px rgba(0,0,0,.30); --sombra-media: 0 8px 16px rgba(0,0,0,.40);
+            --borda-radius: 14px; --borda-radius-pequeno: 10px;
         }
-
-        /* TEMA CLARO */
         :root[data-theme="light"] {
-            --cor-fundo: #f5f5f5;
-            --cor-card: #ffffff;
-            --cor-borda: #e0e0e0;
-            --cor-texto: #1a1a1a;
-            --cor-texto-secundario: #666666;
-            --cor-primaria: #1a5fb4;
-            --cor-admin: #1a5fb4;
-            --cor-sucesso: #2ec27e;
-            --cor-alerta: #f39c12;
-            --cor-perigo: #e01b24;
-            --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.1);
-            --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.15);
+            --cor-fundo: #f5ede0; --cor-card: #ffffff; --cor-borda: rgba(210,185,130,.4);
+            --cor-texto: #1a1200; --cor-texto-secundario: #9a8560;
+            --cor-primaria: #c8920a; --cor-admin: #c8920a;
+            --cor-sucesso: #1a7a52; --cor-alerta: #b87200; --cor-perigo: #c02020;
+            --sombra-suave: 0 2px 8px rgba(160,110,0,.10),0 1px 3px rgba(0,0,0,.04);
+            --sombra-media: 0 6px 16px rgba(160,110,0,.12);
+            --borda-radius: 14px; --borda-radius-pequeno: 10px;
         }
 
         body {
-            background: var(--cor-fundo);
+            background-color: #110f08;
+            background-image: linear-gradient(135deg, #110f08 0%, #1f1a10 100%);
             color: var(--cor-texto);
             min-height: 100vh;
+        }
+        html[data-theme="light"] body {
+            background-color: #f5ede0;
+            background-image: radial-gradient(ellipse at 15% 15%, rgba(210,158,0,.10) 0%, transparent 55%),
+                              radial-gradient(ellipse at 85% 85%, rgba(180,120,0,.08) 0%, transparent 55%),
+                              linear-gradient(150deg, #f8f2e6 0%, #fdf9f2 45%, #ede3cf 100%);
+            background-attachment: fixed;
         }
 
         .app-container {
@@ -80,17 +73,14 @@
             font-weight: bold;
         }
 
-        .logo i {
-            color: var(--cor-admin);
-            font-size: 28px;
-        }
-
         .logo-text {
-            background: linear-gradient(90deg, var(--cor-admin), #2d8fff);
+            background: linear-gradient(90deg, #b78700, #eeb600);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
+            font-weight: 800;
         }
+        .logo-text span { font-weight: 400; }
 
         .badge-admin {
             background: var(--cor-admin);
@@ -105,7 +95,17 @@
         .page-title {
             font-size: 20px;
             font-weight: bold;
+            background: linear-gradient(90deg, #b78700, #eeb600);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
         }
+        .btn-hd { background:rgba(210,158,0,.12); border:1px solid var(--cor-admin); color:var(--cor-admin); padding:5px 12px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; transition:.15s; }
+        .btn-hd:hover { background:rgba(210,158,0,.25); }
+        .btn-hd-ghost { background:transparent; border:1px solid var(--cor-borda); color:var(--cor-texto-secundario); }
+        .btn-hd-ghost:hover { border-color:var(--cor-admin); color:var(--cor-admin); }
+        #btnTheme { background:transparent; border:1px solid var(--cor-borda); color:var(--cor-texto-secundario); padding:0; border-radius:6px; cursor:pointer; font-size:14px; display:inline-flex; align-items:center; justify-content:center; height:30px; width:30px; transition:.15s; }
+        #btnTheme:hover { border-color:var(--cor-admin); color:var(--cor-admin); }
 
         .btn-voltar {
             background: transparent;
@@ -165,7 +165,7 @@
 
         .tab-btn:hover {
             color: var(--cor-texto);
-            background: rgba(26, 95, 180, 0.1);
+            background: rgba(210, 158, 0, 0.1);
         }
 
         .tab-btn.active {
@@ -229,7 +229,7 @@
         .form-control:focus {
             outline: none;
             border-color: var(--cor-admin);
-            box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2);
+            box-shadow: 0 0 0 2px rgba(210, 158, 0, 0.2);
         }
 
         select.form-control {
@@ -291,7 +291,7 @@
         /* BOTÕES */
         .btn-submit {
             background: var(--cor-admin);
-            color: white;
+            color: #1a1200;
             border: none;
             padding: 12px 24px;
             border-radius: var(--borda-radius-pequeno);
@@ -302,7 +302,7 @@
         }
 
         .btn-submit:hover {
-            background: #2d8fff;
+            background: #eeb600;
             transform: translateY(-2px);
             box-shadow: var(--sombra-suave);
         }
@@ -338,7 +338,7 @@
 
         /* INFO */
         .info-conversao {
-            background: rgba(26, 95, 180, 0.1);
+            background: rgba(210, 158, 0, 0.08);
             border: 1px solid var(--cor-admin);
             border-radius: var(--borda-radius-pequeno);
             padding: 15px;
@@ -367,8 +367,7 @@
         <!-- HEADER -->
         <header class="app-header">
             <div class="logo">
-                <i class="fas fa-university"></i>
-                <span class="logo-text">CAMBIO BANK</span>
+                <span class="logo-text"><strong>Link</strong><span> international</span></span>
                 <span class="badge-admin">ADMIN</span>
             </div>
             
@@ -385,11 +384,11 @@
         <!-- TABS -->
         <div class="tabs-container">
             <div class="tabs-header">
-                <button class="tab-btn active" data-tab="tab-gerais">⚙️ GERAIS</button>
-                <button class="tab-btn" data-tab="tab-seguranca">🔐 SEGURANÇA</button>
-                <button class="tab-btn" data-tab="tab-notificacoes">📧 NOTIFICAÇÕES</button>
-                <button class="tab-btn" data-tab="tab-taxas">💳 TAXAS</button>
-                <button class="tab-btn" data-tab="tab-tema">🎨 TEMA</button>
+                <button class="tab-btn active" data-tab="tab-gerais"><i class="fas fa-cog"></i> Gerais</button>
+                <button class="tab-btn" data-tab="tab-seguranca"><i class="fas fa-shield-alt"></i> Segurança</button>
+                <button class="tab-btn" data-tab="tab-notificacoes"><i class="fas fa-bell"></i> Notificações</button>
+                <button class="tab-btn" data-tab="tab-taxas"><i class="fas fa-percent"></i> Taxas</button>
+                <button class="tab-btn" data-tab="tab-tema"><i class="fas fa-palette"></i> Tema</button>
             </div>
 
             <!-- ============================================
@@ -401,7 +400,7 @@
                     
                     <div class="form-row">
                         <label><i class="fas fa-tag"></i> Nome da Empresa</label>
-                        <input type="text" id="empresaNome" class="form-control" placeholder="Cambio Bank">
+                        <input type="text" id="empresaNome" class="form-control" placeholder="Link International">
                     </div>
                     
                     <div class="form-row">

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏦 Cambio Bank - Relatórios Financeiros</title>
+    <title>Link International - Relatórios Financeiros</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -16,17 +16,32 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        :root {
-            --cor-fundo: #0a0e15;
-            --cor-card: #0d1117;
-            --cor-borda: #1e232e;
-            --cor-texto: #e0e0e0;
-            --cor-texto-secundario: #8b949e;
-            --cor-primaria: #1a5fb4;
-            --cor-admin: #1a5fb4;
+        :root, :root[data-theme="dark"] {
+            --cor-fundo: #110f08;
+            --cor-card: #1e1b12;
+            --cor-borda: #2d2819;
+            --cor-texto: #f0e8d0;
+            --cor-texto-secundario: #9e9070;
+            --cor-primaria: #d29e00;
+            --cor-admin: #d29e00;
             --cor-sucesso: #2ec27e;
             --cor-alerta: #f39c12;
             --cor-perigo: #e01b24;
+            --borda-radius: 12px;
+            --borda-radius-pequeno: 8px;
+        }
+
+        :root[data-theme="light"] {
+            --cor-fundo: #faf8f2;
+            --cor-card: #ffffff;
+            --cor-borda: #e4dcc8;
+            --cor-texto: #2a1f00;
+            --cor-texto-secundario: #7a6840;
+            --cor-primaria: #b8860b;
+            --cor-admin: #b8860b;
+            --cor-sucesso: #2a9d6e;
+            --cor-alerta: #e67e22;
+            --cor-perigo: #c0392b;
             --borda-radius: 12px;
             --borda-radius-pequeno: 8px;
         }
@@ -63,14 +78,14 @@
             font-weight: bold;
         }
 
-        .logo i { color: var(--cor-admin); font-size: 28px; }
-
         .logo-text {
-            background: linear-gradient(90deg, var(--cor-admin), #2d8fff);
+            background: linear-gradient(90deg, #b78700, #eeb600);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
+            font-weight: 800;
         }
+        .logo-text span { font-weight: 400; }
 
         .badge-admin {
             background: var(--cor-admin);
@@ -123,7 +138,7 @@
             border-radius: 8px 8px 0 0;
         }
 
-        .tab-btn:hover { color: var(--cor-texto); background: rgba(26, 95, 180, 0.1); }
+        .tab-btn:hover { color: var(--cor-texto); background: rgba(210, 158, 0, 0.1); }
         .tab-btn.active { color: var(--cor-admin); border-bottom: 2px solid var(--cor-admin); }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
@@ -199,7 +214,7 @@
             margin-top: 10px;
         }
 
-        .btn-gerar:hover { background: #2d8fff; transform: translateY(-2px); }
+        .btn-gerar:hover { background: #eeb600; transform: translateY(-2px); }
 
         /* CARDS DE RESUMO */
         .cards-resumo {
@@ -245,7 +260,7 @@
         .moedas-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
 
         .moeda-card {
-            background: rgba(26, 95, 180, 0.1);
+            background: rgba(210, 158, 0, 0.1);
             border: 1px solid var(--cor-admin);
             border-radius: var(--borda-radius-pequeno);
             padding: 12px;
@@ -277,7 +292,7 @@
         }
 
         .categoria-header {
-            background: rgba(26, 95, 180, 0.1);
+            background: rgba(210, 158, 0, 0.1);
             padding: 15px;
             display: flex;
             justify-content: space-between;
@@ -286,7 +301,7 @@
             user-select: none;
         }
 
-        .categoria-header:hover { background: rgba(26, 95, 180, 0.18); }
+        .categoria-header:hover { background: rgba(210, 158, 0, 0.18); }
 
         .categoria-header-left { display: flex; align-items: center; gap: 10px; }
 
@@ -334,13 +349,13 @@
         }
 
         .tabela-transacoes th {
-            background: rgba(26, 95, 180, 0.1);
+            background: rgba(210, 158, 0, 0.1);
             color: var(--cor-admin);
             font-weight: 600;
         }
 
-        .tabela-transacoes tr:hover { background: rgba(26, 95, 180, 0.05); }
-        .total-geral { background: rgba(26, 95, 180, 0.15); font-weight: bold; }
+        .tabela-transacoes tr:hover { background: rgba(210, 158, 0, 0.05); }
+        .total-geral { background: rgba(210, 158, 0, 0.15); font-weight: bold; }
 
         /* GRÁFICO */
         .grafico-container {
@@ -446,6 +461,16 @@
             .graficos-row { grid-template-columns: 1fr; }
         }
 
+        /* LINK INTERNATIONAL — btn-hd gold override */
+        .btn-hd {
+            background: rgba(210,158,0,.12);
+            border-color: var(--cor-admin);
+            color: var(--cor-admin);
+        }
+        .btn-hd:hover { background: rgba(210,158,0,.25); }
+        .btn-hd-ghost { background: transparent; border-color: var(--cor-borda); color: var(--cor-texto-secundario); }
+        .btn-hd-ghost:hover { border-color: var(--cor-admin); color: var(--cor-admin); }
+
         /* IMPRESSÃO */
         @media print {
             .app-header { padding: 10px 0 !important; margin-bottom: 15px !important; }
@@ -466,11 +491,10 @@
         <!-- HEADER -->
         <header class="app-header">
             <div class="logo">
-                <i class="fas fa-university"></i>
-                <span class="logo-text">CAMBIO BANK</span>
+                <span class="logo-text"><strong>Link</strong><span> international</span></span>
                 <span class="badge-admin">ADMIN</span>
             </div>
-            <h1 class="page-title">RELATÓRIOS FINANCEIROS</h1>
+            <h1 class="page-title">Relatórios Financeiros</h1>
             <div class="hd-right">
                 <button id="btnTheme" onclick="toggleTheme()" class="btn-hd btn-hd-ghost" title="Alternar tema"><i class="fas fa-sun"></i></button>
                 <button class="btn-hd btn-hd-ghost" onclick="window.location.href='/admin/dashboard'"><i class="fas fa-arrow-left"></i> Voltar</button>
@@ -480,10 +504,10 @@
         <!-- TABS -->
         <div class="tabs-container">
             <div class="tabs-header">
-                <button class="tab-btn active" data-tab="tab-mensal">📅 MENSAL</button>
-                <button class="tab-btn" data-tab="tab-comparativo">📊 COMPARATIVO</button>
-                <button class="tab-btn" data-tab="tab-anual">📈 ANUAL</button>
-                <button class="tab-btn" data-tab="tab-dre">💰 DRE</button>
+                <button class="tab-btn active" data-tab="tab-mensal"><i class="fas fa-calendar-day"></i> Mensal</button>
+                <button class="tab-btn" data-tab="tab-comparativo"><i class="fas fa-chart-bar"></i> Comparativo</button>
+                <button class="tab-btn" data-tab="tab-anual"><i class="fas fa-chart-line"></i> Evolução Anual</button>
+                <button class="tab-btn" data-tab="tab-dre"><i class="fas fa-file-invoice-dollar"></i> DRE</button>
             </div>
 
             <!-- ============================================
@@ -721,7 +745,7 @@
 
         // Paleta de cores para gráficos
         const PALETA = [
-            '#1a5fb4','#2ec27e','#f39c12','#e01b24','#9b59b6',
+            '#d29e00','#2ec27e','#f39c12','#e01b24','#9b59b6',
             '#3498db','#e67e22','#1abc9c','#e74c3c','#8e44ad',
             '#2980b9','#27ae60','#d35400','#c0392b','#7f8c8d'
         ];
@@ -1050,13 +1074,13 @@
                                 data: dadosGrafico,
                                 backgroundColor: PALETA.slice(0, dadosGrafico.length),
                                 borderWidth: 2,
-                                borderColor: '#0d1117'
+                                borderColor: '#1e1b12'
                             }]
                         },
                         options: {
                             responsive: true,
                             plugins: {
-                                legend: { position: 'right', labels: { color: '#e0e0e0', font: { size: 12 } } },
+                                legend: { position: 'right', labels: { color: '#f0e8d0', font: { size: 12 } } },
                                 tooltip: { callbacks: { label: ctx => `${ctx.label}: ${formatarValor(ctx.raw, 'USD')}` } }
                             }
                         }
@@ -1245,8 +1269,8 @@
                                 {
                                     label: label1,
                                     data: dadosGraficoRef,
-                                    backgroundColor: 'rgba(26, 95, 180, 0.8)',
-                                    borderColor: '#1a5fb4',
+                                    backgroundColor: 'rgba(210, 158, 0, 0.8)',
+                                    borderColor: '#d29e00',
                                     borderWidth: 1
                                 },
                                 {
@@ -1261,12 +1285,12 @@
                         options: {
                             responsive: true,
                             plugins: {
-                                legend: { labels: { color: '#e0e0e0' } },
+                                legend: { labels: { color: '#f0e8d0' } },
                                 tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatarValor(ctx.raw, 'USD')}` } }
                             },
                             scales: {
-                                y: { grid: { color: '#1e232e' }, ticks: { color: '#e0e0e0' } },
-                                x: { grid: { color: '#1e232e' }, ticks: { color: '#e0e0e0' } }
+                                y: { grid: { color: '#2d2819' }, ticks: { color: '#f0e8d0' } },
+                                x: { grid: { color: '#2d2819' }, ticks: { color: '#f0e8d0' } }
                             }
                         }
                     });
@@ -1439,8 +1463,8 @@
                             datasets: [{
                                 label: tipoAnualAtual === 'receita' ? 'Receitas' : 'Despesas',
                                 data: dadosGrafico,
-                                borderColor: '#1a5fb4',
-                                backgroundColor: 'rgba(26, 95, 180, 0.1)',
+                                borderColor: '#d29e00',
+                                backgroundColor: 'rgba(210, 158, 0, 0.1)',
                                 fill: true,
                                 tension: 0.4
                             }]
@@ -1448,12 +1472,12 @@
                         options: {
                             responsive: true,
                             plugins: {
-                                legend: { labels: { color: '#e0e0e0' } },
+                                legend: { labels: { color: '#f0e8d0' } },
                                 tooltip: { callbacks: { label: ctx => formatarValor(ctx.raw, 'USD') } }
                             },
                             scales: {
-                                y: { grid: { color: '#1e232e' }, ticks: { color: '#e0e0e0' } },
-                                x: { grid: { color: '#1e232e' }, ticks: { color: '#e0e0e0' } }
+                                y: { grid: { color: '#2d2819' }, ticks: { color: '#f0e8d0' } },
+                                x: { grid: { color: '#2d2819' }, ticks: { color: '#f0e8d0' } }
                             }
                         }
                     });
@@ -1710,12 +1734,12 @@
                         options: {
                             responsive: true,
                             plugins: {
-                                legend: { labels: { color: '#e0e0e0' } },
+                                legend: { labels: { color: '#f0e8d0' } },
                                 tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatarValor(ctx.raw, 'USD')}` } }
                             },
                             scales: {
-                                y: { grid: { color: '#1e232e' }, ticks: { color: '#e0e0e0' } },
-                                x: { grid: { color: '#1e232e' }, ticks: { color: '#e0e0e0' } }
+                                y: { grid: { color: '#2d2819' }, ticks: { color: '#f0e8d0' } },
+                                x: { grid: { color: '#2d2819' }, ticks: { color: '#f0e8d0' } }
                             }
                         }
                     });
@@ -1750,13 +1774,13 @@
                                 data: dadosDonut,
                                 backgroundColor: PALETA.map((c, i) => i === 0 ? 'rgba(224,27,36,0.8)' : PALETA[i]),
                                 borderWidth: 2,
-                                borderColor: '#0d1117'
+                                borderColor: '#1e1b12'
                             }]
                         },
                         options: {
                             responsive: true,
                             plugins: {
-                                legend: { position: 'right', labels: { color: '#e0e0e0', font: { size: 12 } } },
+                                legend: { position: 'right', labels: { color: '#f0e8d0', font: { size: 12 } } },
                                 tooltip: { callbacks: { label: ctx => `${ctx.label}: ${formatarValor(ctx.raw, 'USD')}` } }
                             }
                         }

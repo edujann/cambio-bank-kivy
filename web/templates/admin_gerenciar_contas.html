@@ -14,12 +14,12 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        :root {
+        :root, :root[data-theme="dark"] {
             --cor-fundo: #110f08;
-            --cor-card: #191611;
+            --cor-card: #1e1b12;
             --cor-borda: #2d2819;
-            --cor-texto: #e0e0e0;
-            --cor-texto-secundario: #8b949e;
+            --cor-texto: #f0e8d0;
+            --cor-texto-secundario: #9e9070;
             --cor-primaria: #d29e00;
             --cor-admin: #d29e00;
             --cor-sucesso: #2ec27e;
@@ -27,6 +27,23 @@
             --cor-perigo: #e01b24;
             --sombra-suave: 0 4px 6px rgba(0, 0, 0, 0.3);
             --sombra-media: 0 8px 16px rgba(0, 0, 0, 0.4);
+            --borda-radius: 12px;
+            --borda-radius-pequeno: 8px;
+        }
+
+        :root[data-theme="light"] {
+            --cor-fundo: #faf8f2;
+            --cor-card: #ffffff;
+            --cor-borda: #e4dcc8;
+            --cor-texto: #2a1f00;
+            --cor-texto-secundario: #7a6840;
+            --cor-primaria: #b8860b;
+            --cor-admin: #b8860b;
+            --cor-sucesso: #2a9d6e;
+            --cor-alerta: #e67e22;
+            --cor-perigo: #c0392b;
+            --sombra-suave: 0 2px 4px rgba(0,0,0,0.08);
+            --sombra-media: 0 6px 12px rgba(0,0,0,0.08);
             --borda-radius: 12px;
             --borda-radius-pequeno: 8px;
         }
@@ -63,18 +80,14 @@
             font-weight: bold;
         }
 
-        .logo i {
-            color: var(--cor-admin);
-            font-size: 28px;
-        }
-
-        .logo-text strong { font-weight: 800; }
         .logo-text {
             background: linear-gradient(90deg, #b78700, #eeb600);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
+            font-weight: 800;
         }
+        .logo-text span { font-weight: 400; }
 
         .badge-admin {
             background: var(--cor-admin);
@@ -102,7 +115,6 @@
             background-clip: text;
             color: transparent;
         }
-        :root[data-theme="light"] { --cor-primaria: #d29e00; --cor-admin: #d29e00; }
         .btn-hd:hover { background: rgba(210, 158, 0, 0.25); }
 
         .btn-voltar {
@@ -786,7 +798,7 @@
         <!-- HEADER -->
         <header class="app-header">
             <div class="logo">
-                <span class="logo-text"><strong>Link</strong> international</span>
+                <span class="logo-text"><strong>Link</strong><span> international</span></span>
                 <span class="badge-admin">ADMIN</span>
             </div>
             
@@ -961,7 +973,20 @@
                     <div class="info-conversao" id="infoExtrato" style="margin-top: 0;">
                         Selecione um cliente e uma conta para ver o extrato
                     </div>
-                    
+
+                    <div id="alertaDivergenciaGC" style="display:none;margin:16px 0;background:rgba(243,156,18,0.12);border:1px solid #f39c12;border-left:4px solid #f39c12;border-radius:10px;padding:16px 20px;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <i class="fas fa-exclamation-triangle" style="color:#f39c12;font-size:22px;flex-shrink:0;"></i>
+                            <div>
+                                <div style="font-weight:700;color:#f39c12;margin-bottom:3px;">Divergência de Saldo Detectada</div>
+                                <div style="font-size:13px;color:#aaa;" id="alertaDivergenciaTextoGC">—</div>
+                            </div>
+                        </div>
+                        <button onclick="abrirModalReconciliacaoGC()" style="background:#f39c12;color:#000;border:none;padding:9px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap;flex-shrink:0;">
+                            <i class="fas fa-search-dollar"></i> Reconciliar
+                        </button>
+                    </div>
+
                     <div class="extrato-container" style="margin-top: 20px;">
                         <table class="extrato-tabela">
                             <thead>
@@ -1933,11 +1958,17 @@
                     const totalEntradas = data.total_entradas || 0;
                     const totalSaidas = data.total_saidas || 0;
                     const moeda = data.moeda || 'USD';
-                    
+
+                    // Salvar globalmente para reconciliação
+                    extratoTransacoesGC = transacoes;
+                    extratoSaldoFinalGC = saldoFinal;
+                    extratoMoedaGC = moeda;
+                    verificarDivergenciaGC(saldoFinal, moeda, contaSelect.value);
+
                     document.getElementById('infoExtrato').innerHTML = `
-                        <strong>Resumo:</strong> Saldo: ${obterSimboloMoeda(moeda)} ${formatarValor(saldoFinal)} | 
-                        Entradas: +${formatarValor(totalEntradas)} | 
-                        Saídas: -${formatarValor(totalSaidas)} | 
+                        <strong>Resumo:</strong> Saldo: ${obterSimboloMoeda(moeda)} ${formatarValor(saldoFinal)} |
+                        Entradas: +${formatarValor(totalEntradas)} |
+                        Saídas: -${formatarValor(totalSaidas)} |
                         Total de transações: ${transacoes.length}
                     `;
                     
@@ -4100,9 +4131,185 @@
             container.innerHTML = html || '<p style="color:#aaa;padding:16px;">Sem informações adicionais.</p>';
         }
 
+        // ─── RECONCILIAÇÃO DE SALDO ──────────────────────────────────────
+        let extratoTransacoesGC = [];
+        let extratoSaldoFinalGC = 0;
+        let extratoMoedaGC = 'USD';
+        let saldoArmazenadoGC = null;
+        let tabelaContaGC = 'contas';
+
+        async function verificarDivergenciaGC(saldoExtrato, moeda, contaNum) {
+            extratoMoedaGC = moeda;
+            document.getElementById('alertaDivergenciaGC').style.display = 'none';
+            if (!contaNum) return;
+            try {
+                const r = await fetch(`/api/admin/contas/${contaNum}/saldo-real`);
+                const d = await r.json();
+                if (!d.success) return;
+
+                saldoArmazenadoGC = d.saldo_armazenado;
+                tabelaContaGC = d.tabela || 'contas';
+                const divergencia = saldoExtrato - d.saldo_armazenado;
+                const alerta = document.getElementById('alertaDivergenciaGC');
+
+                if (Math.abs(divergencia) < 0.005) { alerta.style.display = 'none'; return; }
+
+                const sim = obterSimboloMoeda(moeda);
+                document.getElementById('alertaDivergenciaTextoGC').innerHTML =
+                    `Saldo extrato: <strong>${sim} ${formatarValor(saldoExtrato)}</strong> &nbsp;·&nbsp; ` +
+                    `Saldo armazenado: <strong>${sim} ${formatarValor(d.saldo_armazenado)}</strong> &nbsp;·&nbsp; ` +
+                    `Diferença: <strong style="color:${divergencia > 0 ? '#2ec27e' : '#e01b24'}">${divergencia > 0 ? '+' : ''}${sim} ${formatarValor(Math.abs(divergencia))}</strong>`;
+                alerta.style.display = 'flex';
+            } catch(e) { console.warn('Erro ao verificar divergência:', e); }
+        }
+
+        function abrirModalReconciliacaoGC() {
+            const modal = document.getElementById('modalReconciliacaoGC');
+            const body  = document.getElementById('modalReconciliacaoBodyGC');
+            modal.classList.add('active');
+
+            if (saldoArmazenadoGC === null) {
+                body.innerHTML = '<p style="padding:20px;color:#aaa;">Dados ainda não carregados.</p>';
+                return;
+            }
+
+            const saldoExtrato  = extratoSaldoFinalGC;
+            const saldoArmazena = saldoArmazenadoGC;
+            const divergencia   = saldoExtrato - saldoArmazena;
+            const sim           = obterSimboloMoeda(extratoMoedaGC);
+            const corDiv        = divergencia > 0 ? '#2ec27e' : '#e01b24';
+            const contaNum      = document.getElementById('extratoConta').value;
+
+            const tol = Math.max(Math.abs(divergencia) * 0.01, 0.01);
+            const suspeitas = extratoTransacoesGC.filter(t =>
+                Math.abs((t.credito || 0) - Math.abs(divergencia)) <= tol ||
+                Math.abs((t.debito  || 0) - Math.abs(divergencia)) <= tol
+            ).slice(0, 5);
+
+            const linhasSuspeitas = suspeitas.length
+                ? suspeitas.map(t => `
+                    <tr style="border-bottom:1px solid #1e232e;">
+                        <td style="padding:8px;">${formatarData(t.data)}</td>
+                        <td style="padding:8px;font-size:12px;">${(t.descricao || '').substring(0, 55)}</td>
+                        <td style="padding:8px;color:#2ec27e;text-align:right;">${t.credito > 0 ? sim+' '+formatarValor(t.credito) : ''}</td>
+                        <td style="padding:8px;color:#e01b24;text-align:right;">${t.debito  > 0 ? sim+' '+formatarValor(t.debito)  : ''}</td>
+                    </tr>`).join('')
+                : `<tr><td colspan="4" style="color:var(--cor-texto-secundario);padding:12px;font-size:12px;">Nenhuma transação com valor exato encontrada no período exibido</td></tr>`;
+
+            body.innerHTML = `
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+                    <div style="background:var(--cor-fundo);border:1px solid var(--cor-borda);border-radius:8px;padding:14px;text-align:center;">
+                        <div style="font-size:11px;text-transform:uppercase;color:var(--cor-texto-secundario);margin-bottom:6px;">Saldo Extrato</div>
+                        <div style="font-size:19px;font-weight:700;color:var(--cor-texto);">${sim} ${formatarValor(saldoExtrato)}</div>
+                        <div style="font-size:11px;color:var(--cor-texto-secundario);margin-top:4px;">Soma de todas as transações</div>
+                    </div>
+                    <div style="background:var(--cor-fundo);border:1px solid var(--cor-borda);border-radius:8px;padding:14px;text-align:center;">
+                        <div style="font-size:11px;text-transform:uppercase;color:var(--cor-texto-secundario);margin-bottom:6px;">Saldo Armazenado</div>
+                        <div style="font-size:19px;font-weight:700;color:var(--cor-texto);">${sim} ${formatarValor(saldoArmazena)}</div>
+                        <div style="font-size:11px;color:var(--cor-texto-secundario);margin-top:4px;">Tabela contas (banco de dados)</div>
+                    </div>
+                </div>
+
+                <div style="background:${divergencia > 0 ? 'rgba(46,194,126,0.1)' : 'rgba(224,27,36,0.1)'};border:1px solid ${corDiv};border-radius:8px;padding:12px;text-align:center;margin-bottom:16px;">
+                    <div style="font-size:11px;color:var(--cor-texto-secundario);margin-bottom:3px;">Divergência</div>
+                    <div style="font-size:24px;font-weight:700;color:${corDiv};">${divergencia > 0 ? '+' : ''}${sim} ${formatarValor(Math.abs(divergencia))}</div>
+                    <div style="font-size:12px;color:var(--cor-texto-secundario);margin-top:6px;">
+                        ${divergencia > 0
+                            ? 'Extrato maior → uma transação pode ter sido gravada sem atualizar o saldo da conta.'
+                            : 'Extrato menor → o saldo pode ter sido ajustado manualmente sem lançamento correspondente.'}
+                    </div>
+                </div>
+
+                <div style="margin-bottom:16px;">
+                    <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--cor-texto-secundario);margin-bottom:8px;">
+                        <i class="fas fa-search"></i> Transações com valor igual à divergência
+                    </div>
+                    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        <thead>
+                            <tr style="background:rgba(210,158,0,.1);">
+                                <th style="padding:8px;text-align:left;color:#d29e00;">Data</th>
+                                <th style="padding:8px;text-align:left;color:#d29e00;">Descrição</th>
+                                <th style="padding:8px;text-align:right;color:#d29e00;">Crédito</th>
+                                <th style="padding:8px;text-align:right;color:#d29e00;">Débito</th>
+                            </tr>
+                        </thead>
+                        <tbody>${linhasSuspeitas}</tbody>
+                    </table>
+                </div>
+
+                <div style="background:rgba(224,27,36,0.08);border:1px solid #e01b24;border-radius:8px;padding:14px;">
+                    <div style="font-size:12px;font-weight:700;color:#e01b24;margin-bottom:6px;"><i class="fas fa-wrench"></i> Corrigir Saldo Armazenado</div>
+                    <div style="font-size:12px;color:var(--cor-texto-secundario);margin-bottom:10px;">
+                        Atualiza o campo <code>saldo</code> para <strong>${sim} ${formatarValor(saldoExtrato)}</strong>.
+                        Um registro de auditoria é salvo automaticamente para rastreabilidade.
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <input type="text" id="motivoCorrecaoGC" placeholder="Motivo da correção (obrigatório)"
+                            style="flex:1;padding:8px 12px;background:var(--cor-fundo);border:1px solid var(--cor-borda);border-radius:6px;color:var(--cor-texto);font-size:13px;min-width:200px;">
+                        <button onclick="confirmarCorrecaoSaldoGC(${saldoExtrato}, ${saldoArmazena}, '${contaNum}')"
+                            style="background:#e01b24;color:#fff;border:none;padding:9px 18px;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap;">
+                            <i class="fas fa-wrench"></i> Corrigir
+                        </button>
+                    </div>
+                </div>`;
+        }
+
+        function fecharModalReconciliacaoGC() {
+            document.getElementById('modalReconciliacaoGC').classList.remove('active');
+        }
+
+        async function confirmarCorrecaoSaldoGC(novoSaldo, saldoAntes, contaNum) {
+            const motivo = (document.getElementById('motivoCorrecaoGC').value || '').trim();
+            if (!motivo) { alert('Informe o motivo da correção.'); return; }
+            if (!confirm(`Confirma a correção do saldo de ${formatarValor(saldoAntes)} → ${formatarValor(novoSaldo)} ${extratoMoedaGC}?`)) return;
+
+            try {
+                const r = await fetch(`/api/admin/contas/${contaNum}/corrigir-saldo`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ novo_saldo: novoSaldo, saldo_antes: saldoAntes, motivo, tabela: tabelaContaGC })
+                });
+                const d = await r.json();
+                if (d.success) {
+                    fecharModalReconciliacaoGC();
+                    saldoArmazenadoGC = novoSaldo;
+                    document.getElementById('alertaDivergenciaGC').style.display = 'none';
+                    // Atualizar texto do select com novo saldo
+                    const sel = document.getElementById('extratoConta');
+                    const opt = sel.querySelector(`option[value="${contaNum}"]`);
+                    if (opt) opt.textContent = `${contaNum} - ${extratoMoedaGC} (Saldo: ${formatarValor(novoSaldo)})`;
+                    alert('✅ Saldo corrigido com sucesso!');
+                } else {
+                    alert('Erro: ' + d.message);
+                }
+            } catch(e) { alert('Erro ao corrigir saldo.'); }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('modalReconciliacaoGC')?.addEventListener('click', function(e) {
+                if (e.target === this) fecharModalReconciliacaoGC();
+            });
+        });
+
     </script>
     <script src="/static/js/theme.js"></script>
     <script src="/static/js/conta_search.js"></script>
+
+    <!-- Modal Reconciliação de Saldo -->
+    <div id="modalReconciliacaoGC" class="modal">
+        <div class="modal-content" style="max-width:620px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-search-dollar"></i> Reconciliação de Saldo</h3>
+                <button class="modal-close" onclick="fecharModalReconciliacaoGC()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalReconciliacaoBodyGC">
+                <div style="text-align:center;padding:40px;color:#aaa;">
+                    <i class="fas fa-spinner fa-spin" style="font-size:28px;"></i>
+                    <p style="margin-top:12px;">Verificando saldo...</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal Detalhes do Lançamento -->
     <div id="modalDetalhesGC" class="modal-detalhes">

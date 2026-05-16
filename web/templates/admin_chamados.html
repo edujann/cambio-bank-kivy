@@ -1,42 +1,39 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
 <head>
+    <script>(function(){ document.documentElement.setAttribute('data-theme', localStorage.getItem('theme')||'light'); })();</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cambio Bank - Chamados B2B</title>
+    <title>Link International — Chamados B2B</title>
     <link rel="stylesheet" href="/static/css/theme.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root, :root[data-theme="dark"]{--cor-fundo:#110f08;--cor-card:#1e1b12;--cor-borda:#2d2819;--cor-texto:#f0e8d0;--cor-texto-sec:#9e9070;--cor-texto-secundario:#9e9070;--cor-primaria:#d29e00;--cor-admin:#d29e00;--cor-sucesso:#2ec27e;--cor-alerta:#f39c12;--cor-perigo:#e01b24;--sombra-suave:0 4px 6px rgba(0,0,0,.30);--radius:14px;--radius-sm:10px;}
+        :root[data-theme="light"]{--cor-fundo:#f5ede0;--cor-card:#ffffff;--cor-borda:rgba(210,185,130,.4);--cor-texto:#1a1200;--cor-texto-sec:#9a8560;--cor-texto-secundario:#9a8560;--cor-primaria:#c8920a;--cor-admin:#c8920a;--cor-sucesso:#1a7a52;--cor-alerta:#b87200;--cor-perigo:#c02020;--sombra-suave:0 2px 8px rgba(160,110,0,.10),0 1px 3px rgba(0,0,0,.04);--radius:14px;--radius-sm:10px;}
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; }
-        :root {
-            --cor-fundo:#0a0e15; --cor-card:#0d1117; --cor-borda:#1e232e;
-            --cor-texto:#e0e0e0; --cor-texto-sec:#8b949e;
-            --cor-primaria:#1a5fb4; --cor-sucesso:#2ec27e;
-            --cor-alerta:#f39c12; --cor-perigo:#e01b24;
-            --radius:12px; --radius-sm:8px;
-        }
-        body { background:var(--cor-fundo); color:var(--cor-texto); min-height:100vh; }
+        body { background-color:#110f08;background-image:linear-gradient(135deg,#110f08 0%,#1f1a10 100%); color:var(--cor-texto); height:100vh; overflow:hidden; display:flex; flex-direction:column; }
+        html[data-theme="light"] body{background-color:#f5ede0;background-image:radial-gradient(ellipse at 15% 15%,rgba(210,158,0,.10) 0%,transparent 55%),radial-gradient(ellipse at 85% 85%,rgba(180,120,0,.08) 0%,transparent 55%),linear-gradient(150deg,#f8f2e6 0%,#fdf9f2 45%,#ede3cf 100%);}
 
         /* HEADER */
-        .header {
-            background:var(--cor-fundo); border-bottom:1px solid var(--cor-borda);
-            padding:16px 24px; display:flex; align-items:center; justify-content:space-between;
-        }
-        .header-left { display:flex; align-items:center; gap:12px; }
-        .header-left h1 { font-size:20px; font-weight:700; background:linear-gradient(90deg,var(--cor-primaria),#2d8fff); -webkit-background-clip:text; background-clip:text; color:transparent; }
-        .header-left h1 i { color:var(--cor-primaria); margin-right:8px; -webkit-background-clip:unset; background-clip:unset; }
-        .btn-back {
-            background:transparent; border:1px solid var(--cor-borda); color:var(--cor-texto);
-            padding:8px 16px; border-radius:var(--radius-sm); cursor:pointer;
-            display:flex; align-items:center; gap:6px; font-size:14px; text-decoration:none;
-            transition:all .2s;
-        }
-        .btn-back:hover { border-color:var(--cor-primaria); color:var(--cor-primaria); }
+        .header { flex-shrink:0; max-width:1400px; margin:0 auto; width:100%; padding:20px 24px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; border-bottom:1px solid var(--cor-borda); }
+        .logo { display:flex; align-items:center; gap:10px; font-size:17px; }
+        .logo-text { background:linear-gradient(90deg,#b78700,#eeb600); -webkit-background-clip:text; background-clip:text; color:transparent; font-weight:800; }
+        .logo-text span { font-weight:400; }
+        .badge-admin { background:var(--cor-admin); color:#fff; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:bold; margin-left:10px; }
+        .page-title { font-size:20px; font-weight:bold; flex:1; text-align:center; background:linear-gradient(90deg,#b78700,#eeb600); -webkit-background-clip:text; background-clip:text; color:transparent; }
+        .hd-right { display:flex; align-items:center; gap:8px; }
+        .btn-hd { background:rgba(210,158,0,.12); border:1px solid var(--cor-admin); color:var(--cor-admin); padding:5px 12px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; transition:.15s; }
+        .btn-hd:hover { background:rgba(210,158,0,.25); }
+        .btn-hd-ghost { background:transparent; border:1px solid var(--cor-borda); color:var(--cor-texto-sec); }
+        .btn-hd-ghost:hover { border-color:var(--cor-admin); color:var(--cor-admin); }
+        #btnTheme { background:transparent; border:1px solid var(--cor-borda); color:var(--cor-texto-sec); padding:0; border-radius:6px; cursor:pointer; font-size:14px; display:inline-flex; align-items:center; justify-content:center; height:30px; width:30px; transition:.15s; }
+        #btnTheme:hover { border-color:var(--cor-admin); color:var(--cor-admin); }
 
         /* FILTROS */
         .filtros-bar {
+            flex-shrink:0; max-width:1400px; margin:0 auto; width:100%;
             background:var(--cor-card); border-bottom:1px solid var(--cor-borda);
-            padding:12px 24px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+            padding:10px 24px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
         }
         .filtros-bar select, .filtros-bar input {
             background:var(--cor-card) !important; border:1px solid var(--cor-borda) !important;
@@ -49,14 +46,16 @@
             box-shadow:none !important;
         }
         .badge-count {
-            background:rgba(26,95,180,.15); color:var(--cor-primaria);
+            background:rgba(210,158,0,.15); color:var(--cor-admin);
             padding:4px 12px; border-radius:20px; font-size:13px; font-weight:600;
             margin-left:auto;
         }
 
         /* LAYOUT PRINCIPAL */
         .main-layout {
-            display:grid; grid-template-columns:400px 1fr; height:calc(100vh - 113px);
+            max-width:1400px; margin:0 auto; width:100%;
+            display:grid; grid-template-columns:400px 1fr;
+            flex:1; min-height:0;
         }
 
         /* LISTA DE CHAMADOS */
@@ -67,8 +66,8 @@
             padding:16px 20px; border-bottom:1px solid var(--cor-borda); cursor:pointer;
             transition:background .2s; position:relative;
         }
-        .chamado-item:hover { background:rgba(26,95,180,.07); }
-        .chamado-item.ativo { background:rgba(26,95,180,.12); border-left:3px solid var(--cor-primaria); }
+        .chamado-item:hover { background:rgba(210,158,0,.07); }
+        .chamado-item.ativo { background:rgba(210,158,0,.12); border-left:3px solid var(--cor-admin); }
         .chamado-item-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; }
         .chamado-id { font-size:11px; color:var(--cor-texto-sec); font-family:monospace; }
         .chamado-data { font-size:11px; color:var(--cor-texto-sec); white-space:nowrap; }
@@ -86,7 +85,7 @@
             font-weight:600; display:inline-block; white-space:nowrap;
         }
         .tag-aberto    { background:rgba(243,156,18,.15); color:#f39c12; }
-        .tag-atendimento { background:rgba(26,95,180,.15); color:#3498db; }
+        .tag-atendimento { background:rgba(52,152,219,.15); color:#3498db; }
         .tag-aguardando { background:rgba(155,89,182,.15); color:#9b59b6; }
         .tag-resolvido  { background:rgba(46,194,126,.15); color:#2ec27e; }
         .tag-fechado    { background:rgba(139,148,158,.15); color:#8b949e; }
@@ -97,6 +96,12 @@
         .tag-sla-ok     { background:rgba(46,194,126,.1); color:#2ec27e; }
         .tag-sla-warn   { background:rgba(243,156,18,.1); color:#f39c12; }
         .tag-sla-late   { background:rgba(224,27,36,.1); color:#e01b24; }
+        .tag-cat-transferencia { background:rgba(52,152,219,.12); color:#3498db; }
+        .tag-cat-cambio        { background:rgba(210,158,0,.12); color:var(--cor-admin); }
+        .tag-cat-documentacao  { background:rgba(155,89,182,.12); color:#9b59b6; }
+        .tag-cat-financeiro    { background:rgba(46,194,126,.12); color:#2ec27e; }
+        .tag-cat-tecnico       { background:rgba(243,156,18,.12); color:#f39c12; }
+        .tag-cat-outro         { background:rgba(139,148,158,.12); color:#8b949e; }
 
         .empty-state {
             display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -129,7 +134,7 @@
 
         /* CONTROLES ADMIN */
         .controles-admin {
-            background:rgba(26,95,180,.05); border-bottom:1px solid var(--cor-borda);
+            background:rgba(210,158,0,.05); border-bottom:1px solid var(--cor-borda);
             padding:12px 24px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;
         }
         .controles-admin select {
@@ -143,8 +148,8 @@
             cursor:pointer; border:none; display:flex; align-items:center; gap:6px;
             transition:all .2s; font-weight:500;
         }
-        .btn-primary { background:var(--cor-primaria); color:#fff; }
-        .btn-primary:hover { background:#1557a8; }
+        .btn-primary { background:var(--cor-admin); color:#1a1200; }
+        .btn-primary:hover { background:#eeb600; }
         .btn-success { background:var(--cor-sucesso); color:#fff; }
         .btn-success:hover { background:#28a870; }
         .btn-warn { background:var(--cor-alerta); color:#fff; }
@@ -168,7 +173,7 @@
             word-break:break-word;
         }
         .msg-wrapper.cliente .msg-bubble {
-            background:rgba(26,95,180,.12); border:1px solid rgba(26,95,180,.2);
+            background:rgba(210,158,0,.10); border:1px solid rgba(210,158,0,.2);
             border-radius:12px 12px 12px 2px;
         }
         .msg-wrapper.admin .msg-bubble {
@@ -208,7 +213,8 @@
 
         /* STATS TOP */
         .stats-row {
-            display:flex; gap:16px; padding:16px 24px; background:var(--cor-fundo);
+            flex-shrink:0; max-width:1400px; margin:0 auto; width:100%;
+            display:flex; gap:16px; padding:12px 24px; background:var(--cor-fundo);
             border-bottom:1px solid var(--cor-borda); flex-wrap:wrap;
         }
         .stat-pill {
@@ -230,14 +236,8 @@
             text-decoration:none; transition:all .2s; display:inline-flex;
             align-items:center; height:32px;
         }
-        .lang-btn:hover { border-color:var(--cor-primaria); color:var(--cor-primaria); }
-        .lang-btn.active { background:var(--cor-primaria); border-color:var(--cor-primaria); color:#fff; }
-        #btnTheme {
-            background:transparent; border:1px solid var(--cor-borda); color:var(--cor-texto-sec);
-            padding:6px 12px; border-radius:6px; cursor:pointer; font-size:14px;
-            transition:all .2s; display:inline-flex; align-items:center; height:32px;
-        }
-        #btnTheme:hover { border-color:var(--cor-primaria); color:var(--cor-primaria); }
+        .lang-btn:hover { border-color:var(--cor-admin); color:var(--cor-admin); }
+        .lang-btn.active { background:var(--cor-admin); border-color:var(--cor-admin); color:#1a1200; }
 
         @media(max-width:900px) {
             .main-layout { grid-template-columns:1fr; }
@@ -249,13 +249,15 @@
 <body>
 
 <div class="header">
-    <div class="header-left">
-        <a href="/admin/dashboard" class="btn-back"><i class="fas fa-arrow-left"></i> Dashboard</a>
-        <h1><i class="fas fa-headset"></i> Chamados B2B</h1>
+    <div class="logo">
+        <span class="logo-text"><strong>Link</strong><span> international</span></span>
+        <span class="badge-admin">ADMIN</span>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">
+    <h1 class="page-title">Chamados B2B</h1>
+    <div class="hd-right">
         <a href="/language/{{ 'pt' if current_lang == 'en' else 'en' }}" class="btn-hd btn-hd-ghost"><i class="fas fa-globe"></i> {{ 'PT' if current_lang == 'en' else 'EN' }}</a>
         <button id="btnTheme" onclick="toggleTheme()" title="Alternar tema"><i class="fas fa-moon"></i></button>
+        <a href="/admin/dashboard" class="btn-hd btn-hd-ghost"><i class="fas fa-arrow-left"></i> Dashboard</a>
     </div>
 </div>
 
@@ -367,6 +369,12 @@ const CAT_LABEL = {
     transferencia:'Transferência', cambio:'Câmbio', documentacao:'Documentação',
     financeiro:'Financeiro', tecnico:'Técnico', outro:'Outro'
 };
+const PRIO_LABEL = { urgente:'Urgente', alta:'Alta', normal:'Normal', baixa:'Baixa' };
+const PRIO_ICON  = { urgente:'fa-fire', alta:'fa-arrow-up', normal:'fa-minus', baixa:'fa-arrow-down' };
+const CAT_ICON   = {
+    transferencia:'fa-exchange-alt', cambio:'fa-coins', documentacao:'fa-file-alt',
+    financeiro:'fa-dollar-sign', tecnico:'fa-tools', outro:'fa-ellipsis-h'
+};
 
 function fmtData(iso) {
     if (!iso) return '';
@@ -381,6 +389,57 @@ function slaTag(deadline, status) {
     if (horas < 0) return `<span class="tag tag-sla-late"><i class="fas fa-exclamation-triangle"></i> SLA vencido</span>`;
     if (horas < 4) return `<span class="tag tag-sla-warn"><i class="fas fa-clock"></i> SLA ${Math.round(horas)}h</span>`;
     return `<span class="tag tag-sla-ok"><i class="fas fa-check-circle"></i> SLA ok</span>`;
+}
+
+function tempoRelativo(iso) {
+    if (!iso) return '';
+    const diff = Date.now() - new Date(iso).getTime();
+    const min = Math.floor(diff / 60000);
+    if (min < 1) return 'agora';
+    if (min < 60) return `há ${min}min`;
+    const h = Math.floor(diff / 3600000);
+    if (h < 24) return `há ${h}h`;
+    const dias = Math.floor(diff / 86400000);
+    if (dias < 7) return `há ${dias}d`;
+    return fmtData(iso);
+}
+
+function atualizarTimestamps() {
+    document.querySelectorAll('[data-ts]').forEach(el => {
+        el.textContent = tempoRelativo(el.dataset.ts);
+    });
+}
+
+let _audioCtx = null;
+function notifySound() {
+    try {
+        if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = _audioCtx.createOscillator();
+        const gain = _audioCtx.createGain();
+        osc.connect(gain); gain.connect(_audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, _audioCtx.currentTime);
+        osc.frequency.setValueAtTime(1100, _audioCtx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.08, _audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, _audioCtx.currentTime + 0.4);
+        osc.start(_audioCtx.currentTime);
+        osc.stop(_audioCtx.currentTime + 0.4);
+    } catch(e) {}
+}
+
+function getLastSeen(id) { return parseInt(localStorage.getItem('adminLastSeen_' + id) || '0'); }
+function setLastSeen(id) { localStorage.setItem('adminLastSeen_' + id, Date.now()); }
+function isUnread(c) { return new Date(c.updated_at).getTime() > getLastSeen(c.id); }
+
+let _prevNotifCount = -1;
+function checkNotificacoes(lista) {
+    const atencao = lista.filter(c =>
+        (c.status === 'aberto' || c.status === 'aguardando_cliente') && isUnread(c)
+    ).length;
+    const BASE = 'Link International — Chamados B2B';
+    document.title = atencao > 0 ? `(${atencao}) ${BASE}` : BASE;
+    if (_prevNotifCount >= 0 && atencao > _prevNotifCount) notifySound();
+    _prevNotifCount = atencao;
 }
 
 async function carregarChamados() {
@@ -412,6 +471,7 @@ function calcStats(lista) {
     document.getElementById('stResol').textContent = cnt('resolvido');
     document.getElementById('stFech').textContent = cnt('fechado');
     document.getElementById('totalCount').textContent = lista.length + ' chamado(s)';
+    checkNotificacoes(lista);
 }
 
 function renderLista(lista) {
@@ -422,17 +482,20 @@ function renderLista(lista) {
     }
     el.innerHTML = lista.map(c => {
         const ativo = chamadoAtual && chamadoAtual.id === c.id ? 'ativo' : '';
+        const naoLido = isUnread(c) && !ativo ? '<span class="dot-nao-lido"></span>' : '';
         return `
         <div class="chamado-item ${ativo}" onclick="abrirChamado('${c.id}')">
+            ${naoLido}
             <div class="chamado-item-header">
                 <span class="chamado-id">${c.id}</span>
-                <span class="chamado-data">${fmtData(c.updated_at)}</span>
+                <span class="chamado-data" data-ts="${c.updated_at}" title="${fmtData(c.updated_at)}">${tempoRelativo(c.updated_at)}</span>
             </div>
             <div class="chamado-titulo">${c.titulo}</div>
             <div class="chamado-cliente"><i class="fas fa-building" style="font-size:11px"></i> ${c.cliente_nome || c.cliente_username}</div>
             <div class="chamado-meta">
                 <span class="tag ${STATUS_TAG[c.status]}">${STATUS_LABEL[c.status]}</span>
-                <span class="tag ${PRIO_TAG[c.prioridade]}">${c.prioridade}</span>
+                <span class="tag ${PRIO_TAG[c.prioridade]}"><i class="fas ${PRIO_ICON[c.prioridade]}" style="font-size:9px"></i> ${PRIO_LABEL[c.prioridade]||c.prioridade}</span>
+                <span class="tag tag-cat-${c.categoria}"><i class="fas ${CAT_ICON[c.categoria]||'fa-tag'}" style="font-size:9px"></i> ${CAT_LABEL[c.categoria]||c.categoria}</span>
                 ${c.atribuido_a ? `<span class="tag" style="background:rgba(52,152,219,.1);color:#3498db"><i class="fas fa-user" style="font-size:10px"></i> ${c.atribuido_a}</span>` : ''}
                 ${slaTag(c.sla_deadline, c.status)}
             </div>
@@ -442,6 +505,7 @@ function renderLista(lista) {
 
 async function abrirChamado(id) {
     chamadoAtual = todosOsChamados.find(c => c.id === id);
+    setLastSeen(id);
     renderLista(todosOsChamados);
     document.getElementById('detalheVazio').style.display = 'none';
     const cont = document.getElementById('detalheConteudo');
@@ -510,6 +574,7 @@ async function enviarMensagem() {
     if (d.success) {
         document.getElementById('msgInput').value = '';
         document.getElementById('checkNota').checked = false;
+        setLastSeen(chamadoAtual.id);
         abrirChamado(chamadoAtual.id);
         carregarChamados();
     } else {
@@ -552,6 +617,8 @@ async function atribuirChamado() {
 document.addEventListener('DOMContentLoaded', () => {
     carregarChamados();
     setInterval(carregarChamados, 30000);
+    setInterval(atualizarTimestamps, 60000);
+    window.addEventListener('focus', () => { atualizarTimestamps(); });
 });
 </script>
 <script src="/static/js/theme.js"></script>

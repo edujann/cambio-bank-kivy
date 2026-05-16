@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="{{ 'en' if current_lang == 'en' else 'pt-BR' }}" data-theme="light">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Link International — {% if is_pt %}Câmbio de Moedas{% else %}Currency Exchange{% endif %}</title>
+    <title>Link International — Currency Exchange</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script>(function(){var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
 
@@ -904,19 +904,19 @@
         <!-- HEADER - VOLTAR + TÍTULO + ACTIONS -->
         <header class="cambio-header">
             <a class="btn-voltar" href="/dashboard">
-                <i class="fas fa-arrow-left"></i> {% if is_pt %}Painel{% else %}Dashboard{% endif %}
+                <i class="fas fa-arrow-left"></i> Dashboard
             </a>
-            <h1 class="cambio-titulo">{% if is_pt %}Câmbio de Moedas{% else %}Currency Exchange{% endif %}</h1>
+            <h1 class="cambio-titulo">Currency Exchange</h1>
             <div class="header-actions">
-                <a href="/language/{{ 'pt' if current_lang=='en' else 'en' }}" class="btn-ic" title="{% if is_pt %}English{% else %}Português{% endif %}"><i class="fas fa-globe"></i></a>
-                <button class="btn-ic" onclick="toggleTheme()" title="{% if is_pt %}Alternar tema{% else %}Toggle theme{% endif %}"><i class="fas fa-circle-half-stroke"></i></button>
+                <a href="/language/pt" class="btn-ic" title="Português"><i class="fas fa-globe"></i></a>
+                <button class="btn-ic" onclick="toggleTheme()" title="Toggle theme"><i class="fas fa-circle-half-stroke"></i></button>
             </div>
         </header>
 
         <!-- SEÇÃO DE SALDOS (COM SCROLL VERTICAL) -->
         <section class="saldos-section">
             <h2 class="saldos-titulo">
-                <i class="fas fa-wallet"></i> {% if is_pt %}Seus Saldos{% else %}Your Balances{% endif %}
+                <i class="fas fa-wallet"></i> Your Balances
             </h2>
             <div class="saldos-grid-container">
                 <div class="saldos-grid" id="saldosGrid">
@@ -934,29 +934,29 @@
                     <span>Atualização em: <span id="contadorSegundos">30</span>s</span>
                 </div>
                 <button class="btn-atualizar-agora" onclick="forcarAtualizacao()">
-                    <i class="fas fa-redo"></i> {% if is_pt %}Atualizar{% else %}Refresh{% endif %}
+                    <i class="fas fa-redo"></i> Refresh
                 </button>
             </div>
 
             <!-- TÍTULO -->
-            <h3 class="operacao-titulo">{% if is_pt %}Selecione sua operação{% else %}Select your operation{% endif %}</h3>
+            <h3 class="operacao-titulo">Select your operation</h3>
 
             <!-- TOGGLE COMPRA/VENDA -->
             <div class="toggle-container">
                 <button class="toggle-btn toggle-btn-compra ativo" onclick="definirOperacao('compra')">
-                    {% if is_pt %}Comprar Moeda{% else %}Buy Currency{% endif %}
+                    Buy Currency
                 </button>
                 <button class="toggle-btn toggle-btn-venda" onclick="definirOperacao('venda')">
-                    {% if is_pt %}Vender Moeda{% else %}Sell Currency{% endif %}
+                    Sell Currency
                 </button>
             </div>
 
             <!-- SELEÇÃO DE MOEDAS -->
             <div class="moedas-container">
-                <div class="moedas-titulo">{% if is_pt %}Selecione as moedas:{% else %}Select currencies:{% endif %}</div>
+                <div class="moedas-titulo">Select currencies:</div>
                 <div class="moedas-labels">
-                    <div class="moeda-label">{% if is_pt %}De:{% else %}From:{% endif %}</div>
-                    <div class="moeda-label">{% if is_pt %}Para:{% else %}To:{% endif %}</div>
+                    <div class="moeda-label">From:</div>
+                    <div class="moeda-label">To:</div>
                 </div>
                 <div class="moedas-selecao">
                     <div class="spinner-container">
@@ -985,7 +985,7 @@
 
             <!-- INPUT DE VALOR -->
             <div class="valor-container">
-                <div class="valor-label">{% if is_pt %}Valor:{% else %}Amount:{% endif %}</div>
+                <div class="valor-label">Amount:</div>
                 <div class="valor-input-group">
                     <input type="text" 
                            class="valor-input" 
@@ -1014,14 +1014,14 @@
 
             <!-- BOTÃO CONFIRMAR -->
             <button class="btn-confirmar" id="btnConfirmar" onclick="confirmarOperacao()" disabled>
-                {% if is_pt %}Confirmar Operação{% else %}Confirm Operation{% endif %}
+                Confirm Operation
             </button>
         </section>
 
         <!-- HISTÓRICO RÁPIDO DE TRADES -->
         <section class="historico-section" id="historicoSection" style="display:none">
             <div class="historico-titulo">
-                <i class="fas fa-history"></i> {% if is_pt %}Últimas Operações{% else %}Recent Operations{% endif %}
+                <i class="fas fa-history"></i> Recent Operations
             </div>
             <div id="historicoLista"></div>
         </section>
@@ -2347,7 +2347,7 @@
                 section.style.display = 'block';
                 document.getElementById('historicoLista').innerHTML = data.trades.map(t => {
                     const tipo = (t.operacao || 'cambio').toLowerCase();
-                    const dataStr = new Date(t.created_at).toLocaleString('pt-BR', {
+                    const dataStr = new Date(t.created_at).toLocaleString('en-GB', {
                         day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
                     });
                     return `<div class="historico-item">
@@ -2389,7 +2389,7 @@
             
             // Data e hora atual
             const agora = new Date();
-            const dataHora = agora.toLocaleString('pt-BR', {
+            const dataHora = agora.toLocaleString('en-GB', {
                 day: '2-digit',
                 month: '2-digit',
                 year: 'numeric',
@@ -2462,7 +2462,7 @@
                     <div style="margin: 20px 0; padding: 15px; background: rgba(46, 204, 113, 0.1); border-radius: 8px;">
                         <p><strong>Nº da Solicitação:</strong> LIB-${Date.now().toString().slice(-6)}</p>
                         <p><strong>Cliente:</strong> ${this.usuario}</p>
-                        <p><strong>Data estimada:</strong> ${dataEstimada.toLocaleDateString('pt-BR')}</p>
+                        <p><strong>Data estimada:</strong> ${dataEstimada.toLocaleDateString('en-GB')}</p>
                     </div>
                     
                     <p style="color: var(--cor-texto-secundario); font-size: 14px;">
@@ -2535,7 +2535,7 @@
         
         // Data e hora atual
         const agora = new Date();
-        const dataHora = agora.toLocaleString('pt-BR', {
+        const dataHora = agora.toLocaleString('en-GB', {
             day: '2-digit',
             month: '2-digit',
             year: 'numeric',
@@ -2613,7 +2613,7 @@
                                 <div style="margin: 20px 0; padding: 15px; background: rgba(46, 204, 113, 0.1); border-radius: 8px;">
                                     <p><strong>Nº da Solicitação:</strong> LIB-${Date.now().toString().slice(-6)}</p>
                                     <p><strong>Cliente:</strong> ${usuario}</p>
-                                    <p><strong>Data estimada:</strong> ${dataEstimada.toLocaleDateString('pt-BR')}</p>
+                                    <p><strong>Data estimada:</strong> ${dataEstimada.toLocaleDateString('en-GB')}</p>
                                 </div>
                                 
                                 <p style="color: var(--cor-texto-secundario); font-size: 14px;">

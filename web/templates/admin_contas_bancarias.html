@@ -14,12 +14,12 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        :root {
+        :root, :root[data-theme="dark"] {
             --cor-fundo: #110f08;
-            --cor-card: #191611;
+            --cor-card: #1e1b12;
             --cor-borda: #2d2819;
-            --cor-texto: #e0e0e0;
-            --cor-texto-secundario: #8b949e;
+            --cor-texto: #f0e8d0;
+            --cor-texto-secundario: #9e9070;
             --cor-primaria: #d29e00;
             --cor-admin: #d29e00;
             --cor-sucesso: #2ec27e;
@@ -32,13 +32,20 @@
         }
 
         :root[data-theme="light"] {
-            --cor-fundo: #f8f5ee;
+            --cor-fundo: #faf8f2;
             --cor-card: #ffffff;
-            --cor-borda: #e8dfc8;
-            --cor-texto: #1a1d24;
-            --cor-texto-secundario: #6b7280;
-            --cor-primaria: #d29e00;
-            --cor-admin: #d29e00;
+            --cor-borda: #e4dcc8;
+            --cor-texto: #2a1f00;
+            --cor-texto-secundario: #7a6840;
+            --cor-primaria: #b8860b;
+            --cor-admin: #b8860b;
+            --cor-sucesso: #2a9d6e;
+            --cor-alerta: #e67e22;
+            --cor-perigo: #c0392b;
+            --sombra-suave: 0 2px 4px rgba(0,0,0,0.08);
+            --sombra-media: 0 6px 12px rgba(0,0,0,0.08);
+            --borda-radius: 12px;
+            --borda-radius-pequeno: 8px;
         }
 
         body {
@@ -73,18 +80,14 @@
             font-weight: bold;
         }
 
-        .logo i {
-            color: var(--cor-admin);
-            font-size: 28px;
-        }
-
-        .logo-text strong { font-weight: 800; }
         .logo-text {
             background: linear-gradient(90deg, #b78700, #eeb600);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
+            font-weight: 800;
         }
+        .logo-text span { font-weight: 400; }
 
         .badge-admin {
             background: var(--cor-admin);
@@ -131,7 +134,9 @@
             color: #d29e00 !important;
         }
 
-        #tab-despesas .form-group label {
+        #tab-despesas .form-group label,
+        #tab-ajuste .form-group label,
+        #tab-cambio .form-group label {
             font-size: 12px;
             font-weight: 600;
             color: var(--cor-texto-secundario);
@@ -140,7 +145,9 @@
             display: block;
         }
 
-        #tab-despesas .form-group label i {
+        #tab-despesas .form-group label i,
+        #tab-ajuste .form-group label i,
+        #tab-cambio .form-group label i {
             margin-right: 8px;
             color: var(--cor-admin);
         }
@@ -687,7 +694,7 @@
         <!-- HEADER -->
         <header class="app-header">
             <div class="logo">
-                <span class="logo-text"><strong>Link</strong> international</span>
+                <span class="logo-text"><strong>Link</strong><span> international</span></span>
                 <span class="badge-admin">ADMIN</span>
             </div>
             
@@ -777,7 +784,7 @@
                     </div>
                     
                     <div class="form-group">
-                        <label>Selecione a Conta</label>
+                        <label><i class="fas fa-wallet"></i> Selecione a Conta</label>
                         <select id="ajusteConta" class="form-control">
                             <option value="">Selecione uma conta...</option>
                         </select>
@@ -793,12 +800,12 @@
                     </div>
                     
                     <div class="form-group">
-                        <label>Valor</label>
+                        <label><i class="fas fa-dollar-sign"></i> Valor</label>
                         <input type="text" id="ajusteValor" class="form-control" placeholder="0,00">
                     </div>
                     
                     <div class="form-group">
-                        <label>Descrição</label>
+                        <label><i class="fas fa-pencil-alt"></i> Descrição</label>
                         <input type="text" id="ajusteDescricao" class="form-control" placeholder="Ex: Ajuste administrativo">
                     </div>
                     
@@ -828,14 +835,14 @@
                     </div>
                     
                     <div class="form-group">
-                        <label>Conta Origem</label>
+                        <label><i class="fas fa-sign-out-alt"></i> Conta Origem</label>
                         <select id="cambioContaOrigem" class="form-control">
                             <option value="">Selecione a conta origem...</option>
                         </select>
                     </div>
                     
                     <div class="form-group">
-                        <label>Conta Destino</label>
+                        <label><i class="fas fa-sign-in-alt"></i> Conta Destino</label>
                         <select id="cambioContaDestino" class="form-control">
                             <option value="">Selecione a conta destino...</option>
                         </select>
@@ -843,11 +850,11 @@
                     
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Taxa Principal (1 ORIGEM = X DESTINO)</label>
+                            <label><i class="fas fa-percentage"></i> Taxa Principal (1 ORIGEM = X DESTINO)</label>
                             <input type="text" id="taxaPrincipal" class="form-control" placeholder="Ex: 5.20" oninput="calcularTaxaInversa()">
                         </div>
                         <div class="form-group">
-                            <label>Taxa Inversa (1 DESTINO = X ORIGEM)</label>
+                            <label><i class="fas fa-rotate"></i> Taxa Inversa (1 DESTINO = X ORIGEM)</label>
                             <input type="text" id="taxaInversa" class="form-control" placeholder="Ex: 0.1923" oninput="calcularTaxaPrincipal()">
                         </div>
                     </div>
@@ -859,7 +866,7 @@
                     </div>
                     
                     <div class="form-group">
-                        <label>Valor a Converter (na moeda de ORIGEM)</label>
+                        <label><i class="fas fa-coins"></i> Valor a Converter (na moeda de ORIGEM)</label>
                         <input type="text" id="cambioValor" class="form-control" placeholder="0,00" oninput="calcularConversao()">
                     </div>
                     

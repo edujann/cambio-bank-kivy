@@ -3,10 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏦 Cambio Bank - Register Client / Cadastrar Cliente</title>
+    <title>Link International — Cadastrar Cliente</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/theme.css">
     <style>
+        :root, :root[data-theme="dark"] {
+            --cor-fundo: #110f08; --cor-card: #1e1b12; --cor-borda: #2d2819;
+            --cor-texto: #e8e0cc; --cor-texto-secundario: #8b7e62;
+            --cor-primaria: #d29e00; --cor-admin: #d29e00;
+            --cor-sucesso: #2ec27e; --cor-alerta: #f39c12; --cor-perigo: #e01b24;
+            --sombra-suave: 0 4px 6px rgba(0,0,0,.3); --sombra-media: 0 8px 16px rgba(0,0,0,.4);
+            --borda-radius: 12px; --borda-radius-pequeno: 8px;
+        }
+        :root[data-theme="light"] {
+            --cor-fundo: #faf8f2; --cor-card: #ffffff; --cor-borda: #e4dcc8;
+            --cor-texto: #1a1612; --cor-texto-secundario: #7a6e5c;
+            --cor-primaria: #b8860b; --cor-admin: #b8860b;
+            --cor-sucesso: #2a9d6e; --cor-alerta: #e67e22; --cor-perigo: #c0392b;
+            --sombra-suave: 0 2px 4px rgba(0,0,0,.08); --sombra-media: 0 6px 12px rgba(0,0,0,.08);
+            --borda-radius: 12px; --borda-radius-pequeno: 8px;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: var(--cor-fundo); color: var(--cor-texto); min-height: 100vh; }
         .app-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
@@ -14,18 +31,12 @@
         /* HEADER */
         .app-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; margin-bottom: 30px; border-bottom: 1px solid var(--cor-borda); flex-wrap: wrap; gap: 15px; }
         .logo { display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: bold; }
-        .logo i { color: var(--cor-admin); font-size: 28px; }
-        .logo-text { background: linear-gradient(90deg, var(--cor-admin), #2d8fff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .logo-text { background: linear-gradient(90deg, #b78700, #eeb600); -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 800; }
+        .logo-text span { font-weight: 400; }
         .badge-admin { background: var(--cor-admin); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-left: 10px; }
-        .page-title { font-size: 20px; font-weight: bold; flex: 1; text-align: center; }
-        .btn-voltar { background: transparent; border: 1px solid var(--cor-borda); color: var(--cor-texto); padding: 10px 20px; border-radius: var(--borda-radius-pequeno); cursor: pointer; transition: all 0.3s ease; }
-        .btn-voltar:hover { border-color: var(--cor-admin); color: var(--cor-admin); transform: translateY(-2px); }
-
-        /* LANGUAGE SWITCHER */
-        .lang-switch { display: flex; gap: 5px; background: var(--cor-card); border: 1px solid var(--cor-borda); border-radius: 20px; padding: 4px; }
-        .lang-btn { padding: 6px 20px; border: none; background: transparent; color: var(--cor-texto-secundario); cursor: pointer; border-radius: 16px; font-size: 13px; font-weight: 600; transition: all 0.3s ease; }
-        .lang-btn.active { background: var(--cor-admin); color: white; }
-        .lang-btn:hover:not(.active) { background: rgba(26, 95, 180, 0.2); }
+        .page-title { font-size: 20px; font-weight: bold; flex: 1; text-align: center; background: linear-gradient(90deg,#b78700,#eeb600); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .btn-hd { background: rgba(210,158,0,.12); border-color: var(--cor-admin); color: var(--cor-admin); }
+        .btn-hd:hover { background: rgba(210,158,0,.25); }
 
         /* FORM */
         .form-container { background: var(--cor-card); border: 1px solid var(--cor-borda); border-radius: var(--borda-radius); padding: 30px; }
@@ -34,7 +45,7 @@
         .person-type-selector { display: flex; gap: 20px; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid var(--cor-borda); }
         .person-type-btn { flex: 1; padding: 15px; background: var(--cor-fundo); border: 2px solid var(--cor-borda); border-radius: var(--borda-radius-pequeno); cursor: pointer; text-align: center; transition: all 0.3s ease; font-weight: 600; }
         .person-type-btn i { font-size: 24px; margin-right: 10px; }
-        .person-type-btn.active { border-color: var(--cor-admin); background: rgba(26, 95, 180, 0.1); color: var(--cor-admin); }
+        .person-type-btn.active { border-color: var(--cor-admin); background: rgba(210,158,0,.1); color: var(--cor-admin); }
 
         /* FORM ELEMENTS */
         .form-row { margin-bottom: 20px; }
@@ -42,7 +53,7 @@
         .form-row label i { margin-right: 8px; color: var(--cor-admin); }
         .form-row label .required { color: var(--cor-perigo); margin-left: 4px; }
         .form-control { width: 100%; padding: 12px 15px; background: var(--cor-fundo); border: 1px solid var(--cor-borda); border-radius: var(--borda-radius-pequeno); color: var(--cor-texto); font-size: 14px; transition: all 0.3s ease; }
-        .form-control:focus { outline: none; border-color: var(--cor-admin); box-shadow: 0 0 0 2px rgba(26, 95, 180, 0.2); }
+        .form-control:focus { outline: none; border-color: var(--cor-admin); box-shadow: 0 0 0 2px rgba(210,158,0,.2); }
         .form-row-duas-colunas { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .form-row-tres-colunas { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
 
@@ -62,7 +73,7 @@
         .ubo-card h4 { font-size: 14px; margin-bottom: 10px; }
         .ubo-card .remove-ubo { position: absolute; top: 10px; right: 10px; background: none; border: none; color: var(--cor-perigo); cursor: pointer; }
         .btn-add-ubo { background: transparent; border: 1px dashed var(--cor-admin); color: var(--cor-admin); padding: 10px; border-radius: var(--borda-radius-pequeno); cursor: pointer; width: 100%; transition: all 0.3s ease; }
-        .btn-add-ubo:hover { background: rgba(26, 95, 180, 0.1); }
+        .btn-add-ubo:hover { background: rgba(210,158,0,.1); }
 
         /* BUTTONS */
         .btn-actions { display: flex; gap: 15px; margin-top: 30px; }
@@ -72,7 +83,7 @@
         .btn-clear:hover { background: #e67e22; transform: translateY(-2px); }
 
         /* MODAL */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 1000; justify-content: center; align-items: center; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,.8); z-index: 1000; justify-content: center; align-items: center; }
         .modal.active { display: flex; }
         .modal-content { background: var(--cor-card); border: 1px solid var(--cor-borda); border-radius: var(--borda-radius); width: 90%; max-width: 500px; }
         .modal-header { padding: 20px; border-bottom: 1px solid var(--cor-borda); display: flex; justify-content: space-between; align-items: center; }
@@ -83,7 +94,7 @@
         .btn-modal { padding: 10px 20px; border: none; border-radius: var(--borda-radius-pequeno); cursor: pointer; }
         .btn-modal-primary { background: var(--cor-admin); color: white; }
 
-        .info-card { background: rgba(26, 95, 180, 0.1); border: 1px solid var(--cor-admin); border-radius: var(--borda-radius-pequeno); padding: 15px; margin-bottom: 20px; text-align: center; }
+        .info-card { background: rgba(210,158,0,.1); border: 1px solid var(--cor-admin); border-radius: var(--borda-radius-pequeno); padding: 15px; margin-bottom: 20px; text-align: center; }
         .info-card i { margin-right: 8px; }
 
         @media (max-width: 768px) {
@@ -97,11 +108,10 @@
 <div class="app-container">
     <header class="app-header">
         <div class="logo">
-            <i class="fas fa-university"></i>
-            <span class="logo-text">CAMBIO BANK</span>
+            <span class="logo-text"><strong>Link</strong><span> international</span></span>
             <span class="badge-admin">ADMIN</span>
         </div>
-        <h1 class="page-title">CADASTRAR CLIENTE</h1>
+        <h1 class="page-title">Cadastrar Cliente</h1>
         <div class="hd-right">
             <a href="/language/{{ 'pt' if current_lang == 'en' else 'en' }}" class="btn-hd btn-hd-ghost"><i class="fas fa-globe"></i> {{ 'PT' if current_lang == 'en' else 'EN' }}</a>
             <button id="btnTheme" onclick="toggleTheme()" class="btn-hd btn-hd-ghost" title="Alternar tema"><i class="fas fa-sun"></i></button>

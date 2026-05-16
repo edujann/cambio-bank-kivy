@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏦 Cambio Bank - Transferências</title>
+    <title>Link International - Transferências</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/theme.css">
     <style>
@@ -12,6 +12,36 @@
             padding: 0;
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root, :root[data-theme="dark"] {
+            --cor-fundo: #110f08;
+            --cor-card: #1e1b12;
+            --cor-borda: #2d2819;
+            --cor-texto: #f0e8d0;
+            --cor-texto-secundario: #9e9070;
+            --cor-primaria: #d29e00;
+            --cor-admin: #d29e00;
+            --cor-sucesso: #2ec27e;
+            --cor-alerta: #f39c12;
+            --cor-perigo: #e01b24;
+            --borda-radius: 12px;
+            --borda-radius-pequeno: 8px;
+        }
+
+        :root[data-theme="light"] {
+            --cor-fundo: #faf8f2;
+            --cor-card: #ffffff;
+            --cor-borda: #e4dcc8;
+            --cor-texto: #2a1f00;
+            --cor-texto-secundario: #7a6840;
+            --cor-primaria: #b8860b;
+            --cor-admin: #b8860b;
+            --cor-sucesso: #2a9d6e;
+            --cor-alerta: #e67e22;
+            --cor-perigo: #c0392b;
+            --borda-radius: 12px;
+            --borda-radius-pequeno: 8px;
         }
 
         body {
@@ -46,17 +76,14 @@
             font-weight: bold;
         }
 
-        .logo i {
-            color: var(--cor-admin);
-            font-size: 28px;
-        }
-
         .logo-text {
-            background: linear-gradient(90deg, var(--cor-admin), #2d8fff);
+            background: linear-gradient(90deg, #b78700, #eeb600);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
+            font-weight: 800;
         }
+        .logo-text span { font-weight: 400; }
 
         .badge-admin {
             background: var(--cor-admin);
@@ -217,14 +244,14 @@
         }
 
         th {
-            background: rgba(26, 95, 180, 0.1);
+            background: rgba(210, 158, 0, 0.1);
             color: var(--cor-admin);
             font-weight: 600;
             font-size: 13px;
         }
 
         tr:hover {
-            background: rgba(26, 95, 180, 0.05);
+            background: rgba(210, 158, 0, 0.05);
         }
 
         /* STATUS BADGES */
@@ -269,7 +296,7 @@
         }
 
         .btn-acao:hover {
-            background: rgba(26, 95, 180, 0.2);
+            background: rgba(210, 158, 0, 0.2);
             transform: scale(1.1);
         }
 
@@ -398,7 +425,7 @@
         }
 
         .info-card {
-            background: rgba(26, 95, 180, 0.1);
+            background: rgba(210, 158, 0, 0.1);
             border: 1px solid var(--cor-admin);
             border-radius: var(--borda-radius-pequeno);
             padding: 15px;
@@ -456,12 +483,11 @@
         <!-- HEADER -->
         <header class="app-header">
             <div class="logo">
-                <i class="fas fa-university"></i>
-                <span class="logo-text">CAMBIO BANK</span>
+                <span class="logo-text"><strong>Link</strong><span> international</span></span>
                 <span class="badge-admin">ADMIN</span>
             </div>
-            
-            <h1 class="page-title">TRANSFERÊNCIAS</h1>
+
+            <h1 class="page-title">Transferências</h1>
             
             <div class="hd-right">
                 <button id="btnTheme" onclick="toggleTheme()" class="btn-hd btn-hd-ghost" title="Alternar tema"><i class="fas fa-sun"></i></button>
@@ -965,10 +991,10 @@
             
             // Obter cores do tema atual
             const isLightTheme = document.documentElement.getAttribute('data-theme') === 'light';
-            const bgCard = isLightTheme ? '#f0f4f9' : '#0d1117';
-            const textColor = isLightTheme ? '#1a1d24' : '#e0e0e0';
-            const textSecundary = isLightTheme ? '#5a6470' : '#8b949e';
-            const borderColor = isLightTheme ? '#c5ced8' : '#1e232e';
+            const bgCard = isLightTheme ? '#ffffff' : '#1e1b12';
+            const textColor = isLightTheme ? '#2a1f00' : '#f0e8d0';
+            const textSecundary = isLightTheme ? '#7a6840' : '#9e9070';
+            const borderColor = isLightTheme ? '#e4dcc8' : '#2d2819';
             
             // Criar container do modal
             const modalContainer = document.createElement('div');
@@ -989,12 +1015,12 @@
             // Cabeçalho
             const modalHeader = document.createElement('div');
             modalHeader.style.cssText = `
-                background: linear-gradient(90deg, #1a5fb4, #2d8fff);
+                background: linear-gradient(90deg, #d29e00, #eeb600);
                 color: white;
                 padding: 20px 25px;
                 font-size: 18px;
                 font-weight: bold;
-                border-bottom: 2px solid #1a5fb4;
+                border-bottom: 2px solid #d29e00;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
@@ -1098,13 +1124,13 @@
         // ============================================
 
         function gerarConteudoDetalhesAdmin(dados, isLightTheme) {
-            const textSecundary = isLightTheme ? '#5a6470' : '#8b949e';
-            const textColor = isLightTheme ? '#1a1d24' : '#e0e0e0';
-            const borderColor = isLightTheme ? '#c5ced8' : '#2a2f3a';
+            const textSecundary = isLightTheme ? '#7a6840' : '#9e9070';
+            const textColor = isLightTheme ? '#2a1f00' : '#f0e8d0';
+            const borderColor = isLightTheme ? '#e4dcc8' : '#2d2819';
             const successColor = '#2ec27e';
             const alertColor = '#f39c12';
             const dangerColor = '#e01b24';
-            const primaryColor = '#1a5fb4';
+            const primaryColor = '#d29e00';
             
             if (!dados) return '<div>Erro: Dados não disponíveis</div>';
             
@@ -1337,14 +1363,14 @@
                 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
                 @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
                 .detalhes-secao-admin { margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid ${borderColor}; }
-                .detalhes-titulo-admin { color: #1a5fb4; font-size: 15px; font-weight: bold; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+                .detalhes-titulo-admin { color: #d29e00; font-size: 15px; font-weight: bold; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
                 .detalhes-grid-admin { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 20px; }
                 .detalhes-item-admin { display: flex; flex-direction: column; gap: 4px; }
                 .detalhes-label-admin { color: ${textSecundary}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
                 .detalhes-valor-admin { color: ${textColor}; font-size: 13px; word-break: break-word; }
                 .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; }
                 .status-pending { background: rgba(243, 156, 18, 0.15); color: #f39c12; }
-                .status-processing { background: rgba(26, 95, 180, 0.15); color: #1a5fb4; }
+                .status-processing { background: rgba(210, 158, 0, 0.15); color: #d29e00; }
                 .status-completed { background: rgba(46, 194, 126, 0.15); color: #2ec27e; }
                 .status-rejected { background: rgba(224, 27, 36, 0.15); color: #e01b24; }
                 @media (max-width: 600px) { .detalhes-grid-admin { grid-template-columns: 1fr; } }
@@ -1451,13 +1477,13 @@
         // ============================================
 
         function gerarConteudoDetalhesKivy(dados, isLightTheme) {
-            const textColor = isLightTheme ? '#1a1d24' : '#e0e0e0';
-            const textSecundary = isLightTheme ? '#5a6470' : '#8b949e';
-            const borderColor = isLightTheme ? '#c5ced8' : '#2a2f3a';
+            const textColor = isLightTheme ? '#2a1f00' : '#f0e8d0';
+            const textSecundary = isLightTheme ? '#7a6840' : '#9e9070';
+            const borderColor = isLightTheme ? '#e4dcc8' : '#2d2819';
             const successColor = '#2ec27e';
             const alertColor = '#f39c12';
             const dangerColor = '#e01b24';
-            const primaryColor = '#1a5fb4';
+            const primaryColor = '#d29e00';
             
             const statusText = formatarStatusKivy(dados.status);
             const statusClass = getStatusClassKivy(dados.status);
@@ -1594,11 +1620,11 @@
             `;
             
             const isLightTheme = document.documentElement.getAttribute('data-theme') === 'light';
-            const bgCard = isLightTheme ? '#f0f4f9' : '#0d1117';
-            const bgHeader = 'linear-gradient(90deg, #1a5fb4, #2d8fff)';
-            const textColor = isLightTheme ? '#1a1d24' : '#e0e0e0';
-            const textSecundary = isLightTheme ? '#5a6470' : '#8b949e';
-            const borderColor = isLightTheme ? '#c5ced8' : '#1e232e';
+            const bgCard = isLightTheme ? '#ffffff' : '#1e1b12';
+            const bgHeader = 'linear-gradient(90deg, #d29e00, #eeb600)';
+            const textColor = isLightTheme ? '#2a1f00' : '#f0e8d0';
+            const textSecundary = isLightTheme ? '#7a6840' : '#9e9070';
+            const borderColor = isLightTheme ? '#e4dcc8' : '#2d2819';
             
             const modalContainer = document.createElement('div');
             modalContainer.style.cssText = `
@@ -1622,7 +1648,7 @@
                 padding: 20px 25px;
                 font-size: 18px;
                 font-weight: bold;
-                border-bottom: 2px solid #1a5fb4;
+                border-bottom: 2px solid #d29e00;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
@@ -1665,13 +1691,13 @@
                 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
                 @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
                 #modalDetalhesOverlay .detalhes-secao { margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid ${borderColor}; }
-                #modalDetalhesOverlay .detalhes-titulo { color: #1a5fb4; font-size: 16px; font-weight: bold; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+                #modalDetalhesOverlay .detalhes-titulo { color: #d29e00; font-size: 16px; font-weight: bold; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
                 #modalDetalhesOverlay .detalhes-item { display: grid; grid-template-columns: 140px 1fr; margin-bottom: 8px; padding: 4px 0; }
                 #modalDetalhesOverlay .detalhes-label { color: ${textSecundary}; font-weight: 600; }
                 #modalDetalhesOverlay .detalhes-valor { color: ${textColor}; word-break: break-word; }
                 #modalDetalhesOverlay .status-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; text-transform: uppercase; }
                 #modalDetalhesOverlay .status-pending { background: rgba(243, 156, 18, 0.15); color: #f39c12; border: 1px solid rgba(243, 156, 18, 0.3); }
-                #modalDetalhesOverlay .status-processing { background: rgba(26, 95, 180, 0.15); color: #1a5fb4; border: 1px solid rgba(26, 95, 180, 0.3); }
+                #modalDetalhesOverlay .status-processing { background: rgba(210, 158, 0, 0.15); color: #d29e00; border: 1px solid rgba(210, 158, 0, 0.3); }
                 #modalDetalhesOverlay .status-completed { background: rgba(46, 194, 126, 0.15); color: #2ec27e; border: 1px solid rgba(46, 194, 126, 0.3); }
                 #modalDetalhesOverlay .status-rejected { background: rgba(224, 27, 36, 0.15); color: #e01b24; border: 1px solid rgba(224, 27, 36, 0.3); }
             `;

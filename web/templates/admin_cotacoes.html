@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏦 Cambio Bank - Cotações Moedas</title>
+    <title>Link International - Cotações de Moedas</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/theme.css">
     <style>
@@ -14,17 +14,32 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        :root {
-            --cor-fundo: #0a0e15;
-            --cor-card: #0d1117;
-            --cor-borda: #1e232e;
-            --cor-texto: #e0e0e0;
-            --cor-texto-secundario: #8b949e;
-            --cor-primaria: #1a5fb4;
-            --cor-admin: #1a5fb4;
+        :root, :root[data-theme="dark"] {
+            --cor-fundo: #110f08;
+            --cor-card: #1e1b12;
+            --cor-borda: #2d2819;
+            --cor-texto: #f0e8d0;
+            --cor-texto-secundario: #9e9070;
+            --cor-primaria: #d29e00;
+            --cor-admin: #d29e00;
             --cor-sucesso: #2ec27e;
             --cor-alerta: #f39c12;
             --cor-perigo: #e01b24;
+            --borda-radius: 12px;
+            --borda-radius-pequeno: 8px;
+        }
+
+        :root[data-theme="light"] {
+            --cor-fundo: #faf8f2;
+            --cor-card: #ffffff;
+            --cor-borda: #e4dcc8;
+            --cor-texto: #2a1f00;
+            --cor-texto-secundario: #7a6840;
+            --cor-primaria: #b8860b;
+            --cor-admin: #b8860b;
+            --cor-sucesso: #2a9d6e;
+            --cor-alerta: #e67e22;
+            --cor-perigo: #c0392b;
             --borda-radius: 12px;
             --borda-radius-pequeno: 8px;
         }
@@ -61,17 +76,14 @@
             font-weight: bold;
         }
 
-        .logo i {
-            color: var(--cor-admin);
-            font-size: 28px;
-        }
-
         .logo-text {
-            background: linear-gradient(90deg, var(--cor-admin), #2d8fff);
+            background: linear-gradient(90deg, #b78700, #eeb600);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
+            font-weight: 800;
         }
+        .logo-text span { font-weight: 400; }
 
         .badge-admin {
             background: var(--cor-admin);
@@ -191,7 +203,7 @@
 
         .cliente-item.selected {
             border-color: var(--cor-admin);
-            background: rgba(26, 95, 180, 0.1);
+            background: rgba(210, 158, 0, 0.1);
         }
 
         .cliente-info {
@@ -454,13 +466,13 @@
         }
 
         .tabela-spreads th {
-            background: rgba(26, 95, 180, 0.1);
+            background: rgba(210, 158, 0, 0.1);
             color: var(--cor-admin);
             font-weight: 600;
         }
 
         .tabela-spreads tr:hover {
-            background: rgba(26, 95, 180, 0.05);
+            background: rgba(210, 158, 0, 0.05);
         }
 
         .spread-input {
@@ -668,12 +680,11 @@
         <!-- HEADER -->
         <header class="app-header">
             <div class="logo">
-                <i class="fas fa-university"></i>
-                <span class="logo-text">CAMBIO BANK</span>
+                <span class="logo-text"><strong>Link</strong><span> international</span></span>
                 <span class="badge-admin">ADMIN</span>
             </div>
-            
-            <h1 class="page-title">COTAÇÕES DE MOEDAS</h1>
+
+            <h1 class="page-title">Cotações de Moedas</h1>
             
             <div class="hd-right">
                 <button id="btnTheme" onclick="toggleTheme()" class="btn-hd btn-hd-ghost" title="Alternar tema"><i class="fas fa-sun"></i></button>

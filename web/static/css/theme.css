@@ -127,7 +127,7 @@
 .page-title {
     font-size: 20px;
     font-weight: bold;
-    background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
+    background: linear-gradient(90deg, var(--cor-primaria), color-mix(in srgb, var(--cor-primaria) 60%, white));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -137,21 +137,17 @@
 .section-title {
     font-size: 18px;
     font-weight: bold;
-    background: linear-gradient(90deg, var(--cor-primaria), #2d8fff);
+    background: linear-gradient(90deg, var(--cor-primaria), color-mix(in srgb, var(--cor-primaria) 60%, white));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
     margin-bottom: 15px;
 }
 
-/* ============================================
-   TÍTULO DO HEADER (PÁGINA) - DEGRADÊ AZUL
-   ============================================ */
-
 .app-header .page-title {
     font-size: 20px;
     font-weight: bold;
-    background: linear-gradient(135deg, #1a5fb4 0%, #2d8fff 100%);
+    background: linear-gradient(135deg, var(--cor-primaria) 0%, color-mix(in srgb, var(--cor-primaria) 55%, white) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;

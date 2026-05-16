@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏦 Cambio Bank - Extrato da Conta</title>
+    <title>Link International — Extrato da Conta</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/theme.css">
     <style>
@@ -14,14 +14,14 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        :root {
-            --cor-fundo: #0a0e15;
-            --cor-card: #0d1117;
-            --cor-borda: #1e232e;
-            --cor-texto: #e0e0e0;
-            --cor-texto-secundario: #8b949e;
-            --cor-primaria: #1a5fb4;
-            --cor-admin: #1a5fb4;
+        :root, :root[data-theme="dark"] {
+            --cor-fundo: #110f08;
+            --cor-card: #1e1b12;
+            --cor-borda: #2d2819;
+            --cor-texto: #e8e0cc;
+            --cor-texto-secundario: #8b7e62;
+            --cor-primaria: #d29e00;
+            --cor-admin: #d29e00;
             --cor-sucesso: #2ec27e;
             --cor-alerta: #f39c12;
             --cor-perigo: #e01b24;
@@ -30,6 +30,28 @@
             --borda-radius: 12px;
             --borda-radius-pequeno: 8px;
         }
+        :root[data-theme="light"] {
+            --cor-fundo: #faf8f2;
+            --cor-card: #ffffff;
+            --cor-borda: #e4dcc8;
+            --cor-texto: #1a1612;
+            --cor-texto-secundario: #7a6e5c;
+            --cor-primaria: #b8860b;
+            --cor-admin: #b8860b;
+            --cor-sucesso: #2a9d6e;
+            --cor-alerta: #e67e22;
+            --cor-perigo: #c0392b;
+            --sombra-suave: 0 2px 4px rgba(0,0,0,0.08);
+            --sombra-media: 0 6px 12px rgba(0,0,0,0.08);
+            --borda-radius: 12px;
+            --borda-radius-pequeno: 8px;
+        }
+        .btn-hd {
+            background: rgba(210,158,0,.12);
+            border-color: var(--cor-admin);
+            color: var(--cor-admin);
+        }
+        .btn-hd:hover { background: rgba(210,158,0,.25); }
 
         body {
             background: var(--cor-fundo);
@@ -68,7 +90,7 @@
         }
 
         .logo-text {
-            background: linear-gradient(90deg, var(--cor-admin), #2d8fff);
+            background: linear-gradient(90deg, #b78700, #eeb600);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
@@ -77,6 +99,8 @@
         .page-title {
             font-size: 20px;
             font-weight: bold;
+            flex: 1;
+            text-align: center;
         }
 
         .btn-voltar {
@@ -187,7 +211,7 @@
         }
 
         th {
-            background: rgba(26, 95, 180, 0.1);
+            background: rgba(210, 158, 0, 0.1);
             color: var(--cor-admin);
             font-weight: 600;
             position: sticky;
@@ -195,7 +219,7 @@
         }
 
         tr:hover {
-            background: rgba(26, 95, 180, 0.05);
+            background: rgba(210, 158, 0, 0.05);
         }
 
         .credito {
@@ -220,7 +244,7 @@
         }
 
         .btn-detalhe:hover {
-            background: #2d8fff;
+            background: #b07800;
             transform: translateY(-2px);
         }
 
@@ -312,7 +336,7 @@
         .detalhe-grupo {
             margin-bottom: 20px;
             padding: 15px;
-            background: rgba(26, 95, 180, 0.05);
+            background: rgba(210, 158, 0, 0.06);
             border-radius: var(--borda-radius-pequeno);
             border-left: 3px solid var(--cor-admin);
         }
@@ -421,10 +445,9 @@
     <div class="app-container">
         <header class="app-header">
             <div class="logo">
-                <i class="fas fa-university"></i>
-                <span class="logo-text">CAMBIO BANK</span>
+                <span class="logo-text"><strong>Link</strong> International</span>
             </div>
-            <h1 class="page-title">EXTRATO BANCÁRIO</h1>
+            <h1 class="page-title" style="background:linear-gradient(90deg,#b78700,#eeb600);-webkit-background-clip:text;background-clip:text;color:transparent;">Extrato Bancário</h1>
             <div class="hd-right">
                 <button id="btnTheme" onclick="toggleTheme()" class="btn-hd btn-hd-ghost" title="Alternar tema"><i class="fas fa-sun"></i></button>
                 <button class="btn-hd btn-hd-ghost" onclick="window.location.href='/admin/contas-bancarias'"><i class="fas fa-arrow-left"></i> Voltar</button>
@@ -448,7 +471,7 @@
 
         <div class="resumo-grid">
             <div class="resumo-card">
-                <div class="resumo-label">Saldo Atual</div>
+                <div class="resumo-label">Saldo Extrato</div>
                 <div class="resumo-valor" id="saldoAtual">R$ 0,00</div>
             </div>
             <div class="resumo-card">
@@ -463,6 +486,20 @@
                 <div class="resumo-label">Transações</div>
                 <div class="resumo-valor" id="totalTransacoes">0</div>
             </div>
+        </div>
+
+        <!-- ALERTA DE DIVERGÊNCIA (oculto por padrão) -->
+        <div id="alertaDivergencia" style="display:none;margin-bottom:20px;background:rgba(243,156,18,0.12);border:1px solid #f39c12;border-left:4px solid #f39c12;border-radius:10px;padding:16px 20px;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <i class="fas fa-exclamation-triangle" style="color:#f39c12;font-size:22px;flex-shrink:0;"></i>
+                <div>
+                    <div style="font-weight:700;color:#f39c12;margin-bottom:3px;">Divergência de Saldo Detectada</div>
+                    <div style="font-size:13px;color:#aaa;" id="alertaDivergenciaTexto">—</div>
+                </div>
+            </div>
+            <button onclick="abrirModalReconciliacao()" style="background:#f39c12;color:#000;border:none;padding:9px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap;flex-shrink:0;">
+                <i class="fas fa-search-dollar"></i> Reconciliar
+            </button>
         </div>
 
         <div class="tabela-container">
@@ -512,6 +549,22 @@
 
         <div class="footer-info">
             <i class="fas fa-info-circle"></i> Exibindo as transações mais recentes primeiro
+        </div>
+    </div>
+
+    <!-- MODAL DE RECONCILIAÇÃO -->
+    <div id="modalReconciliacao" class="modal">
+        <div class="modal-content" style="max-width:620px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-search-dollar"></i> Reconciliação de Saldo</h3>
+                <button class="modal-close" onclick="fecharModalReconciliacao()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalReconciliacaoBody">
+                <div style="text-align:center;padding:40px;color:#aaa;">
+                    <i class="fas fa-spinner fa-spin" style="font-size:28px;"></i>
+                    <p style="margin-top:12px;">Verificando saldo...</p>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -577,7 +630,8 @@
                     
                     atualizarInfoConta(data);
                     atualizarResumo(data);
-                    
+                    verificarDivergencia(data.saldo_final || 0, data.moeda || 'USD');
+
                     paginaAtual = 1;
                     transacoesExibidas = [];
                     carregarPagina();
@@ -1047,7 +1101,7 @@
             const cores = {
                 sucesso: { fundo: '#2ec27e', icone: 'fa-check-circle' },
                 erro: { fundo: '#e01b24', icone: 'fa-exclamation-circle' },
-                info: { fundo: '#1a5fb4', icone: 'fa-info-circle' }
+                info: { fundo: '#b07800', icone: 'fa-info-circle' }
             };
             
             const cor = cores[tipo] || cores.info;
@@ -1091,6 +1145,161 @@
             const modal = document.getElementById('modalDetalhes');
             if (event.target === modal) fecharModalDetalhes();
         });
+
+        // ─── RECONCILIAÇÃO ────────────────────────────────────────────
+
+        let saldoArmazenadoGlobal = null;
+        let moedaGlobal = 'USD';
+        let tabelaContaGlobal = 'contas';
+
+        async function verificarDivergencia(saldoExtrato, moeda) {
+            moedaGlobal = moeda;
+            try {
+                const r = await fetch(`/api/admin/contas/${contaNumero}/saldo-real`);
+                const d = await r.json();
+                if (!d.success) return;
+
+                saldoArmazenadoGlobal = d.saldo_armazenado;
+                tabelaContaGlobal = d.tabela || 'contas';
+                const divergencia = saldoExtrato - d.saldo_armazenado;
+                const alerta = document.getElementById('alertaDivergencia');
+
+                if (Math.abs(divergencia) < 0.005) {
+                    alerta.style.display = 'none';
+                    return;
+                }
+
+                const sim = obterSimboloMoeda(moeda);
+                document.getElementById('alertaDivergenciaTexto').innerHTML =
+                    `Saldo extrato: <strong>${sim} ${formatarValor(saldoExtrato)}</strong> &nbsp;·&nbsp; ` +
+                    `Saldo armazenado: <strong>${sim} ${formatarValor(d.saldo_armazenado)}</strong> &nbsp;·&nbsp; ` +
+                    `Diferença: <strong style="color:${divergencia > 0 ? '#2ec27e' : '#e01b24'}">${divergencia > 0 ? '+' : ''}${sim} ${formatarValor(Math.abs(divergencia))}</strong>`;
+                alerta.style.display = 'flex';
+            } catch(e) { console.warn('Erro ao verificar divergência:', e); }
+        }
+
+        function abrirModalReconciliacao() {
+            const modal = document.getElementById('modalReconciliacao');
+            const body  = document.getElementById('modalReconciliacaoBody');
+            modal.classList.add('active');
+
+            if (saldoArmazenadoGlobal === null) {
+                body.innerHTML = '<p style="padding:20px;color:#aaa;">Dados ainda não carregados.</p>';
+                return;
+            }
+
+            const saldoExtrato  = saldoFinalGlobal;
+            const saldoArmazena = saldoArmazenadoGlobal;
+            const divergencia   = saldoExtrato - saldoArmazena;
+            const sim           = obterSimboloMoeda(moedaGlobal);
+            const corDiv        = divergencia > 0 ? '#2ec27e' : '#e01b24';
+
+            // Transações cujo valor bate com a divergência (tolerância 1%)
+            const tol = Math.max(Math.abs(divergencia) * 0.01, 0.01);
+            const suspeitas = todasTransacoes.filter(t =>
+                Math.abs((t.credito || 0) - Math.abs(divergencia)) <= tol ||
+                Math.abs((t.debito  || 0) - Math.abs(divergencia)) <= tol
+            ).slice(0, 5);
+
+            const linhasSuspeitas = suspeitas.length
+                ? suspeitas.map(t => `
+                    <tr style="border-bottom:1px solid #1e232e;">
+                        <td style="padding:8px;">${formatarData(t.data)}</td>
+                        <td style="padding:8px;font-size:12px;">${(t.descricao || '').substring(0, 55)}</td>
+                        <td style="padding:8px;color:#2ec27e;text-align:right;">${t.credito > 0 ? sim+' '+formatarValor(t.credito) : ''}</td>
+                        <td style="padding:8px;color:#e01b24;text-align:right;">${t.debito  > 0 ? sim+' '+formatarValor(t.debito)  : ''}</td>
+                    </tr>`).join('')
+                : `<tr><td colspan="4" style="color:#8b949e;padding:12px;font-size:12px;">Nenhuma transação com valor exato encontrada no período exibido</td></tr>`;
+
+            body.innerHTML = `
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+                    <div style="background:var(--cor-fundo);border:1px solid var(--cor-borda);border-radius:8px;padding:14px;text-align:center;">
+                        <div style="font-size:11px;text-transform:uppercase;color:var(--cor-texto-secundario);margin-bottom:6px;">Saldo Extrato</div>
+                        <div style="font-size:19px;font-weight:700;color:var(--cor-texto);">${sim} ${formatarValor(saldoExtrato)}</div>
+                        <div style="font-size:11px;color:var(--cor-texto-secundario);margin-top:4px;">Soma de todas as transações</div>
+                    </div>
+                    <div style="background:var(--cor-fundo);border:1px solid var(--cor-borda);border-radius:8px;padding:14px;text-align:center;">
+                        <div style="font-size:11px;text-transform:uppercase;color:var(--cor-texto-secundario);margin-bottom:6px;">Saldo Armazenado</div>
+                        <div style="font-size:19px;font-weight:700;color:var(--cor-texto);">${sim} ${formatarValor(saldoArmazena)}</div>
+                        <div style="font-size:11px;color:var(--cor-texto-secundario);margin-top:4px;">Tabela contas (banco de dados)</div>
+                    </div>
+                </div>
+
+                <div style="background:${divergencia > 0 ? 'rgba(46,194,126,0.1)' : 'rgba(224,27,36,0.1)'};border:1px solid ${corDiv};border-radius:8px;padding:12px;text-align:center;margin-bottom:16px;">
+                    <div style="font-size:11px;color:var(--cor-texto-secundario);margin-bottom:3px;">Divergência</div>
+                    <div style="font-size:24px;font-weight:700;color:${corDiv};">${divergencia > 0 ? '+' : ''}${sim} ${formatarValor(Math.abs(divergencia))}</div>
+                    <div style="font-size:12px;color:var(--cor-texto-secundario);margin-top:6px;">
+                        ${divergencia > 0
+                            ? 'Extrato maior → uma transação pode ter sido gravada sem atualizar o saldo da conta.'
+                            : 'Extrato menor → o saldo pode ter sido ajustado manualmente sem lançamento correspondente.'}
+                    </div>
+                </div>
+
+                <div style="margin-bottom:16px;">
+                    <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--cor-texto-secundario);margin-bottom:8px;">
+                        <i class="fas fa-search"></i> Transações com valor igual à divergência
+                    </div>
+                    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        <thead>
+                            <tr style="background:rgba(210,158,0,.1);">
+                                <th style="padding:8px;text-align:left;color:#d29e00;">Data</th>
+                                <th style="padding:8px;text-align:left;color:#d29e00;">Descrição</th>
+                                <th style="padding:8px;text-align:right;color:#d29e00;">Crédito</th>
+                                <th style="padding:8px;text-align:right;color:#d29e00;">Débito</th>
+                            </tr>
+                        </thead>
+                        <tbody>${linhasSuspeitas}</tbody>
+                    </table>
+                </div>
+
+                <div style="background:rgba(224,27,36,0.08);border:1px solid #e01b24;border-radius:8px;padding:14px;">
+                    <div style="font-size:12px;font-weight:700;color:#e01b24;margin-bottom:6px;"><i class="fas fa-wrench"></i> Corrigir Saldo Armazenado</div>
+                    <div style="font-size:12px;color:var(--cor-texto-secundario);margin-bottom:10px;">
+                        Atualiza o campo <code>saldo</code> para <strong>${sim} ${formatarValor(saldoExtrato)}</strong>.
+                        Um registro de auditoria é salvo automaticamente para rastreabilidade.
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <input type="text" id="motivoCorrecao" placeholder="Motivo da correção (obrigatório)"
+                            style="flex:1;padding:8px 12px;background:var(--cor-fundo);border:1px solid var(--cor-borda);border-radius:6px;color:var(--cor-texto);font-size:13px;min-width:200px;">
+                        <button onclick="confirmarCorrecaoSaldo(${saldoExtrato}, ${saldoArmazena})"
+                            style="background:#e01b24;color:#fff;border:none;padding:9px 18px;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap;">
+                            <i class="fas fa-wrench"></i> Corrigir
+                        </button>
+                    </div>
+                </div>`;
+        }
+
+        function fecharModalReconciliacao() {
+            document.getElementById('modalReconciliacao').classList.remove('active');
+        }
+
+        async function confirmarCorrecaoSaldo(novoSaldo, saldoAntes) {
+            const motivo = (document.getElementById('motivoCorrecao').value || '').trim();
+            if (!motivo) { alert('Informe o motivo da correção.'); return; }
+            if (!confirm(`Confirma a correção do saldo de ${formatarValor(saldoAntes)} → ${formatarValor(novoSaldo)} ${moedaGlobal}?`)) return;
+
+            try {
+                const r = await fetch(`/api/admin/contas/${contaNumero}/corrigir-saldo`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ novo_saldo: novoSaldo, saldo_antes: saldoAntes, motivo, tabela: tabelaContaGlobal })
+                });
+                const d = await r.json();
+                if (d.success) {
+                    fecharModalReconciliacao();
+                    saldoArmazenadoGlobal = novoSaldo;
+                    document.getElementById('alertaDivergencia').style.display = 'none';
+                    alert('✅ Saldo corrigido com sucesso!');
+                } else {
+                    alert('Erro: ' + d.message);
+                }
+            } catch(e) { alert('Erro ao corrigir saldo.'); }
+        }
+
+        document.getElementById('modalReconciliacao').addEventListener('click', function(e) {
+            if (e.target === this) fecharModalReconciliacao();
+        });
+
     </script>
     <script src="/static/js/theme.js"></script>
     <script src="/static/js/conta_search.js"></script>
