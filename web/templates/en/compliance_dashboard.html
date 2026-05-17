@@ -478,7 +478,13 @@
         <div class="nav-section-lbl">B2B</div>
         <a href="/compliance/b2b/dashboard" class="nav-item">
             <i class="fas fa-building"></i> B2B Dashboard
-        </a>         
+        </a>
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Support</div>
+        <div class="nav-item" onclick="window.location.href='/admin/chamados'">
+            <i class="fas fa-headset"></i> Support Tickets
+            <span class="nav-badge" id="badgeChamadosCplEn" style="display:none;background:#e01b24"></span>
+        </div>
     </nav>
 
     <!-- ── Content Area ── -->
@@ -2790,6 +2796,36 @@ async function loadEddCount() {
     } catch(e) {}
 }
 
+let _cplEnChamAudioCtx = null;
+function _cplEnNotifySound() {
+    try {
+        if (!_cplEnChamAudioCtx) _cplEnChamAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = _cplEnChamAudioCtx.createOscillator();
+        const gain = _cplEnChamAudioCtx.createGain();
+        osc.connect(gain); gain.connect(_cplEnChamAudioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, _cplEnChamAudioCtx.currentTime);
+        osc.frequency.setValueAtTime(1100, _cplEnChamAudioCtx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.08, _cplEnChamAudioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, _cplEnChamAudioCtx.currentTime + 0.4);
+        osc.start(_cplEnChamAudioCtx.currentTime);
+        osc.stop(_cplEnChamAudioCtx.currentTime + 0.4);
+    } catch(e) {}
+}
+let _prevBadgeChamadosCplEn = -1;
+async function carregarBadgeChamadosCplEn() {
+    try {
+        const r = await fetch('/api/chamados/badges');
+        const d = await r.json();
+        if (!d.success) return;
+        const n = d.nao_lidos || 0;
+        const el = document.getElementById('badgeChamadosCplEn');
+        if (el) { el.textContent = n; el.style.display = n > 0 ? 'inline' : 'none'; }
+        if (_prevBadgeChamadosCplEn >= 0 && n > _prevBadgeChamadosCplEn) _cplEnNotifySound();
+        _prevBadgeChamadosCplEn = n;
+    } catch(e) {}
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     carregarOrdens();
     carregarStats();
@@ -2798,8 +2834,10 @@ document.addEventListener('DOMContentLoaded', function() {
     carregarExpirando();
     carregarSanctions();
     loadEddCount();
+    carregarBadgeChamadosCplEn();
     setInterval(function() { carregarStats(); }, 30000);
     setInterval(loadEddCount, 60000);
+    setInterval(carregarBadgeChamadosCplEn, 15000);
 });
 
 // ============================================

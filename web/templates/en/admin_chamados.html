@@ -169,7 +169,13 @@
         <option value="baixa">Low</option>
     </select>
     <input type="text" id="filtroCliente" placeholder="Search client..." oninput="aplicarFiltros()">
+    <button id="btnMeusChamados" onclick="toggleMeusChamados(this)" class="btn-hd btn-hd-ghost" style="font-size:12px;padding:5px 12px" title="View only tickets assigned to me">
+        <i class="fas fa-user-tag"></i> Mine
+    </button>
     <span class="badge-count" id="totalCount">0 tickets</span>
+    <button id="btnRefresh" onclick="carregarChamados()" class="btn-hd btn-hd-ghost" style="padding:5px 10px;margin-left:auto" title="Refresh now">
+        <i class="fas fa-rotate-right"></i>
+    </button>
 </div>
 
 <div class="main-layout">
@@ -182,6 +188,11 @@
             <p>Select a ticket to view</p>
         </div>
         <div id="detalheConteudo" style="display:none;flex-direction:column;flex:1;overflow:hidden">
+            {% if tipo in ('compliance', 'compliance_gerente') %}
+            <div style="background:rgba(155,89,182,.09);border-bottom:1px solid rgba(155,89,182,.22);padding:8px 24px;font-size:13px;color:#9b59b6;display:flex;align-items:center;gap:8px;flex-shrink:0">
+                <i class="fas fa-eye"></i> <strong>Supervision mode</strong> — only internal notes allowed
+            </div>
+            {% endif %}
             <div class="detalhe-header">
                 <div class="detalhe-header-top">
                     <div class="detalhe-titulo-wrap">
@@ -228,8 +239,21 @@
 </div>
 
 <script>
+const USER_TIPO = '{{ tipo }}';
+const IS_COMPLIANCE = USER_TIPO === 'compliance' || USER_TIPO === 'compliance_gerente';
+const PODE_GERIR = ['admin', 'backoffice_gerente'].includes(USER_TIPO);
+
 let todosOsChamados = [];
 let chamadoAtual = null;
+let _meusAtivos = false;
+
+function toggleMeusChamados(btn) {
+    _meusAtivos = !_meusAtivos;
+    btn.style.background = _meusAtivos ? 'rgba(210,158,0,.2)' : '';
+    btn.style.borderColor = _meusAtivos ? 'var(--cor-admin)' : '';
+    btn.style.color = _meusAtivos ? 'var(--cor-admin)' : '';
+    carregarChamados();
+}
 
 const STATUS_LABEL = {
     aberto:'Open', em_atendimento:'In progress',
@@ -266,6 +290,7 @@ async function carregarChamados() {
     const prioridade = document.getElementById('filtroPrioridade').value;
     const cliente = document.getElementById('filtroCliente').value;
     let url = '/api/chamados/lista?';
+    if (_meusAtivos) url += `meus=1&`;
     if (status) url += `status=${status}&`;
     if (prioridade) url += `prioridade=${prioridade}&`;
     if (cliente) url += `cliente=${encodeURIComponent(cliente)}&`;
@@ -414,6 +439,16 @@ async function atribuirChamado() {
 document.addEventListener('DOMContentLoaded', () => {
     carregarChamados();
     setInterval(carregarChamados, 30000);
+
+    if (IS_COMPLIANCE) {
+        const chk = document.getElementById('checkNota');
+        if (chk) { chk.checked = true; chk.disabled = true; }
+        const selStatus = document.getElementById('selectStatus');
+        if (selStatus) selStatus.disabled = true;
+        const selAtrib = document.getElementById('inputAtribuir');
+        if (selAtrib) selAtrib.disabled = true;
+        document.querySelectorAll('[onclick="atribuirChamado()"]').forEach(b => b.disabled = true);
+    }
 });
 </script>
 <script src="/static/js/theme.js"></script>

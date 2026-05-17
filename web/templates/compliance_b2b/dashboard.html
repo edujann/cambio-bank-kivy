@@ -196,6 +196,12 @@
         <a class="nav-item" href="/compliance/b2b/paises"><i class="fas fa-earth-americas"></i> Countries</a>
         <a class="nav-item" href="/compliance/b2b/risk-config"><i class="fas fa-gear"></i> Risk Config</a>
         <a class="nav-item" href="/compliance/b2b/structuring-config"><i class="fas fa-wave-square"></i> AML Rules</a>
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Support</div>
+        <a class="nav-item" href="/admin/chamados">
+            <i class="fas fa-headset"></i> Support Tickets
+            <span class="nav-badge" id="badgeChamadosB2B" style="display:none"></span>
+        </a>
     </nav>
 
     <!-- CONTENT -->
@@ -494,6 +500,39 @@ load();
 <script>
 function toggleTheme(){var next=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',next);localStorage.setItem('theme',next);var ic=document.querySelector('#btnTheme i');if(ic)ic.className=next==='light'?'fas fa-moon':'fas fa-sun';}
 document.addEventListener('DOMContentLoaded',function(){var t=document.documentElement.getAttribute('data-theme')||'light';var ic=document.querySelector('#btnTheme i');if(ic)ic.className=t==='light'?'fas fa-moon':'fas fa-sun';});
+</script>
+<script>
+(function(){
+    let _b2bChamAudioCtx = null;
+    function _b2bNotify() {
+        try {
+            if (!_b2bChamAudioCtx) _b2bChamAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = _b2bChamAudioCtx.createOscillator(), gain = _b2bChamAudioCtx.createGain();
+            osc.connect(gain); gain.connect(_b2bChamAudioCtx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, _b2bChamAudioCtx.currentTime);
+            osc.frequency.setValueAtTime(1100, _b2bChamAudioCtx.currentTime + 0.12);
+            gain.gain.setValueAtTime(0.08, _b2bChamAudioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, _b2bChamAudioCtx.currentTime + 0.4);
+            osc.start(_b2bChamAudioCtx.currentTime);
+            osc.stop(_b2bChamAudioCtx.currentTime + 0.4);
+        } catch(e) {}
+    }
+    let _prev = -1;
+    async function poll() {
+        try {
+            const d = await fetch('/api/chamados/badges').then(r => r.json());
+            if (!d.success) return;
+            const n = d.nao_lidos || 0;
+            const el = document.getElementById('badgeChamadosB2B');
+            if (el) { el.textContent = n; el.style.display = n > 0 ? 'inline' : 'none'; }
+            if (_prev >= 0 && n > _prev) _b2bNotify();
+            _prev = n;
+        } catch(e) {}
+    }
+    poll();
+    setInterval(poll, 15000);
+})();
 </script>
 </body>
 </html>

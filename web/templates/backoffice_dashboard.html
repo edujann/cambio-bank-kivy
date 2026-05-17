@@ -163,6 +163,10 @@
         </span>
         <button class="btn-hd btn-hd-ghost" onclick="abrirModalSenha()" title="Alterar Senha"><i class="fas fa-key"></i></button>
         <button id="btnTheme" onclick="toggleTheme()" title="Alternar tema"><i class="fas fa-moon"></i></button>
+        <button class="btn-hd btn-hd-ghost" onclick="window.location.href='/admin/chamados'" title="Chamados de Suporte" style="position:relative">
+            <i class="fas fa-headset"></i>
+            <span id="badgeChamadosBO" style="display:none;position:absolute;top:-4px;right:-4px;background:#e01b24;color:#fff;font-size:9px;padding:1px 5px;border-radius:10px;font-weight:700;pointer-events:none;line-height:1.4"></span>
+        </button>
         <button class="btn-hd" onclick="sair()"><i class="fas fa-right-from-bracket"></i> Sair</button>
     </div>
 </div>
@@ -718,11 +722,44 @@
         window.location.href='/login';
     }
 
+    // ── CHAMADOS BADGE ─────────────────────────────────────────
+    let _boChamAudioCtx = null;
+    function _boNotifySound() {
+        try {
+            if (!_boChamAudioCtx) _boChamAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = _boChamAudioCtx.createOscillator();
+            const gain = _boChamAudioCtx.createGain();
+            osc.connect(gain); gain.connect(_boChamAudioCtx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, _boChamAudioCtx.currentTime);
+            osc.frequency.setValueAtTime(1100, _boChamAudioCtx.currentTime + 0.12);
+            gain.gain.setValueAtTime(0.08, _boChamAudioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, _boChamAudioCtx.currentTime + 0.4);
+            osc.start(_boChamAudioCtx.currentTime);
+            osc.stop(_boChamAudioCtx.currentTime + 0.4);
+        } catch(e) {}
+    }
+    let _prevBadgeChamadosBO = -1;
+    async function carregarBadgeChamadosBO() {
+        try {
+            const r = await fetch('/api/chamados/badges');
+            const d = await r.json();
+            if (!d.success) return;
+            const n = d.nao_lidos || 0;
+            const el = document.getElementById('badgeChamadosBO');
+            if (el) { el.textContent = n; el.style.display = n > 0 ? 'inline' : 'none'; }
+            if (_prevBadgeChamadosBO >= 0 && n > _prevBadgeChamadosBO) _boNotifySound();
+            _prevBadgeChamadosBO = n;
+        } catch(e) {}
+    }
+
     // ── INIT ───────────────────────────────────────────────────
     carregarResumo();
     carregarOnHold();
     carregarEmAnalise();
+    carregarBadgeChamadosBO();
     setInterval(carregarResumo, 60000);
+    setInterval(carregarBadgeChamadosBO, 15000);
 </script>
 </body>
 </html>

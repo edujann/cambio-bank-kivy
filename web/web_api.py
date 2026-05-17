@@ -21862,14 +21862,30 @@ def pagina_chamados():
         nome=session.get('nome', session.get('username')),
         email=session.get('email', ''))
 
+_CHAMADOS_STAFF    = ('admin', 'backoffice', 'backoffice_gerente', 'compliance', 'compliance_gerente')
+_CHAMADOS_RESPONDE = ('admin', 'backoffice', 'backoffice_gerente')
+_CHAMADOS_GESTAO   = ('admin', 'backoffice', 'backoffice_gerente')
+_CHAMADOS_ATRIBUI  = ('admin', 'backoffice_gerente')
+
 @app.route('/admin/chamados')
 def pagina_admin_chamados():
     if 'username' not in session:
         return redirect('/login')
+    tipo = session.get('tipo', '')
+    if tipo not in _CHAMADOS_STAFF:
+        try:
+            r = supabase.table('usuarios').select('tipo').eq('username', session['username']).single().execute()
+            tipo = r.data.get('tipo', '') if r.data else ''
+            if tipo not in _CHAMADOS_STAFF:
+                return redirect('/login')
+            session['tipo'] = tipo
+        except Exception:
+            return redirect('/login')
     return render_with_lang('admin_chamados.html',
         usuario=session.get('username'),
         nome=session.get('nome', session.get('username')),
-        email=session.get('email', ''))
+        email=session.get('email', ''),
+        tipo=tipo)
 
 @app.route('/api/chamados/badges')
 def api_chamados_badges():
@@ -21883,7 +21899,7 @@ def api_chamados_badges():
         user_info = supabase.table('usuarios').select('tipo').eq('username', username).single().execute()
         tipo = user_info.data.get('tipo', 'cliente') if user_info.data else 'cliente'
         
-        if tipo in ('admin', 'backoffice', 'backoffice_gerente'):
+        if tipo in _CHAMADOS_STAFF:
             res = supabase.table('chamados_mensagens').select('id', count='exact')\
                 .eq('lida_admin', False).eq('autor_tipo', 'cliente').execute()
             nao_lidos = res.count or 0
@@ -21931,8 +21947,9 @@ def api_chamados_lista():
 
         q = supabase.table('chamados').select('*').order('updated_at', desc=True)
         
-        if tipo != 'admin':
-            # 🔥 MIGRADO: usar cliente_id (se disponível), fallback para cliente_username
+        meus_filter = request.args.get('meus', '')
+        if tipo not in _CHAMADOS_STAFF:
+            # Cliente: vê apenas os seus chamados
             if user_id:
                 q = q.eq('cliente_id', user_id)
             else:
@@ -21942,9 +21959,9 @@ def api_chamados_lista():
                 q = q.eq('status', status_filter)
             if prioridade_filter:
                 q = q.eq('prioridade', prioridade_filter)
-            if cliente_filter:
-                # 🔥 Admin filtrando: tenta por cliente_id ou cliente_username
-                # Buscar o cliente_id pelo username
+            if meus_filter:
+                q = q.eq('atribuido_a', username)
+            elif cliente_filter:
                 cliente_lookup = supabase.table('usuarios')\
                     .select('id')\
                     .eq('username', cliente_filter)\
@@ -21956,8 +21973,8 @@ def api_chamados_lista():
         
         res = q.execute()
 
-        # Auto-fechar chamados resolvidos há mais de 3 dias (somente admin)
-        if tipo == 'admin':
+        # Auto-fechar chamados resolvidos há mais de 3 dias
+        if tipo in _CHAMADOS_GESTAO:
             try:
                 from datetime import datetime as _dt2, timedelta as _td2
                 _cutoff = (_dt2.utcnow() - _td2(days=3)).isoformat()
@@ -22063,36 +22080,32 @@ def api_chamados_detalhe(chamado_id):
         # 🔥 MIGRADO: verificar permissão usando cliente_id
         tem_permissao = False
         
-        if tipo == 'admin':
+        if tipo in _CHAMADOS_STAFF:
             tem_permissao = True
         else:
-            # Verifica por cliente_id primeiro
             if user_id and chamado.data.get('cliente_id') == user_id:
                 tem_permissao = True
-            # Fallback: verifica por cliente_username
             elif chamado.data.get('cliente_username') == username:
                 tem_permissao = True
-        
+
         if not tem_permissao:
             return jsonify({'success': False, 'error': 'Acesso negado'}), 403
-        
+
         msgs_q = supabase.table('chamados_mensagens').select('*').eq('chamado_id', chamado_id).order('created_at').execute()
         mensagens = msgs_q.data or []
-        
-        # Filtrar notas internas para clientes
-        if tipo != 'admin':
+
+        if tipo not in _CHAMADOS_STAFF:
+            # Cliente: sem notas internas, marca como lida
             mensagens = [m for m in mensagens if not m.get('is_nota_interna')]
-            # Marcar como lidas pelo cliente (só se houver mensagens não lidas)
             nao_lidas = [m for m in mensagens if not m.get('lida_cliente') and m.get('autor_tipo') == 'admin']
             if nao_lidas:
                 supabase.table('chamados_mensagens').update({'lida_cliente': True})\
                     .eq('chamado_id', chamado_id).eq('autor_tipo', 'admin').execute()
-                # Atualizar updated_at para o polling do admin detectar a mudança de recibo
                 from datetime import datetime as _dt_r
                 supabase.table('chamados').update({'updated_at': _dt_r.utcnow().isoformat()})\
                     .eq('id', chamado_id).execute()
         else:
-            # Marcar como lidas pelo admin (só se houver mensagens não lidas)
+            # Staff: marca mensagens do cliente como lidas
             nao_lidas = [m for m in mensagens if not m.get('lida_admin') and m.get('autor_tipo') == 'cliente' and not m.get('is_nota_interna')]
             if nao_lidas:
                 supabase.table('chamados_mensagens').update({'lida_admin': True})\
@@ -22129,47 +22142,55 @@ def api_chamados_mensagem(chamado_id):
         if not chamado.data:
             return jsonify({'success': False, 'error': 'Chamado não encontrado'}), 404
         
-        # 🔥 MIGRADO: verificar permissão usando cliente_id
         tem_permissao = False
-        
-        if tipo == 'admin':
+        if tipo in _CHAMADOS_STAFF:
             tem_permissao = True
         else:
             if user_id and chamado.data.get('cliente_id') == user_id:
                 tem_permissao = True
             elif chamado.data.get('cliente_username') == username:
                 tem_permissao = True
-        
+
         if not tem_permissao:
             return jsonify({'success': False, 'error': 'Acesso negado'}), 403
-        
+
+        is_staff = tipo in _CHAMADOS_STAFF
+        # Compliance só pode enviar notas internas
+        if tipo in ('compliance', 'compliance_gerente') and not is_nota:
+            return jsonify({'success': False, 'error': 'Compliance só pode adicionar notas internas'}), 403
+
         if chamado.data['status'] in ('resolvido', 'fechado'):
             return jsonify({'success': False, 'error': 'Chamado encerrado'}), 400
-        
+
         agora = datetime.utcnow().isoformat()
         supabase.table('chamados_mensagens').insert({
             'chamado_id': chamado_id,
-            'autor_tipo': tipo if tipo == 'admin' else 'cliente',
+            'autor_tipo': 'admin' if is_staff else 'cliente',
             'autor_nome': nome,
             'mensagem': mensagem,
-            'is_nota_interna': is_nota if tipo == 'admin' else False,
-            'lida_admin': tipo == 'admin',
-            'lida_cliente': tipo != 'admin',
+            'is_nota_interna': is_nota if is_staff else False,
+            'lida_admin': is_staff,
+            'lida_cliente': not is_staff,
             'created_at': agora
         }).execute()
-        
+
         novo_status = chamado.data['status']
-        if tipo == 'admin' and chamado.data['status'] == 'aberto':
+        if is_staff and not is_nota:
+            if chamado.data['status'] == 'aberto':
+                novo_status = 'em_atendimento'
+        elif not is_staff and chamado.data['status'] == 'aguardando_cliente':
             novo_status = 'em_atendimento'
-        elif tipo != 'admin' and chamado.data['status'] == 'aguardando_cliente':
-            novo_status = 'em_atendimento'
-        
-        supabase.table('chamados').update({
+
+        update_data = {
             'updated_at': agora,
             'status': novo_status,
             'total_mensagens': (chamado.data.get('total_mensagens') or 0) + 1
-        }).eq('id', chamado_id).execute()
-        
+        }
+        # Auto-atribuição: backoffice envia ao cliente e chamado está sem dono
+        if tipo in ('backoffice', 'backoffice_gerente') and not is_nota and not chamado.data.get('atribuido_a'):
+            update_data['atribuido_a'] = username
+
+        supabase.table('chamados').update(update_data).eq('id', chamado_id).execute()
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': _err(e)}), 500
@@ -22180,7 +22201,7 @@ def api_chamados_status(chamado_id):
         return jsonify({'success': False}), 401
     try:
         user_info = supabase.table('usuarios').select('tipo').eq('username', session['username']).single().execute()
-        if not user_info.data or user_info.data.get('tipo') not in ('admin', 'backoffice_gerente'):
+        if not user_info.data or user_info.data.get('tipo') not in _CHAMADOS_GESTAO:
             return jsonify({'success': False, 'error': 'Acesso negado'}), 403
         data = request.get_json()
         novo_status = data.get('status')

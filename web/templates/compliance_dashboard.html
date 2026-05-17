@@ -528,7 +528,13 @@
         <div class="nav-section-lbl">B2B</div>
         <a href="/compliance/b2b/dashboard" class="nav-item">
             <i class="fas fa-building"></i> B2B Dashboard
-        </a>        
+        </a>
+        <div class="nav-divider"></div>
+        <div class="nav-section-lbl">Suporte</div>
+        <div class="nav-item" onclick="window.location.href='/admin/chamados'">
+            <i class="fas fa-headset"></i> Chamados
+            <span class="nav-badge" id="badgeChamadosCpl" style="display:none;background:#e01b24"></span>
+        </div>
     </nav>
 
     <!-- ── Content Area ── -->
@@ -2895,6 +2901,36 @@ async function loadEddCount() {
     } catch(e) {}
 }
 
+let _cplChamAudioCtx = null;
+function _cplNotifySound() {
+    try {
+        if (!_cplChamAudioCtx) _cplChamAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = _cplChamAudioCtx.createOscillator();
+        const gain = _cplChamAudioCtx.createGain();
+        osc.connect(gain); gain.connect(_cplChamAudioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, _cplChamAudioCtx.currentTime);
+        osc.frequency.setValueAtTime(1100, _cplChamAudioCtx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.08, _cplChamAudioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, _cplChamAudioCtx.currentTime + 0.4);
+        osc.start(_cplChamAudioCtx.currentTime);
+        osc.stop(_cplChamAudioCtx.currentTime + 0.4);
+    } catch(e) {}
+}
+let _prevBadgeChamadosCpl = -1;
+async function carregarBadgeChamadosCpl() {
+    try {
+        const r = await fetch('/api/chamados/badges');
+        const d = await r.json();
+        if (!d.success) return;
+        const n = d.nao_lidos || 0;
+        const el = document.getElementById('badgeChamadosCpl');
+        if (el) { el.textContent = n; el.style.display = n > 0 ? 'inline' : 'none'; }
+        if (_prevBadgeChamadosCpl >= 0 && n > _prevBadgeChamadosCpl) _cplNotifySound();
+        _prevBadgeChamadosCpl = n;
+    } catch(e) {}
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     carregarOrdens();
     carregarStats();
@@ -2903,8 +2939,10 @@ document.addEventListener('DOMContentLoaded', function() {
     carregarExpirando();
     carregarSanctions();
     loadEddCount();
+    carregarBadgeChamadosCpl();
     setInterval(function() { carregarStats(); }, 30000);
     setInterval(loadEddCount, 60000);
+    setInterval(carregarBadgeChamadosCpl, 15000);
 });
 
 // ============================================

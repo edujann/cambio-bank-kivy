@@ -346,6 +346,9 @@
         <option value="baixa">Baixa</option>
     </select>
     <input type="text" id="filtroCliente" placeholder="Buscar cliente..." oninput="aplicarFiltros()">
+    <button id="btnMeusChamados" onclick="toggleMeusChamados(this)" class="btn-hd btn-hd-ghost" style="font-size:12px;padding:5px 12px" title="Ver apenas chamados atribuídos a mim">
+        <i class="fas fa-user-tag"></i> Meus
+    </button>
     <span class="badge-count" id="totalCount">0 chamados</span>
     <span id="lastUpdate" style="font-size:11px;color:var(--cor-texto-sec);display:flex;align-items:center;gap:5px;margin-left:auto;white-space:nowrap">
         <i class="fas fa-circle" style="font-size:6px;color:var(--cor-sucesso)"></i> ao vivo
@@ -398,6 +401,12 @@
                     <i class="fas fa-search"></i> Buscar
                 </button>
             </div>
+            <!-- Banner compliance -->
+            {% if tipo in ('compliance', 'compliance_gerente') %}
+            <div style="background:rgba(155,89,182,.09);border-bottom:1px solid rgba(155,89,182,.22);padding:8px 24px;font-size:13px;color:#9b59b6;display:flex;align-items:center;gap:8px;flex-shrink:0">
+                <i class="fas fa-eye"></i> <strong>Modo supervisão</strong> — apenas notas internas permitidas
+            </div>
+            {% endif %}
             <!-- Busca no histórico -->
             <div class="busca-chat-bar" id="buscaChatBar" style="display:none">
                 <i class="fas fa-search" style="color:var(--cor-texto-sec);font-size:13px;flex-shrink:0"></i>
@@ -452,6 +461,10 @@
 </div>
 
 <script>
+const USER_TIPO = '{{ tipo }}';
+const IS_COMPLIANCE = USER_TIPO === 'compliance' || USER_TIPO === 'compliance_gerente';
+const PODE_GERIR = ['admin', 'backoffice_gerente'].includes(USER_TIPO);
+
 let todosOsChamados = [];
 let chamadoAtual = null;
 let _lastRefreshTime = Date.now();
@@ -612,7 +625,8 @@ async function carregarChamados() {
     let url = '/api/chamados/lista?';
     if (status) url += `status=${status}&`;
     if (prioridade) url += `prioridade=${prioridade}&`;
-    if (cliente) url += `cliente=${encodeURIComponent(cliente)}&`;
+    if (_meusAtivos) url += `meus=1&`;
+    else if (cliente) url += `cliente=${encodeURIComponent(cliente)}&`;
     try {
         const r = await fetch(url);
         const d = await r.json();
@@ -655,6 +669,15 @@ async function recarregarMensagens() {
             }
         }
     } catch(e) {}
+}
+
+let _meusAtivos = false;
+function toggleMeusChamados(btn) {
+    _meusAtivos = !_meusAtivos;
+    btn.style.background = _meusAtivos ? 'rgba(210,158,0,.2)' : '';
+    btn.style.borderColor = _meusAtivos ? 'var(--cor-admin)' : '';
+    btn.style.color = _meusAtivos ? 'var(--cor-admin)' : '';
+    carregarChamados();
 }
 
 function aplicarFiltros() { carregarChamados(); }
@@ -1015,6 +1038,17 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(atualizarTimestamps, 60000);
     setInterval(atualizarContadorRefresh, 1000);
     window.addEventListener('focus', () => { atualizarTimestamps(); carregarChamados(); });
+
+    if (IS_COMPLIANCE) {
+        // Compliance: força nota interna e bloqueia controles de gestão
+        const chk = document.getElementById('checkNota');
+        if (chk) { chk.checked = true; chk.disabled = true; }
+        const selStatus = document.getElementById('selectStatus');
+        if (selStatus) selStatus.disabled = true;
+        const selAtrib = document.getElementById('selectAtribuir');
+        if (selAtrib) selAtrib.disabled = true;
+        document.querySelectorAll('[onclick="atribuirChamado()"]').forEach(b => b.disabled = true);
+    }
 });
 </script>
 <script src="/static/js/theme.js"></script>
