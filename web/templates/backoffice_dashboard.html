@@ -727,16 +727,17 @@
     function _boNotifySound() {
         try {
             if (!_boChamAudioCtx) _boChamAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = _boChamAudioCtx.createOscillator();
-            const gain = _boChamAudioCtx.createGain();
-            osc.connect(gain); gain.connect(_boChamAudioCtx.destination);
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(880, _boChamAudioCtx.currentTime);
-            osc.frequency.setValueAtTime(1100, _boChamAudioCtx.currentTime + 0.12);
-            gain.gain.setValueAtTime(0.08, _boChamAudioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, _boChamAudioCtx.currentTime + 0.4);
-            osc.start(_boChamAudioCtx.currentTime);
-            osc.stop(_boChamAudioCtx.currentTime + 0.4);
+            const ctx = _boChamAudioCtx;
+            [[1046, 0, 0.45], [1318, 0.18, 0.6]].forEach(([freq, delay, dur]) => {
+                const osc = ctx.createOscillator(), gain = ctx.createGain();
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.type = 'sine'; osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.001, ctx.currentTime + delay);
+                gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + delay + 0.01);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + dur);
+                osc.start(ctx.currentTime + delay);
+                osc.stop(ctx.currentTime + delay + dur);
+            });
         } catch(e) {}
     }
     let _prevBadgeChamadosBO = -1;

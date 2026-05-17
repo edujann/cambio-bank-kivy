@@ -355,16 +355,17 @@ let _audioCtx = null;
 function notifySound() {
     try {
         if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = _audioCtx.createOscillator();
-        const gain = _audioCtx.createGain();
-        osc.connect(gain); gain.connect(_audioCtx.destination);
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, _audioCtx.currentTime);
-        osc.frequency.setValueAtTime(1100, _audioCtx.currentTime + 0.12);
-        gain.gain.setValueAtTime(0.08, _audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, _audioCtx.currentTime + 0.4);
-        osc.start(_audioCtx.currentTime);
-        osc.stop(_audioCtx.currentTime + 0.4);
+        const ctx = _audioCtx;
+        [[1046, 0, 0.45], [1318, 0.18, 0.6]].forEach(([freq, delay, dur]) => {
+            const osc = ctx.createOscillator(), gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.type = 'sine'; osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.001, ctx.currentTime + delay);
+            gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + delay + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + dur);
+            osc.start(ctx.currentTime + delay);
+            osc.stop(ctx.currentTime + delay + dur);
+        });
     } catch(e) {}
 }
 
@@ -504,7 +505,7 @@ function receiptHtml(m) {
     if (m.autor_tipo !== 'cliente') return '';
     return m.lida_admin
         ? `<span class="msg-receipt read" title="Lida pelo suporte"><i class="fas fa-check-double"></i></span>`
-        : `<span class="msg-receipt sent" title="Enviada"><i class="fas fa-check"></i></span>`;
+        : `<span class="msg-receipt sent" title="Enviada"><i class="fas fa-check-double"></i></span>`;
 }
 
 function renderMensagens(msgs) {

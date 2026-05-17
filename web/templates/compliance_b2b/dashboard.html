@@ -507,15 +507,17 @@ document.addEventListener('DOMContentLoaded',function(){var t=document.documentE
     function _b2bNotify() {
         try {
             if (!_b2bChamAudioCtx) _b2bChamAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = _b2bChamAudioCtx.createOscillator(), gain = _b2bChamAudioCtx.createGain();
-            osc.connect(gain); gain.connect(_b2bChamAudioCtx.destination);
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(880, _b2bChamAudioCtx.currentTime);
-            osc.frequency.setValueAtTime(1100, _b2bChamAudioCtx.currentTime + 0.12);
-            gain.gain.setValueAtTime(0.08, _b2bChamAudioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, _b2bChamAudioCtx.currentTime + 0.4);
-            osc.start(_b2bChamAudioCtx.currentTime);
-            osc.stop(_b2bChamAudioCtx.currentTime + 0.4);
+            const ctx = _b2bChamAudioCtx;
+            [[1046, 0, 0.45], [1318, 0.18, 0.6]].forEach(([freq, delay, dur]) => {
+                const osc = ctx.createOscillator(), gain = ctx.createGain();
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.type = 'sine'; osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.001, ctx.currentTime + delay);
+                gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + delay + 0.01);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + dur);
+                osc.start(ctx.currentTime + delay);
+                osc.stop(ctx.currentTime + delay + dur);
+            });
         } catch(e) {}
     }
     let _prev = -1;

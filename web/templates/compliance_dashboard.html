@@ -2905,16 +2905,17 @@ let _cplChamAudioCtx = null;
 function _cplNotifySound() {
     try {
         if (!_cplChamAudioCtx) _cplChamAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = _cplChamAudioCtx.createOscillator();
-        const gain = _cplChamAudioCtx.createGain();
-        osc.connect(gain); gain.connect(_cplChamAudioCtx.destination);
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, _cplChamAudioCtx.currentTime);
-        osc.frequency.setValueAtTime(1100, _cplChamAudioCtx.currentTime + 0.12);
-        gain.gain.setValueAtTime(0.08, _cplChamAudioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, _cplChamAudioCtx.currentTime + 0.4);
-        osc.start(_cplChamAudioCtx.currentTime);
-        osc.stop(_cplChamAudioCtx.currentTime + 0.4);
+        const ctx = _cplChamAudioCtx;
+        [[1046, 0, 0.45], [1318, 0.18, 0.6]].forEach(([freq, delay, dur]) => {
+            const osc = ctx.createOscillator(), gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.type = 'sine'; osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.001, ctx.currentTime + delay);
+            gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + delay + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + dur);
+            osc.start(ctx.currentTime + delay);
+            osc.stop(ctx.currentTime + delay + dur);
+        });
     } catch(e) {}
 }
 let _prevBadgeChamadosCpl = -1;
