@@ -12060,7 +12060,8 @@ def _despacho_numero_para_ordem(ordem_id):
 
 
 def _auto_fechar_fechamento(fechamento_id):
-    """Fecha automaticamente um fechamento quando todos os despachos vinculados estão pagos."""
+    """Fecha automaticamente um fechamento quando todos os despachos vinculados estão pagos
+    E todo o USD estimado foi consumido em despachos (sem sobra não alocada)."""
     try:
         fech_r = supabase.table('fx_fechamentos').select(
             'id,status,taxa_usd_brl,valor_usd_estimado,parceiro_username'
@@ -12068,13 +12069,19 @@ def _auto_fechar_fechamento(fechamento_id):
         if not fech_r.data or fech_r.data['status'] == 'fechado':
             return
         # Todos os despachos vinculados a este fechamento
-        df_r = supabase.table('despacho_fechamentos').select('despacho_id').eq('fechamento_id', fechamento_id).execute()
-        despacho_ids = [d['despacho_id'] for d in (df_r.data or [])]
+        df_r = supabase.table('despacho_fechamentos').select('despacho_id,valor_usd').eq('fechamento_id', fechamento_id).execute()
+        df_rows = df_r.data or []
+        despacho_ids = [d['despacho_id'] for d in df_rows]
         if not despacho_ids:
             return
         desp_r = supabase.table('despachos').select('status').in_('id', despacho_ids).execute()
         statuses = [d['status'] for d in (desp_r.data or [])]
         if not statuses or any(s != 'pago' for s in statuses):
+            return
+        # Verificar se o USD estimado foi totalmente consumido em despachos (tolerância de $1)
+        valor_estimado = float(fech_r.data.get('valor_usd_estimado') or 0)
+        total_alocado  = sum(float(d.get('valor_usd', 0)) for d in df_rows)
+        if valor_estimado - total_alocado > 1.0:
             return
         # Todos pagos — fechar o fechamento
         usuario = session.get('username', 'auto')
@@ -21255,71 +21262,70 @@ def fx_pl():
     try:
         if not session.get('username'):
             return jsonify({'success': False, 'message': 'Não autenticado'}), 401
-        rates = _fx_get_rates()
-        since   = _fx_ultimo_reset()
-        compras = supabase.table('pool_compras').select('moeda_comprada, valor_comprado, taxa_em_gbp, data').execute()
-        vendas  = supabase.table('pool_vendas').select('moeda, valor_vendido, data, created_at').order('data').execute()
-        wac, _ = _fx_wac(compras.data, vendas.data, since=since)
-        trades = supabase.table('transferencias')\
-            .select('*').eq('tipo', 'cambio').eq('status', 'completed')\
-            .order('data', desc=True).limit(300).execute()
+
+        # ── Realizado: despachos pagos com P&L calculado ─────────────────────
+        pagos_r = supabase.table('despachos').select(
+            'id,numero,parceiro_pagador,moeda_saida,valor_total,valor_gbp,'
+            'taxa_gbp_brl,lucro_gbp,lucro_brl,created_at'
+        ).eq('status', 'pago').not_.is_('lucro_gbp', 'null').order('created_at', desc=True).limit(300).execute()
+
         trades_pl = []
         total_realizado = 0.0
-        for t in (trades.data or []):
-            if str(t.get('id', '')).endswith('_cb'):
-                continue
-            m_in  = (t.get('moeda') or t.get('moeda_origem') or '').upper()
-            m_out = (t.get('moeda_destino') or '').upper()
-            v_in  = float(t.get('valor') or t.get('valor_origem') or 0)
-            v_out = float(t.get('valor_destino') or 0)
-            if not m_in or not v_in:
-                continue
-            rev_gbp  = _fx_to_gbp(v_in, m_in, rates)
-            cost_gbp = v_out * wac[m_out] if m_out in wac and v_out else _fx_to_gbp(v_out, m_out, rates)
-            profit   = rev_gbp - cost_gbp
-            total_realizado += profit
+        for d in (pagos_r.data or []):
+            lucro_gbp = float(d.get('lucro_gbp') or 0)
+            valor_gbp = float(d.get('valor_gbp') or 0)
+            taxa      = float(d.get('taxa_gbp_brl') or 0)
+            total_realizado += lucro_gbp
+            margem = round((lucro_gbp / valor_gbp * 100) if valor_gbp else 0, 2)
             trades_pl.append({
-                'id': t.get('id'),
-                'data': t.get('data') or t.get('created_at'),
-                'cliente': t.get('cliente') or t.get('usuario') or 'N/A',
-                'm_in': m_in, 'v_in': round(v_in, 2),
-                'm_out': m_out, 'v_out': round(v_out, 2),
-                'cotacao': t.get('cotacao') or t.get('taxa_cambio'),
-                'rev_gbp': round(rev_gbp, 4),
-                'cost_gbp': round(cost_gbp, 4),
-                'profit_gbp': round(profit, 4),
-                'margin_pct': round((profit / rev_gbp * 100) if rev_gbp else 0, 2)
+                'id':              d.get('numero') or str(d.get('id', ''))[:8],
+                'data':            d.get('created_at'),
+                'parceiro':        d.get('parceiro_pagador') or 'N/A',
+                'moeda':           (d.get('moeda_saida') or 'USD').upper(),
+                'valor_brl':       round(float(d.get('valor_total') or 0), 2),
+                'valor_gbp_custo': round(valor_gbp, 2),
+                'taxa_gbp_brl':    round(taxa, 4),
+                'lucro_gbp':       round(lucro_gbp, 4),
+                'lucro_brl':       round(float(d.get('lucro_brl') or 0), 4),
+                'margem_pct':      margem,
             })
-        pendentes = supabase.table('transferencias')\
-            .select('*').in_('status', ['solicitada', 'pending', 'processing'])\
-            .in_('tipo', ['transferencia_internacional', 'internacional', 'cambio']).execute()
+
+        # ── Não-realizado: despachos em aberto com GBP comprometido ──────────
+        abertos_r = supabase.table('despachos').select(
+            'id,numero,parceiro_pagador,moeda_saida,valor_total,valor_gbp,'
+            'taxa_gbp_brl,status,created_at'
+        ).neq('status', 'pago').not_.is_('valor_gbp', 'null').order('created_at', desc=True).execute()
+
         posicoes = []
         total_nao_realizado = 0.0
-        for p in (pendentes.data or []):
-            if str(p.get('id', '')).endswith('_cb'):
-                continue
-            m_in  = (p.get('moeda') or p.get('moeda_origem') or '').upper()
-            m_out = (p.get('moeda_destino') or m_in).upper()
-            v_in  = float(p.get('valor') or p.get('valor_origem') or 0)
-            v_out = float(p.get('valor_destino') or v_in)
-            rev_gbp  = _fx_to_gbp(v_in, m_in, rates) if m_in and v_in else 0
-            cost_gbp = v_out * wac[m_out] if m_out in wac and v_out else _fx_to_gbp(v_out, m_out, rates)
-            profit   = rev_gbp - cost_gbp
-            total_nao_realizado += profit
+        for d in (abertos_r.data or []):
+            taxa      = float(d.get('taxa_gbp_brl') or 0)
+            valor_gbp = float(d.get('valor_gbp') or 0)
+            valor_brl = float(d.get('valor_total') or 0)
+            if taxa and valor_gbp:
+                lucro_brl_est = valor_gbp * taxa - valor_brl
+                lucro_gbp_est = lucro_brl_est / taxa
+            else:
+                lucro_gbp_est = 0.0
+            total_nao_realizado += lucro_gbp_est
             posicoes.append({
-                'id': p.get('id'), 'tipo': p.get('tipo'), 'status': p.get('status'),
-                'cliente': p.get('cliente') or p.get('usuario') or 'N/A',
-                'm_in': m_in, 'v_in': round(v_in, 2),
-                'm_out': m_out, 'v_out': round(v_out, 2),
-                'rev_gbp': round(rev_gbp, 4), 'cost_gbp': round(cost_gbp, 4),
-                'profit_gbp': round(profit, 4)
+                'id':              d.get('numero') or str(d.get('id', ''))[:8],
+                'status':          d.get('status'),
+                'parceiro':        d.get('parceiro_pagador') or 'N/A',
+                'moeda':           (d.get('moeda_saida') or 'USD').upper(),
+                'valor_brl':       round(valor_brl, 2),
+                'valor_gbp_custo': round(valor_gbp, 2),
+                'taxa_gbp_brl':    round(taxa, 4),
+                'lucro_gbp_est':   round(lucro_gbp_est, 4),
             })
+
         return jsonify({
             'success': True,
-            'total_realizado_gbp': round(total_realizado, 4),
+            'total_realizado_gbp':     round(total_realizado, 4),
             'total_nao_realizado_gbp': round(total_nao_realizado, 4),
-            'total_geral_gbp': round(total_realizado + total_nao_realizado, 4),
-            'trades': trades_pl, 'posicoes_abertas': posicoes, 'rates': rates
+            'total_geral_gbp':         round(total_realizado + total_nao_realizado, 4),
+            'trades':          trades_pl,
+            'posicoes_abertas': posicoes,
         })
     except Exception as e:
         _sec_log.debug("traceback suprimido em producao", exc_info=_IS_DEBUG)
@@ -21746,6 +21752,14 @@ def fx_listar_fechamentos():
             return jsonify({'success': False, 'message': 'Não autenticado'}), 401
         r = supabase.table('fx_fechamentos').select('*').order('created_at', desc=True).execute()
         fechamentos = r.data or []
+        # Batch query despacho_fechamentos for all fechamentos at once
+        fids = [f['id'] for f in fechamentos]
+        alocados_map = {}
+        if fids:
+            df_r = supabase.table('despacho_fechamentos').select('fechamento_id,valor_usd').in_('fechamento_id', fids).execute()
+            for row in (df_r.data or []):
+                fid_key = row['fechamento_id']
+                alocados_map[fid_key] = alocados_map.get(fid_key, 0) + float(row.get('valor_usd', 0))
         for f in fechamentos:
             fid = f['id']
             cob_r = supabase.table('fx_coberturas').select('valor_usd,valor_gbp,taxa_gbp_usd,created_at').eq('fechamento_id', fid).execute()
@@ -21754,6 +21768,7 @@ def fx_listar_fechamentos():
             total_cob_gbp = round(sum(float(c.get('valor_gbp', 0)) for c in f['coberturas']), 2)
             f['total_coberto_usd'] = total_cob_usd
             f['total_coberto_gbp'] = total_cob_gbp
+            f['total_alocado_despachos_usd'] = round(alocados_map.get(fid, 0), 2)
             # Implicit effective GBP/BRL = (GBP spent per USD) / taxa_usd_brl
             taxa_usd_brl = float(f.get('taxa_usd_brl') or 0)
             if total_cob_gbp > 0 and total_cob_usd > 0 and taxa_usd_brl > 0:
