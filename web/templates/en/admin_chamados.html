@@ -631,7 +631,7 @@ function receiptHtml(m) {
     if (m.is_nota_interna || m.autor_tipo !== 'admin') return '';
     return m.lida_cliente
         ? `<span class="msg-receipt read" title="Read by client"><i class="fas fa-check-double"></i></span>`
-        : `<span class="msg-receipt sent" title="Sent"><i class="fas fa-check"></i></span>`;
+        : `<span class="msg-receipt sent" title="Sent"><i class="fas fa-check-double"></i></span>`;
 }
 
 function renderMensagens(msgs) {
